@@ -1,10 +1,19 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, FileText } from "lucide-react";
+import { CheckCircle2, Compass, FileText } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type {
   ProposalDryRunResponse,
   ProposalSummary,
 } from "../../lib/types.js";
+
+/** Provenance of a proposal, derived from its id: the Shape chain writes
+ *  `shape-<runId>`; `vibe roadmap plan` / the Generate action write
+ *  `<timestamp>-<slug>`. One store, two sources - label which. */
+function proposalOrigin(id: string): { label: string; tone: string } {
+  return id.startsWith("shape-")
+    ? { label: "From Shape", tone: "text-violet-soft" }
+    : { label: "Ad-hoc plan", tone: "text-fog-400" };
+}
 
 export function ProposalsPage({
   onOpenProposal,
@@ -13,6 +22,9 @@ export function ProposalsPage({
 }) {
   const [proposals, setProposals] = useState<ProposalSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [goal, setGoal] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
 
   async function load() {
     try {
@@ -20,6 +32,23 @@ export function ProposalsPage({
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function generate() {
+    const g = goal.trim();
+    if (!g || generating) return;
+    setGenerating(true);
+    setGenError(null);
+    try {
+      const r = await api.planRoadmap({ goal: g });
+      setGoal("");
+      await load();
+      onOpenProposal(r.proposalId);
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setGenerating(false);
     }
   }
 
@@ -41,58 +70,99 @@ export function ProposalsPage({
             {proposals.length}
           </span>
         </h1>
-        <span className="text-[11.5px] text-fog-500 mono ml-auto">
-          generate one:{" "}
-          <code className="bg-white/[0.04] px-1 py-0.5 text-fog-200">
-            vibe roadmap plan "&lt;goal&gt;"
-          </code>
-        </span>
       </section>
       <p className="text-[12.5px] text-fog-300 mt-2 max-w-[760px]">
-        Drafts produced by the planner agent. Review, dry-run, then accept to
-        create the corresponding roadmap items and tasks.
+        One inbox for every roadmap draft, whether the planner wrote it from a
+        broad goal here or it came out of a Shape run. Review, dry-run, then
+        accept to create the roadmap items and tasks.
       </p>
 
+      <div className="slab mt-4 p-3">
+        <div className="flex items-center gap-2">
+          <input
+            value={goal}
+            onChange={(e) => setGoal(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void generate();
+            }}
+            disabled={generating}
+            placeholder="Plan a roadmap for a broad goal, e.g. Build the first public beta"
+            className="flex-1 h-9 bg-ink-200 border border-white/[0.09] px-3 text-[13px] text-fog-100 placeholder:text-fog-500 outline-none focus:border-violet-soft/40 disabled:opacity-60"
+          />
+          <button
+            type="button"
+            onClick={() => void generate()}
+            disabled={!goal.trim() || generating}
+            className="h-9 px-4 inline-flex items-center gap-2 whitespace-nowrap bg-violet-deep text-white text-[12.5px] font-medium hover:bg-violet-mid disabled:opacity-50"
+          >
+            <Compass className="h-3.5 w-3.5" strokeWidth={2} />
+            {generating ? "Planning…" : "Generate proposal"}
+          </button>
+        </div>
+        {genError ? (
+          <div className="mt-2 text-[11.5px] text-vibestrate-fail">{genError}</div>
+        ) : null}
+        <div className="mt-2 text-[11px] text-fog-500">
+          {generating ? (
+            "Running the local planner agent - this can take a moment."
+          ) : (
+            <>
+              Runs the local planner agent · CLI:{" "}
+              <code className="mono bg-white/[0.04] px-1 py-0.5 text-fog-300">
+                vibe roadmap plan "&lt;goal&gt;"
+              </code>
+            </>
+          )}
+        </div>
+      </div>
+
       {proposals.length === 0 ? (
-        <div className="slab mt-5 px-6 py-10 text-center text-[12.5px] text-fog-300">
-          No proposals yet.
+        <div className="slab mt-3 px-6 py-10 text-center text-[12.5px] text-fog-300">
+          No proposals yet, generate one above.
         </div>
       ) : (
-        <ol className="mt-5 space-y-2">
-          {proposals.map((p) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                onClick={() => onOpenProposal(p.id)}
-                className="flex w-full items-center gap-3 border border-white/[0.09] bg-ink-100 hover:bg-ink-200 p-3 text-left transition"
-              >
-                {p.accepted ? (
-                  <CheckCircle2
-                    className="h-4 w-4 text-emerald-300"
-                    strokeWidth={1.6}
-                  />
-                ) : (
-                  <FileText
-                    className="h-4 w-4 text-violet-soft"
-                    strokeWidth={1.6}
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="mono truncate text-[12.5px] text-fog-100">
-                    {p.id}
+        <ol className="mt-3 space-y-2">
+          {proposals.map((p) => {
+            const origin = proposalOrigin(p.id);
+            return (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => onOpenProposal(p.id)}
+                  className="flex w-full items-center gap-3 border border-white/[0.09] bg-ink-100 hover:bg-ink-200 p-3 text-left transition"
+                >
+                  {p.accepted ? (
+                    <CheckCircle2
+                      className="h-4 w-4 text-emerald-300"
+                      strokeWidth={1.6}
+                    />
+                  ) : (
+                    <FileText
+                      className="h-4 w-4 text-violet-soft"
+                      strokeWidth={1.6}
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="mono truncate text-[12.5px] text-fog-100">
+                      {p.id}
+                    </div>
+                    <div className="text-[11px] text-fog-500 flex items-center gap-1.5">
+                      <span className={origin.tone}>{origin.label}</span>
+                      <span>·</span>
+                      <span>
+                        {p.accepted
+                          ? `accepted ${p.acceptedAt ? new Date(p.acceptedAt).toLocaleString() : ""}`
+                          : `draft · modified ${new Date(p.modifiedAt).toLocaleString()}`}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-fog-500">
-                    {p.accepted
-                      ? `accepted ${p.acceptedAt ? new Date(p.acceptedAt).toLocaleString() : ""}`
-                      : `draft · modified ${new Date(p.modifiedAt).toLocaleString()}`}
-                  </div>
-                </div>
-                <span className="mono text-[10.5px] text-fog-500">
-                  {p.byteSize}b
-                </span>
-              </button>
-            </li>
-          ))}
+                  <span className="mono text-[10.5px] text-fog-500">
+                    {p.byteSize}b
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ol>
       )}
     </div>

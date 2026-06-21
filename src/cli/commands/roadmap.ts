@@ -3,8 +3,8 @@ import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { ProposalService } from "../../roadmap/proposal-service.js";
+import { generateRoadmapProposal } from "../../roadmap/roadmap-planner.js";
 import { color, header, indent, symbol } from "../ui/format.js";
-import { getCrew, rolesFillingSeat } from "../../crews/crew-registry.js";
 import { isVibestrateError } from "../../utils/errors.js";
 
 async function svc() {
@@ -496,144 +496,24 @@ async function cmdRoadmapPlan(
     return 1;
   }
   const detected = await detectProject(process.cwd());
-  // Lazily import to avoid pulling provider-runner into the CLI module graph
-  // when the user only uses non-plan commands.
-  const [
-    { loadConfig, loadRolePrompt },
-    { runProvider },
-    { providerCommandLabel },
-    { fileURLToPath },
-    fs,
-  ] = await Promise.all([
-    import("../../project/config-loader.js"),
-    import("../../providers/provider-runner.js"),
-    import("../../providers/provider-schema.js"),
-    import("node:url"),
-    import("node:fs/promises"),
-  ]);
-
-  let loaded;
+  console.log(`${symbol.bullet()} Planning a roadmap for: ${color.bold(goal)}`);
   try {
-    loaded = await loadConfig(detected.projectRoot);
-  } catch (err) {
-    console.error(
-      `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
-    );
-    console.error(
-      `  ${symbol.arrow()} Run ${color.bold("vibe init")} first.`,
-    );
-    return 1;
-  }
-
-  // Pick a provider for the ad-hoc roadmap planning call: the default crew's
-  // role that fills the "planner" seat (via its Profile), else any profile.
-  const { crew } = getCrew(loaded.config);
-  const plannerRole =
-    rolesFillingSeat(crew, "planner")[0]?.role ??
-    Object.values(crew.roles)[0];
-  const plannerProvider = plannerRole
-    ? loaded.config.profiles[plannerRole.profile]?.provider
-    : Object.values(loaded.config.profiles)[0]?.provider;
-  if (!plannerProvider) {
-    console.error(
-      `${symbol.fail()} No planner role/provider configured. Run ${color.bold("vibe init --force")} or ${color.bold("vibe provider setup")}.`,
-    );
-    return 1;
-  }
-  const providerId = opts.provider ?? plannerProvider;
-  if (!loaded.config.providers[providerId]) {
-    console.error(
-      `${symbol.fail()} Provider "${providerId}" is not configured.`,
-    );
-    return 1;
-  }
-
-  // Build the planner prompt by appending the user's goal to the
-  // roadmap-planner default prompt. This is intentionally a small wrapper -
-  // the agent does the heavy lifting from the canonical prompt.
-  const here = path.dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    path.resolve(here, "..", "..", "..", "src", "agents", "default-prompts", "roadmap-planner.md"),
-    path.resolve(here, "..", "..", "src", "agents", "default-prompts", "roadmap-planner.md"),
-    path.resolve(here, "default-prompts", "roadmap-planner.md"),
-  ];
-  let template = "";
-  for (const c of candidates) {
-    try {
-      template = await fs.readFile(c, "utf8");
-      break;
-    } catch {
-      // try next
-    }
-  }
-  if (!template) {
-    console.error(
-      `${symbol.fail()} Could not locate the roadmap-planner prompt template.`,
-    );
-    return 1;
-  }
-  const prompt = `${template}\n\n# Broad goal\n\n${goal}\n`;
-
-  console.log(
-    `${symbol.bullet()} Planning a roadmap for: ${color.bold(goal)}`,
-  );
-  console.log(
-    `  ${color.dim(`provider: ${providerId} (${providerCommandLabel(loaded.config.providers[providerId]!)})`)}`,
-  );
-  let result;
-  try {
-    result = await runProvider(loaded.config.providers, {
-      providerId,
-      prompt,
-      cwd: detected.projectRoot,
+    const { proposalId, sourcePath } = await generateRoadmapProposal({
+      projectRoot: detected.projectRoot,
+      goal,
+      providerId: opts.provider,
+      proposalId: opts.id,
     });
-  } catch (err) {
-    console.error(
-      `${symbol.fail()} Planner failed: ${
-        err instanceof Error ? err.message : String(err)
-      }`,
-    );
-    console.error(
-      `  ${symbol.arrow()} Make sure ${color.bold(providerCommandLabel(loaded.config.providers[providerId]!))} is available (\`vibe provider detect\`).`,
-    );
-    return 1;
-  }
-
-  if (result.exitCode !== 0) {
-    console.error(
-      `${symbol.fail()} Planner exited with code ${result.exitCode}.`,
-    );
-    if (result.stderr.trim()) console.error(indent(result.stderr.trim()));
-    return 1;
-  }
-
-  // Save raw output as a proposal.
-  const ps = new ProposalService(detected.projectRoot);
-  await ps.init();
-  const ts = new Date().toISOString().replace(/[:.]/g, "-").replace(/Z$/, "");
-  // slug is best-effort; the proposal id is path-safe.
-  const slug = goal
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-  const id = (opts.id ?? `${ts}-${slug}`).replace(/^-+|-+$/g, "");
-  try {
-    // The normalized response, not raw stdout - a stream-json provider's
-    // stdout is event JSONL, not the plan text.
-    const target = await ps.writeProposalText(id, result.normalized.responseText);
-    console.log(`${symbol.ok()} Saved proposal ${color.bold(id)}.`);
-    console.log(indent(`path: ${path.relative(process.cwd(), target)}`));
+    console.log(`${symbol.ok()} Saved proposal ${color.bold(proposalId)}.`);
+    console.log(indent(`path: ${path.relative(process.cwd(), sourcePath)}`));
     console.log("");
-    console.log(`${symbol.arrow()} Review: ${color.bold(`vibe roadmap proposal show ${id}`)}`);
-    console.log(`${symbol.arrow()} Preview: ${color.bold(`vibe roadmap accept ${id} --dry-run`)}`);
-    console.log(`${symbol.arrow()} Accept:  ${color.bold(`vibe roadmap accept ${id}`)}`);
+    console.log(`${symbol.arrow()} Review: ${color.bold(`vibe roadmap proposal show ${proposalId}`)}`);
+    console.log(`${symbol.arrow()} Preview: ${color.bold(`vibe roadmap accept ${proposalId} --dry-run`)}`);
+    console.log(`${symbol.arrow()} Accept:  ${color.bold(`vibe roadmap accept ${proposalId}`)}`);
     return 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} Could not save proposal: ${
-        err instanceof Error ? err.message : String(err)
-      }`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     return 1;
   }

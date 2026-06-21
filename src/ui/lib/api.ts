@@ -1749,6 +1749,14 @@ export const api = {
     );
     return r.proposals;
   },
+  /** Generate a roadmap proposal from a broad goal (mirrors `vibe roadmap
+   *  plan`). Runs the local planner provider inline, so this can take a while. */
+  async planRoadmap(input: {
+    goal: string;
+    providerId?: string;
+  }): Promise<{ ok: true; proposalId: string }> {
+    return jsonPost("/api/roadmap/proposals", input);
+  },
   async getProposal(id: string): Promise<{
     proposalId: string;
     body: string;

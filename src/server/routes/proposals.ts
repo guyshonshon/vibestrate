@@ -4,6 +4,10 @@ import {
   ProposalService,
   ProposalServiceError,
 } from "../../roadmap/proposal-service.js";
+import {
+  generateRoadmapProposal,
+  RoadmapPlanError,
+} from "../../roadmap/roadmap-planner.js";
 import { HttpError } from "../security.js";
 
 const PROPOSAL_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
@@ -19,6 +23,11 @@ const acceptBody = z.object({
   allowUnresolvedDependencies: z.boolean().optional(),
 });
 
+const planBody = z.object({
+  goal: z.string().min(1).max(2000),
+  providerId: z.string().min(1).max(80).optional(),
+});
+
 export type ProposalsRoutesDeps = { projectRoot: string };
 
 export async function registerProposalsRoutes(
@@ -30,6 +39,27 @@ export async function registerProposalsRoutes(
   app.get("/api/roadmap/proposals", async () => {
     const proposals = await svc.listProposals();
     return { proposals };
+  });
+
+  // Generate a proposal from a broad goal (the dashboard "Generate" action;
+  // mirrors `vibe roadmap plan`). Runs the local planner provider inline - like
+  // shapeAssist, this can take a while, so the client shows a working state.
+  app.post<{ Body: unknown }>("/api/roadmap/proposals", async (req) => {
+    const parsed = planBody.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid goal.");
+    }
+    try {
+      const { proposalId } = await generateRoadmapProposal({
+        projectRoot: deps.projectRoot,
+        goal: parsed.data.goal,
+        providerId: parsed.data.providerId,
+      });
+      return { ok: true, proposalId };
+    } catch (err) {
+      if (err instanceof RoadmapPlanError) throw new HttpError(400, err.message);
+      throw err;
+    }
   });
 
   app.get<{ Params: { proposalId: string } }>(
