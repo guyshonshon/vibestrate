@@ -85,15 +85,58 @@ if/when we decide the cost is worth it. Shape resumability already works.
   (graceful shutdown + orchestrator reload + phase-restart). Largest; only the
   shape phase needs resume today and it already has it.
 
-## Open decisions
+## Decisions (settled with user, 2026-06-21)
 
-- The new name for "Shape" (candidates: Intake, Scoping, Discovery, Brief,
-  Spec-up). Owner: user.
-- Should `awaiting_input` be a real status (Phase 1) or stay a derived flag over
-  `merge_ready` (M0 only)? The derived flag is far cheaper and fixes the bug;
-  the real status is more honest but Tier-2.
-- How far to take Phase 3 (or whether to at all), given shape already resumes.
+- **New name: "Spec-up"** (replaces "Shape").
+- **Scope: M0 + P1 + rename.** Ship the derived `awaitingInput` correctness
+  slice (M0), the first-class `awaiting_input` status + honest finalize / abort /
+  awaiting UI (P1), and the rename to Spec-up.
+- **P3 (execution-resume-after-death) is OUT for now** - the Spec-up phase
+  already resumes (artifact-driven); a mid-build resume foundation isn't worth it
+  yet.
 
-## Review trail
+Still open (pending the adversarial-review verdict):
+- M0 false-positive risk: a finalized chain whose `questions.json` persists could
+  still read "awaiting" - the detection must distinguish "awaiting" from "was a
+  spec run, now done".
+- Whether `awaiting_input` as a real status ripples too far (broker `run.complete`
+  downgrade, the transition matrix, merge-advisor / mission consumers of
+  `merge_ready`).
 
-(to be filled by the adversarial pass)
+## Review trail (adversarial pass, 2026-06-21)
+
+Reviewer: independent Opus, read-only, code-grounded. Verdict: diagnosis correct,
+but M0 had a fatal false-positive and a live bug was understated.
+
+- FATAL (accepted): `awaitingInput` = "questions.json parses" is permanently TRUE
+  for every intake run ever, including answered/finalized ones - nothing deletes
+  or marks `questions.json` answered (`shape-chain.ts:198-233`; submit writes a
+  separate `shape-answers.md`). Reopening a finalized run would offer a Submit
+  that spawns a DUPLICATE run. Fix: the flag needs a TERMINATOR - "awaiting" iff
+  questions exist AND not yet answered/superseded (a marker at submit, or "no
+  downstream run carries this run as `shapeRootRunId`").
+- LIVE BUG (accepted): an awaiting intake run lands `merge_ready` WITH a branch
+  (`prepareWorktree` unconditional), so it leaks into the merge-candidate list
+  (`integration-service.ts:90`) and inflates provider success-rate
+  (`overview-aggregator.ts:379,741` count every merge_ready as success, no
+  readOnly filter). Independent of the redesign.
+- FINDABILITY (accepted): the real broken half - `isShapingRun` keys on
+  `blocked`, real awaiting runs are `merge_ready`, so it's dead for the happy
+  path. Reopen-by-URL works (`RunDetailPage.tsx:230-233` keys on flow+questions,
+  not status); find-in-list is broken.
+- P1 (accepted): a new `awaiting_input` RunStatus ripples to ~40 sites; the
+  corrected derived flag + the two guards cover shape at a fraction of the cost.
+  P1 only earns its keep when a SECOND pauses-for-input source exists.
+
+## Revised plan (post-review)
+
+- **M0.5 (do first, independent):** add a `readOnly` / `flowId !== "shape-intake"`
+  guard to `listMergeReadyRuns` (`integration-service.ts:90`) and the `merged`
+  filters (`overview-aggregator.ts:379,741`). Fixes the live metric/integration
+  leak now.
+- **M0 (corrected):** server-computed `awaitingInput` flag WITH a terminator
+  (questions present AND not answered/superseded). Re-key `isShapingRun` on it.
+  Fixes the mislabel + findability honestly.
+- **P1 (real `awaiting_input` status): DEFERRED** until a second awaiting source
+  appears. The corrected flag is the chosen mechanism for now.
+- **Rename "Shape" -> "Spec-up":** unchanged, independent, mechanical.
