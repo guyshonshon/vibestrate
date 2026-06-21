@@ -16,7 +16,6 @@ import type {
   GitApplyResult,
   GitUndoResult,
 } from "../../lib/types.js";
-import { Chip } from "../design/Chip.js";
 import { cn } from "../design/cn.js";
 import { ConflictResolver } from "./ConflictResolver.js";
 
@@ -211,6 +210,7 @@ function BranchSelect({
     <div>
       <div className="text-[10.5px] text-fog-500 mb-1">{label}</div>
       <select
+        aria-label={label}
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value || null)}
         className="w-full h-8 px-2 text-[12px] mono text-fog-100 bg-ink-200 border border-white/10 focus:outline-none focus:border-violet-soft/40"

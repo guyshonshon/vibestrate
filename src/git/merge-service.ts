@@ -71,7 +71,9 @@ const AUDIT_RUN = "git-tree";
 export type MergePrediction = {
   source: string;
   target: string;
-  /** Tip shas at predict time, for the UI overlay and apply-time drift checks. */
+  /** Tip shas at predict time, for the UI overlay. Apply intentionally does NOT
+   *  compare these - it re-resolves the refs fresh under its own guards, so a
+   *  stale prediction can never drive a merge of the wrong commits (TOCTOU). */
   sourceSha: string;
   targetSha: string;
   clean: boolean;
@@ -208,8 +210,9 @@ export async function predictMerge(input: {
   });
   try {
     const attempt = await mergeNoCommit(scratchPath, source);
-    // Clean with no staged result == source already merged into target.
-    const alreadyUpToDate = attempt.clean && !(await hasChanges(scratchPath));
+    // Clean with no MERGE_HEAD == source already merged into target (nothing to
+    // merge); MERGE_HEAD, not `git status`, so untracked files don't mislead.
+    const alreadyUpToDate = attempt.clean && !(await mergeInProgress(scratchPath));
     if (!attempt.clean) await abortMerge(scratchPath);
     return {
       source,
@@ -362,69 +365,105 @@ export async function applyMerge(input: {
   const { source, target, loaded, broker, req, decision, preSha, sourceSha } =
     await beginApply(input);
 
-  const attempt = await mergeNoCommit(input.projectRoot, source);
-  if (!attempt.clean) {
-    // Conflict: leave nothing on the real branch. Abort restores the tree to
-    // preSha (HEAD never moved), so there is nothing to undo - drop the record.
-    await abortMerge(input.projectRoot);
-    await deleteMergeRecord(input.projectRoot, target);
-    await broker.record(req, decision, {
-      ok: false,
-      summary: `merge ${source} -> ${target} conflicted; aborted (${attempt.conflictedFiles.length} file(s))`,
-    });
-    throw new MergeError(
-      `Merge of "${source}" into "${target}" has conflicts (${attempt.conflictedFiles.join(", ") || "merge failed"}). Predict + resolve before applying.`,
-    );
-  }
+  // Any UNEXPECTED throw after the record is written (e.g. git status failing)
+  // must not leave a partial staged merge + stale record on the real branch.
+  try {
+    const attempt = await mergeNoCommit(input.projectRoot, source);
+    if (!attempt.clean) {
+      // Conflict: leave nothing on the real branch. Abort restores the tree to
+      // preSha (HEAD never moved), so there is nothing to undo - drop the record.
+      await abortMerge(input.projectRoot);
+      await deleteMergeRecord(input.projectRoot, target);
+      await broker.record(req, decision, {
+        ok: false,
+        summary: `merge ${source} -> ${target} conflicted; aborted (${attempt.conflictedFiles.length} file(s))`,
+      });
+      throw new MergeError(
+        `Merge of "${source}" into "${target}" has conflicts (${attempt.conflictedFiles.join(", ") || "merge failed"}). Predict + resolve before applying.`,
+      );
+    }
 
-  // Clean but nothing staged == already up to date; no commit, nothing to undo.
-  if (!(await hasChanges(input.projectRoot))) {
-    await deleteMergeRecord(input.projectRoot, target);
+    // No MERGE_HEAD after a clean `--no-ff --no-commit` == already up to date
+    // (nothing to merge), so no commit + nothing to undo. We check MERGE_HEAD,
+    // not `git status`, because an untracked file in the project (e.g. ignored
+    // `.vibestrate` runtime) would otherwise look like a stageable change.
+    if (!(await mergeInProgress(input.projectRoot))) {
+      await deleteMergeRecord(input.projectRoot, target);
+      await broker.record(req, decision, {
+        ok: true,
+        summary: `merge ${source} -> ${target}: already up to date`,
+      });
+      return { source, target, preSha, mergedSha: preSha, alreadyUpToDate: true };
+    }
+
+    const committed = await commitMerge(
+      input.projectRoot,
+      `merge ${source} into ${target}`,
+      creditTrailers(loaded.config.commits),
+    );
+    if (!committed) {
+      await abortMerge(input.projectRoot);
+      await deleteMergeRecord(input.projectRoot, target);
+      await broker.record(req, decision, {
+        ok: false,
+        summary: `merge ${source} -> ${target}: commit failed; aborted`,
+      });
+      throw new MergeError(
+        `Merge of "${source}" into "${target}" staged but failed to commit (aborted).`,
+      );
+    }
+
+    await writeMergeRecord(input.projectRoot, {
+      target,
+      source,
+      preSha,
+      sourceSha,
+      mergedSha: committed.sha,
+      status: "applied",
+      recordedAt: new Date().toISOString(),
+      mergedAt: new Date().toISOString(),
+    });
     await broker.record(req, decision, {
       ok: true,
-      summary: `merge ${source} -> ${target}: already up to date`,
+      summary: `merged ${source} -> ${target} @ ${committed.sha.slice(0, 10)} (local only, not pushed)`,
     });
-    return { source, target, preSha, mergedSha: preSha, alreadyUpToDate: true };
+    return {
+      source,
+      target,
+      preSha,
+      mergedSha: committed.sha,
+      alreadyUpToDate: false,
+    };
+  } catch (err) {
+    if (!(err instanceof MergeError)) {
+      await abortPartialApply(
+        input.projectRoot,
+        target,
+        broker,
+        req,
+        decision,
+        `merge ${source} -> ${target}: unexpected error; aborted`,
+      );
+    }
+    throw err;
   }
+}
 
-  const committed = await commitMerge(
-    input.projectRoot,
-    `merge ${source} into ${target}`,
-    creditTrailers(loaded.config.commits),
-  );
-  if (!committed) {
-    await abortMerge(input.projectRoot);
-    await deleteMergeRecord(input.projectRoot, target);
-    await broker.record(req, decision, {
-      ok: false,
-      summary: `merge ${source} -> ${target}: commit failed; aborted`,
-    });
-    throw new MergeError(
-      `Merge of "${source}" into "${target}" staged but failed to commit (aborted).`,
-    );
-  }
-
-  await writeMergeRecord(input.projectRoot, {
-    target,
-    source,
-    preSha,
-    sourceSha,
-    mergedSha: committed.sha,
-    status: "applied",
-    recordedAt: new Date().toISOString(),
-    mergedAt: new Date().toISOString(),
-  });
-  await broker.record(req, decision, {
-    ok: true,
-    summary: `merged ${source} -> ${target} @ ${committed.sha.slice(0, 10)} (local only, not pushed)`,
-  });
-  return {
-    source,
-    target,
-    preSha,
-    mergedSha: committed.sha,
-    alreadyUpToDate: false,
-  };
+/** Best-effort cleanup when an UNEXPECTED error escapes a merge execution (a
+ *  MergeError has already cleaned up after itself). Aborts any in-progress
+ *  merge, drops the applying-record, and audits - so no partial merge or stale
+ *  record is left on the real branch. */
+async function abortPartialApply(
+  projectRoot: string,
+  target: string,
+  broker: ActionBroker,
+  req: ActionRequest,
+  decision: ActionDecision,
+  summary: string,
+): Promise<void> {
+  await abortMerge(projectRoot).catch(() => {});
+  await deleteMergeRecord(projectRoot, target).catch(() => {});
+  await broker.record(req, decision, { ok: false, summary }).catch(() => {});
 }
 
 /** A human-accepted resolution for one conflicted file (full file content). */
@@ -456,157 +495,175 @@ export async function applyResolvedMerge(input: {
     throw new MergeError(message);
   };
 
-  const attempt = await mergeNoCommit(input.projectRoot, source);
-  if (!attempt.clean) {
-    const conflicted = new Set(attempt.conflictedFiles);
-    for (const rf of input.resolvedFiles) {
-      const p = rf.path.trim();
-      // Only paths git itself reported as conflicted may be written. This is the
-      // traversal/stray-write guard: we never write an arbitrary client path.
-      if (!conflicted.has(p)) {
-        await fail(
-          `resolved apply ${source} -> ${target}: rejected non-conflicted path "${p}"`,
-          `Refusing to write "${p}": not one of this merge's conflicted files.`,
-        );
-      }
-      if (isSecretLikePath(p)) {
-        await fail(
-          `resolved apply ${source} -> ${target}: rejected secret-like path "${p}"`,
-          `Refusing to write a resolution to secret-like path "${p}" - resolve it manually.`,
-        );
-      }
-      if (hasConflictMarkers(rf.content)) {
-        await fail(
-          `resolved apply ${source} -> ${target}: residual markers in "${p}"`,
-          `The resolution for "${p}" still contains conflict markers.`,
-        );
-      }
-      if (isLikelyBinary(rf.content)) {
-        await fail(
-          `resolved apply ${source} -> ${target}: binary content for "${p}"`,
-          `Refusing a binary resolution for "${p}" - resolve it manually.`,
-        );
-      }
-      // Symlink-safe write (adversarial-review BLOCKER): `conflicted.has(p)`
-      // only validates the path STRING, but git can leave a conflict as a
-      // symlink - a naive writeFile would follow it outside the repo or into
-      // `.git/hooks` (RCE). Refuse a symlinked leaf, a parent that resolves
-      // outside the project root or into `.git`, and use O_NOFOLLOW so a
-      // TOCTOU re-link between check and write can't escape either.
-      const abs = path.join(input.projectRoot, p);
-      const lst = await fs.lstat(abs).catch(() => null);
-      if (lst?.isSymbolicLink()) {
-        await fail(
-          `resolved apply ${source} -> ${target}: symlink path "${p}"`,
-          `Refusing to write to "${p}": it is a symlink - resolve symlink conflicts manually.`,
-        );
-      }
-      const realRoot = await fs.realpath(input.projectRoot);
-      const realParent = await fs.realpath(path.dirname(abs)).catch(() => null);
-      const insideRoot =
-        realParent === realRoot || (realParent?.startsWith(realRoot + path.sep) ?? false);
-      const gitDir = path.join(realRoot, ".git");
-      const underGit =
-        realParent === gitDir || (realParent?.startsWith(gitDir + path.sep) ?? false);
-      if (!realParent || !insideRoot || underGit) {
-        await fail(
-          `resolved apply ${source} -> ${target}: path "${p}" resolves outside the worktree`,
-          `Refusing to write "${p}": it resolves outside the project worktree (or into .git).`,
-        );
-      }
-      try {
-        const fh = await fs.open(
-          abs,
-          fsConstants.O_WRONLY |
-            fsConstants.O_CREAT |
-            fsConstants.O_TRUNC |
-            fsConstants.O_NOFOLLOW,
-        );
-        try {
-          await fh.writeFile(rf.content, "utf8");
-        } finally {
-          await fh.close();
+  // Any UNEXPECTED throw after files are written/staged must not leave a partial
+  // merge + stale record on the real branch (a MergeError from fail() already
+  // cleaned up). Wrap the whole execution.
+  try {
+    const attempt = await mergeNoCommit(input.projectRoot, source);
+    if (!attempt.clean) {
+      const conflicted = new Set(attempt.conflictedFiles);
+      for (const rf of input.resolvedFiles) {
+        const p = rf.path.trim();
+        // Only paths git itself reported as conflicted may be written. This is the
+        // traversal/stray-write guard: we never write an arbitrary client path.
+        if (!conflicted.has(p)) {
+          await fail(
+            `resolved apply ${source} -> ${target}: rejected non-conflicted path "${p}"`,
+            `Refusing to write "${p}": not one of this merge's conflicted files.`,
+          );
         }
-      } catch {
+        if (isSecretLikePath(p)) {
+          await fail(
+            `resolved apply ${source} -> ${target}: rejected secret-like path "${p}"`,
+            `Refusing to write a resolution to secret-like path "${p}" - resolve it manually.`,
+          );
+        }
+        if (hasConflictMarkers(rf.content)) {
+          await fail(
+            `resolved apply ${source} -> ${target}: residual markers in "${p}"`,
+            `The resolution for "${p}" still contains conflict markers.`,
+          );
+        }
+        if (isLikelyBinary(rf.content)) {
+          await fail(
+            `resolved apply ${source} -> ${target}: binary content for "${p}"`,
+            `Refusing a binary resolution for "${p}" - resolve it manually.`,
+          );
+        }
+        // Symlink-safe write (adversarial-review BLOCKER): `conflicted.has(p)`
+        // only validates the path STRING, but git can leave a conflict as a
+        // symlink - a naive writeFile would follow it outside the repo or into
+        // `.git/hooks` (RCE). Refuse a symlinked leaf, a parent that resolves
+        // outside the project root or into `.git`, and use O_NOFOLLOW so a
+        // TOCTOU re-link between check and write can't escape either.
+        const abs = path.join(input.projectRoot, p);
+        const lst = await fs.lstat(abs).catch(() => null);
+        if (lst?.isSymbolicLink()) {
+          await fail(
+            `resolved apply ${source} -> ${target}: symlink path "${p}"`,
+            `Refusing to write to "${p}": it is a symlink - resolve symlink conflicts manually.`,
+          );
+        }
+        const realRoot = await fs.realpath(input.projectRoot);
+        const realParent = await fs.realpath(path.dirname(abs)).catch(() => null);
+        const insideRoot =
+          realParent === realRoot || (realParent?.startsWith(realRoot + path.sep) ?? false);
+        const gitDir = path.join(realRoot, ".git");
+        const underGit =
+          realParent === gitDir || (realParent?.startsWith(gitDir + path.sep) ?? false);
+        if (!realParent || !insideRoot || underGit) {
+          await fail(
+            `resolved apply ${source} -> ${target}: path "${p}" resolves outside the worktree`,
+            `Refusing to write "${p}": it resolves outside the project worktree (or into .git).`,
+          );
+        }
+        try {
+          const fh = await fs.open(
+            abs,
+            fsConstants.O_WRONLY |
+              fsConstants.O_CREAT |
+              fsConstants.O_TRUNC |
+              fsConstants.O_NOFOLLOW,
+          );
+          try {
+            await fh.writeFile(rf.content, "utf8");
+          } finally {
+            await fh.close();
+          }
+        } catch {
+          await fail(
+            `resolved apply ${source} -> ${target}: write refused for "${p}"`,
+            `Refusing to write "${p}": the path could not be opened safely (symlink?).`,
+          );
+        }
+        const add = await execa("git", ["add", "--", p], {
+          cwd: input.projectRoot,
+          reject: false,
+        });
+        if (add.exitCode !== 0) {
+          await fail(
+            `resolved apply ${source} -> ${target}: git add failed for "${p}"`,
+            `Failed to stage the resolution for "${p}".`,
+          );
+        }
+      }
+      // Every conflict must be resolved - no unmerged paths may remain.
+      const unmerged = await execa(
+        "git",
+        ["diff", "--name-only", "--diff-filter=U"],
+        { cwd: input.projectRoot, reject: false },
+      );
+      const remaining = unmerged.stdout
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (remaining.length > 0) {
         await fail(
-          `resolved apply ${source} -> ${target}: write refused for "${p}"`,
-          `Refusing to write "${p}": the path could not be opened safely (symlink?).`,
+          `resolved apply ${source} -> ${target}: ${remaining.length} unresolved file(s)`,
+          `Not all conflicts were resolved (still unmerged: ${remaining.join(", ")}).`,
         );
       }
-      const add = await execa("git", ["add", "--", p], {
-        cwd: input.projectRoot,
-        reject: false,
+    } else if (!(await mergeInProgress(input.projectRoot))) {
+      // Clean + no MERGE_HEAD == already up to date (see applyMerge note).
+      await deleteMergeRecord(input.projectRoot, target);
+      await broker.record(req, decision, {
+        ok: true,
+        summary: `merge ${source} -> ${target}: already up to date`,
       });
-      if (add.exitCode !== 0) {
-        await fail(
-          `resolved apply ${source} -> ${target}: git add failed for "${p}"`,
-          `Failed to stage the resolution for "${p}".`,
-        );
-      }
+      return { source, target, preSha, mergedSha: preSha, alreadyUpToDate: true };
     }
-    // Every conflict must be resolved - no unmerged paths may remain.
-    const unmerged = await execa(
-      "git",
-      ["diff", "--name-only", "--diff-filter=U"],
-      { cwd: input.projectRoot, reject: false },
+
+    const committed = await commitMerge(
+      input.projectRoot,
+      `merge ${source} into ${target} (resolved)`,
+      creditTrailers(loaded.config.commits),
     );
-    const remaining = unmerged.stdout
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (remaining.length > 0) {
-      await fail(
-        `resolved apply ${source} -> ${target}: ${remaining.length} unresolved file(s)`,
-        `Not all conflicts were resolved (still unmerged: ${remaining.join(", ")}).`,
+    if (!committed) {
+      await abortMerge(input.projectRoot);
+      await deleteMergeRecord(input.projectRoot, target);
+      await broker.record(req, decision, {
+        ok: false,
+        summary: `resolved apply ${source} -> ${target}: commit failed; aborted`,
+      });
+      throw new MergeError(
+        `Merge of "${source}" into "${target}" failed to commit (aborted).`,
       );
     }
-  } else if (!(await hasChanges(input.projectRoot))) {
-    await deleteMergeRecord(input.projectRoot, target);
+
+    await writeMergeRecord(input.projectRoot, {
+      target,
+      source,
+      preSha,
+      sourceSha,
+      mergedSha: committed.sha,
+      status: "applied",
+      recordedAt: new Date().toISOString(),
+      mergedAt: new Date().toISOString(),
+    });
     await broker.record(req, decision, {
       ok: true,
-      summary: `merge ${source} -> ${target}: already up to date`,
+      summary: `merged (resolved) ${source} -> ${target} @ ${committed.sha.slice(0, 10)} (local only)`,
     });
-    return { source, target, preSha, mergedSha: preSha, alreadyUpToDate: true };
+    return {
+      source,
+      target,
+      preSha,
+      mergedSha: committed.sha,
+      alreadyUpToDate: false,
+    };
+  } catch (err) {
+    if (!(err instanceof MergeError)) {
+      await abortPartialApply(
+        input.projectRoot,
+        target,
+        broker,
+        req,
+        decision,
+        `resolved apply ${source} -> ${target}: unexpected error; aborted`,
+      );
+    }
+    throw err;
   }
-
-  const committed = await commitMerge(
-    input.projectRoot,
-    `merge ${source} into ${target} (resolved)`,
-    creditTrailers(loaded.config.commits),
-  );
-  if (!committed) {
-    await abortMerge(input.projectRoot);
-    await deleteMergeRecord(input.projectRoot, target);
-    await broker.record(req, decision, {
-      ok: false,
-      summary: `resolved apply ${source} -> ${target}: commit failed; aborted`,
-    });
-    throw new MergeError(
-      `Merge of "${source}" into "${target}" failed to commit (aborted).`,
-    );
-  }
-
-  await writeMergeRecord(input.projectRoot, {
-    target,
-    source,
-    preSha,
-    sourceSha,
-    mergedSha: committed.sha,
-    status: "applied",
-    recordedAt: new Date().toISOString(),
-    mergedAt: new Date().toISOString(),
-  });
-  await broker.record(req, decision, {
-    ok: true,
-    summary: `merged (resolved) ${source} -> ${target} @ ${committed.sha.slice(0, 10)} (local only)`,
-  });
-  return {
-    source,
-    target,
-    preSha,
-    mergedSha: committed.sha,
-    alreadyUpToDate: false,
-  };
 }
 
 /**

@@ -345,3 +345,44 @@ describe("undoMerge", () => {
     expect(await sha(dir, "main")).toBe(pre);
   });
 });
+
+describe("applyMerge - already up to date + broker gate", () => {
+  let dir: string;
+  beforeEach(async () => {
+    dir = await makeRepo();
+  });
+
+  it("predict + apply report alreadyUpToDate for an ancestor branch", async () => {
+    await git(dir, "branch", "anc", "main"); // points at main's tip -> nothing to merge
+    const pre = await sha(dir, "main");
+    const p = await predictMerge({ projectRoot: dir, source: "anc", target: "main" });
+    expect(p.clean).toBe(true);
+    expect(p.alreadyUpToDate).toBe(true);
+    const r = await applyMerge({ projectRoot: dir, source: "anc", target: "main", humanConfirmed: true });
+    expect(r.alreadyUpToDate).toBe(true);
+    expect(await sha(dir, "main")).toBe(pre); // no merge commit created
+    expect(await readMergeRecord(dir, "main")).toBeNull(); // nothing to undo
+  });
+
+  it("a deny policy on git.merge blocks apply, before any record is written", async () => {
+    await fs.mkdir(path.join(dir, ".vibestrate", "policies"), { recursive: true });
+    await fs.writeFile(
+      path.join(dir, ".vibestrate", "policies", "no-merge.yml"),
+      [
+        "actions:",
+        "  - id: no-merge",
+        "    description: merges disabled in this project",
+        "    on: [git.merge]",
+        "    effect: deny",
+        "    message: merges disabled",
+        "",
+      ].join("\n"),
+    );
+    const pre = await sha(dir, "main");
+    await expect(
+      applyMerge({ projectRoot: dir, source: "feat-clean", target: "main", humanConfirmed: true }),
+    ).rejects.toThrow(/denied|policy/i);
+    expect(await sha(dir, "main")).toBe(pre);
+    expect(await readMergeRecord(dir, "main")).toBeNull(); // gate fires before the record
+  });
+});

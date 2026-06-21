@@ -1247,6 +1247,9 @@ export type GitFileResolution = {
   file: string;
   status: "proposed" | "refusedSecret" | "binary" | "unparseable";
   hunks: GitHunkProposal[];
+  /** Full proposed file (conflict regions resolved, context preserved). The UI
+   *  seeds + applies THIS, not the joined hunks (which would truncate the file). */
+  proposedFile: string | null;
   note?: string;
 };
 

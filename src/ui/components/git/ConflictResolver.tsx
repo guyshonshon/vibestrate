@@ -23,7 +23,6 @@ import type {
   GitResolvedFile,
   GitApplyResult,
 } from "../../lib/types.js";
-import { Chip } from "../design/Chip.js";
 import { cn } from "../design/cn.js";
 
 type Props = {
@@ -58,14 +57,19 @@ export function ConflictResolver({ source, target, conflictedFiles, onApplied }:
       setProposal(p);
       // Seed file states
       const states: FileState[] = p.files.map((f) => {
-        // For "proposed" files, join all hunk proposed values as the initial content.
-        // This is a simplification - full file content would require the backend
-        // to return whole-file text; here we surface the proposed hunks.
+        // Seed with the FULL reconstructed file (conflict regions resolved,
+        // surrounding context preserved). The joined-hunks fallback is only for
+        // the rare case reconstruction failed - writing it would truncate the
+        // file, so leave it unaccepted for the human to complete.
         const content =
           f.status === "proposed"
-            ? f.hunks.map((h) => h.proposed).join("\n\n")
+            ? (f.proposedFile ?? f.hunks.map((h) => h.proposed).join("\n\n"))
             : "";
-        return { resolution: f, content, accepted: f.status === "proposed" };
+        return {
+          resolution: f,
+          content,
+          accepted: f.status === "proposed" && f.proposedFile !== null,
+        };
       });
       setFileStates(states);
     } catch (err) {
@@ -112,6 +116,14 @@ export function ConflictResolver({ source, target, conflictedFiles, onApplied }:
   const acceptedCount = fileStates.filter(
     (s) => s.accepted && s.resolution.status === "proposed",
   ).length;
+  // Files the supervisor can't propose for (secret/binary/unparseable) block the
+  // whole resolved-apply: the backend requires EVERY conflict resolved and
+  // refuses secret paths, so this surface can't complete the merge. The human
+  // must resolve those with plain git.
+  const blockedFiles = fileStates.filter(
+    (s) => s.resolution.status !== "proposed",
+  );
+  const canApply = blockedFiles.length === 0 && acceptedCount > 0;
 
   return (
     <div className="space-y-3">
@@ -181,17 +193,27 @@ export function ConflictResolver({ source, target, conflictedFiles, onApplied }:
               Merge applied. New commit: <span className="mono">{applyResult.mergedSha.slice(0, 8)}</span>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => void applyResolved()}
-              disabled={applying || acceptedCount === 0}
-              className="h-8 px-3 border border-emerald-400/30 bg-emerald-500/10 hover:bg-emerald-500/15 text-[12px] text-emerald-300 flex items-center gap-1.5 disabled:opacity-50"
-            >
-              <GitMerge className="h-3.5 w-3.5" strokeWidth={1.6} />
-              {applying
-                ? "Applying…"
-                : `Apply resolved merge (${acceptedCount} file${acceptedCount === 1 ? "" : "s"})`}
-            </button>
+            <div className="space-y-1.5">
+              {blockedFiles.length > 0 ? (
+                <div className="text-[11.5px] text-amber-300/90">
+                  {blockedFiles.length} file
+                  {blockedFiles.length === 1 ? "" : "s"} can't be resolved here
+                  (secret / binary / unparseable). Resolve the whole merge with
+                  plain git - this surface can't complete it.
+                </div>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void applyResolved()}
+                disabled={applying || !canApply}
+                className="h-8 px-3 border border-emerald-400/30 bg-emerald-500/10 hover:bg-emerald-500/15 text-[12px] text-emerald-300 flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <GitMerge className="h-3.5 w-3.5" strokeWidth={1.6} />
+                {applying
+                  ? "Applying…"
+                  : `Apply resolved merge (${acceptedCount} file${acceptedCount === 1 ? "" : "s"})`}
+              </button>
+            </div>
           )}
         </div>
       )}

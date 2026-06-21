@@ -93,6 +93,9 @@ describe("proposeResolutions", () => {
     // base.txt + code.txt get AI proposals.
     expect(byFile["base.txt"]?.status).toBe("proposed");
     expect(byFile["base.txt"]?.hunks[0]?.proposed).toBe("MERGED");
+    // proposedFile is the FULL reconstructed file: the resolved region AND the
+    // unconflicted "two" line survive (the data-loss bug dropped non-conflict lines).
+    expect(byFile["base.txt"]?.proposedFile).toBe("MERGED\ntwo\n");
     expect(byFile["code.txt"]?.status).toBe("proposed");
     // .env is refused outright - never sent to a provider.
     expect(byFile[".env"]?.status).toBe("refusedSecret");
@@ -161,6 +164,11 @@ describe("applyResolvedMerge", () => {
     });
     expect(r.mergedSha).not.toBe(pre);
     expect(await read(dir, "base.txt")).toBe("resolved-one\ntwo\n");
+    // Assert the COMMITTED blob (not just the working tree) for both files.
+    const blobBase = (await execa("git", ["show", "main:base.txt"], { cwd: dir })).stdout;
+    expect(blobBase).toBe("resolved-one\ntwo");
+    const blobCode = (await execa("git", ["show", "main:code.txt"], { cwd: dir })).stdout;
+    expect(blobCode).toBe("x = resolved");
     const parents = (await execa("git", ["rev-list", "--parents", "-n", "1", "main"], { cwd: dir })).stdout.trim().split(/\s+/);
     expect(parents).toHaveLength(3); // real 2-parent merge
     expect((await readMergeRecord(dir, "main"))?.status).toBe("applied");

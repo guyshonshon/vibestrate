@@ -59,6 +59,16 @@ describe("git-tree routes", () => {
     expect(body.prediction.clean).toBe(true);
   });
 
+  it("maps a service MergeError to 409 (e.g. source === target)", async () => {
+    const dir = await makeRepo();
+    server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });
+    const res = await post(`${server.url}/api/project/git/tree/predict`, {
+      source: "main",
+      target: "main",
+    });
+    expect(res.status).toBe(409);
+  });
+
   it("rejects an invalid branch name with 400", async () => {
     const dir = await makeRepo();
     server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });

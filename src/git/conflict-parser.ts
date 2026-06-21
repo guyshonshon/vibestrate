@@ -33,11 +33,17 @@ export type ParsedConflict =
   | { ok: true; hunks: ConflictHunk[] }
   | { ok: false; reason: string };
 
-/** True if any line looks like a git conflict marker. */
+/** True if any line looks like a git conflict marker (incl. the diff3 base). */
 export function hasConflictMarkers(content: string): boolean {
   return content
     .split(/\r?\n/)
-    .some((l) => RE_START.test(l) || RE_SEP.test(l) || RE_END.test(l));
+    .some(
+      (l) =>
+        RE_START.test(l) ||
+        RE_BASE.test(l) ||
+        RE_SEP.test(l) ||
+        RE_END.test(l),
+    );
 }
 
 /** Heuristic: a NUL byte means we should treat the file as binary and skip it. */
@@ -110,4 +116,81 @@ export function parseConflictHunks(content: string): ParsedConflict {
     return { ok: false, reason: "no conflict regions found" };
   }
   return { ok: true, hunks };
+}
+
+export type RebuiltFile =
+  | { ok: true; file: string }
+  | { ok: false; reason: string };
+
+/**
+ * Reconstruct the FULL resolved file by replacing each conflict region (the
+ * whole `<<<<<<< … >>>>>>>` block) with the supplied `regionTexts[i]`, while
+ * preserving every line OUTSIDE the conflict regions verbatim. This is what
+ * makes a resolution whole-file-correct: per-hunk proposals alone drop all
+ * shared context, so writing them as the file would delete unconflicted lines.
+ * `regionTexts` must have one entry per conflict region, in order.
+ */
+export function rebuildResolvedFile(
+  content: string,
+  regionTexts: string[],
+): RebuiltFile {
+  const lines = content.split(/\r?\n/);
+  const out: string[] = [];
+  let phase: "outside" | "ours" | "base" | "theirs" = "outside";
+  let regionIdx = 0;
+
+  for (let n = 0; n < lines.length; n++) {
+    const line = lines[n]!;
+    if (RE_START.test(line)) {
+      if (phase !== "outside") {
+        return { ok: false, reason: `nested "<<<<<<<" at line ${n + 1}` };
+      }
+      phase = "ours";
+      continue;
+    }
+    if (phase === "outside") {
+      out.push(line);
+      continue;
+    }
+    if (RE_BASE.test(line)) {
+      if (phase !== "ours") {
+        return { ok: false, reason: `unexpected "|||||||" at line ${n + 1}` };
+      }
+      phase = "base";
+      continue;
+    }
+    if (RE_SEP.test(line)) {
+      if (phase !== "ours" && phase !== "base") {
+        return { ok: false, reason: `unexpected "=======" at line ${n + 1}` };
+      }
+      phase = "theirs";
+      continue;
+    }
+    if (RE_END.test(line)) {
+      if (phase !== "theirs") {
+        return { ok: false, reason: `unexpected ">>>>>>>" at line ${n + 1}` };
+      }
+      if (regionIdx >= regionTexts.length) {
+        return { ok: false, reason: "more conflict regions than resolutions" };
+      }
+      const rep = regionTexts[regionIdx]!;
+      // Empty resolution removes the region entirely; otherwise splice its lines.
+      if (rep.length > 0) out.push(...rep.split("\n"));
+      regionIdx++;
+      phase = "outside";
+      continue;
+    }
+    // Inside ours/base/theirs: dropped, replaced by the resolution text.
+  }
+
+  if (phase !== "outside") {
+    return { ok: false, reason: "unterminated conflict (EOF inside a region)" };
+  }
+  if (regionIdx !== regionTexts.length) {
+    return {
+      ok: false,
+      reason: `expected ${regionIdx} resolution(s), got ${regionTexts.length}`,
+    };
+  }
+  return { ok: true, file: out.join("\n") };
 }

@@ -29,6 +29,7 @@ import {
 } from "./git.js";
 import {
   parseConflictHunks,
+  rebuildResolvedFile,
   isLikelyBinary,
   type ConflictHunk,
 } from "./conflict-parser.js";
@@ -60,6 +61,14 @@ export type FileResolution = {
   file: string;
   status: "proposed" | "refusedSecret" | "binary" | "unparseable";
   hunks: HunkProposal[];
+  /**
+   * The FULL proposed file: the conflicted file with every conflict region
+   * replaced by its proposed resolution and all non-conflict context preserved.
+   * This is what the UI seeds + applies - per-hunk text alone would drop the
+   * unconflicted lines and silently truncate the file. Null when reconstruction
+   * failed (caller falls back to manual).
+   */
+  proposedFile: string | null;
   note?: string;
 };
 
@@ -147,6 +156,7 @@ export async function proposeResolutions(input: {
           file,
           status: "refusedSecret",
           hunks: [],
+          proposedFile: null,
           note: "secret-like path - resolve manually, never sent to a provider",
         });
         continue;
@@ -155,16 +165,34 @@ export async function proposeResolutions(input: {
       try {
         content = await fs.readFile(path.join(scratchPath, file), "utf8");
       } catch {
-        files.push({ file, status: "unparseable", hunks: [], note: "could not read file" });
+        files.push({
+          file,
+          status: "unparseable",
+          hunks: [],
+          proposedFile: null,
+          note: "could not read file",
+        });
         continue;
       }
       if (isLikelyBinary(content)) {
-        files.push({ file, status: "binary", hunks: [], note: "binary file - resolve manually" });
+        files.push({
+          file,
+          status: "binary",
+          hunks: [],
+          proposedFile: null,
+          note: "binary file - resolve manually",
+        });
         continue;
       }
       const parsed = parseConflictHunks(content);
       if (!parsed.ok) {
-        files.push({ file, status: "unparseable", hunks: [], note: parsed.reason });
+        files.push({
+          file,
+          status: "unparseable",
+          hunks: [],
+          proposedFile: null,
+          note: parsed.reason,
+        });
         continue;
       }
 
@@ -184,7 +212,22 @@ export async function proposeResolutions(input: {
         });
         hunks.push({ ...hunk, ...proposal });
       }
-      files.push({ file, status: "proposed", hunks });
+      // Reconstruct the FULL file: splice each proposed region back into the
+      // original, preserving all non-conflict context (per-hunk text alone
+      // would truncate the file - adversarial-review HIGH).
+      const rebuilt = rebuildResolvedFile(
+        content,
+        hunks.map((h) => h.proposed),
+      );
+      files.push({
+        file,
+        status: "proposed",
+        hunks,
+        proposedFile: rebuilt.ok ? rebuilt.file : null,
+        note: rebuilt.ok
+          ? undefined
+          : `could not reconstruct full file (${rebuilt.reason}); resolve manually`,
+      });
     }
     return { source, target, clean: false, files };
   } finally {

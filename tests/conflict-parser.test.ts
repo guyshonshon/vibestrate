@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parseConflictHunks,
+  rebuildResolvedFile,
   hasConflictMarkers,
   isLikelyBinary,
 } from "../src/git/conflict-parser.js";
@@ -102,9 +103,47 @@ describe("parseConflictHunks", () => {
   });
 });
 
+describe("rebuildResolvedFile", () => {
+  it("splices the resolution in and PRESERVES non-conflict context (no truncation)", () => {
+    const content = [
+      "line a",
+      "<<<<<<< HEAD",
+      "our",
+      "=======",
+      "their",
+      ">>>>>>> feat",
+      "line z",
+    ].join("\n");
+    const r = rebuildResolvedFile(content, ["MERGED"]);
+    expect(r.ok).toBe(true);
+    // The unconflicted lines "line a" / "line z" survive - the bug was dropping them.
+    if (r.ok) expect(r.file).toBe("line a\nMERGED\nline z");
+  });
+
+  it("handles multiple regions and multi-line resolutions", () => {
+    const content = [
+      "top",
+      "<<<<<<< HEAD", "a", "=======", "b", ">>>>>>> x",
+      "mid",
+      "<<<<<<< HEAD", "c", "=======", "d", ">>>>>>> x",
+      "bottom",
+    ].join("\n");
+    const r = rebuildResolvedFile(content, ["A1\nA2", "D"]);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.file).toBe("top\nA1\nA2\nmid\nD\nbottom");
+  });
+
+  it("rejects a region/resolution count mismatch", () => {
+    const content = ["<<<<<<< HEAD", "a", "=======", "b", ">>>>>>> x"].join("\n");
+    const r = rebuildResolvedFile(content, []);
+    expect(r.ok).toBe(false);
+  });
+});
+
 describe("hasConflictMarkers / isLikelyBinary", () => {
-  it("detects conflict markers", () => {
+  it("detects conflict markers (including the diff3 base marker)", () => {
     expect(hasConflictMarkers("a\n<<<<<<< HEAD\nb")).toBe(true);
+    expect(hasConflictMarkers("a\n||||||| base\nb")).toBe(true);
     expect(hasConflictMarkers("no markers here")).toBe(false);
   });
   it("detects a NUL byte as binary", () => {
