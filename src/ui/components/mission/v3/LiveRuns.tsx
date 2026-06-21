@@ -166,8 +166,8 @@ function RunCard({
   onAbort: (runId: string) => void;
 }) {
   const needsApproval = run.status === "waiting_for_approval";
-  const shaping = isSpecUpRun(run);
-  const tone = shaping ? "violet" : statusTone(run.status);
+  const specUp = isSpecUpRun(run);
+  const tone = specUp ? "violet" : statusTone(run.status);
   const idx = phaseIndex(run.status);
   const phases = PHASES.map((p) => p.label);
   const lines = useMemo(() => eventsToLines(events), [events]);
@@ -208,7 +208,7 @@ function RunCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <Chip tone={tone}>
-                <span className="pulse-dot" /> {shaping ? "Spec-up" : prettyStatus(run.status)}
+                <span className="pulse-dot" /> {specUp ? "Spec-up" : prettyStatus(run.status)}
               </Chip>
               <span className="mono text-[11px] text-fog-500 whitespace-nowrap">
                 {run.runId}

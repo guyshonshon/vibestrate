@@ -6,7 +6,7 @@ import type {
   ProposalSummary,
 } from "../../lib/types.js";
 
-/** Provenance of a proposal, derived from its id: the Shape chain writes
+/** Provenance of a proposal, derived from its id: the Spec-up chain writes
  *  `spec-up-<runId>`; `vibe roadmap plan` / the Generate action write
  *  `<timestamp>-<slug>`. One store, two sources - label which. */
 function proposalOrigin(id: string): { label: string; tone: string } {

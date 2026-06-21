@@ -20,8 +20,8 @@ import {
 } from "../../spec-up/spec-up-assist.js";
 import { loadConfig } from "../../project/config-loader.js";
 
-/** Best-effort project default flow (fallback build target for an unbound shape
- *  run). The built-in `default` flow always exists, so this never throws. */
+/** Best-effort project default flow (fallback build target for an unbound
+ *  spec-up run). The built-in `default` flow always exists, so this never throws. */
 async function defaultBuildFlow(projectRoot: string): Promise<string> {
   try {
     const loaded = await loadConfig(projectRoot);
@@ -43,7 +43,7 @@ const startBody = z
   .object({
     task: z.string().min(1).max(2000),
     persona: z.string().min(1).max(40).optional(),
-    /** Adaptive Shape (P1): the flow to BUILD once the spec is approved. */
+    /** Adaptive spec-up (P1): the flow to BUILD once the spec is approved. */
     flowId: z.string().min(1).max(80).optional(),
   })
   .strict();
@@ -88,9 +88,9 @@ const assistBody = z
   .strict();
 
 /**
- * The Shape phase HTTP surface (docs/design/shape-phase.md). All three routes
+ * The Spec-up phase HTTP surface (docs/design/spec-up-phase.md). All three routes
  * inherit the `/api/*` localhost + CSRF + bearer gates. Runs are launched only
- * through the gated `startDetachedRun` path inside shape-chain - the browser
+ * through the gated `startDetachedRun` path inside spec-up-chain - the browser
  * never passes a command.
  */
 export async function registerSpecUpRoutes(
@@ -137,7 +137,7 @@ export async function registerSpecUpRoutes(
     },
   );
 
-  // Approve the shaped draft -> BUILD it (P1): launch the chosen flow seeded with
+  // Approve the spec-up draft -> BUILD it (P1): launch the chosen flow seeded with
   // the approved spec as context. The chosen flow is the carried target unless
   // the body overrides it; falls back to the project default when unbound.
   app.post<{ Body: unknown }>("/api/spec-up/build", async (req) => {
@@ -159,7 +159,7 @@ export async function registerSpecUpRoutes(
     }
   });
 
-  // Approve the shaped draft -> launch the roadmap run (resumeFrom the shape run).
+  // Approve the spec-up draft -> launch the roadmap run (resumeFrom the spec-up run).
   app.post<{ Body: { specUpRunId?: unknown } }>("/api/spec-up/roadmap", async (req) => {
     const specUpRunId = runIdParam.safeParse(
       (req.body as { specUpRunId?: unknown } | undefined)?.specUpRunId,
@@ -177,7 +177,7 @@ export async function registerSpecUpRoutes(
     }
   });
 
-  // Turn a finished shape-roadmap run into a reviewable proposal (cards).
+  // Turn a finished spec-up-roadmap run into a reviewable proposal (cards).
   app.post<{ Body: { runId?: unknown } }>(
     "/api/spec-up/roadmap-proposal",
     async (req) => {
@@ -198,7 +198,7 @@ export async function registerSpecUpRoutes(
     },
   );
 
-  // Submit a round's answers -> either a gap-check round or the shape run.
+  // Submit a round's answers -> either a gap-check round or the spec-up run.
   app.post<{ Body: unknown }>("/api/spec-up/answers", async (req) => {
     const parsed = answersBody.safeParse(req.body);
     if (!parsed.success) {

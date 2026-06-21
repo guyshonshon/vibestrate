@@ -83,7 +83,7 @@ const CONSULT_SCHEMA_HINT = `{
  *  (the engine never trusts the client to have redacted). Reactive only - used
  *  when the user asks. */
 export type ConsultViewContext = {
-  /** Short screen label, e.g. "Shape questions". */
+  /** Short screen label, e.g. "Spec-up questions". */
   screen: string;
   /** Human-readable serialization of the screen's state (questions, answers,
    *  focused field). Redacted before it reaches the prompt. */

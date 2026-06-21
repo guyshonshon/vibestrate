@@ -132,8 +132,8 @@ describe("computeMergeReady - express skip semantics", () => {
   });
 
   // ── P1: a read-only run with NO review step succeeds (not blocked) ─────────
-  it("a read-only run with no review step is merge_ready (shape-intake enrichment)", () => {
-    // shape-intake: read-only, single agent-turn, no reviewer -> nothing to
+  it("a read-only run with no review step is merge_ready (spec-up-intake enrichment)", () => {
+    // spec-up-intake: read-only, single agent-turn, no reviewer -> nothing to
     // approve. reviewDecision stays at its pessimistic default, but completing
     // the steps IS success - it must NOT land blocked.
     expect(

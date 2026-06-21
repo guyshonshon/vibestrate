@@ -117,7 +117,7 @@ describe("chooseRunFlow + sizing (A1)", () => {
     expect(sel.reasons.join(" ")).toMatch(/diff-decided/);
   });
 
-  it("P1: a plan-worthy brief is marked needsSpecUp but keeps the chosen (default) flow, NOT shape-intake", async () => {
+  it("P1: a plan-worthy brief is marked needsSpecUp but keeps the chosen (default) flow, NOT spec-up-intake", async () => {
     const project = await makeProject();
     const loaded = await loadConfig(project);
     const sel = await chooseRunFlow({

@@ -89,7 +89,7 @@ describe("deep-questioning loop e2e", () => {
     const r = await submitSpecUpAnswers({ projectRoot: dir, sourceRunId: "round-4", answers: [{ id: "scale", answer: "small" }] });
     expect(r.action).toBe("finalize");
     const spec = captured.specs.at(-1);
-    expect(spec.flow.id).toBe("spec-up"); // the shaping flow, NOT shape-intake
+    expect(spec.flow.id).toBe("spec-up"); // the shaping flow, NOT spec-up-intake
     expect(spec.specUpTargetFlowId).toBe("express"); // target survives the whole loop
   });
 

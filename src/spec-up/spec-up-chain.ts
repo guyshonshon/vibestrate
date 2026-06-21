@@ -1,10 +1,10 @@
-// ── Shape phase: the run-chain keystone ──────────────────────────────────────
+// ── Spec-up phase: the run-chain keystone ──────────────────────────────────────
 //
-// The Shape phase is a chain of fresh, human-initiated, read-only runs glued by
+// The Spec-up phase is a chain of fresh, human-initiated, read-only runs glued by
 // the consult surface (no durable pause, no nested runs - see
-// docs/design/shape-phase.md). This module is the one new primitive: it reads the
+// docs/design/spec-up-phase.md). This module is the one new primitive: it reads the
 // intake run's structured questions, and - when the user answers them - launches
-// the shape run through the SAME gated launch path the dashboard uses
+// the spec-up run through the SAME gated launch path the dashboard uses
 // (`startDetachedRun` over a typed `RunSpec`), never spawning a command itself.
 //
 // Security invariants (Tier-2 reviewed):
@@ -38,7 +38,7 @@ export class SpecUpChainError extends VibestrateError {
 }
 
 const INTAKE_QUESTIONS_PATH = "flows/intake/questions.json";
-// Terminator marker: written on a shape-intake run once its questions are
+// Terminator marker: written on a spec-up-intake run once its questions are
 // consumed (answered or proceeded). Its presence means "no pending questions" -
 // without it, an answered run reads as awaiting forever (it lands merge_ready and
 // its questions.json never goes away).
@@ -46,8 +46,8 @@ const ANSWERED_PATH = "flows/intake/answered.json";
 const IDEA_PATH = "00-idea.md";
 const ANSWERS_PATH = "spec-up-answers.md";
 const SYNTHESIZE_OUTPUT_PATH = "flows/synthesize/output.md";
-/** The flow to BUILD after shaping (P1), written at run start by the orchestrator
- *  and carried across the detached chain (intake -> shape -> build). */
+/** The flow to BUILD after spec-up (P1), written at run start by the orchestrator
+ *  and carried across the detached chain (intake -> spec-up -> build). */
 const TARGET_FLOW_PATH = "spec-up-target-flow.json";
 /** Deep-questioning loop (server-owned): the current round, written at run start
  *  from RunSpec.specUpRound. */
@@ -151,10 +151,10 @@ export type ServedSpecUpQuestion = FlowSpecUpQuestion & { round: number };
 
 export type PendingSpecUpQuestions = {
   questions: ServedSpecUpQuestion[];
-  /** The original brief, carried forward as the shape run's task. */
+  /** The original brief, carried forward as the spec-up run's task. */
   task: string;
-  /** Adaptive Shape (P1): the flow to BUILD once the spec is approved, carried
-   *  from the run that triggered shaping. null = no bound flow (build with the
+  /** Adaptive spec-up (P1): the flow to BUILD once the spec is approved, carried
+   *  from the run that triggered spec-up. null = no bound flow (build with the
    *  project default at approve time). */
   targetFlowId: string | null;
   /** Deep-questioning loop: the round these questions belong to (server-owned). */
@@ -240,7 +240,7 @@ export async function readSpecUpQuestions(
   };
 }
 
-/** Mark a shape-intake run's questions as consumed (answered or proceeded) so
+/** Mark a spec-up-intake run's questions as consumed (answered or proceeded) so
  *  readSpecUpQuestions returns null for it - the terminator for "awaiting input". */
 export async function markIntakeAnswered(
   projectRoot: string,
@@ -251,9 +251,9 @@ export async function markIntakeAnswered(
   await store.writeJson(ANSWERED_PATH, { answeredAt: new Date().toISOString() });
 }
 
-/** True iff a run is a shape-intake run still AWAITING the user's answers
+/** True iff a run is a spec-up-intake run still AWAITING the user's answers
  *  (questions present and not yet consumed). The honest "awaiting input" signal,
- *  computed server-side for the run list / run detail. Cheap: only shape-intake
+ *  computed server-side for the run list / run detail. Cheap: only spec-up-intake
  *  runs touch the filesystem. */
 export async function runAwaitsInput(
   projectRoot: string,
@@ -279,7 +279,7 @@ export function appendAnswersDoc(
   const head = priorDoc.trim()
     ? priorDoc.replace(/\s+$/, "")
     : [
-        "# Shape: the user's answers to the intake questions",
+        "# Spec-up: the user's answers to the intake questions",
         "",
         "These answers scope the work. Treat them as the user's decisions.",
       ].join("\n");
@@ -334,7 +334,7 @@ export async function readAccumulatedAnswers(
 }
 
 /**
- * Terminal handoff: launch the `shape` flow seeded with the accumulated answers
+ * Terminal handoff: launch the `spec-up` flow seeded with the accumulated answers
  * (the union of every round) as a `file` contextSource, carrying the chosen build
  * flow forward (P1). Shared by submit (finalize branch) and proceed.
  */
@@ -356,14 +356,14 @@ async function finalizeSpecUpSpec(input: {
   const runId = makeUniqueRunId(projectRoot);
   const spec: RunSpec = {
     projectRoot,
-    task: input.task || "Shape this work (brief carried from intake).",
+    task: input.task || "Spec up this work (brief carried from intake).",
     runId,
-    // A shape-phase run: never re-shaped (loop guard). The chosen build flow is
+    // A spec-up-phase run: never re-shaped (loop guard). The chosen build flow is
     // carried forward so the `approve & build` handoff can target it (P1).
     specUpPhase: true,
     specUpTargetFlowId: input.targetFlowId,
     flow: { id: "spec-up", brief: null },
-    contextSources: [{ kind: "file", ref, label: "Shape: intake answers" }],
+    contextSources: [{ kind: "file", ref, label: "Spec-up: intake answers" }],
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });
   return { runId, pid };
@@ -393,7 +393,7 @@ export async function submitSpecUpAnswers(input: {
   const pending = await readSpecUpQuestions(projectRoot, sourceRunId);
   if (!pending) {
     throw new SpecUpChainError(
-      `No pending shape questions for run "${sourceRunId}".`,
+      `No pending spec-up questions for run "${sourceRunId}".`,
     );
   }
 
@@ -434,14 +434,14 @@ export async function submitSpecUpAnswers(input: {
   const runId = makeUniqueRunId(projectRoot);
   const spec: RunSpec = {
     projectRoot,
-    task: pending.task || "Shape this work (brief carried from intake).",
+    task: pending.task || "Spec up this work (brief carried from intake).",
     runId,
     specUpPhase: true,
     specUpTargetFlowId: pending.targetFlowId,
     specUpRound: decision.nextRound,
     specUpRootRunId: rootRunId,
     flow: { id: "spec-up-intake", brief: null },
-    contextSources: [{ kind: "file", ref, label: "Shape: answers so far" }],
+    contextSources: [{ kind: "file", ref, label: "Spec-up: answers so far" }],
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });
   return { runId, pid, action: "gap-check" };
@@ -470,11 +470,11 @@ export async function proceedToSpecUpSpec(input: {
 }
 
 /**
- * Approve the shaped draft and launch link 3 (the roadmap run). Resumes the
- * shape run at stage "executing" so seedResumedSteps copies its scope/spec/
+ * Approve the spec-up draft and launch link 3 (the roadmap run). Resumes the
+ * spec-up run at stage "executing" so seedResumedSteps copies its scope/spec/
  * architecture/risks artifacts forward, and the `synthesize` step turns them
  * into a dependency-aware proposal. This is the only place resumeFrom is used in
- * the chain; the seeded step ids/stages must match the shape flow (guarded by
+ * the chain; the seeded step ids/stages must match the spec-up flow (guarded by
  * the chain-integrity test).
  */
 export async function approveSpecUpAndStartRoadmap(input: {
@@ -484,9 +484,9 @@ export async function approveSpecUpAndStartRoadmap(input: {
   assertSafeRunId(input.specUpRunId);
   const src = new ArtifactStore(input.projectRoot, input.specUpRunId);
   if (!(await src.exists(IDEA_PATH))) {
-    throw new SpecUpChainError(`Shape run "${input.specUpRunId}" not found.`);
+    throw new SpecUpChainError(`Spec-up run "${input.specUpRunId}" not found.`);
   }
-  let task = "Synthesize the approved shape into a dependency-aware roadmap.";
+  let task = "Synthesize the approved spec into a dependency-aware roadmap.";
   try {
     const idea = (await src.read(IDEA_PATH)).trim();
     if (idea) task = idea;
@@ -507,14 +507,14 @@ export async function approveSpecUpAndStartRoadmap(input: {
 }
 
 /**
- * Approve the shaped draft and BUILD it (P1). Reads the shape run's spec outputs
+ * Approve the spec-up draft and BUILD it (P1). Reads the spec-up run's spec outputs
  * (scope / spec / architecture / risks), concatenates them into one approved-spec
- * artifact, and launches the CHOSEN flow (carried via the shape-target sidecar,
+ * artifact, and launches the CHOSEN flow (carried via the spec-up-target sidecar,
  * or `fallbackFlowId` / the caller's override) seeded with that spec as a `file`
  * contextSource - so the executor builds FROM the spec, never re-derives from the
- * bare task. This is the terminal handoff that makes Shape an enrichment over the
+ * bare task. This is the terminal handoff that makes spec-up an enrichment over the
  * chosen flow rather than a replacement. Fails fast (throws) if the chosen flow
- * is unknown or the shape run produced no spec, so an empty-context build is
+ * is unknown or the spec-up run produced no spec, so an empty-context build is
  * impossible by construction.
  */
 export async function approveSpecUpAndBuild(input: {
@@ -528,7 +528,7 @@ export async function approveSpecUpAndBuild(input: {
   assertSafeRunId(input.specUpRunId);
   const src = new ArtifactStore(input.projectRoot, input.specUpRunId);
   if (!(await src.exists(IDEA_PATH))) {
-    throw new SpecUpChainError(`Shape run "${input.specUpRunId}" not found.`);
+    throw new SpecUpChainError(`Spec-up run "${input.specUpRunId}" not found.`);
   }
   const flowId =
     input.flowId ??
@@ -537,7 +537,7 @@ export async function approveSpecUpAndBuild(input: {
     null;
   if (!flowId) {
     throw new SpecUpChainError(
-      `No build flow for shape run "${input.specUpRunId}" (no carried target, no override, no default).`,
+      `No build flow for spec-up run "${input.specUpRunId}" (no carried target, no override, no default).`,
     );
   }
   // Validate the flow exists BEFORE spawning - otherwise the detached run dies in
@@ -549,7 +549,7 @@ export async function approveSpecUpAndBuild(input: {
     );
   }
 
-  // Assemble the approved spec from the shape run's spec-producing steps. Fail
+  // Assemble the approved spec from the spec-up run's spec-producing steps. Fail
   // fast if NONE produced content - launching a build with empty context would
   // silently re-derive from the bare task (the P1 keystone failure).
   const sections: string[] = [];
@@ -561,14 +561,14 @@ export async function approveSpecUpAndBuild(input: {
   }
   if (sections.length === 0) {
     throw new SpecUpChainError(
-      `Shape run "${input.specUpRunId}" has no spec to build from (no scope/spec/architecture/risks output).`,
+      `Spec-up run "${input.specUpRunId}" has no spec to build from (no scope/spec/architecture/risks output).`,
     );
   }
-  const specDoc = `# Shape: the approved spec\n\nBuild strictly to this spec - it is the user's approved scope, derived during shaping. Treat it as ground truth.\n\n${sections.join("\n\n")}\n`;
+  const specDoc = `# Spec-up: the approved spec\n\nBuild strictly to this spec - it is the user's approved scope, derived during spec-up. Treat it as ground truth.\n\n${sections.join("\n\n")}\n`;
   const absSpec = await src.write(APPROVED_SPEC_PATH, specDoc);
   const ref = path.relative(input.projectRoot, absSpec);
 
-  let task = "Build the approved shaped work.";
+  let task = "Build the approved spec-up work.";
   try {
     const idea = (await src.read(IDEA_PATH)).trim();
     if (idea) task = idea;
@@ -581,18 +581,18 @@ export async function approveSpecUpAndBuild(input: {
     projectRoot: input.projectRoot,
     task,
     runId,
-    // The executor: already shaped, so it runs the chosen flow directly (loop
+    // The executor: already spec'd up, so it runs the chosen flow directly (loop
     // guard) seeded with the approved spec as context.
     specUpPhase: true,
     flow: { id: flowId, brief: null },
-    contextSources: [{ kind: "file", ref, label: "Shape: approved spec" }],
+    contextSources: [{ kind: "file", ref, label: "Spec-up: approved spec" }],
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });
   return { runId, pid, flowId };
 }
 
 /**
- * Bridge link 3 -> the existing proposal pipeline: read a completed shape-roadmap
+ * Bridge link 3 -> the existing proposal pipeline: read a completed spec-up-roadmap
  * run's synthesis output (the VIBESTRATE_TASK marker text) and register it as a
  * roadmap proposal, which the proposals surface reviews and accepts into cards.
  * The chain stays human-stepped - this is invoked when the user opens the
@@ -624,12 +624,12 @@ export async function startSpecUpIntake(input: {
   projectRoot: string;
   task: string;
   persona?: string | null;
-  /** Adaptive Shape (P1): the flow to BUILD once the spec is approved, carried to
+  /** Adaptive spec-up (P1): the flow to BUILD once the spec is approved, carried to
    *  the `approve & build` handoff. null = build with the project default. */
   targetFlowId?: string | null;
 }): Promise<{ runId: string; pid: number | null }> {
   const task = input.task.trim();
-  if (!task) throw new SpecUpChainError("A brief is required to start shaping.");
+  if (!task) throw new SpecUpChainError("A brief is required to start spec-up.");
   const runId = makeUniqueRunId(input.projectRoot);
   const spec: RunSpec = {
     projectRoot: input.projectRoot,
@@ -637,7 +637,7 @@ export async function startSpecUpIntake(input: {
     runId,
     persona: input.persona ?? null,
     // The intake run IS the shape phase: never re-shaped (loop guard); it carries
-    // the chosen build flow forward via the shape-target sidecar.
+    // the chosen build flow forward via the spec-up-target sidecar.
     specUpPhase: true,
     specUpTargetFlowId: input.targetFlowId ?? null,
     // Round 1 of the deep-questioning loop; this run is its own chain root (where

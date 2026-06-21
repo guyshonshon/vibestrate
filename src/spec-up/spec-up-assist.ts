@@ -1,4 +1,4 @@
-// ── Shape: per-question assist (Simplify / Suggest) ──────────────────────────
+// ── Spec-up: per-question assist (Simplify / Suggest) ──────────────────────────
 //
 // Two on-demand helpers on the spec-up-questions screen, both built on the SAME
 // `runAssist` primitive consult uses - no second AI-call path:
@@ -80,7 +80,7 @@ async function loadContext(
   const pending = await readSpecUpQuestions(projectRoot, sourceRunId);
   if (!pending) {
     throw new SpecUpAssistError(
-      `No shape questions for run "${sourceRunId}".`,
+      `No spec-up questions for run "${sourceRunId}".`,
     );
   }
   const rawAnswers = await readAccumulatedAnswers(projectRoot, sourceRunId);
@@ -121,7 +121,7 @@ export async function specUpSimplify(
     ? " The user is NOT a developer: also give a short everyday-life ANALOGY in `analogy` that conveys the idea without jargon."
     : " Leave `analogy` an empty string.";
   const instruction =
-    `Explain this shape question in plain language for someone deciding how to answer it. ` +
+    `Explain this spec-up question in plain language for someone deciding how to answer it. ` +
     `Question: "${q.question}" (why it matters: ${q.why}). ` +
     `In \`text\`, restate what it's really asking in one or two simple sentences. ` +
     `In \`affects\`, say in one line what this decision changes in what gets built.` +
@@ -154,7 +154,7 @@ export async function specUpSuggest(
       ? ` It is a choice between: ${q.options.join(" | ")}. Pick the best-fitting option as the value.`
       : "";
   const instruction =
-    `Propose a DRAFT answer to this shape question, consistent with what the user has already decided. ` +
+    `Propose a DRAFT answer to this spec-up question, consistent with what the user has already decided. ` +
     `Question: "${q.question}" (why it matters: ${q.why}).${optionsLine} ` +
     `In \`suggestedValue\`, give the proposed answer the user can edit. ` +
     `In \`why\`, give a one-line justification that references their prior answers where relevant. ` +
@@ -197,7 +197,7 @@ export async function specUpSuggestAll(
     })
     .join("\n");
   const instruction =
-    `Propose a DRAFT answer for EACH of these shape questions, consistent with what the user has already decided. ` +
+    `Propose a DRAFT answer for EACH of these spec-up questions, consistent with what the user has already decided. ` +
     `Return one item per question id below, each with the proposed \`suggestedValue\` (editable) and a one-line \`why\`. ` +
     `Do not invent facts they haven't implied.\n\nQuestions:\n${list}` +
     contextBlock(brief, priorAnswers);

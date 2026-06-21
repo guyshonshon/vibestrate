@@ -248,8 +248,8 @@ export async function runRunCommand(
   // Choose the Flow transparently (forced > default > orchestrator selection),
   // unless resuming or running a checklist (the flow is implied). Always shown.
   let selection: WorkflowSelection | null = null;
-  // Adaptive Shape (P1): the chosen flow to BUILD after shaping (carried via the
-  // shape-target sidecar). Set when chooseRunFlow marks the brief needs-shaping.
+  // Adaptive spec-up (P1): the chosen flow to BUILD after spec-up (carried via the
+  // spec-up-target sidecar). Set when chooseRunFlow marks the brief needs-spec-up.
   let specUpTargetFlowId: string | null = null;
   if (!options.resumeFromRunId && !options.checklistMode) {
     try {
@@ -266,7 +266,7 @@ export async function runRunCommand(
       // Apply a recommended crew only when the user didn't pick one.
       if (selection.crewId && !activeCrewId) activeCrewId = selection.crewId;
       // Under-specified brief: run the read-only `spec-up-intake` first and carry
-      // the chosen flow to the post-shape build, rather than executing it now.
+      // the chosen flow to the post-spec-up build, rather than executing it now.
       if (selection.needsSpecUp) {
         specUpTargetFlowId = selection.flowId;
         activeFlowId = SPEC_UP_TARGET_FLOW;

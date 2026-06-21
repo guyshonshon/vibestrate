@@ -129,7 +129,7 @@ export function RunHeaderV3({
   onRerun?: () => void;
   onRename?: (name: string) => void | Promise<void>;
 }) {
-  const shaping = isSpecUpRun(run);
+  const specUp = isSpecUpRun(run);
   return (
     <header
       className="flex flex-wrap items-center justify-between gap-3"
@@ -153,8 +153,8 @@ export function RunHeaderV3({
           {shortRunId(run.runId)}
         </span>
         <span className="text-fog-500">/</span>
-        <Chip tone={shaping ? "violet" : tone(run.status)}>
-          <span className="pulse-dot" /> {shaping ? "Spec-up" : pretty(run.status)}
+        <Chip tone={specUp ? "violet" : tone(run.status)}>
+          <span className="pulse-dot" /> {specUp ? "Spec-up" : pretty(run.status)}
         </Chip>
       </div>
       <div className="flex items-center gap-2">

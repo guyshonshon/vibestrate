@@ -81,8 +81,8 @@ describe("shape flows", () => {
   });
 });
 
-describe("shape chain integrity (Tier-2 reviewer requirement)", () => {
-  // The roadmap link resumes the shape run at stage "executing". seedResumedSteps
+describe("spec-up chain integrity (Tier-2 reviewer requirement)", () => {
+  // The roadmap link resumes the spec-up run at stage "executing". seedResumedSteps
   // copies flows/<step.id>/output.md for every roadmap step BEFORE the first
   // executing step, keyed by the ROADMAP flow's step ids - so each seeded id MUST
   // exist in the shape flow with the SAME stage, or the second link throws at seed
@@ -132,7 +132,7 @@ describe("shape chain integrity (Tier-2 reviewer requirement)", () => {
 });
 
 describe("shape RunSpec contract (the launched spec)", () => {
-  it("the shape run spec the keystone builds is valid core input", () => {
+  it("the spec-up run spec the keystone builds is valid core input", () => {
     const parsed = runSpecSchema.safeParse({
       projectRoot: "/tmp/p",
       task: "Build a store",
@@ -181,7 +181,7 @@ describe("shape answers I/O", () => {
     expect(await readSpecUpQuestions(root, "calm-yak")).toBeNull();
   });
 
-  it("approveSpecUpAndStartRoadmap refuses a shape run that does not exist (no spawn)", async () => {
+  it("approveSpecUpAndStartRoadmap refuses a spec-up run that does not exist (no spawn)", async () => {
     const root = await tempProject();
     await expect(
       approveSpecUpAndStartRoadmap({ projectRoot: root, specUpRunId: "ghost-run" }),

@@ -44,7 +44,7 @@ export function buildSpecUpCommand(): Command {
 
   cmd
     .command("start <brief...>")
-    .description("Start shaping: launch the intake run that asks the gap questions.")
+    .description("Start spec-up: launch the intake run that asks the gap questions.")
     .option("--persona <id>", "supervisor persona (judgment posture) for the run")
     .option("--flow <id>", "the flow to BUILD once the spec is approved (carried to `spec-up build`)")
     .action(async (brief: string[], opts: { persona?: string; flow?: string }) => {

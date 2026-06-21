@@ -684,9 +684,9 @@ export const api = {
   }> {
     return jsonPost("/api/runs", input);
   },
-  // ── Shape phase (docs/design/shape-phase.md): the CTO planning chain. ──
-  /** Start the Shape phase from a brief: launch the read-only intake run that
-   *  asks the gap questions (the UI "Plan" action; mirrors `vibe shape start`).
+  // ── Spec-up phase (docs/design/spec-up-phase.md): the CTO planning chain. ──
+  /** Start the Spec-up phase from a brief: launch the read-only intake run that
+   *  asks the gap questions (the UI "Plan" action; mirrors `vibe spec-up start`).
    *  `flowId` is the flow to BUILD once the spec is approved (carried forward). */
   async specUpIntake(input: {
     task: string;
@@ -707,7 +707,7 @@ export const api = {
   }> {
     return jsonGet(`/api/runs/${encodeURIComponent(runId)}/spec-up-questions`);
   },
-  /** Submit a round's answers -> either a gap-check round or the shape run.
+  /** Submit a round's answers -> either a gap-check round or the spec-up run.
    *  `proceed` finalizes now (skip further gap-checks). */
   async submitSpecUpAnswers(input: {
     sourceRunId: string;
@@ -744,13 +744,13 @@ export const api = {
   }> {
     return jsonPost("/api/spec-up/assist", input);
   },
-  /** Approve the shaped draft -> launch the roadmap synthesis run. */
+  /** Approve the spec-up draft -> launch the roadmap synthesis run. */
   async approveSpecUpRoadmap(
     specUpRunId: string,
   ): Promise<{ ok: true; runId: string; pid: number | null }> {
     return jsonPost("/api/spec-up/roadmap", { specUpRunId });
   },
-  /** Approve the shaped draft -> BUILD it: run the chosen flow seeded with the
+  /** Approve the spec-up draft -> BUILD it: run the chosen flow seeded with the
    *  approved spec as context (P1). `flowId` overrides the carried target. */
   async buildSpecUp(
     specUpRunId: string,
@@ -761,7 +761,7 @@ export const api = {
       ...(flowId ? { flowId } : {}),
     });
   },
-  /** Turn a finished shape-roadmap run into a reviewable proposal. */
+  /** Turn a finished spec-up-roadmap run into a reviewable proposal. */
   async createSpecUpRoadmapProposal(
     runId: string,
   ): Promise<{ ok: true; proposalId: string }> {

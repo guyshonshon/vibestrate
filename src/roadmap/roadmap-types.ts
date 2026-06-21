@@ -144,7 +144,7 @@ export const taskSchema = z.object({
   roadmapItemId: safeIdSchema.nullable().default(null),
   title: z.string().min(1),
   description: z.string().default(""),
-  // Shape phase (M4): prose acceptance criteria ("done when…") and a rough size
+  // Spec-up phase (M4): prose acceptance criteria ("done when…") and a rough size
   // estimate (free label, e.g. "S" / "M" / "L" / "2d"). Authored by the roadmap
   // synthesis and editable on the card. The authoring contract is "may be
   // omitted"; "" is the empty state (a card without criteria yet), not a

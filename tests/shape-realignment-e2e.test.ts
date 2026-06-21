@@ -11,7 +11,7 @@ import type { ProviderDetectionRunner } from "../src/providers/provider-detectio
 // ── P1 Shape realignment: the keystone ───────────────────────────────────────
 // Shape is a pre-flow ENRICHMENT, not a replacement. This proves the terminal
 // handoff end to end:
-//   (production) `approveSpecUpAndBuild` reads the shape run's scope/spec/
+//   (production) `approveSpecUpAndBuild` reads the spec-up run's scope/spec/
 //      architecture/risks, assembles ONE approved spec, and launches the CHOSEN
 //      flow (carried via the sidecar) seeded with that spec - never a shape flow.
 //   (consumption) driving that exact RunSpec through the real launcher, the
@@ -28,7 +28,7 @@ vi.mock("../src/core/detached-run.js", () => ({
   }),
 }));
 
-// Imported AFTER the mock declaration so shape-chain picks up the mocked launch.
+// Imported AFTER the mock declaration so spec-up-chain picks up the mocked launch.
 const { approveSpecUpAndBuild, SpecUpChainError } = await import(
   "../src/spec-up/spec-up-chain.js"
 );
@@ -86,7 +86,7 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
     );
     await setConfigValue(dir, "profiles.claude-balanced.provider", "fake");
 
-    // A completed shape run: its four spec-producing steps + the carried target.
+    // A completed spec-up run: its four spec-producing steps + the carried target.
     const store = new ArtifactStore(dir, SPEC_UP_RUN);
     await store.init();
     await store.write("00-idea.md", "# Task\n\nmake a mini e-commerce\n");
@@ -135,12 +135,12 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
       "utf8",
     );
     expect(plannerPrompt).toContain(MARKER);
-    expect(plannerPrompt).toContain("Context - Shape: approved spec");
+    expect(plannerPrompt).toContain("Context - Spec-up: approved spec");
   }, 60_000);
 
-  it("the adaptive first hop: a needs-shaping run executes shape-intake and writes the target sidecar", async () => {
+  it("the adaptive first hop: a needs-spec-up run executes spec-up-intake and writes the target sidecar", async () => {
     // No flow, plan-worthy brief, not already shaped -> runFromSpec should run the
-    // read-only shape-intake AND persist the carried build flow as the sidecar, so
+    // read-only spec-up-intake AND persist the carried build flow as the sidecar, so
     // the chosen flow survives intake -> shape -> build.
     const spec = { projectRoot: dir, task: "build a mini ecommerce store", runId: "shaped-entry" };
     const out = await runFromSpec(spec);
@@ -152,7 +152,7 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
     expect(sidecar.flowId).toBe("default");
   }, 60_000);
 
-  it("refuses to build when the shape run produced no spec (no empty-context build)", async () => {
+  it("refuses to build when the spec-up run produced no spec (no empty-context build)", async () => {
     const empty = "lone-finch";
     const store = new ArtifactStore(dir, empty);
     await store.init();

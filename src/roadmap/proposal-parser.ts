@@ -38,9 +38,9 @@ export type ProposalRoadmapDraft = {
 export type ProposalTaskDraft = {
   title: string;
   description: string;
-  /** Prose acceptance criteria from an ACCEPTANCE marker (Shape roadmap). */
+  /** Prose acceptance criteria from an ACCEPTANCE marker (spec-up roadmap). */
   acceptanceCriteria: string;
-  /** Rough size label from an EST marker, e.g. "S" / "M" / "L" (Shape roadmap). */
+  /** Rough size label from an EST marker, e.g. "S" / "M" / "L" (spec-up roadmap). */
   est: string;
   /** Title of a roadmap item in the same proposal, or null. */
   roadmapTitle: string | null;

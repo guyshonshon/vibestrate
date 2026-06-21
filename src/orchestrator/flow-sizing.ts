@@ -77,8 +77,8 @@ export function classifyObviousTrivial(task: string): TrivialClassification {
   };
 }
 
-// ── Plan-worthiness (the adaptive Shape trigger) ─────────────────────────────
-// Deterministic "does this brief warrant shaping first?" classifier. Distinct
+// ── Plan-worthiness (the adaptive spec-up trigger) ─────────────────────────────
+// Deterministic "does this brief warrant spec-up first?" classifier. Distinct
 // from classifyEffort (a trivial-vs-standard sizer with no greenfield
 // vocabulary): this keys on GREENFIELD / SYSTEM-BUILDING / AMBIGUITY signals so
 // "build a mini ecommerce store" shapes, while targeted edits ("add dark mode to
@@ -131,14 +131,14 @@ export function classifyPlanWorthy(task: string): PlanWorthyClassification {
   // qualified scope noun. Excludes targeted tweaks ("make the API faster" has no
   // indefinite article building a thing) and bare asks ("build a tool").
   if (hasBuildVerb && INDEFINITE_SCOPE_RE.test(lower)) {
-    return { planWorthy: true, reasons: ["build verb + building a qualified system - shape it first"] };
+    return { planWorthy: true, reasons: ["build verb + building a qualified system - spec it up first"] };
   }
   // Path 2: a substantial build brief (>=12 words) that is still building "a"
   // thing (e.g. "build a real-time chat feature with websockets and message
   // persistence and presence" - 12 words). The "a/an" gate keeps perf/refactor
   // run-ons ("make the API faster and also add caching ...") out.
   if (hasBuildVerb && hasIndefinite && words >= 12) {
-    return { planWorthy: true, reasons: [`build verb + a substantial brief (${words} words) - shape it first`] };
+    return { planWorthy: true, reasons: [`build verb + a substantial brief (${words} words) - spec it up first`] };
   }
   return { planWorthy: false, reasons: ["no greenfield/system-build signal - execute"] };
 }

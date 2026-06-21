@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { ChevronRight, FileText } from "lucide-react";
 import { api } from "../../lib/api.js";
 
-// ── In-run Shape draft review ────────────────────────────────────────────────
-// On a `shape` run, surface the four CTO drafts (scope / spec / architecture /
+// ── In-run Spec-up draft review ────────────────────────────────────────────────
+// On a `spec-up` run, surface the four CTO drafts (scope / spec / architecture /
 // risks) as readable, collapsible sections so the user reviews them in one place
 // before approving -> roadmap (the approve action lives in SpecUpRunActions,
 // rendered alongside this). Read-only: the drafts are each step's output.md,
 // fetched through the guarded artifact route. Sections that haven't been
-// produced yet (a still-running shape run) are skipped.
+// produced yet (a still-running spec-up run) are skipped.
 
 const DRAFTS = [
   { key: "scope", path: "flows/scope/output.md", label: "Scope" },

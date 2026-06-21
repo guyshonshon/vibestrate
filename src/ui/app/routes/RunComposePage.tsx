@@ -198,10 +198,10 @@ export function RunComposePage() {
     }
   }
 
-  // "Plan" = start the Shape phase from this brief instead of building straight
+  // "Plan" = start the Spec-up phase from this brief instead of building straight
   // away: launches the read-only intake run that asks the gap questions, then
   // hands off to the chosen flow once the spec is approved. Mirrors
-  // `vibe shape start`; only the brief (+ optional persona + build-target flow)
+  // `vibe spec-up start`; only the brief (+ optional persona + build-target flow)
   // applies - run mode / crew / tuning are execution-time concerns.
   async function plan() {
     const typed = brief.trim();
@@ -252,7 +252,7 @@ export function RunComposePage() {
 
   const canStart = brief.trim().length > 0 && missingRequired.length === 0 && !busy;
   // Plan only needs a brief: the intake run is read-only and doesn't run the
-  // pinned flow, so its required params don't gate shaping.
+  // pinned flow, so its required params don't gate spec-up.
   const canPlan = brief.trim().length > 0 && !busy;
   const recent = meta?.recentRuns ?? [];
   const counts = meta?.counts;

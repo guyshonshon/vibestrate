@@ -146,7 +146,7 @@ const spawnRunBody = z.object({
   // Rewind: fork a fresh run from a prior run, resuming at a chosen stage and
   // reusing its upstream artifacts. The launcher loads + validates the seeded
   // artifacts. May be combined with `flow` (the shape roadmap link does exactly
-  // this: it resumes the shape run at "executing" to seed scope/spec/
+  // this: it resumes the spec-up run at "executing" to seed scope/spec/
   // architecture/risks). Adding "planning" re-syncs this body with core
   // ResumeStage (orchestrator.ts) and the restore-preview enum above, which
   // already list it - it was the only stage the launch enum was missing.
@@ -187,7 +187,7 @@ export async function registerRunsRoutes(
         const raw = await readJson<unknown>(stateFile);
         const parsed = runStateSchema.safeParse(raw);
         if (parsed.success) {
-          // Honest "awaiting your input" signal (shape-intake with unanswered
+          // Honest "awaiting your input" signal (spec-up-intake with unanswered
           // questions), so the UI doesn't infer it from blocked/merge_ready.
           const awaitingInput = await runAwaitsInput(projectRoot, parsed.data);
           runs.push({ ...parsed.data, awaitingInput });

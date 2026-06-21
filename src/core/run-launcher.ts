@@ -74,11 +74,11 @@ export const runSpecSchema = z.object({
   /** Context sources (Phase 4): files/URLs injected into every agent prompt.
    *  Omitted ⇒ inherit the linked task's sources (if any). */
   contextSources: z.array(contextSourceSchema).max(32).optional(),
-  /** Adaptive Shape (P1): true marks this run as a shape-phase run (intake/shape/
-   *  roadmap) or the post-shape executor, so it is NOT itself re-shaped (loop
-   *  guard). Omitted = a normal user run, eligible for adaptive shaping. */
+  /** Adaptive spec-up (P1): true marks this run as a spec-up-phase run (intake/spec-up/
+   *  roadmap) or the post-spec-up executor, so it is NOT itself re-shaped (loop
+   *  guard). Omitted = a normal user run, eligible for adaptive spec-up. */
   specUpPhase: z.boolean().optional(),
-  /** Adaptive Shape (P1): the flow to BUILD once shaping is approved. Carried
+  /** Adaptive spec-up (P1): the flow to BUILD once spec-up is approved. Carried
    *  across the detached chain via the `spec-up-target-flow.json` sidecar. */
   specUpTargetFlowId: z.string().min(1).max(80).nullable().optional(),
   /** Deep-questioning loop: the round this intake run represents (server-owned,
@@ -277,11 +277,11 @@ export async function runFromSpec(
     });
   }
 
-  // Adaptive Shape (P1): an under-specified brief is SHAPED FIRST. This run
+  // Adaptive spec-up (P1): an under-specified brief is SPEC'D UP FIRST. This run
   // becomes the read-only `spec-up-intake` run (emits the gap questions); the
-  // CHOSEN flow (selection.flowId) is carried to the post-shape `approve & build`
-  // handoff via the shape-target sidecar - it is never replaced. The loop guard
-  // (`spec.specUpPhase`) keeps shape-phase / executor runs from re-entering shaping.
+  // CHOSEN flow (selection.flowId) is carried to the post-spec-up `approve & build`
+  // handoff via the spec-up-target sidecar - it is never replaced. The loop guard
+  // (`spec.specUpPhase`) keeps spec-up-phase / executor runs from re-entering spec-up.
   const willSpecUp = selection?.needsSpecUp === true && spec.specUpPhase !== true;
   const specUpTargetFlowId = willSpecUp
     ? (selection?.flowId ?? spec.flow?.id ?? null)

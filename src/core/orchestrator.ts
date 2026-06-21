@@ -329,14 +329,14 @@ export type OrchestratorInput = {
    *  `workflow.selected` event at run start. Does not affect execution - the
    *  launcher has already resolved `flow` from it. */
   selection?: WorkflowSelection | null;
-  /** Adaptive Shape (P1): the flow the chain should BUILD after shaping. Set on a
-   *  shape-phase run (intake/shape) so the chosen flow is carried across the
+  /** Adaptive spec-up (P1): the flow the chain should BUILD after spec-up. Set on a
+   *  spec-up-phase run (intake/spec-up) so the chosen flow is carried across the
    *  detached chain; persisted as the `spec-up-target-flow.json` sidecar at run
    *  start and read by the `approve & build` handoff. null = no build target. */
   specUpTargetFlowId?: string | null;
   /** Deep-questioning loop: the round this intake run represents + the chain-root
    *  run id (where accumulated answers live). Persisted as `spec-up-round.json` /
-   *  `spec-up-root-run.json` sidecars at run start, read by the shape-chain. */
+   *  `spec-up-root-run.json` sidecars at run start, read by the spec-up-chain. */
   specUpRound?: number | null;
   specUpRootRunId?: string | null;
   /** Permission mode (T14 P4): read-only / ask / accept-edits / auto. The
@@ -624,9 +624,9 @@ export class Orchestrator {
     this.concise = input.concise ?? false;
     this.flow = input.flow ?? null;
     // Safety clamp (root cause): a resolved flow with no write step (no step
-    // emits a `diff`, e.g. shape-intake / plan-only) must NEVER run write-capable
+    // emits a `diff`, e.g. spec-up-intake / plan-only) must NEVER run write-capable
     // - on EVERY launch path. run-launcher clamps too; this also covers the
-    // direct `vibe run` adaptive-shape path, which resolves shape-intake without
+    // direct `vibe run` adaptive-spec-up path, which resolves spec-up-intake without
     // going through the launcher's clamp. The real guard is this clamp, not the
     // mere absence of write steps (a write-capable profile can still touch disk).
     if (
@@ -938,7 +938,7 @@ export class Orchestrator {
 
     await artifactStore.write("00-idea.md", `# Task\n\n${this.task}\n`);
 
-    // Adaptive Shape (P1): record the flow this shaped run should BUILD once its
+    // Adaptive spec-up (P1): record the flow this spec-up-phase run should BUILD once its
     // spec is approved. The chain is detached runs glued by artifacts, so the
     // chosen flow id rides as a small sidecar (read by readSpecUpQuestions and the
     // `approve & build` handoff) - no run-state schema change, no durable pause.
@@ -970,9 +970,9 @@ export class Orchestrator {
         this.selection.source === "supervisor-upgraded" ||
         this.selection.source === "sized" ||
         this.selection.source === "spec-up" ||
-        // Adaptive Shape (P1): a needs-shaping run is an orchestrator judgment
+        // Adaptive spec-up (P1): a needs-spec-up run is an orchestrator judgment
         // worth recording even on the `default`/`forced` source, so the
-        // dashboard can narrate "shaped first, then builds with <flow>".
+        // dashboard can narrate "spec'd up first, then builds with <flow>".
         this.selection.needsSpecUp === true)
     ) {
       await artifactStore.writeJson("selection.json", this.selection);
@@ -4020,7 +4020,7 @@ export class Orchestrator {
       const mergeReadinessInput = {
         readOnly: this.readOnly,
         reviewDecision,
-        // A read-only flow with no review step (the shape-intake enrichment phase)
+        // A read-only flow with no review step (the spec-up-intake enrichment phase)
         // has nothing to approve - it lands merge_ready on completion, not blocked.
         hasReviewStep: input.snapshot.steps.some((s) => s.kind === "review-turn"),
         reviewTurnRan,

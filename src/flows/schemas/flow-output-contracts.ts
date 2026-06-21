@@ -8,8 +8,8 @@ export const FLOW_FINDING_RESOLUTIONS_CONTRACT =
   "vibestrate.flow.finding-resolutions.v1";
 export const FLOW_DECISION_SUMMARY_CONTRACT =
   "vibestrate.flow.decision-summary.v1";
-// Shape phase: the intake step emits a structured set of gap questions the
-// consult surface renders as a form. The submitted answers seed the shape run.
+// Spec-up phase: the intake step emits a structured set of gap questions the
+// consult surface renders as a form. The submitted answers seed the spec-up run.
 export const FLOW_QUESTIONS_CONTRACT = "vibestrate.flow.questions.v1";
 
 export const flowFindingCategorySchema = z.enum([
@@ -232,7 +232,7 @@ export type FlowArchitectureHandoffOutput = z.infer<
   typeof flowArchitectureHandoffOutputSchema
 >;
 
-// Shape phase intake: the area a gap question belongs to. The model classifies
+// Spec-up phase intake: the area a gap question belongs to. The model classifies
 // each question so the UI can group by category and show per-area coverage
 // progress (deep-questioning loop). A fixed small set keeps the grouping legible.
 export const specUpQuestionCategorySchema = z.enum([
@@ -246,13 +246,13 @@ export const specUpQuestionCategorySchema = z.enum([
 ]);
 export type SpecUpQuestionCategory = z.infer<typeof specUpQuestionCategorySchema>;
 
-// Shape phase intake: one gap question the CTO must ask to scope the work.
+// Spec-up phase intake: one gap question the CTO must ask to scope the work.
 // `kind: "choice"` renders as a select of `options`; `kind: "text"` as a field.
 // Questions request scope decisions only - never secret values (the safety model
 // allows env var NAMES, never values).
 //
 // NOTE: there is deliberately NO `round` field here. The round is server-owned
-// chain state (see shape-chain.ts), stamped onto served questions; the model must
+// chain state (see spec-up-chain.ts), stamped onto served questions; the model must
 // never control the loop counter, so it is kept off this model-facing schema.
 export const flowSpecUpQuestionSchema = z
   .object({
@@ -383,7 +383,7 @@ export const flowHandoffContracts = {
   questions: {
     contractId: FLOW_QUESTIONS_CONTRACT,
     schema: flowQuestionsOutputSchema,
-    label: "Shape Intake Questions",
+    label: "Spec-up Intake Questions",
     example: {
       contract: FLOW_QUESTIONS_CONTRACT,
       stepId: "__stepId__",

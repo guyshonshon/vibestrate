@@ -222,9 +222,9 @@ export function RunDetailPage({
     }
   };
 
-  // Shape phase: when the supervisor routed this run into the read-only
-  // shape-intake flow, it terminates having emitted gap questions. Show those
-  // as the run's surface - answering them launches the shaping run and hands
+  // Spec-up phase: when the supervisor routed this run into the read-only
+  // spec-up-intake flow, it terminates having emitted gap questions. Show those
+  // as the run's surface - answering them launches the spec-up run and hands
   // off to it. (The questions artifact persists on the intake run, so revisiting
   // it re-offers them; the chain moves forward via the spawned run.)
   const awaitingSpecUpAnswers =

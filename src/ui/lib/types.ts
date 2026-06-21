@@ -1,4 +1,4 @@
-// ── Shape phase: one CTO intake gap-question rendered as a form input. ──
+// ── Spec-up phase: one CTO intake gap-question rendered as a form input. ──
 export type SpecUpQuestionCategory =
   | "scope"
   | "users"
@@ -18,7 +18,7 @@ export type SpecUpQuestion = {
   // per-category progress grouping in the deep-questioning loop.
   category: SpecUpQuestionCategory;
   // The round this question was raised in. Server-stamped chain state (never
-  // model-emitted) - see shape-chain.ts.
+  // model-emitted) - see spec-up-chain.ts.
   round: number;
 };
 
@@ -145,7 +145,7 @@ export type RunState = {
   concise?: boolean;
   /** Live sequential Flow ledger, when this run uses a Flow recipe. */
   flow?: FlowRunState | null;
-  /** Server-computed: a shape-intake run still awaiting the user's answers
+  /** Server-computed: a spec-up-intake run still awaiting the user's answers
    *  (questions present and not yet consumed). The honest "awaiting input"
    *  signal - do NOT infer awaiting from status. */
   awaitingInput?: boolean;
@@ -364,7 +364,7 @@ export type WorkflowSelectionView = {
     | "sized"
     | "spec-up"
     | "supervisor-upgraded";
-  /** Adaptive Shape (P1): the brief is under-specified, so the run is shaped
+  /** Adaptive spec-up (P1): the brief is under-specified, so the run is spec'd up
    *  first and then `flowId` executes seeded with the derived spec. */
   needsSpecUp?: boolean;
   confidence: "low" | "medium" | "high";
@@ -559,7 +559,7 @@ export type Task = {
   roadmapItemId: string | null;
   title: string;
   description: string;
-  // Shape phase (M4): prose acceptance criteria + a rough size estimate.
+  // Spec-up phase (M4): prose acceptance criteria + a rough size estimate.
   acceptanceCriteria?: string;
   // P5: user-authored machine-checkable acceptance commands (extra validation
   // pass on the card's run). Prose criteria are LLM-judged; these are machine-run.

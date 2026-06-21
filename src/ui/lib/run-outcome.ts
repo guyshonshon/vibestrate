@@ -23,7 +23,7 @@ export function isTerminalStatus(status: RunStatus): boolean {
   return TERMINAL_NON_MERGE.has(status) || status === "merge_ready";
 }
 
-/** A shape-intake run still AWAITING the user's answers. Keyed on the
+/** A spec-up-intake run still AWAITING the user's answers. Keyed on the
  *  server-computed `awaitingInput` flag (questions present + not yet consumed),
  *  NOT on status: a real awaiting run lands `merge_ready` (read-only, no review),
  *  and an old/dead intake run sits at `blocked` with stale questions - inferring

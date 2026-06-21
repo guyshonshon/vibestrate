@@ -373,7 +373,7 @@ export function leaderboard({
     .map((id) => {
       const curRuns = cur.get(id) ?? [];
       const prevRuns = prev.get(id) ?? [];
-      // Read-only runs (e.g. shape-intake) land merge_ready but ship nothing, so
+      // Read-only runs (e.g. spec-up-intake) land merge_ready but ship nothing, so
       // they must not inflate the merge/success rate - base it on build runs.
       const buildRuns = curRuns.filter((r) => !r.readOnly);
       const completed = buildRuns.filter((r) =>
@@ -738,7 +738,7 @@ export function buildProvidersOverview(input: {
       };
     }
     const durs = entry.roles.map((a) => a.durationMs);
-    // Read-only runs (e.g. shape-intake) land merge_ready but ship nothing.
+    // Read-only runs (e.g. spec-up-intake) land merge_ready but ship nothing.
     const buildRuns = entry.runs.filter((r) => !r.readOnly);
     const completed = buildRuns.filter((r) =>
       ["merge_ready", "failed", "aborted"].includes(r.status),

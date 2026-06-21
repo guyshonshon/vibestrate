@@ -3,15 +3,15 @@ import { ArrowRight, ClipboardList, GitBranch } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { RunState } from "../../lib/types.js";
 
-// ── In-run Shape chain actions ───────────────────────────────────────────────
-// The shape chain advances by human steps. The intake run's gap-questions are
+// ── In-run Spec-up chain actions ───────────────────────────────────────────────
+// The spec-up chain advances by human steps. The intake run's gap-questions are
 // handled by RunGapQuestions; this is the terminal links, surfaced on the run
 // they belong to so the whole chain is advanceable from the run view (UI<->CLI
-// parity with `vibe shape build` / `vibe shape approve` / `vibe shape roadmap`):
-//   - a completed `shape` run         -> "Approve & build" (P1: run the chosen
+// parity with `vibe spec-up build` / `vibe spec-up approve` / `vibe spec-up roadmap`):
+//   - a completed `spec-up` run         -> "Approve & build" (P1: run the chosen
 //        flow seeded with the approved spec) OR "Approve & generate roadmap"
 //   - a completed `spec-up-roadmap` run -> "Create board cards"
-// All reuse the already-gated shape endpoints; nothing spawns a command.
+// All reuse the already-gated spec-up endpoints; nothing spawns a command.
 
 const TERMINAL = new Set([
   "merge_ready",

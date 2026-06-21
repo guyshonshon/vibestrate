@@ -19,7 +19,7 @@ import { api } from "../../lib/api.js";
 import type { SpecUpQuestion, SpecUpQuestionCategory } from "../../lib/types.js";
 import { usePublishViewContext } from "../../lib/view-context.js";
 
-// ── In-run gap-questions screen (Shape) - modern, card-based, layered ────────
+// ── In-run gap-questions screen (Spec-up) - modern, card-based, layered ────────
 // Bold left menu of areas (the current one a solid violet block); the current
 // area's questions are contained CARDS on a layered surface (panel -> card ->
 // inset). One area at a time, jumpable, Submit + Proceed always reachable.

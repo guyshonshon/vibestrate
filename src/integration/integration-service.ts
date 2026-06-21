@@ -87,7 +87,7 @@ export async function listMergeReadyRuns(
       const parsed = runStateSchema.safeParse(await readJson(file));
       if (!parsed.success) continue;
       const s = parsed.data;
-      // A read-only run (e.g. shape-intake) lands merge_ready with a branch but
+      // A read-only run (e.g. spec-up-intake) lands merge_ready with a branch but
       // has nothing to merge - exclude it from the integration candidate list.
       if (s.status === "merge_ready" && s.branchName && !s.readOnly) {
         out.push({

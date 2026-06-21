@@ -83,7 +83,7 @@ export function ConsultDock() {
         model: providerId && models.includes(model) ? model : undefined,
         effort: providerId && efforts.includes(effort) ? effort : undefined,
         // Screen-aware: hand the orb a snapshot of whatever screen published one
-        // (e.g. the shape questions + answers). Redacted server-side.
+        // (e.g. the spec-up questions + answers). Redacted server-side.
         viewContext: getViewContext(),
       });
       setResult(res);

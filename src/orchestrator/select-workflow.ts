@@ -54,10 +54,10 @@ export type WorkflowSelection = {
   /** Recommended crew, when the orchestrator chose one (else null = config/default). */
   crewId: string | null;
   source: WorkflowSelectionSource;
-  /** Adaptive Shape (P1): the brief is under-specified, so the run is SHAPED
+  /** Adaptive spec-up (P1): the brief is under-specified, so the run is SPEC'D UP
    *  FIRST (read-only intake -> spec) and then `flowId` (the chosen/default
-   *  flow, NOT a shape flow) executes seeded with that spec. Orthogonal to flow
-   *  selection - any flow can be shaped. Omitted/false = run the flow directly. */
+   *  flow, NOT a spec-up flow) executes seeded with that spec. Orthogonal to flow
+   *  selection - any flow can be spec'd up. Omitted/false = run the flow directly. */
   needsSpecUp?: boolean;
   confidence: "low" | "medium" | "high";
   reasons: string[];
@@ -271,9 +271,9 @@ export type ChooseRunFlowInput = {
   forceSelect?: boolean;
   /** --no-select: skip selection; use the default (or built-in default) flow. */
   noSelect?: boolean;
-  /** Loop guard (P1): this run is itself a shape-phase run (intake/shape/roadmap)
-   *  or the post-shape executor launched from the chain. Suppresses adaptive
-   *  shaping so a shaped run never re-enters shaping. */
+  /** Loop guard (P1): this run is itself a spec-up-phase run (intake/spec-up/roadmap)
+   *  or the post-spec-up executor launched from the chain. Suppresses adaptive
+   *  spec-up so a spec-up-phase run never re-enters spec-up. */
   specUpPhase?: boolean;
   files?: string[];
   loaded?: LoadedConfig | null;
@@ -346,11 +346,11 @@ async function maybeUpgradeForPersona(input: {
 export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<WorkflowSelection> {
   const defaultFlowId = input.config.defaultFlow ?? null;
   const persona = resolvePersona(input.config, input.personaOverride);
-  // Adaptive Shape (P1) is ORTHOGONAL to flow selection: decide it ONCE here and
+  // Adaptive spec-up (P1) is ORTHOGONAL to flow selection: decide it ONCE here and
   // stamp it on every return path via `tag`. A plan-worthy/under-specified brief
-  // is shaped FIRST (read-only intake -> spec) and then the CHOSEN flow runs
-  // seeded with that spec - the chosen flow is never replaced by a shape flow.
-  // Suppressed for a shape-phase/executor run (`shaped`), with --no-select, or
+  // runs spec-up FIRST (read-only intake -> spec) and then the CHOSEN flow runs
+  // seeded with that spec - the chosen flow is never replaced by a spec-up flow.
+  // Suppressed for a spec-up-phase/executor run (`specUpPhase`), with --no-select, or
   // when `adaptiveSpecUp: "off"`. classifyPlanWorthy biases to execute (fires
   // only on a clear build-a-system reading, never when a concrete file is named).
   const needsSpecUp =

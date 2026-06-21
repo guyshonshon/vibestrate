@@ -37,7 +37,7 @@ describe("shape question contract: model-emitted category", () => {
   });
 });
 
-describe("shape questions output contract: coverageComplete + empty set", () => {
+describe("spec-up questions output contract: coverageComplete + empty set", () => {
   it("accepts coverageComplete:true with zero questions (gap-check says done)", () => {
     const parsed = flowQuestionsOutputSchema.safeParse({
       contract: FLOW_QUESTIONS_CONTRACT,

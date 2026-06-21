@@ -981,30 +981,30 @@ export const planOnlyFlow = flowDefinitionSchema.parse({
   },
 });
 
-// ── Shape phase ("Plan" as a CTO) ────────────────────────────────────────────
+// ── Spec-up phase ("Plan" as a CTO) ────────────────────────────────────────────
 // Three read-only links in a human-stepped chain (no durable pause, no nested
-// runs - see docs/design/shape-phase.md). The CTO posture lives in each step's
-// `instructions` (the director, v1; a persona `shapingPosture` field is a tracked
+// runs - see docs/design/spec-up-phase.md). The CTO posture lives in each step's
+// `instructions` (the director, v1; a persona `specUpPosture` field is a tracked
 // follow-up). None of the steps produce a `diff`, so run-launcher clamps every
 // link read-only by construction.
 //
 // Chain integrity (the load-bearing invariant, asserted by a test): the roadmap
-// link resumes the shape run at stage "executing", so seedResumedSteps copies the
+// link resumes the spec-up run at stage "executing", so seedResumedSteps copies the
 // output.md of every step BEFORE the first executing step - scope/spec/
 // architecture/risks - keyed by the roadmap flow's step ids. Those ids + stages
-// MUST match the shape flow exactly, or the second link throws at seed time.
+// MUST match the spec-up flow exactly, or the second link throws at seed time.
 
 // Link 1: intake. Reads the brief, classifies it, emits the structured gap
 // questions the consult surface renders as a form. Terminates.
 export const specUpIntakeFlow = flowDefinitionSchema.parse({
   id: "spec-up-intake",
   version: 1,
-  label: "Shape: Intake",
+  label: "Spec-up: Intake",
   // Internal phase, not a user-selectable flow - hidden from every picker; the
   // adaptive trigger + consult-submit launch it by id.
   hidden: true,
   description:
-    "Shape phase link 1 - WRITES NO CODE. The CTO reads the brief and asks the gap questions needed to scope the work (auth? payments? scale? persistence?). Emits a structured questions artifact; the answers seed the shape run. Launched by 'Plan'.",
+    "Spec-up phase link 1 - WRITES NO CODE. The CTO reads the brief and asks the gap questions needed to scope the work (auth? payments? scale? persistence?). Emits a structured questions artifact; the answers seed the spec-up run. Launched by 'Plan'.",
   seats: {
     planner: { label: "CTO (intake)", description: "Reads the brief and asks the scoping questions." },
   },
@@ -1030,7 +1030,7 @@ export const specUpIntakeFlow = flowDefinitionSchema.parse({
   },
 });
 
-// Link 2: shape. With the answers as context, the CTO scopes the work, writes a
+// Link 2: spec-up. With the answers as context, the CTO scopes the work, writes a
 // spec + architecture (incl. a provisioning checklist of env var NAMES) + risks,
 // and a reviewer checks completeness against the APPROVED scope (single pass v1 -
 // the read-only clamp disables the adaptive loop; the human approves between
@@ -1038,14 +1038,14 @@ export const specUpIntakeFlow = flowDefinitionSchema.parse({
 export const specUpFlow = flowDefinitionSchema.parse({
   id: "spec-up",
   version: 1,
-  label: "Shape",
+  label: "Spec-up",
   hidden: true,
   description:
-    "Shape phase link 2 - WRITES NO CODE. The CTO turns the brief + answers into a scope, a spec, an architecture with a provisioning checklist, and a risks register, then a reviewer checks completeness against the approved scope. Produces reviewable spec/architecture/risks drafts. Launched after the intake questions are answered.",
+    "Spec-up phase link 2 - WRITES NO CODE. The CTO turns the brief + answers into a scope, a spec, an architecture with a provisioning checklist, and a risks register, then a reviewer checks completeness against the approved scope. Produces reviewable spec/architecture/risks drafts. Launched after the intake questions are answered.",
   seats: {
-    planner: { label: "CTO (shape)", description: "Scopes the work and writes the spec and risks." },
+    planner: { label: "CTO (spec-up)", description: "Scopes the work and writes the spec and risks." },
     architect: { label: "Architect", description: "Designs the architecture and provisioning checklist." },
-    reviewer: { label: "Reviewer", description: "Checks the shape for completeness against the approved scope." },
+    reviewer: { label: "Reviewer", description: "Checks the spec-up draft for completeness against the approved scope." },
   },
   steps: [
     {
@@ -1057,7 +1057,7 @@ export const specUpFlow = flowDefinitionSchema.parse({
       inputs: ["task-brief"],
       outputs: ["scope"],
       instructions:
-        "You are the CTO shaping this work before any code. From the brief and the user's answers, define the SCOPE: what is in, what is explicitly OUT, and your assumptions. Surface unstated requirements the user likely didn't mention (auth, persistence, payments, scale, privacy) - but thorough means surface-then-scope to what the user actually wants, NOT build everything. State which gap questions are now answered and any that remain. Be concrete and decisive.",
+        "You are the CTO running spec-up on this work before any code. From the brief and the user's answers, define the SCOPE: what is in, what is explicitly OUT, and your assumptions. Surface unstated requirements the user likely didn't mention (auth, persistence, payments, scale, privacy) - but thorough means surface-then-scope to what the user actually wants, NOT build everything. State which gap questions are now answered and any that remain. Be concrete and decisive.",
     },
     {
       id: "spec",
@@ -1094,14 +1094,14 @@ export const specUpFlow = flowDefinitionSchema.parse({
     },
     {
       id: "spec-up-review",
-      label: "Review shape",
+      label: "Review spec-up",
       kind: "review-turn",
       seat: "reviewer",
       stage: "reviewing",
       inputs: ["task-brief", "scope", "spec", "architecture", "risks"],
       outputs: ["findings", "review-decision"],
       instructions:
-        "Review the scope, spec, architecture, and risks for COMPLETENESS AGAINST THE APPROVED SCOPE - not against an ideal system. Does the spec cover everything in scope? Are the acceptance criteria checkable? Are there unaddressed risks or unstated requirements WITHIN scope? Decide APPROVED if the shape is sound and complete for the approved scope, or CHANGES_REQUESTED with the specific gaps. Do not request scope expansion.",
+        "Review the scope, spec, architecture, and risks for COMPLETENESS AGAINST THE APPROVED SCOPE - not against an ideal system. Does the spec cover everything in scope? Are the acceptance criteria checkable? Are there unaddressed risks or unstated requirements WITHIN scope? Decide APPROVED if the spec-up draft is sound and complete for the approved scope, or CHANGES_REQUESTED with the specific gaps. Do not request scope expansion.",
     },
   ],
   complexity: "high",
@@ -1113,20 +1113,20 @@ export const specUpFlow = flowDefinitionSchema.parse({
   },
 });
 
-// Link 3: roadmap. Resumes the shape run (stage "executing"), so scope/spec/
+// Link 3: roadmap. Resumes the spec-up run (stage "executing"), so scope/spec/
 // architecture/risks are seeded as context, and synthesizes them into a
 // dependency-aware proposal in the VIBESTRATE_TASK marker format the existing
 // proposal parser/accept path consumes. The four seeded steps must mirror the
-// shape flow's ids + stages exactly (chain integrity).
+// spec-up flow's ids + stages exactly (chain integrity).
 export const specUpRoadmapFlow = flowDefinitionSchema.parse({
   id: "spec-up-roadmap",
   version: 1,
-  label: "Shape: Roadmap",
+  label: "Spec-up: Roadmap",
   hidden: true,
   description:
-    "Shape phase link 3 - WRITES NO CODE. Resumes the approved shape and synthesizes the spec/architecture/risks into an ordered, dependency-aware roadmap proposal (board cards with acceptance criteria and estimates). Review and accept it from the proposals surface. Launched after the spec is approved.",
+    "Spec-up phase link 3 - WRITES NO CODE. Resumes the approved spec and synthesizes the spec/architecture/risks into an ordered, dependency-aware roadmap proposal (board cards with acceptance criteria and estimates). Review and accept it from the proposals surface. Launched after the spec is approved.",
   seats: {
-    planner: { label: "CTO (roadmap)", description: "Synthesizes the approved shape into board cards." },
+    planner: { label: "CTO (roadmap)", description: "Synthesizes the approved spec into board cards." },
     architect: { label: "Architect", description: "Seeded architecture context." },
     reviewer: { label: "Reviewer", description: "Seeded review context." },
   },
