@@ -294,6 +294,39 @@ describe("undoMerge", () => {
     expect(await fileExists(path.join(dir, "other.txt"))).toBe(true);
   });
 
+  // Adversarial-review BLOCKER (2nd pass) regression: a tip with the right
+  // parents {preSha, sourceSha} but EXTRA content amended into the merge commit
+  // must NOT be reset away - tree-identity, not parentage.
+  it("refuses to undo a merge commit that has work amended in (tree differs)", async () => {
+    const pre = await sha(dir, "main");
+    const srcSha = await sha(dir, "feat-clean");
+    const recDir = path.join(dir, ".vibestrate", "merge");
+    await fs.mkdir(recDir, { recursive: true });
+    const rec: MergeRecord = {
+      target: "main",
+      source: "feat-clean",
+      preSha: pre,
+      sourceSha: srcSha,
+      mergedSha: null,
+      status: "applying",
+      recordedAt: new Date().toISOString(),
+      mergedAt: null,
+    };
+    await fs.writeFile(path.join(recDir, "main.json"), JSON.stringify(rec));
+    await git(dir, "merge", "--no-ff", "--no-edit", "feat-clean");
+    // Fold extra real work into the merge commit (parents stay [pre, srcSha]).
+    await fs.writeFile(path.join(dir, "amended-work.txt"), "precious");
+    await git(dir, "add", ".");
+    await git(dir, "commit", "-q", "--amend", "--no-edit");
+    const amendedTip = await sha(dir, "main");
+
+    const r = await undoMerge({ projectRoot: dir, target: "main" });
+    expect(r.undone).toBe(false);
+    if (!r.undone) expect(r.reason).toMatch(/pristine|tree differs|cannot confirm/i);
+    expect(await sha(dir, "main")).toBe(amendedTip); // untouched
+    expect(await fileExists(path.join(dir, "amended-work.txt"))).toBe(true);
+  });
+
   // Adversarial-review HIGH regression: a normal local-only merge on a branch
   // that tracks an upstream at the pre-merge point is still undoable - the
   // unpushed merge is NOT on the upstream.

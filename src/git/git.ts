@@ -414,5 +414,30 @@ export async function upstreamRef(
   return r.exitCode === 0 ? r.stdout.trim() || null : null;
 }
 
+/** The tree sha a commit/ref points at, or null. */
+export async function treeOf(cwd: string, ref: string): Promise<string | null> {
+  return revParse(cwd, `${ref}^{tree}`);
+}
+
+/**
+ * The tree a CLEAN 3-way merge of `base` + `source` would produce, or null when
+ * the merge conflicts or git can't compute it. Lets undo prove a merge commit is
+ * EXACTLY the recorded clean merge (tree-identity), not just one that shares the
+ * same parents - so an amended/edited merge commit can't be reset away. No side
+ * effects: `merge-tree --write-tree` writes only loose objects, no ref/index.
+ */
+export async function cleanMergeTree(
+  cwd: string,
+  base: string,
+  source: string,
+): Promise<string | null> {
+  const r = await execa("git", ["merge-tree", "--write-tree", base, source], {
+    cwd,
+    reject: false,
+  });
+  if (r.exitCode !== 0) return null; // conflict, or git too old for --write-tree
+  return r.stdout.trim().split("\n")[0]?.trim() || null;
+}
+
 // resolveWorktreePath moved to utils/paths.ts (pure path math; lets the run-id
 // generator reuse it without importing this execa-heavy module).

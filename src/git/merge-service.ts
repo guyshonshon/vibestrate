@@ -43,6 +43,8 @@ import {
   isAncestor,
   revParse,
   upstreamRef,
+  treeOf,
+  cleanMergeTree,
 } from "./git.js";
 import {
   createActionBroker,
@@ -469,14 +471,31 @@ export async function undoMerge(input: {
     }
     const parents = await commitParents(input.projectRoot, cur);
     const expected = new Set([record.preSha, record.sourceSha]);
-    const isHalfAppliedMerge =
+    const parentsMatch =
       parents.length === 2 &&
       new Set(parents).size === 2 &&
       parents.every((p) => expected.has(p));
-    if (!isHalfAppliedMerge) {
+    if (!parentsMatch) {
       return {
         undone: false,
         reason: `Cannot confirm the current tip of "${target}" is the recorded merge of "${record.source}" - refusing.`,
+      };
+    }
+    // Identity, not just parentage (adversarial-review): a parent set is shared
+    // by every merge of this source into this base. The tip's tree must be
+    // EXACTLY the clean merge of preSha+sourceSha, so an amended/edited merge
+    // (extra work folded in) or a differently-resolved redo can't be reset away.
+    // Fail closed if the clean-merge tree can't be computed.
+    const expectedTree = await cleanMergeTree(
+      input.projectRoot,
+      record.preSha,
+      record.sourceSha,
+    );
+    const actualTree = await treeOf(input.projectRoot, cur);
+    if (!expectedTree || !actualTree || expectedTree !== actualTree) {
+      return {
+        undone: false,
+        reason: `Cannot confirm the current tip of "${target}" is the pristine recorded merge (tree differs) - refusing.`,
       };
     }
   }
