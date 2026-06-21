@@ -29,7 +29,22 @@ import { usePublishViewContext } from "../../lib/view-context.js";
 
 const V = "#8b7cff"; // brand violet, solid
 const VB = "#a99bff"; // bright violet, accents/text on dark
-const VBORDER = "rgba(139, 124, 255, 0.55)";
+
+// Borderless tonal system. Separation is carried by TONE STEPS, never by borders,
+// so the `.deep-scene` near-invisible --s-line can't flatten it. Violet is an
+// accent only (active marker, answered check, selected option, Submit). Ladder:
+// page -> container ("ground") -> card -> recessed well; questions are split by a
+// crisp divider rather than relying on the gap alone.
+const PAGE = "#07090e"; // section canvas; the rail floats directly on it
+const GROUND = "#0e1119"; // the content container - "it is a container"
+const CARD = "#1b212d"; // open question card, a clear step above the ground
+const CARD_DONE = "#221f31"; // answered question, same step with a faint violet lean
+const WELL = "#080b10"; // recessed field: text input, unselected option
+const SEL = "rgba(139, 124, 255, 0.22)"; // selected option fill
+const SEL_INK = "#d8ccff"; // text on a selected option
+const RAIL_ON = "#171c24"; // active menu field (calm, neutral - no violet wash)
+const DIVIDER = "rgba(255,255,255,0.08)"; // the rule between questions
+const HAIR = "rgba(255,255,255,0.07)"; // quiet rule for header / footer separators
 
 const CATEGORY_ORDER: ShapeQuestionCategory[] = [
   "scope",
@@ -206,7 +221,7 @@ export function RunGapQuestions({
 
   if (questions.length === 0 && coverageComplete) {
     return (
-      <section style={panel}>
+      <section style={page}>
         <h2 style={{ fontSize: 22, fontWeight: 500, margin: "0 0 8px" }}>Coverage complete</h2>
         <p style={{ fontSize: 15, color: "var(--s-ink-dim)", lineHeight: 1.6, margin: "0 0 22px" }}>
           The CTO has what it needs from your answers (round {round}). Build the spec, architecture, and risks.
@@ -222,21 +237,20 @@ export function RunGapQuestions({
   const single = byCategory.length <= 1;
 
   const menu = (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {byCategory.map((g) => {
         const ans = answeredOf(g.items);
         const done = ans === g.items.length;
         const current = g.category === activeCat;
-        const Icon = CATEGORY_ICON[g.category];
         return (
           <button key={g.category} onClick={() => setActive(g.category)} style={menuRow(current)}>
-            <span style={{ width: 22, display: "flex", color: current ? "#0c0d12" : done ? VB : "var(--s-ink-faint)" }}>
-              {done && !current ? <Check size={20} /> : <Icon size={20} />}
+            <span style={{ width: 16, display: "flex", justifyContent: "center", flexShrink: 0, color: done ? VB : current ? V : "var(--s-ink-faint)" }}>
+              {done ? <Check size={15} /> : <span style={{ width: 6, height: 6, borderRadius: 999, background: current ? V : "rgba(255,255,255,0.18)" }} />}
             </span>
-            <span style={{ flex: 1, fontSize: 15.5, fontWeight: current ? 600 : 400, color: current ? "#0c0d12" : "var(--s-ink-dim)" }}>
+            <span style={{ flex: 1, fontSize: 14, fontWeight: current ? 500 : 400, color: current ? "#e7e9f0" : "var(--s-ink-dim)" }}>
               {CATEGORY_LABEL[g.category]}
             </span>
-            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 13, fontWeight: current ? 600 : 400, color: current ? "#0c0d12" : done ? VB : "var(--s-ink-faint)" }}>
+            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 12.5, color: done || current ? VB : "var(--s-ink-faint)" }}>
               {ans}/{g.items.length}
             </span>
           </button>
@@ -248,38 +262,37 @@ export function RunGapQuestions({
   const ActiveIcon = activeGroup ? CATEGORY_ICON[activeGroup.category] : Shapes;
   const content = activeGroup ? (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, paddingBottom: 18, marginBottom: 20, borderBottom: "1px solid var(--s-line)" }}>
-        <span style={bigChip}>
-          <ActiveIcon size={25} style={{ color: VB }} />
-        </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 13, paddingBottom: 14, marginBottom: 14, borderBottom: `1px solid ${HAIR}` }}>
+        <ActiveIcon size={24} style={{ color: VB, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 25, fontWeight: 500, letterSpacing: "-0.02em", lineHeight: 1.15 }}>{CATEGORY_LABEL[activeGroup.category]}</div>
-          <div style={{ fontSize: 14.5, color: "var(--s-ink-dim)", marginTop: 3 }}>{CATEGORY_BLURB[activeGroup.category]}</div>
+          <div style={{ fontSize: 19, fontWeight: 500, letterSpacing: "-0.01em", lineHeight: 1.2 }}>{CATEGORY_LABEL[activeGroup.category]}</div>
+          <div style={{ fontSize: 13.5, color: "var(--s-ink-dim)", marginTop: 2 }}>{CATEGORY_BLURB[activeGroup.category]}</div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 22, fontWeight: 500 }}>
-            <span style={{ color: VB }}>{answeredOf(activeGroup.items)}</span>
-            <span style={{ color: "var(--s-ink-faint)", fontSize: 16 }}>/{activeGroup.items.length}</span>
+          <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 15, color: VB }}>
+            {answeredOf(activeGroup.items)}/{activeGroup.items.length}
           </div>
-          <div style={{ fontSize: 12.5, color: "var(--s-ink-faint)" }}>answered</div>
+          <div style={{ fontSize: 11.5, color: "var(--s-ink-faint)" }}>answered</div>
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {activeGroup.items.map((q) => (
-          <QuestionCard
-            key={q.id}
-            q={q}
-            value={answers[q.id] ?? ""}
-            suggestion={suggestions[q.id]}
-            simplify={simplify[q.id]}
-            onAnswer={(v) => setAnswer(q.id, v)}
-            onClear={() => clearAnswer(q.id)}
-            onSimplify={(nd) => void doSimplify(q.id, nd)}
-            onSuggest={() => void doSuggest(q.id)}
-            onUseSuggestion={() => suggestions[q.id] && setAnswer(q.id, suggestions[q.id]!.value)}
-            onDismissSuggestion={() => dropSuggestion(q.id)}
-          />
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {activeGroup.items.map((q, i) => (
+          <div key={q.id}>
+            {i > 0 ? <div style={qDivider} /> : null}
+            <QuestionCard
+              q={q}
+              value={answers[q.id] ?? ""}
+              suggestion={suggestions[q.id]}
+              simplify={simplify[q.id]}
+              onAnswer={(v) => setAnswer(q.id, v)}
+              onClear={() => clearAnswer(q.id)}
+              onSimplify={(nd) => void doSimplify(q.id, nd)}
+              onSuggest={() => void doSuggest(q.id)}
+              onUseSuggestion={() => suggestions[q.id] && setAnswer(q.id, suggestions[q.id]!.value)}
+              onDismissSuggestion={() => dropSuggestion(q.id)}
+            />
+          </div>
         ))}
       </div>
 
@@ -306,7 +319,7 @@ export function RunGapQuestions({
   ) : null;
 
   const footer = (
-    <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 20, paddingTop: 18, borderTop: "1px solid var(--s-line)" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 20, paddingTop: 18, borderTop: `1px solid ${HAIR}` }}>
       <span style={{ flex: 1, fontSize: 13.5, color: "var(--s-ink-dim)", lineHeight: 1.5 }}>
         Answer what you can - we ask follow-ups only where it's still open.
       </span>
@@ -321,17 +334,19 @@ export function RunGapQuestions({
   );
 
   return (
-    <section style={panel}>
+    <section style={page}>
       {single ? (
         <div>
-          <div style={{ fontSize: 20, fontWeight: 500, marginBottom: 3 }}>Scope the work</div>
-          <div style={{ fontSize: 13.5, color: "var(--s-ink-faint)", marginBottom: 20 }}>Round {round}. Answer what you can.</div>
-          {content}
-          {footer}
+          <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 3 }}>Scope the work</div>
+          <div style={{ fontSize: 13, color: "var(--s-ink-faint)", marginBottom: 14 }}>Round {round}. Answer what you can.</div>
+          <div style={ground}>
+            {content}
+            {footer}
+          </div>
         </div>
       ) : (
         <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 16, fontWeight: 500 }}>Scope the work</div>
             <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
               <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 13, color: "var(--s-ink-faint)" }}>
@@ -346,11 +361,13 @@ export function RunGapQuestions({
               </div>
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "224px 1fr", gap: 26 }} className="run-gap-grid">
+          <div style={{ display: "grid", gridTemplateColumns: "196px 1fr", gap: 16 }} className="run-gap-grid">
             <aside style={{ alignSelf: "start" }}>{menu}</aside>
-            <div style={{ minWidth: 0 }}>{content}</div>
+            <div style={ground}>
+              {content}
+              {footer}
+            </div>
           </div>
-          {footer}
         </>
       )}
       <style>{`@media (max-width: 860px){ .run-gap-grid{ grid-template-columns: 1fr !important; } }`}</style>
@@ -444,7 +461,7 @@ function QuestionCard({
           )}
         </div>
       ) : (
-        <div style={{ display: "flex", gap: 11, fontSize: 14, lineHeight: 1.6, marginTop: 14, paddingTop: 13, borderTop: "1px solid var(--s-line)" }}>
+        <div style={{ display: "flex", gap: 11, fontSize: 14, lineHeight: 1.6, marginTop: 14, paddingTop: 13, borderTop: `1px solid ${HAIR}` }}>
           <span style={{ color: "var(--s-ink-faint)", flexShrink: 0 }}>Why it matters</span>
           <span style={{ color: "var(--s-ink-dim)" }}>{q.why}</span>
         </div>
@@ -453,45 +470,39 @@ function QuestionCard({
   );
 }
 
-// ── styles - flat solid surfaces, layered (panel -> card -> inset), violet only ──
-const panel: React.CSSProperties = {
-  border: "1px solid var(--s-line)",
-  borderRadius: 16,
-  background: "var(--s-slab)",
-  padding: "22px 26px",
+// ── styles - borderless tonal (page -> ground -> card -> well); violet as accent ──
+const page: React.CSSProperties = {
+  borderRadius: 18,
+  background: PAGE,
+  padding: "20px 22px",
   color: "var(--s-ink)",
 };
-const bigChip: React.CSSProperties = {
-  width: 50,
-  height: 50,
+const ground: React.CSSProperties = {
+  background: GROUND,
   borderRadius: 14,
-  flexShrink: 0,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "var(--s-slab-2)",
-  border: `1px solid ${VBORDER}`,
+  padding: "16px 18px",
+  minWidth: 0,
 };
 function card(answered: boolean): React.CSSProperties {
   return {
-    background: "var(--s-slab-2)",
-    border: `1px solid ${answered ? VBORDER : "var(--s-line)"}`,
-    borderRadius: 14,
-    padding: "18px 20px",
+    background: answered ? CARD_DONE : CARD,
+    borderRadius: 12,
+    padding: "16px 18px",
   };
 }
+const qDivider: React.CSSProperties = { height: 1, background: DIVIDER, margin: "10px 0" };
 function menuRow(current: boolean): React.CSSProperties {
   return {
     display: "flex",
     alignItems: "center",
-    gap: 13,
+    gap: 11,
     width: "100%",
     textAlign: "left",
     cursor: "pointer",
-    padding: "13px 15px",
-    borderRadius: 13,
-    background: current ? V : "var(--s-slab-2)",
-    border: current ? `1px solid ${V}` : "1px solid var(--s-line)",
+    padding: "10px 12px",
+    borderRadius: 10,
+    background: current ? RAIL_ON : "transparent",
+    border: "none",
   };
 }
 const adviseRow: React.CSSProperties = {
@@ -499,28 +510,26 @@ const adviseRow: React.CSSProperties = {
   alignItems: "center",
   gap: 12,
   marginTop: 14,
-  background: "var(--s-slab)",
-  border: `1px solid ${VBORDER}`,
-  borderRadius: 12,
+  background: WELL,
+  borderRadius: 10,
   padding: "12px 15px",
 };
 const simplifyBox: React.CSSProperties = {
   marginTop: 14,
-  padding: "14px 16px",
-  borderRadius: 12,
-  background: "var(--s-slab)",
-  border: "1px solid var(--s-line)",
+  padding: "13px 15px",
+  borderRadius: 10,
+  background: WELL,
   color: "var(--s-ink)",
   fontSize: 14,
   lineHeight: 1.6,
 };
 const textInput: React.CSSProperties = {
   width: "100%",
-  background: "var(--s-slab)",
+  background: WELL,
   color: "var(--s-slab-ink)",
-  border: "1px solid var(--s-line)",
-  borderRadius: 12,
-  padding: "13px 16px",
+  border: "none",
+  borderRadius: 10,
+  padding: "12px 15px",
   fontSize: 15,
   outline: "none",
 };
@@ -540,13 +549,13 @@ const ghostInline: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 7,
-  background: "var(--s-slab-2)",
-  border: "1px solid var(--s-line)",
-  borderRadius: 11,
+  background: CARD,
+  border: "none",
+  borderRadius: 10,
   cursor: "pointer",
-  fontSize: 14,
-  color: "var(--s-slab-ink)",
-  padding: "10px 16px",
+  fontSize: 13.5,
+  color: "var(--s-ink-dim)",
+  padding: "9px 15px",
 };
 const navBtn: React.CSSProperties = {
   display: "inline-flex",
@@ -562,13 +571,14 @@ const navBtn: React.CSSProperties = {
 const clearBtn: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  gap: 5,
-  background: "transparent",
+  gap: 6,
+  background: WELL,
   border: "none",
+  borderRadius: 10,
   cursor: "pointer",
-  fontSize: 13.5,
+  fontSize: 13,
   color: "var(--s-ink-faint)",
-  padding: "0 4px",
+  padding: "9px 13px",
 };
 const useBtn: React.CSSProperties = {
   fontSize: 14,
@@ -582,13 +592,13 @@ const useBtn: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 const ghostBtn: React.CSSProperties = {
-  padding: "12px 20px",
-  borderRadius: 12,
-  fontSize: 14.5,
+  padding: "11px 18px",
+  borderRadius: 10,
+  fontSize: 14,
   cursor: "pointer",
-  border: "1px solid var(--s-line)",
-  background: "var(--s-slab-2)",
-  color: "var(--s-slab-ink)",
+  border: "none",
+  background: CARD,
+  color: "var(--s-ink)",
   whiteSpace: "nowrap",
 };
 function optionBtn(selected: boolean, recommended: boolean): React.CSSProperties {
@@ -596,14 +606,14 @@ function optionBtn(selected: boolean, recommended: boolean): React.CSSProperties
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
-    padding: "12px 22px",
-    borderRadius: 11,
-    fontSize: 15.5,
+    padding: "11px 17px",
+    borderRadius: 10,
+    fontSize: 14.5,
     cursor: "pointer",
     fontWeight: selected ? 500 : 400,
-    background: "var(--s-slab)",
-    border: selected ? `1.5px solid ${V}` : recommended ? `1.5px dashed ${VBORDER}` : "1.5px solid var(--s-line)",
-    color: selected ? VB : recommended ? VB : "var(--s-slab-ink)",
+    border: "none",
+    background: selected ? SEL : recommended ? "rgba(139,124,255,0.12)" : WELL,
+    color: selected ? SEL_INK : recommended ? VB : "var(--s-ink)",
   };
 }
 function primaryBtn(enabled: boolean, compact = false): React.CSSProperties {
@@ -615,8 +625,8 @@ function primaryBtn(enabled: boolean, compact = false): React.CSSProperties {
     fontWeight: 500,
     cursor: enabled ? "pointer" : "default",
     border: "none",
-    background: enabled ? V : "var(--s-slab-2)",
-    color: enabled ? "#0c0d12" : "var(--s-ink-faint)",
+    background: enabled ? V : CARD,
+    color: enabled ? "#14101f" : "var(--s-ink-faint)",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
