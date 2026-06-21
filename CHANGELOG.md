@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.16.0
+
+- **Start the planning phase from the dashboard.** The intake that gathers
+  specifications before a build used to be launchable only from the CLI. The
+  compose page now has a **Plan first** action that kicks it off, and a run that's
+  waiting on your answers is surfaced honestly - labelled, findable, and it opens
+  straight to the questions - instead of being mistaken for a blocked or failed
+  run.
+- **Generate roadmap proposals from the dashboard.** The proposals page gained a
+  Generate action (run the planner on a goal) and now labels each proposal's
+  origin, from a spec run vs an ad-hoc plan, so the one proposals inbox shows
+  where each draft came from.
+- **Cleaner gap-questions screen.** The scoping screen was redesigned to a calmer
+  borderless layout with clearer hierarchy between the area menu, the question
+  list, and each answer.
+- **Fixes:** the screen-aware consult orb no longer errors with "Unrecognized key
+  viewContext"; per-question Simplify/Suggest no longer attach to the wrong
+  question when the planner reuses an id; read-only runs (like a spec intake) no
+  longer inflate provider success rates or show up as bogus merge candidates; and
+  a run that paused to ask you questions is recognised as awaiting your input
+  rather than blocked, and stops re-showing its form once answered.
+
 ## 0.15.2
 
 - **`workflow.maxReviewLoops` now actually does something - as an opt-in global
