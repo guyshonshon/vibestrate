@@ -10,10 +10,10 @@ import type { AssistProviderRunner } from "../src/assist/assist-runner.js";
 import type { ProviderRunInput } from "../src/providers/provider-types.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 import {
-  shapeSimplify,
-  shapeSuggest,
-  shapeSuggestAll,
-} from "../src/shape/shape-assist.js";
+  specUpSimplify,
+  specUpSuggest,
+  specUpSuggestAll,
+} from "../src/spec-up/spec-up-assist.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({
   exitCode: 127,
@@ -68,7 +68,7 @@ async function seedRun(root: string, runId: string, answersDoc?: string) {
   if (answersDoc !== undefined) await store.write("spec-up-answers.md", answersDoc);
 }
 
-describe("shapeSimplify", () => {
+describe("specUpSimplify", () => {
   let root: string;
   beforeEach(async () => {
     root = await makeProject();
@@ -76,7 +76,7 @@ describe("shapeSimplify", () => {
 
   it("returns a plain-language explanation + what it affects", async () => {
     await seedRun(root, "brave-otter");
-    const out = await shapeSimplify({
+    const out = await specUpSimplify({
       projectRoot: root,
       sourceRunId: "brave-otter",
       questionId: "accounts",
@@ -90,7 +90,7 @@ describe("shapeSimplify", () => {
 
   it("includes an analogy when asked to explain for a non-developer", async () => {
     await seedRun(root, "brave-otter");
-    const out = await shapeSimplify({
+    const out = await specUpSimplify({
       projectRoot: root,
       sourceRunId: "brave-otter",
       questionId: "accounts",
@@ -103,7 +103,7 @@ describe("shapeSimplify", () => {
   });
 });
 
-describe("shapeSuggest (draft-only, grounded)", () => {
+describe("specUpSuggest (draft-only, grounded)", () => {
   let root: string;
   beforeEach(async () => {
     root = await makeProject();
@@ -111,7 +111,7 @@ describe("shapeSuggest (draft-only, grounded)", () => {
 
   it("returns a draft value + a grounded why (no submit side-effect)", async () => {
     await seedRun(root, "brave-otter", "# answers\n## Round 1\nB2C for teens\n");
-    const out = await shapeSuggest({
+    const out = await specUpSuggest({
       projectRoot: root,
       sourceRunId: "brave-otter",
       questionId: "accounts",
@@ -127,7 +127,7 @@ describe("shapeSuggest (draft-only, grounded)", () => {
     const secret = "AKIAIOSFODNN7EXAMPLE";
     await seedRun(root, "brave-otter", `# answers\n## Round 1\nmy aws key is ${secret}\n`);
     const sink = { prompt: "" };
-    await shapeSuggest({
+    await specUpSuggest({
       projectRoot: root,
       sourceRunId: "brave-otter",
       questionId: "accounts",
@@ -143,7 +143,7 @@ describe("shapeSuggest (draft-only, grounded)", () => {
   });
 });
 
-describe("shapeSuggestAll", () => {
+describe("specUpSuggestAll", () => {
   let root: string;
   beforeEach(async () => {
     root = await makeProject();
@@ -151,7 +151,7 @@ describe("shapeSuggestAll", () => {
 
   it("returns one grounded draft per requested blank", async () => {
     await seedRun(root, "brave-otter");
-    const out = await shapeSuggestAll({
+    const out = await specUpSuggestAll({
       projectRoot: root,
       sourceRunId: "brave-otter",
       questionIds: ["accounts", "catalog"],

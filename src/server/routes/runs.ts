@@ -11,7 +11,7 @@ import {
 } from "../../utils/paths.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import { applyTransition, isTerminal, RunStateStore, renameRun } from "../../core/state-machine.js";
-import { runAwaitsInput } from "../../shape/shape-chain.js";
+import { runAwaitsInput } from "../../spec-up/spec-up-chain.js";
 import { EventLog, type VibestrateEvent } from "../../core/event-log.js";
 import {
   PauseError,

@@ -3,21 +3,21 @@ import { detectProject } from "../../project/project-detector.js";
 import { loadConfig } from "../../project/config-loader.js";
 import { color, header, symbol } from "../ui/format.js";
 import {
-  startShapeIntake,
-  readShapeQuestions,
-  submitShapeAnswers,
-  proceedToShapeSpec,
-  approveShapeAndStartRoadmap,
-  approveShapeAndBuild,
+  startSpecUpIntake,
+  readSpecUpQuestions,
+  submitSpecUpAnswers,
+  proceedToSpecUpSpec,
+  approveSpecUpAndStartRoadmap,
+  approveSpecUpAndBuild,
   createRoadmapProposal,
-  ShapeChainError,
-} from "../../shape/shape-chain.js";
+  SpecUpChainError,
+} from "../../spec-up/spec-up-chain.js";
 import {
-  shapeSimplify,
-  shapeSuggest,
-  shapeSuggestAll,
-  ShapeAssistError,
-} from "../../shape/shape-assist.js";
+  specUpSimplify,
+  specUpSuggest,
+  specUpSuggestAll,
+  SpecUpAssistError,
+} from "../../spec-up/spec-up-assist.js";
 
 function fail(message: string): never {
   console.error(`${symbol.fail()} ${message}`);
@@ -37,7 +37,7 @@ function collectAnswer(value: string, acc: { id: string; answer: string }[]): { 
  * parity: every step the dashboard can do is reachable here. Each link launches a
  * fresh read-only run through the shared core launcher.
  */
-export function buildShapeCommand(): Command {
+export function buildSpecUpCommand(): Command {
   const cmd = new Command("shape").description(
     "Plan as a CTO: discovery -> spec -> architecture -> roadmap (a chain of read-only runs).",
   );
@@ -50,7 +50,7 @@ export function buildShapeCommand(): Command {
     .action(async (brief: string[], opts: { persona?: string; flow?: string }) => {
       const { projectRoot } = await detectProject(process.cwd());
       try {
-        const { runId } = await startShapeIntake({
+        const { runId } = await startSpecUpIntake({
           projectRoot,
           task: brief.join(" "),
           persona: opts.persona ?? null,
@@ -70,7 +70,7 @@ export function buildShapeCommand(): Command {
     .option("--json", "emit the questions as JSON")
     .action(async (runId: string, opts: { json?: boolean }) => {
       const { projectRoot } = await detectProject(process.cwd());
-      const pending = await readShapeQuestions(projectRoot, runId).catch((err) =>
+      const pending = await readSpecUpQuestions(projectRoot, runId).catch((err) =>
         fail(err instanceof Error ? err.message : String(err)),
       );
       if (!pending) fail(`No pending shape questions for run "${runId}" (yet?).`);
@@ -108,12 +108,12 @@ export function buildShapeCommand(): Command {
         // "Proceed to spec" with no new answers: finalize the accumulated set.
         if (opts.answer.length === 0) {
           if (!opts.proceed) fail("Pass at least one --answer id=value, or --proceed to build now.");
-          const { runId: shapeRunId } = await proceedToShapeSpec({ projectRoot, sourceRunId: runId });
+          const { runId: specUpRunId } = await proceedToSpecUpSpec({ projectRoot, sourceRunId: runId });
           console.log(`${header("Shape: building the spec")}`);
-          console.log(`Run: ${color.bold(shapeRunId)}`);
+          console.log(`Run: ${color.bold(specUpRunId)}`);
           return;
         }
-        const { runId: nextRunId, action } = await submitShapeAnswers({
+        const { runId: nextRunId, action } = await submitSpecUpAnswers({
           projectRoot,
           sourceRunId: runId,
           answers: opts.answer,
@@ -129,7 +129,7 @@ export function buildShapeCommand(): Command {
           console.log(color.dim("Review the spec/architecture/risks, then approve."));
         }
       } catch (err) {
-        if (err instanceof ShapeChainError) fail(err.message);
+        if (err instanceof SpecUpChainError) fail(err.message);
         fail(err instanceof Error ? err.message : String(err));
       }
     });
@@ -141,7 +141,7 @@ export function buildShapeCommand(): Command {
     .action(async (runId: string, questionId: string, opts: { forNonDeveloper?: boolean }) => {
       const { projectRoot } = await detectProject(process.cwd());
       try {
-        const r = await shapeSimplify({
+        const r = await specUpSimplify({
           projectRoot,
           sourceRunId: runId,
           questionId,
@@ -152,7 +152,7 @@ export function buildShapeCommand(): Command {
         console.log(color.dim(`\nWhat it affects: ${r.affects}`));
         if (r.analogy) console.log(color.dim(`Analogy: ${r.analogy}`));
       } catch (err) {
-        if (err instanceof ShapeAssistError || err instanceof ShapeChainError) fail(err.message);
+        if (err instanceof SpecUpAssistError || err instanceof SpecUpChainError) fail(err.message);
         fail(err instanceof Error ? err.message : String(err));
       }
     });
@@ -165,7 +165,7 @@ export function buildShapeCommand(): Command {
       const { projectRoot } = await detectProject(process.cwd());
       try {
         if (opts.all) {
-          const { items } = await shapeSuggestAll({ projectRoot, sourceRunId: runId });
+          const { items } = await specUpSuggestAll({ projectRoot, sourceRunId: runId });
           console.log(header("Shape: suggested drafts (review + edit)"));
           for (const it of items) {
             console.log(`\n${color.bold(it.questionId)}  ${it.suggestedValue}`);
@@ -174,38 +174,38 @@ export function buildShapeCommand(): Command {
           return;
         }
         if (!questionId) fail("Pass a questionId, or --all to suggest for every question.");
-        const r = await shapeSuggest({ projectRoot, sourceRunId: runId, questionId });
+        const r = await specUpSuggest({ projectRoot, sourceRunId: runId, questionId });
         console.log(header(`Shape: suggested draft for ${questionId}`));
         console.log(r.suggestedValue);
         console.log(color.dim(`\nwhy: ${r.why}`));
         console.log(color.dim(`(a draft - edit it, then:  vibe shape answer ${runId} --answer ${questionId}="...")`));
       } catch (err) {
-        if (err instanceof ShapeAssistError || err instanceof ShapeChainError) fail(err.message);
+        if (err instanceof SpecUpAssistError || err instanceof SpecUpChainError) fail(err.message);
         fail(err instanceof Error ? err.message : String(err));
       }
     });
 
   cmd
-    .command("approve <shapeRunId>")
+    .command("approve <specUpRunId>")
     .description("Approve the shaped draft and launch the roadmap synthesis run.")
-    .action(async (shapeRunId: string) => {
+    .action(async (specUpRunId: string) => {
       const { projectRoot } = await detectProject(process.cwd());
       try {
-        const { runId } = await approveShapeAndStartRoadmap({ projectRoot, shapeRunId });
+        const { runId } = await approveSpecUpAndStartRoadmap({ projectRoot, specUpRunId });
         console.log(`${header("Shape: roadmap run launched")}`);
         console.log(`Run: ${color.bold(runId)}`);
         console.log(color.dim(`When it finishes:  vibe shape roadmap ${runId}`));
       } catch (err) {
-        if (err instanceof ShapeChainError) fail(err.message);
+        if (err instanceof SpecUpChainError) fail(err.message);
         fail(err instanceof Error ? err.message : String(err));
       }
     });
 
   cmd
-    .command("build <shapeRunId>")
+    .command("build <specUpRunId>")
     .description("Approve the shaped draft and BUILD it: run the chosen flow seeded with the approved spec.")
     .option("--flow <id>", "build flow override (default: the flow carried from the shaped run)")
-    .action(async (shapeRunId: string, opts: { flow?: string }) => {
+    .action(async (specUpRunId: string, opts: { flow?: string }) => {
       const { projectRoot } = await detectProject(process.cwd());
       // Mirror the server route: an unbound shape run builds with the project
       // default (UI<->CLI parity) rather than erroring.
@@ -216,9 +216,9 @@ export function buildShapeCommand(): Command {
         /* keep "default" */
       }
       try {
-        const { runId, flowId } = await approveShapeAndBuild({
+        const { runId, flowId } = await approveSpecUpAndBuild({
           projectRoot,
-          shapeRunId,
+          specUpRunId,
           flowId: opts.flow ?? null,
           fallbackFlowId,
         });
@@ -227,7 +227,7 @@ export function buildShapeCommand(): Command {
         console.log(`Run: ${color.bold(runId)}`);
         console.log(color.dim("The flow builds from the approved spec (seeded as run context)."));
       } catch (err) {
-        if (err instanceof ShapeChainError) fail(err.message);
+        if (err instanceof SpecUpChainError) fail(err.message);
         fail(err instanceof Error ? err.message : String(err));
       }
     });
@@ -243,7 +243,7 @@ export function buildShapeCommand(): Command {
         console.log(`Proposal: ${color.bold(proposalId)}`);
         console.log(color.dim(`Review + accept:  vibe roadmap accept ${proposalId}`));
       } catch (err) {
-        if (err instanceof ShapeChainError) fail(err.message);
+        if (err instanceof SpecUpChainError) fail(err.message);
         fail(err instanceof Error ? err.message : String(err));
       }
     });

@@ -2,22 +2,22 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { HttpError, assertSafeRunId } from "../security.js";
 import {
-  readShapeQuestions,
-  submitShapeAnswers,
-  proceedToShapeSpec,
-  startShapeIntake,
-  approveShapeAndStartRoadmap,
-  approveShapeAndBuild,
+  readSpecUpQuestions,
+  submitSpecUpAnswers,
+  proceedToSpecUpSpec,
+  startSpecUpIntake,
+  approveSpecUpAndStartRoadmap,
+  approveSpecUpAndBuild,
   createRoadmapProposal,
-  shapeAnswerSchema,
-  ShapeChainError,
-} from "../../shape/shape-chain.js";
+  specUpAnswerSchema,
+  SpecUpChainError,
+} from "../../spec-up/spec-up-chain.js";
 import {
-  shapeSimplify,
-  shapeSuggest,
-  shapeSuggestAll,
-  ShapeAssistError,
-} from "../../shape/shape-assist.js";
+  specUpSimplify,
+  specUpSuggest,
+  specUpSuggestAll,
+  SpecUpAssistError,
+} from "../../spec-up/spec-up-assist.js";
 import { loadConfig } from "../../project/config-loader.js";
 
 /** Best-effort project default flow (fallback build target for an unbound shape
@@ -37,7 +37,7 @@ const runIdParam = z
   .max(200)
   .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/);
 
-export type ShapeRoutesDeps = { projectRoot: string };
+export type SpecUpRoutesDeps = { projectRoot: string };
 
 const startBody = z
   .object({
@@ -50,7 +50,7 @@ const startBody = z
 
 const buildBody = z
   .object({
-    shapeRunId: z
+    specUpRunId: z
       .string()
       .min(1)
       .max(200)
@@ -63,13 +63,13 @@ const buildBody = z
 const answersBody = z
   .object({
     sourceRunId: runIdParam,
-    answers: z.array(shapeAnswerSchema).min(1).max(20),
+    answers: z.array(specUpAnswerSchema).min(1).max(20),
     /** Deep-questioning loop: "Proceed to spec" - finalize now, skip gap-check. */
     proceed: z.boolean().optional(),
   })
   .strict();
 
-const proceedShapeBody = z.object({ sourceRunId: runIdParam }).strict();
+const proceedSpecUpBody = z.object({ sourceRunId: runIdParam }).strict();
 
 const questionIdParam = z
   .string()
@@ -93,9 +93,9 @@ const assistBody = z
  * through the gated `startDetachedRun` path inside shape-chain - the browser
  * never passes a command.
  */
-export async function registerShapeRoutes(
+export async function registerSpecUpRoutes(
   app: FastifyInstance,
-  deps: ShapeRoutesDeps,
+  deps: SpecUpRoutesDeps,
 ): Promise<void> {
   const { projectRoot } = deps;
 
@@ -106,7 +106,7 @@ export async function registerShapeRoutes(
       throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid brief.");
     }
     try {
-      const { runId, pid } = await startShapeIntake({
+      const { runId, pid } = await startSpecUpIntake({
         projectRoot,
         task: parsed.data.task,
         persona: parsed.data.persona ?? null,
@@ -114,7 +114,7 @@ export async function registerShapeRoutes(
       });
       return { ok: true, runId, pid };
     } catch (err) {
-      if (err instanceof ShapeChainError) throw new HttpError(400, err.message);
+      if (err instanceof SpecUpChainError) throw new HttpError(400, err.message);
       throw err;
     }
   });
@@ -125,7 +125,7 @@ export async function registerShapeRoutes(
     "/api/runs/:id/shape-questions",
     async (req) => {
       assertSafeRunId(req.params.id);
-      const pending = await readShapeQuestions(projectRoot, req.params.id);
+      const pending = await readSpecUpQuestions(projectRoot, req.params.id);
       if (!pending) return { questions: null };
       return {
         questions: pending.questions,
@@ -143,36 +143,36 @@ export async function registerShapeRoutes(
   app.post<{ Body: unknown }>("/api/shape/build", async (req) => {
     const parsed = buildBody.safeParse(req.body);
     if (!parsed.success) {
-      throw new HttpError(400, parsed.error.issues[0]?.message ?? "shapeRunId is required.");
+      throw new HttpError(400, parsed.error.issues[0]?.message ?? "specUpRunId is required.");
     }
     try {
-      const { runId, pid, flowId } = await approveShapeAndBuild({
+      const { runId, pid, flowId } = await approveSpecUpAndBuild({
         projectRoot,
-        shapeRunId: parsed.data.shapeRunId,
+        specUpRunId: parsed.data.specUpRunId,
         flowId: parsed.data.flowId ?? null,
         fallbackFlowId: await defaultBuildFlow(projectRoot),
       });
       return { ok: true, runId, pid, flowId };
     } catch (err) {
-      if (err instanceof ShapeChainError) throw new HttpError(400, err.message);
+      if (err instanceof SpecUpChainError) throw new HttpError(400, err.message);
       throw err;
     }
   });
 
   // Approve the shaped draft -> launch the roadmap run (resumeFrom the shape run).
-  app.post<{ Body: { shapeRunId?: unknown } }>("/api/shape/roadmap", async (req) => {
-    const shapeRunId = runIdParam.safeParse(
-      (req.body as { shapeRunId?: unknown } | undefined)?.shapeRunId,
+  app.post<{ Body: { specUpRunId?: unknown } }>("/api/shape/roadmap", async (req) => {
+    const specUpRunId = runIdParam.safeParse(
+      (req.body as { specUpRunId?: unknown } | undefined)?.specUpRunId,
     );
-    if (!shapeRunId.success) throw new HttpError(400, "shapeRunId is required.");
+    if (!specUpRunId.success) throw new HttpError(400, "specUpRunId is required.");
     try {
-      const { runId, pid } = await approveShapeAndStartRoadmap({
+      const { runId, pid } = await approveSpecUpAndStartRoadmap({
         projectRoot,
-        shapeRunId: shapeRunId.data,
+        specUpRunId: specUpRunId.data,
       });
       return { ok: true, runId, pid };
     } catch (err) {
-      if (err instanceof ShapeChainError) throw new HttpError(400, err.message);
+      if (err instanceof SpecUpChainError) throw new HttpError(400, err.message);
       throw err;
     }
   });
@@ -192,7 +192,7 @@ export async function registerShapeRoutes(
         });
         return { ok: true, proposalId };
       } catch (err) {
-        if (err instanceof ShapeChainError) throw new HttpError(400, err.message);
+        if (err instanceof SpecUpChainError) throw new HttpError(400, err.message);
         throw err;
       }
     },
@@ -205,7 +205,7 @@ export async function registerShapeRoutes(
       throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid answers.");
     }
     try {
-      const { runId, pid, action } = await submitShapeAnswers({
+      const { runId, pid, action } = await submitSpecUpAnswers({
         projectRoot,
         sourceRunId: parsed.data.sourceRunId,
         answers: parsed.data.answers,
@@ -213,23 +213,23 @@ export async function registerShapeRoutes(
       });
       return { ok: true, runId, pid, action };
     } catch (err) {
-      if (err instanceof ShapeChainError) throw new HttpError(400, err.message);
+      if (err instanceof SpecUpChainError) throw new HttpError(400, err.message);
       throw err;
     }
   });
 
   // "Proceed to spec" without answering more: finalize with accumulated answers.
   app.post<{ Body: unknown }>("/api/shape/proceed", async (req) => {
-    const parsed = proceedShapeBody.safeParse(req.body);
+    const parsed = proceedSpecUpBody.safeParse(req.body);
     if (!parsed.success) throw new HttpError(400, "sourceRunId is required.");
     try {
-      const { runId, pid } = await proceedToShapeSpec({
+      const { runId, pid } = await proceedToSpecUpSpec({
         projectRoot,
         sourceRunId: parsed.data.sourceRunId,
       });
       return { ok: true, runId, pid };
     } catch (err) {
-      if (err instanceof ShapeChainError) throw new HttpError(400, err.message);
+      if (err instanceof SpecUpChainError) throw new HttpError(400, err.message);
       throw err;
     }
   });
@@ -244,19 +244,19 @@ export async function registerShapeRoutes(
     try {
       if (mode === "simplify") {
         if (!questionId) throw new HttpError(400, "questionId is required for simplify.");
-        const r = await shapeSimplify({ projectRoot, sourceRunId, questionId, forNonDeveloper });
+        const r = await specUpSimplify({ projectRoot, sourceRunId, questionId, forNonDeveloper });
         return { ok: true, mode, ...r };
       }
       if (mode === "suggest") {
         if (!questionId) throw new HttpError(400, "questionId is required for suggest.");
-        const r = await shapeSuggest({ projectRoot, sourceRunId, questionId });
+        const r = await specUpSuggest({ projectRoot, sourceRunId, questionId });
         return { ok: true, mode, ...r };
       }
-      const r = await shapeSuggestAll({ projectRoot, sourceRunId, questionIds });
+      const r = await specUpSuggestAll({ projectRoot, sourceRunId, questionIds });
       return { ok: true, mode, ...r };
     } catch (err) {
-      if (err instanceof ShapeAssistError) throw new HttpError(400, err.message);
-      if (err instanceof ShapeChainError) throw new HttpError(400, err.message);
+      if (err instanceof SpecUpAssistError) throw new HttpError(400, err.message);
+      if (err instanceof SpecUpChainError) throw new HttpError(400, err.message);
       throw err;
     }
   });

@@ -2,7 +2,7 @@ import type { EditorProviderConfig } from "./provider-yaml.js";
 import type {
   RoleWorkReport,
   VibestrateEvent,
-  ShapeQuestion,
+  SpecUpQuestion,
   ApprovalRequest,
   ArtifactEntry,
   ChecklistItem,
@@ -688,7 +688,7 @@ export const api = {
   /** Start the Shape phase from a brief: launch the read-only intake run that
    *  asks the gap questions (the UI "Plan" action; mirrors `vibe shape start`).
    *  `flowId` is the flow to BUILD once the spec is approved (carried forward). */
-  async shapeIntake(input: {
+  async specUpIntake(input: {
     task: string;
     persona?: string;
     flowId?: string;
@@ -696,10 +696,10 @@ export const api = {
     return jsonPost("/api/shape/intake", input);
   },
   /** Read an intake run's pending gap questions (null = not an intake run). */
-  async getShapeQuestions(
+  async getSpecUpQuestions(
     runId: string,
   ): Promise<{
-    questions: ShapeQuestion[] | null;
+    questions: SpecUpQuestion[] | null;
     hasBrief?: boolean;
     targetFlowId?: string | null;
     round?: number;
@@ -709,7 +709,7 @@ export const api = {
   },
   /** Submit a round's answers -> either a gap-check round or the shape run.
    *  `proceed` finalizes now (skip further gap-checks). */
-  async submitShapeAnswers(input: {
+  async submitSpecUpAnswers(input: {
     sourceRunId: string;
     answers: { id: string; answer: string }[];
     proceed?: boolean;
@@ -717,13 +717,13 @@ export const api = {
     return jsonPost("/api/shape/answers", input);
   },
   /** "Proceed to spec" with no new answers: finalize the accumulated set. */
-  async proceedShape(
+  async proceedSpecUp(
     sourceRunId: string,
   ): Promise<{ ok: true; runId: string; pid: number | null }> {
     return jsonPost("/api/shape/proceed", { sourceRunId });
   },
   /** Per-question assist (read-only, draft-only): Simplify / Suggest / Suggest-all. */
-  async shapeAssist(input: {
+  async specUpAssist(input: {
     sourceRunId: string;
     mode: "simplify" | "suggest" | "suggest-all";
     questionId?: string;
@@ -745,24 +745,24 @@ export const api = {
     return jsonPost("/api/shape/assist", input);
   },
   /** Approve the shaped draft -> launch the roadmap synthesis run. */
-  async approveShapeRoadmap(
-    shapeRunId: string,
+  async approveSpecUpRoadmap(
+    specUpRunId: string,
   ): Promise<{ ok: true; runId: string; pid: number | null }> {
-    return jsonPost("/api/shape/roadmap", { shapeRunId });
+    return jsonPost("/api/shape/roadmap", { specUpRunId });
   },
   /** Approve the shaped draft -> BUILD it: run the chosen flow seeded with the
    *  approved spec as context (P1). `flowId` overrides the carried target. */
-  async buildShape(
-    shapeRunId: string,
+  async buildSpecUp(
+    specUpRunId: string,
     flowId?: string | null,
   ): Promise<{ ok: true; runId: string; pid: number | null; flowId: string }> {
     return jsonPost("/api/shape/build", {
-      shapeRunId,
+      specUpRunId,
       ...(flowId ? { flowId } : {}),
     });
   },
   /** Turn a finished shape-roadmap run into a reviewable proposal. */
-  async createShapeRoadmapProposal(
+  async createSpecUpRoadmapProposal(
     runId: string,
   ): Promise<{ ok: true; proposalId: string }> {
     return jsonPost("/api/shape/roadmap-proposal", { runId });

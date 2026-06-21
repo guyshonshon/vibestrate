@@ -49,7 +49,7 @@ import { buildRenameCommand } from "./commands/rename.js";
 import { buildLedgerCommand } from "./commands/ledger.js";
 import { buildBudgetCommand } from "./commands/budget.js";
 import { buildConsultCommand } from "./commands/consult.js";
-import { buildShapeCommand } from "./commands/shape.js";
+import { buildSpecUpCommand } from "./commands/shape.js";
 import { buildGuideCommand } from "./commands/guide.js";
 import { buildReplayCommand } from "./commands/replay.js";
 import { buildPauseCommand, buildResumeCommand } from "./commands/pause.js";
@@ -161,7 +161,7 @@ export function buildVibestrateProgram(): Command {
   program.addCommand(buildCrewCommand());
   program.addCommand(buildApprovalsCommand());
   program.addCommand(buildRoadmapCommand());
-  program.addCommand(buildShapeCommand());
+  program.addCommand(buildSpecUpCommand());
   program.addCommand(buildTasksCommand());
   program.addCommand(buildIntegrateCommand());
   program.addCommand(buildQueueCommand());

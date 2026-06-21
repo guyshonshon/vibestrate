@@ -940,7 +940,7 @@ export class Orchestrator {
 
     // Adaptive Shape (P1): record the flow this shaped run should BUILD once its
     // spec is approved. The chain is detached runs glued by artifacts, so the
-    // chosen flow id rides as a small sidecar (read by readShapeQuestions and the
+    // chosen flow id rides as a small sidecar (read by readSpecUpQuestions and the
     // `approve & build` handoff) - no run-state schema change, no durable pause.
     if (this.specUpTargetFlowId) {
       await artifactStore.writeJson("spec-up-target-flow.json", {

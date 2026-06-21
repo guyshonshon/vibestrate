@@ -24,16 +24,16 @@ import { makeUniqueRunId } from "../utils/run-id.js";
 import type { RunSpec } from "../core/run-launcher.js";
 import {
   flowQuestionsOutputSchema,
-  type FlowShapeQuestion,
+  type FlowSpecUpQuestion,
 } from "../flows/schemas/flow-output-contracts.js";
 import { assertSafeRunId } from "../server/security.js";
 import { ProposalService } from "../roadmap/proposal-service.js";
 import { VibestrateError } from "../utils/errors.js";
 
-export class ShapeChainError extends VibestrateError {
+export class SpecUpChainError extends VibestrateError {
   constructor(message: string, cause?: unknown) {
-    super("SHAPE_CHAIN_ERROR", message, cause);
-    this.name = "ShapeChainError";
+    super("SPEC_UP_CHAIN_ERROR", message, cause);
+    this.name = "SpecUpChainError";
   }
 }
 
@@ -63,7 +63,7 @@ export const ROUND_CAP = 4;
 const APPROVED_SPEC_PATH = "spec-up-approved-spec.md";
 /** The shape flow's spec-producing step outputs, concatenated into the spec that
  *  seeds the chosen build flow. Step id -> output.md (see builtin-flows specUpFlow). */
-const SHAPE_SPEC_STEPS = ["scope", "spec", "architecture", "risks"] as const;
+const SPEC_UP_SPEC_STEPS = ["scope", "spec", "architecture", "risks"] as const;
 
 /** Read the carried build-target flow id (P1) from a run's sidecar, or null. */
 async function readTargetFlowId(
@@ -117,7 +117,7 @@ async function readRootRunId(store: ArtifactStore): Promise<string | null> {
  * Given the round of the run just answered, decide whether to ask one more
  * gap-check round or finalize into the spec.
  */
-export function decideShapeNext(input: {
+export function decideSpecUpNext(input: {
   round: number;
   proceed: boolean;
   cap: number;
@@ -130,7 +130,7 @@ export function decideShapeNext(input: {
 
 /** One submitted answer. `id` must match a question's id; answers are bounded so
  *  a huge payload can't bloat the prompt. */
-export const shapeAnswerSchema = z
+export const specUpAnswerSchema = z
   .object({
     id: z
       .string()
@@ -140,17 +140,17 @@ export const shapeAnswerSchema = z
     answer: z.string().min(1).max(2000),
   })
   .strict();
-export type ShapeAnswer = z.infer<typeof shapeAnswerSchema>;
+export type SpecUpAnswer = z.infer<typeof specUpAnswerSchema>;
 
-export const shapeAnswersSchema = z.array(shapeAnswerSchema).min(1).max(20);
+export const specUpAnswersSchema = z.array(specUpAnswerSchema).min(1).max(20);
 
 /** A question as SERVED to the UI/CLI: the model-emitted question plus the
  *  server-stamped round it was raised in. `round` is chain state, not model
- *  output - it never appears on the model-facing `flowShapeQuestionSchema`. */
-export type ServedShapeQuestion = FlowShapeQuestion & { round: number };
+ *  output - it never appears on the model-facing `flowSpecUpQuestionSchema`. */
+export type ServedSpecUpQuestion = FlowSpecUpQuestion & { round: number };
 
-export type PendingShapeQuestions = {
-  questions: ServedShapeQuestion[];
+export type PendingSpecUpQuestions = {
+  questions: ServedSpecUpQuestion[];
   /** The original brief, carried forward as the shape run's task. */
   task: string;
   /** Adaptive Shape (P1): the flow to BUILD once the spec is approved, carried
@@ -166,13 +166,13 @@ export type PendingShapeQuestions = {
 
 /**
  * Deterministically de-duplicate model-generated question ids (pure). The
- * `flowShapeQuestionSchema` does NOT enforce id uniqueness, but every downstream
+ * `flowSpecUpQuestionSchema` does NOT enforce id uniqueness, but every downstream
  * consumer keys on `id`: the client keys answer/simplify/suggestion state and React
  * keys on it, `findQuestion` (assist) does a FIRST-match `find`, and the
  * record-path `appendAnswersDoc` builds a `byId` map (LAST-wins). With a collision
  * those three disagree and answers/assist attach to the wrong question.
  *
- * Fixing it at the single serve boundary (readShapeQuestions) means every consumer
+ * Fixing it at the single serve boundary (readSpecUpQuestions) means every consumer
  * - serve (UI/CLI), assist, AND the answer-record path - sees the SAME unique,
  * stable id-set, so an id can only ever name one question. Order is preserved (the
  * first occurrence keeps its id); later collisions are suffixed `-2`, `-3`, ...,
@@ -200,10 +200,10 @@ export function dedupeQuestionIds<T extends { id: string }>(questions: T[]): T[]
  * Read the pending intake questions for a run. Returns null when the run has no
  * parsed `questions` artifact (not an intake run, or it didn't parse).
  */
-export async function readShapeQuestions(
+export async function readSpecUpQuestions(
   projectRoot: string,
   sourceRunId: string,
-): Promise<PendingShapeQuestions | null> {
+): Promise<PendingSpecUpQuestions | null> {
   assertSafeRunId(sourceRunId);
   const store = new ArtifactStore(projectRoot, sourceRunId);
   if (!(await store.exists(INTAKE_QUESTIONS_PATH))) return null;
@@ -228,7 +228,7 @@ export async function readShapeQuestions(
   // De-dup BEFORE stamping the round: model ids aren't guaranteed unique, and
   // every consumer (serve, assist, AND the answer-record path that re-reads this
   // same function) keys on `id`. One serve boundary => one unique id-set.
-  const questions: ServedShapeQuestion[] = dedupeQuestionIds(
+  const questions: ServedSpecUpQuestion[] = dedupeQuestionIds(
     parsed.data.questions,
   ).map((q) => ({ ...q, round }));
   return {
@@ -241,7 +241,7 @@ export async function readShapeQuestions(
 }
 
 /** Mark a shape-intake run's questions as consumed (answered or proceeded) so
- *  readShapeQuestions returns null for it - the terminator for "awaiting input". */
+ *  readSpecUpQuestions returns null for it - the terminator for "awaiting input". */
 export async function markIntakeAnswered(
   projectRoot: string,
   runId: string,
@@ -260,7 +260,7 @@ export async function runAwaitsInput(
   run: { runId: string; flow?: { flowId?: string | null } | null },
 ): Promise<boolean> {
   if (run.flow?.flowId !== "spec-up-intake") return false;
-  return (await readShapeQuestions(projectRoot, run.runId)) !== null;
+  return (await readSpecUpQuestions(projectRoot, run.runId)) !== null;
 }
 
 /**
@@ -272,7 +272,7 @@ export async function runAwaitsInput(
 export function appendAnswersDoc(
   priorDoc: string,
   questions: Array<{ id: string; question: string; why: string; category: string }>,
-  answers: ShapeAnswer[],
+  answers: SpecUpAnswer[],
   round: number,
 ): string {
   const byId = new Map(questions.map((q) => [q.id, q]));
@@ -285,7 +285,7 @@ export function appendAnswersDoc(
       ].join("\n");
 
   // Group this round's answers by category for a legible spec.
-  const byCategory = new Map<string, ShapeAnswer[]>();
+  const byCategory = new Map<string, SpecUpAnswer[]>();
   for (const a of answers) {
     const cat = byId.get(a.id)?.category ?? "other";
     (byCategory.get(cat) ?? byCategory.set(cat, []).get(cat)!).push(a);
@@ -338,7 +338,7 @@ export async function readAccumulatedAnswers(
  * (the union of every round) as a `file` contextSource, carrying the chosen build
  * flow forward (P1). Shared by submit (finalize branch) and proceed.
  */
-async function finalizeShapeSpec(input: {
+async function finalizeSpecUpSpec(input: {
   projectRoot: string;
   rootRunId: string;
   task: string;
@@ -347,7 +347,7 @@ async function finalizeShapeSpec(input: {
   const { projectRoot, rootRunId } = input;
   const rootStore = new ArtifactStore(projectRoot, rootRunId);
   if (!(await rootStore.exists(ANSWERS_PATH))) {
-    throw new ShapeChainError(
+    throw new SpecUpChainError(
       `Cannot build a spec for "${rootRunId}": no answers have been recorded yet.`,
     );
   }
@@ -372,27 +372,27 @@ async function finalizeShapeSpec(input: {
 /**
  * Submit one round's answers. Accumulates them into the chain-root answers doc,
  * then either asks one more gap-check round (deep questioning) or finalizes into
- * the spec - the decision is the deterministic `decideShapeNext` brake (cap +
+ * the spec - the decision is the deterministic `decideSpecUpNext` brake (cap +
  * proceed are server-owned; the model and the request body never control it).
  *
- * The gap-check round is the SAME `shape-intake` flow, re-launched with the
+ * The gap-check round is the SAME `spec-up-intake` flow, re-launched with the
  * accumulated answers as context; the intake prompt asks only for remaining gaps
  * and may declare coverage complete. The chosen build flow + the round counter +
  * the chain-root id are all re-threaded forward via sidecars (reviewer #2/#3).
  */
-export async function submitShapeAnswers(input: {
+export async function submitSpecUpAnswers(input: {
   projectRoot: string;
   sourceRunId: string;
-  answers: ShapeAnswer[];
+  answers: SpecUpAnswer[];
   /** The user clicked "Proceed to spec" - finalize now regardless of coverage. */
   proceed?: boolean;
 }): Promise<{ runId: string; pid: number | null; action: "gap-check" | "finalize" }> {
   const { projectRoot, sourceRunId } = input;
   assertSafeRunId(sourceRunId);
-  const answers = shapeAnswersSchema.parse(input.answers);
-  const pending = await readShapeQuestions(projectRoot, sourceRunId);
+  const answers = specUpAnswersSchema.parse(input.answers);
+  const pending = await readSpecUpQuestions(projectRoot, sourceRunId);
   if (!pending) {
-    throw new ShapeChainError(
+    throw new SpecUpChainError(
       `No pending shape questions for run "${sourceRunId}".`,
     );
   }
@@ -411,14 +411,14 @@ export async function submitShapeAnswers(input: {
   // awaiting and a re-open / double-submit can't spawn a duplicate round.
   await markIntakeAnswered(projectRoot, sourceRunId);
 
-  const decision = decideShapeNext({
+  const decision = decideSpecUpNext({
     round: pending.round,
     proceed: input.proceed === true,
     cap: ROUND_CAP,
   });
 
   if (decision.action === "finalize") {
-    const r = await finalizeShapeSpec({
+    const r = await finalizeSpecUpSpec({
       projectRoot,
       rootRunId,
       task: pending.task,
@@ -453,7 +453,7 @@ export async function submitShapeAnswers(input: {
  * complete (no questions to answer) or the user stops early. Never traps the user
  * in the loop.
  */
-export async function proceedToShapeSpec(input: {
+export async function proceedToSpecUpSpec(input: {
   projectRoot: string;
   sourceRunId: string;
 }): Promise<{ runId: string; pid: number | null }> {
@@ -466,7 +466,7 @@ export async function proceedToShapeSpec(input: {
   if (await srcStore.exists(IDEA_PATH)) task = (await srcStore.read(IDEA_PATH)).trim();
   const targetFlowId = await readTargetFlowId(srcStore);
   await markIntakeAnswered(projectRoot, sourceRunId);
-  return finalizeShapeSpec({ projectRoot, rootRunId, task, targetFlowId });
+  return finalizeSpecUpSpec({ projectRoot, rootRunId, task, targetFlowId });
 }
 
 /**
@@ -477,14 +477,14 @@ export async function proceedToShapeSpec(input: {
  * the chain; the seeded step ids/stages must match the shape flow (guarded by
  * the chain-integrity test).
  */
-export async function approveShapeAndStartRoadmap(input: {
+export async function approveSpecUpAndStartRoadmap(input: {
   projectRoot: string;
-  shapeRunId: string;
+  specUpRunId: string;
 }): Promise<{ runId: string; pid: number | null }> {
-  assertSafeRunId(input.shapeRunId);
-  const src = new ArtifactStore(input.projectRoot, input.shapeRunId);
+  assertSafeRunId(input.specUpRunId);
+  const src = new ArtifactStore(input.projectRoot, input.specUpRunId);
   if (!(await src.exists(IDEA_PATH))) {
-    throw new ShapeChainError(`Shape run "${input.shapeRunId}" not found.`);
+    throw new SpecUpChainError(`Shape run "${input.specUpRunId}" not found.`);
   }
   let task = "Synthesize the approved shape into a dependency-aware roadmap.";
   try {
@@ -500,7 +500,7 @@ export async function approveShapeAndStartRoadmap(input: {
     runId,
     specUpPhase: true,
     flow: { id: "spec-up-roadmap", brief: null },
-    resumeFrom: { sourceRunId: input.shapeRunId, fromStage: "executing" },
+    resumeFrom: { sourceRunId: input.specUpRunId, fromStage: "executing" },
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });
   return { runId, pid };
@@ -517,18 +517,18 @@ export async function approveShapeAndStartRoadmap(input: {
  * is unknown or the shape run produced no spec, so an empty-context build is
  * impossible by construction.
  */
-export async function approveShapeAndBuild(input: {
+export async function approveSpecUpAndBuild(input: {
   projectRoot: string;
-  shapeRunId: string;
+  specUpRunId: string;
   /** Override the carried build flow (e.g. the user picked a different one). */
   flowId?: string | null;
   /** Used when neither the sidecar nor `flowId` names a flow (the project default). */
   fallbackFlowId?: string | null;
 }): Promise<{ runId: string; pid: number | null; flowId: string }> {
-  assertSafeRunId(input.shapeRunId);
-  const src = new ArtifactStore(input.projectRoot, input.shapeRunId);
+  assertSafeRunId(input.specUpRunId);
+  const src = new ArtifactStore(input.projectRoot, input.specUpRunId);
   if (!(await src.exists(IDEA_PATH))) {
-    throw new ShapeChainError(`Shape run "${input.shapeRunId}" not found.`);
+    throw new SpecUpChainError(`Shape run "${input.specUpRunId}" not found.`);
   }
   const flowId =
     input.flowId ??
@@ -536,15 +536,15 @@ export async function approveShapeAndBuild(input: {
     input.fallbackFlowId ??
     null;
   if (!flowId) {
-    throw new ShapeChainError(
-      `No build flow for shape run "${input.shapeRunId}" (no carried target, no override, no default).`,
+    throw new SpecUpChainError(
+      `No build flow for shape run "${input.specUpRunId}" (no carried target, no override, no default).`,
     );
   }
   // Validate the flow exists BEFORE spawning - otherwise the detached run dies in
   // the background while the caller sees a success. Fail fast with a clear error.
   if (!(await findFlowById(input.projectRoot, flowId))) {
     const ids = (await discoverFlows(input.projectRoot)).map((g) => g.id);
-    throw new ShapeChainError(
+    throw new SpecUpChainError(
       `Build flow "${flowId}" not found. Available: ${ids.join(", ") || "(none)"}.`,
     );
   }
@@ -553,15 +553,15 @@ export async function approveShapeAndBuild(input: {
   // fast if NONE produced content - launching a build with empty context would
   // silently re-derive from the bare task (the P1 keystone failure).
   const sections: string[] = [];
-  for (const step of SHAPE_SPEC_STEPS) {
+  for (const step of SPEC_UP_SPEC_STEPS) {
     const p = `flows/${step}/output.md`;
     if (!(await src.exists(p))) continue;
     const body = (await src.read(p)).trim();
     if (body) sections.push(`# ${step[0]!.toUpperCase()}${step.slice(1)}\n\n${body}`);
   }
   if (sections.length === 0) {
-    throw new ShapeChainError(
-      `Shape run "${input.shapeRunId}" has no spec to build from (no scope/spec/architecture/risks output).`,
+    throw new SpecUpChainError(
+      `Shape run "${input.specUpRunId}" has no spec to build from (no scope/spec/architecture/risks output).`,
     );
   }
   const specDoc = `# Shape: the approved spec\n\nBuild strictly to this spec - it is the user's approved scope, derived during shaping. Treat it as ground truth.\n\n${sections.join("\n\n")}\n`;
@@ -605,12 +605,12 @@ export async function createRoadmapProposal(input: {
   assertSafeRunId(input.runId);
   const store = new ArtifactStore(input.projectRoot, input.runId);
   if (!(await store.exists(SYNTHESIZE_OUTPUT_PATH))) {
-    throw new ShapeChainError(
+    throw new SpecUpChainError(
       `Run "${input.runId}" has no roadmap synthesis to turn into a proposal.`,
     );
   }
   const body = await store.read(SYNTHESIZE_OUTPUT_PATH);
-  const proposalId = `shape-${input.runId}`;
+  const proposalId = `spec-up-${input.runId}`;
   const svc = new ProposalService(input.projectRoot);
   await svc.writeProposalText(proposalId, body);
   return { proposalId };
@@ -618,9 +618,9 @@ export async function createRoadmapProposal(input: {
 
 /**
  * Launch the intake run - the "Plan" entry point. A fresh read-only run on the
- * `shape-intake` flow that emits the structured gap questions.
+ * `spec-up-intake` flow that emits the structured gap questions.
  */
-export async function startShapeIntake(input: {
+export async function startSpecUpIntake(input: {
   projectRoot: string;
   task: string;
   persona?: string | null;
@@ -629,7 +629,7 @@ export async function startShapeIntake(input: {
   targetFlowId?: string | null;
 }): Promise<{ runId: string; pid: number | null }> {
   const task = input.task.trim();
-  if (!task) throw new ShapeChainError("A brief is required to start shaping.");
+  if (!task) throw new SpecUpChainError("A brief is required to start shaping.");
   const runId = makeUniqueRunId(input.projectRoot);
   const spec: RunSpec = {
     projectRoot: input.projectRoot,

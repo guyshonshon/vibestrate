@@ -10,7 +10,7 @@ import type { ProviderDetectionRunner } from "../src/providers/provider-detectio
 
 // ── Deep-questioning loop, end to end ────────────────────────────────────────
 // Capture the launched RunSpec instead of spawning (same pattern as the P1 e2e),
-// then drive submitShapeAnswers across staged rounds and assert the chain
+// then drive submitSpecUpAnswers across staged rounds and assert the chain
 // behaves: gap-check vs finalize branch, server-owned round increment + cap,
 // chain-root accumulation, and - the reviewer's load-bearing case - the chosen
 // build flow SURVIVES every inserted round.
@@ -23,7 +23,7 @@ vi.mock("../src/core/detached-run.js", () => ({
   }),
 }));
 
-const { submitShapeAnswers, proceedToShapeSpec } = await import("../src/shape/shape-chain.js");
+const { submitSpecUpAnswers, proceedToSpecUpSpec } = await import("../src/spec-up/spec-up-chain.js");
 
 const noProvider: ProviderDetectionRunner = async () => ({ exitCode: 127, stdout: "", stderr: "" });
 
@@ -71,7 +71,7 @@ beforeEach(async () => {
 describe("deep-questioning loop e2e", () => {
   it("round 1 answer launches a gap-check round carrying round+root+target forward", async () => {
     await stageRound("round-1", { round: 1, rootRunId: "round-1", targetFlowId: "default", questions: [q("accounts", "users")] });
-    const r = await submitShapeAnswers({ projectRoot: dir, sourceRunId: "round-1", answers: [{ id: "accounts", answer: "social" }] });
+    const r = await submitSpecUpAnswers({ projectRoot: dir, sourceRunId: "round-1", answers: [{ id: "accounts", answer: "social" }] });
     expect(r.action).toBe("gap-check");
     const spec = captured.specs.at(-1);
     expect(spec.flow.id).toBe("spec-up-intake"); // another intake = the gap-check
@@ -86,7 +86,7 @@ describe("deep-questioning loop e2e", () => {
 
   it("finalizes at the round-4 cap (the shape flow, not a 5th gap-check)", async () => {
     await stageRound("round-4", { round: 4, rootRunId: "root-x", targetFlowId: "express", questions: [q("scale", "constraints")] });
-    const r = await submitShapeAnswers({ projectRoot: dir, sourceRunId: "round-4", answers: [{ id: "scale", answer: "small" }] });
+    const r = await submitSpecUpAnswers({ projectRoot: dir, sourceRunId: "round-4", answers: [{ id: "scale", answer: "small" }] });
     expect(r.action).toBe("finalize");
     const spec = captured.specs.at(-1);
     expect(spec.flow.id).toBe("spec-up"); // the shaping flow, NOT shape-intake
@@ -95,17 +95,17 @@ describe("deep-questioning loop e2e", () => {
 
   it("'proceed' finalizes early, mid-loop", async () => {
     await stageRound("round-2", { round: 2, rootRunId: "round-2", targetFlowId: "default", questions: [q("a", "scope")] });
-    const r = await submitShapeAnswers({ projectRoot: dir, sourceRunId: "round-2", answers: [{ id: "a", answer: "yes" }], proceed: true });
+    const r = await submitSpecUpAnswers({ projectRoot: dir, sourceRunId: "round-2", answers: [{ id: "a", answer: "yes" }], proceed: true });
     expect(r.action).toBe("finalize");
     expect(captured.specs.at(-1).flow.id).toBe("spec-up");
   });
 
   it("accumulates answers across rounds onto the chain root", async () => {
     await stageRound("acc", { round: 1, rootRunId: "acc", targetFlowId: "default", questions: [q("accounts", "users")] });
-    await submitShapeAnswers({ projectRoot: dir, sourceRunId: "acc", answers: [{ id: "accounts", answer: "sociallogin-r1" }] });
+    await submitSpecUpAnswers({ projectRoot: dir, sourceRunId: "acc", answers: [{ id: "accounts", answer: "sociallogin-r1" }] });
     // The gap-check round carries root = "acc"; answering it appends to the same doc.
     await stageRound("acc-r2", { round: 2, rootRunId: "acc", targetFlowId: "default", questions: [q("catalog", "data")] });
-    await submitShapeAnswers({ projectRoot: dir, sourceRunId: "acc-r2", answers: [{ id: "catalog", answer: "shopify-r2" }] });
+    await submitSpecUpAnswers({ projectRoot: dir, sourceRunId: "acc-r2", answers: [{ id: "catalog", answer: "shopify-r2" }] });
     const doc = await new ArtifactStore(dir, "acc").read("spec-up-answers.md");
     expect(doc).toContain("sociallogin-r1");
     expect(doc).toContain("shopify-r2");
@@ -113,13 +113,13 @@ describe("deep-questioning loop e2e", () => {
     expect(doc).toContain("Round 2");
   });
 
-  it("proceedToShapeSpec finalizes from accumulated answers with no new input", async () => {
+  it("proceedToSpecUpSpec finalizes from accumulated answers with no new input", async () => {
     // Seed an accumulated answers doc on the root, then a coverage-complete run.
     const rootStore = new ArtifactStore(dir, "cc-root");
     await rootStore.init();
     await rootStore.write("spec-up-answers.md", "# answers\n## Round 1\nB2C\n");
     await stageRound("cc-done", { round: 2, rootRunId: "cc-root", targetFlowId: "default", questions: [] });
-    const r = await proceedToShapeSpec({ projectRoot: dir, sourceRunId: "cc-done" });
+    const r = await proceedToSpecUpSpec({ projectRoot: dir, sourceRunId: "cc-done" });
     expect(r.runId).toBeTruthy();
     const spec = captured.specs.at(-1);
     expect(spec.flow.id).toBe("spec-up");

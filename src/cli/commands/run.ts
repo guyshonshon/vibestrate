@@ -265,7 +265,7 @@ export async function runRunCommand(
       activeFlowId = selection.flowId;
       // Apply a recommended crew only when the user didn't pick one.
       if (selection.crewId && !activeCrewId) activeCrewId = selection.crewId;
-      // Under-specified brief: run the read-only `shape-intake` first and carry
+      // Under-specified brief: run the read-only `spec-up-intake` first and carry
       // the chosen flow to the post-shape build, rather than executing it now.
       if (selection.needsSpecUp) {
         specUpTargetFlowId = selection.flowId;

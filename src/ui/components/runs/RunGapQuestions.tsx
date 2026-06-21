@@ -16,7 +16,7 @@ import {
   Shapes,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
-import type { ShapeQuestion, ShapeQuestionCategory } from "../../lib/types.js";
+import type { SpecUpQuestion, SpecUpQuestionCategory } from "../../lib/types.js";
 import { usePublishViewContext } from "../../lib/view-context.js";
 
 // ── In-run gap-questions screen (Shape) - modern, card-based, layered ────────
@@ -46,7 +46,7 @@ const RAIL_ON = "#171c24"; // active menu field (calm, neutral - no violet wash)
 const DIVIDER = "rgba(255,255,255,0.08)"; // the rule between questions
 const HAIR = "rgba(255,255,255,0.07)"; // quiet rule for header / footer separators
 
-const CATEGORY_ORDER: ShapeQuestionCategory[] = [
+const CATEGORY_ORDER: SpecUpQuestionCategory[] = [
   "scope",
   "users",
   "data",
@@ -55,7 +55,7 @@ const CATEGORY_ORDER: ShapeQuestionCategory[] = [
   "integrations",
   "other",
 ];
-const CATEGORY_LABEL: Record<ShapeQuestionCategory, string> = {
+const CATEGORY_LABEL: Record<SpecUpQuestionCategory, string> = {
   scope: "Scope",
   users: "Users",
   data: "Data",
@@ -64,7 +64,7 @@ const CATEGORY_LABEL: Record<ShapeQuestionCategory, string> = {
   integrations: "Integrations",
   other: "Other",
 };
-const CATEGORY_BLURB: Record<ShapeQuestionCategory, string> = {
+const CATEGORY_BLURB: Record<SpecUpQuestionCategory, string> = {
   scope: "What's in, what's out, how big.",
   users: "Who uses it and how they get in.",
   data: "What you store and where it comes from.",
@@ -73,7 +73,7 @@ const CATEGORY_BLURB: Record<ShapeQuestionCategory, string> = {
   integrations: "Payments, sync, third-party services.",
   other: "Everything else worth deciding.",
 };
-const CATEGORY_ICON: Record<ShapeQuestionCategory, LucideIcon> = {
+const CATEGORY_ICON: Record<SpecUpQuestionCategory, LucideIcon> = {
   scope: Crosshair,
   users: UsersRound,
   data: Database,
@@ -94,7 +94,7 @@ export function RunGapQuestions({
   onSubmitted,
 }: {
   runId: string;
-  questions: ShapeQuestion[];
+  questions: SpecUpQuestion[];
   round: number;
   coverageComplete: boolean;
   onSubmitted: (nextRunId: string) => void;
@@ -107,19 +107,19 @@ export function RunGapQuestions({
   const [error, setError] = useState<string | null>(null);
 
   const byCategory = useMemo(() => {
-    const groups = new Map<ShapeQuestionCategory, ShapeQuestion[]>();
+    const groups = new Map<SpecUpQuestionCategory, SpecUpQuestion[]>();
     for (const q of questions) {
-      const cat = (q.category ?? "other") as ShapeQuestionCategory;
+      const cat = (q.category ?? "other") as SpecUpQuestionCategory;
       (groups.get(cat) ?? groups.set(cat, []).get(cat)!).push(q);
     }
     return CATEGORY_ORDER.filter((c) => groups.has(c)).map((c) => ({ category: c, items: groups.get(c)! }));
   }, [questions]);
 
-  const answeredOf = (items: ShapeQuestion[]) => items.filter((q) => (answers[q.id] ?? "").trim().length > 0).length;
+  const answeredOf = (items: SpecUpQuestion[]) => items.filter((q) => (answers[q.id] ?? "").trim().length > 0).length;
   const answeredCount = questions.filter((q) => (answers[q.id] ?? "").trim().length > 0).length;
   const coveredAreas = byCategory.filter((g) => answeredOf(g.items) === g.items.length).length;
 
-  const [active, setActive] = useState<ShapeQuestionCategory | null>(null);
+  const [active, setActive] = useState<SpecUpQuestionCategory | null>(null);
   const activeCat = active ?? byCategory[0]?.category ?? null;
   const activeIdx = byCategory.findIndex((g) => g.category === activeCat);
   const activeGroup = byCategory[activeIdx];
@@ -159,7 +159,7 @@ export function RunGapQuestions({
   async function doSimplify(id: string, forNonDeveloper: boolean) {
     setSimplify((s) => ({ ...s, [id]: { ...(s[id] ?? {}), loading: true } }));
     try {
-      const r = await api.shapeAssist({ sourceRunId: runId, mode: "simplify", questionId: id, forNonDeveloper });
+      const r = await api.specUpAssist({ sourceRunId: runId, mode: "simplify", questionId: id, forNonDeveloper });
       setSimplify((s) => ({ ...s, [id]: { loading: false, text: r.text, affects: r.affects, analogy: r.analogy } }));
     } catch (err) {
       setSimplify((s) => ({ ...s, [id]: { loading: false, text: `Could not simplify: ${err instanceof Error ? err.message : String(err)}` } }));
@@ -167,7 +167,7 @@ export function RunGapQuestions({
   }
   async function doSuggest(id: string) {
     try {
-      const r = await api.shapeAssist({ sourceRunId: runId, mode: "suggest", questionId: id });
+      const r = await api.specUpAssist({ sourceRunId: runId, mode: "suggest", questionId: id });
       if (r.suggestedValue) setSuggestions((s) => ({ ...s, [id]: { value: r.suggestedValue!, why: r.why ?? "" } }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -179,7 +179,7 @@ export function RunGapQuestions({
     setSuggestingAll(true);
     setError(null);
     try {
-      const r = await api.shapeAssist({ sourceRunId: runId, mode: "suggest-all", questionIds: blanks });
+      const r = await api.specUpAssist({ sourceRunId: runId, mode: "suggest-all", questionIds: blanks });
       const next: Record<string, Suggestion> = {};
       for (const it of r.items ?? []) next[it.questionId] = { value: it.suggestedValue, why: it.why };
       setSuggestions((s) => ({ ...s, ...next }));
@@ -200,7 +200,7 @@ export function RunGapQuestions({
     setBusy(true);
     setError(null);
     try {
-      const { runId: nextRunId } = await api.submitShapeAnswers({ sourceRunId: runId, answers: payload, proceed });
+      const { runId: nextRunId } = await api.submitSpecUpAnswers({ sourceRunId: runId, answers: payload, proceed });
       onSubmitted(nextRunId);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -211,7 +211,7 @@ export function RunGapQuestions({
     setBusy(true);
     setError(null);
     try {
-      const { runId: nextRunId } = await api.proceedShape(runId);
+      const { runId: nextRunId } = await api.proceedSpecUp(runId);
       onSubmitted(nextRunId);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -387,7 +387,7 @@ function QuestionCard({
   onUseSuggestion,
   onDismissSuggestion,
 }: {
-  q: ShapeQuestion;
+  q: SpecUpQuestion;
   value: string;
   suggestion?: Suggestion;
   simplify?: SimplifyState;

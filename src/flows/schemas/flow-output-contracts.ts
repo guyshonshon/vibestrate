@@ -235,7 +235,7 @@ export type FlowArchitectureHandoffOutput = z.infer<
 // Shape phase intake: the area a gap question belongs to. The model classifies
 // each question so the UI can group by category and show per-area coverage
 // progress (deep-questioning loop). A fixed small set keeps the grouping legible.
-export const shapeQuestionCategorySchema = z.enum([
+export const specUpQuestionCategorySchema = z.enum([
   "scope",
   "users",
   "data",
@@ -244,7 +244,7 @@ export const shapeQuestionCategorySchema = z.enum([
   "integrations",
   "other",
 ]);
-export type ShapeQuestionCategory = z.infer<typeof shapeQuestionCategorySchema>;
+export type SpecUpQuestionCategory = z.infer<typeof specUpQuestionCategorySchema>;
 
 // Shape phase intake: one gap question the CTO must ask to scope the work.
 // `kind: "choice"` renders as a select of `options`; `kind: "text"` as a field.
@@ -254,7 +254,7 @@ export type ShapeQuestionCategory = z.infer<typeof shapeQuestionCategorySchema>;
 // NOTE: there is deliberately NO `round` field here. The round is server-owned
 // chain state (see shape-chain.ts), stamped onto served questions; the model must
 // never control the loop counter, so it is kept off this model-facing schema.
-export const flowShapeQuestionSchema = z
+export const flowSpecUpQuestionSchema = z
   .object({
     // A form/answer key, not a flow token: allow underscores (models reliably
     // use them, e.g. "catalog_source") as well as dashes.
@@ -268,10 +268,10 @@ export const flowShapeQuestionSchema = z
     kind: z.enum(["choice", "text"]),
     options: z.array(z.string().min(1).max(160)).max(8).default([]),
     // Which area of the spec this question scopes (model-judged, required).
-    category: shapeQuestionCategorySchema,
+    category: specUpQuestionCategorySchema,
   })
   .strict();
-export type FlowShapeQuestion = z.infer<typeof flowShapeQuestionSchema>;
+export type FlowSpecUpQuestion = z.infer<typeof flowSpecUpQuestionSchema>;
 
 export const flowQuestionsOutputSchema = z
   .object({
@@ -283,7 +283,7 @@ export const flowQuestionsOutputSchema = z
     // proceed); this is the model's read, never the loop's brake. min is 0 so the
     // empty "done" set parses.
     coverageComplete: z.boolean().optional(),
-    questions: z.array(flowShapeQuestionSchema).min(0).max(20),
+    questions: z.array(flowSpecUpQuestionSchema).min(0).max(20),
   })
   .strict();
 export type FlowQuestionsOutput = z.infer<typeof flowQuestionsOutputSchema>;

@@ -1,5 +1,5 @@
 // ── Shape phase: one CTO intake gap-question rendered as a form input. ──
-export type ShapeQuestionCategory =
+export type SpecUpQuestionCategory =
   | "scope"
   | "users"
   | "data"
@@ -8,7 +8,7 @@ export type ShapeQuestionCategory =
   | "integrations"
   | "other";
 
-export type ShapeQuestion = {
+export type SpecUpQuestion = {
   id: string;
   question: string;
   why: string;
@@ -16,7 +16,7 @@ export type ShapeQuestion = {
   options: string[];
   // Which area of the spec this question scopes (model-judged). Drives the
   // per-category progress grouping in the deep-questioning loop.
-  category: ShapeQuestionCategory;
+  category: SpecUpQuestionCategory;
   // The round this question was raised in. Server-stamped chain state (never
   // model-emitted) - see shape-chain.ts.
   round: number;

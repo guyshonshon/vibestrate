@@ -5,7 +5,7 @@ import { api } from "../../lib/api.js";
 // ── In-run Shape draft review ────────────────────────────────────────────────
 // On a `shape` run, surface the four CTO drafts (scope / spec / architecture /
 // risks) as readable, collapsible sections so the user reviews them in one place
-// before approving -> roadmap (the approve action lives in ShapeRunActions,
+// before approving -> roadmap (the approve action lives in SpecUpRunActions,
 // rendered alongside this). Read-only: the drafts are each step's output.md,
 // fetched through the guarded artifact route. Sections that haven't been
 // produced yet (a still-running shape run) are skipped.
@@ -19,7 +19,7 @@ const DRAFTS = [
 
 type Loaded = { key: string; label: string; content: string };
 
-export function ShapeReview({ runId, flowId }: { runId: string; flowId: string | undefined }) {
+export function SpecUpReview({ runId, flowId }: { runId: string; flowId: string | undefined }) {
   const [docs, setDocs] = useState<Loaded[] | null>(null);
   const [open, setOpen] = useState<Set<string>>(new Set(["scope"]));
 

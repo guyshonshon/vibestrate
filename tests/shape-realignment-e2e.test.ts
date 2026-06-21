@@ -11,7 +11,7 @@ import type { ProviderDetectionRunner } from "../src/providers/provider-detectio
 // ── P1 Shape realignment: the keystone ───────────────────────────────────────
 // Shape is a pre-flow ENRICHMENT, not a replacement. This proves the terminal
 // handoff end to end:
-//   (production) `approveShapeAndBuild` reads the shape run's scope/spec/
+//   (production) `approveSpecUpAndBuild` reads the shape run's scope/spec/
 //      architecture/risks, assembles ONE approved spec, and launches the CHOSEN
 //      flow (carried via the sidecar) seeded with that spec - never a shape flow.
 //   (consumption) driving that exact RunSpec through the real launcher, the
@@ -29,8 +29,8 @@ vi.mock("../src/core/detached-run.js", () => ({
 }));
 
 // Imported AFTER the mock declaration so shape-chain picks up the mocked launch.
-const { approveShapeAndBuild, ShapeChainError } = await import(
-  "../src/shape/shape-chain.js"
+const { approveSpecUpAndBuild, SpecUpChainError } = await import(
+  "../src/spec-up/spec-up-chain.js"
 );
 const { runFromSpec } = await import("../src/core/run-launcher.js");
 
@@ -59,8 +59,8 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
 });
 `;
 
-const SHAPE_RUN = "brisk-otter";
-const MARKER = "SHAPE_SPEC_MARKER_77";
+const SPEC_UP_RUN = "brisk-otter";
+const MARKER = "SPEC_UP_SPEC_MARKER_77";
 
 describe("P1 Shape realignment: build from the chosen flow seeded with the spec", () => {
   let dir: string;
@@ -87,7 +87,7 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
     await setConfigValue(dir, "profiles.claude-balanced.provider", "fake");
 
     // A completed shape run: its four spec-producing steps + the carried target.
-    const store = new ArtifactStore(dir, SHAPE_RUN);
+    const store = new ArtifactStore(dir, SPEC_UP_RUN);
     await store.init();
     await store.write("00-idea.md", "# Task\n\nmake a mini e-commerce\n");
     await store.write("flows/scope/output.md", `Scope: ${MARKER} a small storefront.`);
@@ -98,7 +98,7 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
   });
 
   it("assembles the approved spec and targets the CARRIED flow, not a shape flow", async () => {
-    const res = await approveShapeAndBuild({ projectRoot: dir, shapeRunId: SHAPE_RUN });
+    const res = await approveSpecUpAndBuild({ projectRoot: dir, specUpRunId: SPEC_UP_RUN });
     expect(res.flowId).toBe("default");
 
     const spec = captured.specs.at(-1) as {
@@ -124,7 +124,7 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
   });
 
   it("the chosen flow's planner RUNS with the approved spec as context (keystone)", async () => {
-    await approveShapeAndBuild({ projectRoot: dir, shapeRunId: SHAPE_RUN });
+    await approveSpecUpAndBuild({ projectRoot: dir, specUpRunId: SPEC_UP_RUN });
     const spec = captured.specs.at(-1) as Parameters<typeof runFromSpec>[0];
 
     // Drive the assembled RunSpec through the REAL launcher (in-process) with the
@@ -159,8 +159,8 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
     await store.write("00-idea.md", "# Task\n\nx\n");
     await store.writeJson("spec-up-target-flow.json", { flowId: "default" });
     await expect(
-      approveShapeAndBuild({ projectRoot: dir, shapeRunId: empty }),
-    ).rejects.toBeInstanceOf(ShapeChainError);
+      approveSpecUpAndBuild({ projectRoot: dir, specUpRunId: empty }),
+    ).rejects.toBeInstanceOf(SpecUpChainError);
     expect(captured.specs.length).toBe(0); // nothing launched
   });
 
@@ -171,7 +171,7 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
     await store.write("00-idea.md", "# Task\n\nx\n");
     await store.write("flows/scope/output.md", "Scope: something");
     await expect(
-      approveShapeAndBuild({ projectRoot: dir, shapeRunId: noflow }),
-    ).rejects.toBeInstanceOf(ShapeChainError);
+      approveSpecUpAndBuild({ projectRoot: dir, specUpRunId: noflow }),
+    ).rejects.toBeInstanceOf(SpecUpChainError);
   });
 });

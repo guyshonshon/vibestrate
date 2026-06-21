@@ -17,18 +17,18 @@ import {
   runAssist,
   type AssistProviderRunner,
 } from "../assist/assist-runner.js";
-import { readShapeQuestions, type ServedShapeQuestion, readAccumulatedAnswers } from "./shape-chain.js";
+import { readSpecUpQuestions, type ServedSpecUpQuestion, readAccumulatedAnswers } from "./spec-up-chain.js";
 import { assertSafeRunId } from "../server/security.js";
 import { VibestrateError } from "../utils/errors.js";
 
-export class ShapeAssistError extends VibestrateError {
+export class SpecUpAssistError extends VibestrateError {
   constructor(message: string, cause?: unknown) {
-    super("SHAPE_ASSIST_ERROR", message, cause);
-    this.name = "ShapeAssistError";
+    super("SPEC_UP_ASSIST_ERROR", message, cause);
+    this.name = "SpecUpAssistError";
   }
 }
 
-const AUDIT_BUCKET = "shape-assist";
+const AUDIT_BUCKET = "spec-up-assist";
 
 const simplifySchema = z
   .object({
@@ -37,7 +37,7 @@ const simplifySchema = z
     analogy: z.string().max(800).default(""),
   })
   .strict();
-export type ShapeSimplifyResult = z.infer<typeof simplifySchema>;
+export type SpecUpSimplifyResult = z.infer<typeof simplifySchema>;
 
 const suggestSchema = z
   .object({
@@ -45,7 +45,7 @@ const suggestSchema = z
     why: z.string().min(1).max(600),
   })
   .strict();
-export type ShapeSuggestResult = z.infer<typeof suggestSchema>;
+export type SpecUpSuggestResult = z.infer<typeof suggestSchema>;
 
 const suggestAllSchema = z
   .object({
@@ -62,7 +62,7 @@ const suggestAllSchema = z
       .max(20),
   })
   .strict();
-export type ShapeSuggestAllResult = z.infer<typeof suggestAllSchema>;
+export type SpecUpSuggestAllResult = z.infer<typeof suggestAllSchema>;
 
 type Common = {
   projectRoot: string;
@@ -75,11 +75,11 @@ type Common = {
 async function loadContext(
   projectRoot: string,
   sourceRunId: string,
-): Promise<{ questions: ServedShapeQuestion[]; brief: string; priorAnswers: string }> {
+): Promise<{ questions: ServedSpecUpQuestion[]; brief: string; priorAnswers: string }> {
   assertSafeRunId(sourceRunId);
-  const pending = await readShapeQuestions(projectRoot, sourceRunId);
+  const pending = await readSpecUpQuestions(projectRoot, sourceRunId);
   if (!pending) {
-    throw new ShapeAssistError(
+    throw new SpecUpAssistError(
       `No shape questions for run "${sourceRunId}".`,
     );
   }
@@ -91,12 +91,12 @@ async function loadContext(
 }
 
 function findQuestion(
-  questions: ServedShapeQuestion[],
+  questions: ServedSpecUpQuestion[],
   questionId: string,
-): ServedShapeQuestion {
+): ServedSpecUpQuestion {
   const q = questions.find((x) => x.id === questionId);
   if (!q) {
-    throw new ShapeAssistError(`No question "${questionId}" in this round.`);
+    throw new SpecUpAssistError(`No question "${questionId}" in this round.`);
   }
   return q;
 }
@@ -109,9 +109,9 @@ function contextBlock(brief: string, priorAnswers: string): string {
 }
 
 /** Simplify: plain-language restatement + what it affects (+ optional analogy). */
-export async function shapeSimplify(
+export async function specUpSimplify(
   input: Common & { questionId: string; forNonDeveloper?: boolean },
-): Promise<ShapeSimplifyResult> {
+): Promise<SpecUpSimplifyResult> {
   const { questions, brief, priorAnswers } = await loadContext(
     input.projectRoot,
     input.sourceRunId,
@@ -130,7 +130,7 @@ export async function shapeSimplify(
 
   const res = await runAssist({
     projectRoot: input.projectRoot,
-    label: `shape-simplify:${q.id}`,
+    label: `spec-up-simplify:${q.id}`,
     instruction,
     schema: simplifySchema,
     schemaHint: '{ "text": "...", "affects": "...", "analogy": "" }',
@@ -141,9 +141,9 @@ export async function shapeSimplify(
 }
 
 /** Suggest: a DRAFT answer grounded in prior answers. Never submits. */
-export async function shapeSuggest(
+export async function specUpSuggest(
   input: Common & { questionId: string },
-): Promise<ShapeSuggestResult> {
+): Promise<SpecUpSuggestResult> {
   const { questions, brief, priorAnswers } = await loadContext(
     input.projectRoot,
     input.sourceRunId,
@@ -163,7 +163,7 @@ export async function shapeSuggest(
 
   const res = await runAssist({
     projectRoot: input.projectRoot,
-    label: `shape-suggest:${q.id}`,
+    label: `spec-up-suggest:${q.id}`,
     instruction,
     schema: suggestSchema,
     schemaHint: '{ "suggestedValue": "...", "why": "..." }',
@@ -174,9 +174,9 @@ export async function shapeSuggest(
 }
 
 /** Suggest all: one grounded draft per requested blank (default: every question). */
-export async function shapeSuggestAll(
+export async function specUpSuggestAll(
   input: Common & { questionIds?: string[] },
-): Promise<ShapeSuggestAllResult> {
+): Promise<SpecUpSuggestAllResult> {
   const { questions, brief, priorAnswers } = await loadContext(
     input.projectRoot,
     input.sourceRunId,
@@ -185,7 +185,7 @@ export async function shapeSuggestAll(
     ? questions.filter((q) => input.questionIds!.includes(q.id))
     : questions;
   if (!targets.length) {
-    throw new ShapeAssistError("No questions to suggest answers for.");
+    throw new SpecUpAssistError("No questions to suggest answers for.");
   }
   const list = targets
     .map((q) => {
@@ -204,7 +204,7 @@ export async function shapeSuggestAll(
 
   const res = await runAssist({
     projectRoot: input.projectRoot,
-    label: "shape-suggest-all",
+    label: "spec-up-suggest-all",
     instruction,
     schema: suggestAllSchema,
     schemaHint:

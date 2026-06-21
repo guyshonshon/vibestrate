@@ -10,7 +10,7 @@ import type { RunState } from "../../lib/types.js";
 // parity with `vibe shape build` / `vibe shape approve` / `vibe shape roadmap`):
 //   - a completed `shape` run         -> "Approve & build" (P1: run the chosen
 //        flow seeded with the approved spec) OR "Approve & generate roadmap"
-//   - a completed `shape-roadmap` run -> "Create board cards"
+//   - a completed `spec-up-roadmap` run -> "Create board cards"
 // All reuse the already-gated shape endpoints; nothing spawns a command.
 
 const TERMINAL = new Set([
@@ -22,7 +22,7 @@ const TERMINAL = new Set([
   "completed",
 ]);
 
-export function ShapeRunActions({
+export function SpecUpRunActions({
   runId,
   run,
   onOpenRun,
@@ -47,7 +47,7 @@ export function ShapeRunActions({
     setBusy(true);
     setError(null);
     try {
-      const { runId: roadmapRunId } = await api.approveShapeRoadmap(runId);
+      const { runId: roadmapRunId } = await api.approveSpecUpRoadmap(runId);
       onOpenRun(roadmapRunId);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -60,7 +60,7 @@ export function ShapeRunActions({
     setBusy(true);
     setError(null);
     try {
-      const { proposalId } = await api.createShapeRoadmapProposal(runId);
+      const { proposalId } = await api.createSpecUpRoadmapProposal(runId);
       onOpenProposal(proposalId);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -73,7 +73,7 @@ export function ShapeRunActions({
     setBusy(true);
     setError(null);
     try {
-      const { runId: buildRunId } = await api.buildShape(runId);
+      const { runId: buildRunId } = await api.buildSpecUp(runId);
       onOpenRun(buildRunId);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -81,9 +81,9 @@ export function ShapeRunActions({
     }
   }
 
-  const isShape = flowId === "spec-up";
-  const title = isShape ? "Shape draft ready" : "Roadmap synthesized";
-  const body = isShape
+  const isSpecUp = flowId === "spec-up";
+  const title = isSpecUp ? "Shape draft ready" : "Roadmap synthesized";
+  const body = isSpecUp
     ? blocked
       ? "The reviewer flagged gaps (see the verdict). Re-run shaping to address them, or approve as-is to build / synthesize a roadmap."
       : "Review the spec, architecture, and risks below. When the scope is right, approve to build it with the chosen flow - or synthesize a roadmap first."
@@ -114,7 +114,7 @@ export function ShapeRunActions({
           flexShrink: 0,
         }}
       >
-        {isShape ? <GitBranch size={18} /> : <ClipboardList size={18} />}
+        {isSpecUp ? <GitBranch size={18} /> : <ClipboardList size={18} />}
       </span>
       <div style={{ flex: 1, minWidth: 0, color: "var(--s-ink)" }}>
         <div style={{ fontSize: 14.5, fontWeight: 700 }}>{title}</div>
@@ -126,7 +126,7 @@ export function ShapeRunActions({
         ) : null}
       </div>
       <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
-        {isShape ? (
+        {isSpecUp ? (
           <button
             onClick={() => void approveRoadmap()}
             disabled={busy}
@@ -149,7 +149,7 @@ export function ShapeRunActions({
           </button>
         ) : null}
         <button
-          onClick={() => void (isShape ? buildNow() : createCards())}
+          onClick={() => void (isSpecUp ? buildNow() : createCards())}
           disabled={busy}
           style={{
             padding: "9px 14px",
@@ -166,10 +166,10 @@ export function ShapeRunActions({
           }}
         >
           {busy
-            ? isShape
+            ? isSpecUp
               ? "Launching build..."
               : "Creating cards..."
-            : isShape
+            : isSpecUp
               ? "Approve & build"
               : "Create board cards"}
           <ArrowRight size={15} />

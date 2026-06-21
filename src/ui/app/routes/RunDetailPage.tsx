@@ -15,13 +15,13 @@ import type {
   RunAudit,
   RunState,
   RuntimeMetrics,
-  ShapeQuestion,
+  SpecUpQuestion,
   WorkflowSelectionView,
 } from "../../lib/types.js";
 import { RunTree } from "../../components/runs/RunTree.js";
 import { RunGapQuestions } from "../../components/runs/RunGapQuestions.js";
-import { ShapeRunActions } from "../../components/runs/ShapeRunActions.js";
-import { ShapeReview } from "../../components/runs/ShapeReview.js";
+import { SpecUpRunActions } from "../../components/runs/SpecUpRunActions.js";
+import { SpecUpReview } from "../../components/runs/SpecUpReview.js";
 import { RunHeaderV3 } from "../../components/runs/v3/RunHeaderV3.js";
 import { RunStatusSection } from "../../components/runs/v3/RunStatusSection.js";
 import { SupervisorPanel } from "../../components/runs/SupervisorPanel.js";
@@ -92,8 +92,8 @@ export function RunDetailPage({
   const [assurance, setAssurance] = useState<RunAssurance | null>(null);
   const [engagement, setEngagement] = useState<EngagementEntry[]>([]);
   const [audit, setAudit] = useState<RunAudit | null>(null);
-  const [shapeQuestions, setShapeQuestions] = useState<ShapeQuestion[] | null>(null);
-  const [shapeMeta, setShapeMeta] = useState<{ round: number; coverageComplete: boolean } | null>(null);
+  const [specUpQuestions, setSpecUpQuestions] = useState<SpecUpQuestion[] | null>(null);
+  const [specUpMeta, setSpecUpMeta] = useState<{ round: number; coverageComplete: boolean } | null>(null);
   const [arbitration, setArbitration] = useState<Record<string, unknown> | null>(
     null,
   );
@@ -113,7 +113,7 @@ export function RunDetailPage({
           api.getRunEngagement(runId).catch(() => [] as EngagementEntry[]),
           api.getRunArbitration(runId).catch(() => null),
           api.getRunAudit(runId).catch(() => null),
-          api.getShapeQuestions(runId).catch(() => null),
+          api.getSpecUpQuestions(runId).catch(() => null),
         ]);
         if (cancelled) return;
         loadedOnce = true;
@@ -124,8 +124,8 @@ export function RunDetailPage({
         setEngagement(eng);
         setArbitration(arb);
         setAudit(aud);
-        setShapeQuestions(shp?.questions ?? null);
-        setShapeMeta(
+        setSpecUpQuestions(shp?.questions ?? null);
+        setSpecUpMeta(
           shp && shp.questions != null
             ? { round: shp.round ?? 1, coverageComplete: shp.coverageComplete ?? false }
             : null,
@@ -227,11 +227,11 @@ export function RunDetailPage({
   // as the run's surface - answering them launches the shaping run and hands
   // off to it. (The questions artifact persists on the intake run, so revisiting
   // it re-offers them; the chain moves forward via the spawned run.)
-  const awaitingShapeAnswers =
+  const awaitingSpecUpAnswers =
     run.flow?.flowId === "spec-up-intake" &&
-    shapeQuestions != null &&
-    ((shapeQuestions.length ?? 0) > 0 || (shapeMeta?.coverageComplete ?? false));
-  if (awaitingShapeAnswers) {
+    specUpQuestions != null &&
+    ((specUpQuestions.length ?? 0) > 0 || (specUpMeta?.coverageComplete ?? false));
+  if (awaitingSpecUpAnswers) {
     return (
       <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-12 flex flex-col gap-5">
         <RunHeaderV3
@@ -247,9 +247,9 @@ export function RunDetailPage({
         />
         <RunGapQuestions
           runId={runId}
-          questions={shapeQuestions!}
-          round={shapeMeta?.round ?? 1}
-          coverageComplete={shapeMeta?.coverageComplete ?? false}
+          questions={specUpQuestions!}
+          round={specUpMeta?.round ?? 1}
+          coverageComplete={specUpMeta?.coverageComplete ?? false}
           onSubmitted={(nextRunId) => navigate({ kind: "run", runId: nextRunId })}
         />
       </div>
@@ -270,8 +270,8 @@ export function RunDetailPage({
         onRename={handleRename}
       />
 
-      <ShapeReview runId={runId} flowId={run.flow?.flowId} />
-      <ShapeRunActions
+      <SpecUpReview runId={runId} flowId={run.flow?.flowId} />
+      <SpecUpRunActions
         runId={runId}
         run={run}
         onOpenRun={(id) => navigate({ kind: "run", runId: id })}

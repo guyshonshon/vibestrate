@@ -6,10 +6,10 @@ import { ArtifactStore } from "../src/core/artifact-store.js";
 import { FLOW_QUESTIONS_CONTRACT } from "../src/flows/schemas/flow-output-contracts.js";
 import {
   ROUND_CAP,
-  decideShapeNext,
+  decideSpecUpNext,
   appendAnswersDoc,
-  readShapeQuestions,
-} from "../src/shape/shape-chain.js";
+  readSpecUpQuestions,
+} from "../src/spec-up/spec-up-chain.js";
 import { specUpIntakeFlow } from "../src/flows/catalog/builtin-flows.js";
 
 async function tempProject(): Promise<string> {
@@ -25,26 +25,26 @@ const q = (id: string, category: string) => ({
   category: category as never,
 });
 
-describe("decideShapeNext (server-owned brakes)", () => {
+describe("decideSpecUpNext (server-owned brakes)", () => {
   it("loops to a gap-check round when under the cap and not proceeding", () => {
-    expect(decideShapeNext({ round: 1, proceed: false, cap: ROUND_CAP })).toEqual({
+    expect(decideSpecUpNext({ round: 1, proceed: false, cap: ROUND_CAP })).toEqual({
       action: "gap-check",
       nextRound: 2,
     });
   });
 
   it("finalizes at the hard cap regardless of the model (cap brake)", () => {
-    const d = decideShapeNext({ round: ROUND_CAP, proceed: false, cap: ROUND_CAP });
+    const d = decideSpecUpNext({ round: ROUND_CAP, proceed: false, cap: ROUND_CAP });
     expect(d.action).toBe("finalize");
   });
 
   it("finalizes when the user proceeds, even mid-loop (proceed brake)", () => {
-    const d = decideShapeNext({ round: 2, proceed: true, cap: ROUND_CAP });
+    const d = decideSpecUpNext({ round: 2, proceed: true, cap: ROUND_CAP });
     expect(d.action).toBe("finalize");
   });
 
   it("never loops past the cap even if a stale round sneaks above it", () => {
-    const d = decideShapeNext({ round: ROUND_CAP + 3, proceed: false, cap: ROUND_CAP });
+    const d = decideSpecUpNext({ round: ROUND_CAP + 3, proceed: false, cap: ROUND_CAP });
     expect(d.action).toBe("finalize");
   });
 
@@ -81,7 +81,7 @@ describe("intake prompt: categorize + gap-check coverage", () => {
   });
 });
 
-describe("readShapeQuestions: server-stamped round + coverageComplete", () => {
+describe("readSpecUpQuestions: server-stamped round + coverageComplete", () => {
   it("stamps the round from the sidecar onto each served question (default 1)", async () => {
     const root = await tempProject();
     const store = new ArtifactStore(root, "brave-otter");
@@ -93,7 +93,7 @@ describe("readShapeQuestions: server-stamped round + coverageComplete", () => {
       questions: [q("accounts", "users")],
     });
     await store.writeJson("spec-up-round.json", { round: 3 });
-    const pending = await readShapeQuestions(root, "brave-otter");
+    const pending = await readSpecUpQuestions(root, "brave-otter");
     expect(pending?.round).toBe(3);
     expect(pending?.questions[0]?.round).toBe(3);
   });
@@ -109,7 +109,7 @@ describe("readShapeQuestions: server-stamped round + coverageComplete", () => {
       coverageComplete: true,
       questions: [],
     });
-    const pending = await readShapeQuestions(root, "calm-yak");
+    const pending = await readSpecUpQuestions(root, "calm-yak");
     expect(pending?.coverageComplete).toBe(true);
     expect(pending?.questions).toEqual([]);
   });
@@ -124,7 +124,7 @@ describe("readShapeQuestions: server-stamped round + coverageComplete", () => {
       stepId: "intake",
       questions: [q("accounts", "users")],
     });
-    const pending = await readShapeQuestions(root, "lone-fox");
+    const pending = await readSpecUpQuestions(root, "lone-fox");
     expect(pending?.round).toBe(1);
   });
 });

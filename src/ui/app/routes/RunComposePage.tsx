@@ -209,7 +209,7 @@ export function RunComposePage() {
     setBusy(true);
     setError(null);
     try {
-      const r = await api.shapeIntake({
+      const r = await api.specUpIntake({
         task: typed,
         persona: personaId ?? undefined,
         flowId: flowId || undefined,

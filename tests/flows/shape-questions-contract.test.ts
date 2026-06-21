@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  flowShapeQuestionSchema,
+  flowSpecUpQuestionSchema,
   flowQuestionsOutputSchema,
   FLOW_QUESTIONS_CONTRACT,
 } from "../../src/flows/schemas/flow-output-contracts.js";
@@ -16,19 +16,19 @@ const baseQ = {
 describe("shape question contract: model-emitted category", () => {
   it("requires a category from the fixed set", () => {
     // category is now a required, model-judged field.
-    expect(flowShapeQuestionSchema.safeParse(baseQ).success).toBe(false);
+    expect(flowSpecUpQuestionSchema.safeParse(baseQ).success).toBe(false);
     expect(
-      flowShapeQuestionSchema.safeParse({ ...baseQ, category: "users" }).success,
+      flowSpecUpQuestionSchema.safeParse({ ...baseQ, category: "users" }).success,
     ).toBe(true);
     expect(
-      flowShapeQuestionSchema.safeParse({ ...baseQ, category: "nonsense" })
+      flowSpecUpQuestionSchema.safeParse({ ...baseQ, category: "nonsense" })
         .success,
     ).toBe(false);
   });
 
   it("does NOT carry a model-emitted round (round is server state)", () => {
     // round must not be accepted from the model (strict schema rejects extras).
-    const parsed = flowShapeQuestionSchema.safeParse({
+    const parsed = flowSpecUpQuestionSchema.safeParse({
       ...baseQ,
       category: "users",
       round: 2,

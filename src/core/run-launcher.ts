@@ -278,7 +278,7 @@ export async function runFromSpec(
   }
 
   // Adaptive Shape (P1): an under-specified brief is SHAPED FIRST. This run
-  // becomes the read-only `shape-intake` run (emits the gap questions); the
+  // becomes the read-only `spec-up-intake` run (emits the gap questions); the
   // CHOSEN flow (selection.flowId) is carried to the post-shape `approve & build`
   // handoff via the shape-target sidecar - it is never replaced. The loop guard
   // (`spec.specUpPhase`) keeps shape-phase / executor runs from re-entering shaping.

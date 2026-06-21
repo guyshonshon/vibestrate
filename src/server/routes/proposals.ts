@@ -43,7 +43,7 @@ export async function registerProposalsRoutes(
 
   // Generate a proposal from a broad goal (the dashboard "Generate" action;
   // mirrors `vibe roadmap plan`). Runs the local planner provider inline - like
-  // shapeAssist, this can take a while, so the client shows a working state.
+  // specUpAssist, this can take a while, so the client shows a working state.
   app.post<{ Body: unknown }>("/api/roadmap/proposals", async (req) => {
     const parsed = planBody.safeParse(req.body);
     if (!parsed.success) {

@@ -7,10 +7,10 @@ import type {
 } from "../../lib/types.js";
 
 /** Provenance of a proposal, derived from its id: the Shape chain writes
- *  `shape-<runId>`; `vibe roadmap plan` / the Generate action write
+ *  `spec-up-<runId>`; `vibe roadmap plan` / the Generate action write
  *  `<timestamp>-<slug>`. One store, two sources - label which. */
 function proposalOrigin(id: string): { label: string; tone: string } {
-  return id.startsWith("shape-")
+  return id.startsWith("spec-up-")
     ? { label: "From Shape", tone: "text-violet-soft" }
     : { label: "Ad-hoc plan", tone: "text-fog-400" };
 }

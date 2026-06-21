@@ -12,15 +12,15 @@ import { runSpecSchema } from "../src/core/run-launcher.js";
 import { ArtifactStore } from "../src/core/artifact-store.js";
 import { FLOW_QUESTIONS_CONTRACT } from "../src/flows/schemas/flow-output-contracts.js";
 import {
-  readShapeQuestions,
-  shapeAnswersSchema,
-  approveShapeAndStartRoadmap,
+  readSpecUpQuestions,
+  specUpAnswersSchema,
+  approveSpecUpAndStartRoadmap,
   appendAnswersDoc,
   dedupeQuestionIds,
   markIntakeAnswered,
   runAwaitsInput,
-  ShapeChainError,
-} from "../src/shape/shape-chain.js";
+  SpecUpChainError,
+} from "../src/spec-up/spec-up-chain.js";
 
 async function tempProject(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-shape-"));
@@ -41,14 +41,14 @@ describe("awaiting-input terminator (the marker that stops the forever-true bug)
   }
   const intake = (runId: string) => ({ runId, flow: { flowId: "spec-up-intake" } });
 
-  it("readShapeQuestions returns null once marked answered; runAwaitsInput follows", async () => {
+  it("readSpecUpQuestions returns null once marked answered; runAwaitsInput follows", async () => {
     const root = await tempProject();
     await stageIntake(root, "calm-otter");
-    expect(await readShapeQuestions(root, "calm-otter")).not.toBeNull();
+    expect(await readSpecUpQuestions(root, "calm-otter")).not.toBeNull();
     expect(await runAwaitsInput(root, intake("calm-otter"))).toBe(true);
 
     await markIntakeAnswered(root, "calm-otter");
-    expect(await readShapeQuestions(root, "calm-otter")).toBeNull();
+    expect(await readSpecUpQuestions(root, "calm-otter")).toBeNull();
     expect(await runAwaitsInput(root, intake("calm-otter"))).toBe(false);
   });
 
@@ -100,9 +100,9 @@ describe("shape chain integrity (Tier-2 reviewer requirement)", () => {
     ).toBeGreaterThan(0);
 
     const seeded = specUpRoadmapFlow.steps.slice(0, firstResumeIdx);
-    const shapeById = new Map(specUpFlow.steps.map((s) => [s.id, s]));
+    const specUpById = new Map(specUpFlow.steps.map((s) => [s.id, s]));
     for (const rs of seeded) {
-      const ss = shapeById.get(rs.id);
+      const ss = specUpById.get(rs.id);
       expect(ss, `roadmap seeds "${rs.id}" but the shape flow has no such step`).toBeDefined();
       expect(ss!.stage, `stage mismatch on "${rs.id}"`).toBe(rs.stage);
     }
@@ -158,7 +158,7 @@ describe("shape RunSpec contract (the launched spec)", () => {
 });
 
 describe("shape answers I/O", () => {
-  it("readShapeQuestions returns parsed questions + the carried brief", async () => {
+  it("readSpecUpQuestions returns parsed questions + the carried brief", async () => {
     const root = await tempProject();
     const runId = "brave-otter";
     const store = new ArtifactStore(root, runId);
@@ -171,29 +171,29 @@ describe("shape answers I/O", () => {
         { id: "accounts", question: "Do users sign in?", why: "auth", kind: "choice", options: ["yes", "no"], category: "users" },
       ],
     });
-    const pending = await readShapeQuestions(root, runId);
+    const pending = await readSpecUpQuestions(root, runId);
     expect(pending?.questions[0]?.id).toBe("accounts");
     expect(pending?.task).toContain("ecommerce");
   });
 
-  it("readShapeQuestions returns null when there is no questions artifact", async () => {
+  it("readSpecUpQuestions returns null when there is no questions artifact", async () => {
     const root = await tempProject();
-    expect(await readShapeQuestions(root, "calm-yak")).toBeNull();
+    expect(await readSpecUpQuestions(root, "calm-yak")).toBeNull();
   });
 
-  it("approveShapeAndStartRoadmap refuses a shape run that does not exist (no spawn)", async () => {
+  it("approveSpecUpAndStartRoadmap refuses a shape run that does not exist (no spawn)", async () => {
     const root = await tempProject();
     await expect(
-      approveShapeAndStartRoadmap({ projectRoot: root, shapeRunId: "ghost-run" }),
-    ).rejects.toBeInstanceOf(ShapeChainError);
+      approveSpecUpAndStartRoadmap({ projectRoot: root, specUpRunId: "ghost-run" }),
+    ).rejects.toBeInstanceOf(SpecUpChainError);
   });
 
   it("the answer-set is bounded (rejects empty, oversize, and bad ids)", () => {
-    expect(shapeAnswersSchema.safeParse([]).success).toBe(false);
+    expect(specUpAnswersSchema.safeParse([]).success).toBe(false);
     const tooMany = Array.from({ length: 21 }, (_, i) => ({ id: `q${i}`, answer: "a" }));
-    expect(shapeAnswersSchema.safeParse(tooMany).success).toBe(false);
-    expect(shapeAnswersSchema.safeParse([{ id: "Bad Id", answer: "a" }]).success).toBe(false);
-    expect(shapeAnswersSchema.safeParse([{ id: "accounts", answer: "yes" }]).success).toBe(true);
+    expect(specUpAnswersSchema.safeParse(tooMany).success).toBe(false);
+    expect(specUpAnswersSchema.safeParse([{ id: "Bad Id", answer: "a" }]).success).toBe(false);
+    expect(specUpAnswersSchema.safeParse([{ id: "accounts", answer: "yes" }]).success).toBe(true);
   });
 });
 
@@ -238,7 +238,7 @@ describe("shape question id de-duplication (correctness: ids are not unique by s
     expect(out.map((q) => q.id)).toEqual(["a", "b", "c"]);
   });
 
-  it("readShapeQuestions de-dups a duplicate-id artifact (deterministic + stable across calls)", async () => {
+  it("readSpecUpQuestions de-dups a duplicate-id artifact (deterministic + stable across calls)", async () => {
     const root = await tempProject();
     const runId = "brave-otter";
     const store = new ArtifactStore(root, runId);
@@ -255,7 +255,7 @@ describe("shape question id de-duplication (correctness: ids are not unique by s
       ],
     });
 
-    const first = await readShapeQuestions(root, runId);
+    const first = await readSpecUpQuestions(root, runId);
     const ids = (first?.questions ?? []).map((q) => q.id);
     expect(ids).toEqual(["scope", "scope-2", "accounts"]);
     expect(new Set(ids).size).toBe(ids.length); // unique
@@ -263,13 +263,13 @@ describe("shape question id de-duplication (correctness: ids are not unique by s
     expect(first?.questions[1]?.question).toBe("What's explicitly out?");
 
     // Stable across calls: the same artifact deterministically yields the same ids.
-    const second = await readShapeQuestions(root, runId);
+    const second = await readSpecUpQuestions(root, runId);
     expect((second?.questions ?? []).map((q) => q.id)).toEqual(ids);
   });
 
   it("submit/record round-trip attributes answers to the right deduped question", async () => {
     // The record path (appendAnswersDoc) consumes the SAME deduped questions
-    // readShapeQuestions serves, so an answer keyed by the deduped id lands on the
+    // readSpecUpQuestions serves, so an answer keyed by the deduped id lands on the
     // intended question - not the first id-twin.
     const root = await tempProject();
     const runId = "calm-yak";
@@ -284,7 +284,7 @@ describe("shape question id de-duplication (correctness: ids are not unique by s
       ],
     });
 
-    const pending = await readShapeQuestions(root, runId);
+    const pending = await readSpecUpQuestions(root, runId);
     expect(pending).not.toBeNull();
     const served = pending!.questions;
     expect(served.map((q) => q.id)).toEqual(["scope", "scope-2"]);
