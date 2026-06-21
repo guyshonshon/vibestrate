@@ -38,6 +38,11 @@ export class ShapeChainError extends VibestrateError {
 }
 
 const INTAKE_QUESTIONS_PATH = "flows/intake/questions.json";
+// Terminator marker: written on a shape-intake run once its questions are
+// consumed (answered or proceeded). Its presence means "no pending questions" -
+// without it, an answered run reads as awaiting forever (it lands merge_ready and
+// its questions.json never goes away).
+const ANSWERED_PATH = "flows/intake/answered.json";
 const IDEA_PATH = "00-idea.md";
 const ANSWERS_PATH = "shape-answers.md";
 const SYNTHESIZE_OUTPUT_PATH = "flows/synthesize/output.md";
@@ -202,6 +207,9 @@ export async function readShapeQuestions(
   assertSafeRunId(sourceRunId);
   const store = new ArtifactStore(projectRoot, sourceRunId);
   if (!(await store.exists(INTAKE_QUESTIONS_PATH))) return null;
+  // Once answered/superseded, there are no PENDING questions: the form stops
+  // re-showing, a double-submit is refused, and the run stops reading as awaiting.
+  if (await store.exists(ANSWERED_PATH)) return null;
   let parsed;
   try {
     parsed = flowQuestionsOutputSchema.safeParse(
@@ -230,6 +238,29 @@ export async function readShapeQuestions(
     round,
     coverageComplete: parsed.data.coverageComplete === true,
   };
+}
+
+/** Mark a shape-intake run's questions as consumed (answered or proceeded) so
+ *  readShapeQuestions returns null for it - the terminator for "awaiting input". */
+export async function markIntakeAnswered(
+  projectRoot: string,
+  runId: string,
+): Promise<void> {
+  assertSafeRunId(runId);
+  const store = new ArtifactStore(projectRoot, runId);
+  await store.writeJson(ANSWERED_PATH, { answeredAt: new Date().toISOString() });
+}
+
+/** True iff a run is a shape-intake run still AWAITING the user's answers
+ *  (questions present and not yet consumed). The honest "awaiting input" signal,
+ *  computed server-side for the run list / run detail. Cheap: only shape-intake
+ *  runs touch the filesystem. */
+export async function runAwaitsInput(
+  projectRoot: string,
+  run: { runId: string; flow?: { flowId?: string | null } | null },
+): Promise<boolean> {
+  if (run.flow?.flowId !== "shape-intake") return false;
+  return (await readShapeQuestions(projectRoot, run.runId)) !== null;
 }
 
 /**
@@ -376,6 +407,9 @@ export async function submitShapeAnswers(input: {
     ANSWERS_PATH,
     appendAnswersDoc(priorDoc, pending.questions, answers, pending.round),
   );
+  // The viewed run's questions are now consumed: mark it so it stops reading as
+  // awaiting and a re-open / double-submit can't spawn a duplicate round.
+  await markIntakeAnswered(projectRoot, sourceRunId);
 
   const decision = decideShapeNext({
     round: pending.round,
@@ -431,6 +465,7 @@ export async function proceedToShapeSpec(input: {
   let task = "";
   if (await srcStore.exists(IDEA_PATH)) task = (await srcStore.read(IDEA_PATH)).trim();
   const targetFlowId = await readTargetFlowId(srcStore);
+  await markIntakeAnswered(projectRoot, sourceRunId);
   return finalizeShapeSpec({ projectRoot, rootRunId, task, targetFlowId });
 }
 

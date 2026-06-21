@@ -145,6 +145,10 @@ export type RunState = {
   concise?: boolean;
   /** Live sequential Flow ledger, when this run uses a Flow recipe. */
   flow?: FlowRunState | null;
+  /** Server-computed: a shape-intake run still awaiting the user's answers
+   *  (questions present and not yet consumed). The honest "awaiting input"
+   *  signal - do NOT infer awaiting from status. */
+  awaitingInput?: boolean;
 };
 
 export type RunControlDirective =

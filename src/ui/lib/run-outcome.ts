@@ -23,13 +23,14 @@ export function isTerminalStatus(status: RunStatus): boolean {
   return TERMINAL_NON_MERGE.has(status) || status === "merge_ready";
 }
 
-/** A shape-intake run that has stopped to wait for the user's gap answers. It
- *  carries status "blocked", but it isn't a failure - it's the Shape phase
- *  waiting on you. The UI labels/tones it distinctly so it's findable, and
- *  opening it lands on the gap-questions screen. A genuinely failed intake run
- *  is "failed", not "blocked", so it is correctly excluded here. */
+/** A shape-intake run still AWAITING the user's answers. Keyed on the
+ *  server-computed `awaitingInput` flag (questions present + not yet consumed),
+ *  NOT on status: a real awaiting run lands `merge_ready` (read-only, no review),
+ *  and an old/dead intake run sits at `blocked` with stale questions - inferring
+ *  from status got both wrong. The UI labels/tones it distinctly so it's
+ *  findable; opening it lands on the gap-questions screen. */
 export function isShapingRun(run: RunState): boolean {
-  return run.flow?.flowId === "shape-intake" && run.status === "blocked";
+  return run.awaitingInput === true;
 }
 
 /**

@@ -17,12 +17,48 @@ import {
   approveShapeAndStartRoadmap,
   appendAnswersDoc,
   dedupeQuestionIds,
+  markIntakeAnswered,
+  runAwaitsInput,
   ShapeChainError,
 } from "../src/shape/shape-chain.js";
 
 async function tempProject(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-shape-"));
 }
+
+describe("awaiting-input terminator (the marker that stops the forever-true bug)", () => {
+  async function stageIntake(root: string, runId: string): Promise<void> {
+    const store = new ArtifactStore(root, runId);
+    await store.init();
+    await store.write("00-idea.md", "Build a thing");
+    await store.writeJson("flows/intake/questions.json", {
+      contract: FLOW_QUESTIONS_CONTRACT,
+      stepId: "intake",
+      questions: [
+        { id: "scope", question: "What's in scope?", why: "bounds it", kind: "text", options: [], category: "scope" },
+      ],
+    });
+  }
+  const intake = (runId: string) => ({ runId, flow: { flowId: "shape-intake" } });
+
+  it("readShapeQuestions returns null once marked answered; runAwaitsInput follows", async () => {
+    const root = await tempProject();
+    await stageIntake(root, "calm-otter");
+    expect(await readShapeQuestions(root, "calm-otter")).not.toBeNull();
+    expect(await runAwaitsInput(root, intake("calm-otter"))).toBe(true);
+
+    await markIntakeAnswered(root, "calm-otter");
+    expect(await readShapeQuestions(root, "calm-otter")).toBeNull();
+    expect(await runAwaitsInput(root, intake("calm-otter"))).toBe(false);
+  });
+
+  it("runAwaitsInput is false for a non-intake run", async () => {
+    const root = await tempProject();
+    expect(
+      await runAwaitsInput(root, { runId: "x", flow: { flowId: "default" } }),
+    ).toBe(false);
+  });
+});
 
 describe("shape flows", () => {
   it("registers the three chain links as built-ins", () => {

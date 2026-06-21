@@ -11,6 +11,7 @@ import {
 } from "../../utils/paths.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import { applyTransition, isTerminal, RunStateStore, renameRun } from "../../core/state-machine.js";
+import { runAwaitsInput } from "../../shape/shape-chain.js";
 import { EventLog, type VibestrateEvent } from "../../core/event-log.js";
 import {
   PauseError,
@@ -185,7 +186,12 @@ export async function registerRunsRoutes(
       try {
         const raw = await readJson<unknown>(stateFile);
         const parsed = runStateSchema.safeParse(raw);
-        if (parsed.success) runs.push(parsed.data);
+        if (parsed.success) {
+          // Honest "awaiting your input" signal (shape-intake with unanswered
+          // questions), so the UI doesn't infer it from blocked/merge_ready.
+          const awaitingInput = await runAwaitsInput(projectRoot, parsed.data);
+          runs.push({ ...parsed.data, awaitingInput });
+        }
       } catch {
         // skip
       }
@@ -408,7 +414,12 @@ export async function registerRunsRoutes(
       if (!parsed.success) {
         throw new HttpError(500, "Run state.json is invalid.");
       }
-      return { run: parsed.data };
+      return {
+        run: {
+          ...parsed.data,
+          awaitingInput: await runAwaitsInput(projectRoot, parsed.data),
+        },
+      };
     },
   );
 
