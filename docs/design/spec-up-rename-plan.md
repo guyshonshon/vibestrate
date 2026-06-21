@@ -67,12 +67,23 @@ references** - renaming it is a zod-schema + persisted-state migration.
 | `shapeRunId` | `specUpRunId` |
 | `shapeQuestions` / `shapeMeta` (UI state) | `specUpQuestions` / `specUpMeta` |
 | `willShape` | `willSpecUp` |
-| persisted **`shaped`** (RunSpec loop-guard flag) | **`speccedUp`** (decision: "already went through spec-up / is a spec-up-phase run") |
+| persisted **`shaped`** (RunSpec loop-guard flag) | **`specUpPhase`** (boolean: "this run is part of the spec-up pipeline; don't re-enter spec-up") |
+| `WorkflowSelectionSource` value `"shaped"` (selection-source enum) | `"spec-up"` (a DIFFERENT concept from the flag: "selection routed this brief into the spec-up chain") |
+| proposal-id prefix `` `shape-${runId}` `` (writer + `startsWith("shape-")` reader) | `` `spec-up-${runId}` `` / `startsWith("spec-up-")` |
+| flow step id `"shape-review"` (nested step in the `shape` flow) | `"spec-up-review"` |
+| sidecar filenames `shape-target-flow.json` / `shape-round.json` / `shape-root-run.json` / `shape-answers.md` / `shape-approved-spec.md` | `spec-up-*` (rename write-sites + read-constants ATOMICALLY) |
+| route `/api/runs/:id/shape-questions` (separate from `/api/shape/*`) | `/api/runs/:id/spec-up-questions` |
+| audit labels `AUDIT_BUCKET="shape-assist"`, `shape-simplify:` / `shape-suggest:` / `shape-suggest-all` | `spec-up-assist`, `spec-up-simplify:` / `spec-up-suggest:` / `spec-up-suggest-all` |
 | UI text "Shape" / "Shaping" | "Spec-up" |
 | `markIntakeAnswered` / `runAwaitsInput` | unchanged (no "shape" in the name) |
 
-Decision to confirm: `shaped` -> `speccedUp`. If a cleaner term is preferred,
-pick ONE and apply it everywhere consistently.
+Decision (made by the executor, 2026-06-21): the persisted flag `shaped` ->
+`specUpPhase` (NOT `speccedUp` - that double-c form is hard to grep and people
+write it three different ways). The selection-source enum `"shaped"` is a
+SEPARATE concept and gets its own name `"spec-up"`. Neither retains the `shaped`
+token. Both are in scope; old persisted state with the old keys/values will fail
+to parse or fall through to a default - accepted ("we don't care about earlier
+runs").
 
 ## Surfaces and sequencing
 
@@ -86,17 +97,28 @@ references atomically to keep typecheck green.
    literal across the codebase (incl. `runAwaitsInput`'s `"shape-intake"` check in
    `spec-up-chain.ts`, `willShape` in `run-launcher.ts`, the flow-sizing/select-
    workflow paths, tests).
-2. **Persisted config/state fields (RISKIEST).** `shaped`, `shapeTargetFlowId`,
-   `shapeRound`, `shapeRootRunId`, `needsShaping`, `adaptiveShape`. These live in
-   zod schemas (`run-launcher.ts` RunSpec, project config, `select-workflow.ts`,
-   state). Rename the schema keys + every read/write. Old state.json with the old
-   keys will fail to parse - accepted.
+2. **Persisted config/state fields (RISKIEST).** `shaped` -> `specUpPhase`,
+   `shapeTargetFlowId`, `shapeRound`, `shapeRootRunId`, `needsShaping`,
+   `adaptiveShape`. These live in zod schemas (`run-launcher.ts` RunSpec, project
+   config, `select-workflow.ts`, state). Rename the schema keys + every read/write.
+   Old state.json with the old keys will fail to parse - accepted. ALSO in this
+   surface: the `WorkflowSelectionSource` enum value `"shaped"` -> `"spec-up"`
+   (`select-workflow.ts`, `orchestrator.ts`, `run.ts`, UI `types.ts`,
+   `SupervisorPanel.tsx`) - a separate concept that shares the token. AND the
+   on-disk **sidecar filenames** (`shape-target-flow.json`, `shape-round.json`,
+   `shape-root-run.json`, `shape-answers.md`, `shape-approved-spec.md`): rename the
+   write-sites (`orchestrator.ts`) and the read-constants (`shape-chain.ts`)
+   ATOMICALLY in the same commit, or an in-flight chain reads a stale sidecar and
+   silently resets - no typecheck/unit signal.
 3. **Core module.** `git mv src/shape -> src/spec-up`, rename the two files, fix
    all imports, rename the symbols per the map.
 4. **API routes.** `src/server/routes/shape.ts -> spec-up.ts`; `/api/shape/* ->
-   /api/spec-up/*`; `registerShapeRoutes -> registerSpecUpRoutes` + `server.ts`
-   registration. THEN the UI client `src/ui/lib/api.ts` methods + their
-   `/api/shape/*` paths.
+   /api/spec-up/*`; the SEPARATE `/api/runs/:id/shape-questions ->
+   /api/runs/:id/spec-up-questions` route (different prefix - easy to miss);
+   `registerShapeRoutes -> registerSpecUpRoutes` + `server.ts` registration. THEN
+   the UI client `src/ui/lib/api.ts` methods + their `/api/shape/*` AND
+   `/api/runs/:id/shape-questions` paths. A path renamed on only one side = a
+   typecheck-green 404 at runtime, so do server + client (+ tests) together.
 5. **CLI.** `src/cli/commands/shape.ts -> spec-up.ts`; `new Command("shape") ->
    "spec-up"`; `buildShapeCommand -> buildSpecUpCommand`; `src/cli/index.ts`
    registration; all help text.
@@ -113,7 +135,13 @@ references atomically to keep typecheck green.
 
 - `pnpm typecheck && pnpm test && pnpm build` all green.
 - Grep audit: `grep -rin shape src tests` returns ONLY the documented unrelated
-  uses (`predictedShape`, the `Shapes` icon, prose). List them in the final report.
+  uses. EXPECT this to be dozens of lines, not a handful: `predictedShape` and the
+  merge-tree "shape of the tree"; the lucide `Shapes` icon; and a LOT of prose
+  ("secret-shaped", "token-shaped", "high-precision token shapes", "shape of the
+  data", "execa shapes", etc.) plus the embedded LLM-prompt text inside
+  `tests/fixtures/codex-debug-models.json`. List the categories in the final
+  report; the audit passes when every survivor is one of these, NOT when the count
+  is zero.
 - Smoke: `vibe spec-up start "<idea>"` works; opening that run renders the
   questions screen; the dashboard "Plan first" path still lands on it.
 
