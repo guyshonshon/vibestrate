@@ -46,6 +46,7 @@ type Props = {
   onShowConfig: () => void;
   onShowCodebase: () => void;
   onShowGit: () => void;
+  onShowGitTree: () => void;
   onShowMerge: () => void;
   onShowLedger: () => void;
   onShowConsult: () => void;
@@ -96,6 +97,7 @@ export function TopBar({
   onShowConfig,
   onShowCodebase,
   onShowGit,
+  onShowGitTree,
   onShowMerge,
   onShowLedger,
   onShowConsult,
@@ -270,6 +272,7 @@ export function TopBar({
           <NavTab
             active={
               currentNav === "git" ||
+              currentNav === "git-tree" ||
               currentNav === "merge" ||
               currentNav === "providers" ||
               currentNav === "ledger" ||
@@ -296,6 +299,16 @@ export function TopBar({
                 icon={<GitCommit className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
               >
                 Git
+              </DropItem>
+              <DropItem
+                active={currentNav === "git-tree"}
+                onClick={() => {
+                  setMoreOpen(false);
+                  onShowGitTree();
+                }}
+                icon={<GitMerge className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              >
+                Git tree
               </DropItem>
               <DropItem
                 active={currentNav === "merge"}
@@ -432,6 +445,16 @@ export function TopBar({
               icon={<GitCommit className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
             >
               Git
+            </DropItem>
+            <DropItem
+              active={currentNav === "git-tree"}
+              onClick={() => {
+                setMenuOpen(false);
+                onShowGitTree();
+              }}
+              icon={<GitMerge className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+            >
+              Git tree
             </DropItem>
             <DropItem
               active={currentNav === "merge"}

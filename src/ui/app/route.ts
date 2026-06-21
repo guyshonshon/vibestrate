@@ -37,6 +37,7 @@ export type Route =
   | { kind: "settings" }
   | { kind: "project" }
   | { kind: "git"; runId: string | null }
+  | { kind: "git-tree" }
   | { kind: "merge"; runId: string | null }
   | { kind: "flow"; flowId: string | null }
   | { kind: "flows" }
@@ -175,6 +176,7 @@ export function parseHashRoute(hash: string): Route {
       runId: runId ?? null,
     };
   }
+  if (parts[0] === "git-tree") return { kind: "git-tree" };
   if (parts[0] === "git") {
     const runId = query.get("runId");
     return { kind: "git", runId: runId ?? null };
@@ -253,6 +255,8 @@ export function serializeRoute(route: Route): string {
       const qs = q.toString();
       return `#/git${qs ? `?${qs}` : ""}`;
     }
+    case "git-tree":
+      return "#/git-tree";
     case "merge":
       return route.runId
         ? `#/merge?run=${encodeURIComponent(route.runId)}`

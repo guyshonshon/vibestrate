@@ -201,6 +201,20 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: "vibe validation run", note: "execute the validation profile" },
         ],
       };
+    case "git-tree":
+      return {
+        title: "Git tree",
+        blurb:
+          "Interactive any-node-to-any-node merge: pick source + target, see the predicted result and conflicts before anything is applied, and undo with one click. UI-only by design - the underlying ops are plain git.",
+        commands: [
+          { cmd: "git merge --no-ff <source>", note: "what an applied merge runs on the target branch" },
+          { cmd: "git reset --hard <pre-merge-sha>", note: "what an undo runs (only while unpushed + nothing built on top)" },
+          { cmd: "vibe integrate preview", note: "the CLI's batch dry-run conflict report (per-run flow)" },
+        ],
+        tips: [
+          "The interactive canvas has no CLI equivalent (a sanctioned UI-only exception); apply/undo are human-clicked, broker-gated, and never pushed.",
+        ],
+      };
     case "merge":
       return {
         title: "Merge window",

@@ -13,6 +13,7 @@ import { WorkspacePage } from "./routes/WorkspacePage.js";
 import { ProjectPage } from "./routes/ProjectPage.js";
 import { CodebasePage } from "./routes/CodebasePage.js";
 import { GitPage } from "./routes/GitPage.js";
+import { GitTreePage } from "./routes/GitTreePage.js";
 import { MergePage } from "./routes/MergePage.js";
 import { LedgerPage } from "./routes/LedgerPage.js";
 import { ConsultDock } from "../components/consult/ConsultDock.js";
@@ -268,6 +269,8 @@ export function App() {
                     ? "codebase"
                     : route.kind === "git"
                       ? "git"
+                      : route.kind === "git-tree"
+                        ? "git-tree"
                       : route.kind === "merge"
                         ? "merge"
                         : route.kind === "ledger"
@@ -310,6 +313,7 @@ export function App() {
         navigate({ kind: "codebase", filePath: null, line: null, runId: null })
       }
       onShowGit={() => navigate({ kind: "git", runId: null })}
+      onShowGitTree={() => navigate({ kind: "git-tree" })}
       onShowMerge={() => navigate({ kind: "merge", runId: null })}
       onShowLedger={() => navigate({ kind: "ledger" })}
       onOpenNotification={(n) => navigate(notificationRoute(n))}
@@ -382,6 +386,8 @@ export function App() {
           initialRunId={route.runId}
           onSelectRun={(runId) => navigate({ kind: "run", runId })}
         />
+      ) : route.kind === "git-tree" ? (
+        <GitTreePage />
       ) : route.kind === "merge" ? (
         <MergePage
           runId={route.runId}
