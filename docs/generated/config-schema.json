@@ -127,7 +127,7 @@
       "required": false,
       "default": {
         "id": "default-plan-build-review",
-        "maxReviewLoops": 2,
+        "maxReviewLoops": null,
         "requireHumanMerge": true
       },
       "itemType": null,
@@ -144,11 +144,11 @@
         {
           "key": "maxReviewLoops",
           "fullKey": "workflow.maxReviewLoops",
-          "type": "number",
+          "type": "number | null",
           "required": false,
-          "default": 2,
+          "default": null,
           "itemType": null,
-          "description": "Max review->fix loops before stopping (default 2)."
+          "description": "Global ceiling on review->fix loops. null (default) = each flow uses its own loop budget; set N = lower any flow's loop to at most N. A per-crew maxReviewLoops override takes precedence (and may exceed this)."
         },
         {
           "key": "requireHumanMerge",

@@ -196,7 +196,8 @@ git:
 
 workflow:
   id: default-plan-build-review
-  maxReviewLoops: 2
+  # maxReviewLoops: 3   # optional GLOBAL ceiling on review->fix loops across all
+  #                     # flows; omit (default) = each flow uses its own budget.
   requireHumanMerge: true
 
 execution:

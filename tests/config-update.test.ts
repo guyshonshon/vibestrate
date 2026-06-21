@@ -58,9 +58,11 @@ describe("config get/set/validate", () => {
   });
 
   it("get returns parsed value", async () => {
-    const result = await getConfigValue(projectRoot, "workflow.maxReviewLoops");
+    // maxReviewLoops is now opt-in (absent from the default project.yml), so read
+    // a field the template still writes.
+    const result = await getConfigValue(projectRoot, "workflow.requireHumanMerge");
     expect(result.found).toBe(true);
-    if (result.found) expect(result.value).toBe(2);
+    if (result.found) expect(result.value).toBe(true);
   });
 
   it("get returns not-found for missing path", async () => {
@@ -90,9 +92,9 @@ describe("config get/set/validate", () => {
       setConfigValue(projectRoot, "workflow.maxReviewLoops", "-1"),
     ).rejects.toBeInstanceOf(ConfigError);
 
-    // Original value preserved.
+    // The rejected write added nothing: maxReviewLoops stays absent (opt-in).
     const orig = await getConfigValue(projectRoot, "workflow.maxReviewLoops");
-    expect(orig.found && orig.value).toBe(2);
+    expect(orig.found).toBe(false);
   });
 
   it("validate reports ok for fresh config", async () => {

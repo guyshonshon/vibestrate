@@ -40,6 +40,24 @@ export class FlowResolutionError extends Error {
   }
 }
 
+/**
+ * The review-loop budget the runner bounds on, resolved with a clear precedence:
+ *   1. an explicit per-crew override (`crew.maxReviewLoops`) wins outright;
+ *   2. else an explicit GLOBAL ceiling (`config.workflow.maxReviewLoops`) lowers
+ *      (never raises) the flow's budget - it is opt-in (null = no ceiling), so
+ *      the default never silently changes a flow's chosen budget;
+ *   3. else the flow's own `loop.maxIterations`.
+ */
+export function resolveLoopMaxIterations(o: {
+  flowMax: number;
+  crewMax?: number;
+  globalCeiling?: number | null;
+}): number {
+  if (o.crewMax !== undefined) return o.crewMax;
+  if (o.globalCeiling != null) return Math.min(o.flowMax, o.globalCeiling);
+  return o.flowMax;
+}
+
 export type ResolveFlowInput = {
   flow: FlowDefinition;
   source: FlowSource;
@@ -246,16 +264,20 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
     steps,
     // Loop-body steps can't carry a fixed repeat (schema-enforced), so their
     // resolved ids equal their source ids - the loop refs carry over as-is.
-    // A crew may override the loop's review-pass budget (a "fast" crew runs
-    // fewer cycles, "thorough" more): bake `crew.maxReviewLoops` onto the
-    // immutable snapshot's `loop.maxIterations` - the value the runner actually
-    // bounds on - so the override fires AND a resume reproduces it (no live
-    // config re-read). When the crew sets no override, the flow's own loop is
-    // used unchanged.
-    loop:
-      input.flow.loop && crew.maxReviewLoops !== undefined
-        ? { ...input.flow.loop, maxIterations: crew.maxReviewLoops }
-        : (input.flow.loop ?? null),
+    // Bake the resolved review-pass budget onto the immutable snapshot's
+    // `loop.maxIterations` - the value the runner actually bounds on - so it
+    // fires AND a resume reproduces it (no live config re-read). Precedence:
+    // explicit crew override > explicit global ceiling > the flow's own budget.
+    loop: input.flow.loop
+      ? {
+          ...input.flow.loop,
+          maxIterations: resolveLoopMaxIterations({
+            flowMax: input.flow.loop.maxIterations,
+            crewMax: crew.maxReviewLoops,
+            globalCeiling: input.config.workflow.maxReviewLoops,
+          }),
+        }
+      : null,
     // Same for the per-item band: its step ids are stable, so the from/to refs
     // carry over unchanged for the runner to map onto resolved step indices.
     checklistSegment: input.flow.checklistSegment ?? null,

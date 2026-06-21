@@ -49,7 +49,8 @@ describe("config loader", () => {
     );
     const loaded = await loadConfig(projectRoot);
     expect(loaded.config.project.name).toBe("demo");
-    expect(loaded.config.workflow.maxReviewLoops).toBe(2);
+    // Opt-in global ceiling: unspecified => null (each flow uses its own budget).
+    expect(loaded.config.workflow.maxReviewLoops).toBeNull();
     expect(loaded.config.git.branchPrefix).toBe("vibestrate/");
   });
 

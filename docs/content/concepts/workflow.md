@@ -43,7 +43,7 @@ Read end to end, the common spine of a run looks like this:
 <div><b>Verify</b><span>The verifier signs off or calls a human.</span></div>
 </div>
 
-The fix loop is bounded by `workflow.maxReviewLoops` (default `2`). If review keeps requesting changes past that budget, the run goes to `blocked` and calls you over. For most work, the default is all you need.
+The fix loop is bounded by the flow's own loop budget (the built-in flows allow 3 rounds). You can set `workflow.maxReviewLoops` as an optional **global ceiling** that lowers every flow to at most that many rounds - omitted by default, so each flow keeps its own budget. If review keeps requesting changes past the budget, the run goes to `blocked` and calls you over.
 
 ## Validation is the tie-breaker
 

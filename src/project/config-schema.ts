@@ -428,7 +428,8 @@ export const projectConfigBaseSchema = z.object({
   }),
   workflow: workflowConfigSchema.default({
     id: "default-plan-build-review",
-    maxReviewLoops: 2,
+    // null = no global ceiling; each flow uses its own loop budget (opt-in).
+    maxReviewLoops: null,
     requireHumanMerge: true,
   }),
   execution: executionConfigSchema.default({ backend: "local-worktree" }),

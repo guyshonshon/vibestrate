@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.15.2
+
+- **`workflow.maxReviewLoops` now actually does something - as an opt-in global
+  ceiling.** It used to be settable and shown but inert (the real budget is each
+  flow's own loop, 3 in the built-ins). Now: leave it unset (the new default) and
+  every flow keeps its own budget; set it to N and it caps every flow at N rounds
+  (a per-crew `maxReviewLoops` still takes precedence). **Heads-up for existing
+  projects:** if your `.vibestrate/project.yml` still carries the old
+  `workflow.maxReviewLoops: 2`, it was previously ignored (you were getting 3) and
+  is now enforced as a 2-round ceiling - delete the line to keep the per-flow
+  budget. New projects omit it by default.
+
 ## 0.15.1
 
 - **Every AI advisor prompt is now secret-redacted by default.** The consult orb,

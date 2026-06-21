@@ -38,7 +38,7 @@ reviewing → fixing → validating → reviewing → verifying → merge_ready
 
 <div class="docs-callout">
 
-**The fix loop has a budget.** The reviewer can return `CHANGES_REQUESTED`, sending the run back into `fixing`. The fixer addresses the findings, validation re-runs, and the reviewer re-evaluates. Each round counts against `workflow.maxReviewLoops` (default `2`). Past the budget, the run goes to `blocked`.
+**The fix loop has a budget.** The reviewer can return `CHANGES_REQUESTED`, sending the run back into `fixing`. The fixer addresses the findings, validation re-runs, and the reviewer re-evaluates. Each round counts against the flow's loop budget (3 in the built-in flows); an optional `workflow.maxReviewLoops` global ceiling can lower it. Past the budget, the run goes to `blocked`.
 
 </div>
 

@@ -77,4 +77,4 @@ A preset refuses rather than make a copy of your default Crew. `fast` and `thoro
 - [[role]] and [[seat]] - the workers in a Crew, and the steps they can cover.
 - [[profile]] - how a Role names its actual model and provider.
 - [[flow]] - the steps a Crew fills in.
-- A Crew can also set `maxReviewLoops` (0 to 10), capping how many fix-and-review passes a run makes. It overrides `workflow.maxReviewLoops` for runs on this Crew. Roles can carry extra `permissions`, `skills`, and `mcpServers`. See [[configuration]] for the full set of keys. Related: [[provider]].
+- A Crew can also set `maxReviewLoops` (0 to 10), setting exactly how many fix-and-review passes a run makes. It takes precedence over both the flow's own loop budget and the optional `workflow.maxReviewLoops` global ceiling for runs on this Crew. Roles can carry extra `permissions`, `skills`, and `mcpServers`. See [[configuration]] for the full set of keys. Related: [[provider]].

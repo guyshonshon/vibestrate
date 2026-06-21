@@ -246,7 +246,13 @@ export function buildConfigView(config: ProjectConfig): ConfigView {
     },
     rows: [
       { label: "flow id", value: config.workflow.id },
-      { label: "max review loops", value: String(config.workflow.maxReviewLoops) },
+      {
+        label: "max review loops",
+        value:
+          config.workflow.maxReviewLoops == null
+            ? "per-flow (no global cap)"
+            : String(config.workflow.maxReviewLoops),
+      },
       boolRow("require human merge", config.workflow.requireHumanMerge),
       {
         label: "flow sizing",

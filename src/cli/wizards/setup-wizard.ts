@@ -332,13 +332,12 @@ export async function runStandaloneSetupWizard(args: {
   }
 
   const adjustWorkflow = await confirm({
-    message: "Adjust max review loops? (default 2)",
+    message: "Set a global ceiling on review loops? (default: per-flow, no cap)",
     default: false,
   });
   if (adjustWorkflow) {
     const raw = await askInput({
-      message: "Max review loops (0–10):",
-      default: "2",
+      message: "Global max review loops (0–10) - caps every flow:",
       validate: (v) => (/^\d+$/.test(v.trim()) ? true : "Enter a non-negative integer."),
     });
     await setConfigValue(args.projectRoot, "workflow.maxReviewLoops", raw.trim());
