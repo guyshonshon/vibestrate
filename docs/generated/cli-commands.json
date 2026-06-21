@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.15.2",
+  "version": "0.16.0",
   "commands": [
     {
       "name": "init",
@@ -1904,10 +1904,10 @@
       ]
     },
     {
-      "name": "shape",
+      "name": "spec-up",
       "path": [
         "vibe",
-        "shape"
+        "spec-up"
       ],
       "description": "Plan as a CTO: discovery -> spec -> architecture -> roadmap (a chain of read-only runs).",
       "usage": "[options] [command]",
@@ -1918,10 +1918,10 @@
           "name": "start",
           "path": [
             "vibe",
-            "shape",
+            "spec-up",
             "start"
           ],
-          "description": "Start shaping: launch the intake run that asks the gap questions.",
+          "description": "Start spec-up: launch the intake run that asks the gap questions.",
           "usage": "[options] <brief...>",
           "arguments": [
             {
@@ -1941,7 +1941,7 @@
             },
             {
               "flags": "--flow <id>",
-              "description": "the flow to BUILD once the spec is approved (carried to `shape build`)",
+              "description": "the flow to BUILD once the spec is approved (carried to `spec-up build`)",
               "required": true,
               "optional": false,
               "negated": false
@@ -1953,7 +1953,7 @@
           "name": "questions",
           "path": [
             "vibe",
-            "shape",
+            "spec-up",
             "questions"
           ],
           "description": "Show the intake run's gap questions (and their ids).",
@@ -1981,7 +1981,7 @@
           "name": "answer",
           "path": [
             "vibe",
-            "shape",
+            "spec-up",
             "answer"
           ],
           "description": "Answer a round's questions; loops to a gap-check round or builds the spec.",
@@ -2017,7 +2017,7 @@
           "name": "simplify",
           "path": [
             "vibe",
-            "shape",
+            "spec-up",
             "simplify"
           ],
           "description": "Explain a question in plain language (what it asks + what it affects).",
@@ -2051,7 +2051,7 @@
           "name": "suggest",
           "path": [
             "vibe",
-            "shape",
+            "spec-up",
             "suggest"
           ],
           "description": "Draft an answer grounded in your prior answers (you still decide). --all for every blank.",
@@ -2085,11 +2085,11 @@
           "name": "approve",
           "path": [
             "vibe",
-            "shape",
+            "spec-up",
             "approve"
           ],
-          "description": "Approve the shaped draft and launch the roadmap synthesis run.",
-          "usage": "[options] <shapeRunId>",
+          "description": "Approve the spec-up draft and launch the roadmap synthesis run.",
+          "usage": "[options] <specUpRunId>",
           "arguments": [
             {
               "name": "name() {\n    return this._name;\n  }",
@@ -2105,11 +2105,11 @@
           "name": "build",
           "path": [
             "vibe",
-            "shape",
+            "spec-up",
             "build"
           ],
-          "description": "Approve the shaped draft and BUILD it: run the chosen flow seeded with the approved spec.",
-          "usage": "[options] <shapeRunId>",
+          "description": "Approve the spec-up draft and BUILD it: run the chosen flow seeded with the approved spec.",
+          "usage": "[options] <specUpRunId>",
           "arguments": [
             {
               "name": "name() {\n    return this._name;\n  }",
@@ -2121,7 +2121,7 @@
           "options": [
             {
               "flags": "--flow <id>",
-              "description": "build flow override (default: the flow carried from the shaped run)",
+              "description": "build flow override (default: the flow carried from the spec-up run)",
               "required": true,
               "optional": false,
               "negated": false
@@ -2133,10 +2133,10 @@
           "name": "roadmap",
           "path": [
             "vibe",
-            "shape",
+            "spec-up",
             "roadmap"
           ],
-          "description": "Turn a finished shape-roadmap run into a reviewable proposal.",
+          "description": "Turn a finished spec-up-roadmap run into a reviewable proposal.",
           "usage": "[options] <runId>",
           "arguments": [
             {

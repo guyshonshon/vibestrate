@@ -1,11 +1,11 @@
-# Shape phase ("Plan" as a CTO)
+# Spec-up phase ("Plan" as a CTO)
 
-> **Update (0.9.0, P1 realignment).** Shape is no longer a flow that *replaces*
+> **Update (0.9.0, P1 realignment).** Spec-up is no longer a flow that *replaces*
 > the chosen one. It is a pre-flow **enrichment** over whatever flow the user
-> picked: `chooseRunFlow` sets an orthogonal `needsShaping` flag, the run is
-> shaped first (read-only intake -> spec), and then the **chosen** flow builds
+> picked: `chooseRunFlow` sets an orthogonal `needsSpecUp` flag, the run is
+> spec-up first (read-only intake -> spec), and then the **chosen** flow builds
 > from the approved spec (seeded as a file contextSource via
-> `approveShapeAndBuild`). See
+> `approveSpecUpAndBuild`). See
 > `docs/superpowers/specs/2026-06-20-shape-program-design.md` (P1) for the
 > authoritative model; the sections below are the original v1 design.
 
@@ -86,7 +86,7 @@ hierarchical-planning experience above.
 
 ## What is buildable today: the run-chain
 
-Shape ships now as a **chain of fresh, human-initiated runs** glued by the
+Spec-up ships now as a **chain of fresh, human-initiated runs** glued by the
 existing human-vouched `resumeFrom` rewind (each link seeds upstream by index
 from a source the human approved). A flat planning run emits the decomposition
 tree as cards; the human steps between links. No durable pause, no nested runs,
@@ -111,7 +111,7 @@ scale and the brief-and-walk-away UX demand them - not now.
 
 ## Honest positioning (what v1 actually is)
 
-Shape v1 is an **educated draft + a scope-decision tool**, not a novice
+Spec-up v1 is an **educated draft + a scope-decision tool**, not a novice
 autopilot. Its first job is to make the user an *informed* decision-maker: it
 **explains the tradeoffs** ("you need auth because customers store payment data;
 here are 3 options, costs differ") so a non-expert can decide *scope and
@@ -127,7 +127,7 @@ smart enough to steer", not "be right".
 |---|---|
 | Read-only safety | EXISTS - a no-diff flow is auto-clamped read-only (`run-launcher.ts:279`). |
 | Card dependencies / DAG | EXISTS - `Task.dependencies`, `dependency-graph.ts` (cycle detection), dependency-ordered accept (`proposal-service.ts:331`). |
-| Multi-step shaping | EXISTS - flows + seats + loops + approval-gates. |
+| Multi-step spec-up | EXISTS - flows + seats + loops + approval-gates. |
 | Artifact re-seeding between runs | EXISTS - Rewind / `resumeFrom` forks a new run seeded from a prior run's artifacts. |
 | Spec/arch into the build | EXISTS - contextSources. |
 | **Durable pause/resume** | **DOES NOT EXIST.** Approval gates are an in-memory `while(true)` poll loop on a live process (`approval-service.ts:161-198`); `run-entry.ts` is one-shot -> `process.exit`; resuming writes a file, re-spawns nothing. A paused run = a held-open process; reboot orphans it. |
@@ -136,16 +136,16 @@ smart enough to steer", not "be right".
 
 ## The interaction: a chain of short runs, NOT one paused run
 
-Because durable pause does not exist, the Shape phase is a **chain of short,
+Because durable pause does not exist, the Spec-up phase is a **chain of short,
 terminating runs** connected by Rewind/`resumeFrom`. No held-open process, no
 new `step.kind`, survives reboots.
 
 1. **Run 1 (intake):** read brief -> classify -> emit a structured `questions`
    artifact. Terminates.
 2. *UI: the questions render as a form; the user answers.*
-3. **Run 2 (shape):** `resumeFrom(run 1)` + the answers injected as context ->
+3. **Run 2 (spec-up):** `resumeFrom(run 1)` + the answers injected as context ->
    scope -> spec -> architecture (+ provisioning checklist) -> risks ->
-   shape-review (completeness loop). Terminates with the draft artifacts.
+   spec-up-review (completeness loop). Terminates with the draft artifacts.
 4. *UI: the user reviews / edits / approves the spec + architecture.*
 5. **Run 3 (roadmap):** `resumeFrom(run 2)` -> synthesize the approved spec into
    ordered, dependency-aware board cards. Terminates.
@@ -155,7 +155,7 @@ to verify before building (the scout): that `resumeFrom` can carry the new
 *answers* forward as context (Rewind re-seeds prior artifacts; passing fresh
 user input alongside is the wiring question).
 
-### The shape flow (run 2), corrected
+### The spec-up flow (run 2), corrected
 
 Reuses existing seats (`planner` as shaper, `architect`, `reviewer`); no new crew
 seats. Loop direction fixed.
@@ -166,19 +166,19 @@ seats. Loop direction fixed.
 | 2 | spec | agent-turn | planner |
 | 3 | architecture | agent-turn | architect |
 | 4 | risks | agent-turn | planner |
-| 5 | shape-review | review-turn | reviewer |
+| 5 | spec-up-review | review-turn | reviewer |
 
-Loop: `{ from: scope, to: shape-review, decisionStep: shape-review,
+Loop: `{ from: scope, to: spec-up-review, decisionStep: spec-up-review,
 maxIterations: N }` (`from` precedes `to`, as the schema requires; loop XOR dag;
 decisionStep is a review-turn). The critic checks coverage of the **approved
 scope**, not an ideal system.
 
 ## Persona as director (the "CTO")
 
-Today persona = metadata. For Shape it drives the agent prompts: the persona's
-shaping posture is injected into intake/scope/spec/architecture ("You are the
+Today persona = metadata. For Spec-up it drives the agent prompts: the persona's
+spec-up posture is injected into intake/scope/spec/architecture ("You are the
 CTO; prioritize scale, cost, maintainability, security; surface unstated
-requirements"). v1 = a `shapingPosture` field + prompt injection; no deeper
+requirements"). v1 = a `specUpPosture` field + prompt injection; no deeper
 schema change. The supervisor chooser (moved to the run summary) selects it.
 
 ## Termination, honestly
@@ -205,7 +205,7 @@ not violate the no-secrets invariant. Autonomous deploy is out of scope.
 A **specialist** = a named binding of `{ persona posture + skill bundle +
 recommended model + concern tags }` over the existing personas/skills/profiles -
 not a new subsystem. The supervisor **proposes** specialists per task (a
-concern-scan step in Shape); the user can override. Cross-cutting concerns
+concern-scan step in Spec-up); the user can override. Cross-cutting concerns
 (security, scale, cost, a11y, data-privacy, compliance) run as a **default
 review checklist**; a concern that dominates is elevated to a dedicated
 specialist seat in the architecture/review steps.
@@ -230,13 +230,13 @@ The consult keeps its **free-form** mode (talk to the supervisor about the
 project, ask anything) AND gains a **structured + run-bound** mode - render
 questions with choices, and submitting **advances the work** (launches the next
 run-chain link). Both modes, one surface. That structured extension is the
-keystone: it is the I/O for the whole Shape phase, it removes the need for a
+keystone: it is the I/O for the whole Spec-up phase, it removes the need for a
 bespoke clarify form, and because the consult is the human step *between*
 run-chain links (not a mid-run block), it keeps the design off durable pause.
 
 ## Phased roadmap
 
-- Phase 0 - Shape (this doc, v1): run-chain producing spec/arch/risks + a
+- Phase 0 - Spec-up (this doc, v1): run-chain producing spec/arch/risks + a
   reviewable, dependency-aware roadmap. No execution/deploy.
 - Phase 1 - Execute: run the approved cards, spec/arch as context, supervisor
   monitoring, loops per card. Acceptance criteria become executable here.
@@ -248,28 +248,28 @@ run-chain links (not a mid-run block), it keeps the design off durable pause.
 - M0 (scout) - verify `resumeFrom` can carry forward fresh user answers as
   context; confirm the run-chain mechanics before any build.
 - M1 - the run-chain + answer-form UI: intake-run emits questions -> UI form ->
-  launches the shape-run via `resumeFrom` + answers-as-context. (Replaces the
+  launches the spec-up run via `resumeFrom` + answers-as-context. (Replaces the
   draft's "durable pause" - which was the fatal flaw.)
-- M2 - the shape flow + reuse seats + a CTO persona shaping-posture.
+- M2 - the spec-up flow + reuse seats + a CTO persona spec-up-posture.
 - M3 - structured artifacts (spec/arch/risks/provisioning) + reviewable UI.
 - M4 - card fields (`acceptanceCriteria` prose, `est`) + a dependency view/edit
   UI (net-new).
-- M5 - wire "Plan" in the run-control to launch the Shape chain; absorb
+- M5 - wire "Plan" in the run-control to launch the Spec-up chain; absorb
   `plan-only`.
 
 ## Future capability (tracked, not v1)
 
 **Durable pause/resume** - the orchestrator's first real checkpoint + re-spawn
-from persisted state. Would let Shape be one continuous "brief it and come back"
+from persisted state. Would let Spec-up be one continuous "brief it and come back"
 run instead of a chain, and would make *every* pause (approval gates included)
 survive process death. Bigger build; benefits the whole product. Decide
-separately once the run-chain Shape proves the value.
+separately once the run-chain Spec-up proves the value.
 
 ## Open decisions (non-blocking)
 
 - artifact format: markdown (human, diffable) + structured roadmap (machine).
-- where artifacts live: run dir vs also saved to repo (`.vibestrate/shape/`).
-- clarify rounds: one (v1) vs the shape-run routing back to a second intake-run
+- where artifacts live: run dir vs also saved to repo (`.vibestrate/spec-up/`).
+- clarify rounds: one (v1) vs the spec-up run routing back to a second intake-run
   when it surfaces a blocking unknown (bounded).
 
 ## Review trail

@@ -1,7 +1,7 @@
-# Shape phase - implementation plan
+# Spec-up phase - implementation plan
 
-Status: **v1 IMPLEMENTED (2026-06-19), branch `feat/shape-phase`** (uncommitted
-pending review/merge). The **what/why** lives in [`shape-phase.md`](./shape-phase.md);
+Status: **v1 IMPLEMENTED (2026-06-19), branch `feat/spec-up-phase`** (uncommitted
+pending review/merge). The **what/why** lives in [`spec-up-phase.md`](./spec-up-phase.md);
 this is the **how/when** - a sequenced, dependency-ordered build plan. Produced
 with the `architecture-design` methodology (ground in code, exists/proposed/
 foundation, adversarial review, phase by dependency).
@@ -11,29 +11,29 @@ foundation, adversarial review, phase by dependency).
 Landed green (typecheck + build + 11 new tests + full suite): M0 (scout
 verified the keystone), M1 (chain wiring: `planning` added to the HTTP
 `fromStage` enum + `contextSources` on `spawnRunBody`; the keystone
-`src/shape/shape-chain.ts` + `src/server/routes/shape.ts` + `vibe shape` CLI),
-M2 (the `shape-intake`/`shape`/`shape-roadmap` flows + a `questions` structured
+`src/spec-up/spec-up-chain.ts` + `src/server/routes/spec-up.ts` + `vibe spec-up` CLI),
+M2 (the `spec-up-intake`/`spec-up`/`spec-up-roadmap` flows + a `questions` structured
 contract; the CTO posture rides each step's `instructions`), M3 (spec/
 architecture/risks/provisioning are the steps' markdown `output.md`, reviewable
 via the existing artifact viewer), M4 (card fields `acceptanceCriteria` + `est`
 threaded through the proposal parser/service; the synthesis -> proposal bridge),
-M5 (a "Plan" nav tab -> a functional `/shape` page: start + answer the gap form;
+M5 (a "Plan" nav tab -> a functional `/spec-up` page: start + answer the gap form;
 3 run-control UI proposals in a gallery).
 
 Deliberate v1 deltas from the plan (Tier-2 review, 2026-06-19):
-- **Completeness loop dropped** (single-pass `shape-review`). The adaptive loop
+- **Completeness loop dropped** (single-pass `spec-up-review`). The adaptive loop
   is hard-gated on `!readOnly`; the narrow `loopBodyWriteFree` fix was shelved
   because it amplifies the "reviewer judges its own prose" risk for little v1
   value. Human approval between chain links is the iterate path.
-- **`shapingPosture` persona field deferred.** The CTO director is delivered via
+- **`specUpPosture` persona field deferred.** The CTO director is delivered via
   per-step `instructions` (reaches the prompt today) instead of net-new persona
   prompt-injection wiring.
 - **Artifact edit/approve + the dependency-edge graph editor are partial.**
   Artifacts are reviewable (read-only viewer); inline edit/approve and a DAG
   edge editor remain net-new UI (the plan + reviewer both defer the editor).
-- **intake -> shape uses a fresh launch with the answers as a `file`
+- **intake -> spec-up uses a fresh launch with the answers as a `file`
   contextSource**, not `resumeFrom`, to avoid the single-step seeding coupling;
-  `resumeFrom` is used only for shape -> roadmap (seeded at stage `executing`),
+  `resumeFrom` is used only for spec-up -> roadmap (seeded at stage `executing`),
   guarded by a chain-integrity test.
 
 ## Scoreboard (the honest cost)
@@ -47,14 +47,14 @@ Deliberate v1 deltas from the plan (Tier-2 review, 2026-06-19):
 | Rewind (`resumeFrom`, human-vouched) | EXISTS | `orchestrator.ts:1779` `seedResumedSteps` |
 | Consult / assist primitive (free-form) | EXISTS | `assist-primitive.md`, ConsultPage, the orb |
 | contextSources (inject spec/arch) | EXISTS | run spec |
-| Shape run-chain + clarify-via-consult | PROPOSED | this plan |
+| Spec-up run-chain + clarify-via-consult | PROPOSED | this plan |
 | Specialists (named persona+skill binding) | PROPOSED | M5 |
 | Roadmap synthesis + dependency-edit UI | PROPOSED | M4 (DAG backend exists; UI net-new) |
 | Durable suspend/resume | FOUNDATION | no atomic writes, in-memory control state |
 | Runtime nested runs (recursion) | FOUNDATION | runs are flat; no `parentRunId` |
 | Machine-checkable acceptance criteria | FOUNDATION | validation runs shell commands only |
 
-**Build dependency:** the Shape build assumes the `mc-rebuild` substrate (the
+**Build dependency:** the Spec-up build assumes the `mc-rebuild` substrate (the
 read-only clamp + `plan-only` flow) is merged to `main` first. Rebase the build
 onto a base that contains it.
 
@@ -88,13 +88,13 @@ next run. Verify before building.
   submitting launches a follow-up run seeded with the answers; free-form still works.
 - **Tier-2 review** (new primitive that launches runs).
 
-### M2 - The Shape run-chain + seats + CTO persona posture
+### M2 - The Spec-up run-chain + seats + CTO persona posture
 - Three links glued by `resumeFrom`: **intake** (emits questions) -> *consult* ->
-  **shape** (scope -> spec[+acceptance criteria] -> architecture[+provisioning
-  checklist] -> risks -> shape-review loop) -> *approve* -> **roadmap**.
+  **spec-up** (scope -> spec[+acceptance criteria] -> architecture[+provisioning
+  checklist] -> risks -> spec-up-review loop) -> *approve* -> **roadmap**.
 - Reuse seats `planner`/`architect`/`reviewer` (no new crew seats). Add
-  `shapingPosture` to the persona; inject it into the shape agents' prompts so
-  the "CTO" actually drives. Loop `{from: scope, to: shape-review}` (schema-valid).
+  `specUpPosture` to the persona; inject it into the spec-up agents' prompts so
+  the "CTO" actually drives. Loop `{from: scope, to: spec-up-review}` (schema-valid).
 - Acceptance: a thorough brief -> read-only spec+arch+risks draft with a clarify
   round and a bounded completeness loop.
 
@@ -117,9 +117,9 @@ next run. Verify before building.
   concern-scan step proposes specialists (user overrides); cross-cutting concerns
   (security/scale/cost/...) run as a default review checklist; a dominant concern
   elevates to a dedicated specialist seat.
-- **Adaptive-depth trigger:** the supervisor judges leaf-vs-shape at entry - a
+- **Adaptive-depth trigger:** the supervisor judges leaf-vs-spec-up at entry - a
   trivial brief executes directly (today's behavior), a complex one routes to
-  Shape. Wire the run-control "Plan" affordance to launch the Shape chain;
+  Spec-up. Wire the run-control "Plan" affordance to launch the Spec-up chain;
   absorb the minimal `plan-only` flow.
 - **Tier-2 review** (specialist selection touches run config + model choice).
 
@@ -142,18 +142,18 @@ Each is a separate epic with a mandatory Tier-2 systems/security review.
 ## Open decisions (settle during the relevant milestone)
 
 - Artifact format: markdown (human) + structured roadmap (machine) - probably both.
-- Where artifacts live: run dir vs also saved to repo (`.vibestrate/shape/`).
+- Where artifacts live: run dir vs also saved to repo (`.vibestrate/spec-up/`).
 - Clarify rounds: one (v1) vs bounded re-clarify when the spec surfaces a blocker.
 - Specialist registry shape: config file vs derived from personas+skills tags.
 
 ## Review trail
 
-Two adversarial Opus-4.8 reviews (2026-06-19) shaped this:
+Two adversarial Opus-4.8 reviews (2026-06-19) spec-up this:
 1. Found the durable-pause fatal flaw (the in-memory poll loop) + a read-only
    safety hole in the shipped `plan-only` flow (since fixed by the clamp).
 2. Confirmed runs are flat (no nested runs) and control state is not checkpointed
-   - so recursion is artifact-shaped (one run emits the tree), not runtime; and
+   - so recursion is artifact-spec-up (one run emits the tree), not runtime; and
    durable resume is a foundation, not a quick win.
 
 Beyond v1: Execute (run the cards) -> Provision (assisted local setup) -> Deploy
-(gated config-gen + local-secret run). See `shape-phase.md` for those phases.
+(gated config-gen + local-secret run). See `spec-up-phase.md` for those phases.

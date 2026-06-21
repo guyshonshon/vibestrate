@@ -1314,10 +1314,10 @@
       "loop": null
     },
     {
-      "id": "shape-intake",
+      "id": "spec-up-intake",
       "version": 1,
-      "label": "Shape: Intake",
-      "description": "Shape phase link 1 - WRITES NO CODE. The CTO reads the brief and asks the gap questions needed to scope the work (auth? payments? scale? persistence?). Emits a structured questions artifact; the answers seed the shape run. Launched by 'Plan'.",
+      "label": "Spec-up: Intake",
+      "description": "Spec-up phase link 1 - WRITES NO CODE. The CTO reads the brief and asks the gap questions needed to scope the work (auth? payments? scale? persistence?). Emits a structured questions artifact; the answers seed the spec-up run. Launched by 'Plan'.",
       "seats": [
         {
           "id": "planner",
@@ -1349,14 +1349,14 @@
       "loop": null
     },
     {
-      "id": "shape",
+      "id": "spec-up",
       "version": 1,
-      "label": "Shape",
-      "description": "Shape phase link 2 - WRITES NO CODE. The CTO turns the brief + answers into a scope, a spec, an architecture with a provisioning checklist, and a risks register, then a reviewer checks completeness against the approved scope. Produces reviewable spec/architecture/risks drafts. Launched after the intake questions are answered.",
+      "label": "Spec-up",
+      "description": "Spec-up phase link 2 - WRITES NO CODE. The CTO turns the brief + answers into a scope, a spec, an architecture with a provisioning checklist, and a risks register, then a reviewer checks completeness against the approved scope. Produces reviewable spec/architecture/risks drafts. Launched after the intake questions are answered.",
       "seats": [
         {
           "id": "planner",
-          "label": "CTO (shape)",
+          "label": "CTO (spec-up)",
           "description": "Scopes the work and writes the spec and risks."
         },
         {
@@ -1367,7 +1367,7 @@
         {
           "id": "reviewer",
           "label": "Reviewer",
-          "description": "Checks the shape for completeness against the approved scope."
+          "description": "Checks the spec-up draft for completeness against the approved scope."
         }
       ],
       "steps": [
@@ -1454,8 +1454,8 @@
           "repeat": null
         },
         {
-          "id": "shape-review",
-          "label": "Review shape",
+          "id": "spec-up-review",
+          "label": "Review spec-up",
           "kind": "review-turn",
           "seat": "reviewer",
           "inputs": [
@@ -1481,15 +1481,15 @@
       "loop": null
     },
     {
-      "id": "shape-roadmap",
+      "id": "spec-up-roadmap",
       "version": 1,
-      "label": "Shape: Roadmap",
-      "description": "Shape phase link 3 - WRITES NO CODE. Resumes the approved shape and synthesizes the spec/architecture/risks into an ordered, dependency-aware roadmap proposal (board cards with acceptance criteria and estimates). Review and accept it from the proposals surface. Launched after the spec is approved.",
+      "label": "Spec-up: Roadmap",
+      "description": "Spec-up phase link 3 - WRITES NO CODE. Resumes the approved spec and synthesizes the spec/architecture/risks into an ordered, dependency-aware roadmap proposal (board cards with acceptance criteria and estimates). Review and accept it from the proposals surface. Launched after the spec is approved.",
       "seats": [
         {
           "id": "planner",
           "label": "CTO (roadmap)",
-          "description": "Synthesizes the approved shape into board cards."
+          "description": "Synthesizes the approved spec into board cards."
         },
         {
           "id": "architect",

@@ -1,11 +1,11 @@
 ---
-title: Shape (plan as a CTO)
+title: Spec-up (plan as a CTO)
 description: Turn a vague brief into a scoped spec, an architecture, the risks, and a reviewable roadmap - before any code is written.
 section: concepts
-slug: concepts/shape
+slug: concepts/spec-up
 ---
 
-Most planning tools answer "how do I write this change?" Shape answers the
+Most planning tools answer "how do I write this change?" Spec-up answers the
 question a CTO asks first: "what are we actually building, and what did you not
 tell me yet?"
 
@@ -40,16 +40,16 @@ every step is a read-only run.
 
 ## How it runs
 
-Shape is a chain of short, read-only runs you step between, not one long process
+Spec-up is a chain of short, read-only runs you step between, not one long process
 that holds open:
 
 ```
-intake  ->  (answer round 1)  ->  gap-check  ->  (answer round 2) ... ->  shape  ->  (you approve)  ->  roadmap
+intake  ->  (answer round 1)  ->  gap-check  ->  (answer round 2) ... ->  spec-up  ->  (you approve)  ->  roadmap
 ```
 
 Each link is a fresh run. Because none of them write code, each is clamped
 read-only automatically. Submitting a round either launches another gap-check
-round (more questions) or, once coverage is complete or you proceed, the shaping
+round (more questions) or, once coverage is complete or you proceed, the spec-up
 run - through the same gated launcher the dashboard uses, so the browser never
 runs a command. Your answers accumulate across rounds into one context file,
 carried forward with secrets redacted. The **consult orb** is screen-aware here:
@@ -58,24 +58,24 @@ answers in view (redacted before the model sees them).
 
 ## Where to find it
 
-Shape is not a separate screen - it is a run outcome. Just start a run (the
+Spec-up is not a separate screen - it is a run outcome. Just start a run (the
 dashboard's New-run card, or `vibe run "<brief>"`): when the supervisor judges
 the brief plan-worthy, the run opens on its gap-questions; answer them and the
-shaping run drafts the spec / architecture / risks for you to review, then the
+spec-up run drafts the spec / architecture / risks for you to review, then the
 live node-tree (the "Tree" tab) shows the supervisor and agents at work. The
 trigger biases to execute - a targeted change ("add X to foo.ts") just runs.
 
-- Force shaping on a brief the heuristic skips: `vibe run --flow shape-intake "<brief>"`.
-- Disable auto-shaping entirely: set `adaptiveShape: off` in `project.yml`.
-- CLI parity for the chain: `vibe shape questions <runId>`,
-  `vibe shape answer <runId> --answer <id>="..."` (add `--proceed` to build the
-  spec now), `vibe shape simplify <runId> <id>` / `vibe shape suggest <runId> <id>`
-  (`--all` for the round), `vibe shape approve <runId>`, and
-  `vibe shape roadmap <runId>` to turn a finished roadmap run into a proposal.
+- Force spec-up on a brief the heuristic skips: `vibe run --flow spec-up-intake "<brief>"`.
+- Disable auto spec-up entirely: set `adaptiveSpecUp: off` in `project.yml`.
+- CLI parity for the chain: `vibe spec-up questions <runId>`,
+  `vibe spec-up answer <runId> --answer <id>="..."` (add `--proceed` to build the
+  spec now), `vibe spec-up simplify <runId> <id>` / `vibe spec-up suggest <runId> <id>`
+  (`--all` for the round), `vibe spec-up approve <runId>`, and
+  `vibe spec-up roadmap <runId>` to turn a finished roadmap run into a proposal.
 
 ## Honest limits (v1)
 
-Shape v1 is an educated draft and a scope-decision tool, not a novice autopilot.
+Spec-up v1 is an educated draft and a scope-decision tool, not a novice autopilot.
 Its job is to make you an informed decision-maker about *scope and direction* -
 which you can judge - while technical correctness is guarded downstream by
 execution-time review, not by you nodding at an architecture doc.
@@ -86,7 +86,7 @@ each one before the run can pass - the prose criteria are judged by the verifier
 against the artifacts, and a card can also carry `acceptanceCommands` (shell
 checks you author) that run as an extra validation pass, so a failed acceptance
 check blocks merge-readiness like a failed test. See [Safety](concepts/safety) for
-the validation gate and `docs/design/shape-phase.md` for the full reasoning. The
+the validation gate and `docs/design/spec-up-phase.md` for the full reasoning. The
 completeness loop (multi-round questioning) now ships; what's still deferred is
 one continuous "brief it and walk away" run (the chain stays a set of short runs
 you step between, not one long process that pauses mid-flight).

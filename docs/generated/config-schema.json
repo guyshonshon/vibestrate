@@ -305,8 +305,8 @@
       "description": "Route trivial tasks to a lighter flow: off, deterministic, or assisted (default deterministic)."
     },
     {
-      "key": "adaptiveShape",
-      "fullKey": "adaptiveShape",
+      "key": "adaptiveSpecUp",
+      "fullKey": "adaptiveSpecUp",
       "type": "enum",
       "required": false,
       "default": "auto",
@@ -315,7 +315,7 @@
         "auto"
       ],
       "itemType": null,
-      "description": "Route plan-worthy greenfield/system briefs into the read-only Shape chain before executing: off or auto (default auto)."
+      "description": "Route plan-worthy greenfield/system briefs into the read-only Spec-up chain before executing: off or auto (default auto)."
     },
     {
       "key": "budget",
