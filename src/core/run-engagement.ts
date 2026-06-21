@@ -96,6 +96,20 @@ function entryFor(e: VibestrateEvent): Partial | null {
         tone: "info",
       };
     }
+    case "supervisor.review_lenses": {
+      const lenses = Array.isArray(d["lenses"])
+        ? (d["lenses"] as unknown[]).filter((x): x is string => typeof x === "string")
+        : [];
+      const n = lenses.length;
+      return {
+        cls: "judgment",
+        anchor: "root",
+        stepId: null,
+        title: `review aimed through ${n} lens${n === 1 ? "" : "es"}`,
+        detail: lenses.length ? lenses.join(" · ") : null,
+        tone: "info",
+      };
+    }
     case "review.decision": {
       const dec = str(d, "decision") ?? "decision";
       return {

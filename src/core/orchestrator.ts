@@ -193,6 +193,10 @@ import {
 import { defaultFlow } from "../flows/catalog/builtin-flows.js";
 import type { WorkflowSelection } from "../orchestrator/select-workflow.js";
 import { resolvePersona } from "../orchestrator/personas.js";
+import {
+  renderPersonaReviewLensEmphasis,
+  isReviewerStep,
+} from "../orchestrator/review-lenses.js";
 import { findFlowById } from "../flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../flows/runtime/flow-resolver.js";
 import {
@@ -580,6 +584,12 @@ export class Orchestrator {
    *  start and injected into the PLANNER turn (the planning context) so a fresh
    *  run picks up where the project stands. "" when the ledger is empty. */
   private ledgerPromptBlock = "";
+  /** Pre-rendered persona review-lens emphasis block (orchestrator-personas.md
+   *  follow-up), computed once at run start from the active persona's
+   *  `reviewLenses` (closed vocabulary) and appended to independent-reviewer turns
+   *  so switching persona changes what the reviewers scrutinise. null = the
+   *  persona declared no known lens, so review turns are byte-identical to before. */
+  private reviewLensEmphasis: string | null = null;
   /** Pre-rendered "# Continuity flags" block (T9) for THIS run's task - the
    *  suspected dup/conflict heads-up. Injected into the planner turn alongside
    *  the ledger block. "" when nothing was flagged. */
@@ -1029,6 +1039,26 @@ export class Orchestrator {
           type: "supervisor.reviewer_profile",
           message: `Supervisor pinned review seat(s) to profile "${rp}" (${pinned.join(", ")}).`,
           data: { personaId: personaForRun.id, reviewerProfile: rp, steps: pinned },
+        });
+      }
+      // reviewLens emphasis (orchestrator-personas.md follow-up): map the persona's
+      // declared lenses through the closed vocabulary and stash the block for
+      // injection into reviewer turns. Recorded as evidence (behavioral-or-cut):
+      // the audit shows which lenses aimed the review, and which lens strings were
+      // ignored (unknown -> never injected).
+      const lensEmphasis = renderPersonaReviewLensEmphasis(
+        personaForRun.config.reviewLenses ?? [],
+      );
+      this.reviewLensEmphasis = lensEmphasis?.block ?? null;
+      if (lensEmphasis) {
+        await eventLog.append({
+          type: "supervisor.review_lenses",
+          message: `Supervisor "${personaForRun.config.label}" aims review through: ${lensEmphasis.known.join(", ")}.`,
+          data: {
+            personaId: personaForRun.id,
+            lenses: lensEmphasis.known,
+            ignored: lensEmphasis.unknown,
+          },
         });
       }
     }
@@ -2362,9 +2392,16 @@ export class Orchestrator {
     // Concurrency-safe: only spawns the provider turn (no shared-state writes).
     const runTurn = (step: ResolvedFlowStep, context: StepContext) => {
       const baseNotes = this.renderFlowStepNotes({ snapshot, step });
-      const additionalNotes = step.instructions
+      const withStepLens = step.instructions
         ? `${baseNotes}\n\nStep lens / instructions:\n${step.instructions}`
         : baseNotes;
+      // Persona reviewLens emphasis: append the closed-vocabulary block to lensed
+      // reviewer turns only (never the arbiter, never executors/planners), so the
+      // active persona actually aims WHAT is scrutinised.
+      const additionalNotes =
+        this.reviewLensEmphasis && isReviewerStep(step)
+          ? `${withStepLens}\n\n${this.reviewLensEmphasis}`
+          : withStepLens;
       return this.runRole({
         roleId: step.resolvedRoleId!,
         providerId: step.providerId,

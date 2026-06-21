@@ -74,6 +74,21 @@ describe("deriveEngagement", () => {
     expect(verify.tone).toBe("bad"); // FAILED
   });
 
+  it("surfaces supervisor.review_lenses as a root judgment row", () => {
+    const out = deriveEngagement([
+      ev("supervisor.review_lenses", {
+        personaId: "security",
+        lenses: ["authz", "secrets", "injection"],
+        ignored: [],
+      }),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.cls).toBe("judgment");
+    expect(out[0]!.anchor).toBe("root");
+    expect(out[0]!.title).toBe("review aimed through 3 lenses");
+    expect(out[0]!.detail).toBe("authz · secrets · injection");
+  });
+
   it("anchors approval/policy to a step when the event carries a stage id", () => {
     const out = deriveEngagement([
       ev("approval.requested", { stageId: "impl", source: "policy", reason: "diff touches src/security" }),
