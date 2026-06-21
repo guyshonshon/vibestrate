@@ -29,7 +29,7 @@ export function isTerminalStatus(status: RunStatus): boolean {
  *  and an old/dead intake run sits at `blocked` with stale questions - inferring
  *  from status got both wrong. The UI labels/tones it distinctly so it's
  *  findable; opening it lands on the gap-questions screen. */
-export function isShapingRun(run: RunState): boolean {
+export function isSpecUpRun(run: RunState): boolean {
   return run.awaitingInput === true;
 }
 

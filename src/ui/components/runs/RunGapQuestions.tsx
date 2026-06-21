@@ -125,7 +125,7 @@ export function RunGapQuestions({
   const activeGroup = byCategory[activeIdx];
 
   usePublishViewContext({
-    screen: "Shape questions",
+    screen: "Spec-up questions",
     details:
       `Round ${round}. Current area: ${activeCat ? CATEGORY_LABEL[activeCat] : "-"}.\n` +
       questions.map((q) => `- [${q.category}] ${q.id}: "${q.question}" -> ${(answers[q.id] ?? "").trim() || "(blank)"}`).join("\n"),

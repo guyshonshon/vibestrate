@@ -82,10 +82,10 @@ export function SpecUpRunActions({
   }
 
   const isSpecUp = flowId === "spec-up";
-  const title = isSpecUp ? "Shape draft ready" : "Roadmap synthesized";
+  const title = isSpecUp ? "Spec-up draft ready" : "Roadmap synthesized";
   const body = isSpecUp
     ? blocked
-      ? "The reviewer flagged gaps (see the verdict). Re-run shaping to address them, or approve as-is to build / synthesize a roadmap."
+      ? "The reviewer flagged gaps (see the verdict). Re-run spec-up to address them, or approve as-is to build / synthesize a roadmap."
       : "Review the spec, architecture, and risks below. When the scope is right, approve to build it with the chosen flow - or synthesize a roadmap first."
     : "The roadmap is ready as a proposal. Turn it into dependency-ordered board cards you can review and accept.";
 

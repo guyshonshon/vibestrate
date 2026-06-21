@@ -11,7 +11,7 @@ import type {
  *  `<timestamp>-<slug>`. One store, two sources - label which. */
 function proposalOrigin(id: string): { label: string; tone: string } {
   return id.startsWith("spec-up-")
-    ? { label: "From Shape", tone: "text-violet-soft" }
+    ? { label: "From Spec-up", tone: "text-violet-soft" }
     : { label: "Ad-hoc plan", tone: "text-fog-400" };
 }
 
@@ -73,7 +73,7 @@ export function ProposalsPage({
       </section>
       <p className="text-[12.5px] text-fog-300 mt-2 max-w-[760px]">
         One inbox for every roadmap draft, whether the planner wrote it from a
-        broad goal here or it came out of a Shape run. Review, dry-run, then
+        broad goal here or it came out of a spec-up run. Review, dry-run, then
         accept to create the roadmap items and tasks.
       </p>
 

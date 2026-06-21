@@ -649,7 +649,7 @@ export function RunComposePage() {
                 type="button"
                 disabled={!canPlan}
                 onClick={() => plan()}
-                title="Shape it first: answer a few scoping questions, then build."
+                title="Spec-up first: answer a few scoping questions, then build."
                 className={cn(
                   "inline-flex items-center gap-2 px-5 py-2.5 text-[13.5px] font-medium transition border",
                   canPlan

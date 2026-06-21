@@ -57,7 +57,7 @@ export function SpecUpReview({ runId, flowId }: { runId: string; flowId: string 
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px" }}>
         <FileText size={15} style={{ color: "var(--s-accent-bright)" }} />
         <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--s-ink)" }}>
-          Shape draft - review before approving
+          Spec-up draft - review before approving
         </span>
       </div>
       {docs.map((d) => {

@@ -9,7 +9,7 @@
 import { useEffect } from "react";
 
 export type ViewContextSnapshot = {
-  /** Short screen label, e.g. "Shape questions". */
+  /** Short screen label, e.g. "Spec-up questions". */
   screen: string;
   /** Human-readable serialization of the screen's state. */
   details: string;

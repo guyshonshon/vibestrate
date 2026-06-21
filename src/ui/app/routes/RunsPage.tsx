@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { GitMerge, History } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { RunState, RunStatus } from "../../lib/types.js";
-import { isShapingRun } from "../../lib/run-outcome.js";
+import { isSpecUpRun } from "../../lib/run-outcome.js";
 import { cn } from "../../components/design/cn.js";
 import { Chip } from "../../components/design/Chip.js";
 import {
@@ -136,7 +136,7 @@ export function RunsPage({
                     {r.task}
                   </td>
                   <td className="px-3 py-3">
-                    <Chip tone={isShapingRun(r) ? "violet" : statusTone(r.status)}>
+                    <Chip tone={isSpecUpRun(r) ? "violet" : statusTone(r.status)}>
                       {r.status === "executing" ||
                       r.status === "validating" ||
                       r.status === "reviewing" ||
@@ -144,7 +144,7 @@ export function RunsPage({
                       r.status === "verifying" ? (
                         <span className="pulse-dot" />
                       ) : null}
-                      {isShapingRun(r) ? "shaping" : r.status}
+                      {isSpecUpRun(r) ? "spec-up" : r.status}
                     </Chip>
                   </td>
                   <td className="px-3 py-3 mono text-[11.5px] text-fog-300">
