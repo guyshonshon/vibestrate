@@ -128,15 +128,18 @@ but M0 had a fatal false-positive and a live bug was understated.
   corrected derived flag + the two guards cover shape at a fraction of the cost.
   P1 only earns its keep when a SECOND pauses-for-input source exists.
 
-## Revised plan (post-review)
+## Revised plan (post-review) - status
 
-- **M0.5 (do first, independent):** add a `readOnly` / `flowId !== "shape-intake"`
-  guard to `listMergeReadyRuns` (`integration-service.ts:90`) and the `merged`
-  filters (`overview-aggregator.ts:379,741`). Fixes the live metric/integration
-  leak now.
-- **M0 (corrected):** server-computed `awaitingInput` flag WITH a terminator
-  (questions present AND not answered/superseded). Re-key `isShapingRun` on it.
-  Fixes the mislabel + findability honestly.
-- **P1 (real `awaiting_input` status): DEFERRED** until a second awaiting source
-  appears. The corrected flag is the chosen mechanism for now.
-- **Rename "Shape" -> "Spec-up":** unchanged, independent, mechanical.
+- **M0.5 - SHIPPED** (`d4ff6bf2`): read-only runs excluded from merge candidates
+  + the success-rate metric (`integration-service.ts:90`,
+  `overview-aggregator.ts`). Fixed the live leak.
+- **M0 - SHIPPED** (`1aa1cfca`): a terminator marker (`flows/intake/answered.json`)
+  written when an intake run is consumed; `readShapeQuestions` returns null once it
+  exists; the server computes a per-run `awaitingInput` flag; `isShapingRun` keys
+  on it, not status. + a terminator regression test.
+- **P1 (real `awaiting_input` status): DEFERRED** until a second pauses-for-input
+  source appears. The corrected flag is the mechanism for now.
+- **Rename "Shape" -> "Spec-up" (full, incl. internals): PLANNED.** It's a
+  ~150-file concept rename + a persisted-`shaped`-field schema migration - too
+  large to safely tail onto this work. Self-contained plan + kickoff prompt for a
+  fresh session: `docs/design/spec-up-rename-plan.md`.
