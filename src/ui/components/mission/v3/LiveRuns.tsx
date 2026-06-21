@@ -12,6 +12,7 @@ import { cn } from "../../design/cn.js";
 import { fmtElapsed, relTime, runLabel } from "../../design/format.js";
 import { MiniTerminal, type TerminalLine } from "../../design/Terminal.js";
 import type { VibestrateEvent, RunState, RunStatus } from "../../../lib/types.js";
+import { isShapingRun } from "../../../lib/run-outcome.js";
 
 const PHASES = [
   { key: "plan", label: "Plan", statuses: ["planning", "planned"] },
@@ -165,7 +166,8 @@ function RunCard({
   onAbort: (runId: string) => void;
 }) {
   const needsApproval = run.status === "waiting_for_approval";
-  const tone = statusTone(run.status);
+  const shaping = isShapingRun(run);
+  const tone = shaping ? "violet" : statusTone(run.status);
   const idx = phaseIndex(run.status);
   const phases = PHASES.map((p) => p.label);
   const lines = useMemo(() => eventsToLines(events), [events]);
@@ -206,7 +208,7 @@ function RunCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <Chip tone={tone}>
-                <span className="pulse-dot" /> {prettyStatus(run.status)}
+                <span className="pulse-dot" /> {shaping ? "Shaping" : prettyStatus(run.status)}
               </Chip>
               <span className="mono text-[11px] text-fog-500 whitespace-nowrap">
                 {run.runId}

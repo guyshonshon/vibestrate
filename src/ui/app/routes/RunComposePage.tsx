@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Check,
   ChevronRight,
+  Compass,
   Copy,
   Gauge,
   LayoutGrid,
@@ -197,6 +198,29 @@ export function RunComposePage() {
     }
   }
 
+  // "Plan" = start the Shape phase from this brief instead of building straight
+  // away: launches the read-only intake run that asks the gap questions, then
+  // hands off to the chosen flow once the spec is approved. Mirrors
+  // `vibe shape start`; only the brief (+ optional persona + build-target flow)
+  // applies - run mode / crew / tuning are execution-time concerns.
+  async function plan() {
+    const typed = brief.trim();
+    if (!typed) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api.shapeIntake({
+        task: typed,
+        persona: personaId ?? undefined,
+        flowId: flowId || undefined,
+      });
+      navigate({ kind: "run", runId: r.runId });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setBusy(false);
+    }
+  }
+
   async function ask() {
     const q = askQ.trim();
     if (!q || askBusy) return;
@@ -227,6 +251,9 @@ export function RunComposePage() {
   }
 
   const canStart = brief.trim().length > 0 && missingRequired.length === 0 && !busy;
+  // Plan only needs a brief: the intake run is read-only and doesn't run the
+  // pinned flow, so its required params don't gate shaping.
+  const canPlan = brief.trim().length > 0 && !busy;
   const recent = meta?.recentRuns ?? [];
   const counts = meta?.counts;
 
@@ -617,6 +644,21 @@ export function RunComposePage() {
               >
                 <Play className="h-3.5 w-3.5" strokeWidth={2.2} />
                 {busy ? "Starting…" : "Start run"}
+              </button>
+              <button
+                type="button"
+                disabled={!canPlan}
+                onClick={() => plan()}
+                title="Shape it first: answer a few scoping questions, then build."
+                className={cn(
+                  "inline-flex items-center gap-2 px-5 py-2.5 text-[13.5px] font-medium transition border",
+                  canPlan
+                    ? "border-violet-soft/40 text-violet-soft hover:bg-violet-500/10"
+                    : "cursor-not-allowed border-[color:var(--line)] text-fog-500",
+                )}
+              >
+                <Compass className="h-3.5 w-3.5" strokeWidth={2.2} />
+                Plan first
               </button>
               {missingRequired.length > 0 ? (
                 <span className="text-[11.5px] text-warn">

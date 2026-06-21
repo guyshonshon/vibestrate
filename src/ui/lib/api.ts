@@ -685,6 +685,16 @@ export const api = {
     return jsonPost("/api/runs", input);
   },
   // ── Shape phase (docs/design/shape-phase.md): the CTO planning chain. ──
+  /** Start the Shape phase from a brief: launch the read-only intake run that
+   *  asks the gap questions (the UI "Plan" action; mirrors `vibe shape start`).
+   *  `flowId` is the flow to BUILD once the spec is approved (carried forward). */
+  async shapeIntake(input: {
+    task: string;
+    persona?: string;
+    flowId?: string;
+  }): Promise<{ ok: true; runId: string; pid: number | null }> {
+    return jsonPost("/api/shape/intake", input);
+  },
   /** Read an intake run's pending gap questions (null = not an intake run). */
   async getShapeQuestions(
     runId: string,

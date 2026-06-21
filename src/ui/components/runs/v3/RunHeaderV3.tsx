@@ -4,6 +4,7 @@ import { Chip } from "../../design/Chip.js";
 import { cn } from "../../design/cn.js";
 import { shortRunId } from "../../design/format.js";
 import type { RunState, RunStatus } from "../../../lib/types.js";
+import { isShapingRun } from "../../../lib/run-outcome.js";
 
 /** Inline-editable run display name (T6). Click the pencil to rename; Enter
  *  saves, Escape cancels. Falls back to the task when no name is set. */
@@ -128,6 +129,7 @@ export function RunHeaderV3({
   onRerun?: () => void;
   onRename?: (name: string) => void | Promise<void>;
 }) {
+  const shaping = isShapingRun(run);
   return (
     <header
       className="flex flex-wrap items-center justify-between gap-3"
@@ -151,8 +153,8 @@ export function RunHeaderV3({
           {shortRunId(run.runId)}
         </span>
         <span className="text-fog-500">/</span>
-        <Chip tone={tone(run.status)}>
-          <span className="pulse-dot" /> {pretty(run.status)}
+        <Chip tone={shaping ? "violet" : tone(run.status)}>
+          <span className="pulse-dot" /> {shaping ? "Shaping" : pretty(run.status)}
         </Chip>
       </div>
       <div className="flex items-center gap-2">
