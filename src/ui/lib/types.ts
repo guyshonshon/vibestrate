@@ -1170,6 +1170,8 @@ export type GitCommit = {
   authorEmail: string;
   date: string;
   refs: string[];
+  /** Parent commit shas. Empty for a root commit; >1 for a merge commit. */
+  parents: string[];
 };
 
 export type GitHistory = {
@@ -1180,6 +1182,28 @@ export type GitHistory = {
   baseRef: string | null;
   commits: GitCommit[];
   truncated: boolean;
+};
+
+/** A local branch ref and the commit it currently points at. */
+export type GitBranchHead = {
+  name: string;
+  hash: string;
+  isMain: boolean;
+};
+
+/** A node in the topology graph. Identical to `GitCommit`; edges are `parents`. */
+export type GitGraphCommit = GitCommit;
+
+/** Branch topology across all refs: commits (with parents) + branch heads. */
+export type GitGraph = {
+  available: boolean;
+  worktreePath: string;
+  gitRoot: string | null;
+  mainBranch: string;
+  commits: GitGraphCommit[];
+  branchHeads: GitBranchHead[];
+  /** True when the commit set was truncated to `maxNodes`. */
+  bounded: boolean;
 };
 
 export type RoleWorkRow = {

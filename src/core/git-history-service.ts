@@ -29,6 +29,8 @@ export type GitCommit = {
   authorEmail: string;
   date: string;
   refs: string[];
+  /** Parent commit shas. Empty for a root commit; >1 for a merge commit. */
+  parents: string[];
 };
 
 export type GitHistory = {
@@ -40,6 +42,59 @@ export type GitHistory = {
   commits: GitCommit[];
   truncated: boolean;
 };
+
+/** A local branch ref and the commit it currently points at. */
+export type GitBranchHead = {
+  /** `refname:short`, e.g. "main" or "feat/x". */
+  name: string;
+  /** Tip commit sha. */
+  hash: string;
+  /** True only for the configured main/trunk branch. */
+  isMain: boolean;
+};
+
+/** A node in the topology graph. Identical to `GitCommit`; edges are the `parents`. */
+export type GitGraphCommit = GitCommit;
+
+/** Branch topology across all refs: commits (with parents) + branch heads. */
+export type GitGraph = {
+  available: boolean;
+  worktreePath: string;
+  gitRoot: string | null;
+  /** The configured main branch name, echoed for the client. */
+  mainBranch: string;
+  commits: GitGraphCommit[];
+  branchHeads: GitBranchHead[];
+  /** True when the commit set was truncated to `maxNodes` (older history elided). */
+  bounded: boolean;
+};
+
+/**
+ * Field order for the commit `--pretty` format, shared by history + graph so
+ * the parser below can never drift from the producers. Trailing `%P` = parents.
+ */
+const COMMIT_FIELDS = ["%H", "%h", "%s", "%an", "%ae", "%aI", "%D", "%P"];
+
+function parseCommitRecord(rec: string, fieldSep: string): GitCommit {
+  const [hash, shortHash, subject, author, authorEmail, date, refs, parents] =
+    rec.split(fieldSep);
+  return {
+    hash: (hash ?? "").trim(),
+    shortHash: (shortHash ?? "").trim(),
+    subject: (subject ?? "").trim(),
+    author: (author ?? "").trim(),
+    authorEmail: (authorEmail ?? "").trim(),
+    date: (date ?? "").trim(),
+    refs: (refs ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+    parents: (parents ?? "")
+      .split(" ")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  };
+}
 
 const TIMEOUT_MS = 4_000;
 
@@ -163,7 +218,7 @@ export async function getGitHistory(input: {
   // Format with ASCII unit separators so we can split safely.
   const FIELD = "";
   const RECORD = "";
-  const fmt = ["%H", "%h", "%s", "%an", "%ae", "%aI", "%D"].join(FIELD);
+  const fmt = COMMIT_FIELDS.join(FIELD);
   const baseRef = await resolveBaseRef(input.worktreePath, input.baseRef);
 
   const args = [
@@ -185,23 +240,7 @@ export async function getGitHistory(input: {
   const truncated = records.length > limit;
   const commits: GitCommit[] = records
     .slice(0, limit)
-    .map((rec): GitCommit => {
-      const [hash, shortHash, subject, author, authorEmail, date, refs] = rec.split(
-        FIELD,
-      );
-      return {
-        hash: (hash ?? "").trim(),
-        shortHash: (shortHash ?? "").trim(),
-        subject: (subject ?? "").trim(),
-        author: (author ?? "").trim(),
-        authorEmail: (authorEmail ?? "").trim(),
-        date: (date ?? "").trim(),
-        refs: (refs ?? "")
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-      };
-    });
+    .map((rec) => parseCommitRecord(rec, FIELD));
 
   return {
     available: true,
@@ -227,4 +266,86 @@ async function resolveBaseRef(
     candidate,
   ]);
   return verified.exitCode === 0 ? candidate : null;
+}
+
+/**
+ * Read-only branch topology: every local branch head plus a bounded set of
+ * commits across all refs, each with its parent shas so the client can draw the
+ * DAG. Edges are implicit in `commit.parents`; a parent outside the returned set
+ * is a "stub" the UI renders as a boundary node.
+ */
+export async function getGitGraph(input: {
+  worktreePath: string;
+  /** Max commits returned (older history elided, `bounded=true`). */
+  maxNodes?: number;
+  /** Configured main branch; the only head flagged `isMain`. */
+  mainBranch: string;
+}): Promise<GitGraph> {
+  const maxNodes = Math.max(1, Math.min(input.maxNodes ?? 300, 2000));
+  const empty: GitGraph = {
+    available: false,
+    worktreePath: input.worktreePath,
+    gitRoot: null,
+    mainBranch: input.mainBranch,
+    commits: [],
+    branchHeads: [],
+    bounded: false,
+  };
+  if (!(await pathExists(input.worktreePath))) return empty;
+  const gitRoot = await findGitRoot(input.worktreePath);
+  if (!gitRoot) return empty;
+
+  // ASCII unit/record separators, same convention as getGitHistory.
+  const FIELD = "";
+  const RECORD = "";
+
+  // Branch heads: `name<TAB>tip-sha` for every local branch (no %D parsing).
+  const branchHeads: GitBranchHead[] = [];
+  const refs = await git(input.worktreePath, [
+    "for-each-ref",
+    "refs/heads/",
+    "--format=%(refname:short)\t%(objectname)",
+  ]);
+  if (refs.exitCode === 0) {
+    for (const line of refs.stdout.split("\n")) {
+      if (!line.trim()) continue;
+      const [name, hash] = line.split("\t");
+      const n = (name ?? "").trim();
+      const h = (hash ?? "").trim();
+      if (n && h) {
+        branchHeads.push({ name: n, hash: h, isMain: n === input.mainBranch });
+      }
+    }
+  }
+
+  // Commits across all refs, bounded. Fetch one extra to detect truncation.
+  const fmt = COMMIT_FIELDS.join(FIELD);
+  const log = await git(input.worktreePath, [
+    "log",
+    "--all",
+    `--max-count=${maxNodes + 1}`,
+    `--pretty=format:${fmt}${RECORD}`,
+  ]);
+  if (log.exitCode !== 0) {
+    // Repo with no commits yet, or log unavailable: still a valid git root.
+    return { ...empty, available: true, gitRoot, branchHeads };
+  }
+  const records = log.stdout
+    .split(RECORD)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const bounded = records.length > maxNodes;
+  const commits = records
+    .slice(0, maxNodes)
+    .map((rec) => parseCommitRecord(rec, FIELD));
+
+  return {
+    available: true,
+    worktreePath: input.worktreePath,
+    gitRoot,
+    mainBranch: input.mainBranch,
+    commits,
+    branchHeads,
+    bounded,
+  };
 }

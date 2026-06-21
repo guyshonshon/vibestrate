@@ -25,6 +25,7 @@ import type {
   FileTreeResult,
   FileView,
   GatewayView,
+  GitGraph,
   GitHistory,
   GitStatus,
   MicroStep,
@@ -1980,6 +1981,12 @@ export const api = {
       `/api/project/git/history?limit=${limit}`,
     );
     return r.history;
+  },
+  async getProjectGitGraph(maxNodes = 300): Promise<GitGraph> {
+    const r = await jsonGet<{ graph: GitGraph }>(
+      `/api/project/git/graph?maxNodes=${maxNodes}`,
+    );
+    return r.graph;
   },
   async getRunGitStatus(runId: string): Promise<GitStatus> {
     const r = await jsonGet<{ status: GitStatus }>(

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import {
+  getGitGraph,
   getGitHistory,
   getGitStatus,
 } from "../../core/git-history-service.js";
@@ -28,6 +29,22 @@ export async function registerGitRoutes(
       const limit = parseLimit(req.query.limit, 20);
       return {
         history: await getGitHistory({ worktreePath: projectRoot, limit }),
+      };
+    },
+  );
+
+  // Read-only branch topology (commits + parents + branch heads) for the tree.
+  app.get<{ Querystring: { maxNodes?: string } }>(
+    "/api/project/git/graph",
+    async (req) => {
+      const maxNodes = parseLimit(req.query.maxNodes, 300);
+      const loaded = await loadConfig(projectRoot);
+      return {
+        graph: await getGitGraph({
+          worktreePath: projectRoot,
+          maxNodes,
+          mainBranch: loaded.config.git.mainBranch,
+        }),
       };
     },
   );
