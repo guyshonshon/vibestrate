@@ -28,6 +28,11 @@ import type {
   GitGraph,
   GitHistory,
   GitStatus,
+  GitMergePrediction,
+  GitResolutionProposal,
+  GitApplyResult,
+  GitUndoResult,
+  GitResolvedFile,
   MicroStep,
   NotificationRecord,
   NotificationSettings,
@@ -1987,6 +1992,48 @@ export const api = {
       `/api/project/git/graph?maxNodes=${maxNodes}`,
     );
     return r.graph;
+  },
+  async predictGitMerge(source: string, target: string): Promise<GitMergePrediction> {
+    const r = await jsonPost<{ prediction: GitMergePrediction }>(
+      "/api/project/git/tree/predict",
+      { source, target },
+    );
+    return r.prediction;
+  },
+  async proposeGitMergeResolutions(
+    source: string,
+    target: string,
+  ): Promise<GitResolutionProposal> {
+    const r = await jsonPost<{ proposal: GitResolutionProposal }>(
+      "/api/project/git/tree/propose-resolutions",
+      { source, target },
+    );
+    return r.proposal;
+  },
+  async applyGitMerge(source: string, target: string): Promise<GitApplyResult> {
+    const r = await jsonPost<{ result: GitApplyResult }>(
+      "/api/project/git/tree/apply",
+      { source, target, confirm: "apply-merge" },
+    );
+    return r.result;
+  },
+  async applyGitMergeResolved(
+    source: string,
+    target: string,
+    resolvedFiles: GitResolvedFile[],
+  ): Promise<GitApplyResult> {
+    const r = await jsonPost<{ result: GitApplyResult }>(
+      "/api/project/git/tree/apply-resolved",
+      { source, target, resolvedFiles, confirm: "apply-merge" },
+    );
+    return r.result;
+  },
+  async undoGitMerge(target: string): Promise<GitUndoResult> {
+    const r = await jsonPost<{ result: GitUndoResult }>(
+      "/api/project/git/tree/undo",
+      { target, confirm: "undo-merge" },
+    );
+    return r.result;
   },
   async getRunGitStatus(runId: string): Promise<GitStatus> {
     const r = await jsonGet<{ status: GitStatus }>(

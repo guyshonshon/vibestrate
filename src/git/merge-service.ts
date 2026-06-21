@@ -23,9 +23,11 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { execa } from "execa";
-import { loadConfig } from "../project/config-loader.js";
+import { loadConfig, type LoadedConfig } from "../project/config-loader.js";
 import { resolveWorktreePath } from "../utils/paths.js";
 import { creditTrailers } from "./commit-credit.js";
+import { isSecretLikePath } from "../core/diff-service.js";
+import { hasConflictMarkers } from "./conflict-parser.js";
 import {
   createWorktree,
   removeWorktree,
@@ -48,6 +50,7 @@ import {
 } from "./git.js";
 import {
   createActionBroker,
+  type ActionBroker,
   type ActionRequest,
   type ActionDecision,
 } from "../safety/action-broker.js";
@@ -239,15 +242,35 @@ export async function predictMerge(input: {
  * pre-merge sha before merging; fail-closed on a dirty tree or a non-checked-out
  * target.
  */
-export async function applyMerge(input: {
+/** Resolved guard context, after every apply precondition has passed and the
+ *  reversal record has been written. Shared by clean apply and resolved apply so
+ *  the two security-critical write paths cannot drift in their guards. */
+type ApplyContext = {
+  source: string;
+  target: string;
+  loaded: LoadedConfig;
+  broker: ActionBroker;
+  req: ActionRequest;
+  decision: ActionDecision;
+  preSha: string;
+  sourceSha: string;
+};
+
+/**
+ * Run every apply precondition (human-confirm, name validation, refs exist,
+ * target is the checked-out branch, clean tree, broker gate) and write the
+ * `applying` reversal record BEFORE any merge. Throws MergeError on any failure
+ * (no mutation has happened yet except the record + a recorded broker denial).
+ */
+async function beginApply(input: {
   projectRoot: string;
   source: string;
   target: string;
   humanConfirmed: true;
   proposedBy?: "ui" | "cli";
-}): Promise<ApplyResult> {
+}): Promise<ApplyContext> {
   if (input.humanConfirmed !== true) {
-    throw new MergeError("applyMerge requires explicit human confirmation.");
+    throw new MergeError("apply requires explicit human confirmation.");
   }
   const source = assertSafeBranch(input.source, "source");
   const target = assertSafeBranch(input.target, "target");
@@ -326,6 +349,19 @@ export async function applyMerge(input: {
     mergedAt: null,
   });
 
+  return { source, target, loaded, broker, req, decision, preSha, sourceSha };
+}
+
+export async function applyMerge(input: {
+  projectRoot: string;
+  source: string;
+  target: string;
+  humanConfirmed: true;
+  proposedBy?: "ui" | "cli";
+}): Promise<ApplyResult> {
+  const { source, target, loaded, broker, req, decision, preSha, sourceSha } =
+    await beginApply(input);
+
   const attempt = await mergeNoCommit(input.projectRoot, source);
   if (!attempt.clean) {
     // Conflict: leave nothing on the real branch. Abort restores the tree to
@@ -381,6 +417,137 @@ export async function applyMerge(input: {
   await broker.record(req, decision, {
     ok: true,
     summary: `merged ${source} -> ${target} @ ${committed.sha.slice(0, 10)} (local only, not pushed)`,
+  });
+  return {
+    source,
+    target,
+    preSha,
+    mergedSha: committed.sha,
+    alreadyUpToDate: false,
+  };
+}
+
+/** A human-accepted resolution for one conflicted file (full file content). */
+export type ResolvedFile = { path: string; content: string };
+
+/**
+ * Apply a merge whose conflicts the human has resolved (e.g. accepted/edited
+ * supervisor proposals). Same gated preamble as {@link applyMerge}; then writes
+ * ONLY files git reported as conflicted in this merge (neutralizes path
+ * traversal / stray writes), refuses secret-like paths and residual conflict
+ * markers, requires every conflict resolved, and commits a real merge.
+ * Reversible by {@link undoMerge} exactly like a clean apply.
+ */
+export async function applyResolvedMerge(input: {
+  projectRoot: string;
+  source: string;
+  target: string;
+  resolvedFiles: ResolvedFile[];
+  humanConfirmed: true;
+  proposedBy?: "ui" | "cli";
+}): Promise<ApplyResult> {
+  const { source, target, loaded, broker, req, decision, preSha, sourceSha } =
+    await beginApply(input);
+
+  const fail = async (summary: string, message: string): Promise<never> => {
+    await abortMerge(input.projectRoot);
+    await deleteMergeRecord(input.projectRoot, target);
+    await broker.record(req, decision, { ok: false, summary });
+    throw new MergeError(message);
+  };
+
+  const attempt = await mergeNoCommit(input.projectRoot, source);
+  if (!attempt.clean) {
+    const conflicted = new Set(attempt.conflictedFiles);
+    for (const rf of input.resolvedFiles) {
+      const p = rf.path.trim();
+      // Only paths git itself reported as conflicted may be written. This is the
+      // traversal/stray-write guard: we never write an arbitrary client path.
+      if (!conflicted.has(p)) {
+        await fail(
+          `resolved apply ${source} -> ${target}: rejected non-conflicted path "${p}"`,
+          `Refusing to write "${p}": not one of this merge's conflicted files.`,
+        );
+      }
+      if (isSecretLikePath(p)) {
+        await fail(
+          `resolved apply ${source} -> ${target}: rejected secret-like path "${p}"`,
+          `Refusing to write a resolution to secret-like path "${p}" - resolve it manually.`,
+        );
+      }
+      if (hasConflictMarkers(rf.content)) {
+        await fail(
+          `resolved apply ${source} -> ${target}: residual markers in "${p}"`,
+          `The resolution for "${p}" still contains conflict markers.`,
+        );
+      }
+      await fs.writeFile(path.join(input.projectRoot, p), rf.content, "utf8");
+      const add = await execa("git", ["add", "--", p], {
+        cwd: input.projectRoot,
+        reject: false,
+      });
+      if (add.exitCode !== 0) {
+        await fail(
+          `resolved apply ${source} -> ${target}: git add failed for "${p}"`,
+          `Failed to stage the resolution for "${p}".`,
+        );
+      }
+    }
+    // Every conflict must be resolved - no unmerged paths may remain.
+    const unmerged = await execa(
+      "git",
+      ["diff", "--name-only", "--diff-filter=U"],
+      { cwd: input.projectRoot, reject: false },
+    );
+    const remaining = unmerged.stdout
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (remaining.length > 0) {
+      await fail(
+        `resolved apply ${source} -> ${target}: ${remaining.length} unresolved file(s)`,
+        `Not all conflicts were resolved (still unmerged: ${remaining.join(", ")}).`,
+      );
+    }
+  } else if (!(await hasChanges(input.projectRoot))) {
+    await deleteMergeRecord(input.projectRoot, target);
+    await broker.record(req, decision, {
+      ok: true,
+      summary: `merge ${source} -> ${target}: already up to date`,
+    });
+    return { source, target, preSha, mergedSha: preSha, alreadyUpToDate: true };
+  }
+
+  const committed = await commitMerge(
+    input.projectRoot,
+    `merge ${source} into ${target} (resolved)`,
+    creditTrailers(loaded.config.commits),
+  );
+  if (!committed) {
+    await abortMerge(input.projectRoot);
+    await deleteMergeRecord(input.projectRoot, target);
+    await broker.record(req, decision, {
+      ok: false,
+      summary: `resolved apply ${source} -> ${target}: commit failed; aborted`,
+    });
+    throw new MergeError(
+      `Merge of "${source}" into "${target}" failed to commit (aborted).`,
+    );
+  }
+
+  await writeMergeRecord(input.projectRoot, {
+    target,
+    source,
+    preSha,
+    sourceSha,
+    mergedSha: committed.sha,
+    status: "applied",
+    recordedAt: new Date().toISOString(),
+    mergedAt: new Date().toISOString(),
+  });
+  await broker.record(req, decision, {
+    ok: true,
+    summary: `merged (resolved) ${source} -> ${target} @ ${committed.sha.slice(0, 10)} (local only)`,
   });
   return {
     source,
