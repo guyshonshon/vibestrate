@@ -100,7 +100,7 @@ export async function registerSpecUpRoutes(
   const { projectRoot } = deps;
 
   // Start the chain: launch the intake run from a brief (the "Plan" affordance).
-  app.post<{ Body: unknown }>("/api/shape/intake", async (req) => {
+  app.post<{ Body: unknown }>("/api/spec-up/intake", async (req) => {
     const parsed = startBody.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid brief.");
@@ -122,7 +122,7 @@ export async function registerSpecUpRoutes(
   // Read an intake run's pending questions so the consult surface can render the
   // form. `questions: null` means the run has no parsed questions (not intake).
   app.get<{ Params: { id: string } }>(
-    "/api/runs/:id/shape-questions",
+    "/api/runs/:id/spec-up-questions",
     async (req) => {
       assertSafeRunId(req.params.id);
       const pending = await readSpecUpQuestions(projectRoot, req.params.id);
@@ -140,7 +140,7 @@ export async function registerSpecUpRoutes(
   // Approve the shaped draft -> BUILD it (P1): launch the chosen flow seeded with
   // the approved spec as context. The chosen flow is the carried target unless
   // the body overrides it; falls back to the project default when unbound.
-  app.post<{ Body: unknown }>("/api/shape/build", async (req) => {
+  app.post<{ Body: unknown }>("/api/spec-up/build", async (req) => {
     const parsed = buildBody.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(400, parsed.error.issues[0]?.message ?? "specUpRunId is required.");
@@ -160,7 +160,7 @@ export async function registerSpecUpRoutes(
   });
 
   // Approve the shaped draft -> launch the roadmap run (resumeFrom the shape run).
-  app.post<{ Body: { specUpRunId?: unknown } }>("/api/shape/roadmap", async (req) => {
+  app.post<{ Body: { specUpRunId?: unknown } }>("/api/spec-up/roadmap", async (req) => {
     const specUpRunId = runIdParam.safeParse(
       (req.body as { specUpRunId?: unknown } | undefined)?.specUpRunId,
     );
@@ -179,7 +179,7 @@ export async function registerSpecUpRoutes(
 
   // Turn a finished shape-roadmap run into a reviewable proposal (cards).
   app.post<{ Body: { runId?: unknown } }>(
-    "/api/shape/roadmap-proposal",
+    "/api/spec-up/roadmap-proposal",
     async (req) => {
       const runId = runIdParam.safeParse(
         (req.body as { runId?: unknown } | undefined)?.runId,
@@ -199,7 +199,7 @@ export async function registerSpecUpRoutes(
   );
 
   // Submit a round's answers -> either a gap-check round or the shape run.
-  app.post<{ Body: unknown }>("/api/shape/answers", async (req) => {
+  app.post<{ Body: unknown }>("/api/spec-up/answers", async (req) => {
     const parsed = answersBody.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid answers.");
@@ -219,7 +219,7 @@ export async function registerSpecUpRoutes(
   });
 
   // "Proceed to spec" without answering more: finalize with accumulated answers.
-  app.post<{ Body: unknown }>("/api/shape/proceed", async (req) => {
+  app.post<{ Body: unknown }>("/api/spec-up/proceed", async (req) => {
     const parsed = proceedSpecUpBody.safeParse(req.body);
     if (!parsed.success) throw new HttpError(400, "sourceRunId is required.");
     try {
@@ -235,7 +235,7 @@ export async function registerSpecUpRoutes(
   });
 
   // Per-question assist: Simplify / Suggest / Suggest-all (read-only, draft-only).
-  app.post<{ Body: unknown }>("/api/shape/assist", async (req) => {
+  app.post<{ Body: unknown }>("/api/spec-up/assist", async (req) => {
     const parsed = assistBody.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid assist request.");

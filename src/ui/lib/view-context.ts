@@ -2,7 +2,7 @@
 //
 // A tiny module-level store: a screen PUBLISHES a typed snapshot of its
 // meaningful state, and the consult orb READS the current snapshot on-demand
-// (reactive only - used when the user asks). V1 publisher: the shape-questions
+// (reactive only - used when the user asks). V1 publisher: the spec-up-questions
 // screen. The snapshot is a typed projection of state the client already holds -
 // NOT a DOM/screenshot scraper. Secrets are redacted server-side by consult.
 

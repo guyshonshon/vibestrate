@@ -693,7 +693,7 @@ export const api = {
     persona?: string;
     flowId?: string;
   }): Promise<{ ok: true; runId: string; pid: number | null }> {
-    return jsonPost("/api/shape/intake", input);
+    return jsonPost("/api/spec-up/intake", input);
   },
   /** Read an intake run's pending gap questions (null = not an intake run). */
   async getSpecUpQuestions(
@@ -705,7 +705,7 @@ export const api = {
     round?: number;
     coverageComplete?: boolean;
   }> {
-    return jsonGet(`/api/runs/${encodeURIComponent(runId)}/shape-questions`);
+    return jsonGet(`/api/runs/${encodeURIComponent(runId)}/spec-up-questions`);
   },
   /** Submit a round's answers -> either a gap-check round or the shape run.
    *  `proceed` finalizes now (skip further gap-checks). */
@@ -714,13 +714,13 @@ export const api = {
     answers: { id: string; answer: string }[];
     proceed?: boolean;
   }): Promise<{ ok: true; runId: string; pid: number | null; action: "gap-check" | "finalize" }> {
-    return jsonPost("/api/shape/answers", input);
+    return jsonPost("/api/spec-up/answers", input);
   },
   /** "Proceed to spec" with no new answers: finalize the accumulated set. */
   async proceedSpecUp(
     sourceRunId: string,
   ): Promise<{ ok: true; runId: string; pid: number | null }> {
-    return jsonPost("/api/shape/proceed", { sourceRunId });
+    return jsonPost("/api/spec-up/proceed", { sourceRunId });
   },
   /** Per-question assist (read-only, draft-only): Simplify / Suggest / Suggest-all. */
   async specUpAssist(input: {
@@ -742,13 +742,13 @@ export const api = {
     // suggest-all
     items?: { questionId: string; suggestedValue: string; why: string }[];
   }> {
-    return jsonPost("/api/shape/assist", input);
+    return jsonPost("/api/spec-up/assist", input);
   },
   /** Approve the shaped draft -> launch the roadmap synthesis run. */
   async approveSpecUpRoadmap(
     specUpRunId: string,
   ): Promise<{ ok: true; runId: string; pid: number | null }> {
-    return jsonPost("/api/shape/roadmap", { specUpRunId });
+    return jsonPost("/api/spec-up/roadmap", { specUpRunId });
   },
   /** Approve the shaped draft -> BUILD it: run the chosen flow seeded with the
    *  approved spec as context (P1). `flowId` overrides the carried target. */
@@ -756,7 +756,7 @@ export const api = {
     specUpRunId: string,
     flowId?: string | null,
   ): Promise<{ ok: true; runId: string; pid: number | null; flowId: string }> {
-    return jsonPost("/api/shape/build", {
+    return jsonPost("/api/spec-up/build", {
       specUpRunId,
       ...(flowId ? { flowId } : {}),
     });
@@ -765,7 +765,7 @@ export const api = {
   async createSpecUpRoadmapProposal(
     runId: string,
   ): Promise<{ ok: true; proposalId: string }> {
-    return jsonPost("/api/shape/roadmap-proposal", { runId });
+    return jsonPost("/api/spec-up/roadmap-proposal", { runId });
   },
   /** Dry-run a downstream rewind: the file overwrite/remove set the restore
    *  would apply. `preview: null` = nothing to restore for that stage. */

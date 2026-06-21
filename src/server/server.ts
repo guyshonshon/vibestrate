@@ -27,7 +27,7 @@ import { registerConfigRoutes } from "./routes/config.js";
 import { registerAnnotationsRoutes } from "./routes/annotations.js";
 import { registerBudgetRoutes } from "./routes/budget.js";
 import { registerConsultRoutes } from "./routes/consult.js";
-import { registerSpecUpRoutes } from "./routes/shape.js";
+import { registerSpecUpRoutes } from "./routes/spec-up.js";
 import { registerGitRoutes } from "./routes/git.js";
 import { registerRoleWorkRoutes } from "./routes/agent-work.js";
 import { registerCodeReferenceRoutes } from "./routes/code-references.js";

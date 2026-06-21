@@ -57,11 +57,11 @@ afterEach(async () => {
   server = null;
 });
 
-describe("POST /api/shape/assist", () => {
+describe("POST /api/spec-up/assist", () => {
   it("returns a Simplify result over the real provider path", async () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
-    const res = await fetch(`${server.url}/api/shape/assist`, {
+    const res = await fetch(`${server.url}/api/spec-up/assist`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ sourceRunId: "brave-otter", mode: "simplify", questionId: "accounts" }),
@@ -76,7 +76,7 @@ describe("POST /api/shape/assist", () => {
   it("rejects simplify with no questionId (400)", async () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
-    const res = await fetch(`${server.url}/api/shape/assist`, {
+    const res = await fetch(`${server.url}/api/spec-up/assist`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ sourceRunId: "brave-otter", mode: "simplify" }),
@@ -87,7 +87,7 @@ describe("POST /api/shape/assist", () => {
   it("surfaces round + coverageComplete on the questions GET", async () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
-    const res = await fetch(`${server.url}/api/runs/brave-otter/shape-questions`);
+    const res = await fetch(`${server.url}/api/runs/brave-otter/spec-up-questions`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { round: number; coverageComplete: boolean; questions: unknown[] };
     expect(body.round).toBe(1);

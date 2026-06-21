@@ -1,6 +1,6 @@
 // ── Shape: per-question assist (Simplify / Suggest) ──────────────────────────
 //
-// Two on-demand helpers on the shape-questions screen, both built on the SAME
+// Two on-demand helpers on the spec-up-questions screen, both built on the SAME
 // `runAssist` primitive consult uses - no second AI-call path:
 //   - Simplify: re-explain a question in plain language + what it affects (+ an
 //     optional non-developer analogy).
