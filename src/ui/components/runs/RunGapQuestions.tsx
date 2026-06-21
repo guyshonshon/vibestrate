@@ -1,15 +1,30 @@
 import { useMemo, useState } from "react";
-import { ArrowRight, ArrowLeft, Check, X, HelpCircle, PenLine } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  X,
+  HelpCircle,
+  PenLine,
+  Crosshair,
+  UsersRound,
+  Database,
+  Shield,
+  Trophy,
+  Plug,
+  Shapes,
+} from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { ShapeQuestion, ShapeQuestionCategory } from "../../lib/types.js";
 import { usePublishViewContext } from "../../lib/view-context.js";
 
-// ── In-run gap-questions screen (Shape) - C2 "vertical timeline" design ──────
-// A left timeline lists every category (area) with its status + count; the
-// current area's questions show on the right, one area at a time. Steps are
-// jumpable, "Proceed to spec" is always reachable, and a single-area round
-// collapses to one screen (no timeline). Suggest is ADVISORY: it surfaces a
-// recommendation you accept with one click - it never pre-selects your answer.
+// ── In-run gap-questions screen (Shape) - C2 vertical-timeline stepper ───────
+// A left timeline lists every area with status + count; the current area is a
+// focused, tinted workspace on the right. One area at a time, steps jumpable,
+// Submit + Proceed always reachable, single-area rounds collapse to one screen.
+// Suggest is ADVISORY (recommends, never pre-selects). Colour carries hierarchy:
+// violet = current/action, teal = answered/covered, neutral = pending.
 
 const CATEGORY_ORDER: ShapeQuestionCategory[] = [
   "scope",
@@ -41,6 +56,19 @@ const CATEGORY_BLURB: Record<ShapeQuestionCategory, string> = {
   other: "Everything else worth deciding.",
 };
 
+const CATEGORY_ICON: Record<ShapeQuestionCategory, LucideIcon> = {
+  scope: Crosshair,
+  users: UsersRound,
+  data: Database,
+  constraints: Shield,
+  success: Trophy,
+  integrations: Plug,
+  other: Shapes,
+};
+
+const ACCENT = "var(--s-accent-bright)";
+const tint = (c: string, pct: number) => `color-mix(in oklab, ${c} ${pct}%, transparent)`;
+
 type SimplifyState = { loading: boolean; text?: string; affects?: string; analogy?: string };
 type Suggestion = { value: string; why: string };
 
@@ -58,7 +86,6 @@ export function RunGapQuestions({
   onSubmitted: (nextRunId: string) => void;
 }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  // Advisory recommendations, shown but NOT applied until the user accepts.
   const [suggestions, setSuggestions] = useState<Record<string, Suggestion>>({});
   const [simplify, setSimplify] = useState<Record<string, SimplifyState>>({});
   const [busy, setBusy] = useState(false);
@@ -74,13 +101,12 @@ export function RunGapQuestions({
     return CATEGORY_ORDER.filter((c) => groups.has(c)).map((c) => ({ category: c, items: groups.get(c)! }));
   }, [questions]);
 
-  const answeredOf = (items: ShapeQuestion[]) =>
-    items.filter((q) => (answers[q.id] ?? "").trim().length > 0).length;
+  const answeredOf = (items: ShapeQuestion[]) => items.filter((q) => (answers[q.id] ?? "").trim().length > 0).length;
   const answeredCount = questions.filter((q) => (answers[q.id] ?? "").trim().length > 0).length;
+  const coveredAreas = byCategory.filter((g) => answeredOf(g.items) === g.items.length).length;
 
-  // The current step is explicit: it starts at the first area and only changes
-  // when the user navigates (Next/Back/click a step). Answering never auto-jumps,
-  // so you always see the answer you just gave.
+  // The current step is explicit - it only changes on navigation, so answering
+  // never auto-jumps and you always see the answer you just gave.
   const [active, setActive] = useState<ShapeQuestionCategory | null>(null);
   const activeCat = active ?? byCategory[0]?.category ?? null;
   const activeIdx = byCategory.findIndex((g) => g.category === activeCat);
@@ -90,14 +116,11 @@ export function RunGapQuestions({
     screen: "Shape questions",
     details:
       `Round ${round}. Current area: ${activeCat ? CATEGORY_LABEL[activeCat] : "-"}.\n` +
-      questions
-        .map((q) => `- [${q.category}] ${q.id}: "${q.question}" -> ${(answers[q.id] ?? "").trim() || "(blank)"}`)
-        .join("\n"),
+      questions.map((q) => `- [${q.category}] ${q.id}: "${q.question}" -> ${(answers[q.id] ?? "").trim() || "(blank)"}`).join("\n"),
   });
 
   function setAnswer(id: string, value: string) {
     setAnswers((a) => ({ ...a, [id]: value }));
-    // Accepting/typing an answer clears any standing recommendation for it.
     setSuggestions((s) => {
       if (!s[id]) return s;
       const next = { ...s };
@@ -113,6 +136,13 @@ export function RunGapQuestions({
       return next;
     });
   }
+  function dropSuggestion(id: string) {
+    setSuggestions((s) => {
+      const next = { ...s };
+      delete next[id];
+      return next;
+    });
+  }
 
   async function doSimplify(id: string, forNonDeveloper: boolean) {
     setSimplify((s) => ({ ...s, [id]: { ...(s[id] ?? {}), loading: true } }));
@@ -123,7 +153,6 @@ export function RunGapQuestions({
       setSimplify((s) => ({ ...s, [id]: { loading: false, text: `Could not simplify: ${err instanceof Error ? err.message : String(err)}` } }));
     }
   }
-
   async function doSuggest(id: string) {
     try {
       const r = await api.shapeAssist({ sourceRunId: runId, mode: "suggest", questionId: id });
@@ -132,7 +161,6 @@ export function RunGapQuestions({
       setError(err instanceof Error ? err.message : String(err));
     }
   }
-
   async function doSuggestAll() {
     const blanks = (activeGroup?.items ?? []).filter((q) => (answers[q.id] ?? "").trim().length === 0).map((q) => q.id);
     if (blanks.length === 0) return;
@@ -151,9 +179,7 @@ export function RunGapQuestions({
   }
 
   async function submit(proceed: boolean) {
-    const payload = questions
-      .map((q) => ({ id: q.id, answer: (answers[q.id] ?? "").trim() }))
-      .filter((a) => a.answer.length > 0);
+    const payload = questions.map((q) => ({ id: q.id, answer: (answers[q.id] ?? "").trim() })).filter((a) => a.answer.length > 0);
     if (payload.length === 0) {
       if (proceed) return finalizeNoAnswers();
       setError("Answer at least one question, or use a suggestion.");
@@ -169,7 +195,6 @@ export function RunGapQuestions({
       setBusy(false);
     }
   }
-
   async function finalizeNoAnswers() {
     setBusy(true);
     setError(null);
@@ -199,12 +224,13 @@ export function RunGapQuestions({
 
   const single = byCategory.length <= 1;
 
-  const stepper = (
+  const timeline = (
     <div style={{ display: "flex", flexDirection: "column" }}>
       {byCategory.map((g, i) => {
         const ans = answeredOf(g.items);
         const done = ans === g.items.length;
         const current = g.category === activeCat;
+        const Icon = CATEGORY_ICON[g.category];
         return (
           <div key={g.category}>
             <button
@@ -216,28 +242,28 @@ export function RunGapQuestions({
                 width: "100%",
                 textAlign: "left",
                 cursor: "pointer",
-                padding: current ? "6px 8px" : "5px 0",
-                margin: current ? "0 -8px" : 0,
-                borderRadius: 6,
-                background: current ? "var(--s-soft)" : "transparent",
-                border: current ? "1px solid var(--s-accent)" : "1px solid transparent",
+                padding: "6px 8px",
+                margin: "0 -8px",
+                borderRadius: 7,
+                background: current ? tint("var(--s-accent-bright)", 14) : "transparent",
+                border: current ? "1px solid " + tint("var(--s-accent-bright)", 55) : "1px solid transparent",
               }}
             >
-              <span style={stepNode(done, current)}>{done ? <Check size={11} /> : i + 1}</span>
-              <span style={{ flex: 1, fontSize: 12.5, color: current ? "var(--s-soft-ink)" : "var(--s-ink-dim)", fontWeight: current ? 500 : 400 }}>
+              <span style={stepNode(done, current)}>{done ? <Check size={11} /> : <Icon size={11} />}</span>
+              <span style={{ flex: 1, fontSize: 12.5, color: current ? "var(--s-ink)" : done ? "var(--s-ink-dim)" : "var(--s-ink-dim)", fontWeight: current ? 500 : 400 }}>
                 {CATEGORY_LABEL[g.category]}
               </span>
-              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 10.5, color: done ? "var(--s-ok-ink)" : "var(--s-ink-faint)" }}>
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 10.5, color: done ? "var(--s-ok-ink)" : current ? ACCENT : "var(--s-ink-faint)" }}>
                 {ans}/{g.items.length}
               </span>
             </button>
             {i < byCategory.length - 1 ? (
-              <div style={{ width: 1, height: 10, background: done ? "var(--s-ok-ink)" : "var(--s-line)", marginLeft: 8 }} />
+              <div style={{ width: 2, height: 9, borderRadius: 2, background: done ? "var(--s-ok-ink)" : "var(--s-line)", marginLeft: 16 }} />
             ) : null}
           </div>
         );
       })}
-      <div style={{ height: 1, background: "var(--s-line)", margin: "13px 0 11px" }} />
+      <div style={{ height: 1, background: "var(--s-line)", margin: "14px 0 11px" }} />
       <div style={{ fontSize: 11.5, color: "var(--s-ink-dim)", lineHeight: 1.5, marginBottom: 11 }}>
         Answer what you can. We ask follow-ups only where it's still open.
       </div>
@@ -251,20 +277,24 @@ export function RunGapQuestions({
     </div>
   );
 
+  const ActiveIcon = activeGroup ? CATEGORY_ICON[activeGroup.category] : Shapes;
   const content = activeGroup ? (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 13 }}>
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 500, letterSpacing: "-0.01em" }}>{CATEGORY_LABEL[activeGroup.category]}</div>
-          <div style={{ fontSize: 11.5, color: "var(--s-ink-faint)", marginTop: 2 }}>{CATEGORY_BLURB[activeGroup.category]}</div>
+    <div style={workspace}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <span style={iconChip}>
+          <ActiveIcon size={17} style={{ color: ACCENT }} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 17, fontWeight: 500, letterSpacing: "-0.01em", lineHeight: 1.2 }}>{CATEGORY_LABEL[activeGroup.category]}</div>
+          <div style={{ fontSize: 12, color: "var(--s-ink-faint)", marginTop: 1 }}>{CATEGORY_BLURB[activeGroup.category]}</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 11, color: "var(--s-ink-dim)" }}>
             {answeredOf(activeGroup.items)}/{activeGroup.items.length}
           </span>
           <div style={{ display: "flex", gap: 3 }}>
             {activeGroup.items.map((q) => (
-              <div key={q.id} style={{ width: 16, height: 4, borderRadius: 2, background: (answers[q.id] ?? "").trim() ? "var(--s-ok-ink)" : "var(--s-line)" }} />
+              <div key={q.id} style={{ width: 18, height: 5, borderRadius: 3, background: (answers[q.id] ?? "").trim() ? "var(--s-ok-ink)" : tint("var(--s-ink-faint)", 35) }} />
             ))}
           </div>
         </div>
@@ -282,17 +312,11 @@ export function RunGapQuestions({
           onSimplify={(nd) => void doSimplify(q.id, nd)}
           onSuggest={() => void doSuggest(q.id)}
           onUseSuggestion={() => suggestions[q.id] && setAnswer(q.id, suggestions[q.id]!.value)}
-          onDismissSuggestion={() =>
-            setSuggestions((s) => {
-              const next = { ...s };
-              delete next[q.id];
-              return next;
-            })
-          }
+          onDismissSuggestion={() => dropSuggestion(q.id)}
         />
       ))}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 13 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14 }}>
         {activeIdx > 0 ? (
           <button onClick={() => setActive(byCategory[activeIdx - 1]!.category)} style={navBtn}>
             <ArrowLeft size={14} /> {CATEGORY_LABEL[byCategory[activeIdx - 1]!.category]}
@@ -334,13 +358,20 @@ export function RunGapQuestions({
       ) : (
         <>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
-            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--s-ink)" }}>Scope the work</div>
-            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 11, color: "var(--s-ink-faint)" }}>
-              round {round} &middot; {byCategory.filter((g) => answeredOf(g.items) === g.items.length).length} of {byCategory.length} areas covered
-            </span>
+            <div style={{ fontSize: 14, fontWeight: 500, color: "var(--s-ink)" }}>Scope the work</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 11, color: "var(--s-ink-faint)" }}>round {round}</span>
+              <div style={{ display: "flex", gap: 3 }} aria-label={`${coveredAreas} of ${byCategory.length} areas covered`}>
+                {byCategory.map((g) => {
+                  const done = answeredOf(g.items) === g.items.length;
+                  const cur = g.category === activeCat;
+                  return <div key={g.category} style={{ width: 14, height: 4, borderRadius: 2, background: done ? "var(--s-ok-ink)" : cur ? "var(--s-accent-bright)" : tint("var(--s-ink-faint)", 30) }} />;
+                })}
+              </div>
+            </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "168px 1fr", gap: 20 }} className="run-gap-grid">
-            <aside style={{ alignSelf: "start", position: "sticky", top: 12 }}>{stepper}</aside>
+          <div style={{ display: "grid", gridTemplateColumns: "176px 1fr", gap: 18 }} className="run-gap-grid">
+            <aside style={{ alignSelf: "start", position: "sticky", top: 12 }}>{timeline}</aside>
             <div style={{ minWidth: 0 }}>{content}</div>
           </div>
         </>
@@ -376,17 +407,17 @@ function QuestionCard({
   const answered = value.trim().length > 0;
   const isChoice = q.kind === "choice" && q.options.length > 0;
   return (
-    <div style={card}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
-        <span style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.35 }}>{q.question}</span>
+    <div style={card(answered)}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 11 }}>
+        <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.35 }}>{q.question}</span>
         {answered ? (
           <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 10, color: "var(--s-ok-ink)", display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", paddingTop: 2 }}>
             <Check size={12} /> answered
           </span>
         ) : (
-          <div style={{ display: "flex", gap: 9, color: "var(--s-ink-faint)", paddingTop: 2 }}>
+          <div style={{ display: "flex", gap: 9, paddingTop: 2 }}>
             <button onClick={() => onSimplify(false)} style={miniAction}><HelpCircle size={13} /> simplify</button>
-            <button onClick={() => onSuggest()} style={miniAction}><PenLine size={13} /> suggest</button>
+            <button onClick={() => onSuggest()} style={{ ...miniAction, color: ACCENT }}><PenLine size={13} /> suggest</button>
           </div>
         )}
       </div>
@@ -402,26 +433,18 @@ function QuestionCard({
               </button>
             );
           })}
-          {answered ? (
-            <button onClick={onClear} style={clearBtn}><X size={13} /> clear</button>
-          ) : null}
+          {answered ? <button onClick={onClear} style={clearBtn}><X size={13} /> clear</button> : null}
         </div>
       ) : (
-        <input
-          value={value}
-          onChange={(e) => onAnswer(e.target.value)}
-          placeholder="Type your answer"
-          style={textInput}
-        />
+        <input value={value} onChange={(e) => onAnswer(e.target.value)} placeholder="Type your answer" style={textInput} />
       )}
 
       {!answered && suggestion ? (
         <div style={adviseRow}>
-          <PenLine size={14} style={{ color: "var(--s-accent-bright)", flexShrink: 0 }} />
+          <PenLine size={14} style={{ color: ACCENT, flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12, color: "var(--s-ink)" }}>
-              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 10, color: "var(--s-soft-ink)" }}>suggested</span>{" "}
-              {suggestion.value}
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 10, color: ACCENT }}>suggested</span> {suggestion.value}
             </div>
             {suggestion.why ? <div style={{ fontSize: 11, color: "var(--s-ink-faint)", marginTop: 1 }}>{suggestion.why}</div> : null}
           </div>
@@ -439,12 +462,12 @@ function QuestionCard({
               <div>{simplify.text}</div>
               {simplify.affects ? <div style={{ marginTop: 6, color: "var(--s-ink-dim)" }}><b style={{ fontWeight: 500 }}>What it affects:</b> {simplify.affects}</div> : null}
               {simplify.analogy ? <div style={{ marginTop: 6, color: "var(--s-ink-dim)" }}><b style={{ fontWeight: 500 }}>Analogy:</b> {simplify.analogy}</div> : null}
-              {!simplify.analogy ? <button onClick={() => onSimplify(true)} style={{ ...miniAction, marginTop: 8 }}>Explain for a non-developer</button> : null}
+              {!simplify.analogy ? <button onClick={() => onSimplify(true)} style={{ ...miniAction, marginTop: 8, color: ACCENT }}>Explain for a non-developer</button> : null}
             </>
           )}
         </div>
       ) : (
-        <div style={{ display: "flex", gap: 9, fontSize: 11.5, lineHeight: 1.55, borderTop: "1px solid var(--s-line)", paddingTop: 9, marginTop: 10 }}>
+        <div style={{ display: "flex", gap: 9, fontSize: 11.5, lineHeight: 1.55, borderTop: "1px solid var(--s-line)", paddingTop: 9, marginTop: 11 }}>
           <span style={{ fontFamily: "ui-monospace, monospace", color: "var(--s-ink-faint)", minWidth: 44 }}>why</span>
           <span style={{ color: "var(--s-ink-dim)" }}>{q.why}</span>
         </div>
@@ -461,27 +484,46 @@ const panel: React.CSSProperties = {
   padding: "16px 18px",
   color: "var(--s-ink)",
 };
-const card: React.CSSProperties = {
-  background: "var(--s-slab-2)",
-  border: "1px solid var(--s-line)",
-  borderRadius: 8,
-  padding: "13px 14px",
-  marginBottom: 10,
+const workspace: React.CSSProperties = {
+  background: "var(--s-soft)",
+  border: "1px solid " + tint("var(--s-accent-bright)", 45),
+  borderRadius: 11,
+  padding: "16px 18px",
 };
+const iconChip: React.CSSProperties = {
+  width: 38,
+  height: 38,
+  borderRadius: 10,
+  flexShrink: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: tint("var(--s-accent-bright)", 20),
+  border: "1px solid " + tint("var(--s-accent-bright)", 55),
+};
+function card(answered: boolean): React.CSSProperties {
+  return {
+    background: "var(--s-slab)",
+    border: "1px solid " + (answered ? tint("var(--s-ok-ink)", 35) : "var(--s-line)"),
+    borderRadius: 9,
+    padding: "13px 14px",
+    marginBottom: 10,
+  };
+}
 const adviseRow: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 9,
-  marginTop: 9,
-  background: "var(--s-soft)",
-  border: "1px solid var(--s-accent)",
-  borderRadius: 6,
+  marginTop: 10,
+  background: tint("var(--s-accent-bright)", 12),
+  border: "1px solid " + tint("var(--s-accent-bright)", 45),
+  borderRadius: 7,
   padding: "8px 10px",
 };
 const simplifyBox: React.CSSProperties = {
-  marginTop: 10,
+  marginTop: 11,
   padding: "10px 12px",
-  borderRadius: 7,
+  borderRadius: 8,
   background: "var(--s-soft)",
   color: "var(--s-soft-ink)",
   fontSize: 12,
@@ -489,11 +531,11 @@ const simplifyBox: React.CSSProperties = {
 };
 const textInput: React.CSSProperties = {
   width: "100%",
-  background: "var(--s-slab)",
+  background: "var(--s-slab-2)",
   color: "var(--s-slab-ink)",
   border: "1px solid var(--s-line)",
-  borderRadius: 6,
-  padding: "8px 11px",
+  borderRadius: 7,
+  padding: "9px 12px",
   fontSize: 13,
   outline: "none",
 };
@@ -515,7 +557,7 @@ const ghostInline: React.CSSProperties = {
   gap: 5,
   background: "transparent",
   border: "1px solid var(--s-line)",
-  borderRadius: 6,
+  borderRadius: 7,
   cursor: "pointer",
   fontSize: 11.5,
   color: "var(--s-slab-ink)",
@@ -529,7 +571,7 @@ const navBtn: React.CSSProperties = {
   border: "none",
   cursor: "pointer",
   fontSize: 12,
-  color: "var(--s-ink-faint)",
+  color: "var(--s-ink-dim)",
   padding: 0,
 };
 const clearBtn: React.CSSProperties = {
@@ -549,25 +591,23 @@ const useBtn: React.CSSProperties = {
   color: "var(--s-on-accent)",
   background: "var(--s-accent)",
   border: "none",
-  borderRadius: 5,
-  padding: "5px 11px",
+  borderRadius: 6,
+  padding: "5px 12px",
   cursor: "pointer",
   whiteSpace: "nowrap",
 };
 function stepNode(done: boolean, current: boolean): React.CSSProperties {
   return {
-    width: 18,
-    height: 18,
-    borderRadius: "50%",
+    width: 24,
+    height: 24,
+    borderRadius: 8,
     flexShrink: 0,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: 10.5,
-    fontWeight: 500,
-    background: done ? "color-mix(in oklab, var(--s-ok-ink) 16%, transparent)" : current ? "var(--s-soft)" : "transparent",
-    border: `1px solid ${done ? "var(--s-ok-ink)" : current ? "var(--s-accent)" : "var(--s-line)"}`,
-    color: done ? "var(--s-ok-ink)" : current ? "var(--s-soft-ink)" : "var(--s-ink-faint)",
+    background: done ? tint("var(--s-ok-ink)", 18) : current ? tint("var(--s-accent-bright)", 22) : "transparent",
+    border: `1px solid ${done ? "var(--s-ok-ink)" : current ? tint("var(--s-accent-bright)", 65) : "var(--s-line)"}`,
+    color: done ? "var(--s-ok-ink)" : current ? ACCENT : "var(--s-ink-faint)",
   };
 }
 function optionBtn(selected: boolean, recommended: boolean): React.CSSProperties {
@@ -575,31 +615,30 @@ function optionBtn(selected: boolean, recommended: boolean): React.CSSProperties
     display: "inline-flex",
     alignItems: "center",
     gap: 6,
-    padding: "6px 12px",
-    borderRadius: 6,
-    fontSize: 12,
+    padding: "7px 13px",
+    borderRadius: 7,
+    fontSize: 12.5,
     cursor: "pointer",
     fontWeight: selected ? 500 : 400,
-    background: selected ? "color-mix(in oklab, var(--s-ok-ink) 14%, transparent)" : "var(--s-slab)",
+    background: selected ? tint("var(--s-ok-ink)", 16) : recommended ? tint("var(--s-accent-bright)", 10) : "var(--s-slab-2)",
     border: selected
       ? "1px solid var(--s-ok-ink)"
       : recommended
-        ? "1px dashed var(--s-accent)"
+        ? "1px dashed " + tint("var(--s-accent-bright)", 70)
         : "1px solid var(--s-line)",
-    color: selected ? "var(--s-ok-ink)" : recommended ? "var(--s-soft-ink)" : "var(--s-slab-ink)",
+    color: selected ? "var(--s-ok-ink)" : recommended ? ACCENT : "var(--s-slab-ink)",
   };
 }
 function primaryBtn(enabled: boolean, compact = false): React.CSSProperties {
   return {
     width: compact ? undefined : "100%",
-    marginTop: compact ? 0 : 0,
     padding: compact ? "7px 14px" : "9px 12px",
-    borderRadius: 7,
+    borderRadius: 8,
     fontSize: 12.5,
     fontWeight: 500,
     cursor: enabled ? "pointer" : "default",
-    border: "1px solid var(--s-accent)",
-    background: enabled ? "var(--s-accent)" : "var(--s-slab-2)",
+    border: "1px solid " + (enabled ? "var(--s-accent)" : "var(--s-line)"),
+    background: enabled ? "var(--s-accent)" : "transparent",
     color: enabled ? "var(--s-on-accent)" : "var(--s-ink-faint)",
     display: "inline-flex",
     alignItems: "center",
@@ -612,7 +651,7 @@ function ghostBtn(block: boolean): React.CSSProperties {
     width: block ? "100%" : undefined,
     marginTop: block ? 8 : 0,
     padding: "8px 12px",
-    borderRadius: 7,
+    borderRadius: 8,
     fontSize: 12,
     cursor: "pointer",
     border: "1px solid var(--s-line)",

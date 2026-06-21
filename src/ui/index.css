@@ -450,18 +450,16 @@ button:active,
     0 12px 36px -16px rgba(139, 124, 255, 0.4);
 }
 
-/* ── Status pulse dot ────────────────────────────────────────────── */
-@keyframes vibestrate-pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
-  50% { box-shadow: 0 0 0 6px transparent; opacity: 0.6; }
-}
+/* ── Status dot (static) ──────────────────────────────────────────
+ * No pulse. The box-shadow ring pulse was removed on user instruction
+ * ("DO NOT EVER ADD THIS PULSE EFFECT"). A status dot is a static colored
+ * dot - never a breathing/pulsing animation, on any status. */
 .pulse-dot {
   display: inline-block;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: currentColor;
-  animation: vibestrate-pulse-dot 1.6s ease-in-out infinite;
 }
 
 /* ── Marquee meter (active phase shimmer) ─────────────────────────── */
