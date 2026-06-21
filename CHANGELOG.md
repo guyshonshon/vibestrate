@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.18.1
+
+- **Git tree: resolved merges keep your whole file and its line endings.**
+  Applying a supervisor-resolved conflict now reconstructs the entire file with
+  every non-conflicting line preserved, and keeps a CRLF file CRLF instead of
+  silently rewriting it to LF. Also removes a fallback that could have written
+  only the resolved regions.
+
 ## 0.18.0
 
 - **Interactive git tree + supervisor-assisted merge.** A new dashboard surface
