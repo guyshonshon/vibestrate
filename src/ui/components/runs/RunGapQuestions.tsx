@@ -484,13 +484,14 @@ const ground: React.CSSProperties = {
   minWidth: 0,
 };
 function card(answered: boolean): React.CSSProperties {
-  return {
-    background: answered ? CARD_DONE : CARD,
-    borderRadius: 12,
-    padding: "16px 18px",
-  };
+  // Open questions are flat rows on the ground so the divider is the sole
+  // separator (a filled card + a divider read redundant). Answered questions
+  // keep a subtle violet-tinted block as their done-state cue.
+  return answered
+    ? { background: CARD_DONE, borderRadius: 11, padding: "15px 16px" }
+    : { background: "transparent", padding: "15px 16px" };
 }
-const qDivider: React.CSSProperties = { height: 1, background: DIVIDER, margin: "10px 0" };
+const qDivider: React.CSSProperties = { height: 1, background: DIVIDER, margin: "8px 0" };
 function menuRow(current: boolean): React.CSSProperties {
   return {
     display: "flex",
