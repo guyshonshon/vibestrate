@@ -74,7 +74,7 @@ describe("deep-questioning loop e2e", () => {
     const r = await submitShapeAnswers({ projectRoot: dir, sourceRunId: "round-1", answers: [{ id: "accounts", answer: "social" }] });
     expect(r.action).toBe("gap-check");
     const spec = captured.specs.at(-1);
-    expect(spec.flow.id).toBe("shape-intake"); // another intake = the gap-check
+    expect(spec.flow.id).toBe("spec-up-intake"); // another intake = the gap-check
     expect(spec.shapeRound).toBe(2); // server-incremented
     expect(spec.shapeRootRunId).toBe("round-1"); // chain root carried
     expect(spec.shapeTargetFlowId).toBe("default"); // chosen flow re-threaded
@@ -89,7 +89,7 @@ describe("deep-questioning loop e2e", () => {
     const r = await submitShapeAnswers({ projectRoot: dir, sourceRunId: "round-4", answers: [{ id: "scale", answer: "small" }] });
     expect(r.action).toBe("finalize");
     const spec = captured.specs.at(-1);
-    expect(spec.flow.id).toBe("shape"); // the shaping flow, NOT shape-intake
+    expect(spec.flow.id).toBe("spec-up"); // the shaping flow, NOT shape-intake
     expect(spec.shapeTargetFlowId).toBe("express"); // target survives the whole loop
   });
 
@@ -97,7 +97,7 @@ describe("deep-questioning loop e2e", () => {
     await stageRound("round-2", { round: 2, rootRunId: "round-2", targetFlowId: "default", questions: [q("a", "scope")] });
     const r = await submitShapeAnswers({ projectRoot: dir, sourceRunId: "round-2", answers: [{ id: "a", answer: "yes" }], proceed: true });
     expect(r.action).toBe("finalize");
-    expect(captured.specs.at(-1).flow.id).toBe("shape");
+    expect(captured.specs.at(-1).flow.id).toBe("spec-up");
   });
 
   it("accumulates answers across rounds onto the chain root", async () => {
@@ -122,7 +122,7 @@ describe("deep-questioning loop e2e", () => {
     const r = await proceedToShapeSpec({ projectRoot: dir, sourceRunId: "cc-done" });
     expect(r.runId).toBeTruthy();
     const spec = captured.specs.at(-1);
-    expect(spec.flow.id).toBe("shape");
+    expect(spec.flow.id).toBe("spec-up");
     expect(spec.shapeTargetFlowId).toBe("default");
   });
 });

@@ -24,8 +24,8 @@
 /** The sizer's only possible target. Structural: not user-extensible. */
 export const SIZER_TARGET_FLOW = "express";
 
-/** The adaptive-shape trigger's only target: the read-only intake flow. */
-export const SHAPE_TARGET_FLOW = "shape-intake";
+/** The adaptive spec-up trigger's only target: the read-only intake flow. */
+export const SPEC_UP_TARGET_FLOW = "spec-up-intake";
 
 export type FlowSizingMode = "off" | "deterministic" | "assisted";
 

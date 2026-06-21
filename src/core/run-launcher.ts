@@ -14,7 +14,7 @@ import {
 } from "../flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../flows/runtime/flow-resolver.js";
 import { chooseRunFlow, type WorkflowSelection } from "../orchestrator/select-workflow.js";
-import { SHAPE_TARGET_FLOW } from "../orchestrator/flow-sizing.js";
+import { SPEC_UP_TARGET_FLOW } from "../orchestrator/flow-sizing.js";
 import { resolvePersona } from "../orchestrator/personas.js";
 import { permissionModeSchema } from "../project/config-schema.js";
 import type { ResolvedFlowSnapshot } from "../flows/schemas/flow-schema.js";
@@ -287,7 +287,7 @@ export async function runFromSpec(
     ? (selection?.flowId ?? spec.flow?.id ?? null)
     : (spec.shapeTargetFlowId ?? null);
   const effectiveFlowId = willShape
-    ? SHAPE_TARGET_FLOW
+    ? SPEC_UP_TARGET_FLOW
     : (selection?.flowId ?? spec.flow?.id ?? null);
   // Apply a recommended crew only when the request didn't specify one.
   const effectiveCrewId = spec.crewId ?? selection?.crewId ?? null;

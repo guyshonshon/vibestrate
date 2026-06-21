@@ -3,7 +3,7 @@ import {
   classifyObviousTrivial,
   classifyPlanWorthy,
   SIZER_TARGET_FLOW,
-  SHAPE_TARGET_FLOW,
+  SPEC_UP_TARGET_FLOW,
 } from "../src/orchestrator/flow-sizing.js";
 import { chooseRunFlow } from "../src/orchestrator/select-workflow.js";
 import { loadConfig } from "../src/project/config-loader.js";
@@ -128,7 +128,7 @@ describe("chooseRunFlow + sizing (A1)", () => {
     });
     // Shape is now an ORTHOGONAL enrichment: the flow is the chosen/default flow,
     // never replaced by a shape flow. The run is shaped first, then this flow runs.
-    expect(sel.flowId).not.toBe(SHAPE_TARGET_FLOW);
+    expect(sel.flowId).not.toBe(SPEC_UP_TARGET_FLOW);
     expect(sel.flowId).toBe("default");
     expect(sel.needsShaping).toBe(true);
   });

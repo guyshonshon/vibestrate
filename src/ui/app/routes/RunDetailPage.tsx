@@ -228,7 +228,7 @@ export function RunDetailPage({
   // off to it. (The questions artifact persists on the intake run, so revisiting
   // it re-offers them; the chain moves forward via the spawned run.)
   const awaitingShapeAnswers =
-    run.flow?.flowId === "shape-intake" &&
+    run.flow?.flowId === "spec-up-intake" &&
     shapeQuestions != null &&
     ((shapeQuestions.length ?? 0) > 0 || (shapeMeta?.coverageComplete ?? false));
   if (awaitingShapeAnswers) {

@@ -37,7 +37,7 @@ export function ShapeRunActions({
   const [error, setError] = useState<string | null>(null);
 
   const flowId = run.flow?.flowId;
-  if (flowId !== "shape" && flowId !== "shape-roadmap") return null;
+  if (flowId !== "spec-up" && flowId !== "spec-up-roadmap") return null;
   if (!TERMINAL.has(run.status)) return null;
 
   const blocked = run.status === "blocked" || run.status === "failed";
@@ -81,7 +81,7 @@ export function ShapeRunActions({
     }
   }
 
-  const isShape = flowId === "shape";
+  const isShape = flowId === "spec-up";
   const title = isShape ? "Shape draft ready" : "Roadmap synthesized";
   const body = isShape
     ? blocked

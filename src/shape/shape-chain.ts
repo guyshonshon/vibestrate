@@ -62,7 +62,7 @@ const ROOT_RUN_PATH = "shape-root-run.json";
 export const ROUND_CAP = 4;
 const APPROVED_SPEC_PATH = "shape-approved-spec.md";
 /** The shape flow's spec-producing step outputs, concatenated into the spec that
- *  seeds the chosen build flow. Step id -> output.md (see builtin-flows shapeFlow). */
+ *  seeds the chosen build flow. Step id -> output.md (see builtin-flows specUpFlow). */
 const SHAPE_SPEC_STEPS = ["scope", "spec", "architecture", "risks"] as const;
 
 /** Read the carried build-target flow id (P1) from a run's sidecar, or null. */
@@ -259,7 +259,7 @@ export async function runAwaitsInput(
   projectRoot: string,
   run: { runId: string; flow?: { flowId?: string | null } | null },
 ): Promise<boolean> {
-  if (run.flow?.flowId !== "shape-intake") return false;
+  if (run.flow?.flowId !== "spec-up-intake") return false;
   return (await readShapeQuestions(projectRoot, run.runId)) !== null;
 }
 
@@ -362,7 +362,7 @@ async function finalizeShapeSpec(input: {
     // carried forward so the `approve & build` handoff can target it (P1).
     shaped: true,
     shapeTargetFlowId: input.targetFlowId,
-    flow: { id: "shape", brief: null },
+    flow: { id: "spec-up", brief: null },
     contextSources: [{ kind: "file", ref, label: "Shape: intake answers" }],
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });
@@ -440,7 +440,7 @@ export async function submitShapeAnswers(input: {
     shapeTargetFlowId: pending.targetFlowId,
     shapeRound: decision.nextRound,
     shapeRootRunId: rootRunId,
-    flow: { id: "shape-intake", brief: null },
+    flow: { id: "spec-up-intake", brief: null },
     contextSources: [{ kind: "file", ref, label: "Shape: answers so far" }],
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });
@@ -499,7 +499,7 @@ export async function approveShapeAndStartRoadmap(input: {
     task,
     runId,
     shaped: true,
-    flow: { id: "shape-roadmap", brief: null },
+    flow: { id: "spec-up-roadmap", brief: null },
     resumeFrom: { sourceRunId: input.shapeRunId, fromStage: "executing" },
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });
@@ -644,7 +644,7 @@ export async function startShapeIntake(input: {
     // accumulated answers will live).
     shapeRound: 1,
     shapeRootRunId: runId,
-    flow: { id: "shape-intake", brief: null },
+    flow: { id: "spec-up-intake", brief: null },
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });
   return { runId, pid };

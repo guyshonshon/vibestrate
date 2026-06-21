@@ -10,7 +10,7 @@ import {
   appendAnswersDoc,
   readShapeQuestions,
 } from "../src/shape/shape-chain.js";
-import { shapeIntakeFlow } from "../src/flows/catalog/builtin-flows.js";
+import { specUpIntakeFlow } from "../src/flows/catalog/builtin-flows.js";
 
 async function tempProject(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-deeploop-"));
@@ -73,7 +73,7 @@ describe("appendAnswersDoc (cross-round accumulation)", () => {
 
 describe("intake prompt: categorize + gap-check coverage", () => {
   it("instructs the model to categorize and to gap-check later rounds", () => {
-    const intake = shapeIntakeFlow.steps.find((s) => s.id === "intake");
+    const intake = specUpIntakeFlow.steps.find((s) => s.id === "intake");
     const i = (intake?.instructions ?? "").toLowerCase();
     expect(i).toContain("category"); // emit a category per question
     expect(i).toContain("coveragecomplete"); // declare coverage complete when done

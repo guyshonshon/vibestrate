@@ -11,7 +11,7 @@ import {
   RunLaunchError,
 } from "../../core/run-launcher.js";
 import { chooseRunFlow, type WorkflowSelection } from "../../orchestrator/select-workflow.js";
-import { SHAPE_TARGET_FLOW } from "../../orchestrator/flow-sizing.js";
+import { SPEC_UP_TARGET_FLOW } from "../../orchestrator/flow-sizing.js";
 import { resolvePersona } from "../../orchestrator/personas.js";
 import {
   color,
@@ -269,7 +269,7 @@ export async function runRunCommand(
       // the chosen flow to the post-shape build, rather than executing it now.
       if (selection.needsShaping) {
         shapeTargetFlowId = selection.flowId;
-        activeFlowId = SHAPE_TARGET_FLOW;
+        activeFlowId = SPEC_UP_TARGET_FLOW;
       }
     } catch (err) {
       console.error(

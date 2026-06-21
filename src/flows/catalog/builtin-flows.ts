@@ -996,8 +996,8 @@ export const planOnlyFlow = flowDefinitionSchema.parse({
 
 // Link 1: intake. Reads the brief, classifies it, emits the structured gap
 // questions the consult surface renders as a form. Terminates.
-export const shapeIntakeFlow = flowDefinitionSchema.parse({
-  id: "shape-intake",
+export const specUpIntakeFlow = flowDefinitionSchema.parse({
+  id: "spec-up-intake",
   version: 1,
   label: "Shape: Intake",
   // Internal phase, not a user-selectable flow - hidden from every picker; the
@@ -1035,8 +1035,8 @@ export const shapeIntakeFlow = flowDefinitionSchema.parse({
 // and a reviewer checks completeness against the APPROVED scope (single pass v1 -
 // the read-only clamp disables the adaptive loop; the human approves between
 // links). Terminates with reviewable draft artifacts.
-export const shapeFlow = flowDefinitionSchema.parse({
-  id: "shape",
+export const specUpFlow = flowDefinitionSchema.parse({
+  id: "spec-up",
   version: 1,
   label: "Shape",
   hidden: true,
@@ -1093,7 +1093,7 @@ export const shapeFlow = flowDefinitionSchema.parse({
         "As CTO, enumerate the RISKS: what is most likely to go wrong, the failure modes, the security and data-privacy concerns, and what is hardest to get right. For each, give a concrete mitigation. Be honest about what this plan does NOT guarantee, and call out where the user must make an informed decision.",
     },
     {
-      id: "shape-review",
+      id: "spec-up-review",
       label: "Review shape",
       kind: "review-turn",
       seat: "reviewer",
@@ -1118,8 +1118,8 @@ export const shapeFlow = flowDefinitionSchema.parse({
 // dependency-aware proposal in the VIBESTRATE_TASK marker format the existing
 // proposal parser/accept path consumes. The four seeded steps must mirror the
 // shape flow's ids + stages exactly (chain integrity).
-export const shapeRoadmapFlow = flowDefinitionSchema.parse({
-  id: "shape-roadmap",
+export const specUpRoadmapFlow = flowDefinitionSchema.parse({
+  id: "spec-up-roadmap",
   version: 1,
   label: "Shape: Roadmap",
   hidden: true,
@@ -1198,9 +1198,9 @@ export const builtinFlows: readonly FlowDefinition[] = [
   securityReviewFlow,
   expressFlow,
   scaffoldFlow,
-  shapeIntakeFlow,
-  shapeFlow,
-  shapeRoadmapFlow,
+  specUpIntakeFlow,
+  specUpFlow,
+  specUpRoadmapFlow,
 ];
 
 export function findBuiltinFlow(id: string): FlowDefinition | null {

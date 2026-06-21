@@ -4,9 +4,9 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import {
   builtinFlows,
-  shapeFlow,
-  shapeIntakeFlow,
-  shapeRoadmapFlow,
+  specUpFlow,
+  specUpIntakeFlow,
+  specUpRoadmapFlow,
 } from "../src/flows/catalog/builtin-flows.js";
 import { runSpecSchema } from "../src/core/run-launcher.js";
 import { ArtifactStore } from "../src/core/artifact-store.js";
@@ -39,7 +39,7 @@ describe("awaiting-input terminator (the marker that stops the forever-true bug)
       ],
     });
   }
-  const intake = (runId: string) => ({ runId, flow: { flowId: "shape-intake" } });
+  const intake = (runId: string) => ({ runId, flow: { flowId: "spec-up-intake" } });
 
   it("readShapeQuestions returns null once marked answered; runAwaitsInput follows", async () => {
     const root = await tempProject();
@@ -64,19 +64,19 @@ describe("shape flows", () => {
   it("registers the three chain links as built-ins", () => {
     const ids = builtinFlows.map((f) => f.id);
     expect(ids).toEqual(
-      expect.arrayContaining(["shape-intake", "shape", "shape-roadmap"]),
+      expect.arrayContaining(["spec-up-intake", "spec-up", "spec-up-roadmap"]),
     );
   });
 
   it("are read-only by construction (no step emits a diff)", () => {
-    for (const f of [shapeIntakeFlow, shapeFlow, shapeRoadmapFlow]) {
+    for (const f of [specUpIntakeFlow, specUpFlow, specUpRoadmapFlow]) {
       const writes = f.steps.some((s) => (s.outputs ?? []).includes("diff"));
       expect(writes, `${f.id} must not produce a diff`).toBe(false);
     }
   });
 
   it("the intake step emits the structured questions contract token", () => {
-    const intake = shapeIntakeFlow.steps.find((s) => s.id === "intake");
+    const intake = specUpIntakeFlow.steps.find((s) => s.id === "intake");
     expect(intake?.outputs).toContain("questions");
   });
 });
@@ -91,7 +91,7 @@ describe("shape chain integrity (Tier-2 reviewer requirement)", () => {
   const RESUME_STAGE = "executing";
 
   it("every seeded roadmap step maps to an identical shape step", () => {
-    const firstResumeIdx = shapeRoadmapFlow.steps.findIndex(
+    const firstResumeIdx = specUpRoadmapFlow.steps.findIndex(
       (s) => s.stage === RESUME_STAGE,
     );
     expect(
@@ -99,8 +99,8 @@ describe("shape chain integrity (Tier-2 reviewer requirement)", () => {
       "roadmap flow must have an executing-stage synthesis step after the seeded ones",
     ).toBeGreaterThan(0);
 
-    const seeded = shapeRoadmapFlow.steps.slice(0, firstResumeIdx);
-    const shapeById = new Map(shapeFlow.steps.map((s) => [s.id, s]));
+    const seeded = specUpRoadmapFlow.steps.slice(0, firstResumeIdx);
+    const shapeById = new Map(specUpFlow.steps.map((s) => [s.id, s]));
     for (const rs of seeded) {
       const ss = shapeById.get(rs.id);
       expect(ss, `roadmap seeds "${rs.id}" but the shape flow has no such step`).toBeDefined();
@@ -112,20 +112,20 @@ describe("shape chain integrity (Tier-2 reviewer requirement)", () => {
     // A seeded step is only seedable if it ran in the shape flow (every shape
     // step is an agent-/review-turn that writes output.md), so it must NOT be
     // marked skipWhenReadOnly (the whole flow is read-only).
-    const firstResumeIdx = shapeRoadmapFlow.steps.findIndex(
+    const firstResumeIdx = specUpRoadmapFlow.steps.findIndex(
       (s) => s.stage === RESUME_STAGE,
     );
-    const seededIds = shapeRoadmapFlow.steps
+    const seededIds = specUpRoadmapFlow.steps
       .slice(0, firstResumeIdx)
       .map((s) => s.id);
     for (const id of seededIds) {
-      const ss = shapeFlow.steps.find((s) => s.id === id)!;
+      const ss = specUpFlow.steps.find((s) => s.id === id)!;
       expect(ss.skipWhenReadOnly ?? false, `${id} must run under read-only`).toBe(false);
     }
   });
 
   it("the synthesis step runs under read-only (not skipped)", () => {
-    const synth = shapeRoadmapFlow.steps.find((s) => s.id === "synthesize");
+    const synth = specUpRoadmapFlow.steps.find((s) => s.id === "synthesize");
     expect(synth?.skipWhenReadOnly ?? false).toBe(false);
     expect(synth?.outputs).toContain("roadmap-proposal");
   });
@@ -137,7 +137,7 @@ describe("shape RunSpec contract (the launched spec)", () => {
       projectRoot: "/tmp/p",
       task: "Build a store",
       runId: "brave-otter",
-      flow: { id: "shape", brief: null },
+      flow: { id: "spec-up", brief: null },
       contextSources: [{ kind: "file", ref: ".vibestrate/runs/x/shape-answers.md", label: "answers" }],
     });
     expect(parsed.success).toBe(true);
@@ -149,7 +149,7 @@ describe("shape RunSpec contract (the launched spec)", () => {
         projectRoot: "/tmp/p",
         task: "x",
         runId: "brave-otter",
-        flow: { id: "shape-roadmap", brief: null },
+        flow: { id: "spec-up-roadmap", brief: null },
         resumeFrom: { sourceRunId: "calm-yak", fromStage },
       });
       expect(parsed.success, `fromStage ${fromStage}`).toBe(true);

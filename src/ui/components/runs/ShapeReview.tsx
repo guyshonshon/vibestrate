@@ -24,7 +24,7 @@ export function ShapeReview({ runId, flowId }: { runId: string; flowId: string |
   const [open, setOpen] = useState<Set<string>>(new Set(["scope"]));
 
   useEffect(() => {
-    if (flowId !== "shape") return;
+    if (flowId !== "spec-up") return;
     let live = true;
     void (async () => {
       const results = await Promise.all(
@@ -42,7 +42,7 @@ export function ShapeReview({ runId, flowId }: { runId: string; flowId: string |
     };
   }, [runId, flowId]);
 
-  if (flowId !== "shape") return null;
+  if (flowId !== "spec-up") return null;
   if (!docs || docs.length === 0) return null;
 
   return (
