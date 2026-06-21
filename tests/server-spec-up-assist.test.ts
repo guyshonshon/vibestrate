@@ -20,7 +20,7 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
 `;
 
 async function makeProject(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-shapeassist-srv-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-specup-assist-srv-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
   await execa("git", ["config", "user.name", "x"], { cwd: dir });

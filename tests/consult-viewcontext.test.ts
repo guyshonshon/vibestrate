@@ -51,12 +51,12 @@ describe("consult screen-aware viewContext", () => {
       projectRoot: root,
       question: "what should I put for auth?",
       viewContext: {
-        screen: "Shape questions",
+        screen: "Spec-up questions",
         details: "focused field: accounts. note: my key is AKIAIOSFODNN7EXAMPLE",
       },
       runner: capturingRunner(okAnswer, sink),
     });
-    expect(sink.prompt).toContain("Shape questions"); // screen label reached the model
+    expect(sink.prompt).toContain("Spec-up questions"); // screen label reached the model
     expect(sink.prompt).toContain("accounts"); // typed state reached the model
     expect(sink.prompt).not.toContain("AKIAIOSFODNN7EXAMPLE"); // secret scrubbed
     expect(sink.prompt).toContain("REDACTED");

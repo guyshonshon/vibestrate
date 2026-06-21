@@ -23,7 +23,7 @@ import {
 } from "../src/spec-up/spec-up-chain.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-shape-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-spec-up-"));
 }
 
 describe("awaiting-input terminator (the marker that stops the forever-true bug)", () => {
@@ -60,7 +60,7 @@ describe("awaiting-input terminator (the marker that stops the forever-true bug)
   });
 });
 
-describe("shape flows", () => {
+describe("spec-up flows", () => {
   it("registers the three chain links as built-ins", () => {
     const ids = builtinFlows.map((f) => f.id);
     expect(ids).toEqual(
@@ -85,12 +85,12 @@ describe("spec-up chain integrity (Tier-2 reviewer requirement)", () => {
   // The roadmap link resumes the spec-up run at stage "executing". seedResumedSteps
   // copies flows/<step.id>/output.md for every roadmap step BEFORE the first
   // executing step, keyed by the ROADMAP flow's step ids - so each seeded id MUST
-  // exist in the shape flow with the SAME stage, or the second link throws at seed
+  // exist in the spec-up flow with the SAME stage, or the second link throws at seed
   // time ("Cannot resume: source run is missing ..."). This invisible coupling is
   // the single riskiest failure mode; this test is the only guard against it.
   const RESUME_STAGE = "executing";
 
-  it("every seeded roadmap step maps to an identical shape step", () => {
+  it("every seeded roadmap step maps to an identical spec-up step", () => {
     const firstResumeIdx = specUpRoadmapFlow.steps.findIndex(
       (s) => s.stage === RESUME_STAGE,
     );
@@ -103,13 +103,13 @@ describe("spec-up chain integrity (Tier-2 reviewer requirement)", () => {
     const specUpById = new Map(specUpFlow.steps.map((s) => [s.id, s]));
     for (const rs of seeded) {
       const ss = specUpById.get(rs.id);
-      expect(ss, `roadmap seeds "${rs.id}" but the shape flow has no such step`).toBeDefined();
+      expect(ss, `roadmap seeds "${rs.id}" but the spec-up flow has no such step`).toBeDefined();
       expect(ss!.stage, `stage mismatch on "${rs.id}"`).toBe(rs.stage);
     }
   });
 
-  it("the shape flow actually produces output for every seeded step", () => {
-    // A seeded step is only seedable if it ran in the shape flow (every shape
+  it("the spec-up flow actually produces output for every seeded step", () => {
+    // A seeded step is only seedable if it ran in the spec-up flow (every spec-up
     // step is an agent-/review-turn that writes output.md), so it must NOT be
     // marked skipWhenReadOnly (the whole flow is read-only).
     const firstResumeIdx = specUpRoadmapFlow.steps.findIndex(
@@ -131,7 +131,7 @@ describe("spec-up chain integrity (Tier-2 reviewer requirement)", () => {
   });
 });
 
-describe("shape RunSpec contract (the launched spec)", () => {
+describe("spec-up RunSpec contract (the launched spec)", () => {
   it("the spec-up run spec the keystone builds is valid core input", () => {
     const parsed = runSpecSchema.safeParse({
       projectRoot: "/tmp/p",
@@ -157,7 +157,7 @@ describe("shape RunSpec contract (the launched spec)", () => {
   });
 });
 
-describe("shape answers I/O", () => {
+describe("spec-up answers I/O", () => {
   it("readSpecUpQuestions returns parsed questions + the carried brief", async () => {
     const root = await tempProject();
     const runId = "brave-otter";
@@ -197,7 +197,7 @@ describe("shape answers I/O", () => {
   });
 });
 
-describe("shape question id de-duplication (correctness: ids are not unique by schema)", () => {
+describe("spec-up question id de-duplication (correctness: ids are not unique by schema)", () => {
   it("suffixes colliding ids deterministically, preserving order + first occurrence", () => {
     const out = dedupeQuestionIds([
       { id: "scope", question: "a" },

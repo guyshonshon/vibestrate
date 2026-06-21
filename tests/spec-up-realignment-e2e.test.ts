@@ -8,12 +8,12 @@ import { setConfigValue } from "../src/setup/config-update-service.js";
 import { ArtifactStore } from "../src/core/artifact-store.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
-// ── P1 Shape realignment: the keystone ───────────────────────────────────────
-// Shape is a pre-flow ENRICHMENT, not a replacement. This proves the terminal
+// ── P1 Spec-up realignment: the keystone ───────────────────────────────────────
+// Spec-up is a pre-flow ENRICHMENT, not a replacement. This proves the terminal
 // handoff end to end:
 //   (production) `approveSpecUpAndBuild` reads the spec-up run's scope/spec/
 //      architecture/risks, assembles ONE approved spec, and launches the CHOSEN
-//      flow (carried via the sidecar) seeded with that spec - never a shape flow.
+//      flow (carried via the sidecar) seeded with that spec - never a spec-up flow.
 //   (consumption) driving that exact RunSpec through the real launcher, the
 //      chosen flow's FIRST agent (planner) actually receives the spec as context
 //      - it builds FROM the spec, it does not re-derive from the bare task.
@@ -62,7 +62,7 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
 const SPEC_UP_RUN = "brisk-otter";
 const MARKER = "SPEC_UP_SPEC_MARKER_77";
 
-describe("P1 Shape realignment: build from the chosen flow seeded with the spec", () => {
+describe("P1 Spec-up realignment: build from the chosen flow seeded with the spec", () => {
   let dir: string;
 
   beforeEach(async () => {
@@ -97,7 +97,7 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
     await store.writeJson("spec-up-target-flow.json", { flowId: "default" });
   });
 
-  it("assembles the approved spec and targets the CARRIED flow, not a shape flow", async () => {
+  it("assembles the approved spec and targets the CARRIED flow, not a spec-up flow", async () => {
     const res = await approveSpecUpAndBuild({ projectRoot: dir, specUpRunId: SPEC_UP_RUN });
     expect(res.flowId).toBe("default");
 
@@ -106,7 +106,7 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
       specUpPhase?: boolean;
       contextSources?: { ref?: string; label?: string }[];
     };
-    // The executor is the CHOSEN flow, marked shaped (loop guard), seeded by file.
+    // The executor is the CHOSEN flow, marked spec-up (loop guard), seeded by file.
     expect(spec.flow?.id).toBe("default");
     expect(spec.specUpPhase).toBe(true);
     expect(spec.contextSources?.[0]?.ref).toMatch(/spec-up-approved-spec\.md$/);
@@ -139,14 +139,14 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
   }, 60_000);
 
   it("the adaptive first hop: a needs-spec-up run executes spec-up-intake and writes the target sidecar", async () => {
-    // No flow, plan-worthy brief, not already shaped -> runFromSpec should run the
+    // No flow, plan-worthy brief, not already spec'd up -> runFromSpec should run the
     // read-only spec-up-intake AND persist the carried build flow as the sidecar, so
-    // the chosen flow survives intake -> shape -> build.
-    const spec = { projectRoot: dir, task: "build a mini ecommerce store", runId: "shaped-entry" };
+    // the chosen flow survives intake -> spec-up -> build.
+    const spec = { projectRoot: dir, task: "build a mini ecommerce store", runId: "spec-up-entry" };
     const out = await runFromSpec(spec);
     // It runs the intake flow, not the chosen flow, and read-only by clamp.
     expect(out.state.readOnly).toBe(true);
-    const store = new ArtifactStore(dir, "shaped-entry");
+    const store = new ArtifactStore(dir, "spec-up-entry");
     expect(await store.exists("spec-up-target-flow.json")).toBe(true);
     const sidecar = JSON.parse(await store.read("spec-up-target-flow.json")) as { flowId?: string };
     expect(sidecar.flowId).toBe("default");

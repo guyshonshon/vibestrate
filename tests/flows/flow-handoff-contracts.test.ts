@@ -337,7 +337,7 @@ describe("structured handoff contracts (panel-review end to end)", () => {
 });
 
 describe("parseFlowJsonContract robustness (real model formatting)", () => {
-  // The exact failure that broke the Shape intake live: gpt-5.5 fenced the JSON
+  // The exact failure that broke the Spec-up intake live: gpt-5.5 fenced the JSON
   // inside the VIBESTRATE_FLOW_OUTPUT markers, nested the contract under a single
   // "questions" key, and used an underscore id ("catalog_source").
   const fencedNestedUnderscore = [

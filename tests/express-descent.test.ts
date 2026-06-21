@@ -146,8 +146,8 @@ describe("computeMergeReady - express skip semantics", () => {
     ).toBe(true);
   });
 
-  it("a read-only run WITH a review step still requires APPROVED (shape blocks on changes)", () => {
-    // The shape flow HAS a reviewer: a genuine CHANGES_REQUESTED/BLOCKED must
+  it("a read-only run WITH a review step still requires APPROVED (spec-up blocks on changes)", () => {
+    // The spec-up flow HAS a reviewer: a genuine CHANGES_REQUESTED/BLOCKED must
     // still block. The P1 clause is scoped strictly to no-review-step runs.
     expect(
       computeMergeReady({

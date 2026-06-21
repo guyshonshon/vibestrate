@@ -38,7 +38,7 @@ describe("classifyObviousTrivial (deterministic tier)", () => {
   });
 });
 
-describe("classifyPlanWorthy (the adaptive Shape trigger)", () => {
+describe("classifyPlanWorthy (the adaptive spec-up trigger)", () => {
   // The corpus the Tier-2 review required: must fire on greenfield/system briefs
   // (the flagship "build a mini ecommerce store" especially) and stay OFF
   // targeted edits / trivial work.
@@ -126,8 +126,8 @@ describe("chooseRunFlow + sizing (A1)", () => {
       config: loaded.config,
       loaded,
     });
-    // Shape is now an ORTHOGONAL enrichment: the flow is the chosen/default flow,
-    // never replaced by a shape flow. The run is shaped first, then this flow runs.
+    // Spec-up is now an ORTHOGONAL enrichment: the flow is the chosen/default flow,
+    // never replaced by a spec-up flow. The run runs spec-up first, then this flow runs.
     expect(sel.flowId).not.toBe(SPEC_UP_TARGET_FLOW);
     expect(sel.flowId).toBe("default");
     expect(sel.needsSpecUp).toBe(true);
@@ -136,9 +136,9 @@ describe("chooseRunFlow + sizing (A1)", () => {
   it("P1 acceptance: --flow express + plan-worthy keeps express AND marks needsSpecUp", async () => {
     const project = await makeProject();
     const loaded = await loadConfig(project);
-    // The forced-flow short-circuit used to skip the shape decision entirely;
+    // The forced-flow short-circuit used to skip the spec-up decision entirely;
     // needsSpecUp is now layered onto every return path, so an explicit flow is
-    // honored (never replaced) AND still shaped first when the brief warrants it.
+    // honored (never replaced) AND still runs spec-up first when the brief warrants it.
     const sel = await chooseRunFlow({
       projectRoot: project,
       task: "build a mini ecommerce store",
@@ -151,7 +151,7 @@ describe("chooseRunFlow + sizing (A1)", () => {
     expect(sel.needsSpecUp).toBe(true);
   });
 
-  it("P1: a well-specified/targeted task skips shaping (needsSpecUp false)", async () => {
+  it("P1: a well-specified/targeted task skips spec-up (needsSpecUp false)", async () => {
     const project = await makeProject();
     const loaded = await loadConfig(project);
     const sel = await chooseRunFlow({

@@ -84,12 +84,12 @@ describe("deep-questioning loop e2e", () => {
     expect(doc).toContain("Round 1");
   });
 
-  it("finalizes at the round-4 cap (the shape flow, not a 5th gap-check)", async () => {
+  it("finalizes at the round-4 cap (the spec-up flow, not a 5th gap-check)", async () => {
     await stageRound("round-4", { round: 4, rootRunId: "root-x", targetFlowId: "express", questions: [q("scale", "constraints")] });
     const r = await submitSpecUpAnswers({ projectRoot: dir, sourceRunId: "round-4", answers: [{ id: "scale", answer: "small" }] });
     expect(r.action).toBe("finalize");
     const spec = captured.specs.at(-1);
-    expect(spec.flow.id).toBe("spec-up"); // the shaping flow, NOT spec-up-intake
+    expect(spec.flow.id).toBe("spec-up"); // the spec-up flow, NOT spec-up-intake
     expect(spec.specUpTargetFlowId).toBe("express"); // target survives the whole loop
   });
 

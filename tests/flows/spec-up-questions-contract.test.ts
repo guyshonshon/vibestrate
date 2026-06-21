@@ -13,7 +13,7 @@ const baseQ = {
   options: ["yes", "no"],
 };
 
-describe("shape question contract: model-emitted category", () => {
+describe("spec-up question contract: model-emitted category", () => {
   it("requires a category from the fixed set", () => {
     // category is now a required, model-judged field.
     expect(flowSpecUpQuestionSchema.safeParse(baseQ).success).toBe(false);
