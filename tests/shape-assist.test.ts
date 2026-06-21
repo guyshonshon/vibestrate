@@ -65,7 +65,7 @@ async function seedRun(root: string, runId: string, answersDoc?: string) {
     stepId: "intake",
     questions: Q,
   });
-  if (answersDoc !== undefined) await store.write("shape-answers.md", answersDoc);
+  if (answersDoc !== undefined) await store.write("spec-up-answers.md", answersDoc);
 }
 
 describe("shapeSimplify", () => {

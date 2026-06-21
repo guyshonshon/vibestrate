@@ -92,7 +92,7 @@ describe("readShapeQuestions: server-stamped round + coverageComplete", () => {
       stepId: "intake",
       questions: [q("accounts", "users")],
     });
-    await store.writeJson("shape-round.json", { round: 3 });
+    await store.writeJson("spec-up-round.json", { round: 3 });
     const pending = await readShapeQuestions(root, "brave-otter");
     expect(pending?.round).toBe(3);
     expect(pending?.questions[0]?.round).toBe(3);

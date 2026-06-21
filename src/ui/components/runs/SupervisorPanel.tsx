@@ -54,7 +54,7 @@ function flowStory(sel: WorkflowSelectionView): string {
     }
     case "sized":
       return `sized this task to ${sel.flowId}${reason ? ` - ${reason}` : ""}`;
-    case "shaped":
+    case "spec-up":
       return `routed this brief into shaping first${reason ? ` - ${reason}` : ""}`;
     case "selected":
       return `chose ${sel.flowId} (${sel.confidence} confidence)${reason ? ` - ${reason}` : ""}`;
@@ -73,7 +73,7 @@ function selectionStory(sel: WorkflowSelectionView | null): string | null {
   if (!sel) return null;
   // Adaptive Shape (P1): the brief is under-specified, so it is shaped FIRST
   // (a read-only intake -> spec) and the chosen flow then builds from the spec.
-  if (sel.needsShaping) {
+  if (sel.needsSpecUp) {
     return `shaped this brief first, then builds with ${sel.flowId} from the approved spec`;
   }
   return flowStory(sel);

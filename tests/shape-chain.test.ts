@@ -138,7 +138,7 @@ describe("shape RunSpec contract (the launched spec)", () => {
       task: "Build a store",
       runId: "brave-otter",
       flow: { id: "spec-up", brief: null },
-      contextSources: [{ kind: "file", ref: ".vibestrate/runs/x/shape-answers.md", label: "answers" }],
+      contextSources: [{ kind: "file", ref: ".vibestrate/runs/x/spec-up-answers.md", label: "answers" }],
     });
     expect(parsed.success).toBe(true);
   });

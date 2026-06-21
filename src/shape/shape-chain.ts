@@ -44,23 +44,23 @@ const INTAKE_QUESTIONS_PATH = "flows/intake/questions.json";
 // its questions.json never goes away).
 const ANSWERED_PATH = "flows/intake/answered.json";
 const IDEA_PATH = "00-idea.md";
-const ANSWERS_PATH = "shape-answers.md";
+const ANSWERS_PATH = "spec-up-answers.md";
 const SYNTHESIZE_OUTPUT_PATH = "flows/synthesize/output.md";
 /** The flow to BUILD after shaping (P1), written at run start by the orchestrator
  *  and carried across the detached chain (intake -> shape -> build). */
-const TARGET_FLOW_PATH = "shape-target-flow.json";
+const TARGET_FLOW_PATH = "spec-up-target-flow.json";
 /** Deep-questioning loop (server-owned): the current round, written at run start
- *  from RunSpec.shapeRound. */
-const ROUND_PATH = "shape-round.json";
+ *  from RunSpec.specUpRound. */
+const ROUND_PATH = "spec-up-round.json";
 /** Deep-questioning loop: the FIRST intake run id (the chain root), where the
  *  accumulated cross-round answers live. Carried forward so every gap-check round
  *  appends to one growing doc instead of overwriting. */
-const ROOT_RUN_PATH = "shape-root-run.json";
+const ROOT_RUN_PATH = "spec-up-root-run.json";
 /** Hard cap on questioning rounds. Server-enforced: the loop NEVER asks past this,
  *  regardless of what the model judges - it finalizes into the spec instead. This
  *  is the anti-interrogation brake. */
 export const ROUND_CAP = 4;
-const APPROVED_SPEC_PATH = "shape-approved-spec.md";
+const APPROVED_SPEC_PATH = "spec-up-approved-spec.md";
 /** The shape flow's spec-producing step outputs, concatenated into the spec that
  *  seeds the chosen build flow. Step id -> output.md (see builtin-flows specUpFlow). */
 const SHAPE_SPEC_STEPS = ["scope", "spec", "architecture", "risks"] as const;
@@ -307,7 +307,7 @@ export function appendAnswersDoc(
 /**
  * Resolve the chain root (where accumulated answers live) for the run being
  * answered. A round-1 intake run is its own root; gap-check rounds carry the root
- * id forward via the `shape-root-run.json` sidecar.
+ * id forward via the `spec-up-root-run.json` sidecar.
  */
 async function resolveRootRunId(
   projectRoot: string,
@@ -360,8 +360,8 @@ async function finalizeShapeSpec(input: {
     runId,
     // A shape-phase run: never re-shaped (loop guard). The chosen build flow is
     // carried forward so the `approve & build` handoff can target it (P1).
-    shaped: true,
-    shapeTargetFlowId: input.targetFlowId,
+    specUpPhase: true,
+    specUpTargetFlowId: input.targetFlowId,
     flow: { id: "spec-up", brief: null },
     contextSources: [{ kind: "file", ref, label: "Shape: intake answers" }],
   };
@@ -436,10 +436,10 @@ export async function submitShapeAnswers(input: {
     projectRoot,
     task: pending.task || "Shape this work (brief carried from intake).",
     runId,
-    shaped: true,
-    shapeTargetFlowId: pending.targetFlowId,
-    shapeRound: decision.nextRound,
-    shapeRootRunId: rootRunId,
+    specUpPhase: true,
+    specUpTargetFlowId: pending.targetFlowId,
+    specUpRound: decision.nextRound,
+    specUpRootRunId: rootRunId,
     flow: { id: "spec-up-intake", brief: null },
     contextSources: [{ kind: "file", ref, label: "Shape: answers so far" }],
   };
@@ -498,7 +498,7 @@ export async function approveShapeAndStartRoadmap(input: {
     projectRoot: input.projectRoot,
     task,
     runId,
-    shaped: true,
+    specUpPhase: true,
     flow: { id: "spec-up-roadmap", brief: null },
     resumeFrom: { sourceRunId: input.shapeRunId, fromStage: "executing" },
   };
@@ -583,7 +583,7 @@ export async function approveShapeAndBuild(input: {
     runId,
     // The executor: already shaped, so it runs the chosen flow directly (loop
     // guard) seeded with the approved spec as context.
-    shaped: true,
+    specUpPhase: true,
     flow: { id: flowId, brief: null },
     contextSources: [{ kind: "file", ref, label: "Shape: approved spec" }],
   };
@@ -638,12 +638,12 @@ export async function startShapeIntake(input: {
     persona: input.persona ?? null,
     // The intake run IS the shape phase: never re-shaped (loop guard); it carries
     // the chosen build flow forward via the shape-target sidecar.
-    shaped: true,
-    shapeTargetFlowId: input.targetFlowId ?? null,
+    specUpPhase: true,
+    specUpTargetFlowId: input.targetFlowId ?? null,
     // Round 1 of the deep-questioning loop; this run is its own chain root (where
     // accumulated answers will live).
-    shapeRound: 1,
-    shapeRootRunId: runId,
+    specUpRound: 1,
+    specUpRootRunId: runId,
     flow: { id: "spec-up-intake", brief: null },
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });

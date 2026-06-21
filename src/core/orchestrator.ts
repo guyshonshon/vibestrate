@@ -331,14 +331,14 @@ export type OrchestratorInput = {
   selection?: WorkflowSelection | null;
   /** Adaptive Shape (P1): the flow the chain should BUILD after shaping. Set on a
    *  shape-phase run (intake/shape) so the chosen flow is carried across the
-   *  detached chain; persisted as the `shape-target-flow.json` sidecar at run
+   *  detached chain; persisted as the `spec-up-target-flow.json` sidecar at run
    *  start and read by the `approve & build` handoff. null = no build target. */
-  shapeTargetFlowId?: string | null;
+  specUpTargetFlowId?: string | null;
   /** Deep-questioning loop: the round this intake run represents + the chain-root
-   *  run id (where accumulated answers live). Persisted as `shape-round.json` /
-   *  `shape-root-run.json` sidecars at run start, read by the shape-chain. */
-  shapeRound?: number | null;
-  shapeRootRunId?: string | null;
+   *  run id (where accumulated answers live). Persisted as `spec-up-round.json` /
+   *  `spec-up-root-run.json` sidecars at run start, read by the shape-chain. */
+  specUpRound?: number | null;
+  specUpRootRunId?: string | null;
   /** Permission mode (T14 P4): read-only / ask / accept-edits / auto. The
    *  model-agnostic policy Vibestrate applies to this run's writes. Omitted ⇒
    *  config.policies.defaultPermissionMode (default "auto"). */
@@ -593,9 +593,9 @@ export class Orchestrator {
   private ledgerInjected = false;
   private readonly abortSignal: AbortSignal | null;
   private readonly selection: WorkflowSelection | null;
-  private readonly shapeTargetFlowId: string | null;
-  private readonly shapeRound: number | null;
-  private readonly shapeRootRunId: string | null;
+  private readonly specUpTargetFlowId: string | null;
+  private readonly specUpRound: number | null;
+  private readonly specUpRootRunId: string | null;
   /** Container/cloud execution strategy (T14 slice 2), set at run startup when
    *  execution.backend runs turns off-host. null ⇒ host execution. */
   private execStrategy: ExecStrategy | null = null;
@@ -653,9 +653,9 @@ export class Orchestrator {
     this.contextSources = input.contextSources ?? [];
     this.abortSignal = input.abortSignal ?? null;
     this.selection = input.selection ?? null;
-    this.shapeTargetFlowId = input.shapeTargetFlowId ?? null;
-    this.shapeRound = input.shapeRound ?? null;
-    this.shapeRootRunId = input.shapeRootRunId ?? null;
+    this.specUpTargetFlowId = input.specUpTargetFlowId ?? null;
+    this.specUpRound = input.specUpRound ?? null;
+    this.specUpRootRunId = input.specUpRootRunId ?? null;
   }
 
   /** Resolve the `default` flow against this run's config. Used when a run
@@ -942,21 +942,21 @@ export class Orchestrator {
     // spec is approved. The chain is detached runs glued by artifacts, so the
     // chosen flow id rides as a small sidecar (read by readShapeQuestions and the
     // `approve & build` handoff) - no run-state schema change, no durable pause.
-    if (this.shapeTargetFlowId) {
-      await artifactStore.writeJson("shape-target-flow.json", {
-        flowId: this.shapeTargetFlowId,
+    if (this.specUpTargetFlowId) {
+      await artifactStore.writeJson("spec-up-target-flow.json", {
+        flowId: this.specUpTargetFlowId,
       });
     }
 
     // Deep-questioning loop: persist the server-owned round counter + the chain
     // root (where accumulated answers live), so the next gap-check round resolves
     // them from disk - never from the model or the request body.
-    if (this.shapeRound !== null) {
-      await artifactStore.writeJson("shape-round.json", { round: this.shapeRound });
+    if (this.specUpRound !== null) {
+      await artifactStore.writeJson("spec-up-round.json", { round: this.specUpRound });
     }
-    if (this.shapeRootRunId) {
-      await artifactStore.writeJson("shape-root-run.json", {
-        rootRunId: this.shapeRootRunId,
+    if (this.specUpRootRunId) {
+      await artifactStore.writeJson("spec-up-root-run.json", {
+        rootRunId: this.specUpRootRunId,
       });
     }
 
@@ -969,11 +969,11 @@ export class Orchestrator {
       (this.selection.source === "selected" ||
         this.selection.source === "supervisor-upgraded" ||
         this.selection.source === "sized" ||
-        this.selection.source === "shaped" ||
+        this.selection.source === "spec-up" ||
         // Adaptive Shape (P1): a needs-shaping run is an orchestrator judgment
         // worth recording even on the `default`/`forced` source, so the
         // dashboard can narrate "shaped first, then builds with <flow>".
-        this.selection.needsShaping === true)
+        this.selection.needsSpecUp === true)
     ) {
       await artifactStore.writeJson("selection.json", this.selection);
       await eventLog.append({

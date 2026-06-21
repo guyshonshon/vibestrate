@@ -468,7 +468,7 @@ export const projectConfigBaseSchema = z.object({
    * call; `off` reproduces the pre-sizing behavior exactly.
    */
   flowSizing: z.enum(["off", "deterministic", "assisted"]).default("deterministic").describe("Route trivial tasks to a lighter flow: off, deterministic, or assisted (default deterministic)."),
-  adaptiveShape: z.enum(["off", "auto"]).default("auto").describe("Route plan-worthy greenfield/system briefs into the read-only Shape chain before executing: off or auto (default auto)."),
+  adaptiveSpecUp: z.enum(["off", "auto"]).default("auto").describe("Route plan-worthy greenfield/system briefs into the read-only Shape chain before executing: off or auto (default auto)."),
   budget: budgetConfigSchema,
   resilience: resilienceConfigSchema,
   session: sessionConfigSchema,

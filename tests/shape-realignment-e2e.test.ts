@@ -94,7 +94,7 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
     await store.write("flows/spec/output.md", "Spec: checkout via a payment provider.");
     await store.write("flows/architecture/output.md", "Architecture: a single web app.");
     await store.write("flows/risks/output.md", "Risks: handling card data.");
-    await store.writeJson("shape-target-flow.json", { flowId: "default" });
+    await store.writeJson("spec-up-target-flow.json", { flowId: "default" });
   });
 
   it("assembles the approved spec and targets the CARRIED flow, not a shape flow", async () => {
@@ -103,13 +103,13 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
 
     const spec = captured.specs.at(-1) as {
       flow?: { id?: string };
-      shaped?: boolean;
+      specUpPhase?: boolean;
       contextSources?: { ref?: string; label?: string }[];
     };
     // The executor is the CHOSEN flow, marked shaped (loop guard), seeded by file.
     expect(spec.flow?.id).toBe("default");
-    expect(spec.shaped).toBe(true);
-    expect(spec.contextSources?.[0]?.ref).toMatch(/shape-approved-spec\.md$/);
+    expect(spec.specUpPhase).toBe(true);
+    expect(spec.contextSources?.[0]?.ref).toMatch(/spec-up-approved-spec\.md$/);
 
     // The assembled spec carries every section + the marker (fail-fast guard met).
     const specDoc = await fs.readFile(
@@ -147,8 +147,8 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
     // It runs the intake flow, not the chosen flow, and read-only by clamp.
     expect(out.state.readOnly).toBe(true);
     const store = new ArtifactStore(dir, "shaped-entry");
-    expect(await store.exists("shape-target-flow.json")).toBe(true);
-    const sidecar = JSON.parse(await store.read("shape-target-flow.json")) as { flowId?: string };
+    expect(await store.exists("spec-up-target-flow.json")).toBe(true);
+    const sidecar = JSON.parse(await store.read("spec-up-target-flow.json")) as { flowId?: string };
     expect(sidecar.flowId).toBe("default");
   }, 60_000);
 
@@ -157,7 +157,7 @@ describe("P1 Shape realignment: build from the chosen flow seeded with the spec"
     const store = new ArtifactStore(dir, empty);
     await store.init();
     await store.write("00-idea.md", "# Task\n\nx\n");
-    await store.writeJson("shape-target-flow.json", { flowId: "default" });
+    await store.writeJson("spec-up-target-flow.json", { flowId: "default" });
     await expect(
       approveShapeAndBuild({ projectRoot: dir, shapeRunId: empty }),
     ).rejects.toBeInstanceOf(ShapeChainError);

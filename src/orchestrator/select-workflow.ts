@@ -37,7 +37,7 @@ export type WorkflowSelectionSource =
   | "selected"
   | "only-flow"
   | "sized"
-  | "shaped"
+  | "spec-up"
   | "supervisor-upgraded";
 export type WorkflowPosture = "normal" | "sandbox-suggested" | "approval-suggested";
 
@@ -58,7 +58,7 @@ export type WorkflowSelection = {
    *  FIRST (read-only intake -> spec) and then `flowId` (the chosen/default
    *  flow, NOT a shape flow) executes seeded with that spec. Orthogonal to flow
    *  selection - any flow can be shaped. Omitted/false = run the flow directly. */
-  needsShaping?: boolean;
+  needsSpecUp?: boolean;
   confidence: "low" | "medium" | "high";
   reasons: string[];
   risks: string[];
@@ -274,7 +274,7 @@ export type ChooseRunFlowInput = {
   /** Loop guard (P1): this run is itself a shape-phase run (intake/shape/roadmap)
    *  or the post-shape executor launched from the chain. Suppresses adaptive
    *  shaping so a shaped run never re-enters shaping. */
-  shaped?: boolean;
+  specUpPhase?: boolean;
   files?: string[];
   loaded?: LoadedConfig | null;
   signal?: AbortSignal;
@@ -351,18 +351,18 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
   // is shaped FIRST (read-only intake -> spec) and then the CHOSEN flow runs
   // seeded with that spec - the chosen flow is never replaced by a shape flow.
   // Suppressed for a shape-phase/executor run (`shaped`), with --no-select, or
-  // when `adaptiveShape: "off"`. classifyPlanWorthy biases to execute (fires
+  // when `adaptiveSpecUp: "off"`. classifyPlanWorthy biases to execute (fires
   // only on a clear build-a-system reading, never when a concrete file is named).
-  const needsShaping =
-    !input.shaped &&
+  const needsSpecUp =
+    !input.specUpPhase &&
     !input.noSelect &&
-    (input.config.adaptiveShape ?? "auto") !== "off" &&
+    (input.config.adaptiveSpecUp ?? "auto") !== "off" &&
     classifyPlanWorthy(input.task).planWorthy;
   const tag = (s: WorkflowSelection): WorkflowSelection => ({
     ...s,
     personaId: persona.id,
     personaUpgrade: s.personaUpgrade ?? null,
-    needsShaping,
+    needsSpecUp,
   });
   const upgrade = (base: WorkflowSelection): Promise<WorkflowSelection> =>
     maybeUpgradeForPersona({

@@ -77,16 +77,16 @@ export const runSpecSchema = z.object({
   /** Adaptive Shape (P1): true marks this run as a shape-phase run (intake/shape/
    *  roadmap) or the post-shape executor, so it is NOT itself re-shaped (loop
    *  guard). Omitted = a normal user run, eligible for adaptive shaping. */
-  shaped: z.boolean().optional(),
+  specUpPhase: z.boolean().optional(),
   /** Adaptive Shape (P1): the flow to BUILD once shaping is approved. Carried
-   *  across the detached chain via the `shape-target-flow.json` sidecar. */
-  shapeTargetFlowId: z.string().min(1).max(80).nullable().optional(),
+   *  across the detached chain via the `spec-up-target-flow.json` sidecar. */
+  specUpTargetFlowId: z.string().min(1).max(80).nullable().optional(),
   /** Deep-questioning loop: the round this intake run represents (server-owned,
-   *  never model-emitted). Persisted as the `shape-round.json` sidecar. */
-  shapeRound: z.number().int().min(1).max(20).nullable().optional(),
+   *  never model-emitted). Persisted as the `spec-up-round.json` sidecar. */
+  specUpRound: z.number().int().min(1).max(20).nullable().optional(),
   /** Deep-questioning loop: the chain-root run id where accumulated cross-round
-   *  answers live. Persisted as the `shape-root-run.json` sidecar. */
-  shapeRootRunId: z.string().min(1).max(200).nullable().optional(),
+   *  answers live. Persisted as the `spec-up-root-run.json` sidecar. */
+  specUpRootRunId: z.string().min(1).max(200).nullable().optional(),
   flow: z
     .object({
       id: z.string().min(1).max(80),
@@ -270,7 +270,7 @@ export async function runFromSpec(
       forcedFlowId: spec.flow?.id ?? null,
       forceSelect: spec.select === true,
       noSelect: spec.select === false,
-      shaped: spec.shaped === true,
+      specUpPhase: spec.specUpPhase === true,
       personaOverride: spec.persona ?? null,
       loaded,
       signal: opts.abortSignal,
@@ -281,12 +281,12 @@ export async function runFromSpec(
   // becomes the read-only `shape-intake` run (emits the gap questions); the
   // CHOSEN flow (selection.flowId) is carried to the post-shape `approve & build`
   // handoff via the shape-target sidecar - it is never replaced. The loop guard
-  // (`spec.shaped`) keeps shape-phase / executor runs from re-entering shaping.
-  const willShape = selection?.needsShaping === true && spec.shaped !== true;
-  const shapeTargetFlowId = willShape
+  // (`spec.specUpPhase`) keeps shape-phase / executor runs from re-entering shaping.
+  const willSpecUp = selection?.needsSpecUp === true && spec.specUpPhase !== true;
+  const specUpTargetFlowId = willSpecUp
     ? (selection?.flowId ?? spec.flow?.id ?? null)
-    : (spec.shapeTargetFlowId ?? null);
-  const effectiveFlowId = willShape
+    : (spec.specUpTargetFlowId ?? null);
+  const effectiveFlowId = willSpecUp
     ? SPEC_UP_TARGET_FLOW
     : (selection?.flowId ?? spec.flow?.id ?? null);
   // Apply a recommended crew only when the request didn't specify one.
@@ -354,9 +354,9 @@ export async function runFromSpec(
     resumeFrom,
     checklistMode: spec.checklistMode ?? null,
     contextSources: contextSources ?? [],
-    shapeTargetFlowId,
-    shapeRound: spec.shapeRound ?? null,
-    shapeRootRunId: spec.shapeRootRunId ?? null,
+    specUpTargetFlowId,
+    specUpRound: spec.specUpRound ?? null,
+    specUpRootRunId: spec.specUpRootRunId ?? null,
     // Permission mode (P4): explicit spec value, else the legacy readOnly alias,
     // else config default (resolved in the orchestrator).
     permissionMode: spec.permissionMode ?? (readOnly ? "read-only" : undefined),

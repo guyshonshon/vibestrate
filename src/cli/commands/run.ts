@@ -250,7 +250,7 @@ export async function runRunCommand(
   let selection: WorkflowSelection | null = null;
   // Adaptive Shape (P1): the chosen flow to BUILD after shaping (carried via the
   // shape-target sidecar). Set when chooseRunFlow marks the brief needs-shaping.
-  let shapeTargetFlowId: string | null = null;
+  let specUpTargetFlowId: string | null = null;
   if (!options.resumeFromRunId && !options.checklistMode) {
     try {
       selection = await chooseRunFlow({
@@ -267,8 +267,8 @@ export async function runRunCommand(
       if (selection.crewId && !activeCrewId) activeCrewId = selection.crewId;
       // Under-specified brief: run the read-only `shape-intake` first and carry
       // the chosen flow to the post-shape build, rather than executing it now.
-      if (selection.needsShaping) {
-        shapeTargetFlowId = selection.flowId;
+      if (selection.needsSpecUp) {
+        specUpTargetFlowId = selection.flowId;
         activeFlowId = SPEC_UP_TARGET_FLOW;
       }
     } catch (err) {
@@ -590,7 +590,7 @@ export async function runRunCommand(
     concise: options.concise ?? false,
     flow: resolvedFlow,
     selection,
-    shapeTargetFlowId,
+    specUpTargetFlowId,
     resumeFrom,
     checklistMode: options.checklistMode ?? null,
     contextSources: options.contextSources ?? [],
@@ -860,7 +860,7 @@ function printFlowChoice(label: string, selection: WorkflowSelection): void {
     selected: `selected · ${selection.confidence} confidence`,
     "only-flow": "only flow",
     sized: "sized (trivial task; back gates stay diff-decided)",
-    shaped: "shaped (plan-worthy brief; read-only Shape chain)",
+    "spec-up": "spec-up (plan-worthy brief; read-only spec-up chain)",
     "supervisor-upgraded": "supervisor-upgraded",
   };
   console.log("");
@@ -873,13 +873,13 @@ function printFlowChoice(label: string, selection: WorkflowSelection): void {
   console.log(
     `${header("Flow:")} ${color.bold(label)} ${color.dim(`(${selection.flowId})`)}  ${color.dim("·")}  ${color.cyan(sourceLabel[selection.source])}`,
   );
-  // Adaptive Shape (P1): the brief is under-specified, so it is shaped FIRST
-  // (a read-only intake -> spec) and the chosen flow then builds from the spec.
-  if (selection.needsShaping) {
+  // Adaptive spec-up (P1): the brief is under-specified, so it goes through
+  // spec-up FIRST (a read-only intake -> spec) and the chosen flow then builds.
+  if (selection.needsSpecUp) {
     console.log(
       indent(
         `${symbol.arrow()} ${color.cyan(
-          `Under-specified brief - shaping first (read-only intake -> spec); "${selection.flowId}" then builds from the approved spec.`,
+          `Under-specified brief - spec-up first (read-only intake -> spec); "${selection.flowId}" then builds from the approved spec.`,
         )}`,
       ),
     );
@@ -887,7 +887,7 @@ function printFlowChoice(label: string, selection: WorkflowSelection): void {
   if (
     (selection.source === "selected" ||
       selection.source === "supervisor-upgraded" ||
-      selection.source === "shaped") &&
+      selection.source === "spec-up") &&
     selection.reasons.length
   ) {
     console.log(indent(color.dim(selection.reasons[selection.reasons.length - 1]!)));

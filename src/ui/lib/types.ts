@@ -362,11 +362,11 @@ export type WorkflowSelectionView = {
     | "selected"
     | "only-flow"
     | "sized"
-    | "shaped"
+    | "spec-up"
     | "supervisor-upgraded";
   /** Adaptive Shape (P1): the brief is under-specified, so the run is shaped
    *  first and then `flowId` executes seeded with the derived spec. */
-  needsShaping?: boolean;
+  needsSpecUp?: boolean;
   confidence: "low" | "medium" | "high";
   reasons: string[];
   risks: string[];
