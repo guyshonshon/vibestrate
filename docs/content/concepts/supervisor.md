@@ -25,6 +25,12 @@ Each supervisor knows which changes deserve extra caution. The built-in `staff-e
 **An honest label on the review.**
 If the same AI that wrote the code also reviewed it, the run is marked `single-profile`. That is a self-check, and a self-check can only lower confidence, not raise it. If a genuinely different AI did the review, it's marked `cross-model`.
 
+**What the reviewers look for.**
+A supervisor's review **lenses** aim the reviewers at specific things. The `security` supervisor points them at authorization, secrets, and injection; the default `staff-engineer` points them at correctness, tests, and security risk. Switching supervisor genuinely changes what the reviewers scrutinise on the same diff, and which lenses ran is recorded. Lenses come from a fixed vocabulary, so a project can't smuggle free-form instructions into a reviewer's prompt.
+
+**A posture nudge for risky work.**
+A supervisor can suggest a heavier execution posture for risk-tagged tasks - the `security` supervisor suggests `sandbox-suggested`. It is advisory: a suggestion surfaced to you, never a gate, and never a downgrade. The default supervisor stays posture-neutral.
+
 </div>
 
 These two labels tell you how much the sign-off is worth at a glance:

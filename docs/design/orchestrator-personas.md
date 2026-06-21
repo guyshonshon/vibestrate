@@ -8,9 +8,18 @@ the honest `independence` label on run-assurance all landed. **A second persona
 `security` + its `security-review` panel shipped (0.7.31)** - it earns its place
 by routing risk-tagged tasks to authn/authz + secrets + injection lenses (a
 different review than `staff-engineer`), reusing the upgrade (no dynamic flow
-rewriting). Deferred (per the "Minimal first slice" + "Cut-list" below): persona
-reviewLens *filtering* of a single panel, mid-run auto-escalation / state changes,
-an authoring UI, and the design catalog entry (earns its place with evidence). This
+rewriting). **reviewLens filtering + a `prefersPosture` nudge SHIPPED (0.19.0).** A persona's
+`reviewLenses` are now mapped through a CLOSED vocabulary (`review-lenses.ts`) to
+fixed review-emphasis fragments and injected into the independent-reviewer turns
+(never the arbiter) - so switching persona changes WHAT the reviewers scrutinise,
+recorded as a `supervisor.review_lenses` event. An additive `prefersPosture`
+persona field nudges the run's posture UP (advisory, never a gate, never a
+downgrade) on a risk-signal match; the default `staff-engineer` stays
+posture-neutral, the `security` built-in prefers `sandbox-suggested`. Still
+deferred (per the "Minimal first slice" + "Cut-list" below): mid-run
+auto-escalation / state changes, an authoring UI (deferred hard), the design
+catalog entry (earns its place with evidence), and deterministic persona->crew
+selection (an open question). This
 extends `responsible-orchestrator.md` (the spine: the
 orchestrator owns judgment, bounded by deterministic evidence). It does not
 introduce a new execution engine; a "persona" resolves to mechanisms that

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.19.0
+
+- **Supervisors now aim the reviewers, not just label them.** A supervisor's
+  review lenses used to be descriptive text shown in the UI. They now actually
+  steer the independent reviewers: the `security` supervisor points them at
+  authorization, secrets, and injection; the default `staff-engineer` at
+  correctness, tests, and security risk. Switch supervisor and the reviewers
+  scrutinise the same diff differently - and which lenses ran is recorded on the
+  run. Lenses come from a fixed vocabulary, so a project persona can't smuggle
+  free-form instructions into a reviewer's prompt, and the binding arbiter is
+  never aimed (only the lensed reviewers).
+- **A supervisor can suggest a heavier posture for risky work.** A new
+  `prefersPosture` field lets a supervisor nudge a risk-tagged run toward a
+  sandbox or approval posture (the `security` supervisor suggests sandbox). It's
+  advisory - a suggestion surfaced to you, never a gate and never a downgrade -
+  and the default supervisor stays neutral, so plain runs are unchanged.
+
 ## 0.18.1
 
 - **Git tree: resolved merges keep your whole file and its line endings.**

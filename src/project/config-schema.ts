@@ -420,10 +420,13 @@ export const personaConfigSchema = z
       .default(null)
       .describe("Advisory posture this persona suggests for risky tasks (null = none)."),
     /**
-     * Descriptive lens-set shown in the UI (what this persona inspects). Not yet
-     * enforced as a panel-review filter this slice - that is a follow-up.
+     * The lens-set the independent reviewers are aimed at. Mapped through a CLOSED
+     * vocabulary (orchestrator/review-lenses.ts) to fixed review-emphasis prompt
+     * fragments and injected into reviewer turns (not the arbiter) - a lens outside
+     * the vocabulary is shown but never injected, so a project can't smuggle
+     * free-form instructions into a reviewer's prompt.
      */
-    reviewLenses: z.array(z.string().min(1).max(40)).default([]).describe("Descriptive review lenses shown in the UI (default none)."),
+    reviewLenses: z.array(z.string().min(1).max(40)).default([]).describe("Review lenses that aim the reviewers (closed vocabulary; unknown lenses are display-only)."),
   })
   .strict();
 export type PersonaConfig = z.infer<typeof personaConfigSchema>;
