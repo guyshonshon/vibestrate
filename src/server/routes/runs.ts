@@ -523,6 +523,36 @@ export async function registerRunsRoutes(
     },
   );
 
+  // Per-item review verdicts (Shape B, pickup-review flow). Returns the
+  // arbitration outcome for every checklist item: approved / changes_requested /
+  // none. Read-only; derived live from the per-item arbitration ledgers.
+  // 404s when the run is unknown (fail-closed).
+  app.get<{ Params: { runId: string } }>(
+    "/api/runs/:runId/checklist-verdicts",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const stateFile = runStatePath(projectRoot, req.params.runId);
+      if (!(await pathExists(stateFile))) {
+        throw new HttpError(404, `Run ${req.params.runId} not found.`);
+      }
+      const raw = await readJson<unknown>(stateFile);
+      const parsed = runStateSchema.safeParse(raw);
+      if (!parsed.success) {
+        throw new HttpError(500, "Run state.json is invalid.");
+      }
+      const itemCount = parsed.data.checklistProgress?.total ?? 0;
+      const { collectPerItemVerdicts } = await import(
+        "../../flows/runtime/per-item-verdicts.js"
+      );
+      const verdicts = await collectPerItemVerdicts({
+        projectRoot,
+        runId: req.params.runId,
+        itemCount,
+      });
+      return { verdicts };
+    },
+  );
+
   // The orchestrator's flow-selection record (Slice 2), when the run's flow was
   // selected. null for forced/default runs (their flow is in flow.json).
   app.get<{ Params: { runId: string } }>(

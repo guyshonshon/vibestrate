@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ChevronRight, Cpu, GitBranch, Wrench, Bot, ShieldQuestion } from "lucide-react";
-import type { RunAudit, AuditStep, EngagementEntry } from "../../lib/types.js";
+import type { RunAudit, AuditStep, EngagementEntry, PerItemVerdict } from "../../lib/types.js";
 
 // ── Live run node-tree ───────────────────────────────────────────────────────
 // The supervisor + agents, as a tree, refreshed on the run-detail poll. The flow
@@ -324,12 +324,104 @@ function Leaf({ icon, label }: { icon: React.ReactNode; label: string }) {
   );
 }
 
+const VERDICT_INK: Record<PerItemVerdict["verdict"], string> = {
+  approved: "var(--s-ok-ink)",
+  changes_requested: "var(--s-warn-ink)",
+  none: "var(--s-ink-faint)",
+};
+
+const VERDICT_FILL: Record<PerItemVerdict["verdict"], string> = {
+  approved: "var(--s-ok)",
+  changes_requested: "rgba(245, 158, 11, 0.13)",
+  none: "var(--s-slab-2)",
+};
+
+const VERDICT_LABEL: Record<PerItemVerdict["verdict"], string> = {
+  approved: "approved",
+  changes_requested: "changes requested",
+  none: "no verdict",
+};
+
+function ChecklistVerdictsPanel({ verdicts }: { verdicts: PerItemVerdict[] }) {
+  if (verdicts.length === 0) return null;
+  return (
+    <div
+      style={{
+        marginTop: 10,
+        borderTop: "1px solid var(--s-line)",
+        paddingTop: 8,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 10.5,
+          fontWeight: 700,
+          color: "var(--s-ink-faint)",
+          letterSpacing: 0.3,
+          marginBottom: 6,
+        }}
+      >
+        Per-item review verdicts
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {verdicts.map((v) => (
+          <div
+            key={v.itemIndex}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              fontSize: 11.5,
+            }}
+          >
+            {/* static status dot - no pulse, no animation */}
+            <span
+              aria-hidden
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: 7,
+                flexShrink: 0,
+                background: VERDICT_FILL[v.verdict],
+                border: `1.5px solid ${VERDICT_INK[v.verdict]}`,
+              }}
+            />
+            <span style={{ color: "var(--s-ink-dim)", minWidth: 60 }}>
+              Item {v.itemIndex + 1}
+            </span>
+            {/* flat tinted text label - no pill rounding */}
+            <span
+              style={{
+                fontSize: 10.5,
+                padding: "1px 5px",
+                borderRadius: 3,
+                color: VERDICT_INK[v.verdict],
+                background: VERDICT_FILL[v.verdict],
+                fontWeight: 600,
+              }}
+            >
+              {VERDICT_LABEL[v.verdict]}
+            </span>
+            {v.openFindingCount > 0 ? (
+              <span style={{ fontSize: 10.5, color: "var(--s-warn-ink)" }}>
+                {v.openFindingCount} open finding{v.openFindingCount === 1 ? "" : "s"}
+              </span>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function RunTree({
   audit,
   engagement,
+  checklistVerdicts = [],
 }: {
   audit: RunAudit | null;
   engagement: EngagementEntry[];
+  checklistVerdicts?: PerItemVerdict[];
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const depth = useMemo(() => depthMap(audit?.steps ?? []), [audit]);
@@ -418,6 +510,7 @@ export function RunTree({
             ))}
           </div>
         ) : null}
+        <ChecklistVerdictsPanel verdicts={checklistVerdicts} />
       </div>
 
       {/* Phase groups -> step tree */}

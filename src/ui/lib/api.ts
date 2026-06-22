@@ -81,6 +81,7 @@ import type {
   FlowCoverage,
   HubFlowRow,
   HubPublishResult,
+  PerItemVerdict,
 } from "./types.js";
 
 export class ApiError extends Error {
@@ -904,6 +905,12 @@ export const api = {
       `/api/runs/${encodeURIComponent(runId)}/arbitration`,
     );
     return r.arbitration;
+  },
+  async getChecklistVerdicts(runId: string): Promise<PerItemVerdict[]> {
+    const r = await jsonGet<{ verdicts: PerItemVerdict[] }>(
+      `/api/runs/${runId}/checklist-verdicts`,
+    );
+    return r.verdicts;
   },
   async getRunEngagement(runId: string): Promise<EngagementEntry[]> {
     const r = await jsonGet<{ engagement: EngagementEntry[] }>(

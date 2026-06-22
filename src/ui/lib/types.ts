@@ -608,6 +608,14 @@ export type TaskSuggestion = {
 
 export type ChecklistItemStatus = "pending" | "in_progress" | "done" | "blocked";
 
+// Per-item review verdict (Shape B, pickup-review flow). Mirrors PerItemVerdict
+// in src/flows/runtime/per-item-verdicts.ts - kept in sync manually.
+export type PerItemVerdict = {
+  itemIndex: number;
+  verdict: "approved" | "changes_requested" | "none";
+  openFindingCount: number;
+};
+
 export type ChecklistItem = {
   id: string;
   text: string;

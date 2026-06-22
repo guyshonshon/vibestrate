@@ -7,6 +7,9 @@ import {
   buildAndWriteRunAssurance,
   type RunAssuranceVerdict,
 } from "../../safety/run-assurance.js";
+import { readJson } from "../../utils/json.js";
+import { runStateSchema } from "../../core/state-machine.js";
+import { collectPerItemVerdicts, type PerItemVerdict } from "../../flows/runtime/per-item-verdicts.js";
 import { color, symbol } from "../ui/format.js";
 
 const VERDICT_COLOR: Record<RunAssuranceVerdict, (s: string) => string> = {
@@ -40,8 +43,17 @@ export function buildAssuranceCommand(): Command {
         (await readRunAssurance(projectRoot, runId)) ??
         (await buildAndWriteRunAssurance(projectRoot, runId));
 
+      // Collect per-item verdicts when the run has checklist progress.
+      const stateRaw = await readJson<unknown>(runStatePath(projectRoot, runId)).catch(() => null);
+      const stateResult = stateRaw ? runStateSchema.safeParse(stateRaw) : null;
+      const itemCount = stateResult?.success ? (stateResult.data.checklistProgress?.total ?? 0) : 0;
+      const perItemVerdicts: PerItemVerdict[] =
+        itemCount > 0
+          ? await collectPerItemVerdicts({ projectRoot, runId, itemCount }).catch(() => [])
+          : [];
+
       if (opts.json) {
-        console.log(JSON.stringify(assurance, null, 2));
+        console.log(JSON.stringify({ ...assurance, perItemVerdicts }, null, 2));
         return;
       }
 
@@ -71,6 +83,24 @@ export function buildAssuranceCommand(): Command {
         `  validation:   ${assurance.validation.status} (${assurance.validation.passed}/${assurance.validation.total} passed)`,
       );
       console.log(`  review:       ${assurance.review.status}`);
+      // Per-item review lane (Shape B / pickup-review runs only).
+      if (perItemVerdicts.length > 0) {
+        const gapped = perItemVerdicts.filter((v) => v.verdict === "changes_requested");
+        const approved = perItemVerdicts.filter((v) => v.verdict === "approved");
+        const none = perItemVerdicts.filter((v) => v.verdict === "none");
+        console.log(
+          `  per-item:     ${perItemVerdicts.length} items - ` +
+            `${color.green(String(approved.length))} approved, ` +
+            `${gapped.length > 0 ? color.yellow(String(gapped.length)) : "0"} changes requested, ` +
+            `${none.length > 0 ? color.dim(String(none.length)) : "0"} no verdict`,
+        );
+        if (gapped.length > 0) {
+          for (const v of gapped) {
+            const findings = v.openFindingCount > 0 ? ` (${v.openFindingCount} open finding${v.openFindingCount === 1 ? "" : "s"})` : "";
+            console.log(color.yellow(`    - item ${v.itemIndex + 1}: changes requested${findings}`));
+          }
+        }
+      }
       console.log(`  verification: ${assurance.verification.status}`);
       if (assurance.coverage.toleratedStepFailures > 0) {
         console.log(

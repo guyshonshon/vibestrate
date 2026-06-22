@@ -11,6 +11,7 @@ import type {
   VibestrateEvent,
   ApprovalRequest,
   EngagementEntry,
+  PerItemVerdict,
   RunAssurance,
   RunAudit,
   RunState,
@@ -98,13 +99,14 @@ export function RunDetailPage({
     null,
   );
   const [selection, setSelection] = useState<WorkflowSelectionView | null>(null);
+  const [checklistVerdicts, setChecklistVerdicts] = useState<PerItemVerdict[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     let loadedOnce = false;
     const load = async () => {
       try {
-        const [r, m, a, d, sel, eng, arb, aud, shp] = await Promise.all([
+        const [r, m, a, d, sel, eng, arb, aud, shp, cv] = await Promise.all([
           api.getRun(runId),
           api.getMetrics(runId).catch(() => null),
           api.listApprovals(runId).catch(() => [] as ApprovalRequest[]),
@@ -114,6 +116,7 @@ export function RunDetailPage({
           api.getRunArbitration(runId).catch(() => null),
           api.getRunAudit(runId).catch(() => null),
           api.getSpecUpQuestions(runId).catch(() => null),
+          api.getChecklistVerdicts(runId).catch(() => [] as PerItemVerdict[]),
         ]);
         if (cancelled) return;
         loadedOnce = true;
@@ -124,6 +127,7 @@ export function RunDetailPage({
         setEngagement(eng);
         setArbitration(arb);
         setAudit(aud);
+        setChecklistVerdicts(cv);
         setSpecUpQuestions(shp?.questions ?? null);
         setSpecUpMeta(
           shp && shp.questions != null
@@ -461,7 +465,7 @@ export function RunDetailPage({
         </div>
         <div className="slab p-3.5">
           {tab === "tree" ? (
-            <RunTree audit={audit} engagement={engagement} />
+            <RunTree audit={audit} engagement={engagement} checklistVerdicts={checklistVerdicts} />
           ) : tab === "steps" ? (
             <StepsInspector metrics={metrics} />
           ) : tab === "events" ? (

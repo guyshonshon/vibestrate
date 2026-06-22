@@ -8,6 +8,9 @@ import {
   type AuditStep,
   type RunAudit,
 } from "../../core/run-audit.js";
+import { readJson } from "../../utils/json.js";
+import { runStateSchema } from "../../core/state-machine.js";
+import { collectPerItemVerdicts, type PerItemVerdict } from "../../flows/runtime/per-item-verdicts.js";
 import { color, symbol } from "../ui/format.js";
 
 const OUTCOME_PAINT: Record<AuditAttemptOutcome, (s: string) => string> = {
@@ -100,6 +103,28 @@ function renderAuditText(a: RunAudit): string {
   return lines.join("\n");
 }
 
+function renderPerItemVerdicts(verdicts: PerItemVerdict[]): string {
+  if (verdicts.length === 0) return "";
+  const lines: string[] = [];
+  lines.push("");
+  lines.push(color.bold("  Per-item review (Shape B):"));
+  for (const v of verdicts) {
+    const paint =
+      v.verdict === "approved"
+        ? color.green
+        : v.verdict === "changes_requested"
+          ? color.yellow
+          : color.dim;
+    const label = v.verdict === "changes_requested" ? "changes requested" : v.verdict;
+    const findings =
+      v.openFindingCount > 0
+        ? color.yellow(` (${v.openFindingCount} open finding${v.openFindingCount === 1 ? "" : "s"})`)
+        : "";
+    lines.push(`  ${symbol.bullet()} item ${v.itemIndex + 1}: ${paint(label)}${findings}`);
+  }
+  return lines.join("\n");
+}
+
 /**
  * `vibe audit <runId>` - a tree of everything that happened in a run: the flow
  * steps, each step's attempts (rate-limited -> retry -> fallback -> success),
@@ -120,11 +145,21 @@ export function buildAuditCommand(): Command {
         process.exit(1);
       }
       const audit = await buildRunAudit(projectRoot, runId);
+
+      // Per-item verdicts (Shape B / pickup-review runs only).
+      const stateRaw = await readJson<unknown>(runStatePath(projectRoot, runId)).catch(() => null);
+      const stateResult = stateRaw ? runStateSchema.safeParse(stateRaw) : null;
+      const itemCount = stateResult?.success ? (stateResult.data.checklistProgress?.total ?? 0) : 0;
+      const perItemVerdicts: PerItemVerdict[] =
+        itemCount > 0
+          ? await collectPerItemVerdicts({ projectRoot, runId, itemCount }).catch(() => [])
+          : [];
+
       if (opts.json) {
-        console.log(JSON.stringify(audit, null, 2));
+        console.log(JSON.stringify({ ...audit, perItemVerdicts }, null, 2));
         return;
       }
-      console.log(renderAuditText(audit));
+      console.log(renderAuditText(audit) + renderPerItemVerdicts(perItemVerdicts));
     });
   return cmd;
 }
