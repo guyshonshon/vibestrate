@@ -172,6 +172,36 @@ export function buildFlowsCommand(): Command {
       const { runHubInstall } = await import("./hub.js");
       process.exit(await runHubInstall(ref, opts));
     });
+  hub
+    .command("publish <flowId>")
+    .description("Publish a project flow to the hub (public, immutable).")
+    .requiredOption("--version <semver>", "the release version, e.g. 1.2.0")
+    .option("--name <slug>", "hub name (defaults to the flow id)")
+    .option("--handle <login>", "your GitHub login (must match the token account)")
+    .option("--base-url <url>", "override the hub base URL")
+    .option(
+      "--allow-token-to-custom-host",
+      "send the token to a non-default origin (local testing)",
+    )
+    .option("--yes", "skip the confirmation prompt")
+    .option("--json", "emit JSON")
+    .action(
+      async (
+        flowId: string,
+        opts: {
+          version: string;
+          name?: string;
+          handle?: string;
+          baseUrl?: string;
+          allowTokenToCustomHost?: boolean;
+          yes?: boolean;
+          json?: boolean;
+        },
+      ) => {
+        const { runHubPublish } = await import("./hub.js");
+        process.exit(await runHubPublish(flowId, opts));
+      },
+    );
   cmd.addCommand(hub);
 
   return cmd;
