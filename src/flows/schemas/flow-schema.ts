@@ -552,10 +552,13 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
       // No arbitration inside the per-item band. The band repeats once per
       // checklist item, reusing the same step ids; the arbitration ledger +
       // suggestion ingest are run-global and keyed by model-supplied finding id,
-      // so a per-item review/summary step would silently overwrite the prior
-      // item's findings (the collision behind Phase D "Shape B"). Reject
-      // review/summary turns and arbitration-output tokens in the band until a
-      // per-item-scoped ledger exists; put review/verify in the postlude instead.
+      // so arbitration-output tokens would silently overwrite across items.
+      // summary-turns are also excluded (they write to the run-global ledger).
+      // NOTE: review-turns ARE permitted in the band (Shape B / pickup-review):
+      // a per-item review panel (review-correctness, review-risk, arbiter) writes
+      // only per-item scoped tokens (findings-correctness, findings-risk,
+      // review-decision) - none of which are arbitration tokens - so there is no
+      // ledger collision. The ARBITRATION_TOKENS check below catches the real risk.
       if (segFrom >= 0 && segTo >= segFrom) {
         const ARBITRATION_TOKENS = new Set([
           "findings",
@@ -565,11 +568,11 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
         ]);
         for (let i = segFrom; i <= segTo; i += 1) {
           const step = flow.steps[i]!;
-          if (step.kind === "review-turn" || step.kind === "summary-turn") {
+          if (step.kind === "summary-turn") {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
               path: ["steps", i, "kind"],
-              message: `Flow step "${step.id}" is a ${step.kind} inside the per-item band; per-item review/verify isn't supported yet (the arbitration ledger would collide across items). Move it to the postlude, after the band.`,
+              message: `Flow step "${step.id}" is a summary-turn inside the per-item band; summary steps write to the run-global arbitration ledger which would collide across items. Move it to the postlude, after the band.`,
             });
           }
           const arb = step.outputs.find((o) => ARBITRATION_TOKENS.has(o));

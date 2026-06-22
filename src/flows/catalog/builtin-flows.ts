@@ -807,6 +807,133 @@ export const pickupAnalysisFlow = flowDefinitionSchema.parse({
   },
 });
 
+// The built-in **pick-up (per-item review)** flow (Shape B /
+// checklist-dag-shape-b): like pickupAnalysisFlow but the per-item band runs
+// REVIEW AFTER implementation rather than analysis before it. Band structure:
+//   micro-plan -> implement -> [review-correctness, review-risk] -> arbiter
+// The two reviewer turns fan out in parallel (both read-only, review-turn),
+// then the arbiter join reads both and renders a per-item verdict. The holistic
+// plan + review steps run once (outside the band). The `per-item-findings` input
+// on `implement` carries the arbiter verdict on fix iterations (absent on i=0).
+export const pickupReviewFlow = flowDefinitionSchema.parse({
+  id: "pickup-review",
+  version: 1,
+  label: "Pick-up (per-item review)",
+  description:
+    "Execute a card item-by-item with a per-item REVIEW panel: a holistic plan once, then for each checklist item the implementer writes it and a per-item panel (correctness + risk) plus an arbiter review THAT item's diff; a per-item fix loop runs before the item commits, then a holistic review.",
+  seats: {
+    planner: { label: "Planner", description: "Plans the card and each item." },
+    implementer: { label: "Implementer", description: "Implements (and fixes) one item." },
+    reviewer: { label: "Reviewer", description: "Reviews one item under an assigned lens." },
+    arbiter: { label: "Arbiter", description: "Renders one per-item verdict." },
+  },
+  steps: [
+    {
+      id: "plan",
+      label: "Plan",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief"],
+      outputs: ["plan"],
+    },
+    {
+      id: "micro-plan",
+      label: "Micro-plan item",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "executing",
+      inputs: ["task-brief", "plan", "checklist-item", "prior-items"],
+      outputs: ["micro-plan"],
+    },
+    {
+      id: "implement",
+      label: "Implement item",
+      kind: "agent-turn",
+      seat: "implementer",
+      stage: "executing",
+      needs: ["micro-plan"],
+      // per-item-findings is present only on a fix iteration (>0); absent on iteration 0.
+      inputs: [
+        "task-brief",
+        "plan",
+        "micro-plan",
+        "checklist-item",
+        "prior-items",
+        "per-item-findings",
+      ],
+      outputs: ["execution", "diff"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "review-correctness",
+      label: "Review: correctness",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      needs: ["implement"],
+      inputs: ["task-brief", "plan", "micro-plan", "execution", "diff", "checklist-item"],
+      outputs: ["findings-correctness"],
+      continueOnError: true,
+      instructions:
+        "Your lens is CORRECTNESS & LOGIC for THIS checklist item's diff only. Hunt real bugs: wrong behavior, broken edge cases, races, mishandled errors, contract violations. Cite file:line; no style nits.",
+    },
+    {
+      id: "review-risk",
+      label: "Review: security & risk",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      needs: ["implement"],
+      inputs: ["task-brief", "plan", "micro-plan", "execution", "diff", "checklist-item"],
+      outputs: ["findings-risk"],
+      continueOnError: true,
+      instructions:
+        "Your lens is SECURITY, RISK & ARCHITECTURE for THIS item's diff only. Injection/secret/path exposure, unsafe effects, broken boundaries, hard-to-revert moves, architectural drift. Flag anything needing sandboxing or human sign-off.",
+    },
+    {
+      id: "arbiter",
+      label: "Arbiter verdict",
+      kind: "review-turn",
+      seat: "arbiter",
+      stage: "reviewing",
+      needs: ["review-correctness", "review-risk"],
+      inputs: [
+        "task-brief",
+        "plan",
+        "micro-plan",
+        "execution",
+        "diff",
+        "checklist-item",
+        "findings-correctness",
+        "findings-risk",
+      ],
+      outputs: ["review-decision"],
+      instructions:
+        "You are the arbiter for THIS checklist item. Read both reviewers' findings plus the item diff. De-duplicate, weigh severity, render ONE verdict. APPROVED only if no blocking issue survives; otherwise CHANGES_REQUESTED with the consolidated must-fix list. Cite evidence; do not launder confidence.",
+    },
+    {
+      id: "review",
+      label: "Holistic review",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      inputs: ["task-brief", "plan", "execution", "prior-items"],
+      outputs: ["findings", "review-decision"],
+    },
+  ],
+  checklistSegment: { from: "micro-plan", to: "arbiter" },
+  checklistReview: { lenses: ["correctness", "security-risk"] },
+  complexity: "high",
+  capabilities: {
+    taskKinds: ["checklist"],
+    strengths: ["multi-step", "checklist", "review", "correctness", "security-risk"],
+    costClass: "high",
+    latencyClass: "high",
+    avoids: { readOnly: true },
+  },
+});
+
 // The built-in **express flow** (A3, proportional-orchestration.md / batch
 // P4b): one implementer turn with a diff-floored safety net. Validation is
 // change-scoped (B3) and the review step is `skipWhen: "inert_diff"` - it runs
@@ -1195,6 +1322,7 @@ export const builtinFlows: readonly FlowDefinition[] = [
   pickupFlow,
   reviewPanelFlow,
   pickupAnalysisFlow,
+  pickupReviewFlow,
   securityReviewFlow,
   expressFlow,
   scaffoldFlow,
