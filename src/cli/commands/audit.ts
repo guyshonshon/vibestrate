@@ -116,11 +116,11 @@ function renderPerItemVerdicts(verdicts: PerItemVerdict[]): string {
           ? color.yellow
           : color.dim;
     const label = v.verdict === "changes_requested" ? "changes requested" : v.verdict;
-    const findings =
-      v.openFindingCount > 0
-        ? color.yellow(` (${v.openFindingCount} open finding${v.openFindingCount === 1 ? "" : "s"})`)
+    const iters =
+      v.fixIterations > 0
+        ? color.dim(` (${v.fixIterations} fix ${v.fixIterations === 1 ? "iteration" : "iterations"})`)
         : "";
-    lines.push(`  ${symbol.bullet()} item ${v.itemIndex + 1}: ${paint(label)}${findings}`);
+    lines.push(`  ${symbol.bullet()} item ${v.itemIndex + 1}: ${paint(label)}${iters}`);
   }
   return lines.join("\n");
 }

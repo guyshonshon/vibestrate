@@ -72,6 +72,7 @@ describe("collectPerItemVerdicts", () => {
       itemIndex: 0,
       verdict: "approved",
       openFindingCount: 0,
+      fixIterations: 0, // collectPerItemVerdicts defaults to 0 (not in ledger)
     });
     expect(out[1]).toMatchObject({ itemIndex: 1, verdict: "none" });
   });

@@ -614,6 +614,9 @@ export type PerItemVerdict = {
   itemIndex: number;
   verdict: "approved" | "changes_requested" | "none";
   openFindingCount: number;
+  /** Fix-loop iterations before the final verdict. Defaults to 0 when read
+   * back from the arbitration ledger (not stored there). */
+  fixIterations: number;
 };
 
 export type ChecklistItem = {

@@ -402,9 +402,9 @@ function ChecklistVerdictsPanel({ verdicts }: { verdicts: PerItemVerdict[] }) {
             >
               {VERDICT_LABEL[v.verdict]}
             </span>
-            {v.openFindingCount > 0 ? (
-              <span style={{ fontSize: 10.5, color: "var(--s-warn-ink)" }}>
-                {v.openFindingCount} open finding{v.openFindingCount === 1 ? "" : "s"}
+            {v.fixIterations > 0 ? (
+              <span style={{ fontSize: 10.5, color: "var(--s-fg-muted)" }}>
+                {v.fixIterations} fix {v.fixIterations === 1 ? "iteration" : "iterations"}
               </span>
             ) : null}
           </div>

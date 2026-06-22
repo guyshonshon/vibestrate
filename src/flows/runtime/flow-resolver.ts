@@ -35,6 +35,10 @@ export const DEFAULT_CHECKLIST_REVIEW_LENSES: ReviewLens[] = [
 /**
  * Pure. Resolve which review lenses to use for a checklist-review pass.
  * Precedence: crew > flow > default (`["correctness", "security-risk"]`).
+ *
+ * Forward surface - not yet wired into per-item band reviewer selection
+ * (Shape B follow-up). The function exists and is correct; it is not called
+ * at runtime yet because the band uses hardcoded reviewer steps.
  */
 export function resolveChecklistReviewLenses(o: {
   flowLenses?: ReviewLens[];

@@ -632,11 +632,11 @@ export function checklistItemGapsCap(verdicts: PerItemVerdict[]): { caps: boolea
   );
   if (gapped.length === 0) return { caps: false, note: "" };
   const items = gapped
-    .map((v) => `item ${v.itemIndex + 1} (${v.openFindingCount} open)`)
+    .map((v) => `item ${v.itemIndex + 1} (changes requested)`)
     .join(", ");
   return {
     caps: true,
-    note: `Per-item review left findings open: ${items}. The human reviews the diff before merge.`,
+    note: `Per-item review left items needing changes: ${items}. The human reviews the diff before merge.`,
   };
 }
 

@@ -4292,6 +4292,7 @@ export class Orchestrator {
           itemIndex: o.index,
           verdict: (o.reviewVerdict ?? "none") as "approved" | "changes_requested" | "none",
           openFindingCount: o.openFindingCount ?? 0,
+          fixIterations: o.fixIterations ?? 0,
         })),
       );
       const mergeReadinessInput = {

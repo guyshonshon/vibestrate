@@ -338,6 +338,10 @@ const flowDefinitionBaseSchema = z
      * `resolveChecklistReviewLenses` uses this flow-level preference as a
      * fallback between the default and a crew-level override. min(1) prevents
      * a silently-empty lens set from zeroing out review coverage.
+     *
+     * Forward surface - not yet wired into per-item band reviewer selection
+     * (Shape B follow-up). The default 2-lens panel (correctness +
+     * security-risk) ships; this field is a schema-level forward surface only.
      */
     checklistReview: z
       .object({ lenses: z.array(reviewLensSchema).min(1).max(5) })

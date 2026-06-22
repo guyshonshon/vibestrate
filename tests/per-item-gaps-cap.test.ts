@@ -3,10 +3,10 @@ import { checklistItemGapsCap } from "../src/safety/run-assurance.js";
 import { computeMergeReady, type MergeReadinessInput } from "../src/core/merge-readiness.js";
 
 describe("checklist per-item gaps cap", () => {
-  it("caps merge-readiness when any item has open findings", () => {
+  it("caps merge-readiness when any item has a changes_requested verdict", () => {
     const cap = checklistItemGapsCap([
-      { itemIndex: 0, verdict: "approved", openFindingCount: 0 },
-      { itemIndex: 1, verdict: "changes_requested", openFindingCount: 2 },
+      { itemIndex: 0, verdict: "approved", openFindingCount: 0, fixIterations: 0 },
+      { itemIndex: 1, verdict: "changes_requested", openFindingCount: 2, fixIterations: 1 },
     ]);
     expect(cap.caps).toBe(true);
     expect(cap.note).toMatch(/item 2/i);
@@ -14,14 +14,14 @@ describe("checklist per-item gaps cap", () => {
 
   it("caps when verdict is changes_requested even with 0 openFindingCount", () => {
     const cap = checklistItemGapsCap([
-      { itemIndex: 0, verdict: "changes_requested", openFindingCount: 0 },
+      { itemIndex: 0, verdict: "changes_requested", openFindingCount: 0, fixIterations: 0 },
     ]);
     expect(cap.caps).toBe(true);
     expect(cap.note).toMatch(/item 1/i);
   });
 
   it("does not cap when every item is clean", () => {
-    const cap = checklistItemGapsCap([{ itemIndex: 0, verdict: "approved", openFindingCount: 0 }]);
+    const cap = checklistItemGapsCap([{ itemIndex: 0, verdict: "approved", openFindingCount: 0, fixIterations: 0 }]);
     expect(cap.caps).toBe(false);
   });
 
@@ -30,14 +30,21 @@ describe("checklist per-item gaps cap", () => {
   });
 
   it("note names all gapped items and includes human-review reminder", () => {
+    // item 0: changes_requested (caps by verdict); item 2: approved but has
+    // openFindingCount > 0 (caps by forward-looking finding predicate).
     const cap = checklistItemGapsCap([
-      { itemIndex: 0, verdict: "changes_requested", openFindingCount: 0 },
-      { itemIndex: 2, verdict: "approved", openFindingCount: 1 },
+      { itemIndex: 0, verdict: "changes_requested", openFindingCount: 0, fixIterations: 0 },
+      { itemIndex: 2, verdict: "approved", openFindingCount: 1, fixIterations: 2 },
     ]);
     expect(cap.caps).toBe(true);
+    // both gapped items must appear in the note
     expect(cap.note).toMatch(/item 1/i);
     expect(cap.note).toMatch(/item 3/i);
     expect(cap.note).toMatch(/human/i);
+    // note must NOT contain a raw open-finding count (e.g. "1 open")
+    expect(cap.note).not.toMatch(/\d+ open/i);
+    // note must name the verdict for gapped items
+    expect(cap.note).toMatch(/changes requested/i);
   });
 });
 

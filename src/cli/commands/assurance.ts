@@ -96,8 +96,8 @@ export function buildAssuranceCommand(): Command {
         );
         if (gapped.length > 0) {
           for (const v of gapped) {
-            const findings = v.openFindingCount > 0 ? ` (${v.openFindingCount} open finding${v.openFindingCount === 1 ? "" : "s"})` : "";
-            console.log(color.yellow(`    - item ${v.itemIndex + 1}: changes requested${findings}`));
+            const iters = v.fixIterations > 0 ? ` (${v.fixIterations} fix ${v.fixIterations === 1 ? "iteration" : "iterations"})` : "";
+            console.log(color.yellow(`    - item ${v.itemIndex + 1}: changes requested${iters}`));
           }
         }
       }

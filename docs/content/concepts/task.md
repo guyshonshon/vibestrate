@@ -120,7 +120,7 @@ vibe tasks pickup <taskId> --flow pickup-review
 
 `pickup-review` adds a review panel and an arbiter inside the per-item band - after the implementer writes each item, the panel reviews that item's diff, and a bounded per-item fix loop runs before the item commits. This means each item is reviewed in isolation, with full context of only that item's change.
 
-**Default lenses.** The panel runs two lenses by default: `correctness` (logic, type-safety, edge cases) and `security-risk` (injection, auth gaps, data exposure). Both are aimed at the active persona if one is set. You can override lenses project-wide or per-run via `checklistReview.lenses` in your project config.
+**Default lenses.** The panel runs two lenses by default: `correctness` (logic, type-safety, edge cases) and `security-risk` (injection, auth gaps, data exposure). Both are aimed at the active persona if one is set. Per-flow and per-crew lens selection via `checklistReview.lenses` is a follow-up - the field exists in the schema as a forward surface but is not yet wired into reviewer assignment.
 
 **Cost.** Each item runs the panel independently: two reviewer turns and one arbiter turn per item, on top of the normal implement band. For a 10-item checklist that is 30 extra turns. Use `pickup-review` when correctness per item matters more than speed.
 

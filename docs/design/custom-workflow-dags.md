@@ -60,8 +60,10 @@ What shipped in the checklist-DAG Shape B slice (0.25.0):
 - **Deferred (keep docs honest)**: serial in-band session reuse; per-item
   suggestion ingest; extra specialized per-item panels beyond correctness +
   security-risk; orchestrator AUTO-SELECTION of `pickup-review` (selectable via
-  `--flow` / `defaultFlow` this slice). Phase C (write-parallelism) remains
-  deferred.
+  `--flow` / `defaultFlow` this slice); configurable per-flow/crew lens selection
+  (the default 2-lens panel ships; `checklistReview.lenses` is a forward schema
+  surface not yet wired into band reviewer selection - Shape B follow-up).
+  Phase C (write-parallelism) remains deferred.
 
 What shipped in the per-step retries slice (Slice 5, 0.7.10):
 

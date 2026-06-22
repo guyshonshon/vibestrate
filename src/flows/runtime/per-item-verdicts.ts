@@ -47,6 +47,10 @@ export type PerItemVerdict = {
   itemIndex: number;
   verdict: "approved" | "changes_requested" | "none";
   openFindingCount: number;
+  /** Number of fix-loop iterations the item went through before its final verdict.
+   * Populated by the orchestrator band; defaults to 0 when read back from the
+   * arbitration ledger (the ledger does not store this value). */
+  fixIterations: number;
 };
 
 // Only "resolved" means closed in flowFindingResolutionDispositionSchema.
@@ -106,6 +110,7 @@ export async function collectPerItemVerdicts(input: {
       itemIndex: i,
       verdict: deriveItemVerdict(ledger),
       openFindingCount: openFindingCount(ledger),
+      fixIterations: 0, // not stored in the ledger; populated by the orchestrator band
     });
   }
   return out;
