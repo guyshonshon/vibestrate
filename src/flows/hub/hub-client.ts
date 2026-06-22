@@ -270,11 +270,29 @@ export async function publishFlow(input: {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${input.token}` },
       body,
+      // Never follow a redirect with the token attached: the host pin + SSRF
+      // guard above only validate the ORIGINAL url, and undici would re-issue
+      // the request (carrying the body) to the Location target. An immutable
+      // publish endpoint has no legitimate reason to 3xx, so refuse it.
+      redirect: "manual",
       signal: AbortSignal.timeout(20_000),
-    } as { signal: AbortSignal });
+    } as unknown as { signal: AbortSignal });
     text = await res.text();
   } catch (err) {
     return { ok: false, status: 0, reason: `Hub publish request failed: ${redact(err, [input.token])}` };
+  }
+
+  // `redirect: "manual"` yields an opaqueredirect (status 0) on real fetch; an
+  // injected fetchImpl may surface the raw 3xx. Treat either as a hard failure
+  // - the token does not chase a redirect to an unvalidated host.
+  const resType = (res as { type?: string }).type;
+  if (resType === "opaqueredirect" || (res.status >= 300 && res.status < 400)) {
+    return {
+      ok: false,
+      status: 502,
+      reason:
+        "Hub publish endpoint returned a redirect; refusing to follow it (the token is pinned to the hub origin and never chases a redirect).",
+    };
   }
 
   let parsed: unknown;

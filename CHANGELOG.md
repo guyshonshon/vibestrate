@@ -1,8 +1,19 @@
 # Changelog
 
+## 0.24.1
+
+- **Publish hardening (post-review).** Three fixes from an adversarial review of
+  the 0.24.0 publish path: (1) the token-bearing publish POST now uses
+  `redirect: "manual"` and refuses any 3xx - the origin pin only validated the
+  original URL, so a redirect was the one path that could have re-issued the
+  request off-origin; (2) a URL with embedded credentials (`scheme://user:pass@host`)
+  and a JWT are now hard *refusals*, not warnings - both are literal secrets and
+  publish is irreversible; (3) honest wording below about exactly what the secret
+  scan catches. No behavior change for a clean flow.
+
 ## 0.24.0
 
-- **Flows Hub: publish.** `vibe flows hub publish` and a dashboard form push a project Flow to the public registry. GitHub-token auth via `VIBESTRATE_HUB_TOKEN` (env-ref only, never inline); the token is pinned to the hub origin and never sent elsewhere. Secret-shaped flows are refused before they leave your machine; home-dir and identity leaks surface as warnings before the irreversible publish. Versions are immutable - a re-publish of identical content at the same version is idempotent (409); new content requires a new semver. The dashboard route is fail-closed: it requires `VIBESTRATE_API_TOKEN` plus an explicit `confirm: "publish"` literal in the request body. The `--handle` must match the authenticated GitHub login; the server enforces this.
+- **Flows Hub: publish.** `vibe flows hub publish` and a dashboard form push a project Flow to the public registry. GitHub-token auth via `VIBESTRATE_HUB_TOKEN` (env-ref only, never inline); the token is pinned to the hub origin and never sent elsewhere (it does not follow redirects). The publish refuses a flow whose content matches a known secret shape (AWS / GitHub / Slack / Stripe / Google / Anthropic / OpenAI keys, PEM private-key blocks, JWTs, and `user:pass@host` URLs) - it is a high-precision scan, not a guarantee, so a generic or unprefixed secret can still slip through; review the flow before you publish. Home-dir and identity leaks surface as warnings before the irreversible publish. Versions are immutable - a re-publish of identical content at the same version is idempotent (409); new content requires a new semver. The dashboard route is fail-closed: it requires `VIBESTRATE_API_TOKEN` plus an explicit `confirm: "publish"` literal in the request body. The `--handle` must match the authenticated GitHub login; the server enforces this.
 
 ## 0.23.1
 

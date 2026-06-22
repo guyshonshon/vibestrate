@@ -208,7 +208,7 @@ export async function runHubPublish(
   }
   if (result.alreadyExisted) {
     console.log(
-      `${symbol.ok()} ${color.bold(result.ref)} already published (this exact version).`,
+      `${symbol.ok()} ${color.bold(result.ref)} - the hub reports this version already exists with identical content.`,
     );
     return 0;
   }

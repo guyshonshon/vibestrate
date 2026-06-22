@@ -48,6 +48,16 @@ describe("assertNoHardSecrets", () => {
   it("refuses a short github_pat the shared scan misses (server matches {22,})", () => {
     expect(assertNoHardSecrets(`pat: github_pat_${"a".repeat(30)}\n`).length).toBeGreaterThan(0);
   });
+  it("refuses a JWT (irreversible publish; recoverable false positive)", () => {
+    const jwt = `token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.${"a".repeat(20)}\n`;
+    expect(assertNoHardSecrets(jwt).length).toBeGreaterThan(0);
+  });
+  it("refuses a URL with embedded credentials (literal secret, not a warning)", () => {
+    expect(assertNoHardSecrets("url: https://bob:hunter2@db.internal/x\n").length).toBeGreaterThan(0);
+  });
+  it("does not echo the embedded password in the refusal reason", () => {
+    expect(assertNoHardSecrets("url: https://bob:hunter2@db.internal/x\n").join(" ")).not.toContain("hunter2");
+  });
   it("passes a clean flow", () => {
     expect(assertNoHardSecrets("steps:\n  - run: echo hi\n")).toEqual([]);
   });
@@ -61,8 +71,8 @@ describe("collectPublishWarnings", () => {
   it("warns on an env: ref", () => {
     expect(collectPublishWarnings("key: env:MY_SECRET\n").join(" ")).toMatch(/env:/);
   });
-  it("warns on a user:pass@ URL", () => {
-    expect(collectPublishWarnings("url: https://bob:hunter2@example.com\n").join(" ")).toMatch(/credential|user/i);
+  it("no longer treats a user:pass@ URL as a mere warning (it is now a refusal)", () => {
+    expect(collectPublishWarnings("url: https://bob:hunter2@example.com\n")).toEqual([]);
   });
   it("is silent on a clean flow", () => {
     expect(collectPublishWarnings("steps:\n  - run: echo hi\n")).toEqual([]);

@@ -73,6 +73,26 @@ describe("publishFlow", () => {
     if (r.ok) expect(r.alreadyExisted).toBe(true);
   });
 
+  it("refuses a raw 3xx redirect instead of following it with the token", async () => {
+    const f = fakeFetch(302, { error: "moved" });
+    const r = await publishFlow({ content: CLEAN, ref: "guy@x-flow:1.0.0", token: TOKEN, fetchImpl: f, allowPrivateHosts: true });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/redirect/i);
+  });
+
+  it("refuses an opaqueredirect (real fetch's redirect:manual result)", async () => {
+    const f = vi.fn(async () => ({
+      ok: false,
+      status: 0,
+      type: "opaqueredirect",
+      headers: { get: () => null },
+      text: async () => "",
+    })) as any;
+    const r = await publishFlow({ content: CLEAN, ref: "guy@x-flow:1.0.0", token: TOKEN, fetchImpl: f, allowPrivateHosts: true });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/redirect/i);
+  });
+
   it("never leaks the token in a thrown-network-error reason", async () => {
     const f = vi.fn(async () => { throw new Error(`connect failed for Bearer ${TOKEN}`); });
     const r = await publishFlow({ content: CLEAN, ref: "guy@x-flow:1.0.0", token: TOKEN, fetchImpl: f as any, allowPrivateHosts: true });

@@ -47,6 +47,13 @@ export function buildPublishRef(input: {
 const PUBLISH_EXTRA_SECRETS: { name: string; re: RegExp }[] = [
   { name: "OpenAI-style key", re: /\bsk-[A-Za-z0-9]{20,}\b/ },
   { name: "GitHub fine-grained PAT (short)", re: /\bgithub_pat_[A-Za-z0-9_]{22,}\b/ },
+  // A JWT (three base64url segments; `eyJ` is base64 of `{"`). On an
+  // irreversible public publish a false positive is recoverable (drop it +
+  // bump the version) while a leaked session/identity token is not.
+  { name: "JWT", re: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/ },
+  // A URL with embedded credentials (scheme://user:pass@host) IS a literal
+  // credential, not a warning - refuse it before it leaves the machine.
+  { name: "URL with embedded credentials", re: /[a-z][a-z0-9+.-]*:\/\/[^\s/@]+:[^\s/@]+@/i },
 ];
 
 export function assertNoHardSecrets(content: string): string[] {
@@ -80,9 +87,6 @@ export function collectPublishWarnings(content: string): string[] {
   }
   if (/\benv:[A-Z][A-Z0-9_]*/.test(content)) {
     warnings.push("references an env: secret variable - the reference (not the value) will be public.");
-  }
-  if (/[a-z][a-z0-9+.-]*:\/\/[^\s/@]+:[^\s/@]+@/i.test(content)) {
-    warnings.push("contains a URL with embedded credentials (user:pass@host).");
   }
   return warnings;
 }
