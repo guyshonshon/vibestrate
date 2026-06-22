@@ -31,6 +31,9 @@ A supervisor's review **lenses** aim the reviewers at specific things. The `secu
 **A posture nudge for risky work.**
 A supervisor can suggest a heavier execution posture for risk-tagged tasks - the `security` supervisor suggests `sandbox-suggested`. It is advisory: a suggestion surfaced to you, never a gate, and never a downgrade. The default supervisor stays posture-neutral.
 
+**A lens on the spec-up phase.**
+When a run goes through [Spec-up](/docs/concepts/spec-up), a supervisor can aim the planning agents that scope the work, write the spec, and design the architecture. The `security` supervisor brings an authorization / secrets / attack-surface lens to that planning; the default stays neutral, so plain spec-up runs are unchanged.
+
 </div>
 
 These two labels tell you how much the sign-off is worth at a glance:

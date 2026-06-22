@@ -25,9 +25,14 @@ Deliberate v1 deltas from the plan (Tier-2 review, 2026-06-19):
   is hard-gated on `!readOnly`; the narrow `loopBodyWriteFree` fix was shelved
   because it amplifies the "reviewer judges its own prose" risk for little v1
   value. Human approval between chain links is the iterate path.
-- **`specUpPosture` persona field deferred.** The CTO director is delivered via
-  per-step `instructions` (reaches the prompt today) instead of net-new persona
-  prompt-injection wiring.
+- **`specUpPosture` persona field SHIPPED (0.20.0).** The default CTO director still
+  rides the per-step `instructions`; on top of that, a persona's free-text
+  `specUpPosture` is now injected into the spec-up planning turns
+  (`src/spec-up/spec-up-posture.ts`), so a persona aims intake/scope/spec/architecture.
+  It follows the detached chain via a `spec-up-persona.json` sidecar (carried by the
+  orchestrator + the chain launchers, consumed independent of `selection` so it
+  survives the roadmap resume). Default `staff-engineer` = null (unchanged); `security`
+  carries a security-lens posture. Recorded as a `supervisor.spec_up_posture` event.
 - **Artifact edit/approve + the dependency-edge graph editor are partial.**
   Artifacts are reviewable (read-only viewer); inline edit/approve and a DAG
   edge editor remain net-new UI (the plan + reviewer both defer the editor).

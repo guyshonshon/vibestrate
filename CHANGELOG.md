@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.20.0
+
+- **Supervisors now shape the spec-up phase, not just the build.** A supervisor
+  can carry a `specUpPosture` - a CTO lens applied to the planning agents while
+  they scope the work, write the spec, and design the architecture. The built-in
+  `security` supervisor brings an authorization / secrets / attack-surface lens to
+  spec-up; the default supervisor stays neutral, so plain spec-up runs are
+  unchanged. The posture follows the whole spec-up chain (intake -> spec -> roadmap),
+  not just the first question, and which supervisor aimed it is recorded on the run.
+
 ## 0.19.0
 
 - **Supervisors now aim the reviewers, not just label them.** A supervisor's
