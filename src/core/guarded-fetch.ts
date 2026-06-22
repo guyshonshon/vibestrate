@@ -14,8 +14,9 @@ export type GuardedFetchResult =
   | { ok: false; reason: string };
 
 /** Resolve a hostname and report whether it points at a blocked range.
- *  Fail-closed: a resolution error blocks. */
-async function isBlockedHost(hostname: string): Promise<boolean> {
+ *  Fail-closed: a resolution error blocks. Exported so the token-bearing
+ *  publish POST can reuse the exact same SSRF rule set. */
+export async function isFetchHostBlocked(hostname: string): Promise<boolean> {
   const host = hostname.replace(/^\[|\]$/g, "");
   if (net.isIP(host)) return isBlockedIp(host);
   const lower = host.toLowerCase();
@@ -56,7 +57,7 @@ export async function fetchGuardedText(input: {
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
     return { ok: false, reason: `Only http(s) URLs are allowed (got ${parsed.protocol}).` };
   }
-  if (!input.allowPrivateHosts && (await isBlockedHost(parsed.hostname))) {
+  if (!input.allowPrivateHosts && (await isFetchHostBlocked(parsed.hostname))) {
     return {
       ok: false,
       reason: `Refusing to fetch "${parsed.hostname}" - it resolves to a private/loopback address (SSRF guard).`,

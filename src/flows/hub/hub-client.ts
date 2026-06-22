@@ -13,12 +13,14 @@
 
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { fetchGuardedText } from "../../core/guarded-fetch.js";
+import { fetchGuardedText, isFetchHostBlocked } from "../../core/guarded-fetch.js";
 import {
   importFlowFromText,
   type FlowWriteResult,
   type FetchImpl,
 } from "../runtime/flow-portability.js";
+import { redact } from "../../notifications/gateways/secret-resolver.js";
+import { assertNoHardSecrets } from "./publish-guards.js";
 
 /** The hub origin. A bare origin; endpoints are appended. Override per call. */
 export const DEFAULT_HUB_BASE_URL = "https://vibestrate.com";
@@ -187,6 +189,139 @@ export async function pullHubFlow(input: {
     }
   }
   return { ok: true, value: flow };
+}
+
+export interface HubDiagnosis {
+  severity?: string; score?: number; verdict?: string;
+  findings?: Array<{ id?: string; category?: string; severity?: string; message?: string; path?: string; evidence?: string }>;
+}
+export type HubPublishResult =
+  | { ok: true; ref: string; version: string; sha256: string; verified: boolean; diagnosis?: HubDiagnosis; alreadyExisted?: boolean }
+  | { ok: false; status: number; reason: string; diagnosis?: HubDiagnosis };
+
+const hubPublishOkSchema = z
+  .object({
+    ok: z.boolean().optional(),
+    ref: z.string().optional(),
+    version: z.string().optional(),
+    sha256: z.string().optional(),
+    verified: z.boolean().optional(),
+    diagnosis: z.unknown().optional(),
+  })
+  .passthrough();
+
+function parseHubError(parsed: unknown): { reason?: string; diagnosis?: HubDiagnosis } {
+  if (!parsed || typeof parsed !== "object") return {};
+  const o = parsed as Record<string, unknown>;
+  const reason = typeof o.error === "string" ? o.error : undefined;
+  const diagnosis = o.diagnosis && typeof o.diagnosis === "object" ? (o.diagnosis as HubDiagnosis) : undefined;
+  return { reason, diagnosis };
+}
+
+export async function publishFlow(input: {
+  content: string;
+  ref: string;
+  token: string;
+  baseUrl?: string;
+  allowTokenToCustomHost?: boolean;
+  allowPrivateHosts?: boolean;
+  fetchImpl?: FetchImpl;
+}): Promise<HubPublishResult> {
+  // Hard-refuse secrets FIRST - never egress a secret regardless of host/origin.
+  const refusals = assertNoHardSecrets(input.content);
+  if (refusals.length > 0) {
+    return { ok: false, status: 0, reason: `Refusing to publish (secret-shaped content): ${refusals.join("; ")}` };
+  }
+
+  const base = trimSlash(input.baseUrl ?? DEFAULT_HUB_BASE_URL);
+  let origin: string;
+  let hostname: string;
+  try {
+    const u = new URL(base);
+    origin = u.origin;
+    hostname = u.hostname;
+  } catch {
+    return { ok: false, status: 0, reason: `Invalid hub base URL: ${base}` };
+  }
+
+  // Token-host pin: never attach the GitHub token to a non-default origin.
+  const defaultOrigin = new URL(DEFAULT_HUB_BASE_URL).origin;
+  if (origin !== defaultOrigin && !input.allowTokenToCustomHost) {
+    return {
+      ok: false,
+      status: 0,
+      reason: `Refusing to send the hub token to a non-default origin (${origin}). Use the default hub, or pass --allow-token-to-custom-host for local testing.`,
+    };
+  }
+  // SSRF guard (the HTTP route never sets allowPrivateHosts; the CLI may).
+  if (!input.allowPrivateHosts && (await isFetchHostBlocked(hostname))) {
+    return { ok: false, status: 0, reason: `Refusing to publish to "${hostname}" - it resolves to a private/loopback address (SSRF guard).` };
+  }
+
+  const fetchImpl = input.fetchImpl ?? (globalThis.fetch as unknown as FetchImpl);
+  if (!fetchImpl) return { ok: false, status: 0, reason: "No fetch implementation available." };
+
+  const url = `${base}/api/hub/publish`;
+  const body = JSON.stringify({ ref: input.ref, content: input.content });
+  let res: Awaited<ReturnType<FetchImpl>>;
+  let text = "";
+  try {
+    res = await fetchImpl(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${input.token}` },
+      body,
+      signal: AbortSignal.timeout(20_000),
+    } as { signal: AbortSignal });
+    text = await res.text();
+  } catch (err) {
+    return { ok: false, status: 0, reason: `Hub publish request failed: ${redact(err, [input.token])}` };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = text ? JSON.parse(text) : undefined;
+  } catch {
+    parsed = undefined;
+  }
+
+  if (res.status === 201) {
+    const ok = hubPublishOkSchema.safeParse(parsed);
+    const v = ok.success ? ok.data : {};
+    return {
+      ok: true,
+      ref: v.ref ?? input.ref,
+      version: v.version ?? input.ref.split(":")[1] ?? "",
+      sha256: v.sha256 ?? sha256Hex(input.content),
+      verified: v.verified ?? false,
+      diagnosis: (v.diagnosis as HubDiagnosis) ?? undefined,
+    };
+  }
+
+  if (res.status === 409) {
+    // A timed-out-but-stored publish, or a true re-publish. Compare content sha.
+    const existing = await pullHubFlow({ ref: input.ref, baseUrl: base, fetchImpl: input.fetchImpl, allowPrivateHosts: input.allowPrivateHosts });
+    if (existing.ok && existing.value.sha256 && existing.value.sha256.toLowerCase() === sha256Hex(input.content).toLowerCase()) {
+      return {
+        ok: true,
+        ref: existing.value.ref,
+        version: existing.value.version ?? input.ref.split(":")[1] ?? "",
+        sha256: existing.value.sha256,
+        verified: existing.value.verified ?? false,
+        alreadyExisted: true,
+      };
+    }
+    const { reason } = parseHubError(parsed);
+    return { ok: false, status: 409, reason: redact(reason ?? "that version already exists (versions are immutable); bump the version.", [input.token]) };
+  }
+
+  if (res.status === 200 && !text) {
+    return { ok: false, status: 502, reason: "Empty hub response." };
+  }
+  if (parsed === undefined && text) {
+    return { ok: false, status: res.status, reason: `Non-JSON response from hub (HTTP ${res.status}).` };
+  }
+  const { reason, diagnosis } = parseHubError(parsed);
+  return { ok: false, status: res.status, reason: redact(reason ?? `Hub returned HTTP ${res.status}.`, [input.token]), diagnosis };
 }
 
 /** Pull a flow by ref and write it into the project (validated + guarded). */
