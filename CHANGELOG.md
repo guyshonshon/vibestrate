@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.23.1
+
+- **Posture auto-apply has dashboard switches now.** The two opt-in posture
+  flags (`autoApplySandbox` / `autoApplyApproval`) shipped editable from the CLI
+  and the raw-YAML config; they now also have proper on/off toggles in the
+  dashboard's Advanced - Safety panel, with plain-language hints and a live
+  preview of what a run will do. UI and CLI are at parity.
+
 ## 0.23.0
 
 - **A suggested safety posture can now actually take effect.** When the
