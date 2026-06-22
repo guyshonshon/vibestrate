@@ -18,6 +18,7 @@
 - **Fail-closed**: the local route refuses without `VIBESTRATE_API_TOKEN` and requires `confirm: "publish"`.
 - **Redaction**: every error path runs through `redact(x, [token])` (`src/notifications/gateways/secret-resolver.ts`).
 - **Style:** no em dashes (use `-`), no emojis anywhere, keep the term "Provider". TDD, frequent commits.
+- **Test location:** vitest only includes `tests/**/*.test.ts` (confirmed: 0 co-located tests in `src/`). Every test file goes in `tests/<name>.test.ts` and imports the module under test as `../src/...`. The per-task "Test:" paths and the `./relative` imports in the sample test code below are illustrative - create the file under `tests/` and fix the import depth to `../src/...` (Task 1 shipped as `tests/hub-publish-guards.test.ts`).
 - **Verification before "done":** `pnpm typecheck && pnpm test && pnpm build` all green.
 
 ---
@@ -247,7 +248,7 @@ git commit -m "feat(hub): publish ref builder + leak preflight (pure)"
 **Files:**
 - Modify: `src/core/guarded-fetch.ts` (export the SSRF host check)
 - Modify: `src/flows/hub/hub-client.ts` (add `publishFlow`, types)
-- Test: `src/flows/hub/hub-client.publish.test.ts`
+- Test: `tests/hub-client-publish.test.ts` (import from `../src/flows/hub/hub-client.js`)
 
 **Interfaces:**
 - Consumes: `buildPublishRef`/`assertNoHardSecrets` (Task 1), `pullHubFlow`/`sha256Hex`/`DEFAULT_HUB_BASE_URL` (existing in `hub-client.ts`), `redact` (`secret-resolver.ts`), `isFetchHostBlocked` (newly exported), `FetchImpl` (`flow-portability.ts`).
@@ -538,7 +539,7 @@ git commit -m "feat(hub): publishFlow client - token-host pin, redaction, 409 sh
 **Files:**
 - Modify: `src/cli/commands/flows/hub.ts` (add `runHubPublish`)
 - Modify: `src/cli/commands/flows/index.ts` (register the subcommand)
-- Test: `src/cli/commands/flows/hub.publish.test.ts`
+- Test: `tests/cli-flows-hub-publish.test.ts` (imports from `../src/...`)
 
 **Interfaces:**
 - Consumes: `exportFlowYaml` (`flow-portability.ts`), `resolveSecret`/`envVarName` (`secret-resolver.ts`), `buildPublishRef`/`runPublishPreflight` (Task 1), `publishFlow` (Task 2), `detectProject`.
@@ -629,7 +630,8 @@ export async function runHubPublish(
     return 1;
   }
 
-  const ref = buildPublishRef({ handle: opts.handle, name: opts.name ?? flowId, version: opts.version });
+  // buildPublishRef validates raw input (no normalization); lowercase user input here.
+  const ref = buildPublishRef({ handle: opts.handle.toLowerCase(), name: (opts.name ?? flowId).toLowerCase(), version: opts.version });
   if (!ref.ok) {
     console.error(`${symbol.fail()} ${ref.reason}`);
     return 1;
@@ -743,7 +745,7 @@ git commit -m "feat(hub): vibe flows hub publish CLI"
 
 **Files:**
 - Modify: `src/server/routes/flows.ts`
-- Test: the existing flows route test (grep `flows` under `src/server/**/*.test.ts`); create `src/server/routes/flows.hub-publish.test.ts` if none covers this route.
+- Test: `tests/server-flows-hub-publish.test.ts` (imports from `../src/server/routes/flows.js`; grep `tests/` for an existing flows-route test to copy the Fastify app + error-handler setup verbatim).
 
 **Interfaces:**
 - Consumes: `exportFlowYaml`, `resolveSecret`, `buildPublishRef`, `runPublishPreflight`, `publishFlow`, `HttpError`.
@@ -857,7 +859,8 @@ Inside `registerFlowsRoutes`, after the `POST /api/flows/hub/install` handler:
     if (!exported.ok) throw new HttpError(404, exported.reason ?? `flow "${parsed.data.flowId}" not found.`);
 
     const { buildPublishRef, runPublishPreflight } = await import("../../flows/hub/publish-guards.js");
-    const ref = buildPublishRef({ handle: parsed.data.handle, name: parsed.data.name ?? parsed.data.flowId, version: parsed.data.version });
+    // buildPublishRef validates raw input (no normalization); lowercase here.
+    const ref = buildPublishRef({ handle: parsed.data.handle.toLowerCase(), name: (parsed.data.name ?? parsed.data.flowId).toLowerCase(), version: parsed.data.version });
     if (!ref.ok) throw new HttpError(400, ref.reason);
 
     const pre = runPublishPreflight(exported.yaml);
