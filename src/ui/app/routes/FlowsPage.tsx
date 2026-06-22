@@ -520,9 +520,12 @@ function HubSection({
   function handlePublishFlowChange(flowId: string) {
     setPublishFlowId(flowId);
     const flow = projectFlows.find((f) => f.id === flowId);
-    if (flow && !publishName) setPublishName(flow.label || flow.id);
-    if (flow && publishName === (projectFlows.find((f) => f.id === publishFlowId)?.label ?? publishFlowId)) {
-      setPublishName(flow.label || flow.id);
+    if (flow) {
+      const prevFlow = projectFlows.find((f) => f.id === publishFlowId);
+      const prevLabel = prevFlow?.label || prevFlow?.id || "";
+      if (!publishName || publishName === prevLabel) {
+        setPublishName(flow.label || flow.id);
+      }
     }
     setPublishResult(null);
     setPublishError(null);
@@ -812,7 +815,7 @@ function HubSection({
                       disabled={!publishConfirmed || !publishFlowId || !publishVersion || !publishHandle || publishing}
                       className="text-[12.5px]"
                     >
-                      {publishing ? "Publishing…" : "Publish"}
+                      {publishing ? "Publishing..." : "Publish"}
                     </Button>
                   </div>
                 </div>
