@@ -151,4 +151,44 @@ describe("runHubPublish", () => {
     });
     expect(code).toBe(0);
   });
+
+  it("returns 1 and surfaces the server reason on 403", async () => {
+    process.env.VIBESTRATE_HUB_TOKEN = "gho_x".padEnd(20, "y");
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    (publishFlow as any).mockResolvedValue({
+      ok: false,
+      status: 403,
+      reason: "you can only publish under your own handle (@realuser)",
+    });
+    const code = await runHubPublish("x-flow", {
+      version: "1.0.0",
+      handle: "guy",
+      yes: true,
+    });
+    expect(code).toBe(1);
+    const printed = errSpy.mock.calls.flat().join(" ");
+    expect(printed).toContain("you can only publish under your own handle (@realuser)");
+    errSpy.mockRestore();
+  });
+
+  it("returns 0 and runs the flagged warning path without error", async () => {
+    process.env.VIBESTRATE_HUB_TOKEN = "gho_x".padEnd(20, "y");
+    (publishFlow as any).mockResolvedValue({
+      ok: true,
+      ref: "guy@x-flow:1.0.0",
+      version: "1.0.0",
+      sha256: "a".repeat(64),
+      verified: false,
+      diagnosis: {
+        verdict: "flagged",
+        findings: [{ severity: "low", message: "embeds an absolute path" }],
+      },
+    });
+    const code = await runHubPublish("x-flow", {
+      version: "1.0.0",
+      handle: "guy",
+      yes: true,
+    });
+    expect(code).toBe(0);
+  });
 });

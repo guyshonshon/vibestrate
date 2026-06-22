@@ -177,7 +177,7 @@ export function buildFlowsCommand(): Command {
     .description("Publish a project flow to the hub (public, immutable).")
     .requiredOption("--version <semver>", "the release version, e.g. 1.2.0")
     .option("--name <slug>", "hub name (defaults to the flow id)")
-    .option("--handle <login>", "your GitHub login (must match the token account)")
+    .requiredOption("--handle <login>", "your GitHub login (must match the token account)")
     .option("--base-url <url>", "override the hub base URL")
     .option(
       "--allow-token-to-custom-host",
