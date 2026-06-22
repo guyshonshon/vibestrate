@@ -136,9 +136,9 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     ],
   },
   notifications: {
-    subtitle: "alerts routed through your configured gateways",
+    subtitle: "alerts routed through your local gateways",
     blurb:
-      "Every notable orchestrator event can route to CLI / in-app / webhook / Discord / Slack / Telegram gateways. Use `vibe gateways add` to wire one up.",
+      "Every notable orchestrator event is recorded and can route to your local CLI and in-app gateways.",
     commonKeys: [["↑↓", "select notification"]],
     commonCli: ["vibe notifications list", "vibe gateways"],
   },

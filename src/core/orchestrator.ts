@@ -6382,7 +6382,7 @@ export class Orchestrator {
       message: `${at}. Stopping per budget policy (capAction=${budget.capAction}).`,
       data: { action: "stop", dailySpendUsd, cap },
     });
-    // A6: notify on cap-hit so it reaches the user's gateways (webhook/desktop/…).
+    // A6: notify on cap-hit so it reaches the user's local gateways (in-app/CLI).
     const notify = (this as unknown as { _notify?: (d: NotificationDraft) => void })._notify;
     notify?.(
       draftSpendCapHit({

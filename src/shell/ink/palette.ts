@@ -198,7 +198,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     title: "Go to Notifications",
     hint: "feed + gateway status",
     description:
-      "Recent notifications across runs + the health of each configured gateway (CLI, in-app, webhook, Discord, Slack, Telegram).",
+      "Recent notifications across runs + the health of each configured gateway (CLI, in-app).",
     cli: "vibe notifications list",
     examples: ["vibe notifications gateways"],
     action: { kind: "goto", page: "notifications" },

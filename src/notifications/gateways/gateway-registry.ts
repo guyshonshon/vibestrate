@@ -8,11 +8,8 @@ import { gatewayWillRelay } from "../notification-rules.js";
 import type { Gateway } from "./gateway-types.js";
 import { cliGateway } from "./cli-gateway.js";
 import { inAppGateway } from "./inapp-gateway.js";
-import { webhookGateway } from "./webhook-gateway.js";
-import { discordGateway } from "./discord-gateway.js";
-import { slackGateway } from "./slack-gateway.js";
-import { telegramGateway } from "./telegram-gateway.js";
-import { whatsappPlaceholderGateway } from "./whatsapp-placeholder.js";
+// External-API notification gateways (slack/telegram/discord/webhook/whatsapp) were
+// removed: no external comms for notifications. Only local gateways ship.
 
 export class GatewayRegistry {
   private readonly gateways = new Map<string, Gateway>();
@@ -128,13 +125,5 @@ export async function buildDefaultRegistry(
 ): Promise<GatewayRegistry> {
   void _projectRoot;
   void _log;
-  return new GatewayRegistry([
-    inAppGateway,
-    cliGateway,
-    webhookGateway,
-    discordGateway,
-    slackGateway,
-    telegramGateway,
-    whatsappPlaceholderGateway,
-  ]);
+  return new GatewayRegistry([inAppGateway, cliGateway]);
 }

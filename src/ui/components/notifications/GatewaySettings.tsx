@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   RefreshCw,
   Send,
-  Webhook,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type {
@@ -253,9 +252,9 @@ export function GatewaySettings({ initialPermission }: Props) {
 
       <section className="rounded border border-vibestrate-border">
         <header className="flex items-center gap-2 border-b border-vibestrate-border px-3 py-2">
-          <Webhook className="h-3.5 w-3.5 text-vibestrate-accent" strokeWidth={1.5} />
+          <Bell className="h-3.5 w-3.5 text-vibestrate-accent" strokeWidth={1.5} />
           <span className="text-[13px] font-medium text-vibestrate-fg">
-            Communication gateways
+            Notification gateways
           </span>
         </header>
         <div className="divide-y divide-vibestrate-border">

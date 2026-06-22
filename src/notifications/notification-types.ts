@@ -75,6 +75,12 @@ export const notificationsFileSchema = z.object({
 });
 export type NotificationsFile = z.infer<typeof notificationsFileSchema>;
 
+// The external gateways (webhook/discord/slack/telegram/whatsapp) were REMOVED - no
+// external comms. Only in-app/cli are produced now. The external channel values are
+// RETAINED in this enum on purpose: a user upgrading from a state that used an
+// external gateway has receipts on disk with those channel values, and the receipts
+// store parses the whole file at once - dropping these from the enum would make one
+// legacy entry discard the user's entire receipt history. No gateway emits them.
 export const channelSchema = z.enum([
   "in-app",
   "cli",
@@ -125,19 +131,20 @@ const channelToggleSchema = z.object({
 export const gatewayConfigSchema = z.object({
   enabled: z.boolean().default(false),
   /**
-   * For external HTTP gateways. May be a literal URL OR an env-var reference
-   * of the form `env:VAR_NAME`. Treat the value as a secret when it starts
-   * with `env:`; the resolver fetches `process.env.VAR_NAME` at delivery
-   * time and never logs the resolved value.
+   * Optional endpoint for a gateway that needs one. May be a literal URL OR an
+   * env-var reference of the form `env:VAR_NAME`. Treat the value as a secret
+   * when it starts with `env:`; the resolver fetches `process.env.VAR_NAME` and
+   * never logs the resolved value. (The shipped local gateways - in-app, cli -
+   * do not use this; it stays for the generic gateway config shape.)
    */
   url: z.string().nullable().default(null),
   /**
-   * For bot-style gateways (e.g. Telegram). May be `env:VAR_NAME`.
+   * Optional credential for a gateway that needs one. May be `env:VAR_NAME`.
    */
   token: z.string().nullable().default(null),
   /**
-   * Optional channel/chat target (e.g. Telegram chat id, Slack channel,
-   * Discord channel name). `env:` references work here too.
+   * Optional delivery target for a gateway that needs one. `env:` references
+   * work here too.
    */
   target: z.string().nullable().default(null),
   /** Optional minimum severity to relay through this gateway. */

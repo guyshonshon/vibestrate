@@ -89,43 +89,6 @@ describe("server: notifications + gateways routes", () => {
     expect(res.status).toBe(400);
   });
 
-  it("GET /api/notifications/settings returns settings + safe gateway list (no secrets)", async () => {
-    const svc = new NotificationService(project);
-    await svc.init();
-    await svc.store.writeGateways({
-      gateways: {
-        webhook: {
-          enabled: true,
-          url: "https://example.com/hook?token=supersecretvalue",
-          token: null,
-          target: null,
-          minSeverity: "info",
-          categories: [],
-        },
-      },
-    });
-    const r = (await fetch(`${server!.url}/api/notifications/settings`).then(
-      (res) => res.json(),
-    )) as {
-      settings: { enabled: boolean };
-      gateways: {
-        id: string;
-        config: {
-          url: { kind: string; hasValue?: boolean } | null;
-        };
-      }[];
-    };
-    expect(r.settings.enabled).toBe(true);
-    const webhook = r.gateways.find((g) => g.id === "webhook");
-    expect(webhook).toBeDefined();
-    // hard requirement: secret URL never round-trips to the client
-    expect(JSON.stringify(r)).not.toContain("supersecretvalue");
-    expect(webhook!.config.url).toMatchObject({
-      kind: "literal",
-      hasValue: true,
-    });
-  });
-
   it("PATCH /api/notifications/settings updates a single field", async () => {
     const res = await fetch(`${server!.url}/api/notifications/settings`, {
       method: "PATCH",
@@ -139,15 +102,17 @@ describe("server: notifications + gateways routes", () => {
     expect(json.settings.notifyOnRunCompleted).toBe(false);
   });
 
-  it("env-ref gateway URL surfaces as env-ref view, never a literal", async () => {
+  it("GET /api/notifications/settings never round-trips a secret gateway URL", async () => {
+    // The external gateways are gone, but the gateway-config view still strips
+    // secret values before they reach the client. Exercise that boundary on a
+    // local (cli) gateway config so the security property keeps a regression guard.
     const svc = new NotificationService(project);
     await svc.init();
-    delete process.env.VIBESTRATE_TEST_NOTSET;
     await svc.store.writeGateways({
       gateways: {
-        slack: {
+        cli: {
           enabled: true,
-          url: "env:VIBESTRATE_TEST_NOTSET",
+          url: "https://example.com/hook?token=supersecretvalue",
           token: null,
           target: null,
           minSeverity: "info",
@@ -158,38 +123,12 @@ describe("server: notifications + gateways routes", () => {
     const r = (await fetch(`${server!.url}/api/notifications/settings`).then(
       (res) => res.json(),
     )) as {
-      gateways: { id: string; missingEnvVars: string[]; valid: boolean; config: { url: { kind: string; envVar?: string; envVarSet?: boolean } | null } }[];
+      gateways: { id: string; config: { url: { kind: string; hasValue?: boolean } | null } }[];
     };
-    const slack = r.gateways.find((g) => g.id === "slack");
-    expect(slack!.config.url).toMatchObject({
-      kind: "env-ref",
-      envVar: "VIBESTRATE_TEST_NOTSET",
-      envVarSet: false,
-    });
-    expect(slack!.missingEnvVars).toContain("VIBESTRATE_TEST_NOTSET");
-  });
-
-  it("POST /api/gateways/:id/test on whatsapp returns ok=false (planned, not real)", async () => {
-    const svc = new NotificationService(project);
-    await svc.init();
-    await svc.store.writeGateways({
-      gateways: {
-        whatsapp: {
-          enabled: true,
-          url: null,
-          token: null,
-          target: null,
-          minSeverity: "info",
-          categories: [],
-        },
-      },
-    });
-    const res = await fetch(`${server!.url}/api/gateways/whatsapp/test`, {
-      method: "POST",
-    });
-    expect(res.status).toBe(200);
-    const json = (await res.json()) as { ok: boolean; message: string };
-    expect(json.ok).toBe(false);
-    expect(json.message).toMatch(/planned|not implemented/i);
+    // The literal secret value must never appear anywhere in the response.
+    expect(JSON.stringify(r)).not.toContain("supersecretvalue");
+    const cli = r.gateways.find((g) => g.id === "cli");
+    expect(cli).toBeDefined();
+    expect(cli!.config.url).toMatchObject({ kind: "literal", hasValue: true });
   });
 });

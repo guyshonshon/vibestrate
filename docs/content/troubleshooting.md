@@ -171,7 +171,7 @@ To check it worked, look for the worktree under `../.vibestrate-worktrees/`.
 <div class="docs-cards">
 
 **Notifications never arrive**
-You set up a Slack or webhook gateway, ran a task, and got nothing. Usually the gateway is registered but disabled, the webhook URL is wrong, or the notification severity is below the gateway's threshold.
+A task finished but you saw nothing. Notifications are delivered to local gateways only (in-app and CLI) - usually a gateway is disabled, the notification severity is below the gateway's threshold, or notifications are off in settings.
 
 **A dashboard tab is blank**
 `vibe ui` opens, but a tab shows no data even though you have runs. Either the browser cached an older asset bundle, or the runs are in a different project root than the one `vibe ui` was started from.
@@ -180,14 +180,15 @@ You set up a Slack or webhook gateway, ran a task, and got nothing. Usually the 
 
 ### Notifications never arrive
 
-Look at your gateways and notifications:
+Notifications stay local - they are delivered to the in-app feed and the CLI; there
+are no external (Slack / webhook / etc.) gateways. Look at your gateways and the feed:
 
 ```bash
 vibe gateways list
 vibe notifications list
 ```
 
-Confirm the gateway is enabled and the webhook URL is reachable, then send a test:
+Confirm the gateway is enabled, then send a test through it:
 
 ```bash
 vibe notifications test <gatewayId>
