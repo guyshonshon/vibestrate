@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.23.0
+
+- **A suggested safety posture can now actually take effect.** When the
+  supervisor (or a persona) flags a run as wanting a sandbox or an approval gate,
+  that suggestion was previously advisory only. Two new opt-in switches let it
+  apply automatically: `posture.autoApplySandbox` runs that task OS-sandboxed, and
+  `posture.autoApplyApproval` makes each change wait for your approval. Both
+  default off (a behavior change is never silent), an explicit `--permission-mode`
+  always wins, the approval gate is suppressed for `--unattended` runs so they
+  never stall, and a provider that can't sandbox (claude) degrades honestly
+  per-seat instead of pretending. What was applied is surfaced at run start.
+
 ## 0.22.0
 
 - **Edit the spec before you build it.** A spec-up run's drafts - scope,

@@ -913,6 +913,37 @@
       ]
     },
     {
+      "key": "posture",
+      "fullKey": "posture",
+      "type": "object",
+      "required": false,
+      "default": {
+        "autoApplySandbox": false,
+        "autoApplyApproval": false
+      },
+      "itemType": null,
+      "children": [
+        {
+          "key": "autoApplySandbox",
+          "fullKey": "posture.autoApplySandbox",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "itemType": null,
+          "description": "When a run's posture is sandbox-suggested, apply execution.isolation: sandboxed for that run (opt-in, default false). Seats whose provider can't sandbox degrade honestly at runtime."
+        },
+        {
+          "key": "autoApplyApproval",
+          "fullKey": "posture.autoApplyApproval",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "itemType": null,
+          "description": "When a run's posture is approval-suggested, apply permissionMode: ask for that run (opt-in, default false). Suppressed for --unattended runs; never overrides an explicit --permission-mode."
+        }
+      ]
+    },
+    {
       "key": "scheduler",
       "fullKey": "scheduler",
       "type": "object",
