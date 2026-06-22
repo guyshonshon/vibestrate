@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 // Persona reviewLenses, made behavioral (orchestrator-personas.md follow-up;
 // config-schema.ts personaConfigSchema.reviewLenses: "Not yet enforced as a
 // panel-review filter this slice - that is a follow-up"). A persona's
@@ -15,10 +17,33 @@
 // a lens string, is inert rather than injected. Persona text that DOES reach the
 // prompt is advisory-tier only and can never soften a code-enforced gate.
 
+/**
+ * The closed lens vocabulary as a const tuple. Adding a lens here (and to
+ * REVIEW_LENS_FRAGMENTS below) is the ONLY way a new lens becomes behavioral.
+ * The tuple drives the Zod enum + the TypeScript type; the Record type-check
+ * below ensures the two stay in sync at compile time.
+ */
+export const REVIEW_LENSES = [
+  "correctness",
+  "tests",
+  "security-risk",
+  "authz",
+  "secrets",
+  "injection",
+  "ux-ia",
+  "accessibility",
+  "visual-consistency",
+  "performance",
+] as const;
+
+export type ReviewLens = (typeof REVIEW_LENSES)[number];
+
+export const reviewLensSchema = z.enum(REVIEW_LENSES);
+
 /** The closed lens vocabulary -> a one-line review-emphasis fragment. Adding a
  *  lens here is the ONLY way a persona's reviewLens becomes behavioral. Fragments
  *  are descriptive scrutiny aims, never gate-softening instructions. */
-export const REVIEW_LENS_FRAGMENTS: Record<string, string> = {
+export const REVIEW_LENS_FRAGMENTS: Record<ReviewLens, string> = {
   correctness:
     "Correctness & logic - does the change do what it claims, including edge cases, error paths, and boundary conditions?",
   tests:
@@ -45,7 +70,7 @@ export type ReviewLensEmphasis = {
   /** The prompt block appended to a reviewer turn. */
   block: string;
   /** Lenses that mapped to a fragment (declaration order, deduped). */
-  known: string[];
+  known: ReviewLens[];
   /** Lenses with no fragment - recorded for audit, NEVER injected. */
   unknown: string[];
 };
@@ -58,7 +83,7 @@ export type ReviewLensEmphasis = {
 export function renderPersonaReviewLensEmphasis(
   reviewLenses: readonly string[],
 ): ReviewLensEmphasis | null {
-  const known: string[] = [];
+  const known: ReviewLens[] = [];
   const unknown: string[] = [];
   const seen = new Set<string>();
   for (const raw of reviewLenses ?? []) {
@@ -66,7 +91,7 @@ export function renderPersonaReviewLensEmphasis(
     if (!lens || seen.has(lens)) continue;
     seen.add(lens);
     if (Object.prototype.hasOwnProperty.call(REVIEW_LENS_FRAGMENTS, lens)) {
-      known.push(lens);
+      known.push(lens as ReviewLens);
     } else {
       unknown.push(lens);
     }

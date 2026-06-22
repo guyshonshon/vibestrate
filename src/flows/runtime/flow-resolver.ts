@@ -1,6 +1,7 @@
 import type { ProjectConfig } from "../../project/config-schema.js";
 import type { CrewConfig } from "../../crews/crew-schema.js";
 import { nowIso } from "../../utils/time.js";
+import { type ReviewLens } from "../../orchestrator/review-lenses.js";
 import {
   getCrew,
   getCrewRole,
@@ -25,6 +26,24 @@ import {
   type ResolvedFlowSnapshot,
   type ResolvedFlowStep,
 } from "../schemas/flow-schema.js";
+
+export const DEFAULT_CHECKLIST_REVIEW_LENSES: ReviewLens[] = [
+  "correctness",
+  "security-risk",
+];
+
+/**
+ * Pure. Resolve which review lenses to use for a checklist-review pass.
+ * Precedence: crew > flow > default (`["correctness", "security-risk"]`).
+ */
+export function resolveChecklistReviewLenses(o: {
+  flowLenses?: ReviewLens[];
+  crewLenses?: ReviewLens[];
+}): ReviewLens[] {
+  if (o.crewLenses && o.crewLenses.length) return o.crewLenses;
+  if (o.flowLenses && o.flowLenses.length) return o.flowLenses;
+  return DEFAULT_CHECKLIST_REVIEW_LENSES;
+}
 
 const TURN_KINDS = new Set<FlowStepKind>([
   "agent-turn",

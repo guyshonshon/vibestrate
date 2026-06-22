@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { approvalRiskSchema } from "../../core/approval-types.js";
 import { skillReferenceSchema } from "../../skills/skill-schema.js";
+import { reviewLensSchema } from "../../orchestrator/review-lenses.js";
 
 const FLOW_TOKEN_RE = /^[a-z][a-z0-9-]*$/;
 const FLOW_AGENT_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
@@ -332,6 +333,16 @@ const flowDefinitionBaseSchema = z
     hidden: z.boolean().optional(),
     /** Typed parameters the caller fills at run start (T11), keyed by name. */
     params: z.record(flowParamNameSchema, flowParamSchema).optional(),
+    /**
+     * Checklist-review lens configuration. When set, the resolver's
+     * `resolveChecklistReviewLenses` uses this flow-level preference as a
+     * fallback between the default and a crew-level override. min(1) prevents
+     * a silently-empty lens set from zeroing out review coverage.
+     */
+    checklistReview: z
+      .object({ lenses: z.array(reviewLensSchema).min(1).max(5) })
+      .strict()
+      .optional(),
   })
   .strict();
 
