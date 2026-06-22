@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.22.0
+
+- **Edit the spec before you build it.** A spec-up run's drafts - scope,
+  specification, architecture, and risks - are now editable in place on the run
+  screen (and from the CLI with `vibe spec-up edit`) before you approve the build,
+  so the build builds from *your* corrected spec, not only the AI's first draft.
+  Edits are locked once a build is approved (the spec it built from is frozen), and
+  the write is heavily guarded: it only touches that run's own draft files, refuses
+  to save anything that looks like a secret, and is symlink/hardlink-safe. The
+  dashboard route requires an API token, matching the merge-to-main route.
+
 ## 0.21.0
 
 - **Notifications are local-only now.** The external notification gateways (Slack,

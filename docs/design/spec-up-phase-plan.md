@@ -33,9 +33,13 @@ Deliberate v1 deltas from the plan (Tier-2 review, 2026-06-19):
   orchestrator + the chain launchers, consumed independent of `selection` so it
   survives the roadmap resume). Default `staff-engineer` = null (unchanged); `security`
   carries a security-lens posture. Recorded as a `supervisor.spec_up_posture` event.
-- **Artifact edit/approve + the dependency-edge graph editor are partial.**
-  Artifacts are reviewable (read-only viewer); inline edit/approve and a DAG
-  edge editor remain net-new UI (the plan + reviewer both defer the editor).
+- **Artifact INLINE EDIT SHIPPED (0.22.0).** The spec-up scope/spec/architecture/
+  risks drafts are now editable before the build (`src/spec-up/spec-up-artifact-edit.ts`
+  + `ArtifactStore.writeGuarded`): a guarded browser->fs write (closed section set,
+  secret-refusal, block-after-approve, baseHash concurrency, broker file.write gate,
+  O_NOFOLLOW + nlink symlink/hardlink safety, token-fail-closed route) with UI
+  (SpecUpReview) + CLI (`vibe spec-up edit`) parity. Pre-act AND post-impl Tier-2
+  reviewed. STILL PARTIAL: the dependency-edge graph editor remains net-new UI.
 - **intake -> spec-up uses a fresh launch with the answers as a `file`
   contextSource**, not `resumeFrom`, to avoid the single-step seeding coupling;
   `resumeFrom` is used only for spec-up -> roadmap (seeded at stage `executing`),

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "commands": [
     {
       "name": "init",
@@ -2147,6 +2147,40 @@
             }
           ],
           "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "edit",
+          "path": [
+            "vibe",
+            "spec-up",
+            "edit"
+          ],
+          "description": "Edit a spec-up section (scope/spec/architecture/risks) before the build, via $EDITOR or --file. Guarded: secret-refusing, blocked after approve.",
+          "usage": "[options] <runId> <section>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--file <path>",
+              "description": "read the new content from a file instead of opening $EDITOR",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
           "subcommands": []
         }
       ]
