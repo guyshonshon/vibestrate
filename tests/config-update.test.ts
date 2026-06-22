@@ -92,9 +92,18 @@ describe("config get/set/validate", () => {
       setConfigValue(projectRoot, "workflow.maxReviewLoops", "-1"),
     ).rejects.toBeInstanceOf(ConfigError);
 
-    // The rejected write added nothing: maxReviewLoops stays absent (opt-in).
-    const orig = await getConfigValue(projectRoot, "workflow.maxReviewLoops");
-    expect(orig.found).toBe(false);
+    // The rejected write added nothing: maxReviewLoops stays absent from the
+    // on-disk config (it is opt-in). (`config get` now resolves schema defaults,
+    // so it reports the default rather than "not found" - the point here is that
+    // the invalid `-1` was never persisted to project.yml.)
+    const onDisk = await fs.readFile(
+      path.join(projectRoot, ".vibestrate", "project.yml"),
+      "utf8",
+    );
+    const raw = (YAML.parse(onDisk) ?? {}) as {
+      workflow?: Record<string, unknown>;
+    };
+    expect(raw.workflow?.maxReviewLoops).toBeUndefined();
   });
 
   it("validate reports ok for fresh config", async () => {

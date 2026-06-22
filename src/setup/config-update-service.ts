@@ -94,25 +94,39 @@ export type GetResult =
   | { found: true; value: unknown }
   | { found: false; reason: string };
 
+function navigateDotted(root: unknown, parts: string[]): unknown {
+  let cursor: unknown = root;
+  for (const p of parts) {
+    if (cursor && typeof cursor === "object" && p in (cursor as Record<string, unknown>)) {
+      cursor = (cursor as Record<string, unknown>)[p];
+    } else {
+      return undefined;
+    }
+  }
+  return cursor;
+}
+
 export async function getConfigValue(
   projectRoot: string,
   dottedPath: string,
 ): Promise<GetResult> {
   const { doc } = await readDocument(projectRoot);
   const parts = dottedPath.split(".");
-  if (!doc.hasIn(parts as readonly string[])) {
-    return { found: false, reason: `Path "${dottedPath}" not found.` };
+  const raw = doc.toJS({ maxAliasCount: 100 }) as Record<string, unknown>;
+  // Explicitly written on disk -> return it verbatim (unchanged behavior).
+  if (doc.hasIn(parts as readonly string[])) {
+    return { found: true, value: navigateDotted(raw, parts) };
   }
-  const js = doc.toJS({ maxAliasCount: 100 }) as Record<string, unknown>;
-  let cursor: unknown = js;
-  for (const p of parts) {
-    if (cursor && typeof cursor === "object" && p in (cursor as Record<string, unknown>)) {
-      cursor = (cursor as Record<string, unknown>)[p];
-    } else {
-      cursor = undefined;
-    }
+  // Not written: fall back to the schema-resolved effective config so a defaulted
+  // key (e.g. `git.snapshotRetentionRuns` -> 0) reports its default instead of
+  // "not found". A genuinely unknown key (absent even after defaults) and an
+  // invalid on-disk config both fall through to "not found".
+  const effective = projectConfigSchema.safeParse(raw);
+  if (effective.success) {
+    const value = navigateDotted(effective.data, parts);
+    if (value !== undefined) return { found: true, value };
   }
-  return { found: true, value: cursor };
+  return { found: false, reason: `Path "${dottedPath}" not found.` };
 }
 
 export type SetResult = {
