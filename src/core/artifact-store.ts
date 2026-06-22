@@ -72,7 +72,10 @@ export class ArtifactStore {
       throw new Error(`Refusing to write outside the run artifacts dir: ${relativePath}`);
     }
     // Open WITHOUT O_TRUNC so the nlink check runs before any truncation - a
-    // hardlinked target must not be zeroed before we reject it.
+    // hardlinked target must not be zeroed before we reject it. O_NOFOLLOW makes
+    // the symlink refusal ATOMIC on POSIX; on Windows it is a no-op, so the
+    // symlink defense there degrades to the (non-atomic) lstat check above - an
+    // accepted limitation (Windows isn't a supported platform yet, TODO E1).
     const fh = await fs.open(
       target,
       fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_NOFOLLOW,

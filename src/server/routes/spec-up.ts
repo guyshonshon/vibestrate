@@ -50,6 +50,8 @@ const editArtifactBody = z
   .object({
     // The closed-set check + clean 400 is the service's `bad-section` guard.
     section: z.string().min(1).max(40),
+    // Coarse outer bound (UTF-16 units). The AUTHORITATIVE cap is the service's
+    // MAX_SPEC_UP_EDIT_BYTES (256 KiB, measured in UTF-8 bytes), enforced always.
     content: z.string().max(512 * 1024),
     baseHash: z.string().min(1).max(128).optional(),
   })
