@@ -8,7 +8,7 @@ vi.mock("../src/flows/hub/hub-client.js", async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   publishFlow: vi.fn(async () => ({
     ok: true,
-    ref: "guy@x:1.0.0",
+    ref: "guy@my-flow:1.0.0",
     version: "1.0.0",
     sha256: "a".repeat(64),
     verified: false,
@@ -19,17 +19,14 @@ vi.mock("../src/flows/runtime/flow-portability.js", async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   exportFlowYaml: vi.fn(async () => ({
     ok: true,
-    flowId: "x",
+    flowId: "my-flow",
     source: "project",
-    yaml: "id: x\nsteps: []\n",
+    yaml: "id: my-flow\nsteps: []\n",
   })),
 }));
 
-vi.mock("../src/flows/hub/publish-guards.js", async (orig) => ({
-  ...(await orig<Record<string, unknown>>()),
-  buildPublishRef: vi.fn(() => ({ ok: true, ref: "guy@x:1.0.0" })),
-  runPublishPreflight: vi.fn(() => ({ ok: true, warnings: [] })),
-}));
+// Note: publish-guards.js is NOT mocked - the real buildPublishRef and
+// runPublishPreflight run so that the !ref.ok and !pre.ok branches are tested.
 
 async function build() {
   const app = Fastify({ logger: false });
@@ -66,6 +63,7 @@ describe("POST /api/flows/hub/publish", () => {
   afterEach(() => {
     delete process.env.VIBESTRATE_API_TOKEN;
     delete process.env.VIBESTRATE_HUB_TOKEN;
+    vi.clearAllMocks();
   });
 
   it("403s without VIBESTRATE_API_TOKEN (fail-closed)", async () => {
@@ -73,7 +71,7 @@ describe("POST /api/flows/hub/publish", () => {
     const res = await app.inject({
       method: "POST",
       url: "/api/flows/hub/publish",
-      payload: { flowId: "x", version: "1.0.0", handle: "guy", confirm: "publish" },
+      payload: { flowId: "my-flow", version: "1.0.0", handle: "guy", confirm: "publish" },
     });
     expect(res.statusCode).toBe(403);
     await app.close();
@@ -86,7 +84,20 @@ describe("POST /api/flows/hub/publish", () => {
     const res = await app.inject({
       method: "POST",
       url: "/api/flows/hub/publish",
-      payload: { flowId: "x", version: "1.0.0", handle: "guy" },
+      payload: { flowId: "my-flow", version: "1.0.0", handle: "guy" },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it("400s when an unexpected field is present (strict schema)", async () => {
+    process.env.VIBESTRATE_API_TOKEN = "t";
+    process.env.VIBESTRATE_HUB_TOKEN = "gho_xxxxxxxxxxxxxxxxxxxx";
+    const app = await build();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/flows/hub/publish",
+      payload: { flowId: "my-flow", version: "1.0.0", handle: "guy", confirm: "publish", overwrite: true },
     });
     expect(res.statusCode).toBe(400);
     await app.close();
@@ -98,23 +109,63 @@ describe("POST /api/flows/hub/publish", () => {
     const res = await app.inject({
       method: "POST",
       url: "/api/flows/hub/publish",
-      payload: { flowId: "x", version: "1.0.0", handle: "guy", confirm: "publish" },
+      payload: { flowId: "my-flow", version: "1.0.0", handle: "guy", confirm: "publish" },
     });
     expect([400, 412]).toContain(res.statusCode);
     await app.close();
   });
 
-  it("relays the upstream success", async () => {
+  it("relays the upstream success with a valid ref", async () => {
     process.env.VIBESTRATE_API_TOKEN = "t";
     process.env.VIBESTRATE_HUB_TOKEN = "gho_xxxxxxxxxxxxxxxxxxxx";
     const app = await build();
     const res = await app.inject({
       method: "POST",
       url: "/api/flows/hub/publish",
-      payload: { flowId: "x", version: "1.0.0", handle: "guy", confirm: "publish" },
+      payload: { flowId: "my-flow", version: "1.0.0", handle: "guy", confirm: "publish" },
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().result.ok).toBe(true);
+    await app.close();
+  });
+
+  it("400s when the handle is invalid (!ref.ok branch)", async () => {
+    process.env.VIBESTRATE_API_TOKEN = "t";
+    process.env.VIBESTRATE_HUB_TOKEN = "gho_xxxxxxxxxxxxxxxxxxxx";
+    const app = await build();
+    // "BAD@HANDLE" contains '@' which is explicitly rejected by buildPublishRef
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/flows/hub/publish",
+      payload: { flowId: "my-flow", version: "1.0.0", handle: "BAD@HANDLE", confirm: "publish" },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it("400s when the yaml contains a secret (!pre.ok branch) and does NOT call publishFlow", async () => {
+    process.env.VIBESTRATE_API_TOKEN = "t";
+    process.env.VIBESTRATE_HUB_TOKEN = "gho_xxxxxxxxxxxxxxxxxxxx";
+
+    const { exportFlowYaml } = await import("../src/flows/runtime/flow-portability.js");
+    const { publishFlow } = await import("../src/flows/hub/hub-client.js");
+
+    // Inject yaml with an OpenAI-style secret so runPublishPreflight refuses
+    vi.mocked(exportFlowYaml).mockResolvedValueOnce({
+      ok: true,
+      flowId: "my-flow",
+      source: "project",
+      yaml: "id: my-flow\nsteps:\n  - run: sk-" + "a".repeat(40) + "\n",
+    } as never);
+
+    const app = await build();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/flows/hub/publish",
+      payload: { flowId: "my-flow", version: "1.0.0", handle: "guy", confirm: "publish" },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(vi.mocked(publishFlow)).not.toHaveBeenCalled();
     await app.close();
   });
 });

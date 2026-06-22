@@ -99,14 +99,16 @@ const hubInstallBody = z.object({
   overwrite: z.boolean().optional(),
 });
 
-const hubPublishBody = z.object({
-  flowId: z.string().min(1).max(120),
-  version: z.string().min(1).max(40),
-  name: z.string().min(1).max(60).optional(),
-  handle: z.string().min(1).max(60),
-  baseUrl: z.string().url().max(2000).optional(),
-  confirm: z.literal("publish"),
-});
+const hubPublishBody = z
+  .object({
+    flowId: z.string().min(1).max(120),
+    version: z.string().min(1).max(40),
+    name: z.string().min(1).max(60).optional(),
+    handle: z.string().min(1).max(60),
+    baseUrl: z.string().url().max(2000).optional(),
+    confirm: z.literal("publish"),
+  })
+  .strict();
 
 export type FlowsRoutesDeps = {
   projectRoot: string;
@@ -183,7 +185,7 @@ export async function registerFlowsRoutes(
     if (!parsed.success) throw new HttpError(400, parsed.error.message);
 
     const exported = await exportFlowYaml({ projectRoot, flowId: parsed.data.flowId });
-    if (!exported.ok) throw new HttpError(404, exported.reasons.join(" "));
+    if (!exported.ok) throw new HttpError(exported.status ?? 404, exported.reasons.join(" "));
 
     // buildPublishRef validates raw input (no normalization); lowercase here.
     const ref = buildPublishRef({
