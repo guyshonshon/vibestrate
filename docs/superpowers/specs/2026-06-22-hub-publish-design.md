@@ -330,8 +330,10 @@ no scanner catches.
   content -> `{ok:true, alreadyExisted:true}`; sha mismatch -> `{ok:false}` with
   "bump the version".
 - **Redaction depth** - force a thrown **zod** error and a thrown **network**
-  error mid-call; assert the token is absent from `err.message` **and**
-  `err.stack` and from the returned `reason`, not just the success result.
+  error mid-call; assert the token is absent from the returned `reason` (not
+  just the success result). Note: `redact` scrubs the error's `message`, and the
+  publish path never surfaces a raw `err.stack` to any output, so the returned
+  `reason` is the surface the test guards.
 - **CLI** - resolves the flow, builds the ref, honors `--yes`/confirm, prints the
   right thing per status; token-unset fails fast naming the env var, no network
   call.
