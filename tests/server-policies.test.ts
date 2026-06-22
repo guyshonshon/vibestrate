@@ -231,6 +231,27 @@ describe("server: policies routes", () => {
     );
     expect(after.config.strictApplyOnly).toBe(true);
 
+    // Posture auto-apply flags (Slice 2b) are carried by the same endpoint but
+    // routed to the `posture.*` namespace, not `policies.*`.
+    expect(before.config.autoApplySandbox).toBe(false);
+    expect(before.config.autoApplyApproval).toBe(false);
+    const postureRes = await fetch(`${srv.url}/api/policies/config`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ autoApplySandbox: true, autoApplyApproval: true }),
+    });
+    expect(postureRes.status).toBe(200);
+    const posture = await postureRes.json();
+    expect(posture.config.autoApplySandbox).toBe(true);
+    expect(posture.config.autoApplyApproval).toBe(true);
+    // Written to the posture namespace on disk, not policies.
+    const onDisk = await fs.readFile(
+      path.join(project, ".vibestrate/project.yml"),
+      "utf8",
+    );
+    expect(onDisk).toMatch(/posture:/);
+    expect(onDisk).toMatch(/autoApplySandbox: true/);
+
     // Empty patch is rejected.
     const bad = await fetch(`${srv.url}/api/policies/config`, {
       method: "PATCH",

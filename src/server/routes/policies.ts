@@ -23,11 +23,18 @@ const safetyConfigSchema = z
     forbidSecretsAccess: z.boolean().optional(),
     forbidAutoPush: z.boolean().optional(),
     forbidAutoMerge: z.boolean().optional(),
+    // Posture auto-apply (Slice 2b). Carried by the same endpoint but routed to
+    // the `posture.*` config namespace, not `policies.*`.
+    autoApplySandbox: z.boolean().optional(),
+    autoApplyApproval: z.boolean().optional(),
   })
   .strict()
   .refine((v) => Object.keys(v).length > 0, {
     message: "Provide at least one field to update.",
   });
+
+/** Keys in the flat safety patch that live under `posture.*`, not `policies.*`. */
+const POSTURE_KEYS = new Set(["autoApplySandbox", "autoApplyApproval"]);
 
 /** Hard cap on patch size accepted by the check endpoint. 1 MB is plenty
  *  for a real-world patch and well below what a malicious caller could
@@ -62,7 +69,15 @@ export async function registerPoliciesRoutes(
   app.get("/api/policies/config", async () => {
     const loaded = await loadConfig(projectRoot).catch(() => null);
     if (!loaded) throw new HttpError(409, "Project is not initialized.");
-    return { config: loaded.config.policies };
+    // Merge the posture auto-apply flags in so the Advanced panel renders the
+    // whole safety surface from one call (they persist to `posture.*`).
+    return {
+      config: {
+        ...loaded.config.policies,
+        autoApplySandbox: loaded.config.posture.autoApplySandbox,
+        autoApplyApproval: loaded.config.posture.autoApplyApproval,
+      },
+    };
   });
 
   // Safety behavior config (write) - through the same path-guarded config-update
@@ -77,10 +92,18 @@ export async function registerPoliciesRoutes(
       );
     }
     for (const [key, value] of Object.entries(parsed.data)) {
-      await setConfigValue(projectRoot, `policies.${key}`, String(value));
+      const namespace = POSTURE_KEYS.has(key) ? "posture" : "policies";
+      await setConfigValue(projectRoot, `${namespace}.${key}`, String(value));
     }
     const loaded = await loadConfig(projectRoot);
-    return { ok: true, config: loaded.config.policies };
+    return {
+      ok: true,
+      config: {
+        ...loaded.config.policies,
+        autoApplySandbox: loaded.config.posture.autoApplySandbox,
+        autoApplyApproval: loaded.config.posture.autoApplyApproval,
+      },
+    };
   });
 
   app.get("/api/policies/doctor", async () => {

@@ -1664,6 +1664,10 @@ export type SafetyPoliciesConfig = {
   forbidAutoPush: boolean;
   forbidAutoMerge: boolean;
   requireApprovalAtStages: string[];
+  /** Posture auto-apply (Slice 2b). Carried by the safety endpoint, persisted
+   *  to `posture.*`. Both default off. */
+  autoApplySandbox: boolean;
+  autoApplyApproval: boolean;
 };
 
 /** A flow row from the live hub search (mirrors hub-client's normalized

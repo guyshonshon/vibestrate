@@ -47,6 +47,48 @@ const ROWS: Row[] = [
   { key: "forbidAutoMerge", label: "Forbid auto-merge", hint: "Never merge automatically." },
 ];
 
+// Posture auto-apply (Slice 2b). A distinct category from the hard guards above:
+// these let the supervisor's *suggested* posture take effect. Both default off.
+const POSTURE_ROWS: Row[] = [
+  {
+    key: "autoApplySandbox",
+    label: "Auto-apply sandbox",
+    hint: "When the supervisor suggests it, run the task OS-sandboxed (execution.isolation). A provider with no host sandbox degrades per-seat - never a false claim.",
+  },
+  {
+    key: "autoApplyApproval",
+    label: "Auto-apply approval gate",
+    hint: "When the supervisor suggests it, hold each change for your approval (permission mode: ask). Suppressed for unattended runs; an explicit --permission-mode always wins.",
+  },
+];
+
+function ToggleRow({
+  row,
+  on,
+  onToggle,
+}: {
+  row: Row;
+  on: boolean;
+  onToggle: (key: ToggleKey, value: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3 rounded-lg border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-2">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11.5px] font-medium text-vibestrate-fg">{row.label}</span>
+          {row.badge ? (
+            <span className="rounded bg-emerald-500/15 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-emerald-300">
+              {row.badge}
+            </span>
+          ) : null}
+        </div>
+        <p className="mt-0.5 text-[10.5px] leading-snug text-vibestrate-fg-muted">{row.hint}</p>
+      </div>
+      <Switch on={on} label={row.label} onChange={(v) => onToggle(row.key, v)} />
+    </div>
+  );
+}
+
 function Switch({
   on,
   onChange,
@@ -130,6 +172,20 @@ function BehaviorPreview({
       : "The dashboard terminal panel is disabled.",
   });
 
+  lines.push({
+    tone: safety.autoApplySandbox ? "on" : "info",
+    text: safety.autoApplySandbox
+      ? "A sandbox-suggested run is auto-applied OS-sandboxed (codex confines; claude degrades per-seat)."
+      : "A suggested sandbox posture stays advisory - shown, not applied.",
+  });
+
+  lines.push({
+    tone: safety.autoApplyApproval ? "on" : "info",
+    text: safety.autoApplyApproval
+      ? "An approval-suggested run holds each change for your sign-off (skipped when unattended)."
+      : "A suggested approval gate stays advisory - shown, not applied.",
+  });
+
   return (
     <div className="mt-3 rounded-lg border border-vibestrate-accent/30 bg-vibestrate-accent/[0.06] p-3">
       <div className="flex items-center gap-2">
@@ -182,32 +238,26 @@ export function AdvancedSafetySection({ safety, actionCount, onToggle }: Props) 
 
       <div className="mt-3 space-y-2">
         {ROWS.map((row) => (
-          <div
-            key={row.key}
-            className="flex items-start justify-between gap-3 rounded-lg border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-2"
-          >
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11.5px] font-medium text-vibestrate-fg">
-                  {row.label}
-                </span>
-                {row.badge ? (
-                  <span className="rounded bg-emerald-500/15 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-emerald-300">
-                    {row.badge}
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-0.5 text-[10.5px] leading-snug text-vibestrate-fg-muted">
-                {row.hint}
-              </p>
-            </div>
-            <Switch
-              on={safety[row.key]}
-              label={row.label}
-              onChange={(v) => onToggle(row.key, v)}
-            />
-          </div>
+          <ToggleRow key={row.key} row={row} on={safety[row.key]} onToggle={onToggle} />
         ))}
+      </div>
+
+      <div className="mt-4 border-t border-vibestrate-border pt-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <h4 className="text-[11.5px] font-medium text-vibestrate-fg">
+            Posture auto-apply
+          </h4>
+          <span className="text-[10px] text-vibestrate-fg-muted">opt-in, off by default</span>
+        </div>
+        <p className="mt-0.5 text-[10.5px] leading-snug text-vibestrate-fg-muted">
+          Let the supervisor's suggested posture take effect for a run instead of
+          only being shown. A suggestion can only raise confinement, never lower it.
+        </p>
+        <div className="mt-2 space-y-2">
+          {POSTURE_ROWS.map((row) => (
+            <ToggleRow key={row.key} row={row} on={safety[row.key]} onToggle={onToggle} />
+          ))}
+        </div>
       </div>
 
       <BehaviorPreview safety={safety} actionCount={actionCount} />
