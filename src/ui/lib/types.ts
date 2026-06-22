@@ -1673,6 +1673,16 @@ export type SafetyPoliciesConfig = {
 /** A flow row from the live hub search (mirrors hub-client's normalized
  *  HubFlowSummary - `description`/`author` are filled from their live-contract
  *  synonyms server-side). */
+export interface HubPublishResult {
+  ok: boolean;
+  ref?: string;
+  version?: string;
+  sha256?: string;
+  verified?: boolean;
+  alreadyExisted?: boolean;
+  diagnosis?: { verdict?: string; findings?: Array<{ severity?: string; message?: string; path?: string }> };
+}
+
 export type HubFlowRow = {
   ref: string;
   name?: string | null;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -7,7 +7,7 @@ import {
   Upload,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
-import type { DiscoveredFlow, HubFlowRow } from "../../lib/types.js";
+import type { DiscoveredFlow, HubFlowRow, HubPublishResult } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
 import { cn } from "../../components/design/cn.js";
 
@@ -386,6 +386,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       </section>
 
       <HubSection
+        projectFlows={(flows ?? []).filter((f) => f.source.kind === "project")}
         onInstalled={(flowId) => {
           setToast({ kind: "ok", text: `Installed hub flow "${flowId}".` });
           void load();
@@ -430,9 +431,11 @@ function hubDiagnosisLabel(d: unknown): string | null {
  *  integrity guarantee); install always discloses that a flow is executable
  *  configuration. Errors surface the hub client's reasons verbatim. */
 function HubSection({
+  projectFlows,
   onInstalled,
   onError,
 }: {
+  projectFlows: DiscoveredFlow[];
   onInstalled: (flowId: string) => void;
   onError: (text: string) => void;
 }) {
@@ -442,6 +445,17 @@ function HubSection({
   const [loading, setLoading] = useState(false);
   const [hubError, setHubError] = useState<string | null>(null);
   const [installing, setInstalling] = useState<string | null>(null);
+
+  // ── Publish form state ────────────────────────────────────────────────────
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [publishFlowId, setPublishFlowId] = useState("");
+  const [publishName, setPublishName] = useState("");
+  const [publishVersion, setPublishVersion] = useState("");
+  const [publishHandle, setPublishHandle] = useState("");
+  const [publishConfirmed, setPublishConfirmed] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishResult, setPublishResult] = useState<(HubPublishResult & { warnings?: string[] }) | null>(null);
 
   // Debounced search; runs only while open, on open + on query change.
   useEffect(() => {
@@ -500,6 +514,39 @@ function HubSection({
       }
     } finally {
       setInstalling(null);
+    }
+  }
+
+  function handlePublishFlowChange(flowId: string) {
+    setPublishFlowId(flowId);
+    const flow = projectFlows.find((f) => f.id === flowId);
+    if (flow && !publishName) setPublishName(flow.label || flow.id);
+    if (flow && publishName === (projectFlows.find((f) => f.id === publishFlowId)?.label ?? publishFlowId)) {
+      setPublishName(flow.label || flow.id);
+    }
+    setPublishResult(null);
+    setPublishError(null);
+  }
+
+  async function submitPublish(e: React.FormEvent) {
+    e.preventDefault();
+    if (!publishConfirmed || !publishFlowId || !publishVersion || !publishHandle) return;
+    setPublishing(true);
+    setPublishError(null);
+    setPublishResult(null);
+    try {
+      const r = await api.publishHubFlow({
+        flowId: publishFlowId,
+        version: publishVersion,
+        name: publishName || undefined,
+        handle: publishHandle,
+      });
+      setPublishResult({ ...r.result, warnings: r.warnings });
+      setPublishConfirmed(false);
+    } catch (err) {
+      setPublishError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPublishing(false);
     }
   }
 
@@ -610,6 +657,168 @@ function HubSection({
             guarantee; checksums verify transport only. A hub flow is executable
             configuration: review an installed flow before running it.
           </p>
+
+          {/* ── Publish a flow ──────────────────────────────────────────── */}
+          <div className="mt-10 border-t border-[color:var(--line)] pt-6">
+            <button
+              type="button"
+              onClick={() => {
+                setPublishOpen((v) => !v);
+                setPublishResult(null);
+                setPublishError(null);
+              }}
+              className="flex items-center gap-2 text-left"
+            >
+              {publishOpen ? (
+                <ChevronDown className="h-4 w-4 shrink-0 text-fog-400" strokeWidth={1.8} />
+              ) : (
+                <ChevronRight className="h-4 w-4 shrink-0 text-fog-400" strokeWidth={1.8} />
+              )}
+              <span className="mono text-[12px] uppercase tracking-[0.08em] text-fog-400">
+                Publish a flow to the hub
+              </span>
+            </button>
+
+            {publishOpen && (
+              <form onSubmit={(e) => void submitPublish(e)} className="mt-4 max-w-[520px]">
+                <div className="slab px-4 py-4 space-y-3">
+                  {/* Flow picker */}
+                  <div>
+                    <label className="mono mb-1 block text-[11px] uppercase tracking-[0.08em] text-fog-400">
+                      Flow
+                    </label>
+                    {projectFlows.length === 0 ? (
+                      <p className="text-[12.5px] text-fog-400">
+                        No project flows found. Fork or create a project flow first.
+                      </p>
+                    ) : (
+                      <select
+                        value={publishFlowId}
+                        onChange={(e) => handlePublishFlowChange(e.target.value)}
+                        required
+                        className="mono slab w-full py-1.5 px-2 text-[13px] text-fog-100 outline-none focus:ring-1 focus:ring-violet-soft/40"
+                      >
+                        <option value="">Select a project flow…</option>
+                        {projectFlows.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.label} ({f.id})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Name */}
+                  <div>
+                    <label className="mono mb-1 block text-[11px] uppercase tracking-[0.08em] text-fog-400">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      value={publishName}
+                      onChange={(e) => setPublishName(e.target.value)}
+                      placeholder="human-readable name"
+                      className="mono slab w-full py-1.5 px-2 text-[13px] text-fog-100 outline-none placeholder:text-fog-500 focus:ring-1 focus:ring-violet-soft/40"
+                    />
+                  </div>
+
+                  {/* Version */}
+                  <div>
+                    <label className="mono mb-1 block text-[11px] uppercase tracking-[0.08em] text-fog-400">
+                      Version
+                    </label>
+                    <input
+                      type="text"
+                      value={publishVersion}
+                      onChange={(e) => setPublishVersion(e.target.value)}
+                      placeholder="1.0.0"
+                      required
+                      className="mono slab w-full py-1.5 px-2 text-[13px] text-fog-100 outline-none placeholder:text-fog-500 focus:ring-1 focus:ring-violet-soft/40"
+                    />
+                  </div>
+
+                  {/* Handle */}
+                  <div>
+                    <label className="mono mb-1 block text-[11px] uppercase tracking-[0.08em] text-fog-400">
+                      Handle
+                    </label>
+                    <input
+                      type="text"
+                      value={publishHandle}
+                      onChange={(e) => setPublishHandle(e.target.value)}
+                      placeholder="your-github-handle"
+                      required
+                      className="mono slab w-full py-1.5 px-2 text-[13px] text-fog-100 outline-none placeholder:text-fog-500 focus:ring-1 focus:ring-violet-soft/40"
+                    />
+                  </div>
+
+                  {/* Confirm gate */}
+                  <label className="flex cursor-pointer items-start gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      checked={publishConfirmed}
+                      onChange={(e) => setPublishConfirmed(e.target.checked)}
+                      className="mt-0.5 shrink-0 accent-violet-500"
+                    />
+                    <span className="text-[12.5px] leading-[1.45] text-fog-300">
+                      I understand this publishes a public, immutable version to the hub.
+                      It cannot be retracted once live.
+                    </span>
+                  </label>
+
+                  {/* Errors */}
+                  {publishError ? (
+                    <div className="border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+                      {publishError}
+                    </div>
+                  ) : null}
+
+                  {/* Success result */}
+                  {publishResult ? (
+                    <div className="border border-emerald-400/30 bg-emerald-500/5 px-3 py-2.5 text-[12.5px] text-emerald-200 space-y-1">
+                      <div>
+                        Published: <span className="mono">{publishResult.ref}</span>
+                        {publishResult.version ? <> v{publishResult.version}</> : null}
+                        {publishResult.sha256 ? (
+                          <> - sha <span className="mono">{publishResult.sha256.slice(0, 12)}</span></>
+                        ) : null}
+                      </div>
+                      {publishResult.alreadyExisted ? (
+                        <div className="text-fog-400">already published - version unchanged</div>
+                      ) : null}
+                      {publishResult.diagnosis?.verdict === "flagged" && publishResult.diagnosis.findings?.length ? (
+                        <div className="mt-1 space-y-0.5">
+                          <span className="text-amber-300">flagged:</span>
+                          {publishResult.diagnosis.findings.map((f, i) => (
+                            <div key={i} className="text-fog-300">
+                              {f.severity ? <span className="text-amber-400">[{f.severity}] </span> : null}
+                              {f.message}
+                              {f.path ? <span className="text-fog-500"> ({f.path})</span> : null}
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                      {publishResult.warnings?.length ? (
+                        <div className="mt-1 text-amber-300">
+                          {publishResult.warnings.map((w, i) => <div key={i}>{w}</div>)}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div className="pt-1">
+                    <Button
+                      type="submit"
+                      disabled={!publishConfirmed || !publishFlowId || !publishVersion || !publishHandle || publishing}
+                      className="text-[12.5px]"
+                    >
+                      {publishing ? "Publishing…" : "Publish"}
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            )}
+          </div>
         </>
       )}
     </section>

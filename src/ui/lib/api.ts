@@ -80,6 +80,7 @@ import type {
   ResolvedFlowSnapshot,
   FlowCoverage,
   HubFlowRow,
+  HubPublishResult,
 } from "./types.js";
 
 export class ApiError extends Error {
@@ -1086,6 +1087,17 @@ export const api = {
     result: { ok: true; flowId: string; overwritten: boolean };
   }> {
     return jsonPost("/api/flows/hub/install", input);
+  },
+  /** Publish a project flow to the hub. The `confirm` literal is merged in
+   *  automatically - the caller does not need to pass it. Errors surface as
+   *  thrown ApiError (the route maps refusals to 4xx/5xx). */
+  async publishHubFlow(input: {
+    flowId: string;
+    version: string;
+    name?: string;
+    handle: string;
+  }): Promise<{ result: HubPublishResult; warnings: string[] }> {
+    return jsonPost("/api/flows/hub/publish", { ...input, confirm: "publish" });
   },
   /** Create a project flow from a full definition (the flow-creator API). */
   async createFlow(
