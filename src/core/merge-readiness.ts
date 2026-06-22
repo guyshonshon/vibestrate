@@ -30,6 +30,11 @@ export type MergeReadinessInput = {
   /** A verify (summary-turn) step produced an artifact. */
   verified: boolean;
   verificationDecision: VerificationDecision;
+  /** Optional cap from the per-item checklist review band (Shape B). When false,
+   *  at least one checklist item has open findings or a changes_requested verdict,
+   *  so the run cannot be merge_ready regardless of the main review lane.
+   *  Undefined is treated as true so all existing callers/tests are unaffected. */
+  checklistItemsClean?: boolean;
 };
 
 /** Review is satisfied by an APPROVED decision, or - express only - by skip
@@ -56,6 +61,7 @@ export function computeMergeReady(i: MergeReadinessInput): boolean {
   return (
     isReviewSatisfied(i) &&
     i.validationPassed &&
-    (!i.verified || i.verificationDecision === "PASSED")
+    (!i.verified || i.verificationDecision === "PASSED") &&
+    (i.checklistItemsClean ?? true)
   );
 }

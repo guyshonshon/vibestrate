@@ -21,6 +21,10 @@ import { runStateSchema } from "../core/state-machine.js";
 import { MetricsStore } from "../core/metrics-store.js";
 import { loadConfig } from "../project/config-loader.js";
 import { nowIso } from "../utils/time.js";
+import {
+  collectPerItemVerdicts,
+  type PerItemVerdict,
+} from "../flows/runtime/per-item-verdicts.js";
 
 export type RunAssuranceVerdict =
   | "blocked"
@@ -266,6 +270,10 @@ export function deriveRunAssurance(input: {
    *  half-restored, so its code can't be trusted. Poisons the verdict to
    *  `unsafe`, exactly like a failed rollback (ISSUE-001 P1). Defaults false. */
   restoreFailed?: boolean;
+  /** Shape B: per-item checklist gaps note. When set, it is appended to the
+   *  assurance `notes` array (informational context, not a verdict-capping gap -
+   *  the merge gate in computeMergeReady already blocked this run). */
+  checklistGapsNote?: string | null;
   generatedAt: string;
 }): RunAssurance {
   const { actionLog } = input;
@@ -389,6 +397,9 @@ export function deriveRunAssurance(input: {
   if (holds.length > 0) caps.push("approval_required");
   if (toleratedStepFailures > 0) caps.push("steps_failed_tolerated");
   if (restoreFailed) caps.push("restore_failed");
+  // Shape B: per-item checklist gaps - informational note (the merge gate
+  // already blocked the run via computeMergeReady; this surfaces the reason).
+  if (input.checklistGapsNote) notes.push(input.checklistGapsNote);
 
   // ── Verdict ─────────────────────────────────────────────────────────────
   const verdict = pickVerdict({
@@ -612,6 +623,23 @@ function summarize(
   }
 }
 
+/** Returns true if any checklist item has open findings or a changes_requested
+ *  verdict, capping the run from merge_ready. Empty list (non-checklist run) is
+ *  always clean. Pure - testable without disk. */
+export function checklistItemGapsCap(verdicts: PerItemVerdict[]): { caps: boolean; note: string } {
+  const gapped = verdicts.filter(
+    (v) => v.openFindingCount > 0 || v.verdict === "changes_requested",
+  );
+  if (gapped.length === 0) return { caps: false, note: "" };
+  const items = gapped
+    .map((v) => `item ${v.itemIndex + 1} (${v.openFindingCount} open)`)
+    .join(", ");
+  return {
+    caps: true,
+    note: `Per-item review left findings open: ${items}. The human reviews the diff before merge.`,
+  };
+}
+
 /** Read run state + action log, derive, and write `assurance.json`. */
 export async function buildAndWriteRunAssurance(
   projectRoot: string,
@@ -630,6 +658,7 @@ export async function buildAndWriteRunAssurance(
   let flowHasReviewStep = false;
   let flowHasVerifyStep = false;
   let readOnly = false;
+  let checklistItemCount = 0;
   const statePath = runStatePath(projectRoot, runId);
   if (await pathExists(statePath)) {
     try {
@@ -656,6 +685,7 @@ export async function buildAndWriteRunAssurance(
       flowHasValidationStep = ranSteps.some((s) => s.kind === "validation");
       flowHasReviewStep = ranSteps.some((s) => s.kind === "review-turn");
       flowHasVerifyStep = ranSteps.some((s) => s.kind === "summary-turn");
+      checklistItemCount = state.checklistProgress?.total ?? 0;
     } catch {
       // Fall through with defaults; an unreadable state is itself "blocked".
     }
@@ -758,6 +788,23 @@ export async function buildAndWriteRunAssurance(
   // runs even on read-only investigation runs).
   const verificationApplicable = flowHasVerifyStep && !readOnly;
   const reviewApplicable = flowHasReviewStep;
+  // Shape B: per-item checklist gaps. Non-checklist runs have checklistItemCount=0
+  // so collectPerItemVerdicts returns [] and the cap is never triggered.
+  // Best-effort: a failure reading ledgers just skips the note (never blocks).
+  let checklistGapsNote: string | null = null;
+  try {
+    if (checklistItemCount > 0) {
+      const verdicts = await collectPerItemVerdicts({
+        projectRoot,
+        runId,
+        itemCount: checklistItemCount,
+      });
+      const gap = checklistItemGapsCap(verdicts);
+      if (gap.caps) checklistGapsNote = gap.note;
+    }
+  } catch {
+    // best-effort; an unreadable ledger never blocks the assurance write
+  }
   const assurance = deriveRunAssurance({
     runId,
     runStatus,
@@ -775,6 +822,7 @@ export async function buildAndWriteRunAssurance(
     modelsUsed,
     isolation: deriveRunIsolation(events),
     restoreFailed,
+    checklistGapsNote,
     generatedAt: nowIso(),
   });
   await writeText(

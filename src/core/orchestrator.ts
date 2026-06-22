@@ -215,6 +215,7 @@ import {
   buildItemDecisionOutput,
   openFindingCount,
 } from "../flows/runtime/per-item-verdicts.js";
+import { checklistItemGapsCap } from "../safety/run-assurance.js";
 import {
   buildFlowContextPacket as buildFlowContextPacketValue,
   type FlowContextOutput,
@@ -4281,6 +4282,18 @@ export class Orchestrator {
       // Extracted predicate (merge-readiness.ts) so the express skip semantics
       // are a tested invariant: skip evidence satisfies review ONLY when no
       // review turn ran; it never substitutes for validation/verification.
+      //
+      // Shape B: per-item checklist items with open findings or changes_requested
+      // cap the run from merge_ready regardless of the main review lane. For a
+      // non-checklist run, itemOutcomes is empty so caps:false -> clean:true ->
+      // no behavior change.
+      const itemGaps = checklistItemGapsCap(
+        itemOutcomes.map((o) => ({
+          itemIndex: o.index,
+          verdict: (o.reviewVerdict ?? "none") as "approved" | "changes_requested" | "none",
+          openFindingCount: o.openFindingCount ?? 0,
+        })),
+      );
       const mergeReadinessInput = {
         readOnly: this.readOnly,
         reviewDecision,
@@ -4292,6 +4305,7 @@ export class Orchestrator {
         validationPassed,
         verified,
         verificationDecision,
+        checklistItemsClean: !itemGaps.caps,
       };
       const reviewSatisfiedByEvidence =
         !reviewTurnRan && reviewSkipEvidence !== null && !this.readOnly;
