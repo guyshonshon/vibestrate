@@ -181,7 +181,11 @@ import type { SuggestionSource } from "../reviews/review-suggestion-types.js";
 import { applyPauseIfRequested } from "./pause-service.js";
 import { isTerminal } from "./state-machine.js";
 import { writeJson } from "../utils/json.js";
-import { runFlowSnapshotPath, projectRunsDir } from "../utils/paths.js";
+import {
+  runFlowSnapshotPath,
+  projectRunsDir,
+  runChecklistItemArbitrationPath,
+} from "../utils/paths.js";
 import { readdir } from "node:fs/promises";
 import {
   isGraphFlow,
@@ -203,7 +207,14 @@ import {
   renderSpecUpPostureBlock,
 } from "../spec-up/spec-up-posture.js";
 import { findFlowById } from "../flows/catalog/flow-discovery.js";
-import { resolveFlow } from "../flows/runtime/flow-resolver.js";
+import {
+  resolveFlow,
+  resolveLoopMaxIterations,
+} from "../flows/runtime/flow-resolver.js";
+import {
+  buildItemDecisionOutput,
+  openFindingCount,
+} from "../flows/runtime/per-item-verdicts.js";
 import {
   buildFlowContextPacket as buildFlowContextPacketValue,
   type FlowContextOutput,
@@ -3145,6 +3156,16 @@ export class Orchestrator {
     // (mark a failed item blocked) can see them.
     const itemOutcomes: ChecklistItemOutcome[] = [];
     let currentChecklistItemId: string | null = null;
+    // Per-item REVIEW band (Shape B): the band can't emit a ledger token, so the
+    // per-item loop records its resolved verdict here, and commitChecklistItem
+    // stamps it onto the item outcome. null for non-review bands / Shape A.
+    let pendingItemReview:
+      | {
+          verdict: "approved" | "changes_requested";
+          openFindingCount: number;
+          fixIterations: number;
+        }
+      | null = null;
 
     const taskBriefBody = [
       "# Flow Task Brief",
@@ -3352,6 +3373,8 @@ export class Orchestrator {
       // truth for per-item commit. Control flow (jump-back, itemIndex, the
       // step-mode pause) stays inline at the call sites.
       const enterChecklistItem = async (i: number): Promise<void> => {
+        // Fresh per-item review state; the band's loop (review bands only) sets it.
+        pendingItemReview = null;
         const item = checklistItems[i]!;
         const briefContent = renderCurrentItemBrief(item, i, checklistItems.length);
         const briefAbs = await input.artifactStore.write(
@@ -3449,6 +3472,9 @@ export class Orchestrator {
           filesTouched,
           summary: compactImplementationSummary(implOutput),
           error: null,
+          reviewVerdict: pendingItemReview?.verdict ?? null,
+          openFindingCount: pendingItemReview?.openFindingCount ?? 0,
+          fixIterations: pendingItemReview?.fixIterations ?? 0,
         };
         itemOutcomes.push(outcome);
         currentChecklistItemId = null;
@@ -3532,43 +3558,173 @@ export class Orchestrator {
         if (bandIsGraph && stepIndex === segFrom) {
           if (usingChecklist) await enterChecklistItem(itemIndex);
           const bandSteps = steps.slice(segFrom, segTo + 1);
-          let gr: Awaited<ReturnType<typeof this.runGraphFrontier>>;
-          try {
-            gr = await this.runGraphFrontier({
-              snapshot: input.snapshot,
-              stepsOverride: bandSteps,
-              priorDoneOverride: new Set<string>(),
-              emitLifecycle: false,
-              runId: input.runId,
-              state,
-              worktreePath: input.worktreePath,
-              artifactStore: input.artifactStore,
-              stateStore: input.stateStore,
-              eventLog: input.eventLog,
-              metricsStore: input.metricsStore,
-              approvalService: input.approvalService,
-              notify: input.notify,
-              policyStagesAlreadyForced: input.policyStagesAlreadyForced,
-              outputs,
-              arbitrationLedger,
-              arbitrationStore,
-              runBriefState,
-              ctx: input.ctx,
-            });
-          } catch (err) {
-            // The frontier persists its own `state`; re-sync from disk on a throw
-            // so the run()-level catch sees the band's final per-step statuses.
-            state = await input.stateStore.read().catch(() => state);
-            throw err;
+          // A REVIEW band ends in a review-turn (Shape B `pickup-review`: the
+          // arbiter at `segTo` renders a per-item verdict). A non-review band
+          // (Shape A `pickup-analysis`) ends in the writer - it must run the
+          // frontier ONCE against the RUN-LEVEL ledger/store and commit, exactly
+          // as before. The whole new loop is gated on `isReviewBand` so that path
+          // stays byte-identical.
+          //
+          // (The resolved snapshot does not carry `checklistReview` - only the
+          // flow definition does - so detect on the segTo step kind, which is the
+          // brief's sanctioned fallback and the real, type-safe signal.)
+          const isReviewBand = steps[segTo]?.kind === "review-turn";
+
+          // Per-item review-loop budget. `pickup-review` declares no flow-level
+          // `loop`, so default `flowMax` to 2 (one fix attempt) and let the crew
+          // override / global ceiling adjust it - sourced exactly as the run-level
+          // loop is in flow-resolver.ts (crew.maxReviewLoops > config ceiling).
+          const { crew: bandCrew } = getCrew(this.config, this.activeCrewId);
+          const maxItns = isReviewBand
+            ? resolveLoopMaxIterations({
+                flowMax: input.snapshot.loop?.maxIterations ?? 2,
+                crewMax: bandCrew.maxReviewLoops,
+                globalCeiling: this.config.workflow.maxReviewLoops,
+              })
+            : 1;
+
+          // Review bands record into their OWN per-item ledger/store so item N's
+          // verdict never collides with item N-1's (or the run-level
+          // arbitration.json). Non-review bands keep using the run-level ledger.
+          const itemStore = isReviewBand
+            ? new FlowArbitrationStore(
+                this.projectRoot,
+                input.runId,
+                runChecklistItemArbitrationPath(
+                  this.projectRoot,
+                  input.runId,
+                  itemIndex,
+                ),
+              )
+            : arbitrationStore;
+          let itemLedger = isReviewBand
+            ? createFlowArbitrationLedger({
+                runId: input.runId,
+                snapshot: input.snapshot,
+              })
+            : arbitrationLedger;
+          if (isReviewBand) await itemStore.write(itemLedger);
+
+          let fixIterations = 0;
+          let lastDecision: ReviewDecision = "BLOCKED";
+          for (let itn = 0; itn < maxItns; itn++) {
+            // On a fix iteration, hand the writer the arbiter's consolidated
+            // must-fix list (its prior `review-decision` output) as a named input
+            // (`per-item-findings`, declared on `implement`). Iteration 0 has no
+            // findings yet, so the token is removed (the context builder marks an
+            // unproduced input omitted-unavailable - no stale carry-over).
+            if (isReviewBand && itn > 0) {
+              const mustFix = outputs.get("review-decision")?.content ?? "";
+              const mustFixAbs = await input.artifactStore.write(
+                path.posix.join(
+                  "flows",
+                  "checklist",
+                  `item-${itemIndex + 1}-must-fix-${itn}.md`,
+                ),
+                mustFix,
+              );
+              outputs.set("per-item-findings", {
+                token: "per-item-findings",
+                label: "Open review findings to fix for this item",
+                content: mustFix,
+                artifactPath: input.artifactStore.relPath(mustFixAbs),
+              });
+            } else {
+              outputs.delete("per-item-findings");
+            }
+            let gr: Awaited<ReturnType<typeof this.runGraphFrontier>>;
+            try {
+              gr = await this.runGraphFrontier({
+                snapshot: input.snapshot,
+                stepsOverride: bandSteps,
+                priorDoneOverride: new Set<string>(),
+                emitLifecycle: false,
+                runId: input.runId,
+                state,
+                worktreePath: input.worktreePath,
+                artifactStore: input.artifactStore,
+                stateStore: input.stateStore,
+                eventLog: input.eventLog,
+                metricsStore: input.metricsStore,
+                approvalService: input.approvalService,
+                notify: input.notify,
+                policyStagesAlreadyForced: input.policyStagesAlreadyForced,
+                outputs,
+                arbitrationLedger: itemLedger,
+                arbitrationStore: itemStore,
+                runBriefState,
+                ctx: input.ctx,
+              });
+            } catch (err) {
+              // The frontier persists its own `state`; re-sync from disk on a throw
+              // so the run()-level catch sees the band's final per-step statuses.
+              state = await input.stateStore.read().catch(() => state);
+              throw err;
+            }
+            // Adopt the frontier's state BEFORE the per-item commit, or the commit
+            // would write a stale copy over the band's per-step writes (P-HIGH-3).
+            state = gr.state;
+            // Carry the writer's artifacts forward (last item wins). The band's own
+            // review/verify decisions are per-item and deliberately NOT propagated:
+            // run-level verdicts come from the linear postlude (P4).
+            planArtifact = gr.planArtifact ?? planArtifact;
+            executionArtifact = gr.executionArtifact ?? executionArtifact;
+            // Read the per-item verdict IMMEDIATELY this pass: the run-scoped
+            // reviewDecision is overwritten by each item then the holistic
+            // postlude, so the loop must trust `gr.reviewDecision` here, not it.
+            lastDecision = gr.reviewDecision;
+            if (isReviewBand) {
+              await input.eventLog.append({
+                type: "flow.checklist.item.review",
+                message: `Item ${itemIndex + 1} review pass ${itn + 1}/${maxItns}: ${lastDecision}.`,
+                data: {
+                  itemId: checklistItems[itemIndex]?.id ?? null,
+                  iteration: itn + 1,
+                  maxIterations: maxItns,
+                  verdict: lastDecision,
+                },
+              });
+            }
+            // Stop once approved (or any non-CHANGES_REQUESTED verdict), or for a
+            // non-review band (which never loops). A surviving CHANGES_REQUESTED
+            // counts as one more fix attempt only if the budget allows another
+            // pass; on exhaustion we cap-and-continue (the item still commits).
+            if (!isReviewBand || lastDecision !== "CHANGES_REQUESTED") break;
+            if (itn + 1 < maxItns) fixIterations += 1;
           }
-          // Adopt the frontier's state BEFORE the per-item commit, or the commit
-          // would write a stale copy over the band's per-step writes (P-HIGH-3).
-          state = gr.state;
-          // Carry the writer's artifacts forward (last item wins). The band's own
-          // review/verify decisions are per-item and deliberately NOT propagated:
-          // run-level verdicts come from the linear postlude (P4).
-          planArtifact = gr.planArtifact ?? planArtifact;
-          executionArtifact = gr.executionArtifact ?? executionArtifact;
+
+          if (isReviewBand) {
+            // The band can't emit a ledger token (`decision-summary`), so record
+            // the resolved verdict EXPLICITLY into the per-item ledger.
+            const recommendation =
+              lastDecision === "APPROVED"
+                ? "merge-ready"
+                : lastDecision === "BLOCKED"
+                  ? "blocked"
+                  : "changes-requested";
+            itemLedger = (await itemStore.read()) ?? itemLedger;
+            itemLedger = recordFlowDecision({
+              ledger: itemLedger,
+              output: buildItemDecisionOutput({
+                stepId: steps[segTo]!.id,
+                recommendation,
+                summary: outputs.get("review-decision")?.content ?? "",
+              }),
+              sourceArtifactPath:
+                outputs.get("review-decision")?.artifactPath ??
+                `flows/checklist/item-${itemIndex + 1}-arbitration.json`,
+            });
+            await itemStore.write(itemLedger);
+            pendingItemReview = {
+              verdict:
+                recommendation === "merge-ready"
+                  ? "approved"
+                  : "changes_requested",
+              openFindingCount: openFindingCount(itemLedger),
+              fixIterations,
+            };
+          }
+
           if (usingChecklist) {
             const dir = await commitChecklistItem(itemIndex);
             if (dir === "repeat") {

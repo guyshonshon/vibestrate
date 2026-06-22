@@ -19,6 +19,16 @@ export type ChecklistItemOutcome = {
   /** A compact note - the agent's implementation summary, trimmed. */
   summary: string;
   error: string | null;
+  /**
+   * Per-item review verdict (Shape B / pickup-review only). The arbiter's
+   * resolved verdict for THIS item's diff after the bounded fix loop. null on
+   * non-review bands (Shape A) and read-only runs.
+   */
+  reviewVerdict?: "approved" | "changes_requested" | null;
+  /** Open findings remaining in the item's per-item arbitration ledger. */
+  openFindingCount?: number;
+  /** How many fix iterations the per-item review loop ran (0 = approved first pass). */
+  fixIterations?: number;
 };
 
 const ONE_LINE_SUMMARY_CHARS = 240;
@@ -44,6 +54,11 @@ export function renderItemSummaryArtifact(o: ChecklistItemOutcome): string {
       ? `- files: ${o.filesTouched.join(", ")}`
       : "- files: (none)",
   ];
+  if (o.reviewVerdict != null) {
+    lines.push(`- review: ${o.reviewVerdict}`);
+    lines.push(`- open findings: ${o.openFindingCount ?? 0}`);
+    lines.push(`- fix iterations: ${o.fixIterations ?? 0}`);
+  }
   if (o.error) lines.push(`- error: ${oneLine(o.error, 400)}`);
   lines.push("", "## Summary", o.summary.trim() || "_No summary produced._", "");
   return lines.join("\n");
