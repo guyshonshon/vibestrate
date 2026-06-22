@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.21.0
+
+- **Notifications are local-only now.** The external notification gateways (Slack,
+  Telegram, Discord, generic webhook, and the WhatsApp placeholder) are gone -
+  Vibestrate delivers notifications only to the in-app feed and the CLI, with no
+  outbound network calls from the notification path. This keeps the tool's
+  no-external-comms posture honest. Your existing notification history is preserved
+  across the upgrade.
+
 ## 0.20.0
 
 - **Supervisors now shape the spec-up phase, not just the build.** A supervisor
