@@ -304,28 +304,28 @@ function fakeFetch(status: number, body: unknown, opts: { html?: boolean } = {})
 describe("publishFlow", () => {
   it("returns ok on 201 (gated on status, not res.ok)", async () => {
     const f = fakeFetch(201, { ok: true, ref: "guy@x-flow:1.0.0", version: "1.0.0", sha256: "a".repeat(64), verified: false, diagnosis: { verdict: "accepted" } });
-    const r = await publishFlow({ content: CLEAN, ref: "guy@x-flow:1.0.0", token: TOKEN, fetchImpl: f });
+    const r = await publishFlow({ content: CLEAN, ref: "guy@x-flow:1.0.0", token: TOKEN, fetchImpl: f, allowPrivateHosts: true });
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.version).toBe("1.0.0");
   });
 
   it("surfaces 422 rejected with diagnosis", async () => {
     const f = fakeFetch(422, { error: "flow rejected by scanner", diagnosis: { verdict: "rejected", findings: [{ id: "rce", message: "curl | sh", severity: "critical" }] } });
-    const r = await publishFlow({ content: CLEAN, ref: "guy@x-flow:1.0.0", token: TOKEN, fetchImpl: f });
+    const r = await publishFlow({ content: CLEAN, ref: "guy@x-flow:1.0.0", token: TOKEN, fetchImpl: f, allowPrivateHosts: true });
     expect(r.ok).toBe(false);
     if (!r.ok) { expect(r.status).toBe(422); expect(r.diagnosis?.findings?.length).toBe(1); }
   });
 
   it("tolerates an edge 401 with an {error}-only body (no diagnosis)", async () => {
     const f = fakeFetch(401, { error: "invalid GitHub token" });
-    const r = await publishFlow({ content: CLEAN, ref: "guy@x-flow:1.0.0", token: TOKEN, fetchImpl: f });
+    const r = await publishFlow({ content: CLEAN, ref: "guy@x-flow:1.0.0", token: TOKEN, fetchImpl: f, allowPrivateHosts: true });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.status).toBe(401);
   });
 
   it("fails soft on a non-JSON 5xx (CloudFlare HTML), no throw", async () => {
     const f = fakeFetch(502, null, { html: true });
-    const r = await publishFlow({ content: CLEAN, ref: "guy@x-flow:1.0.0", token: TOKEN, fetchImpl: f });
+    const r = await publishFlow({ content: CLEAN, ref: "guy@x-flow:1.0.0", token: TOKEN, fetchImpl: f, allowPrivateHosts: true });
     expect(r.ok).toBe(false);
     if (!r.ok) { expect(r.status).toBe(502); expect(r.reason).toMatch(/non-JSON/i); }
   });
@@ -363,7 +363,7 @@ describe("publishFlow", () => {
 
   it("never leaks the token in a thrown-network-error reason", async () => {
     const f = vi.fn(async () => { throw new Error(`connect failed for Bearer ${TOKEN}`); });
-    const r = await publishFlow({ content: CLEAN, ref: "guy@x-flow:1.0.0", token: TOKEN, fetchImpl: f as any });
+    const r = await publishFlow({ content: CLEAN, ref: "guy@x-flow:1.0.0", token: TOKEN, fetchImpl: f as any, allowPrivateHosts: true });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason.includes(TOKEN)).toBe(false);
   });
@@ -420,6 +420,12 @@ export async function publishFlow(input: {
   allowPrivateHosts?: boolean;
   fetchImpl?: FetchImpl;
 }): Promise<HubPublishResult> {
+  // Hard-refuse secrets FIRST - never egress a secret regardless of host/origin.
+  const refusals = assertNoHardSecrets(input.content);
+  if (refusals.length > 0) {
+    return { ok: false, status: 0, reason: `Refusing to publish (secret-shaped content): ${refusals.join("; ")}` };
+  }
+
   const base = trimSlash(input.baseUrl ?? DEFAULT_HUB_BASE_URL);
   let origin: string;
   let hostname: string;
@@ -443,12 +449,6 @@ export async function publishFlow(input: {
   // SSRF guard (the HTTP route never sets allowPrivateHosts; the CLI may).
   if (!input.allowPrivateHosts && (await isFetchHostBlocked(hostname))) {
     return { ok: false, status: 0, reason: `Refusing to publish to "${hostname}" - it resolves to a private/loopback address (SSRF guard).` };
-  }
-
-  // Last-line, never-bypassable hard-refuse before egress.
-  const refusals = assertNoHardSecrets(input.content);
-  if (refusals.length > 0) {
-    return { ok: false, status: 0, reason: `Refusing to publish (secret-shaped content): ${refusals.join("; ")}` };
   }
 
   const fetchImpl = input.fetchImpl ?? (globalThis.fetch as unknown as FetchImpl);
