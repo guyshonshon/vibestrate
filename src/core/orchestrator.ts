@@ -338,6 +338,10 @@ export type OrchestratorInput = {
    *  `workflow.selected` event at run start. Does not affect execution - the
    *  launcher has already resolved `flow` from it. */
   selection?: WorkflowSelection | null;
+  /** The resolved supervisor persona id, independent of `selection` so it survives
+   *  the resume path (where `selection` is null because the flow is fixed by the
+   *  source run). The launcher passes `spec.persona ?? selection?.personaId`. */
+  personaId?: string | null;
   /** Adaptive spec-up (P1): the flow the chain should BUILD after spec-up. Set on a
    *  spec-up-phase run (intake/spec-up) so the chosen flow is carried across the
    *  detached chain; persisted as the `spec-up-target-flow.json` sidecar at run
@@ -613,6 +617,10 @@ export class Orchestrator {
   private ledgerInjected = false;
   private readonly abortSignal: AbortSignal | null;
   private readonly selection: WorkflowSelection | null;
+  /** The active supervisor persona id, resolved from selection OR (on resume, where
+   *  selection is null) the carried `spec.persona`. The single source for persona
+   *  resolution so reviewLens + specUpPosture fire on resumed runs too. */
+  private readonly personaId: string | null;
   private readonly specUpTargetFlowId: string | null;
   private readonly specUpRound: number | null;
   private readonly specUpRootRunId: string | null;
@@ -676,6 +684,7 @@ export class Orchestrator {
     this.specUpTargetFlowId = input.specUpTargetFlowId ?? null;
     this.specUpRound = input.specUpRound ?? null;
     this.specUpRootRunId = input.specUpRootRunId ?? null;
+    this.personaId = input.personaId ?? input.selection?.personaId ?? null;
   }
 
   /** Resolve the `default` flow against this run's config. Used when a run
@@ -686,7 +695,7 @@ export class Orchestrator {
    *  builtin. Throws if the configured roles/providers can't satisfy it. */
   private async resolveDefaultFlow(): Promise<ResolvedFlowSnapshot> {
     const discovered = await findFlowById(this.projectRoot, defaultFlow.id);
-    const persona = resolvePersona(this.config, this.selection?.personaId ?? null);
+    const persona = resolvePersona(this.config, this.personaId);
     return resolveFlow({
       flow: discovered?.definition ?? defaultFlow,
       source: discovered?.source ?? { kind: "builtin", ref: defaultFlow.id },
@@ -984,9 +993,9 @@ export class Orchestrator {
     // its spec) can read it back and aim its planning agents with the same persona.
     // Fail-safe: if it's missing/unreadable, the next link falls back to the default
     // persona (no posture injected) - never a corruption.
-    if (isSpecUpFlow(flow.flowId) && this.selection?.personaId) {
+    if (isSpecUpFlow(flow.flowId) && this.personaId) {
       await artifactStore.writeJson("spec-up-persona.json", {
-        personaId: this.selection.personaId,
+        personaId: this.personaId,
       });
     }
 
@@ -1046,10 +1055,7 @@ export class Orchestrator {
     // review): when the persona's reviewerProfile actually pinned review
     // seats, say so - the panel feed and the audit both show it.
     {
-      const personaForRun = resolvePersona(
-        this.config,
-        this.selection?.personaId ?? null,
-      );
+      const personaForRun = resolvePersona(this.config, this.personaId);
       const rp = personaForRun.config.reviewerProfile ?? null;
       const pinned = rp
         ? flow.steps.filter((st) => st.profileId === rp && st.seat).map((st) => st.id)
@@ -1082,8 +1088,10 @@ export class Orchestrator {
         });
       }
       // specUpPosture (spec-up-phase.md): on a spec-up phase run, aim the planning
-      // agents through the persona's CTO posture. Free text (planning trust class,
-      // not the reviewer gate); recorded as evidence.
+      // agents through the persona's CTO posture. Free text (planning trust class:
+      // committed config, never remotely sourced; it also reaches the spec-up-review
+      // turn, but that decision gates only a read-only, no-diff terminal status, not
+      // a code merge). Recorded as evidence.
       if (isSpecUpFlow(flow.flowId)) {
         const postureBlock = renderSpecUpPostureBlock(personaForRun.config.specUpPosture ?? null);
         this.specUpPostureBlock = postureBlock;

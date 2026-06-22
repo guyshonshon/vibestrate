@@ -351,6 +351,9 @@ export async function runFromSpec(
     concise: spec.concise ?? false,
     flow: resolvedFlow,
     selection,
+    // The resolved persona id, independent of `selection` (null on resume), so the
+    // orchestrator's reviewLens + specUpPosture fire on resumed/roadmap runs too.
+    personaId: spec.persona ?? selection?.personaId ?? null,
     resumeFrom,
     checklistMode: spec.checklistMode ?? null,
     contextSources: contextSources ?? [],
