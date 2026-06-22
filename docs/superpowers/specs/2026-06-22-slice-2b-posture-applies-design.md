@@ -129,7 +129,7 @@ accidentally override a user's `--permission-mode`.
 
 - Record the applied posture outcome (the `notes` + the effective isolation/
   permissionMode) on the run's selection record / run state, next to the existing
-  posture field. (This persisted record is also what resume reads - see section 8a.)
+  posture field (for display + assurance).
 - Surface in: the `vibe assurance` isolation/posture line; the dashboard "Flow &
   why" / Supervisor panel; the CLI run selection line. When an approval posture is
   suppressed (unattended/explicit), the surface says so verbatim.
@@ -163,16 +163,22 @@ silently mitigated: `autoApplyApproval: true` is an opt-in, and a user who also
 runs headless without `--unattended` is mis-configured. We suppress only for the
 reliable `unattended` signal; we do not claim "never stalls."
 
-### 8b. Resume (Tier-2 review #6a)
+### 8b. Resume — documented limitation (Tier-2 review #6a)
 
-On resume, `selection` is null (run-launcher.ts:264), so the posture is not
-re-derived. A resumed run MUST keep the confinement/gating it was launched with -
-silently dropping a sandbox or approval gate on resume is a fail-open. Because the
-effective isolation + permissionMode are persisted on run state (section 7), the
-resume path reads them back from the source run's state and re-applies them
-(isolation via the same `isolationOverride`, permissionMode via the existing
-per-run field). No re-derivation, no LLM - just rehydrate the persisted effective
-values.
+On resume, `selection` is null (run-launcher.ts:264) by design - flow-selection,
+crew-selection, and the persona posture source are ALL launch-time properties that
+are not re-derived on resume. Posture-apply is consistent with them: it is a
+launch-time decision, so a resumed run does NOT re-derive or rehydrate a
+posture-applied sandbox/approval; it falls back to config defaults.
+
+This is documented, not silently dropped. The justification: (1) consistency with
+every other selection-derived property on resume; (2) the resumed run still passes
+through the diff-gate + human-review-before-merge, which is the project's core
+safety net (the OS sandbox is an opt-in extra layer, not the only guard); (3) both
+flags default off, so this only affects opt-in users. For guaranteed confinement on
+a resumed run, set `execution.isolation: sandboxed` / `--permission-mode` explicitly
+(those ARE config/spec-level and carry as the user sets them). Rehydrating posture
+across resume is a logged follow-up if real usage shows it matters.
 
 ## 9. Tests
 
@@ -188,8 +194,8 @@ values.
   - approval-suggested + autoApplyApproval + unattended -> unchanged + "suppressed" note.
   - explicit `--permission-mode auto` + approval posture -> stays `auto` (explicit wins).
   - no-write flow + approval posture -> still read-only-clamped.
-  - resume of a sandbox/ask run -> rehydrates the same isolation/permissionMode
-    (selection is null) instead of dropping them.
+  - resume (selection null) -> no posture applied; falls back to config defaults
+    (launch-time property, documented in 8b).
 - Config round-trip: the new `posture` keys validate, appear in `config keys`,
   set/get through the CLI + UI.
 

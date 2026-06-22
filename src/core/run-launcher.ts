@@ -14,6 +14,7 @@ import {
 } from "../flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../flows/runtime/flow-resolver.js";
 import { chooseRunFlow, type WorkflowSelection } from "../orchestrator/select-workflow.js";
+import { resolveRunPosture } from "../orchestrator/posture-apply.js";
 import { SPEC_UP_TARGET_FLOW } from "../orchestrator/flow-sizing.js";
 import { resolvePersona } from "../orchestrator/personas.js";
 import { permissionModeSchema } from "../project/config-schema.js";
@@ -333,6 +334,18 @@ export async function runFromSpec(
     });
   }
 
+  // Posture-applies (Slice 2b): fold a suggested posture into this run's effective
+  // permissionMode + isolation, gated per-posture by config (default off). On
+  // resume/checklist `selection` is null ⇒ posture "normal" ⇒ this reproduces the
+  // prior `spec.permissionMode ?? (readOnly ? "read-only" : undefined)` exactly.
+  const effectivePosture = resolveRunPosture({
+    posture: selection?.posture ?? "normal",
+    config: loaded.config.posture,
+    specPermissionMode: spec.permissionMode ?? null,
+    readOnly,
+    unattended: spec.unattended ?? false,
+  });
+
   const orchestrator = new Orchestrator({
     projectRoot: detected.projectRoot,
     config: loaded.config,
@@ -360,9 +373,11 @@ export async function runFromSpec(
     specUpTargetFlowId,
     specUpRound: spec.specUpRound ?? null,
     specUpRootRunId: spec.specUpRootRunId ?? null,
-    // Permission mode (P4): explicit spec value, else the legacy readOnly alias,
-    // else config default (resolved in the orchestrator).
-    permissionMode: spec.permissionMode ?? (readOnly ? "read-only" : undefined),
+    // Permission mode (P4): explicit spec value > read-only/no-write clamp >
+    // auto-applied approval posture (resolved in resolveRunPosture).
+    permissionMode: effectivePosture.permissionMode,
+    isolationOverride: effectivePosture.isolationOverride ?? null,
+    postureNotes: effectivePosture.notes,
     abortSignal: opts.abortSignal,
     onProgress: opts.onProgress,
   });

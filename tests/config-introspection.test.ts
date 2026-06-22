@@ -23,6 +23,14 @@ describe("configLeafKeys (T8)", () => {
     expect(byKey["commands.validate"]!.type).toMatch(/array/);
     expect(byKey["git.mainBranch"]!.default).toBe("main");
   });
+
+  it("exposes the posture auto-apply keys, default off (Slice 2b)", () => {
+    const byKey = Object.fromEntries(configLeafKeys().map((k) => [k.fullKey, k]));
+    expect(byKey["posture.autoApplySandbox"]).toBeDefined();
+    expect(byKey["posture.autoApplyApproval"]).toBeDefined();
+    expect(byKey["posture.autoApplySandbox"]!.default).toBe(false);
+    expect(byKey["posture.autoApplyApproval"]!.default).toBe(false);
+  });
 });
 
 describe("validateConfigPath (T8)", () => {

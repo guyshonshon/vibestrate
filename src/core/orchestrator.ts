@@ -120,7 +120,7 @@ import {
 } from "./provider-stream-store.js";
 import { localWorktreeBackend } from "../execution/local-worktree-backend.js";
 import { makeDockerBackend } from "../execution/docker-backend.js";
-import type { ExecutionBackend, ExecStrategy } from "../execution/execution-backend-schema.js";
+import type { ExecutionBackend, ExecStrategy, IsolationMode } from "../execution/execution-backend-schema.js";
 import { isGitAvailable, stageAndCommitAll, filesInCommit } from "../git/git.js";
 import { creditTrailers } from "../git/commit-credit.js";
 import { linkWorktreeEnvironment } from "../git/worktree-env.js";
@@ -356,6 +356,14 @@ export type OrchestratorInput = {
    *  model-agnostic policy Vibestrate applies to this run's writes. Omitted ⇒
    *  config.policies.defaultPermissionMode (default "auto"). */
   permissionMode?: PermissionMode;
+  /** Per-run isolation override (Slice 2b posture-applies): when set, it raises
+   *  this run's OS-sandbox posture above `config.execution.isolation` for this run
+   *  only (never lowers; never mutates config). Today only "sandboxed". Omitted ⇒
+   *  use the config value. */
+  isolationOverride?: IsolationMode | null;
+  /** Human-facing notes about an auto-applied posture (Slice 2b): what was applied
+   *  or why it was suppressed. Surfaced once at run start; empty ⇒ nothing applied. */
+  postureNotes?: string[];
   /** CLI/process lifecycle signal. Aborting it kills the active provider
    * invocation and records the run as aborted instead of leaving orphan CLIs. */
   abortSignal?: AbortSignal;
@@ -631,6 +639,11 @@ export class Orchestrator {
   private containerTeardown: (() => Promise<void>) | null = null;
   /** Permission mode (T14 P4) governing this run's writes. */
   private readonly permissionMode: PermissionMode;
+  /** Per-run isolation override (Slice 2b): raises the OS-sandbox posture for this
+   *  run only. null ⇒ use config.execution.isolation. */
+  private readonly isolationOverride: IsolationMode | null;
+  /** Notes about an auto-applied posture, surfaced once at run start. */
+  private readonly postureNotes: string[];
 
   constructor(input: OrchestratorInput) {
     this.projectRoot = input.projectRoot;
@@ -676,6 +689,11 @@ export class Orchestrator {
     if (this.permissionMode === "read-only") {
       this.readOnly = true;
     }
+    // Posture-applies (Slice 2b): a per-run isolation override that only ever
+    // RAISES the OS sandbox (never lowers); claude seats degrade per-seat at
+    // runtime. Notes are surfaced once at run start.
+    this.isolationOverride = input.isolationOverride ?? null;
+    this.postureNotes = input.postureNotes ?? [];
     this.resumeFrom = input.resumeFrom ?? null;
     this.checklistMode = input.checklistMode ?? null;
     this.contextSources = input.contextSources ?? [];
@@ -1154,6 +1172,18 @@ export class Orchestrator {
         message: `Permission mode: ${this.permissionMode}.`,
         data: { permissionMode: this.permissionMode },
       });
+      // Posture-applies (Slice 2b): surface what an auto-applied posture did (or
+      // why it was suppressed) once at run start. Empty ⇒ nothing applied.
+      if (this.postureNotes.length > 0) {
+        await eventLog.append({
+          type: "policy.posture_applied",
+          message: `Posture: ${this.postureNotes.join("; ")}.`,
+          data: {
+            notes: this.postureNotes,
+            isolationOverride: this.isolationOverride,
+          },
+        });
+      }
       this.execStrategy = prep.exec ?? null;
       this.containerTeardown = prep.teardown ?? null;
       if (prep.exec) {
@@ -5219,8 +5249,10 @@ export class Orchestrator {
       // whether a real OS sandbox actually applied is read off the result AFTER
       // the turn (a turn can fall back to a provider that can't sandbox), so the
       // honest record is emitted post-run, never from this requested value.
+      const effectiveIsolation =
+        this.isolationOverride ?? this.config.execution?.isolation;
       const requestedSandbox: SandboxMode | null =
-        this.config.execution?.isolation === "sandboxed"
+        effectiveIsolation === "sandboxed"
           ? profile.allowWrite
             ? "workspace-write"
             : "read-only"

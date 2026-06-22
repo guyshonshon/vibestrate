@@ -27,6 +27,7 @@ export type VibestrateEventType =
   | "execution.containerized"
   | "execution.container_unavailable"
   | "policy.permission_mode"
+  | "policy.posture_applied"
   | "provider.hardened"
   | "provider.fallback"
   | "provider.usage_limit"

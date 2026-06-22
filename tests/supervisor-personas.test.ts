@@ -12,6 +12,7 @@ import {
   BUILTIN_PERSONAS,
 } from "../src/orchestrator/personas.js";
 import { chooseRunFlow } from "../src/orchestrator/select-workflow.js";
+import { resolveRunPosture } from "../src/orchestrator/posture-apply.js";
 import { deriveRunAssurance } from "../src/safety/run-assurance.js";
 import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
 import { securityReviewFlow, reviewPanelFlow, defaultFlow } from "../src/flows/catalog/builtin-flows.js";
@@ -209,6 +210,67 @@ describe("supervisor personas - prefersPosture nudge (Slice B, advisory)", () =>
     });
     expect(sel.source).toBe("forced");
     expect(sel.posture).toBe("normal");
+  });
+});
+
+describe("posture-applies (Slice 2b) - real selection -> effective run posture", () => {
+  const projectRoot = os.tmpdir();
+  const riskyTask = "Refactor the auth login + token handling";
+
+  it("auto-applies sandbox isolation when a real selection suggests it + flag on", async () => {
+    const cfg = baseConfig({ posture: { autoApplySandbox: true } });
+    const sel = await chooseRunFlow({ projectRoot, task: riskyTask, config: cfg, personaOverride: "security" });
+    expect(sel.posture).toBe("sandbox-suggested"); // the real selection
+    const eff = resolveRunPosture({
+      posture: sel.posture,
+      config: cfg.posture,
+      specPermissionMode: null,
+      readOnly: false,
+      unattended: false,
+    });
+    expect(eff.isolationOverride).toBe("sandboxed");
+    expect(eff.notes.join(" ")).toMatch(/sandbox posture applied/);
+  });
+
+  it("does NOT apply sandbox when the flag is off (default)", async () => {
+    const cfg = baseConfig(); // posture flags default off
+    const sel = await chooseRunFlow({ projectRoot, task: riskyTask, config: cfg, personaOverride: "security" });
+    expect(sel.posture).toBe("sandbox-suggested");
+    const eff = resolveRunPosture({
+      posture: sel.posture,
+      config: cfg.posture,
+      specPermissionMode: null,
+      readOnly: false,
+      unattended: false,
+    });
+    expect(eff.isolationOverride).toBeUndefined();
+  });
+
+  it("auto-applies an approval gate (ask) attended, suppresses it unattended", async () => {
+    const cfg = baseConfig({
+      posture: { autoApplyApproval: true },
+      personas: {
+        gate: {
+          label: "Gate",
+          riskSignals: ["auth"],
+          prefersPosture: "approval-suggested",
+          prefersFlows: [],
+          reviewLenses: [],
+        },
+      },
+      defaultPersona: "gate",
+    });
+    const sel = await chooseRunFlow({ projectRoot, task: "Refactor the auth login flow", config: cfg });
+    expect(sel.posture).toBe("approval-suggested");
+    const attended = resolveRunPosture({
+      posture: sel.posture, config: cfg.posture, specPermissionMode: null, readOnly: false, unattended: false,
+    });
+    expect(attended.permissionMode).toBe("ask");
+    const unattended = resolveRunPosture({
+      posture: sel.posture, config: cfg.posture, specPermissionMode: null, readOnly: false, unattended: true,
+    });
+    expect(unattended.permissionMode).toBeUndefined();
+    expect(unattended.notes.join(" ")).toMatch(/suppressed \(unattended\)/);
   });
 });
 

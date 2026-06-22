@@ -352,6 +352,8 @@ export function buildConfigView(config: ProjectConfig): ConfigView {
       boolRow("preserve artifacts", config.policies.preserveArtifacts),
       boolRow("strict apply-only", config.policies.strictApplyOnly),
       boolRow("harden read-only seats", config.policies.hardenReadOnlySeats),
+      boolRow("auto-apply sandbox posture", config.posture.autoApplySandbox),
+      boolRow("auto-apply approval posture", config.posture.autoApplyApproval),
       boolRow("interactive terminal", config.policies.allowInteractiveTerminal, {
         riskyWhenOn: true,
       }),

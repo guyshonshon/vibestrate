@@ -446,6 +446,27 @@ export const personaConfigSchema = z
   .strict();
 export type PersonaConfig = z.infer<typeof personaConfigSchema>;
 
+/**
+ * Posture-applies (Slice 2b): opt-in, per-posture switches that let a run's
+ * *suggested* posture actually take effect. Both default false (a behavior change
+ * is never the default). See orchestrator/posture-apply.ts.
+ */
+export const postureConfigSchema = z.object({
+  autoApplySandbox: z
+    .boolean()
+    .default(false)
+    .describe(
+      "When a run's posture is sandbox-suggested, apply execution.isolation: sandboxed for that run (opt-in, default false). Seats whose provider can't sandbox degrade honestly at runtime.",
+    ),
+  autoApplyApproval: z
+    .boolean()
+    .default(false)
+    .describe(
+      "When a run's posture is approval-suggested, apply permissionMode: ask for that run (opt-in, default false). Suppressed for --unattended runs; never overrides an explicit --permission-mode.",
+    ),
+});
+export type PostureConfig = z.infer<typeof postureConfigSchema>;
+
 export const projectConfigBaseSchema = z.object({
   project: projectMetaSchema,
   git: gitConfigSchema.default({
@@ -516,6 +537,10 @@ export const projectConfigBaseSchema = z.object({
     preserveArtifacts: true,
     requireApprovalAtStages: [],
     allowInteractiveTerminal: false,
+  }),
+  posture: postureConfigSchema.default({
+    autoApplySandbox: false,
+    autoApplyApproval: false,
   }),
   scheduler: schedulerConfigSchema.default({
     maxConcurrentRuns: 1,
