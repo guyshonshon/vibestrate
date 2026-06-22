@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.24.0
+
+- **Flows Hub: publish.** `vibe flows hub publish` and a dashboard form push a project Flow to the public registry. GitHub-token auth via `VIBESTRATE_HUB_TOKEN` (env-ref only, never inline); the token is pinned to the hub origin and never sent elsewhere. Secret-shaped flows are refused before they leave your machine; home-dir and identity leaks surface as warnings before the irreversible publish. Versions are immutable - a re-publish of identical content at the same version is idempotent (409); new content requires a new semver. The dashboard route is fail-closed: it requires `VIBESTRATE_API_TOKEN` plus an explicit `confirm: "publish"` literal in the request body. The `--handle` must match the authenticated GitHub login; the server enforces this.
+
 ## 0.23.1
 
 - **Posture auto-apply has dashboard switches now.** The two opt-in posture

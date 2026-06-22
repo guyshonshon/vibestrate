@@ -111,6 +111,38 @@ vibe run "<task>" --flow <id>             # run with a Flow
 vibe run -i "<task>"                       # pick the Flow + Crew interactively, then run
 ```
 
+### Publishing a Flow to the Hub
+
+`vibe flows hub publish` pushes a project Flow to the public Flows Hub so others can discover and install it. Every published version is immutable: re-publishing the same content at the same version is a no-op (409 idempotent); a content change requires a new semver.
+
+```bash
+vibe flows hub publish <flowId> --version 1.0.0 --handle <your-github-login>
+vibe flows hub publish <flowId> --version 1.2.0 --handle acme --name deep-refactor  # custom slug
+vibe flows hub publish <flowId> --version 1.0.0 --handle acme --yes                 # skip confirm
+```
+
+Flags:
+
+- `--version <semver>` - the release version (required, must be a valid semver).
+- `--handle <login>` - your GitHub login (required, must match the token owner - the server enforces this).
+- `--name <slug>` - optional human-friendly slug for the Hub listing; defaults to the Flow's id.
+- `--yes` - skip the interactive confirmation prompt (useful in CI).
+
+**Auth.** Publish requires a GitHub personal access token. Set it as an environment variable:
+
+```bash
+export VIBESTRATE_HUB_TOKEN=ghp_...
+```
+
+The token is passed as a Bearer credential and is pinned to the vibestrate.com hub origin only - it is never sent elsewhere. Always pass the token via the env var; never inline it in config files or shell history.
+
+**Pre-publish safety checks.** Before the Flow leaves your machine, the client runs two checks:
+
+1. **Secret refusal.** If any field in the Flow definition matches a known secret shape (API keys, tokens, private-key PEM blocks), the publish is refused with an error. Fix the content before retrying.
+2. **Leak warnings.** If the Flow references your home directory, username, or other identity markers that would not make sense on another machine, the client prints a warning and prompts you to confirm before continuing (bypassed by `--yes`).
+
+**UI parity.** The dashboard Flows page has a Hub section with a publish form that submits to the same endpoint. You still need `VIBESTRATE_HUB_TOKEN` set in your environment when the dashboard server starts.
+
 ## Durable param memory (`vibe params`)
 
 Fill a Flow's typed `params:` once and every run reuses them. They're stored in `.vibestrate/project-params.json`. This is different from `vibe profile`, which holds the runtime *Role* presets (provider + model + effort). See [Project parameters](../concepts/project-params.md).

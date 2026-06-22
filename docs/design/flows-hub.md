@@ -1,6 +1,8 @@
 # Design: Flows Hub
 
-Status: **planning - core decisions settled** · Tracking issue: #3 · Owner: maintainer
+Status: **publish shipped (0.24.0)** · planning for install/search ongoing · Tracking issue: #3 · Owner: maintainer
+
+> **Publish is live (0.24.0).** The `gh`-PR-to-index-repo model described below for publishing was superseded before launch. Publish shipped as a hosted HTTP `POST /api/hub/publish` on vibestrate.com: GitHub-token auth via `VIBESTRATE_HUB_TOKEN` (env-ref only, never inline), a curated server-side secret scan + schema gate, token pinned to the hub origin, and 409 idempotency for re-publishing identical content. The dashboard Flows page exposes a publish form that calls the same route (fail-closed: requires `VIBESTRATE_API_TOKEN` + an explicit `confirm: "publish"` literal). The install/search/update/star surfaces described below are still planned.
 
 Settled: flat unique names · separate `vibestrate-flows` repo · curated PR-based v1
 (Docker "Official Images" model) · GitHub OAuth if a service is added later ·
