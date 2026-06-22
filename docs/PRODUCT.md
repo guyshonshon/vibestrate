@@ -38,17 +38,20 @@ Dark-first. The default and only theme in V0.
 - Background: deep neutral (near-black, but not pure black). One panel tone above the canvas, one above that for the inspector card.
 - Foreground: high-contrast text but not pure white.
 - Accents:
-  - **success / merge-ready** - green, used sparingly
+  - **brand / info / current stage** - violet (`--color-vibestrate-accent` #a78bfa; `violet-soft`/`mid`/`deep`). The signature hue ("ink / fog / violet", Mission Control v3, matched to vibestrate.com) - selection, current stage, the wordmark echo.
+  - **success / merge-ready / shipped** - emerald, the second accent, used sparingly
   - **warn / changes-requested** - amber, never red
   - **fail / blocked / failed** - red, only when truly broken
-  - **info / current stage** - cool cyan/blue, the only "brand" hue
-- No gradients. No glow. No dropshadow stacks. One subtle border between panels and that's it.
+- Neutrals are the `ink` ramp (near-black backgrounds, never pure #000) and the `fog` ramp (text, never pure #fff).
+- No gradients. No glow. No dropshadow stacks. One subtle border between panels. The only texture is a faint violet-tinted noise grain on some surfaces (ported 1:1 from the marketing site).
 - Diff lines: green for added, red for removed, plain for context. Per-line, not block-shaded.
 
 ## Typography
 
-- Sans: a single neutral system stack (`-apple-system`, `Inter`, `Segoe UI`, `Roboto`, `sans-serif`).
-- Mono: `JetBrains Mono`, `Fira Code`, fallback `ui-monospace`. Used for: paths, branches, run-ids, diff, log, validation output, artifact bodies.
+- Sans: **Geist** (self-hosted variable, `--font-sans`), system stack as fallback.
+- Mono: **Geist Mono** (`--font-mono`), `JetBrains Mono` as the fallback. Used for: paths, branches, run-ids, diff, log, validation output, artifact bodies.
+- Display: **Bricolage Grotesque** (`--font-display`) for the few large / wordmark moments.
+- All three are self-hosted via Fontsource (derived 1:1 from the brand type), not a bare system stack.
 - Sizes: 12 / 13 / 14 / 16 / 20. No 24+ in primary chrome - the data is the hero, not the title.
 - Weight: 400 default, 500 for headings, 600 only for badges and decisions. No 700/800 in chrome.
 
