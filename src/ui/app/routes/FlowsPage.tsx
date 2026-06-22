@@ -815,7 +815,7 @@ function HubSection({
                       disabled={!publishConfirmed || !publishFlowId || !publishVersion || !publishHandle || publishing}
                       className="text-[12.5px]"
                     >
-                      {publishing ? "Publishing..." : "Publish"}
+                      {publishing ? "Publishing…" : "Publish"}
                     </Button>
                   </div>
                 </div>
