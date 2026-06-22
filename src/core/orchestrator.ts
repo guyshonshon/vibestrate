@@ -198,6 +198,10 @@ import {
   isReviewerStep,
   composeReviewerStepNotes,
 } from "../orchestrator/review-lenses.js";
+import {
+  isSpecUpFlow,
+  renderSpecUpPostureBlock,
+} from "../spec-up/spec-up-posture.js";
 import { findFlowById } from "../flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../flows/runtime/flow-resolver.js";
 import {
@@ -591,6 +595,11 @@ export class Orchestrator {
    *  so switching persona changes what the reviewers scrutinise. null = the
    *  persona declared no known lens, so review turns are byte-identical to before. */
   private reviewLensEmphasis: string | null = null;
+  /** Pre-rendered persona spec-up posture block (spec-up-phase.md), computed once
+   *  at run start from the active persona's `specUpPosture` and appended to the
+   *  spec-up phase's planning turns so a persona aims intake/scope/spec/architecture.
+   *  null = not a spec-up run, or the persona declared no posture (turns unchanged). */
+  private specUpPostureBlock: string | null = null;
   /** Pre-rendered "# Continuity flags" block (T9) for THIS run's task - the
    *  suspected dup/conflict heads-up. Injected into the planner turn alongside
    *  the ledger block. "" when nothing was flagged. */
@@ -970,6 +979,16 @@ export class Orchestrator {
         rootRunId: this.specUpRootRunId,
       });
     }
+    // specUpPosture: persist the active persona id on a spec-up run so the next
+    // chain link (a fresh detached run that carries neither persona nor root id on
+    // its spec) can read it back and aim its planning agents with the same persona.
+    // Fail-safe: if it's missing/unreadable, the next link falls back to the default
+    // persona (no posture injected) - never a corruption.
+    if (isSpecUpFlow(flow.flowId) && this.selection?.personaId) {
+      await artifactStore.writeJson("spec-up-persona.json", {
+        personaId: this.selection.personaId,
+      });
+    }
 
     // Record how this run's Flow was chosen, but only for an actual orchestrator
     // judgment (LLM `selected`, persona `supervisor-upgraded`, or the A1
@@ -1061,6 +1080,20 @@ export class Orchestrator {
             ignored: lensEmphasis.unknown,
           },
         });
+      }
+      // specUpPosture (spec-up-phase.md): on a spec-up phase run, aim the planning
+      // agents through the persona's CTO posture. Free text (planning trust class,
+      // not the reviewer gate); recorded as evidence.
+      if (isSpecUpFlow(flow.flowId)) {
+        const postureBlock = renderSpecUpPostureBlock(personaForRun.config.specUpPosture ?? null);
+        this.specUpPostureBlock = postureBlock;
+        if (postureBlock) {
+          await eventLog.append({
+            type: "supervisor.spec_up_posture",
+            message: `Supervisor "${personaForRun.config.label}" aims the spec-up phase.`,
+            data: { personaId: personaForRun.id },
+          });
+        }
       }
     }
 
@@ -2400,6 +2433,7 @@ export class Orchestrator {
         stepInstructions: step.instructions,
         lensEmphasis: this.reviewLensEmphasis,
         isReviewer: isReviewerStep(step),
+        specUpPostureBlock: this.specUpPostureBlock,
       });
       return this.runRole({
         roleId: step.resolvedRoleId!,

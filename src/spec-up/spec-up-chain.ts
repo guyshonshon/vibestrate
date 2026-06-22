@@ -56,6 +56,10 @@ const ROUND_PATH = "spec-up-round.json";
  *  accumulated cross-round answers live. Carried forward so every gap-check round
  *  appends to one growing doc instead of overwriting. */
 const ROOT_RUN_PATH = "spec-up-root-run.json";
+/** specUpPosture: the active supervisor persona id, written at run start by the
+ *  orchestrator and carried across the chain so each link aims its planning agents
+ *  with the same persona's posture. Fail-safe: absent -> default persona (no posture). */
+const PERSONA_PATH = "spec-up-persona.json";
 /** Hard cap on questioning rounds. Server-enforced: the loop NEVER asks past this,
  *  regardless of what the model judges - it finalizes into the spec instead. This
  *  is the anti-interrogation brake. */
@@ -76,6 +80,21 @@ async function readTargetFlowId(
     };
     return typeof parsed.flowId === "string" && parsed.flowId.length > 0
       ? parsed.flowId
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Read the carried supervisor persona id from a run's sidecar, or null. */
+async function readPersonaId(store: ArtifactStore): Promise<string | null> {
+  if (!(await store.exists(PERSONA_PATH))) return null;
+  try {
+    const parsed = JSON.parse(await store.read(PERSONA_PATH)) as {
+      personaId?: unknown;
+    };
+    return typeof parsed.personaId === "string" && parsed.personaId.length > 0
+      ? parsed.personaId
       : null;
   } catch {
     return null;
@@ -157,6 +176,9 @@ export type PendingSpecUpQuestions = {
    *  from the run that triggered spec-up. null = no bound flow (build with the
    *  project default at approve time). */
   targetFlowId: string | null;
+  /** specUpPosture: the carried supervisor persona id, so the next link aims its
+   *  planning agents with the same persona. null = default persona (no posture). */
+  persona: string | null;
   /** Deep-questioning loop: the round these questions belong to (server-owned). */
   round: number;
   /** Deep-questioning loop: a gap-check round that found no further material gaps
@@ -224,6 +246,7 @@ export async function readSpecUpQuestions(
     task = (await store.read(IDEA_PATH)).trim();
   }
   const targetFlowId = await readTargetFlowId(store);
+  const persona = await readPersonaId(store);
   const round = await readRound(store);
   // De-dup BEFORE stamping the round: model ids aren't guaranteed unique, and
   // every consumer (serve, assist, AND the answer-record path that re-reads this
@@ -235,6 +258,7 @@ export async function readSpecUpQuestions(
     questions,
     task,
     targetFlowId,
+    persona,
     round,
     coverageComplete: parsed.data.coverageComplete === true,
   };
@@ -343,6 +367,8 @@ async function finalizeSpecUpSpec(input: {
   rootRunId: string;
   task: string;
   targetFlowId: string | null;
+  /** Carried supervisor persona id (specUpPosture) - aims the spec-up agents. */
+  persona: string | null;
 }): Promise<{ runId: string; pid: number | null }> {
   const { projectRoot, rootRunId } = input;
   const rootStore = new ArtifactStore(projectRoot, rootRunId);
@@ -362,6 +388,9 @@ async function finalizeSpecUpSpec(input: {
     // carried forward so the `approve & build` handoff can target it (P1).
     specUpPhase: true,
     specUpTargetFlowId: input.targetFlowId,
+    // Carry the persona so the spec-up agents (scope/spec/architecture) inherit its
+    // specUpPosture - the spec-up link RunSpec otherwise carries no persona.
+    persona: input.persona,
     flow: { id: "spec-up", brief: null },
     contextSources: [{ kind: "file", ref, label: "Spec-up: intake answers" }],
   };
@@ -423,6 +452,7 @@ export async function submitSpecUpAnswers(input: {
       rootRunId,
       task: pending.task,
       targetFlowId: pending.targetFlowId,
+      persona: pending.persona,
     });
     return { ...r, action: "finalize" };
   }
@@ -440,6 +470,8 @@ export async function submitSpecUpAnswers(input: {
     specUpTargetFlowId: pending.targetFlowId,
     specUpRound: decision.nextRound,
     specUpRootRunId: rootRunId,
+    // Carry the persona forward so each gap-check round keeps the same posture.
+    persona: pending.persona,
     flow: { id: "spec-up-intake", brief: null },
     contextSources: [{ kind: "file", ref, label: "Spec-up: answers so far" }],
   };
@@ -465,8 +497,9 @@ export async function proceedToSpecUpSpec(input: {
   let task = "";
   if (await srcStore.exists(IDEA_PATH)) task = (await srcStore.read(IDEA_PATH)).trim();
   const targetFlowId = await readTargetFlowId(srcStore);
+  const persona = await readPersonaId(srcStore);
   await markIntakeAnswered(projectRoot, sourceRunId);
-  return finalizeSpecUpSpec({ projectRoot, rootRunId, task, targetFlowId });
+  return finalizeSpecUpSpec({ projectRoot, rootRunId, task, targetFlowId, persona });
 }
 
 /**
@@ -493,12 +526,15 @@ export async function approveSpecUpAndStartRoadmap(input: {
   } catch {
     /* keep the default task */
   }
+  const persona = await readPersonaId(src);
   const runId = makeUniqueRunId(input.projectRoot);
   const spec: RunSpec = {
     projectRoot: input.projectRoot,
     task,
     runId,
     specUpPhase: true,
+    // Carry the persona so the roadmap planning keeps the same spec-up posture.
+    persona,
     flow: { id: "spec-up-roadmap", brief: null },
     resumeFrom: { sourceRunId: input.specUpRunId, fromStage: "executing" },
   };

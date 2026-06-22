@@ -13,7 +13,7 @@ export async function runSupervisorList(opts: { json?: boolean }): Promise<numbe
   let defaultPersona = "staff-engineer";
   const merged: Record<
     string,
-    { label: string; description?: string; reviewLenses: string[]; prefersPosture: string | null; builtin: boolean }
+    { label: string; description?: string; reviewLenses: string[]; prefersPosture: string | null; specUpPosture: string | null; builtin: boolean }
   > = {};
   for (const [id, p] of Object.entries(BUILTIN_PERSONAS)) {
     merged[id] = {
@@ -21,6 +21,7 @@ export async function runSupervisorList(opts: { json?: boolean }): Promise<numbe
       description: p.description,
       reviewLenses: p.reviewLenses,
       prefersPosture: p.prefersPosture ?? null,
+      specUpPosture: p.specUpPosture ?? null,
       builtin: true,
     };
   }
@@ -34,6 +35,7 @@ export async function runSupervisorList(opts: { json?: boolean }): Promise<numbe
           description: p.description,
           reviewLenses: p.reviewLenses ?? [],
           prefersPosture: p.prefersPosture ?? null,
+          specUpPosture: p.specUpPosture ?? null,
           builtin: false,
         };
       }
@@ -58,6 +60,9 @@ export async function runSupervisorList(opts: { json?: boolean }): Promise<numbe
     }
     if (p.prefersPosture) {
       console.log(`      ${color.dim(`posture: prefers ${p.prefersPosture} for risky tasks`)}`);
+    }
+    if (p.specUpPosture) {
+      console.log(`      ${color.dim("spec-up: aims the planning agents (specUpPosture set)")}`);
     }
   }
   return 0;

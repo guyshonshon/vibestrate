@@ -181,6 +181,43 @@ describe("spec-up answers I/O", () => {
     expect(await readSpecUpQuestions(root, "calm-yak")).toBeNull();
   });
 
+  it("readSpecUpQuestions carries the supervisor persona forward (specUpPosture threading)", async () => {
+    const root = await tempProject();
+    const runId = "secure-otter";
+    const store = new ArtifactStore(root, runId);
+    await store.init();
+    await store.write("00-idea.md", "Build an auth service");
+    await store.writeJson("flows/intake/questions.json", {
+      contract: FLOW_QUESTIONS_CONTRACT,
+      stepId: "intake",
+      questions: [
+        { id: "accounts", question: "Do users sign in?", why: "auth", kind: "choice", options: ["yes", "no"], category: "users" },
+      ],
+    });
+    // The orchestrator writes this sidecar at run start; the chain reads it back so
+    // the next link's RunSpec inherits the persona (and thus its specUpPosture).
+    await store.writeJson("spec-up-persona.json", { personaId: "security" });
+    const pending = await readSpecUpQuestions(root, runId);
+    expect(pending?.persona).toBe("security");
+  });
+
+  it("readSpecUpQuestions persona is null when no persona sidecar exists (fail-safe default)", async () => {
+    const root = await tempProject();
+    const runId = "plain-otter";
+    const store = new ArtifactStore(root, runId);
+    await store.init();
+    await store.write("00-idea.md", "Build a thing");
+    await store.writeJson("flows/intake/questions.json", {
+      contract: FLOW_QUESTIONS_CONTRACT,
+      stepId: "intake",
+      questions: [
+        { id: "x", question: "y?", why: "z", kind: "text", category: "scope" },
+      ],
+    });
+    const pending = await readSpecUpQuestions(root, runId);
+    expect(pending?.persona).toBeNull();
+  });
+
   it("approveSpecUpAndStartRoadmap refuses a spec-up run that does not exist (no spawn)", async () => {
     const root = await tempProject();
     await expect(

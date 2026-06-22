@@ -1767,6 +1767,8 @@ export type PersonaSummary = {
   reviewerProfile?: string | null;
   /** Advisory posture this persona suggests for risky tasks (null = none). */
   prefersPosture?: string | null;
+  /** Free-text CTO posture injected into the spec-up planning agents (null = none). */
+  specUpPosture?: string | null;
   builtin: boolean;
 };
 export type PersonasResponse = {

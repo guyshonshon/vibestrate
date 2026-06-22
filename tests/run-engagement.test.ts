@@ -89,6 +89,17 @@ describe("deriveEngagement", () => {
     expect(out[0]!.detail).toBe("authz · secrets · injection");
   });
 
+  it("surfaces supervisor.spec_up_posture as a root judgment row", () => {
+    const out = deriveEngagement([
+      ev("supervisor.spec_up_posture", { personaId: "security" }),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.cls).toBe("judgment");
+    expect(out[0]!.anchor).toBe("root");
+    expect(out[0]!.title).toBe("spec-up aimed by supervisor");
+    expect(out[0]!.detail).toBe("security");
+  });
+
   it("anchors approval/policy to a step when the event carries a stage id", () => {
     const out = deriveEngagement([
       ev("approval.requested", { stageId: "impl", source: "policy", reason: "diff touches src/security" }),

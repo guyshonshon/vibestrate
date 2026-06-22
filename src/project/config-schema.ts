@@ -420,6 +420,21 @@ export const personaConfigSchema = z
       .default(null)
       .describe("Advisory posture this persona suggests for risky tasks (null = none)."),
     /**
+     * Free-text posture injected into the spec-up phase's PLANNING agents
+     * (intake/scope/spec/architecture) - the persona's CTO lens for shaping work.
+     * Same trust class as the spec-up flow's per-step CTO-director instructions
+     * (the spec is human-reviewed before any build); it is NOT a closed vocabulary
+     * like reviewLenses because no code-enforced gate rides on it. null = no
+     * spec-up aim (the default; spec-up runs unchanged).
+     */
+    specUpPosture: z
+      .string()
+      .min(1)
+      .max(2000)
+      .nullable()
+      .default(null)
+      .describe("Free-text CTO posture injected into the spec-up planning agents (null = none)."),
+    /**
      * The lens-set the independent reviewers are aimed at. Mapped through a CLOSED
      * vocabulary (orchestrator/review-lenses.ts) to fixed review-emphasis prompt
      * fragments and injected into reviewer turns (not the arbiter) - a lens outside

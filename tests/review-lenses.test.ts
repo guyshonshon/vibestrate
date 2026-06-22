@@ -123,4 +123,40 @@ describe("review-lenses - composeReviewerStepNotes (the injection rule)", () => 
     });
     expect(out).toBe(`BASE\n\nStep lens / instructions:\nSTEP-LENS\n\n${lens}`);
   });
+
+  it("appends the spec-up posture block on a spec-up run (any turn), after the lens", () => {
+    const posture = "Supervisor spec-up posture - ...";
+    // A non-reviewer spec-up turn: posture only.
+    expect(
+      composeReviewerStepNotes({
+        baseNotes: "BASE",
+        stepInstructions: null,
+        lensEmphasis: lens,
+        isReviewer: false,
+        specUpPostureBlock: posture,
+      }),
+    ).toBe(`BASE\n\n${posture}`);
+    // A reviewer turn on a spec-up run: lens then posture.
+    expect(
+      composeReviewerStepNotes({
+        baseNotes: "BASE",
+        stepInstructions: null,
+        lensEmphasis: lens,
+        isReviewer: true,
+        specUpPostureBlock: posture,
+      }),
+    ).toBe(`BASE\n\n${lens}\n\n${posture}`);
+  });
+
+  it("no spec-up posture block (null) => unchanged", () => {
+    expect(
+      composeReviewerStepNotes({
+        baseNotes: "BASE",
+        stepInstructions: null,
+        lensEmphasis: null,
+        isReviewer: false,
+        specUpPostureBlock: null,
+      }),
+    ).toBe("BASE");
+  });
 });

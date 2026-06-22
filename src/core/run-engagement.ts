@@ -110,6 +110,16 @@ function entryFor(e: VibestrateEvent): Partial | null {
         tone: "info",
       };
     }
+    case "supervisor.spec_up_posture": {
+      return {
+        cls: "judgment",
+        anchor: "root",
+        stepId: null,
+        title: "spec-up aimed by supervisor",
+        detail: str(d, "personaId"),
+        tone: "info",
+      };
+    }
     case "review.decision": {
       const dec = str(d, "decision") ?? "decision";
       return {

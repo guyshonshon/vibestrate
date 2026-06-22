@@ -43,6 +43,9 @@ export const BUILTIN_PERSONAS: Record<string, PersonaConfig> = {
     reviewLenses: ["correctness", "tests", "security-risk"],
     // The default persona stays posture-neutral: a plain `vibe run` is unchanged.
     prefersPosture: null,
+    // null = the spec-up flows' own CTO-director step instructions stand alone
+    // (default spec-up behavior unchanged).
+    specUpPosture: null,
   },
   // A security-minded supervisor: it prefers the `security-review` panel (authz /
   // secrets / injection lenses) instead of the generalist panel, so the SAME
@@ -85,6 +88,9 @@ export const BUILTIN_PERSONAS: Record<string, PersonaConfig> = {
     reviewLenses: ["authz", "secrets", "injection"],
     // Security work favors a sandboxed posture for risk-tagged tasks (advisory).
     prefersPosture: "sandbox-suggested",
+    // Aims the spec-up planning agents at the security dimension of the work.
+    specUpPosture:
+      "You are the CTO shaping this work with a security lens. As you scope, spec, and architect: prioritise authorization boundaries, secret handling, input validation, and the attack surface of every proposed component. Surface the threat-model questions a vague brief leaves open (who can call this? what's untrusted? where do secrets live?), and prefer designs that minimise blast radius and untrusted-input exposure.",
   },
 };
 

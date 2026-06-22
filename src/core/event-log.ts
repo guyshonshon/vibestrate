@@ -95,6 +95,7 @@ export type VibestrateEventType =
   | "persona.upgraded"
   | "supervisor.reviewer_profile"
   | "supervisor.review_lenses"
+  | "supervisor.spec_up_posture"
   | "flow.snapshot.written"
   | "flow.participant.capabilities"
   | "flow.session.opened"
