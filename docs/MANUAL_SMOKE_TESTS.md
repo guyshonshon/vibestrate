@@ -12,17 +12,17 @@ Tips:
   step - run it when done so nothing lingers.
 - `vibe config get <key>` shows a setting; `vibe config set <key> <value>` changes it.
 
-## Status (last run 2026-06-14)
+## Status (last run 2026-06-22)
 
 | # | Test | Result |
 |---|------|--------|
-| 1 | Provider-native sandbox (codex) | PASS - run sandboxed + OS blocked an out-of-workspace write |
+| 1 | Provider-native sandbox (codex) | PASS (2026-06-14) - run sandboxed + OS blocked an out-of-workspace write |
 | 2 | Harden read-only seats | not run (skipped; headless-verified at 0.7.75) |
-| 3 | Consult spinner | PASS |
-| 4 | Dashboard surfaces | not run yet |
-| 5 | Snapshot retention + consult tip | not run yet |
-| 6 | `vibe guide` + apply | not run yet |
-| 7 | Stale assurance re-derives | not run yet |
+| 3 | Consult spinner | PASS (2026-06-14) |
+| 4 | Dashboard surfaces | PARTIAL (2026-06-22) - components present + wired; the conditional chips need live run state (provider-gated), not visually re-verified this pass |
+| 5 | Snapshot retention + consult tip | PARTIAL (2026-06-22) - feature wired (CLI/UI/consult); step-1 doc expectation corrected; 3-run prune E2E needs a provider |
+| 6 | `vibe guide` + apply | PASS (2026-06-22) - surface present; apply path validated end-to-end |
+| 7 | Stale assurance re-derives | PASS (2026-06-22) - re-derived a coherent verdict on an old run, no crash |
 
 ---
 
@@ -176,7 +176,13 @@ vibe consult "what's the riskiest open item in this project?"
 
 **Reset:** stop `vibe ui` (Ctrl+C).
 
-> **Result: NOT RUN yet.**
+> **Result (2026-06-22): PARTIAL.** All three components are present and wired in
+> the build (SupervisorPanel `why` toggle 0.7.78, isolation badge 0.7.76, merge
+> caution). But each is a *conditional* chip that only appears with specific live
+> run state - the isolation badge needs a sandboxed run (test 1), the merge
+> caution needs a partial-isolation merge-ready run - so visual confirmation is
+> provider-gated and was NOT re-done this pass (same category as tests 1/3).
+> User-run when you next have an isolated run open.
 
 ---
 
@@ -212,7 +218,14 @@ about growth.
 vibe config set git.snapshotRetentionRuns 0
 ```
 
-> **Result: NOT RUN yet.**
+> **Result (2026-06-22): PARTIAL.** The feature is shipped and wired across
+> surfaces (CLI `vibe runs prune`, dashboard `PruneSnapshotsButton`, consult
+> housekeeping tip in `consult-sections.ts`). Step 1 originally returned "Path
+> not found" because `config get` didn't resolve schema defaults; that was fixed
+> (`config get` now reports the effective default), so `git.snapshotRetentionRuns`
+> reads back as `0`. The full 3-run prune-by-N end-to-end needs a real provider,
+> so it remains user-run. (Note: no dedicated unit test for the retention
+> selection was found - a small coverage gap, flagged as a follow-up.)
 
 ---
 
@@ -244,9 +257,14 @@ works; apply appends to VIBESTRATE.md (review the diff before committing).
 
 **Reset:** `git checkout VIBESTRATE.md` if you don't want to keep the applied text.
 
-> **Result: NOT RUN yet.**
+> **Result (2026-06-22): PASS.** `vibe guide` exposes show/init/proposals/apply/
+> reject; `guide show` works. The guarded apply path was validated end-to-end
+> (seed an open proposal → `vibe guide apply <id>` appended its text to
+> VIBESTRATE.md via the Action Broker writer → proposal status flipped to
+> `applied`). Minor: `vibe vibestrate` now degrades to the root help screen
+> rather than erroring as an unknown command - cosmetic, no leftover functional
+> command.
 
-tested all good
 ---
 
 ## 7. (Optional) Stale assurance re-derives, doesn't crash
@@ -262,14 +280,18 @@ tested all good
 **Expect:** a verdict prints (it re-derives from evidence if the cached artifact
 is stale or missing). No crash, no "undefined" errors.
 
-> **Result: NOT RUN yet.**
+> **Result (2026-06-22): PASS.** Ran `vibe assurance` against an old completed
+> run (`20260609-...-make-a-tests-txt-file-...`): it re-derived a coherent
+> verdict ("blocked", `validation: failed (0/3)`, `caps: validation_failed`),
+> no crash, no "undefined".
 
 **Reset:** none.
 
-runId is unconventional. firs,t you cant select and copy from TUI, second, 
-"20260614-125024-go-through-all-runs-and-list-which-one-was-ran-on-a-sandbox" is a fucking long
-and useless one. make a 6 digit id, count uniques? or some long enough that isn't too long and hard to help the consistency
-of it, or made up names or named runs? like docker has run --name xxx or default something. lets find something conventioal
+> **Run-id ergonomics** (raised here): the long
+> `20260614-...-go-through-all-runs-...` ids are hard to copy from the TUI and
+> awkward to paste into `vibe assurance`. Tracked as "Run-id ergonomics" in
+> `docs/TODO.md` (Docs + UX backlog) - decide on short ids / named runs.
+
 ---
 
 ### One-shot path that covers 1, 2, 5 together
