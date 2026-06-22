@@ -662,10 +662,11 @@ export class FlowArbitrationStore {
   constructor(
     private readonly projectRoot: string,
     private readonly runId: string,
+    private readonly filePathOverride?: string,
   ) {}
 
   get filePath(): string {
-    return runFlowArbitrationPath(this.projectRoot, this.runId);
+    return this.filePathOverride ?? runFlowArbitrationPath(this.projectRoot, this.runId);
   }
 
   async read(): Promise<FlowArbitrationLedger | null> {

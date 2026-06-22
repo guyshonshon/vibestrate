@@ -134,6 +134,19 @@ export function runFlowArbitrationPath(projectRoot: string, runId: string): stri
   return path.join(runDir(projectRoot, runId), "arbitration.json");
 }
 
+export function runChecklistItemArbitrationPath(
+  projectRoot: string,
+  runId: string,
+  itemIndex: number,
+): string {
+  return path.join(
+    runArtifactsDir(projectRoot, runId),
+    "flows",
+    "checklist",
+    `item-${itemIndex + 1}-arbitration.json`,
+  );
+}
+
 export function roadmapDir(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), ROADMAP_DIRNAME);
 }
