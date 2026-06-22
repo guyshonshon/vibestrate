@@ -74,32 +74,41 @@ type PostureApplyInput = {
   config: { autoApplySandbox: boolean; autoApplyApproval: boolean };
   explicitPermissionMode: boolean;     // user set --permission-mode / spec.permissionMode
   unattended: boolean;                 // run is --unattended
-  providerHasSandbox: boolean;         // run's provider supports a host sandbox (codex yes, claude no)
 };
 
 type PostureApplyResult = {
   isolation?: "sandboxed";             // set => override this run's isolation
   permissionMode?: "ask";              // set => override this run's permissionMode
-  notes: string[];                     // human-facing: applied / suppressed / unavailable, with the reason
+  notes: string[];                     // human-facing: applied / suppressed, with the reason
 };
 ```
 
 Rules:
 
-1. `posture === "sandbox-suggested"` and `config.autoApplySandbox`:
-   - `providerHasSandbox` false -> do nothing, `note: "sandbox suggested but unavailable on this provider"`.
-   - else -> `isolation: "sandboxed"`, `note: "sandbox posture applied (auto)"`.
-   Isolation has no per-run explicit flag; the override only ever RAISES off ->
-   sandboxed (a no-op if the config is already sandboxed) and can never lower
-   isolation, so there is no explicit-off to respect.
+1. `posture === "sandbox-suggested"` and `config.autoApplySandbox` ->
+   `isolation: "sandboxed"`, `note: "sandbox posture applied (auto)"`.
+   - **No provider check here** (Tier-2 review #2): there is no run-level
+     provider - provider is resolved per-seat per-turn
+     ([`orchestrator.ts:4851`](../../../src/core/orchestrator.ts)). The
+     orchestrator already always REQUESTS the sandbox and degrades honestly
+     per-seat: a seat whose provider can't sandbox (claude) emits
+     `provider.sandbox_unavailable` + a one-time warning (orchestrator.ts:5311-5323),
+     and run-assurance derives the real posture from those per-turn events. So
+     setting the override unconditionally is correct on mixed-provider flows and
+     reuses the existing degradation instead of re-guessing it.
+   - The override only ever RAISES off -> sandboxed (a no-op if config is already
+     sandboxed) and can never lower isolation (the result type is `"sandboxed"`
+     only) - so there is no explicit-off to respect.
 2. `posture === "approval-suggested"` and `config.autoApplyApproval`:
-   - `explicitPermissionMode` true -> do nothing (note).
-   - `unattended` true -> do nothing, `note: "approval posture suggested but suppressed (unattended)"`.
+   - `explicitPermissionMode` true -> do nothing
+     (`note: "approval suggested, not applied (permission mode set explicitly)"`).
+   - `unattended` true -> do nothing
+     (`note: "approval suggested, suppressed (unattended)"`).
    - else -> `permissionMode: "ask"`, `note: "approval posture applied (auto)"`.
 3. `posture === "normal"` or the relevant flag off -> empty result (no notes).
 
-`explicit > auto` is enforced here, so no call site can accidentally override a
-user choice.
+`explicit > auto` for permissionMode is enforced here, so no call site can
+accidentally override a user's `--permission-mode`.
 
 ## 6. Plumbing
 
@@ -113,43 +122,74 @@ user choice.
 - **isolation** needs a new per-run override. Add an optional `isolationOverride`
   field to the Orchestrator input (threaded from run-launcher) and change
   orchestrator.ts:5223 to read `(this.isolationOverride ?? this.config.execution?.isolation)`.
-  No config file mutation. `providerHasSandbox` is derived the same way the
-  existing codex-only sandbox check derives it (reuse, do not duplicate).
+  No config file mutation. No provider check here - the orchestrator's existing
+  per-seat request+degrade path (5311-5323) handles codex-yes/claude-no.
 
 ## 7. Records + surfaces (UI<->CLI parity)
 
 - Record the applied posture outcome (the `notes` + the effective isolation/
   permissionMode) on the run's selection record / run state, next to the existing
-  posture field.
+  posture field. (This persisted record is also what resume reads - see section 8a.)
 - Surface in: the `vibe assurance` isolation/posture line; the dashboard "Flow &
-  why" / Supervisor panel; the CLI run selection line. When suppressed or
-  unavailable, the surface says so verbatim (no silent success).
+  why" / Supervisor panel; the CLI run selection line. When an approval posture is
+  suppressed (unattended/explicit), the surface says so verbatim.
+- **Per-seat, not run-level (Tier-2 review #6b):** do NOT print a run-level
+  "sandbox unavailable" line - that would be false for the codex seats on a
+  mixed-provider flow. Sandbox availability is already surfaced per-seat by the
+  existing `provider.sandbox_unavailable` events + the run-assurance isolation
+  posture (sandboxed / partial / none); reuse that, don't add a run-level claim.
 
 ## 8. Safety invariants (must hold)
 
 - Opt-in: both flags default false.
 - Explicit `--permission-mode` always wins over an auto-applied approval posture.
 - Isolation is only ever RAISED (off -> sandboxed), never lowered; an
-  already-sandboxed config is a no-op. There is no per-run explicit-off to override.
-- Unattended never gets an unexpected approval stall.
-- Codex-only sandbox is never over-claimed; claude degrades with a recorded note.
+  already-sandboxed config is a no-op. There is no per-run explicit-off to override
+  (the result type is `"sandboxed"` only - it structurally cannot emit "off").
+- Codex-only sandbox is never over-claimed; claude degrades per-seat via the
+  existing runtime path, not a pre-run guess.
 - Never mutates the config file.
 - The no-write/read-only diff-gate clamp is unchanged and still wins over an
   applied approval posture.
+
+### 8a. Known limitation: approval posture + non-interactive (Tier-2 review #4)
+
+`unattended` is NOT the same as non-interactive. An applied `permissionMode: ask`
+on a run that is headless but was launched WITHOUT `--unattended` and has no one to
+answer the approval (no TTY, no dashboard) will wait on the orchestrator's approval
+poll (orchestrator.ts:4634) indefinitely - the same footgun as setting
+`--permission-mode ask` explicitly in that environment. This is documented, not
+silently mitigated: `autoApplyApproval: true` is an opt-in, and a user who also
+runs headless without `--unattended` is mis-configured. We suppress only for the
+reliable `unattended` signal; we do not claim "never stalls."
+
+### 8b. Resume (Tier-2 review #6a)
+
+On resume, `selection` is null (run-launcher.ts:264), so the posture is not
+re-derived. A resumed run MUST keep the confinement/gating it was launched with -
+silently dropping a sandbox or approval gate on resume is a fail-open. Because the
+effective isolation + permissionMode are persisted on run state (section 7), the
+resume path reads them back from the source run's state and re-applies them
+(isolation via the same `isolationOverride`, permissionMode via the existing
+per-run field). No re-derivation, no LLM - just rehydrate the persisted effective
+values.
 
 ## 9. Tests
 
 - Pure `derivePostureApplication` table: `posture {normal, sandbox-suggested,
   approval-suggested}` x `flag {on, off}` x `explicit {set, unset}` x `unattended
-  {y, n}` x `providerHasSandbox {y, n}` -> expected `{isolation?, permissionMode?,
-  notes}`.
+  {y, n}` -> expected `{isolation?, permissionMode?, notes}`. (No provider axis -
+  the function is provider-agnostic by design.)
 - run-launcher integration (fake providers only):
-  - sandbox-suggested + autoApplySandbox + codex -> effective isolation `sandboxed`.
-  - sandbox-suggested + autoApplySandbox + claude -> isolation unchanged + "unavailable" note.
+  - sandbox-suggested + autoApplySandbox -> effective `isolationOverride = sandboxed`
+    threaded to the Orchestrator; assert the assurance isolation event reflects it
+    (sandboxed on codex / partial on claude), NOT just the override field.
   - approval-suggested + autoApplyApproval + attended -> permissionMode `ask`.
   - approval-suggested + autoApplyApproval + unattended -> unchanged + "suppressed" note.
   - explicit `--permission-mode auto` + approval posture -> stays `auto` (explicit wins).
   - no-write flow + approval posture -> still read-only-clamped.
+  - resume of a sandbox/ask run -> rehydrates the same isolation/permissionMode
+    (selection is null) instead of dropping them.
 - Config round-trip: the new `posture` keys validate, appear in `config keys`,
   set/get through the CLI + UI.
 
