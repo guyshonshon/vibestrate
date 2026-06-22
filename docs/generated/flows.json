@@ -966,6 +966,200 @@
       "loop": null
     },
     {
+      "id": "pickup-review",
+      "version": 1,
+      "label": "Pick-up (per-item review)",
+      "description": "Execute a card item-by-item with a per-item REVIEW panel: a holistic plan once, then for each checklist item the implementer writes it and a per-item panel (correctness + risk) plus an arbiter review THAT item's diff; a per-item fix loop runs before the item commits, then a holistic review.",
+      "seats": [
+        {
+          "id": "planner",
+          "label": "Planner",
+          "description": "Plans the card and each item."
+        },
+        {
+          "id": "implementer",
+          "label": "Implementer",
+          "description": "Implements (and fixes) one item."
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "description": "Reviews one item under an assigned lens."
+        },
+        {
+          "id": "arbiter",
+          "label": "Arbiter",
+          "description": "Renders one per-item verdict."
+        }
+      ],
+      "steps": [
+        {
+          "id": "plan",
+          "label": "Plan",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "plan"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "planning",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "micro-plan",
+          "label": "Micro-plan item",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "checklist-item",
+            "prior-items"
+          ],
+          "outputs": [
+            "micro-plan"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "implement",
+          "label": "Implement item",
+          "kind": "agent-turn",
+          "seat": "implementer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "micro-plan",
+            "checklist-item",
+            "prior-items",
+            "per-item-findings"
+          ],
+          "outputs": [
+            "execution",
+            "diff"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review-correctness",
+          "label": "Review: correctness",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "micro-plan",
+            "execution",
+            "diff",
+            "checklist-item"
+          ],
+          "outputs": [
+            "findings-correctness"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": true,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review-risk",
+          "label": "Review: security & risk",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "micro-plan",
+            "execution",
+            "diff",
+            "checklist-item"
+          ],
+          "outputs": [
+            "findings-risk"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": true,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "arbiter",
+          "label": "Arbiter verdict",
+          "kind": "review-turn",
+          "seat": "arbiter",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "micro-plan",
+            "execution",
+            "diff",
+            "checklist-item",
+            "findings-correctness",
+            "findings-risk"
+          ],
+          "outputs": [
+            "review-decision"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review",
+          "label": "Holistic review",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "execution",
+            "prior-items"
+          ],
+          "outputs": [
+            "findings",
+            "review-decision"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": null
+    },
+    {
       "id": "security-review",
       "version": 1,
       "label": "Security review panel",

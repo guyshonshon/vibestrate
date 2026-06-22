@@ -2,11 +2,11 @@
 
 Status: **Phase A + B SHIPPED (0.7.0, orchestrator Slice 4); continue-past-failure
 + per-step retries SHIPPED (0.7.9 / 0.7.10, Slice 5); Phase D checklist-DAG
-"Shape A" SHIPPED (0.7.28, Slice 5); Phase C (write-parallelism) + Phase D
-"Shape B" (per-item review panel) on paper.** The *product framing* here is
-superseded by `responsible-orchestrator.md`: DAGs are an execution primitive the
-orchestrator *chooses*, not the product identity. This doc remains the graph
-execution design.
+"Shape A" SHIPPED (0.7.28, Slice 5); Phase D "Shape B" (per-item review panel)
+SHIPPED (0.25.0, Slice 5 final); Phase C (write-parallelism) deferred.** The
+*product framing* here is superseded by `responsible-orchestrator.md`: DAGs are
+an execution primitive the orchestrator *chooses*, not the product identity. This
+doc remains the graph execution design.
 
 What shipped in the checklist-DAG slice (Phase D "Shape A", 0.7.28, Slice 5):
 
@@ -37,9 +37,31 @@ What shipped in the checklist-DAG slice (Phase D "Shape A", 0.7.28, Slice 5):
   `flow-graph-layout.ts` learned `zonedLayersOf` (prelude / per-item band /
   postlude), so web + CLI + TUI all show the band boundary, its per-item repeat,
   and the in-band fan-out (parity).
-- Still on paper: **Shape B** (per-item review panel + arbiter) needs a
-  per-item-scoped arbitration ledger + suggestion ingest; serial in-band session
-  reuse; Phase C write-parallelism.
+What shipped in the checklist-DAG Shape B slice (0.25.0):
+
+- **`pickup-review` built-in flow**: after the implementer writes each item, a
+  configurable review panel (default lenses: `correctness` + `security-risk`,
+  persona-aimed via `checklistReview.lenses`) and an arbiter review that item's
+  diff, then a bounded per-item fix loop runs before the item commits.
+- **Per-item arbitration ledger**: each item gets its own scoped ledger
+  (`perItemVerdicts`), so findings and verdicts never collide across items. The
+  run-global ledger collision that was the key blocker for Shape B is resolved by
+  explicit-path stores keyed per item.
+- **Per-item diff scoping**: automatic - `getDiffSnapshot` is HEAD-relative and
+  each item commits on its own, so the reviewer always sees only that item's diff.
+  No `itemBaseSha` machinery was needed; the original plan's diff-base task was
+  dropped as unnecessary.
+- **Cap-and-continue safety**: if an item's fix loop ends with findings still
+  open, the run continues (never hard-aborts) but `merge_ready` is blocked for
+  that item. The gap is surfaced in the per-item verdict and in
+  `GET /api/runs/:id/checklist-verdicts`; the item result is honest and visible in
+  the dashboard verdict panel plus `vibe assurance` / `vibe audit` per-item lanes.
+  A run never silently passes.
+- **Deferred (keep docs honest)**: serial in-band session reuse; per-item
+  suggestion ingest; extra specialized per-item panels beyond correctness +
+  security-risk; orchestrator AUTO-SELECTION of `pickup-review` (selectable via
+  `--flow` / `defaultFlow` this slice). Phase C (write-parallelism) remains
+  deferred.
 
 What shipped in the per-step retries slice (Slice 5, 0.7.10):
 

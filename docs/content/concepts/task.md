@@ -110,6 +110,24 @@ vibe tasks pickup <taskId> --step   # pause between items for review
 
 "Run checklist" on the task does the same. Under the hood this runs the built-in `pickup` [flow](/docs/concepts/flow): one holistic plan, then a micro-plan and implement band per item, then one holistic review. Each item commits on its own, stamped with the item id so it can be reverted alone. A compact summary of each finished item carries forward, so later items have context without re-reading every diff. Status and commit sha are written back as the run goes. Execution is linear and stops on the first failing item.
 
+### Per-item review: the `pickup-review` flow
+
+For higher-stakes checklists, use `pickup-review` instead of the default `pickup`:
+
+```bash
+vibe tasks pickup <taskId> --flow pickup-review
+```
+
+`pickup-review` adds a review panel and an arbiter inside the per-item band - after the implementer writes each item, the panel reviews that item's diff, and a bounded per-item fix loop runs before the item commits. This means each item is reviewed in isolation, with full context of only that item's change.
+
+**Default lenses.** The panel runs two lenses by default: `correctness` (logic, type-safety, edge cases) and `security-risk` (injection, auth gaps, data exposure). Both are aimed at the active persona if one is set. You can override lenses project-wide or per-run via `checklistReview.lenses` in your project config.
+
+**Cost.** Each item runs the panel independently: two reviewer turns and one arbiter turn per item, on top of the normal implement band. For a 10-item checklist that is 30 extra turns. Use `pickup-review` when correctness per item matters more than speed.
+
+**Cap-and-continue.** If an item's fix loop ends with findings still open, the run continues (it never hard-aborts a checklist mid-stream), but that item is flagged as not merge-ready. The gap is surfaced item by item in `vibe assurance`, `vibe audit`, and the dashboard verdict panel. A run that ends with any open-findings item cannot reach `merge_ready` until the gap is resolved. Nothing passes silently.
+
+Each item keeps its own arbitration ledger, so findings from item 3 never bleed into item 7.
+
 ## "Needs testing": when a human should look
 
 A reviewer or verifier can end a run with a non-blocking advisory: the change is fine to ship, but a human should eyeball something a model cannot perceive, like layout, animation, or UX feel. The run still reaches a normal verdict; it is not stuck like an [approval gate](/docs/glossary#approval-gate). The card is flagged Needs testing with a one-line reason. Resolve it with a verdict: "Looks good" marks the Task Done, "Needs work" reopens it. The flag shows as a banner on the task and a badge on the board.
