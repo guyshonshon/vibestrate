@@ -773,6 +773,30 @@ export const api = {
   ): Promise<{ ok: true; proposalId: string }> {
     return jsonPost("/api/spec-up/roadmap-proposal", { runId });
   },
+  /** Read a spec-up section's content + content-hash (the edit baseline). `frozen`
+   *  = the build was already approved (the section is no longer editable). */
+  async getSpecUpArtifact(
+    runId: string,
+    section: string,
+  ): Promise<{ content: string; hash: string; frozen: boolean; editableSections: string[] }> {
+    return jsonGet(
+      `/api/spec-up/runs/${encodeURIComponent(runId)}/artifact/${encodeURIComponent(section)}`,
+    );
+  },
+  /** Edit a spec-up section before the build (guarded write). `baseHash` is the
+   *  hash from getSpecUpArtifact, for optimistic concurrency. Returns the new hash. */
+  async editSpecUpArtifact(
+    runId: string,
+    section: string,
+    content: string,
+    baseHash?: string | null,
+  ): Promise<{ ok: true; hash: string }> {
+    return jsonPost(`/api/spec-up/runs/${encodeURIComponent(runId)}/artifact`, {
+      section,
+      content,
+      ...(baseHash ? { baseHash } : {}),
+    });
+  },
   /** Dry-run a downstream rewind: the file overwrite/remove set the restore
    *  would apply. `preview: null` = nothing to restore for that stage. */
   async restorePreview(

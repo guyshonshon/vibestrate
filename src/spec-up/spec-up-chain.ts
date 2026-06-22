@@ -64,10 +64,11 @@ const PERSONA_PATH = "spec-up-persona.json";
  *  regardless of what the model judges - it finalizes into the spec instead. This
  *  is the anti-interrogation brake. */
 export const ROUND_CAP = 4;
-const APPROVED_SPEC_PATH = "spec-up-approved-spec.md";
+export const APPROVED_SPEC_PATH = "spec-up-approved-spec.md";
 /** The shape flow's spec-producing step outputs, concatenated into the spec that
- *  seeds the chosen build flow. Step id -> output.md (see builtin-flows specUpFlow). */
-const SPEC_UP_SPEC_STEPS = ["scope", "spec", "architecture", "risks"] as const;
+ *  seeds the chosen build flow. Step id -> output.md (see builtin-flows specUpFlow).
+ *  Exported as the editable-section set for the guarded artifact-edit service. */
+export const SPEC_UP_SPEC_STEPS = ["scope", "spec", "architecture", "risks"] as const;
 
 /** Read the carried build-target flow id (P1) from a run's sidecar, or null. */
 async function readTargetFlowId(

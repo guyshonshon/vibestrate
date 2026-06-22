@@ -1,7 +1,17 @@
 import { Command } from "commander";
+import { spawnSync } from "node:child_process";
+import os from "node:os";
+import path from "node:path";
+import fsp from "node:fs/promises";
 import { detectProject } from "../../project/project-detector.js";
 import { loadConfig } from "../../project/config-loader.js";
 import { color, header, symbol } from "../ui/format.js";
+import {
+  editSpecUpArtifact,
+  readSpecUpSection,
+  EDITABLE_SPEC_UP_SECTIONS,
+  SpecUpEditError,
+} from "../../spec-up/spec-up-artifact-edit.js";
 import {
   startSpecUpIntake,
   readSpecUpQuestions,
@@ -22,6 +32,26 @@ import {
 function fail(message: string): never {
   console.error(`${symbol.fail()} ${message}`);
   process.exit(1);
+}
+
+/** Open the current content in $EDITOR (blocking) and return the edited text. The
+ *  sanctioned $EDITOR handoff (no in-shell editor). Splits the env value so
+ *  "$EDITOR=code -w" works; no shell, so the temp path is never interpolated. */
+async function editViaEditor(initial: string, section: string): Promise<string> {
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), "vibe-specup-edit-"));
+  const file = path.join(dir, `${section}.md`);
+  try {
+    await fsp.writeFile(file, initial, "utf8");
+    const raw = (process.env.VISUAL || process.env.EDITOR || "vi").trim();
+    const [cmd, ...preArgs] = raw.split(/\s+/);
+    const res = spawnSync(cmd!, [...preArgs, file], { stdio: "inherit" });
+    if (res.error || (res.status ?? 1) !== 0) {
+      fail(`Editor "${raw}" exited abnormally; nothing saved.`);
+    }
+    return await fsp.readFile(file, "utf8");
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
 }
 
 // Parse repeatable `--answer id=value` flags into the typed answer-set.
@@ -244,6 +274,51 @@ export function buildSpecUpCommand(): Command {
         console.log(color.dim(`Review + accept:  vibe roadmap accept ${proposalId}`));
       } catch (err) {
         if (err instanceof SpecUpChainError) fail(err.message);
+        fail(err instanceof Error ? err.message : String(err));
+      }
+    });
+
+  cmd
+    .command("edit <runId> <section>")
+    .description(
+      "Edit a spec-up section (scope/spec/architecture/risks) before the build, via $EDITOR or --file. Guarded: secret-refusing, blocked after approve.",
+    )
+    .option("--file <path>", "read the new content from a file instead of opening $EDITOR")
+    .action(async (runId: string, section: string, opts: { file?: string }) => {
+      const { projectRoot } = await detectProject(process.cwd());
+      if (!(EDITABLE_SPEC_UP_SECTIONS as readonly string[]).includes(section)) {
+        fail(`"${section}" is not an editable section. Allowed: ${EDITABLE_SPEC_UP_SECTIONS.join(", ")}.`);
+      }
+      const current = await readSpecUpSection(projectRoot, runId, section);
+      if (!current) {
+        fail(`No "${section}" artifact for run "${runId}" - is this a spec-up run that produced a spec?`);
+      }
+      if (current.frozen) {
+        fail("This spec-up run was already approved and built - its spec is frozen.");
+      }
+      let next: string;
+      if (opts.file) {
+        next = await fsp
+          .readFile(opts.file, "utf8")
+          .catch(() => fail(`Could not read --file "${opts.file}".`));
+      } else {
+        next = await editViaEditor(current.content, section);
+      }
+      if (next === current.content) {
+        console.log(color.dim("No change - nothing to save."));
+        return;
+      }
+      try {
+        await editSpecUpArtifact({
+          projectRoot,
+          runId,
+          section,
+          content: next,
+          baseHash: current.hash,
+        });
+        console.log(`${symbol.ok()} Saved ${color.cyan(section)} for run ${color.cyan(runId)}.`);
+      } catch (err) {
+        if (err instanceof SpecUpEditError) fail(err.message);
         fail(err instanceof Error ? err.message : String(err));
       }
     });

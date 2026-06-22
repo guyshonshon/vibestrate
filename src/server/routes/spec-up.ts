@@ -18,7 +18,42 @@ import {
   specUpSuggestAll,
   SpecUpAssistError,
 } from "../../spec-up/spec-up-assist.js";
+import {
+  editSpecUpArtifact,
+  readSpecUpSection,
+  EDITABLE_SPEC_UP_SECTIONS,
+  SpecUpEditError,
+  type SpecUpEditCode,
+} from "../../spec-up/spec-up-artifact-edit.js";
 import { loadConfig } from "../../project/config-loader.js";
+
+/** Map a guarded-edit refusal code to an HTTP status. */
+function specUpEditStatus(code: SpecUpEditCode): number {
+  switch (code) {
+    case "bad-section":
+    case "too-large":
+      return 400;
+    case "missing":
+      return 404;
+    case "secret":
+      return 422;
+    case "already-approved":
+    case "stale":
+    case "blocked":
+      return 409;
+    case "write-failed":
+      return 500;
+  }
+}
+
+const editArtifactBody = z
+  .object({
+    // The closed-set check + clean 400 is the service's `bad-section` guard.
+    section: z.string().min(1).max(40),
+    content: z.string().max(512 * 1024),
+    baseHash: z.string().min(1).max(128).optional(),
+  })
+  .strict();
 
 /** Best-effort project default flow (fallback build target for an unbound
  *  spec-up run). The built-in `default` flow always exists, so this never throws. */
@@ -158,6 +193,55 @@ export async function registerSpecUpRoutes(
       throw err;
     }
   });
+
+  // Read a spec-up section's current content + content-hash (the editor baseline).
+  // The hash is echoed back as `baseHash` on save for optimistic concurrency.
+  app.get<{ Params: { runId: string; section: string } }>(
+    "/api/spec-up/runs/:runId/artifact/:section",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const r = await readSpecUpSection(projectRoot, req.params.runId, req.params.section);
+      if (!r) {
+        throw new HttpError(404, `No editable "${req.params.section}" artifact for this run.`);
+      }
+      return { ...r, editableSections: EDITABLE_SPEC_UP_SECTIONS };
+    },
+  );
+
+  // Edit a spec-up section before the build (guarded browser->fs write). Fail-closed
+  // on a tokenless bind, like the merge route: any local process could otherwise POST
+  // here. All other guards (closed section set, secret-refusal, block-after-approve,
+  // baseHash, broker gate, symlink/hardlink-safe write) live in editSpecUpArtifact.
+  app.post<{ Params: { runId: string }; Body: unknown }>(
+    "/api/spec-up/runs/:runId/artifact",
+    async (req) => {
+      if (!process.env.VIBESTRATE_API_TOKEN) {
+        throw new HttpError(
+          403,
+          "Editing a spec-up artifact from the dashboard requires VIBESTRATE_API_TOKEN to be set (a tokenless local API is reachable by any local process). Set a token and restart vibe ui, or use `vibe spec-up edit`.",
+        );
+      }
+      const parsed = editArtifactBody.safeParse(req.body);
+      if (!parsed.success) {
+        throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid edit.");
+      }
+      try {
+        const r = await editSpecUpArtifact({
+          projectRoot,
+          runId: req.params.runId,
+          section: parsed.data.section,
+          content: parsed.data.content,
+          baseHash: parsed.data.baseHash ?? null,
+        });
+        return { ok: true, hash: r.hash };
+      } catch (err) {
+        if (err instanceof SpecUpEditError) {
+          throw new HttpError(specUpEditStatus(err.code), err.message);
+        }
+        throw err;
+      }
+    },
+  );
 
   // Approve the spec-up draft -> launch the roadmap run (resumeFrom the spec-up run).
   app.post<{ Body: { specUpRunId?: unknown } }>("/api/spec-up/roadmap", async (req) => {
