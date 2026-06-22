@@ -27,6 +27,8 @@ import { flowDefinitionSchema } from "../../flows/schemas/flow-schema.js";
 import { computeFlowCoverageForConfig } from "../../flows/runtime/seat-coverage.js";
 import { setConfigValue } from "../../setup/config-update-service.js";
 import { HttpError } from "../security.js";
+import { buildPublishRef, runPublishPreflight } from "../../flows/hub/publish-guards.js";
+import { resolveSecret } from "../../notifications/gateways/secret-resolver.js";
 
 const idOverridesSchema = z
   .record(z.string().min(1).max(80), z.string().min(1).max(128))
@@ -97,6 +99,15 @@ const hubInstallBody = z.object({
   overwrite: z.boolean().optional(),
 });
 
+const hubPublishBody = z.object({
+  flowId: z.string().min(1).max(120),
+  version: z.string().min(1).max(40),
+  name: z.string().min(1).max(60).optional(),
+  handle: z.string().min(1).max(60),
+  baseUrl: z.string().url().max(2000).optional(),
+  confirm: z.literal("publish"),
+});
+
 export type FlowsRoutesDeps = {
   projectRoot: string;
 };
@@ -153,6 +164,48 @@ export async function registerFlowsRoutes(
     });
     if (!r.ok) throw new HttpError(r.status >= 400 && r.status < 600 ? r.status : 400, r.reasons.join(" "));
     return { result: r };
+  });
+
+  // Publish is outward-facing + token-bearing. Fail-closed like the git write
+  // routes: a tokenless loopback API is reachable by any local process.
+  const requireApiToken = () => {
+    if (!process.env.VIBESTRATE_API_TOKEN) {
+      throw new HttpError(
+        403,
+        "Publishing from the dashboard requires VIBESTRATE_API_TOKEN to be set. Set a token and restart `vibe ui`.",
+      );
+    }
+  };
+
+  app.post<{ Body: unknown }>("/api/flows/hub/publish", async (req) => {
+    requireApiToken();
+    const parsed = hubPublishBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+
+    const exported = await exportFlowYaml({ projectRoot, flowId: parsed.data.flowId });
+    if (!exported.ok) throw new HttpError(404, exported.reasons.join(" "));
+
+    // buildPublishRef validates raw input (no normalization); lowercase here.
+    const ref = buildPublishRef({
+      handle: parsed.data.handle.toLowerCase(),
+      name: (parsed.data.name ?? parsed.data.flowId).toLowerCase(),
+      version: parsed.data.version,
+    });
+    if (!ref.ok) throw new HttpError(400, ref.reason);
+
+    const pre = runPublishPreflight(exported.yaml);
+    if (!pre.ok) throw new HttpError(400, `Refusing to publish (secret-shaped content): ${pre.refusals.join("; ")}`);
+
+    const token = resolveSecret("env:VIBESTRATE_HUB_TOKEN");
+    if (!token) throw new HttpError(412, "Set VIBESTRATE_HUB_TOKEN (a GitHub token) in the `vibe ui` process env to publish.");
+
+    const { publishFlow } = await import("../../flows/hub/hub-client.js");
+    const result = await publishFlow({ content: exported.yaml, ref: ref.ref, token, baseUrl: parsed.data.baseUrl });
+    if (!result.ok) {
+      const status = result.status >= 400 && result.status < 600 ? result.status : 502;
+      throw new HttpError(status, result.reason);
+    }
+    return { result, warnings: pre.warnings };
   });
 
   app.post<{ Body: unknown }>("/api/flows/suggest", async (req) => {
