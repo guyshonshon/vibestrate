@@ -2,6 +2,12 @@ name: CI
 
 # Typecheck, test, and build on every push to main and every PR.
 # This is the gate the release workflow trusts before publishing.
+#
+# Runs on Ubuntu (the blocking gate) and Windows (non-blocking while native
+# Windows support lands - see
+# docs/superpowers/specs/2026-06-23-windows-support-design.md). The Windows job
+# surfaces the empirical failure list without blocking merges; it is promoted to
+# a blocking gate in the final Windows phase.
 
 on:
   push:
@@ -13,7 +19,12 @@ permissions:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     steps:
       - uses: actions/checkout@v4
 
