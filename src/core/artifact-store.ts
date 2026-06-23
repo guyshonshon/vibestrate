@@ -74,8 +74,10 @@ export class ArtifactStore {
     // Open WITHOUT O_TRUNC so the nlink check runs before any truncation - a
     // hardlinked target must not be zeroed before we reject it. O_NOFOLLOW makes
     // the symlink refusal ATOMIC on POSIX; on Windows it is a no-op, so the
-    // symlink defense there degrades to the (non-atomic) lstat check above - an
-    // accepted limitation (Windows isn't a supported platform yet, TODO E1).
+    // symlink defense there fails closed via the (non-atomic) lstat check above:
+    // a symlinked leaf is still REFUSED, but a re-link between the lstat and the
+    // open (TOCTOU) is not closed atomically. Accepted residual on Windows (no
+    // O_NOFOLLOW equivalent); the lstat + realpath-containment guards remain.
     const fh = await fs.open(
       target,
       fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_NOFOLLOW,
