@@ -113,6 +113,11 @@ export class ArtifactStore {
   }
 
   relPath(absolutePath: string): string {
-    return path.relative(this.rootDir, absolutePath);
+    // POSIX-normalize: this is a STORED/RETURNED key (run-relative), used in
+    // results, JSON, comparisons, and API routes, so it must be stable across
+    // platforms. path.relative yields native separators (backslashes on
+    // Windows); normalize to "/". (resolveArtifactPath splits on [\\/], so a
+    // POSIX key still resolves for fs I/O.) Matches path-guard's convention.
+    return path.relative(this.rootDir, absolutePath).replace(/\\/g, "/");
   }
 }
