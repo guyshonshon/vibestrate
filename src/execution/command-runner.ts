@@ -1,5 +1,9 @@
 import { execa } from "execa";
 import { nowIso, durationMs } from "../utils/time.js";
+import {
+  killProcessTree,
+  detachedSpawnOptions,
+} from "../platform/process-control.js";
 
 // Host Claude Code (the CLI we may be running *inside*) injects CLAUDE_CODE_* and
 // CLAUDECODE env vars to mark its own session/instance. A child agent we spawn -
@@ -87,7 +91,7 @@ export async function runArgvCommand(input: {
   signal?: AbortSignal;
 }): Promise<CommandResult> {
   const startedAt = new Date();
-  const detached = process.platform !== "win32";
+  const { detached } = detachedSpawnOptions();
   // Use execa's process handle so we can subscribe to stream chunks
   // while *also* collecting the full buffered output for the
   // existing CommandResult contract. execa accepts AbortSignal for
@@ -119,8 +123,7 @@ export async function runArgvCommand(input: {
     const pid = subprocess.pid;
     if (!pid) return;
     try {
-      if (detached) process.kill(-pid, "SIGTERM");
-      else subprocess.kill("SIGTERM");
+      killProcessTree(pid, "SIGTERM");
     } catch {
       try {
         subprocess.kill("SIGTERM");
@@ -130,8 +133,7 @@ export async function runArgvCommand(input: {
     }
     forceKillTimer = setTimeout(() => {
       try {
-        if (detached) process.kill(-pid, "SIGKILL");
-        else subprocess.kill("SIGKILL");
+        killProcessTree(pid, "SIGKILL");
       } catch {
         try {
           subprocess.kill("SIGKILL");
