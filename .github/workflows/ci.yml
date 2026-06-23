@@ -38,12 +38,16 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # Several tests make real git commits (e.g. git-init). GitHub runners have
-      # no default git identity, so configure one. Identical syntax on the bash
-      # (Ubuntu) and pwsh (Windows) default shells.
-      - name: Configure git identity (tests make real commits)
+      # no default git identity, so configure one. Also force autocrlf off: the
+      # Windows runner defaults to autocrlf=true, which rewrites LF->CRLF on
+      # checkout and breaks byte-exact content assertions in the patch/snapshot
+      # tests. (Real-world autocrlf=true robustness is tracked separately.)
+      # Identical syntax on the bash (Ubuntu) and pwsh (Windows) default shells.
+      - name: Configure git (identity + autocrlf off)
         run: |
           git config --global user.email "ci@vibestrate.local"
           git config --global user.name "Vibestrate CI"
+          git config --global core.autocrlf false
 
       - name: Typecheck
         run: pnpm typecheck
