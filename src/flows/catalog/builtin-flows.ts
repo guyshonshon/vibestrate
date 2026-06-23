@@ -879,14 +879,14 @@ export const pickupReviewFlow = flowDefinitionSchema.parse({
         "Your lens is CORRECTNESS & LOGIC for THIS checklist item's diff only. Hunt real bugs: wrong behavior, broken edge cases, races, mishandled errors, contract violations. Cite file:line; no style nits.",
     },
     {
-      id: "review-risk",
-      label: "Review: security & risk",
+      id: "review-security-risk",
+      label: "Review: security risk",
       kind: "review-turn",
       seat: "reviewer",
       stage: "reviewing",
       needs: ["implement"],
       inputs: ["task-brief", "plan", "micro-plan", "execution", "diff", "checklist-item"],
-      outputs: ["findings-risk"],
+      outputs: ["findings-security-risk"],
       continueOnError: true,
       instructions:
         "Your lens is SECURITY, RISK & ARCHITECTURE for THIS item's diff only. Injection/secret/path exposure, unsafe effects, broken boundaries, hard-to-revert moves, architectural drift. Flag anything needing sandboxing or human sign-off.",
@@ -897,7 +897,7 @@ export const pickupReviewFlow = flowDefinitionSchema.parse({
       kind: "review-turn",
       seat: "arbiter",
       stage: "reviewing",
-      needs: ["review-correctness", "review-risk"],
+      needs: ["review-correctness", "review-security-risk"],
       inputs: [
         "task-brief",
         "plan",
@@ -906,7 +906,7 @@ export const pickupReviewFlow = flowDefinitionSchema.parse({
         "diff",
         "checklist-item",
         "findings-correctness",
-        "findings-risk",
+        "findings-security-risk",
       ],
       outputs: ["review-decision"],
       instructions:

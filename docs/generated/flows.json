@@ -1084,8 +1084,8 @@
           "repeat": null
         },
         {
-          "id": "review-risk",
-          "label": "Review: security & risk",
+          "id": "review-security-risk",
+          "label": "Review: security risk",
           "kind": "review-turn",
           "seat": "reviewer",
           "inputs": [
@@ -1097,7 +1097,7 @@
             "checklist-item"
           ],
           "outputs": [
-            "findings-risk"
+            "findings-security-risk"
           ],
           "optional": false,
           "skipWhenReadOnly": false,
@@ -1120,7 +1120,7 @@
             "diff",
             "checklist-item",
             "findings-correctness",
-            "findings-risk"
+            "findings-security-risk"
           ],
           "outputs": [
             "review-decision"

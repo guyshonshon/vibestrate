@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.25.1
+
+- **Per-item review lenses are now configurable (Shape B follow-up).** The per-item review panel shipped in 0.25.0 with a fixed correctness + security-risk pair; you can now choose which lenses review each checklist item. Set `checklistReview.lenses` on a flow, or `checklistReviewLenses` on a crew (precedence: crew > flow > default). Each selected lens from the closed vocabulary (correctness, tests, security-risk, authz, secrets, injection, ux-ia, accessibility, visual-consistency, performance) becomes one read-only reviewer per item, and the arbiter weighs them all. A `security`-minded crew can aim every per-item panel at secrets + injection without touching the flow. Wired at flow-resolution time, so the live run, the dashboard, and the CLI all see the configured reviewers.
+
 ## 0.25.0
 
 - **Per-item review (checklist Shape B).** The new `pickup-review` flow reviews each checklist item on its own: after the item is written, a panel (correctness + security-risk) and an arbiter review THAT item's diff, and a bounded per-item fix loop runs before the item commits. Each item gets its own arbitration ledger, so findings and verdicts never collide across items. If an item's fix loop ends with the reviewer still requesting changes, the run continues but cannot be marked merge-ready (the gap is surfaced per item) - it never silently passes and never hard-aborts. Per-item diff scoping is automatic (HEAD-relative snapshot + commit-per-item), so no extra diff-base machinery is needed. New surfaces: `GET /api/runs/:id/checklist-verdicts`, a dashboard verdict panel, and `vibe assurance` / `vibe audit` per-item lanes. Deferred: session reuse, suggestion ingest, extra panels, auto-selection, and configurable lens selection (`checklistReview.lenses` is a forward schema surface - not yet wired into reviewer assignment).

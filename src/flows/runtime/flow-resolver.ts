@@ -1,7 +1,7 @@
 import type { ProjectConfig } from "../../project/config-schema.js";
 import type { CrewConfig } from "../../crews/crew-schema.js";
 import { nowIso } from "../../utils/time.js";
-import { type ReviewLens } from "../../orchestrator/review-lenses.js";
+import { REVIEW_LENS_FRAGMENTS, type ReviewLens } from "../../orchestrator/review-lenses.js";
 import {
   getCrew,
   getCrewRole,
@@ -33,12 +33,11 @@ export const DEFAULT_CHECKLIST_REVIEW_LENSES: ReviewLens[] = [
 ];
 
 /**
- * Pure. Resolve which review lenses to use for a checklist-review pass.
+ * Pure. Resolve which review lenses a checklist-review band uses.
  * Precedence: crew > flow > default (`["correctness", "security-risk"]`).
- *
- * Forward surface - not yet wired into per-item band reviewer selection
- * (Shape B follow-up). The function exists and is correct; it is not called
- * at runtime yet because the band uses hardcoded reviewer steps.
+ * Consumed by `expandChecklistReviewBand` during `resolveFlow`, so a flow's
+ * `checklistReview.lenses` (or a crew's `checklistReviewLenses`) actually
+ * changes which reviewers run per item.
  */
 export function resolveChecklistReviewLenses(o: {
   flowLenses?: ReviewLens[];
@@ -47,6 +46,85 @@ export function resolveChecklistReviewLenses(o: {
   if (o.crewLenses && o.crewLenses.length) return o.crewLenses;
   if (o.flowLenses && o.flowLenses.length) return o.flowLenses;
   return DEFAULT_CHECKLIST_REVIEW_LENSES;
+}
+
+type FlowStep = FlowDefinition["steps"][number];
+
+/** A review lens id -> a short human label for the generated step ("security-risk" -> "security risk"). */
+function lensLabel(lens: ReviewLens): string {
+  return lens.replace(/-/g, " ");
+}
+
+/**
+ * Pure. Expand a per-item review band's reviewer fan-out from a resolved lens
+ * set: replace the flow's declared band reviewers with one generated, read-only
+ * `review-turn` per lens (instruction drawn from the closed
+ * `REVIEW_LENS_FRAGMENTS` vocabulary, output token `findings-<lens>`), and
+ * rewire the arbiter (the segment's `to` step) to `needs` exactly those
+ * generated reviewers and consume their findings tokens. Every other step
+ * (writer, micro-plan, the holistic postlude) is untouched. Generated
+ * `findings-<lens>` tokens are never the bare `findings`/`decision-summary`
+ * ledger tokens, so the band's ARBITRATION_TOKENS guard still holds. Pure.
+ */
+export function expandChecklistReviewBand(
+  steps: FlowStep[],
+  checklistSegment: { from: string; to: string } | null | undefined,
+  lenses: ReviewLens[],
+): FlowStep[] {
+  if (!checklistSegment) {
+    throw new FlowResolutionError(
+      "checklistReview is set but the flow declares no checklistSegment to expand.",
+    );
+  }
+  const arbiterId = checklistSegment.to;
+  const arbiter = steps.find((s) => s.id === arbiterId);
+  if (!arbiter || arbiter.kind !== "review-turn") {
+    throw new FlowResolutionError(
+      `checklistReview expansion expects the segment's "to" step ("${arbiterId}") to be a review-turn arbiter.`,
+    );
+  }
+  const arbiterNeeds = new Set(arbiter.needs ?? []);
+  const isBandReviewer = (s: FlowStep) =>
+    s.kind === "review-turn" && arbiterNeeds.has(s.id);
+  const reviewersToReplace = steps.filter(isBandReviewer);
+  if (reviewersToReplace.length === 0) {
+    throw new FlowResolutionError(
+      `checklistReview expansion found no band reviewer steps the arbiter "${arbiterId}" depends on.`,
+    );
+  }
+  const template = reviewersToReplace[0]!;
+  const oldFindings = new Set(reviewersToReplace.flatMap((r) => r.outputs ?? []));
+  const uniqueLenses = [...new Set(lenses)];
+  const generated: FlowStep[] = uniqueLenses.map((lens) => ({
+    ...template,
+    id: `review-${lens}`,
+    label: `Review: ${lensLabel(lens)}`,
+    outputs: [`findings-${lens}`],
+    instructions: `Your lens is ${REVIEW_LENS_FRAGMENTS[lens]} Review ONLY this checklist item's diff; cite file:line, no out-of-lens nits.`,
+  }));
+  const generatedFindings = uniqueLenses.map((lens) => `findings-${lens}`);
+  const newArbiter: FlowStep = {
+    ...arbiter,
+    needs: generated.map((g) => g.id),
+    inputs: [
+      ...(arbiter.inputs ?? []).filter((i) => !oldFindings.has(i)),
+      ...generatedFindings,
+    ],
+  };
+
+  const out: FlowStep[] = [];
+  let inserted = false;
+  for (const s of steps) {
+    if (isBandReviewer(s)) {
+      if (!inserted) {
+        out.push(...generated);
+        inserted = true;
+      }
+      continue; // drop the flow's declared reviewer; replaced by the generated set
+    }
+    out.push(s.id === arbiterId ? newArbiter : s);
+  }
+  return out;
 }
 
 const TURN_KINDS = new Set<FlowStepKind>([
@@ -122,6 +200,22 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
 
   const { crewId, crew } = getCrew(input.config, input.crewId);
 
+  // Per-item review band: when the flow declares `checklistReview`, generate its
+  // reviewer fan-out from the resolved lens set (crew > flow > default) so the
+  // configured lenses actually decide which reviewers run per item. Everything
+  // downstream (resolution map, parallel-group check, snapshot) sees the
+  // expanded steps; non-review-band flows are untouched.
+  const flowSteps: FlowStep[] = input.flow.checklistReview
+    ? expandChecklistReviewBand(
+        input.flow.steps,
+        input.flow.checklistSegment,
+        resolveChecklistReviewLenses({
+          flowLenses: input.flow.checklistReview.lenses,
+          crewLenses: crew.checklistReviewLenses,
+        }),
+      )
+    : input.flow.steps;
+
   // Seats the Flow declares. A Seat is just a contract - no provider here; the
   // Role (resolved per step) supplies the Profile/Provider.
   const seats: ResolvedFlowSeat[] = Object.entries(input.flow.seats).map(
@@ -141,10 +235,10 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
     }
   }
 
-  const knownStepIds = new Set(input.flow.steps.map((step) => step.id));
+  const knownStepIds = new Set(flowSteps.map((step) => step.id));
   const skippedOptionalSteps = new Set(input.skippedOptionalSteps ?? []);
   for (const stepId of skippedOptionalSteps) {
-    const step = input.flow.steps.find((candidate) => candidate.id === stepId);
+    const step = flowSteps.find((candidate) => candidate.id === stepId);
     if (!step) {
       throw new FlowResolutionError(`Cannot skip unknown Flow step "${stepId}".`);
     }
@@ -160,7 +254,7 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
     }
   }
 
-  const steps = input.flow.steps.flatMap((step) => {
+  const steps = flowSteps.flatMap((step) => {
     // Seatless steps (validation / approval-gate) resolve no role/profile.
     let resolvedRoleId: string | null = null;
     let resolvedRoleLabel: string | null = null;

@@ -60,7 +60,7 @@ process.stdin.on('end', () => {
     console.log('# Correctness review\\nLooked at the item diff. Same id F1 referenced.');
     return;
   }
-  if (id === 'review-risk') {
+  if (id === 'review-security-risk') {
     console.log('# Risk review\\nLooked at the item diff. Same id F1 referenced.');
     return;
   }

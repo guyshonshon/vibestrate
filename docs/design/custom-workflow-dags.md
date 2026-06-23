@@ -40,9 +40,13 @@ What shipped in the checklist-DAG slice (Phase D "Shape A", 0.7.28, Slice 5):
 What shipped in the checklist-DAG Shape B slice (0.25.0):
 
 - **`pickup-review` built-in flow**: after the implementer writes each item, a
-  configurable review panel (default lenses: `correctness` + `security-risk`,
-  persona-aimed via `checklistReview.lenses`) and an arbiter review that item's
-  diff, then a bounded per-item fix loop runs before the item commits.
+  configurable review panel and an arbiter review that item's diff, then a bounded
+  per-item fix loop runs before the item commits. Lens selection is wired into
+  resolution (0.25.1): `resolveFlow` expands the band's reviewer fan-out from the
+  resolved lens set (crew `checklistReviewLenses` > flow `checklistReview.lenses`
+  > default `correctness` + `security-risk`) via `expandChecklistReviewBand` -
+  one read-only `review-<lens>` per lens, with the arbiter rewired to need them.
+  Lenses are aimed at the active persona on top.
 - **Per-item arbitration ledger**: each item gets its own scoped ledger
   (`perItemVerdicts`), so findings and verdicts never collide across items. The
   run-global ledger collision that was the key blocker for Shape B is resolved by
@@ -58,12 +62,11 @@ What shipped in the checklist-DAG Shape B slice (0.25.0):
   the dashboard verdict panel plus `vibe assurance` / `vibe audit` per-item lanes.
   A run never silently passes.
 - **Deferred (keep docs honest)**: serial in-band session reuse; per-item
-  suggestion ingest; extra specialized per-item panels beyond correctness +
-  security-risk; orchestrator AUTO-SELECTION of `pickup-review` (selectable via
-  `--flow` / `defaultFlow` this slice); configurable per-flow/crew lens selection
-  (the default 2-lens panel ships; `checklistReview.lenses` is a forward schema
-  surface not yet wired into band reviewer selection - Shape B follow-up).
-  Phase C (write-parallelism) remains deferred.
+  suggestion ingest; storing `fixIterations` in the per-item ledger (it is on the
+  run-state item outcome but reads 0 via the verdict route); orchestrator
+  AUTO-SELECTION of `pickup-review` (selectable via `--flow` / `defaultFlow`).
+  Phase C (write-parallelism) remains deferred. (Configurable per-flow/crew lens
+  selection - previously deferred - is now wired, 0.25.1.)
 
 What shipped in the per-step retries slice (Slice 5, 0.7.10):
 

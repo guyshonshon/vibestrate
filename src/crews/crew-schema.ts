@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { crewRolesConfigSchema } from "../roles/role-schema.js";
+import { reviewLensSchema } from "../orchestrator/review-lenses.js";
 
 /**
  * A **Crew** is your local team of AI Roles. Each Crew holds a roster of Roles;
@@ -16,6 +17,14 @@ export const crewConfigSchema = z
      * and a "thorough" crew more, without rewriting global flow config.
      */
     maxReviewLoops: z.number().int().min(0).max(10).optional(),
+    /**
+     * Optional per-crew override of the per-item review band's lenses (Shape B).
+     * When set, a checklist-review run using THIS crew reviews each item under
+     * these lenses instead of the flow's `checklistReview.lenses` (closed vocab;
+     * precedence crew > flow > default). Lets a "security" crew aim every
+     * per-item panel at auth/secrets/injection without editing the flow.
+     */
+    checklistReviewLenses: z.array(reviewLensSchema).min(1).max(10).optional(),
     roles: crewRolesConfigSchema,
   })
   .strict();
