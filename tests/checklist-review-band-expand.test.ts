@@ -73,6 +73,18 @@ describe("expandChecklistReviewBand", () => {
     expect(reviewers.map((s) => s.id)).toEqual(["review-correctness"]);
   });
 
+  it("refuses more lenses than the parallel fan-out cap", () => {
+    expect(() =>
+      expandChecklistReviewBand(pickupReviewFlow.steps, seg, [
+        "correctness",
+        "tests",
+        "security-risk",
+        "authz",
+        "secrets",
+      ]),
+    ).toThrow(/at most|fan-out/i);
+  });
+
   it("does NOT emit a bare arbitration token in the band (findings-<lens> never equals 'findings')", () => {
     const steps = expandChecklistReviewBand(pickupReviewFlow.steps, seg, [
       "correctness",

@@ -16,6 +16,7 @@ import {
 } from "../../project/project-params.js";
 import {
   isGraphFlow,
+  MAX_PARALLEL_FANOUT,
   parallelGroupsOf,
   resolvedFlowSnapshotSchema,
   type FlowContextPolicy,
@@ -95,6 +96,16 @@ export function expandChecklistReviewBand(
   const template = reviewersToReplace[0]!;
   const oldFindings = new Set(reviewersToReplace.flatMap((r) => r.outputs ?? []));
   const uniqueLenses = [...new Set(lenses)];
+  // The generated reviewers form one parallel group (all `needs` the writer), so
+  // the lens count is the band's fan-out width. A declared flow is capped at
+  // MAX_PARALLEL_FANOUT at parse time; expansion runs AFTER parse, so enforce the
+  // same ceiling here - refuse loudly rather than silently exceed it (the runtime
+  // would wave-slice anyway, but the contract must hold and telemetry stay honest).
+  if (uniqueLenses.length > MAX_PARALLEL_FANOUT) {
+    throw new FlowResolutionError(
+      `A per-item review panel may use at most ${MAX_PARALLEL_FANOUT} lenses (the parallel fan-out cap); got ${uniqueLenses.length}: ${uniqueLenses.join(", ")}.`,
+    );
+  }
   const generated: FlowStep[] = uniqueLenses.map((lens) => ({
     ...template,
     id: `review-${lens}`,
@@ -103,9 +114,15 @@ export function expandChecklistReviewBand(
     instructions: `Your lens is ${REVIEW_LENS_FRAGMENTS[lens]} Review ONLY this checklist item's diff; cite file:line, no out-of-lens nits.`,
   }));
   const generatedFindings = uniqueLenses.map((lens) => `findings-${lens}`);
+  const replacedIds = new Set(reviewersToReplace.map((r) => r.id));
   const newArbiter: FlowStep = {
     ...arbiter,
-    needs: generated.map((g) => g.id),
+    // Drop only the replaced reviewers from `needs` (mirror the inputs filter) -
+    // any non-reviewer band dependency a future flow gives the arbiter survives.
+    needs: [
+      ...(arbiter.needs ?? []).filter((n) => !replacedIds.has(n)),
+      ...generated.map((g) => g.id),
+    ],
     inputs: [
       ...(arbiter.inputs ?? []).filter((i) => !oldFindings.has(i)),
       ...generatedFindings,

@@ -334,17 +334,15 @@ const flowDefinitionBaseSchema = z
     /** Typed parameters the caller fills at run start (T11), keyed by name. */
     params: z.record(flowParamNameSchema, flowParamSchema).optional(),
     /**
-     * Checklist-review lens configuration. When set, the resolver's
-     * `resolveChecklistReviewLenses` uses this flow-level preference as a
-     * fallback between the default and a crew-level override. min(1) prevents
-     * a silently-empty lens set from zeroing out review coverage.
-     *
-     * Forward surface - not yet wired into per-item band reviewer selection
-     * (Shape B follow-up). The default 2-lens panel (correctness +
-     * security-risk) ships; this field is a schema-level forward surface only.
+     * Checklist-review lens configuration. When set, `resolveFlow` expands the
+     * per-item band's reviewer fan-out from these lenses (one read-only reviewer
+     * per lens), via `resolveChecklistReviewLenses` (precedence crew > flow >
+     * default `[correctness, security-risk]`). min(1) prevents a silently-empty
+     * lens set; max is the parallel fan-out cap (each lens is one concurrent
+     * band reviewer, so the panel can never exceed MAX_PARALLEL_FANOUT).
      */
     checklistReview: z
-      .object({ lenses: z.array(reviewLensSchema).min(1).max(5) })
+      .object({ lenses: z.array(reviewLensSchema).min(1).max(MAX_PARALLEL_FANOUT) })
       .strict()
       .optional(),
   })
