@@ -85,7 +85,12 @@ export function hostHookSettingsPaths(projectRoot: string): string[] {
 
 function displayPath(p: string): string {
   const home = os.homedir();
-  return p.startsWith(home + path.sep) ? "~" + p.slice(home.length) : p;
+  // `~` is a POSIX-flavored abbreviation; keep the rest of the home-relative
+  // display POSIX too (forward slashes) so it reads "~/.claude/settings.json"
+  // consistently on Windows, not "~\.claude\settings.json".
+  return p.startsWith(home + path.sep)
+    ? "~" + p.slice(home.length).replace(/\\/g, "/")
+    : p;
 }
 
 /** Read the candidate settings files and return the hook sources found.
