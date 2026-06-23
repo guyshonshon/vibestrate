@@ -137,7 +137,14 @@ describe("container backend fail-closed (git only, no daemon needed)", () => {
 });
 
 let dockerUp = false;
-describe("container backend smoke (real Docker)", () => {
+
+// The real-container smoke needs a working Linux-container Docker daemon and is
+// environment-fragile (image pull + identical-path mount on the runner). It is
+// OPT-IN via VIBESTRATE_DOCKER_SMOKE=1 so normal CI stays deterministic, mirroring
+// the VIBESTRATE_HUB_LIVE live-contract gate. Run it locally with the env var set.
+const dockerSmoke = process.env.VIBESTRATE_DOCKER_SMOKE === "1";
+
+describe.skipIf(!dockerSmoke)("container backend smoke (real Docker)", () => {
   const created: string[] = [];
   beforeAll(async () => {
     dockerUp = await dockerAvailable();
