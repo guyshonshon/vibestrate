@@ -23,22 +23,22 @@ describe("killProcessTree", () => {
     expect(kill).toHaveBeenCalledWith(-50, "SIGKILL");
   });
 
-  it("runs taskkill /T /F on Windows for SIGKILL and never process.kill", () => {
+  it("force-tree-kills via taskkill on Windows for SIGKILL and never process.kill", () => {
     const kill = vi.fn();
     const runTaskkill = vi.fn();
     killProcessTree(4321, "SIGKILL", { platform: "win32", kill, runTaskkill });
-    expect(runTaskkill).toHaveBeenCalledWith(4321, true);
+    expect(runTaskkill).toHaveBeenCalledWith(4321);
     expect(kill).not.toHaveBeenCalled();
   });
 
-  it("runs taskkill /T without /F on Windows for SIGTERM", () => {
+  it("force-tree-kills on Windows for SIGTERM too (graceful taskkill is unreliable on console trees)", () => {
     const runTaskkill = vi.fn();
     killProcessTree(99, "SIGTERM", {
       platform: "win32",
       kill: vi.fn(),
       runTaskkill,
     });
-    expect(runTaskkill).toHaveBeenCalledWith(99, false);
+    expect(runTaskkill).toHaveBeenCalledWith(99);
   });
 });
 

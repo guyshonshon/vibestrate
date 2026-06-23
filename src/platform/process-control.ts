@@ -24,8 +24,8 @@ export interface ProcessControlDeps {
   platform?: Platform;
   /** Defaults to process.kill. Injected in tests. */
   kill?: (pid: number, signal: NodeJS.Signals) => void;
-  /** Defaults to spawning `taskkill`. Injected in tests. */
-  runTaskkill?: (pid: number, force: boolean) => void;
+  /** Defaults to spawning `taskkill /T /F`. Injected in tests. */
+  runTaskkill?: (pid: number) => void;
 }
 
 /**
@@ -35,10 +35,13 @@ export interface ProcessControlDeps {
  * POSIX: signal the process *group* (negative pid) - identical to the prior
  *   inline `process.kill(-pid, signal)`. The child MUST have been spawned with
  *   detachedSpawnOptions() so a group exists.
- * Windows: `taskkill /PID <pid> /T` (with `/F` to force on SIGKILL). There are
- *   no process groups, so taskkill /T walks the child tree. This REPLACES the
- *   prior Windows fallback of `child.kill(signal)` (direct child only), which
- *   orphaned provider subagents.
+ * Windows: `taskkill /PID <pid> /T /F` - no process groups, so /T walks the
+ *   child tree, and we ALWAYS force: `/T` without `/F` only posts WM_CLOSE,
+ *   which console processes (node, the provider CLIs) ignore, leaving a
+ *   runaway/timed-out turn alive until the caller's SIGKILL escalation fires
+ *   seconds later. The `signal` distinction is therefore POSIX-only. This
+ *   REPLACES the prior Windows fallback of `child.kill(signal)` (direct child
+ *   only), which orphaned provider subagents.
  */
 export function killProcessTree(
   pid: number,
@@ -49,12 +52,13 @@ export function killProcessTree(
   if (isWindows(platform)) {
     const runTaskkill =
       deps.runTaskkill ??
-      ((p: number, force: boolean): void => {
-        const args = ["/PID", String(p), "/T"];
-        if (force) args.push("/F");
-        spawn("taskkill", args, { stdio: "ignore", windowsHide: true });
+      ((p: number): void => {
+        spawn("taskkill", ["/PID", String(p), "/T", "/F"], {
+          stdio: "ignore",
+          windowsHide: true,
+        });
       });
-    runTaskkill(pid, signal === "SIGKILL");
+    runTaskkill(pid);
     return;
   }
   const kill =
