@@ -763,7 +763,7 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
           : flow.steps;
       const groups = new Map<string, FlowStep[]>();
       for (const step of groupSteps) {
-        const key = [...step.needs].sort().join(" ");
+        const key = [...step.needs].sort().join("\0");
         const bucket = groups.get(key);
         if (bucket) bucket.push(step);
         else groups.set(key, [step]);
@@ -818,7 +818,7 @@ export function parallelGroupsOf<T extends { needs?: readonly string[] }>(
 ): T[][] {
   const groups = new Map<string, T[]>();
   for (const step of steps) {
-    const key = [...(step.needs ?? [])].sort().join(" ");
+    const key = [...(step.needs ?? [])].sort().join("\0");
     const bucket = groups.get(key);
     if (bucket) bucket.push(step);
     else groups.set(key, [step]);
