@@ -298,7 +298,10 @@ describe("integration: bundle smartApply", () => {
     expect(persisted.finalStatus).toBe("smart_applied");
   });
 
-  it("stops at first failing validation; prior step stays applied", async () => {
+  // POSIX-only: the validate command is a bash `validate.sh` (shebang + chmod),
+  // which does not run on native Windows. The smartApply stop/revert logic under
+  // test is platform-agnostic and is covered on the Ubuntu CI leg.
+  it.skipIf(process.platform === "win32")("stops at first failing validation; prior step stays applied", async () => {
     // Use a script that passes the first time, fails the second.
     const t = await tempProjectWithWorktree({ validateCommands: [] });
     const flagFile = path.join(t.project, "validate-counter");
@@ -358,7 +361,8 @@ describe("integration: bundle smartApply", () => {
     ).toContain("touched-by-B");
   });
 
-  it("autoRevertFailing reverts the failing step only; earlier step stays applied", async () => {
+  // POSIX-only: bash `validate.sh` harness (see note above); logic covered on Ubuntu.
+  it.skipIf(process.platform === "win32")("autoRevertFailing reverts the failing step only; earlier step stays applied", async () => {
     const t = await tempProjectWithWorktree({ validateCommands: [] });
     const flagFile = path.join(t.project, "validate-counter2");
     const validateScript = path.join(t.project, "validate.sh");

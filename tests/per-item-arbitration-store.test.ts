@@ -14,8 +14,9 @@ describe("per-item arbitration path + store", () => {
   it("path is item-scoped and 1-based", () => {
     const p0 = runChecklistItemArbitrationPath("/proj", "run1", 0);
     const p1 = runChecklistItemArbitrationPath("/proj", "run1", 1);
-    expect(p0).toMatch(/flows\/checklist\/item-1-arbitration\.json$/);
-    expect(p1).toMatch(/flows\/checklist\/item-2-arbitration\.json$/);
+    // Absolute fs path - native separators on Windows, so tolerate both.
+    expect(p0).toMatch(/flows[\\/]checklist[\\/]item-1-arbitration\.json$/);
+    expect(p1).toMatch(/flows[\\/]checklist[\\/]item-2-arbitration\.json$/);
     expect(p0).not.toEqual(p1);
   });
 
