@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterEach } from "vitest";
 import path from "node:path";
+import os from "node:os";
 import fs from "node:fs/promises";
 import { execa } from "execa";
 import {
@@ -81,14 +82,14 @@ describe("container arg + env builders (pure, daemon-free)", () => {
 // A temp git project so prepareWorktree (run on the host) succeeds. Under /tmp so
 // Docker Desktop can bind-mount the worktree (its default file sharing covers it).
 async function tempGitProject(): Promise<{ projectRoot: string; worktreeDir: string }> {
-  const projectRoot = await fs.mkdtemp("/tmp/vibestrate-p3-proj-");
+  const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-p3-proj-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: projectRoot });
   await execa("git", ["config", "user.email", "x@x"], { cwd: projectRoot });
   await execa("git", ["config", "user.name", "x"], { cwd: projectRoot });
   await fs.writeFile(path.join(projectRoot, "README.md"), "p3\n");
   await execa("git", ["add", "."], { cwd: projectRoot });
   await execa("git", ["commit", "-q", "-m", "init"], { cwd: projectRoot });
-  const worktreeDir = await fs.mkdtemp("/tmp/vibestrate-p3-wt-");
+  const worktreeDir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-p3-wt-"));
   return { projectRoot, worktreeDir };
 }
 
