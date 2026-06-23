@@ -37,6 +37,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Several tests make real git commits (e.g. git-init). GitHub runners have
+      # no default git identity, so configure one. Identical syntax on the bash
+      # (Ubuntu) and pwsh (Windows) default shells.
+      - name: Configure git identity (tests make real commits)
+        run: |
+          git config --global user.email "ci@vibestrate.local"
+          git config --global user.name "Vibestrate CI"
+
       - name: Typecheck
         run: pnpm typecheck
 
