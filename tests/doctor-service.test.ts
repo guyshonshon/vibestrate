@@ -120,7 +120,10 @@ describe("doctor service", () => {
   it("warns when host Claude Code hooks will leak into runs (T4)", async () => {
     const home = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-home-"));
     const origHome = process.env.HOME;
-    process.env.HOME = home; // os.homedir() honors $HOME on POSIX
+    const origUserProfile = process.env.USERPROFILE;
+    // os.homedir() reads $HOME on POSIX, %USERPROFILE% on Windows; set both.
+    process.env.HOME = home;
+    process.env.USERPROFILE = home;
     try {
       await fs.mkdir(path.join(home, ".claude"), { recursive: true });
       await fs.writeFile(
@@ -150,6 +153,8 @@ describe("doctor service", () => {
     } finally {
       if (origHome === undefined) delete process.env.HOME;
       else process.env.HOME = origHome;
+      if (origUserProfile === undefined) delete process.env.USERPROFILE;
+      else process.env.USERPROFILE = origUserProfile;
       await fs.rm(home, { recursive: true, force: true });
     }
   });
@@ -157,7 +162,9 @@ describe("doctor service", () => {
   it("no host-hooks finding when there are no host hooks (T4)", async () => {
     const home = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-home-"));
     const origHome = process.env.HOME;
+    const origUserProfile = process.env.USERPROFILE;
     process.env.HOME = home;
+    process.env.USERPROFILE = home;
     try {
       await fs.writeFile(path.join(projectRoot, "package.json"), '{"name":"demo"}');
       const claudeAvailable: ProviderDetectionRunner = async (command) =>
@@ -173,6 +180,8 @@ describe("doctor service", () => {
     } finally {
       if (origHome === undefined) delete process.env.HOME;
       else process.env.HOME = origHome;
+      if (origUserProfile === undefined) delete process.env.USERPROFILE;
+      else process.env.USERPROFILE = origUserProfile;
       await fs.rm(home, { recursive: true, force: true });
     }
   });

@@ -52,16 +52,23 @@ describe("detectHostHooks (filesystem)", () => {
   let home: string;
   let proj: string;
   let origHome: string | undefined;
+  let origUserProfile: string | undefined;
 
   beforeEach(async () => {
     home = await fs.mkdtemp(path.join(os.tmpdir(), "hh-home-"));
     proj = await fs.mkdtemp(path.join(os.tmpdir(), "hh-proj-"));
     origHome = process.env.HOME;
-    process.env.HOME = home; // os.homedir() honors $HOME on POSIX
+    origUserProfile = process.env.USERPROFILE;
+    // os.homedir() reads $HOME on POSIX and %USERPROFILE% on Windows; set both
+    // so the fake home is honored on either platform.
+    process.env.HOME = home;
+    process.env.USERPROFILE = home;
   });
   afterEach(async () => {
     if (origHome === undefined) delete process.env.HOME;
     else process.env.HOME = origHome;
+    if (origUserProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = origUserProfile;
     await fs.rm(home, { recursive: true, force: true });
     await fs.rm(proj, { recursive: true, force: true });
   });
