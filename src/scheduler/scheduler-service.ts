@@ -3,6 +3,10 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
+import {
+  killProcessTree,
+  detachedSpawnOptions,
+} from "../platform/process-control.js";
 import { RunQueue } from "./run-queue.js";
 import { ConflictsStore, detectConflicts } from "./conflict-detector.js";
 import type { SchedulerConfig } from "../project/config-schema.js";
@@ -61,8 +65,7 @@ function terminateChildProcess(child: ChildProcess): void {
   const pid = child.pid;
   if (!pid) return;
   try {
-    if (process.platform !== "win32") process.kill(-pid, "SIGTERM");
-    else child.kill("SIGTERM");
+    killProcessTree(pid, "SIGTERM");
   } catch {
     try {
       child.kill("SIGTERM");
@@ -72,8 +75,7 @@ function terminateChildProcess(child: ChildProcess): void {
   }
   const timer = setTimeout(() => {
     try {
-      if (process.platform !== "win32") process.kill(-pid, "SIGKILL");
-      else child.kill("SIGKILL");
+      killProcessTree(pid, "SIGKILL");
     } catch {
       try {
         child.kill("SIGKILL");
@@ -106,13 +108,13 @@ function defaultRunTask(
             cwd: projectRoot,
             stdio: "inherit",
             env: { ...process.env, VIBESTRATE_SCHEDULED: "1" },
-            detached: process.platform !== "win32",
+            ...detachedSpawnOptions(),
           })
         : spawn("vibe", args, {
             cwd: projectRoot,
             stdio: "inherit",
             env: { ...process.env, VIBESTRATE_SCHEDULED: "1" },
-            detached: process.platform !== "win32",
+            ...detachedSpawnOptions(),
           });
       const abort = (): void => terminateChildProcess(child);
       if (context.signal.aborted) abort();
