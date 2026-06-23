@@ -29,6 +29,33 @@ carve-out is cleanly bounded and documented. (Considered and rejected: "Slice A
 cockpit only" - too little value; "Slice C everything" - adds only the terminal
 at the worst effort-to-value ratio.)
 
+## Execution model on Windows: native by default, Docker is the isolation option
+
+Decided 2026-06-23 (Docker-only execution on Windows was considered and
+rejected). On Windows, agent turns run as **native host processes** exactly like
+macOS/Linux - the providers we target (Claude Code, Codex, Gemini) all run
+natively on Windows, so there is no reason to force execution into a container.
+Docker stays the **opt-in isolation backend** (`execution.backend: docker`), the
+same role it plays on macOS/Linux - not a Windows-only requirement.
+
+Why not Docker-only on Windows: containerizing the provider turn does not move
+the POSIX-coupled work off the host. The orchestrator, scheduler daemon, signal
+handling, git, worktree prep, diff-gate, and path-guard all run on the Windows
+host regardless; only the turn runs in the container, and the turn (execa +
+natively-Windows providers) is already the most portable piece. Docker-only
+would also make Docker a hard dependency and regress CI honesty - a
+Windows-host -> Linux-container end-to-end smoke is unreliable on GitHub
+`windows-latest` runners (they run Windows containers).
+
+Known limitation, deferred (rides with T14 Docker hardening, not this program):
+the Docker backend mounts the worktree at an **identical host path**
+(`worktreePath:worktreePath`, `src/execution/docker-backend.ts:129`) so the
+diff-gate/path-guard/attribution resolve. A Windows host path (`C:\...`) is not
+a valid Linux container path, so Docker *isolation on Windows* needs a
+host<->container path-mapping redesign of the path-guard/diff-gate before it
+works. Native execution is the shipped Windows path; Docker isolation on Windows
+is future work.
+
 ## Shape: audit-and-port, CI-first
 
 This is not greenfield. It is one new seam plus targeted ports across a known,
