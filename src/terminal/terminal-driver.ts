@@ -3,6 +3,7 @@ import type {
   TerminalProcess,
   DriverSpawnOpts,
 } from "./terminal-types.js";
+import { isWindows, type Platform } from "../platform/platform.js";
 
 /**
  * Factory for the production driver. Dynamically imports `node-pty` so a
@@ -12,8 +13,20 @@ import type {
  */
 let cached: TerminalDriver | null = null;
 
-export async function loadNodePtyDriver(): Promise<TerminalDriver> {
+export async function loadNodePtyDriver(
+  platform: Platform = process.platform,
+): Promise<TerminalDriver> {
   if (cached) return cached;
+  // Carve-out (TODO E1): the integrated terminal needs a POSIX shell (pickShell
+  // returns /bin/zsh|bash|sh) and ConPTY wiring we don't support on native
+  // Windows yet. Refuse with a clear reason so availability()/create() surface
+  // "use WSL" instead of spawning a nonexistent /bin/sh. Revisit as a later slice.
+  if (isWindows(platform)) {
+    cached = unavailable(
+      "The integrated terminal is not available on native Windows; use WSL for an in-app shell.",
+    );
+    return cached;
+  }
   try {
     const mod = await import("node-pty");
     const spawn: (
