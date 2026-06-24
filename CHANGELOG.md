@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.26.3
+
+- **`vibe assurance` and `vibe audit` accept a run's name, not just its id.** Both
+  commands resolve their argument by run id first, then fall back to the run's
+  display name (the one you set with `vibe rename`), so you can paste the readable
+  name instead of hunting for the id. An exact name wins over a case-insensitive
+  match, and an ambiguous name is refused with the matching ids rather than
+  guessing one.
+
 ## 0.26.2
 
 - **Configured custom CLI providers now show on the Providers dashboard.** If you

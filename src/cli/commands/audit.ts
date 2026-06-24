@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
-import { pathExists } from "../../utils/fs.js";
 import { runStatePath } from "../../utils/paths.js";
+import { resolveRunRef } from "../run-ref.js";
 import {
   buildRunAudit,
   type AuditAttemptOutcome,
@@ -136,14 +136,16 @@ export function buildAuditCommand(): Command {
     .description(
       "Show a run's audit tree (flow steps, per-step attempts incl. retries/fallbacks, control events).",
     )
-    .argument("<runId>", "the run id (see `vibe status`)")
+    .argument("<run>", "the run id or display name (see `vibe status`)")
     .option("--json", "emit JSON")
-    .action(async (runId: string, opts: { json?: boolean }) => {
+    .action(async (runRef: string, opts: { json?: boolean }) => {
       const { projectRoot } = await detectProject(process.cwd());
-      if (!(await pathExists(runStatePath(projectRoot, runId)))) {
-        console.error(`${symbol.fail()} Run ${runId} not found.`);
+      const resolved = await resolveRunRef(projectRoot, runRef);
+      if (!resolved.ok) {
+        console.error(`${symbol.fail()} ${resolved.reason}`);
         process.exit(1);
       }
+      const runId = resolved.runId;
       const audit = await buildRunAudit(projectRoot, runId);
 
       // Per-item verdicts (Shape B / pickup-review runs only).

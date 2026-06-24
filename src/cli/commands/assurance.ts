@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
-import { pathExists } from "../../utils/fs.js";
 import { runStatePath } from "../../utils/paths.js";
+import { resolveRunRef } from "../run-ref.js";
 import {
   readRunAssurance,
   buildAndWriteRunAssurance,
@@ -31,14 +31,16 @@ export function buildAssuranceCommand(): Command {
     .description(
       "Show a run's Run Assurance verdict (evidence-backed; from the Action Broker log + review/verification).",
     )
-    .argument("<runId>", "the run id (see `vibe status`)")
+    .argument("<run>", "the run id or display name (see `vibe status`)")
     .option("--json", "emit JSON")
-    .action(async (runId: string, opts: { json?: boolean }) => {
+    .action(async (runRef: string, opts: { json?: boolean }) => {
       const { projectRoot } = await detectProject(process.cwd());
-      if (!(await pathExists(runStatePath(projectRoot, runId)))) {
-        console.error(`${symbol.fail()} Run ${runId} not found.`);
+      const resolved = await resolveRunRef(projectRoot, runRef);
+      if (!resolved.ok) {
+        console.error(`${symbol.fail()} ${resolved.reason}`);
         process.exit(1);
       }
+      const runId = resolved.runId;
       const assurance =
         (await readRunAssurance(projectRoot, runId)) ??
         (await buildAndWriteRunAssurance(projectRoot, runId));
