@@ -196,7 +196,7 @@ function RunCard({
     <article
       onClick={() => onOpen(run.runId)}
       className={cn(
-        "group relative rounded-2xl border surface-ink-100-55 backdrop-blur-xl card-hover cursor-pointer overflow-hidden fade-up",
+        "group relative border surface-ink-100-55 backdrop-blur-xl card-hover cursor-pointer overflow-hidden fade-up",
         needsApproval
           ? "border-amber-400/30 ring-1 ring-amber-400/15"
           : "border-white/[0.08]",

@@ -35,7 +35,7 @@ export function ApprovalsCard({
         </span>
       </SectionEyebrow>
       {top ? (
-        <div className="rounded-xl border border-amber-400/25 bg-amber-500/[0.05] p-3.5 space-y-3">
+        <div className="border border-amber-400/25 bg-amber-500/[0.05] p-3.5 space-y-3">
           <div className="flex items-start gap-2">
             <div className="w-7 h-7 rounded-md bg-amber-400/15 ring-1 ring-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
               <Scale className="h-3.5 w-3.5" strokeWidth={1.7} />

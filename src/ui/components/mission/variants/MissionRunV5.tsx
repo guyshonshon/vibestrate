@@ -231,7 +231,7 @@ export function MissionRunV5() {
   return (
     <div
       data-scene={runTheme === "paper" ? "paper" : "dark"}
-      className="fade-up overflow-hidden rounded-2xl border"
+      className="fade-up overflow-hidden border"
       style={{
         background: "var(--s-aurora)",
         borderColor: "var(--s-line)",
@@ -276,12 +276,12 @@ export function MissionRunV5() {
                 }
               }}
               placeholder="Add structured logging to the settings save handler"
-              className="s-glass-2 s-focusable min-h-[112px] w-full resize-y rounded-xl border border-[color:var(--s-line)] px-4 py-3 text-[15px] leading-[1.55] placeholder:text-[color:var(--s-ink-faint)]"
+              className="s-glass-2 s-focusable min-h-[112px] w-full resize-y border border-[color:var(--s-line)] px-4 py-3 text-[15px] leading-[1.55] placeholder:text-[color:var(--s-ink-faint)]"
               style={{ color: "var(--s-ink)" }}
             />
             {suggestions.length > 0 ? (
               <div
-                className="s-glass-2 mt-2.5 overflow-hidden rounded-xl border"
+                className="s-glass-2 mt-2.5 overflow-hidden border"
                 style={{ borderColor: "var(--s-line)" }}
               >
                 <div
@@ -461,7 +461,7 @@ export function MissionRunV5() {
             </PaneTitle>
             {flows.length === 0 ? (
               <div
-                className="rounded-xl border px-5 py-4 text-[14px]"
+                className="border px-5 py-4 text-[14px]"
                 style={{
                   background: "var(--s-slab-2)",
                   borderColor: "var(--s-line)",
@@ -535,7 +535,7 @@ export function MissionRunV5() {
                 Inputs
               </PaneTitle>
               <div
-                className="s-glass-2 grid grid-cols-1 gap-x-7 gap-y-4 rounded-xl border p-4 sm:grid-cols-2"
+                className="s-glass-2 grid grid-cols-1 gap-x-7 gap-y-4 border p-4 sm:grid-cols-2"
                 style={{ borderColor: "var(--s-line)" }}
               >
                 {Object.entries(flowParams).map(([name, def]) => {
@@ -666,7 +666,7 @@ export function MissionRunV5() {
         <aside className="lg:col-span-4 lg:sticky lg:top-6">
           <PaneTitle>Run summary</PaneTitle>
           <div
-            className="s-glass overflow-hidden rounded-2xl border pb-2"
+            className="s-glass overflow-hidden border pb-2"
             style={{
               borderColor: "var(--s-line)",
               color: "var(--s-slab-ink)",
@@ -777,7 +777,7 @@ export function MissionRunV5() {
                 type="button"
                 disabled={!canStart}
                 onClick={() => void start()}
-                className="flex w-full items-center justify-center gap-2.5 rounded-xl px-5 py-3.5 text-[15px] font-medium transition disabled:cursor-not-allowed"
+                className="flex w-full items-center justify-center gap-2.5 px-5 py-3.5 text-[15px] font-medium transition disabled:cursor-not-allowed"
                 style={
                   canStart
                     ? {
@@ -801,7 +801,7 @@ export function MissionRunV5() {
                 type="button"
                 onClick={() => void copyCmd()}
                 title={`Copy - run this from the terminal or \`vibe shell\`:\n${runCmd}`}
-                className="s-glass-2 group flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left"
+                className="s-glass-2 group flex w-full items-center gap-2 px-3 py-2.5 text-left"
               >
                 <Terminal
                   className="h-3.5 w-3.5 shrink-0"
@@ -968,7 +968,7 @@ function SelectCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-col gap-1.5 overflow-hidden rounded-xl border px-3.5 py-2.5 text-left s-interact",
+        "flex flex-col gap-1.5 overflow-hidden border px-3.5 py-2.5 text-left s-interact",
         !on && "s-glass",
       )}
       style={
@@ -1092,7 +1092,7 @@ function SummaryRow({
 }) {
   const chip = accent === "ok" || accent === "soft";
   return (
-    <div className="s-glass-2 flex items-center justify-between gap-3 rounded-xl px-3.5 py-2">
+    <div className="s-glass-2 flex items-center justify-between gap-3 px-3.5 py-2">
       <span
         className="flex items-center gap-2.5 text-[13px]"
         style={{ color: "var(--s-ink-dim)" }}
