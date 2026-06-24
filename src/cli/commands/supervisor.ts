@@ -1,49 +1,26 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
 import { loadConfig } from "../../project/config-loader.js";
-import { BUILTIN_PERSONAS } from "../../orchestrator/personas.js";
+import { buildPersonaCatalog } from "../../orchestrator/personas.js";
+import type { ProjectConfig } from "../../project/config-schema.js";
 import { color, symbol } from "../ui/format.js";
 
-// `vibe supervisor list` - the CLI mirror of the dashboard's Supervisor selector
+// `vibe supervisor list` - the CLI mirror of the dashboard's Supervisors viewer
 // (orchestrator-personas.md). Read-only: lists the resolved persona catalog
-// (built-ins + project) and marks the active default.
+// (built-ins + project) and marks the active default. Shares buildPersonaCatalog
+// with the dashboard's GET /api/supervisors so the two can't drift.
 export async function runSupervisorList(opts: { json?: boolean }): Promise<number> {
   const cwd = process.cwd();
   const detected = await detectProject(cwd).catch(() => null);
-  let defaultPersona = "staff-engineer";
-  const merged: Record<
-    string,
-    { label: string; description?: string; reviewLenses: string[]; prefersPosture: string | null; specUpPosture: string | null; builtin: boolean }
-  > = {};
-  for (const [id, p] of Object.entries(BUILTIN_PERSONAS)) {
-    merged[id] = {
-      label: p.label,
-      description: p.description,
-      reviewLenses: p.reviewLenses,
-      prefersPosture: p.prefersPosture ?? null,
-      specUpPosture: p.specUpPosture ?? null,
-      builtin: true,
-    };
-  }
+  let config: ProjectConfig | null = null;
   if (detected) {
     try {
-      const loaded = await loadConfig(detected.projectRoot);
-      defaultPersona = loaded.config.defaultPersona;
-      for (const [id, p] of Object.entries(loaded.config.personas ?? {})) {
-        merged[id] = {
-          label: p.label,
-          description: p.description,
-          reviewLenses: p.reviewLenses ?? [],
-          prefersPosture: p.prefersPosture ?? null,
-          specUpPosture: p.specUpPosture ?? null,
-          builtin: false,
-        };
-      }
+      config = (await loadConfig(detected.projectRoot)).config;
     } catch {
       // fall back to built-ins + the staff-engineer default
     }
   }
-  const personas = Object.entries(merged).map(([id, p]) => ({ id, ...p }));
+  const { defaultPersona, personas } = buildPersonaCatalog(config);
 
   if (opts.json) {
     console.log(JSON.stringify({ defaultPersona, personas }, null, 2));

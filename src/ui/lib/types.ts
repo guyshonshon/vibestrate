@@ -1788,6 +1788,8 @@ export type PersonaSummary = {
   label: string;
   description?: string;
   reviewLenses: string[];
+  /** Flows this persona favors for risky work (upgrade-only bias). */
+  prefersFlows?: string[];
   /** Review seats run this Profile when set (the supervisor's cost lever). */
   reviewerProfile?: string | null;
   /** Advisory posture this persona suggests for risky tasks (null = none). */

@@ -330,6 +330,20 @@ export function hintForRoute(route: Route): CliHint {
           "If a test says a provider isn't logged in, run its login command in your own terminal (e.g. `codex login`, `gemini`, `goose configure`).",
         ],
       };
+    case "supervisors":
+      return {
+        title: "Supervisors",
+        blurb:
+          "The orchestrator's judgment postures (personas) - what each aims the reviewers at, the flow it favors for risky work, and which is the default. Same catalog as the CLI.",
+        commands: [
+          { cmd: "vibe supervisor list", note: "the persona catalog (built-ins + project)" },
+          { cmd: "vibe supervisor list --json", note: "structured, scriptable" },
+          { cmd: 'vibe run "task" --supervisor <id>', note: "run under a specific supervisor" },
+        ],
+        tips: [
+          "Personas are authored in .vibestrate/project.yml (personas: + defaultPersona); a project persona can't smuggle free-form text into a reviewer - review lenses are a closed vocabulary.",
+        ],
+      };
     case "config":
       return {
         title: "Config",

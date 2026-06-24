@@ -24,6 +24,7 @@ import { CrewPage } from "./routes/CrewPage.js";
 import { ProfilesPage } from "./routes/ProfilesPage.js";
 import { ConsultPage } from "./routes/ConsultPage.js";
 import { ProvidersPage } from "./routes/ProvidersPage.js";
+import { SupervisorsPage } from "./routes/SupervisorsPage.js";
 import { ConfigPage } from "./routes/ConfigPage.js";
 import { RunSwitcher } from "../components/runs/RunSwitcher.js";
 import {
@@ -283,6 +284,8 @@ export function App() {
                             ? "profiles"
                             : route.kind === "providers"
                               ? "providers"
+                              : route.kind === "supervisors"
+                                ? "supervisors"
                               : route.kind === "crew"
                                 ? "crew"
                               : route.kind === "config"
@@ -299,6 +302,7 @@ export function App() {
       onShowMetrics={() => navigate({ kind: "metrics" })}
       onShowCrew={() => navigate({ kind: "crew", crewId: null })}
       onShowProviders={() => navigate({ kind: "providers" })}
+      onShowSupervisors={() => navigate({ kind: "supervisors" })}
       onShowProfiles={() => navigate({ kind: "profiles" })}
       onShowRunsList={() => navigate({ kind: "runs" })}
       onShowBoard={() => navigate({ kind: "board" })}
@@ -417,6 +421,8 @@ export function App() {
         <ProfilesPage />
       ) : route.kind === "providers" ? (
         <ProvidersPage />
+      ) : route.kind === "supervisors" ? (
+        <SupervisorsPage />
       ) : route.kind === "config" ? (
         <ConfigPage />
       ) : route.kind === "consult" ? (

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.26.8
+
+- **Supervisors viewer on the dashboard.** A new read-only Supervisors page (under
+  More) shows the full catalog of supervisor personas - the orchestrator's judgment
+  postures - with what each one aims the reviewers at (its review lenses), the flow
+  it favors for risky work, the reviewer profile and safety posture it suggests, the
+  spec-up CTO posture it injects, and which persona is the project default. It
+  mirrors `vibe supervisor list` and the run composer's selector. Personas are still
+  authored in `project.yml`; this is a viewer, not an editor. Under the hood the CLI,
+  the `/api/personas` endpoint, and this page now share one persona-catalog builder,
+  so the three surfaces can't drift.
+
 ## 0.26.7
 
 - **The Flow Builder's YAML view is a real code editor with a live preview.** The

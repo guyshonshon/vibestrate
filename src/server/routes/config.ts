@@ -4,7 +4,7 @@ import { configExists, loadConfig } from "../../project/config-loader.js";
 import { showConfig } from "../../setup/config-update-service.js";
 import { buildConfigView } from "../../setup/config-view.js";
 import { projectConfigPath } from "../../utils/paths.js";
-import { BUILTIN_PERSONAS } from "../../orchestrator/personas.js";
+import { buildPersonaCatalog } from "../../orchestrator/personas.js";
 
 export type ConfigRoutesDeps = {
   projectRoot: string;
@@ -52,41 +52,7 @@ export async function registerConfigRoutes(
   // (built-ins + project) + the active default, for the run composer's selector
   // and any read-only persona surface. Read-only.
   app.get("/api/personas", async () => {
-    let defaultPersona = "staff-engineer";
-    let projectPersonas: Record<string, unknown> = {};
-    try {
-      const loaded = await loadConfig(projectRoot);
-      defaultPersona = loaded.config.defaultPersona;
-      projectPersonas = loaded.config.personas ?? {};
-    } catch {
-      // fall back to the built-in default
-    }
-    const merged: Record<string, { label: string; description?: string; reviewLenses: string[]; reviewerProfile: string | null; prefersPosture: string | null; specUpPosture: string | null; builtin: boolean }> = {};
-    for (const [id, p] of Object.entries(BUILTIN_PERSONAS)) {
-      merged[id] = {
-        label: p.label,
-        description: p.description,
-        reviewLenses: p.reviewLenses,
-        reviewerProfile: p.reviewerProfile ?? null,
-        prefersPosture: p.prefersPosture ?? null,
-        specUpPosture: p.specUpPosture ?? null,
-        builtin: true,
-      };
-    }
-    for (const [id, p] of Object.entries(projectPersonas as Record<string, { label: string; description?: string; reviewLenses?: string[]; reviewerProfile?: string | null; prefersPosture?: string | null; specUpPosture?: string | null }>)) {
-      merged[id] = {
-        label: p.label,
-        description: p.description,
-        reviewLenses: p.reviewLenses ?? [],
-        reviewerProfile: p.reviewerProfile ?? null,
-        prefersPosture: p.prefersPosture ?? null,
-        specUpPosture: p.specUpPosture ?? null,
-        builtin: false,
-      };
-    }
-    return {
-      defaultPersona,
-      personas: Object.entries(merged).map(([id, p]) => ({ id, ...p })),
-    };
+    const loaded = await loadConfig(projectRoot).catch(() => null);
+    return buildPersonaCatalog(loaded?.config ?? null);
   });
 }

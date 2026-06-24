@@ -121,6 +121,56 @@ export function listPersonaIds(config: ProjectConfig): string[] {
   ];
 }
 
+/** A read-only catalog row for the `vibe supervisor list` CLI and the dashboard
+ *  Supervisors viewer - the same shape so the two surfaces can't drift. */
+export type PersonaCatalogEntry = {
+  id: string;
+  label: string;
+  description?: string;
+  reviewLenses: string[];
+  prefersFlows: string[];
+  reviewerProfile: string | null;
+  prefersPosture: string | null;
+  /** The free-text spec-up CTO posture, or null. Shown verbatim in the viewer. */
+  specUpPosture: string | null;
+  builtin: boolean;
+};
+
+export type PersonaCatalog = {
+  defaultPersona: string;
+  personas: PersonaCatalogEntry[];
+};
+
+/**
+ * Build the resolved persona catalog (built-ins + project personas, project
+ * overriding a built-in of the same id), with the active default marked by id.
+ * Pure: pass the loaded config, or null when there's no project. Shared by the
+ * CLI (`vibe supervisor list`) and `GET /api/supervisors` so they stay in sync.
+ */
+export function buildPersonaCatalog(config: ProjectConfig | null): PersonaCatalog {
+  const merged: Record<string, PersonaCatalogEntry> = {};
+  const add = (id: string, p: PersonaConfig, builtin: boolean) => {
+    merged[id] = {
+      id,
+      label: p.label,
+      description: p.description,
+      reviewLenses: p.reviewLenses,
+      prefersFlows: p.prefersFlows,
+      reviewerProfile: p.reviewerProfile ?? null,
+      prefersPosture: p.prefersPosture,
+      specUpPosture: p.specUpPosture,
+      builtin,
+    };
+  };
+  for (const [id, p] of Object.entries(BUILTIN_PERSONAS)) add(id, p, true);
+  let defaultPersona = "staff-engineer";
+  if (config) {
+    defaultPersona = config.defaultPersona;
+    for (const [id, p] of Object.entries(config.personas ?? {})) add(id, p, false);
+  }
+  return { defaultPersona, personas: Object.values(merged) };
+}
+
 /**
  * PURE deterministic risk classifier: which of `signals` appear (case-insensitive
  * substring) in the task text. The signals are persona data, not core policy.

@@ -23,6 +23,7 @@ export type NavId =
   | "metrics"
   | "crew"
   | "providers"
+  | "supervisors"
   | "profiles"
   | "config"
   | "consult";

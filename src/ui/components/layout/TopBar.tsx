@@ -18,6 +18,7 @@ import {
   Search,
   Settings as SettingsIcon,
   Settings2,
+  ShieldCheck,
   SlidersHorizontal,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -36,6 +37,7 @@ type Props = {
   onShowMetrics: () => void;
   onShowCrew: () => void;
   onShowProviders: () => void;
+  onShowSupervisors: () => void;
   onShowProfiles: () => void;
   onShowBoard: () => void;
   onShowRunsList: () => void;
@@ -87,6 +89,7 @@ export function TopBar({
   onShowMetrics,
   onShowCrew,
   onShowProviders,
+  onShowSupervisors,
   onShowProfiles,
   onShowBoard,
   onShowRunsList,
@@ -275,6 +278,7 @@ export function TopBar({
               currentNav === "git-tree" ||
               currentNav === "merge" ||
               currentNav === "providers" ||
+              currentNav === "supervisors" ||
               currentNav === "ledger" ||
               currentNav === "proposals" ||
               currentNav === "project" ||
@@ -329,6 +333,16 @@ export function TopBar({
                 icon={<Plug className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
               >
                 Providers
+              </DropItem>
+              <DropItem
+                active={currentNav === "supervisors"}
+                onClick={() => {
+                  setMoreOpen(false);
+                  onShowSupervisors();
+                }}
+                icon={<ShieldCheck className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              >
+                Supervisors
               </DropItem>
               <DropItem
                 active={currentNav === "ledger"}
@@ -475,6 +489,16 @@ export function TopBar({
               icon={<Plug className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
             >
               Providers
+            </DropItem>
+            <DropItem
+              active={currentNav === "supervisors"}
+              onClick={() => {
+                setMenuOpen(false);
+                onShowSupervisors();
+              }}
+              icon={<ShieldCheck className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+            >
+              Supervisors
             </DropItem>
             <DropItem
               active={currentNav === "ledger"}

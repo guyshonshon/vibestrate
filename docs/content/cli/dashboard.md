@@ -34,6 +34,7 @@ Mission Control is organized into these pages.
 - **Crew** - the workflow **roles** (planner, architect, executor, fixer, reviewer, verifier). Set the **provider** each role runs on inline, from your configured providers only. A role is a seat in the workflow; a provider is the CLI it runs on, and one provider can power many roles. You add and configure providers on the **Providers** page.
 - **Flows** - the resolved list of built-in and project Flows, plus the steps each one defines.
 - **Providers** - the CLIs your roles run on: what's installed, what's configured, and a test for each one.
+- **Supervisors** - the read-only catalog of supervisor personas (the orchestrator's judgment posture): what each one aims the reviewers at, the flow it favors for risky work, the safety posture it suggests, and which is the project default. Mirrors `vibe supervisor list`.
 - **Approvals** - pending decisions that a policy gate is holding.
 - **Git** - an inline diff viewer for the active run's worktree, with file-by-file navigation.
 - **Merge** - the merge window. It lists every merge-ready run with its check lanes and branch drift. For each run it gives deterministic merge advice (risk flags, a dry-run conflict report, a recommendation) before the explicit integrate and finish actions. The advice is read-only; nothing merges without you.
