@@ -1,6 +1,7 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { execa } from "execa";
+import { resolveApplicablePatch } from "../git/patch-eol.js";
 import { nowIso } from "../utils/time.js";
 import { ApprovalService } from "../core/approval-service.js";
 import { EventLog } from "../core/event-log.js";
@@ -423,35 +424,31 @@ export class ReviewSuggestionService {
       );
     }
 
-    const check = await execa(
-      "git",
-      ["apply", "--check", "--whitespace=nowarn"],
-      {
-        cwd: worktreePath,
-        input: current.proposedPatch,
-        reject: false,
-        timeout: 10_000,
-        stdin: "pipe",
-      },
+    // Resolve the patch text to apply: the proposed patch as-is when it already
+    // checks clean, otherwise an EOL-normalized variant that passes a fresh
+    // --check (never --ignore-whitespace). A non-applying patch is refused.
+    const resolved = await resolveApplicablePatch(
+      current.proposedPatch,
+      worktreePath,
     );
-    if (check.exitCode !== 0) {
-      const reason =
-        (check.stderr || check.stdout || "git apply --check failed")
-          .toString()
-          .slice(0, 500);
+    if ("ok" in resolved) {
       await this.broker.record(action, gate.decision, {
         ok: false,
         summary: `git apply --check rejected ${id}`,
       });
-      return this.markFailed(current, `git apply --check rejected the patch: ${reason}`);
+      return this.markFailed(
+        current,
+        `git apply --check rejected the patch: ${resolved.reason}`,
+      );
     }
+    const patchToApply = resolved.patch;
 
     const applied = await execa(
       "git",
       ["apply", "--whitespace=nowarn"],
       {
         cwd: worktreePath,
-        input: current.proposedPatch,
+        input: patchToApply,
         reject: false,
         timeout: 15_000,
         stdin: "pipe",
@@ -479,11 +476,13 @@ export class ReviewSuggestionService {
     await ensureDir(dir);
     const appliedPatchPath = path.join(dir, `${id}-applied.patch`);
     const reversePatchPath = path.join(dir, `${id}-reverse.patch`);
-    await writeText(appliedPatchPath, current.proposedPatch);
+    // Persist the actually-applied text (post EOL-normalization) so the stored
+    // forward/reverse artifacts match what landed and revert stays consistent.
+    await writeText(appliedPatchPath, patchToApply);
     // The "reverse" patch is the forward patch text - `git apply -R` reverses it
     // at apply time. Storing it as a separate file makes the revert flow
     // self-describing in the run dir.
-    await writeText(reversePatchPath, current.proposedPatch);
+    await writeText(reversePatchPath, patchToApply);
 
     const updated: ReviewSuggestion = {
       ...current,
@@ -848,28 +847,15 @@ export class ReviewSuggestionService {
       );
     }
 
-    const check = await execa(
-      "git",
-      ["apply", "-R", "--check", "--whitespace=nowarn"],
-      {
-        cwd: worktreePath,
-        input: patchText,
-        reject: false,
-        timeout: 10_000,
-        stdin: "pipe",
-      },
-    );
-    if (check.exitCode !== 0) {
-      const reason = (check.stderr || check.stdout || "git apply -R --check failed")
-        .toString()
-        .slice(0, 500);
+    const resolved = await resolveApplicablePatch(patchText, worktreePath, ["-R"]);
+    if ("ok" in resolved) {
       await this.broker.record(action, gate.decision, {
         ok: false,
         summary: `git apply -R --check rejected revert of ${id}`,
       });
       return this.markRevertFailed(
         current,
-        `git apply -R --check rejected the reverse patch: ${reason}`,
+        `git apply -R --check rejected the reverse patch: ${resolved.reason}`,
       );
     }
 
@@ -878,7 +864,7 @@ export class ReviewSuggestionService {
       ["apply", "-R", "--whitespace=nowarn"],
       {
         cwd: worktreePath,
-        input: patchText,
+        input: resolved.patch,
         reject: false,
         timeout: 15_000,
         stdin: "pipe",

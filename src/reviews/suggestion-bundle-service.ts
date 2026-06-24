@@ -1,6 +1,7 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { execa } from "execa";
+import { resolveApplicablePatch } from "../git/patch-eol.js";
 import { nowIso } from "../utils/time.js";
 import { ApprovalService } from "../core/approval-service.js";
 import { EventLog } from "../core/event-log.js";
@@ -502,32 +503,21 @@ export class SuggestionBundleService {
     // so a downstream conflict between patches is still possible - we catch
     // that in the apply phase via rollback.
     for (const p of patches) {
-      const r = await execa(
-        "git",
-        ["apply", "--check", "--whitespace=nowarn"],
-        {
-          cwd: worktreePath,
-          input: p.patch,
-          reject: false,
-          timeout: CHECK_TIMEOUT_MS,
-          stdin: "pipe",
-        },
-      );
-      if (r.exitCode !== 0) {
-        const reason = (r.stderr || r.stdout || "git apply --check failed")
-          .toString()
-          .slice(0, 500);
+      const r = await resolveApplicablePatch(p.patch, worktreePath);
+      if ("ok" in r) {
         await this.broker.record(action, gate.decision, {
           ok: false,
           summary: `git apply --check rejected ${p.id}`,
         });
         const updated = await this.markFailed(
           bundle,
-          `git apply --check rejected ${p.id}: ${reason}`,
+          `git apply --check rejected ${p.id}: ${r.reason}`,
           preflight.sameFileWarnings,
         );
         return { bundle: updated, preflight };
       }
+      // Apply (and later roll back) the EOL-normalized text that checked clean.
+      p.patch = r.patch;
     }
 
     // Mark applying, then walk the list. On any failure, roll back.

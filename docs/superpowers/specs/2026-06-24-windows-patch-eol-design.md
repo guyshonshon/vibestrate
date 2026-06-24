@@ -61,69 +61,71 @@ corruption. Close the coverage gap so the EOL-mismatch path is tested.
 
 ## Design
 
+Two safety properties, together:
+
+1. **Content bytes are never altered - only inter-line terminators.** The
+   normalizer detects the patch's *own* terminator from its first (structural)
+   line, then `split(from).join(target)`. It never inspects or rewrites line
+   content, so a CR that is part of a hunk line's content is preserved, not
+   mistaken for a terminator. (An earlier draft used a global
+   `replace(/\r\n/g,"\n").replace(/\n/g,target)` that silently dropped a content
+   CR while still passing `--check` - caught in adversarial review and
+   regression-tested.)
+2. **Normalize only on the failure path, double-guarded by `git apply --check`.**
+   A patch that already applies is never touched (zero regression). The
+   normalizer runs only after a patch has *already failed* `--check`, and its
+   output must pass a *fresh* `--check` before we apply it - so an incomplete
+   normalization falls back to the clean refusal, never a corrupt write.
+
+Together these keep the normalizer tiny instead of special-casing every diff
+shape.
+
 ### New module: `src/git/patch-eol.ts`
 
-One pure, isolated function:
-
 ```
-normalizePatchEol(patchText: string, worktreePath: string): Promise<string>
+dominantEol(content: string): "\r\n" | "\n"
+normalizePatchEol(patch: string, worktreePath: string): Promise<string>
+resolveApplicablePatch(patch, worktreePath, applyArgs?): Promise<
+  { patch: string } | { ok: false; reason: string }>
 ```
 
-Returns a patch whose every file section's line terminators match that target
-file's dominant EOL, so a subsequent strict `git apply` both matches context and
-writes EOL-consistent results.
+- `dominantEol` - CRLF if the content has any `\r\n`, else LF. Local to this
+  module (the `conflict-parser.ts` one-liner is left as-is; not worth the cross-
+  module coupling).
+- `normalizePatchEol` - collect the source-side paths the patch references
+  (`--- a/<path>` / `diff --git` headers, skipping `/dev/null`), resolve them
+  under `worktreePath` (path-guarded: reads stay inside the worktree), read the
+  on-disk files, detect each dominant EOL. If the touched files share a single
+  EOL, rewrite the **whole** patch's line terminators to it
+  (`patch.replace(/\r\n/g,"\n").replace(/\n/g, eol)`) and return it; otherwise
+  (no readable target, or mixed EOLs across files) return the patch unchanged.
+- `resolveApplicablePatch` - run `git apply --check` on the patch as-is; if it
+  passes, return it untouched. Only on failure, compute `normalizePatchEol`; if
+  it differs and passes a fresh `--check`, return the normalized text; else
+  return the original `--check` failure reason. This is the single helper all
+  call sites use.
 
-Algorithm:
-
-1. Split `patchText` into per-file sections. A unified diff delimits files by
-   `diff --git a/… b/…` headers when present, otherwise by `--- ` / `+++ ` header
-   pairs. Each section carries its own header + hunks.
-2. Resolve each section's target path from the `+++ b/<path>` header (strip the
-   `b/` prefix; `+++ /dev/null` means a deletion - resolve from `--- a/<path>`).
-3. Detect the target file's dominant EOL by reading it from `worktreePath`:
-   CRLF if the content contains any `\r\n`, else LF. (Same rule as
-   `conflict-parser.ts`; extract a shared `dominantEol(content)` helper so the
-   two callers cannot drift.)
-4. Rewrite that section's line terminators to the detected EOL. Structural lines
-   (`diff --git`, `index`, `---`, `+++`, `@@`, and each ` `/`+`/`-` body line) all
-   take the target EOL.
-5. Reassemble sections in original order and return.
-
-### Edge cases (each gets a dedicated unit test)
-
-- **`\ No newline at end of file`**: the preceding content line keeps no trailing
-  terminator; the marker line itself is normalized but does not cause a newline
-  to be synthesized on the content line.
-- **New file** (`--- /dev/null`): no existing file to detect against; the section
-  is left byte-for-byte unchanged. It applies cleanly regardless (nothing to
-  mismatch), matching git's own behavior. (Decision below.)
-- **Deleted file** (`+++ /dev/null`): detect EOL from the existing `--- a/<path>`
-  source file (its context must match what is on disk).
-- **Binary hunks** (`Binary files a/x and b/x differ`, or `GIT binary patch`):
-  left untouched - never rewrite binary content.
-- **Multi-file patch**: each section resolved and normalized independently; files
-  may legitimately have different dominant EOLs.
-- **Missing target file** (patch references a path not on disk): leave the section
-  unchanged and let the strict `git apply --check` produce its normal rejection -
-  the normalizer never invents content or silences a real mismatch.
+Edge cases (binary hunks, `\ No newline at end of file`, mixed multi-file EOL,
+missing files) need **no bespoke handling**: if normalization doesn't yield a
+check-clean patch, we refuse - same as today, never corrupt. New-file-only
+patches already pass the first `--check`, so they're returned untouched.
 
 ### Integration points
 
-Normalize immediately before the strict apply, at each call site, forward and
-reverse:
+Replace the existing `git apply --check` at each call site with
+`resolveApplicablePatch`, forward and reverse:
 
-- `review-suggestion-service.ts` `apply()` - normalize `current.proposedPatch`
-  before `git apply --check` (~L426). Persist the **normalized** text as the
-  `*-applied.patch` / `*-reverse.patch` artifacts so revert stays consistent.
-- `review-suggestion-service.ts` revert path (`git apply -R`, ~L853/878) -
-  re-normalize against the current worktree before the reverse apply.
-- `suggestion-bundle-service.ts` bundle apply (`--check` loop ~L501, apply loop) -
-  normalize each patch before its check + apply.
+- `review-suggestion-service.ts` `apply()` (~L426) - on a usable result, apply
+  the **returned** text and persist *that* as the `*-applied.patch` /
+  `*-reverse.patch` artifacts so revert stays consistent; on `{ok:false}`, the
+  existing `markFailed` with the returned reason.
+- `review-suggestion-service.ts` revert path (`git apply -R`, ~L853) - same
+  helper with `applyArgs:["-R"]`.
+- `suggestion-bundle-service.ts` bundle apply (`--check` loop ~L501) - resolve
+  each patch; apply the returned text.
 
-Strict apply (`--check` then apply, `--whitespace=nowarn`, no
-`--ignore-whitespace`) is preserved everywhere. Normalization only changes line
-terminators; if the patch still doesn't match (a genuine content mismatch), the
-strict apply rejects exactly as today.
+Strict apply (`--whitespace=nowarn`, never `--ignore-whitespace`, never forced
+`-c core.autocrlf`) is preserved everywhere.
 
 ## Decisions
 
@@ -139,14 +141,15 @@ The coverage gap is closed **OS-independently**: fixtures construct CRLF
 working-tree files explicitly, so the EOL-mismatch path runs on Ubuntu CI too -
 no dependency on `ci-windows.yml`.
 
-- **Unit** (`patch-eol.test.ts`): the full EOL matrix (LF/CRLF file x LF/CRLF
-  patch x match/mismatch), plus every edge case above. Assert the normalized
-  patch's per-section EOL and that structure is preserved.
-- **Integration** (through the real services, temp git repo): apply a cross-EOL
-  patch end-to-end; assert (a) it applies, (b) the resulting file is
-  EOL-consistent (no mixed terminators), (c) revert restores the original bytes.
-- Regression: existing LF-only fixtures keep passing unchanged (normalization is
-  a no-op when patch EOL already equals file EOL).
+- **Unit** (`tests/patch-eol.test.ts`, real temp git repos via `execa`): the EOL
+  matrix (LF/CRLF file x LF/CRLF patch x match/mismatch) through
+  `resolveApplicablePatch` + a real `git apply`. Assert each mismatch case (a)
+  becomes applicable, (b) applies to an EOL-consistent file (no mixed
+  terminators), and (c) reverse-applies back to the original bytes. Assert
+  matching cases are returned byte-identical (no-op) and a genuinely
+  non-applying patch still returns `{ok:false}`.
+- Regression: existing apply/bundle tests keep passing unchanged (the new helper
+  is a pure superset - identical behavior whenever the first `--check` passes).
 
 ## Security notes
 
