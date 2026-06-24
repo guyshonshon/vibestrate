@@ -179,13 +179,18 @@ import type { RunStatus } from "../workflow/workflow-types.js";
 import { ReviewSuggestionService } from "../reviews/review-suggestion-service.js";
 import type { SuggestionSource } from "../reviews/review-suggestion-types.js";
 import { applyPauseIfRequested } from "./pause-service.js";
-import { isTerminal } from "./state-machine.js";
-import { writeJson } from "../utils/json.js";
+import { isTerminal, runStateSchema } from "./state-machine.js";
+import { writeJson, readJson } from "../utils/json.js";
 import {
   runFlowSnapshotPath,
   projectRunsDir,
   runChecklistItemArbitrationPath,
+  runStatePath,
 } from "../utils/paths.js";
+import {
+  reconstructDoneOutcomes,
+  checklistIdsChanged,
+} from "../pickup/resume-checklist.js";
 import { readdir } from "node:fs/promises";
 import {
   isGraphFlow,
@@ -3142,6 +3147,11 @@ export class Orchestrator {
     // ITERATION still gates on the pickup flow + --checklist-mode (below);
     // grounding is unconditional when a card is bound. Redacted + bounded.
     let cardGrounding = "";
+    // On a RESUME of a checklist run, the still-pending items would otherwise run
+    // with an empty prior-items ledger (the done items were committed in the
+    // source run). These terse outcomes re-seed that ledger so cross-item
+    // coherence + the holistic postlude survive a resume.
+    let resumeSeedOutcomes: ChecklistItemOutcome[] = [];
     if (this.taskId) {
       const task = await roadmap.getTask(this.taskId);
       if (task) {
@@ -3150,12 +3160,41 @@ export class Orchestrator {
           checklistItems = task.checklist
             .filter((c) => c.status !== "done")
             .map((c) => ({ id: c.id, text: c.text }));
+          const currentIds = task.checklist.map((c) => c.id);
+          if (this.resumeFrom) {
+            // Refuse if the checklist was edited between the original run and this
+            // resume: resume skips items by their per-item done status, so a
+            // mutated list could skip un-built work or re-run the wrong item.
+            const sourceRaw = await readJson<unknown>(
+              runStatePath(this.projectRoot, this.resumeFrom.sourceRunId),
+            ).catch(() => null);
+            const sourceParsed = sourceRaw
+              ? runStateSchema.safeParse(sourceRaw)
+              : null;
+            const recordedIds = sourceParsed?.success
+              ? sourceParsed.data.checklistItemIds
+              : null;
+            if (checklistIdsChanged(recordedIds, currentIds)) {
+              throw new Error(
+                "This task's checklist changed since the run being resumed (items added, removed, or reordered). Re-run the task instead of resuming - resume-from-item relies on a stable checklist.",
+              );
+            }
+            resumeSeedOutcomes = reconstructDoneOutcomes(task.checklist);
+          }
+          // Record the ordered ids so a later resume of THIS run can verify the
+          // checklist hasn't shifted under it (fails open when absent).
+          state = { ...state, checklistItemIds: currentIds };
+          await input.stateStore.write(state);
         }
       }
     }
     // Hoisted above the try so the finalize block (final report) and the catch
     // (mark a failed item blocked) can see them.
     const itemOutcomes: ChecklistItemOutcome[] = [];
+    // On resume, start the ledger with the items the source run already
+    // committed (see resumeSeedOutcomes above), so pending items + the postlude
+    // see them instead of an empty list.
+    itemOutcomes.push(...resumeSeedOutcomes);
     let currentChecklistItemId: string | null = null;
     // Per-item REVIEW band (Shape B): the band can't emit a ledger token, so the
     // per-item loop records its resolved verdict here, and commitChecklistItem

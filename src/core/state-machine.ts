@@ -229,6 +229,15 @@ export const runStateSchema = z.object({
     })
     .nullable()
     .default(null),
+  /**
+   * The ordered checklist item ids this run ran against, recorded at checklist
+   * setup. A resume reads its source run's value and refuses if the task's
+   * checklist changed since (ids added/removed/reordered) - resume skips items
+   * by their per-item done status, so a mutated list could skip/re-run the wrong
+   * one. null on non-checklist runs and on runs from before this field existed
+   * (the guard fails open when it can't verify).
+   */
+  checklistItemIds: z.array(z.string()).nullable().default(null),
 });
 
 export type RunState = z.infer<typeof runStateSchema>;
@@ -457,6 +466,7 @@ export function createInitialState(input: {
     contextSources: [],
     checklistMode: null,
     checklistProgress: null,
+    checklistItemIds: null,
   };
 }
 

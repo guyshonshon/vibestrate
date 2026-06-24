@@ -38,6 +38,7 @@ const baseState = {
   needsTesting: null,
   checklistMode: null,
   checklistProgress: null,
+  checklistItemIds: null,
   contextSources: [],
 };
 

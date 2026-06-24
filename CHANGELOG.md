@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.26.9
+
+- **Resuming a checklist run keeps its context, and refuses a changed checklist.**
+  When you resume an aborted `pickup` / `pickup-review` run, the still-pending
+  items now see the items the earlier run already finished - carried forward as an
+  "already done, do not redo" ledger - instead of starting blind, so the run stays
+  coherent across the resume and the final review sees the whole checklist. And if
+  the task's checklist was edited between the original run and the resume (items
+  added, removed, or reordered), the resume is refused with a clear message rather
+  than silently skipping or re-running the wrong item. (Skipping the
+  already-committed items on resume already worked; this fills the two gaps a
+  design review found around it.)
+
 ## 0.26.8
 
 - **Supervisors viewer on the dashboard.** A new read-only Supervisors page (under
