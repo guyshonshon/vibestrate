@@ -65,9 +65,11 @@ Install Vibestrate - the command is `vibe`:
 # macOS / Linux
 curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/install.sh | sh
 
-# …or with npm directly
+# …or with npm directly (macOS, Linux, or Windows)
 npm install -g vibestrate
 ```
+
+Vibestrate runs natively on macOS, Linux, and **Windows** - the full core loop (install, providers, runs, diffs, merge) works in PowerShell or cmd with no WSL. The one Windows-only exception is the in-app terminal tab; use WSL if you want an in-app shell. Details: [Native Windows support](https://vibestrate.com/docs/getting-started/windows).
 
 Then point it at any git repo:
 

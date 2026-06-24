@@ -12,6 +12,10 @@
         {
           "slug": "getting-started/installation",
           "label": "Installation"
+        },
+        {
+          "slug": "getting-started/windows",
+          "label": "Native Windows support"
         }
       ]
     },

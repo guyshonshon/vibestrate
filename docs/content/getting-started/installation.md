@@ -5,7 +5,7 @@ section: getting-started
 slug: getting-started/installation
 ---
 
-Vibestrate runs on macOS and Linux. Windows is not supported yet.
+Vibestrate runs natively on macOS, Linux, and Windows. The full core loop works the same on every platform; the one Windows-only exception is the in-app terminal tab. See [Native Windows support](/docs/getting-started/windows) for the details.
 
 ## Requirements
 
@@ -22,7 +22,7 @@ One line, macOS or Linux:
 curl -fsSL get.vibestrate.com | sh
 ```
 
-Or with npm or pnpm:
+Or with npm or pnpm, on any platform including Windows:
 
 ```bash
 npm install -g vibestrate
