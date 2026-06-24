@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.26.1
+
+- **Patch-apply survives line-ending mismatches.** When an applied suggestion's
+  diff used different line endings than the file it targets - real on Windows
+  repos under `core.autocrlf=false` - `git apply` would reject a perfectly valid
+  edit. Apply now normalizes the patch's line terminators to the target file's
+  on a `git apply --check` failure, re-checks, and only then applies, so the edit
+  lands with consistent endings instead of being refused. Strict apply is
+  preserved (never `--ignore-whitespace`, which would have written a mixed-ending
+  file), line content is never rewritten, and a patch that still does not match
+  is refused cleanly rather than corrupting the file. Covers single-suggestion
+  apply, revert, and bundle apply.
+
 ## 0.26.0
 
 - **Native Windows support (full core loop).** Vibestrate now runs natively on
