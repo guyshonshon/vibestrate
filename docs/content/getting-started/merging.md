@@ -66,6 +66,14 @@ Or `git push` the branch to share it as is. To throw the change away, just ignor
 
 </div>
 
+## Why is merging always manual?
+
+Two rules are on by default and not negotiable: Vibestrate never auto-merges, and it never auto-pushes. A run stops at `merge_ready` and hands you the diff. Folding it into `main` is always a decision you make.
+
+Merging is the point of commitment - it joins your shared history and can ship from there. You can revert a bad merge, but only after the wrong code was already trusted and built on. A model that cannot fully vouch for its own work is the wrong thing to make that call on your behalf.
+
+A fair question is whether the merge advisor is just another AI opinion dressed up as a recommendation. It is not. `vibe integrate advise` is **deterministic**: it reports facts - did your checks actually run, does the change touch protected paths, are there conflicts - and a recommendation computed from them. The same inputs always give the same advice, and no persona or [supervisor](/docs/concepts/supervisor) "voice" colors it. A model only enters if you explicitly ask for the deeper read with `vibe integrate analyze`, and even then it is advisory: it never merges, never relaxes the recommendation, and never pushes.
+
 ## Keep going
 
 - [Your first run](/docs/getting-started/first-run) - where the change came from.
