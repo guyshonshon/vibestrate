@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -38,6 +38,14 @@ import { Select } from "../../components/design/Select.js";
 import { cn } from "../../components/design/cn.js";
 import { FlowGraph, isGraphSteps } from "../../components/workflow/FlowGraph.js";
 import { extractFlowFromYaml, renderFlowYaml } from "../../lib/flow-yaml.js";
+
+// CodeMirror is heavy (~140kB gzip); lazy-load it so it only ships when the
+// Flow Builder's YAML mode is actually opened, not on every dashboard load.
+const YamlEditor = lazy(() =>
+  import("../../components/workflow/YamlEditor.js").then((m) => ({
+    default: m.YamlEditor,
+  })),
+);
 import type {
   DiscoveredFlow,
   FlowStepDefinition,
@@ -640,20 +648,34 @@ export function FlowBuilderPage({
                 {isProjectFlow ? "Editable" : "Read-only"}
               </Chip>
             </div>
-            <textarea
-              value={yamlText}
-              onChange={(e) => setYamlText(e.target.value)}
-              readOnly={!isProjectFlow}
-              spellCheck={false}
-              rows={Math.min(40, Math.max(14, yamlText.split("\n").length + 1))}
-              className={cn(
-                "mono w-full resize-y border bg-black/40 px-3 py-2.5 text-[11.5px] text-fog-100 outline-none",
-                yamlError
-                  ? "border-rose-400/40 focus:border-rose-400/60"
-                  : "border-violet-soft/30 focus:border-violet-soft/50",
-                !isProjectFlow ? "opacity-80" : "",
-              )}
-            />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div
+                className={cn(
+                  "min-w-0 border bg-black/40",
+                  yamlError
+                    ? "border-rose-400/40"
+                    : "border-violet-soft/30",
+                  !isProjectFlow ? "opacity-80" : "",
+                )}
+              >
+                <Suspense
+                  fallback={
+                    <div className="px-3 py-2.5 text-[11.5px] text-fog-500">
+                      Loading editor…
+                    </div>
+                  }
+                >
+                  <YamlEditor
+                    value={yamlText}
+                    onChange={setYamlText}
+                    readOnly={!isProjectFlow}
+                  />
+                </Suspense>
+              </div>
+              <div className="min-w-0">
+                <YamlGraphPreview yamlText={yamlText} />
+              </div>
+            </div>
             {yamlError ? (
               <div className="mt-2 border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12px] text-rose-300 whitespace-pre-wrap">
                 {yamlError}
@@ -1817,6 +1839,60 @@ function LoopCard({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Live, read-only preview of the flow the YAML currently describes, shown beside
+ * the code editor: the dependency graph when it's a DAG, an ordered step list
+ * otherwise. YAML is the single source of truth here, so the preview is derived
+ * and never edits back - no round-trip churn. A parse error pauses the preview
+ * rather than throwing, so a half-typed line never breaks the editor.
+ */
+function YamlGraphPreview({ yamlText }: { yamlText: string }) {
+  const parsed = extractFlowFromYaml(yamlText);
+  const steps = parsed.definition?.steps;
+  if (parsed.error) {
+    return (
+      <div className="border border-amber-400/25 bg-amber-500/[0.04] px-3 py-2 text-[12px] text-amber-300/90">
+        Live preview paused while the YAML doesn't parse.
+      </div>
+    );
+  }
+  if (!Array.isArray(steps) || steps.length === 0) {
+    return (
+      <div className="border border-white/[0.06] bg-ink-200/30 px-3 py-2 text-[12px] text-fog-400">
+        No steps to preview yet.
+      </div>
+    );
+  }
+  const graphSteps = steps.map((s) => ({
+    id: s.id,
+    label: s.label ?? s.id,
+    kind: s.kind,
+    seat: s.seat ?? null,
+    needs: s.needs ?? [],
+    instructions: s.instructions ?? null,
+  }));
+  if (isGraphSteps(graphSteps)) {
+    return <FlowGraph title="Live preview" steps={graphSteps} />;
+  }
+  return (
+    <div className="border border-white/[0.06] bg-ink-200/30 p-3">
+      <div className="eyebrow mb-2">Live preview</div>
+      <ol className="space-y-1">
+        {graphSteps.map((s, i) => (
+          <li
+            key={s.id}
+            className="flex items-baseline gap-2 text-[12px] text-fog-200"
+          >
+            <span className="mono text-fog-500">{i + 1}.</span>
+            <span className="text-fog-100">{s.label}</span>
+            <span className="mono text-[10.5px] text-fog-500">{s.kind}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

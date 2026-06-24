@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.26.7
+
+- **The Flow Builder's YAML view is a real code editor with a live preview.** The
+  raw-YAML escape hatch was a plain textarea; it's now a CodeMirror editor (syntax
+  highlighting, line numbers, bracket matching) shown side by side with a live
+  graph preview that re-renders as you type, so you can see the flow's shape while
+  editing its source. YAML stays the single source of truth in this view and the
+  preview is read-only, so the form and the source can't silently diverge. The
+  editor is lazy-loaded - it adds nothing to the initial dashboard load and is
+  fetched only when you open the YAML view.
+
 ## 0.26.6
 
 - **Status dots are static again.** Removed the pulsing animation from three live
