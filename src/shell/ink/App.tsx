@@ -760,6 +760,10 @@ export function App({
         dispatch({ type: "runs.inspector.set", tab: "validation" });
         return;
       }
+      if (input === "u") {
+        dispatch({ type: "runs.inspector.set", tab: "audit" });
+        return;
+      }
       if (input === "/") {
         dispatch({ type: "runs.filter.open" });
         return;

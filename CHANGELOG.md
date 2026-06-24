@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.26.5
+
+- **A run's audit tree is now in the interactive shell.** The Runs inspector
+  gained an **Audit** tab (press `u`) that shows the same per-step "what
+  happened" tree as `vibe audit` - each step's status and stage, its retries and
+  whether it fell back to a backup profile, the review/verification decision, the
+  run totals (turns, retries, fallbacks, cost), and the run-level control events
+  (budget caps, pauses). It's derived live for the selected run only, so opening
+  it never slows the run list. The web dashboard already showed this on the run's
+  tree; the shell is now at parity.
+
 ## 0.26.4
 
 - **The interactive shell's tab bar fits narrow terminals.** Below ~80 columns the

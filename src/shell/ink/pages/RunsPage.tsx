@@ -11,6 +11,8 @@ import { filterEvents } from "../event-filter.js";
 import { CARD_PROPS, FOCAL_CARD_PROPS, clip, eventTypeColor, runStatusToken, timeAgo } from "../theme.js";
 import { SelectionMark, StatusPill } from "../components/visuals.js";
 import { useTerminalWidth } from "../hooks/useTerminalWidth.js";
+import { useRunAudit } from "../hooks/useRunAudit.js";
+import type { RunAudit, AuditStep } from "../../../core/run-audit.js";
 
 type Props = {
   snapshot: ShellSnapshot;
@@ -23,11 +25,13 @@ const TAB_LABELS: Record<RunInspectorTab, string> = {
   overview: "Overview",
   events: "Events",
   validation: "Validation",
+  audit: "Audit",
 };
 const TAB_KEYS: Record<RunInspectorTab, string> = {
   overview: "o",
   events: "e",
   validation: "v",
+  audit: "u",
 };
 
 export function RunsPage({
@@ -199,6 +203,8 @@ function InspectorCard({
                 onFilterChange={onFilterChange}
                 onFilterSubmit={onFilterSubmit}
               />
+            ) : tab === "audit" ? (
+              <AuditSection snapshot={snapshot} row={row} />
             ) : (
               <ValidationSection snapshot={snapshot} row={row} />
             )}
@@ -589,6 +595,86 @@ function ValidationSection({
         </Box>
       ))}
     </Box>
+  );
+}
+
+/**
+ * The `audit` inspector tab: a TUI render of the run-audit tree (parity with
+ * `vibe audit`). Derived lazily for the selected run only (see useRunAudit),
+ * since the full audit reads more than the snapshot's event tail.
+ */
+function AuditSection({
+  snapshot,
+  row,
+}: {
+  snapshot: ShellSnapshot;
+  row: ShellRunRow;
+}) {
+  const audit = useRunAudit(snapshot.projectRoot, row.runId);
+  return <AuditView audit={audit} />;
+}
+
+const STEP_GLYPH: Record<string, { glyph: string; color?: string }> = {
+  passed: { glyph: "ok", color: "green" },
+  failed: { glyph: "x", color: "red" },
+  blocked: { glyph: "x", color: "red" },
+  running: { glyph: ">", color: "cyan" },
+  skipped: { glyph: "-" },
+  pending: { glyph: "." },
+};
+
+/** Pure render of a run audit (no data fetching), so it can be unit-tested. */
+export function AuditView({ audit }: { audit: RunAudit | null }) {
+  if (!audit) return <Text dimColor>deriving audit…</Text>;
+  if (audit.steps.length === 0) {
+    return (
+      <Text dimColor>
+        no steps recorded yet - the audit fills in as the run executes.
+      </Text>
+    );
+  }
+  const t = audit.totals;
+  return (
+    <Box flexDirection="column">
+      <Text dimColor>
+        {t.turns} turn{t.turns === 1 ? "" : "s"} · {t.retries} retr
+        {t.retries === 1 ? "y" : "ies"} · {t.fallbacks} fallback
+        {t.fallbacks === 1 ? "" : "s"}
+        {t.costUsd != null ? ` · $${t.costUsd.toFixed(2)}` : ""}
+      </Text>
+      <Box marginTop={1} flexDirection="column">
+        {audit.steps.map((s) => (
+          <AuditStepRow key={s.id} step={s} />
+        ))}
+      </Box>
+      {audit.control.length > 0 ? (
+        <Box marginTop={1} flexDirection="column">
+          <Text dimColor>control</Text>
+          {audit.control.slice(0, 6).map((c, i) => (
+            <Text key={i} wrap="truncate-end">
+              <Text dimColor>{"  "}</Text>
+              <Text color="yellow">{c.type}</Text>
+              <Text dimColor>{"  "}{clip(c.message, 70)}</Text>
+            </Text>
+          ))}
+        </Box>
+      ) : null}
+    </Box>
+  );
+}
+
+function AuditStepRow({ step }: { step: AuditStep }) {
+  const g = STEP_GLYPH[step.status] ?? { glyph: "·" };
+  const dim = step.status === "pending" || step.status === "skipped";
+  return (
+    <Text wrap="truncate-end">
+      <Text color={g.color}>{g.glyph.padEnd(2)} </Text>
+      <Text dimColor={dim}>{clip(step.label, 22).padEnd(22)}</Text>
+      <Text dimColor>{(step.stage ?? "").padEnd(12)}</Text>
+      {step.retries > 0 ? <Text color="yellow">{` ↻${step.retries}`}</Text> : null}
+      {step.fellBack ? <Text color="cyan"> ⤳ fallback</Text> : null}
+      {step.decision ? <Text dimColor>{`  ${step.decision}`}</Text> : null}
+    </Text>
   );
 }
 

@@ -68,7 +68,7 @@ describe("reduceShellUi", () => {
 });
 
 describe("runs inspector + filter actions", () => {
-  it("runs.inspector.cycle rotates through the three sub-tabs", () => {
+  it("runs.inspector.cycle rotates through the four sub-tabs", () => {
     let s = initialUiState;
     expect(s.runs.inspectorTab).toBe("overview");
     s = reduceShellUi(s, { type: "runs.inspector.cycle", direction: 1 });
@@ -76,9 +76,11 @@ describe("runs inspector + filter actions", () => {
     s = reduceShellUi(s, { type: "runs.inspector.cycle", direction: 1 });
     expect(s.runs.inspectorTab).toBe("validation");
     s = reduceShellUi(s, { type: "runs.inspector.cycle", direction: 1 });
+    expect(s.runs.inspectorTab).toBe("audit");
+    s = reduceShellUi(s, { type: "runs.inspector.cycle", direction: 1 });
     expect(s.runs.inspectorTab).toBe("overview");
     s = reduceShellUi(s, { type: "runs.inspector.cycle", direction: -1 });
-    expect(s.runs.inspectorTab).toBe("validation");
+    expect(s.runs.inspectorTab).toBe("audit");
   });
 
   it("runs.filter.open jumps to the events tab and opens the filter input", () => {

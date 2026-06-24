@@ -53,11 +53,12 @@ export type PendingConfirm =
  * scrollable tail; "validation" surfaces the most recent validation
  * results.
  */
-export type RunInspectorTab = "overview" | "events" | "validation";
+export type RunInspectorTab = "overview" | "events" | "validation" | "audit";
 export const RUN_INSPECTOR_TABS: RunInspectorTab[] = [
   "overview",
   "events",
   "validation",
+  "audit",
 ];
 
 /**
