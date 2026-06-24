@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.26.2
+
+- **Configured custom CLI providers now show on the Providers dashboard.** If you
+  hand-wired a provider with an id Vibestrate doesn't detect (a custom `mycli`),
+  it was saved to `project.yml` but never appeared on the Providers page - only
+  known CLIs and HTTP / local-server providers were listed. It now shows in the
+  Optional section, configured and manageable like any other, next to the
+  existing "Custom CLI" add button.
+- **Fixed a cross-tenant leak in the provider-list cache.** The dashboard's
+  provider list was cached in one process-global slot, so when a single process
+  served more than one project (the multi-project navigator's isolated tenants),
+  one project could briefly be shown another's provider list. The cache is now
+  keyed per project. No effect on a normal single-project run.
+
 ## 0.26.1
 
 - **Patch-apply survives line-ending mismatches.** When an applied suggestion's

@@ -65,11 +65,14 @@ export type ProviderRow = {
  * (one snapshot per minute) so refreshes don't flood the system. No
  * shell, no secrets, no side effects.
  */
-let cached: { at: number; rows: ProviderRow[] } | null = null;
+// Keyed by projectRoot: a single process can serve more than one project (the
+// multi-project navigator's isolated tenants), and a module-global cache would
+// leak one tenant's provider list into another's. Each root caches independently.
+const cacheByRoot = new Map<string, { at: number; rows: ProviderRow[] }>();
 const CACHE_TTL_MS = 60_000;
 
-function bustCache() {
-  cached = null;
+function bustCache(projectRoot: string) {
+  cacheByRoot.delete(projectRoot);
 }
 
 const PROVIDER_ID_RE = /^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/;
@@ -87,10 +90,11 @@ export async function registerProvidersRoutes(
 
   app.get("/api/providers", async () => {
     const now = Date.now();
-    if (cached && now - cached.at < CACHE_TTL_MS) {
+    const hit = cacheByRoot.get(projectRoot);
+    if (hit && now - hit.at < CACHE_TTL_MS) {
       return {
-        providers: cached.rows,
-        cachedFor: CACHE_TTL_MS - (now - cached.at),
+        providers: hit.rows,
+        cachedFor: CACHE_TTL_MS - (now - hit.at),
       };
     }
     const [detected, loaded] = await Promise.all([
@@ -124,12 +128,39 @@ export async function registerProvidersRoutes(
       kind: "cli" as const,
       profilesUsing: (profilesByProvider.get(d.id) ?? []).sort(),
     }));
-    // Surface configured non-CLI providers (http-api / localhost-proxy) that
-    // aren't in the detected-CLI list, so the dashboard can show + manage them.
+    // Surface configured providers that aren't in the detected-CLI list, so the
+    // dashboard can show + manage them: HTTP-backed ones (http-api /
+    // localhost-proxy) AND custom CLI providers whose id is unknown to
+    // detection (a hand-configured `mycli` with no preset).
     const detectedIds = new Set(rows.map((r) => r.id));
     for (const [id, cfg] of Object.entries(loaded?.config.providers ?? {})) {
       if (detectedIds.has(id)) continue;
-      if (cfg.type !== "http-api" && cfg.type !== "localhost-proxy") continue;
+      const profilesUsing = (profilesByProvider.get(id) ?? []).sort();
+      if (cfg.type === "cli" || cfg.type === "claude-code") {
+        // A configured CLI provider not known to detection. We never spawn it
+        // here (no arbitrary command execution from an HTTP route), so it's
+        // reported as configured/ready rather than probed.
+        const invocation = [cfg.command, ...cfg.args].join(" ").trim();
+        rows.push({
+          id,
+          label: `Custom CLI (${id})`,
+          command: cfg.command,
+          available: true,
+          version: null,
+          confidence: "ready",
+          recommended: false,
+          popular: false,
+          installHint: null,
+          notes: [`Custom CLI provider · runs \`${invocation || cfg.command}\``],
+          configured: true,
+          loginCommand: null,
+          loginNote:
+            "Custom CLI configured in project.yml - Vibestrate runs it as-is.",
+          kind: "cli",
+          profilesUsing,
+        });
+        continue;
+      }
       const external = cfg.type === "http-api";
       rows.push({
         id,
@@ -153,10 +184,10 @@ export async function registerProvidersRoutes(
           : "Runs locally - no key, no egress. Start the server first.",
         external,
         kind: cfg.type,
-        profilesUsing: (profilesByProvider.get(id) ?? []).sort(),
+        profilesUsing,
       });
     }
-    cached = { at: now, rows };
+    cacheByRoot.set(projectRoot, { at: now, rows });
     return { providers: rows, cachedFor: CACHE_TTL_MS };
   });
 
@@ -282,7 +313,7 @@ export async function registerProvidersRoutes(
       config: cfg,
       alsoAssignAllProfiles: body.setAsDefault === true,
     });
-    bustCache();
+    bustCache(projectRoot);
     return { ok: true, providerId: id, configured: true };
   });
 
@@ -299,7 +330,7 @@ export async function registerProvidersRoutes(
       if (!result.ok) {
         throw new HttpError(409, result.reason);
       }
-      bustCache();
+      bustCache(projectRoot);
       return result;
     },
   );
@@ -338,7 +369,7 @@ export async function registerProvidersRoutes(
       if (!result.ok) {
         throw new HttpError(409, `${result.reason} ${result.hint}`);
       }
-      bustCache();
+      bustCache(projectRoot);
       return result;
     },
   );

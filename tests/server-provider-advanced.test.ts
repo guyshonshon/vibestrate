@@ -108,6 +108,29 @@ describe("POST /api/providers/:id/setup - HTTP-backed providers", () => {
     expect(yml).toContain("type: cli");
   });
 
+  it("surfaces a configured custom CLI provider on the list (T12 follow-up)", async () => {
+    const { setConfigValue } = await import(
+      "../src/setup/config-update-service.js"
+    );
+    const project = await makeProject();
+    // A custom CLI provider whose id is unknown to detection (not a preset).
+    await setConfigValue(
+      project,
+      "providers.mycli",
+      JSON.stringify({ type: "cli", command: "mycli", args: ["run"], input: "stdin" }),
+    );
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    const list = (await (await fetch(`${server.url}/api/providers`)).json()) as {
+      providers: { id: string; kind: string; configured: boolean; command: string }[];
+    };
+    const row = list.providers.find((p) => p.id === "mycli");
+    expect(row, "custom CLI provider should appear on the Providers list").toBeTruthy();
+    expect(row!.kind).toBe("cli");
+    expect(row!.configured).toBe(true);
+    expect(row!.command).toBe("mycli");
+  });
+
   it("each provider row reports which profiles run on it (T12 reverse map)", async () => {
     const { setConfigValue, setProfileFields } = await import(
       "../src/setup/config-update-service.js"
