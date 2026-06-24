@@ -12,6 +12,7 @@ import {
 } from "../../components/design/format.js";
 import { SchedulerQueuePanel } from "../../components/runs/SchedulerQueuePanel.js";
 import { PruneSnapshotsButton } from "../../components/runs/PruneSnapshotsButton.js";
+import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 
 function statusTone(
   s: RunStatus,
@@ -255,23 +256,25 @@ function IntegrationPanel() {
   }
 
   return (
-    <section className="mt-5 border border-emerald-400/20 bg-emerald-500/[0.03] p-4">
-      <div className="flex items-center gap-2">
-        <GitMerge className="h-4 w-4 text-emerald-300" strokeWidth={1.7} />
-        <span className="text-[13px] font-medium text-fog-100">
+    <section className="slab mt-5 p-4">
+      <SectionEyebrow
+        right={
+          <a
+            href="#/merge"
+            className="text-[11px] text-emerald-300 hover:text-emerald-200 whitespace-nowrap"
+          >
+            Merge window with advice
+          </a>
+        }
+      >
+        <span className="flex items-center gap-2">
+          <GitMerge className="h-3.5 w-3.5 text-emerald-300" strokeWidth={1.7} />
           Integrate merge-ready runs ({ready.length})
+          <span className="text-fog-500">·</span>
+          <span className="text-fog-500">never main · never push</span>
         </span>
-        <span className="ml-2 text-[10.5px] text-fog-500">
-          never main · never push
-        </span>
-        <a
-          href="#/merge"
-          className="ml-auto text-[11px] text-emerald-300 hover:text-emerald-200"
-        >
-          Merge window with advice
-        </a>
-      </div>
-      <ul className="mt-2 space-y-1">
+      </SectionEyebrow>
+      <ul className="mt-3 space-y-1">
         {ready.map((r) => (
           <li key={r.runId} className="flex items-center gap-2 text-[12.5px]">
             <input
