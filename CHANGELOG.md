@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.26.4
+
+- **The interactive shell's tab bar fits narrow terminals.** Below ~80 columns the
+  numbered page nav used to wrap onto several rows; it now collapses to a single
+  row of numeric hotkeys with only the current page labelled, so the header stays
+  one line at any width. Wider terminals are unchanged.
+
 ## 0.26.3
 
 - **`vibe assurance` and `vibe audit` accept a run's name, not just its id.** Both
