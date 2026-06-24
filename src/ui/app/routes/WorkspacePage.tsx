@@ -271,7 +271,7 @@ function ProjectCard({
         </div>
         {project.activeRuns > 0 ? (
           <span className="text-[10.5px] px-2 py-0.5 bg-violet-soft/10 text-violet-soft ring-1 ring-violet-soft/20 shrink-0 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-soft animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-soft" />
             {project.activeRuns} live
           </span>
         ) : null}

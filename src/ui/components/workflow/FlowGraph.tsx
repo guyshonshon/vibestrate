@@ -35,7 +35,7 @@ export type FlowGraphStep = {
 
 const STATUS_DOT: Record<FlowGraphStepStatus, string> = {
   passed: "bg-emerald-400",
-  running: "bg-violet-400 animate-pulse",
+  running: "bg-violet-400",
   blocked: "bg-amber-300",
   failed: "bg-rose-400",
   skipped: "bg-fog-600",

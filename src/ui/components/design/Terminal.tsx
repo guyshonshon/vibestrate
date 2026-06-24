@@ -133,7 +133,7 @@ export function LiveTerminal({
           <span
             className={cn(
               "inline-block w-1.5 h-1.5 rounded-full",
-              paused ? "bg-amber-300" : "bg-emerald-400 animate-pulse",
+              paused ? "bg-amber-300" : "bg-emerald-400",
             )}
           />
         </div>
