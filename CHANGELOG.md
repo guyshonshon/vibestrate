@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.26.6
+
+- **Status dots are static again.** Removed the pulsing animation from three live
+  indicators - the running-step dot on a flow graph, the terminal's streaming
+  dot, and the workspace's "N live" dot - so a status dot signals state by color,
+  not motion. (The dashboard's loading-skeleton shimmer is unchanged.)
+
 ## 0.26.5
 
 - **A run's audit tree is now in the interactive shell.** The Runs inspector
