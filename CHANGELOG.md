@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.26.0
+
+- **Native Windows support (full core loop).** Vibestrate now runs natively on
+  Windows - PowerShell or cmd, no WSL required - for the whole core loop:
+  install, configure providers, run agent orchestrations, review diffs, and
+  merge. A `windows-latest` GitHub Actions job runs the full suite (typecheck,
+  build, test) on every push, so this is verified rather than aspirational, and
+  real npm provider shims (`claude.cmd`, `codex.cmd`, `gemini.cmd`) are proven to
+  spawn. A new `src/platform/` seam centralizes the platform-specific bits:
+  process-tree kills go through `taskkill /T /F` on Windows (a process-group
+  signal on POSIX), artifact keys are POSIX-normalized so they stay stable across
+  platforms, and `vibe doctor` now points at the usual Windows "command not
+  recognized" causes (stale PATH, PowerShell execution policy). The one carve-out
+  is the in-app integrated terminal tab, which stays WSL-only; everything else
+  works natively. There's a new Windows page in the docs. (Docker isolation on
+  Windows is future work; native execution is the supported path.)
+
 ## 0.25.1
 
 - **Per-item review lenses are now configurable (Shape B follow-up).** The per-item review panel shipped in 0.25.0 with a fixed correctness + security-risk pair; you can now choose which lenses review each checklist item. Set `checklistReview.lenses` on a flow, or `checklistReviewLenses` on a crew (precedence: crew > flow > default). Each selected lens from the closed vocabulary (correctness, tests, security-risk, authz, secrets, injection, ux-ia, accessibility, visual-consistency, performance) becomes one read-only reviewer per item, and the arbiter weighs them all. A `security`-minded crew can aim every per-item panel at secrets + injection without touching the flow. Wired at flow-resolution time, so the live run, the dashboard, and the CLI all see the configured reviewers.
