@@ -1,0 +1,51 @@
+name: CI (Windows)
+
+# Native Windows verification - deliberately OFF the per-push critical path.
+# This is NOT a required gate and nothing depends on its result; it exists to
+# keep Windows support honest without slowing every push or coupling the build
+# to the (slower) Windows runner. Runs on demand and weekly.
+#
+# Trigger it manually before/after any Windows-relevant change:
+#   gh workflow run "CI (Windows)"
+# See docs/content/getting-started/windows.md.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # 06:00 UTC every Monday
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Git identity for commit-making tests; autocrlf off so checkouts are
+      # byte-exact (the Windows runner defaults to autocrlf=true, which rewrites
+      # LF->CRLF and breaks content assertions).
+      - name: Configure git (identity + autocrlf off)
+        run: |
+          git config --global user.email "ci@vibestrate.local"
+          git config --global user.name "Vibestrate CI"
+          git config --global core.autocrlf false
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test

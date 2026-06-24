@@ -5,7 +5,7 @@ section: getting-started
 slug: getting-started/windows
 ---
 
-Vibestrate runs natively on Windows. The full core loop works on a plain Windows machine in PowerShell or cmd: you install the CLI, configure providers, run agent orchestrations, review diffs, and merge - all without WSL. A `windows-latest` GitHub Actions job runs the whole suite (typecheck, build, and test) on every push and pull request, so the support is verified, not aspirational.
+Vibestrate runs natively on Windows. The full core loop works on a plain Windows machine in PowerShell or cmd: you install the CLI, configure providers, run agent orchestrations, review diffs, and merge - all without WSL. A `windows-latest` GitHub Actions job runs the whole suite (typecheck, build, and test) on demand and on a weekly schedule, so the support is verified, not aspirational. It is kept off the per-push path on purpose: the build never depends on the slower Windows runner.
 
 Install is the same as on macOS and Linux: a global npm install of the CLI.
 

@@ -1,13 +1,9 @@
 name: CI
 
-# Typecheck, test, and build on every push to main and every PR.
-# This is the gate the release workflow trusts before publishing.
-#
-# Runs on Ubuntu (the blocking gate) and Windows (non-blocking while native
-# Windows support lands - see
-# docs/superpowers/specs/2026-06-23-windows-support-design.md). The Windows job
-# surfaces the empirical failure list without blocking merges; it is promoted to
-# a blocking gate in the final Windows phase.
+# Typecheck, test, and build on every push to main and every PR. This is the
+# fast required gate, Ubuntu only. Native Windows is verified separately and on
+# demand (.github/workflows/ci-windows.yml) so it never slows down a push and
+# nothing here depends on it.
 
 on:
   push:
@@ -19,12 +15,7 @@ permissions:
 
 jobs:
   check:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -37,17 +28,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Several tests make real git commits (e.g. git-init). GitHub runners have
-      # no default git identity, so configure one. Also force autocrlf off: the
-      # Windows runner defaults to autocrlf=true, which rewrites LF->CRLF on
-      # checkout and breaks byte-exact content assertions in the patch/snapshot
-      # tests. (Real-world autocrlf=true robustness is tracked separately.)
-      # Identical syntax on the bash (Ubuntu) and pwsh (Windows) default shells.
-      - name: Configure git (identity + autocrlf off)
+      # Several tests make real git commits (e.g. git-init); GitHub runners have
+      # no default git identity.
+      - name: Configure git identity
         run: |
           git config --global user.email "ci@vibestrate.local"
           git config --global user.name "Vibestrate CI"
-          git config --global core.autocrlf false
 
       - name: Typecheck
         run: pnpm typecheck
