@@ -6,10 +6,10 @@
   Windows - PowerShell or cmd, no WSL required - for the whole core loop:
   install, configure providers, run agent orchestrations, review diffs, and
   merge. A `windows-latest` GitHub Actions job runs the full suite (typecheck,
-  build, test) on demand and weekly - deliberately off the per-push path so the
-  build never depends on the slower Windows runner - so this is verified rather
-  than aspirational, and real npm provider shims (`claude.cmd`, `codex.cmd`,
-  `gemini.cmd`) are proven to spawn. A new `src/platform/` seam centralizes the platform-specific bits:
+  build, test) on every push as a separate, non-required pipeline - so the build
+  never waits on or depends on the slower Windows runner - so this is verified
+  rather than aspirational, and real npm provider shims (`claude.cmd`,
+  `codex.cmd`, `gemini.cmd`) are proven to spawn. A new `src/platform/` seam centralizes the platform-specific bits:
   process-tree kills go through `taskkill /T /F` on Windows (a process-group
   signal on POSIX), artifact keys are POSIX-normalized so they stay stable across
   platforms, and `vibe doctor` now points at the usual Windows "command not

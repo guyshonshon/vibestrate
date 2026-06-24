@@ -1,18 +1,20 @@
 name: CI (Windows)
 
-# Native Windows verification - deliberately OFF the per-push critical path.
-# This is NOT a required gate and nothing depends on its result; it exists to
-# keep Windows support honest without slowing every push or coupling the build
-# to the (slower) Windows runner. Runs on demand and weekly.
+# Native Windows verification - a SEPARATE pipeline from ci.yml on purpose.
+# It runs on the same events as the main gate (push to main, PRs) so Windows is
+# checked on every change, but it is NOT a required gate: ci.yml never waits on
+# it and nothing depends on its result. The build stays fast and Windows-
+# independent; this just runs in parallel and reports its own status.
 #
-# Trigger it manually before/after any Windows-relevant change:
+# Trigger it manually any time:
 #   gh workflow run "CI (Windows)"
 # See docs/content/getting-started/windows.md.
 
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
-  schedule:
-    - cron: "0 6 * * 1" # 06:00 UTC every Monday
 
 permissions:
   contents: read
