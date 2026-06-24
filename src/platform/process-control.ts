@@ -53,10 +53,29 @@ export function killProcessTree(
     const runTaskkill =
       deps.runTaskkill ??
       ((p: number): void => {
-        spawn("taskkill", ["/PID", String(p), "/T", "/F"], {
-          stdio: "ignore",
-          windowsHide: true,
-        });
+        // Don't fail silently (P1 Tier-2 follow-up): if taskkill can't be
+        // SPAWNED at all (missing from PATH / unspawnable), fall back to a direct
+        // single-process kill so the process isn't left alive unnoticed.
+        // Best-effort and deliberately narrow: this does NOT cover taskkill
+        // spawning but exiting non-zero (runtime access-denied / PID-already-gone).
+        // The latter is harmless, and a single-process kill wouldn't beat an ACL
+        // that already blocked the tree kill - so we only fall back on `error`.
+        const fallback = (): void => {
+          try {
+            process.kill(p);
+          } catch {
+            /* already gone */
+          }
+        };
+        try {
+          const child = spawn("taskkill", ["/PID", String(p), "/T", "/F"], {
+            stdio: "ignore",
+            windowsHide: true,
+          });
+          child.on("error", fallback);
+        } catch {
+          fallback();
+        }
       });
     runTaskkill(pid);
     return;

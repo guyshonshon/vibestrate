@@ -11,6 +11,7 @@ import {
 import { isGitAvailable, findGitRoot } from "../git/git.js";
 import { configExists, loadConfig } from "../project/config-loader.js";
 import { detectFullProject } from "../project/project-detector.js";
+import { isWindows } from "../platform/platform.js";
 import {
   detectAllProviders,
   installHintForCommand,
@@ -217,6 +218,14 @@ export async function runDoctor(input: {
       continue;
     }
     const available = await checkProviderAvailable(cfg.command);
+    // On Windows, a "not on PATH" almost always means the shell wasn't restarted
+    // after install (stale PATH) or the PowerShell execution policy is blocking
+    // the CLI's .cmd/.ps1 shim - the dominant real-world setup failure. Add that
+    // hint only when the command is actually missing AND we're on Windows.
+    const winHint =
+      !available && isWindows()
+        ? " On Windows, restart your shell so the updated PATH is picked up, and check your PowerShell execution policy isn't blocking the CLI's .cmd/.ps1 shim."
+        : "";
     findings.push({
       id: `provider-${id}`,
       severity: available ? "ok" : "warn",
@@ -225,8 +234,9 @@ export async function runDoctor(input: {
         : `Provider "${id}" command "${cfg.command}" is not on PATH`,
       detail: available
         ? undefined
-        : installHintForCommand(cfg.command) ??
-          `Install ${cfg.command} or run \`vibe provider setup\` to switch.`,
+        : (installHintForCommand(cfg.command) ??
+            `Install ${cfg.command} or run \`vibe provider setup\` to switch.`) +
+          winHint,
       fixHint: available
         ? undefined
         : installHintForCommand(cfg.command) ??
