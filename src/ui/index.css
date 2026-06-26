@@ -10,6 +10,7 @@
 @import "@fontsource-variable/bricolage-grotesque/wght.css";
 @import "@fontsource-variable/space-grotesk/wght.css";
 @import "@fontsource-variable/jetbrains-mono/wght.css";
+@import "@fontsource-variable/plus-jakarta-sans/wght.css";
 
 @theme {
   /* ── Design system: ink / fog / violet (Mission Control v3) ── */
@@ -81,6 +82,22 @@
   /* The terminal / command lines. */
   --font-term:
     "JetBrains Mono Variable", "Geist Mono Variable", ui-monospace, monospace;
+  /* ── Soft-dark "coal / chalk" design language (approved 2026-06-27): big bold
+   * type, airy soft cards, restrained violet accent. ADDITIVE - the existing
+   * ink/fog tokens are untouched so current screens don't shift while the new
+   * surfaces are built and validated. */
+  --font-jakarta:
+    "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-coal-900: #121113;
+  --color-coal-800: #161517;
+  --color-coal-700: #1b1a1d;
+  --color-coal-600: #201e25;
+  --color-coal-500: #2c2a32;
+  --color-coal-400: #3a3742;
+  --color-chalk-100: #f7f6f9;
+  --color-chalk-300: #c9c7d2;
+  --color-chalk-400: #8c8a96;
+  --color-amber-soft: #fb923c;
   /* Desaturated violet-tinted fractal-noise grain (ported from the marketing
    * site) - textures a flat ground so it doesn't read as dead black. */
   --grain-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.8 0 0 0 0 0.74 0 0 0 0 1 0.34 0.34 0.34 0 -0.22'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
