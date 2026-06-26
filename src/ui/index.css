@@ -132,6 +132,56 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* ── shadcn/ui semantic tokens - mapped onto the ink/fog/violet brand.
+ * Dark-only app, so these live in :root with the dark values (no .dark layer).
+ * NOTE (deliberate): we do NOT redefine --radius-sm/md/lg/xl (would retune the
+ * existing files that ride the default radius scale) and we do NOT add a global
+ * `* { border-color }` / body reset (would repaint ~100 components). shadcn
+ * primitives carry explicit `border-border`/`border-input` instead. */
+:root {
+  --background: #0a0c12;
+  --foreground: #f4f5fa;
+  --card: #0e1118;
+  --card-foreground: #f4f5fa;
+  --popover: #0e1118;
+  --popover-foreground: #f4f5fa;
+  --primary: #a78bfa;
+  --primary-foreground: #0a0c12;
+  --secondary: #13171f;
+  --secondary-foreground: #f4f5fa;
+  --muted: #13171f;
+  --muted-foreground: #9aa0b3;
+  --accent: #191e29;
+  --accent-foreground: #f4f5fa;
+  --destructive: #fb7185;
+  --destructive-foreground: #1a0a0d;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: #a78bfa;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
 /* ── Scene surfaces (DESIGN.md §4) - solid colour fields + inverting components.
  * The aesthetic the product is migrating TO, away from `.glass`: every surface
  * is a solid ground; components read the --s-* tokens so the same slab works on
