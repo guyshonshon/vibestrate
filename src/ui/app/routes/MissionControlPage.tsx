@@ -1,24 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  GitBranch,
+  LayoutGrid,
+  Play,
+  Plus,
+  Route as RouteIcon,
+  Square,
+  Users,
+  X,
+} from "lucide-react";
 import { api } from "../../lib/api.js";
 import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import { navigate } from "../App.js";
-import { MissionRunV5 } from "../../components/mission/variants/MissionRunV5.js";
-import { LiveRunsSection } from "../../components/mission/v3/LiveRuns.js";
-import { RecentRunsSection } from "../../components/mission/v3/RecentRuns.js";
-import {
-  ApprovalsCard,
-  NotificationsCard,
-  ShortcutsCard,
-  WorkspaceCard,
-} from "../../components/mission/v3/RightRail.js";
 import type {
-  VibestrateEvent,
   ApprovalRequest,
-  NotificationRecord,
   RunState,
   RunStatus,
-  SchedulerState,
 } from "../../lib/types.js";
 
 type ApprovalRow = ApprovalRequest & { runId: string };
@@ -47,94 +49,104 @@ const ACTIVE_STATUSES: RunStatus[] = [
   "paused",
 ];
 
-function isActive(s: RunStatus): boolean {
-  return ACTIVE_STATUSES.includes(s);
+const isActive = (s: RunStatus): boolean => ACTIVE_STATUSES.includes(s);
+
+const TONE_COLOR: Record<string, string> = {
+  violet: "#a78bfa",
+  emerald: "#34d399",
+  amber: "#fb923c",
+  rose: "#fb7185",
+  chalk: "#8c8a96",
+};
+
+const STATUS_META: Partial<Record<RunStatus, { tone: string; label: string }>> = {
+  merge_ready: { tone: "emerald", label: "merge ready" },
+  failed: { tone: "rose", label: "failed" },
+  aborted: { tone: "chalk", label: "aborted" },
+  waiting_for_approval: { tone: "amber", label: "waiting for approval" },
+  paused: { tone: "chalk", label: "paused" },
+};
+
+function statusMeta(s: RunStatus): { tone: string; label: string } {
+  return STATUS_META[s] ?? { tone: "violet", label: s.replace(/_/g, " ") };
+}
+
+function relTime(iso: string): string {
+  const d = Date.parse(iso);
+  if (!Number.isFinite(d)) return "";
+  const s = (Date.now() - d) / 1000;
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function sparkPath(vals: number[]): string {
+  if (vals.length === 0) return "";
+  const max = Math.max(1, ...vals);
+  const w = 156;
+  const h = 50;
+  const step = vals.length > 1 ? w / (vals.length - 1) : 0;
+  return vals
+    .map(
+      (v, i) =>
+        `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)},${(h - (v / max) * (h - 6) - 3).toFixed(1)}`,
+    )
+    .join(" ");
 }
 
 export function MissionControlPage({ onSelectRun }: Props) {
   const [runs, setRuns] = useState<RunState[]>([]);
-  const [eventsByRun, setEventsByRun] = useState<Record<string, VibestrateEvent[]>>({});
   const [diffByRun, setDiffByRun] = useState<
-    Record<string, { insertions: number; deletions: number; files: number }>
+    Record<string, { insertions: number; deletions: number }>
   >({});
   const [approvals, setApprovals] = useState<ApprovalRow[]>([]);
-  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
-  const [scheduler, setScheduler] = useState<SchedulerState | null>(null);
-  const [toast, setToast] = useState<{
-    kind: "ok" | "err";
-    text: string;
-  } | null>(null);
+  const [toast, setToast] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Runs + per-run events / diff / approvals ──
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const [r, q] = await Promise.all([
-          api.listRuns(),
-          api
-            .getQueue()
-            .catch(() => ({ queue: [], state: null as SchedulerState | null })),
-        ]);
+        const r = await api.listRuns();
         if (cancelled) return;
         setRuns(r);
-        setScheduler(q.state);
         setError(null);
-
-        const byRun: Record<string, VibestrateEvent[]> = {};
-        const diffsByRun: Record<
-          string,
-          { insertions: number; deletions: number; files: number }
-        > = {};
-        const aprAggregate: ApprovalRow[] = [];
+        const diffs: Record<string, { insertions: number; deletions: number }> = {};
+        const apr: ApprovalRow[] = [];
         await Promise.all(
-          r.map(async (run) => {
-            if (!isActive(run.status)) return;
-            await Promise.all([
-              api
-                .listEvents(run.runId)
-                .then((evs) => {
-                  byRun[run.runId] = evs.slice(-50);
-                })
-                .catch(() => {
-                  byRun[run.runId] = [];
-                }),
-              api
-                .getDiff(run.runId)
-                .then((snap) => {
-                  if (!snap) return;
-                  diffsByRun[run.runId] = {
-                    insertions: snap.totals.insertions,
-                    deletions: snap.totals.deletions,
-                    files: snap.totals.files,
-                  };
-                })
-                .catch(() => undefined),
-              api
-                .listApprovals(run.runId)
-                .then((list) => {
-                  for (const a of list) {
-                    if (a.status === "pending") {
-                      aprAggregate.push({ ...a, runId: run.runId });
+          r
+            .filter((run) => isActive(run.status))
+            .map(async (run) => {
+              await Promise.all([
+                api
+                  .getDiff(run.runId)
+                  .then((snap) => {
+                    if (snap) {
+                      diffs[run.runId] = {
+                        insertions: snap.totals.insertions,
+                        deletions: snap.totals.deletions,
+                      };
                     }
-                  }
-                })
-                .catch(() => undefined),
-            ]);
-          }),
+                  })
+                  .catch(() => undefined),
+                api
+                  .listApprovals(run.runId)
+                  .then((list) => {
+                    for (const a of list) {
+                      if (a.status === "pending") apr.push({ ...a, runId: run.runId });
+                    }
+                  })
+                  .catch(() => undefined),
+              ]);
+            }),
         );
         if (cancelled) return;
-        setEventsByRun(byRun);
-        setDiffByRun(diffsByRun);
-        aprAggregate.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-        setApprovals(aprAggregate);
-
-        const notif = await api.listNotifications().catch(() => ({
-          notifications: [] as NotificationRecord[],
-          unread: 0,
-        }));
-        if (!cancelled) setNotifications(notif.notifications);
+        setDiffByRun(diffs);
+        apr.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        setApprovals(apr);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       }
@@ -147,7 +159,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
     };
   }, []);
 
-  // ── SSE: realtime events for the active runs' MiniTerminal previews ──
+  // Desktop notifications on approval-requested / run failure (kept from v3).
   useEffect(() => {
     const disconnect = streamAllEvents({
       onEvent: ({ runId, event }) => {
@@ -168,174 +180,352 @@ export function MissionControlPage({ onSelectRun }: Props) {
             onClick: () => onSelectRun(runId),
           });
         }
-        setEventsByRun((prev) => {
-          const cur = prev[runId] ?? [];
-          const next = [...cur, event].slice(-50);
-          return { ...prev, [runId]: next };
-        });
       },
     });
     return () => disconnect();
   }, [onSelectRun]);
 
-  // Auto-dismiss toast after 4s.
   useEffect(() => {
     if (!toast) return;
     const id = window.setTimeout(() => setToast(null), 4000);
     return () => window.clearTimeout(id);
   }, [toast]);
 
-  const activeRuns = runs.filter((r) => isActive(r.status));
-  const completed = runs
-    .filter(
-      (r) =>
-        r.status === "merge_ready" ||
-        r.status === "failed" ||
-        r.status === "aborted",
-    )
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-    .slice(0, 6);
+  const activeRuns = useMemo(() => runs.filter((r) => isActive(r.status)), [runs]);
+  const completed = useMemo(
+    () =>
+      runs
+        .filter(
+          (r) =>
+            r.status === "merge_ready" || r.status === "failed" || r.status === "aborted",
+        )
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        .slice(0, 8),
+    [runs],
+  );
 
-  const handleAction = async (
-    kind: "pause" | "resume" | "abort",
-    runId: string,
-  ): Promise<void> => {
+  const mergeReady = useMemo(
+    () => runs.filter((r) => r.status === "merge_ready").length,
+    [runs],
+  );
+  const failed = useMemo(() => runs.filter((r) => r.status === "failed").length, [runs]);
+
+  const week = useMemo(() => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const base = startOfToday.getTime();
+    const dayMs = 86_400_000;
+    const counts = new Array(7).fill(0) as number[];
+    for (const r of runs) {
+      const t = Date.parse(r.startedAt);
+      if (!Number.isFinite(t)) continue;
+      const day = new Date(t);
+      day.setHours(0, 0, 0, 0);
+      const diff = Math.floor((base - day.getTime()) / dayMs);
+      if (diff >= 0 && diff < 7) counts[6 - diff] = (counts[6 - diff] ?? 0) + 1;
+    }
+    return { counts, total: counts.reduce((a, b) => a + b, 0) };
+  }, [runs]);
+
+  const act = async (kind: "abort" | "pause" | "resume", runId: string) => {
     try {
-      if (kind === "pause") await api.pauseRun(runId);
-      else if (kind === "resume") await api.resumeRun(runId);
-      else await api.abortRun(runId);
-      setToast({ kind: "ok", text: `${kind} requested for ${runId}` });
+      if (kind === "abort") await api.abortRun(runId);
+      else if (kind === "pause") await api.pauseRun(runId);
+      else await api.resumeRun(runId);
+      setToast({ kind: "ok", text: `${kind} requested` });
     } catch (err) {
-      setToast({
-        kind: "err",
-        text: err instanceof Error ? err.message : String(err),
-      });
+      setToast({ kind: "err", text: err instanceof Error ? err.message : String(err) });
     }
   };
-
-  const handleApprove = async (a: ApprovalRow) => {
+  const decide = async (a: ApprovalRow, approve: boolean) => {
     try {
-      await api.approveApproval({ runId: a.runId, approvalId: a.id });
-      setToast({ kind: "ok", text: `approved ${a.id}` });
+      if (approve) await api.approveApproval({ runId: a.runId, approvalId: a.id });
+      else await api.rejectApproval({ runId: a.runId, approvalId: a.id });
+      setToast({ kind: "ok", text: approve ? "approved" : "rejected" });
     } catch (err) {
-      setToast({
-        kind: "err",
-        text: err instanceof Error ? err.message : String(err),
-      });
-    }
-  };
-  const handleReject = async (a: ApprovalRow) => {
-    try {
-      await api.rejectApproval({ runId: a.runId, approvalId: a.id });
-      setToast({ kind: "ok", text: `rejected ${a.id}` });
-    } catch (err) {
-      setToast({
-        kind: "err",
-        text: err instanceof Error ? err.message : String(err),
-      });
-    }
-  };
-
-  const handleNotificationOpen = (n: NotificationRecord) => {
-    if (n.runId) navigate({ kind: "run", runId: n.runId });
-    else if (n.taskId) navigate({ kind: "task", taskId: n.taskId });
-    if (!n.readAt) {
-      void api.markNotificationRead(n.id).catch(() => undefined);
+      setToast({ kind: "err", text: err instanceof Error ? err.message : String(err) });
     }
   };
 
   return (
-    <div className="relative z-10 px-8 pt-6 pb-16 fade-up">
-      <section className="mt-2">
-        <div className="mb-3 flex justify-end">
+    <div className="font-jakarta flex min-h-screen bg-coal-800 text-chalk-100">
+      <aside className="sticky top-0 flex h-screen w-[230px] shrink-0 flex-col gap-0.5 px-4 py-5">
+        <div className="mb-5 flex items-center gap-2.5 px-2">
+          <span className="h-7 w-7 rounded-[9px] bg-gradient-to-br from-violet-soft to-[#6d4fd4]" />
+          <span className="text-[16px] font-extrabold tracking-[-0.01em]">vibestrate</span>
+        </div>
+
+        <NavItem icon={<LayoutGrid className="h-[18px] w-[18px]" />} label="Dashboard" selected />
+        <button className="flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-left text-[14px] font-bold text-chalk-100">
+          <Play className="h-[18px] w-[18px]" />
+          <span>Runs</span>
+          <ChevronUp className="ml-auto h-4 w-4 text-chalk-400" />
+        </button>
+        <div className="mb-1 ml-[22px] flex flex-col gap-0.5 border-l-[1.5px] border-white/[0.08] pl-2.5">
+          <SubItem label="Active" badge={{ n: activeRuns.length, tone: "violet" }} onClick={() => navigate({ kind: "runs" })} />
+          <SubItem label="Merge-ready" badge={{ n: mergeReady, tone: "emerald" }} onClick={() => navigate({ kind: "runs" })} />
+          <SubItem label="Failed" badge={{ n: failed, tone: "amber" }} onClick={() => navigate({ kind: "runs" })} />
+        </div>
+        <NavItem
+          icon={<Users className="h-[18px] w-[18px]" />}
+          label="Crew"
+          trailing={<ChevronDown className="h-4 w-4 text-chalk-400" />}
+          onClick={() => navigate({ kind: "crew", crewId: null })}
+        />
+        <NavItem icon={<RouteIcon className="h-[18px] w-[18px]" />} label="Flows" onClick={() => navigate({ kind: "flows" })} />
+        <NavItem icon={<GitBranch className="h-[18px] w-[18px]" />} label="Diffs" onClick={() => navigate({ kind: "git-tree" })} />
+
+        <button
+          onClick={() => navigate({ kind: "compose" })}
+          className="mt-auto flex items-center justify-center gap-2 rounded-[12px] bg-violet-soft px-3 py-2.5 text-[13.5px] font-bold text-coal-900 transition hover:bg-violet-soft/90"
+        >
+          <Plus className="h-4 w-4" /> New run
+        </button>
+      </aside>
+
+      <main className="flex-1 px-10 py-8">
+        <div className="mb-7 flex items-center justify-between">
+          <h1 className="text-[30px] font-extrabold tracking-[-0.02em]">Mission control</h1>
           <button
-            type="button"
             onClick={() => navigate({ kind: "compose" })}
-            className="text-[11.5px] text-violet-soft hover:text-violet-soft/80"
-            title="Open the dedicated run page (full control surface)"
+            className="flex items-center gap-2 rounded-[12px] bg-coal-600 px-4 py-2.5 text-[13.5px] font-semibold text-chalk-100 hover:bg-coal-500"
           >
-            Open the full run page →
+            <Plus className="h-4 w-4 text-violet-soft" /> New run
           </button>
         </div>
-        <MissionRunV5 />
-      </section>
 
-      {/* Live now - appears the instant a run is sent, so it's obvious the
-       * task started. Multiple runs stack here (the composer above stays
-       * usable, so you can launch more in parallel). */}
-      {activeRuns.length > 0 ? (
-        <section className="mt-6">
-          {activeRuns.length > 0 ? (
-            <LiveRunsSection
-              runs={activeRuns}
-              eventsByRun={eventsByRun}
-              diffByRun={diffByRun}
-              onOpen={onSelectRun}
-              onPause={(id) => void handleAction("pause", id)}
-              onResume={(id) => void handleAction("resume", id)}
-              onAbort={(id) => void handleAction("abort", id)}
-            />
-          ) : null}
-        </section>
-      ) : null}
+        {error ? (
+          <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
+            {error}
+          </div>
+        ) : null}
+        {toast ? (
+          <div
+            role="status"
+            className={`mb-4 rounded-[12px] border px-4 py-2.5 text-[13px] ${
+              toast.kind === "ok"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
+                : "border-rose-400/30 bg-rose-500/10 text-rose-300"
+            }`}
+          >
+            {toast.text}
+          </div>
+        ) : null}
 
-      {error || toast ? (
-        <div className="mt-4">
-          {error ? (
-            <div className="rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
-              {error}
-            </div>
-          ) : null}
-          {toast ? (
-            <div
-              role="status"
-              className={
-                toast.kind === "ok"
-                  ? "rounded-lg border px-3 py-1.5 text-[12.5px] border-emerald-400/30 bg-emerald-500/5 text-emerald-300"
-                  : "rounded-lg border px-3 py-1.5 text-[12.5px] border-rose-400/30 bg-rose-500/5 text-rose-300"
-              }
-            >
-              {toast.kind === "ok" ? "✓ " : "✗ "}
-              {toast.text}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {/* Body: live + inbox */}
-      <section className="mt-10 grid grid-cols-12 gap-6">
-        <div className="col-span-12 xl:col-span-8 space-y-5">
-          <RecentRunsSection
-            runs={completed}
-            onOpen={onSelectRun}
-            onShowAll={() => navigate({ kind: "runs" })}
+        <div className="grid grid-cols-3 gap-4">
+          <StatCard label="Active runs" value={activeRuns.length} hint="in flight" tone="violet" />
+          <StatCard label="Merge-ready" value={mergeReady} hint="ready to ship" tone="emerald" />
+          <StatCard
+            label="Runs this week"
+            value={week.total}
+            hint="last 7 days"
+            tone="violet"
+            spark={week.counts}
           />
         </div>
-        {/*
-         * Right rail. At xl+ this is a 4-col-wide sidebar with the cards
-         * stacked vertically. At intermediate widths (md/lg) the rail
-         * runs full-width *below* the live execution and we switch to a
-         * 2-column sub-grid so the 4 cards form a compact 2×2 block
-         * instead of a tall single-column stack. On narrow viewports
-         * the cards fall back to 1 column.
-         */}
-        <aside className="col-span-12 xl:col-span-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-5">
-            <ApprovalsCard
-              approvals={approvals}
-              onOpenRun={onSelectRun}
-              onApprove={(a) => void handleApprove(a)}
-              onReject={(a) => void handleReject(a)}
-            />
-            <WorkspaceCard runs={runs} scheduler={scheduler} />
-            <NotificationsCard
-              notifications={notifications}
-              onOpen={handleNotificationOpen}
-            />
-            <ShortcutsCard />
+
+        {approvals.length > 0 ? (
+          <section className="mt-4 rounded-[22px] border border-amber-soft/25 bg-coal-600 p-6">
+            <h2 className="mb-3 text-[18px] font-bold">Waiting on you</h2>
+            <div className="flex flex-col gap-2.5">
+              {approvals.map((a) => (
+                <div
+                  key={`${a.runId}:${a.id}`}
+                  className="flex items-center gap-3 rounded-[14px] bg-coal-500/60 px-4 py-3"
+                >
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: TONE_COLOR.amber }} />
+                  <span className="min-w-0 flex-1 truncate text-[13.5px]">{a.reason ?? a.requestedAction ?? "Approval requested"}</span>
+                  <button onClick={() => decide(a, true)} className="flex items-center gap-1 rounded-[9px] bg-emerald-500/15 px-3 py-1.5 text-[12.5px] font-semibold text-emerald-400 hover:bg-emerald-500/25">
+                    <Check className="h-3.5 w-3.5" /> Approve
+                  </button>
+                  <button onClick={() => decide(a, false)} className="flex items-center gap-1 rounded-[9px] bg-rose-500/15 px-3 py-1.5 text-[12.5px] font-semibold text-rose-300 hover:bg-rose-500/25">
+                    <X className="h-3.5 w-3.5" /> Reject
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="mt-4">
+          <h2 className="mb-3 text-[18px] font-bold">Active</h2>
+          {activeRuns.length === 0 ? (
+            <div className="rounded-[22px] border border-white/[0.06] bg-coal-600 px-6 py-10 text-center text-[13.5px] text-chalk-400">
+              No runs in flight. Launch one with <span className="font-semibold text-chalk-100">New run</span>.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              {activeRuns.map((r) => (
+                <RunCard
+                  key={r.runId}
+                  run={r}
+                  diff={diffByRun[r.runId]}
+                  onOpen={() => onSelectRun(r.runId)}
+                  onAbort={() => act("abort", r.runId)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-7">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-[18px] font-bold">Recent</h2>
+            <button onClick={() => navigate({ kind: "runs" })} className="flex items-center gap-1 text-[12.5px] font-semibold text-violet-soft hover:text-violet-soft/80">
+              All runs <ArrowRight className="h-3.5 w-3.5" />
+            </button>
           </div>
-        </aside>
-      </section>
+          {completed.length === 0 ? (
+            <div className="rounded-[22px] border border-white/[0.06] bg-coal-600 px-6 py-8 text-center text-[13.5px] text-chalk-400">
+              Nothing finished yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              {completed.map((r) => (
+                <RunCard key={r.runId} run={r} onOpen={() => onSelectRun(r.runId)} />
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function NavItem({
+  icon,
+  label,
+  trailing,
+  selected,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  trailing?: ReactNode;
+  selected?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-left text-[14px] font-medium ${
+        selected ? "bg-coal-500 font-semibold text-white" : "text-chalk-400 hover:text-chalk-100"
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+      {trailing ? <span className="ml-auto">{trailing}</span> : null}
+    </button>
+  );
+}
+
+const badgeTone: Record<string, string> = {
+  violet: "bg-violet-soft/20 text-violet-soft",
+  emerald: "bg-emerald-500/[0.18] text-emerald-400",
+  amber: "bg-amber-soft/20 text-amber-soft",
+};
+
+function SubItem({
+  label,
+  badge,
+  onClick,
+}: {
+  label: string;
+  badge?: { n: number; tone: keyof typeof badgeTone };
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center justify-between rounded-[9px] px-3 py-2 text-left text-[13px] text-chalk-400 hover:text-chalk-100"
+    >
+      <span>{label}</span>
+      {badge ? (
+        <span className={`rounded-md px-1.5 py-px text-[11px] font-bold ${badgeTone[badge.tone]}`}>
+          {badge.n}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  hint,
+  tone,
+  spark,
+}: {
+  label: string;
+  value: number;
+  hint: string;
+  tone: string;
+  spark?: number[];
+}) {
+  return (
+    <div className="rounded-[20px] border border-white/[0.06] bg-coal-600 p-5">
+      <div className="text-[13px] font-medium text-chalk-400">{label}</div>
+      <div className="mt-2 flex items-end justify-between">
+        <span className="text-[38px] font-extrabold leading-none tracking-[-0.02em] text-white">
+          {value}
+        </span>
+        {spark && spark.length > 0 ? (
+          <svg viewBox="0 0 156 50" className="h-9 w-[120px]" fill="none" aria-hidden>
+            <path d={sparkPath(spark)} stroke={TONE_COLOR[tone]} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <span className="h-2.5 w-2.5 rounded-full" style={{ background: TONE_COLOR[tone] }} />
+        )}
+      </div>
+      <div className="mt-2 text-[12px] text-chalk-400">{hint}</div>
+    </div>
+  );
+}
+
+function RunCard({
+  run,
+  diff,
+  onOpen,
+  onAbort,
+}: {
+  run: RunState;
+  diff?: { insertions: number; deletions: number };
+  onOpen: () => void;
+  onAbort?: () => void;
+}) {
+  const meta = statusMeta(run.status);
+  const label = run.displayName || run.task;
+  return (
+    <div className="rounded-[18px] border border-white/[0.06] bg-coal-600 p-4">
+      <div className="flex items-center gap-2.5">
+        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: TONE_COLOR[meta.tone] }} />
+        <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-chalk-100">{label}</span>
+        <span className="shrink-0 text-[11.5px] text-chalk-400">{relTime(run.updatedAt)}</span>
+      </div>
+      <div className="mt-2.5 flex items-center gap-2 text-[11.5px] text-chalk-400">
+        <span className="rounded-md bg-white/[0.05] px-2 py-0.5 font-medium" style={{ color: TONE_COLOR[meta.tone] }}>
+          {meta.label}
+        </span>
+        {run.branchName ? (
+          <span className="truncate font-mono text-[11px]">{run.branchName}</span>
+        ) : null}
+        {diff ? (
+          <span className="ml-auto shrink-0 font-mono text-[11px]">
+            <span className="text-emerald-400">+{diff.insertions}</span>{" "}
+            <span className="text-rose-300">-{diff.deletions}</span>
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <button onClick={onOpen} className="flex items-center gap-1.5 rounded-[10px] bg-coal-500 px-3 py-1.5 text-[12.5px] font-semibold text-chalk-100 hover:bg-coal-400">
+          Open <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+        {onAbort ? (
+          <button onClick={onAbort} className="flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[12.5px] font-semibold text-rose-300 hover:bg-rose-500/10">
+            <Square className="h-3.5 w-3.5" /> Abort
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

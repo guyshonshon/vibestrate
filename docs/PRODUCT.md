@@ -96,6 +96,8 @@ Dark-first, the only theme. The "coal / chalk" palette (tokens in
 - Foundation: React 19 + Tailwind v4. shadcn/ui is available (branch
   `feat/shadcn-foundation`) as accessible interactive plumbing under bespoke
   styling - it does not dictate the look; the look is bespoke.
-- First surface in this language: `src/ui/components/overview/OverviewSurface.tsx`.
+- First surface in this language: `src/ui/app/routes/MissionControlPage.tsx`
+  (the default landing). It renders its own left sidebar; `AppShell` has a `bare`
+  mode that drops the TopBar for surfaces that bring their own shell.
 - The dashboard watches, reports, annotates, and decides. The CLI/core does the
   work; the UI never pretends to do something the orchestrator doesn't.

@@ -8,6 +8,12 @@ import type { NotificationRecord } from "../../lib/types.js";
 
 type AppShellProps = {
   children: ReactNode;
+  /**
+   * Chromeless mode: render only the page + the global overlays (children),
+   * dropping the TopBar. Used by surfaces that bring their own shell - e.g.
+   * the soft-dark Mission Control, which has its own left sidebar.
+   */
+  bare?: boolean;
   currentRunId: string | null;
   currentNav: NavId;
   onSelectRun: (runId: string) => void;
@@ -44,6 +50,7 @@ type AppShellProps = {
  */
 export function AppShell({
   children,
+  bare = false,
   currentNav,
   onShowHome,
   onShowFlows,
@@ -68,6 +75,15 @@ export function AppShell({
   onShowConsult,
   onOpenNotification,
 }: AppShellProps) {
+  if (bare) {
+    return (
+      <div className="relative h-screen w-screen overflow-y-auto">
+        <ServerHealthBanner />
+        {children}
+        <HelpOverlay />
+      </div>
+    );
+  }
   return (
     <div className="relative flex h-screen w-screen flex-col overflow-hidden text-fog-100">
       <ServerHealthBanner />

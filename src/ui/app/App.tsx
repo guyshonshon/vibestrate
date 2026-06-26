@@ -254,6 +254,7 @@ export function App() {
 
   return (
     <AppShell
+      bare={route.kind === "mission"}
       currentRunId={route.kind === "run" ? route.runId : null}
       currentNav={
         route.kind === "board" || route.kind === "task"
