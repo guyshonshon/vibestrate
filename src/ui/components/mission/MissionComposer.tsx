@@ -1,14 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Check,
-  ChevronDown,
-  Copy,
-  Layers,
-  Play,
-  ShieldCheck,
-  Terminal,
-  Users,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, Copy, Layers, Play, ShieldCheck, Terminal, Users } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { navigate } from "../../app/App.js";
 import { cn } from "../design/cn.js";
@@ -22,11 +13,11 @@ import type {
  * MissionComposer - "start a run" in the vibestrate.com marketing language.
  *
  * Flat, SQUARE (radius 0), near-black, hairline borders, solid violet/emerald.
- * Left pane = the task + how it runs (mode, supervisor). Right rail = the run
- * summary plus a single "Composition" container: a flow picker, a crew picker,
- * and a live map of how the crew's roles fill the flow's seats (a flow declares
- * seats; a crew fills them). No new deps - reads the ink/fog/violet/emerald
- * tokens already ported 1:1 from the marketing site.
+ * Left pane = selection: task, flow cards, crew cards, supervisor, mode. Right
+ * pane = the summary: a compact readback plus a "patch-bay" wireframe that wires
+ * the chosen crew's roles into the chosen flow's seats (seats are sockets, roles
+ * are plugs, SVG cables connect them). No new deps - reads the ink/fog/violet/
+ * emerald tokens already ported 1:1 from the marketing site.
  */
 type Mode = "interactive" | "readOnly" | "unattended";
 type MetaCrew = NonNullable<ProjectMetadata["crews"]>[number];
@@ -126,7 +117,7 @@ export function MissionComposer() {
   return (
     <div className="slab">
       <div className="grid grid-cols-1 lg:grid-cols-12">
-        {/* ── Left: the task + how it runs ──────────────────────────────── */}
+        {/* ── Left: selection ───────────────────────────────────────────── */}
         <div className="flex flex-col gap-5 p-6 lg:col-span-7 lg:border-r lg:border-white/[0.08]">
           <h2 className="font-display text-[26px] font-semibold leading-none tracking-[-0.02em] text-fog-100">
             Start a&nbsp;
@@ -145,20 +136,59 @@ export function MissionComposer() {
                 }
               }}
               placeholder="Add structured logging to the settings save handler"
-              className="s-focusable min-h-[120px] w-full resize-y border border-white/[0.1] bg-ink-200 px-4 py-3 text-[15px] leading-[1.55] text-fog-100 outline-none placeholder:text-fog-400"
+              className="s-focusable min-h-[88px] w-full resize-y border border-white/[0.1] bg-ink-200 px-4 py-3 text-[15px] leading-[1.55] text-fog-100 outline-none placeholder:text-fog-400"
             />
           </section>
 
           <section>
-            <PaneTitle icon={<ShieldCheck className="h-4 w-4" strokeWidth={1.9} />}>
-              Supervisor
-            </PaneTitle>
+            <PaneTitle icon={<Layers className="h-4 w-4" strokeWidth={1.9} />}>Flow</PaneTitle>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {flows.slice(0, 6).map((f) => {
+                const steps = f.definition.steps ?? [];
+                const seats = Object.keys(f.definition.seats ?? {}).length;
+                const on = f.id === flowId;
+                return (
+                  <OptionCard
+                    key={f.id}
+                    on={on}
+                    onClick={() => setFlowId(on ? "" : f.id)}
+                    title={f.definition.label}
+                    badge={f.id === defaultFlow ? "default" : undefined}
+                    viz={<CountViz count={steps.length} on={on} />}
+                    meta={`${steps.length} steps · ${seats} seats`}
+                  />
+                );
+              })}
+            </div>
+          </section>
+
+          <section>
+            <PaneTitle icon={<Users className="h-4 w-4" strokeWidth={1.9} />}>Crew</PaneTitle>
+            {crews.length > 0 ? (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {crews.map((c) => {
+                  const on = c.id === crewId;
+                  const profiles = [...new Set(c.roles.map((r) => r.profile))];
+                  return (
+                    <OptionCard
+                      key={c.id}
+                      on={on}
+                      onClick={() => setCrewId(on ? null : c.id)}
+                      title={c.label}
+                      badge={c.id === meta?.defaultCrew ? "default" : undefined}
+                      viz={<CountViz count={c.roles.length} on={on} square />}
+                      meta={`${c.roles.length} roles · ${profiles.slice(0, 2).join(" · ")}`}
+                    />
+                  );
+                })}
+              </div>
+            ) : null}
+          </section>
+
+          <section>
+            <PaneTitle icon={<ShieldCheck className="h-4 w-4" strokeWidth={1.9} />}>Supervisor</PaneTitle>
             {personas.length > 0 ? (
-              <Segmented
-                options={personas.map((p) => ({ value: p.id, label: p.label }))}
-                value={personaId}
-                onChange={setPersonaId}
-              />
+              <Segmented options={personas.map((p) => ({ value: p.id, label: p.label }))} value={personaId} onChange={setPersonaId} />
             ) : null}
           </section>
 
@@ -184,57 +214,30 @@ export function MissionComposer() {
           </section>
         </div>
 
-        {/* ── Right: run summary + the composition (flow x crew seats) ───── */}
+        {/* ── Right: summary + the wireframe ────────────────────────────── */}
         <aside className="flex flex-col gap-5 bg-ink-50 p-6 lg:col-span-5">
           <div>
             <PaneTitle>Run summary</PaneTitle>
             <div className="border border-white/[0.08]">
-              <SummaryRow icon={<Layers className="h-3.5 w-3.5" strokeWidth={1.9} />} label="Flow" value={selectedFlow?.definition.label ?? "auto"} muted={!selectedFlow} />
-              <SummaryRow icon={<Users className="h-3.5 w-3.5" strokeWidth={1.9} />} label="Crew" value={selectedCrew?.label ?? "default"} muted={!selectedCrew} />
               <SummaryRow icon={<ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.9} />} label="Supervisor" value={selectedPersona?.label ?? "default"} muted={!selectedPersona} />
               <SummaryRow icon={<Play className="h-3.5 w-3.5" strokeWidth={1.9} />} label="Mode" value={modeLabel} last />
             </div>
           </div>
 
-          {/* Composition: pick flow + crew, see how the crew fills the seats */}
           <div>
             <PaneTitle icon={<Layers className="h-4 w-4" strokeWidth={1.9} />}>Composition</PaneTitle>
             <div className="border border-white/[0.1] bg-ink-100">
-              <div className="grid grid-cols-2 gap-2.5 p-2.5">
-                <div>
-                  <div className="mb-1.5 text-[12px] text-fog-300">Flow</div>
-                  <Dropdown
-                    value={flowId || null}
-                    placeholder="auto"
-                    options={flows.map((f) => ({
-                      value: f.id,
-                      label: f.definition.label,
-                      hint: `${(f.definition.steps ?? []).length}s · ${Object.keys(f.definition.seats ?? {}).length}·`,
-                    }))}
-                    onChange={(v) => setFlowId(v === flowId ? "" : v)}
-                  />
-                </div>
-                <div>
-                  <div className="mb-1.5 text-[12px] text-fog-300">Crew</div>
-                  <Dropdown
-                    value={crewId}
-                    placeholder="default"
-                    options={crews.map((c) => ({ value: c.id, label: c.label, hint: `${c.roles.length}r` }))}
-                    onChange={setCrewId}
-                  />
-                </div>
+              <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-2.5">
+                <span className="truncate font-display text-[13.5px] font-semibold text-fog-100">
+                  {selectedFlow?.definition.label ?? "Auto flow"}
+                </span>
+                <span className="mono shrink-0 text-[11px] text-fog-400">
+                  {selectedFlow
+                    ? `${Object.keys(selectedFlow.definition.seats ?? {}).length} seats · ${selectedCrew?.label ?? "default"}`
+                    : "orchestrator picks"}
+                </span>
               </div>
-              <div className="border-t border-white/[0.1]">
-                <div className="flex items-center justify-between px-4 pt-3 pb-1">
-                  <span className="text-[12.5px] font-medium text-fog-200">Wiring</span>
-                  <span className="mono text-[11px] text-fog-400">
-                    {selectedFlow
-                      ? `${Object.keys(selectedFlow.definition.seats ?? {}).length} seats · ${selectedCrew?.label ?? "default"}`
-                      : "auto"}
-                  </span>
-                </div>
-                <PatchBay flow={selectedFlow} crew={selectedCrew} />
-              </div>
+              <PatchBay flow={selectedFlow} crew={selectedCrew} />
             </div>
           </div>
 
@@ -258,9 +261,7 @@ export function MissionComposer() {
               className="flex w-full items-center justify-center gap-2.5 px-5 py-4 text-[15px] font-semibold text-white transition-all disabled:cursor-not-allowed disabled:opacity-40"
               style={{
                 background: canStart ? "var(--color-violet-deep)" : "var(--color-ink-300)",
-                boxShadow: canStart
-                  ? "inset 0 1px 0 rgba(255,255,255,0.28), 0 10px 26px -12px var(--color-violet-deep)"
-                  : "none",
+                boxShadow: canStart ? "inset 0 1px 0 rgba(255,255,255,0.28), 0 10px 26px -12px var(--color-violet-deep)" : "none",
               }}
             >
               <Play className="h-[18px] w-[18px]" strokeWidth={2.4} />
@@ -281,9 +282,7 @@ export function MissionComposer() {
           </div>
 
           {error ? (
-            <div className="border border-rose-400/30 bg-rose-500/[0.06] px-3 py-2 text-[12.5px] text-rose-300">
-              {error}
-            </div>
+            <div className="border border-rose-400/30 bg-rose-500/[0.06] px-3 py-2 text-[12.5px] text-rose-300">{error}</div>
           ) : null}
         </aside>
       </div>
@@ -301,21 +300,86 @@ function PaneTitle({ icon, children }: { icon?: React.ReactNode; children: React
   );
 }
 
-/** The dynamic layer: a patch-bay. Flow seats are sockets down the left, crew
- * roles are plugs down the right, and SVG cables wire each role into the seat
- * it fills. Unused crew plugs dim; open seats read neutral. */
+/** A square selection card: title + a count viz + a meta line. Selected fills
+ * solid emerald with dark ink (the marketing "ready/selected" treatment). */
+function OptionCard({
+  on,
+  onClick,
+  title,
+  badge,
+  viz,
+  meta,
+}: {
+  on: boolean;
+  onClick: () => void;
+  title: string;
+  badge?: string;
+  viz: React.ReactNode;
+  meta: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex flex-col gap-1.5 border px-3.5 py-3 text-left transition-colors",
+        on ? "border-transparent" : "border-white/[0.1] bg-ink-200 hover:bg-ink-300",
+      )}
+      style={on ? { background: "var(--emerald)", color: "#04231a", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28)" } : undefined}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="truncate font-display text-[15px] font-semibold leading-tight">{title}</span>
+        {on ? (
+          <Check className="h-4 w-4 shrink-0" strokeWidth={2.6} />
+        ) : badge ? (
+          <span className="mono text-[9.5px] uppercase tracking-wide text-fog-400">{badge}</span>
+        ) : null}
+      </div>
+      {viz}
+      <span className={cn("truncate mono text-[11px]", on ? "" : "text-fog-400")} style={on ? { color: "rgba(4,35,26,0.74)" } : undefined}>
+        {meta}
+      </span>
+    </button>
+  );
+}
+
+/** Tiny "amount" viz: bars for flow steps, squares for crew roles. */
+function CountViz({ count, on, square }: { count: number; on: boolean; square?: boolean }) {
+  if (count === 0) return null;
+  const n = Math.min(count, 14);
+  return (
+    <div className="flex h-[16px] items-end gap-[2px]" aria-hidden>
+      {Array.from({ length: n }, (_, i) => (
+        <span
+          key={i}
+          style={{
+            width: "3px",
+            height: square ? "5px" : `${4 + ((i * 5) % 12)}px`,
+            alignSelf: square ? "center" : "flex-end",
+            background: on ? "#04231a" : "var(--color-violet-soft)",
+            opacity: on ? 0.8 : 0.6,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** The summary wireframe: a patch-bay. Flow seats are sockets down the left,
+ * crew roles are plugs down the right, and SVG cables wire each role into the
+ * seat it fills. Unused crew plugs dim; open seats read neutral. */
 function PatchBay({ flow, crew }: { flow: DiscoveredFlow | null; crew: MetaCrew | null }) {
   if (!flow) {
     return (
-      <div className="px-4 py-4 text-[12.5px] leading-[1.5] text-fog-400">
-        Auto - the orchestrator picks the flow and fills its seats from the default crew.
+      <div className="px-4 py-5 text-[12.5px] leading-[1.5] text-fog-400">
+        Pick a flow and crew on the left - the wiring of roles into seats shows here.
       </div>
     );
   }
   const seats = Object.entries(flow.definition.seats ?? {});
   const roles = crew?.roles ?? [];
   if (seats.length === 0) {
-    return <div className="px-4 py-4 text-[12.5px] text-fog-400">This flow declares no seats.</div>;
+    return <div className="px-4 py-5 text-[12.5px] text-fog-400">This flow declares no seats.</div>;
   }
   const rowH = 46;
   const GUT = 54;
@@ -330,13 +394,12 @@ function PatchBay({ flow, crew }: { flow: DiscoveredFlow | null; crew: MetaCrew 
   const linkedSeats = new Set(links.map((l) => l.si));
   const cy = (i: number) => i * rowH + rowH / 2;
   return (
-    <div className="px-3 pb-3 pt-2">
+    <div className="px-3 pb-3 pt-2.5">
       <div className="mb-1.5 flex items-center justify-between mono text-[10.5px] uppercase tracking-[0.08em] text-fog-400">
         <span>Seats</span>
         <span>Crew</span>
       </div>
       <div className="flex items-start">
-        {/* Seats (sockets) */}
         <div className="flex flex-1 flex-col">
           {seats.map(([key, seat], i) => {
             const on = linkedSeats.has(i);
@@ -352,18 +415,12 @@ function PatchBay({ flow, crew }: { flow: DiscoveredFlow | null; crew: MetaCrew 
                 </div>
                 <span
                   className="absolute right-[-6px] top-1/2 -translate-y-1/2 rounded-full"
-                  style={{
-                    width: 12,
-                    height: 12,
-                    border: `2px solid ${on ? "var(--color-violet-soft)" : "rgba(255,255,255,0.22)"}`,
-                    background: "var(--color-ink-0)",
-                  }}
+                  style={{ width: 12, height: 12, border: `2px solid ${on ? "var(--color-violet-soft)" : "rgba(255,255,255,0.22)"}`, background: "var(--color-ink-0)" }}
                 />
               </div>
             );
           })}
         </div>
-        {/* Cable gutter */}
         <div className="relative shrink-0" style={{ width: GUT }}>
           <svg width={GUT} height={height} className="block" aria-hidden>
             {links.map((l, k) => (
@@ -378,7 +435,6 @@ function PatchBay({ flow, crew }: { flow: DiscoveredFlow | null; crew: MetaCrew 
             ))}
           </svg>
         </div>
-        {/* Roles (plugs) */}
         <div className="flex flex-1 flex-col">
           {roles.length === 0 ? (
             <div className="flex h-[34px] items-center px-3 text-[12px] text-fog-400">default crew</div>
@@ -406,70 +462,6 @@ function PatchBay({ flow, crew }: { flow: DiscoveredFlow | null; crew: MetaCrew 
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-/** Compact flat dropdown (no deps). Closes on outside click or selection. */
-function Dropdown({
-  value,
-  placeholder,
-  options,
-  onChange,
-}: {
-  value: string | null;
-  placeholder: string;
-  options: { value: string; label: string; hint?: string }[];
-  onChange: (v: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [open]);
-  const cur = options.find((o) => o.value === value) ?? null;
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-2 border border-white/[0.1] bg-ink-200 px-3 py-2 text-[13px] hover:bg-ink-300"
-      >
-        <span className={cn("truncate", cur ? "text-fog-100" : "text-fog-400")}>
-          {cur?.label ?? placeholder}
-        </span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-fog-400" strokeWidth={1.8} />
-      </button>
-      {open ? (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-[260px] overflow-auto border border-white/[0.16] bg-ink-100 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.7)]">
-          {options.map((o) => {
-            const on = o.value === value;
-            return (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => {
-                  onChange(o.value);
-                  setOpen(false);
-                }}
-                className={cn(
-                  "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[13px]",
-                  on ? "text-white" : "text-fog-200 hover:bg-ink-300",
-                )}
-                style={on ? { background: "var(--color-violet-deep)" } : undefined}
-              >
-                <span className="truncate">{o.label}</span>
-                {o.hint ? <span className="mono text-[10.5px] text-fog-400">{o.hint}</span> : null}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
     </div>
   );
 }
