@@ -365,9 +365,12 @@ function CountViz({ count, on, square }: { count: number; on: boolean; square?: 
   );
 }
 
-/** The summary wireframe: a patch-bay. Flow seats are sockets down the left,
- * crew roles are plugs down the right, and SVG cables wire each role into the
- * seat it fills. Unused crew plugs dim; open seats read neutral. */
+type PlugRole = MetaCrew["roles"][number];
+
+/** The summary wireframe. Each flow seat is grouped with the crew role that
+ * fills it as one row, joined by a flat SQUARE plug-in connector (a square plug
+ * seated in a square socket) - matching the card language, not round cables.
+ * Unused crew is gathered into a separate "spare" group. */
 function PatchBay({ flow, crew }: { flow: DiscoveredFlow | null; crew: MetaCrew | null }) {
   if (!flow) {
     return (
@@ -381,87 +384,63 @@ function PatchBay({ flow, crew }: { flow: DiscoveredFlow | null; crew: MetaCrew 
   if (seats.length === 0) {
     return <div className="px-4 py-5 text-[12.5px] text-fog-400">This flow declares no seats.</div>;
   }
-  const rowH = 46;
-  const GUT = 54;
-  const height = Math.max(seats.length, roles.length) * rowH;
-  const links = seats
-    .map(([key], si) => {
-      const rj = roles.findIndex((r) => r.seats.includes(key));
-      return rj >= 0 ? { si, rj } : null;
-    })
-    .filter((l): l is { si: number; rj: number } => l !== null);
-  const usedRoles = new Set(links.map((l) => l.rj));
-  const linkedSeats = new Set(links.map((l) => l.si));
-  const cy = (i: number) => i * rowH + rowH / 2;
+  const conns = seats.map(([key, seat]) => ({
+    key,
+    label: seat.label,
+    role: roles.find((r) => r.seats.includes(key)) ?? null,
+  }));
+  const usedIds = new Set(conns.map((c) => c.role?.id).filter(Boolean));
+  const spare = roles.filter((r) => !usedIds.has(r.id));
   return (
-    <div className="px-3 pb-3 pt-2.5">
-      <div className="mb-1.5 flex items-center justify-between mono text-[10.5px] uppercase tracking-[0.08em] text-fog-400">
-        <span>Seats</span>
-        <span>Crew</span>
-      </div>
-      <div className="flex items-start">
-        <div className="flex flex-1 flex-col">
-          {seats.map(([key, seat], i) => {
-            const on = linkedSeats.has(i);
-            return (
-              <div key={key} className="relative flex items-center" style={{ height: rowH }}>
-                <div
-                  className={cn(
-                    "flex h-[34px] w-full items-center border pl-3 pr-5 text-[12.5px]",
-                    on ? "border-violet-soft/40 bg-violet-soft/[0.08] text-fog-100" : "border-white/[0.1] bg-ink-200 text-fog-300",
-                  )}
-                >
-                  <span className="truncate">{seat.label}</span>
-                </div>
-                <span
-                  className="absolute right-[-6px] top-1/2 -translate-y-1/2 rounded-full"
-                  style={{ width: 12, height: 12, border: `2px solid ${on ? "var(--color-violet-soft)" : "rgba(255,255,255,0.22)"}`, background: "var(--color-ink-0)" }}
-                />
-              </div>
-            );
-          })}
-        </div>
-        <div className="relative shrink-0" style={{ width: GUT }}>
-          <svg width={GUT} height={height} className="block" aria-hidden>
-            {links.map((l, k) => (
-              <path
-                key={k}
-                d={`M 0 ${cy(l.si)} C ${GUT / 2} ${cy(l.si)}, ${GUT / 2} ${cy(l.rj)}, ${GUT} ${cy(l.rj)}`}
-                fill="none"
-                stroke="var(--emerald)"
-                strokeWidth="1.6"
-                opacity="0.65"
-              />
+    <div className="flex flex-col gap-2 p-3">
+      {conns.map((c) => (
+        <PlugRow key={c.key} seatLabel={c.label} role={c.role} />
+      ))}
+      {spare.length > 0 ? (
+        <div className="mt-1 border-t border-white/[0.07] pt-2.5">
+          <div className="mb-2 text-[11.5px] font-medium text-fog-300">Spare crew</div>
+          <div className="flex flex-wrap gap-1.5">
+            {spare.map((r) => (
+              <span key={r.id} className="flex items-center gap-1.5 border border-white/[0.1] bg-ink-200 px-2 py-1 text-[11px] text-fog-400">
+                <span className="inline-block h-2 w-2 border border-white/25" />
+                {r.label}
+                <span className="mono text-[9.5px] text-fog-500">{r.profile}</span>
+              </span>
             ))}
-          </svg>
+          </div>
         </div>
-        <div className="flex flex-1 flex-col">
-          {roles.length === 0 ? (
-            <div className="flex h-[34px] items-center px-3 text-[12px] text-fog-400">default crew</div>
-          ) : (
-            roles.map((r, j) => {
-              const used = usedRoles.has(j);
-              return (
-                <div key={r.id} className="relative flex items-center" style={{ height: rowH }}>
-                  <span
-                    className="absolute left-[-6px] top-1/2 z-10 -translate-y-1/2 rounded-full"
-                    style={{ width: 12, height: 12, background: used ? "var(--emerald)" : "rgba(255,255,255,0.2)" }}
-                  />
-                  <div
-                    className={cn(
-                      "flex h-[34px] w-full flex-col justify-center border pl-5 pr-3",
-                      used ? "border-emerald-400/30 bg-emerald-500/[0.06]" : "border-white/[0.1] bg-ink-200 opacity-55",
-                    )}
-                  >
-                    <span className="truncate text-[12px] font-medium leading-tight text-fog-100">{r.label}</span>
-                    <span className="mono truncate text-[10px] leading-tight text-fog-400">{r.profile}</span>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** One seat grouped with its filling role, joined by a square plug-in. */
+function PlugRow({ seatLabel, role }: { seatLabel: string; role: PlugRole | null }) {
+  const filled = role !== null;
+  return (
+    <div className="flex items-stretch">
+      <div className="flex flex-1 flex-col justify-center border border-violet-soft/35 bg-violet-soft/[0.08] px-3 py-2">
+        <span className="truncate text-[12.5px] font-medium leading-tight text-fog-100">{seatLabel}</span>
+        <span className="mono text-[9px] uppercase tracking-[0.1em] text-violet-soft/80">seat</span>
       </div>
+      {/* square plug-in connector: an emerald plug seated in a violet socket */}
+      <div className="relative flex w-[30px] shrink-0 items-center justify-center">
+        <span
+          className="absolute"
+          style={{ width: 18, height: 18, border: `2px solid ${filled ? "var(--color-violet-soft)" : "rgba(255,255,255,0.22)"}`, background: "var(--color-ink-0)" }}
+        />
+        {filled ? <span className="absolute" style={{ width: 10, height: 10, background: "var(--emerald)" }} /> : null}
+      </div>
+      {filled ? (
+        <div className="flex flex-1 flex-col justify-center border border-emerald-400/30 bg-emerald-500/[0.07] px-3 py-2">
+          <span className="truncate text-[12.5px] font-medium leading-tight text-fog-100">{role.label}</span>
+          <span className="mono truncate text-[9.5px] leading-tight text-fog-400">{role.profile}</span>
+        </div>
+      ) : (
+        <div className="flex flex-1 items-center border border-dashed border-white/[0.14] bg-ink-100 px-3 py-2 text-[11.5px] text-fog-500">
+          open - no role fills this seat
+        </div>
+      )}
     </div>
   );
 }
