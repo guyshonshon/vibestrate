@@ -3,7 +3,7 @@ import { api } from "../../lib/api.js";
 import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import { navigate } from "../App.js";
-import { MissionComposer } from "../../components/mission/MissionComposer.js";
+import { WireframeGallery } from "../../components/mission/WireframeGallery.js";
 import { LiveRunsSection } from "../../components/mission/v3/LiveRuns.js";
 import { RecentRunsSection } from "../../components/mission/v3/RecentRuns.js";
 import {
@@ -257,7 +257,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
             Open the full run page →
           </button>
         </div>
-        <MissionComposer />
+        <WireframeGallery />
       </section>
 
       {/* Live now - appears the instant a run is sent, so it's obvious the
