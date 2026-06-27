@@ -5,6 +5,7 @@ import { navigate } from "../../app/App.js";
 import { EntityIcon, FlowIcon, type EntityKind } from "../design/EntityIcon.js";
 import { ConsultOrb } from "../consult/ConsultOrb.js";
 import { AssistPopover } from "./AssistPopover.js";
+import { RunActions } from "./RunActions.js";
 import { PhaseRail, RUN_TERMINAL, statusMessage } from "./runPhase.js";
 import type {
   DiscoveredFlow,
@@ -328,15 +329,19 @@ function PatchBay({
 function LaunchPanel({
   status,
   run,
+  runId,
   taskTitle,
   onOpen,
   onStartAnother,
+  onUpdated,
 }: {
   status: RunStatus;
   run: RunState | null;
+  runId: string;
   taskTitle: string;
   onOpen: () => void;
   onStartAnother: () => void;
+  onUpdated: (run: RunState) => void;
 }) {
   const terminal = RUN_TERMINAL.has(status);
   return (
@@ -358,6 +363,17 @@ function LaunchPanel({
       <div className="mt-4">
         <PhaseRail status={status} showLabels />
       </div>
+
+      {!terminal ? (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <RunActions
+            runId={runId}
+            status={status}
+            pauseRequested={run?.pauseRequested}
+            onUpdated={onUpdated}
+          />
+        </div>
+      ) : null}
 
       <button
         type="button"
@@ -650,12 +666,17 @@ export function MissionComposer() {
             <LaunchPanel
               status={launchStatus}
               run={launchedRun}
+              runId={launchedRunId}
               taskTitle={task}
               onOpen={() => navigate({ kind: "control", runId: launchedRunId })}
               onStartAnother={() => {
                 setLaunchedRunId(null);
                 setLaunchedRun(null);
                 setTask("");
+              }}
+              onUpdated={(r) => {
+                setLaunchedRun(r);
+                setLaunchStatus(r.status);
               }}
             />
           ) : (

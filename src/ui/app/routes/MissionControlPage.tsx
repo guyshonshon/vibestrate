@@ -7,7 +7,6 @@ import {
   GitBranch,
   LayoutGrid,
   Plus,
-  Square,
   X,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
@@ -15,6 +14,7 @@ import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import { navigate } from "../App.js";
 import { MissionComposer } from "../../components/mission/MissionComposer.js";
+import { RunActions } from "../../components/mission/RunActions.js";
 import { EntityIcon } from "../../components/design/EntityIcon.js";
 import { ThemeToggle } from "../../components/design/ThemeToggle.js";
 import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
@@ -232,16 +232,6 @@ export function MissionControlPage({ onSelectRun }: Props) {
     return { counts, total: counts.reduce((a, b) => a + b, 0) };
   }, [runs]);
 
-  const act = async (kind: "abort" | "pause" | "resume", runId: string) => {
-    try {
-      if (kind === "abort") await api.abortRun(runId);
-      else if (kind === "pause") await api.pauseRun(runId);
-      else await api.resumeRun(runId);
-      setToast({ kind: "ok", text: `${kind} requested` });
-    } catch (err) {
-      setToast({ kind: "err", text: err instanceof Error ? err.message : String(err) });
-    }
-  };
   const decide = async (a: ApprovalRow, approve: boolean) => {
     try {
       if (approve) await api.approveApproval({ runId: a.runId, approvalId: a.id });
@@ -297,7 +287,6 @@ export function MissionControlPage({ onSelectRun }: Props) {
                   run={r}
                   diff={diffByRun[r.runId]}
                   onOpen={() => navigate({ kind: "control", runId: r.runId })}
-                  onAbort={() => act("abort", r.runId)}
                 />
               ))}
             </div>
@@ -528,12 +517,10 @@ function RunCard({
   run,
   diff,
   onOpen,
-  onAbort,
 }: {
   run: RunState;
   diff?: { insertions: number; deletions: number };
   onOpen: () => void;
-  onAbort?: () => void;
 }) {
   const meta = statusMeta(run.status);
   const label = run.displayName || run.task;
@@ -577,14 +564,12 @@ function RunCard({
           ) : null}
         </div>
       )}
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <button onClick={onOpen} className="flex items-center gap-1.5 rounded-[10px] bg-coal-500 px-3 py-1.5 text-[12.5px] font-semibold text-chalk-100 hover:bg-coal-400">
           Open <ArrowRight className="h-3.5 w-3.5" />
         </button>
-        {onAbort ? (
-          <button onClick={onAbort} className="flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[12.5px] font-semibold text-rose-300 hover:bg-rose-500/10">
-            <Square className="h-3.5 w-3.5" /> Abort
-          </button>
+        {active ? (
+          <RunActions runId={run.runId} status={run.status} pauseRequested={run.pauseRequested} />
         ) : null}
       </div>
     </div>
