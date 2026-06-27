@@ -17,6 +17,7 @@ import { api } from "../../lib/api.js";
 import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import { navigate } from "../App.js";
+import { MissionComposer } from "../../components/mission/MissionComposer.js";
 import type {
   ApprovalRequest,
   RunState,
@@ -284,14 +285,9 @@ export function MissionControlPage({ onSelectRun }: Props) {
       </aside>
 
       <main className="flex-1 px-10 py-8">
-        <div className="mb-7 flex items-center justify-between">
-          <h1 className="text-[30px] font-extrabold tracking-[-0.02em]">Mission control</h1>
-          <button
-            onClick={() => navigate({ kind: "compose" })}
-            className="flex items-center gap-2 rounded-[12px] bg-coal-600 px-4 py-2.5 text-[13.5px] font-semibold text-chalk-100 hover:bg-coal-500"
-          >
-            <Plus className="h-4 w-4 text-violet-soft" /> New run
-          </button>
+        <h1 className="mb-5 text-[30px] font-extrabold tracking-[-0.02em]">Mission control</h1>
+        <div className="mb-4">
+          <MissionComposer />
         </div>
 
         {error ? (
