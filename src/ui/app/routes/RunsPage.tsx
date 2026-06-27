@@ -1,28 +1,17 @@
 import { useEffect, useState } from "react";
 import { GitMerge, History } from "lucide-react";
 import { api } from "../../lib/api.js";
-import type { RunState, RunStatus } from "../../lib/types.js";
+import type { RunState } from "../../lib/types.js";
 import { isSpecUpRun } from "../../lib/run-outcome.js";
 import { cn } from "../../components/design/cn.js";
-import { Chip } from "../../components/design/Chip.js";
 import {
   fmtElapsed,
   relTime,
   shortRunId,
 } from "../../components/design/format.js";
+import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
 import { SchedulerQueuePanel } from "../../components/runs/SchedulerQueuePanel.js";
 import { PruneSnapshotsButton } from "../../components/runs/PruneSnapshotsButton.js";
-import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
-
-function statusTone(
-  s: RunStatus,
-): "violet" | "sky" | "amber" | "emerald" | "rose" | "neutral" {
-  if (s === "waiting_for_approval" || s === "paused") return "amber";
-  if (s === "reviewing" || s === "verifying" || s === "validating") return "sky";
-  if (s === "merge_ready") return "emerald";
-  if (s === "failed" || s === "aborted" || s === "blocked") return "rose";
-  return "violet";
-}
 
 /**
  * Overflow view of every run on disk. Mission Control caps Recent Runs
@@ -66,28 +55,26 @@ export function RunsPage({
 
   return (
     <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-5 pb-12">
-      <section className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-baseline gap-3 min-w-0">
-          <h1 className="text-[15px] font-semibold tracking-tight text-fog-100">
-            All runs{" "}
-            <span className="mono text-[12px] text-fog-500 num-tabular">
-              {runs.length}
-            </span>
-          </h1>
-        </div>
+      <section className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-[16px] font-semibold tracking-tight text-chalk-100">
+          All runs{" "}
+          <span className="mono num-tabular text-[12px] text-chalk-400">
+            {runs.length}
+          </span>
+        </h1>
         <div className="flex items-center gap-3">
           <PruneSnapshotsButton />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Filter by task or id…"
-            className="h-8 w-[260px] bg-ink-200 border border-white/[0.08] px-3 text-[12px] text-fog-100 placeholder:text-fog-400 focus:outline-none focus:border-violet-soft/35"
+            className="h-8 w-[260px] rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-3 text-[12px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
           />
         </div>
       </section>
 
       {error ? (
-        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
+        <div className="mt-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
@@ -96,13 +83,13 @@ export function RunsPage({
 
       <IntegrationPanel />
 
-      <div className="slab overflow-hidden mt-5">
+      <div className="mt-5 overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600">
         {filtered.length === 0 ? (
-          <div className="px-6 py-10 text-center text-[12.5px] text-fog-300">
+          <div className="px-6 py-10 text-center text-[12.5px] text-chalk-300">
             {runs.length === 0 ? (
               <>
                 No runs yet. Try{" "}
-                <span className="mono text-fog-200">vibe run "your task"</span>{" "}
+                <span className="mono text-chalk-100">vibe run "your task"</span>{" "}
                 from this project.
               </>
             ) : (
@@ -112,15 +99,15 @@ export function RunsPage({
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="text-left text-[10.5px] uppercase tracking-[0.14em] text-fog-500">
-                <th className="font-normal px-4 py-2.5">Task</th>
-                <th className="font-normal px-3 py-2.5">Status</th>
-                <th className="font-normal px-3 py-2.5">Review</th>
-                <th className="font-normal px-3 py-2.5">Verify</th>
-                <th className="font-normal px-3 py-2.5 text-right">Duration</th>
-                <th className="font-normal px-3 py-2.5 text-right">Updated</th>
-                <th className="font-normal px-3 py-2.5">Run</th>
-                <th className="font-normal px-3 py-2.5" />
+              <tr className="text-left text-[10px] uppercase tracking-[0.1em] text-chalk-400">
+                <th className="px-4 py-2.5 font-semibold">Task</th>
+                <th className="px-3 py-2.5 font-semibold">Status</th>
+                <th className="px-3 py-2.5 font-semibold">Review</th>
+                <th className="px-3 py-2.5 font-semibold">Verify</th>
+                <th className="px-3 py-2.5 text-right font-semibold">Duration</th>
+                <th className="px-3 py-2.5 text-right font-semibold">Updated</th>
+                <th className="px-3 py-2.5 font-semibold">Run</th>
+                <th className="px-3 py-2.5" />
               </tr>
             </thead>
             <tbody>
@@ -129,36 +116,30 @@ export function RunsPage({
                   key={r.runId}
                   onClick={() => onSelect(r.runId)}
                   className={cn(
-                    "cursor-pointer hover:bg-white/[0.025] transition-colors",
-                    i !== 0 && "border-t border-white/[0.05]",
+                    "cursor-pointer transition-colors hover:bg-coal-500/40",
+                    i !== 0 && "border-t border-[color:var(--line-soft)]",
                   )}
                 >
-                  <td className="px-4 py-3 text-[13px] text-fog-100 truncate max-w-[420px]">
+                  <td className="max-w-[420px] truncate px-4 py-3 text-[13px] text-chalk-100">
                     {r.task}
                   </td>
                   <td className="px-3 py-3">
-                    <Chip tone={isSpecUpRun(r) ? "violet" : statusTone(r.status)}>
-                      {r.status === "executing" ||
-                      r.status === "validating" ||
-                      r.status === "reviewing" ||
-                      r.status === "fixing" ||
-                      r.status === "verifying" ? (
-                        <span className="pulse-dot" />
-                      ) : null}
-                      {isSpecUpRun(r) ? "spec-up" : r.status}
-                    </Chip>
-                  </td>
-                  <td className="px-3 py-3 mono text-[11.5px] text-fog-300">
-                    {r.finalDecision ?? (
-                      <span className="text-fog-500">-</span>
+                    {isSpecUpRun(r) ? (
+                      <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-violet-soft">
+                        <span className="h-1.5 w-1.5 rounded-full bg-violet-soft" />
+                        spec-up
+                      </span>
+                    ) : (
+                      <RunStatusBadge status={r.status} compact />
                     )}
                   </td>
-                  <td className="px-3 py-3 mono text-[11.5px] text-fog-300">
-                    {r.verification ?? (
-                      <span className="text-fog-500">-</span>
-                    )}
+                  <td className="mono px-3 py-3 text-[11.5px] text-chalk-300">
+                    {r.finalDecision ?? <span className="text-chalk-400">-</span>}
                   </td>
-                  <td className="px-3 py-3 text-right mono text-[12px] text-fog-200 num-tabular whitespace-nowrap">
+                  <td className="mono px-3 py-3 text-[11.5px] text-chalk-300">
+                    {r.verification ?? <span className="text-chalk-400">-</span>}
+                  </td>
+                  <td className="mono num-tabular whitespace-nowrap px-3 py-3 text-right text-[12px] text-chalk-300">
                     {fmtElapsed(
                       Math.max(
                         0,
@@ -170,11 +151,11 @@ export function RunsPage({
                       ),
                     )}
                   </td>
-                  <td className="px-3 py-3 text-right text-[11.5px] text-fog-300 whitespace-nowrap">
+                  <td className="whitespace-nowrap px-3 py-3 text-right text-[11.5px] text-chalk-400">
                     {relTime(r.updatedAt)}
                   </td>
                   <td
-                    className="px-3 py-3 mono text-[11px] text-fog-500 whitespace-nowrap"
+                    className="mono whitespace-nowrap px-3 py-3 text-[11px] text-chalk-400"
                     title={r.runId}
                   >
                     {shortRunId(r.runId)}
@@ -187,10 +168,10 @@ export function RunsPage({
                           e.stopPropagation();
                           onOpenReplay(r.runId);
                         }}
-                        className="inline-flex items-center gap-1 border border-white/[0.08] bg-ink-100 px-1.5 py-0.5 text-[10.5px] text-fog-300 hover:text-fog-100 hover:bg-white/[0.05]"
+                        className="inline-flex items-center gap-1 rounded-[8px] bg-coal-500 px-2 py-1 text-[10.5px] font-medium text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
                         title="Open the read-only Replay timeline"
                       >
-                        <History className="h-3 w-3" strokeWidth={1.6} />
+                        <History className="h-3 w-3" strokeWidth={1.9} />
                         Replay
                       </button>
                     ) : null}
@@ -256,57 +237,71 @@ function IntegrationPanel() {
   }
 
   return (
-    <section className="slab mt-5 p-4">
-      <SectionEyebrow
-        right={
-          <a
-            href="#/merge"
-            className="text-[11px] text-emerald-300 hover:text-emerald-200 whitespace-nowrap"
-          >
-            Merge window with advice
-          </a>
-        }
-      >
-        <span className="flex items-center gap-2">
-          <GitMerge className="h-3.5 w-3.5 text-emerald-300" strokeWidth={1.7} />
-          Integrate merge-ready runs ({ready.length})
-          <span className="text-fog-500">·</span>
-          <span className="text-fog-500">never main · never push</span>
-        </span>
-      </SectionEyebrow>
-      <ul className="mt-3 space-y-1">
-        {ready.map((r) => (
-          <li key={r.runId} className="flex items-center gap-2 text-[12.5px]">
-            <input
-              type="checkbox"
-              checked={selected.has(r.runId)}
-              onChange={(e) => {
-                const next = new Set(selected);
-                if (e.target.checked) next.add(r.runId);
-                else next.delete(r.runId);
-                setSelected(next);
-              }}
-            />
-            <span className="text-fog-100 truncate max-w-[280px]">{r.task}</span>
-            <span className="mono text-[10.5px] text-fog-500">{r.branchName}</span>
-            {preview?.results.find((x) => x.runId === r.runId) ? (
-              preview.results.find((x) => x.runId === r.runId)!.clean ? (
-                <Chip tone="emerald">clean</Chip>
-              ) : (
-                <Chip tone="rose">conflicts</Chip>
-              )
-            ) : null}
-          </li>
-        ))}
+    <section className="mt-5 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <GitMerge className="h-4 w-4 text-emerald-400" strokeWidth={1.9} />
+          <span className="text-[13px] font-semibold text-chalk-100">
+            Integrate merge-ready runs
+          </span>
+          <span className="mono num-tabular text-[11px] text-chalk-400">{ready.length}</span>
+        </div>
+        <a
+          href="#/merge"
+          className="text-[11.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80 whitespace-nowrap"
+        >
+          Merge window with advice
+        </a>
+      </div>
+      <div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-chalk-400">
+        <span className="rounded-[6px] bg-coal-500 px-1.5 py-0.5">never main</span>
+        <span className="rounded-[6px] bg-coal-500 px-1.5 py-0.5">never push</span>
+      </div>
+
+      <ul className="mt-3 space-y-1.5">
+        {ready.map((r) => {
+          const p = preview?.results.find((x) => x.runId === r.runId);
+          return (
+            <li
+              key={r.runId}
+              className="flex items-center gap-2.5 rounded-[12px] bg-coal-500/40 px-3 py-2 text-[12.5px]"
+            >
+              <input
+                type="checkbox"
+                className="accent-violet-soft"
+                checked={selected.has(r.runId)}
+                onChange={(e) => {
+                  const next = new Set(selected);
+                  if (e.target.checked) next.add(r.runId);
+                  else next.delete(r.runId);
+                  setSelected(next);
+                }}
+              />
+              <span className="min-w-0 flex-1 truncate text-chalk-100">{r.task}</span>
+              <span className="mono shrink-0 text-[10.5px] text-chalk-400">{r.branchName}</span>
+              {p ? (
+                <span
+                  className={`shrink-0 rounded-[6px] px-1.5 py-0.5 text-[10px] font-semibold ${
+                    p.clean ? "bg-emerald-500/15 text-emerald-400" : "bg-rose-500/10 text-rose-300"
+                  }`}
+                >
+                  {p.clean ? "clean" : "conflicts"}
+                </span>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
+
       {preview && !preview.allClean ? (
-        <div className="mt-2 text-[11px] text-rose-300">
+        <div className="mt-2 rounded-[10px] border border-rose-400/25 bg-rose-500/[0.06] px-3 py-1.5 text-[11px] text-rose-300">
           {preview.results
             .filter((x) => !x.clean)
             .map((x) => `${x.branch}: ${x.conflictedFiles.join(", ") || x.note}`)
             .join(" · ")}
         </div>
       ) : null}
+
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -314,7 +309,7 @@ function IntegrationPanel() {
           onClick={() =>
             run("preview", async () => setPreview(await api.previewIntegration(ids())))
           }
-          className="h-7 border border-white/10 bg-ink-100 px-2.5 text-[11.5px] text-fog-200 hover:bg-white/[0.06] disabled:opacity-50"
+          className="h-8 rounded-[10px] bg-coal-500 px-3 text-[12px] font-semibold text-chalk-100 transition hover:bg-coal-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy === "preview" ? "Previewing…" : "Preview merges"}
         </button>
@@ -322,7 +317,7 @@ function IntegrationPanel() {
           value={into}
           onChange={(e) => setInto(e.target.value)}
           placeholder="integration/branch"
-          className="h-7 w-[200px] bg-ink-200 border border-white/[0.08] px-2.5 text-[11.5px] text-fog-100 mono focus:outline-none focus:border-emerald-400/35"
+          className="mono h-8 w-[200px] rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 text-[11.5px] text-chalk-100 focus:border-violet-soft/50 focus:outline-none"
         />
         <button
           type="button"
@@ -338,7 +333,7 @@ function IntegrationPanel() {
               setFinishable(res.stoppedAt ? null : res.integrationBranch);
             })
           }
-          className="h-7 border border-emerald-400/30 bg-emerald-500/15 px-2.5 text-[11.5px] text-emerald-200 hover:bg-emerald-500/25 disabled:opacity-50"
+          className="h-8 rounded-[10px] bg-emerald-500/15 px-3 text-[12px] font-semibold text-emerald-400 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy === "apply" ? "Integrating…" : "Integrate selected"}
         </button>
@@ -364,12 +359,12 @@ function IntegrationPanel() {
                 setFinishable(null);
               });
             }}
-            className="h-7 border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[11.5px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
+            className="h-8 rounded-[10px] bg-violet-soft/15 px-3 text-[12px] font-semibold text-violet-soft transition hover:bg-violet-soft/25 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy === "finish" ? "Merging…" : "Complete merge to main"}
           </button>
         ) : null}
-        {msg ? <span className="text-[11px] text-emerald-300">{msg}</span> : null}
+        {msg ? <span className="text-[11px] text-emerald-400">{msg}</span> : null}
         {error ? <span className="text-[11px] text-rose-300">{error}</span> : null}
       </div>
     </section>
