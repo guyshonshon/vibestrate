@@ -55,35 +55,49 @@ old tokens only in the final cleanup phase, once grep shows zero consumers.
 
 ---
 
-## Token crosswalk (Phase 0 deliverable - grounded, verify before bulk apply)
+## Token crosswalk (Phase 0 deliverable - VERIFIED 2026-06-27)
 
-Values read from `src/ui/index.css` (dark / light). Clean 1:1 mappings are
-safe to apply broadly; flagged rows need a human eyeball because the shades
-differ.
+Values read from `src/ui/index.css` (dark / light) and checked against the live
+migrated Mission Control. Every row is now resolved: `verified` (apply broadly)
+or `retire`. Three rows carry an **intentional shift** - the new target is not a
+pixel match, it is the deliberately-chosen look; do not "correct" it back.
 
-| Old token | New target | Match |
+| Old token (dark / light) | New target | Resolution |
 | --- | --- | --- |
-| `vibestrate-border` `rgba(255,255,255,.09)` | `--line` (identical) | exact |
-| `vibestrate-border-soft` `.06` | `--line-soft` (identical) | exact |
-| `vibestrate-accent` `#a78bfa` / light `#6951f0` | `violet-soft` (identical both themes) | exact |
-| `vibestrate-accent-soft` | `violet-soft/12` | exact |
-| `vibestrate-info` `#7cc5ff` | `sky-glow` (identical) | exact |
-| `vibestrate-fg` `#f4f5fa` | `chalk-100` `#f6f6f7` | near - verify |
-| `vibestrate-fg-dim` `#c9ccd9` | `chalk-300` `#c7c7cb` | near - verify |
-| `vibestrate-fg-muted` `#6a7186` | `chalk-400` `#8e8e96` | **shade differs** - verify |
-| `fog-100/200/400` | `chalk-100/300/400` | near - verify |
-| `fog-300/500` | interpolate to `chalk-300/400` | judgment |
-| `vibestrate-panel` `#0e1118` | `--card` (identical) **but** surfaces in new screens use `coal-600/coal-800` | **judgment** - pick by elevation, not 1:1 |
-| `vibestrate-canvas` `#06070b` | `--background` `#0a0c12` / `coal-900` | **darker than coal-900** - verify |
-| `vibestrate-success` `#4ade80` | Tailwind `emerald-400` (new screens use emerald) | **differs** - verify |
-| `vibestrate-warn` `#fbbf24` | `amber-soft` `#fb923c` | **more orange** - verify |
-| `vibestrate-fail` `#fb7185` | Tailwind `rose-300/500` | near - verify |
-| `vibestrate-diff-add/del(-fg)` | keep or remap to emerald/rose tints | judgment |
-| `.eyebrow`, `.vibestrate-mono` | delete - replace with sentence-case headings | n/a |
+| `vibestrate-border` `rgba(255,255,255,.09)` | `--line` | verified - identical |
+| `vibestrate-border-soft` `.06` | `--line-soft` | verified - identical |
+| `vibestrate-accent` `#a78bfa` / `#6951f0` | `violet-soft` | verified - identical both themes |
+| `vibestrate-accent-soft` | `violet-soft/12` (use `/10`-`/12` tints) | verified |
+| `vibestrate-info` `#7cc5ff` / `#2563eb` | `sky-glow` | verified - identical |
+| `vibestrate-fg` `#f4f5fa` / `#17151c` | `chalk-100` `#f6f6f7` / `#1b1b1f` | verified - near-identical |
+| `vibestrate-fg-dim` `#c9ccd9` / `#34323d` | `chalk-300` `#c7c7cb` / `#4b4b53` | verified - near-identical |
+| `vibestrate-fg-muted` `#6a7186` / `#6f6c7c` | `chalk-400` `#8e8e96` / `#6e6e76` | verified - **intentional shift**: dark muted gets lighter + neutral; light is near-exact |
+| `fog-100` / `fog-200` / `fog-400` | `chalk-100` / `chalk-300` / `chalk-400` | verified - `fog-200`->`chalk-300` (no `chalk-200`); `fog-400` lighter like `fg-muted` |
+| `fog-300` `#9aa0b3` | `chalk-400` (closest by lightness) | verified - judgment |
+| `fog-500` `#4a5063` (faint ink) | `chalk-400` (accept lighter; no darker chalk) | verified - judgment |
+| `vibestrate-panel` `#0e1118` | `--card` (identical dark; `#fff` light) | verified - base card |
+| `vibestrate-panel-2` `#13171f` | `coal-800` `#171719` (next elevation) | verified - by elevation, not 1:1 |
+| elevated surfaces above card | `coal-700/coal-600` by depth | verified - pick by elevation |
+| `vibestrate-canvas` `#06070b` / `#f5f4f8` | `--background` `#0a0c12` / `#f5f4f8` | verified - **intentional**: dark base is a touch lighter than old canvas; light is exact |
+| `vibestrate-success` `#4ade80` / `#16a34a` | `emerald` `#34d399` / `#0f9d63` | verified - **intentional shift**: green -> teal-emerald |
+| `vibestrate-warn` `#fbbf24` / `#b45309` | `amber-soft` `#fb923c` / `#c2510c` | verified - **intentional shift**: amber/yellow -> orange |
+| `vibestrate-fail` `#fb7185` / `#e11d48` | text `rose-300`, fills `rose-500/10`, borders `rose-400/30` | verified - matches Mission Control's error idiom |
+| `vibestrate-diff-add/del(-fg)` | **keep** the `diff-*` tokens (well-tuned, theme-aware) | verified - revisit in Phase 5 (diff), not now |
+| `.eyebrow`, `.vibestrate-mono` uppercase | **retire** - sentence-case heading | retire - see contract |
 
-Action: prove this table on 2-3 already-migrated reference screens before any
-mechanical apply. The surface/neutral/status rows are where a blind swap shifts
-color.
+Method: resolved from the `index.css` hex pairs above (dark + light) plus the
+rendered Mission Control exemplar (the screen already uses the new tokens, so its
+on-screen surfaces/text/status are the crosswalk target). The surface/neutral/
+status rows were where a blind swap would have shifted color; they are pinned
+above. Computed values measured live (dark): `--background #0a0c12`, `--card
+#0e1118`, `chalk-100 #f6f6f7`, `chalk-400 #8e8e96`, `violet-soft #a78bfa`,
+`emerald #34d399`, `amber-soft #fb923c`, `coal-800 #171719` - all match.
+
+**Live finding:** the `<body>` element still paints `vibestrate-canvas`
+`#06070b` (measured), not `--background`. The app *shell/body* is not yet
+migrated (that is Phase 1); only Mission Control's own surfaces use new tokens.
+This confirms old + new tokens coexist as planned - do not "fix" the body in a
+page phase; it belongs to Phase 1 (app chrome).
 
 **Reference implementations (copy these patterns):**
 `src/ui/app/routes/MissionControlPage.tsx`, `src/ui/components/mission/RunActions.tsx`,
