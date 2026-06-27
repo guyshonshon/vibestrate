@@ -53,9 +53,15 @@ function fromGridLayout(grid: Layout): WidgetLayout[] {
 export function PanelBoard({
   storageKey,
   panels,
+  variant = "card",
+  label = "Run dashboard",
 }: {
   storageKey: string;
   panels: RegisteredPanel[];
+  /** "card" gives each panel a framed surface; "bare" lets the panel's own card show. */
+  variant?: "card" | "bare";
+  /** Section label shown left of the edit-layout control; pass "" to omit. */
+  label?: string;
 }) {
   const [state, setState] = usePersistedState<BoardState>(storageKey, EMPTY);
   const [editMode, setEditMode] = useState(false);
@@ -74,6 +80,11 @@ export function PanelBoard({
       if (w > 0) setWidth(w);
     });
     ro.observe(el);
+    // Seed an initial width synchronously: ResizeObserver's first callback can be
+    // delayed or missed in embedded/offscreen contexts, which would otherwise
+    // strand the board on its loading skeleton.
+    const initial = el.getBoundingClientRect().width;
+    if (initial > 0) setWidth(initial);
     return () => ro.disconnect();
   }, []);
   const mounted = width > 0;
@@ -120,7 +131,7 @@ export function PanelBoard({
   return (
     <section data-screen-label="Run dashboard">
       <div className="mb-2 flex items-center justify-between">
-        <span className="eyebrow">Run dashboard</span>
+        {label ? <span className="eyebrow">{label}</span> : <span />}
         <BoardEditChrome
           editMode={editMode}
           onToggle={setEditMode}
@@ -135,13 +146,13 @@ export function PanelBoard({
             {visible.slice(0, 4).map((p) => (
               <div
                 key={p.id}
-                className="h-32 animate-pulse rounded-xl border border-white/[0.06] bg-ink-200/40"
+                className="h-32 animate-pulse rounded-xl border border-[color:var(--line)] bg-[color:var(--card)]"
               />
             ))}
           </div>
         ) : (
           <ResponsiveGridLayout
-            className={`layout ${editMode ? "is-editing" : ""}`}
+            className={`layout ${editMode ? "is-editing" : ""} ${variant === "bare" ? "is-bare" : ""}`}
             width={width}
             layouts={{ [BP]: gridLayout }}
             breakpoints={{ [BP]: 0 }}
@@ -216,7 +227,7 @@ function BoardEditChrome({
       <button
         type="button"
         onClick={() => onToggle(true)}
-        className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium text-fog-400 transition-colors hover:bg-white/[0.06] hover:text-fog-100"
+        className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium text-fog-400 transition-colors hover:bg-[color:var(--accent)] hover:text-fog-100"
         aria-label="Edit layout"
       >
         <SlidersHorizontal className="h-3.5 w-3.5" /> Edit layout
@@ -233,11 +244,11 @@ function BoardEditChrome({
       <button
         type="button"
         onClick={onReset}
-        className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] text-fog-400 transition-colors hover:bg-white/[0.06] hover:text-fog-100"
+        className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] text-fog-400 transition-colors hover:bg-[color:var(--accent)] hover:text-fog-100"
       >
         <RotateCcw className="h-3 w-3" /> Reset
       </button>
-      <span className="mx-0.5 h-4 w-px bg-white/10" aria-hidden />
+      <span className="mx-0.5 h-4 w-px bg-[color:var(--line-strong)]" aria-hidden />
       <button
         type="button"
         onClick={() => onToggle(false)}
@@ -273,14 +284,14 @@ function AddPanelPicker({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
-        className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] text-fog-400 transition-colors hover:bg-white/[0.06] hover:text-fog-100 disabled:opacity-40 disabled:hover:bg-transparent"
+        className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] text-fog-400 transition-colors hover:bg-[color:var(--accent)] hover:text-fog-100 disabled:opacity-40 disabled:hover:bg-transparent"
       >
         <Plus className="h-3 w-3" /> {disabled ? "No hidden panels" : "Add panel"}
       </button>
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-full z-30 mt-1.5 min-w-[200px] rounded-xl border border-white/10 bg-[#11151d]/95 p-1 shadow-xl"
+          className="absolute right-0 top-full z-30 mt-1.5 min-w-[200px] rounded-xl border border-[color:var(--line)] bg-[color:var(--popover)] p-1 shadow-xl"
         >
           <div className="px-2.5 py-1.5 text-[9.5px] font-semibold uppercase tracking-wider text-fog-600">
             Hidden panels
@@ -294,7 +305,7 @@ function AddPanelPicker({
                 onAdd(p.id);
                 setOpen(false);
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[11.5px] text-fog-200 hover:bg-white/[0.06]"
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[11.5px] text-fog-200 hover:bg-[color:var(--accent)]"
             >
               <Plus className="h-3 w-3 text-fog-600" />
               {p.title}

@@ -6,11 +6,8 @@ import {
   ChevronUp,
   GitBranch,
   LayoutGrid,
-  Play,
   Plus,
-  Route as RouteIcon,
   Square,
-  Users,
   X,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
@@ -18,6 +15,9 @@ import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import { navigate } from "../App.js";
 import { MissionComposer } from "../../components/mission/MissionComposer.js";
+import { EntityIcon } from "../../components/design/EntityIcon.js";
+import { ThemeToggle } from "../../components/design/ThemeToggle.js";
+import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
 import type {
   ApprovalRequest,
   RunState,
@@ -248,32 +248,116 @@ export function MissionControlPage({ onSelectRun }: Props) {
     }
   };
 
+  // Monitoring widgets, rendered through the movable/resizable/hideable board
+  // (PanelBoard, shared with the run dashboard). The composer + approvals stay
+  // fixed above the board - they're actions, not rearrangeable widgets.
+  const panels: RegisteredPanel[] = [
+    {
+      id: "overview",
+      title: "Overview",
+      defaultLayout: { id: "overview", x: 0, y: 0, w: 12, h: 3 },
+      minW: 4,
+      minH: 2,
+      render: () => (
+        <div className="grid h-full grid-cols-3 gap-4">
+          <StatCard label="Active runs" value={activeRuns.length} hint="in flight" tone="violet" />
+          <StatCard label="Merge-ready" value={mergeReady} hint="ready to ship" tone="emerald" />
+          <StatCard
+            label="Runs this week"
+            value={week.total}
+            hint="last 7 days"
+            tone="violet"
+            spark={week.counts}
+          />
+        </div>
+      ),
+    },
+    {
+      id: "active",
+      title: "Active runs",
+      defaultLayout: { id: "active", x: 0, y: 3, w: 8, h: 6 },
+      minW: 4,
+      minH: 3,
+      render: () => (
+        <div className="flex h-full flex-col">
+          <h2 className="mb-3 text-[18px] font-bold text-violet-vivid">Active</h2>
+          {activeRuns.length === 0 ? (
+            <div className="rounded-[22px] border border-[color:var(--line)] bg-coal-600 px-6 py-10 text-center text-[13.5px] text-chalk-400">
+              No runs in flight. Launch one with <span className="font-semibold text-chalk-100">New run</span>.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              {activeRuns.map((r) => (
+                <RunCard
+                  key={r.runId}
+                  run={r}
+                  diff={diffByRun[r.runId]}
+                  onOpen={() => navigate({ kind: "control", runId: r.runId })}
+                  onAbort={() => act("abort", r.runId)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "recent",
+      title: "Recent runs",
+      defaultLayout: { id: "recent", x: 8, y: 3, w: 4, h: 6 },
+      minW: 3,
+      minH: 3,
+      render: () => (
+        <div className="flex h-full flex-col">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-[18px] font-bold text-violet-vivid">Recent</h2>
+            <button onClick={() => navigate({ kind: "runs" })} className="flex items-center gap-1 text-[12.5px] font-semibold text-violet-soft hover:text-violet-soft/80">
+              All runs <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {completed.length === 0 ? (
+            <div className="rounded-[22px] border border-[color:var(--line)] bg-coal-600 px-6 py-8 text-center text-[13.5px] text-chalk-400">
+              Nothing finished yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {completed.map((r) => (
+                <RunCard key={r.runId} run={r} onOpen={() => navigate({ kind: "control", runId: r.runId })} />
+              ))}
+            </div>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="font-jakarta flex min-h-screen bg-coal-800 text-chalk-100">
       <aside className="sticky top-0 flex h-screen w-[230px] shrink-0 flex-col gap-0.5 px-4 py-5">
         <div className="mb-5 flex items-center gap-2.5 px-2">
           <span className="h-7 w-7 rounded-[9px] bg-gradient-to-br from-violet-soft to-[#6d4fd4]" />
           <span className="text-[16px] font-extrabold tracking-[-0.01em]">vibestrate</span>
+          <ThemeToggle className="ml-auto h-8 w-8 rounded-[10px]" />
         </div>
 
         <NavItem icon={<LayoutGrid className="h-[18px] w-[18px]" />} label="Dashboard" selected />
         <button className="flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-left text-[14px] font-bold text-chalk-100">
-          <Play className="h-[18px] w-[18px]" />
+          <EntityIcon entity="run" size={18} />
           <span>Runs</span>
           <ChevronUp className="ml-auto h-4 w-4 text-chalk-400" />
         </button>
-        <div className="mb-1 ml-[22px] flex flex-col gap-0.5 border-l-[1.5px] border-white/[0.08] pl-2.5">
+        <div className="mb-1 ml-[22px] flex flex-col gap-0.5 border-l-[1.5px] border-[color:var(--line-strong)] pl-2.5">
           <SubItem label="Active" badge={{ n: activeRuns.length, tone: "violet" }} onClick={() => navigate({ kind: "runs" })} />
           <SubItem label="Merge-ready" badge={{ n: mergeReady, tone: "emerald" }} onClick={() => navigate({ kind: "runs" })} />
           <SubItem label="Failed" badge={{ n: failed, tone: "amber" }} onClick={() => navigate({ kind: "runs" })} />
         </div>
         <NavItem
-          icon={<Users className="h-[18px] w-[18px]" />}
+          icon={<EntityIcon entity="crew" size={18} />}
           label="Crew"
           trailing={<ChevronDown className="h-4 w-4 text-chalk-400" />}
           onClick={() => navigate({ kind: "crew", crewId: null })}
         />
-        <NavItem icon={<RouteIcon className="h-[18px] w-[18px]" />} label="Flows" onClick={() => navigate({ kind: "flows" })} />
+        <NavItem icon={<EntityIcon entity="flow" size={18} />} label="Flows" onClick={() => navigate({ kind: "flows" })} />
         <NavItem icon={<GitBranch className="h-[18px] w-[18px]" />} label="Diffs" onClick={() => navigate({ kind: "git-tree" })} />
 
         <button
@@ -284,8 +368,11 @@ export function MissionControlPage({ onSelectRun }: Props) {
         </button>
       </aside>
 
-      <main className="flex-1 px-10 py-8">
-        <h1 className="mb-5 text-[30px] font-extrabold tracking-[-0.02em]">Mission control</h1>
+      <main className="flex-1 overflow-x-hidden">
+        <div className="w-full px-10 py-7">
+        <header className="mb-6">
+          <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">Mission control</h1>
+        </header>
         <div className="mb-4">
           <MissionComposer />
         </div>
@@ -308,21 +395,9 @@ export function MissionControlPage({ onSelectRun }: Props) {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-3 gap-4">
-          <StatCard label="Active runs" value={activeRuns.length} hint="in flight" tone="violet" />
-          <StatCard label="Merge-ready" value={mergeReady} hint="ready to ship" tone="emerald" />
-          <StatCard
-            label="Runs this week"
-            value={week.total}
-            hint="last 7 days"
-            tone="violet"
-            spark={week.counts}
-          />
-        </div>
-
         {approvals.length > 0 ? (
-          <section className="mt-4 rounded-[22px] border border-amber-soft/25 bg-coal-600 p-6">
-            <h2 className="mb-3 text-[18px] font-bold">Waiting on you</h2>
+          <section className="mb-4 rounded-[22px] border border-amber-soft/25 bg-coal-600 p-6">
+            <h2 className="mb-3 text-[18px] font-bold text-violet-vivid">Waiting on you</h2>
             <div className="flex flex-col gap-2.5">
               {approvals.map((a) => (
                 <div
@@ -343,46 +418,13 @@ export function MissionControlPage({ onSelectRun }: Props) {
           </section>
         ) : null}
 
-        <section className="mt-4">
-          <h2 className="mb-3 text-[18px] font-bold">Active</h2>
-          {activeRuns.length === 0 ? (
-            <div className="rounded-[22px] border border-white/[0.06] bg-coal-600 px-6 py-10 text-center text-[13.5px] text-chalk-400">
-              No runs in flight. Launch one with <span className="font-semibold text-chalk-100">New run</span>.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-              {activeRuns.map((r) => (
-                <RunCard
-                  key={r.runId}
-                  run={r}
-                  diff={diffByRun[r.runId]}
-                  onOpen={() => navigate({ kind: "control", runId: r.runId })}
-                  onAbort={() => act("abort", r.runId)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="mt-7">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-[18px] font-bold">Recent</h2>
-            <button onClick={() => navigate({ kind: "runs" })} className="flex items-center gap-1 text-[12.5px] font-semibold text-violet-soft hover:text-violet-soft/80">
-              All runs <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          {completed.length === 0 ? (
-            <div className="rounded-[22px] border border-white/[0.06] bg-coal-600 px-6 py-8 text-center text-[13.5px] text-chalk-400">
-              Nothing finished yet.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-              {completed.map((r) => (
-                <RunCard key={r.runId} run={r} onOpen={() => navigate({ kind: "control", runId: r.runId })} />
-              ))}
-            </div>
-          )}
-        </section>
+        <PanelBoard
+          storageKey="mission-control-board"
+          variant="bare"
+          label="Dashboard layout"
+          panels={panels}
+        />
+        </div>
       </main>
     </div>
   );
@@ -405,7 +447,7 @@ function NavItem({
     <button
       onClick={onClick}
       className={`flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-left text-[14px] font-medium ${
-        selected ? "bg-coal-500 font-semibold text-white" : "text-chalk-400 hover:text-chalk-100"
+        selected ? "bg-coal-500 font-semibold text-chalk-100" : "text-chalk-400 hover:text-chalk-100"
       }`}
     >
       {icon}
@@ -459,10 +501,10 @@ function StatCard({
   spark?: number[];
 }) {
   return (
-    <div className="rounded-[20px] border border-white/[0.06] bg-coal-600 p-5">
+    <div className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
       <div className="text-[13px] font-medium text-chalk-400">{label}</div>
       <div className="mt-2 flex items-end justify-between">
-        <span className="text-[38px] font-extrabold leading-none tracking-[-0.02em] text-white">
+        <span className="text-[38px] font-extrabold leading-none tracking-[-0.02em] text-chalk-100">
           {value}
         </span>
         {spark && spark.length > 0 ? (
@@ -492,14 +534,14 @@ function RunCard({
   const meta = statusMeta(run.status);
   const label = run.displayName || run.task;
   return (
-    <div className="rounded-[18px] border border-white/[0.06] bg-coal-600 p-4">
+    <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
       <div className="flex items-center gap-2.5">
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: TONE_COLOR[meta.tone] }} />
         <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-chalk-100">{label}</span>
         <span className="shrink-0 text-[11.5px] text-chalk-400">{relTime(run.updatedAt)}</span>
       </div>
       <div className="mt-2.5 flex items-center gap-2 text-[11.5px] text-chalk-400">
-        <span className="rounded-md bg-white/[0.05] px-2 py-0.5 font-medium" style={{ color: TONE_COLOR[meta.tone] }}>
+        <span className="rounded-md bg-coal-500 px-2 py-0.5 font-medium" style={{ color: TONE_COLOR[meta.tone] }}>
           {meta.label}
         </span>
         {run.branchName ? (

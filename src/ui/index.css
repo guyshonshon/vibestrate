@@ -31,6 +31,9 @@
   --color-violet-soft: #a78bfa;
   --color-violet-mid: #8b7cff;
   --color-violet-deep: #6951f0;
+  /* A brighter, more saturated violet for secondary titles / eyebrows - the
+   * "structure" accent that keeps the neutral-grey surfaces from reading mono. */
+  --color-violet-vivid: #b69cff;
   --color-sky-glow: #7cc5ff;
 
   /* Emerald - the second accent: the approve / shipped / done / under-control
@@ -88,15 +91,15 @@
    * surfaces are built and validated. */
   --font-jakarta:
     "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
-  --color-coal-900: #121113;
-  --color-coal-800: #161517;
-  --color-coal-700: #1b1a1d;
-  --color-coal-600: #201e25;
-  --color-coal-500: #2c2a32;
-  --color-coal-400: #3a3742;
-  --color-chalk-100: #f7f6f9;
-  --color-chalk-300: #c9c7d2;
-  --color-chalk-400: #9a86c9;
+  --color-coal-900: #121213;
+  --color-coal-800: #171719;
+  --color-coal-700: #1c1c1e;
+  --color-coal-600: #212123;
+  --color-coal-500: #2b2b2e;
+  --color-coal-400: #3a3a3e;
+  --color-chalk-100: #f6f6f7;
+  --color-chalk-300: #c7c7cb;
+  --color-chalk-400: #8e8e96;
   --color-amber-soft: #fb923c;
   /* Desaturated violet-tinted fractal-noise grain (ported from the marketing
    * site) - textures a flat ground so it doesn't read as dead black. */
@@ -197,6 +200,170 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * LIGHT THEME (full) — design-foundation pass (2026-06-27)
+ * The app is class-toggled: <html> carries `dark` (default) or `light`. Every
+ * surface/text utility resolves a `--color-*` token, so the theme flips by
+ * re-assigning those tokens here under `:root.light` (specificity 0,2,0 beats
+ * the @theme-emitted `:root` at 0,1,0, so these win regardless of source order).
+ * Brand violet stays the accent but DEEPENS in light - pale violet text is
+ * unreadable on paper, and the dark-text-on-violet button pairings invert
+ * cleanly because the paired text tokens (coal-900/chalk) flip too.
+ * Borders/shadows invert white-alpha -> black-alpha. Legacy screens that
+ * hardcode `border-white/x` get faint hairlines in light (tolerated); the
+ * redesigned surfaces use tokens instead.
+ * ════════════════════════════════════════════════════════════════════════════ */
+:root.light {
+  color-scheme: light;
+
+  /* surfaces - ink (deep -> light) */
+  --color-ink-0: #f5f4f8;
+  --color-ink-50: #efedf3;
+  --color-ink-100: #ffffff;
+  --color-ink-200: #f6f5f9;
+  --color-ink-300: #edecf2;
+  --color-ink-400: #e3e2ea;
+  --color-ink-500: #d7d6e0;
+
+  /* text - fog (light -> dark) */
+  --color-fog-100: #17151c;
+  --color-fog-200: #34323d;
+  --color-fog-300: #5a5766;
+  --color-fog-400: #6f6c7c;
+  --color-fog-500: #908d9c;
+
+  /* Mission Control surfaces - coal (deep -> light), neutral grey (no violet tint) */
+  --color-coal-900: #f4f4f5;
+  --color-coal-800: #ededee;
+  --color-coal-700: #e7e7e9;
+  --color-coal-600: #ffffff;
+  --color-coal-500: #f1f1f3;
+  --color-coal-400: #e4e4e7;
+
+  /* Mission Control text - chalk (light -> dark), neutral grey */
+  --color-chalk-100: #1b1b1f;
+  --color-chalk-300: #4b4b53;
+  --color-chalk-400: #6e6e76;
+
+  /* brand accent deepens for contrast on paper */
+  --color-violet-soft: #6951f0;
+  --color-violet-mid: #6243e6;
+  --color-violet-deep: #5a3fd6;
+  --color-violet-vivid: #7c3aed;
+  --color-sky-glow: #2f6fd6;
+  --color-amber-soft: #c2510c;
+  --color-emerald: #0f9d63;
+
+  /* legacy vibestrate-* */
+  --color-vibestrate-canvas: #f5f4f8;
+  --color-vibestrate-panel: #ffffff;
+  --color-vibestrate-panel-2: #f6f5f9;
+  --color-vibestrate-border: rgba(20, 18, 30, 0.12);
+  --color-vibestrate-border-soft: rgba(20, 18, 30, 0.07);
+  --color-vibestrate-fg: #17151c;
+  --color-vibestrate-fg-dim: #34323d;
+  --color-vibestrate-fg-muted: #6f6c7c;
+  --color-vibestrate-accent: #6951f0;
+  --color-vibestrate-accent-soft: rgba(105, 81, 240, 0.1);
+  --color-vibestrate-success: #16a34a;
+  --color-vibestrate-info: #2563eb;
+  --color-vibestrate-warn: #b45309;
+  --color-vibestrate-fail: #e11d48;
+  --color-vibestrate-diff-add: #dcfce7;
+  --color-vibestrate-diff-add-fg: #15803d;
+  --color-vibestrate-diff-del: #fee2e2;
+  --color-vibestrate-diff-del-fg: #b91c1c;
+
+  /* hairlines + shadows invert */
+  --line-soft: rgba(20, 18, 30, 0.06);
+  --line: rgba(20, 18, 30, 0.1);
+  --line-strong: rgba(20, 18, 30, 0.16);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 18px 44px -26px rgba(40, 30, 90, 0.28);
+  --shadow-contact: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 14px 30px -22px rgba(40, 30, 90, 0.32);
+  --emerald: #0f9d63;
+  --warn: #b45309;
+  --fail: #e11d48;
+
+  /* shadcn semantic */
+  --background: #f5f4f8;
+  --foreground: #17151c;
+  --card: #ffffff;
+  --card-foreground: #17151c;
+  --popover: #ffffff;
+  --popover-foreground: #17151c;
+  --primary: #6951f0;
+  --primary-foreground: #ffffff;
+  --secondary: #ecebf1;
+  --secondary-foreground: #17151c;
+  --muted: #ecebf1;
+  --muted-foreground: #5a5766;
+  --accent: #e6e5ec;
+  --accent-foreground: #17151c;
+  --destructive: #e11d48;
+  --destructive-foreground: #ffffff;
+  --border: rgba(20, 18, 30, 0.12);
+  --input: rgba(20, 18, 30, 0.16);
+  --ring: #6951f0;
+}
+
+/* default/deep scenes follow the theme in light (paper-like); explicit
+ * `paper`/`violet` scenes keep their own tokens. */
+:root.light [data-scene]:not([data-scene="paper"]):not([data-scene="violet"]) {
+  --s-bg: #f5f4f8;
+  --s-ink: #17151c;
+  --s-ink-dim: #5a5766;
+  --s-ink-faint: #908d9c;
+  --s-line: rgba(20, 18, 30, 0.14);
+  --s-accent: var(--color-violet-deep);
+  --s-accent-bright: var(--color-violet-deep);
+  --s-on-accent: #ffffff;
+  --s-slab: #ffffff;
+  --s-slab-ink: #17151c;
+  --s-slab-2: #eef0f5;
+  --s-glass: rgba(255, 255, 255, 0.62);
+  --s-glass-2: rgba(233, 235, 243, 0.7);
+  --s-ring: rgba(105, 81, 240, 0.24);
+  --s-hover-line: rgba(105, 81, 240, 0.42);
+  --s-glow: rgba(105, 81, 240, 0.18);
+}
+:root.light .board-scene,
+:root.light .deep-scene {
+  --s-slab: #ffffff;
+  --s-line: rgba(20, 18, 30, 0.1);
+}
+
+/* element-level surfaces that don't ride a single token */
+:root.light .vibestrate-backdrop {
+  background:
+    radial-gradient(1100px 700px at 100% 0%, rgba(105, 81, 240, 0.05), transparent 60%),
+    radial-gradient(900px 800px at 0% 18%, rgba(124, 150, 255, 0.06), transparent 55%);
+}
+:root.light .menu-surface {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.86) 100%),
+    rgba(255, 255, 255, 0.7);
+}
+:root.light .drawer-surface {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.92) 100%),
+    rgba(255, 255, 255, 0.99);
+}
+:root.light .brand-card { background: #ffffff; }
+:root.light .brand-card:hover,
+:root.light .brand-card.is-active { background: #f6f5f9; }
+:root.light .brand-callout { background: #f6f5f9; }
+:root.light ::selection { background: rgba(105, 81, 240, 0.22); color: #17151c; }
+:root.light ::-webkit-scrollbar-thumb {
+  background: rgba(20, 18, 30, 0.16);
+  background-clip: padding-box;
+}
+:root.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(20, 18, 30, 0.28);
+  background-clip: padding-box;
 }
 
 /* ── Scene surfaces (DESIGN.md §4) - solid colour fields + inverting components.

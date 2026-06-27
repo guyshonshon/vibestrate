@@ -28,6 +28,7 @@ import { Brand } from "../design/Brand.js";
 import { KBD } from "../design/Chip.js";
 import { cn } from "../design/cn.js";
 import { NotificationBell } from "../notifications/NotificationBell.js";
+import { ThemeToggle } from "../design/ThemeToggle.js";
 import type { NavId } from "./nav-id.js";
 
 type Props = {
@@ -580,6 +581,7 @@ export function TopBar({
             <KBD>K</KBD>
           </span>
         </button>
+        <ThemeToggle className="h-8 w-8 rounded-none border border-[color:var(--line)]" />
         <NotificationBell
           onOpenNotification={onOpenNotification}
           onOpenSettings={onShowSettings}

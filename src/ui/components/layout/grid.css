@@ -8,7 +8,7 @@
  */
 
 :root {
-  --rgl-accent: #a78bfa; /* violet-soft */
+  --rgl-accent: var(--color-violet-soft); /* tracks the brand accent in both themes */
 }
 
 .react-grid-item.react-grid-placeholder {
@@ -24,9 +24,23 @@
   position: relative;
   height: 100%;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(19, 23, 31, 0.55); /* ink-200 @ 55% */
+  border: 1px solid var(--line);
+  background: var(--card);
   transition: box-shadow 200ms ease, border-color 160ms ease;
+}
+
+/* "bare" variant: the frame is just a positioning/drag container - the panel's
+ * own card (themed by index.css) is the visible surface, so nothing double-cards
+ * and the panel keeps its light/dark styling. */
+.layout.is-bare .widget-frame {
+  background: transparent;
+  border: 0;
+}
+.layout.is-bare .widget-frame > .widget-body {
+  padding: 0;
+}
+.layout.is-bare.is-editing .widget-frame {
+  box-shadow: none;
 }
 
 .widget-frame > .widget-body {
@@ -108,9 +122,9 @@
   border-top-right-radius: 12px;
   background: linear-gradient(
     to bottom,
-    rgba(10, 12, 18, 0.92) 0%,
-    rgba(10, 12, 18, 0.6) 70%,
-    rgba(10, 12, 18, 0) 100%
+    var(--card) 0%,
+    color-mix(in srgb, var(--card) 60%, transparent) 70%,
+    transparent 100%
   );
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -132,13 +146,13 @@
   height: 22px;
   width: 22px;
   border-radius: 6px;
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
   transition: background 140ms ease, color 140ms ease;
 }
 .widget-chrome-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: color-mix(in srgb, var(--foreground) 14%, transparent);
+  color: var(--foreground);
 }
 .widget-chrome-btn.is-drag {
   cursor: grab;
@@ -156,7 +170,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--muted-foreground);
   padding-left: 2px;
   pointer-events: none;
   text-overflow: ellipsis;

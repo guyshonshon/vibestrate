@@ -53,6 +53,18 @@ export function ConsultDock() {
     if (open) textRef.current?.focus();
   }, [open]);
 
+  // Open from elsewhere (e.g. the composer's supervisor orb), optionally seeded
+  // with a question to ask about.
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      setOpen(true);
+      const q = (e as CustomEvent<{ question?: string }>).detail?.question;
+      if (typeof q === "string" && q.trim()) setQuestion(q.trim());
+    };
+    window.addEventListener("vibestrate:consult-open", onOpen);
+    return () => window.removeEventListener("vibestrate:consult-open", onOpen);
+  }, []);
+
   // Esc closes the panel (but never mid-thought - let a run finish).
   useEffect(() => {
     if (!open) return;
