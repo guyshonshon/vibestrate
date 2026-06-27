@@ -1,21 +1,61 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronUp, Route as RouteIcon } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { navigate } from "../../app/App.js";
 import type { DiscoveredFlow, PersonaSummary } from "../../lib/types.js";
 
 type FlowParamDef = { required?: boolean; label?: string; default?: unknown; secret?: boolean };
 
-const selectCls =
-  "rounded-[12px] border border-white/[0.08] bg-coal-800 px-3 py-2.5 text-[13px] text-chalk-100 focus:border-violet-soft/50 focus:outline-none";
-const fieldLbl = "mb-1.5 block text-[12px] font-semibold text-chalk-400";
+const fieldLbl = "mb-2 text-[12px] font-semibold text-chalk-400";
 
-/**
- * Inline new-run composer for Mission Control (soft-dark). Collapsed = task +
- * flow + crew + a run summary; "More options" expands in-place to persona, the
- * selected flow's params, and the run toggles. Mirrors the real spawnRun fields
- * the old MissionRunV5 used. Launches a real run, then lands on the control page.
- */
+function FlowBars({ count, on }: { count: number; on: boolean }) {
+  const n = Math.max(1, Math.min(count, 8));
+  return (
+    <div className="my-2.5 flex gap-1">
+      {Array.from({ length: n }).map((_, i) => (
+        <span
+          key={i}
+          className="h-1.5 flex-1 rounded-full"
+          style={{ background: on ? "#a78bfa" : "rgba(167,139,250,0.3)" }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function PickCard({
+  on,
+  onClick,
+  title,
+  isDefault,
+  children,
+  meta,
+}: {
+  on: boolean;
+  onClick: () => void;
+  title: string;
+  isDefault?: boolean;
+  children?: React.ReactNode;
+  meta?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-[160px] shrink-0 rounded-[14px] border p-3 text-left transition ${
+        on ? "border-violet-soft/60 bg-violet-soft/[0.08]" : "border-white/[0.07] bg-coal-800 hover:border-white/15"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-1">
+        <span className="truncate text-[13px] font-bold text-chalk-100">{title}</span>
+        {isDefault ? <span className="shrink-0 text-[10px] font-bold text-violet-soft">default</span> : null}
+      </div>
+      {children}
+      {meta ? <div className="text-[11px] text-chalk-400">{meta}</div> : null}
+    </button>
+  );
+}
+
 export function MissionComposer() {
   const [meta, setMeta] = useState<Awaited<ReturnType<typeof api.getProjectMetadata>> | null>(null);
   const [flows, setFlows] = useState<DiscoveredFlow[]>([]);
@@ -61,7 +101,6 @@ export function MissionComposer() {
 
   const selectedFlow = useMemo(() => flows.find((f) => f.id === flowId) ?? null, [flows, flowId]);
   const flowParams = (selectedFlow?.definition.params ?? null) as Record<string, FlowParamDef> | null;
-
   const missing = flowParams
     ? Object.entries(flowParams)
         .filter(([n, d]) => d.required && !(params[n]?.trim()) && d.default === undefined)
@@ -69,10 +108,6 @@ export function MissionComposer() {
     : [];
 
   const crews = meta?.crews ?? [];
-  const flowLabel = flowId ? selectedFlow?.definition.label ?? flowId : "auto";
-  const crewLabel = crewId ? crews.find((c) => c.id === crewId)?.label ?? crewId : "default";
-  const personaLabel = personaId ? personas.find((p) => p.id === personaId)?.label ?? personaId : "default";
-
   const canLaunch = task.trim().length > 0 && missing.length === 0 && !busy;
 
   const launch = async () => {
@@ -135,52 +170,100 @@ export function MissionComposer() {
         className="w-full resize-none rounded-[14px] border border-white/[0.08] bg-coal-800 px-4 py-3 text-[14px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
       />
 
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <div>
-          <label className={fieldLbl}>Flow</label>
-          <select value={flowId} onChange={(e) => setFlowId(e.target.value)} className={`w-full ${selectCls}`}>
-            <option value="">Auto {defaultFlow ? "(orchestrator picks)" : ""}</option>
-            {flows.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.definition.label}
-                {f.id === defaultFlow ? " · default" : ""}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className={fieldLbl}>Crew</label>
-          <select value={crewId} onChange={(e) => setCrewId(e.target.value)} className={`w-full ${selectCls}`}>
-            <option value="">Default</option>
-            {crews.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-                {c.id === meta?.defaultCrew ? " · default" : ""}
-              </option>
-            ))}
-          </select>
+      {/* Flow - visual cards, step bars */}
+      <div className="mt-4">
+        <div className={fieldLbl}>Flow</div>
+        <div className="flex gap-2.5 overflow-x-auto pb-1">
+          <PickCard on={!flowId} onClick={() => setFlowId("")} title="Auto" meta="orchestrator picks">
+            <div className="my-2.5 flex items-center gap-1.5 text-violet-soft">
+              <RouteIcon className="h-4 w-4" strokeWidth={2} />
+            </div>
+          </PickCard>
+          {flows.map((f) => {
+            const steps = (f.definition.steps ?? []).length;
+            const seats = Object.keys(f.definition.seats ?? {}).length;
+            const on = f.id === flowId;
+            return (
+              <PickCard
+                key={f.id}
+                on={on}
+                onClick={() => setFlowId(on ? "" : f.id)}
+                title={f.definition.label}
+                isDefault={f.id === defaultFlow}
+                meta={`${steps} steps · ${seats} seats`}
+              >
+                <FlowBars count={steps} on={on} />
+              </PickCard>
+            );
+          })}
         </div>
       </div>
 
+      {/* Crew - visual cards, role chips */}
+      {crews.length > 0 ? (
+        <div className="mt-4">
+          <div className={fieldLbl}>Crew</div>
+          <div className="flex gap-2.5 overflow-x-auto pb-1">
+            <PickCard on={!crewId} onClick={() => setCrewId("")} title="Default" meta="project crew">
+              <div className="my-2.5 h-[18px]" />
+            </PickCard>
+            {crews.map((c) => {
+              const on = c.id === crewId;
+              return (
+                <PickCard
+                  key={c.id}
+                  on={on}
+                  onClick={() => setCrewId(c.id)}
+                  title={c.label}
+                  isDefault={c.id === meta?.defaultCrew}
+                  meta={`${c.roles.length} roles`}
+                >
+                  <div className="my-2 flex flex-wrap gap-1">
+                    {c.roles.slice(0, 4).map((r) => (
+                      <span
+                        key={r.id}
+                        className="rounded-[6px] bg-violet-soft/12 px-1.5 py-px text-[10px] font-medium text-violet-soft"
+                      >
+                        {r.label}
+                      </span>
+                    ))}
+                    {c.roles.length > 4 ? <span className="text-[10px] text-chalk-400">+{c.roles.length - 4}</span> : null}
+                  </div>
+                </PickCard>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       {expanded ? (
         <div className="mt-4 flex flex-col gap-4 border-t border-white/[0.06] pt-4">
-          <div className="grid grid-cols-2 gap-3">
+          {personas.length > 0 ? (
             <div>
-              <label className={fieldLbl}>Supervisor persona</label>
-              <select value={personaId} onChange={(e) => setPersonaId(e.target.value)} className={`w-full ${selectCls}`}>
-                <option value="">Default</option>
-                {personas.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
+              <div className={fieldLbl}>Supervisor persona</div>
+              <div className="flex flex-wrap gap-2">
+                {personas.map((p) => {
+                  const on = p.id === personaId;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setPersonaId(on ? "" : p.id)}
+                      className={`rounded-[10px] px-3 py-1.5 text-[12.5px] font-semibold ${
+                        on ? "bg-violet-soft/20 text-violet-soft" : "bg-coal-800 text-chalk-400 hover:text-chalk-100"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           {flowParams && Object.keys(flowParams).length > 0 ? (
             <div>
-              <label className={fieldLbl}>Flow parameters</label>
+              <div className={fieldLbl}>Flow parameters</div>
               <div className="flex flex-col gap-2.5">
                 {Object.entries(flowParams).map(([name, def]) => (
                   <div key={name}>
@@ -193,7 +276,7 @@ export function MissionComposer() {
                       onChange={(e) => setParams((p) => ({ ...p, [name]: e.target.value }))}
                       type={def.secret ? "password" : "text"}
                       placeholder={def.default !== undefined ? `default: ${String(def.default)}` : ""}
-                      className={`w-full ${selectCls}`}
+                      className="w-full rounded-[12px] border border-white/[0.08] bg-coal-800 px-3 py-2.5 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
                     />
                   </div>
                 ))}
@@ -202,7 +285,7 @@ export function MissionComposer() {
           ) : null}
 
           <div>
-            <label className={fieldLbl}>Run options</label>
+            <div className={fieldLbl}>Run options</div>
             <div className="flex flex-wrap gap-2">
               <Toggle on={concise} set={setConcise} label="Concise" />
               <Toggle on={readOnly} set={setReadOnly} label="Read-only" />
@@ -220,7 +303,7 @@ export function MissionComposer() {
       ) : null}
       {error ? <div className="mt-3 text-[12.5px] text-rose-300">{error}</div> : null}
 
-      <div className="mt-4 flex items-center justify-between gap-3">
+      <div className="mt-4">
         <button
           onClick={() => void launch()}
           disabled={!canLaunch}
@@ -234,11 +317,6 @@ export function MissionComposer() {
             </>
           )}
         </button>
-        <div className="truncate text-[12px] text-chalk-400">
-          Flow: <span className="text-chalk-300">{flowLabel}</span> &middot; Crew:{" "}
-          <span className="text-chalk-300">{crewLabel}</span> &middot; Persona:{" "}
-          <span className="text-chalk-300">{personaLabel}</span>
-        </div>
       </div>
     </div>
   );
