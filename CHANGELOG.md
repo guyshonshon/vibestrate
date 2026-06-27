@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.28.3
+
+- **The All-runs page is on the new look.** The runs table now shows the same
+  status badge as the rest of the app, and the "integrate merge-ready runs" panel
+  reads as a tidy list of selectable runs with its safety flags ("never main",
+  "never push") called out, instead of a run-on header and a flat checklist.
+
 ## 0.28.2
 
 - **Review findings read as a list of findings, not a run-on line.** Each

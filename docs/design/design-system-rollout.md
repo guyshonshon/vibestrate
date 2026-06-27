@@ -186,7 +186,12 @@ responsive sweep.
   (`SuggestionsPanel`/`ReviewPassPanel`/`ProfileSelect`) kept but skipped for a
   future rewire. The 4 `var()`-styled panels (`RunTree`, `RunGapQuestions`,
   `SpecUp*`) carry zero old tokens already.
-- [ ] Phase 3 - compose / flows
+- [~] Phase 3 - compose / flows (branch `design/phase-3-compose-flows`). DONE:
+  `RunsPage` (RunStatusBadge in the table, merge-window panel rebuilt as framed
+  rows, contract recipes). PENDING: `FlowsPage` (the solid-color `.fcard` catalog
+  + flow-hub - a real card-system redesign), `RunComposePage`, `FlowBuilderPage`
+  (1898-line YAML editor). Also removed the `impeccable` skill from the rollout
+  here - the contract + live Mission Control is the sole design reference now.
 - [ ] Phase 4 - config / admin
 - [ ] Phase 5 - git / diff / merge
 - [ ] Phase 6 - specialized panels
