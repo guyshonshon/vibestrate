@@ -360,7 +360,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
                   key={r.runId}
                   run={r}
                   diff={diffByRun[r.runId]}
-                  onOpen={() => onSelectRun(r.runId)}
+                  onOpen={() => navigate({ kind: "control", runId: r.runId })}
                   onAbort={() => act("abort", r.runId)}
                 />
               ))}
@@ -382,7 +382,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
           ) : (
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               {completed.map((r) => (
-                <RunCard key={r.runId} run={r} onOpen={() => onSelectRun(r.runId)} />
+                <RunCard key={r.runId} run={r} onOpen={() => navigate({ kind: "control", runId: r.runId })} />
               ))}
             </div>
           )}

@@ -31,6 +31,14 @@ const TIPS_RUN: string[] = [
 
 export function hintForRoute(route: Route): CliHint {
   switch (route.kind) {
+    case "control":
+      return {
+        title: "Run control",
+        blurb:
+          "Watch and steer a single run - status, stage, diff, activity, and the controls. The deep inspector is one hop away.",
+        commands: [],
+        tips: [],
+      };
     case "mission":
       return {
         title: "Mission Control",

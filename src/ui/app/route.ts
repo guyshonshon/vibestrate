@@ -48,6 +48,7 @@ export type Route =
   | { kind: "ledger" }
   | { kind: "profiles" }
   | { kind: "config" }
+  | { kind: "control"; runId: string }
   | { kind: "consult"; taskId: string | null }
   | {
       kind: "codebase";
@@ -201,6 +202,7 @@ export function parseHashRoute(hash: string): Route {
   if (parts[0] === "ledger") return { kind: "ledger" };
   if (parts[0] === "profiles") return { kind: "profiles" };
   if (parts[0] === "config") return { kind: "config" };
+  if (parts[0] === "control" && parts[1]) return { kind: "control", runId: parts[1] };
   if (parts[0] === "consult") {
     const taskId = query.get("task");
     return { kind: "consult", taskId: taskId ?? null };
@@ -283,6 +285,8 @@ export function serializeRoute(route: Route): string {
       return "#/profiles";
     case "config":
       return "#/config";
+    case "control":
+      return `#/control/${encodeURIComponent(route.runId)}`;
     case "consult":
       return route.taskId
         ? `#/consult?task=${encodeURIComponent(route.taskId)}`

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { AppShell } from "../components/layout/AppShell.js";
+import { RunControlPage } from "../components/control/RunControlPage.js";
 import { CliHintOverlay } from "../components/layout/CliHintOverlay.js";
 import { ErrorBoundary } from "../components/layout/ErrorBoundary.js";
 import { GlobalErrorOverlay } from "../components/layout/GlobalErrorOverlay.js";
@@ -95,6 +96,8 @@ export function App() {
   const pageKey =
     route.kind === "run"
       ? `run:${route.runId}`
+      : route.kind === "control"
+        ? `control:${route.runId}`
       : route.kind === "task"
         ? `task:${route.taskId}`
         : route.kind === "codebase"
@@ -254,7 +257,7 @@ export function App() {
 
   return (
     <AppShell
-      bare={route.kind === "mission"}
+      bare={route.kind === "mission" || route.kind === "control"}
       currentRunId={route.kind === "run" ? route.runId : null}
       currentNav={
         route.kind === "board" || route.kind === "task"
@@ -336,6 +339,8 @@ export function App() {
             navigate({ kind: "run", runId, tab: "diff" })
           }
         />
+      ) : route.kind === "control" ? (
+        <RunControlPage runId={route.runId} />
       ) : route.kind === "compose" ? (
         <RunComposePage />
       ) : route.kind === "runs" ? (
