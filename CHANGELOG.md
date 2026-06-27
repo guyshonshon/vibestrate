@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.27.0
+
+- **The run screen is redesigned onto the new coal/chalk foundation.** Every
+  surface on the run-detail page now matches the Mission Control look: rounded
+  cards instead of square slabs, the violet single-hue accent, dense informative
+  rows, and one status badge that reads the same everywhere. The header, the
+  brief and flow rail, the live timeline, the step inspector, the supervisor and
+  review panels, the run switcher, and the scheduler queue all came across, in
+  both dark and light themes. Along the way the page shed its leftover eyebrow
+  kickers, a stray pulsing dot on the live timeline, and the old outlined "pill"
+  chips. We also removed six dead run panels the earlier redesign had already
+  orphaned (keeping the two review-suggestion panels intact for a future rewire).
+
 ## 0.26.9
 
 - **Resuming a checklist run keeps its context, and refuses a changed checklist.**

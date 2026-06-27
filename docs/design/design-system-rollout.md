@@ -1,8 +1,12 @@
 # Design: app-wide design-system rollout
 
-Status: **Phase 0 done (2026-06-27)** - rollout program for migrating the whole
+Status: **Phase 2 done (2026-06-27)** - rollout program for migrating the whole
 dashboard onto the "coal/chalk" foundation. Foundation merged to `main`
-(`f55c8725`). Phase 0 landed on branch `design/phase-0-foundation`: canonical
+(`f55c8725`). Phase 2 (runs domain) shipped in v0.27.0; the run-detail page and
+all its live panels are now on the new foundation (see the checklist below).
+Phase 1 (shared atoms + app shell) is still pending and runs after Phase 2 by
+design - unmigrated screens keep their old chrome until then. Phase 0 landed on
+branch `design/phase-0-foundation`: canonical
 contract locked ([`primitives-contract.md`](./primitives-contract.md)), dead
 shadcn `components/ui/*` set removed, token crosswalk verified against live
 Mission Control (below), and a shared reference set captured
@@ -164,7 +168,14 @@ responsive sweep.
 ## Tracking checklist
 - [x] Phase 0 - foundation contract + verified crosswalk (branch `design/phase-0-foundation`)
 - [ ] Phase 1 - atoms + app shell
-- [ ] Phase 2 - runs domain
+- [x] Phase 2 - runs domain (branch `design/phase-2-runs`, v0.27.0). Pilot shell
+  (`RunDetailPage` scaffold + `RunHeaderV3` + `RunStatusSection` + `InspectorTabs`
+  + `RunStatusBadge`) then a parallel panel fan-out (Live/Supervisor/Queue
+  clusters). Scope finding: 9 of the 24 `runs/*` files were dead (v3-orphaned,
+  69% of the old-token burden); 6 deleted, the 3-file review-suggestion set
+  (`SuggestionsPanel`/`ReviewPassPanel`/`ProfileSelect`) kept but skipped for a
+  future rewire. The 4 `var()`-styled panels (`RunTree`, `RunGapQuestions`,
+  `SpecUp*`) carry zero old tokens already.
 - [ ] Phase 3 - compose / flows
 - [ ] Phase 4 - config / admin
 - [ ] Phase 5 - git / diff / merge
