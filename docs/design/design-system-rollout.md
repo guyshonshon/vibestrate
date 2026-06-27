@@ -40,6 +40,10 @@ old tokens only in the final cleanup phase, once grep shows zero consumers.
 
 ## Principles (bake into every phase)
 
+- **Canonical idiom:** [`primitives-contract.md`](./primitives-contract.md) is
+  the single source for the Tailwind recipes, tokens, and anti-patterns every
+  page agent must match. Read it (and [`references/`](./references/)) before
+  touching a screen.
 - Use the `impeccable` skill + **real references** (the user's LOUD / Raycast
   references) - do not invent designs.
 - Violet single-hue accent; dark default, light supported; rounded surfaces ok.
