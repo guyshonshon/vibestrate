@@ -12,11 +12,11 @@ export type ChipTone =
 // No pill chrome - no rounded box, border, or fill. A flat tinted mono label,
 // matching the marketing site's own label treatment (e.g. the hub's "verified").
 const TONE: Record<ChipTone, string> = {
-  neutral: "text-fog-400",
+  neutral: "text-chalk-400",
   violet: "text-violet-soft",
   sky: "text-sky-glow",
-  emerald: "text-emerald-300",
-  amber: "text-amber-300",
+  emerald: "text-emerald-400",
+  amber: "text-amber-soft",
   rose: "text-rose-300",
 };
 
@@ -44,11 +44,11 @@ export function Chip({
 
 export function ToneDot({ tone = "violet" }: { tone?: ChipTone }) {
   const dots: Record<ChipTone, string> = {
-    neutral: "bg-fog-400",
+    neutral: "bg-chalk-400",
     violet: "bg-violet-soft",
     sky: "bg-sky-glow",
     emerald: "bg-emerald-400",
-    amber: "bg-amber-300",
+    amber: "bg-amber-soft",
     rose: "bg-rose-400",
   };
   return (
@@ -58,7 +58,7 @@ export function ToneDot({ tone = "violet" }: { tone?: ChipTone }) {
 
 export function KBD({ children }: { children: ReactNode }) {
   return (
-    <kbd className="mono inline-flex items-center justify-center rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-[1px] text-[10.5px] text-fog-300 leading-none h-[18px] min-w-[18px]">
+    <kbd className="mono inline-flex items-center justify-center rounded-md border border-[color:var(--line)] bg-coal-500 px-1.5 py-[1px] text-[10.5px] text-chalk-300 leading-none h-[18px] min-w-[18px]">
       {children}
     </kbd>
   );

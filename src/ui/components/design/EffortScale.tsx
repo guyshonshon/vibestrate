@@ -28,16 +28,16 @@ export function EffortScale({
     cn(
       "flex-1 rounded-md px-1.5 py-1 text-[11px] leading-none transition-colors text-center",
       value === level
-        ? "bg-violet-deep text-white"
+        ? "bg-violet-soft text-coal-900"
         : ultra
           ? "border border-violet-soft/30 text-violet-soft hover:bg-violet-soft/10"
-          : "border border-white/10 text-fog-300 hover:border-violet-soft/40 hover:text-fog-100",
+          : "border border-[color:var(--line)] text-chalk-300 hover:border-violet-soft/40 hover:text-chalk-100",
       disabled && "opacity-50 pointer-events-none",
     );
 
   return (
     <div>
-      <div className="flex items-center justify-between px-0.5 text-[9.5px] uppercase tracking-[0.16em] text-fog-500">
+      <div className="flex items-center justify-between px-0.5 text-[9.5px] uppercase tracking-[0.16em] text-chalk-400">
         <span>Faster</span>
         <span>Smarter</span>
       </div>
@@ -55,7 +55,7 @@ export function EffortScale({
         ))}
         {hasUltra ? (
           <>
-            <span className="mx-0.5 self-center text-fog-700 select-none">┆</span>
+            <span className="mx-0.5 self-center text-chalk-400 select-none">┆</span>
             <button
               type="button"
               disabled={disabled}
@@ -68,7 +68,7 @@ export function EffortScale({
           </>
         ) : null}
       </div>
-      <div className="mt-1 text-[10px] text-fog-500">
+      <div className="mt-1 text-[10px] text-chalk-400">
         {value === ULTRA
           ? "ultracode = xhigh + workflows"
           : offLadder

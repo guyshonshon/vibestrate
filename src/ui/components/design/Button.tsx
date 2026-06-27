@@ -10,22 +10,22 @@ export type ButtonVariant =
 export type ButtonSize = "sm" | "md" | "lg";
 
 const SIZE: Record<ButtonSize, string> = {
-  sm: "h-7 px-2.5 text-[12px] gap-1.5",
-  md: "h-9 px-3.5 text-[13px] gap-2",
-  lg: "h-11 px-5 text-[14px] gap-2.5",
+  sm: "h-7 px-2.5 text-[12px] gap-1.5 rounded-[10px]",
+  md: "h-9 px-3.5 text-[13px] gap-2 rounded-[12px]",
+  lg: "h-11 px-5 text-[14px] gap-2.5 rounded-[12px]",
 };
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary:
-    "bg-violet-deep text-white border border-violet-soft/30 hover:bg-violet-mid",
+    "bg-violet-soft text-coal-900 border border-transparent hover:bg-violet-soft/90",
   secondary:
-    "bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-fog-100",
+    "bg-coal-500 hover:bg-coal-400 border border-[color:var(--line-strong)] text-chalk-100",
   ghost:
-    "bg-transparent hover:bg-white/[0.04] border border-transparent text-fog-200 hover:text-fog-100",
+    "bg-transparent hover:bg-coal-500 border border-transparent text-chalk-300 hover:text-chalk-100",
   outline:
-    "bg-transparent hover:bg-white/[0.04] border border-white/15 text-fog-100",
+    "bg-transparent hover:text-chalk-100 border border-[color:var(--line-strong)] text-chalk-300",
   danger:
-    "bg-rose-500/10 hover:bg-rose-500/15 border border-rose-400/30 text-rose-300",
+    "bg-rose-500/10 hover:bg-rose-500/10 border border-rose-400/30 text-rose-300",
 };
 
 export function Button({
@@ -48,7 +48,7 @@ export function Button({
       type="button"
       {...props}
       className={cn(
-        "inline-flex items-center justify-center rounded-none font-medium select-none whitespace-nowrap",
+        "inline-flex items-center justify-center font-medium select-none whitespace-nowrap",
         "disabled:opacity-50 disabled:pointer-events-none",
         SIZE[size],
         VARIANT[variant],

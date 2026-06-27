@@ -85,7 +85,7 @@ export function AppShell({
     );
   }
   return (
-    <div className="relative flex h-screen w-screen flex-col overflow-hidden text-fog-100">
+    <div className="relative flex h-screen w-screen flex-col overflow-hidden text-chalk-100">
       <ServerHealthBanner />
       <TopBar
         currentNav={currentNav}

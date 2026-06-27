@@ -609,8 +609,12 @@ body,
 
 body {
   font-family: var(--font-sans);
-  background: var(--color-ink-0);
-  color: var(--color-fog-100);
+  /* Phase 1: the app canvas is the coal --background (a touch lighter than the
+   * old near-black ink-0), so migrated coal surfaces sit on their intended
+   * ground. Unmigrated `.slab` pages still read the --s-* scene tokens and
+   * stay coherent on top of it. */
+  background: var(--background);
+  color: var(--color-chalk-100);
   font-feature-settings: "ss01", "ss02", "cv11", "tnum";
   letter-spacing: -0.005em;
   min-height: 100%;

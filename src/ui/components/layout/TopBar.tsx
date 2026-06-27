@@ -213,7 +213,7 @@ export function TopBar({
   ];
 
   return (
-    <header className="relative z-20 flex flex-nowrap items-center gap-2 sm:gap-3 border-b border-white/[0.06] bg-ink-100 px-3 sm:px-6 py-3">
+    <header className="relative z-20 flex flex-nowrap items-center gap-2 sm:gap-3 border-b border-[color:var(--line)] bg-coal-800 px-3 sm:px-6 py-3">
       {/* ── Brand + breadcrumb (left) ───────────────────────────────── */}
       <div className="flex items-center gap-3 min-w-0 shrink">
         <button
@@ -223,37 +223,37 @@ export function TopBar({
         >
           <Brand />
         </button>
-        <span className="text-fog-500 hidden md:inline">/</span>
+        <span className="text-chalk-400 hidden md:inline">/</span>
         <button
           type="button"
           onClick={onShowProject}
-          className="hidden md:flex items-center gap-1.5 text-[13px] text-fog-200 hover:text-fog-100 min-w-0"
+          className="hidden md:flex items-center gap-1.5 text-[13px] text-chalk-300 hover:text-chalk-100 min-w-0"
         >
           <Folder
-            className="h-3.5 w-3.5 text-fog-400 shrink-0"
-            strokeWidth={1.7}
+            className="h-3.5 w-3.5 text-chalk-400 shrink-0"
+            strokeWidth={1.9}
           />
           <span className="truncate max-w-[160px]">{projectLabel}</span>
         </button>
         <WorkspaceSwitcher onShowOverview={onShowWorkspace} />
         {meta.branch ? (
           <>
-            <span className="text-fog-500 hidden xl:inline">/</span>
+            <span className="text-chalk-400 hidden xl:inline">/</span>
             <button
               type="button"
               onClick={onShowGit}
-              className="hidden xl:flex items-center gap-1.5 text-[13px] text-fog-200 hover:text-fog-100 min-w-0"
+              className="hidden xl:flex items-center gap-1.5 text-[13px] text-chalk-300 hover:text-chalk-100 min-w-0"
             >
               <GitBranch
-                className="h-3.5 w-3.5 text-fog-400 shrink-0"
-                strokeWidth={1.7}
+                className="h-3.5 w-3.5 text-chalk-400 shrink-0"
+                strokeWidth={1.9}
               />
               <span className="mono text-[12px] truncate max-w-[160px]">
                 {meta.branch}
               </span>
               <ChevronDown
-                className="h-3.5 w-3.5 text-fog-500 shrink-0"
-                strokeWidth={1.7}
+                className="h-3.5 w-3.5 text-chalk-400 shrink-0"
+                strokeWidth={1.9}
               />
             </button>
           </>
@@ -290,8 +290,8 @@ export function TopBar({
           >
             More
             <ChevronDown
-              className="ml-1 h-3 w-3 text-fog-500"
-              strokeWidth={1.7}
+              className="ml-1 h-3 w-3 text-chalk-400"
+              strokeWidth={1.9}
             />
           </NavTab>
           {moreOpen ? (
@@ -301,7 +301,7 @@ export function TopBar({
                   setMoreOpen(false);
                   onShowGit();
                 }}
-                icon={<GitCommit className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+                icon={<GitCommit className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
               >
                 Git
               </DropItem>
@@ -311,7 +311,7 @@ export function TopBar({
                   setMoreOpen(false);
                   onShowGitTree();
                 }}
-                icon={<GitMerge className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+                icon={<GitMerge className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
               >
                 Git tree
               </DropItem>
@@ -321,7 +321,7 @@ export function TopBar({
                   setMoreOpen(false);
                   onShowMerge();
                 }}
-                icon={<GitMerge className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+                icon={<GitMerge className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
               >
                 Merge
               </DropItem>
@@ -331,7 +331,7 @@ export function TopBar({
                   setMoreOpen(false);
                   onShowProviders();
                 }}
-                icon={<Plug className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+                icon={<Plug className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
               >
                 Providers
               </DropItem>
@@ -341,7 +341,7 @@ export function TopBar({
                   setMoreOpen(false);
                   onShowSupervisors();
                 }}
-                icon={<ShieldCheck className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+                icon={<ShieldCheck className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
               >
                 Supervisors
               </DropItem>
@@ -351,7 +351,7 @@ export function TopBar({
                   setMoreOpen(false);
                   onShowLedger();
                 }}
-                icon={<BookMarked className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+                icon={<BookMarked className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
               >
                 Ledger
               </DropItem>
@@ -360,7 +360,7 @@ export function TopBar({
                   setMoreOpen(false);
                   onShowProposals();
                 }}
-                icon={<FileText className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+                icon={<FileText className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
               >
                 Proposals
               </DropItem>
@@ -369,7 +369,7 @@ export function TopBar({
                   setMoreOpen(false);
                   onShowProject();
                 }}
-                icon={<Folder className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+                icon={<Folder className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
               >
                 Project
               </DropItem>
@@ -379,7 +379,7 @@ export function TopBar({
                   setMoreOpen(false);
                   onShowConfig();
                 }}
-                icon={<Settings2 className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+                icon={<Settings2 className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
               >
                 Config
               </DropItem>
@@ -388,7 +388,7 @@ export function TopBar({
                   setMoreOpen(false);
                   onShowWorkspace();
                 }}
-                icon={<FolderTree className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+                icon={<FolderTree className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
               >
                 All projects
               </DropItem>
@@ -397,7 +397,7 @@ export function TopBar({
                   setMoreOpen(false);
                   onShowRunsList();
                 }}
-                icon={<ListChecks className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+                icon={<ListChecks className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
               >
                 All runs
               </DropItem>
@@ -415,17 +415,17 @@ export function TopBar({
           className={cn(
             "h-8 px-3 flex items-center gap-1.5 text-[12.5px] font-medium",
             menuOpen
-              ? "bg-white/[0.06] text-fog-100 border border-white/10"
-              : "text-fog-200 hover:text-fog-100 hover:bg-white/[0.04] border border-white/[0.06]",
+              ? "bg-coal-500 text-chalk-100 border border-[color:var(--line-strong)]"
+              : "text-chalk-300 hover:text-chalk-100 hover:bg-coal-600 border border-[color:var(--line)]",
           )}
         >
-          <Menu className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.6} />
+          <Menu className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.6} />
           <span className="hidden sm:inline">
             {navSpecs.find((n) => n.active)?.label ?? "Menu"}
           </span>
           <ChevronDown
-            className="h-3 w-3 text-fog-500"
-            strokeWidth={1.7}
+            className="h-3 w-3 text-chalk-400"
+            strokeWidth={1.9}
           />
         </button>
         {menuOpen ? (
@@ -442,22 +442,22 @@ export function TopBar({
                   <spec.icon
                     className={cn(
                       "h-3.5 w-3.5",
-                      spec.active ? "text-violet-soft" : "text-fog-400",
+                      spec.active ? "text-violet-soft" : "text-chalk-400",
                     )}
-                    strokeWidth={1.7}
+                    strokeWidth={1.9}
                   />
                 }
               >
                 {spec.label}
               </DropItem>
             ))}
-            <div className="border-t border-white/[0.05] my-1" />
+            <div className="border-t border-[color:var(--line)] my-1" />
             <DropItem
               onClick={() => {
                 setMenuOpen(false);
                 onShowGit();
               }}
-              icon={<GitCommit className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              icon={<GitCommit className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
             >
               Git
             </DropItem>
@@ -467,7 +467,7 @@ export function TopBar({
                 setMenuOpen(false);
                 onShowGitTree();
               }}
-              icon={<GitMerge className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              icon={<GitMerge className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
             >
               Git tree
             </DropItem>
@@ -477,7 +477,7 @@ export function TopBar({
                 setMenuOpen(false);
                 onShowMerge();
               }}
-              icon={<GitMerge className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              icon={<GitMerge className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
             >
               Merge
             </DropItem>
@@ -487,7 +487,7 @@ export function TopBar({
                 setMenuOpen(false);
                 onShowProviders();
               }}
-              icon={<Plug className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              icon={<Plug className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
             >
               Providers
             </DropItem>
@@ -497,7 +497,7 @@ export function TopBar({
                 setMenuOpen(false);
                 onShowSupervisors();
               }}
-              icon={<ShieldCheck className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              icon={<ShieldCheck className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
             >
               Supervisors
             </DropItem>
@@ -507,7 +507,7 @@ export function TopBar({
                 setMenuOpen(false);
                 onShowLedger();
               }}
-              icon={<BookMarked className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              icon={<BookMarked className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
             >
               Ledger
             </DropItem>
@@ -516,7 +516,7 @@ export function TopBar({
                 setMenuOpen(false);
                 onShowProposals();
               }}
-              icon={<FileText className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              icon={<FileText className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
             >
               Proposals
             </DropItem>
@@ -525,7 +525,7 @@ export function TopBar({
                 setMenuOpen(false);
                 onShowProject();
               }}
-              icon={<Folder className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              icon={<Folder className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
             >
               Project
             </DropItem>
@@ -535,7 +535,7 @@ export function TopBar({
                 setMenuOpen(false);
                 onShowConfig();
               }}
-              icon={<Settings2 className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              icon={<Settings2 className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
             >
               Config
             </DropItem>
@@ -544,7 +544,7 @@ export function TopBar({
                 setMenuOpen(false);
                 onShowWorkspace();
               }}
-              icon={<FolderTree className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              icon={<FolderTree className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
             >
               All projects
             </DropItem>
@@ -553,7 +553,7 @@ export function TopBar({
                 setMenuOpen(false);
                 onShowRunsList();
               }}
-              icon={<ListChecks className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              icon={<ListChecks className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
             >
               All runs
             </DropItem>
@@ -570,18 +570,18 @@ export function TopBar({
           onClick={() =>
             window.dispatchEvent(new CustomEvent("vibestrate:help-overlay"))
           }
-          className="h-8 px-2.5 border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex items-center gap-2 text-[12px] text-fog-300 whitespace-nowrap"
+          className="h-8 px-2.5 border border-[color:var(--line-strong)] bg-coal-700 hover:bg-coal-600 flex items-center gap-2 text-[12px] text-chalk-300 whitespace-nowrap"
           title="Jump to… (⌘K)"
           aria-label="Jump to"
         >
-          <Search className="h-3.5 w-3.5" strokeWidth={1.7} />
+          <Search className="h-3.5 w-3.5" strokeWidth={1.9} />
           <span className="hidden lg:inline">Jump to…</span>
           <span className="hidden lg:flex items-center gap-1">
             <KBD>⌘</KBD>
             <KBD>K</KBD>
           </span>
         </button>
-        <ThemeToggle className="h-8 w-8 rounded-none border border-[color:var(--line)]" />
+        <ThemeToggle className="h-8 w-8 rounded-[10px] border border-[color:var(--line)]" />
         <NotificationBell
           onOpenNotification={onOpenNotification}
           onOpenSettings={onShowSettings}
@@ -590,8 +590,8 @@ export function TopBar({
           type="button"
           onClick={onShowSettings}
           className={cn(
-            "w-8 h-8 border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex items-center justify-center shrink-0",
-            currentNav === "settings" ? "text-fog-100" : "text-fog-300",
+            "w-8 h-8 border border-[color:var(--line-strong)] bg-coal-700 hover:bg-coal-600 flex items-center justify-center shrink-0",
+            currentNav === "settings" ? "text-chalk-100" : "text-chalk-300",
           )}
           title="Settings"
           aria-label="Settings"
@@ -601,7 +601,7 @@ export function TopBar({
         <button
           type="button"
           onClick={onShowSettings}
-          className="w-8 h-8 overflow-hidden border border-white/10 bg-violet-deep flex items-center justify-center text-[11px] font-semibold text-white shrink-0"
+          className="w-8 h-8 overflow-hidden border border-[color:var(--line-strong)] bg-violet-soft flex items-center justify-center text-[11px] font-semibold text-coal-900 shrink-0"
         >
           AM
         </button>
@@ -628,11 +628,11 @@ function NavTab({
       className={cn(
         "h-8 px-3 flex items-center gap-1.5 text-[12.5px] font-medium whitespace-nowrap",
         active
-          ? "bg-white/[0.06] text-fog-100 border border-white/10"
-          : "text-fog-300 hover:text-fog-100 hover:bg-white/[0.04] border border-transparent",
+          ? "bg-coal-600 text-chalk-100 border border-[color:var(--line-strong)]"
+          : "text-chalk-300 hover:text-chalk-100 hover:bg-coal-600 border border-transparent",
       )}
     >
-      <span className={active ? "text-violet-soft" : "text-fog-400"}>
+      <span className={active ? "text-violet-soft" : "text-chalk-400"}>
         {icon}
       </span>
       {children}
@@ -658,8 +658,8 @@ function DropItem({
       className={cn(
         "w-full text-left px-3 py-2 flex items-center gap-2 text-[13px]",
         active
-          ? "bg-violet-soft/[0.08] text-fog-100"
-          : "text-fog-200 hover:bg-white/[0.05] hover:text-fog-100",
+          ? "bg-violet-soft/[0.08] text-chalk-100"
+          : "text-chalk-300 hover:bg-coal-600 hover:text-chalk-100",
       )}
     >
       {icon}
@@ -728,13 +728,13 @@ function WorkspaceSwitcher({ onShowOverview }: { onShowOverview: () => void }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         title="Switch project"
-        className="flex items-center text-fog-500 hover:text-fog-200"
+        className="flex items-center text-chalk-400 hover:text-chalk-300"
       >
-        <ChevronDown className="h-3.5 w-3.5 shrink-0" strokeWidth={1.7} />
+        <ChevronDown className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} />
       </button>
       {open ? (
-        <div className="absolute left-0 top-7 z-50 w-[280px] border border-white/10 bg-ink-100 p-1 shadow-xl">
-          <div className="px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-fog-500">
+        <div className="absolute left-0 top-7 z-50 w-[280px] border border-[color:var(--line)] bg-coal-800 p-1 shadow-xl">
+          <div className="px-2 py-1 mono text-[11px] text-chalk-400">
             Projects ({projects.length})
           </div>
           <button
@@ -743,14 +743,14 @@ function WorkspaceSwitcher({ onShowOverview }: { onShowOverview: () => void }) {
               setOpen(false);
               onShowOverview();
             }}
-            className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-white/[0.05]"
+            className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-coal-600"
           >
-            <FolderTree className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.7} />
-            <span className="flex-1 text-[12.5px] text-fog-100">All projects overview</span>
+            <FolderTree className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.9} />
+            <span className="flex-1 text-[12.5px] text-chalk-100">All projects overview</span>
           </button>
-          <div className="my-1 border-t border-white/[0.06]" />
+          <div className="my-1 border-t border-[color:var(--line)]" />
           {projects.length === 0 ? (
-            <div className="px-2 py-2 text-[11.5px] text-fog-300">
+            <div className="px-2 py-2 text-[11.5px] text-chalk-300">
               Only this project is registered. Run <span className="mono">vibe ui</span> in another to add it.
             </div>
           ) : (
@@ -761,7 +761,7 @@ function WorkspaceSwitcher({ onShowOverview }: { onShowOverview: () => void }) {
                     type="button"
                     disabled={p.current || busy === p.root}
                     onClick={() => void openProject(p)}
-                    className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-white/[0.05] disabled:hover:bg-transparent"
+                    className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-coal-600 disabled:hover:bg-transparent"
                     title={
                       p.current
                         ? "Current project"
@@ -773,19 +773,19 @@ function WorkspaceSwitcher({ onShowOverview }: { onShowOverview: () => void }) {
                     <span
                       className={cn(
                         "h-1.5 w-1.5 rounded-full shrink-0",
-                        p.current || p.live ? "bg-emerald-400" : "bg-fog-600",
+                        p.current || p.live ? "bg-emerald-400" : "bg-chalk-400",
                       )}
                     />
-                    <Folder className="h-3.5 w-3.5 shrink-0 text-fog-400" strokeWidth={1.7} />
-                    <span className="flex-1 truncate text-[12.5px] text-fog-100">{p.label}</span>
+                    <Folder className="h-3.5 w-3.5 shrink-0 text-chalk-400" strokeWidth={1.9} />
+                    <span className="flex-1 truncate text-[12.5px] text-chalk-100">{p.label}</span>
                     {p.current ? (
-                      <span className="text-[10px] text-emerald-300">current</span>
+                      <span className="text-[10px] text-emerald-400">current</span>
                     ) : busy === p.root ? (
-                      <span className="text-[10px] text-fog-500">starting…</span>
+                      <span className="text-[10px] text-chalk-400">starting…</span>
                     ) : p.live ? (
-                      <span className="mono text-[10px] text-fog-500">:{p.lastPort} ↗</span>
+                      <span className="mono text-[10px] text-chalk-400">:{p.lastPort} ↗</span>
                     ) : (
-                      <span className="text-[10px] text-fog-600">launch ↗</span>
+                      <span className="text-[10px] text-chalk-400">launch ↗</span>
                     )}
                   </button>
                 </li>

@@ -27,9 +27,9 @@ export function PhaseRail({
               title={s}
               className={cn(
                 "mono text-[10.5px] truncate",
-                state === "done" && "text-emerald-300/80",
+                state === "done" && "text-emerald-400/80",
                 state === "active" && "text-violet-soft",
-                state === "todo" && "text-fog-500",
+                state === "todo" && "text-chalk-400",
               )}
             >
               {s}

@@ -20,8 +20,9 @@ export type SelectOption = {
  * can't be styled consistently across browsers (the open list is OS-drawn), so
  * this is a custom listbox: a button trigger + an absolutely-positioned option
  * list. Keyboard-accessible (Up/Down/Home/End/Enter/Esc), closes on
- * click-outside, and marks the selected option with a check. Square corners,
- * hairline border, no native chrome - matches the dashboard's slab language.
+ * click-outside, and marks the selected option with a check. Rounded coal
+ * field + hairline border, no native chrome - matches the dashboard's
+ * coal/chalk input language.
  */
 export function Select({
   value,
@@ -122,17 +123,17 @@ export function Select({
         onClick={() => !disabled && setOpen((v) => !v)}
         onKeyDown={onKeyDown}
         className={cn(
-          "flex w-full items-center justify-between gap-2 border bg-ink-200 px-2.5 py-1.5 text-[12.5px] text-fog-100 outline-none transition",
-          "hover:border-white/25 disabled:opacity-50",
-          open ? "border-violet-soft/50" : "border-white/15",
+          "flex w-full items-center justify-between gap-2 rounded-[12px] border bg-coal-800 px-2.5 py-1.5 text-[12.5px] text-chalk-100 outline-none transition",
+          "hover:border-violet-soft/50 disabled:opacity-50",
+          open ? "border-violet-soft/50" : "border-[color:var(--line-strong)]",
         )}
       >
-        <span className={cn("truncate", !selected && "text-fog-500")}>
+        <span className={cn("truncate", !selected && "text-chalk-400")}>
           {selected ? selected.label : (placeholder ?? "Select…")}
         </span>
         <ChevronDown
           className={cn(
-            "h-3.5 w-3.5 shrink-0 text-fog-400 transition",
+            "h-3.5 w-3.5 shrink-0 text-chalk-400 transition",
             open && "rotate-180",
           )}
           strokeWidth={1.7}
@@ -142,7 +143,7 @@ export function Select({
         <div
           role="listbox"
           id={listId}
-          className="absolute left-0 z-30 mt-1 max-h-[260px] min-w-full overflow-auto border border-white/15 bg-ink-100 py-1 shadow-2xl"
+          className="absolute left-0 z-30 mt-1 max-h-[260px] min-w-full overflow-auto rounded-[12px] border border-[color:var(--line)] bg-coal-800 py-1 shadow-2xl"
         >
           {options.map((o, i) => {
             const isSel = o.value === value;
@@ -155,7 +156,7 @@ export function Select({
                 onClick={() => choose(i)}
                 className={cn(
                   "flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[12.5px]",
-                  i === active ? "bg-violet-soft/15 text-fog-100" : "text-fog-200",
+                  i === active ? "bg-coal-500 text-chalk-100" : "text-chalk-300",
                 )}
               >
                 <Check
@@ -167,7 +168,7 @@ export function Select({
                 />
                 <span className="truncate">{o.label}</span>
                 {o.hint ? (
-                  <span className="ml-auto shrink-0 truncate pl-3 text-[11px] text-fog-500">
+                  <span className="ml-auto shrink-0 truncate pl-3 text-[11px] text-chalk-400">
                     {o.hint}
                   </span>
                 ) : null}

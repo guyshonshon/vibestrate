@@ -47,7 +47,7 @@ export function GlobalErrorOverlay() {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className="flex items-start gap-2 rounded-lg border border-rose-500/40 bg-[#1a0f12] px-3 py-2 text-[11.5px] text-rose-100 shadow-xl"
+          className="flex items-start gap-2 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[11.5px] text-rose-300 shadow-xl"
         >
           <span className="mt-px shrink-0 text-rose-400">!</span>
           <span className="min-w-0 flex-1 break-words">{t.msg}</span>
@@ -55,7 +55,7 @@ export function GlobalErrorOverlay() {
             type="button"
             aria-label="Dismiss"
             onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
-            className="shrink-0 text-rose-300/70 hover:text-rose-100"
+            className="shrink-0 text-rose-300/70 hover:text-rose-300"
           >
             ×
           </button>
