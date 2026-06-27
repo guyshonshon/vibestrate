@@ -37,10 +37,10 @@ const CLS_TONE: Record<string, "violet" | "amber" | "neutral"> = {
 };
 
 const TONE_TEXT: Record<string, string> = {
-  ok: "text-emerald-300/90",
-  warn: "text-amber-300",
+  ok: "text-emerald-400",
+  warn: "text-amber-soft",
   bad: "text-rose-300",
-  info: "text-fog-200",
+  info: "text-chalk-300",
 };
 
 function flowStory(sel: WorkflowSelectionView): string {
@@ -119,23 +119,23 @@ export function SupervisorPanel({
 
   return (
     <section
-      className="rounded-xl border border-white/[0.08] surface-ink-100-55 px-4 py-3"
+      className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4 py-3"
       data-screen-label="00 Supervisor"
     >
       <div className="flex flex-wrap items-center gap-2.5">
-        <ShieldCheck className="h-4 w-4 text-violet-soft" strokeWidth={1.7} />
-        <span className="eyebrow">Supervisor</span>
-        <span className="text-[12.5px] font-medium text-fog-100">{persona}</span>
+        <ShieldCheck className="h-4 w-4 text-violet-soft" strokeWidth={1.9} />
+        <span className="mono text-[11px] text-chalk-400">Supervisor</span>
+        <span className="text-[12.5px] font-medium text-chalk-100">{persona}</span>
         {independence ? (
           <span
-            className="mono text-[10.5px] text-fog-500"
+            className="mono text-[10.5px] text-chalk-400"
             title="Review independence is honest, not a confidence source - single-profile is a same-model self-check that can only lower confidence."
           >
             {independence}
           </span>
         ) : null}
         {story ? (
-          <span className="text-[12px] text-fog-300 truncate min-w-0">
+          <span className="text-[12px] text-chalk-300 truncate min-w-0">
             {story}
           </span>
         ) : null}
@@ -143,14 +143,14 @@ export function SupervisorPanel({
           <button
             type="button"
             onClick={() => setWhyOpen((v) => !v)}
-            className="flex shrink-0 items-center gap-1 text-[11px] text-violet-soft hover:text-fog-200"
+            className="flex shrink-0 items-center gap-1 text-[11px] text-violet-soft hover:text-violet-soft/80"
             aria-expanded={whyOpen}
             title="The full flow-selection reasoning the orchestrator recorded"
           >
             {whyOpen ? (
-              <ChevronDown className="h-3 w-3" strokeWidth={1.7} />
+              <ChevronDown className="h-3 w-3" strokeWidth={1.9} />
             ) : (
-              <ChevronRight className="h-3 w-3" strokeWidth={1.7} />
+              <ChevronRight className="h-3 w-3" strokeWidth={1.9} />
             )}
             why
           </button>
@@ -158,35 +158,35 @@ export function SupervisorPanel({
         <button
           type="button"
           onClick={() => setFeedOpen((v) => !v)}
-          className="ml-auto flex shrink-0 items-center gap-1 text-[11.5px] text-fog-400 hover:text-fog-200"
+          className="ml-auto flex shrink-0 items-center gap-1 text-[11.5px] text-chalk-400 hover:text-chalk-100"
         >
           {feedOpen ? (
-            <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.7} />
+            <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.9} />
           ) : (
-            <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.7} />
+            <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.9} />
           )}
           {engagement.length} decision{engagement.length === 1 ? "" : "s"}
         </button>
       </div>
 
       {whyOpen && selection && hasWhy ? (
-        <div className="mt-2 rounded-lg border border-violet-soft/25 bg-violet-soft/[0.05] px-3 py-2 text-[11.5px]">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-fog-300">
-            <span className="eyebrow text-violet-soft">Flow &amp; why</span>
-            <span className="mono text-fog-200">{selection.flowId}</span>
+        <div className="mt-2 rounded-[14px] border border-violet-soft/25 bg-violet-soft/[0.05] px-3 py-2 text-[11.5px]">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-chalk-300">
+            <span className="mono text-[11px] text-chalk-400">Flow &amp; why</span>
+            <span className="mono text-chalk-300">{selection.flowId}</span>
             {selection.crewId ? (
-              <span className="mono text-[10.5px] text-fog-500">crew: {selection.crewId}</span>
+              <span className="mono text-[10.5px] text-chalk-400">crew: {selection.crewId}</span>
             ) : null}
-            <span className="text-fog-500">·</span>
-            <span className="text-fog-400">{selection.source}</span>
-            <span className="text-fog-500">·</span>
-            <span className="text-fog-400">{selection.confidence} confidence</span>
+            <span className="text-chalk-400">·</span>
+            <span className="text-chalk-400">{selection.source}</span>
+            <span className="text-chalk-400">·</span>
+            <span className="text-chalk-400">{selection.confidence} confidence</span>
             {selection.posture !== "normal" ? (
               <Chip tone="amber">{selection.posture}</Chip>
             ) : null}
           </div>
           {selection.personaUpgrade ? (
-            <p className="mt-1.5 text-amber-300/90">
+            <p className="mt-1.5 text-amber-soft">
               Upgraded {selection.personaUpgrade.from} → {selection.personaUpgrade.to}
               {selection.personaUpgrade.signals.length > 0
                 ? ` (matched ${selection.personaUpgrade.signals.map((s) => `"${s}"`).join(", ")})`
@@ -196,7 +196,7 @@ export function SupervisorPanel({
           {selection.reasons.length > 0 ? (
             <ul className="mt-1.5 space-y-0.5">
               {selection.reasons.map((r, i) => (
-                <li key={i} className="flex gap-1.5 text-fog-300">
+                <li key={i} className="flex gap-1.5 text-chalk-300">
                   <span className="text-violet-soft">•</span>
                   <span>{r}</span>
                 </li>
@@ -205,7 +205,7 @@ export function SupervisorPanel({
           ) : null}
           {selection.risks.length > 0 ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              <span className="text-[10.5px] text-fog-500">risks:</span>
+              <span className="text-[10.5px] text-chalk-400">risks:</span>
               {selection.risks.map((r, i) => (
                 <Chip key={i} tone="amber">
                   {r}
@@ -214,7 +214,7 @@ export function SupervisorPanel({
             </div>
           ) : null}
           {selection.advisory ? (
-            <p className="mt-1.5 text-fog-400">{selection.advisory}</p>
+            <p className="mt-1.5 text-chalk-400">{selection.advisory}</p>
           ) : null}
         </div>
       ) : null}
@@ -224,7 +224,7 @@ export function SupervisorPanel({
           <Chip tone={decision.recommendation === "merge-ready" ? "emerald" : "amber"}>
             arbitration: {decision.recommendation ?? "needs-human"}
           </Chip>
-          <span className="mono text-[10.5px] text-fog-400">
+          <span className="mono text-[10.5px] text-chalk-400">
             {findings.length} finding{findings.length === 1 ? "" : "s"}
             {findings.length > 0
               ? ` (${sevCount("high")}H/${sevCount("medium")}M/${sevCount("low")}L)`
@@ -234,7 +234,7 @@ export function SupervisorPanel({
               : ""}
           </span>
           {decision.requiredHumanActions?.length ? (
-            <span className="text-amber-300/90">
+            <span className="text-amber-soft">
               needs you: {decision.requiredHumanActions.join("; ")}
             </span>
           ) : null}
@@ -244,24 +244,24 @@ export function SupervisorPanel({
       {children}
 
       {feedOpen && feed.length > 0 ? (
-        <ul className="mt-2.5 space-y-1 border-t border-white/[0.05] pt-2">
+        <ul className="mt-2.5 space-y-1 border-t border-[color:var(--line-soft)] pt-2">
           {feed.map((e) => (
             <li key={e.seq} className="flex items-baseline gap-2 text-[11.5px]">
               <Chip tone={CLS_TONE[e.cls] ?? "neutral"}>{e.cls}</Chip>
-              <span className={`truncate ${TONE_TEXT[e.tone] ?? "text-fog-200"}`}>
+              <span className={`truncate ${TONE_TEXT[e.tone] ?? "text-chalk-300"}`}>
                 {e.title}
               </span>
               {e.detail ? (
-                <span className="truncate text-fog-500">{e.detail}</span>
+                <span className="truncate text-chalk-400">{e.detail}</span>
               ) : null}
-              <span className="ml-auto shrink-0 mono text-[10px] text-fog-500">
+              <span className="ml-auto shrink-0 mono text-[10px] text-chalk-400">
                 {relTime(e.timestamp)}
               </span>
             </li>
           ))}
         </ul>
       ) : feedOpen && engagement.length === 0 ? (
-        <p className="mt-2 text-[11.5px] text-fog-500">
+        <p className="mt-2 text-[11.5px] text-chalk-400">
           No supervisor decisions recorded yet - they appear here the moment
           the orchestrator selects, gates, or judges something.
         </p>

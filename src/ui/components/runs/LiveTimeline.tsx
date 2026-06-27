@@ -19,12 +19,12 @@ import { LiveOutputPanel } from "./LiveOutputPanel.js";
 // four different ways on this page).
 
 const DOT_TONE: Record<SeatCardState, string> = {
-  waiting: "bg-fog-500/60",
+  waiting: "bg-chalk-400/60",
   working: "bg-violet-soft",
   done: "bg-emerald-400",
   failed: "bg-rose-400",
   blocked: "bg-rose-400",
-  skipped: "bg-fog-500/35",
+  skipped: "bg-chalk-400/35",
 };
 
 const STATE_LABEL: Record<SeatCardState, string> = {
@@ -154,7 +154,7 @@ export function LiveTimeline({
 
   if (cards.length === 0) {
     return (
-      <div className="text-[12.5px] text-fog-400">
+      <div className="text-[12.5px] text-chalk-400">
         No flow steps recorded for this run yet.
       </div>
     );
@@ -219,47 +219,42 @@ function TimelineRow({
       <button
         type="button"
         onClick={onToggle}
-        className={`group flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.03] ${
-          expanded ? "bg-white/[0.03]" : ""
+        className={`group flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left transition-colors hover:bg-coal-500 ${
+          expanded ? "bg-coal-500" : ""
         }`}
       >
         {expanded ? (
-          <ChevronDown className="h-3 w-3 shrink-0 text-fog-500" strokeWidth={1.7} />
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-chalk-400" strokeWidth={1.9} />
         ) : (
-          <ChevronRight className="h-3 w-3 shrink-0 text-fog-500" strokeWidth={1.7} />
+          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-chalk-400" strokeWidth={1.9} />
         )}
-        <span className="relative flex h-2 w-2 shrink-0">
-          {working ? (
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-soft/50" />
-          ) : null}
-          <span
-            className={`relative inline-flex h-2 w-2 rounded-full ${DOT_TONE[card.state]}`}
-          />
-        </span>
+        <span
+          className={`h-2 w-2 shrink-0 rounded-full ${DOT_TONE[card.state]}`}
+        />
         <span className="min-w-0 flex items-baseline gap-2">
           <span
             className={`truncate text-[12.5px] font-medium ${
-              card.state === "skipped" ? "text-fog-500" : "text-fog-100"
+              card.state === "skipped" ? "text-chalk-400" : "text-chalk-100"
             }`}
           >
             {card.label}
           </span>
           {parallelWithPrev ? (
-            <span className="mono shrink-0 text-[9.5px] uppercase tracking-[0.12em] text-fog-500">
+            <span className="mono shrink-0 text-[10px] text-chalk-400">
               parallel
             </span>
           ) : null}
-          <span className="truncate text-[11px] text-fog-400">
+          <span className="truncate text-[11px] text-chalk-400">
             {card.roleLabel ?? card.seat ?? card.kind}
             {card.profileId ? ` · ${card.profileId}` : ""}
           </span>
         </span>
         <span className="ml-auto flex shrink-0 items-baseline gap-3 mono text-[11px] num-tabular">
           {card.tokens ? (
-            <span className="text-fog-400">{fmtTokens(card.tokens)} tok</span>
+            <span className="text-chalk-400">{fmtTokens(card.tokens)} tok</span>
           ) : null}
           {elapsed ? (
-            <span className={working ? "text-violet-200" : "text-fog-300"}>
+            <span className={working ? "text-violet-soft" : "text-chalk-300"}>
               {elapsed}
             </span>
           ) : null}
@@ -268,10 +263,10 @@ function TimelineRow({
               card.state === "failed" || card.state === "blocked"
                 ? "text-rose-300"
                 : card.state === "done"
-                  ? "text-emerald-300/90"
+                  ? "text-emerald-400"
                   : working
                     ? "text-violet-soft"
-                    : "text-fog-500"
+                    : "text-chalk-400"
             }
           >
             {STATE_LABEL[card.state]}
@@ -279,7 +274,7 @@ function TimelineRow({
         </span>
       </button>
       {tail ? (
-        <div className="ml-[34px] truncate border-l border-white/[0.06] pl-3 mono text-[11px] leading-relaxed text-fog-400">
+        <div className="ml-[34px] truncate border-l border-[color:var(--line)] pl-3 mono text-[11px] leading-relaxed text-chalk-400">
           {tail}
         </div>
       ) : null}
@@ -353,13 +348,13 @@ function SeatDetail({
   }, [runId, card.state, card.outputArtifactPath]);
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-black/30 p-3">
+    <div className="rounded-[14px] border border-[color:var(--line)] bg-coal-800 p-3">
       {/* The timeline row right above already names the step, role, and
        * state - the pane only adds what the row can't: pin status + error. */}
       {pinned || card.error ? (
         <div className="flex flex-wrap items-center gap-2 text-[11px]">
           {pinned ? (
-            <span className="text-fog-500">
+            <span className="text-chalk-400">
               pinned - click the row to follow the run again
             </span>
           ) : null}
@@ -374,17 +369,17 @@ function SeatDetail({
           <button
             type="button"
             onClick={() => setPromptOpen((v) => !v)}
-            className="flex items-center gap-1 text-[11.5px] text-fog-400 hover:text-fog-200"
+            className="flex items-center gap-1 text-[11.5px] text-chalk-400 transition hover:text-chalk-100"
           >
             {promptOpen ? (
-              <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.7} />
+              <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.9} />
             ) : (
-              <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.7} />
+              <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.9} />
             )}
             prompt this seat received
           </button>
           {promptOpen ? (
-            <pre className="mt-1 max-h-[240px] overflow-auto whitespace-pre-wrap rounded-lg border border-white/[0.06] bg-black/40 p-2.5 text-[11px] leading-relaxed text-fog-300">
+            <pre className="mt-1 max-h-[240px] overflow-auto whitespace-pre-wrap rounded-[12px] border border-[color:var(--line)] bg-coal-900 p-2.5 text-[11px] leading-relaxed text-chalk-300">
               {prompt ?? "Loading prompt…"}
             </pre>
           ) : null}
@@ -399,11 +394,11 @@ function SeatDetail({
             focusStream={card.streamName}
           />
         ) : output !== null ? (
-          <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap rounded-lg border border-white/[0.06] bg-black/40 p-2.5 text-[11.5px] leading-relaxed text-fog-200">
+          <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap rounded-[12px] border border-[color:var(--line)] bg-coal-900 p-2.5 text-[11.5px] leading-relaxed text-chalk-300">
             {output}
           </pre>
         ) : (
-          <p className="text-[11.5px] text-fog-500">
+          <p className="text-[11.5px] text-chalk-400">
             {card.state === "waiting"
               ? "This seat hasn't started yet."
               : card.state === "skipped"

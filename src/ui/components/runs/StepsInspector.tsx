@@ -12,7 +12,7 @@ export function StepsInspector({ metrics }: { metrics: RuntimeMetrics | null }) 
   const agents = metrics?.roles ?? [];
   if (agents.length === 0) {
     return (
-      <div className="text-[12.5px] text-fog-400">
+      <div className="text-[12.5px] text-chalk-400">
         No steps recorded yet. Each agent invocation appears here as it runs -
         with its files touched, tokens, time, and pass/fail.
       </div>
@@ -34,32 +34,32 @@ function StepCard({ index, a }: { index: number; a: RoleMetrics }) {
   const tokensIn = a.tokenUsage?.input ?? null;
   const tokensOut = a.tokenUsage?.output ?? null;
   return (
-    <li className="rounded-xl border border-white/[0.08] bg-ink-200/40 px-3.5 py-3">
+    <li className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-3.5 py-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="mono w-5 shrink-0 text-right text-[11px] text-fog-600">{index}</span>
-        <Cpu className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.7} />
-        <span className="text-[13.5px] font-medium text-fog-100">{a.roleId}</span>
-        <span className="mono text-[11px] text-fog-500">{a.stageId}</span>
-        <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10.5px] text-fog-300">
+        <span className="mono w-5 shrink-0 text-right text-[11px] text-chalk-400">{index}</span>
+        <Cpu className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.9} />
+        <span className="text-[13.5px] font-medium text-chalk-100">{a.roleId}</span>
+        <span className="mono text-[11px] text-chalk-400">{a.stageId}</span>
+        <span className="mono rounded-[8px] bg-coal-500 px-1.5 py-0.5 text-[10.5px] text-chalk-300">
           {a.providerId}
           {a.model ? ` · ${a.model}` : ""}
         </span>
-        <span className="ml-auto inline-flex items-center gap-1 text-[11px]">
+        <span className="ml-auto inline-flex items-center gap-1 text-[11.5px] font-medium">
           {running ? (
-            <span className="text-sky-300">running…</span>
+            <span className="text-sky-glow">running…</span>
           ) : ok ? (
-            <span className="inline-flex items-center gap-1 text-emerald-300">
-              <Check className="h-3 w-3" strokeWidth={2} /> ok
+            <span className="inline-flex items-center gap-1 text-emerald-400">
+              <Check className="h-3.5 w-3.5" strokeWidth={1.9} /> ok
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 text-rose-300">
-              <X className="h-3 w-3" strokeWidth={2} /> exit {a.exitCode}
+              <X className="h-3.5 w-3.5" strokeWidth={1.9} /> exit {a.exitCode}
             </span>
           )}
         </span>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 pl-[28px] text-[11.5px] text-fog-400">
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 pl-[28px] text-[11.5px] text-chalk-400">
         <Stat icon={<Timer className="h-3 w-3" />} title="Wall-clock time">
           {fmtDuration(a.durationMs)}
         </Stat>
@@ -97,8 +97,8 @@ function StepCard({ index, a }: { index: number; a: RoleMetrics }) {
         {a.filesChangedAfter !== null ? (
           <Stat icon={<FileDiff className="h-3 w-3" />} title="Worktree files changed after this step">
             {a.filesChangedAfter} files{" "}
-            <span className="text-emerald-300/90">+{a.diffInsertionsAfter ?? 0}</span>{" "}
-            <span className="text-rose-300/90">−{a.diffDeletionsAfter ?? 0}</span>
+            <span className="text-emerald-400">+{a.diffInsertionsAfter ?? 0}</span>{" "}
+            <span className="text-rose-300">−{a.diffDeletionsAfter ?? 0}</span>
           </Stat>
         ) : null}
       </div>
@@ -106,23 +106,23 @@ function StepCard({ index, a }: { index: number; a: RoleMetrics }) {
       {decision || (a.validationSummary && a.validationSummary.total > 0) || a.skillsAttached.length > 0 ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-[28px]">
           {decision ? (
-            <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10.5px] text-fog-300">
-              decision: <span className="text-fog-100">{decision}</span>
+            <span className="rounded-[8px] bg-coal-500 px-1.5 py-0.5 text-[10.5px] text-chalk-300">
+              decision: <span className="text-chalk-100">{decision}</span>
             </span>
           ) : null}
           {a.validationSummary && a.validationSummary.total > 0 ? (
             <span
-              className={`rounded border px-1.5 py-0.5 text-[10.5px] ${
+              className={`rounded-[8px] px-1.5 py-0.5 text-[10.5px] ${
                 a.validationSummary.failed > 0
-                  ? "border-rose-400/30 text-rose-300"
-                  : "border-emerald-400/30 text-emerald-300"
+                  ? "bg-rose-500/10 text-rose-300"
+                  : "bg-emerald-500/15 text-emerald-400"
               }`}
             >
               validation {a.validationSummary.passed}/{a.validationSummary.total}
             </span>
           ) : null}
           {a.skillsAttached.map((s) => (
-            <span key={s} className="rounded border border-white/10 px-1.5 py-0.5 text-[10.5px] text-fog-400">
+            <span key={s} className="rounded-[8px] bg-coal-500 px-1.5 py-0.5 text-[10.5px] text-chalk-400">
               {s}
             </span>
           ))}
@@ -143,7 +143,7 @@ function Stat({
 }) {
   return (
     <span className="inline-flex items-center gap-1 whitespace-nowrap" title={title}>
-      <span className="text-fog-600">{icon}</span>
+      <span className="text-chalk-400">{icon}</span>
       <span className="mono">{children}</span>
     </span>
   );

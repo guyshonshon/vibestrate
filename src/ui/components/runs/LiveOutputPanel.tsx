@@ -189,18 +189,16 @@ export function LiveOutputPanel({
   return (
     <section
       aria-label="Active provider CLI"
-      className="overflow-hidden border border-vibestrate-border bg-vibestrate-panel"
+      className="overflow-hidden rounded-[14px] border border-[color:var(--line)] bg-coal-600"
     >
-      <header className="flex flex-wrap items-center gap-2 border-b border-vibestrate-border-soft px-3 py-2 text-[11px]">
+      <header className="flex flex-wrap items-center gap-2 border-b border-[color:var(--line-soft)] px-3 py-2 text-[11.5px]">
         <TerminalSquare
-          className="h-3.5 w-3.5 text-vibestrate-accent"
-          strokeWidth={1.5}
+          className="h-3.5 w-3.5 text-violet-soft"
+          strokeWidth={1.9}
           aria-hidden
         />
-        <span className="vibestrate-mono uppercase tracking-[0.12em] text-vibestrate-fg-dim">
-          active CLI
-        </span>
-        <span className="vibestrate-mono border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-[10px] text-vibestrate-fg-dim">
+        <span className="mono text-[11px] text-chalk-400">active CLI</span>
+        <span className="mono rounded-[8px] border border-[color:var(--line)] bg-coal-500 px-1.5 py-0.5 text-[10.5px] text-chalk-400">
           read-only attach
         </span>
         {streams.length > 0 ? (
@@ -226,28 +224,28 @@ export function LiveOutputPanel({
               setFollowLatest(true);
               setActive(streams[0]?.promptName ?? null);
             }}
-            className={`vibestrate-mono inline-flex items-center gap-1 border px-1.5 py-0.5 text-[10px] ${
+            className={`mono inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11px] font-medium transition ${
               followLatest
-                ? "border-vibestrate-success/40 text-vibestrate-success"
-                : "border-vibestrate-border text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-chalk-400 hover:bg-coal-500 hover:text-chalk-100"
             }`}
             title="Follow the newest provider CLI stream"
           >
-            <Radio className="h-3 w-3" strokeWidth={1.5} />
+            <Radio className="h-3.5 w-3.5" strokeWidth={1.9} />
             follow latest
           </button>
         ) : null}
         {hasKinds ? (
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1 rounded-[10px] bg-coal-800 p-0.5">
             {(["transcript", "raw"] as const).map((v) => (
               <button
                 key={v}
                 type="button"
                 onClick={() => setView(v)}
-                className={`vibestrate-mono border px-1.5 py-0.5 text-[10px] ${
+                className={`mono rounded-[8px] px-2 py-0.5 text-[11px] font-medium transition ${
                   view === v
-                    ? "border-vibestrate-accent/50 text-vibestrate-accent"
-                    : "border-vibestrate-border text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
+                    ? "bg-coal-500 text-chalk-100"
+                    : "text-chalk-400 hover:text-chalk-100"
                 }`}
               >
                 {v}
@@ -255,7 +253,7 @@ export function LiveOutputPanel({
             ))}
           </span>
         ) : null}
-        <span className="vibestrate-mono ml-auto text-[10.5px] text-vibestrate-fg-muted">
+        <span className="mono ml-auto text-[11px] text-chalk-400">
           {lines.length} chunk{lines.length === 1 ? "" : "s"} ·{" "}
           {totalChars.toLocaleString()} char
           {totalChars === 1 ? "" : "s"}
@@ -263,46 +261,44 @@ export function LiveOutputPanel({
         </span>
       </header>
       {routeMissing ? (
-        <p className="px-3 py-2 text-[11.5px] text-vibestrate-warn">
+        <p className="border-t border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[11.5px] text-rose-300">
           The streams endpoint returned 404. Your{" "}
-          <code className="vibestrate-mono bg-vibestrate-panel-2 px-1">
-            vibe ui
-          </code>{" "}
+          <code className="mono rounded-[4px] bg-coal-800 px-1">vibe ui</code>{" "}
           server bundle predates live streaming. Restart it after a
           rebuild to enable. Polling stopped to keep the dev console
           clean.
         </p>
       ) : streams.length === 0 ? (
-        <div className="border-t border-vibestrate-border-soft bg-[#0b0e13] px-3 py-3 text-[11.5px] text-vibestrate-fg-dim">
+        <div className="border-t border-[color:var(--line-soft)] bg-coal-900 px-3 py-3 text-[11.5px] text-chalk-400">
           {isTerminal
             ? "This run finished without recording any provider CLI output."
             : "No provider CLI output recorded yet for this run."}{" "}
           Streams are captured per agent invocation under{" "}
-          <code className="vibestrate-mono bg-vibestrate-panel-2 px-1">
+          <code className="mono rounded-[4px] bg-coal-800 px-1 text-chalk-300">
             .vibestrate/runs/&lt;runId&gt;/streams/*.ndjson
           </code>
           .
         </div>
       ) : lines.length === 0 || !active ? (
-        <div className="min-h-[220px] border-t border-vibestrate-border-soft bg-[#0b0e13] px-3 py-3 text-[11.5px] text-vibestrate-fg-dim">
+        <div className="min-h-[220px] border-t border-[color:var(--line-soft)] bg-coal-900 px-3 py-3 text-[11.5px] text-chalk-400">
           Waiting for provider stdout/stderr…
         </div>
       ) : (
-        <div className="bg-[#0b0e13]">
-          <div className="flex items-center gap-2 border-t border-vibestrate-border-soft px-3 py-1.5 text-[10.5px] text-vibestrate-fg-dim">
-            <span className="vibestrate-mono truncate">
+        <div className="bg-coal-900">
+          <div className="flex items-center gap-2 border-t border-[color:var(--line-soft)] px-3 py-1.5 text-[11px] text-chalk-400">
+            <span className="mono truncate text-chalk-300">
               {activeStream?.promptName ?? active}
             </span>
             {hasKinds && view === "transcript" ? (
               <button
                 type="button"
                 onClick={() => setShowThinking((v) => !v)}
-                className="vibestrate-mono border border-vibestrate-border px-1.5 py-0.5 text-[10px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
+                className="mono rounded-[8px] bg-coal-500 px-2 py-0.5 text-[11px] font-medium text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
               >
                 {showThinking ? "hide thinking" : "show thinking"}
               </button>
             ) : null}
-            <span className="vibestrate-mono ml-auto shrink-0">
+            <span className="mono ml-auto shrink-0 text-chalk-400">
               {hasKinds && view === "transcript" ? "transcript" : "stdout/stderr"}
             </span>
           </div>
@@ -311,7 +307,7 @@ export function LiveOutputPanel({
           ) : (
             <Suspense
               fallback={
-                <div className="min-h-[220px] border-t border-vibestrate-border-soft px-3 py-3 text-[11.5px] text-vibestrate-fg-dim">
+                <div className="min-h-[220px] border-t border-[color:var(--line-soft)] px-3 py-3 text-[11.5px] text-chalk-400">
                   Opening terminal view…
                 </div>
               }
@@ -364,18 +360,18 @@ function TranscriptView({
     [blocks],
   );
   return (
-    <div className="max-h-[420px] min-h-[220px] overflow-auto border-t border-vibestrate-border-soft px-3 py-2">
+    <div className="max-h-[420px] min-h-[220px] overflow-auto border-t border-[color:var(--line-soft)] px-3 py-2">
       {blocks.map((b, i) =>
         b.kind === "tool" || b.kind === "subagent" ? (
           <div
             key={i}
-            className="vibestrate-mono my-0.5 flex items-center gap-1.5 text-[11px] text-vibestrate-fg-dim"
+            className="mono my-0.5 flex items-center gap-1.5 text-[11px] text-chalk-400"
           >
             <span
-              className={`border px-1 py-px text-[9.5px] uppercase tracking-[0.08em] ${
+              className={`rounded-[6px] px-1.5 py-px text-[10px] font-medium ${
                 b.kind === "subagent"
-                  ? "border-vibestrate-accent/40 text-vibestrate-accent"
-                  : "border-vibestrate-border"
+                  ? "bg-violet-soft/10 text-violet-soft"
+                  : "bg-coal-500 text-chalk-300"
               }`}
             >
               {b.kind === "subagent" ? "agent" : "tool"}
@@ -386,7 +382,7 @@ function TranscriptView({
           showThinking ? (
             <pre
               key={i}
-              className="vibestrate-mono my-1 whitespace-pre-wrap border-l-2 border-vibestrate-border pl-2 text-[11px] italic leading-relaxed text-vibestrate-fg-dim"
+              className="mono my-1 whitespace-pre-wrap border-l-2 border-[color:var(--line)] pl-2 text-[11px] italic leading-relaxed text-chalk-400"
             >
               {b.text}
             </pre>
@@ -394,14 +390,14 @@ function TranscriptView({
         ) : (
           <pre
             key={i}
-            className="vibestrate-mono my-1 whitespace-pre-wrap text-[11.5px] leading-relaxed text-vibestrate-fg"
+            className="mono my-1 whitespace-pre-wrap text-[11.5px] leading-relaxed text-chalk-100"
           >
             {b.text}
           </pre>
         ),
       )}
       {!showThinking && thinkingChars > 0 ? (
-        <p className="vibestrate-mono mt-1 text-[10.5px] text-vibestrate-fg-dim">
+        <p className="mono mt-1 text-[11px] text-chalk-400">
           {thinkingChars.toLocaleString()} chars of thinking hidden - use
           "show thinking" above.
         </p>

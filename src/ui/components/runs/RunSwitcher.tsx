@@ -3,20 +3,8 @@ import { Search } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { filterRuns } from "../../lib/run-outcome.js";
 import { relTime } from "../design/format.js";
-import { Chip } from "../design/Chip.js";
-import type { RunState, RunStatus } from "../../lib/types.js";
-
-function tone(
-  status: RunStatus,
-): "violet" | "sky" | "amber" | "emerald" | "rose" | "neutral" {
-  if (status === "waiting_for_approval" || status === "paused") return "amber";
-  if (status === "reviewing" || status === "verifying" || status === "validating")
-    return "sky";
-  if (status === "merge_ready") return "emerald";
-  if (status === "failed" || status === "aborted" || status === "blocked")
-    return "rose";
-  return "violet";
-}
+import { RunStatusBadge } from "./RunStatusBadge.js";
+import type { RunState } from "../../lib/types.js";
 
 /**
  * Global "jump to run" quick switcher (Cmd/Ctrl-K). Lists recent runs and lets
@@ -84,24 +72,24 @@ export function RunSwitcher({
       onClick={onClose}
     >
       <div
-        className="slab w-full max-w-[620px] overflow-hidden"
+        className="w-full max-w-[620px] overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-          <Search className="h-4 w-4 text-fog-300" strokeWidth={1.7} />
+        <div className="flex items-center gap-2 border-b border-[color:var(--line)] px-4 py-3">
+          <Search className="h-4 w-4 text-chalk-300" strokeWidth={1.9} />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Jump to a run - task, id, or status…"
-            className="w-full bg-transparent text-[14px] text-fog-100 outline-none placeholder:text-fog-400"
+            className="w-full bg-transparent text-[14px] text-chalk-100 outline-none placeholder:text-chalk-400"
           />
-          <span className="text-[10.5px] text-fog-400">esc</span>
+          <span className="mono text-[11px] text-chalk-400">esc</span>
         </div>
         <div className="max-h-[46vh] overflow-y-auto py-1">
           {filtered.length === 0 ? (
-            <div className="px-4 py-6 text-center text-[12.5px] text-fog-300">
+            <div className="px-4 py-6 text-center text-[12.5px] text-chalk-300">
               {runs.length === 0 ? "No runs yet." : "No runs match."}
             </div>
           ) : (
@@ -111,15 +99,17 @@ export function RunSwitcher({
                 type="button"
                 onMouseEnter={() => setActive(i)}
                 onClick={() => onSelect(r.runId)}
-                className={`flex w-full items-center gap-3 px-4 py-2 text-left ${
-                  i === active ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"
+                className={`flex w-full items-center gap-3 px-4 py-2 text-left transition ${
+                  i === active ? "bg-coal-500" : "hover:bg-coal-500/60"
                 }`}
               >
-                <Chip tone={tone(r.status)}>{r.status}</Chip>
-                <span className="min-w-0 flex-1 truncate text-[13px] text-fog-100">
+                <span className="shrink-0">
+                  <RunStatusBadge status={r.status} compact />
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[13px] text-chalk-100">
                   {r.task}
                 </span>
-                <span className="mono shrink-0 text-[10.5px] text-fog-500">
+                <span className="mono shrink-0 text-[11px] text-chalk-400">
                   {relTime(r.updatedAt)}
                 </span>
               </button>

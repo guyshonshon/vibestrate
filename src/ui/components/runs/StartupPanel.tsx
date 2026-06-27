@@ -23,11 +23,11 @@ function StageIcon({ status }: { status: StartupStageStatus }) {
         <Loader2 className="h-3.5 w-3.5 text-violet-soft animate-spin" strokeWidth={2} />
       );
     case "skipped":
-      return <Minus className="h-3.5 w-3.5 text-fog-500" strokeWidth={2} />;
+      return <Minus className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />;
     case "failed":
-      return <X className="h-3.5 w-3.5 text-rose-400" strokeWidth={2} />;
+      return <X className="h-3.5 w-3.5 text-rose-400" strokeWidth={1.9} />;
     default:
-      return <CircleDashed className="h-3.5 w-3.5 text-fog-600" strokeWidth={1.7} />;
+      return <CircleDashed className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />;
   }
 }
 
@@ -68,8 +68,12 @@ export function StartupPanel({
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-      <div className="text-[11px] uppercase tracking-[0.12em] opacity-60 mb-2">
+    <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4 py-3">
+      <div
+        className={`mono mb-2 text-[11px] ${
+          progress.failedStage ? "text-rose-300" : "text-chalk-400"
+        }`}
+      >
         {progress.failedStage ? "Startup failed" : "Starting up"}
       </div>
       <ol className="space-y-1.5">
@@ -83,16 +87,16 @@ export function StartupPanel({
                 s.status === "failed"
                   ? "text-rose-300"
                   : s.status === "active"
-                    ? "text-fog-100"
+                    ? "text-chalk-100"
                     : s.status === "pending"
-                      ? "text-fog-500"
-                      : "text-fog-300"
+                      ? "text-chalk-400"
+                      : "text-chalk-300"
               }
             >
               {s.label}
             </span>
             {s.detail ? (
-              <span className="text-[11px] text-fog-500 truncate">{s.detail}</span>
+              <span className="truncate text-[11px] text-chalk-400">{s.detail}</span>
             ) : null}
           </li>
         ))}

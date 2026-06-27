@@ -8,15 +8,15 @@ import {
 import { Scale, X } from "lucide-react";
 
 const DECISION_TONE: Record<string, string> = {
-  APPROVED: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
-  CHANGES_REQUESTED: "border-amber-500/40 bg-amber-500/10 text-amber-200",
-  BLOCKED: "border-rose-500/40 bg-rose-500/10 text-rose-200",
+  APPROVED: "border-emerald-400/30 bg-emerald-500/10 text-emerald-400",
+  CHANGES_REQUESTED: "border-amber-soft/30 bg-amber-soft/10 text-amber-soft",
+  BLOCKED: "border-rose-400/30 bg-rose-500/10 text-rose-300",
 };
 
 const SEVERITY_TONE: Record<string, string> = {
   high: "text-rose-300",
-  medium: "text-amber-300",
-  low: "text-fog-300",
+  medium: "text-amber-soft",
+  low: "text-chalk-300",
 };
 
 /** Resolve the artifact path of the run's latest review output. The flow
@@ -97,17 +97,17 @@ export function ReviewFindingsPanel({
 
   return (
     <section
-      className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4"
+      className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-5 py-4"
       data-screen-label="01c Review findings"
     >
       <div className="flex items-start gap-3">
-        <Scale className="mt-0.5 h-4 w-4 shrink-0 text-fog-400" strokeWidth={1.7} />
+        <Scale className="mt-0.5 h-4 w-4 shrink-0 text-chalk-400" strokeWidth={1.9} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-display text-[15px] text-fog-100">Review findings</h2>
+            <h2 className="text-[15px] font-semibold text-chalk-100">Review findings</h2>
             {parsed?.decision ? (
               <span
-                className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${
+                className={`rounded-[8px] border px-2 py-0.5 text-[11px] font-medium ${
                   DECISION_TONE[parsed.decision] ?? DECISION_TONE.BLOCKED
                 }`}
               >
@@ -119,7 +119,7 @@ export function ReviewFindingsPanel({
               <button
                 type="button"
                 onClick={onRerunWithFixes}
-                className="h-7 bg-violet-deep px-3 text-[12px] text-white hover:bg-violet-mid"
+                className="rounded-[10px] bg-violet-soft px-3 py-1.5 text-[12.5px] font-bold text-coal-900 transition hover:bg-violet-soft/90"
               >
                 Re-run with fixes
               </button>
@@ -128,21 +128,21 @@ export function ReviewFindingsPanel({
               type="button"
               onClick={onClose}
               aria-label="Close review findings"
-              className="rounded-md border border-white/10 p-1 text-fog-300 hover:text-fog-100"
+              className="rounded-[10px] border border-[color:var(--line-strong)] p-1 text-chalk-300 transition hover:text-chalk-100"
             >
-              <X className="h-3.5 w-3.5" strokeWidth={1.7} />
+              <X className="h-3.5 w-3.5" strokeWidth={1.9} />
             </button>
           </div>
 
           {error ? (
             <p className="mt-2 text-[12.5px] text-rose-300">{error}</p>
           ) : missing ? (
-            <p className="mt-2 text-[12.5px] text-fog-400">
+            <p className="mt-2 text-[12.5px] text-chalk-400">
               No review output artifact was found for this run - the review
               step may not have run. The Events tab has the full timeline.
             </p>
           ) : raw === null ? (
-            <p className="mt-2 text-[12.5px] text-fog-400">Loading review…</p>
+            <p className="mt-2 text-[12.5px] text-chalk-400">Loading review…</p>
           ) : (
             <>
               {parsed && parsed.structured ? (
@@ -150,26 +150,26 @@ export function ReviewFindingsPanel({
                   {parsed.findings.map((f, i) => (
                     <li key={i} className="text-[12.5px] leading-snug">
                       <span
-                        className={`mr-2 text-[10.5px] uppercase tracking-[0.1em] ${
-                          SEVERITY_TONE[f.severity ?? ""] ?? "text-fog-400"
+                        className={`mono mr-2 text-[11px] font-medium ${
+                          SEVERITY_TONE[f.severity ?? ""] ?? "text-chalk-400"
                         }`}
                       >
                         {f.severity ?? "note"}
                       </span>
-                      <span className="text-fog-100">{f.title}</span>
+                      <span className="text-chalk-100">{f.title}</span>
                       {f.file ? (
-                        <span className="mono ml-2 text-[11px] text-fog-400">
+                        <span className="mono ml-2 text-[11px] text-chalk-400">
                           {f.file}
                         </span>
                       ) : null}
                       {f.detail ? (
-                        <p className="mt-0.5 text-[12px] text-fog-300">{f.detail}</p>
+                        <p className="mt-0.5 text-[12px] text-chalk-300">{f.detail}</p>
                       ) : null}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="mt-2 text-[11.5px] text-fog-500">
+                <p className="mt-2 text-[11.5px] text-chalk-400">
                   No structured findings block - showing the reviewer's full
                   output below.
                 </p>
@@ -178,13 +178,13 @@ export function ReviewFindingsPanel({
                 <button
                   type="button"
                   onClick={() => setShowRaw((v) => !v)}
-                  className="mt-2 text-[11.5px] text-fog-400 underline decoration-white/20 hover:text-fog-200"
+                  className="mt-2 text-[11.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
                 >
                   {showRaw ? "Hide full review output" : "Show full review output"}
                 </button>
               ) : null}
               {!parsed?.structured || showRaw ? (
-                <pre className="mt-2 max-h-[360px] overflow-auto whitespace-pre-wrap rounded-lg border border-white/[0.06] bg-black/40 p-3 text-[12px] leading-relaxed text-fog-200">
+                <pre className="mt-2 max-h-[360px] overflow-auto whitespace-pre-wrap rounded-[14px] border border-[color:var(--line)] bg-coal-800 p-3 text-[12px] leading-relaxed text-chalk-300">
                   {raw}
                 </pre>
               ) : null}

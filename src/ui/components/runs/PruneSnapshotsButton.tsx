@@ -51,16 +51,19 @@ export function PruneSnapshotsButton() {
   }
 
   const btn =
-    "rounded-md border border-white/10 px-2.5 py-1 text-[12px] text-fog-300 hover:text-fog-100 hover:border-white/20 disabled:opacity-50";
+    "inline-flex items-center gap-1.5 rounded-[10px] bg-coal-500 px-3 py-1.5 text-[12.5px] font-semibold text-chalk-100 transition hover:bg-coal-400 disabled:cursor-not-allowed disabled:opacity-50";
+  const destructiveBtn =
+    "inline-flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[12.5px] font-semibold text-rose-300 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-50";
 
   if (phase === "confirm" && plan) {
     return (
-      <div className="flex items-center gap-2 text-[12px] text-fog-300">
+      <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-chalk-300">
         <span>
           Prune {plan.orphanRuns.length} orphaned run(s)? (refs only; artifacts
           untouched)
         </span>
-        <button type="button" className={btn} onClick={() => void execute()}>
+        <button type="button" className={destructiveBtn} onClick={() => void execute()}>
+          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.9} />
           Prune
         </button>
         <button type="button" className={btn} onClick={() => setPhase("idle")}>
@@ -74,12 +77,12 @@ export function PruneSnapshotsButton() {
     <div className="flex items-center gap-2">
       <button
         type="button"
-        className={`${btn} inline-flex items-center gap-1.5`}
+        className={btn}
         disabled={phase === "previewing" || phase === "pruning"}
         onClick={() => void preview()}
         title="Reclaim rewind-snapshot refs for runs whose directory is gone"
       >
-        <Trash2 size={12} />
+        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.9} />
         {phase === "previewing"
           ? "Checking…"
           : phase === "pruning"
@@ -89,7 +92,7 @@ export function PruneSnapshotsButton() {
       {msg ? (
         <span
           className={
-            phase === "error" ? "text-[11px] text-rose-300" : "text-[11px] text-fog-500"
+            phase === "error" ? "text-[11.5px] text-rose-300" : "text-[11.5px] text-chalk-400"
           }
         >
           {msg}
