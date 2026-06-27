@@ -13,10 +13,12 @@ const DECISION_TONE: Record<string, string> = {
   BLOCKED: "border-rose-400/30 bg-rose-500/10 text-rose-300",
 };
 
-const SEVERITY_TONE: Record<string, string> = {
-  high: "text-rose-300",
-  medium: "text-amber-soft",
-  low: "text-chalk-300",
+/** Flat tinted fill for a finding's severity tag (not a pill). */
+const SEV_TAG: Record<string, string> = {
+  high: "bg-rose-500/12 text-rose-300",
+  medium: "bg-amber-soft/12 text-amber-soft",
+  low: "bg-coal-500 text-chalk-300",
+  note: "bg-coal-500 text-chalk-400",
 };
 
 /** Resolve the artifact path of the run's latest review output. The flow
@@ -148,22 +150,24 @@ export function ReviewFindingsPanel({
               {parsed && parsed.structured ? (
                 <ul className="mt-2.5 space-y-1.5">
                   {parsed.findings.map((f, i) => (
-                    <li key={i} className="text-[12.5px] leading-snug">
-                      <span
-                        className={`mono mr-2 text-[11px] font-medium ${
-                          SEVERITY_TONE[f.severity ?? ""] ?? "text-chalk-400"
-                        }`}
-                      >
-                        {f.severity ?? "note"}
-                      </span>
-                      <span className="text-chalk-100">{f.title}</span>
-                      {f.file ? (
-                        <span className="mono ml-2 text-[11px] text-chalk-400">
-                          {f.file}
+                    <li key={i} className="rounded-[12px] bg-coal-500/40 px-3 py-2">
+                      <div className="flex items-baseline gap-2">
+                        <span
+                          className={`shrink-0 rounded-[6px] px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.06em] ${
+                            SEV_TAG[f.severity ?? ""] ?? SEV_TAG.note
+                          }`}
+                        >
+                          {f.severity ?? "note"}
                         </span>
-                      ) : null}
+                        <span className="min-w-0 flex-1 text-[12.5px] font-medium text-chalk-100">
+                          {f.title}
+                        </span>
+                        {f.file ? (
+                          <span className="mono shrink-0 text-[11px] text-chalk-400">{f.file}</span>
+                        ) : null}
+                      </div>
                       {f.detail ? (
-                        <p className="mt-0.5 text-[12px] text-chalk-300">{f.detail}</p>
+                        <p className="mt-1 text-[12px] leading-snug text-chalk-300">{f.detail}</p>
                       ) : null}
                     </li>
                   ))}

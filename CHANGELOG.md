@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.28.2
+
+- **Review findings read as a list of findings, not a run-on line.** Each
+  finding is now its own framed row with a tinted severity tag, the title, the
+  file, and the detail underneath, matching the rest of the run screen. (The
+  other run-page panels - steps, the live timeline, live metrics, startup - were
+  audited and already carried real structure, so they were left as-is.)
+
 ## 0.28.1
 
 - **The run screen's panels are properly structured, not just re-skinned.** The
