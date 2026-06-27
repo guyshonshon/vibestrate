@@ -1,8 +1,13 @@
 # Design: app-wide design-system rollout
 
-Status: **planned (2026-06-27)** - rollout program for migrating the whole
+Status: **Phase 0 done (2026-06-27)** - rollout program for migrating the whole
 dashboard onto the "coal/chalk" foundation. Foundation merged to `main`
-(`f55c8725`); no screens migrated yet beyond the references listed below.
+(`f55c8725`). Phase 0 landed on branch `design/phase-0-foundation`: canonical
+contract locked ([`primitives-contract.md`](./primitives-contract.md)), dead
+shadcn `components/ui/*` set removed, token crosswalk verified against live
+Mission Control (below), and a shared reference set captured
+([`references/`](./references/)). No screens migrated yet; the page fan-out
+(Phase 2+) builds on this contract.
 
 The `feat/shadcn-foundation` work established a new design language (soft-dark
 "coal/chalk" + violet, light/dark theme, `EntityIcon`, reframed Mission
@@ -157,7 +162,7 @@ responsive sweep.
 - Update this doc's `Status:` line and the rollout checklist below as phases land.
 
 ## Tracking checklist
-- [ ] Phase 0 - foundation contract + verified crosswalk
+- [x] Phase 0 - foundation contract + verified crosswalk (branch `design/phase-0-foundation`)
 - [ ] Phase 1 - atoms + app shell
 - [ ] Phase 2 - runs domain
 - [ ] Phase 3 - compose / flows
