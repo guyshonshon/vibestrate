@@ -1,12 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Bolt,
-  Clock,
-  Cpu,
-  Pause,
-  Play,
-  StopCircle,
-} from "lucide-react";
+import { Bolt, Clock, Cpu, Pause, Play, StopCircle } from "lucide-react";
 import { PhaseRail } from "../../design/PhaseRail.js";
 import { fmtElapsed } from "../../design/format.js";
 import { isTerminalStatus } from "../../../lib/run-outcome.js";
@@ -101,128 +94,117 @@ export function RunStatusSection({
   const currentStep =
     run.flow?.steps.find((s) => s.id === run.flow?.currentStepId) ?? null;
   const nowLabel = currentStep?.label ?? rail.steps[rail.active] ?? null;
-  const nowRole =
-    currentStep?.providerId ??
-    run.profileOverride ?? run.crewId ??
-    null;
+  const nowRole = currentStep?.providerId ?? run.profileOverride ?? run.crewId ?? null;
   return (
-    <section className="slab fade-up" data-screen-label="01 Status">
-      <div>
-        {/* Eyebrow + controls */}
-        <div className="px-5 pt-4 pb-3 flex items-baseline justify-between gap-4 flex-wrap">
-          {/* Hierarchy: this block is the BRIEF (what you asked for). The
-           * flow is named at the rail below; status lives in the breadcrumb
-           * chip above - nothing here repeats either. */}
-          <span className="eyebrow">Brief</span>
-          {terminal ? null : (
-          <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={onPauseToggle}
-                  className="h-8 px-3 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-fog-100 text-[12.5px] border border-white/10 flex items-center gap-1.5"
-                >
-                  {paused ? (
-                    <Play className="h-3 w-3" strokeWidth={1.7} />
-                  ) : (
-                    <Pause className="h-3 w-3" strokeWidth={1.7} />
-                  )}
-                  {paused ? "Resume" : "Pause"}
-                </button>
-                <button
-                  type="button"
-                  onClick={onAbort}
-                  className="h-8 px-3 rounded-lg border border-rose-400/25 bg-rose-500/[0.06] text-rose-300/90 hover:text-rose-300 text-[12.5px] flex items-center gap-1.5"
-                >
-                  <StopCircle className="h-3 w-3" strokeWidth={1.7} /> Abort
-                </button>
-          </div>
-          )}
-        </div>
-
-        <div className="px-5 pb-3">
-          <h1 className="text-[22px] font-medium tracking-tight text-fog-100 leading-snug">
-            {run.task}
-          </h1>
-          {running && nowLabel ? (
-            <div className="mt-2 flex items-center gap-2 text-[12.5px]">
-              <span className="pulse-dot" />
-              <span className="text-fog-400">Now</span>
-              <span className="text-fog-100 font-medium">{nowLabel}</span>
-              {nowRole ? (
-                <span className="mono text-[11.5px] text-violet-soft">{nowRole}</span>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="px-5 pb-3">
-          <div className="mb-1.5 flex items-baseline gap-2">
-            <span className="mono text-[10px] uppercase tracking-[0.14em] text-fog-500">
-              Flow
-            </span>
-            <span className="text-[11.5px] text-fog-300">
-              {run.flow ? run.flow.label : "stage pipeline"}
-            </span>
-          </div>
-          <PhaseRail steps={rail.steps} active={rail.active} />
-        </div>
-
-        <div className="px-5 py-3 border-t border-white/[0.06] flex items-center flex-wrap gap-x-4 gap-y-2 text-[12px] text-fog-300">
-          <span className="flex items-center gap-1.5 whitespace-nowrap">
-            <Cpu className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
-            <span className="text-fog-100">
-              {run.profileOverride ?? run.crewId ??
-                "auto"}
-            </span>
-          </span>
-          <span className="text-fog-500">·</span>
-          <span className="flex items-center gap-1.5 whitespace-nowrap">
-            <Clock className="h-3 w-3 text-fog-400" strokeWidth={1.7} />
-            {/* A finished run reports its actual duration; only a live run
-             * counts wall-clock time since start. */}
-            <span className="mono num-tabular">
-              {fmtElapsed(
-                terminal
-                  ? Math.floor(
-                      (new Date(run.updatedAt).getTime() -
-                        new Date(run.startedAt).getTime()) /
-                        1000,
-                    )
-                  : elapsed,
+    <section
+      className="rounded-[20px] border border-[color:var(--line)] bg-coal-600"
+      data-screen-label="01 Status"
+    >
+      {/* The BRIEF (what you asked for). The flow is named at the rail below;
+       * status lives in the header breadcrumb - nothing here repeats either,
+       * so no redundant section label sits above the task. */}
+      <div className="flex flex-wrap items-start justify-between gap-4 px-5 pt-4 pb-3">
+        <h1 className="min-w-0 flex-1 text-[18px] font-semibold leading-snug tracking-tight text-chalk-100">
+          {run.task}
+        </h1>
+        {terminal ? null : (
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={onPauseToggle}
+              className="flex h-8 items-center gap-1.5 rounded-[10px] bg-coal-500 px-3 text-[12.5px] font-semibold text-chalk-100 transition hover:bg-coal-400"
+            >
+              {paused ? (
+                <Play className="h-3.5 w-3.5" strokeWidth={1.9} />
+              ) : (
+                <Pause className="h-3.5 w-3.5" strokeWidth={1.9} />
               )}
-            </span>{" "}
-            elapsed
-          </span>
-          {diff ? (
-            <>
-              <span className="text-fog-500">·</span>
-              <span className="flex items-center gap-1.5 mono whitespace-nowrap">
-                <span className="text-emerald-300/90">+{diff.insertions}</span>
-                <span className="text-rose-300/90">−{diff.deletions}</span>
-                <span className="text-fog-400">{diff.files} files</span>
-              </span>
-            </>
-          ) : null}
-          {skillsCount > 0 ? (
-            <>
-              <span className="text-fog-500">·</span>
-              <span className="flex items-center gap-1.5 whitespace-nowrap">
-                <Bolt className="h-3 w-3 text-amber-300" strokeWidth={1.7} />
-                <span>
-                  {skillsCount} skill{skillsCount === 1 ? "" : "s"}
-                </span>
-              </span>
-            </>
-          ) : null}
-          {run.reviewLoopCount > 0 ? (
-            <>
-              <span className="text-fog-500">·</span>
-              <span className="whitespace-nowrap">
-                review loop {run.reviewLoopCount}/{run.maxReviewLoops}
-              </span>
-            </>
-          ) : null}
+              {paused ? "Resume" : "Pause"}
+            </button>
+            <button
+              type="button"
+              onClick={onAbort}
+              className="flex h-8 items-center gap-1.5 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 text-[12.5px] font-semibold text-rose-300 transition hover:bg-rose-500/20"
+            >
+              <StopCircle className="h-3.5 w-3.5" strokeWidth={1.9} /> Abort
+            </button>
+          </div>
+        )}
+      </div>
+
+      {running && nowLabel ? (
+        <div className="flex items-center gap-2 px-5 pb-3 text-[12.5px]">
+          <span className="h-1.5 w-1.5 rounded-full bg-violet-soft" />
+          <span className="text-chalk-400">Now</span>
+          <span className="font-medium text-chalk-100">{nowLabel}</span>
+          {nowRole ? <span className="mono text-[11.5px] text-violet-soft">{nowRole}</span> : null}
         </div>
+      ) : null}
+
+      <div className="px-5 pb-3">
+        <div className="mb-1.5 flex items-baseline gap-2">
+          <span className="mono text-[11px] text-chalk-400">Flow</span>
+          <span className="text-[11.5px] text-chalk-300">
+            {run.flow ? run.flow.label : "stage pipeline"}
+          </span>
+        </div>
+        <PhaseRail steps={rail.steps} active={rail.active} />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[color:var(--line-soft)] px-5 py-3 text-[12px] text-chalk-300">
+        <span className="flex items-center gap-1.5 whitespace-nowrap">
+          <Cpu className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
+          <span className="text-chalk-100">
+            {run.profileOverride ?? run.crewId ?? "auto"}
+          </span>
+        </span>
+        <span className="text-chalk-400">·</span>
+        <span className="flex items-center gap-1.5 whitespace-nowrap">
+          <Clock className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />
+          {/* A finished run reports its actual duration; only a live run
+           * counts wall-clock time since start. */}
+          <span className="mono num-tabular">
+            {fmtElapsed(
+              terminal
+                ? Math.floor(
+                    (new Date(run.updatedAt).getTime() -
+                      new Date(run.startedAt).getTime()) /
+                      1000,
+                  )
+                : elapsed,
+            )}
+          </span>{" "}
+          elapsed
+        </span>
+        {diff ? (
+          <>
+            <span className="text-chalk-400">·</span>
+            <span className="mono flex items-center gap-1.5 whitespace-nowrap">
+              <span className="text-emerald-400">+{diff.insertions}</span>
+              <span className="text-rose-300">−{diff.deletions}</span>
+              <span className="text-chalk-400">{diff.files} files</span>
+            </span>
+          </>
+        ) : null}
+        {skillsCount > 0 ? (
+          <>
+            <span className="text-chalk-400">·</span>
+            <span className="flex items-center gap-1.5 whitespace-nowrap">
+              <Bolt className="h-3.5 w-3.5 text-amber-soft" strokeWidth={1.9} />
+              <span>
+                {skillsCount} skill{skillsCount === 1 ? "" : "s"}
+              </span>
+            </span>
+          </>
+        ) : null}
+        {run.reviewLoopCount > 0 ? (
+          <>
+            <span className="text-chalk-400">·</span>
+            <span className="whitespace-nowrap">
+              review loop {run.reviewLoopCount}/{run.maxReviewLoops}
+            </span>
+          </>
+        ) : null}
       </div>
     </section>
   );

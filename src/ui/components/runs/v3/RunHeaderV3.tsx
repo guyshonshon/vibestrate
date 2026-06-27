@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, Diff, GitBranch, Pencil, RotateCcw } from "lucide-react";
-import { Chip } from "../../design/Chip.js";
-import { cn } from "../../design/cn.js";
+import { RunStatusBadge } from "../RunStatusBadge.js";
 import { shortRunId } from "../../design/format.js";
 import type { RunState, RunStatus } from "../../../lib/types.js";
 import { isSpecUpRun } from "../../../lib/run-outcome.js";
@@ -42,13 +41,13 @@ function EditableRunName({
             setEditing(false);
           }
         }}
-        className="bg-white/[0.06] border border-white/15 rounded px-1.5 py-0.5 text-[12.5px] text-fog-100 max-w-[320px]"
+        className="max-w-[320px] rounded-[8px] border border-[color:var(--line-strong)] bg-coal-800 px-1.5 py-0.5 text-[12.5px] text-chalk-100 focus:border-violet-soft/50 focus:outline-none"
       />
     );
   }
   return (
-    <span className="flex items-center gap-1.5 min-w-0">
-      <span className="text-[12.5px] text-fog-100 font-medium truncate max-w-[320px]" title={run.task}>
+    <span className="flex min-w-0 items-center gap-1.5">
+      <span className="max-w-[320px] truncate text-[12.5px] font-medium text-chalk-100" title={run.task}>
         {label}
       </span>
       {onRename ? (
@@ -59,51 +58,12 @@ function EditableRunName({
             setEditing(true);
           }}
           title="Rename this run"
-          className="text-fog-500 hover:text-fog-200 shrink-0"
+          className="shrink-0 text-chalk-400 hover:text-chalk-100"
         >
-          <Pencil className="h-3 w-3" strokeWidth={1.7} />
+          <Pencil className="h-3 w-3" strokeWidth={1.9} />
         </button>
       ) : null}
     </span>
-  );
-}
-
-function tone(
-  status: RunStatus,
-): "violet" | "sky" | "amber" | "emerald" | "rose" | "neutral" {
-  if (status === "waiting_for_approval" || status === "paused") return "amber";
-  if (
-    status === "reviewing" ||
-    status === "verifying" ||
-    status === "validating"
-  )
-    return "sky";
-  if (status === "merge_ready") return "emerald";
-  if (status === "failed" || status === "aborted" || status === "blocked")
-    return "rose";
-  return "violet";
-}
-
-function pretty(s: RunStatus): string {
-  return (
-    ({
-      planning: "Planning",
-      planned: "Planned",
-      architecting: "Architecting",
-      architected: "Architected",
-      executing: "Executing",
-      validating: "Validating",
-      reviewing: "Reviewing",
-      fixing: "Fixing",
-      verifying: "Verifying",
-      waiting_for_approval: "Awaiting approval",
-      paused: "Paused",
-      merge_ready: "Merge ready",
-      blocked: "Blocked",
-      failed: "Failed",
-      aborted: "Aborted",
-      created: "Created",
-    } as Record<RunStatus, string>)[s] ?? s
   );
 }
 
@@ -113,6 +73,9 @@ const TERMINAL = new Set<RunStatus>([
   "aborted",
   "blocked",
 ]);
+
+const chromeButton =
+  "flex h-8 items-center gap-2 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-600 px-2.5 text-[12px] text-chalk-300 transition hover:bg-coal-500 hover:text-chalk-100 whitespace-nowrap";
 
 export function RunHeaderV3({
   run,
@@ -139,55 +102,44 @@ export function RunHeaderV3({
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-1.5 text-[12.5px] text-fog-300 hover:text-fog-100 whitespace-nowrap"
+          className="flex items-center gap-1.5 text-[12.5px] text-chalk-300 transition hover:text-chalk-100 whitespace-nowrap"
         >
-          <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.7} />
+          <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.9} />
           Mission
         </button>
-        <span className="text-fog-500">/</span>
+        <span className="text-chalk-400">/</span>
         <EditableRunName run={run} onRename={onRename} />
-        <span
-          className="mono text-[11px] text-fog-500 whitespace-nowrap"
-          title={run.runId}
-        >
+        <span className="mono text-[11px] text-chalk-400 whitespace-nowrap" title={run.runId}>
           {shortRunId(run.runId)}
         </span>
-        <span className="text-fog-500">/</span>
-        <Chip tone={specUp ? "violet" : tone(run.status)}>
-          <span className="pulse-dot" /> {specUp ? "Spec-up" : pretty(run.status)}
-        </Chip>
+        <span className="text-chalk-400">/</span>
+        {specUp ? (
+          <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-violet-soft">
+            <span className="h-1.5 w-1.5 rounded-full bg-violet-soft" />
+            Spec-up
+          </span>
+        ) : (
+          <RunStatusBadge status={run.status} />
+        )}
       </div>
       <div className="flex items-center gap-2">
         {run.branchName ? (
-          <button
-            type="button"
-            onClick={onOpenGit}
-            title={run.branchName}
-            className={cn(
-              "h-8 px-2.5 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex items-center gap-2 text-[12px] text-fog-200 whitespace-nowrap",
-            )}
-          >
-            <GitBranch className="h-3 w-3 text-fog-400 shrink-0" strokeWidth={1.7} />
-            <span className="mono text-[11.5px] max-w-[260px] truncate">
-              {run.branchName}
-            </span>
+          <button type="button" onClick={onOpenGit} title={run.branchName} className={chromeButton}>
+            <GitBranch className="h-3.5 w-3.5 shrink-0 text-chalk-400" strokeWidth={1.9} />
+            <span className="mono max-w-[260px] truncate text-[11.5px]">{run.branchName}</span>
           </button>
         ) : null}
-        <button
-          type="button"
-          onClick={onOpenDiff}
-          className="h-8 px-2.5 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex items-center gap-2 text-[12px] text-fog-200 whitespace-nowrap"
-        >
-          <Diff className="h-3 w-3 text-fog-400" strokeWidth={1.7} /> View diff
+        <button type="button" onClick={onOpenDiff} className={chromeButton}>
+          <Diff className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} /> View diff
         </button>
         {onRerun && TERMINAL.has(run.status) ? (
           <button
             type="button"
             onClick={onRerun}
             title="Re-run this task with adjusted settings (write access, provider)"
-            className="h-8 px-2.5 rounded-lg border border-violet-soft/40 bg-violet-soft/10 hover:bg-violet-soft/20 flex items-center gap-2 text-[12px] text-fog-100 whitespace-nowrap"
+            className="flex h-8 items-center gap-2 rounded-[10px] border border-violet-soft/40 bg-violet-soft/10 px-2.5 text-[12px] text-chalk-100 transition hover:bg-violet-soft/20 whitespace-nowrap"
           >
-            <RotateCcw className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
+            <RotateCcw className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
             Re-run with changes
           </button>
         ) : null}
