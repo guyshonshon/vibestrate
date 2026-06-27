@@ -495,8 +495,8 @@ Center rebuild means doing it twice.
   note: collapse duplicate panels, demote advanced controls behind
   expanders, kill dead affordances. One page-group per branch so each is
   reviewable.
-- Run the passes through the design skills (impeccable / ui-ux-pro-max) at
-  build time; keep the no-emoji and voice rules.
+- Match the Mission Control idiom (`primitives-contract.md` + the live screen)
+  directly - no separate design-skill ceremony; keep the no-emoji and voice rules.
 
 No acceptance criteria beyond per-branch validation here until Phase 0
 resolves; this section gets its own detailed follow-up doc once tokens exist

@@ -43,7 +43,7 @@ primitives/shell get a verified crosswalk.
 | Layer | Approach |
 | --- | --- |
 | Tokens, atomic primitives, app shell | Verified **crosswalk** (old token -> new token), because they're structural and shared. Fast cascade. |
-| Each screen / domain | **Per-surface redesign** using the `impeccable` skill + real reference screenshots. No invented visuals. |
+| Each screen / domain | **Per-surface redesign** matching `primitives-contract.md` + the live Mission Control screenshots. Restructure the content (framed rows, labeled stats, status grids) - never a token swap, never invented visuals. |
 
 Keep both token sets alive in `index.css` until a screen is migrated; delete
 old tokens only in the final cleanup phase, once grep shows zero consumers.
@@ -54,8 +54,10 @@ old tokens only in the final cleanup phase, once grep shows zero consumers.
   the single source for the Tailwind recipes, tokens, and anti-patterns every
   page agent must match. Read it (and [`references/`](./references/)) before
   touching a screen.
-- Use the `impeccable` skill + **real references** (the user's LOUD / Raycast
-  references) - do not invent designs.
+- Match the **Mission Control idiom** (the contract recipes + the live screen)
+  and **real references** (the user's LOUD / Raycast references) - do not invent
+  designs, and do not run a separate design-skill ceremony; the contract is the
+  shape.
 - Violet single-hue accent; dark default, light supported; rounded surfaces ok.
 - Dense, informative cards - never airy/sparse.
 - No rounded pill labels. No pulsing/breathing animation on any chrome (the
