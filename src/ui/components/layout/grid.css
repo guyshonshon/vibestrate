@@ -76,35 +76,29 @@
     0 0 0 1px color-mix(in srgb, var(--rgl-accent) 40%, transparent) !important;
 }
 
-/* Hide the stock resize handle in view mode; show a corner glyph in edit. */
+/* Resize handles. Hidden in view mode. In edit mode all eight (corners + edges)
+ * become grabbable so a panel can be resized from any side, not just the corner.
+ * The stock react-grid-layout CSS positions and rotates each handle by axis; we
+ * keep its 20x20 hit area and just recolor the little corner mark to the violet
+ * accent and control opacity so the affordance reads in both themes. */
 .react-grid-item > .react-resizable-handle {
   display: none;
 }
 .layout.is-editing .react-grid-item > .react-resizable-handle {
   display: block;
-  width: 18px;
-  height: 18px;
-  right: 5px;
-  bottom: 5px;
-  background-image: none;
-  cursor: nwse-resize;
-  opacity: 0.5;
-  transition: opacity 140ms ease, transform 140ms ease;
+  opacity: 0;
+  transition: opacity 140ms ease;
 }
 .layout.is-editing .react-grid-item > .react-resizable-handle::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-right: 2px solid var(--rgl-accent);
-  border-bottom: 2px solid var(--rgl-accent);
-  border-bottom-right-radius: 5px;
-  border-top: 0;
-  border-left: 0;
+  border-color: var(--rgl-accent);
+  border-width: 2px;
+  transition: opacity 140ms ease;
 }
-.layout.is-editing .react-grid-item:hover > .react-resizable-handle,
+.layout.is-editing .react-grid-item:hover > .react-resizable-handle {
+  opacity: 0.6;
+}
 .layout.is-editing .react-grid-item > .react-resizable-handle:hover {
   opacity: 1;
-  transform: scale(1.08);
 }
 
 /* Chrome bar - slides in from the top edge while editing. */

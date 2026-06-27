@@ -22,10 +22,47 @@ import {
 import "react-grid-layout/css/styles.css";
 import "./grid.css";
 
-const COLS = 12;
-const ROW_HEIGHT = 56;
+// Panels are authored in 12-column / 56px "design units" (defaultLayout, minW/minH).
+// Internally the board renders on a FINER grid - each design cell is subdivided
+// GRID_UNIT times - so drag/resize snaps in smaller steps and feels free, while
+// consumers keep authoring in the coarse, readable 12-col units. Layouts are
+// scaled design->fine on the way in and stored already-fine.
+const GRID_UNIT = 2;
+const BASE_COLS = 12;
+const COLS = BASE_COLS * GRID_UNIT; // 24 fine columns -> half-column width steps
+const ROW_HEIGHT = 56 / GRID_UNIT; // 28px fine rows -> half-row height steps
 const GAP = 12;
+
+// Responsive breakpoints (container width, px). The base "lg" breakpoint is the
+// unit grid the stored layout is authored against; narrower containers reflow to
+// fewer columns (RGL generates those layouts from the base). Editing is gated to
+// the base breakpoint - see the board below.
 const BP = "lg" as const;
+const BREAKPOINTS = { lg: 900, md: 600, sm: 0 } as const;
+const COLS_BP = { lg: COLS, md: 12, sm: 6 } as const;
+const RESIZE_HANDLES = ["s", "w", "e", "n", "sw", "nw", "se", "ne"] as const;
+
+// Bump when the stored-layout unit grid changes, so pre-existing per-browser
+// layouts (authored against the old coarse grid) are discarded rather than
+// misread in the new finer units. No migration by design (single-user, Reset
+// exists).
+const LAYOUT_VERSION = "v2-fine";
+
+type Scaled = { id: string; defaultLayout: WidgetLayout; minW: number; minH: number };
+function scalePanels(panels: RegisteredPanel[]): Scaled[] {
+  return panels.map((p) => ({
+    id: p.id,
+    defaultLayout: {
+      id: p.id,
+      x: p.defaultLayout.x * GRID_UNIT,
+      y: p.defaultLayout.y * GRID_UNIT,
+      w: p.defaultLayout.w * GRID_UNIT,
+      h: p.defaultLayout.h * GRID_UNIT,
+    },
+    minW: (p.minW ?? 1) * GRID_UNIT,
+    minH: (p.minH ?? 1) * GRID_UNIT,
+  }));
+}
 
 export interface RegisteredPanel {
   id: string;
@@ -39,8 +76,8 @@ export interface RegisteredPanel {
 type BoardState = { layout: WidgetLayout[]; hidden: string[] };
 const EMPTY: BoardState = { layout: [], hidden: [] };
 
-function toGridLayout(layout: WidgetLayout[], panels: RegisteredPanel[]): LayoutItem[] {
-  const byId = new Map(panels.map((p) => [p.id, p]));
+function toGridLayout(layout: WidgetLayout[], scaled: Scaled[]): LayoutItem[] {
+  const byId = new Map(scaled.map((p) => [p.id, p]));
   return layout.map((l) => {
     const p = byId.get(l.id);
     return { i: l.id, x: l.x, y: l.y, w: l.w, h: l.h, minW: p?.minW, minH: p?.minH };
@@ -63,40 +100,52 @@ export function PanelBoard({
   /** Section label shown left of the edit-layout control; pass "" to omit. */
   label?: string;
 }) {
-  const [state, setState] = usePersistedState<BoardState>(storageKey, EMPTY);
+  const [state, setState] = usePersistedState<BoardState>(`${storageKey}:${LAYOUT_VERSION}`, EMPTY);
   const [editMode, setEditMode] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(0);
+  // Active responsive breakpoint (RGL auto-detects from width). Editing is only
+  // allowed at the base breakpoint, where the stored layout lives.
+  const [bp, setBp] = useState<string>(BP);
+  const atBase = bp === BP;
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    if (typeof ResizeObserver === "undefined") {
-      setWidth(el.getBoundingClientRect().width);
-      return;
-    }
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width ?? 0;
+    const measure = () => {
+      const w = el.getBoundingClientRect().width;
       if (w > 0) setWidth(w);
-    });
-    ro.observe(el);
-    // Seed an initial width synchronously: ResizeObserver's first callback can be
-    // delayed or missed in embedded/offscreen contexts, which would otherwise
-    // strand the board on its loading skeleton.
-    const initial = el.getBoundingClientRect().width;
-    if (initial > 0) setWidth(initial);
-    return () => ro.disconnect();
+    };
+    // Re-measure on window resize too. ResizeObserver is the primary signal, but
+    // it can be missed in embedded/offscreen contexts, so the window listener
+    // guarantees the board still re-flows when the viewport changes width.
+    window.addEventListener("resize", measure);
+    let ro: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(measure);
+      ro.observe(el);
+    }
+    // Seed an initial width synchronously so the board doesn't strand on its
+    // loading skeleton waiting for the first observer callback.
+    measure();
+    return () => {
+      window.removeEventListener("resize", measure);
+      ro?.disconnect();
+    };
   }, []);
   const mounted = width > 0;
 
   const layout = state?.layout ?? [];
   const hidden = state?.hidden ?? [];
-  const resolved = resolveDashboardLayout(panels, layout, hidden);
+  const scaled = scalePanels(panels);
+  const resolved = resolveDashboardLayout(scaled, layout, hidden);
   const visible = panels.filter((p) => !hidden.includes(p.id));
-  const gridLayout = toGridLayout(resolved, panels);
+  const gridLayout = toGridLayout(resolved, scaled);
 
   const onLayoutChange = (next: Layout) => {
-    if (!editMode) return;
+    // Only the base breakpoint owns the stored layout; reflowed/generated
+    // layouts at narrower widths are never written back.
+    if (!editMode || !atBase) return;
     const norm = normalizeStoredLayout(fromGridLayout(next), panels);
     const same =
       norm.length === layout.length &&
@@ -114,7 +163,7 @@ export function PanelBoard({
   const rotate = (id: string) => {
     const next = resolved.map((l) => {
       if (l.id !== id) return l;
-      const p = panels.find((x) => x.id === id);
+      const p = scaled.find((x) => x.id === id);
       const minW = p?.minW ?? 1;
       const minH = p?.minH ?? 1;
       return { ...l, w: Math.max(minW, Math.min(COLS, l.h)), h: Math.max(minH, l.w) };
@@ -132,13 +181,18 @@ export function PanelBoard({
     <section data-screen-label="Run dashboard">
       <div className="mb-2 flex items-center justify-between">
         {label ? <span className="eyebrow">{label}</span> : <span />}
-        <BoardEditChrome
-          editMode={editMode}
-          onToggle={setEditMode}
-          onReset={reset}
-          hiddenList={hiddenList}
-          onShow={show}
-        />
+        <div className="flex items-center gap-2">
+          {editMode && !atBase ? (
+            <span className="text-[11px] text-fog-400">Widen the window to rearrange</span>
+          ) : null}
+          <BoardEditChrome
+            editMode={editMode}
+            onToggle={setEditMode}
+            onReset={reset}
+            hiddenList={hiddenList}
+            onShow={show}
+          />
+        </div>
       </div>
       <div ref={containerRef}>
         {!mounted ? (
@@ -155,13 +209,14 @@ export function PanelBoard({
             className={`layout ${editMode ? "is-editing" : ""} ${variant === "bare" ? "is-bare" : ""}`}
             width={width}
             layouts={{ [BP]: gridLayout }}
-            breakpoints={{ [BP]: 0 }}
-            cols={{ [BP]: COLS }}
+            breakpoints={BREAKPOINTS}
+            cols={COLS_BP}
             rowHeight={ROW_HEIGHT}
             margin={[GAP, GAP]}
             containerPadding={[0, 0]}
-            dragConfig={{ enabled: editMode, handle: ".widget-drag-handle" }}
-            resizeConfig={{ enabled: editMode }}
+            onBreakpointChange={(next) => setBp(next)}
+            dragConfig={{ enabled: editMode && atBase, handle: ".widget-drag-handle" }}
+            resizeConfig={{ enabled: editMode && atBase, handles: RESIZE_HANDLES }}
             onLayoutChange={onLayoutChange}
           >
             {visible.map((p) => (
