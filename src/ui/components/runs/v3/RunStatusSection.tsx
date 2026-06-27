@@ -49,6 +49,21 @@ function railFor(run: RunState): { steps: string[]; active: number } {
   return { steps, active: active < 0 ? 0 : active };
 }
 
+/** A labeled mini-stat in the brief's footer: small uppercase label over a
+ *  legible value. Replaces the old dot-separated floating meta strip. */
+function MetaStat({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-chalk-400">
+        {label}
+      </div>
+      <div className="mt-0.5 flex items-center gap-1.5 whitespace-nowrap text-[13px] text-chalk-100">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function RunStatusSection({
   run,
   diff,
@@ -151,16 +166,13 @@ export function RunStatusSection({
         <PhaseRail steps={rail.steps} active={rail.active} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[color:var(--line-soft)] px-5 py-3 text-[12px] text-chalk-300">
-        <span className="flex items-center gap-1.5 whitespace-nowrap">
-          <Cpu className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
-          <span className="text-chalk-100">
-            {run.profileOverride ?? run.crewId ?? "auto"}
-          </span>
-        </span>
-        <span className="text-chalk-400">·</span>
-        <span className="flex items-center gap-1.5 whitespace-nowrap">
-          <Clock className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />
+      <div className="flex flex-wrap items-center gap-x-7 gap-y-3 border-t border-[color:var(--line-soft)] px-5 py-3">
+        <MetaStat label="Provider">
+          <Cpu className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.9} />
+          <span className="truncate">{run.profileOverride ?? run.crewId ?? "auto"}</span>
+        </MetaStat>
+        <MetaStat label="Elapsed">
+          <Clock className="h-3.5 w-3.5 shrink-0 text-chalk-400" strokeWidth={1.9} />
           {/* A finished run reports its actual duration; only a live run
            * counts wall-clock time since start. */}
           <span className="mono num-tabular">
@@ -173,37 +185,29 @@ export function RunStatusSection({
                   )
                 : elapsed,
             )}
-          </span>{" "}
-          elapsed
-        </span>
+          </span>
+        </MetaStat>
         {diff ? (
-          <>
-            <span className="text-chalk-400">·</span>
-            <span className="mono flex items-center gap-1.5 whitespace-nowrap">
-              <span className="text-emerald-400">+{diff.insertions}</span>
+          <MetaStat label="Diff">
+            <span className="mono">
+              <span className="text-emerald-400">+{diff.insertions}</span>{" "}
               <span className="text-rose-300">−{diff.deletions}</span>
-              <span className="text-chalk-400">{diff.files} files</span>
             </span>
-          </>
+            <span className="text-[11.5px] text-chalk-400">{diff.files} files</span>
+          </MetaStat>
         ) : null}
         {skillsCount > 0 ? (
-          <>
-            <span className="text-chalk-400">·</span>
-            <span className="flex items-center gap-1.5 whitespace-nowrap">
-              <Bolt className="h-3.5 w-3.5 text-amber-soft" strokeWidth={1.9} />
-              <span>
-                {skillsCount} skill{skillsCount === 1 ? "" : "s"}
-              </span>
-            </span>
-          </>
+          <MetaStat label="Skills">
+            <Bolt className="h-3.5 w-3.5 shrink-0 text-amber-soft" strokeWidth={1.9} />
+            {skillsCount}
+          </MetaStat>
         ) : null}
         {run.reviewLoopCount > 0 ? (
-          <>
-            <span className="text-chalk-400">·</span>
-            <span className="whitespace-nowrap">
-              review loop {run.reviewLoopCount}/{run.maxReviewLoops}
+          <MetaStat label="Review loop">
+            <span className="mono num-tabular">
+              {run.reviewLoopCount}/{run.maxReviewLoops}
             </span>
-          </>
+          </MetaStat>
         ) : null}
       </div>
     </section>

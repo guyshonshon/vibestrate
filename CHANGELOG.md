@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.28.1
+
+- **The run screen's panels are properly structured, not just re-skinned.** The
+  supervisor, brief, run-assurance, and workspace blocks were carrying loose
+  labels and dot-separated text floating with no real grouping. They now use the
+  same framed-row idiom as Mission Control: the assurance verdict reads as a grid
+  of gate cells (policy / validation / review / verification, each tinted by its
+  own status), the brief's meta is a row of labeled stats, the supervisor's
+  decision feed is a list of framed rows, and the workspace shows an icon-tile
+  identity with the path in its own field. No data was removed - everything that
+  was there is still there, just legible.
+
 ## 0.28.0
 
 - **The new look now reaches every page.** The app's shared shell - the top

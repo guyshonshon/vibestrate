@@ -44,7 +44,7 @@ import { StartupPanel } from "../../components/runs/StartupPanel.js";
 import { ApprovalBanner } from "../../components/approvals/ApprovalBanner.js";
 import { DiffViewer } from "../../components/diff/DiffViewer.js";
 import { WorktreeFileView } from "../../components/diff/WorktreeFileView.js";
-import { AlertTriangle, Bolt, Cpu, Scale } from "lucide-react";
+import { AlertTriangle, Bolt, Cpu, FolderTree, Scale, ShieldCheck } from "lucide-react";
 import {
   describeRunOutcome,
   type RunOutcomeAction,
@@ -1067,13 +1067,67 @@ function fmtTokens(n: number): string {
   return String(n);
 }
 
-const ASSURANCE_TONE: Record<RunAssurance["verdict"], string> = {
-  verified: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
-  partially_verified: "border-amber-soft/40 bg-amber-soft/10 text-amber-soft",
-  unverified: "border-amber-soft/40 bg-amber-soft/10 text-amber-soft",
-  blocked: "border-rose-400/40 bg-rose-500/10 text-rose-300",
-  unsafe: "border-rose-400/50 bg-rose-500/15 text-rose-300",
+const VERDICT_META: Record<
+  RunAssurance["verdict"],
+  { tone: string; card: string; icon: typeof Scale }
+> = {
+  verified: { tone: "text-emerald-400", card: "border-emerald-500/30 bg-emerald-500/[0.04]", icon: ShieldCheck },
+  partially_verified: { tone: "text-amber-soft", card: "border-amber-soft/30 bg-amber-soft/[0.05]", icon: Scale },
+  unverified: { tone: "text-amber-soft", card: "border-amber-soft/30 bg-amber-soft/[0.05]", icon: Scale },
+  blocked: { tone: "text-rose-300", card: "border-rose-400/35 bg-rose-500/[0.06]", icon: AlertTriangle },
+  unsafe: { tone: "text-rose-300", card: "border-rose-400/45 bg-rose-500/[0.08]", icon: AlertTriangle },
 };
+
+/** Per-gate status color: a passed gate is emerald, a failed/blocked one rose,
+ *  a missing/not-run one stays muted, an environment skip is amber. */
+function laneTone(status: string): string {
+  const s = status.toLowerCase();
+  if (/(passed|verified|approved|^ok$)/.test(s)) return "text-emerald-400";
+  if (/(fail|blocked|changes|unsafe|reject)/.test(s)) return "text-rose-300";
+  if (s.includes("environment")) return "text-amber-soft";
+  return "text-chalk-400";
+}
+
+/** One gate cell in the assurance grid (label over a status-tinted value). */
+function LaneCell({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  tone: string;
+}) {
+  return (
+    <div className="rounded-[12px] bg-coal-500/50 px-3 py-2">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-chalk-400">
+        {label}
+      </div>
+      <div className={`mt-0.5 text-[12.5px] font-semibold ${tone}`}>{value}</div>
+      {sub ? <div className="mt-0.5 text-[10.5px] leading-snug text-chalk-400">{sub}</div> : null}
+    </div>
+  );
+}
+
+/** Inline label + value pair for the assurance meta strip (supervisor, isolation). */
+function MetaPair({
+  label,
+  value,
+  title,
+}: {
+  label: string;
+  value: string;
+  title?: string;
+}) {
+  return (
+    <span className="flex items-baseline gap-1.5" title={title}>
+      <span className="text-chalk-400">{label}</span>
+      <span className="font-medium text-chalk-300">{value}</span>
+    </span>
+  );
+}
 
 /** Why the orchestrator chose this Flow (Slice 2 - only for selected runs). */
 
@@ -1099,25 +1153,34 @@ function WorkspacePanel({
     );
   };
   return (
-    <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4 py-3">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="mono text-[11px] text-chalk-400">Workspace</span>
-        {branchName ? (
-          <span className="mono text-xs text-chalk-300">branch {branchName}</span>
-        ) : null}
+    <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4 py-3.5">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-coal-500/60 text-chalk-300">
+          <FolderTree className="h-4 w-4" strokeWidth={1.9} aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-chalk-400">
+            Workspace
+          </div>
+          <div className="truncate text-[12.5px] font-semibold text-chalk-100">
+            {branchName ? <span className="mono">{branchName}</span> : "git worktree"}
+          </div>
+        </div>
         <button
           type="button"
           onClick={copy}
-          className="ml-auto h-7 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-500 px-2.5 text-[11.5px] font-semibold text-chalk-100 transition hover:bg-coal-400"
+          className="h-7 shrink-0 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-500 px-2.5 text-[11.5px] font-semibold text-chalk-100 transition hover:bg-coal-400"
           title="Copy a cd command for this run's git worktree"
         >
           {copied ? "copied" : "copy cd"}
         </button>
       </div>
-      <div className="mono mt-1.5 truncate text-[12px] text-chalk-300" title={worktreePath}>
-        {worktreePath}
+      <div className="mt-2.5 rounded-[12px] bg-coal-500/40 px-3 py-2">
+        <div className="mono truncate text-[12px] text-chalk-300" title={worktreePath}>
+          {worktreePath}
+        </div>
       </div>
-      <div className="mt-1 text-[11px] text-chalk-400">
+      <div className="mt-1.5 text-[11px] text-chalk-400">
         The run's isolated git worktree. Run <span className="mono">vibe path</span> for the same from the CLI.
       </div>
     </div>
@@ -1137,102 +1200,117 @@ function AssuranceBadge({
   onViewValidation?: () => void;
 }) {
   const a = assurance;
+  const vm = VERDICT_META[a.verdict];
+  const Icon = vm.icon;
   const actionCls =
     "h-7 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-700 px-2.5 text-[11.5px] font-semibold text-chalk-100 transition hover:bg-coal-600";
+  const hasMeta =
+    (a.coverage?.toleratedStepFailures ?? 0) > 0 ||
+    !!a.supervisor?.persona ||
+    (!!a.isolation && a.isolation.posture !== "none");
+  const isoBits = a.isolation
+    ? [
+        a.isolation.osSandboxedTurns > 0 ? `${a.isolation.osSandboxedTurns} OS-sandboxed` : null,
+        a.isolation.hardenedTurns > 0 ? `${a.isolation.hardenedTurns} hardened` : null,
+        a.isolation.unconfinedRequestedTurns > 0 ? `${a.isolation.unconfinedRequestedTurns} unconfined` : null,
+      ].filter(Boolean)
+    : [];
   return (
-    <div className={`rounded-[18px] border px-4 py-3 ${ASSURANCE_TONE[a.verdict]}`}>
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="mono text-[11px] opacity-70">Run assurance</span>
-        <span className="text-sm font-semibold">
-          {a.verdict.replace(/_/g, " ")}
+    <div className={`rounded-[18px] border px-4 py-3.5 ${vm.card}`} data-screen-label="01 Assurance">
+      <div className="flex items-start gap-2.5">
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-coal-500/60 ${vm.tone}`}>
+          <Icon className="h-4 w-4" strokeWidth={1.9} aria-hidden />
         </span>
-        <span className="text-xs opacity-80">{a.summary}</span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-chalk-400">
+            Run assurance
+          </div>
+          <div className={`text-[15px] font-semibold ${vm.tone}`}>{a.verdict.replace(/_/g, " ")}</div>
+          <div className="mt-0.5 text-[12px] leading-snug text-chalk-300">{a.summary}</div>
+        </div>
         {onViewReview || onViewValidation ? (
-          <span className="ml-auto flex items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
             {onViewReview ? (
               <button type="button" onClick={onViewReview} className={actionCls}>
                 View review
               </button>
             ) : null}
             {onViewReview && onRerunWithFixes ? (
-              <button
-                type="button"
-                onClick={onRerunWithFixes}
-                className={actionCls}
-              >
+              <button type="button" onClick={onRerunWithFixes} className={actionCls}>
                 Re-run with fixes
               </button>
             ) : null}
             {onViewValidation ? (
-              <button
-                type="button"
-                onClick={onViewValidation}
-                className={actionCls}
-              >
+              <button type="button" onClick={onViewValidation} className={actionCls}>
                 View validation
               </button>
             ) : null}
-          </span>
+          </div>
         ) : null}
       </div>
-      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] opacity-80">
-        <span>policy: {a.policy.status}</span>
-        <span>
-          validation: {a.validation.status.replace(/_/g, " ")} ({a.validation.passed}/
-          {a.validation.total})
-          {a.validation.status === "environment"
-            ? " - toolchain missing in the worktree, nothing was actually checked"
-            : ""}
-        </span>
-        <span>review: {a.review.status.replace(/_/g, " ")}</span>
-        <span>verification: {a.verification.status.replace(/_/g, " ")}</span>
-        {(a.coverage?.toleratedStepFailures ?? 0) > 0 ? (
-          <span>
-            coverage: {a.coverage.toleratedStepFailures} tolerated failure
-            {a.coverage.toleratedStepFailures === 1 ? "" : "s"}
-          </span>
-        ) : null}
-        {a.supervisor?.persona ? (
-          <span title="The supervisor's review independence is honest, not a confidence source - single-profile is a same-model self-check that can only lower confidence.">
-            supervisor: {a.supervisor.persona} ({a.supervisor.independence})
-          </span>
-        ) : null}
-        {a.isolation && a.isolation.posture !== "none" ? (
-          <span title="How confined the run's agents actually were, derived from per-turn provider evidence (not config). Informational - it never affects the verdict; the default is the worktree + diff gate.">
-            isolation: {a.isolation.posture}
-            {a.isolation.osSandboxedTurns > 0
-              ? ` · ${a.isolation.osSandboxedTurns} OS-sandboxed`
-              : ""}
-            {a.isolation.hardenedTurns > 0
-              ? ` · ${a.isolation.hardenedTurns} hardened`
-              : ""}
-            {a.isolation.unconfinedRequestedTurns > 0
-              ? ` · ${a.isolation.unconfinedRequestedTurns} unconfined`
-              : ""}
-          </span>
-        ) : null}
+
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <LaneCell label="Policy" value={a.policy.status.replace(/_/g, " ")} tone={laneTone(a.policy.status)} />
+        <LaneCell
+          label="Validation"
+          value={`${a.validation.status.replace(/_/g, " ")}${a.validation.total > 0 ? ` ${a.validation.passed}/${a.validation.total}` : ""}`}
+          sub={a.validation.status === "environment" ? "toolchain missing - nothing was checked" : undefined}
+          tone={laneTone(a.validation.status)}
+        />
+        <LaneCell label="Review" value={a.review.status.replace(/_/g, " ")} tone={laneTone(a.review.status)} />
+        <LaneCell label="Verification" value={a.verification.status.replace(/_/g, " ")} tone={laneTone(a.verification.status)} />
       </div>
+
+      {hasMeta ? (
+        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5 rounded-[12px] bg-coal-500/40 px-3 py-2 text-[11px]">
+          {(a.coverage?.toleratedStepFailures ?? 0) > 0 ? (
+            <MetaPair
+              label="Coverage"
+              value={`${a.coverage.toleratedStepFailures} tolerated failure${a.coverage.toleratedStepFailures === 1 ? "" : "s"}`}
+            />
+          ) : null}
+          {a.supervisor?.persona ? (
+            <MetaPair
+              label="Supervisor"
+              value={`${a.supervisor.persona} (${a.supervisor.independence})`}
+              title="The supervisor's review independence is honest, not a confidence source - single-profile is a same-model self-check that can only lower confidence."
+            />
+          ) : null}
+          {a.isolation && a.isolation.posture !== "none" ? (
+            <MetaPair
+              label="Isolation"
+              value={`${a.isolation.posture}${isoBits.length ? ` · ${isoBits.join(" · ")}` : ""}`}
+              title="How confined the run's agents actually were, derived from per-turn provider evidence (not config). Informational - it never affects the verdict; the default is the worktree + diff gate."
+            />
+          ) : null}
+        </div>
+      ) : null}
+
       {a.blockers && a.blockers.length > 0 ? (
-        <div className="mt-2 space-y-0.5">
+        <div className="mt-2 space-y-1.5">
           {a.blockers.map((b, i) => (
-            <div key={i} className="text-[11.5px]">
-              <span className="font-semibold">
-                cause{b.stepId ? ` at ${b.stepId}` : ""}
-                {b.class ? ` · ${b.class}` : ""}:
-              </span>{" "}
-              <span className="opacity-90">{b.detail}</span>
+            <div key={i} className="rounded-[12px] border border-rose-400/25 bg-rose-500/[0.06] px-3 py-2">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-300">
+                Cause{b.stepId ? ` · ${b.stepId}` : ""}{b.class ? ` · ${b.class}` : ""}
+              </div>
+              <div className="mt-0.5 text-[11.5px] text-chalk-300">{b.detail}</div>
             </div>
           ))}
         </div>
       ) : null}
-      {(a.caps?.length ?? 0) > 0 ? (
-        <div className="mt-1 text-[11px] opacity-60">
-          caps: {a.caps.join(", ")}
-        </div>
-      ) : null}
-      {(a.notes?.length ?? 0) > 0 ? (
-        <div className="mt-1 text-[11px] opacity-50">
-          notes: {a.notes!.map(humanizeAssuranceNote).join(", ")}
+
+      {(a.caps?.length ?? 0) > 0 || (a.notes?.length ?? 0) > 0 ? (
+        <div className="mt-2 flex flex-col gap-1 text-[10.5px] text-chalk-400">
+          {(a.caps?.length ?? 0) > 0 ? (
+            <div>
+              <span className="font-semibold">Caps</span> {a.caps.join(", ")}
+            </div>
+          ) : null}
+          {(a.notes?.length ?? 0) > 0 ? (
+            <div>
+              <span className="font-semibold">Notes</span> {a.notes!.map(humanizeAssuranceNote).join(", ")}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
