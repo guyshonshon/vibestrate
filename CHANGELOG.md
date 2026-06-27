@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.28.0
+
+- **The new look now reaches every page.** The app's shared shell - the top
+  navigation bar, the page canvas, and the common building blocks (buttons,
+  dropdowns, chips, the phase rail) - moved onto the coal/chalk foundation. The
+  background is now the softer coal tone instead of near-black, and every button
+  and dropdown across the app picks up the rounded, violet-accented styling, in
+  both dark and light. Pages whose bodies haven't been individually redesigned
+  yet keep their current layout but immediately inherit the new chrome, so the
+  whole app reads as one piece while the per-page passes continue.
+
 ## 0.27.0
 
 - **The run screen is redesigned onto the new coal/chalk foundation.** Every

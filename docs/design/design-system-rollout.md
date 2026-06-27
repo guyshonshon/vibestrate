@@ -1,12 +1,13 @@
 # Design: app-wide design-system rollout
 
-Status: **Phase 2 done (2026-06-27)** - rollout program for migrating the whole
+Status: **Phase 1 done (2026-06-27)** - rollout program for migrating the whole
 dashboard onto the "coal/chalk" foundation. Foundation merged to `main`
-(`f55c8725`). Phase 2 (runs domain) shipped in v0.27.0; the run-detail page and
-all its live panels are now on the new foundation (see the checklist below).
-Phase 1 (shared atoms + app shell) is still pending and runs after Phase 2 by
-design - unmigrated screens keep their old chrome until then. Phase 0 landed on
-branch `design/phase-0-foundation`: canonical
+(`f55c8725`). Shipped so far: Phase 2 (runs domain, v0.27.0) and Phase 1 (shared
+shell + atoms, v0.28.0) - the body canvas, TopBar, and shared atoms are now on
+the new foundation, so every page inherits the new chrome even before its body
+is redesigned. Remaining: the per-domain page-body redesigns (Phases 3-6) then
+cleanup (Phase 7). Phase 0 landed on branch `design/phase-0-foundation`:
+canonical
 contract locked ([`primitives-contract.md`](./primitives-contract.md)), dead
 shadcn `components/ui/*` set removed, token crosswalk verified against live
 Mission Control (below), and a shared reference set captured
@@ -167,7 +168,14 @@ responsive sweep.
 
 ## Tracking checklist
 - [x] Phase 0 - foundation contract + verified crosswalk (branch `design/phase-0-foundation`)
-- [ ] Phase 1 - atoms + app shell
+- [x] Phase 1 - atoms + app shell (branch `design/phase-1-shell`, v0.28.0). Body
+  canvas -> coal `--background`; `AppShell`/`TopBar`/`PanelBoard`/`GlobalErrorOverlay`
+  + shared atoms (`Button`, `Select`, `Chip`, `PhaseRail`, `EffortScale`)
+  crosswalked to chalk/coal/violet-soft. Button + Select gained rounded corners
+  (square-slab look retired on interactive atoms app-wide). The `.slab`/`--s-*`
+  scene system stays for unmigrated page bodies (deleted in Phase 7); only the
+  shell + atoms moved. Cascades the new chrome to every page before its body is
+  redesigned.
 - [x] Phase 2 - runs domain (branch `design/phase-2-runs`, v0.27.0). Pilot shell
   (`RunDetailPage` scaffold + `RunHeaderV3` + `RunStatusSection` + `InspectorTabs`
   + `RunStatusBadge`) then a parallel panel fan-out (Live/Supervisor/Queue
