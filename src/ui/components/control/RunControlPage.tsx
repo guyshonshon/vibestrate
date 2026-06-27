@@ -4,6 +4,7 @@ import { api } from "../../lib/api.js";
 import { navigate } from "../../app/App.js";
 import type { ApprovalRequest, RunState, RunStatus, VibestrateEvent } from "../../lib/types.js";
 import { ActivityList, DiffBar, RadialStat, StageTimeline, StatusLabel } from "./viz.js";
+import { statusMessage } from "../mission/runPhase.js";
 
 const ACTIVE: RunStatus[] = [
   "planning",
@@ -19,9 +20,9 @@ const ACTIVE: RunStatus[] = [
   "paused",
 ];
 
-const card = "rounded-[22px] border border-white/[0.06] bg-coal-600 p-6";
-const tile = "rounded-[18px] border border-white/[0.06] bg-coal-600 p-5";
-const lbl = "text-[12px] font-semibold text-chalk-400";
+const card = "rounded-[22px] border border-[color:var(--line)] bg-coal-600 p-6";
+const tile = "rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-5";
+const lbl = "text-[12px] font-semibold text-violet-vivid";
 
 export function RunControlPage({ runId }: { runId: string }) {
   const [run, setRun] = useState<RunState | null>(null);
@@ -137,11 +138,12 @@ export function RunControlPage({ runId }: { runId: string }) {
           <div className="flex items-start justify-between gap-5">
             <div className="min-w-0">
               <StatusLabel status={run.status} />
-              <h1 className="mt-1.5 truncate text-[26px] font-extrabold tracking-[-0.02em] text-white">
+              <h1 className="mt-1.5 truncate text-[26px] font-extrabold tracking-[-0.02em] text-chalk-100">
                 {run.displayName || run.task}
               </h1>
+              <div className="mt-1 text-[13px] text-chalk-300">{statusMessage(run.status)}</div>
               {run.branchName ? (
-                <div className="mt-1.5 truncate font-mono text-[11.5px] text-chalk-400">{run.branchName}</div>
+                <div className="mt-1 truncate font-mono text-[11.5px] text-chalk-400">{run.branchName}</div>
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2">{controls}</div>
@@ -164,7 +166,7 @@ export function RunControlPage({ runId }: { runId: string }) {
         </div>
 
         <div className={`mt-4 ${card}`}>
-          <h2 className="mb-3 text-[15px] font-bold text-chalk-100">Activity</h2>
+          <h2 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-violet-vivid">Activity</h2>
           <ActivityList events={events} max={10} />
         </div>
       </div>

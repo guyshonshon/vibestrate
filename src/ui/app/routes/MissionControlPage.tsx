@@ -18,6 +18,7 @@ import { MissionComposer } from "../../components/mission/MissionComposer.js";
 import { EntityIcon } from "../../components/design/EntityIcon.js";
 import { ThemeToggle } from "../../components/design/ThemeToggle.js";
 import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
+import { PhaseRail, statusMessage } from "../../components/mission/runPhase.js";
 import type {
   ApprovalRequest,
   RunState,
@@ -154,9 +155,12 @@ export function MissionControlPage({ onSelectRun }: Props) {
     };
     void load();
     const id = window.setInterval(() => void load(), 4000);
+    const onRefresh = () => void load();
+    window.addEventListener("vibestrate:runs-refresh", onRefresh);
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      window.removeEventListener("vibestrate:runs-refresh", onRefresh);
     };
   }, []);
 
@@ -533,27 +537,46 @@ function RunCard({
 }) {
   const meta = statusMeta(run.status);
   const label = run.displayName || run.task;
+  const active = isActive(run.status);
   return (
-    <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+    <div className="fade-up rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
       <div className="flex items-center gap-2.5">
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: TONE_COLOR[meta.tone] }} />
         <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-chalk-100">{label}</span>
         <span className="shrink-0 text-[11.5px] text-chalk-400">{relTime(run.updatedAt)}</span>
       </div>
-      <div className="mt-2.5 flex items-center gap-2 text-[11.5px] text-chalk-400">
-        <span className="rounded-md bg-coal-500 px-2 py-0.5 font-medium" style={{ color: TONE_COLOR[meta.tone] }}>
-          {meta.label}
-        </span>
-        {run.branchName ? (
-          <span className="truncate font-mono text-[11px]">{run.branchName}</span>
-        ) : null}
-        {diff ? (
-          <span className="ml-auto shrink-0 font-mono text-[11px]">
-            <span className="text-emerald-400">+{diff.insertions}</span>{" "}
-            <span className="text-rose-300">-{diff.deletions}</span>
+      {active ? (
+        <div className="mt-2.5">
+          <div className="mb-1.5 text-[12.5px] font-medium text-chalk-300">{statusMessage(run.status)}</div>
+          <PhaseRail status={run.status} />
+          {run.branchName || diff ? (
+            <div className="mt-2 flex items-center gap-2 text-[11px] text-chalk-400">
+              {run.branchName ? <span className="truncate font-mono">{run.branchName}</span> : null}
+              {diff ? (
+                <span className="ml-auto shrink-0 font-mono">
+                  <span className="text-emerald-400">+{diff.insertions}</span>{" "}
+                  <span className="text-rose-300">-{diff.deletions}</span>
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="mt-2.5 flex items-center gap-2 text-[11.5px] text-chalk-400">
+          <span className="rounded-md bg-coal-500 px-2 py-0.5 font-medium" style={{ color: TONE_COLOR[meta.tone] }}>
+            {meta.label}
           </span>
-        ) : null}
-      </div>
+          {run.branchName ? (
+            <span className="truncate font-mono text-[11px]">{run.branchName}</span>
+          ) : null}
+          {diff ? (
+            <span className="ml-auto shrink-0 font-mono text-[11px]">
+              <span className="text-emerald-400">+{diff.insertions}</span>{" "}
+              <span className="text-rose-300">-{diff.deletions}</span>
+            </span>
+          ) : null}
+        </div>
+      )}
       <div className="mt-3 flex items-center gap-2">
         <button onClick={onOpen} className="flex items-center gap-1.5 rounded-[10px] bg-coal-500 px-3 py-1.5 text-[12.5px] font-semibold text-chalk-100 hover:bg-coal-400">
           Open <ArrowRight className="h-3.5 w-3.5" />

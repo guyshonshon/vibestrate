@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowRight, Check, Lock } from "lucide-react";
+import { ArrowRight, Check, Lock, Plus } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { navigate } from "../../app/App.js";
 import { EntityIcon, FlowIcon, type EntityKind } from "../design/EntityIcon.js";
 import { ConsultOrb } from "../consult/ConsultOrb.js";
 import { AssistPopover } from "./AssistPopover.js";
-import type { DiscoveredFlow, PersonaSummary, TaskSuggestion } from "../../lib/types.js";
+import { PhaseRail, RUN_TERMINAL, statusMessage } from "./runPhase.js";
+import type {
+  DiscoveredFlow,
+  PersonaSummary,
+  RunState,
+  RunStatus,
+  TaskSuggestion,
+} from "../../lib/types.js";
 
 type FlowParamDef = { required?: boolean; label?: string; default?: unknown; secret?: boolean };
 
@@ -314,6 +321,62 @@ function PatchBay({
   );
 }
 
+// The Run summary morphs into this once a run is launched: a live phase panel
+// (real status, polled - no timers) for the just-launched run, with "Start
+// another run" to return to the launcher. The left column stays composable, so
+// it never reads as a one-run tool.
+function LaunchPanel({
+  status,
+  run,
+  taskTitle,
+  onOpen,
+  onStartAnother,
+}: {
+  status: RunStatus;
+  run: RunState | null;
+  taskTitle: string;
+  onOpen: () => void;
+  onStartAnother: () => void;
+}) {
+  const terminal = RUN_TERMINAL.has(status);
+  return (
+    <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-800 p-4">
+      <div className="flex items-start gap-3">
+        <ConsultOrb size={38} state={terminal ? "idle" : "thinking"} />
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-violet-vivid">
+            {terminal ? `Run ${status.replace(/_/g, " ")}` : "Launching run"}
+          </div>
+          <div className="text-[15px] font-bold text-chalk-100">{statusMessage(status)}</div>
+          <div className="mt-0.5 truncate text-[12px] text-chalk-400">
+            {run?.displayName || taskTitle}
+            {run?.branchName ? <span className="font-mono"> · {run.branchName}</span> : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <PhaseRail status={status} showLabels />
+      </div>
+
+      <button
+        type="button"
+        onClick={onOpen}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-[12px] bg-violet-soft px-4 py-2.5 text-[13.5px] font-bold text-coal-900 transition hover:bg-violet-soft/90"
+      >
+        Open run <ArrowRight className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={onStartAnother}
+        className="mt-2 flex w-full items-center justify-center gap-2 rounded-[12px] border border-[color:var(--line-strong)] px-4 py-2.5 text-[13px] font-semibold text-chalk-300 transition hover:text-chalk-100"
+      >
+        <Plus className="h-4 w-4" /> Start another run
+      </button>
+    </div>
+  );
+}
+
 export function MissionComposer() {
   const [meta, setMeta] = useState<Awaited<ReturnType<typeof api.getProjectMetadata>> | null>(null);
   const [flows, setFlows] = useState<DiscoveredFlow[]>([]);
@@ -334,6 +397,9 @@ export function MissionComposer() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [assistOpen, setAssistOpen] = useState(false);
+  const [launchedRunId, setLaunchedRunId] = useState<string | null>(null);
+  const [launchedRun, setLaunchedRun] = useState<RunState | null>(null);
+  const [launchStatus, setLaunchStatus] = useState<RunStatus>("created");
 
   useEffect(() => {
     let cancelled = false;
@@ -359,6 +425,31 @@ export function MissionComposer() {
       cancelled = true;
     };
   }, []);
+
+  // Poll the launched run's real status for the in-panel phase view. Stops on
+  // terminal status, cancels on unmount / start-another. No scripted timers.
+  useEffect(() => {
+    if (!launchedRunId) return;
+    let cancelled = false;
+    let timer: number | undefined;
+    const poll = async () => {
+      try {
+        const r = await api.getRun(launchedRunId);
+        if (cancelled) return;
+        setLaunchedRun(r);
+        setLaunchStatus(r.status);
+        if (RUN_TERMINAL.has(r.status)) return;
+      } catch {
+        // transient - retry next tick
+      }
+      if (!cancelled) timer = window.setTimeout(poll, 1500);
+    };
+    void poll();
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [launchedRunId]);
 
   const selectedFlow = useMemo(() => flows.find((f) => f.id === flowId) ?? null, [flows, flowId]);
   const flowParams = (selectedFlow?.definition.params ?? null) as Record<string, FlowParamDef> | null;
@@ -388,7 +479,14 @@ export function MissionComposer() {
         unattended: unattended || undefined,
         select: forceSelect || undefined,
       });
-      navigate({ kind: "control", runId: r.runId });
+      // The Run summary morphs into a live phase panel for this run; the left
+      // column stays a launcher. Nudge the dashboard so it also appears in
+      // Active (runs are concurrent / worktree-isolated).
+      setLaunchedRun(null);
+      setLaunchStatus("created");
+      setLaunchedRunId(r.runId);
+      setBusy(false);
+      window.dispatchEvent(new Event("vibestrate:runs-refresh"));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setBusy(false);
@@ -548,6 +646,19 @@ export function MissionComposer() {
         <aside className="flex flex-col gap-4 self-start lg:col-span-5">
           <PatchBay flow={selectedFlow} crew={selectedCrew} />
 
+          {launchedRunId ? (
+            <LaunchPanel
+              status={launchStatus}
+              run={launchedRun}
+              taskTitle={task}
+              onOpen={() => navigate({ kind: "control", runId: launchedRunId })}
+              onStartAnother={() => {
+                setLaunchedRunId(null);
+                setLaunchedRun(null);
+                setTask("");
+              }}
+            />
+          ) : (
           <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-800 p-4">
             <h3 className="text-[13.5px] font-bold text-chalk-100">Run summary</h3>
             <p className="mt-1 text-[12px] leading-[1.5] text-chalk-400">
@@ -617,32 +728,22 @@ export function MissionComposer() {
               ) : null}
             </div>
 
-            <div className="mt-3.5 flex items-start gap-2 text-[12.5px] leading-[1.5]">
-              {canLaunch ? (
-                <>
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" strokeWidth={2.2} />
-                  <span className="text-chalk-300">Ready to start. Nothing pushes or merges.</span>
-                </>
-              ) : (
-                <>
-                  <span className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full bg-amber-soft" aria-hidden />
-                  <span className="text-amber-soft">
-                    {task.trim().length === 0
-                      ? "Write a task brief to start the run."
-                      : missing.length > 0
-                        ? `Fill required input${missing.length > 1 ? "s" : ""}: ${missing.join(", ")} (More options).`
-                        : "Starting…"}
-                  </span>
-                </>
-              )}
-            </div>
-
             <button
               onClick={() => void launch()}
               disabled={!canLaunch}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-[12px] bg-violet-soft px-4 py-3 text-[14px] font-bold text-coal-900 transition hover:bg-violet-soft/90 disabled:opacity-40"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-[12px] bg-violet-soft px-4 py-3 text-[14px] font-bold text-coal-900 transition hover:bg-violet-soft/90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {busy ? "Launching…" : <>Launch run <ArrowRight className="h-4 w-4" /></>}
+              {busy ? (
+                "Launching…"
+              ) : task.trim().length === 0 ? (
+                "Add a task brief to launch"
+              ) : missing.length > 0 ? (
+                "Fill required inputs"
+              ) : (
+                <>
+                  Launch run <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </button>
 
             {error ? (
@@ -656,6 +757,7 @@ export function MissionComposer() {
               anything ships.
             </div>
           </div>
+          )}
         </aside>
       </div>
     </div>

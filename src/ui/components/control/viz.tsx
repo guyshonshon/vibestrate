@@ -3,8 +3,8 @@ import type { RunStatus, VibestrateEvent } from "../../lib/types.js";
 
 /**
  * Shared visual components for the control surface. No status dot-pills (the
- * owner hates them); status is an icon + colored label. Muted text rides the
- * global violet-tinted --color-chalk-400, never neutral grey.
+ * owner hates them); status is an icon + colored label. Colors resolve theme
+ * tokens so the surface works in light and dark; violet is an accent only.
  */
 
 const PHASES = ["Plan", "Architect", "Execute", "Review", "Verify", "Merge"];
@@ -29,12 +29,12 @@ function clock(iso: string): string {
 export function StatusLabel({ status }: { status: RunStatus }) {
   const m =
     status === "merge_ready"
-      ? { Icon: GitMerge, c: "#34d399", t: "Merge ready" }
+      ? { Icon: GitMerge, c: "var(--emerald)", t: "Merge ready" }
       : status === "failed"
-        ? { Icon: AlertTriangle, c: "#fb7185", t: "Failed" }
+        ? { Icon: AlertTriangle, c: "var(--fail)", t: "Failed" }
         : status === "aborted"
-          ? { Icon: X, c: "#9a86c9", t: "Aborted" }
-          : { Icon: Activity, c: "#a78bfa", t: status.replace(/_/g, " ") };
+          ? { Icon: X, c: "var(--color-chalk-400)", t: "Aborted" }
+          : { Icon: Activity, c: "var(--color-violet-vivid)", t: status.replace(/_/g, " ") };
   const Icon = m.Icon;
   return (
     <span className="inline-flex items-center gap-1.5 text-[13px] font-bold capitalize" style={{ color: m.c }}>
@@ -58,8 +58,8 @@ export function StageTimeline({ status }: { status: RunStatus }) {
               <span
                 className="flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-bold"
                 style={{
-                  background: done ? "#8b5cf6" : here ? "rgba(139,92,246,0.18)" : "rgba(255,255,255,0.05)",
-                  color: done ? "#fff" : here ? "#c4b5fd" : "#6f6786",
+                  background: done ? "#8b5cf6" : here ? "rgba(139,92,246,0.18)" : "var(--color-coal-500)",
+                  color: done ? "#fff" : here ? "var(--color-violet-vivid)" : "var(--color-chalk-400)",
                   boxShadow: here ? "0 0 0 2px rgba(139,92,246,0.55)" : undefined,
                 }}
               >
@@ -67,7 +67,7 @@ export function StageTimeline({ status }: { status: RunStatus }) {
               </span>
               <span
                 className="text-[11px]"
-                style={{ color: done || here ? "#9a86c9" : "rgba(255,255,255,0.28)" }}
+                style={{ color: done || here ? "var(--color-chalk-300)" : "var(--color-chalk-400)" }}
               >
                 {p}
               </span>
@@ -75,7 +75,7 @@ export function StageTimeline({ status }: { status: RunStatus }) {
             {i < PHASES.length - 1 ? (
               <div
                 className="mx-1.5 mb-5 h-[2px] flex-1 rounded-full"
-                style={{ background: done ? "rgba(139,92,246,0.45)" : "rgba(255,255,255,0.07)" }}
+                style={{ background: done ? "rgba(139,92,246,0.45)" : "var(--color-coal-400)" }}
               />
             ) : null}
           </div>
@@ -91,7 +91,7 @@ export function DiffBar({ diff }: { diff: { insertions: number; deletions: numbe
   const tot = Math.max(1, ins + del);
   return (
     <div>
-      <div className="flex h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="flex h-2.5 overflow-hidden rounded-full bg-[color:var(--line)]">
         <div style={{ width: `${(ins / tot) * 100}%`, background: "#34d399" }} />
         <div style={{ width: `${(del / tot) * 100}%`, background: "#fb7185" }} />
       </div>
@@ -110,16 +110,16 @@ export function RadialStat({ value, center, label }: { value: number; center: st
     <div className="flex items-center gap-4">
       <div className="relative h-[58px] w-[92px] shrink-0">
         <svg viewBox="0 0 92 58" width="92" height="58" fill="none" aria-hidden>
-          <path d="M9 51 A 37 37 0 0 1 83 51" stroke="rgba(255,255,255,0.08)" strokeWidth="8" strokeLinecap="round" />
+          <path d="M9 51 A 37 37 0 0 1 83 51" stroke="var(--color-coal-400)" strokeWidth="8" strokeLinecap="round" />
           <path
             d="M9 51 A 37 37 0 0 1 83 51"
-            stroke="#a78bfa"
+            stroke="var(--color-violet-soft)"
             strokeWidth="8"
             strokeLinecap="round"
             strokeDasharray={`${v * 116} 200`}
           />
         </svg>
-        <div className="absolute inset-x-0 bottom-1 text-center text-[16px] font-extrabold text-white">{center}</div>
+        <div className="absolute inset-x-0 bottom-1 text-center text-[16px] font-extrabold text-chalk-100">{center}</div>
       </div>
       <div className="text-[12.5px] text-chalk-400">{label}</div>
     </div>
@@ -134,7 +134,7 @@ export function ActivityList({ events, max = 6 }: { events: VibestrateEvent[]; m
       {evs.map((e, i) => (
         <div key={i} className="flex items-center gap-3 rounded-[12px] bg-coal-500/40 px-3.5 py-2.5">
           <span className="shrink-0 font-mono text-[10.5px] text-chalk-400">{clock(e.timestamp)}</span>
-          <span className="shrink-0 rounded-md bg-violet-soft/15 px-1.5 py-px text-[10.5px] font-semibold text-violet-soft">
+          <span className="shrink-0 rounded-md bg-coal-500 px-1.5 py-px font-mono text-[10.5px] font-medium text-chalk-400">
             {e.type}
           </span>
           <span className="min-w-0 flex-1 truncate text-[12.5px] text-chalk-300">{e.message}</span>
