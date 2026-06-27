@@ -83,6 +83,11 @@ export function RunSwitcher({
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Jump to a run - task, id, or status…"
+            // The modal is the focus context (command-palette idiom); the
+            // search field itself takes no ring. Inline style overrides the
+            // global unlayered :focus-visible outline, which would otherwise
+            // float a stray violet pill around the transparent input.
+            style={{ outline: "none" }}
             className="w-full bg-transparent text-[14px] text-chalk-100 outline-none placeholder:text-chalk-400"
           />
           <span className="mono text-[11px] text-chalk-400">esc</span>
