@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.35.0",
+  "version": "0.36.0",
   "commands": [
     {
       "name": "init",
@@ -5078,11 +5078,139 @@
         "vibe",
         "policies"
       ],
-      "description": "Inspect user policy rules in .vibestrate/policies/. Rules can refuse a suggestion/bundle apply; they never permit a patch that built-in safety already refused.",
+      "description": "The project's rule surface: owner-authored tiered policies (advise = reviewer-checked; block = deterministic merge-cap) plus the hard, fail-closed security gates in .vibestrate/policies/.",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],
       "subcommands": [
+        {
+          "name": "add",
+          "path": [
+            "vibe",
+            "policies",
+            "add"
+          ],
+          "description": "Add a project policy (active immediately). advise by default; --block for a deterministic merge-cap.",
+          "usage": "[options] <id> <statement>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--fix <text>",
+              "description": "the correction the reviewer should name (advise)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--lens <lenses...>",
+              "description": "scope an advise rule to review lenses (default: every run)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--block",
+              "description": "make this a deterministic hard merge-block (requires --matcher)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--matcher <regex>",
+              "description": "regex matched against added diff lines (block only)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "remove",
+          "path": [
+            "vibe",
+            "policies",
+            "remove"
+          ],
+          "description": "Remove a project policy.",
+          "usage": "[options] <policyId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "confirm",
+          "path": [
+            "vibe",
+            "policies",
+            "confirm"
+          ],
+          "description": "Confirm a pending (supervisor-proposed) policy - it goes live.",
+          "usage": "[options] <policyId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "reject",
+          "path": [
+            "vibe",
+            "policies",
+            "reject"
+          ],
+          "description": "Reject a pending (supervisor-proposed) policy - removes it.",
+          "usage": "[options] <policyId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "migrate",
+          "path": [
+            "vibe",
+            "policies",
+            "migrate"
+          ],
+          "description": "Lift legacy persona-scoped preferences into project policies and remove the old keys.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
         {
           "name": "list",
           "path": [
@@ -5090,7 +5218,7 @@
             "policies",
             "list"
           ],
-          "description": "List every rule loaded from .vibestrate/policies/*.yml (after schema + regex/glob validation).",
+          "description": "List the project's policies (owner-authored tiered rules) and the hard security gates in .vibestrate/policies/*.yml.",
           "usage": "[options]",
           "arguments": [],
           "options": [
@@ -5229,186 +5357,6 @@
               "negated": false
             }
           ],
-          "subcommands": []
-        }
-      ]
-    },
-    {
-      "name": "preferences",
-      "path": [
-        "vibe",
-        "preferences"
-      ],
-      "description": "Owner preferences the reviewer checks for (e.g. \"use a hyphen, not an em-dash\"). Optional - a plain run needs none.",
-      "usage": "[options] [command]",
-      "arguments": [],
-      "options": [],
-      "subcommands": [
-        {
-          "name": "list",
-          "path": [
-            "vibe",
-            "preferences",
-            "list"
-          ],
-          "description": "List a persona's preferences.",
-          "usage": "[options] <personaId>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [
-            {
-              "flags": "--json",
-              "description": "emit JSON",
-              "required": false,
-              "optional": false,
-              "negated": false
-            }
-          ],
-          "subcommands": []
-        },
-        {
-          "name": "add",
-          "path": [
-            "vibe",
-            "preferences",
-            "add"
-          ],
-          "description": "Add an owner preference (active immediately).",
-          "usage": "[options] <personaId> <id> <statement>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            },
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            },
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [
-            {
-              "flags": "--fix <text>",
-              "description": "the correction the reviewer should name",
-              "required": true,
-              "optional": false,
-              "negated": false
-            },
-            {
-              "flags": "--lens <lenses...>",
-              "description": "scope to one or more review lenses (default: all reviewer turns)",
-              "required": true,
-              "optional": false,
-              "negated": false
-            },
-            {
-              "flags": "--block",
-              "description": "make this a hard merge-block (deterministic; requires --pattern)",
-              "required": false,
-              "optional": false,
-              "negated": false
-            },
-            {
-              "flags": "--pattern <regex>",
-              "description": "regex matched against added diff lines (block only)",
-              "required": true,
-              "optional": false,
-              "negated": false
-            }
-          ],
-          "subcommands": []
-        },
-        {
-          "name": "remove",
-          "path": [
-            "vibe",
-            "preferences",
-            "remove"
-          ],
-          "description": "Remove a preference.",
-          "usage": "[options] <personaId> <preferenceId>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            },
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [],
-          "subcommands": []
-        },
-        {
-          "name": "confirm",
-          "path": [
-            "vibe",
-            "preferences",
-            "confirm"
-          ],
-          "description": "Confirm a pending (supervisor-proposed) preference - it goes live.",
-          "usage": "[options] <personaId> <preferenceId>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            },
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [],
-          "subcommands": []
-        },
-        {
-          "name": "reject",
-          "path": [
-            "vibe",
-            "preferences",
-            "reject"
-          ],
-          "description": "Reject a pending (supervisor-proposed) preference - removes it.",
-          "usage": "[options] <personaId> <preferenceId>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            },
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [],
           "subcommands": []
         }
       ]

@@ -149,7 +149,7 @@ import { MetricsStore } from "./metrics-store.js";
 import { makeEmptyMetrics, type RoleMetrics } from "./runtime-metrics.js";
 import { extractTurnInternals } from "./turn-internals.js";
 import { getDiffSnapshot, getWorktreeDiffText, redactSecretsInText } from "./diff-service.js";
-import { evaluateBlockPreferences } from "../orchestrator/preference-block-gate.js";
+import { evaluateBlockPolicies } from "../orchestrator/policy-block.js";
 import { classifyChangedFilesForValidation } from "./validation-scope.js";
 import { protectedPathMatch } from "../orchestrator/protected-paths.js";
 import {
@@ -208,7 +208,7 @@ import {
   isReviewerStep,
   composeReviewerStepNotes,
 } from "../orchestrator/review-lenses.js";
-import { renderPreferenceGateBlock } from "../orchestrator/preference-gates.js";
+import { renderPolicyAdviseBlock } from "../orchestrator/policy-advise.js";
 import {
   isSpecUpFlow,
   renderSpecUpPostureBlock,
@@ -631,11 +631,11 @@ export class Orchestrator {
    *  spec-up phase's planning turns so a persona aims intake/scope/spec/architecture.
    *  null = not a spec-up run, or the persona declared no posture (turns unchanged). */
   private specUpPostureBlock: string | null = null;
-  /** Pre-rendered owner-preference block (preference-gates.ts), computed once at
-   *  run start from the active persona's confirmed preferences and appended to
-   *  lensed reviewer turns so a model verifies the change against them. null = no
-   *  confirmed/in-scope preferences (review turns byte-identical to before). */
-  private preferenceBlock: string | null = null;
+  /** Pre-rendered project-policy advise block (policy-advise.ts), computed once at
+   *  run start from the project's confirmed advise policies and appended to lensed
+   *  reviewer turns so a model verifies the change against them. null = no
+   *  confirmed/in-scope policies (review turns byte-identical to before). */
+  private policyAdviseBlock: string | null = null;
   /** Pre-rendered "# Continuity flags" block (T9) for THIS run's task - the
    *  suspected dup/conflict heads-up. Injected into the planner turn alongside
    *  the ledger block. "" when nothing was flagged. */
@@ -1129,23 +1129,24 @@ export class Orchestrator {
           },
         });
       }
-      // Owner preferences (preference-gates.ts): render the persona's confirmed,
-      // in-scope preferences into a block appended to lensed reviewer turns so a
-      // model verifies the change against them. Trust gate: an unconfirmed entry is
-      // inert (its text never reaches a prompt). Recorded as evidence.
-      const prefSelection = renderPreferenceGateBlock(
-        personaForRun.config.preferences ?? [],
+      // Project policies, advise tier (policy-advise.ts): render the project's
+      // confirmed, in-scope advise policies into a block appended to lensed reviewer
+      // turns so a model verifies the change against them - the active persona (ANY
+      // persona) is the enforcer; the rules belong to the project, not the persona.
+      // Trust gate: an unconfirmed entry is inert (its text never reaches a prompt).
+      const adviseSelection = renderPolicyAdviseBlock(
+        this.config.projectPolicies ?? [],
         { activeLenses: lensEmphasis?.known ?? [] },
       );
-      this.preferenceBlock = prefSelection?.block ?? null;
-      if (prefSelection) {
+      this.policyAdviseBlock = adviseSelection?.block ?? null;
+      if (adviseSelection) {
         await eventLog.append({
-          type: "supervisor.preference_gates",
-          message: `Supervisor "${personaForRun.config.label}" checks ${prefSelection.injected.length} owner preference(s) in review.`,
+          type: "supervisor.policy_advise",
+          message: `Supervisor "${personaForRun.config.label}" checks ${adviseSelection.injected.length} project policy(ies) in review.`,
           data: {
             personaId: personaForRun.id,
-            preferences: prefSelection.injected.map((p) => p.id),
-            droppedForCap: prefSelection.droppedForCap,
+            policies: adviseSelection.injected.map((p) => p.id),
+            droppedForCap: adviseSelection.droppedForCap,
           },
         });
       }
@@ -2468,7 +2469,7 @@ export class Orchestrator {
         // blind to the line-level violation. Only forced when this is a lensed
         // reviewer turn AND there are preferences to check (else behavior unchanged).
         forceFullTokens:
-          isReviewerStep(step) && this.preferenceBlock
+          isReviewerStep(step) && this.policyAdviseBlock
             ? new Set(["diff"])
             : undefined,
       });
@@ -2524,7 +2525,7 @@ export class Orchestrator {
         stepInstructions: step.instructions,
         lensEmphasis: this.reviewLensEmphasis,
         isReviewer: isReviewerStep(step),
-        preferenceBlock: this.preferenceBlock,
+        policyAdviseBlock: this.policyAdviseBlock,
         specUpPostureBlock: this.specUpPostureBlock,
       });
       return this.runRole({
@@ -3918,7 +3919,7 @@ export class Orchestrator {
             // Preference-gate review needs the exact diff (not a summary) on the
             // linear walk too. Only forced on a reviewer turn carrying preferences.
             forceFullTokens:
-              isReviewerStep(step) && this.preferenceBlock
+              isReviewerStep(step) && this.policyAdviseBlock
                 ? new Set(["diff"])
                 : undefined,
           });
@@ -4073,7 +4074,7 @@ export class Orchestrator {
               stepInstructions: step.instructions,
               lensEmphasis: this.reviewLensEmphasis,
               isReviewer: isReviewerStep(step),
-              preferenceBlock: this.preferenceBlock,
+              policyAdviseBlock: this.policyAdviseBlock,
               specUpPostureBlock: this.specUpPostureBlock,
             }),
             ...(preparedTurn
@@ -4387,18 +4388,20 @@ export class Orchestrator {
           fixIterations: o.fixIterations ?? 0,
         })),
       );
-      // M2 preference block gate: a confirmed `block` preference whose regex matches
-      // the run's added diff caps merge-readiness - DETERMINISTIC, independent of the
-      // review decision (it never touches reviewDecision, so no clobber). Computed
-      // only for a write run that actually declares block preferences, so a run with
-      // none is byte-unchanged. The violation is surfaced as an event, which
-      // deriveRunBlockers turns into the blocking reason (run-assurance.ts).
-      let preferencesClean = true;
+      // Project policy block gate (policy-block.ts): a confirmed `block` policy whose
+      // regex matches the run's added diff caps merge-readiness - DETERMINISTIC,
+      // independent of the review decision (it never touches reviewDecision, so no
+      // clobber). Project-scoped: the policies belong to the project, so this fires
+      // under ANY active supervisor, not only one that "owns" them. Computed only for
+      // a write run that actually declares block policies, so a run with none is
+      // byte-unchanged. The violation is surfaced as an event, which deriveRunBlockers
+      // turns into the blocking reason (run-assurance.ts).
+      let policiesClean = true;
       if (!this.readOnly && input.worktreePath) {
-        const blockPrefs = (
-          resolvePersona(this.config, this.personaId).config.preferences ?? []
-        ).filter((p) => p.severity === "block" && p.confirmedAt != null);
-        if (blockPrefs.length > 0) {
+        const blockPolicies = (this.config.projectPolicies ?? []).filter(
+          (p) => p.tier === "block" && p.confirmedAt != null,
+        );
+        if (blockPolicies.length > 0) {
           try {
             // Scan from the fork point so committed-mid-run changes are caught.
             const baseBranch = await getCurrentBranch(this.projectRoot);
@@ -4406,34 +4409,34 @@ export class Orchestrator {
               worktreePath: input.worktreePath,
               baseBranch,
             });
-            const gate = evaluateBlockPreferences(blockPrefs, diffText);
-            preferencesClean = gate.clean;
+            const gate = evaluateBlockPolicies(blockPolicies, diffText);
+            policiesClean = gate.clean;
             for (const v of gate.violations) {
               await input.eventLog.append({
-                type: "supervisor.preference_block",
-                message: `Merge blocked by preference "${v.id}"${v.file ? ` (${v.file})` : ""}: ${v.statement}`,
-                data: { preferenceId: v.id, file: v.file, statement: v.statement },
+                type: "supervisor.policy_block",
+                message: `Merge blocked by policy "${v.id}"${v.file ? ` (${v.file})` : ""}: ${v.statement}`,
+                data: { policyId: v.id, file: v.file, statement: v.statement },
               });
             }
             for (const inert of gate.inert) {
               await input.eventLog.append({
-                type: "supervisor.preference_block",
-                message: `Block preference "${inert.id}" is not enforcing: ${inert.reason}`,
-                data: { preferenceId: inert.id, inert: true, reason: inert.reason },
+                type: "supervisor.policy_block",
+                message: `Block policy "${inert.id}" is not enforcing: ${inert.reason}`,
+                data: { policyId: inert.id, inert: true, reason: inert.reason },
               });
             }
           } catch (err) {
             // A block gate that cannot read the diff blocks CONSERVATIVELY (fail
             // closed) rather than letting an unchecked change through - surfaced so
             // it is diagnosable, not a silent pass.
-            preferencesClean = false;
+            policiesClean = false;
             await input.eventLog.append({
-              type: "supervisor.preference_block",
+              type: "supervisor.policy_block",
               message: "Block gate could not read the run diff; blocking conservatively.",
               data: {
-                preferenceId: "(diff-read-error)",
+                policyId: "(diff-read-error)",
                 file: null,
-                statement: `could not read the diff to check block preferences: ${err instanceof Error ? err.message : "unknown error"}`,
+                statement: `could not read the diff to check block policies: ${err instanceof Error ? err.message : "unknown error"}`,
               },
             });
           }
@@ -4451,7 +4454,7 @@ export class Orchestrator {
         verified,
         verificationDecision,
         checklistItemsClean: !itemGaps.caps,
-        preferencesClean,
+        policiesClean,
       };
       const reviewSatisfiedByEvidence =
         !reviewTurnRan && reviewSkipEvidence !== null && !this.readOnly;

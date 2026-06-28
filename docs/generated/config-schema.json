@@ -291,6 +291,20 @@
       "description": "Default judgment posture; built-in or a key in personas (default staff-engineer)."
     },
     {
+      "key": "projectPolicies",
+      "fullKey": "projectPolicies",
+      "type": "array<unknown>",
+      "required": false,
+      "default": [],
+      "itemType": {
+        "key": "[item]",
+        "fullKey": "[item]",
+        "type": "unknown",
+        "required": true
+      },
+      "description": "Project-scoped tiered rules (advise = reviewer-injected; block = deterministic merge-cap). Default none."
+    },
+    {
       "key": "flowSizing",
       "fullKey": "flowSizing",
       "type": "enum",

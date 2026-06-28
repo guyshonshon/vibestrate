@@ -81,11 +81,11 @@ describe("computeMergeReady - checklistItemsClean field", () => {
     expect(computeMergeReady({ ...baseWriteFlow, checklistItemsClean: !itemGaps.caps })).toBe(true);
   });
 
-  it("preferencesClean caps the merge independently of an APPROVED review (M2 block gate)", () => {
+  it("policiesClean caps the merge independently of an APPROVED review (M2 block gate)", () => {
     // back-compat: omitted -> true
     expect(computeMergeReady(baseWriteFlow)).toBe(true);
     // a block-preference violation caps merge-ready even though the review APPROVED
-    expect(computeMergeReady({ ...baseWriteFlow, preferencesClean: false })).toBe(false);
-    expect(computeMergeReady({ ...baseWriteFlow, preferencesClean: true })).toBe(true);
+    expect(computeMergeReady({ ...baseWriteFlow, policiesClean: false })).toBe(false);
+    expect(computeMergeReady({ ...baseWriteFlow, policiesClean: true })).toBe(true);
   });
 });

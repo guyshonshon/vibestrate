@@ -7,23 +7,42 @@ import { evaluatePatchAgainstPolicies } from "../../policies/policy-engine.js";
 import { policySurfaceSchema } from "../../policies/policy-types.js";
 import { loadConfig } from "../../project/config-loader.js";
 import { setConfigValue } from "../../setup/config-update-service.js";
+import { listPolicies } from "../../project/project-policy-service.js";
+import { registerProjectPolicyCommands } from "./policies-rules.js";
 
 export function buildPoliciesCommand(): Command {
   const cmd = new Command("policies").description(
-    "Inspect user policy rules in .vibestrate/policies/. Rules can refuse a suggestion/bundle apply; they never permit a patch that built-in safety already refused.",
+    "The project's rule surface: owner-authored tiered policies (advise = reviewer-checked; block = deterministic merge-cap) plus the hard, fail-closed security gates in .vibestrate/policies/.",
   );
+
+  // Owner project-policy verbs (add/remove/confirm/reject/migrate). Optional by
+  // design - a plain `vibe run` needs none of this.
+  registerProjectPolicyCommands(cmd);
 
   cmd
     .command("list")
     .description(
-      "List every rule loaded from .vibestrate/policies/*.yml (after schema + regex/glob validation).",
+      "List the project's policies (owner-authored tiered rules) and the hard security gates in .vibestrate/policies/*.yml.",
     )
     .option("--json", "emit JSON")
     .action(async (opts: { json?: boolean }) => {
       const snap = await loadPolicySnapshot(process.cwd());
+      const projectPolicies = await listPolicies(process.cwd()).catch(() => []);
       if (opts.json) {
-        console.log(JSON.stringify(snap, null, 2));
+        console.log(JSON.stringify({ projectPolicies, ...snap }, null, 2));
         return;
+      }
+      if (projectPolicies.length > 0) {
+        console.log(color.bold("Project policies (owner-authored):"));
+        for (const p of projectPolicies) {
+          const status = p.confirmedAt ? color.dim("active") : color.dim("pending confirm");
+          const tier = p.tier === "block" ? color.yellow("block") : color.dim("advise");
+          console.log(`${color.bold(p.id)}  ${tier}  ${status}`);
+          console.log(`  ${p.statement}${p.correction ? ` -> ${p.correction}` : ""}`);
+          if (p.tier === "block" && p.matcher) console.log(color.dim(`  matcher: /${p.matcher}/`));
+          if (p.scope.lenses.length > 0) console.log(color.dim(`  scope: ${p.scope.lenses.join(", ")}`));
+        }
+        console.log("");
       }
       if (
         snap.rules.length === 0 &&

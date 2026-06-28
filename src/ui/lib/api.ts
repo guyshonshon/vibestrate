@@ -57,7 +57,7 @@ import type {
   EngagementEntry,
   RunAssurance,
   PersonasResponse,
-  PersonaPreference,
+  ProjectPolicy,
   RunAudit,
   RunControlDirective,
   RunState,
@@ -893,26 +893,27 @@ export const api = {
   async listPersonas(): Promise<PersonasResponse> {
     return jsonGet<PersonasResponse>("/api/personas");
   },
-  async addPreference(
-    personaId: string,
-    input: { id: string; statement: string; correction?: string | null; scopeLenses?: string[] },
-  ): Promise<{ preference: PersonaPreference }> {
-    return jsonPost(`/api/personas/${encodeURIComponent(personaId)}/preferences`, input);
+  async listProjectPolicies(): Promise<{ policies: ProjectPolicy[] }> {
+    return jsonGet(`/api/policies/rules`);
   },
-  async removePreference(personaId: string, prefId: string): Promise<{ removed: boolean }> {
-    return jsonDelete(
-      `/api/personas/${encodeURIComponent(personaId)}/preferences/${encodeURIComponent(prefId)}`,
-    );
+  async addProjectPolicy(input: {
+    id: string;
+    statement: string;
+    correction?: string | null;
+    scopeLenses?: string[];
+    tier?: "advise" | "block";
+    matcher?: string | null;
+  }): Promise<{ policy: ProjectPolicy }> {
+    return jsonPost(`/api/policies/rules`, input);
   },
-  async confirmPreference(personaId: string, prefId: string): Promise<{ confirmed: boolean }> {
-    return jsonPost(
-      `/api/personas/${encodeURIComponent(personaId)}/preferences/${encodeURIComponent(prefId)}/confirm`,
-    );
+  async removeProjectPolicy(id: string): Promise<{ removed: boolean }> {
+    return jsonDelete(`/api/policies/rules/${encodeURIComponent(id)}`);
   },
-  async rejectPreference(personaId: string, prefId: string): Promise<{ rejected: boolean }> {
-    return jsonPost(
-      `/api/personas/${encodeURIComponent(personaId)}/preferences/${encodeURIComponent(prefId)}/reject`,
-    );
+  async confirmProjectPolicy(id: string): Promise<{ confirmed: boolean }> {
+    return jsonPost(`/api/policies/rules/${encodeURIComponent(id)}/confirm`);
+  },
+  async rejectProjectPolicy(id: string): Promise<{ rejected: boolean }> {
+    return jsonPost(`/api/policies/rules/${encodeURIComponent(id)}/reject`);
   },
   async getRunAssurance(runId: string): Promise<RunAssurance> {
     const r = await jsonGet<{ assurance: RunAssurance }>(

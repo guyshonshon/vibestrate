@@ -261,13 +261,16 @@ describe("server: policies routes", () => {
     expect(bad.status).toBe(400);
   });
 
-  it("no endpoint exists that creates, edits, or deletes rule files", async () => {
+  it("no endpoint exists that creates, edits, or deletes the .yml rule FILES", async () => {
+    // The hard, fail-closed file engine (.vibestrate/policies/*.yml) stays
+    // file-authored only - the consolidation does NOT add an API to mutate it.
+    // (Owner project policies ARE API-authored via /api/policies/rules - covered in
+    // tests/policy-routes.test.ts - but that is the soft tiered surface, not these
+    // files, and there is no PUT-edit even there.)
     const project = await makeProject();
     const srv = await start(project);
     const FORBIDDEN: { method: string; path: string }[] = [
-      { method: "POST", path: "/api/policies/rules" },
       { method: "PUT", path: "/api/policies/rules/some-id" },
-      { method: "DELETE", path: "/api/policies/rules/some-id" },
       { method: "POST", path: "/api/policies/files" },
       { method: "PUT", path: "/api/policies/files/a.yml" },
       { method: "DELETE", path: "/api/policies/files/a.yml" },

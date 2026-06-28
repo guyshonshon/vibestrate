@@ -15,7 +15,7 @@ import { runAssist, type AssistProviderRunner } from "../assist/assist-runner.js
 import { assembleConsultContext } from "./consult-context.js";
 import type { ConsultSections } from "./consult-sections.js";
 import { saveManualProposal } from "../project/manual-proposals.js";
-import { proposePreference } from "../project/preferences-service.js";
+import { proposePolicy } from "../project/project-policy-service.js";
 import { redactSecretsInText } from "../core/diff-service.js";
 
 export class ConsultError extends VibestrateError {
@@ -254,11 +254,11 @@ export async function persistConsultProposal(
 }
 
 /**
- * Surface-layer helper: if a consult answer proposed an owner PREFERENCE, persist
- * it PENDING (confirmedAt:null) on the project's default supervisor so the owner
- * confirms it before it takes effect. Kept out of `runConsult` so the engine stays
- * read-only. Returns the new preference id, or null if none / the persona already
- * has it (a re-proposal is a no-op the caller can swallow).
+ * Surface-layer helper: if a consult answer proposed a project POLICY, persist it
+ * PENDING (confirmedAt:null) at PROJECT scope so the owner confirms it before it
+ * takes effect. `proposePolicy` hard-constrains it to the advise tier with no matcher
+ * - a model can never author a hard merge-cap. Kept out of `runConsult` so the engine
+ * stays read-only. Returns the new policy id, or null if none.
  */
 export async function persistConsultPreferenceProposal(
   projectRoot: string,
@@ -266,11 +266,8 @@ export async function persistConsultPreferenceProposal(
 ): Promise<string | null> {
   const p = result.answer.proposedPreference;
   if (!p) return null;
-  const loaded = await loadConfig(projectRoot).catch(() => null);
-  const personaId = loaded?.config.defaultPersona ?? "staff-engineer";
   const id = slugifyPreferenceId(p.statement);
-  await proposePreference(projectRoot, {
-    personaId,
+  await proposePolicy(projectRoot, {
     id,
     statement: p.statement,
     correction: p.correction ?? null,

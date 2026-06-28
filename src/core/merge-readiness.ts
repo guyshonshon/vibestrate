@@ -35,13 +35,13 @@ export type MergeReadinessInput = {
    *  so the run cannot be merge_ready regardless of the main review lane.
    *  Undefined is treated as true so all existing callers/tests are unaffected. */
   checklistItemsClean?: boolean;
-  /** Optional cap from `block`-severity owner preferences (M2). When false, a
-   *  confirmed block preference's regex matched the run's added diff, so the run
+  /** Optional cap from `block`-tier project policies (policy-block.ts). When false,
+   *  a confirmed block policy's regex matched the run's added diff, so the run
    *  cannot be merge_ready - DETERMINISTIC, independent of the model reviewer's
    *  decision (it never touches reviewDecision, so it cannot clobber the
    *  correctness verdict). Undefined is treated as true so existing callers are
    *  unaffected. */
-  preferencesClean?: boolean;
+  policiesClean?: boolean;
 };
 
 /** Review is satisfied by an APPROVED decision, or - express only - by skip
@@ -70,6 +70,6 @@ export function computeMergeReady(i: MergeReadinessInput): boolean {
     i.validationPassed &&
     (!i.verified || i.verificationDecision === "PASSED") &&
     (i.checklistItemsClean ?? true) &&
-    (i.preferencesClean ?? true)
+    (i.policiesClean ?? true)
   );
 }

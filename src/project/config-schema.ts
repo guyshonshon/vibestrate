@@ -389,57 +389,68 @@ const personaNameSchema = z
   );
 
 /**
- * A single owner preference (docs/design/preference-gates.md). Free text, but
- * injectable only once the owner confirms it (confirmedAt != null) - the same
- * committed-config trust class as specUpPosture, never accepted as free text over
- * the run API/CLI. `block` severity is deferred to M2 behind its own review, so M0
- * carries no severity field: every confirmed, in-scope preference is advisory and
- * rides the existing review -> fix loop.
+ * A single PROJECT policy (docs/design/policy-consolidation.md). The consolidated,
+ * project-scoped rule surface (was the persona-scoped `preferenceSchema`): every
+ * owner-authored rule carries a `tier`.
+ * - `advise` (default): injected into a reviewer turn so a MODEL verifies the
+ *   change against it; rides the existing review -> fix loop. No matcher.
+ * - `block`: a DETERMINISTIC hard merge-cap (not the model reviewer) - it caps
+ *   merge-readiness when its regex `matcher` matches the run's added diff lines.
+ *
+ * Free text, but injectable/enforceable only once the owner confirms it
+ * (confirmedAt != null) - the committed-config trust class, never accepted as free
+ * text over the run API/CLI. A `block` is OWNER-ONLY (a model can never author a
+ * hard merge-cap; the consult/propose path hard-sets `tier:advise`).
  */
-export const preferenceSchema = z
+export const projectPolicySchema = z
   .object({
     id: z.string().min(1).max(60).describe("Stable id; the only thing the run API/CLI references."),
     statement: z.string().min(1).max(300).describe("The rule, e.g. 'do not use em-dash characters'."),
     correction: z.string().min(1).max(300).nullable().default(null).describe("The fix the reviewer names (null = state the rule only)."),
     scope: z
       .object({
-        lenses: z.array(z.string().min(1).max(40)).default([]).describe("Review lenses this preference is scoped to (empty = all reviewer turns)."),
+        lenses: z.array(z.string().min(1).max(40)).default([]).describe("Review lenses an ADVISE rule is scoped to (empty = every run/persona; non-empty = opt-in targeting). Must be empty for a block rule."),
       })
       .strict()
       .default({ lenses: [] }),
     source: z.enum(["owner", "supervisor-proposed"]).default("owner").describe("Who authored it; audit metadata (injection is gated by confirmedAt, not source)."),
-    confirmedAt: z.string().datetime().nullable().default(null).describe("ISO timestamp of owner confirmation; null = inert (never injected)."),
-    /** M2: a `block` preference is a deterministic HARD merge-cap (not the model
-     *  reviewer) - it caps merge-readiness when its `pattern` matches the run's
-     *  added diff lines. `advise` (default) is the model-reviewer tier. */
-    severity: z.enum(["advise", "block"]).default("advise").describe("advise = model reviewer flags it; block = deterministic pattern caps the merge."),
+    confirmedAt: z.string().datetime().nullable().default(null).describe("ISO timestamp of owner confirmation; null = inert (never injected/enforced)."),
+    /** A `block` policy is a deterministic HARD merge-cap (not the model reviewer) -
+     *  it caps merge-readiness when its `matcher` matches the run's added diff
+     *  lines. `advise` (default) is the model-reviewer tier. */
+    tier: z.enum(["advise", "block"]).default("advise").describe("advise = model reviewer flags it; block = deterministic matcher caps the merge."),
     /** Regex (reuses POLICY_LIMITS) matched against added diff lines for a `block`
-     *  preference. Validated at write time (length + flags + compiles). */
-    pattern: z
+     *  policy. Validated at write time (length + compiles). */
+    matcher: z
       .string()
       .min(1)
       .max(POLICY_LIMITS.maxRegexLength)
       .nullable()
       .default(null)
-      .describe("Regex matched against added diff lines (block severity only)."),
+      .describe("Regex matched against added diff lines (block tier only)."),
   })
   .strict()
   .superRefine((p, ctx) => {
-    // A block preference is a hard gate - it MUST have a matcher, and the matcher
-    // must compile (write-time validation so a malformed regex is rejected at the
-    // door, not silently inert at runtime).
-    if (p.severity === "block" && !p.pattern) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["pattern"], message: "a block preference requires a pattern" });
+    // A block policy is a hard gate - it MUST have a matcher, and the matcher must
+    // compile (write-time validation so a malformed regex is rejected at the door,
+    // not silently inert at runtime).
+    if (p.tier === "block" && !p.matcher) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["matcher"], message: "a block policy requires a matcher" });
     }
-    if (p.pattern != null) {
+    if (p.matcher != null) {
       try {
-        new RegExp(p.pattern);
+        new RegExp(p.matcher);
       } catch {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["pattern"], message: "pattern is not a valid regular expression" });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["matcher"], message: "matcher is not a valid regular expression" });
       }
     }
+    // The block evaluator is run-level and never reads `scope` - a lens scope on a
+    // block rule would be a silent no-op, so reject it at write time.
+    if (p.tier === "block" && p.scope.lenses.length > 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["scope", "lenses"], message: "a block policy cannot be lens-scoped (the matcher is run-level)" });
+    }
   });
-export type PersonaPreference = z.infer<typeof preferenceSchema>;
+export type ProjectPolicy = z.infer<typeof projectPolicySchema>;
 
 export const personaConfigSchema = z
   .object({
@@ -496,13 +507,11 @@ export const personaConfigSchema = z
      * free-form instructions into a reviewer's prompt.
      */
     reviewLenses: z.array(z.string().min(1).max(40)).default([]).describe("Review lenses that aim the reviewers (closed vocabulary; unknown lenses are display-only)."),
-    /**
-     * Owner preferences (docs/design/preference-gates.md) injected into reviewer
-     * turns so a model verifies the change against them. Free text, but injectable
-     * only after owner confirmation (confirmedAt) - the committed-config trust
-     * class. Advisory in M0 (rides the review -> fix loop; no merge gate).
-     */
-    preferences: z.array(preferenceSchema).default([]).describe("Owner preferences injected into reviewer turns (advisory; confirmed entries only)."),
+    // Owner rules moved OFF the persona to the project-level `projectPolicies`
+    // surface (docs/design/policy-consolidation.md): a project-wide rule must hold
+    // under any supervisor, so it no longer lives on one persona. A persona keeps
+    // only its judgment (reviewLenses + posture). A leftover `preferences` key here
+    // now fails config load by `.strict()` - run `vibe policies migrate`.
   })
   .strict();
 export type PersonaConfig = z.infer<typeof personaConfigSchema>;
@@ -572,6 +581,14 @@ export const projectConfigBaseSchema = z.object({
    * require a config entry - the built-in default works out of the box.
    */
   defaultPersona: z.string().min(1).default("staff-engineer").describe("Default judgment posture; built-in or a key in personas (default staff-engineer)."),
+  /**
+   * Project policies (docs/design/policy-consolidation.md): the consolidated,
+   * project-scoped rule surface. Each rule carries a `tier` (advise = model
+   * reviewer; block = deterministic merge-cap). Owner-authored, confirmed-gated;
+   * separate from the fail-CLOSED hard security toggles in `policies` below. A
+   * plain run needs none of these (the optionality law): defaults to [].
+   */
+  projectPolicies: z.array(projectPolicySchema).default([]).describe("Project-scoped tiered rules (advise = reviewer-injected; block = deterministic merge-cap). Default none."),
   /**
    * A1 flow sizing (orchestrator/flow-sizing.ts): route obviously-trivial
    * tasks to the diff-floored `express` flow. Applies ONLY when no --flow,

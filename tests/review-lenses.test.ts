@@ -168,7 +168,7 @@ describe("review-lenses - composeReviewerStepNotes (the injection rule)", () => 
         stepInstructions: null,
         lensEmphasis: null,
         isReviewer: true,
-        preferenceBlock: prefs,
+        policyAdviseBlock: prefs,
       }),
     ).toBe(`BASE\n\n${prefs}`);
     expect(
@@ -177,7 +177,7 @@ describe("review-lenses - composeReviewerStepNotes (the injection rule)", () => 
         stepInstructions: null,
         lensEmphasis: null,
         isReviewer: false,
-        preferenceBlock: prefs,
+        policyAdviseBlock: prefs,
       }),
     ).toBe("BASE");
   });
@@ -188,7 +188,7 @@ describe("review-lenses - composeReviewerStepNotes (the injection rule)", () => 
       stepInstructions: null,
       lensEmphasis: "LENS",
       isReviewer: true,
-      preferenceBlock: "PREFS",
+      policyAdviseBlock: "PREFS",
       specUpPostureBlock: "POSTURE",
     });
     expect(out).toBe("BASE\n\nLENS\n\nPREFS\n\nPOSTURE");

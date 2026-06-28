@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.36.0
+
+- **Preferences and policies are now one project-level surface, enforced by
+  whichever supervisor is active.** A rule like "use a hyphen, not an em-dash" is a
+  property of the *project*, so it no longer lives on a single supervisor where
+  switching supervisor silently dropped it. Every rule is now a **project policy**
+  with a **tier**: `advise` (the reviewer checks it; rides the normal review and fix
+  loop) or `block` (a deterministic matcher that caps the merge, even on an approved
+  review). Manage them with `vibe policies add|list|remove|confirm|reject` or the new
+  **Project policies** section on the dashboard Policies page - which can author a
+  block's matcher, closing the gap where the hard tier had no UI. The supervisor keeps
+  only its judgment (review lenses + posture); it carries the project's rules into the
+  review but does not own them. The hard security gates (secret-leak refusal, the
+  Action Broker's deny rules, the `.vibestrate/policies/*.yml` engine) are unchanged,
+  still fail-closed, and visibly distinct from the soft tiers. Still optional: a plain
+  run needs zero policies.
+- **Migration:** rules previously stored as `personas.<id>.preferences` move to the
+  top-level `projectPolicies` surface. Run `vibe policies migrate` once; until you do,
+  an old config fails to load with a message pointing at the command. Design note:
+  `docs/design/policy-consolidation.md`.
+
 ## 0.35.0
 
 - **A preference can now hard-block a merge, not just advise (preference gates

@@ -12,9 +12,10 @@ import { setConfigValue } from "../../src/setup/config-update-service.js";
 import { applySetup } from "../../src/setup/setup-service.js";
 import type { ProviderDetectionRunner } from "../../src/providers/provider-detection.js";
 
-// M2 end-to-end: a confirmed `block` preference whose pattern matches the run's
+// End-to-end: a confirmed project `block` policy whose matcher matches the run's
 // diff caps merge-readiness even when the reviewer APPROVED - proving the
-// deterministic gate is independent of (and not clobbered by) the review lane.
+// deterministic gate is independent of (and not clobbered by) the review lane, and
+// fires under the DEFAULT supervisor (the policy is project-scoped, not persona-owned).
 
 const noProvider: ProviderDetectionRunner = async () => ({ exitCode: 127, stdout: "", stderr: "" });
 
@@ -60,7 +61,7 @@ process.stdin.on("end", () => {
 });
 `;
 
-async function makeRepo(withBlockPref: boolean, providerScript: string = PROVIDER): Promise<string> {
+async function makeRepo(withBlockPolicy: boolean, providerScript: string = PROVIDER): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-prefblock-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
@@ -80,25 +81,23 @@ async function makeRepo(withBlockPref: boolean, providerScript: string = PROVIDE
   );
   await setConfigValue(dir, "profiles.claude-balanced.provider", "fake");
 
-  if (withBlockPref) {
+  if (withBlockPolicy) {
+    // A PROJECT-scoped block policy - no persona owns it; it fires under the default
+    // supervisor (defaultPersona is left as the built-in staff-engineer).
     await setConfigValue(
       dir,
-      "personas.blocker",
-      JSON.stringify({
-        label: "Blocker",
-        preferences: [
-          {
-            id: "no-em-dash",
-            statement: "do not use em-dash characters",
-            severity: "block",
-            pattern: "—",
-            source: "owner",
-            confirmedAt: "2026-06-28T00:00:00.000Z",
-          },
-        ],
-      }),
+      "projectPolicies",
+      JSON.stringify([
+        {
+          id: "no-em-dash",
+          statement: "do not use em-dash characters",
+          tier: "block",
+          matcher: "—",
+          source: "owner",
+          confirmedAt: "2026-06-28T00:00:00.000Z",
+        },
+      ]),
     );
-    await setConfigValue(dir, "defaultPersona", "blocker");
   }
   return dir;
 }
@@ -147,24 +146,24 @@ async function run(dir: string) {
   }
 }
 
-describe("M2 preference block gate - end to end", () => {
-  it("control: with no block preference, the em-dash run reaches merge_ready", async () => {
+describe("project policy block gate - end to end", () => {
+  it("control: with no block policy, the em-dash run reaches merge_ready", async () => {
     const dir = await makeRepo(false);
     const { result } = await run(dir);
     expect(result.state.status).toBe("merge_ready");
   }, 60_000);
 
-  it("a confirmed block preference caps the merge even though the review APPROVED", async () => {
+  it("a confirmed block policy caps the merge under the DEFAULT supervisor even though the review APPROVED", async () => {
     const dir = await makeRepo(true);
     const { result, events } = await run(dir);
     expect(result.state.status).toBe("blocked");
-    expect(events.some((e) => e.type === "supervisor.preference_block")).toBe(true);
+    expect(events.some((e) => e.type === "supervisor.policy_block")).toBe(true);
   }, 60_000);
 
   it("caps a COMMITTED-mid-run change too (scans from the fork point, not git diff HEAD)", async () => {
     const dir = await makeRepo(true, COMMITTING_PROVIDER);
     const { result, events } = await run(dir);
     expect(result.state.status).toBe("blocked");
-    expect(events.some((e) => e.type === "supervisor.preference_block")).toBe(true);
+    expect(events.some((e) => e.type === "supervisor.policy_block")).toBe(true);
   }, 60_000);
 });

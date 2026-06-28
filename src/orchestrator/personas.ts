@@ -6,7 +6,7 @@
 // one behavioral lever this slice: an UPGRADE-only flow bias (a risk-tagged task
 // is pushed toward the persona's preferred review flow; it can only add review,
 // never remove it, and never overrides an explicit --flow).
-import type { PersonaConfig, PersonaPreference, ProjectConfig } from "../project/config-schema.js";
+import type { PersonaConfig, ProjectConfig } from "../project/config-schema.js";
 
 // The shipped default persona, resolved in code so a project with no `personas:`
 // block still gets a supervisor. Its `instructions` are descriptive this slice
@@ -46,8 +46,6 @@ export const BUILTIN_PERSONAS: Record<string, PersonaConfig> = {
     // null = the spec-up flows' own CTO-director step instructions stand alone
     // (default spec-up behavior unchanged).
     specUpPosture: null,
-    // No built-in preferences: a project teaches its own (preference-gates.ts).
-    preferences: [],
   },
   // A security-minded supervisor: it prefers the `security-review` panel (authz /
   // secrets / injection lenses) instead of the generalist panel, so the SAME
@@ -93,7 +91,6 @@ export const BUILTIN_PERSONAS: Record<string, PersonaConfig> = {
     // Aims the spec-up planning agents at the security dimension of the work.
     specUpPosture:
       "You are the CTO shaping this work with a security lens. As you scope, spec, and architect: prioritise authorization boundaries, secret handling, input validation, and the attack surface of every proposed component. Surface the threat-model questions a vague brief leaves open (who can call this? what's untrusted? where do secrets live?), and prefer designs that minimise blast radius and untrusted-input exposure.",
-    preferences: [],
   },
 };
 
@@ -136,8 +133,6 @@ export type PersonaCatalogEntry = {
   prefersPosture: string | null;
   /** The free-text spec-up CTO posture, or null. Shown verbatim in the viewer. */
   specUpPosture: string | null;
-  /** Owner preferences the reviewer checks for (preference-gates.ts). */
-  preferences: PersonaPreference[];
   builtin: boolean;
 };
 
@@ -164,7 +159,6 @@ export function buildPersonaCatalog(config: ProjectConfig | null): PersonaCatalo
       reviewerProfile: p.reviewerProfile ?? null,
       prefersPosture: p.prefersPosture,
       specUpPosture: p.specUpPosture,
-      preferences: p.preferences,
       builtin,
     };
   };

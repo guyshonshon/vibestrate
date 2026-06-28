@@ -35,6 +35,22 @@ export async function loadConfig(projectRoot: string): Promise<LoadedConfig> {
     throw new ConfigError(`Failed to parse YAML config at ${configPath}.`, err);
   }
 
+  // Targeted migration error (docs/design/policy-consolidation.md): persona-scoped
+  // `preferences` moved to top-level `projectPolicies`. Catch a leftover key before
+  // the generic strict-schema rejection so the owner gets an actionable message
+  // instead of an opaque "unknown key" (which would otherwise abort a run mid-flight,
+  // the run path has no loadConfig guard).
+  const personas = (raw as { personas?: Record<string, unknown> } | null)?.personas;
+  if (personas && typeof personas === "object") {
+    for (const persona of Object.values(personas)) {
+      if (persona && typeof persona === "object" && "preferences" in persona) {
+        throw new ConfigError(
+          `Config at ${configPath} has persona-scoped "preferences", which moved to the project-level "projectPolicies" surface. Run "vibe policies migrate" to lift them and remove the old key.`,
+        );
+      }
+    }
+  }
+
   const parsed = projectConfigSchema.safeParse(raw);
   if (!parsed.success) {
     const issues = parsed.error.issues

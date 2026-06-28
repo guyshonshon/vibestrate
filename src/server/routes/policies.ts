@@ -9,8 +9,31 @@ import {
 } from "../../policies/policy-types.js";
 import { loadConfig } from "../../project/config-loader.js";
 import { setConfigValue } from "../../setup/config-update-service.js";
+import {
+  addOwnerPolicy,
+  listPolicies,
+  removePolicy,
+  confirmPolicy,
+  rejectPolicy,
+} from "../../project/project-policy-service.js";
 
 export type PoliciesRoutesDeps = { projectRoot: string };
+
+// Owner-authored project-policy add body (docs/design/policy-consolidation.md).
+// This is the OWNER surface, so it accepts `tier` + `matcher` (the UI authors a
+// block here). It is deliberately SEPARATE from the consult/propose path
+// (proposePolicy), which hard-sets tier:advise/matcher:null - a model can never
+// reach this matcher-accepting schema.
+const addPolicyBody = z
+  .object({
+    id: z.string().min(1).max(60),
+    statement: z.string().min(1).max(300),
+    correction: z.string().min(1).max(300).nullable().optional(),
+    scopeLenses: z.array(z.string().min(1).max(40)).optional(),
+    tier: z.enum(["advise", "block"]).optional(),
+    matcher: z.string().min(1).max(POLICY_LIMITS.maxRegexLength).nullable().optional(),
+  })
+  .strict();
 
 /** Safety behavior toggles (the `policies.*` config block) the dashboard's
  *  Advanced panel and `vibe policies config` both edit. */
@@ -63,6 +86,55 @@ export async function registerPoliciesRoutes(
 
   app.get("/api/policies", async () => {
     return loadPolicySnapshot(projectRoot);
+  });
+
+  // ── Project policies (owner-authored tiered rules) ────────────────────
+  // The first project-config WRITE surface for policies: narrow, audited,
+  // project-root bounded (only the projectPolicies array is touched), through the
+  // fail-closed config layer.
+  app.get("/api/policies/rules", async () => {
+    return { policies: await listPolicies(projectRoot) };
+  });
+
+  app.post("/api/policies/rules", async (req, reply) => {
+    const parsed = addPolicyBody.safeParse(req.body);
+    if (!parsed.success) {
+      reply.code(400);
+      return { error: parsed.error.issues.map((i) => i.message).join("; ") };
+    }
+    try {
+      const policy = await addOwnerPolicy(
+        projectRoot,
+        {
+          id: parsed.data.id,
+          statement: parsed.data.statement,
+          correction: parsed.data.correction ?? null,
+          scopeLenses: parsed.data.scopeLenses ?? [],
+          tier: parsed.data.tier ?? "advise",
+          matcher: parsed.data.matcher ?? null,
+        },
+        new Date().toISOString(),
+      );
+      return { policy };
+    } catch (e) {
+      reply.code(400);
+      return { error: e instanceof Error ? e.message : "Could not add policy." };
+    }
+  });
+
+  app.delete("/api/policies/rules/:id", async (req) => {
+    const { id } = req.params as { id: string };
+    return await removePolicy(projectRoot, id);
+  });
+
+  app.post("/api/policies/rules/:id/confirm", async (req) => {
+    const { id } = req.params as { id: string };
+    return await confirmPolicy(projectRoot, id, new Date().toISOString());
+  });
+
+  app.post("/api/policies/rules/:id/reject", async (req) => {
+    const { id } = req.params as { id: string };
+    return await rejectPolicy(projectRoot, id);
   });
 
   // Safety behavior config (read). The Advanced panel renders these toggles.

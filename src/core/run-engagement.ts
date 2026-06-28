@@ -120,30 +120,30 @@ function entryFor(e: VibestrateEvent): Partial | null {
         tone: "info",
       };
     }
-    case "supervisor.preference_gates": {
-      const prefs = Array.isArray(d["preferences"])
-        ? (d["preferences"] as unknown[]).filter((x): x is string => typeof x === "string")
+    case "supervisor.policy_advise": {
+      const policies = Array.isArray(d["policies"])
+        ? (d["policies"] as unknown[]).filter((x): x is string => typeof x === "string")
         : [];
-      const n = prefs.length;
+      const n = policies.length;
       return {
         cls: "judgment",
         anchor: "root",
         stepId: null,
-        title: `review checks ${n} owner preference${n === 1 ? "" : "s"}`,
-        detail: prefs.length ? prefs.join(" · ") : null,
+        title: `review checks ${n} project policy${n === 1 ? "" : "ies"}`,
+        detail: policies.length ? policies.join(" · ") : null,
         tone: "info",
       };
     }
-    case "supervisor.preference_block": {
+    case "supervisor.policy_block": {
       const inert = d["inert"] === true;
-      const pid = str(d, "preferenceId");
+      const pid = str(d, "policyId");
       return {
         cls: "judgment",
         anchor: "root",
         stepId: null,
         title: inert
-          ? `block preference not enforcing${pid ? ` · ${pid}` : ""}`
-          : `merge blocked by preference${pid ? ` · ${pid}` : ""}`,
+          ? `block policy not enforcing${pid ? ` · ${pid}` : ""}`
+          : `merge blocked by policy${pid ? ` · ${pid}` : ""}`,
         detail: str(d, "file") ?? str(d, "statement") ?? str(d, "reason"),
         tone: inert ? "warn" : "bad",
       };

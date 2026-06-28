@@ -48,6 +48,10 @@
           "label": "Supervisor"
         },
         {
+          "slug": "concepts/policies",
+          "label": "Policies"
+        },
+        {
           "slug": "concepts/consult",
           "label": "Consult"
         },

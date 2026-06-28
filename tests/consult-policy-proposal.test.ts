@@ -4,13 +4,12 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
-import { loadConfig } from "../src/project/config-loader.js";
 import {
   persistConsultPreferenceProposal,
   type ConsultAnswer,
   type ConsultResult,
 } from "../src/consult/consult.js";
-import { listPreferences } from "../src/project/preferences-service.js";
+import { listPolicies } from "../src/project/project-policy-service.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({ exitCode: 127, stdout: "", stderr: "" });
@@ -43,7 +42,7 @@ function result(proposedPreference: ConsultAnswer["proposedPreference"]): Consul
   };
 }
 
-describe("consult -> preference proposal (M1.5)", () => {
+describe("consult -> project policy proposal", () => {
   let dir: string;
   beforeEach(async () => {
     dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-consultpref-"));
@@ -56,20 +55,21 @@ describe("consult -> preference proposal (M1.5)", () => {
     await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
   });
 
-  it("persists a proposed preference PENDING on the default supervisor (inert until confirmed)", async () => {
+  it("persists a proposed policy PENDING at project scope (advise tier, inert until confirmed)", async () => {
     const id = await persistConsultPreferenceProposal(
       dir,
       result({ statement: "do not use em-dash characters", correction: "use a hyphen", rationale: "the owner asked" }),
     );
     expect(id).toBe("do-not-use-em-dash-characters");
-    const { config } = await loadConfig(dir);
-    const list = await listPreferences(dir, config.defaultPersona);
+    const list = await listPolicies(dir);
     const got = list.find((p) => p.id === id)!;
     expect(got.source).toBe("supervisor-proposed");
     expect(got.confirmedAt).toBeNull(); // inert - the owner must confirm it
+    expect(got.tier).toBe("advise"); // a model can never author a block
+    expect(got.matcher).toBeNull();
   });
 
-  it("does nothing when the consult proposed no preference", async () => {
+  it("does nothing when the consult proposed no policy", async () => {
     expect(await persistConsultPreferenceProposal(dir, result(null))).toBeNull();
   });
 });

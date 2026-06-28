@@ -7,6 +7,7 @@ import type {
   SafetyPoliciesConfig,
 } from "../../lib/types.js";
 import { AdvancedSafetySection } from "./AdvancedSafetySection.js";
+import { ProjectPoliciesSection } from "./ProjectPoliciesSection.js";
 import { Select } from "../design/Select.js";
 
 /**
@@ -105,9 +106,10 @@ export function PoliciesPanel() {
       <header>
         <h2 className="text-[13px] font-medium text-vibestrate-fg">Policies</h2>
         <p className="mt-0.5 text-[10.5px] text-vibestrate-fg-dim">
-          User-defined rules in <code>.vibestrate/policies/*.yml</code>. Rules can
-          refuse a suggestion or bundle apply; they never bypass built-in
-          safety checks. Authoring is file-based.
+          The project's rule surface: owner-authored tiered policies (advise +
+          block) plus the hard, fail-closed security gates in{" "}
+          <code>.vibestrate/policies/*.yml</code>. Soft rules never bypass the
+          built-in safety checks.
         </p>
       </header>
 
@@ -116,6 +118,8 @@ export function PoliciesPanel() {
           {error}
         </div>
       ) : null}
+
+      <ProjectPoliciesSection />
 
       {safety ? (
         <AdvancedSafetySection
