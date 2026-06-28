@@ -1,6 +1,11 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { runConsult, persistConsultProposal, ConsultError } from "../../consult/consult.js";
+import {
+  runConsult,
+  persistConsultProposal,
+  persistConsultPreferenceProposal,
+  ConsultError,
+} from "../../consult/consult.js";
 import {
   loadProjectManual,
   writeProjectManual,
@@ -75,7 +80,8 @@ export async function registerConsultRoutes(
         effort: effort ?? null,
       });
       const proposalId = await persistConsultProposal(projectRoot, result).catch(() => null);
-      return { ...result, proposalId };
+      const preferenceProposalId = await persistConsultPreferenceProposal(projectRoot, result).catch(() => null);
+      return { ...result, proposalId, preferenceProposalId };
     } catch (err) {
       if (err instanceof ConsultError) {
         const notInit = /not initialized/i.test(err.message);

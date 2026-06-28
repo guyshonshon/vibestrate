@@ -904,6 +904,16 @@ export const api = {
       `/api/personas/${encodeURIComponent(personaId)}/preferences/${encodeURIComponent(prefId)}`,
     );
   },
+  async confirmPreference(personaId: string, prefId: string): Promise<{ confirmed: boolean }> {
+    return jsonPost(
+      `/api/personas/${encodeURIComponent(personaId)}/preferences/${encodeURIComponent(prefId)}/confirm`,
+    );
+  },
+  async rejectPreference(personaId: string, prefId: string): Promise<{ rejected: boolean }> {
+    return jsonPost(
+      `/api/personas/${encodeURIComponent(personaId)}/preferences/${encodeURIComponent(prefId)}/reject`,
+    );
+  },
   async getRunAssurance(runId: string): Promise<RunAssurance> {
     const r = await jsonGet<{ assurance: RunAssurance }>(
       `/api/runs/${runId}/assurance`,

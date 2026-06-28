@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.34.0
+
+- **Tell the supervisor a rule in a consult, confirm it once (preference gates
+  M1.5).** When you tell the supervisor something durable in a consult - "stop
+  using em-dashes", "no eyebrow labels" - it can now propose that as a preference.
+  The proposal lands *pending*: it does nothing until you confirm it, so a model
+  can never quietly add a rule the reviewer enforces. Confirm or reject it with
+  `vibe preferences confirm|reject <supervisor> <id>`, or from the Supervisors
+  page, where pending proposals show up with Confirm / Reject next to the rules
+  already active. Still optional end to end - a plain run carries none of it.
+
 ## 0.33.0
 
 - **Teach a supervisor a preference without touching YAML (preference gates

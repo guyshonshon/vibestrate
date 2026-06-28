@@ -4,6 +4,8 @@ import {
   addOwnerPreference,
   listPreferences,
   removePreference,
+  confirmPreference,
+  rejectPreference,
 } from "../../project/preferences-service.js";
 
 // `vibe preferences` (alias `prefs`): owner-explicit capture for the rules the
@@ -77,6 +79,35 @@ export function buildPreferencesCommand(): Command {
         removed
           ? `${symbol.ok} Removed "${preferenceId}" from ${personaId}.`
           : color.dim(`No preference "${preferenceId}" on ${personaId}.`),
+      );
+    });
+
+  cmd
+    .command("confirm <personaId> <preferenceId>")
+    .description("Confirm a pending (supervisor-proposed) preference - it goes live.")
+    .action(async (personaId: string, preferenceId: string) => {
+      const { confirmed } = await confirmPreference(
+        process.cwd(),
+        personaId,
+        preferenceId,
+        new Date().toISOString(),
+      );
+      console.log(
+        confirmed
+          ? `${symbol.ok} Confirmed "${preferenceId}" on ${personaId} (the reviewer checks it now).`
+          : color.dim(`No preference "${preferenceId}" on ${personaId}.`),
+      );
+    });
+
+  cmd
+    .command("reject <personaId> <preferenceId>")
+    .description("Reject a pending (supervisor-proposed) preference - removes it.")
+    .action(async (personaId: string, preferenceId: string) => {
+      const { rejected } = await rejectPreference(process.cwd(), personaId, preferenceId);
+      console.log(
+        rejected
+          ? `${symbol.ok} Rejected pending "${preferenceId}" on ${personaId}.`
+          : color.dim(`No pending preference "${preferenceId}" on ${personaId}.`),
       );
     });
 

@@ -15,6 +15,7 @@ import { runAssist, type AssistProviderRunner } from "../assist/assist-runner.js
 import { assembleConsultContext } from "./consult-context.js";
 import type { ConsultSections } from "./consult-sections.js";
 import { saveManualProposal } from "../project/manual-proposals.js";
+import { proposePreference } from "../project/preferences-service.js";
 import { redactSecretsInText } from "../core/diff-service.js";
 
 export class ConsultError extends VibestrateError {
@@ -64,6 +65,16 @@ export const consultAnswerSchema = z
       })
       .nullable()
       .default(null),
+    /** A proposed owner preference the reviewer should check for (preference-gates.ts).
+     *  Persisted PENDING (confirmedAt:null) - inert until the owner confirms it. */
+    proposedPreference: z
+      .object({
+        statement: z.string().min(1).max(300),
+        correction: z.string().min(1).max(300).nullable().default(null),
+        rationale: z.string().min(1),
+      })
+      .nullable()
+      .default(null),
   })
   .strict();
 export type ConsultAnswer = z.infer<typeof consultAnswerSchema>;
@@ -74,7 +85,8 @@ const CONSULT_SCHEMA_HINT = `{
   "caveats": ["string - what you could NOT verify from the context"],
   "usedContext": ["string - which context labels you actually used"],
   "recommendedActions": [{ "kind": "run|select_flow|annotate|propose_config|propose_vibestrate|request_sandbox|explain_block|other", "detail": "string" }],
-  "proposedManualUpdate": null
+  "proposedManualUpdate": null,
+  "proposedPreference": null
 }`;
 
 /** A typed, decoupled snapshot of what the user is currently looking at, so the
@@ -145,6 +157,7 @@ function buildInstruction(
       (usedSources.length ? ` (available: ${usedSources.join(", ")})` : "") +
       ".",
     "Only set `proposedManualUpdate` when you have a concrete, evidence-backed improvement to the project's operating manual (VIBESTRATE.md); it is shown as a proposal, not applied. Otherwise null.",
+    "Set `proposedPreference` ONLY when the user states a durable review rule about HOW code/output should be written (e.g. 'stop using em-dashes', 'never add eyebrow labels') - a thing a reviewer should check on every change. Capture it as `statement` (the rule) + `correction` (the fix, or null). It is saved PENDING and the user confirms it before it takes effect; never for a one-off ask. Otherwise null.",
     "",
     "# Project context",
     contextText.trim() || "(no project context was available)",
@@ -238,4 +251,38 @@ export async function persistConsultProposal(
     source: "consult",
   });
   return saved.id;
+}
+
+/**
+ * Surface-layer helper: if a consult answer proposed an owner PREFERENCE, persist
+ * it PENDING (confirmedAt:null) on the project's default supervisor so the owner
+ * confirms it before it takes effect. Kept out of `runConsult` so the engine stays
+ * read-only. Returns the new preference id, or null if none / the persona already
+ * has it (a re-proposal is a no-op the caller can swallow).
+ */
+export async function persistConsultPreferenceProposal(
+  projectRoot: string,
+  result: ConsultResult,
+): Promise<string | null> {
+  const p = result.answer.proposedPreference;
+  if (!p) return null;
+  const loaded = await loadConfig(projectRoot).catch(() => null);
+  const personaId = loaded?.config.defaultPersona ?? "staff-engineer";
+  const id = slugifyPreferenceId(p.statement);
+  await proposePreference(projectRoot, {
+    personaId,
+    id,
+    statement: p.statement,
+    correction: p.correction ?? null,
+  });
+  return id;
+}
+
+function slugifyPreferenceId(text: string): string {
+  const base = text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 50);
+  return base || "preference";
 }

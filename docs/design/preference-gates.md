@@ -270,7 +270,30 @@ before write, `src/setup/config-update-service.ts`), and the read-only
 Owner-add is confirmed-on-create; the `confirmedAt`/`source: supervisor-proposed`
 machinery already in the M0 schema stays dormant until M1.5.
 
-## M1.5 (deferred): the "taught" path
+## M1.5 SHIPPED: the "taught" path
+
+The supervisor proposes a preference from a consult: `consultAnswerSchema` gained an
+optional `proposedPreference` field, and `persistConsultPreferenceProposal` writes it
+`source:supervisor-proposed, confirmedAt:null` (inert) on the project's default
+supervisor. The owner confirms (`confirmPreference` -> sets `confirmedAt`) or rejects
+(`rejectPreference` -> removes a pending entry only) via CLI (`vibe preferences
+confirm|reject`), HTTP (`POST .../preferences/:id/confirm|reject`), or the Supervisors
+page (pending shown with Confirm/Reject, active with Remove). The model supplies only
+`statement`/`correction` as data; it can never write `confirmedAt`/`source`, so a
+proposal is always pending and inert until the owner confirms - the load-bearing
+security property.
+
+Adversarial review (Opus 4.8, 2026-06-28): trust gate verified sound end-to-end
+(no path lets a model produce a live preference); `confirmPreference` idempotent
+(preserves the original timestamp); `rejectPreference` refuses to remove an active
+preference; built-in materialization preserved through the `appendPreference` refactor.
+One blocker found + fixed: `pnpm typecheck` was red on a test fixture (`sections: []`
+vs `ConsultSections`) - vitest masked it; re-running typecheck is now part of the gate.
+Non-blocking, named: confirm/reject routes return a raw 500 on a config-read failure
+(matches the existing DELETE route); the consult CLI prints a proposal header even when
+a duplicate id collided.
+
+## M1.5 (original deferred note): the "taught" path
 
 The supervisor proposes a preference from an observed correction (e.g. the owner
 tells the supervisor "stop using em-dashes" in a consult), written as

@@ -10,6 +10,8 @@ import {
   addOwnerPreference,
   listPreferences,
   removePreference,
+  confirmPreference,
+  rejectPreference,
 } from "../../project/preferences-service.js";
 
 // UI parity for `vibe preferences` (preference-gates.ts M1). A narrow write
@@ -113,5 +115,15 @@ export async function registerConfigRoutes(
   app.delete("/api/personas/:id/preferences/:prefId", async (req) => {
     const { id, prefId } = req.params as { id: string; prefId: string };
     return await removePreference(projectRoot, id, prefId);
+  });
+
+  app.post("/api/personas/:id/preferences/:prefId/confirm", async (req) => {
+    const { id, prefId } = req.params as { id: string; prefId: string };
+    return await confirmPreference(projectRoot, id, prefId, new Date().toISOString());
+  });
+
+  app.post("/api/personas/:id/preferences/:prefId/reject", async (req) => {
+    const { id, prefId } = req.params as { id: string; prefId: string };
+    return await rejectPreference(projectRoot, id, prefId);
   });
 }

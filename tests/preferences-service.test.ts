@@ -10,6 +10,9 @@ import {
   addOwnerPreference,
   listPreferences,
   removePreference,
+  proposePreference,
+  confirmPreference,
+  rejectPreference,
 } from "../src/project/preferences-service.js";
 import { BUILTIN_PERSONAS } from "../src/orchestrator/personas.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
@@ -88,6 +91,37 @@ describe("preferences-service (M1 owner-explicit capture)", () => {
     expect((await removePreference(dir, "r", "a")).removed).toBe(true);
     expect(await listPreferences(dir, "r")).toEqual([]);
     expect((await removePreference(dir, "r", "a")).removed).toBe(false);
+  });
+
+  it("a proposed preference is pending and inert (source supervisor-proposed, confirmedAt null)", async () => {
+    const p = await proposePreference(dir, { personaId: "staff-engineer", id: "no-em-dash", statement: "no em-dash" });
+    expect(p.source).toBe("supervisor-proposed");
+    expect(p.confirmedAt).toBeNull();
+    const list = await listPreferences(dir, "staff-engineer");
+    expect(list.map((x) => x.id)).toEqual(["no-em-dash"]);
+    expect(list[0]!.confirmedAt).toBeNull(); // inert until confirmed
+  });
+
+  it("confirming a pending preference makes it active; idempotent; reports unknown", async () => {
+    await proposePreference(dir, { personaId: "staff-engineer", id: "p", statement: "rule p" });
+    expect((await confirmPreference(dir, "staff-engineer", "p", NOW)).confirmed).toBe(true);
+    expect((await listPreferences(dir, "staff-engineer"))[0]!.confirmedAt).toBe(NOW);
+    // idempotent on an already-confirmed entry
+    expect((await confirmPreference(dir, "staff-engineer", "p", "2027-01-01T00:00:00.000Z")).confirmed).toBe(true);
+    expect((await listPreferences(dir, "staff-engineer"))[0]!.confirmedAt).toBe(NOW); // unchanged
+    // unknown id
+    expect((await confirmPreference(dir, "staff-engineer", "ghost", NOW)).confirmed).toBe(false);
+  });
+
+  it("rejecting removes a PENDING preference only, never an active one", async () => {
+    await proposePreference(dir, { personaId: "staff-engineer", id: "pending", statement: "pending rule" });
+    await addOwnerPreference(dir, { personaId: "staff-engineer", id: "active", statement: "active rule" }, NOW);
+    expect((await rejectPreference(dir, "staff-engineer", "pending")).rejected).toBe(true);
+    // the active one survives a reject (reject is for pending proposals)
+    expect((await rejectPreference(dir, "staff-engineer", "active")).rejected).toBe(false);
+    expect((await listPreferences(dir, "staff-engineer")).map((p) => p.id)).toEqual(["active"]);
+    // nothing to reject
+    expect((await rejectPreference(dir, "staff-engineer", "ghost")).rejected).toBe(false);
   });
 
   it("scopes a preference to lenses when provided", async () => {

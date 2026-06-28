@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.33.0",
+  "version": "0.34.0",
   "commands": [
     {
       "name": "init",
@@ -5327,6 +5327,58 @@
             "remove"
           ],
           "description": "Remove a preference.",
+          "usage": "[options] <personaId> <preferenceId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "confirm",
+          "path": [
+            "vibe",
+            "preferences",
+            "confirm"
+          ],
+          "description": "Confirm a pending (supervisor-proposed) preference - it goes live.",
+          "usage": "[options] <personaId> <preferenceId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "reject",
+          "path": [
+            "vibe",
+            "preferences",
+            "reject"
+          ],
+          "description": "Reject a pending (supervisor-proposed) preference - removes it.",
           "usage": "[options] <personaId> <preferenceId>",
           "arguments": [
             {

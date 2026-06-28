@@ -1,6 +1,11 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
-import { runConsult, persistConsultProposal, type ConsultAnswer } from "../../consult/consult.js";
+import {
+  runConsult,
+  persistConsultProposal,
+  persistConsultPreferenceProposal,
+  type ConsultAnswer,
+} from "../../consult/consult.js";
 import {
   renderConsultSections,
   consultSectionsEmpty,
@@ -123,6 +128,21 @@ export function buildConsultCommand(): Command {
             console.log("");
             console.log(
               `${symbol.arrow()} Apply with ${color.bold(`vibe guide apply ${proposalId}`)} (or reject it).`,
+            );
+          }
+        }
+
+        if (answer.proposedPreference) {
+          const p = answer.proposedPreference;
+          const prefId = await persistConsultPreferenceProposal(projectRoot, result).catch(() => null);
+          console.log("");
+          console.log(`${header("Proposed preference")} ${color.dim("(pending - the reviewer checks it once you confirm)")}`);
+          console.log(indent(color.dim(`why: ${p.rationale}`)));
+          console.log(indent(`${p.statement}${p.correction ? ` -> ${p.correction}` : ""}`));
+          if (prefId) {
+            console.log("");
+            console.log(
+              `${symbol.arrow()} Confirm with ${color.bold(`vibe preferences confirm <supervisor> ${prefId}`)} (or reject it).`,
             );
           }
         }

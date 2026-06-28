@@ -206,11 +206,11 @@ function PreferencesEditor({
     }
   }
 
-  async function remove(prefId: string) {
+  async function mutate(fn: () => Promise<unknown>) {
     setBusy(true);
     setError(null);
     try {
-      await api.removePreference(personaId, prefId);
+      await fn();
       onChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -218,38 +218,80 @@ function PreferencesEditor({
       setBusy(false);
     }
   }
+  const remove = (prefId: string) => mutate(() => api.removePreference(personaId, prefId));
+  const confirm = (prefId: string) => mutate(() => api.confirmPreference(personaId, prefId));
+  const reject = (prefId: string) => mutate(() => api.rejectPreference(personaId, prefId));
+
+  const pending = preferences.filter((p) => !p.confirmedAt);
+  const active = preferences.filter((p) => p.confirmedAt);
 
   return (
     <div className="mt-4 border-t border-white/10 pt-3">
       <div className="text-[11.5px] text-violet-soft">
         Preferences the reviewer checks for
       </div>
-      {preferences.length > 0 ? (
-        <ul className="mt-2 space-y-1.5">
-          {preferences.map((pref) => (
-            <li key={pref.id} className="flex items-start gap-2 text-[12px]">
-              <button
-                type="button"
-                onClick={() => void remove(pref.id)}
-                disabled={busy}
-                className="mt-0.5 shrink-0 text-fog-500 hover:text-rose-300 disabled:opacity-50"
-                aria-label={`Remove ${pref.id}`}
-              >
-                <X className="h-3.5 w-3.5" strokeWidth={1.8} />
-              </button>
-              <span className="text-fog-200">
-                {pref.statement}
-                {pref.correction ? (
-                  <span className="text-fog-400"> &rarr; {pref.correction}</span>
-                ) : null}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
+      {preferences.length === 0 ? (
         <p className="mt-1.5 text-[11.5px] text-fog-400">
           None yet. Optional - a plain run needs none.
         </p>
+      ) : (
+        <div className="mt-2 space-y-2">
+          {pending.length > 0 ? (
+            <ul className="space-y-1.5">
+              {pending.map((pref) => (
+                <li key={pref.id} className="flex items-start gap-2 text-[12px]">
+                  <span className="mt-0.5 shrink-0 text-amber-300">proposed</span>
+                  <span className="flex-1 text-fog-200">
+                    {pref.statement}
+                    {pref.correction ? (
+                      <span className="text-fog-400"> &rarr; {pref.correction}</span>
+                    ) : null}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void confirm(pref.id)}
+                    disabled={busy}
+                    className="shrink-0 border border-emerald-400/40 bg-emerald-500/10 px-1.5 text-[11px] text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-40"
+                  >
+                    Confirm
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void reject(pref.id)}
+                    disabled={busy}
+                    className="mt-0.5 shrink-0 text-fog-500 hover:text-rose-300 disabled:opacity-50"
+                    aria-label={`Reject ${pref.id}`}
+                  >
+                    <X className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {active.length > 0 ? (
+            <ul className="space-y-1.5">
+              {active.map((pref) => (
+                <li key={pref.id} className="flex items-start gap-2 text-[12px]">
+                  <button
+                    type="button"
+                    onClick={() => void remove(pref.id)}
+                    disabled={busy}
+                    className="mt-0.5 shrink-0 text-fog-500 hover:text-rose-300 disabled:opacity-50"
+                    aria-label={`Remove ${pref.id}`}
+                  >
+                    <X className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  </button>
+                  <span className="text-fog-200">
+                    {pref.statement}
+                    {pref.correction ? (
+                      <span className="text-fog-400"> &rarr; {pref.correction}</span>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       )}
 
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">

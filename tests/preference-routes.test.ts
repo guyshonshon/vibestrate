@@ -5,6 +5,7 @@ import fs from "node:fs/promises";
 import { execa } from "execa";
 import { startServer, type StartedServer } from "../src/server/server.js";
 import { applySetup } from "../src/setup/setup-service.js";
+import { proposePreference } from "../src/project/preferences-service.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 // Route-level checks for the preference-gates M1 write surface (CLAUDE.md §3:
@@ -99,6 +100,24 @@ describe("preference routes (M1 capture write surface)", () => {
     expect(del1.removed).toBe(true);
     const del2 = (await (await fetch(`${server.url}/api/personas/staff-engineer/preferences/a`, { method: "DELETE" })).json()) as { removed: boolean };
     expect(del2.removed).toBe(false);
+  });
+
+  it("POST confirm activates a pending proposal; POST reject removes one", async () => {
+    const project = await makeProject();
+    await proposePreference(project, { personaId: "staff-engineer", id: "p1", statement: "rule 1" });
+    await proposePreference(project, { personaId: "staff-engineer", id: "p2", statement: "rule 2" });
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    const conf = (await (await fetch(`${server.url}/api/personas/staff-engineer/preferences/p1/confirm`, { method: "POST" })).json()) as { confirmed: boolean };
+    expect(conf.confirmed).toBe(true);
+    const rej = (await (await fetch(`${server.url}/api/personas/staff-engineer/preferences/p2/reject`, { method: "POST" })).json()) as { rejected: boolean };
+    expect(rej.rejected).toBe(true);
+
+    const list = (await (await fetch(`${server.url}/api/personas/staff-engineer/preferences`)).json()) as {
+      preferences: { id: string; confirmedAt: string | null }[];
+    };
+    expect(list.preferences.map((p) => p.id)).toEqual(["p1"]); // p2 rejected away
+    expect(list.preferences[0]!.confirmedAt).not.toBeNull(); // p1 now active
   });
 
   it("GET on an unknown persona is a 404 (no silent fallback)", async () => {
