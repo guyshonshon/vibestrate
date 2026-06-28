@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.31.0
+
+- **Prompt composition moved to Dry-run.** The "how the prompt is composed"
+  visual is no longer in the step config - it now lives in the Dry-run preview,
+  where the flow is resolved, so each step shows the *real* role filling its seat.
+  Open any seated step in the dry-run to see its layered prompt (role, task, step
+  context, prior outputs, instructions, review lens) flowing into the final
+  prompt. The Instructions field keeps just the box, a counter, and a pointer to
+  the dry-run.
+
 ## 0.30.9
 
 - **See how a step's prompt is composed.** The Instructions field now shows a

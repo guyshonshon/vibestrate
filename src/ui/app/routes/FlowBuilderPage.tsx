@@ -58,6 +58,7 @@ import type {
   FlowStepDefinition,
   FlowLoop,
   ResolvedFlowSnapshot,
+  ResolvedFlowStep,
 } from "../../lib/types.js";
 
 /**
@@ -1126,6 +1127,8 @@ function DryRunModal({
   flowId: string;
   onClose: () => void;
 }) {
+  // Which step's prompt-composition is expanded (one at a time).
+  const [expanded, setExpanded] = useState<string | null>(null);
   return (
     <div
       className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/80 px-4 py-10"
@@ -1195,40 +1198,72 @@ function DryRunModal({
             <div className="mt-3">
               <div className="text-[12px] font-semibold text-violet-vivid mb-1.5">
                 Steps · {snapshot.steps.filter((s) => s.enabled).length} enabled
+                <span className="ml-1.5 font-normal text-chalk-400">
+                  - open a step to see how its prompt is composed
+                </span>
               </div>
               <ol className="space-y-1">
-                {snapshot.steps.map((s, i) => (
-                  <li
-                    key={`${s.id}-${i}`}
-                    className={cn(
-                      "flex items-center gap-2 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-1.5 text-[12px]",
-                      s.enabled ? "" : "opacity-45",
-                    )}
-                  >
-                    <span className="mono w-5 shrink-0 text-right text-[11px] text-chalk-400">{i + 1}</span>
-                    <span className="truncate text-chalk-100">{s.label}</span>
-                    <span className="mono text-[10.5px] text-chalk-400">{s.kind}</span>
-                    {s.seat ? (
-                      <span className="mono text-[10.5px] text-chalk-400">{s.seat}</span>
-                    ) : null}
-                    {s.resolvedRoleLabel ? (
-                      <span className="mono text-[10.5px] text-chalk-300">
-                        → {s.resolvedRoleLabel}
-                      </span>
-                    ) : null}
-                    {s.profileId ? (
-                      <span className="mono text-[10.5px] text-violet-soft">
-                        {s.profileId}
-                        {s.providerId ? ` · ${s.providerId}` : ""}
-                      </span>
-                    ) : null}
-                    {!s.enabled ? (
-                      <span className="ml-auto text-[10.5px] text-chalk-400">skipped</span>
-                    ) : s.approval ? (
-                      <span className="ml-auto text-[10.5px] text-amber-soft">approval gate</span>
-                    ) : null}
-                  </li>
-                ))}
+                {snapshot.steps.map((s, i) => {
+                  const rowKey = `${s.id}-${i}`;
+                  const canPreview = s.enabled && !!s.seat;
+                  const open = expanded === rowKey;
+                  return (
+                    <li
+                      key={rowKey}
+                      className={cn(
+                        "rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 text-[12px]",
+                        s.enabled ? "" : "opacity-45",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "flex items-center gap-2 px-2.5 py-1.5",
+                          canPreview && "cursor-pointer",
+                        )}
+                        onClick={
+                          canPreview ? () => setExpanded(open ? null : rowKey) : undefined
+                        }
+                        title={canPreview ? "Show how this step's prompt is composed" : undefined}
+                      >
+                        <span className="mono w-5 shrink-0 text-right text-[11px] text-chalk-400">{i + 1}</span>
+                        <span className="truncate text-chalk-100">{s.label}</span>
+                        <span className="mono text-[10.5px] text-chalk-400">{s.kind}</span>
+                        {s.resolvedRoleLabel ? (
+                          <span className="mono text-[10.5px] text-chalk-300">
+                            → {s.resolvedRoleLabel}
+                          </span>
+                        ) : null}
+                        {s.profileId ? (
+                          <span className="mono text-[10.5px] text-violet-soft">
+                            {s.profileId}
+                            {s.providerId ? ` · ${s.providerId}` : ""}
+                          </span>
+                        ) : null}
+                        {!s.enabled ? (
+                          <span className="ml-auto text-[10.5px] text-chalk-400">skipped</span>
+                        ) : s.approval ? (
+                          <span className="ml-auto text-[10.5px] text-amber-soft">approval gate</span>
+                        ) : null}
+                        {canPreview ? (
+                          <ChevronRight
+                            className={cn(
+                              "h-3.5 w-3.5 shrink-0 text-chalk-400 transition-transform",
+                              s.approval ? "" : "ml-auto",
+                              open && "rotate-90",
+                            )}
+                            strokeWidth={1.9}
+                            aria-hidden
+                          />
+                        ) : null}
+                      </div>
+                      {open ? (
+                        <div className="border-t border-[color:var(--line-soft)] px-2.5 pb-2.5">
+                          <PromptComposition snapshot={snapshot} step={s} />
+                        </div>
+                      ) : null}
+                    </li>
+                  );
+                })}
               </ol>
             </div>
             <p className="mt-3 text-[11.5px] text-chalk-400">
@@ -1444,28 +1479,27 @@ function IconBtn({
   );
 }
 
-// A visual of how this step's prompt is composed: the ordered layers that blend
-// into the prompt the agent receives. Real values are shown for the parts known
-// now (role, step context, the inputs it reads, skills, your instructions); the
-// run-time layers (your task, prior outputs' content, the review lens) are dashed
-// and marked. It's a faithful map of the composition, not a byte-exact dump -
-// the literal text only exists per run (flows/<step>/prompt.md).
+// A visual of how a step's prompt is composed: the ordered layers that blend
+// into the prompt the agent receives. Shown in the Dry-run (where the flow is
+// resolved, so the real role + step context are known); run-time layers (your
+// task, prior outputs' content, the review lens) are dashed and marked. It's a
+// faithful map of the composition, not a byte-exact dump - the literal text only
+// exists per run (flows/<step>/prompt.md).
 function PromptComposition({
+  snapshot,
   step,
-  flow,
-  instructions,
 }: {
-  step: FlowStepDefinition;
-  flow: DiscoveredFlow;
-  instructions: string;
+  snapshot: ResolvedFlowSnapshot;
+  step: ResolvedFlowStep;
 }) {
-  const seatLabel = step.seat
-    ? flow.definition.seats[step.seat]?.label ?? step.seat
-    : null;
+  const seatLabel =
+    step.resolvedRoleLabel ??
+    (step.seat
+      ? snapshot.seats.find((s) => s.id === step.seat)?.label ?? step.seat
+      : null);
   const inputs = step.inputs ?? [];
-  const skills = step.skills ?? [];
   const isReview = step.kind === "review-turn" || step.kind === "response-turn";
-  const trimmed = instructions.trim();
+  const trimmed = (step.instructions ?? "").trim();
 
   type Layer = {
     label: string;
@@ -1484,7 +1518,7 @@ function PromptComposition({
     { label: "Your task", content: "The run brief you start with.", runtime: true },
     {
       label: "Step context",
-      content: `${flow.definition.label} - ${step.label} (${step.kind})${
+      content: `${snapshot.label} - ${step.label} (${step.kind})${
         step.outputs && step.outputs.length > 0
           ? `; expected output: ${step.outputs.join(", ")}`
           : ""
@@ -1499,12 +1533,9 @@ function PromptComposition({
           } as Layer,
         ]
       : []),
-    ...(skills.length > 0
-      ? [{ label: "Skills", content: skills.join(", ") } as Layer]
-      : []),
     {
-      label: "Your instructions",
-      content: trimmed || "Add instructions above to fold them in here.",
+      label: "Step instructions",
+      content: trimmed || "None set for this step.",
       accent: true,
       empty: !trimmed,
     },
@@ -1520,10 +1551,7 @@ function PromptComposition({
   ];
 
   return (
-    <div className="mt-2.5">
-      <div className="mb-1.5 text-[11px] font-semibold text-violet-vivid">
-        How the prompt is composed
-      </div>
+    <div className="mt-2">
       <div className="flex flex-col">
         {layers.map((l, i) => (
           <Fragment key={l.label}>
@@ -1819,10 +1847,13 @@ function StepInspector({
                       : "opacity-70 cursor-not-allowed",
                   )}
                 />
-                <div className="mt-1 flex justify-end text-[10.5px] text-chalk-400">
-                  <span className="num-tabular">{stepInstr.length}/800</span>
+                <div className="mt-1 flex items-center justify-between gap-2 text-[10.5px] text-chalk-400">
+                  <span>
+                    Folded into the step&apos;s prompt - preview the full
+                    composition in Dry-run.
+                  </span>
+                  <span className="num-tabular shrink-0">{stepInstr.length}/800</span>
                 </div>
-                <PromptComposition step={step} flow={flow} instructions={stepInstr} />
               </>
             );
           })()}
