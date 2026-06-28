@@ -11,6 +11,7 @@ import {
   Copy,
   Cpu,
   Eye,
+  FileCheck,
   Flag,
   GripVertical,
   Layers,
@@ -19,8 +20,10 @@ import {
   Rocket,
   Save,
   Scale,
+  ShieldCheck,
   Shuffle,
   Trash2,
+  Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -34,6 +37,7 @@ import {
 } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip } from "../../components/design/Chip.js";
+import { HelpHint } from "../../components/design/HelpHint.js";
 import { Select } from "../../components/design/Select.js";
 import { cn } from "../../components/design/cn.js";
 import { FlowGraph, isGraphSteps } from "../../components/workflow/FlowGraph.js";
@@ -85,41 +89,47 @@ const STEP_KINDS: FlowStepKind[] = [
 // docs/content/extending/add-flow.md + core/orchestrator.ts (flowStatusForStep).
 const KIND_INFO: Record<
   FlowStepKind,
-  { title: string; phase: string; blurb: string }
+  { title: string; phase: string; blurb: string; icon: LucideIcon }
 > = {
   "agent-turn": {
     title: "Agent turn",
     phase: "plan / architect / build",
+    icon: Cpu,
     blurb:
       "One seat does primary work - plans, architects, or writes the change. These are the build steps.",
   },
   "review-turn": {
     title: "Review turn",
     phase: "reviewing",
+    icon: Eye,
     blurb:
-      "A different seat critiques a prior step's work and raises findings. Drives the review loop.",
+      "A different seat critiques a prior step's work and raises findings. Who reviews (and with what lens) is the seat you bind below, filled by the crew at run time.",
   },
   "response-turn": {
     title: "Response turn",
     phase: "fixing",
+    icon: Wrench,
     blurb:
       "The original seat answers the review's findings - applies fixes or pushes back.",
   },
   validation: {
     title: "Validation",
     phase: "validating",
+    icon: ShieldCheck,
     blurb:
       "Runs the project's validate commands (build / test / lint). No agent - a pass/fail check.",
   },
   "approval-gate": {
     title: "Approval gate",
     phase: "waiting for approval",
+    icon: Lock,
     blurb:
       "Pauses the run for a human to decide whether to continue. No agent runs.",
   },
   "summary-turn": {
     title: "Summary turn",
     phase: "verifying",
+    icon: FileCheck,
     blurb:
       "A final seat verifies the result and writes the run's summary. The closing step.",
   },
@@ -1272,7 +1282,7 @@ function StepInspector({
         />
       </Field>
 
-      <Field label="Kind">
+      <Field label="Kind" help={{ slug: "extending/add-flow", label: "Step kinds" }}>
         <div className="flex flex-wrap gap-1.5">
           {STEP_KINDS.map((k) => (
             <button
@@ -1298,6 +1308,12 @@ function StepInspector({
             the clearest way to tell the turn kinds apart. */}
         <div className="mt-2 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-800 px-3 py-2.5">
           <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[8px] bg-violet-soft/15 text-violet-soft">
+              {(() => {
+                const KindIcon = KIND_INFO[kind].icon;
+                return <KindIcon className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />;
+              })()}
+            </span>
             <span className="text-[12px] font-semibold text-chalk-100">
               {KIND_INFO[kind].title}
             </span>
@@ -1305,7 +1321,7 @@ function StepInspector({
               {KIND_INFO[kind].phase}
             </span>
           </div>
-          <p className="mt-1 text-[11.5px] leading-[1.5] text-chalk-300">
+          <p className="mt-1.5 text-[11.5px] leading-[1.5] text-chalk-300">
             {KIND_INFO[kind].blurb}
           </p>
         </div>
@@ -1313,6 +1329,7 @@ function StepInspector({
 
       <Field
         label={requiresSeat ? "Seat (required)" : "Seat (optional)"}
+        help={{ slug: "concepts/seat", label: "Seats" }}
       >
         <Select
           value={seatId ?? ""}
@@ -1372,6 +1389,7 @@ function StepInspector({
         label={
           requiresApproval ? "Approval gate (required)" : "Approval gate"
         }
+        help={{ slug: "concepts/safety", label: "Approval gates & policies" }}
       >
         <ApprovalEditor
           editable={editable}
@@ -1382,7 +1400,7 @@ function StepInspector({
       </Field>
 
       {requiresSeat ? (
-        <Field label="Skills (this step)">
+        <Field label="Skills (this step)" help={{ slug: "concepts/skill", label: "Skills" }}>
           {(() => {
             const stepSkills = draft.skills ?? step.skills ?? [];
             const all = Array.from(
@@ -1774,15 +1792,19 @@ function Row({ label, items }: { label: string; items: string[] }) {
 
 function Field({
   label,
+  help,
   children,
 }: {
   label: string;
+  /** Optional "?" that deep-links to the docs for configs that aren't obvious. */
+  help?: { slug: string; label: string };
   children: React.ReactNode;
 }) {
   return (
     <div className="mb-3.5 last:mb-0">
-      <div className="text-[11px] font-semibold text-violet-soft mb-1.5">
-        {label}
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <span className="text-[11px] font-semibold text-violet-soft">{label}</span>
+        {help ? <HelpHint slug={help.slug} label={help.label} /> : null}
       </div>
       {children}
     </div>
@@ -1892,7 +1914,10 @@ function LoopCard({
   return (
     <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4 fade-up fade-up-delay-2">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <span className="text-[12px] font-semibold text-violet-vivid">Loop</span>
+        <span className="flex items-center gap-1.5">
+          <span className="text-[12px] font-semibold text-violet-vivid">Loop</span>
+          <HelpHint slug="extending/add-flow" label="Adaptive loops" />
+        </span>
         {editable ? (
           <button
             type="button"

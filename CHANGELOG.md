@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.30.4
+
+- **Docs are one click from the controls.** The Flow Builder's config labels
+  (Kind, Seat, Approval gate, Skills, Loop) now carry a "?" that opens the
+  matching docs page, so you don't have to leave to find what a setting means.
+- **Step kinds got an icon and a clearer "based on".** Each kind's description
+  now leads with an icon, and the review-turn blurb spells out what it acts on -
+  the seat you bind below, filled by your crew at run time - which was the part
+  that wasn't obvious.
+
 ## 0.30.3
 
 - **Step kinds explain themselves.** The Flow Builder's "Kind" picker was six
