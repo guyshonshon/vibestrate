@@ -57,6 +57,7 @@ import type {
   EngagementEntry,
   RunAssurance,
   PersonasResponse,
+  PersonaPreference,
   RunAudit,
   RunControlDirective,
   RunState,
@@ -891,6 +892,17 @@ export const api = {
   },
   async listPersonas(): Promise<PersonasResponse> {
     return jsonGet<PersonasResponse>("/api/personas");
+  },
+  async addPreference(
+    personaId: string,
+    input: { id: string; statement: string; correction?: string | null; scopeLenses?: string[] },
+  ): Promise<{ preference: PersonaPreference }> {
+    return jsonPost(`/api/personas/${encodeURIComponent(personaId)}/preferences`, input);
+  },
+  async removePreference(personaId: string, prefId: string): Promise<{ removed: boolean }> {
+    return jsonDelete(
+      `/api/personas/${encodeURIComponent(personaId)}/preferences/${encodeURIComponent(prefId)}`,
+    );
   },
   async getRunAssurance(runId: string): Promise<RunAssurance> {
     const r = await jsonGet<{ assurance: RunAssurance }>(

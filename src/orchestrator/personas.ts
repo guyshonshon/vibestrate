@@ -6,7 +6,7 @@
 // one behavioral lever this slice: an UPGRADE-only flow bias (a risk-tagged task
 // is pushed toward the persona's preferred review flow; it can only add review,
 // never remove it, and never overrides an explicit --flow).
-import type { PersonaConfig, ProjectConfig } from "../project/config-schema.js";
+import type { PersonaConfig, PersonaPreference, ProjectConfig } from "../project/config-schema.js";
 
 // The shipped default persona, resolved in code so a project with no `personas:`
 // block still gets a supervisor. Its `instructions` are descriptive this slice
@@ -136,6 +136,8 @@ export type PersonaCatalogEntry = {
   prefersPosture: string | null;
   /** The free-text spec-up CTO posture, or null. Shown verbatim in the viewer. */
   specUpPosture: string | null;
+  /** Owner preferences the reviewer checks for (preference-gates.ts). */
+  preferences: PersonaPreference[];
   builtin: boolean;
 };
 
@@ -162,6 +164,7 @@ export function buildPersonaCatalog(config: ProjectConfig | null): PersonaCatalo
       reviewerProfile: p.reviewerProfile ?? null,
       prefersPosture: p.prefersPosture,
       specUpPosture: p.specUpPosture,
+      preferences: p.preferences,
       builtin,
     };
   };

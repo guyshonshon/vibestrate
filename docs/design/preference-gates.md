@@ -237,6 +237,48 @@ Design requirements, not nice-to-haves:
 
 Each milestone depends only on earlier ones. M0 carries no merge-path risk.
 
+## The optionality law (non-negotiable)
+
+A plain `vibe run "<prompt>"` requires zero preferences, zero policies, zero
+gates. Preferences, policies, and posture are additive, opt-in layers - never on
+the critical path to a simple prompt. `preferences` defaults to `[]` (a run with
+none is byte-identical to before); capture is a one-shot act
+(`vibe preferences add ...` or one UI click), never a configuration journey; the
+UI surfaces depth behind progressive disclosure, never a required step. Any change
+that puts a gate on the default path is a regression of this law.
+
+## M1: capture (owner-explicit), SHIPPED-SCOPE
+
+Goal: stop hand-editing YAML to teach a preference, without adding friction to the
+common path. Grounded in existing surfaces: `vibe policies` (CLI template,
+`src/cli/commands/policies.ts`), `setConfigValue` (YAML round-trip + validate
+before write, `src/setup/config-update-service.ts`), and the read-only
+`SupervisorsPage` / `/api/personas`.
+
+- **A typed `preferences-service.ts`** is the one core both CLI and HTTP call:
+  `addOwnerPreference` (sets `source: owner`, `confirmedAt: now` - trusted at
+  creation, no confirm step), `listPreferences`, `removePreference`. It validates
+  against `preferenceSchema` and writes via the config service (fail-closed).
+- **CLI `vibe preferences list|add|remove`** (parity sibling of `vibe policies`).
+- **HTTP `GET/POST/DELETE /api/personas/<id>/preferences`** backing the UI - the
+  first persona-config WRITE surface, so it is narrow, audited, project-root
+  bounded (no arbitrary config keys; only the preferences array of a known
+  persona).
+- **UI parity:** a preferences section on the supervisor surface (add field +
+  list + remove), so the rule about never telling the owner to run a CLI holds.
+
+Owner-add is confirmed-on-create; the `confirmedAt`/`source: supervisor-proposed`
+machinery already in the M0 schema stays dormant until M1.5.
+
+## M1.5 (deferred): the "taught" path
+
+The supervisor proposes a preference from an observed correction (e.g. the owner
+tells the supervisor "stop using em-dashes" in a consult), written as
+`source: supervisor-proposed, confirmedAt: null` (inert), surfaced for the owner
+to confirm - reusing the `manual-proposals.ts` open/applied/rejected shape. This is
+the conversational, lowest-friction capture and the north star; it plugs into the
+same store M1 builds, so it is a source, not a new pipeline.
+
 ## Open decisions
 
 - Preferences per-persona (symmetric with `reviewLenses`, switching persona
@@ -287,6 +329,31 @@ load-bearing claim against code with file:line. Findings and disposition:
 Verdict: M0 green-lit (advise-only, raw-artifact, no merge-path). M2 (`block`) NOT
 green-lit until the verdict-composition seam and circuit-breaker are designed and
 reviewed.
+
+M1 adversarial CODE review (Opus 4.8, fresh context, 2026-06-28). Verified safe
+(empirically): the built-in materialization preserves all six behavioral fields
+(reviewLenses/posture/riskSignals/...), the trust bypass is closed at both layers
+(POST body is `.strict()`, `addOwnerPreference` hard-sets `source:owner` +
+`confirmedAt:now`, so a pre-confirmed/supervisor-proposed entry cannot be forged),
+no path traversal via `personaId`, writes are fail-closed (whole-config schema
+validation before persist). Findings + disposition:
+
+- F1 (no route-level test for the new write surface) - ACCEPTED, fixed:
+  `tests/preference-routes.test.ts` covers add/list/remove + the forge-rejection +
+  400 mapping + the unknown-persona 404.
+- F2 (GET on an unknown persona silently returned the default's preferences) -
+  ACCEPTED, fixed: `listPreferences` now rejects an unknown persona, and the GET
+  route maps it to 404.
+- F3 (UI `PreferencesEditor` crashes against a STALE running backend that predates
+  the `preferences` field) - ACCEPTED as fail-fast-correct per the no-backcompat
+  rule; named here: after this lands, restart `vibe ui` (rebuild the server), not
+  just the UI bundle, or the Supervisors page white-screens until the backend
+  emits `preferences`.
+- F4 (UI `slugId` derives the id from the statement, so two statements that
+  slugify alike collide on the duplicate guard) - ACCEPTED as a minor UX wart;
+  the CLI takes an explicit id.
+- F6 (last-writer-wins on concurrent adds to project.yml) - ACCEPTED as fine for a
+  single-user local tool; consistent with every other config writer. Not atomic.
 
 Second pass - adversarial CODE review of the M0 implementation (Opus 4.8, fresh
 context, 2026-06-28, against the committed diff). Findings and disposition:

@@ -1796,7 +1796,17 @@ export type PersonaSummary = {
   prefersPosture?: string | null;
   /** Free-text CTO posture injected into the spec-up planning agents (null = none). */
   specUpPosture?: string | null;
+  /** Owner preferences the reviewer checks for (preference-gates.ts). */
+  preferences: PersonaPreference[];
   builtin: boolean;
+};
+export type PersonaPreference = {
+  id: string;
+  statement: string;
+  correction: string | null;
+  scope: { lenses: string[] };
+  source: "owner" | "supervisor-proposed";
+  confirmedAt: string | null;
 };
 export type PersonasResponse = {
   defaultPersona: string;

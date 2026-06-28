@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.33.0
+
+- **Teach a supervisor a preference without touching YAML (preference gates
+  M1).** `vibe preferences add <supervisor> "use a hyphen, not an em-dash"` and
+  it is live on the next review - or do it from the Supervisors page, where each
+  card now has a one-line add field and a remove for the rules it checks. An
+  owner add is trusted on creation, so there is no confirm step to wade through.
+  Adding a preference to a built-in supervisor materializes a faithful project
+  copy (its review lenses and posture are preserved, not wiped). All of this
+  stays optional by design: a plain `vibe run` needs zero preferences, zero
+  policies, zero gates - the depth is there when you want it, never on the path
+  to a simple prompt.
+
 ## 0.32.0
 
 - **Preference gates (M0): teach a supervisor a rule, the reviewer checks for
