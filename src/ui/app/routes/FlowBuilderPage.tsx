@@ -362,15 +362,16 @@ export function FlowBuilderPage({
     return () => window.clearTimeout(id);
   }, [toast]);
 
-  // The list we render: either the editable structural draft, or the
-  // saved list with per-step patches folded in for display.
+  // The list we render: the structural draft (if any) or the saved list, with
+  // each step's in-progress field draft folded in so edits (label, kind,
+  // optional, ...) show live in the rows - not only after a Save.
   const displayedSteps: FlowStepDefinition[] = useMemo(() => {
     if (!selected) return [];
-    if (draftStepList) {
-      return draftStepList.map(toFlowStepDefinition);
-    }
-    return selected.definition.steps;
-  }, [selected, draftStepList]);
+    const list = draftStepList
+      ? draftStepList.map(toFlowStepDefinition)
+      : selected.definition.steps;
+    return list.map((def) => foldStepDraftForDisplay(def, draftSteps[def.id]));
+  }, [selected, draftStepList, draftSteps]);
   const activeStep =
     displayedSteps[Math.min(activeStepIdx, displayedSteps.length - 1)] ?? null;
 
@@ -678,15 +679,11 @@ export function FlowBuilderPage({
               hint: g.source.kind === "project" ? "project" : g.source.kind,
             }))}
           />
-          {selected ? (
-            isProjectFlow ? (
-              <Chip tone="violet">Editable</Chip>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-amber-soft/25 bg-amber-soft/10 px-2.5 py-1 text-[11.5px] font-medium text-amber-soft">
-                <Lock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} aria-hidden />
-                Read-only - fork into the project to edit it.
-              </span>
-            )
+          {selected && !isProjectFlow ? (
+            <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-amber-soft/25 bg-amber-soft/10 px-2.5 py-1 text-[11.5px] font-medium text-amber-soft">
+              <Lock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} aria-hidden />
+              Read-only - fork into the project to edit it.
+            </span>
           ) : null}
 
           {/* Carded action toolbar - the page's flow actions, contained in one
@@ -1359,7 +1356,11 @@ function StepRow({
               <Lock className="h-3 w-3" strokeWidth={1.7} /> approval gate
             </Chip>
           ) : null}
-          {step.optional ? <Chip tone="neutral">optional</Chip> : null}
+          {step.optional ? (
+            <span className="inline-flex items-center rounded-[6px] border border-[color:var(--line-soft)] bg-coal-600 px-1.5 py-px text-[10px] font-medium text-chalk-300">
+              optional
+            </span>
+          ) : null}
           {warning ? (
             <span title={warning} className="inline-flex items-center text-amber-soft">
               <AlertTriangle className="h-3.5 w-3.5" strokeWidth={1.9} aria-label="Order warning" />
@@ -1996,6 +1997,27 @@ function toFlowStepDefinition(step: FlowStepFull): FlowStepDefinition {
   if (step.skills !== undefined) out.skills = step.skills;
   if (step.instructions !== undefined) out.instructions = step.instructions;
   return out;
+}
+
+// Shallow-merge a per-step field draft onto a display step so the row reflects
+// in-progress edits. Only the draft's display fields are merged; everything else
+// (needs, inputs, outputs, stage, ...) is preserved from the original, unlike a
+// toFlowStepFull round-trip which would drop fields it doesn't carry.
+function foldStepDraftForDisplay(
+  def: FlowStepDefinition,
+  draft?: StepDraft,
+): FlowStepDefinition {
+  if (!draft) return def;
+  const next: FlowStepDefinition = { ...def };
+  if (draft.label !== undefined) next.label = draft.label;
+  if (draft.kind !== undefined) next.kind = draft.kind;
+  if (draft.optional !== undefined) next.optional = draft.optional;
+  if (draft.seat !== undefined) next.seat = draft.seat ?? undefined;
+  if (draft.approval !== undefined) next.approval = draft.approval ?? undefined;
+  if (draft.skills !== undefined) next.skills = draft.skills;
+  if (draft.instructions !== undefined)
+    next.instructions = draft.instructions ?? undefined;
+  return next;
 }
 
 /** Apply a per-step draft (tri-state for nullables) over a full step. */

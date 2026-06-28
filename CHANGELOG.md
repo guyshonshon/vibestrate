@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.30.8
+
+- **"Optional" shows on the step, live.** Marking a step optional in the
+  inspector now tags it in the step list immediately (not only after a save) -
+  the rows reflect in-progress edits, not just the saved flow.
+- **Dropped the redundant "Editable" chip.** A project flow no longer wears an
+  "Editable" label; only read-only builtins carry the "fork to edit" note.
+
 ## 0.30.7
 
 - **Per-step instructions, with the prompt explained.** Each turn step in the
