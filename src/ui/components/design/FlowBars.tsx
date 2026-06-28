@@ -1,18 +1,13 @@
 // The flow step bar-meter - the signature "more colors" visual on every flow
-// card. The bar chart reads a flow's shape (count, rhythm) AND its makeup
-// (which steps are review / validation / approval gates) at a glance. Shared by
-// Mission Control's composer and the Flows catalog so the flow card is one
-// component everywhere, not two that drift.
-
-// Per-step-kind colors. Ordinary work steps are neutral grey so flow cards
-// don't read as walls of violet; only the meaningful step kinds (review /
-// validation / approval) carry colour. Mid-grey reads on both themes.
-export const STEP_TONE: Record<string, string> = {
-  "review-turn": "#a78bfa", // violet - the review loop
-  validation: "#7cc5ff", // sky - checks / gates that run commands
-  "approval-gate": "#fb923c", // amber - a human-in-the-loop pause
-};
-export const STEP_TONE_DEFAULT = "#9a9aa2";
+// card. The bar chart reads a flow's shape (count, rhythm) AND its makeup at a
+// glance, coloured by step FUNCTION (build / review / check / gate) via the one
+// shared `stepKind` map - so the meter and the step list never disagree. Shared
+// by Mission Control's composer and the Flows catalog.
+import {
+  STEP_GROUP_HEX,
+  STEP_GROUP_HEX_UNKNOWN,
+  stepKindGroup,
+} from "./stepKind.js";
 
 export function FlowBars({
   steps,
@@ -34,7 +29,11 @@ export function FlowBars({
           key={i}
           className="flex-1 rounded-[2px]"
           style={{
-            background: STEP_TONE[s.kind ?? ""] ?? STEP_TONE_DEFAULT,
+            // Count-only rows (hub cards) have no kind - stay grey rather than
+            // imply every step is "build".
+            background: s.kind
+              ? STEP_GROUP_HEX[stepKindGroup(s.kind)]
+              : STEP_GROUP_HEX_UNKNOWN,
             opacity: on ? 1 : 0.42,
             height: `${9 + ((i * 5) % 11)}px`,
           }}

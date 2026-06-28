@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.31.1
+
+- **Step colours now mean something - consistently.** Steps are coloured by what
+  they do, not one arbitrary hue per kind: violet = Build (agent / response),
+  blue = Review (review / summary), green = Check (validation), amber = Gate
+  (approval). The step list and the bar-meter now share one colour map (they
+  previously disagreed - a review was blue in the list but violet in the meter),
+  and a small legend in the builder explains it.
+
 ## 0.31.0
 
 - **Prompt composition moved to Dry-run.** The "how the prompt is composed"
