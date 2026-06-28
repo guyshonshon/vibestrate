@@ -257,7 +257,7 @@ export function App() {
 
   return (
     <AppShell
-      bare={route.kind === "mission" || route.kind === "control"}
+      bare={route.kind === "control"}
       currentRunId={route.kind === "run" ? route.runId : null}
       currentNav={
         route.kind === "board" || route.kind === "task"
@@ -302,6 +302,7 @@ export function App() {
       }
       onSelectRun={(runId) => navigate({ kind: "run", runId })}
       onShowHome={() => navigate({ kind: "mission" })}
+      onShowCompose={() => navigate({ kind: "compose" })}
       onShowFlows={() => navigate({ kind: "flows" })}
       onShowMetrics={() => navigate({ kind: "metrics" })}
       onShowCrew={() => navigate({ kind: "crew", crewId: null })}

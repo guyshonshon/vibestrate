@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
-import { TopBar } from "./TopBar.js";
+import { Sidebar } from "./Sidebar.js";
 import type { NavId } from "./nav-id.js";
 import { HelpOverlay } from "../HelpOverlay.js";
 import { useServerHealth } from "../../lib/useServerHealth.js";
@@ -10,14 +10,15 @@ type AppShellProps = {
   children: ReactNode;
   /**
    * Chromeless mode: render only the page + the global overlays (children),
-   * dropping the TopBar. Used by surfaces that bring their own shell - e.g.
-   * the soft-dark Mission Control, which has its own left sidebar.
+   * dropping the sidebar. Used by focused surfaces that bring their own frame
+   * (e.g. the single-run control view).
    */
   bare?: boolean;
   currentRunId: string | null;
   currentNav: NavId;
   onSelectRun: (runId: string) => void;
   onShowHome: () => void;
+  onShowCompose: () => void;
   onShowFlows: () => void;
   onShowMetrics: () => void;
   onShowCrew: () => void;
@@ -42,17 +43,19 @@ type AppShellProps = {
 };
 
 /**
- * Mission Control v3 shell - no sidebar. The TopBar carries brand,
- * project breadcrumb, primary navigation, and the user-controls
- * cluster. Pages render inside `<main>` which is the scroll
- * container; the page body is positioned above the backdrop wash
- * (set on body in index.html) via z-10.
+ * The single app-wide shell. Mission Control is the source of truth for the
+ * product's look, so its left `Sidebar` - not a horizontal top bar - is the
+ * chrome every page renders inside. Pages render in `<main>`, the scroll
+ * container, positioned above the backdrop wash (set on body in index.html)
+ * via z-10. `bare` keeps the chromeless escape hatch for focused surfaces
+ * (e.g. the single-run control view).
  */
 export function AppShell({
   children,
   bare = false,
   currentNav,
   onShowHome,
+  onShowCompose,
   onShowFlows,
   onShowMetrics,
   onShowCrew,
@@ -61,7 +64,6 @@ export function AppShell({
   onShowProfiles,
   onShowRunsList,
   onShowBoard,
-  onShowQueue,
   onShowWorkspace,
   onShowProposals,
   onShowSettings,
@@ -72,7 +74,6 @@ export function AppShell({
   onShowGitTree,
   onShowMerge,
   onShowLedger,
-  onShowConsult,
   onOpenNotification,
 }: AppShellProps) {
   if (bare) {
@@ -85,34 +86,35 @@ export function AppShell({
     );
   }
   return (
-    <div className="relative flex h-screen w-screen flex-col overflow-hidden text-chalk-100">
+    <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-coal-800 text-chalk-100">
       <ServerHealthBanner />
-      <TopBar
-        currentNav={currentNav}
-        onShowHome={onShowHome}
-        onShowFlows={onShowFlows}
-        onShowMetrics={onShowMetrics}
-        onShowCrew={onShowCrew}
-        onShowProviders={onShowProviders}
-        onShowSupervisors={onShowSupervisors}
-        onShowProfiles={onShowProfiles}
-        onShowRunsList={onShowRunsList}
-        onShowBoard={onShowBoard}
-        onShowQueue={onShowQueue}
-        onShowWorkspace={onShowWorkspace}
-        onShowProposals={onShowProposals}
-        onShowProject={onShowProject}
-        onShowConfig={onShowConfig}
-        onShowCodebase={onShowCodebase}
-        onShowGit={onShowGit}
-        onShowGitTree={onShowGitTree}
-        onShowMerge={onShowMerge}
-        onShowLedger={onShowLedger}
-        onShowConsult={onShowConsult}
-        onShowSettings={onShowSettings}
-        onOpenNotification={onOpenNotification}
-      />
-      <main className="relative z-10 flex-1 overflow-y-auto">{children}</main>
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <Sidebar
+          currentNav={currentNav}
+          onShowHome={onShowHome}
+          onShowCompose={onShowCompose}
+          onShowFlows={onShowFlows}
+          onShowMetrics={onShowMetrics}
+          onShowCrew={onShowCrew}
+          onShowProviders={onShowProviders}
+          onShowSupervisors={onShowSupervisors}
+          onShowProfiles={onShowProfiles}
+          onShowRunsList={onShowRunsList}
+          onShowBoard={onShowBoard}
+          onShowWorkspace={onShowWorkspace}
+          onShowProposals={onShowProposals}
+          onShowProject={onShowProject}
+          onShowConfig={onShowConfig}
+          onShowCodebase={onShowCodebase}
+          onShowGit={onShowGit}
+          onShowGitTree={onShowGitTree}
+          onShowMerge={onShowMerge}
+          onShowLedger={onShowLedger}
+          onShowSettings={onShowSettings}
+          onOpenNotification={onOpenNotification}
+        />
+        <main className="relative z-10 flex-1 overflow-y-auto">{children}</main>
+      </div>
       <HelpOverlay />
     </div>
   );

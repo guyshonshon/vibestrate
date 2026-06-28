@@ -195,6 +195,16 @@ responsive sweep.
   reference. RULE (user, hard): compose from our shadcn component layer
   `components/design/*` (Button, Select, ...), never hand-rolled bare `<button>` /
   raw utility elements; buttons must look like buttons; no faint-grey labels.
+- [x] Shell unification (branch `design/app-sidebar-shell`, v0.29.0). Mission
+  Control's left sidebar became the single app-wide chrome (`layout/Sidebar`);
+  the horizontal `TopBar` is **retired and deleted**. `AppShell` (non-`bare`)
+  renders the sidebar + `<main>`; Mission Control dropped its private `<aside>`
+  and now renders body-only inside the same shell, so there is one sidebar
+  implementation, not two look-alikes. The sidebar absorbs every TopBar
+  destination (primary rows + a collapsible "More") plus the right-cluster
+  utilities (Jump-to, notifications, settings). Supersedes the Phase-1
+  intent to keep the TopBar - see [`primitives-contract.md` §0](./primitives-contract.md).
+  Also landed `FlowsPage`'s contained, Mission-Control-matched header.
 - [ ] Phase 4 - config / admin
 - [ ] Phase 5 - git / diff / merge
 - [ ] Phase 6 - specialized panels

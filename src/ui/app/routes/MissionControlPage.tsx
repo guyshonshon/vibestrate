@@ -1,12 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   Check,
-  ChevronDown,
-  ChevronUp,
-  GitBranch,
-  LayoutGrid,
-  Plus,
   X,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
@@ -15,8 +10,6 @@ import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import { navigate } from "../App.js";
 import { MissionComposer } from "../../components/mission/MissionComposer.js";
 import { RunActions } from "../../components/mission/RunActions.js";
-import { EntityIcon } from "../../components/design/EntityIcon.js";
-import { ThemeToggle } from "../../components/design/ThemeToggle.js";
 import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
 import { PhaseRail, statusMessage } from "../../components/mission/runPhase.js";
 import type {
@@ -213,7 +206,6 @@ export function MissionControlPage({ onSelectRun }: Props) {
     () => runs.filter((r) => r.status === "merge_ready").length,
     [runs],
   );
-  const failed = useMemo(() => runs.filter((r) => r.status === "failed").length, [runs]);
 
   const week = useMemo(() => {
     const startOfToday = new Date();
@@ -325,44 +317,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
   ];
 
   return (
-    <div className="font-jakarta flex min-h-screen bg-coal-800 text-chalk-100">
-      <aside className="sticky top-0 flex h-screen w-[230px] shrink-0 flex-col gap-0.5 px-4 py-5">
-        <div className="mb-5 flex items-center gap-2.5 px-2">
-          <span className="h-7 w-7 rounded-[9px] bg-gradient-to-br from-violet-soft to-[#6d4fd4]" />
-          <span className="text-[16px] font-extrabold tracking-[-0.01em]">vibestrate</span>
-          <ThemeToggle className="ml-auto h-8 w-8 rounded-[10px]" />
-        </div>
-
-        <NavItem icon={<LayoutGrid className="h-[18px] w-[18px]" />} label="Dashboard" selected />
-        <button className="flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-left text-[14px] font-bold text-chalk-100">
-          <EntityIcon entity="run" size={18} />
-          <span>Runs</span>
-          <ChevronUp className="ml-auto h-4 w-4 text-chalk-400" />
-        </button>
-        <div className="mb-1 ml-[22px] flex flex-col gap-0.5 border-l-[1.5px] border-[color:var(--line-strong)] pl-2.5">
-          <SubItem label="Active" badge={{ n: activeRuns.length, tone: "violet" }} onClick={() => navigate({ kind: "runs" })} />
-          <SubItem label="Merge-ready" badge={{ n: mergeReady, tone: "emerald" }} onClick={() => navigate({ kind: "runs" })} />
-          <SubItem label="Failed" badge={{ n: failed, tone: "amber" }} onClick={() => navigate({ kind: "runs" })} />
-        </div>
-        <NavItem
-          icon={<EntityIcon entity="crew" size={18} />}
-          label="Crew"
-          trailing={<ChevronDown className="h-4 w-4 text-chalk-400" />}
-          onClick={() => navigate({ kind: "crew", crewId: null })}
-        />
-        <NavItem icon={<EntityIcon entity="flow" size={18} />} label="Flows" onClick={() => navigate({ kind: "flows" })} />
-        <NavItem icon={<GitBranch className="h-[18px] w-[18px]" />} label="Diffs" onClick={() => navigate({ kind: "git-tree" })} />
-
-        <button
-          onClick={() => navigate({ kind: "compose" })}
-          className="mt-auto flex items-center justify-center gap-2 rounded-[12px] bg-violet-soft px-3 py-2.5 text-[13.5px] font-bold text-coal-900 transition hover:bg-violet-soft/90"
-        >
-          <Plus className="h-4 w-4" /> New run
-        </button>
-      </aside>
-
-      <main className="flex-1 overflow-x-hidden">
-        <div className="w-full px-10 py-7">
+    <div className="font-jakarta px-10 py-7">
         <header className="mb-6">
           <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">Mission control</h1>
         </header>
@@ -417,66 +372,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
           label="Dashboard layout"
           panels={panels}
         />
-        </div>
-      </main>
     </div>
-  );
-}
-
-function NavItem({
-  icon,
-  label,
-  trailing,
-  selected,
-  onClick,
-}: {
-  icon: ReactNode;
-  label: string;
-  trailing?: ReactNode;
-  selected?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-left text-[14px] font-medium ${
-        selected ? "bg-coal-500 font-semibold text-chalk-100" : "text-chalk-400 hover:text-chalk-100"
-      }`}
-    >
-      {icon}
-      <span>{label}</span>
-      {trailing ? <span className="ml-auto">{trailing}</span> : null}
-    </button>
-  );
-}
-
-const badgeTone: Record<string, string> = {
-  violet: "bg-violet-soft/20 text-violet-soft",
-  emerald: "bg-emerald-500/[0.18] text-emerald-400",
-  amber: "bg-amber-soft/20 text-amber-soft",
-};
-
-function SubItem({
-  label,
-  badge,
-  onClick,
-}: {
-  label: string;
-  badge?: { n: number; tone: keyof typeof badgeTone };
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center justify-between rounded-[9px] px-3 py-2 text-left text-[13px] text-chalk-400 hover:text-chalk-100"
-    >
-      <span>{label}</span>
-      {badge ? (
-        <span className={`rounded-md px-1.5 py-px text-[11px] font-bold ${badgeTone[badge.tone]}`}>
-          {badge.n}
-        </span>
-      ) : null}
-    </button>
   );
 }
 

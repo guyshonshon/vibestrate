@@ -18,6 +18,19 @@ brand frame, LOUD / Raycast taste notes). Token decisions:
 
 ---
 
+## 0. Shell - the sidebar is the one chrome
+
+Mission Control is the source of truth, and its **left sidebar**
+(`layout/Sidebar`) is the single app-wide navigation chrome - every page renders
+inside it via `layout/AppShell`. There is no second shell: the horizontal top
+bar is retired. A page component renders **only its body** (header + content);
+it never draws its own nav/sidebar. Match Mission Control's header treatment:
+page title `text-[24px] font-extrabold tracking-[-0.02em]`, content padded
+`px-10 py-7`, no loose grey subtitle floating on the canvas (fold context into a
+contained, framed header block). `AppShell`'s `bare` mode is the only escape
+hatch, reserved for focused single-purpose surfaces (e.g. the single-run control
+view).
+
 ## 1. Tokens - new only
 
 Use only the new token names. Never `vibestrate-*` / `fog-*` in new/edited code.

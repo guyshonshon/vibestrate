@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.29.0
+
+- **One shell for the whole app.** Mission Control's left sidebar is now the
+  single navigation chrome every page renders inside - the horizontal top bar
+  is retired. Flows, Crew, Metrics and the rest no longer wear different chrome
+  from the dashboard; you get the same brand block, run counts, New-run button
+  and utility controls everywhere. Mission Control and every other page now
+  share one sidebar implementation rather than two look-alikes.
+- **Flows header is contained and matches Mission Control.** The page title is
+  now the same weight and size as "Mission control", and the "All flows"
+  blurb plus the New flow / Import actions sit in a single framed header block
+  instead of floating loose on the canvas.
+
 ## 0.28.6
 
 - **The flow hub matches the catalog now.** The community-flow marketplace and

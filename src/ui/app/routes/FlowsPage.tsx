@@ -215,21 +215,31 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   const effectiveDefault = defaultFlowId ?? "default";
 
   return (
-    <div className="relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
-      <section className="mt-1">
-        <h1 className="text-[20px] font-semibold tracking-tight text-chalk-100">
-          All flows{" "}
-          <span className="mono num-tabular text-[12px] text-chalk-400">
-            {flows ? defaultFlowCount + otherFlows.length : ""}
-          </span>
+    <div className="font-jakarta px-10 py-7 fade-up">
+      <header className="mb-6">
+        <h1 className="text-[24px] font-extrabold tracking-[-0.02em] text-chalk-100">
+          Flows
         </h1>
-        <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.55] text-chalk-300">
-          A flow is the recipe your crew follows - ordered steps, the roles that
-          run them, approval gates. The{" "}
-          <strong className="font-semibold text-chalk-100">Default flow</strong> runs
-          unless you pick another.
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+      </header>
+
+      {/* Contained header: title context + the page's primary actions live in a
+          single framed block instead of floating loose on the canvas. */}
+      <section className="mb-6 flex flex-wrap items-start gap-4 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-[15px] font-bold text-chalk-100">All flows</h2>
+            <span className="mono num-tabular text-[12px] text-chalk-400">
+              {flows ? defaultFlowCount + otherFlows.length : ""}
+            </span>
+          </div>
+          <p className="mt-1.5 max-w-[68ch] text-[13px] leading-[1.55] text-chalk-300">
+            A flow is the recipe your crew follows - ordered steps, the roles that
+            run them, approval gates. The{" "}
+            <strong className="font-semibold text-chalk-100">Default flow</strong> runs
+            unless you pick another.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Button
             variant="primary"
             size="sm"
