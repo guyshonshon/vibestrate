@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.30.5
+
+- **Undo / redo / restore in the Flow Builder.** The editor toolbar gained an
+  edit history: step a change back or forward, or restore the whole flow to its
+  last saved state. Every draft edit (rename, kind, seat, skills, approval,
+  add / remove / drag-reorder a step, loop) is captured; nothing touches disk
+  until you Save.
+- **Approval gates explain themselves.** The step inspector now spells out what
+  happens at a gate - the run pauses (no agent), a person sees your reason and
+  message, the risk level and the prior step's output, reviews the run's diff so
+  far, then Approves to continue or Rejects to stop. They sign off on the work
+  up to that point, not every line in an editor.
+- **Sensible config order.** The step inspector follows the order you actually
+  think in - name, kind, seat, skills, then the modifiers (approval gate, then
+  optional) - instead of "optional" sitting oddly in the middle.
+
 ## 0.30.4
 
 - **Docs are one click from the controls.** The Flow Builder's config labels

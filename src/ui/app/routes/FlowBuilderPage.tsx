@@ -1,4 +1,4 @@
-import { Fragment, Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -17,12 +17,15 @@ import {
   Layers,
   Lock,
   Plus,
+  Redo2,
   Rocket,
+  RotateCcw,
   Save,
   Scale,
   ShieldCheck,
   Shuffle,
   Trash2,
+  Undo2,
   Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -74,6 +77,26 @@ type StepDraft = {
   skills?: string[];
 };
 
+// A snapshot of the whole editable draft, for undo/redo. The four pieces mirror
+// the draft* state in FlowBuilderPage. Snapshots are immutable (every mutation
+// replaces the object/array rather than mutating it), so storing references is
+// safe.
+type DraftSnap = {
+  label: string;
+  steps: Record<string, StepDraft>;
+  stepList: FlowStepFull[] | null;
+  loop: FlowLoop | null;
+};
+
+function sameDraftSnap(a: DraftSnap, b: DraftSnap): boolean {
+  return (
+    a.label === b.label &&
+    JSON.stringify(a.steps) === JSON.stringify(b.steps) &&
+    JSON.stringify(a.stepList) === JSON.stringify(b.stepList) &&
+    JSON.stringify(a.loop) === JSON.stringify(b.loop)
+  );
+}
+
 const STEP_KINDS: FlowStepKind[] = [
   "agent-turn",
   "review-turn",
@@ -124,7 +147,7 @@ const KIND_INFO: Record<
     phase: "waiting for approval",
     icon: Lock,
     blurb:
-      "Pauses the run for a human to decide whether to continue. No agent runs.",
+      "Pauses the run for a person to sign off before it continues - they review the work so far (the diff + the prior step's output) and Approve or Reject. No agent runs.",
   },
   "summary-turn": {
     title: "Summary turn",
@@ -199,6 +222,15 @@ export function FlowBuilderPage({
   // insertion line at the target.
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  // Undo/redo history over the whole draft tuple. One snapshot stack per loaded
+  // flow; `applyingHist` guards the record effect from re-recording an undo/redo
+  // apply. `histVer` only exists to re-render the toolbar's enabled state.
+  const histRef = useRef<{ snaps: DraftSnap[]; idx: number }>({
+    snaps: [],
+    idx: -1,
+  });
+  const applyingHist = useRef(false);
+  const [histVer, setHistVer] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -250,7 +282,43 @@ export function FlowBuilderPage({
     setActiveStepIdx(0);
     setYamlMode(false);
     setYamlError(null);
+    // Reset the undo history to the saved flow as the baseline (index 0).
+    histRef.current = {
+      snaps: [
+        {
+          label: selected.label,
+          steps: {},
+          stepList: null,
+          loop: selected.definition.loop ?? null,
+        },
+      ],
+      idx: 0,
+    };
+    applyingHist.current = true; // the draft resets above must not record
+    setHistVer((v) => v + 1);
   }, [selected?.id]);
+
+  // Record a new history entry whenever the draft changes - unless the change
+  // came from an undo/redo apply (guarded) or matches the current entry.
+  useEffect(() => {
+    if (!selected) return;
+    if (applyingHist.current) {
+      applyingHist.current = false;
+      return;
+    }
+    const cur: DraftSnap = {
+      label: draftLabel,
+      steps: draftSteps,
+      stepList: draftStepList,
+      loop: draftLoop,
+    };
+    const h = histRef.current;
+    const last = h.snaps[h.idx];
+    if (last && sameDraftSnap(last, cur)) return;
+    const snaps = [...h.snaps.slice(0, h.idx + 1), cur].slice(-50);
+    histRef.current = { snaps, idx: snaps.length - 1 };
+    setHistVer((v) => v + 1);
+  }, [draftLabel, draftSteps, draftStepList, draftLoop, selected?.id]);
 
   useEffect(() => {
     if (!toast) return;
@@ -513,6 +581,41 @@ export function FlowBuilderPage({
     setActiveStepIdx(target);
   }
 
+  // ── Undo / redo / restore over the draft history ──────────────────────────
+  function applySnap(s: DraftSnap): void {
+    applyingHist.current = true;
+    setDraftLabel(s.label);
+    setDraftSteps(s.steps);
+    setDraftStepList(s.stepList);
+    setDraftLoop(s.loop);
+  }
+  void histVer; // referenced only to re-render when the history pointer moves
+  const canUndo = histRef.current.idx > 0;
+  const canRedo = histRef.current.idx < histRef.current.snaps.length - 1;
+  function undo(): void {
+    const h = histRef.current;
+    if (h.idx <= 0) return;
+    h.idx -= 1;
+    setHistVer((v) => v + 1);
+    applySnap(h.snaps[h.idx]!);
+  }
+  function redo(): void {
+    const h = histRef.current;
+    if (h.idx >= h.snaps.length - 1) return;
+    h.idx += 1;
+    setHistVer((v) => v + 1);
+    applySnap(h.snaps[h.idx]!);
+  }
+  // Restore = discard all unsaved edits back to the saved flow. Recorded as a
+  // normal history entry (so the restore itself is undoable).
+  function restore(): void {
+    if (!selected) return;
+    setDraftLabel(selected.label);
+    setDraftSteps({});
+    setDraftStepList(null);
+    setDraftLoop(selected.definition.loop ?? null);
+  }
+
   return (
     <div className="font-jakarta px-10 py-7 fade-up">
       <header className="flex items-center gap-3">
@@ -534,48 +637,67 @@ export function FlowBuilderPage({
           fact reads as a grey meta line and no action is stranded at the far
           right of the page. */}
       <section className="mt-5 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Select
-                value={selected?.id ?? ""}
-                ariaLabel="Select flow"
-                className="max-w-[320px]"
-                onChange={(v) => {
-                  setSelectedId(v);
-                  setActiveStepIdx(0);
-                }}
-                options={flows.map((g) => ({
-                  value: g.id,
-                  label: g.label,
-                  hint: g.source.kind === "project" ? "project" : g.source.kind,
-                }))}
-              />
-              {selected ? (
-                <Chip tone={isProjectFlow ? "violet" : "neutral"}>
-                  {isProjectFlow ? "Editable" : "Read-only"}
-                </Chip>
-              ) : null}
-            </div>
-            {selected ? (
-              <div className="mt-3 flex flex-wrap items-stretch gap-2">
-                <StatTile value={selected.definition.steps.length} label="steps" />
-                <StatTile value={Object.keys(selected.definition.seats).length} label="seats" />
-                <StatTile value={`v${selected.version}`} label="version" />
-                <StatTile value={selected.source.kind} label="source" />
-              </div>
-            ) : null}
-            {selected && !isProjectFlow ? (
-              <div className="mt-3 inline-flex items-center gap-2 rounded-[10px] border border-amber-soft/25 bg-amber-soft/10 px-3 py-1.5 text-[11.5px] font-medium text-amber-soft">
-                <Lock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} aria-hidden />
-                Read-only - fork into the project to edit it.
-              </div>
-            ) : null}
-          </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Select
+            value={selected?.id ?? ""}
+            ariaLabel="Select flow"
+            className="max-w-[320px]"
+            onChange={(v) => {
+              setSelectedId(v);
+              setActiveStepIdx(0);
+            }}
+            options={flows.map((g) => ({
+              value: g.id,
+              label: g.label,
+              hint: g.source.kind === "project" ? "project" : g.source.kind,
+            }))}
+          />
+          {selected ? (
+            <Chip tone={isProjectFlow ? "violet" : "neutral"}>
+              {isProjectFlow ? "Editable" : "Read-only"}
+            </Chip>
+          ) : null}
 
           {/* Carded action toolbar - the page's flow actions, contained in one
               framed group instead of floating buttons. */}
-          <div className="flex flex-wrap items-center gap-1.5 rounded-[14px] border border-[color:var(--line)] bg-coal-700 p-1.5">
+          <div className="ml-auto flex flex-wrap items-center gap-1.5 rounded-[14px] border border-[color:var(--line)] bg-coal-700 p-1.5">
+            {/* Edit history - undo / redo / restore the draft (project flows). */}
+            {isProjectFlow ? (
+              <div className="flex items-center gap-1.5 border-r border-[color:var(--line)] pr-1.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!canUndo}
+                  onClick={undo}
+                  title="Undo the last edit"
+                  aria-label="Undo"
+                  className="!px-2"
+                >
+                  <Undo2 className="h-3.5 w-3.5" strokeWidth={1.8} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!canRedo}
+                  onClick={redo}
+                  title="Redo"
+                  aria-label="Redo"
+                  className="!px-2"
+                >
+                  <Redo2 className="h-3.5 w-3.5" strokeWidth={1.8} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!dirty}
+                  onClick={restore}
+                  title="Discard all unsaved edits and restore the saved flow"
+                  iconLeft={<RotateCcw className="h-3.5 w-3.5" strokeWidth={1.8} />}
+                >
+                  Restore
+                </Button>
+              </div>
+            ) : null}
             <Button
               variant="ghost"
               size="sm"
@@ -697,6 +819,23 @@ export function FlowBuilderPage({
             )}
           </div>
         </div>
+
+        {/* The flow's facts as stat tiles - full width below the picker row, so
+            they read horizontally instead of stacking when the toolbar is wide. */}
+        {selected ? (
+          <div className="mt-4 flex flex-wrap items-stretch gap-2">
+            <StatTile value={selected.definition.steps.length} label="steps" />
+            <StatTile value={Object.keys(selected.definition.seats).length} label="seats" />
+            <StatTile value={`v${selected.version}`} label="version" />
+            <StatTile value={selected.source.kind} label="source" />
+          </div>
+        ) : null}
+        {selected && !isProjectFlow ? (
+          <div className="mt-3 inline-flex items-center gap-2 rounded-[10px] border border-amber-soft/25 bg-amber-soft/10 px-3 py-1.5 text-[11.5px] font-medium text-amber-soft">
+            <Lock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} aria-hidden />
+            Read-only - fork into the project to edit it.
+          </div>
+        ) : null}
       </section>
 
       {error ? (
@@ -1359,46 +1498,6 @@ function StepInspector({
         </div>
       </Field>
 
-      <Field label="Optional step">
-        <button
-          type="button"
-          disabled={!editable}
-          onClick={() => onPatchDraft({ optional: !optional })}
-          className="flex items-center gap-2.5 text-[12.5px] text-chalk-300 disabled:opacity-60"
-        >
-          <span
-            className={cn(
-              "w-9 h-5 rounded-full p-0.5 transition",
-              optional ? "bg-violet-soft" : "bg-coal-400",
-            )}
-          >
-            <span
-              className={cn(
-                "block w-4 h-4 rounded-full bg-white shadow-sm transition-transform",
-                optional ? "translate-x-4" : "translate-x-0",
-              )}
-            />
-          </span>
-          <span>
-            {optional ? "Skippable (won't block the run)" : "Required"}
-          </span>
-        </button>
-      </Field>
-
-      <Field
-        label={
-          requiresApproval ? "Approval gate (required)" : "Approval gate"
-        }
-        help={{ slug: "concepts/safety", label: "Approval gates & policies" }}
-      >
-        <ApprovalEditor
-          editable={editable}
-          requiresApproval={requiresApproval}
-          value={approval}
-          onChange={(next) => onPatchDraft({ approval: next })}
-        />
-      </Field>
-
       {requiresSeat ? (
         <Field label="Skills (this step)" help={{ slug: "concepts/skill", label: "Skills" }}>
           {(() => {
@@ -1454,6 +1553,54 @@ function StepInspector({
           })()}
         </Field>
       ) : null}
+
+      <Field
+        label={
+          requiresApproval ? "Approval gate (required)" : "Approval gate"
+        }
+        help={{ slug: "concepts/safety", label: "Approval gates & policies" }}
+      >
+        <ApprovalEditor
+          editable={editable}
+          requiresApproval={requiresApproval}
+          value={approval}
+          onChange={(next) => onPatchDraft({ approval: next })}
+        />
+        <div className="mt-2 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-800 px-3 py-2 text-[11px] leading-[1.5] text-chalk-400">
+          When the run reaches this step it pauses (no agent runs) and waits for a
+          person. They see your reason and message, the risk level, and the prior
+          step's output, and review the run's diff so far - then{" "}
+          <span className="text-emerald-400">Approve</span> to continue or{" "}
+          <span className="text-rose-300">Reject</span> to stop. They sign off on
+          the work up to here, not every line in an editor.
+        </div>
+      </Field>
+
+      <Field label="Optional step">
+        <button
+          type="button"
+          disabled={!editable}
+          onClick={() => onPatchDraft({ optional: !optional })}
+          className="flex items-center gap-2.5 text-[12.5px] text-chalk-300 disabled:opacity-60"
+        >
+          <span
+            className={cn(
+              "w-9 h-5 rounded-full p-0.5 transition",
+              optional ? "bg-violet-soft" : "bg-coal-400",
+            )}
+          >
+            <span
+              className={cn(
+                "block w-4 h-4 rounded-full bg-white shadow-sm transition-transform",
+                optional ? "translate-x-4" : "translate-x-0",
+              )}
+            />
+          </span>
+          <span>
+            {optional ? "Skippable (won't block the run)" : "Required"}
+          </span>
+        </button>
+      </Field>
 
       <Field label="Inputs / outputs (read-only)">
         <div className="space-y-1.5 text-[12px]">
@@ -1527,7 +1674,7 @@ function ApprovalEditor({
         onChange={(e) =>
           onChange({ ...effective, reason: e.target.value })
         }
-        placeholder="Why is this gate here?"
+        placeholder="Reason - why this gate exists (shown to the approver)"
         className={cn(
           "w-full rounded-[12px] bg-coal-800 border border-[color:var(--line-strong)] h-8 px-3 text-[12.5px] text-chalk-100 outline-none",
           editable
@@ -1541,7 +1688,7 @@ function ApprovalEditor({
         onChange={(e) =>
           onChange({ ...effective, requestedAction: e.target.value })
         }
-        placeholder="What is the user being asked to do?"
+        placeholder="Requested action - what to approve (e.g. 'Approve the plan before building')"
         className={cn(
           "w-full rounded-[12px] bg-coal-800 border border-[color:var(--line-strong)] h-8 px-3 text-[12.5px] text-chalk-100 outline-none",
           editable
@@ -1559,7 +1706,7 @@ function ApprovalEditor({
             userMessage: v === "" ? undefined : v,
           });
         }}
-        placeholder="Optional message to surface in the approval card"
+        placeholder="Optional message shown in the approval card"
         className={cn(
           "w-full rounded-[12px] bg-coal-800 border border-[color:var(--line-strong)] h-8 px-3 text-[12.5px] text-chalk-100 outline-none",
           editable
