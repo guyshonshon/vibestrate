@@ -170,6 +170,19 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: "vibe notifications gateways", note: "configure notification gateways" },
         ],
       };
+    case "policies":
+      return {
+        title: "Policies",
+        blurb:
+          "The project's rule surface: owner-authored tiered policies (advise + block) plus the hard, fail-closed security gates. The CLI authors the same rules.",
+        commands: [
+          { cmd: "vibe policies list", note: "project policies + the hard security gates" },
+          { cmd: 'vibe policies add <id> "<rule>" --fix "<fix>"', note: "an advise rule the reviewer checks" },
+          { cmd: 'vibe policies add <id> "<rule>" --block --matcher "<regex>"', note: "a deterministic merge block" },
+          { cmd: "vibe policies confirm|reject <id>", note: "act on a supervisor-proposed rule" },
+          { cmd: "vibe policies migrate", note: "lift legacy persona preferences" },
+        ],
+      };
     case "project":
       return {
         title: "Project overview",

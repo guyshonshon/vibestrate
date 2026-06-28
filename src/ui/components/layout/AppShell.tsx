@@ -31,6 +31,7 @@ type AppShellProps = {
   onShowWorkspace: () => void;
   onShowProposals: () => void;
   onShowSettings: () => void;
+  onShowPolicies: () => void;
   onShowProject: () => void;
   onShowConfig: () => void;
   onShowCodebase: () => void;
@@ -67,6 +68,7 @@ export function AppShell({
   onShowWorkspace,
   onShowProposals,
   onShowSettings,
+  onShowPolicies,
   onShowProject,
   onShowConfig,
   onShowCodebase,
@@ -111,6 +113,7 @@ export function AppShell({
           onShowMerge={onShowMerge}
           onShowLedger={onShowLedger}
           onShowSettings={onShowSettings}
+          onShowPolicies={onShowPolicies}
           onOpenNotification={onOpenNotification}
         />
         <main className="relative z-10 flex-1 overflow-y-auto">{children}</main>

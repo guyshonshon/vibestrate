@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.36.1
+
+- **Policies are now a first-class page in the sidebar.** The consolidated policy
+  surface shipped in 0.36.0 was only reachable buried at the bottom of Settings;
+  it now has its own **Policies** entry (sidebar "More" group) at `#/policies`,
+  showing the project-policy authoring for both tiers alongside the hard security
+  gates. Removed the duplicate panel from Settings.
+
 ## 0.36.0
 
 - **Preferences and policies are now one project-level surface, enforced by

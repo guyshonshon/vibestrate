@@ -26,6 +26,7 @@ import { ProfilesPage } from "./routes/ProfilesPage.js";
 import { ConsultPage } from "./routes/ConsultPage.js";
 import { ProvidersPage } from "./routes/ProvidersPage.js";
 import { SupervisorsPage } from "./routes/SupervisorsPage.js";
+import { PoliciesPage } from "./routes/PoliciesPage.js";
 import { ConfigPage } from "./routes/ConfigPage.js";
 import { RunSwitcher } from "../components/runs/RunSwitcher.js";
 import {
@@ -268,6 +269,8 @@ export function App() {
               ? "proposals"
               : route.kind === "settings"
                 ? "settings"
+                : route.kind === "policies"
+                ? "policies"
                 : route.kind === "project"
                   ? "project"
                   : route.kind === "codebase"
@@ -315,6 +318,7 @@ export function App() {
       onShowWorkspace={() => navigate({ kind: "workspace" })}
       onShowProposals={() => navigate({ kind: "proposals" })}
       onShowSettings={() => navigate({ kind: "settings" })}
+      onShowPolicies={() => navigate({ kind: "policies" })}
       onShowProject={() => navigate({ kind: "project" })}
       onShowConfig={() => navigate({ kind: "config" })}
       onShowConsult={() => navigate({ kind: "consult", taskId: null })}
@@ -378,6 +382,8 @@ export function App() {
         >
           <SettingsPage />
         </Suspense>
+      ) : route.kind === "policies" ? (
+        <PoliciesPage />
       ) : route.kind === "project" ? (
         <ProjectPage
           onSelectRun={(runId) => navigate({ kind: "run", runId })}

@@ -12,6 +12,7 @@ export type NavId =
   | "workspace"
   | "proposals"
   | "settings"
+  | "policies"
   | "project"
   | "codebase"
   | "git"

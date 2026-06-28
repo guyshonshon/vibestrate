@@ -14,6 +14,7 @@ import {
   ListChecks,
   Plug,
   Plus,
+  Scale,
   Search,
   Settings as SettingsIcon,
   Settings2,
@@ -50,6 +51,7 @@ type Props = {
   onShowMerge: () => void;
   onShowLedger: () => void;
   onShowSettings: () => void;
+  onShowPolicies: () => void;
   onOpenNotification: (n: NotificationRecord) => void;
 };
 
@@ -97,6 +99,7 @@ export function Sidebar({
   onShowMerge,
   onShowLedger,
   onShowSettings,
+  onShowPolicies,
   onOpenNotification,
 }: Props) {
   const [counts, setCounts] = useState({ active: 0, mergeReady: 0, failed: 0 });
@@ -269,6 +272,7 @@ export function Sidebar({
             <MoreItem icon={<GitMerge className="h-4 w-4" strokeWidth={1.9} />} label="Merge" active={currentNav === "merge"} onClick={onShowMerge} />
             <MoreItem icon={<Plug className="h-4 w-4" strokeWidth={1.9} />} label="Providers" active={currentNav === "providers"} onClick={onShowProviders} />
             <MoreItem icon={<ShieldCheck className="h-4 w-4" strokeWidth={1.9} />} label="Supervisors" active={currentNav === "supervisors"} onClick={onShowSupervisors} />
+            <MoreItem icon={<Scale className="h-4 w-4" strokeWidth={1.9} />} label="Policies" active={currentNav === "policies"} onClick={onShowPolicies} />
             <MoreItem icon={<BookMarked className="h-4 w-4" strokeWidth={1.9} />} label="Ledger" active={currentNav === "ledger"} onClick={onShowLedger} />
             <MoreItem icon={<FileText className="h-4 w-4" strokeWidth={1.9} />} label="Proposals" active={currentNav === "proposals"} onClick={onShowProposals} />
             <MoreItem icon={<Folder className="h-4 w-4" strokeWidth={1.9} />} label="Project" active={currentNav === "project"} onClick={onShowProject} />

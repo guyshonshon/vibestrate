@@ -35,6 +35,7 @@ export type Route =
   | { kind: "proposals" }
   | { kind: "proposal"; proposalId: string }
   | { kind: "settings" }
+  | { kind: "policies" }
   | { kind: "project" }
   | { kind: "git"; runId: string | null }
   | { kind: "git-tree" }
@@ -166,6 +167,7 @@ export function parseHashRoute(hash: string): Route {
   if (parts[0] === "queue") return { kind: "runs" };
   if (parts[0] === "workspace") return { kind: "workspace" };
   if (parts[0] === "settings") return { kind: "settings" };
+  if (parts[0] === "policies") return { kind: "policies" };
   if (parts[0] === "project") return { kind: "project" };
   if (parts[0] === "codebase") {
     const filePath = query.get("path");
@@ -243,6 +245,8 @@ export function serializeRoute(route: Route): string {
       return `#/proposals/${route.proposalId}`;
     case "settings":
       return "#/settings";
+    case "policies":
+      return "#/policies";
     case "project":
       return "#/project";
     case "codebase": {
