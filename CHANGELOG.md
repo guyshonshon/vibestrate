@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.30.6
+
+- **Tidier Flow Builder header.** A read-only flow's "fork to edit" note now sits
+  inline next to the flow name instead of on its own row, freeing vertical space.
+- **Drag-only step reorder.** With drag-to-reorder in place, the per-step up/down
+  arrows are gone - drag the grip handle to move a step.
+- **Themed confirm dialogs.** Deleting a flow or restoring it to the last saved
+  state now asks through an in-app themed dialog (portaled, so it centers
+  correctly) instead of the browser's native prompt.
+
 ## 0.30.5
 
 - **Undo / redo / restore in the Flow Builder.** The editor toolbar gained an

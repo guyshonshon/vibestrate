@@ -1,7 +1,6 @@
 import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
-  ArrowDown,
-  ArrowUp,
   Book,
   Bolt,
   Bug,
@@ -231,6 +230,8 @@ export function FlowBuilderPage({
   });
   const applyingHist = useRef(false);
   const [histVer, setHistVer] = useState(0);
+  // Themed confirm dialog for the destructive / discard actions.
+  const [confirm, setConfirm] = useState<"delete" | "restore" | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -491,7 +492,6 @@ export function FlowBuilderPage({
 
   async function handleDelete(): Promise<void> {
     if (!selected || !isProjectFlow) return;
-    if (!window.confirm(`Delete project flow "${selected.label}"?`)) return;
     setDeleting(true);
     try {
       await api.deleteFlow(selected.id);
@@ -557,17 +557,8 @@ export function FlowBuilderPage({
     setActiveStepIdx(Math.max(0, Math.min(idx, list.length - 2)));
   }
 
-  function moveStep(stepId: string, delta: -1 | 1): void {
-    if (!selected || !isProjectFlow) return;
-    const list = ensureStepList();
-    const idx = list.findIndex((s) => s.id === stepId);
-    if (idx < 0) return;
-    reorderStep(idx, idx + delta);
-  }
-
-  // Move the step at `from` to land at `to` (used by both the arrow buttons and
-  // drag-and-drop). Saves through the same `draftStepList` / `replaceSteps` path,
-  // so a dragged reorder persists exactly like an arrow nudge.
+  // Move the step at `from` to land at `to` (driven by drag-and-drop). Saves
+  // through the same `draftStepList` / `replaceSteps` path as any other edit.
   function reorderStep(from: number, to: number): void {
     if (!selected || !isProjectFlow) return;
     const list = ensureStepList();
@@ -653,9 +644,14 @@ export function FlowBuilderPage({
             }))}
           />
           {selected ? (
-            <Chip tone={isProjectFlow ? "violet" : "neutral"}>
-              {isProjectFlow ? "Editable" : "Read-only"}
-            </Chip>
+            isProjectFlow ? (
+              <Chip tone="violet">Editable</Chip>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-amber-soft/25 bg-amber-soft/10 px-2.5 py-1 text-[11.5px] font-medium text-amber-soft">
+                <Lock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} aria-hidden />
+                Read-only - fork into the project to edit it.
+              </span>
+            )
           ) : null}
 
           {/* Carded action toolbar - the page's flow actions, contained in one
@@ -690,7 +686,7 @@ export function FlowBuilderPage({
                   variant="ghost"
                   size="sm"
                   disabled={!dirty}
-                  onClick={restore}
+                  onClick={() => setConfirm("restore")}
                   title="Discard all unsaved edits and restore the saved flow"
                   iconLeft={<RotateCcw className="h-3.5 w-3.5" strokeWidth={1.8} />}
                 >
@@ -726,7 +722,7 @@ export function FlowBuilderPage({
                 size="sm"
                 disabled={deleting}
                 iconLeft={<Trash2 className="h-3 w-3" strokeWidth={1.7} />}
-                onClick={() => void handleDelete()}
+                onClick={() => setConfirm("delete")}
                 title="Delete this project flow"
                 className="!text-rose-300/90 hover:!text-rose-200"
               >
@@ -828,12 +824,6 @@ export function FlowBuilderPage({
             <StatTile value={Object.keys(selected.definition.seats).length} label="seats" />
             <StatTile value={`v${selected.version}`} label="version" />
             <StatTile value={selected.source.kind} label="source" />
-          </div>
-        ) : null}
-        {selected && !isProjectFlow ? (
-          <div className="mt-3 inline-flex items-center gap-2 rounded-[10px] border border-amber-soft/25 bg-amber-soft/10 px-3 py-1.5 text-[11.5px] font-medium text-amber-soft">
-            <Lock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} aria-hidden />
-            Read-only - fork into the project to edit it.
           </div>
         ) : null}
       </section>
@@ -939,11 +929,7 @@ export function FlowBuilderPage({
                     active={i === activeStepIdx}
                     onClick={() => setActiveStepIdx(i)}
                     editable={isProjectFlow}
-                    canMoveUp={i > 0}
-                    canMoveDown={i < displayedSteps.length - 1}
                     canRemove={displayedSteps.length > 1}
-                    onMoveUp={() => moveStep(step.id, -1)}
-                    onMoveDown={() => moveStep(step.id, 1)}
                     onRemove={() => removeStep(step.id)}
                     dragging={dragIdx === i}
                     dropBelow={dragOverIdx === i && dragIdx !== null && dragIdx < i}
@@ -1013,7 +999,80 @@ export function FlowBuilderPage({
           }}
         />
       ) : null}
+
+      {confirm === "delete" ? (
+        <ConfirmDialog
+          title="Delete this flow?"
+          message={`Delete the project flow "${selected?.label ?? ""}"? This removes .vibestrate/flows/${selected?.id ?? ""}/ and can't be undone.`}
+          confirmLabel="Delete flow"
+          danger
+          onConfirm={() => {
+            setConfirm(null);
+            void handleDelete();
+          }}
+          onCancel={() => setConfirm(null)}
+        />
+      ) : confirm === "restore" ? (
+        <ConfirmDialog
+          title="Restore the saved flow?"
+          message="Discard all unsaved edits and restore this flow to its last saved state. You can still undo the restore afterwards."
+          confirmLabel="Restore"
+          onConfirm={() => {
+            setConfirm(null);
+            restore();
+          }}
+          onCancel={() => setConfirm(null)}
+        />
+      ) : null}
     </div>
+  );
+}
+
+// A small themed confirm dialog - the in-app replacement for window.confirm,
+// used to gate the destructive (Delete) and discard (Restore) actions.
+// Portaled to <body> so its fixed overlay is relative to the viewport, not the
+// transformed `.fade-up` page root (which would push it off-screen).
+function ConfirmDialog({
+  title,
+  message,
+  confirmLabel,
+  danger,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  danger?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-[420px] rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-[15px] font-bold text-chalk-100">{title}</h2>
+        <p className="mt-2 text-[12.5px] leading-[1.55] text-chalk-300">{message}</p>
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button
+            variant={danger ? "danger" : "primary"}
+            size="sm"
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -1153,11 +1212,7 @@ function StepRow({
   active,
   onClick,
   editable,
-  canMoveUp,
-  canMoveDown,
   canRemove,
-  onMoveUp,
-  onMoveDown,
   onRemove,
   dragging,
   dropAbove,
@@ -1172,11 +1227,7 @@ function StepRow({
   active: boolean;
   onClick: () => void;
   editable: boolean;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
   canRemove: boolean;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
   onRemove: () => void;
   dragging: boolean;
   dropAbove: boolean;
@@ -1297,20 +1348,6 @@ function StepRow({
           className="flex items-center gap-1"
           onClick={(e) => e.stopPropagation()}
         >
-          <IconBtn
-            title="Move up"
-            disabled={!canMoveUp}
-            onClick={onMoveUp}
-          >
-            <ArrowUp className="h-3 w-3" strokeWidth={1.7} />
-          </IconBtn>
-          <IconBtn
-            title="Move down"
-            disabled={!canMoveDown}
-            onClick={onMoveDown}
-          >
-            <ArrowDown className="h-3 w-3" strokeWidth={1.7} />
-          </IconBtn>
           <IconBtn
             title={canRemove ? "Remove step" : "A flow must have at least one step"}
             disabled={!canRemove}
