@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.30.0
+
+- **New-run and the Flow Builder join the new look.** The two remaining
+  Phase 3 surfaces are redesigned onto the coal/chalk/violet foundation, so
+  composing a run and editing a flow now read the same as Mission Control and
+  the Flows catalog.
+  - **New run** is the page-scale sibling of the dashboard composer: flow and
+    crew are picked as tiles carrying the signature step-meter, the run-mode and
+    tuning controls are labelled segments, and the launch button states its own
+    blocker ("Add a task brief to start") instead of a separate readiness line.
+    The live `vibe run` command mirror, the selected flow's inputs, the inline
+    "ask the supervisor" rail and the metrics / recent-runs quick-looks all
+    moved onto the same framed cards.
+  - **Flow Builder** dropped its old slab surfaces, eyebrow kickers and grey
+    meta for contained cards, sentence-case violet section labels and the shared
+    input styling - the step list, inspector, loop / policy / preview cards and
+    the raw-YAML editor all match now. Behaviour is unchanged; this is a re-skin.
+
 ## 0.29.5
 
 - **One flow card everywhere.** The community-hub flows now render through the

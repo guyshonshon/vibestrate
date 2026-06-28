@@ -33,7 +33,6 @@ import {
 } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip } from "../../components/design/Chip.js";
-import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { Select } from "../../components/design/Select.js";
 import { cn } from "../../components/design/cn.js";
 import { FlowGraph, isGraphSteps } from "../../components/workflow/FlowGraph.js";
@@ -443,21 +442,18 @@ export function FlowBuilderPage({
   }
 
   return (
-    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-12">
-      <header
-        className="flex flex-wrap items-center justify-between gap-3"
-        data-screen-label="00 Header"
-      >
+    <div className="font-jakarta px-10 py-7 fade-up">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onBack}
-            className="flex items-center gap-1.5 text-[12.5px] text-fog-300 hover:text-fog-100"
+            className="flex items-center gap-1.5 text-[12.5px] text-chalk-300 hover:text-chalk-100"
           >
             <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.7} /> Flows
           </button>
-          <span className="text-fog-500">/</span>
-          <span className="text-[12.5px] text-fog-300 truncate max-w-[200px]">
+          <span className="text-chalk-400">/</span>
+          <span className="text-[12.5px] text-chalk-300 truncate max-w-[200px]">
             {selected?.label ?? "Editor"}
           </span>
         </div>
@@ -582,10 +578,12 @@ export function FlowBuilderPage({
         </div>
       </header>
 
-      <section className="mt-5 flex flex-wrap items-center gap-3" data-screen-label="01 Flow">
+      <section className="mt-5 flex flex-wrap items-center gap-3">
         {/* Builtins open read-only - calling that "Editing" contradicted the
          * card's own "fork to edit" note. */}
-        <div className="eyebrow">{isProjectFlow ? "Editing" : "Viewing"}</div>
+        <span className="text-[12px] font-semibold text-violet-vivid">
+          {isProjectFlow ? "Editing" : "Viewing"}
+        </span>
         <Select
           value={selected?.id ?? ""}
           ariaLabel="Select flow"
@@ -601,7 +599,7 @@ export function FlowBuilderPage({
           }))}
         />
         {selected ? (
-          <span className="text-[11.5px] text-fog-500">
+          <span className="text-[11.5px] text-chalk-400">
             {selected.definition.steps.length} steps ·{" "}
             {Object.keys(selected.definition.seats).length} seats · v
             {selected.version}
@@ -610,7 +608,7 @@ export function FlowBuilderPage({
       </section>
 
       {error ? (
-        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
+        <div className="mt-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
@@ -619,8 +617,8 @@ export function FlowBuilderPage({
           role="status"
           className={
             toast.kind === "ok"
-              ? "mt-4 border px-3 py-1.5 text-[12.5px] border-emerald-400/30 bg-emerald-500/5 text-emerald-300"
-              : "mt-4 border px-3 py-1.5 text-[12.5px] border-rose-400/30 bg-rose-500/5 text-rose-300"
+              ? "mt-4 rounded-[12px] border px-3 py-2 text-[12.5px] border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
+              : "mt-4 rounded-[12px] border px-3 py-2 text-[12.5px] border-rose-400/30 bg-rose-500/10 text-rose-300"
           }
         >
           {toast.kind === "ok" ? "✓ " : "✗ "}
@@ -629,16 +627,16 @@ export function FlowBuilderPage({
       ) : null}
 
       {selected && yamlMode ? (
-        <section className="mt-8" data-screen-label="03 Raw YAML">
-          <div className="slab p-5 fade-up">
+        <section className="mt-8">
+          <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-5 fade-up">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <div className="eyebrow">Raw YAML</div>
-                <div className="mt-0.5 text-[12.5px] text-fog-300">
+                <div className="text-[12px] font-semibold text-violet-vivid">Raw YAML</div>
+                <div className="mt-0.5 text-[12.5px] text-chalk-300">
                   The flow's source. Saving validates the full schema and runs the
                   secret / size guards server-side.
                   {!isProjectFlow ? (
-                    <span className="ml-2 text-amber-300">
+                    <span className="ml-2 text-amber-soft">
                       read-only - fork into the project to edit
                     </span>
                   ) : null}
@@ -651,7 +649,7 @@ export function FlowBuilderPage({
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div
                 className={cn(
-                  "min-w-0 border bg-black/40",
+                  "min-w-0 rounded-[12px] border bg-coal-900",
                   yamlError
                     ? "border-rose-400/40"
                     : "border-violet-soft/30",
@@ -660,7 +658,7 @@ export function FlowBuilderPage({
               >
                 <Suspense
                   fallback={
-                    <div className="px-3 py-2.5 text-[11.5px] text-fog-500">
+                    <div className="px-3 py-2.5 text-[11.5px] text-chalk-400">
                       Loading editor…
                     </div>
                   }
@@ -677,7 +675,7 @@ export function FlowBuilderPage({
               </div>
             </div>
             {yamlError ? (
-              <div className="mt-2 border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12px] text-rose-300 whitespace-pre-wrap">
+              <div className="mt-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300 whitespace-pre-wrap">
                 {yamlError}
               </div>
             ) : null}
@@ -686,11 +684,11 @@ export function FlowBuilderPage({
       ) : null}
 
       {selected && !yamlMode ? (
-        <section className="mt-8 grid grid-cols-12 gap-5" data-screen-label="03 Builder">
+        <section className="mt-8 grid grid-cols-12 gap-5">
           <div className="col-span-12 xl:col-span-7">
-            <div className="slab p-5 fade-up">
+            <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-5 fade-up">
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 bg-violet-deep ring-1 ring-violet-soft/30 flex items-center justify-center text-white shrink-0">
+                <div className="w-10 h-10 rounded-[12px] bg-violet-soft/15 text-violet-soft ring-1 ring-violet-soft/20 flex items-center justify-center shrink-0">
                   {(() => {
                     const Icon = flowIcon(selected.label);
                     return <Icon className="h-4 w-4" strokeWidth={1.7} />;
@@ -702,17 +700,17 @@ export function FlowBuilderPage({
                     onChange={(e) => setDraftLabel(e.target.value)}
                     disabled={!isProjectFlow}
                     className={
-                      "bg-transparent border-b border-transparent transition outline-none text-[20px] font-semibold tracking-tight w-full " +
+                      "bg-transparent border-b border-transparent transition outline-none text-[20px] font-semibold tracking-tight w-full text-chalk-100 " +
                       (isProjectFlow
-                        ? "hover:border-white/10 focus:border-violet-soft/40"
+                        ? "hover:border-[color:var(--line-strong)] focus:border-violet-soft/40"
                         : "opacity-70 cursor-not-allowed")
                     }
                   />
-                  <div className="text-[11.5px] text-fog-300 mt-1">
+                  <div className="text-[11.5px] text-chalk-300 mt-1">
                     {displayedSteps.length} steps · source{" "}
-                    <span className="text-fog-200">{selected.source.kind}</span>
+                    <span className="text-chalk-100">{selected.source.kind}</span>
                     {!isProjectFlow ? (
-                      <span className="ml-2 text-amber-300">
+                      <span className="ml-2 text-amber-soft">
                         read-only - fork into the project to edit
                       </span>
                     ) : null}
@@ -724,7 +722,7 @@ export function FlowBuilderPage({
               </div>
 
               <ol className="relative space-y-2.5 pl-8">
-                <span className="absolute left-[14px] top-3 bottom-3 w-px bg-white/[0.08]" />
+                <span className="absolute left-[14px] top-3 bottom-3 w-px bg-[color:var(--line-soft)]" />
                 {displayedSteps.map((step, i) => (
                   <StepRow
                     key={step.id}
@@ -743,11 +741,11 @@ export function FlowBuilderPage({
                 ))}
                 {isProjectFlow ? (
                   <li className="relative pl-1">
-                    <span className="absolute -left-[27px] top-[12px] w-3.5 h-3.5 rounded-full border border-dashed border-white/15" />
+                    <span className="absolute -left-[27px] top-[12px] w-3.5 h-3.5 rounded-full border border-dashed border-[color:var(--line-soft)]" />
                     <button
                       type="button"
                       onClick={addStep}
-                      className="border border-dashed border-white/[0.12] hover:border-violet-soft/40 hover:bg-violet-500/[0.04] px-3 py-2.5 text-[12.5px] text-fog-300 hover:text-fog-100 flex items-center gap-2 w-full"
+                      className="rounded-[12px] border border-dashed border-[color:var(--line)] hover:border-violet-soft/40 hover:bg-violet-soft/10 px-3 py-2.5 text-[12.5px] text-chalk-300 hover:text-chalk-100 flex items-center gap-2 w-full transition"
                     >
                       <Plus className="h-3 w-3" strokeWidth={1.7} /> Add step
                     </button>
@@ -816,44 +814,44 @@ function DryRunModal({
       onClick={onClose}
     >
       <div
-        className="slab w-full max-w-[640px] p-5"
+        className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 w-full max-w-[640px] p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="eyebrow">Dry-run · resolved, not started</div>
-            <h2 className="text-display text-[18px] mt-0.5">{snapshot?.label ?? "Resolving…"}</h2>
+            <div className="text-[12px] font-semibold text-violet-vivid">Dry-run · resolved, not started</div>
+            <h2 className="text-[18px] font-bold text-chalk-100 mt-0.5">{snapshot?.label ?? "Resolving…"}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
+            className="rounded-[10px] border border-[color:var(--line-strong)] px-2 py-1 text-[12px] text-chalk-300 hover:text-chalk-100 transition"
           >
             Close
           </button>
         </div>
 
         {busy ? (
-          <div className="mt-4 text-[13px] text-fog-400">Resolving the flow…</div>
+          <div className="mt-4 text-[13px] text-chalk-400">Resolving the flow…</div>
         ) : error ? (
-          <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+          <div className="mt-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
             {error}
           </div>
         ) : snapshot ? (
           <>
             <div className="mt-4">
-              <div className="eyebrow mb-1.5">
+              <div className="text-[12px] font-semibold text-violet-vivid mb-1.5">
                 Seats · crew {snapshot.crewId}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {snapshot.seats.map((s) => (
                   <span
                     key={s.id}
-                    className="border border-white/10 bg-ink-200 px-2 py-1 text-[11.5px] text-fog-300"
+                    className="rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 px-2 py-1 text-[11.5px] text-chalk-300"
                     title={s.description ?? undefined}
                   >
-                    <span className="text-fog-100">{s.label}</span>{" "}
-                    <span className="mono text-fog-500">({s.id})</span>
+                    <span className="text-chalk-100">{s.label}</span>{" "}
+                    <span className="mono text-chalk-400">({s.id})</span>
                   </span>
                 ))}
               </div>
@@ -877,7 +875,7 @@ function DryRunModal({
               </div>
             ) : null}
             <div className="mt-3">
-              <div className="eyebrow mb-1.5">
+              <div className="text-[12px] font-semibold text-violet-vivid mb-1.5">
                 Steps · {snapshot.steps.filter((s) => s.enabled).length} enabled
               </div>
               <ol className="space-y-1">
@@ -885,18 +883,18 @@ function DryRunModal({
                   <li
                     key={`${s.id}-${i}`}
                     className={cn(
-                      "flex items-center gap-2 border border-white/[0.06] bg-ink-200 px-2.5 py-1.5 text-[12px]",
+                      "flex items-center gap-2 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-1.5 text-[12px]",
                       s.enabled ? "" : "opacity-45",
                     )}
                   >
-                    <span className="mono w-5 shrink-0 text-right text-[11px] text-fog-600">{i + 1}</span>
-                    <span className="truncate text-fog-200">{s.label}</span>
-                    <span className="mono text-[10.5px] text-fog-500">{s.kind}</span>
+                    <span className="mono w-5 shrink-0 text-right text-[11px] text-chalk-400">{i + 1}</span>
+                    <span className="truncate text-chalk-100">{s.label}</span>
+                    <span className="mono text-[10.5px] text-chalk-400">{s.kind}</span>
                     {s.seat ? (
-                      <span className="mono text-[10.5px] text-fog-400">{s.seat}</span>
+                      <span className="mono text-[10.5px] text-chalk-400">{s.seat}</span>
                     ) : null}
                     {s.resolvedRoleLabel ? (
-                      <span className="mono text-[10.5px] text-fog-300">
+                      <span className="mono text-[10.5px] text-chalk-300">
                         → {s.resolvedRoleLabel}
                       </span>
                     ) : null}
@@ -907,17 +905,17 @@ function DryRunModal({
                       </span>
                     ) : null}
                     {!s.enabled ? (
-                      <span className="ml-auto text-[10.5px] text-fog-500">skipped</span>
+                      <span className="ml-auto text-[10.5px] text-chalk-400">skipped</span>
                     ) : s.approval ? (
-                      <span className="ml-auto text-[10.5px] text-amber-300/90">approval gate</span>
+                      <span className="ml-auto text-[10.5px] text-amber-soft">approval gate</span>
                     ) : null}
                   </li>
                 ))}
               </ol>
             </div>
-            <p className="mt-3 text-[11.5px] text-fog-500">
+            <p className="mt-3 text-[11.5px] text-chalk-400">
               No run started. This is what{" "}
-              <code className="text-fog-300">vibe run "…" --flow {flowId}</code>{" "}
+              <code className="text-chalk-300">vibe run "…" --flow {flowId}</code>{" "}
               would instantiate (reflects the saved flow).
             </p>
           </>
@@ -964,29 +962,29 @@ function StepRow({
     <li
       onClick={onClick}
       className={cn(
-        "relative border cursor-pointer transition px-3.5 py-3 flex items-center gap-3",
+        "relative rounded-[12px] border cursor-pointer transition px-3.5 py-3 flex items-center gap-3",
         active
-          ? "border-violet-soft/40 bg-violet-500/[0.06] ring-1 ring-violet-soft/25"
-          : "border-white/[0.07] bg-ink-200 hover:bg-ink-100",
+          ? "border-violet-soft/40 bg-violet-soft/10 ring-1 ring-violet-soft/25"
+          : "border-[color:var(--line)] bg-coal-500 hover:bg-coal-400",
       )}
     >
-      <span className="absolute -left-[27px] top-[16px] w-3.5 h-3.5 rounded-full ring-2 ring-ink-50">
+      <span className="absolute -left-[27px] top-[16px] w-3.5 h-3.5 rounded-full ring-2 ring-[color:var(--card)]">
         <span
           className={cn(
             "absolute inset-0 rounded-full",
             tone === "violet" && "bg-violet-soft",
             tone === "sky" && "bg-sky-glow",
-            tone === "amber" && "bg-amber-300",
+            tone === "amber" && "bg-amber-soft",
             tone === "emerald" && "bg-emerald-400",
           )}
         />
       </span>
-      <span className="mono text-[10.5px] text-fog-500 num-tabular w-5 text-center">
+      <span className="mono text-[10.5px] text-chalk-400 num-tabular w-5 text-center">
         {String(idx + 1).padStart(2, "0")}
       </span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[13.5px] font-medium text-fog-100">
+          <span className="text-[13.5px] font-medium text-chalk-100">
             {step.label}
           </span>
           <Chip tone={tone}>{step.kind}</Chip>
@@ -997,16 +995,16 @@ function StepRow({
           ) : null}
           {step.optional ? <Chip tone="neutral">optional</Chip> : null}
         </div>
-        <div className="text-[11.5px] text-fog-300 mt-0.5 flex items-center gap-2 flex-wrap">
+        <div className="text-[11.5px] text-chalk-300 mt-0.5 flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1 whitespace-nowrap">
-            <Cpu className="h-3 w-3 text-fog-500" strokeWidth={1.7} />{" "}
+            <Cpu className="h-3 w-3 text-chalk-400" strokeWidth={1.7} />{" "}
             {step.seat ?? "-"}
           </span>
           {step.inputs.length > 0 ? (
             <>
               <span>·</span>
               <span className="flex items-center gap-1 whitespace-nowrap">
-                <Bolt className="h-3 w-3 text-amber-300" strokeWidth={1.7} />
+                <Bolt className="h-3 w-3 text-amber-soft" strokeWidth={1.7} />
                 {step.inputs.length} inputs
               </span>
             </>
@@ -1014,7 +1012,7 @@ function StepRow({
           {step.needs && step.needs.length > 0 ? (
             <>
               <span>·</span>
-              <span className="mono whitespace-nowrap text-fog-500">
+              <span className="mono whitespace-nowrap text-chalk-400">
                 needs {step.needs.join(", ")}
               </span>
             </>
@@ -1050,7 +1048,7 @@ function StepRow({
           </IconBtn>
         </div>
       ) : null}
-      <ChevronRight className="h-3.5 w-3.5 text-fog-300" strokeWidth={1.7} />
+      <ChevronRight className="h-3.5 w-3.5 text-chalk-300" strokeWidth={1.7} />
     </li>
   );
 }
@@ -1075,12 +1073,12 @@ function IconBtn({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "h-6 w-6 inline-flex items-center justify-center border transition",
+        "h-6 w-6 inline-flex items-center justify-center rounded-[10px] border transition",
         disabled
-          ? "border-white/5 text-fog-600 cursor-not-allowed"
+          ? "border-[color:var(--line-soft)] text-chalk-400 cursor-not-allowed"
           : danger
             ? "border-rose-300/20 text-rose-300/80 hover:bg-rose-500/10 hover:text-rose-200"
-            : "border-white/10 text-fog-300 hover:bg-white/[0.04] hover:text-fog-100",
+            : "border-[color:var(--line-strong)] text-chalk-300 hover:bg-coal-500 hover:text-chalk-100",
       )}
     >
       {children}
@@ -1131,10 +1129,10 @@ function StepInspector({
   const requiresApproval = kind === "approval-gate";
 
   return (
-    <div className="slab p-4 fade-up fade-up-delay-1">
-      <SectionEyebrow className="mb-3">
-        <span>Step inspector · {step.label}</span>
-      </SectionEyebrow>
+    <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4 fade-up fade-up-delay-1">
+      <div className="mb-3 text-[12px] font-semibold text-violet-vivid">
+        Step inspector · {step.label}
+      </div>
 
       <Field label="Step name">
         <input
@@ -1142,9 +1140,9 @@ function StepInspector({
           onChange={(e) => onPatchDraft({ label: e.target.value })}
           disabled={!editable}
           className={cn(
-            "w-full bg-ink-200 border border-white/10 transition h-9 px-3 text-[13px] text-fog-100 outline-none",
+            "w-full rounded-[12px] bg-coal-800 border border-[color:var(--line-strong)] transition h-9 px-3 text-[13px] text-chalk-100 outline-none",
             editable
-              ? "focus:border-violet-soft/40"
+              ? "focus:border-violet-soft/50"
               : "opacity-70 cursor-not-allowed",
           )}
         />
@@ -1159,10 +1157,10 @@ function StepInspector({
               disabled={!editable}
               onClick={() => onPatchDraft({ kind: k })}
               className={cn(
-                "text-[11.5px] px-2 py-1 border whitespace-nowrap transition",
+                "text-[11.5px] px-2 py-1 rounded-[10px] border whitespace-nowrap transition",
                 k === kind
                   ? "border-violet-soft/45 bg-violet-soft/10 text-violet-soft"
-                  : "border-white/[0.08] bg-ink-200 text-fog-300 hover:text-fog-100",
+                  : "border-[color:var(--line)] bg-coal-500 text-chalk-300 hover:text-chalk-100",
                 !editable && "opacity-60 cursor-not-allowed",
               )}
             >
@@ -1193,11 +1191,11 @@ function StepInspector({
           ]}
         />
         {requiresSeat && !seatId ? (
-          <div className="text-[11px] text-amber-300 mt-1">
+          <div className="text-[11px] text-amber-soft mt-1">
             {kind} steps need a seat.
           </div>
         ) : null}
-        <div className="text-[11px] text-fog-500 mt-1">
+        <div className="text-[11px] text-chalk-400 mt-1">
           Which Role fills this seat - and on which Profile - is decided by the
           Crew at run time, not here. Flows stay shareable.
         </div>
@@ -1208,12 +1206,12 @@ function StepInspector({
           type="button"
           disabled={!editable}
           onClick={() => onPatchDraft({ optional: !optional })}
-          className="flex items-center gap-2.5 text-[12.5px] text-fog-200 disabled:opacity-60"
+          className="flex items-center gap-2.5 text-[12.5px] text-chalk-300 disabled:opacity-60"
         >
           <span
             className={cn(
               "w-9 h-5 rounded-full p-0.5 transition",
-              optional ? "bg-violet-deep" : "bg-white/10",
+              optional ? "bg-violet-soft" : "bg-coal-400",
             )}
           >
             <span
@@ -1257,7 +1255,7 @@ function StepInspector({
             };
             if (all.length === 0) {
               return (
-                <div className="text-[11px] text-fog-500">
+                <div className="text-[11px] text-chalk-400">
                   No skills found in this project (.vibestrate/skills or
                   .claude/skills).
                 </div>
@@ -1275,10 +1273,10 @@ function StepInspector({
                         disabled={!editable}
                         onClick={() => toggle(name)}
                         className={cn(
-                          "text-[11.5px] px-2 py-1 border whitespace-nowrap transition",
+                          "text-[11.5px] px-2 py-1 rounded-[10px] border whitespace-nowrap transition",
                           on
                             ? "border-violet-soft/45 bg-violet-soft/10 text-violet-soft"
-                            : "border-white/[0.08] bg-ink-200 text-fog-300 hover:text-fog-100",
+                            : "border-[color:var(--line)] bg-coal-500 text-chalk-300 hover:text-chalk-100",
                           !editable && "opacity-60 cursor-not-allowed",
                         )}
                       >
@@ -1287,7 +1285,7 @@ function StepInspector({
                     );
                   })}
                 </div>
-                <div className="text-[11px] text-fog-500 mt-1">
+                <div className="text-[11px] text-chalk-400 mt-1">
                   Knowledge injected into this step's prompt (merged with run-level
                   skills). Portable - the flow carries them, not a separate
                   primitive.
@@ -1342,7 +1340,7 @@ function ApprovalEditor({
   if (!effective) {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-[12.5px] text-fog-300">Auto-continue.</span>
+        <span className="text-[12.5px] text-chalk-300">Auto-continue.</span>
         {editable ? (
           <button
             type="button"
@@ -1372,9 +1370,9 @@ function ApprovalEditor({
         }
         placeholder="Why is this gate here?"
         className={cn(
-          "w-full bg-ink-200 border border-white/10 h-8 px-3 text-[12.5px] text-fog-100 outline-none",
+          "w-full rounded-[12px] bg-coal-800 border border-[color:var(--line-strong)] h-8 px-3 text-[12.5px] text-chalk-100 outline-none",
           editable
-            ? "focus:border-violet-soft/40"
+            ? "focus:border-violet-soft/50"
             : "opacity-70 cursor-not-allowed",
         )}
       />
@@ -1386,9 +1384,9 @@ function ApprovalEditor({
         }
         placeholder="What is the user being asked to do?"
         className={cn(
-          "w-full bg-ink-200 border border-white/10 h-8 px-3 text-[12.5px] text-fog-100 outline-none",
+          "w-full rounded-[12px] bg-coal-800 border border-[color:var(--line-strong)] h-8 px-3 text-[12.5px] text-chalk-100 outline-none",
           editable
-            ? "focus:border-violet-soft/40"
+            ? "focus:border-violet-soft/50"
             : "opacity-70 cursor-not-allowed",
         )}
       />
@@ -1404,15 +1402,15 @@ function ApprovalEditor({
         }}
         placeholder="Optional message to surface in the approval card"
         className={cn(
-          "w-full bg-ink-200 border border-white/10 h-8 px-3 text-[12.5px] text-fog-100 outline-none",
+          "w-full rounded-[12px] bg-coal-800 border border-[color:var(--line-strong)] h-8 px-3 text-[12.5px] text-chalk-100 outline-none",
           editable
-            ? "focus:border-violet-soft/40"
+            ? "focus:border-violet-soft/50"
             : "opacity-70 cursor-not-allowed",
         )}
       />
       <div className="flex items-center justify-between gap-2 pt-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] uppercase tracking-[0.14em] text-fog-500">
+          <span className="text-[11px] font-semibold text-violet-soft">
             Risk
           </span>
           {RISK_LEVELS.map((r) => (
@@ -1422,14 +1420,14 @@ function ApprovalEditor({
               disabled={!editable}
               onClick={() => onChange({ ...effective, riskLevel: r })}
               className={cn(
-                "text-[11.5px] px-2 py-0.5 border transition",
+                "text-[11.5px] px-2 py-0.5 rounded-[10px] border transition",
                 r === effective.riskLevel
                   ? r === "high"
                     ? "border-rose-400/40 bg-rose-500/10 text-rose-300"
                     : r === "low"
                       ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-300"
-                      : "border-amber-400/40 bg-amber-500/10 text-amber-300"
-                  : "border-white/[0.08] bg-ink-200 text-fog-300 hover:text-fog-100",
+                      : "border-amber-soft/40 bg-amber-soft/10 text-amber-soft"
+                  : "border-[color:var(--line)] bg-coal-500 text-chalk-300 hover:text-chalk-100",
                 !editable && "opacity-60 cursor-not-allowed",
               )}
             >
@@ -1598,17 +1596,17 @@ function resolveNullable<T>(draft: T | null | undefined, current: T | null): T |
 function Row({ label, items }: { label: string; items: string[] }) {
   return (
     <div className="flex items-start gap-2">
-      <span className="text-[10.5px] uppercase tracking-[0.14em] text-fog-500 w-16 shrink-0 pt-0.5">
+      <span className="text-[10.5px] font-medium text-violet-soft w-16 shrink-0 pt-0.5">
         {label}
       </span>
       <div className="flex flex-wrap gap-1.5 min-w-0">
         {items.length === 0 ? (
-          <span className="text-fog-500 text-[11.5px]">-</span>
+          <span className="text-chalk-400 text-[11.5px]">-</span>
         ) : (
           items.map((it) => (
             <span
               key={it}
-              className="mono text-[11px] px-1.5 py-0.5 border border-white/[0.07] bg-ink-200 text-fog-300"
+              className="mono text-[11px] px-1.5 py-0.5 rounded-[8px] border border-[color:var(--line-soft)] bg-coal-500 text-chalk-300"
             >
               {it}
             </span>
@@ -1628,7 +1626,7 @@ function Field({
 }) {
   return (
     <div className="mb-3.5 last:mb-0">
-      <div className="text-[11px] uppercase tracking-[0.14em] text-fog-500 mb-1.5">
+      <div className="text-[11px] font-semibold text-violet-soft mb-1.5">
         {label}
       </div>
       {children}
@@ -1644,20 +1642,18 @@ function PolicyCard() {
     { label: "Auto-merge on green CI", on: false },
   ];
   return (
-    <div className="slab p-4 fade-up fade-up-delay-2">
-      <SectionEyebrow className="mb-3">
-        <span>Policies</span>
-      </SectionEyebrow>
+    <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4 fade-up fade-up-delay-2">
+      <div className="mb-3 text-[12px] font-semibold text-violet-vivid">Policies</div>
       <ul className="space-y-2.5 text-[12.5px]">
         {lines.map((p) => (
           <li key={p.label} className="flex items-center justify-between">
-            <span className="text-fog-200">{p.label}</span>
+            <span className="text-chalk-300">{p.label}</span>
             <span
               className={cn(
-                "text-[11px] mono px-2 py-0.5 border",
+                "text-[11px] mono px-2 py-0.5 rounded-[8px] border",
                 p.on
                   ? "bg-emerald-500/10 text-emerald-300 border-emerald-400/25"
-                  : "bg-ink-200 text-fog-400 border-white/10",
+                  : "bg-coal-500 text-chalk-400 border-[color:var(--line-soft)]",
               )}
             >
               {p.on ? "enforced" : "off"}
@@ -1671,25 +1667,23 @@ function PolicyCard() {
 
 function PreviewCard({ steps }: { steps: FlowStepDefinition[] }) {
   return (
-    <div className="slab p-4 fade-up fade-up-delay-3">
-      <SectionEyebrow className="mb-3">
-        <span>Flow preview</span>
-      </SectionEyebrow>
+    <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4 fade-up fade-up-delay-3">
+      <div className="mb-3 text-[12px] font-semibold text-violet-vivid">Flow preview</div>
       <div className="flex flex-wrap items-center gap-1.5 mono text-[11px]">
         {steps.map((s, i) => (
           <Fragment key={s.id}>
             <span
               className={cn(
-                "px-2 py-1 border whitespace-nowrap",
+                "px-2 py-1 rounded-[8px] border whitespace-nowrap",
                 s.approval
-                  ? "border-amber-400/35 bg-amber-500/[0.06] text-amber-200"
-                  : "border-violet-soft/30 bg-violet-soft/[0.06] text-violet-soft",
+                  ? "border-amber-soft/35 bg-amber-soft/10 text-amber-soft"
+                  : "border-violet-soft/30 bg-violet-soft/10 text-violet-soft",
               )}
             >
               {s.label}
             </span>
             {i < steps.length - 1 ? (
-              <span className="text-fog-500">→</span>
+              <span className="text-chalk-400">→</span>
             ) : null}
           </Fragment>
         ))}
@@ -1710,8 +1704,8 @@ function LoopCard({
   onChange: (loop: FlowLoop | null) => void;
 }) {
   const numCls = cn(
-    "w-full bg-ink-200 border border-white/10 h-9 px-2.5 text-[12.5px] text-fog-100 outline-none",
-    editable ? "focus:border-violet-soft/40" : "opacity-70 cursor-not-allowed",
+    "w-full rounded-[12px] bg-coal-800 border border-[color:var(--line-strong)] h-9 px-2.5 text-[12.5px] text-chalk-100 outline-none",
+    editable ? "focus:border-violet-soft/50" : "opacity-70 cursor-not-allowed",
   );
   const idx = (id: string): number => steps.findIndex((s) => s.id === id);
   const fromI = loop ? idx(loop.from) : -1;
@@ -1741,27 +1735,23 @@ function LoopCard({
   }
 
   return (
-    <div className="slab p-4 fade-up fade-up-delay-2">
-      <SectionEyebrow
-        className="mb-3"
-        right={
-          editable ? (
-            <button
-              type="button"
-              onClick={() => (loop ? onChange(null) : enable())}
-              className="text-[11px] text-violet-soft/90 hover:text-violet-soft"
-            >
-              {loop ? "remove loop" : "+ add loop"}
-            </button>
-          ) : loop ? (
-            <span className="text-[11px] text-fog-500">on</span>
-          ) : null
-        }
-      >
-        Loop
-      </SectionEyebrow>
+    <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4 fade-up fade-up-delay-2">
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <span className="text-[12px] font-semibold text-violet-vivid">Loop</span>
+        {editable ? (
+          <button
+            type="button"
+            onClick={() => (loop ? onChange(null) : enable())}
+            className="text-[11px] font-semibold text-violet-soft hover:text-violet-soft/80"
+          >
+            {loop ? "remove loop" : "+ add loop"}
+          </button>
+        ) : loop ? (
+          <span className="text-[11px] text-chalk-400">on</span>
+        ) : null}
+      </div>
       {!loop ? (
-        <p className="text-[12px] text-fog-500">
+        <p className="text-[12px] text-chalk-400">
           No loop. A loop repeats a contiguous range of steps while a review keeps
           asking for changes - e.g. coder → reviewer → coder.
         </p>
@@ -1825,14 +1815,14 @@ function LoopCard({
             />
           </Field>
           {!rangeOk || !decisionOk ? (
-            <p className="text-[11px] text-amber-300/90">
+            <p className="text-[11px] text-amber-soft">
               {!rangeOk ? "“From” must come at or before “To”. " : ""}
               {!decisionOk
                 ? "Pick a review-turn inside the range as the decision step."
                 : ""}
             </p>
           ) : (
-            <p className="text-[11px] text-fog-500">
+            <p className="text-[11px] text-chalk-400">
               Repeats {loop.from} → {loop.to} until {loop.decisionStep} isn’t
               “changes requested”, up to {loop.maxIterations}×.
             </p>
@@ -1855,14 +1845,14 @@ function YamlGraphPreview({ yamlText }: { yamlText: string }) {
   const steps = parsed.definition?.steps;
   if (parsed.error) {
     return (
-      <div className="border border-amber-400/25 bg-amber-500/[0.04] px-3 py-2 text-[12px] text-amber-300/90">
+      <div className="rounded-[12px] border border-amber-soft/25 bg-amber-soft/10 px-3 py-2 text-[12px] text-amber-soft">
         Live preview paused while the YAML doesn't parse.
       </div>
     );
   }
   if (!Array.isArray(steps) || steps.length === 0) {
     return (
-      <div className="border border-white/[0.06] bg-ink-200/30 px-3 py-2 text-[12px] text-fog-400">
+      <div className="rounded-[12px] border border-[color:var(--line-soft)] bg-coal-800 px-3 py-2 text-[12px] text-chalk-400">
         No steps to preview yet.
       </div>
     );
@@ -1879,17 +1869,17 @@ function YamlGraphPreview({ yamlText }: { yamlText: string }) {
     return <FlowGraph title="Live preview" steps={graphSteps} />;
   }
   return (
-    <div className="border border-white/[0.06] bg-ink-200/30 p-3">
-      <div className="eyebrow mb-2">Live preview</div>
+    <div className="rounded-[12px] border border-[color:var(--line-soft)] bg-coal-800 p-3">
+      <div className="mb-2 text-[12px] font-semibold text-violet-vivid">Live preview</div>
       <ol className="space-y-1">
         {graphSteps.map((s, i) => (
           <li
             key={s.id}
-            className="flex items-baseline gap-2 text-[12px] text-fog-200"
+            className="flex items-baseline gap-2 text-[12px] text-chalk-300"
           >
-            <span className="mono text-fog-500">{i + 1}.</span>
-            <span className="text-fog-100">{s.label}</span>
-            <span className="mono text-[10.5px] text-fog-500">{s.kind}</span>
+            <span className="mono text-chalk-400">{i + 1}.</span>
+            <span className="text-chalk-100">{s.label}</span>
+            <span className="mono text-[10.5px] text-chalk-400">{s.kind}</span>
           </li>
         ))}
       </ol>

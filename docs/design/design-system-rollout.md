@@ -1,12 +1,13 @@
 # Design: app-wide design-system rollout
 
-Status: **Phase 1 done (2026-06-27)** - rollout program for migrating the whole
+Status: **Phase 3 done (2026-06-28)** - rollout program for migrating the whole
 dashboard onto the "coal/chalk" foundation. Foundation merged to `main`
-(`f55c8725`). Shipped so far: Phase 2 (runs domain, v0.27.0) and Phase 1 (shared
-shell + atoms, v0.28.0) - the body canvas, TopBar, and shared atoms are now on
-the new foundation, so every page inherits the new chrome even before its body
-is redesigned. Remaining: the per-domain page-body redesigns (Phases 3-6) then
-cleanup (Phase 7). Phase 0 landed on branch `design/phase-0-foundation`:
+(`f55c8725`). Shipped so far: Phase 1 (shared shell + atoms, v0.28.0), Phase 2
+(runs domain, v0.27.0), the shell unification (sidebar-as-only-chrome, v0.29.0),
+and Phase 3 (compose / flows: Runs list, Flows catalog + hub, New-run composer,
+Flow Builder - completed v0.30.0). The body canvas, sidebar, shared atoms and
+the whole compose/flows domain are now on the new foundation. Remaining: the
+per-domain page-body redesigns (Phases 4-6) then cleanup (Phase 7). Phase 0 landed on branch `design/phase-0-foundation`:
 canonical
 contract locked ([`primitives-contract.md`](./primitives-contract.md)), dead
 shadcn `components/ui/*` set removed, token crosswalk verified against live
@@ -186,15 +187,21 @@ responsive sweep.
   (`SuggestionsPanel`/`ReviewPassPanel`/`ProfileSelect`) kept but skipped for a
   future rewire. The 4 `var()`-styled panels (`RunTree`, `RunGapQuestions`,
   `SpecUp*`) carry zero old tokens already.
-- [~] Phase 3 - compose / flows. DONE: `RunsPage` (v0.28.3) and `FlowsPage`
-  (v0.28.6) - the whole flow catalog + hub marketplace rebuilt on Mission
-  Control's flow card (extracted `FlowBars` shared with the composer; no category
-  labels; actions are real `<Button>` + an overflow menu, not bare text). PENDING:
-  `RunComposePage`, `FlowBuilderPage` (1898-line YAML editor). Also removed the
-  `impeccable` skill here - the contract + live Mission Control is the sole design
-  reference. RULE (user, hard): compose from our shadcn component layer
-  `components/design/*` (Button, Select, ...), never hand-rolled bare `<button>` /
-  raw utility elements; buttons must look like buttons; no faint-grey labels.
+- [x] Phase 3 - compose / flows (completed v0.30.0). `RunsPage` (v0.28.3) and
+  `FlowsPage` (v0.28.6) rebuilt on Mission Control's flow card (extracted
+  `FlowBars` shared with the composer; no category labels; actions are real
+  `<Button>` + an overflow menu, not bare text). Then `RunComposePage` and
+  `FlowBuilderPage` (1898-line YAML editor) redesigned onto coal/chalk/violet:
+  New-run now mirrors `MissionComposer` 1:1 (`PickCard` flow/crew tiles +
+  `FlowBars`, `EntityIcon`, recessed `Section` wells, launch button states its
+  own blocker), and the Flow Builder dropped `.slab`/`SectionEyebrow`/`.eyebrow`/
+  `fog-*`/`ink-*` for contained cards + sentence-case violet labels (pure
+  re-skin, behaviour unchanged). Verified in both themes against live data.
+  Also removed the `impeccable` skill here - the contract + live Mission Control
+  is the sole design reference. RULE (user, hard): compose from our shadcn
+  component layer `components/design/*` (Button, Select, ...), never hand-rolled
+  bare `<button>` / raw utility elements; buttons must look like buttons; no
+  faint-grey labels.
 - [x] Shell unification (branch `design/app-sidebar-shell`, v0.29.0). Mission
   Control's left sidebar became the single app-wide chrome (`layout/Sidebar`);
   the horizontal `TopBar` is **retired and deleted**. `AppShell` (non-`bare`)
