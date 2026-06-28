@@ -619,7 +619,7 @@ function HubSection({
             Couldn&apos;t load the hub right now: {hubError}
           </div>
         ) : loading && rows === null ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="h-[150px] rounded-[14px] border border-[color:var(--line)] bg-coal-600/40" aria-hidden />
             ))}
@@ -629,7 +629,7 @@ function HubSection({
             No hub flows match these filters.
           </div>
         ) : rows ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {rows.map((row) => {
               const risk = hubDiagnosisLabel(row.diagnosis);
               const name = row.label || row.name || row.ref;
@@ -640,31 +640,33 @@ function HubSection({
                 typeof row.steps === "number"
                   ? Array.from({ length: Math.max(1, row.steps) }, () => ({}))
                   : [];
+              // Installs rides in the header next to the name (download icon +
+              // count) so the compact card keeps steps + version + the badge on
+              // one inline row.
               const stats: FlowStat[] = [
                 ...(typeof row.steps === "number"
                   ? [{ value: row.steps, label: row.steps === 1 ? "step" : "steps" }]
                   : []),
                 ...(row.version ? [{ value: `v${row.version}`, label: "version" }] : []),
-                ...(typeof row.installs === "number"
-                  ? [
-                      {
-                        value: row.installs.toLocaleString(),
-                        label: "installs",
-                        icon: <Download className="h-3 w-3" strokeWidth={2.2} aria-hidden />,
-                      },
-                    ]
-                  : []),
               ];
               return (
                 <FlowCard
                   key={row.ref}
                   title={name}
                   badge={
-                    row.verified ? (
-                      <span className="shrink-0 text-[10px] font-bold text-emerald-400">curated</span>
-                    ) : row.author ? (
-                      <span className="mono shrink-0 text-[10.5px] text-violet-soft">@{row.author}</span>
-                    ) : null
+                    <div className="flex shrink-0 items-center gap-2">
+                      {typeof row.installs === "number" ? (
+                        <span className="flex items-center gap-1 text-[11px] font-semibold text-chalk-300">
+                          <Download className="h-3 w-3 text-violet-soft" strokeWidth={2.2} aria-hidden />
+                          {row.installs.toLocaleString()}
+                        </span>
+                      ) : null}
+                      {row.verified ? (
+                        <span className="text-[10px] font-bold text-emerald-400">curated</span>
+                      ) : row.author ? (
+                        <span className="mono text-[10.5px] text-violet-soft">@{row.author}</span>
+                      ) : null}
+                    </div>
                   }
                   steps={meterSteps}
                   description={row.description}
