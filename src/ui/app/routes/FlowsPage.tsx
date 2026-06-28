@@ -588,7 +588,7 @@ function HubSection({
         </div>
         <div className="shrink-0">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             iconLeft={open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             onClick={() => setOpen((v) => !v)}
@@ -904,9 +904,11 @@ function LocalFlowCard({
       </div>
       <FlowBars steps={steps} />
       {flow.definition.description ? (
-        <p className="line-clamp-2 text-[12px] leading-snug text-chalk-300">
-          {flow.definition.description}
-        </p>
+        <div className="space-y-1 text-[12px] leading-snug text-chalk-300">
+          {splitSentences(flow.definition.description).map((s, i) => (
+            <p key={i}>{s}</p>
+          ))}
+        </div>
       ) : null}
       <div className="mt-3 flex flex-wrap items-stretch gap-1.5">
         <StatTile value={steps.length} label={steps.length === 1 ? "step" : "steps"} />
@@ -932,6 +934,16 @@ function LocalFlowCard({
       </div>
     </div>
   );
+}
+
+/** Break a flow description into sentences so each reads on its own line in a
+ *  card. Splits only on sentence-end punctuation followed by a capital/digit/
+ *  quote, so common abbreviations ("e.g.") don't wrongly break a line. */
+function splitSentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?])\s+(?=[A-Z0-9"'])/)
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /** A single framed stat - a small inset card with a bold value over its unit,
