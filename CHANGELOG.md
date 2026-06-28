@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.28.5
+
+- **Flow cards now read like the rest of the app.** Stripped to Mission Control's
+  shape - the flow icon, the name, the step-meter, one line of stats - with the
+  category tags removed (the default flow just gets a green mark). The actions
+  moved into a real button plus an overflow menu instead of a wrapping row of
+  text links.
+
 ## 0.28.4
 
 - **The Flows catalog matches the rest of the app now.** The flow cards were a
