@@ -1,6 +1,6 @@
 {
   "name": "vibestrate",
-  "version": "0.29.0",
+  "version": "0.29.1",
   "description": "Vibestrate is an open-source AI CTO for supervised coding flows: swap Claude Code, Codex, Gemini, or local models across shared crews with approval gates and local run logs.",
   "license": "Apache-2.0",
   "author": "Guy Shonshon (https://shonshon.com)",

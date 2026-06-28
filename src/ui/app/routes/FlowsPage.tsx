@@ -568,37 +568,39 @@ function HubSection({
   }
 
   return (
-    <section className="mt-12 border-t border-[color:var(--line)] pt-8">
-      {/* Hub - collapsed by default; these flows are downloaded over the internet. */}
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 text-left"
-      >
-        {open ? (
-          <ChevronDown className="h-4 w-4 shrink-0 text-chalk-400" strokeWidth={1.9} />
-        ) : (
-          <ChevronRight className="h-4 w-4 shrink-0 text-chalk-400" strokeWidth={1.9} />
-        )}
-        <h2 className="text-[16px] font-semibold tracking-tight text-chalk-100">
-          Pull a flow
-        </h2>
-        <span className="text-[12px] text-chalk-300">from the hub</span>
-        {open ? (
-          <span className="mono ml-auto text-[11px] text-chalk-300 whitespace-nowrap">
-            {hubError ? "hub unavailable" : rows ? `${rows.length} ${rows.length === 1 ? "flow" : "flows"}` : "loading…"}
-          </span>
-        ) : null}
-      </button>
+    <section className="mt-12">
+      {/* Hub header - the same contained frame as the All flows header. */}
+      <div className="mb-6 flex flex-wrap items-start gap-4 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-[15px] font-bold text-chalk-100">Pull a flow</h2>
+            <span className="text-[12px] text-chalk-300">from the hub</span>
+            {open ? (
+              <span className="mono text-[11.5px] text-chalk-400 whitespace-nowrap">
+                {hubError ? "hub unavailable" : rows ? `${rows.length} ${rows.length === 1 ? "flow" : "flows"}` : "loading…"}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-1.5 max-w-[68ch] text-[13px] leading-[1.55] text-chalk-300">
+            Browse and install community flows from vibestrate.com - downloaded over
+            the internet, vetted through the secret-guarded import writer.
+          </p>
+        </div>
+        <div className="shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            iconLeft={open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? "Hide hub" : "Browse hub"}
+          </Button>
+        </div>
+      </div>
 
-      {!open ? (
-        <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.5] text-chalk-300">
-          Browse and install community flows from vibestrate.com - downloaded over
-          the internet, vetted through the secret-guarded import writer.
-        </p>
-      ) : (
+      {open ? (
         <>
-          <div className="relative mb-4 mt-5 max-w-[420px]">
+          <div className="relative mb-4 max-w-[420px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-chalk-400" strokeWidth={1.9} />
             <input
               value={query}
@@ -844,7 +846,7 @@ function HubSection({
             )}
           </div>
         </>
-      )}
+      ) : null}
     </section>
   );
 }
@@ -896,6 +898,9 @@ function LocalFlowCard({
         >
           {flow.label}
         </button>
+        {flow.version != null ? (
+          <span className="mono shrink-0 text-[10.5px] text-chalk-400">v{flow.version}</span>
+        ) : null}
         {isSelected ? (
           <span className="shrink-0 text-[10px] font-bold text-emerald-400">default</span>
         ) : null}
@@ -906,10 +911,10 @@ function LocalFlowCard({
           {flow.definition.description}
         </p>
       ) : null}
-      <div className="mono mt-2 text-[11px] text-chalk-300">
-        {steps.length} steps · {seats} {seats === 1 ? "seat" : "seats"}
-        {gates > 0 ? ` · ${gates} ${gates === 1 ? "gate" : "gates"}` : ""}
-        {flow.version != null ? ` · v${flow.version}` : ""}
+      <div className="mt-3 flex items-stretch gap-1.5">
+        <StatTile n={steps.length} label={steps.length === 1 ? "step" : "steps"} />
+        <StatTile n={seats} label={seats === 1 ? "seat" : "seats"} />
+        {gates > 0 ? <StatTile n={gates} label={gates === 1 ? "gate" : "gates"} /> : null}
       </div>
       <div className="mt-3.5 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
         <Button variant="secondary" size="sm" onClick={onOpen}>
@@ -927,6 +932,18 @@ function LocalFlowCard({
           />
         </div>
       </div>
+    </div>
+  );
+}
+
+/** A single framed stat - a small inset card with a bold value over its unit.
+ *  Replaces the old washed-out "8 steps · 6 seats · v1" mono line so a card's
+ *  numbers read as data, not faint grey text. */
+function StatTile({ n, label }: { n: number; label: string }) {
+  return (
+    <div className="flex flex-1 flex-col gap-0.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5">
+      <span className="num-tabular text-[15px] font-bold leading-none text-chalk-100">{n}</span>
+      <span className="text-[10.5px] font-medium text-chalk-300">{label}</span>
     </div>
   );
 }
