@@ -632,38 +632,40 @@ function HubSection({
             {rows.map((row) => {
               const risk = hubDiagnosisLabel(row.diagnosis);
               const name = row.label || row.name || row.ref;
-              const meta = [
-                (row.tags ?? [])[0],
-                row.version ? `v${row.version}` : null,
-                typeof row.steps === "number" ? `${row.steps} steps` : null,
-                typeof row.installs === "number" ? `${row.installs.toLocaleString()} ↓` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ");
+              // The hub only sends a step *count*, not the per-step kinds, so the
+              // meter shows shape (count) in neutral grey, not the violet/sky/amber
+              // makeup the local cards carry. Same card shell either way.
+              const meterSteps =
+                typeof row.steps === "number"
+                  ? Array.from({ length: Math.max(1, row.steps) }, () => ({}))
+                  : [];
+              const stats: FlowStat[] = [
+                ...(typeof row.steps === "number"
+                  ? [{ value: row.steps, label: row.steps === 1 ? "step" : "steps" }]
+                  : []),
+                ...(row.version ? [{ value: `v${row.version}`, label: "version" }] : []),
+                ...(typeof row.installs === "number"
+                  ? [{ value: row.installs.toLocaleString(), label: "installs" }]
+                  : []),
+              ];
               return (
-                <div
+                <FlowCard
                   key={row.ref}
-                  className="flex flex-col rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-3.5"
-                >
-                  <div className="flex items-center gap-2">
-                    <EntityIcon entity="flow" size={16} className="shrink-0 text-violet-soft" />
-                    <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-chalk-100">
-                      {name}
-                    </span>
-                    {row.verified ? (
+                  title={name}
+                  badge={
+                    row.verified ? (
                       <span className="shrink-0 text-[10px] font-bold text-emerald-400">curated</span>
                     ) : row.author ? (
                       <span className="mono shrink-0 text-[10.5px] text-violet-soft">@{row.author}</span>
-                    ) : null}
-                  </div>
-                  {row.description ? (
-                    <p className="mt-2 line-clamp-2 text-[12px] leading-snug text-chalk-300">
-                      {row.description}
-                    </p>
-                  ) : null}
-                  {meta ? <div className="mono mt-2.5 text-[11px] text-chalk-300">{meta}</div> : null}
-                  {risk ? <div className="mt-1.5 text-[10.5px] text-amber-soft">{risk}</div> : null}
-                  <div className="mt-3.5 flex items-center border-t border-[color:var(--line-soft)] pt-3">
+                    ) : null
+                  }
+                  steps={meterSteps}
+                  description={row.description}
+                  stats={stats}
+                  extra={
+                    risk ? <div className="mt-2 text-[10.5px] text-amber-soft">{risk}</div> : null
+                  }
+                  footer={
                     <Button
                       variant="secondary"
                       size="sm"
@@ -672,8 +674,8 @@ function HubSection({
                     >
                       {installing === row.ref ? "Installing…" : "Install"}
                     </Button>
-                  </div>
-                </div>
+                  }
+                />
               );
             })}
           </div>
@@ -685,9 +687,11 @@ function HubSection({
             guarantee; checksums verify transport only. A hub flow is executable
             configuration: review an installed flow before running it.
           </p>
+        </>
+      ) : null}
 
-          {/* ── Publish a flow ──────────────────────────────────────────── */}
-          <div className="mt-10 border-t border-[color:var(--line)] pt-6">
+      {/* ── Publish a flow - always visible, independent of browsing the hub ── */}
+      <div className="mt-8 border-t border-[color:var(--line)] pt-6">
             <button
               type="button"
               onClick={() => {
@@ -847,8 +851,6 @@ function HubSection({
               </form>
             )}
           </div>
-        </>
-      ) : null}
     </section>
   );
 }
@@ -880,57 +882,119 @@ function LocalFlowCard({
   const steps = flow.definition.steps ?? [];
   const seats = Object.keys(flow.definition.seats ?? {}).length;
   const gates = steps.filter((s) => s.kind === "approval-gate" || !!s.approval).length;
-  // Mission Control's flow card exactly: icon + bold name + the step-meter +
-  // a dense meta line, then real <Button> actions (our shadcn button - not bare
-  // text). No category label (the action set already tells project from
-  // built-in); the default flow gets an emerald mark + border, not a slug.
+  const stats: FlowStat[] = [
+    { value: steps.length, label: steps.length === 1 ? "step" : "steps" },
+    { value: seats, label: seats === 1 ? "seat" : "seats" },
+    ...(gates > 0 ? [{ value: gates, label: gates === 1 ? "gate" : "gates" }] : []),
+    ...(flow.version != null ? [{ value: `v${flow.version}`, label: "version" }] : []),
+  ];
+  // The universal FlowCard renders the chrome; this composes it with the
+  // local catalog's actions (Edit/Open + the management overflow menu) and the
+  // emerald default mark. The hub uses the same FlowCard so the two can't drift.
+  return (
+    <FlowCard
+      title={flow.label}
+      onTitleClick={onOpen}
+      selected={isSelected}
+      badge={
+        isSelected ? (
+          <span className="shrink-0 text-[10px] font-bold text-emerald-400">default</span>
+        ) : null
+      }
+      steps={steps}
+      description={flow.definition.description}
+      stats={stats}
+      footer={
+        <>
+          <Button variant="secondary" size="sm" onClick={onOpen}>
+            {isProject ? "Edit" : "Open"}
+          </Button>
+          <div className="ml-auto">
+            <FlowCardMenu
+              busy={busy !== null}
+              items={[
+                isSelected ? null : { label: "Set as default", onClick: onUseAsDefault },
+                onFork ? { label: busy === "fork" ? "Copying…" : "Customize", onClick: onFork } : null,
+                { label: busy === "export" ? "Exporting…" : "Export", onClick: onExport },
+                onDelete ? { label: busy === "delete" ? "Deleting…" : "Delete", onClick: onDelete, danger: true } : null,
+              ]}
+            />
+          </div>
+        </>
+      }
+    />
+  );
+}
+
+type FlowStat = { value: string | number; label: string };
+
+/**
+ * The universal flow card. One component renders a flow the same everywhere -
+ * the local catalog and the hub - so the two never drift: flow icon + name +
+ * an optional trailing badge, the FlowBars step-meter, a clamped description,
+ * a row of framed stat tiles, an optional extra line, and a bordered footer
+ * for the card's actions. Callers supply their own stats + footer; the chrome
+ * is fixed here.
+ */
+function FlowCard({
+  title,
+  onTitleClick,
+  badge,
+  steps,
+  description,
+  stats,
+  extra,
+  footer,
+  selected,
+}: {
+  title: string;
+  onTitleClick?: () => void;
+  badge?: React.ReactNode;
+  steps: Array<{ kind?: string }>;
+  description?: string | null;
+  stats: FlowStat[];
+  extra?: React.ReactNode;
+  footer: React.ReactNode;
+  selected?: boolean;
+}) {
   return (
     <div
       className={cn(
         "flex flex-col rounded-[14px] border bg-coal-600 p-3.5",
-        isSelected ? "border-emerald-500/40" : "border-[color:var(--line)]",
+        selected ? "border-emerald-500/40" : "border-[color:var(--line)]",
       )}
     >
       <div className="flex items-center gap-2">
         <EntityIcon entity="flow" size={16} className="shrink-0 text-violet-soft" />
-        <button
-          type="button"
-          onClick={onOpen}
-          className="min-w-0 flex-1 truncate bg-transparent p-0 text-left text-[13.5px] font-bold text-chalk-100 transition hover:text-violet-soft"
-        >
-          {flow.label}
-        </button>
-        {isSelected ? (
-          <span className="shrink-0 text-[10px] font-bold text-emerald-400">default</span>
-        ) : null}
+        {onTitleClick ? (
+          <button
+            type="button"
+            onClick={onTitleClick}
+            className="min-w-0 flex-1 truncate bg-transparent p-0 text-left text-[13.5px] font-bold text-chalk-100 transition hover:text-violet-soft"
+          >
+            {title}
+          </button>
+        ) : (
+          <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-chalk-100">
+            {title}
+          </span>
+        )}
+        {badge}
       </div>
       <FlowBars steps={steps} />
-      {flow.definition.description ? (
-        <p className="line-clamp-2 text-[12px] leading-snug text-chalk-300">
-          {flow.definition.description}
-        </p>
+      {description ? (
+        <p className="line-clamp-2 text-[12px] leading-snug text-chalk-300">{description}</p>
       ) : null}
-      <div className="mt-3 flex flex-wrap items-stretch gap-1.5">
-        <StatTile value={steps.length} label={steps.length === 1 ? "step" : "steps"} />
-        <StatTile value={seats} label={seats === 1 ? "seat" : "seats"} />
-        {gates > 0 ? <StatTile value={gates} label={gates === 1 ? "gate" : "gates"} /> : null}
-        {flow.version != null ? <StatTile value={`v${flow.version}`} label="version" /> : null}
-      </div>
-      <div className="mt-3.5 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
-        <Button variant="secondary" size="sm" onClick={onOpen}>
-          {isProject ? "Edit" : "Open"}
-        </Button>
-        <div className="ml-auto">
-          <FlowCardMenu
-            busy={busy !== null}
-            items={[
-              isSelected ? null : { label: "Set as default", onClick: onUseAsDefault },
-              onFork ? { label: busy === "fork" ? "Copying…" : "Customize", onClick: onFork } : null,
-              { label: busy === "export" ? "Exporting…" : "Export", onClick: onExport },
-              onDelete ? { label: busy === "delete" ? "Deleting…" : "Delete", onClick: onDelete, danger: true } : null,
-            ]}
-          />
+      {stats.length > 0 ? (
+        <div className="mt-3 flex flex-wrap items-stretch gap-1.5">
+          {stats.map((s, i) => (
+            <StatTile key={i} value={s.value} label={s.label} />
+          ))}
         </div>
+      ) : null}
+      {extra}
+      <div className="mt-3.5 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
+        {footer}
       </div>
     </div>
   );

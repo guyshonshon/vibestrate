@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.29.5
+
+- **One flow card everywhere.** The community-hub flows now render through the
+  same `FlowCard` as the local catalog - icon, step-meter, description, framed
+  stat tiles and a contained action - so a flow looks the same whether it's
+  yours or pulled from the hub. (Hub rows expose only a step count, so their
+  meter shows shape in neutral grey rather than the per-step colours local
+  flows carry.)
+- **Publish a flow is always available.** The publish form no longer hides
+  behind expanding the hub browser - it sits on the Flows page regardless.
+
 ## 0.29.1
 
 - **Flow cards read as data, not grey text.** The faint "8 steps · 6 seats · v1"
