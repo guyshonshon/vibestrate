@@ -287,3 +287,30 @@ load-bearing claim against code with file:line. Findings and disposition:
 Verdict: M0 green-lit (advise-only, raw-artifact, no merge-path). M2 (`block`) NOT
 green-lit until the verdict-composition seam and circuit-breaker are designed and
 reviewed.
+
+Second pass - adversarial CODE review of the M0 implementation (Opus 4.8, fresh
+context, 2026-06-28, against the committed diff). Findings and disposition:
+
+1. **Inert on the default flow (decisive).** The wiring only touched the
+   graph-frontier executor (`runGraphFrontier`). The `default` flow has no `needs`,
+   so it runs the linear walk (`runFlowSequence`), which rendered reviewer notes
+   with a bare `renderFlowStepNotes` - so the preference block (and, pre-existing,
+   the lens emphasis + spec-up posture) never fired on a plain run. The unit tests
+   missed it because none exercised a real executor. ACCEPTED; FIXED: the linear
+   walk now routes reviewer notes through `composeReviewerStepNotes` and threads
+   `forceFullTokens`, and `tests/preference-gates-e2e.test.ts` runs both a linear
+   and a graph flow with a fake provider and asserts the preference text lands in
+   the reviewer prompt (and not the executor prompt). This also fixes the
+   pre-existing lens/posture silent gap on linear flows.
+2. **Unbounded forced-full diff.** `forceFullTokens` embeds the whole diff with no
+   size ceiling, so a huge diff + any confirmed preference can bloat the reviewer
+   prompt. ACCEPTED as a known M0 limitation (not a blocker for an advise-only
+   slice). Follow-up: force-full only under a byte ceiling, else keep the summary
+   and log that the preference reviewer saw a summary.
+3. **`scope.lenses` is run-level, not per-reviewer-step.** The block is computed
+   once per run against the persona's declared lenses, so `scope.lenses` is an
+   on/off switch ("does the persona declare this lens?"), not per-reviewer
+   targeting. Matches M0 intent; documented here so it isn't mistaken for
+   per-step scoping.
+4. Trust gate, injection placement (reviewer-only, never a second decision), schema
+   strictness/defaults, event wiring: all verified sound.

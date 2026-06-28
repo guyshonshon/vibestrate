@@ -3914,6 +3914,12 @@ export class Orchestrator {
             outputs,
             artifactStore: input.artifactStore,
             contextMode: preparedTurn?.contextMode ?? "stateless",
+            // Preference-gate review needs the exact diff (not a summary) on the
+            // linear walk too. Only forced on a reviewer turn carrying preferences.
+            forceFullTokens:
+              isReviewerStep(step) && this.preferenceBlock
+                ? new Set(["diff"])
+                : undefined,
           });
           state = this.patchFlowStep(
             state,
@@ -4055,9 +4061,19 @@ export class Orchestrator {
             runBrief: renderRunBrief(runBriefState),
             cleanRoom: step.cleanRoom,
             skills: step.skills,
-            additionalNotes: this.renderFlowStepNotes({
-              snapshot: input.snapshot,
-              step,
+            // Linear walk: the persona blocks (review lenses, owner preferences,
+            // spec-up posture) inject here too, not just on the graph frontier -
+            // the default flow is linear, so this is the path a plain run takes.
+            additionalNotes: composeReviewerStepNotes({
+              baseNotes: this.renderFlowStepNotes({
+                snapshot: input.snapshot,
+                step,
+              }),
+              stepInstructions: step.instructions,
+              lensEmphasis: this.reviewLensEmphasis,
+              isReviewer: isReviewerStep(step),
+              preferenceBlock: this.preferenceBlock,
+              specUpPostureBlock: this.specUpPostureBlock,
             }),
             ...(preparedTurn
               ? {
