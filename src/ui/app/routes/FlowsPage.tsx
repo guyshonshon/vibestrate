@@ -858,57 +858,41 @@ function LocalFlowCard({
   const steps = flow.definition.steps ?? [];
   const seats = Object.keys(flow.definition.seats ?? {}).length;
   const gates = steps.filter((s) => s.kind === "approval-gate" || !!s.approval).length;
-  // Category accent. The label color carries the category (never faint grey);
-  // the FlowBars meter below carries the flow's makeup (review / validation /
-  // gates). Default = emerald, built-in = violet, project = sky.
-  const cat = isSelected
-    ? { label: "runs by default", text: "text-emerald-400", icon: "text-emerald-400", border: "border-emerald-500/40" }
-    : isProject
-      ? { label: "project", text: "text-sky-glow", icon: "text-sky-glow", border: "border-[color:var(--line)]" }
-      : { label: "built-in", text: "text-violet-vivid", icon: "text-violet-soft", border: "border-[color:var(--line)]" };
+  // Mission Control's flow card exactly: icon + bold name + the step-meter +
+  // a dense meta line. No category label (the action set already tells project
+  // from built-in); the default flow gets an emerald mark + border, not a slug.
   const actCls =
     "font-medium text-chalk-300 transition hover:text-chalk-100 disabled:cursor-not-allowed disabled:opacity-50";
   return (
-    <div className={cn("flex flex-col rounded-[16px] border bg-coal-600 p-4", cat.border)}>
-      <div className="flex items-center gap-1.5">
-        <EntityIcon entity="flow" size={15} className={cn("shrink-0", cat.icon)} />
-        <span className={cn("text-[10px] font-semibold uppercase tracking-[0.08em]", cat.text)}>
-          {cat.label}
-        </span>
+    <div
+      className={cn(
+        "flex flex-col rounded-[14px] border bg-coal-600 p-3.5",
+        isSelected ? "border-emerald-500/40" : "border-[color:var(--line)]",
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <EntityIcon entity="flow" size={16} className="shrink-0 text-violet-soft" />
+        <button
+          type="button"
+          onClick={onOpen}
+          className="min-w-0 flex-1 truncate bg-transparent p-0 text-left text-[13.5px] font-bold text-chalk-100 transition hover:text-violet-soft"
+        >
+          {flow.label}
+        </button>
+        {isSelected ? (
+          <span className="shrink-0 text-[10px] font-bold text-emerald-400">default</span>
+        ) : null}
       </div>
-      <button
-        type="button"
-        onClick={onOpen}
-        className="mt-1.5 block w-full bg-transparent p-0 text-left text-[15px] font-bold leading-snug text-chalk-100 transition hover:text-violet-soft"
-      >
-        {flow.label}
-      </button>
       <FlowBars steps={steps} />
       {flow.definition.description ? (
         <p className="line-clamp-2 text-[12px] leading-snug text-chalk-300">
           {flow.definition.description}
         </p>
       ) : null}
-      <div className="mono mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-chalk-300">
-        <span>{steps.length} steps</span>
-        <span className="text-chalk-400/50">·</span>
-        <span>
-          {seats} {seats === 1 ? "seat" : "seats"}
-        </span>
-        {gates > 0 ? (
-          <>
-            <span className="text-chalk-400/50">·</span>
-            <span className="text-amber-soft">
-              {gates} {gates === 1 ? "gate" : "gates"}
-            </span>
-          </>
-        ) : null}
-        {flow.version != null ? (
-          <>
-            <span className="text-chalk-400/50">·</span>
-            <span>v{flow.version}</span>
-          </>
-        ) : null}
+      <div className="mono mt-2 text-[11px] text-chalk-300">
+        {steps.length} steps · {seats} {seats === 1 ? "seat" : "seats"}
+        {gates > 0 ? ` · ${gates} ${gates === 1 ? "gate" : "gates"}` : ""}
+        {flow.version != null ? ` · v${flow.version}` : ""}
       </div>
       <div className="mt-3.5 flex flex-wrap items-center gap-x-3.5 gap-y-1 border-t border-[color:var(--line-soft)] pt-2.5 text-[11px]">
         {!isSelected ? (
