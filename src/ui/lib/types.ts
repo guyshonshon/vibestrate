@@ -1753,7 +1753,7 @@ export type RunAssurance = {
    *  Optional: older assurance artifacts predate it. */
   blockers?: {
     stepId: string | null;
-    kind: "provider" | "step";
+    kind: "provider" | "step" | "policy";
     class: string | null;
     detail: string;
   }[];

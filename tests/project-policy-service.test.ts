@@ -170,4 +170,25 @@ describe("migratePersonaPreferences (legacy persona.preferences -> projectPolici
   it("is a no-op when there are no persona preferences", async () => {
     expect((await migratePersonaPreferences(dir)).moved).toBe(0);
   });
+
+  it("renames colliding ids uniquely and never throws on a long renamed id", async () => {
+    const { text, configPath } = await readDocumentText(dir);
+    const longId = "x".repeat(58); // 58 + '-pa' suffix would exceed the 60 cap
+    const legacy =
+      text +
+      "\nprojectPolicies:\n" +
+      `  - id: ${longId}\n    statement: pre-existing\n    confirmedAt: '2026-06-28T00:00:00.000Z'\n` +
+      "personas:\n  pa:\n    label: PA\n    preferences:\n" +
+      `      - id: ${longId}\n        statement: collides on id\n        confirmedAt: '2026-06-28T00:00:00.000Z'\n` +
+      "  pb:\n    label: PB\n    preferences:\n" +
+      `      - id: ${longId}\n        statement: collides again\n        confirmedAt: '2026-06-28T00:00:00.000Z'\n`;
+    await fs.writeFile(configPath, legacy);
+
+    const { moved } = await migratePersonaPreferences(dir);
+    expect(moved).toBe(2);
+    const { config } = await loadConfig(dir);
+    const ids = config.projectPolicies.map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length); // all unique
+    expect(ids.every((id) => id.length <= 60)).toBe(true); // within the cap
+  });
 });

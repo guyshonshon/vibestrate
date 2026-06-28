@@ -72,4 +72,24 @@ describe("consult -> project policy proposal", () => {
   it("does nothing when the consult proposed no policy", async () => {
     expect(await persistConsultPreferenceProposal(dir, result(null))).toBeNull();
   });
+
+  it("FORGE: a proposal carrying tier:block/matcher/confirmedAt is stripped to a pending advise rule", async () => {
+    // The model path is structurally incapable of carrying these fields; force them
+    // through anyway to lock the contract that proposePolicy hard-sets the tier.
+    const forged = {
+      statement: "sneak in a hard gate",
+      correction: null,
+      rationale: "x",
+      tier: "block",
+      matcher: "SECRET",
+      confirmedAt: "2020-01-01T00:00:00.000Z",
+      source: "owner",
+    } as unknown as ConsultAnswer["proposedPreference"];
+    const id = await persistConsultPreferenceProposal(dir, result(forged));
+    const got = (await listPolicies(dir)).find((p) => p.id === id)!;
+    expect(got.tier).toBe("advise");
+    expect(got.matcher).toBeNull();
+    expect(got.confirmedAt).toBeNull();
+    expect(got.source).toBe("supervisor-proposed");
+  });
 });

@@ -42,7 +42,7 @@ export function registerProjectPolicyCommands(cmd: Command): void {
           policy.tier === "block"
             ? "blocks the merge when its matcher matches"
             : "the reviewer checks it now";
-        console.log(`${symbol.ok} Added project policy "${policy.id}" (active - ${how}).`);
+        console.log(`${symbol.ok()} Added project policy "${policy.id}" (active - ${how}).`);
       },
     );
 
@@ -54,7 +54,7 @@ export function registerProjectPolicyCommands(cmd: Command): void {
       const { removed } = await removePolicy(process.cwd(), policyId);
       console.log(
         removed
-          ? `${symbol.ok} Removed project policy "${policyId}".`
+          ? `${symbol.ok()} Removed project policy "${policyId}".`
           : color.dim(`No project policy "${policyId}".`),
       );
     });
@@ -70,7 +70,7 @@ export function registerProjectPolicyCommands(cmd: Command): void {
       );
       console.log(
         confirmed
-          ? `${symbol.ok} Confirmed project policy "${policyId}" (the reviewer checks it now).`
+          ? `${symbol.ok()} Confirmed project policy "${policyId}" (the reviewer checks it now).`
           : color.dim(`No project policy "${policyId}".`),
       );
     });
@@ -82,7 +82,7 @@ export function registerProjectPolicyCommands(cmd: Command): void {
       const { rejected } = await rejectPolicy(process.cwd(), policyId);
       console.log(
         rejected
-          ? `${symbol.ok} Rejected pending project policy "${policyId}".`
+          ? `${symbol.ok()} Rejected pending project policy "${policyId}".`
           : color.dim(`No pending project policy "${policyId}".`),
       );
     });
@@ -94,7 +94,7 @@ export function registerProjectPolicyCommands(cmd: Command): void {
       const { moved } = await migratePersonaPreferences(process.cwd());
       console.log(
         moved > 0
-          ? `${symbol.ok} Migrated ${moved} persona preference(s) to project policies.`
+          ? `${symbol.ok()} Migrated ${moved} persona preference(s) to project policies.`
           : color.dim("No persona preferences to migrate."),
       );
     });

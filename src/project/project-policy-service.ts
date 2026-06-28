@@ -189,9 +189,19 @@ export async function migratePersonaPreferences(
     if (Array.isArray(prefs)) {
       for (const raw of prefs) {
         const legacy = raw as Record<string, unknown>;
-        let id = String(legacy.id ?? "");
-        if (!id) continue;
-        if (seen.has(id)) id = `${id}-${personaId}`;
+        const baseId = String(legacy.id ?? "");
+        if (!baseId) continue;
+        // Unique id within the 60-char cap: on collision suffix with the persona
+        // (then a counter), always re-checking and re-clamping so migrate never
+        // writes a duplicate id and never throws on an over-long renamed id (the
+        // wedge it exists to prevent).
+        let id = baseId.slice(0, 60);
+        let n = 1;
+        while (seen.has(id)) {
+          const suffix = n === 1 ? `-${personaId}` : `-${personaId}-${n}`;
+          id = `${baseId.slice(0, Math.max(1, 60 - suffix.length))}${suffix}`.slice(0, 60);
+          n++;
+        }
         const policy = projectPolicySchema.parse({
           id,
           statement: legacy.statement,
