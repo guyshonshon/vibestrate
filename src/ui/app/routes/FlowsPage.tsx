@@ -13,6 +13,7 @@ import type { DiscoveredFlow, HubFlowRow, HubPublishResult } from "../../lib/typ
 import { Button } from "../../components/design/Button.js";
 import { EntityIcon } from "../../components/design/EntityIcon.js";
 import { FlowBars } from "../../components/design/FlowBars.js";
+import { StepKindLegend } from "../../components/design/StepKindLegend.js";
 import { cn } from "../../components/design/cn.js";
 
 type Props = {
@@ -244,6 +245,8 @@ export function FlowsPage({ onOpenInFlow }: Props) {
               runs unless you pick another.
             </p>
           </div>
+          {/* What the per-card step-meter colours mean. */}
+          <StepKindLegend className="mt-3" />
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Button

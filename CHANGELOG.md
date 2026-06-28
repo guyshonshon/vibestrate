@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.31.2
+
+- **Step-colour legend on the Flows page.** The Build / Review / Check / Gate
+  legend now also sits in the Flows catalog header, so the colours on each flow
+  card's step-meter are recognizable there, not just in the builder. (Extracted
+  to one shared `StepKindLegend` so both pages stay in sync.)
+
 ## 0.31.1
 
 - **Step colours now mean something - consistently.** Steps are coloured by what

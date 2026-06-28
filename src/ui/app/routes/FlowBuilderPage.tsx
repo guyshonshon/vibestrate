@@ -42,12 +42,10 @@ import { Button } from "../../components/design/Button.js";
 import { Chip } from "../../components/design/Chip.js";
 import { HelpHint } from "../../components/design/HelpHint.js";
 import { Select } from "../../components/design/Select.js";
+import { StepKindLegend } from "../../components/design/StepKindLegend.js";
 import {
-  STEP_GROUP_DESC,
-  STEP_GROUP_LABEL,
   STEP_GROUP_TONE,
   stepKindGroup,
-  type StepKindGroup,
 } from "../../components/design/stepKind.js";
 import { cn } from "../../components/design/cn.js";
 import { FlowGraph, isGraphSteps } from "../../components/workflow/FlowGraph.js";
@@ -959,7 +957,7 @@ export function FlowBuilderPage({
                 />
               </div>
 
-              <StepKindLegend />
+              <StepKindLegend className="mb-3" />
 
               <ol className="relative space-y-2.5 pl-8">
                 <span className="absolute left-[14px] top-3 bottom-3 w-px bg-[color:var(--line-soft)]" />
@@ -1283,33 +1281,6 @@ function DryRunModal({
           </>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-// What the step colours mean, by function. Steps are tinted by what they do
-// (build / review / check / gate), not one hue per kind - so the dots read as a
-// legend, not noise.
-function StepKindLegend() {
-  const dotClass: Record<StepKindGroup, string> = {
-    build: "bg-violet-soft",
-    review: "bg-sky-glow",
-    check: "bg-emerald-400",
-    gate: "bg-amber-soft",
-  };
-  const groups: StepKindGroup[] = ["build", "review", "check", "gate"];
-  return (
-    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-      {groups.map((g) => (
-        <span
-          key={g}
-          className="inline-flex items-center gap-1.5 text-[10.5px] text-chalk-400"
-          title={STEP_GROUP_DESC[g]}
-        >
-          <span className={cn("h-2 w-2 rounded-full", dotClass[g])} aria-hidden />
-          {STEP_GROUP_LABEL[g]}
-        </span>
-      ))}
     </div>
   );
 }
