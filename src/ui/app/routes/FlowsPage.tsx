@@ -232,12 +232,17 @@ export function FlowsPage({ onOpenInFlow }: Props) {
               {flows ? defaultFlowCount + otherFlows.length : ""}
             </span>
           </div>
-          <p className="mt-1.5 max-w-[68ch] text-[13px] leading-[1.55] text-chalk-300">
-            A flow is the recipe your crew follows - ordered steps, the roles that
-            run them, approval gates. The{" "}
-            <strong className="font-semibold text-chalk-100">Default flow</strong> runs
-            unless you pick another.
-          </p>
+          <div className="mt-1.5 max-w-[68ch] space-y-1 text-[13px] leading-[1.55] text-chalk-300">
+            <p>
+              A flow is the recipe your crew follows - ordered steps, the roles
+              that run them, approval gates.
+            </p>
+            <p>
+              The{" "}
+              <strong className="font-semibold text-chalk-100">Default flow</strong>{" "}
+              runs unless you pick another.
+            </p>
+          </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Button
@@ -570,32 +575,29 @@ function HubSection({
   return (
     <section className="mt-12">
       {/* Hub header - the same contained frame as the All flows header. */}
-      <div className="mb-6 flex flex-wrap items-start gap-4 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[15px] font-bold text-chalk-100">Pull a flow</h2>
-            <span className="text-[12px] text-chalk-300">from the hub</span>
-            {open ? (
-              <span className="mono text-[11.5px] text-chalk-400 whitespace-nowrap">
-                {hubError ? "hub unavailable" : rows ? `${rows.length} ${rows.length === 1 ? "flow" : "flows"}` : "loading…"}
-              </span>
-            ) : null}
-          </div>
-          <p className="mt-1.5 max-w-[68ch] text-[13px] leading-[1.55] text-chalk-300">
-            Browse and install community flows from vibestrate.com - downloaded over
-            the internet, vetted through the secret-guarded import writer.
-          </p>
-        </div>
-        <div className="shrink-0">
+      <div className="mb-6 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h2 className="text-[15px] font-bold text-chalk-100">Pull a flow</h2>
+          <span className="text-[12px] text-chalk-300">from the hub</span>
           <Button
             variant="secondary"
             size="sm"
+            className="ml-1"
             iconLeft={open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             onClick={() => setOpen((v) => !v)}
           >
             {open ? "Hide hub" : "Browse hub"}
           </Button>
+          {open ? (
+            <span className="mono text-[11.5px] text-chalk-400 whitespace-nowrap">
+              {hubError ? "hub unavailable" : rows ? `${rows.length} ${rows.length === 1 ? "flow" : "flows"}` : "loading…"}
+            </span>
+          ) : null}
         </div>
+        <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.55] text-chalk-300">
+          Browse and install community flows from vibestrate.com - downloaded over
+          the internet, vetted through the secret-guarded import writer.
+        </p>
       </div>
 
       {open ? (
@@ -904,11 +906,9 @@ function LocalFlowCard({
       </div>
       <FlowBars steps={steps} />
       {flow.definition.description ? (
-        <div className="space-y-1 text-[12px] leading-snug text-chalk-300">
-          {splitSentences(flow.definition.description).map((s, i) => (
-            <p key={i}>{s}</p>
-          ))}
-        </div>
+        <p className="line-clamp-2 text-[12px] leading-snug text-chalk-300">
+          {flow.definition.description}
+        </p>
       ) : null}
       <div className="mt-3 flex flex-wrap items-stretch gap-1.5">
         <StatTile value={steps.length} label={steps.length === 1 ? "step" : "steps"} />
@@ -934,16 +934,6 @@ function LocalFlowCard({
       </div>
     </div>
   );
-}
-
-/** Break a flow description into sentences so each reads on its own line in a
- *  card. Splits only on sentence-end punctuation followed by a capital/digit/
- *  quote, so common abbreviations ("e.g.") don't wrongly break a line. */
-function splitSentences(text: string): string[] {
-  return text
-    .split(/(?<=[.!?])\s+(?=[A-Z0-9"'])/)
-    .map((s) => s.trim())
-    .filter(Boolean);
 }
 
 /** A single framed stat - a small inset card with a bold value over its unit,
