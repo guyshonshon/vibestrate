@@ -38,7 +38,29 @@ process.stdin.on("end", () => {
 });
 `;
 
-async function makeRepo(withBlockPref: boolean): Promise<string> {
+// Same, but the executor COMMITS the em-dash file mid-run, so `git diff HEAD` at
+// completion is empty - the gate must scan from the fork point (merge-base) or it
+// silently no-ops. This is the regression guard for the committed-run base-ref bug.
+const COMMITTING_PROVIDER = `#!/usr/bin/env node
+const fs = require("node:fs");
+const { execSync } = require("node:child_process");
+let prompt = "";
+process.stdin.on("data", (c) => (prompt += c));
+process.stdin.on("end", () => {
+  if (prompt.includes("Vibestrate Agent: reviewer")) console.log("# Review\\n\\nDECISION: APPROVED");
+  else if (prompt.includes("Vibestrate Agent: verifier")) console.log("# Verify\\n\\nVERIFICATION: PASSED");
+  else if (prompt.includes("Vibestrate Agent: executor")) {
+    fs.writeFileSync("notes.ts", "export const note = \\\`done — shipped\\\`;\\n");
+    execSync("git add -A && git commit -q -m item", { cwd: process.cwd() });
+    console.log("# Implementation\\n\\nCommitted notes.ts");
+  } else if (prompt.includes("Vibestrate Agent: fixer")) console.log("# Fix\\n\\nok");
+  else if (prompt.includes("Vibestrate Agent: architect")) console.log("# Architecture\\n\\nok");
+  else if (prompt.includes("Vibestrate Agent: planner")) console.log("# Plan\\n\\nok");
+  else console.log("# Output");
+});
+`;
+
+async function makeRepo(withBlockPref: boolean, providerScript: string = PROVIDER): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-prefblock-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
@@ -49,7 +71,7 @@ async function makeRepo(withBlockPref: boolean): Promise<string> {
   await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
 
   const providerPath = path.join(dir, "fake-provider.js");
-  await fs.writeFile(providerPath, PROVIDER, { mode: 0o755 });
+  await fs.writeFile(providerPath, providerScript, { mode: 0o755 });
   await fs.chmod(providerPath, 0o755);
   await setConfigValue(
     dir,
@@ -134,6 +156,13 @@ describe("M2 preference block gate - end to end", () => {
 
   it("a confirmed block preference caps the merge even though the review APPROVED", async () => {
     const dir = await makeRepo(true);
+    const { result, events } = await run(dir);
+    expect(result.state.status).toBe("blocked");
+    expect(events.some((e) => e.type === "supervisor.preference_block")).toBe(true);
+  }, 60_000);
+
+  it("caps a COMMITTED-mid-run change too (scans from the fork point, not git diff HEAD)", async () => {
+    const dir = await makeRepo(true, COMMITTING_PROVIDER);
     const { result, events } = await run(dir);
     expect(result.state.status).toBe("blocked");
     expect(events.some((e) => e.type === "supervisor.preference_block")).toBe(true);

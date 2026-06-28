@@ -343,12 +343,23 @@ export async function getDiffSnapshot(input: {
  */
 export async function getWorktreeDiffText(input: {
   worktreePath: string;
-  baseRef?: string;
+  /** The branch the worktree forked from (e.g. "main"). The diff is taken from the
+   *  fork point (merge-base) to the working tree, so a run that COMMITS mid-run
+   *  (checklist/roadmap) is still fully scanned - `git diff HEAD` would miss its
+   *  committed lines. Null/absent falls back to HEAD (uncommitted tail only). */
+  baseBranch?: string | null;
 }): Promise<string> {
   const worktreePath = input.worktreePath;
-  const baseRef = input.baseRef ?? "HEAD";
   if (!(await pathExists(worktreePath))) return "";
-  const tracked = await runGit(worktreePath, ["diff", "--no-ext-diff", baseRef]);
+  // Resolve the fork point against the base branch; diff from there to the working
+  // tree captures both committed-mid-run and uncommitted changes. Fall back to HEAD.
+  let base = "HEAD";
+  if (input.baseBranch) {
+    const mb = await runGit(worktreePath, ["merge-base", input.baseBranch, "HEAD"]);
+    const sha = mb.exitCode === 0 ? mb.stdout.trim().split("\n")[0] : null;
+    if (sha) base = sha;
+  }
+  const tracked = await runGit(worktreePath, ["diff", "--no-ext-diff", base]);
   const parts: string[] = [tracked.stdout];
   // Untracked files: `git diff <ref>` omits them, so diff each new file against
   // /dev/null to capture its all-added content. Skip secret-like paths.

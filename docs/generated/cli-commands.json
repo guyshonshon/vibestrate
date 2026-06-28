@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.34.0",
+  "version": "0.35.0",
   "commands": [
     {
       "name": "init",
@@ -5312,6 +5312,20 @@
             {
               "flags": "--lens <lenses...>",
               "description": "scope to one or more review lenses (default: all reviewer turns)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--block",
+              "description": "make this a hard merge-block (deterministic; requires --pattern)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--pattern <regex>",
+              "description": "regex matched against added diff lines (block only)",
               "required": true,
               "optional": false,
               "negated": false

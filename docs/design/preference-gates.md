@@ -392,6 +392,28 @@ guarantee, not an auto-fixer. Once the diff no longer matches, the cap lifts.
 scope) - a bounded helper over the worktree diff (secret-like files already redacted
 by `getFileDiff`, which the cap inherits).
 
+## M2 implementation review (Opus 4.8, 2026-06-28)
+
+Adversarial review of the wired integration. Verified sound: the cap is computed
+before `computeMergeReady` and never touches `reviewDecision` (no clobber);
+surfacing is wired end-to-end (the `supervisor.preference_block` event reaches
+`deriveRunBlockers`, which emits a `kind:"preference"` blocker - a blocked-despite-
+APPROVED run shows why); block is owner-only (the model can't author one, confirm
+preserves `advise`); inert is fail-open + visible, never a cap or blocker;
+read-only / no-block-pref runs are byte-unchanged; no matched-line content leaks
+into events. ONE real bug found + fixed:
+
+- **Base ref [evidence, blocker]:** `getWorktreeDiffText` used `git diff HEAD` - the
+  uncommitted tail only. A checklist/roadmap run that COMMITS each item mid-run
+  advances the worktree HEAD, so by completion `git diff HEAD` is empty for those
+  lines and the gate silently no-opped on a primary path. FIXED: scan from the
+  fork point (`git merge-base <baseBranch> HEAD` -> `git diff <fork>`), so committed
+  and uncommitted changes are both caught. Regression guard added
+  (`tests/flows/preference-block-run.test.ts` "caps a COMMITTED-mid-run change").
+- **Diff-read error [accepted]:** the gate now fails CLOSED explicitly (blocks +
+  emits a diagnosable event) if it can't read the diff, rather than nuking the run
+  via the generic catch.
+
 ## Open decisions
 
 - Preferences per-persona (symmetric with `reviewLenses`, switching persona

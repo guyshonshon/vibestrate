@@ -121,7 +121,7 @@ import {
 import { localWorktreeBackend } from "../execution/local-worktree-backend.js";
 import { makeDockerBackend } from "../execution/docker-backend.js";
 import type { ExecutionBackend, ExecStrategy, IsolationMode } from "../execution/execution-backend-schema.js";
-import { isGitAvailable, stageAndCommitAll, filesInCommit } from "../git/git.js";
+import { isGitAvailable, stageAndCommitAll, filesInCommit, getCurrentBranch } from "../git/git.js";
 import { creditTrailers } from "../git/commit-credit.js";
 import { linkWorktreeEnvironment } from "../git/worktree-env.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
@@ -4399,21 +4399,42 @@ export class Orchestrator {
           resolvePersona(this.config, this.personaId).config.preferences ?? []
         ).filter((p) => p.severity === "block" && p.confirmedAt != null);
         if (blockPrefs.length > 0) {
-          const diffText = await getWorktreeDiffText({ worktreePath: input.worktreePath });
-          const gate = evaluateBlockPreferences(blockPrefs, diffText);
-          preferencesClean = gate.clean;
-          for (const v of gate.violations) {
-            await input.eventLog.append({
-              type: "supervisor.preference_block",
-              message: `Merge blocked by preference "${v.id}"${v.file ? ` (${v.file})` : ""}: ${v.statement}`,
-              data: { preferenceId: v.id, file: v.file, statement: v.statement },
+          try {
+            // Scan from the fork point so committed-mid-run changes are caught.
+            const baseBranch = await getCurrentBranch(this.projectRoot);
+            const diffText = await getWorktreeDiffText({
+              worktreePath: input.worktreePath,
+              baseBranch,
             });
-          }
-          for (const inert of gate.inert) {
+            const gate = evaluateBlockPreferences(blockPrefs, diffText);
+            preferencesClean = gate.clean;
+            for (const v of gate.violations) {
+              await input.eventLog.append({
+                type: "supervisor.preference_block",
+                message: `Merge blocked by preference "${v.id}"${v.file ? ` (${v.file})` : ""}: ${v.statement}`,
+                data: { preferenceId: v.id, file: v.file, statement: v.statement },
+              });
+            }
+            for (const inert of gate.inert) {
+              await input.eventLog.append({
+                type: "supervisor.preference_block",
+                message: `Block preference "${inert.id}" is not enforcing: ${inert.reason}`,
+                data: { preferenceId: inert.id, inert: true, reason: inert.reason },
+              });
+            }
+          } catch (err) {
+            // A block gate that cannot read the diff blocks CONSERVATIVELY (fail
+            // closed) rather than letting an unchecked change through - surfaced so
+            // it is diagnosable, not a silent pass.
+            preferencesClean = false;
             await input.eventLog.append({
               type: "supervisor.preference_block",
-              message: `Block preference "${inert.id}" is not enforcing: ${inert.reason}`,
-              data: { preferenceId: inert.id, inert: true, reason: inert.reason },
+              message: "Block gate could not read the run diff; blocking conservatively.",
+              data: {
+                preferenceId: "(diff-read-error)",
+                file: null,
+                statement: `could not read the diff to check block preferences: ${err instanceof Error ? err.message : "unknown error"}`,
+              },
             });
           }
         }

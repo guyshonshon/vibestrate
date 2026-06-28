@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.35.0
+
+- **A preference can now hard-block a merge, not just advise (preference gates
+  M2).** Mark a rule as a block with a pattern - `vibe preferences add
+  <supervisor> no-em-dash "do not use em-dash characters" --block --pattern "—"` -
+  and if the run's diff contains a match, the run lands `blocked` with the reason
+  surfaced, **even if the reviewer approved**. The block is deterministic (a
+  regex, not a model verdict, so it can't false-positive-storm your merges or
+  clobber the correctness review), scans from the run's fork point (so changes a
+  flow commits mid-run are caught), skips secret files, and fails closed if it
+  can't read the diff. Block rules are owner-only - the supervisor can propose an
+  advise rule, never a hard gate. Still optional: a plain run has no blocks.
+
 ## 0.34.0
 
 - **Tell the supervisor a rule in a consult, confirm it once (preference gates
