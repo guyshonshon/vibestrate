@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.30.3
+
+- **Step kinds explain themselves.** The Flow Builder's "Kind" picker was six
+  unlabelled tokens (`agent-turn`, `review-turn`, ...) with no hint at what each
+  does. It now shows, for the selected kind, a plain-language description and the
+  run phase it drives (e.g. review-turn -> "reviewing"), and every option carries
+  the same explanation on hover - so it's clear what each turn does and how they
+  differ. (Sourced from the flow docs + the orchestrator's own kind-to-status
+  mapping.)
+
 ## 0.30.2
 
 - **Readable YAML in the Flow Builder.** The raw-YAML editor used CodeMirror's

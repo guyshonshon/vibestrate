@@ -79,6 +79,52 @@ const STEP_KINDS: FlowStepKind[] = [
   "summary-turn",
 ];
 
+// What each step kind actually does, so the picker isn't six unexplained
+// labels. `phase` is the run status the step drives (the orchestrator maps each
+// kind to one); it's the clearest way to tell the turn kinds apart. Sourced from
+// docs/content/extending/add-flow.md + core/orchestrator.ts (flowStatusForStep).
+const KIND_INFO: Record<
+  FlowStepKind,
+  { title: string; phase: string; blurb: string }
+> = {
+  "agent-turn": {
+    title: "Agent turn",
+    phase: "plan / architect / build",
+    blurb:
+      "One seat does primary work - plans, architects, or writes the change. These are the build steps.",
+  },
+  "review-turn": {
+    title: "Review turn",
+    phase: "reviewing",
+    blurb:
+      "A different seat critiques a prior step's work and raises findings. Drives the review loop.",
+  },
+  "response-turn": {
+    title: "Response turn",
+    phase: "fixing",
+    blurb:
+      "The original seat answers the review's findings - applies fixes or pushes back.",
+  },
+  validation: {
+    title: "Validation",
+    phase: "validating",
+    blurb:
+      "Runs the project's validate commands (build / test / lint). No agent - a pass/fail check.",
+  },
+  "approval-gate": {
+    title: "Approval gate",
+    phase: "waiting for approval",
+    blurb:
+      "Pauses the run for a human to decide whether to continue. No agent runs.",
+  },
+  "summary-turn": {
+    title: "Summary turn",
+    phase: "verifying",
+    blurb:
+      "A final seat verifies the result and writes the run's summary. The closing step.",
+  },
+};
+
 const RISK_LEVELS: FlowApprovalRiskLevel[] = ["low", "medium", "high"];
 
 const ICON_FOR_NAME: { match: RegExp; icon: LucideIcon }[] = [
@@ -1233,6 +1279,7 @@ function StepInspector({
               key={k}
               type="button"
               disabled={!editable}
+              title={`${KIND_INFO[k].title} - ${KIND_INFO[k].blurb}`}
               onClick={() => onPatchDraft({ kind: k })}
               className={cn(
                 "text-[11.5px] px-2 py-1 rounded-[10px] border whitespace-nowrap transition",
@@ -1245,6 +1292,22 @@ function StepInspector({
               {k}
             </button>
           ))}
+        </div>
+        {/* What the selected kind actually does - so the picker isn't six
+            unexplained labels. The phase chip is the run status this kind drives,
+            the clearest way to tell the turn kinds apart. */}
+        <div className="mt-2 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-800 px-3 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-semibold text-chalk-100">
+              {KIND_INFO[kind].title}
+            </span>
+            <span className="rounded-[8px] bg-violet-soft/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-soft">
+              {KIND_INFO[kind].phase}
+            </span>
+          </div>
+          <p className="mt-1 text-[11.5px] leading-[1.5] text-chalk-300">
+            {KIND_INFO[kind].blurb}
+          </p>
         </div>
       </Field>
 
