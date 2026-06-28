@@ -78,6 +78,41 @@ brief to launch") - never a separate dot+sentence beside it.
 - **Inner row/chip**: `flex items-center gap-3 rounded-[14px] bg-coal-500/60 px-4 py-3` (`MissionControlPage.tsx:398`).
 - Cards are **dense and informative** - real content, not airy padding around one number. (See anti-patterns.)
 
+## 5a. The flow card - ONE component, everywhere (canonical)
+
+A flow renders through a single `FlowCard` component **everywhere it appears**
+(the Flows catalog, the community hub, and any future surface). There is exactly
+one flow-card markup. Never hand-write a second one; **extend `FlowCard`, never
+fork it** - two look-alikes always drift (this rule exists because they did).
+Currently in [`FlowsPage.tsx`](../../src/ui/app/routes/FlowsPage.tsx); promote to
+`components/design/` the moment a third surface needs it.
+
+Anatomy (top to bottom), all inside the standard card shell:
+
+- **Header row**: `EntityIcon entity="flow"` + bold name (`text-[13.5px]`,
+  `flex-1 truncate`, click-to-open) + a **trailing badge cluster** for
+  metadata - status mark (`default`/`curated`), `@author`, and secondary metrics
+  like installs (`Download` icon + count). Secondary metadata lives **here in the
+  header**, not as an extra tile - so the card stays compact and the tile row
+  stays inline.
+- **Meter**: `design/FlowBars` (the per-step-kind bar-meter). When only a step
+  *count* is known (hub rows), synthesize a neutral-grey meter from the count -
+  same shape, no fake kind-colours.
+- **Description**: `line-clamp-2` (cards clamp; never sentence-split a card body).
+- **Stat tiles**: a `flex flex-wrap items-stretch gap-1` row of `StatTile`s -
+  each a compact framed chip, **content-width (never `flex-1`-stretched)**, with
+  a bold `chalk-100` value over a **violet** unit label (`steps`, `seats`,
+  `gates`, `version`). Facts read as data, not a grey `8 steps · 6 seats` line.
+- **Inline status badge**: a verdict (e.g. the hub's `accepted`) renders as one
+  more equal-height chip **in the same tile row**, toned by verdict - positive
+  (accept/pass/clean/safe) = `emerald`, else `amber`. Not a separate text line.
+- **Footer**: bordered (`border-t border-[color:var(--line-soft)] pt-3`) row of
+  real `<Button>`s (+ overflow menu for secondary actions).
+
+**Cards stay the same compact size across sections** (same grid column count).
+If content won't fit inline, move secondary metadata to the header or trim it -
+**never widen one section's cards** to make room.
+
 ## 6. Inputs (verbatim)
 
 `MissionComposer.tsx:541` / `:652`:
@@ -104,7 +139,8 @@ by real status, never a scripted timer.
 
 ## 10. Shared primitives to reuse (do not re-derive)
 
-`design/EntityIcon`, `design/ThemeToggle`, `mission/runPhase` (`PhaseRail`,
+`layout/Sidebar` (the one shell, §0), `FlowCard` + `StatTile` (the one flow card,
+§5a), `design/EntityIcon`, `design/ThemeToggle`, `mission/runPhase` (`PhaseRail`,
 `statusMessage`), `layout/PanelBoard`, `runs/RunStatusBadge`, `design/Chip`
 (de-pilled), `design/Select`, `design/EffortScale`. If a block repeats across
 3+ pages and none of these fit, extract a new primitive that renders Mission
@@ -121,6 +157,13 @@ fewer primitives.
 - Old tokens (`vibestrate-*` / `fog-*`) in new code.
 - Em dashes (use `-`). Emojis (never, anywhere - including UI copy).
 - Decorative "AI slop" backgrounds: grids, dot fields, noise, purple gradient mesh. The foundation's desaturated violet grain is the only background texture.
+- A second flow-card markup. There is one `FlowCard` (§5a); extend it, never fork.
+- A grey `·`-separated meta line (`8 steps · 6 seats · v1`). Facts go in `StatTile`s.
+- `flex-1`-stretched stat tiles (two half-card slabs). Tiles are content-width.
+- Widening one section's cards to fit content. Keep cards the same compact size; move metadata to the header instead.
+- A page action/toggle stranded at the far right of a wide header, or a transparent `outline` button that vanishes on a panel. Section actions sit by their title as a filled (`secondary`/`primary`) `<Button>`.
+- Hiding an important action (e.g. publish) behind a disclosure - keep it visible.
+- Sentence-splitting a **card** body (cards `line-clamp-2`). Per-sentence line breaks are for **page-header** blurbs only.
 
 ## 12. Retire-on-migration (do not bulk-delete now)
 
