@@ -1,6 +1,7 @@
 import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  AlertTriangle,
   Book,
   Bolt,
   Bug,
@@ -74,6 +75,9 @@ type StepDraft = {
   approval?: FlowApprovalGatePatch | null;
   // Per-step skills (P2): undefined = no change; array = set the whole list.
   skills?: string[];
+  // Free-form per-step prompt instructions: undefined = no change; null = clear;
+  // string = set.
+  instructions?: string | null;
 };
 
 // A snapshot of the whole editable draft, for undo/redo. The four pieces mirror
@@ -167,6 +171,37 @@ const ICON_FOR_NAME: { match: RegExp; icon: LucideIcon }[] = [
   { match: /doc/i, icon: Book },
   { match: /migr|move|shuffle/i, icon: Shuffle },
 ];
+
+// Builder-side sanity check (warn-only, never blocks): a step that acts on prior
+// work - a review, a response, a final summary, or an approval gate - makes no
+// sense before any agent-turn has actually produced something. Returns a
+// human-readable warning, or null when the step is fine where it sits.
+const ACTS_ON_PRIOR: ReadonlySet<FlowStepKind> = new Set([
+  "review-turn",
+  "response-turn",
+  "summary-turn",
+  "approval-gate",
+]);
+function stepOrderWarning(
+  steps: FlowStepDefinition[],
+  index: number,
+): string | null {
+  const kind = steps[index]?.kind;
+  if (!kind || !ACTS_ON_PRIOR.has(kind)) return null;
+  const hasPriorWork = steps
+    .slice(0, index)
+    .some((s) => s.kind === "agent-turn");
+  if (hasPriorWork) return null;
+  const what =
+    kind === "approval-gate"
+      ? "An approval gate here has nothing to approve"
+      : kind === "summary-turn"
+        ? "A summary-turn here has nothing to summarize"
+        : kind === "response-turn"
+          ? "A response-turn here has no findings to answer"
+          : "A review-turn here has nothing to review";
+  return `${what} - no agent-turn produces work before it. Add an agent-turn first.`;
+}
 
 function flowIcon(label: string): LucideIcon {
   for (const row of ICON_FOR_NAME) if (row.match.test(label)) return row.icon;
@@ -931,6 +966,7 @@ export function FlowBuilderPage({
                     editable={isProjectFlow}
                     canRemove={displayedSteps.length > 1}
                     onRemove={() => removeStep(step.id)}
+                    warning={stepOrderWarning(displayedSteps, i)}
                     dragging={dragIdx === i}
                     dropBelow={dragOverIdx === i && dragIdx !== null && dragIdx < i}
                     dropAbove={dragOverIdx === i && dragIdx !== null && dragIdx > i}
@@ -968,6 +1004,10 @@ export function FlowBuilderPage({
               step={activeStep}
               flow={selected}
               editable={isProjectFlow}
+              warning={stepOrderWarning(
+                displayedSteps,
+                Math.min(activeStepIdx, displayedSteps.length - 1),
+              )}
               draft={
                 activeStep ? draftSteps[activeStep.id] ?? {} : {}
               }
@@ -1214,6 +1254,7 @@ function StepRow({
   editable,
   canRemove,
   onRemove,
+  warning,
   dragging,
   dropAbove,
   dropBelow,
@@ -1229,6 +1270,7 @@ function StepRow({
   editable: boolean;
   canRemove: boolean;
   onRemove: () => void;
+  warning: string | null;
   dragging: boolean;
   dropAbove: boolean;
   dropBelow: boolean;
@@ -1318,6 +1360,11 @@ function StepRow({
             </Chip>
           ) : null}
           {step.optional ? <Chip tone="neutral">optional</Chip> : null}
+          {warning ? (
+            <span title={warning} className="inline-flex items-center text-amber-soft">
+              <AlertTriangle className="h-3.5 w-3.5" strokeWidth={1.9} aria-label="Order warning" />
+            </span>
+          ) : null}
         </div>
         <div className="text-[11.5px] text-chalk-300 mt-0.5 flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1 whitespace-nowrap">
@@ -1400,12 +1447,14 @@ function StepInspector({
   step,
   flow,
   editable,
+  warning,
   draft,
   onPatchDraft,
 }: {
   step: FlowStepDefinition | null;
   flow: DiscoveredFlow;
   editable: boolean;
+  warning: string | null;
   draft: StepDraft;
   onPatchDraft: (patch: StepDraft) => void;
 }) {
@@ -1443,6 +1492,13 @@ function StepInspector({
       <div className="mb-3 text-[12px] font-semibold text-violet-vivid">
         Step inspector · {step.label}
       </div>
+
+      {warning ? (
+        <div className="mb-3 flex items-start gap-2 rounded-[10px] border border-amber-soft/30 bg-amber-soft/10 px-3 py-2 text-[11.5px] leading-[1.5] text-amber-soft">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.9} aria-hidden />
+          <span>{warning}</span>
+        </div>
+      ) : null}
 
       <Field label="Step name">
         <input
@@ -1584,6 +1640,61 @@ function StepInspector({
                   Knowledge injected into this step's prompt (merged with run-level
                   skills). Portable - the flow carries them, not a separate
                   primitive.
+                </div>
+              </>
+            );
+          })()}
+        </Field>
+      ) : null}
+
+      {requiresSeat ? (
+        <Field label="Instructions" help={{ slug: "extending/add-flow", label: "Step instructions" }}>
+          {(() => {
+            const stepInstr = draft.instructions ?? step.instructions ?? "";
+            return (
+              <>
+                <textarea
+                  value={stepInstr}
+                  disabled={!editable}
+                  maxLength={800}
+                  onChange={(e) =>
+                    onPatchDraft({
+                      instructions: e.target.value === "" ? null : e.target.value,
+                    })
+                  }
+                  placeholder="Extra instructions for this step's agent (optional). e.g. Focus on error handling and add a test for each edge case."
+                  rows={3}
+                  className={cn(
+                    "w-full resize-y rounded-[12px] bg-coal-800 border border-[color:var(--line-strong)] px-3 py-2 text-[12.5px] leading-[1.5] text-chalk-100 outline-none placeholder:text-chalk-400",
+                    editable
+                      ? "focus:border-violet-soft/50"
+                      : "opacity-70 cursor-not-allowed",
+                  )}
+                />
+                <div className="mt-1 flex items-center justify-between gap-2 text-[10.5px] text-chalk-400">
+                  <span>Injected into this step&apos;s prompt.</span>
+                  <span className="num-tabular">{stepInstr.length}/800</span>
+                </div>
+                {/* What the agent actually receives - the prompt is composed, not
+                    authored in one box, and only fully exists at run time. */}
+                <div className="mt-2 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-800 px-3 py-2.5 text-[11px] leading-[1.55] text-chalk-400">
+                  <span className="font-semibold text-chalk-300">
+                    What the agent receives.
+                  </span>{" "}
+                  The full prompt is assembled at run time, in order:
+                  <ol className="mt-1.5 list-decimal space-y-0.5 pl-4">
+                    <li>auto step &amp; flow context (what this step is, the prior outputs it can use)</li>
+                    <li>
+                      <span className="text-violet-soft">your instructions above</span>
+                    </li>
+                    <li>the supervisor&apos;s review lens (review steps only)</li>
+                    <li>the run brief (your task) and earlier steps&apos; outputs</li>
+                  </ol>
+                  <span className="mt-1.5 block">
+                    Saved each run as{" "}
+                    <span className="mono text-chalk-300">flows/{step.id}/prompt.md</span>{" "}
+                    - run a Dry-run or open a run to read the exact text.
+                  </span>
                 </div>
               </>
             );
@@ -1827,6 +1938,10 @@ function diffStep(
     )
       out.skills = draft.skills;
   }
+  if (draft.instructions !== undefined) {
+    const curInstr = cur.instructions ?? null;
+    if (draft.instructions !== curInstr) out.instructions = draft.instructions;
+  }
   return Object.keys(out).length === 0 ? null : out;
 }
 
@@ -1857,6 +1972,8 @@ function toFlowStepFull(
   // reorder/add/remove in the builder would silently wipe YAML-authored skills.
   if (step.skills !== undefined && step.skills.length > 0)
     base.skills = step.skills;
+  if (step.instructions !== undefined && step.instructions !== null)
+    base.instructions = step.instructions;
   return applyDraftToFullStep(base, draft);
 }
 
@@ -1877,6 +1994,7 @@ function toFlowStepDefinition(step: FlowStepFull): FlowStepDefinition {
   if (step.approval !== undefined) out.approval = step.approval;
   if (step.repeat !== undefined) out.repeat = step.repeat;
   if (step.skills !== undefined) out.skills = step.skills;
+  if (step.instructions !== undefined) out.instructions = step.instructions;
   return out;
 }
 
@@ -1899,6 +2017,10 @@ function applyDraftToFullStep(
     else next.approval = draft.approval;
   }
   if (draft.skills !== undefined) next.skills = draft.skills;
+  if (draft.instructions !== undefined) {
+    if (draft.instructions === null) delete next.instructions;
+    else next.instructions = draft.instructions;
+  }
   return next;
 }
 

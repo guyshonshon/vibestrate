@@ -137,6 +137,27 @@ describe("mergeFlowPatch (pure)", () => {
     expect(validation.seat).toBeUndefined();
   });
 
+  it("sets and clears per-step instructions", () => {
+    const base = findBuiltinFlow("quality-arbitration")!;
+    const turn = base.steps.find((s) => s.kind === "agent-turn")!;
+    // Set instructions on a step.
+    const set = mergeFlowPatch(base, {
+      steps: [{ id: turn.id, instructions: "Focus on edge cases." }],
+    });
+    if (!set.ok) throw new Error(set.reasons.join(", "));
+    expect(set.next.steps.find((s) => s.id === turn.id)!.instructions).toBe(
+      "Focus on edge cases.",
+    );
+    // Clearing with null removes the field again.
+    const cleared = mergeFlowPatch(set.next, {
+      steps: [{ id: turn.id, instructions: null }],
+    });
+    if (!cleared.ok) throw new Error(cleared.reasons.join(", "));
+    expect(
+      cleared.next.steps.find((s) => s.id === turn.id)!.instructions,
+    ).toBeUndefined();
+  });
+
   it("changing kind from approval-gate to agent-turn requires clearing approval metadata", () => {
     const base = findBuiltinFlow("quality-arbitration")!;
     const gate = base.steps.find((s) => s.kind === "approval-gate");

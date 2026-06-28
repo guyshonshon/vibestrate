@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.30.7
+
+- **Per-step instructions, with the prompt explained.** Each turn step in the
+  Flow Builder now has an Instructions box (the free-form text injected into that
+  step's prompt), plus a panel that spells out how the complete prompt is
+  assembled at run time - auto context, your instructions, the review lens, then
+  the run brief and earlier outputs - and where to read the exact text
+  (`flows/<step>/prompt.md` in each run). The field is wired end-to-end through
+  the flow patch API.
+- **Order sanity warnings.** The builder now flags a step that has nothing to act
+  on - a review, response, summary, or approval gate placed before any
+  agent-turn produces work - with an amber marker on the step and a note in the
+  inspector. It only warns; it never blocks (a multi-reviewer panel *after* the
+  build is still fine).
+
 ## 0.30.6
 
 - **Tidier Flow Builder header.** A read-only flow's "fork to edit" note now sits

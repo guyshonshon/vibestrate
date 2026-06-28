@@ -50,6 +50,9 @@ const stepPatchSchema = z
     skipWhenReadOnly: z.boolean().optional(),
     approval: flowApprovalGateSchema.nullable().optional(),
     skills: z.array(skillReferenceSchema).max(32).optional(),
+    // Free-form per-step instructions injected into the step's prompt. Nullable:
+    // null clears, undefined leaves unchanged (same tri-state as seat/approval).
+    instructions: z.string().min(1).max(800).nullable().optional(),
   })
   .strict();
 
@@ -116,6 +119,10 @@ function mergeStep<S extends FlowDefinition["steps"][number]>(
   }
   if (edit.skills !== undefined) {
     next.skills = edit.skills;
+  }
+  if ("instructions" in edit) {
+    if (edit.instructions === null) delete next.instructions;
+    else if (edit.instructions !== undefined) next.instructions = edit.instructions;
   }
   if ("approval" in edit) {
     if (edit.approval === null) delete next.approval;
