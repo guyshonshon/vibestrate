@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.30.9
+
+- **See how a step's prompt is composed.** The Instructions field now shows a
+  visual stack of the layers that blend into the prompt the agent receives -
+  role, your task, step context, the prior outputs it reads, skills, your
+  instructions (folded in live), and the review lens - flowing down into the
+  final prompt. Deterministic layers show real values; run-time layers are
+  dashed and marked, with a pointer to the exact `flows/<step>/prompt.md`.
+  Replaces the old one-line "injected into this step's prompt" caption.
+
 ## 0.30.8
 
 - **"Optional" shows on the step, live.** Marking a step optional in the

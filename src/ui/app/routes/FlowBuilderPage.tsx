@@ -1444,6 +1444,153 @@ function IconBtn({
   );
 }
 
+// A visual of how this step's prompt is composed: the ordered layers that blend
+// into the prompt the agent receives. Real values are shown for the parts known
+// now (role, step context, the inputs it reads, skills, your instructions); the
+// run-time layers (your task, prior outputs' content, the review lens) are dashed
+// and marked. It's a faithful map of the composition, not a byte-exact dump -
+// the literal text only exists per run (flows/<step>/prompt.md).
+function PromptComposition({
+  step,
+  flow,
+  instructions,
+}: {
+  step: FlowStepDefinition;
+  flow: DiscoveredFlow;
+  instructions: string;
+}) {
+  const seatLabel = step.seat
+    ? flow.definition.seats[step.seat]?.label ?? step.seat
+    : null;
+  const inputs = step.inputs ?? [];
+  const skills = step.skills ?? [];
+  const isReview = step.kind === "review-turn" || step.kind === "response-turn";
+  const trimmed = instructions.trim();
+
+  type Layer = {
+    label: string;
+    content: string;
+    runtime?: boolean;
+    accent?: boolean;
+    empty?: boolean;
+  };
+  const layers: Layer[] = [
+    {
+      label: "Role",
+      content: seatLabel
+        ? `You are the ${seatLabel} for this step.`
+        : "The step's role brief.",
+    },
+    { label: "Your task", content: "The run brief you start with.", runtime: true },
+    {
+      label: "Step context",
+      content: `${flow.definition.label} - ${step.label} (${step.kind})${
+        step.outputs && step.outputs.length > 0
+          ? `; expected output: ${step.outputs.join(", ")}`
+          : ""
+      }`,
+    },
+    ...(inputs.length > 0
+      ? [
+          {
+            label: "Prior outputs",
+            content: `The handoff packet: ${inputs.join(", ")}.`,
+            runtime: true,
+          } as Layer,
+        ]
+      : []),
+    ...(skills.length > 0
+      ? [{ label: "Skills", content: skills.join(", ") } as Layer]
+      : []),
+    {
+      label: "Your instructions",
+      content: trimmed || "Add instructions above to fold them in here.",
+      accent: true,
+      empty: !trimmed,
+    },
+    ...(isReview
+      ? [
+          {
+            label: "Review lens",
+            content: "The supervisor's review lens (the active persona).",
+            runtime: true,
+          } as Layer,
+        ]
+      : []),
+  ];
+
+  return (
+    <div className="mt-2.5">
+      <div className="mb-1.5 text-[11px] font-semibold text-violet-vivid">
+        How the prompt is composed
+      </div>
+      <div className="flex flex-col">
+        {layers.map((l, i) => (
+          <Fragment key={l.label}>
+            {i > 0 ? (
+              <div className="my-0.5 text-center text-[11px] font-bold leading-none text-chalk-400">
+                +
+              </div>
+            ) : null}
+            <div
+              className={cn(
+                "rounded-[10px] border px-3 py-1.5",
+                l.accent
+                  ? "border-violet-soft/45 bg-violet-soft/10"
+                  : l.runtime
+                    ? "border-dashed border-[color:var(--line)] bg-coal-800/40"
+                    : "border-[color:var(--line-soft)] bg-coal-800",
+              )}
+            >
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={cn(
+                    "text-[10px] font-semibold",
+                    l.accent ? "text-violet-soft" : "text-chalk-300",
+                  )}
+                >
+                  {l.label}
+                </span>
+                {l.runtime ? (
+                  <span className="rounded-[5px] bg-coal-500 px-1 py-px text-[9px] font-medium text-chalk-400">
+                    at run time
+                  </span>
+                ) : null}
+              </div>
+              <div
+                className={cn(
+                  "mt-0.5 text-[11px] leading-snug",
+                  l.empty
+                    ? "italic text-chalk-400"
+                    : l.accent
+                      ? "text-chalk-100"
+                      : "text-chalk-300",
+                )}
+              >
+                {l.content}
+              </div>
+            </div>
+          </Fragment>
+        ))}
+      </div>
+      <div className="flex justify-center py-0.5 text-chalk-400">
+        <ChevronRight className="h-4 w-4 rotate-90" strokeWidth={2} aria-hidden />
+      </div>
+      <div className="rounded-[10px] border border-[color:var(--line-strong)] bg-coal-600 px-3 py-2">
+        <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-chalk-100">
+          <Code className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} aria-hidden />
+          The prompt {seatLabel ? `the ${seatLabel}` : "this step's agent"} receives
+        </div>
+        <div className="mt-0.5 text-[10.5px] leading-snug text-chalk-400">
+          Assembled per run and saved as{" "}
+          <span className="mono text-chalk-300">flows/{step.id}/prompt.md</span> -
+          run a Dry-run or open a run to read the exact text.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StepInspector({
   step,
   flow,
@@ -1672,31 +1819,10 @@ function StepInspector({
                       : "opacity-70 cursor-not-allowed",
                   )}
                 />
-                <div className="mt-1 flex items-center justify-between gap-2 text-[10.5px] text-chalk-400">
-                  <span>Injected into this step&apos;s prompt.</span>
+                <div className="mt-1 flex justify-end text-[10.5px] text-chalk-400">
                   <span className="num-tabular">{stepInstr.length}/800</span>
                 </div>
-                {/* What the agent actually receives - the prompt is composed, not
-                    authored in one box, and only fully exists at run time. */}
-                <div className="mt-2 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-800 px-3 py-2.5 text-[11px] leading-[1.55] text-chalk-400">
-                  <span className="font-semibold text-chalk-300">
-                    What the agent receives.
-                  </span>{" "}
-                  The full prompt is assembled at run time, in order:
-                  <ol className="mt-1.5 list-decimal space-y-0.5 pl-4">
-                    <li>auto step &amp; flow context (what this step is, the prior outputs it can use)</li>
-                    <li>
-                      <span className="text-violet-soft">your instructions above</span>
-                    </li>
-                    <li>the supervisor&apos;s review lens (review steps only)</li>
-                    <li>the run brief (your task) and earlier steps&apos; outputs</li>
-                  </ol>
-                  <span className="mt-1.5 block">
-                    Saved each run as{" "}
-                    <span className="mono text-chalk-300">flows/{step.id}/prompt.md</span>{" "}
-                    - run a Dry-run or open a run to read the exact text.
-                  </span>
-                </div>
+                <PromptComposition step={step} flow={flow} instructions={stepInstr} />
               </>
             );
           })()}
