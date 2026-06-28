@@ -12,6 +12,7 @@ import {
   Cpu,
   Eye,
   Flag,
+  GripVertical,
   Layers,
   Lock,
   Plus,
@@ -137,6 +138,11 @@ export function FlowBuilderPage({
   // The project's persisted default flow (null = the built-in "default").
   const [defaultFlowId, setDefaultFlowId] = useState<string | null>(null);
   const [settingDefault, setSettingDefault] = useState(false);
+  // Drag-to-reorder: the row being dragged and the row it's hovering over, so we
+  // can dim the source (the browser draws the translucent ghost) and draw an
+  // insertion line at the target.
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -432,10 +438,20 @@ export function FlowBuilderPage({
     const list = ensureStepList();
     const idx = list.findIndex((s) => s.id === stepId);
     if (idx < 0) return;
-    const target = idx + delta;
-    if (target < 0 || target >= list.length) return;
+    reorderStep(idx, idx + delta);
+  }
+
+  // Move the step at `from` to land at `to` (used by both the arrow buttons and
+  // drag-and-drop). Saves through the same `draftStepList` / `replaceSteps` path,
+  // so a dragged reorder persists exactly like an arrow nudge.
+  function reorderStep(from: number, to: number): void {
+    if (!selected || !isProjectFlow) return;
+    const list = ensureStepList();
+    if (from < 0 || from >= list.length) return;
+    const target = Math.max(0, Math.min(to, list.length - 1));
+    if (target === from) return;
     const next = list.slice();
-    const [step] = next.splice(idx, 1);
+    const [step] = next.splice(from, 1);
     next.splice(target, 0, step!);
     setDraftStepList(next);
     setActiveStepIdx(target);
@@ -486,7 +502,7 @@ export function FlowBuilderPage({
               ) : null}
             </div>
             {selected ? (
-              <div className="mt-3 flex flex-wrap items-stretch gap-1">
+              <div className="mt-3 flex flex-wrap items-stretch gap-2">
                 <StatTile value={selected.definition.steps.length} label="steps" />
                 <StatTile value={Object.keys(selected.definition.seats).length} label="seats" />
                 <StatTile value={`v${selected.version}`} label="version" />
@@ -734,6 +750,20 @@ export function FlowBuilderPage({
                     onMoveUp={() => moveStep(step.id, -1)}
                     onMoveDown={() => moveStep(step.id, 1)}
                     onRemove={() => removeStep(step.id)}
+                    dragging={dragIdx === i}
+                    dropBelow={dragOverIdx === i && dragIdx !== null && dragIdx < i}
+                    dropAbove={dragOverIdx === i && dragIdx !== null && dragIdx > i}
+                    onDragStart={() => setDragIdx(i)}
+                    onDragOverRow={() => setDragOverIdx(i)}
+                    onDropRow={() => {
+                      if (dragIdx !== null) reorderStep(dragIdx, i);
+                      setDragIdx(null);
+                      setDragOverIdx(null);
+                    }}
+                    onDragEnd={() => {
+                      setDragIdx(null);
+                      setDragOverIdx(null);
+                    }}
                   />
                 ))}
                 {isProjectFlow ? (
@@ -934,6 +964,13 @@ function StepRow({
   onMoveUp,
   onMoveDown,
   onRemove,
+  dragging,
+  dropAbove,
+  dropBelow,
+  onDragStart,
+  onDragOverRow,
+  onDropRow,
+  onDragEnd,
 }: {
   step: FlowStepDefinition;
   idx: number;
@@ -946,6 +983,13 @@ function StepRow({
   onMoveUp: () => void;
   onMoveDown: () => void;
   onRemove: () => void;
+  dragging: boolean;
+  dropAbove: boolean;
+  dropBelow: boolean;
+  onDragStart: () => void;
+  onDragOverRow: () => void;
+  onDropRow: () => void;
+  onDragEnd: () => void;
 }) {
   const tone =
     step.kind === "validation"
@@ -958,13 +1002,41 @@ function StepRow({
   return (
     <li
       onClick={onClick}
+      draggable={editable}
+      onDragStart={(e) => {
+        if (!editable) return;
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", String(idx));
+        onDragStart();
+      }}
+      onDragOver={(e) => {
+        if (!editable) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        onDragOverRow();
+      }}
+      onDrop={(e) => {
+        if (!editable) return;
+        e.preventDefault();
+        onDropRow();
+      }}
+      onDragEnd={onDragEnd}
       className={cn(
-        "relative rounded-[12px] border cursor-pointer transition px-3.5 py-3 flex items-center gap-3",
+        "relative rounded-[12px] border transition px-3.5 py-3 flex items-center gap-3",
+        editable ? "cursor-pointer" : "cursor-default",
+        dragging && "opacity-40",
         active
           ? "border-violet-soft/40 bg-violet-soft/10 ring-1 ring-violet-soft/25"
           : "border-[color:var(--line)] bg-coal-500 hover:bg-coal-400",
       )}
     >
+      {/* Insertion indicator while dragging another row onto this one. */}
+      {dropAbove ? (
+        <span className="absolute -top-[5px] left-2 right-2 h-0.5 rounded-full bg-violet-soft" aria-hidden />
+      ) : null}
+      {dropBelow ? (
+        <span className="absolute -bottom-[5px] left-2 right-2 h-0.5 rounded-full bg-violet-soft" aria-hidden />
+      ) : null}
       <span className="absolute -left-[27px] top-[16px] w-3.5 h-3.5 rounded-full ring-2 ring-[color:var(--card)]">
         <span
           className={cn(
@@ -976,6 +1048,15 @@ function StepRow({
           )}
         />
       </span>
+      {editable ? (
+        <span
+          className="shrink-0 -ml-1 text-chalk-400 cursor-grab active:cursor-grabbing"
+          title="Drag to reorder"
+          aria-hidden
+        >
+          <GripVertical className="h-4 w-4" strokeWidth={1.7} />
+        </span>
+      ) : null}
       <span className="mono text-[10.5px] text-chalk-400 num-tabular w-5 text-center">
         {String(idx + 1).padStart(2, "0")}
       </span>
@@ -1595,11 +1676,11 @@ function resolveNullable<T>(draft: T | null | undefined, current: T | null): T |
 // `8 steps · 6 seats · v1` meta line.
 function StatTile({ value, label }: { value: string | number; label: string }) {
   return (
-    <div className="flex min-w-[48px] flex-col gap-0.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5">
-      <span className="num-tabular max-w-[120px] truncate text-[14px] font-bold leading-none text-chalk-100">
+    <div className="flex min-w-[92px] flex-col gap-1 rounded-[14px] border border-[color:var(--line)] bg-coal-500/60 px-4 py-3">
+      <span className="num-tabular max-w-[160px] truncate text-[22px] font-bold leading-none text-chalk-100">
         {value}
       </span>
-      <span className="text-[10.5px] font-medium text-violet-soft">{label}</span>
+      <span className="text-[11.5px] font-medium text-violet-soft">{label}</span>
     </div>
   );
 }

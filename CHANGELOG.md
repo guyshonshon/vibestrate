@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.30.2
+
+- **Readable YAML in the Flow Builder.** The raw-YAML editor used CodeMirror's
+  default theme, which rendered keys in a dark blue that was unreadable on the
+  coal ground. It now uses the dashboard palette - violet keys, emerald strings,
+  amber scalars, muted comments - and the colours are theme tokens, so the
+  editor stays legible in both light and dark (the panel itself flips).
+- **Drag-and-drop step reordering.** Reorder a flow's steps by dragging them
+  with the new grip handle - the dragged row dims to a ghost and a violet
+  insertion line shows where it will land. The up / down arrows stay for
+  keyboard / precision moves; both routes save through the same path.
+- **Bigger fact tiles.** The Flow Builder header's stat tiles (steps, seats,
+  version, source) are larger and read as real cards, not cramped chips.
+
 ## 0.30.1
 
 - **Flow Builder header is fully contained.** The flow's facts (steps, seats,

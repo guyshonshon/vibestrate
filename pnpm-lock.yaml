@@ -15,6 +15,9 @@ importers:
       '@codemirror/lang-yaml':
         specifier: ^6.1.3
         version: 6.1.3
+      '@codemirror/language':
+        specifier: 6.12.3
+        version: 6.12.3
       '@fastify/static':
         specifier: ^9.1.3
         version: 9.1.3
@@ -45,6 +48,9 @@ importers:
       '@inquirer/prompts':
         specifier: ^8.4.2
         version: 8.4.2(@types/node@22.19.18)
+      '@lezer/highlight':
+        specifier: 1.2.3
+        version: 1.2.3
       '@radix-ui/react-label':
         specifier: ^2.1.10
         version: 2.1.10(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
