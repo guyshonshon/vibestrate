@@ -186,12 +186,15 @@ responsive sweep.
   (`SuggestionsPanel`/`ReviewPassPanel`/`ProfileSelect`) kept but skipped for a
   future rewire. The 4 `var()`-styled panels (`RunTree`, `RunGapQuestions`,
   `SpecUp*`) carry zero old tokens already.
-- [~] Phase 3 - compose / flows (branch `design/phase-3-compose-flows`). DONE:
-  `RunsPage` (RunStatusBadge in the table, merge-window panel rebuilt as framed
-  rows, contract recipes). PENDING: `FlowsPage` (the solid-color `.fcard` catalog
-  + flow-hub - a real card-system redesign), `RunComposePage`, `FlowBuilderPage`
-  (1898-line YAML editor). Also removed the `impeccable` skill from the rollout
-  here - the contract + live Mission Control is the sole design reference now.
+- [~] Phase 3 - compose / flows. DONE: `RunsPage` (v0.28.3) and `FlowsPage`
+  (v0.28.6) - the whole flow catalog + hub marketplace rebuilt on Mission
+  Control's flow card (extracted `FlowBars` shared with the composer; no category
+  labels; actions are real `<Button>` + an overflow menu, not bare text). PENDING:
+  `RunComposePage`, `FlowBuilderPage` (1898-line YAML editor). Also removed the
+  `impeccable` skill here - the contract + live Mission Control is the sole design
+  reference. RULE (user, hard): compose from our shadcn component layer
+  `components/design/*` (Button, Select, ...), never hand-rolled bare `<button>` /
+  raw utility elements; buttons must look like buttons; no faint-grey labels.
 - [ ] Phase 4 - config / admin
 - [ ] Phase 5 - git / diff / merge
 - [ ] Phase 6 - specialized panels
