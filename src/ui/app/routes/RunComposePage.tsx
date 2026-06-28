@@ -18,6 +18,7 @@ import { api } from "../../lib/api.js";
 import { navigate } from "../App.js";
 import { cn } from "../../components/design/cn.js";
 import { Button } from "../../components/design/Button.js";
+import { StatTile } from "../../components/design/StatTile.js";
 import { EntityIcon, FlowIcon, type EntityKind } from "../../components/design/EntityIcon.js";
 import { FlowBars } from "../../components/design/FlowBars.js";
 import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
@@ -939,15 +940,6 @@ function StepKindDot({ kind }: { kind: string }) {
 
 // A framed stat - bold value over a violet unit label, content-width. Same tile
 // the flow card uses, so facts read as data, not a grey meta line.
-function StatTile({ value, label }: { value: string | number; label: string }) {
-  return (
-    <div className="flex min-w-[48px] flex-col gap-0.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5">
-      <span className="num-tabular max-w-[120px] truncate text-[14px] font-bold leading-none text-chalk-100">{value}</span>
-      <span className="text-[10.5px] font-medium text-violet-soft">{label}</span>
-    </div>
-  );
-}
-
 function RailCard({
   title,
   icon,

@@ -40,6 +40,7 @@ import {
 } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip } from "../../components/design/Chip.js";
+import { StatTile } from "../../components/design/StatTile.js";
 import { HelpHint } from "../../components/design/HelpHint.js";
 import { Select } from "../../components/design/Select.js";
 import { StepKindLegend } from "../../components/design/StepKindLegend.js";
@@ -858,10 +859,10 @@ export function FlowBuilderPage({
             they read horizontally instead of stacking when the toolbar is wide. */}
         {selected ? (
           <div className="mt-4 flex flex-wrap items-stretch gap-2">
-            <StatTile value={selected.definition.steps.length} label="steps" />
-            <StatTile value={Object.keys(selected.definition.seats).length} label="seats" />
-            <StatTile value={`v${selected.version}`} label="version" />
-            <StatTile value={selected.source.kind} label="source" />
+            <StatTile size="lg" value={selected.definition.steps.length} label="steps" />
+            <StatTile size="lg" value={Object.keys(selected.definition.seats).length} label="seats" />
+            <StatTile size="lg" value={`v${selected.version}`} label="version" />
+            <StatTile size="lg" value={selected.source.kind} label="source" />
           </div>
         ) : null}
       </section>
@@ -2240,17 +2241,6 @@ function resolveNullable<T>(draft: T | null | undefined, current: T | null): T |
 // A framed fact tile - bold value over a violet unit label, content-width. The
 // same tile the flow cards use, so a flow's facts read as data, not a grey
 // `8 steps · 6 seats · v1` meta line.
-function StatTile({ value, label }: { value: string | number; label: string }) {
-  return (
-    <div className="flex min-w-[92px] flex-col gap-1 rounded-[14px] border border-[color:var(--line)] bg-coal-500/60 px-4 py-3">
-      <span className="num-tabular max-w-[160px] truncate text-[22px] font-bold leading-none text-chalk-100">
-        {value}
-      </span>
-      <span className="text-[11.5px] font-medium text-violet-soft">{label}</span>
-    </div>
-  );
-}
-
 function Row({ label, items }: { label: string; items: string[] }) {
   return (
     <div className="flex items-start gap-2">

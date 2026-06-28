@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
 import type {
   PolicyStoreSnapshot,
@@ -8,6 +8,7 @@ import type {
 import { AdvancedSafetySection } from "./AdvancedSafetySection.js";
 import { ProjectPoliciesSection } from "./ProjectPoliciesSection.js";
 import { EngineToolsPanel } from "./EngineToolsPanel.js";
+import { StatTile } from "../design/StatTile.js";
 import { cn } from "../design/cn.js";
 
 type TabId = "policies" | "safety" | "engine";
@@ -142,25 +143,6 @@ export function PoliciesPanel() {
           <EngineToolsPanel snap={snap} />
         )}
       </div>
-    </div>
-  );
-}
-
-function StatTile({
-  value,
-  label,
-  tone = "default",
-}: {
-  value: ReactNode;
-  label: string;
-  tone?: "default" | "emerald" | "amber";
-}) {
-  const valueTone =
-    tone === "emerald" ? "text-emerald-400" : tone === "amber" ? "text-amber-soft" : "text-chalk-100";
-  return (
-    <div className="flex min-w-[56px] flex-col gap-0.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5">
-      <span className={cn("num-tabular text-[15px] font-bold leading-none", valueTone)}>{value}</span>
-      <span className="text-[10.5px] font-medium text-violet-soft">{label}</span>
     </div>
   );
 }

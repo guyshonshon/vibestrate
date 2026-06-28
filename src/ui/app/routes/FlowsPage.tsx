@@ -13,6 +13,7 @@ import type { DiscoveredFlow, HubFlowRow, HubPublishResult } from "../../lib/typ
 import { Button } from "../../components/design/Button.js";
 import { EntityIcon } from "../../components/design/EntityIcon.js";
 import { FlowBars } from "../../components/design/FlowBars.js";
+import { StatTile } from "../../components/design/StatTile.js";
 import { StepKindLegend } from "../../components/design/StepKindLegend.js";
 import { cn } from "../../components/design/cn.js";
 
@@ -1016,26 +1017,6 @@ function FlowCard({
  *  the unit carrying violet so a card's facts read as data, not faint grey
  *  text. Hugs its content (no stretch) so the row stays tight, not two
  *  half-card slabs. */
-function StatTile({
-  value,
-  label,
-  icon,
-}: {
-  value: string | number;
-  label: string;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <div className="flex min-w-[48px] flex-col gap-0.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5">
-      <span className="flex items-center gap-1 num-tabular text-[14px] font-bold leading-none text-chalk-100">
-        {icon ? <span className="text-violet-soft">{icon}</span> : null}
-        {value}
-      </span>
-      <span className="text-[10.5px] font-medium text-violet-soft">{label}</span>
-    </div>
-  );
-}
-
 /** The hub's diagnosis verdict as a badge that sits in the stat-tile row -
  *  positive verdicts (accepted/passed/clean) read emerald, everything else
  *  amber. Long verdict strings truncate with a tooltip so the row stays tidy. */
