@@ -662,9 +662,7 @@ function HubSection({
                   steps={meterSteps}
                   description={row.description}
                   stats={stats}
-                  extra={
-                    risk ? <div className="mt-2 text-[10.5px] text-amber-soft">{risk}</div> : null
-                  }
+                  statusBadge={risk ? <DiagnosisBadge label={risk} /> : null}
                   footer={
                     <Button
                       variant="secondary"
@@ -943,7 +941,7 @@ function FlowCard({
   steps,
   description,
   stats,
-  extra,
+  statusBadge,
   footer,
   selected,
 }: {
@@ -953,7 +951,9 @@ function FlowCard({
   steps: Array<{ kind?: string }>;
   description?: string | null;
   stats: FlowStat[];
-  extra?: React.ReactNode;
+  /** Optional chip rendered as one more card in the stat-tile row (e.g. the
+   *  hub's diagnosis verdict). */
+  statusBadge?: React.ReactNode;
   footer: React.ReactNode;
   selected?: boolean;
 }) {
@@ -985,14 +985,14 @@ function FlowCard({
       {description ? (
         <p className="line-clamp-2 text-[12px] leading-snug text-chalk-300">{description}</p>
       ) : null}
-      {stats.length > 0 ? (
+      {stats.length > 0 || statusBadge ? (
         <div className="mt-3 flex flex-wrap items-stretch gap-1.5">
           {stats.map((s, i) => (
             <StatTile key={i} value={s.value} label={s.label} />
           ))}
+          {statusBadge}
         </div>
       ) : null}
-      {extra}
       <div className="mt-3.5 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
         {footer}
       </div>
@@ -1009,6 +1009,26 @@ function StatTile({ value, label }: { value: string | number; label: string }) {
     <div className="flex min-w-[52px] flex-col gap-0.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-3 py-1.5">
       <span className="num-tabular text-[15px] font-bold leading-none text-chalk-100">{value}</span>
       <span className="text-[10.5px] font-medium text-violet-soft">{label}</span>
+    </div>
+  );
+}
+
+/** The hub's diagnosis verdict as a badge that sits in the stat-tile row -
+ *  positive verdicts (accepted/passed/clean) read emerald, everything else
+ *  amber. Long verdict strings truncate with a tooltip so the row stays tidy. */
+function DiagnosisBadge({ label }: { label: string }) {
+  const positive = /accept|pass|clean|safe|\bok\b/i.test(label);
+  return (
+    <div
+      title={label}
+      className={cn(
+        "flex max-w-[180px] items-center rounded-[10px] border px-2.5 text-[11px] font-semibold",
+        positive
+          ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
+          : "border-amber-soft/25 bg-amber-soft/10 text-amber-soft",
+      )}
+    >
+      <span className="truncate">{label}</span>
     </div>
   );
 }
