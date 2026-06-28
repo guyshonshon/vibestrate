@@ -99,7 +99,7 @@ function matchOne(
  * excluding the `+++` file header). Each line is tagged with the file
  * its `+++ b/<path>` header most recently named so glob filtering works.
  */
-function extractAddedLines(
+export function extractAddedLines(
   patch: string,
 ): { file: string | null; line: string }[] {
   const out: { file: string | null; line: string }[] = [];

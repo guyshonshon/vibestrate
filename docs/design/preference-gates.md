@@ -302,6 +302,96 @@ to confirm - reusing the `manual-proposals.ts` open/applied/rejected shape. This
 the conversational, lowest-friction capture and the north star; it plugs into the
 same store M1 builds, so it is a source, not a new pipeline.
 
+## M2: the hard block (design, pre-build)
+
+The owner opted into a true merge-cap. The design is constrained by the original
+review's fatal finding: a model verdict must NEVER directly cap a merge (a second
+decision-emitting reviewer clobbers the correctness `reviewDecision`, which is
+last-writer-wins). So the cap is DETERMINISTIC and rides its OWN input into
+`computeMergeReady`, never the shared `reviewDecision`.
+
+**Mechanism (mirrors `checklistItemsClean`):**
+- `preferenceSchema` gains `severity: "advise" | "block"` (default `advise`) and
+  `pattern: string | null` (a regex source). `block` only bites when a `pattern`
+  is present; the model-advise injection (M0) is unchanged and still flags it.
+- A pure evaluator `evaluateBlockPreferences(confirmedPreferences, addedDiffText)`
+  compiles each confirmed `block` preference's `pattern` and matches it against the
+  run's ADDED diff lines. Any match = a violation. `preferencesClean = violations
+  === 0`.
+- `computeMergeReady` gains `preferencesClean?: boolean`, ANDed in exactly like
+  `checklistItemsClean` (`undefined` -> true, so every existing caller/test is
+  byte-unaffected). Constructed at the existing merge-readiness site
+  (`orchestrator.ts:4389`) from the run's diff + the active persona's confirmed
+  block preferences.
+- The cap is a BACKSTOP: normally the model-advise reviewer flags the violation and
+  the fix loop corrects it; the deterministic cap only bites when the model wrongly
+  approved despite a real violation. It guarantees the merge cannot happen; it does
+  NOT drive the fix loop (that stays keyed off `reviewDecision`, no clobber).
+
+**Why deterministic, not the model verdict:** a model false-positive in the merge
+path could brick legitimate merges with no floor. A regex is zero-false-positive
+(it blocks exactly what it matches) and owner-confirmed. The owner DOES write/keep a
+pattern for a `block` rule - that is the price of a *guaranteed* gate; the "not
+grep" rule governs the PRIMARY advise mechanism, not this opt-in hard backstop.
+
+**Circuit-breaker / fail-open (deliberate, challenge me):** a `block` preference
+whose `pattern` is malformed (bad regex) is treated as INERT and logged - fail-OPEN,
+not closed. Rationale: a typo'd regex that blocked every merge is a worse failure
+than one inert rule, and block preferences are for STYLE/convention, not security
+(secrets/authz have their own deterministic hard gates that stay fail-closed). The
+model-advise reviewer still flags the rule. Only CONFIRMED block preferences cap
+(the `confirmedAt` gate still applies).
+
+**ReDoS (corrected after review):** there is NO runtime regex cancellation in Node -
+a catastrophic backtracking regex hangs the event loop synchronously; "catch the
+over-run" is not implementable. The real defense is the SAME one the shipped policy
+engine relies on: reuse `POLICY_LIMITS` (`src/policies/policy-types.ts`) - a 256-char
+pattern cap, a `[gimsuy]` flag allowlist, and `maxScanItemLength` per-line
+truncation - and validate the pattern at WRITE/confirm time so a malformed or
+over-long pattern is rejected at the door. Owner-confirmed + those bounds is the
+accepted residual; there is no per-regex timeout.
+
+**Reuse, not a parallel engine (item-7 decision):** the evaluator reuses the policy
+engine's validated primitives - `extractAddedLines` (`policy-engine.ts`) for the
+diff body and `POLICY_LIMITS` + the compile/flag validation (`policy-types.ts`) -
+rather than a second regex-on-diff engine. We keep `block` ON the preference surface
+(one cohesive "preferences" mental model; severity is a field) and keep the
+merge-readiness cap (run-completion is a different seam than the policy engine's
+apply-time patch refusal). Net: zero new regex/validation/ReDoS code; the cohesion
+the owner just learned is preserved.
+
+**fail-OPEN, with teeth (corrected):** a `block` pattern is validated at write/confirm
+time (reusing `POLICY_LIMITS`), so a malformed pattern is rejected at the door and
+"inert at runtime" is a near-impossible edge. If one still goes inert, it is
+surfaced as a visible "this block rule is not enforcing" flag on the run-assurance
+artifact and the preference UI - not just a log. Block preferences are STYLE, not
+security (secrets/authz keep their own fail-CLOSED gates); a typo'd regex bricking
+every merge is the worse failure, so fail-open is the deliberate, surfaced choice.
+
+**Surfacing (mandatory, was under-specified):** a merge-readiness cap is otherwise
+INVISIBLE - `run-assurance.ts` sets the review lane to PASS from the decision alone
+and `deriveRunBlockers` only sees failed steps. So M2 MUST add a
+`preferenceViolationNote` (which rule, which file:line) threaded through
+`deriveRunBlockers`, exactly as the checklist cap added `checklistGapsNote`. Without
+it the run is blocked for an unexplained reason - forbidden by the honesty rules.
+
+**Schema + scope (corrected):** `preferenceSchema` adds `severity` (default
+`advise`) and `pattern` (default null), with a `.refine()` so `severity:block`
+REQUIRES a `pattern`. Block is OWNER-ONLY: `proposePreference` and the consult
+`proposedPreference` schema must NEVER carry `severity`/`pattern` (a model cannot
+author a hard merge-gate). A block rule is set only via `addOwnerPreference` /
+owner confirm.
+
+**Termination:** a violation caps merge-ready -> the run lands `blocked` with the
+`preferenceViolationNote` surfaced, never a silent auto-pass. The cap does NOT drive
+the fix loop (that stays keyed off `reviewDecision` - no clobber); it is a
+guarantee, not an auto-fixer. Once the diff no longer matches, the cap lifts.
+
+**Diff source:** added-line text is obtained at the merge-readiness site
+(`orchestrator.ts:4389`, inside async `runFlowSequence` with `input.worktreePath` in
+scope) - a bounded helper over the worktree diff (secret-like files already redacted
+by `getFileDiff`, which the cap inherits).
+
 ## Open decisions
 
 - Preferences per-persona (symmetric with `reviewLenses`, switching persona

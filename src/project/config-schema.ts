@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { POLICY_LIMITS } from "../policies/policy-types.js";
 import { crewsConfigSchema } from "../crews/crew-schema.js";
 import { profilesConfigSchema } from "../profiles/profile-schema.js";
 import { permissionProfilesSchema } from "../permissions/permission-schema.js";
@@ -408,8 +409,36 @@ export const preferenceSchema = z
       .default({ lenses: [] }),
     source: z.enum(["owner", "supervisor-proposed"]).default("owner").describe("Who authored it; audit metadata (injection is gated by confirmedAt, not source)."),
     confirmedAt: z.string().datetime().nullable().default(null).describe("ISO timestamp of owner confirmation; null = inert (never injected)."),
+    /** M2: a `block` preference is a deterministic HARD merge-cap (not the model
+     *  reviewer) - it caps merge-readiness when its `pattern` matches the run's
+     *  added diff lines. `advise` (default) is the model-reviewer tier. */
+    severity: z.enum(["advise", "block"]).default("advise").describe("advise = model reviewer flags it; block = deterministic pattern caps the merge."),
+    /** Regex (reuses POLICY_LIMITS) matched against added diff lines for a `block`
+     *  preference. Validated at write time (length + flags + compiles). */
+    pattern: z
+      .string()
+      .min(1)
+      .max(POLICY_LIMITS.maxRegexLength)
+      .nullable()
+      .default(null)
+      .describe("Regex matched against added diff lines (block severity only)."),
   })
-  .strict();
+  .strict()
+  .superRefine((p, ctx) => {
+    // A block preference is a hard gate - it MUST have a matcher, and the matcher
+    // must compile (write-time validation so a malformed regex is rejected at the
+    // door, not silently inert at runtime).
+    if (p.severity === "block" && !p.pattern) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["pattern"], message: "a block preference requires a pattern" });
+    }
+    if (p.pattern != null) {
+      try {
+        new RegExp(p.pattern);
+      } catch {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["pattern"], message: "pattern is not a valid regular expression" });
+      }
+    }
+  });
 export type PersonaPreference = z.infer<typeof preferenceSchema>;
 
 export const personaConfigSchema = z
