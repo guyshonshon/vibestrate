@@ -9,6 +9,8 @@ import {
 import { api } from "../../lib/api.js";
 import type { DiscoveredFlow, HubFlowRow, HubPublishResult } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
+import { EntityIcon } from "../../components/design/EntityIcon.js";
+import { FlowBars } from "../../components/design/FlowBars.js";
 import { cn } from "../../components/design/cn.js";
 
 type Props = {
@@ -214,16 +216,17 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   return (
     <div className="relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
       <section className="mt-1">
-        <h1 className="font-display font-semibold leading-[1.02] tracking-[-0.025em] text-[clamp(30px,3.4vw,46px)]">
+        <h1 className="text-[20px] font-semibold tracking-tight text-chalk-100">
           All flows{" "}
-          <span className="mono align-middle text-[clamp(15px,1.4vw,20px)] text-fog-500 num-tabular">
+          <span className="mono num-tabular text-[12px] text-chalk-400">
             {flows ? defaultFlowCount + otherFlows.length : ""}
           </span>
         </h1>
-        <p className="text-fog-300 text-[14.5px] leading-[1.55] mt-3 max-w-[68ch]">
+        <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.55] text-chalk-300">
           A flow is the recipe your crew follows - ordered steps, the roles that
-          run them, approval gates. The <strong className="text-fog-100">Default
-          flow</strong> runs unless you pick another.
+          run them, approval gates. The{" "}
+          <strong className="font-semibold text-chalk-100">Default flow</strong> runs
+          unless you pick another.
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Button
@@ -247,20 +250,20 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       </section>
 
       {importOpen ? (
-        <section className="mt-4 slab px-4 py-3.5">
+        <section className="mt-4 rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4 py-3.5">
           <div className="flex items-center gap-3">
-            <div className="eyebrow">Import a flow</div>
-            <div className="ml-auto inline-flex border border-white/10 p-0.5 text-[11.5px]">
+            <div className="text-[12px] font-semibold text-violet-vivid">Import a flow</div>
+            <div className="ml-auto inline-flex rounded-[10px] border border-[color:var(--line)] p-0.5 text-[11.5px]">
               {(["yaml", "url"] as ImportMode[]).map((m) => (
                 <button
                   key={m}
                   type="button"
                   onClick={() => setImportMode(m)}
                   className={cn(
-                    "px-2 py-0.5",
+                    "rounded-[8px] px-2 py-0.5 transition",
                     importMode === m
-                      ? "bg-violet-soft/20 text-fog-100"
-                      : "text-fog-400 hover:text-fog-200",
+                      ? "bg-coal-500 text-chalk-100"
+                      : "text-chalk-400 hover:text-chalk-100",
                   )}
                 >
                   {m === "yaml" ? "Paste YAML" : "From URL"}
@@ -274,7 +277,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
               onChange={(e) => setImportText(e.target.value)}
               placeholder="Paste a flow.yml here…"
               spellCheck={false}
-              className="mono mt-3 h-44 w-full resize-y border border-white/10 bg-ink-200/50 px-2.5 py-2 text-[12px] text-fog-200 outline-none focus:border-violet-soft/50"
+              className="mono mt-3 h-44 w-full resize-y rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-2 text-[12px] text-chalk-100 outline-none focus:border-violet-soft/50"
             />
           ) : (
             <input
@@ -282,11 +285,11 @@ export function FlowsPage({ onOpenInFlow }: Props) {
               value={importUrl}
               onChange={(e) => setImportUrl(e.target.value)}
               placeholder="https://example.com/path/flow.yml"
-              className="mono mt-3 w-full border border-white/10 bg-ink-200/50 px-2.5 py-2 text-[12px] text-fog-200 outline-none focus:border-violet-soft/50"
+              className="mono mt-3 w-full rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-2 text-[12px] text-chalk-100 outline-none focus:border-violet-soft/50"
             />
           )}
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <label className="inline-flex items-center gap-1.5 text-[12px] text-fog-300">
+            <label className="inline-flex items-center gap-1.5 text-[12px] text-chalk-300">
               <input
                 type="checkbox"
                 checked={importOverwrite}
@@ -312,7 +315,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
               </Button>
             </div>
           </div>
-          <p className="mt-2 text-[11px] text-fog-500">
+          <p className="mt-2 text-[11px] text-chalk-400">
             Validated against the flow schema; refused if it carries secrets.
             URL fetches are size- and time-bounded.
           </p>
@@ -320,22 +323,22 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       ) : null}
 
       {error ? (
-        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+        <div className="mt-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
 
       {invalid.length > 0 ? (
-        <div className="mt-4 border border-amber-400/30 bg-amber-500/5 px-3 py-2.5 text-[12.5px] text-amber-200">
-          <div className="font-medium">
+        <div className="mt-4 rounded-[12px] border border-amber-soft/30 bg-amber-soft/10 px-3 py-2.5 text-[12.5px] text-amber-soft">
+          <div className="font-semibold">
             {invalid.length} project flow{invalid.length === 1 ? "" : "s"} couldn't
             be loaded and {invalid.length === 1 ? "was" : "were"} skipped:
           </div>
           <ul className="mt-1.5 space-y-1">
             {invalid.map((bad) => (
               <li key={bad.path} className="text-[11.5px]">
-                <span className="mono text-amber-300/90">{bad.path}</span>
-                <span className="text-amber-200/80"> - {bad.message}</span>
+                <span className="mono text-amber-soft">{bad.path}</span>
+                <span className="text-chalk-300"> - {bad.message}</span>
               </li>
             ))}
           </ul>
@@ -344,9 +347,9 @@ export function FlowsPage({ onOpenInFlow }: Props) {
 
       <section className="mt-8">
         {!flows ? (
-          <div className="text-fog-400 text-[13px]">Loading flows…</div>
+          <div className="text-[13px] text-chalk-400">Loading flows…</div>
         ) : (
-          <div className="hubp-grid">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {defaultFlow ? (
               <LocalFlowCard
                 flow={defaultFlow}
@@ -855,57 +858,82 @@ function LocalFlowCard({
   const steps = flow.definition.steps ?? [];
   const seats = Object.keys(flow.definition.seats ?? {}).length;
   const gates = steps.filter((s) => s.kind === "approval-gate" || !!s.approval).length;
+  // Category accent. The label color carries the category (never faint grey);
+  // the FlowBars meter below carries the flow's makeup (review / validation /
+  // gates). Default = emerald, built-in = violet, project = sky.
+  const cat = isSelected
+    ? { label: "runs by default", text: "text-emerald-400", icon: "text-emerald-400", border: "border-emerald-500/40" }
+    : isProject
+      ? { label: "project", text: "text-sky-glow", icon: "text-sky-glow", border: "border-[color:var(--line)]" }
+      : { label: "built-in", text: "text-violet-vivid", icon: "text-violet-soft", border: "border-[color:var(--line)]" };
+  const actCls =
+    "font-medium text-chalk-300 transition hover:text-chalk-100 disabled:cursor-not-allowed disabled:opacity-50";
   return (
-    <div className={cn("fcard", variant === "selected" && "is-selected", variant === "white" && "is-verified")}>
-      <div className="fcard-top">
-        <div className="fcard-id">
-          {isSelected ? (
-            <>
-              <span className="fcard-check">✓</span>
-              <span className="fcard-verified">runs by default</span>
-            </>
-          ) : (
-            <span className="fcard-author">{isProject ? "project" : "built-in"}</span>
-          )}
-        </div>
+    <div className={cn("flex flex-col rounded-[16px] border bg-coal-600 p-4", cat.border)}>
+      <div className="flex items-center gap-1.5">
+        <EntityIcon entity="flow" size={15} className={cn("shrink-0", cat.icon)} />
+        <span className={cn("text-[10px] font-semibold uppercase tracking-[0.08em]", cat.text)}>
+          {cat.label}
+        </span>
       </div>
       <button
         type="button"
         onClick={onOpen}
-        className="fcard-name block w-full bg-transparent p-0 text-left"
+        className="mt-1.5 block w-full bg-transparent p-0 text-left text-[15px] font-bold leading-snug text-chalk-100 transition hover:text-violet-soft"
       >
         {flow.label}
       </button>
+      <FlowBars steps={steps} />
       {flow.definition.description ? (
-        <p className="fcard-sum">{flow.definition.description}</p>
+        <p className="line-clamp-2 text-[12px] leading-snug text-chalk-300">
+          {flow.definition.description}
+        </p>
       ) : null}
-      <div className="fcard-strip">
-        <span className="fcard-cell">{steps.length} steps</span>
-        <span className="fcard-cell">{seats} {seats === 1 ? "seat" : "seats"}</span>
+      <div className="mono mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-chalk-300">
+        <span>{steps.length} steps</span>
+        <span className="text-chalk-400/50">·</span>
+        <span>
+          {seats} {seats === 1 ? "seat" : "seats"}
+        </span>
         {gates > 0 ? (
-          <span className="fcard-cell">{gates} {gates === 1 ? "gate" : "gates"}</span>
+          <>
+            <span className="text-chalk-400/50">·</span>
+            <span className="text-amber-soft">
+              {gates} {gates === 1 ? "gate" : "gates"}
+            </span>
+          </>
         ) : null}
-        {flow.version != null ? <span className="fcard-cell">v{flow.version}</span> : null}
+        {flow.version != null ? (
+          <>
+            <span className="text-chalk-400/50">·</span>
+            <span>v{flow.version}</span>
+          </>
+        ) : null}
       </div>
-      <div className="fcard-actions">
+      <div className="mt-3.5 flex flex-wrap items-center gap-x-3.5 gap-y-1 border-t border-[color:var(--line-soft)] pt-2.5 text-[11px]">
         {!isSelected ? (
-          <button type="button" className="fcard-act" onClick={onUseAsDefault}>
+          <button type="button" className={actCls} onClick={onUseAsDefault}>
             set default
           </button>
         ) : null}
-        <button type="button" className="fcard-act" onClick={onOpen}>
+        <button type="button" className={actCls} onClick={onOpen}>
           {isProject ? "edit" : "open"}
         </button>
         {onFork ? (
-          <button type="button" className="fcard-act" disabled={busy !== null} onClick={onFork}>
+          <button type="button" className={actCls} disabled={busy !== null} onClick={onFork}>
             {busy === "fork" ? "copying…" : "customize"}
           </button>
         ) : null}
-        <button type="button" className="fcard-act" disabled={busy !== null} onClick={onExport}>
+        <button type="button" className={actCls} disabled={busy !== null} onClick={onExport}>
           {busy === "export" ? "exporting…" : "export"}
         </button>
         {onDelete ? (
-          <button type="button" className="fcard-act" disabled={busy !== null} onClick={onDelete}>
+          <button
+            type="button"
+            className="font-medium text-chalk-300 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={busy !== null}
+            onClick={onDelete}
+          >
             {busy === "delete" ? "deleting…" : "delete"}
           </button>
         ) : null}

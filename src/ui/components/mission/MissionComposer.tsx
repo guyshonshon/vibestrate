@@ -3,6 +3,7 @@ import { ArrowRight, Check, Lock, Plus } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { navigate } from "../../app/App.js";
 import { EntityIcon, FlowIcon, type EntityKind } from "../design/EntityIcon.js";
+import { FlowBars } from "../design/FlowBars.js";
 import { ConsultOrb } from "../consult/ConsultOrb.js";
 import { AssistPopover } from "./AssistPopover.js";
 import { RunActions } from "./RunActions.js";
@@ -16,39 +17,6 @@ import type {
 } from "../../lib/types.js";
 
 type FlowParamDef = { required?: boolean; label?: string; default?: unknown; secret?: boolean };
-
-// Per-step-kind colors - the "more colors" on the flow bars. The bar chart of a
-// flow's steps reads its shape (count, rhythm) AND its makeup (which steps are
-// review / validation / approval gates) at a glance.
-const STEP_TONE: Record<string, string> = {
-  "review-turn": "#a78bfa", // violet - the review loop
-  validation: "#7cc5ff", // sky - checks / gates that run commands
-  "approval-gate": "#fb923c", // amber - a human-in-the-loop pause
-};
-// Ordinary work steps are neutral grey so flow cards don't read as walls of
-// violet; only the meaningful step kinds (review / validation / approval) carry
-// colour. Mid-grey reads on both the light and dark card surfaces.
-const STEP_TONE_DEFAULT = "#9a9aa2";
-
-function FlowBars({ steps, on }: { steps: Array<{ kind?: string }>; on: boolean }) {
-  const shown = steps.slice(0, 10);
-  const bars: Array<{ kind?: string }> = shown.length > 0 ? shown : [{}];
-  return (
-    <div className="my-2.5 flex h-6 items-end gap-[3px]" aria-hidden>
-      {bars.map((s, i) => (
-        <span
-          key={i}
-          className="flex-1 rounded-[2px]"
-          style={{
-            background: STEP_TONE[s.kind ?? ""] ?? STEP_TONE_DEFAULT,
-            opacity: on ? 1 : 0.42,
-            height: `${9 + ((i * 5) % 11)}px`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 function PickCard({
   on,
