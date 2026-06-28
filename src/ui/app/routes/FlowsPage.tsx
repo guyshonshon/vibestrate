@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
+  MoreHorizontal,
   Plus,
   Search,
   Upload,
@@ -859,10 +860,9 @@ function LocalFlowCard({
   const seats = Object.keys(flow.definition.seats ?? {}).length;
   const gates = steps.filter((s) => s.kind === "approval-gate" || !!s.approval).length;
   // Mission Control's flow card exactly: icon + bold name + the step-meter +
-  // a dense meta line. No category label (the action set already tells project
-  // from built-in); the default flow gets an emerald mark + border, not a slug.
-  const actCls =
-    "font-medium text-chalk-300 transition hover:text-chalk-100 disabled:cursor-not-allowed disabled:opacity-50";
+  // a dense meta line, then real <Button> actions (our shadcn button - not bare
+  // text). No category label (the action set already tells project from
+  // built-in); the default flow gets an emerald mark + border, not a slug.
   return (
     <div
       className={cn(
@@ -894,34 +894,81 @@ function LocalFlowCard({
         {gates > 0 ? ` · ${gates} ${gates === 1 ? "gate" : "gates"}` : ""}
         {flow.version != null ? ` · v${flow.version}` : ""}
       </div>
-      <div className="mt-3.5 flex flex-wrap items-center gap-x-3.5 gap-y-1 border-t border-[color:var(--line-soft)] pt-2.5 text-[11px]">
-        {!isSelected ? (
-          <button type="button" className={actCls} onClick={onUseAsDefault}>
-            set default
-          </button>
-        ) : null}
-        <button type="button" className={actCls} onClick={onOpen}>
-          {isProject ? "edit" : "open"}
-        </button>
-        {onFork ? (
-          <button type="button" className={actCls} disabled={busy !== null} onClick={onFork}>
-            {busy === "fork" ? "copying…" : "customize"}
-          </button>
-        ) : null}
-        <button type="button" className={actCls} disabled={busy !== null} onClick={onExport}>
-          {busy === "export" ? "exporting…" : "export"}
-        </button>
-        {onDelete ? (
-          <button
-            type="button"
-            className="font-medium text-chalk-300 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={busy !== null}
-            onClick={onDelete}
-          >
-            {busy === "delete" ? "deleting…" : "delete"}
-          </button>
-        ) : null}
+      <div className="mt-3.5 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
+        <Button variant="secondary" size="sm" onClick={onOpen}>
+          {isProject ? "Edit" : "Open"}
+        </Button>
+        <div className="ml-auto">
+          <FlowCardMenu
+            busy={busy !== null}
+            items={[
+              isSelected ? null : { label: "Set as default", onClick: onUseAsDefault },
+              onFork ? { label: busy === "fork" ? "Copying…" : "Customize", onClick: onFork } : null,
+              { label: busy === "export" ? "Exporting…" : "Export", onClick: onExport },
+              onDelete ? { label: busy === "delete" ? "Deleting…" : "Delete", onClick: onDelete, danger: true } : null,
+            ]}
+          />
+        </div>
       </div>
+    </div>
+  );
+}
+
+type MenuItem = { label: string; onClick: () => void; danger?: boolean };
+
+/** Overflow menu for a card's secondary actions - a single contained icon
+ *  button that opens a coal popover. Keeps the resting card to one primary
+ *  button instead of a wrapping row of bare text links. */
+function FlowCardMenu({ items, busy }: { items: Array<MenuItem | null>; busy: boolean }) {
+  const real = items.filter((x): x is MenuItem => x !== null);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+  if (real.length === 0) return null;
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-label="More actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        disabled={busy}
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-7 w-7 items-center justify-center rounded-[10px] border border-[color:var(--line-strong)] bg-coal-600 text-chalk-300 transition hover:bg-coal-500 hover:text-chalk-100 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <MoreHorizontal className="h-4 w-4" strokeWidth={1.9} />
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-30 mt-1 min-w-[148px] overflow-hidden rounded-[12px] border border-[color:var(--line)] bg-coal-800 py-1 shadow-2xl"
+        >
+          {real.map((it) => (
+            <button
+              key={it.label}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                it.onClick();
+              }}
+              className={cn(
+                "block w-full px-3 py-1.5 text-left text-[12.5px] font-medium transition hover:bg-coal-500",
+                it.danger ? "text-rose-300 hover:text-rose-300" : "text-chalk-300 hover:text-chalk-100",
+              )}
+            >
+              {it.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
