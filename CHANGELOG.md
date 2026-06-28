@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.30.1
+
+- **Flow Builder header is fully contained.** The flow's facts (steps, seats,
+  version, source) now read as framed stat tiles instead of a grey
+  `2 steps · 2 seats · v1` line; the "read-only - fork to edit" note is a
+  contained amber callout with a lock, not a sentence trailing off the title;
+  and the flow actions (dry-run, fork/delete, edit-as-YAML, save, set-default)
+  sit in one carded toolbar instead of buttons stranded at the far right. The
+  duplicate state chips and meta on the editor / YAML cards were removed so the
+  flow's state lives in exactly one place.
+
 ## 0.30.0
 
 - **New-run and the Flow Builder join the new look.** The two remaining
