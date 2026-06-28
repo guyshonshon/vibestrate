@@ -639,25 +639,32 @@ function HubSection({
                 typeof row.steps === "number"
                   ? Array.from({ length: Math.max(1, row.steps) }, () => ({}))
                   : [];
+              // Keep the tile row to steps + version so the diagnosis badge sits
+              // inline beside them rather than wrapping to its own line; installs
+              // folds into the @author/curated line below the name.
               const stats: FlowStat[] = [
                 ...(typeof row.steps === "number"
                   ? [{ value: row.steps, label: row.steps === 1 ? "step" : "steps" }]
                   : []),
                 ...(row.version ? [{ value: `v${row.version}`, label: "version" }] : []),
-                ...(typeof row.installs === "number"
-                  ? [{ value: row.installs.toLocaleString(), label: "installs" }]
-                  : []),
               ];
               return (
                 <FlowCard
                   key={row.ref}
                   title={name}
                   badge={
-                    row.verified ? (
-                      <span className="shrink-0 text-[10px] font-bold text-emerald-400">curated</span>
-                    ) : row.author ? (
-                      <span className="mono shrink-0 text-[10.5px] text-violet-soft">@{row.author}</span>
-                    ) : null
+                    <div className="flex shrink-0 items-center gap-2">
+                      {typeof row.installs === "number" && row.installs > 0 ? (
+                        <span className="mono text-[10.5px] text-chalk-400">
+                          {row.installs.toLocaleString()}↓
+                        </span>
+                      ) : null}
+                      {row.verified ? (
+                        <span className="text-[10px] font-bold text-emerald-400">curated</span>
+                      ) : row.author ? (
+                        <span className="mono text-[10.5px] text-violet-soft">@{row.author}</span>
+                      ) : null}
+                    </div>
                   }
                   steps={meterSteps}
                   description={row.description}
@@ -986,7 +993,7 @@ function FlowCard({
         <p className="line-clamp-2 text-[12px] leading-snug text-chalk-300">{description}</p>
       ) : null}
       {stats.length > 0 || statusBadge ? (
-        <div className="mt-3 flex flex-wrap items-stretch gap-1.5">
+        <div className="mt-3 flex flex-wrap items-stretch gap-1">
           {stats.map((s, i) => (
             <StatTile key={i} value={s.value} label={s.label} />
           ))}
@@ -1006,8 +1013,8 @@ function FlowCard({
  *  half-card slabs. */
 function StatTile({ value, label }: { value: string | number; label: string }) {
   return (
-    <div className="flex min-w-[52px] flex-col gap-0.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-3 py-1.5">
-      <span className="num-tabular text-[15px] font-bold leading-none text-chalk-100">{value}</span>
+    <div className="flex min-w-[48px] flex-col gap-0.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5">
+      <span className="num-tabular text-[14px] font-bold leading-none text-chalk-100">{value}</span>
       <span className="text-[10.5px] font-medium text-violet-soft">{label}</span>
     </div>
   );
@@ -1022,7 +1029,7 @@ function DiagnosisBadge({ label }: { label: string }) {
     <div
       title={label}
       className={cn(
-        "flex max-w-[180px] items-center rounded-[10px] border px-2.5 text-[11px] font-semibold",
+        "flex max-w-[180px] items-center rounded-[10px] border px-2 text-[11px] font-semibold",
         positive
           ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
           : "border-amber-soft/25 bg-amber-soft/10 text-amber-soft",
