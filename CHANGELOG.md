@@ -3,9 +3,9 @@
 ## 0.29.1
 
 - **Flow cards read as data, not grey text.** The faint "8 steps · 6 seats · v1"
-  line is gone - a flow's counts now sit in small framed stat tiles (bold value
-  over its unit), and the version moved to a quiet slot by the name. The "Pull a
-  flow" hub section gained the same contained framed header as "All flows".
+  line is gone - a flow's facts now sit in compact framed stat tiles (bold value
+  over a violet unit: steps, seats, gates, version). The "Pull a flow" hub
+  section gained the same contained framed header as "All flows".
 
 ## 0.29.0
 

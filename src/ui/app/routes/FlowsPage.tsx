@@ -898,9 +898,6 @@ function LocalFlowCard({
         >
           {flow.label}
         </button>
-        {flow.version != null ? (
-          <span className="mono shrink-0 text-[10.5px] text-chalk-400">v{flow.version}</span>
-        ) : null}
         {isSelected ? (
           <span className="shrink-0 text-[10px] font-bold text-emerald-400">default</span>
         ) : null}
@@ -911,10 +908,11 @@ function LocalFlowCard({
           {flow.definition.description}
         </p>
       ) : null}
-      <div className="mt-3 flex items-stretch gap-1.5">
-        <StatTile n={steps.length} label={steps.length === 1 ? "step" : "steps"} />
-        <StatTile n={seats} label={seats === 1 ? "seat" : "seats"} />
-        {gates > 0 ? <StatTile n={gates} label={gates === 1 ? "gate" : "gates"} /> : null}
+      <div className="mt-3 flex flex-wrap items-stretch gap-1.5">
+        <StatTile value={steps.length} label={steps.length === 1 ? "step" : "steps"} />
+        <StatTile value={seats} label={seats === 1 ? "seat" : "seats"} />
+        {gates > 0 ? <StatTile value={gates} label={gates === 1 ? "gate" : "gates"} /> : null}
+        {flow.version != null ? <StatTile value={`v${flow.version}`} label="version" /> : null}
       </div>
       <div className="mt-3.5 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
         <Button variant="secondary" size="sm" onClick={onOpen}>
@@ -936,14 +934,15 @@ function LocalFlowCard({
   );
 }
 
-/** A single framed stat - a small inset card with a bold value over its unit.
- *  Replaces the old washed-out "8 steps · 6 seats · v1" mono line so a card's
- *  numbers read as data, not faint grey text. */
-function StatTile({ n, label }: { n: number; label: string }) {
+/** A single framed stat - a small inset card with a bold value over its unit,
+ *  the unit carrying violet so a card's facts read as data, not faint grey
+ *  text. Hugs its content (no stretch) so the row stays tight, not two
+ *  half-card slabs. */
+function StatTile({ value, label }: { value: string | number; label: string }) {
   return (
-    <div className="flex flex-1 flex-col gap-0.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5">
-      <span className="num-tabular text-[15px] font-bold leading-none text-chalk-100">{n}</span>
-      <span className="text-[10.5px] font-medium text-chalk-300">{label}</span>
+    <div className="flex min-w-[52px] flex-col gap-0.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-3 py-1.5">
+      <span className="num-tabular text-[15px] font-bold leading-none text-chalk-100">{value}</span>
+      <span className="text-[10.5px] font-medium text-violet-soft">{label}</span>
     </div>
   );
 }
