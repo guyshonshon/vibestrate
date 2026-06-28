@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.32.0
+
+- **Preference gates (M0): teach a supervisor a rule, the reviewer checks for
+  it.** A supervisor can now carry `preferences` - stated rules like "use a
+  hyphen, not an em-dash" or "no eyebrow labels" that are real but not worth a
+  lint rule. On a review turn the reviewer is told to check the change against
+  each and name the fix, and a flag rides the normal review-and-fix loop. It is
+  advisory (never a separate merge gate in this slice), a preference is injected
+  only after you confirm it (unconfirmed entries are inert), and the reviewer is
+  handed the exact diff - not a summary - so it can actually see a line-level
+  violation. Design note and the deferred `block`/capture milestones:
+  `docs/design/preference-gates.md` (adversarially reviewed before build).
+
 ## 0.31.2
 
 - **Step-colour legend on the Flows page.** The Build / Review / Check / Gate

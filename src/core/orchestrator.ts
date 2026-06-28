@@ -207,6 +207,7 @@ import {
   isReviewerStep,
   composeReviewerStepNotes,
 } from "../orchestrator/review-lenses.js";
+import { renderPreferenceGateBlock } from "../orchestrator/preference-gates.js";
 import {
   isSpecUpFlow,
   renderSpecUpPostureBlock,
@@ -629,6 +630,11 @@ export class Orchestrator {
    *  spec-up phase's planning turns so a persona aims intake/scope/spec/architecture.
    *  null = not a spec-up run, or the persona declared no posture (turns unchanged). */
   private specUpPostureBlock: string | null = null;
+  /** Pre-rendered owner-preference block (preference-gates.ts), computed once at
+   *  run start from the active persona's confirmed preferences and appended to
+   *  lensed reviewer turns so a model verifies the change against them. null = no
+   *  confirmed/in-scope preferences (review turns byte-identical to before). */
+  private preferenceBlock: string | null = null;
   /** Pre-rendered "# Continuity flags" block (T9) for THIS run's task - the
    *  suspected dup/conflict heads-up. Injected into the planner turn alongside
    *  the ledger block. "" when nothing was flagged. */
@@ -1119,6 +1125,26 @@ export class Orchestrator {
             personaId: personaForRun.id,
             lenses: lensEmphasis.known,
             ignored: lensEmphasis.unknown,
+          },
+        });
+      }
+      // Owner preferences (preference-gates.ts): render the persona's confirmed,
+      // in-scope preferences into a block appended to lensed reviewer turns so a
+      // model verifies the change against them. Trust gate: an unconfirmed entry is
+      // inert (its text never reaches a prompt). Recorded as evidence.
+      const prefSelection = renderPreferenceGateBlock(
+        personaForRun.config.preferences ?? [],
+        { activeLenses: lensEmphasis?.known ?? [] },
+      );
+      this.preferenceBlock = prefSelection?.block ?? null;
+      if (prefSelection) {
+        await eventLog.append({
+          type: "supervisor.preference_gates",
+          message: `Supervisor "${personaForRun.config.label}" checks ${prefSelection.injected.length} owner preference(s) in review.`,
+          data: {
+            personaId: personaForRun.id,
+            preferences: prefSelection.injected.map((p) => p.id),
+            droppedForCap: prefSelection.droppedForCap,
           },
         });
       }
@@ -1620,6 +1646,7 @@ export class Orchestrator {
     outputs: Map<string, FlowContextOutput>;
     artifactStore: ArtifactStore;
     contextMode: PreparedFlowParticipantTurn["contextMode"];
+    forceFullTokens?: ReadonlySet<string>;
   }): Promise<{
     priorArtifacts: PriorArtifact[];
     contextPacketPath: string;
@@ -1630,6 +1657,7 @@ export class Orchestrator {
       step: input.step,
       outputs: input.outputs,
       contextMode: input.contextMode,
+      forceFullTokens: input.forceFullTokens,
       generatedAt: nowIso(),
     });
     const absPath = await input.artifactStore.writeJson(
@@ -2435,6 +2463,13 @@ export class Orchestrator {
         outputs: input.outputs,
         artifactStore: input.artifactStore,
         contextMode: "stateless",
+        // Preference-gate review must see the exact diff, not a summary, or it is
+        // blind to the line-level violation. Only forced when this is a lensed
+        // reviewer turn AND there are preferences to check (else behavior unchanged).
+        forceFullTokens:
+          isReviewerStep(step) && this.preferenceBlock
+            ? new Set(["diff"])
+            : undefined,
       });
       state = this.patchFlowStep(
         state,
@@ -2488,6 +2523,7 @@ export class Orchestrator {
         stepInstructions: step.instructions,
         lensEmphasis: this.reviewLensEmphasis,
         isReviewer: isReviewerStep(step),
+        preferenceBlock: this.preferenceBlock,
         specUpPostureBlock: this.specUpPostureBlock,
       });
       return this.runRole({

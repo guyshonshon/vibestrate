@@ -159,4 +159,38 @@ describe("review-lenses - composeReviewerStepNotes (the injection rule)", () => 
       }),
     ).toBe("BASE");
   });
+
+  it("appends the preference block ONLY on a reviewer turn", () => {
+    const prefs = "Owner preferences - ...";
+    expect(
+      composeReviewerStepNotes({
+        baseNotes: "BASE",
+        stepInstructions: null,
+        lensEmphasis: null,
+        isReviewer: true,
+        preferenceBlock: prefs,
+      }),
+    ).toBe(`BASE\n\n${prefs}`);
+    expect(
+      composeReviewerStepNotes({
+        baseNotes: "BASE",
+        stepInstructions: null,
+        lensEmphasis: null,
+        isReviewer: false,
+        preferenceBlock: prefs,
+      }),
+    ).toBe("BASE");
+  });
+
+  it("orders lens, then preferences, then spec-up posture on a reviewer turn", () => {
+    const out = composeReviewerStepNotes({
+      baseNotes: "BASE",
+      stepInstructions: null,
+      lensEmphasis: "LENS",
+      isReviewer: true,
+      preferenceBlock: "PREFS",
+      specUpPostureBlock: "POSTURE",
+    });
+    expect(out).toBe("BASE\n\nLENS\n\nPREFS\n\nPOSTURE");
+  });
 });

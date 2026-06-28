@@ -68,6 +68,13 @@ export type BuildFlowContextPacketInput = {
   outputs: ReadonlyMap<string, FlowContextOutput>;
   contextMode: FlowContextRetentionMode;
   generatedAt?: string;
+  /**
+   * Tokens that MUST be embedded in full regardless of context policy/mode. Used
+   * by preference-gate review (preference-gates.ts): a model can only flag a
+   * line-level violation it can actually see, so a summarized diff would make it
+   * blind. Empty/absent => unchanged behavior.
+   */
+  forceFullTokens?: ReadonlySet<string>;
 };
 
 export type BuildFlowContextPacketResult = {
@@ -114,6 +121,7 @@ export function buildFlowContextPacket(
       artifactPath: output.artifactPath,
       contextPolicy: input.snapshot.contextPolicy,
       contextMode: input.contextMode,
+      forceFull: input.forceFullTokens?.has(token) ?? false,
     });
     // Summary-overhead guard: the embedded-summary wrapper (artifact-path header
     // + "exact content available" footer) can out-cost its savings on small
@@ -234,12 +242,23 @@ function decideContextInclusion(input: {
   artifactPath: string;
   contextPolicy: ResolvedFlowSnapshot["contextPolicy"];
   contextMode: FlowContextRetentionMode;
+  forceFull: boolean;
 }): {
   disposition: Exclude<FlowContextDisposition, "omitted-unavailable">;
   body: string;
   reason: string;
 } {
   const sourceBytes = bytes(input.content);
+
+  // A caller that needs the exact artifact (preference-gate review) overrides every
+  // size/policy heuristic - a summarized diff would hide the very line under review.
+  if (input.forceFull) {
+    return {
+      disposition: "embedded-full",
+      body: input.content.trim(),
+      reason: "Preference-gate review requires the exact artifact (forced full).",
+    };
+  }
 
   if (input.contextMode === "reused" && input.token !== "task-brief") {
     return {

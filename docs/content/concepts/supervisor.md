@@ -34,6 +34,9 @@ A supervisor can suggest a heavier execution posture for risk-tagged tasks - the
 **A lens on the spec-up phase.**
 When a run goes through [Spec-up](/docs/concepts/spec-up), a supervisor can aim the planning agents that scope the work, write the spec, and design the architecture. The `security` supervisor brings an authorization / secrets / attack-surface lens to that planning; the default stays neutral, so plain spec-up runs are unchanged.
 
+**Preferences the reviewer checks for.**
+A supervisor can carry your stated preferences - "use a hyphen, not an em-dash", "no eyebrow labels" - the kind of rule that is real but not worth a lint rule. Each is a `preferences` entry on the supervisor, and on a review turn the reviewer is told to check the change against it and name the fix. A flag rides the normal review and fix loop, the same way a correctness note does; it is advisory, never a separate merge gate. Unlike lenses, a preference is free text, so it is injected only after you confirm it (an unconfirmed entry is inert), and the reviewer is handed the exact diff so it can actually see a line-level violation. The design note is `docs/design/preference-gates.md`.
+
 </div>
 
 These two labels tell you how much the sign-off is worth at a glance:

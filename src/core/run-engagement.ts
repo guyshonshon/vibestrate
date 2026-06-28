@@ -120,6 +120,20 @@ function entryFor(e: VibestrateEvent): Partial | null {
         tone: "info",
       };
     }
+    case "supervisor.preference_gates": {
+      const prefs = Array.isArray(d["preferences"])
+        ? (d["preferences"] as unknown[]).filter((x): x is string => typeof x === "string")
+        : [];
+      const n = prefs.length;
+      return {
+        cls: "judgment",
+        anchor: "root",
+        stepId: null,
+        title: `review checks ${n} owner preference${n === 1 ? "" : "s"}`,
+        detail: prefs.length ? prefs.join(" · ") : null,
+        tone: "info",
+      };
+    }
     case "review.decision": {
       const dec = str(d, "decision") ?? "decision";
       return {

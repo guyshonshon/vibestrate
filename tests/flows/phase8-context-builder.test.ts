@@ -93,6 +93,55 @@ describe("Flow Phase 8 context builder", () => {
       .not.toContain("x".repeat(2_000));
   });
 
+  it("forces a bulky token to embedded-full when forceFullTokens demands it (preference review needs the exact artifact)", () => {
+    const s = snapshot("compact");
+    const step = s.steps.find((candidate) => candidate.id === "implementation-review")!;
+    const largeDiff = JSON.stringify(
+      {
+        totals: { files: 1, insertions: 9, deletions: 0 },
+        files: [{ path: "src/a.ts" }],
+        patch: "src/a.ts: an em-dash — lurks on this changed line\n".repeat(400),
+      },
+      null,
+      2,
+    );
+    const outputs = () =>
+      new Map([
+        ["diff", output("diff", largeDiff, "artifacts/flows/implement/diff-snapshot.json")],
+      ]);
+
+    // Baseline: compact policy summarizes the bulky diff, so the em-dash is gone.
+    const baseline = buildFlowContextPacket({
+      snapshot: s,
+      step,
+      contextMode: "stateless",
+      outputs: outputs(),
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+    expect(
+      baseline.packet.inputs.find((input) => input.token === "diff")?.disposition,
+    ).toBe("embedded-summary");
+    expect(baseline.priorArtifacts.map((a) => a.content).join("\n")).not.toContain(
+      "em-dash — lurks on this changed line",
+    );
+
+    // Forced: the preference reviewer gets the exact artifact, em-dash and all.
+    const forced = buildFlowContextPacket({
+      snapshot: s,
+      step,
+      contextMode: "stateless",
+      forceFullTokens: new Set(["diff"]),
+      outputs: outputs(),
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+    expect(
+      forced.packet.inputs.find((input) => input.token === "diff")?.disposition,
+    ).toBe("embedded-full");
+    expect(forced.priorArtifacts.map((a) => a.content).join("\n")).toContain(
+      "em-dash — lurks on this changed line",
+    );
+  });
+
   it("embeds a tiny artifact full when summarizing would only add wrapper overhead", () => {
     const s = snapshot("compact");
     const step = s.steps.find((candidate) => candidate.id === "implementation-review")!;

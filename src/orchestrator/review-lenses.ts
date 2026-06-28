@@ -137,6 +137,8 @@ export function composeReviewerStepNotes(input: {
   stepInstructions?: string | null;
   lensEmphasis: string | null;
   isReviewer: boolean;
+  /** Owner preference block (preference-gates.ts); appended on reviewer turns only. */
+  preferenceBlock?: string | null;
   /** Persona spec-up posture block; set only on a spec-up run (else null). */
   specUpPostureBlock?: string | null;
 }): string {
@@ -144,6 +146,7 @@ export function composeReviewerStepNotes(input: {
     ? `${input.baseNotes}\n\nStep lens / instructions:\n${input.stepInstructions}`
     : input.baseNotes;
   if (input.lensEmphasis && input.isReviewer) notes += `\n\n${input.lensEmphasis}`;
+  if (input.preferenceBlock && input.isReviewer) notes += `\n\n${input.preferenceBlock}`;
   if (input.specUpPostureBlock) notes += `\n\n${input.specUpPostureBlock}`;
   return notes;
 }

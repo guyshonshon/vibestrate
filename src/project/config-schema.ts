@@ -387,6 +387,31 @@ const personaNameSchema = z
     'Persona names cannot be "default", "all", or "none".',
   );
 
+/**
+ * A single owner preference (docs/design/preference-gates.md). Free text, but
+ * injectable only once the owner confirms it (confirmedAt != null) - the same
+ * committed-config trust class as specUpPosture, never accepted as free text over
+ * the run API/CLI. `block` severity is deferred to M2 behind its own review, so M0
+ * carries no severity field: every confirmed, in-scope preference is advisory and
+ * rides the existing review -> fix loop.
+ */
+export const preferenceSchema = z
+  .object({
+    id: z.string().min(1).max(60).describe("Stable id; the only thing the run API/CLI references."),
+    statement: z.string().min(1).max(300).describe("The rule, e.g. 'do not use em-dash characters'."),
+    correction: z.string().min(1).max(300).nullable().default(null).describe("The fix the reviewer names (null = state the rule only)."),
+    scope: z
+      .object({
+        lenses: z.array(z.string().min(1).max(40)).default([]).describe("Review lenses this preference is scoped to (empty = all reviewer turns)."),
+      })
+      .strict()
+      .default({ lenses: [] }),
+    source: z.enum(["owner", "supervisor-proposed"]).default("owner").describe("Who authored it; audit metadata (injection is gated by confirmedAt, not source)."),
+    confirmedAt: z.string().datetime().nullable().default(null).describe("ISO timestamp of owner confirmation; null = inert (never injected)."),
+  })
+  .strict();
+export type PersonaPreference = z.infer<typeof preferenceSchema>;
+
 export const personaConfigSchema = z
   .object({
     label: z.string().min(1).max(80).describe("Human-readable persona label shown in the UI."),
@@ -442,6 +467,13 @@ export const personaConfigSchema = z
      * free-form instructions into a reviewer's prompt.
      */
     reviewLenses: z.array(z.string().min(1).max(40)).default([]).describe("Review lenses that aim the reviewers (closed vocabulary; unknown lenses are display-only)."),
+    /**
+     * Owner preferences (docs/design/preference-gates.md) injected into reviewer
+     * turns so a model verifies the change against them. Free text, but injectable
+     * only after owner confirmation (confirmedAt) - the committed-config trust
+     * class. Advisory in M0 (rides the review -> fix loop; no merge gate).
+     */
+    preferences: z.array(preferenceSchema).default([]).describe("Owner preferences injected into reviewer turns (advisory; confirmed entries only)."),
   })
   .strict();
 export type PersonaConfig = z.infer<typeof personaConfigSchema>;
