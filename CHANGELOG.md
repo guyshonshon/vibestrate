@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.28.6
+
+- **The flow hub matches the catalog now.** The community-flow marketplace and
+  its publish form moved onto the same card and form styling as the rest of the
+  Flows page - no more separate solid-block cards or grey uppercase labels.
+
 ## 0.28.5
 
 - **Flow cards now read like the rest of the app.** Stripped to Mission Control's

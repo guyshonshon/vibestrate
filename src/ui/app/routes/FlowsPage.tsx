@@ -566,100 +566,107 @@ function HubSection({
         className="flex w-full items-center gap-3 text-left"
       >
         {open ? (
-          <ChevronDown className="h-5 w-5 shrink-0 text-fog-400" strokeWidth={1.8} />
+          <ChevronDown className="h-4 w-4 shrink-0 text-chalk-400" strokeWidth={1.9} />
         ) : (
-          <ChevronRight className="h-5 w-5 shrink-0 text-fog-400" strokeWidth={1.8} />
+          <ChevronRight className="h-4 w-4 shrink-0 text-chalk-400" strokeWidth={1.9} />
         )}
-        <h2 className="font-display font-semibold leading-[1.05] tracking-[-0.025em] text-[clamp(22px,2.4vw,32px)] text-fog-100">
-          Pull a <span className="hl-box font-wordmark">flow</span>
+        <h2 className="text-[16px] font-semibold tracking-tight text-chalk-100">
+          Pull a flow
         </h2>
-        <span className="mono text-[11px] uppercase tracking-[0.1em] text-fog-500">
-          download from the internet
-        </span>
+        <span className="text-[12px] text-chalk-300">from the hub</span>
         {open ? (
-          <span className="mono ml-auto text-[11px] uppercase tracking-[0.08em] text-fog-500 whitespace-nowrap">
+          <span className="mono ml-auto text-[11px] text-chalk-300 whitespace-nowrap">
             {hubError ? "hub unavailable" : rows ? `${rows.length} ${rows.length === 1 ? "flow" : "flows"}` : "loading…"}
           </span>
         ) : null}
       </button>
 
       {!open ? (
-        <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.5] text-fog-400">
+        <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.5] text-chalk-300">
           Browse and install community flows from vibestrate.com - downloaded over
           the internet, vetted through the secret-guarded import writer.
         </p>
       ) : (
         <>
           <div className="relative mb-4 mt-5 max-w-[420px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fog-500" strokeWidth={1.8} />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-chalk-400" strokeWidth={1.9} />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name or @handle…"
-              className="mono slab w-full py-2 pl-9 pr-3 text-[13px] text-fog-100 outline-none placeholder:text-fog-500 focus:ring-1 focus:ring-violet-soft/40"
+              className="mono w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 py-2 pl-9 pr-3 text-[13px] text-chalk-100 outline-none placeholder:text-chalk-400 focus:border-violet-soft/50"
             />
           </div>
 
           <div className="mt-0">
         {hubError ? (
-          <div className="border border-rose-400/30 bg-rose-500/5 px-3 py-2.5 text-[12.5px] text-rose-300">
+          <div className="rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2.5 text-[12.5px] text-rose-300">
             Couldn&apos;t load the hub right now: {hubError}
           </div>
         ) : loading && rows === null ? (
-          <div className="hubp-grid">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="fcard" aria-hidden style={{ background: "rgba(255,255,255,0.015)" }} />
+              <div key={i} className="h-[150px] rounded-[14px] border border-[color:var(--line)] bg-coal-600/40" aria-hidden />
             ))}
           </div>
         ) : rows && rows.length === 0 ? (
-          <div className="slab px-6 py-10 text-center text-[13px] text-fog-400">
+          <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-10 text-center text-[13px] text-chalk-300">
             No hub flows match these filters.
           </div>
         ) : rows ? (
-          <div className="hubp-grid">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {rows.map((row) => {
               const risk = hubDiagnosisLabel(row.diagnosis);
               const name = row.label || row.name || row.ref;
-              const primaryTag = (row.tags ?? [])[0];
+              const meta = [
+                (row.tags ?? [])[0],
+                row.version ? `v${row.version}` : null,
+                typeof row.steps === "number" ? `${row.steps} steps` : null,
+                typeof row.installs === "number" ? `${row.installs.toLocaleString()} ↓` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ");
               return (
-                <button
+                <div
                   key={row.ref}
-                  type="button"
-                  className={cn("fcard", row.verified && "is-verified")}
-                  disabled={installing !== null}
-                  onClick={() => void install(row)}
-                  title={`Install ${row.ref}`}
+                  className="flex flex-col rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-3.5"
                 >
-                  <div className="fcard-top">
-                    <div className="fcard-id">
-                      {row.verified ? (
-                        <>
-                          <span className="fcard-check">✓</span>
-                          <span className="fcard-verified">hub-curated</span>
-                        </>
-                      ) : row.author ? (
-                        <span className="fcard-author">@{row.author}</span>
-                      ) : null}
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <EntityIcon entity="flow" size={16} className="shrink-0 text-violet-soft" />
+                    <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-chalk-100">
+                      {name}
+                    </span>
+                    {row.verified ? (
+                      <span className="shrink-0 text-[10px] font-bold text-emerald-400">curated</span>
+                    ) : row.author ? (
+                      <span className="mono shrink-0 text-[10.5px] text-violet-soft">@{row.author}</span>
+                    ) : null}
                   </div>
-                  <span className="fcard-name">{name}</span>
-                  {row.description ? <p className="fcard-sum">{row.description}</p> : null}
-                  <div className="fcard-strip">
-                    {primaryTag ? <span className="fcard-cell">{primaryTag}</span> : null}
-                    {row.version ? <span className="fcard-cell">v{row.version}</span> : null}
-                    {typeof row.steps === "number" ? <span className="fcard-cell">{row.steps} steps</span> : null}
-                    {typeof row.installs === "number" ? <span className="fcard-cell">{row.installs.toLocaleString()} ↓</span> : null}
-                    {installing === row.ref ? <span className="fcard-cell">installing…</span> : null}
-                    {risk ? <span className="fcard-cell fcard-cell-risk">{risk}</span> : null}
+                  {row.description ? (
+                    <p className="mt-2 line-clamp-2 text-[12px] leading-snug text-chalk-300">
+                      {row.description}
+                    </p>
+                  ) : null}
+                  {meta ? <div className="mono mt-2.5 text-[11px] text-chalk-300">{meta}</div> : null}
+                  {risk ? <div className="mt-1.5 text-[10.5px] text-amber-soft">{risk}</div> : null}
+                  <div className="mt-3.5 flex items-center border-t border-[color:var(--line-soft)] pt-3">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={installing !== null}
+                      onClick={() => void install(row)}
+                    >
+                      {installing === row.ref ? "Installing…" : "Install"}
+                    </Button>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
         ) : null}
           </div>
 
-          <p className="mt-4 max-w-[80ch] text-[12.5px] leading-[1.5] text-fog-300">
+          <p className="mt-4 max-w-[80ch] text-[12.5px] leading-[1.5] text-chalk-300">
             &ldquo;Hub-curated&rdquo; is the hub&apos;s curation claim, not an integrity
             guarantee; checksums verify transport only. A hub flow is executable
             configuration: review an installed flow before running it.
@@ -677,25 +684,25 @@ function HubSection({
               className="flex items-center gap-2 text-left"
             >
               {publishOpen ? (
-                <ChevronDown className="h-4 w-4 shrink-0 text-fog-400" strokeWidth={1.8} />
+                <ChevronDown className="h-4 w-4 shrink-0 text-chalk-400" strokeWidth={1.8} />
               ) : (
-                <ChevronRight className="h-4 w-4 shrink-0 text-fog-400" strokeWidth={1.8} />
+                <ChevronRight className="h-4 w-4 shrink-0 text-chalk-400" strokeWidth={1.8} />
               )}
-              <span className="mono text-[12px] uppercase tracking-[0.08em] text-fog-400">
+              <span className="text-[12px] font-semibold text-violet-vivid">
                 Publish a flow to the hub
               </span>
             </button>
 
             {publishOpen && (
               <form onSubmit={(e) => void submitPublish(e)} className="mt-4 max-w-[520px]">
-                <div className="slab px-4 py-4 space-y-3">
+                <div className="space-y-3 rounded-[16px] border border-[color:var(--line)] bg-coal-800 px-4 py-4">
                   {/* Flow picker */}
                   <div>
-                    <label className="mono mb-1 block text-[11px] uppercase tracking-[0.08em] text-fog-400">
+                    <label className="mb-1 block text-[11px] font-semibold text-violet-vivid">
                       Flow
                     </label>
                     {projectFlows.length === 0 ? (
-                      <p className="text-[12.5px] text-fog-400">
+                      <p className="text-[12.5px] text-chalk-400">
                         No project flows found. Fork or create a project flow first.
                       </p>
                     ) : (
@@ -703,7 +710,7 @@ function HubSection({
                         value={publishFlowId}
                         onChange={(e) => handlePublishFlowChange(e.target.value)}
                         required
-                        className="mono slab w-full py-1.5 px-2 text-[13px] text-fog-100 outline-none focus:ring-1 focus:ring-violet-soft/40"
+                        className="mono w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-1.5 text-[13px] text-chalk-100 outline-none focus:border-violet-soft/50"
                       >
                         <option value="">Select a project flow…</option>
                         {projectFlows.map((f) => (
@@ -717,7 +724,7 @@ function HubSection({
 
                   {/* Name */}
                   <div>
-                    <label className="mono mb-1 block text-[11px] uppercase tracking-[0.08em] text-fog-400">
+                    <label className="mb-1 block text-[11px] font-semibold text-violet-vivid">
                       Name
                     </label>
                     <input
@@ -725,13 +732,13 @@ function HubSection({
                       value={publishName}
                       onChange={(e) => setPublishName(e.target.value)}
                       placeholder="human-readable name"
-                      className="mono slab w-full py-1.5 px-2 text-[13px] text-fog-100 outline-none placeholder:text-fog-500 focus:ring-1 focus:ring-violet-soft/40"
+                      className="mono w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-1.5 text-[13px] text-chalk-100 outline-none placeholder:text-chalk-400 focus:border-violet-soft/50"
                     />
                   </div>
 
                   {/* Version */}
                   <div>
-                    <label className="mono mb-1 block text-[11px] uppercase tracking-[0.08em] text-fog-400">
+                    <label className="mb-1 block text-[11px] font-semibold text-violet-vivid">
                       Version
                     </label>
                     <input
@@ -740,13 +747,13 @@ function HubSection({
                       onChange={(e) => setPublishVersion(e.target.value)}
                       placeholder="1.0.0"
                       required
-                      className="mono slab w-full py-1.5 px-2 text-[13px] text-fog-100 outline-none placeholder:text-fog-500 focus:ring-1 focus:ring-violet-soft/40"
+                      className="mono w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-1.5 text-[13px] text-chalk-100 outline-none placeholder:text-chalk-400 focus:border-violet-soft/50"
                     />
                   </div>
 
                   {/* Handle */}
                   <div>
-                    <label className="mono mb-1 block text-[11px] uppercase tracking-[0.08em] text-fog-400">
+                    <label className="mb-1 block text-[11px] font-semibold text-violet-vivid">
                       Handle
                     </label>
                     <input
@@ -755,7 +762,7 @@ function HubSection({
                       onChange={(e) => setPublishHandle(e.target.value)}
                       placeholder="your-github-handle"
                       required
-                      className="mono slab w-full py-1.5 px-2 text-[13px] text-fog-100 outline-none placeholder:text-fog-500 focus:ring-1 focus:ring-violet-soft/40"
+                      className="mono w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-1.5 text-[13px] text-chalk-100 outline-none placeholder:text-chalk-400 focus:border-violet-soft/50"
                     />
                   </div>
 
@@ -767,7 +774,7 @@ function HubSection({
                       onChange={(e) => setPublishConfirmed(e.target.checked)}
                       className="mt-0.5 shrink-0 accent-violet-500"
                     />
-                    <span className="text-[12.5px] leading-[1.45] text-fog-300">
+                    <span className="text-[12.5px] leading-[1.45] text-chalk-300">
                       I understand this publishes a public, immutable version to the hub.
                       It cannot be retracted once live.
                     </span>
@@ -791,16 +798,16 @@ function HubSection({
                         ) : null}
                       </div>
                       {publishResult.alreadyExisted ? (
-                        <div className="text-fog-400">already published - version unchanged</div>
+                        <div className="text-chalk-400">already published - version unchanged</div>
                       ) : null}
                       {publishResult.diagnosis?.verdict === "flagged" && publishResult.diagnosis.findings?.length ? (
                         <div className="mt-1 space-y-0.5">
                           <span className="text-amber-300">flagged:</span>
                           {publishResult.diagnosis.findings.map((f, i) => (
-                            <div key={i} className="text-fog-300">
+                            <div key={i} className="text-chalk-300">
                               {f.severity ? <span className="text-amber-400">[{f.severity}] </span> : null}
                               {f.message}
-                              {f.path ? <span className="text-fog-500"> ({f.path})</span> : null}
+                              {f.path ? <span className="text-chalk-400"> ({f.path})</span> : null}
                             </div>
                           ))}
                         </div>
