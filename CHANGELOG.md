@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.28.4
+
+- **The Flows catalog matches the rest of the app now.** The flow cards were a
+  separate look - solid color blocks, a big display heading, white cards that
+  clashed in dark mode. They're rebuilt on Mission Control's own flow card, with
+  the same colored step-meter that shows each flow's makeup at a glance (review,
+  validation, gates). Categories read by color (default green, built-in violet,
+  project blue) instead of faint grey, and the descriptions no longer cut off
+  mid-word.
+
 ## 0.28.3
 
 - **The All-runs page is on the new look.** The runs table now shows the same
