@@ -134,6 +134,20 @@ function entryFor(e: VibestrateEvent): Partial | null {
         tone: "info",
       };
     }
+    case "supervisor.preference_block": {
+      const inert = d["inert"] === true;
+      const pid = str(d, "preferenceId");
+      return {
+        cls: "judgment",
+        anchor: "root",
+        stepId: null,
+        title: inert
+          ? `block preference not enforcing${pid ? ` · ${pid}` : ""}`
+          : `merge blocked by preference${pid ? ` · ${pid}` : ""}`,
+        detail: str(d, "file") ?? str(d, "statement") ?? str(d, "reason"),
+        tone: inert ? "warn" : "bad",
+      };
+    }
     case "review.decision": {
       const dec = str(d, "decision") ?? "decision";
       return {

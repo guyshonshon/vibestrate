@@ -25,6 +25,10 @@ export type AddOwnerPreferenceInput = {
   statement: string;
   correction?: string | null;
   scopeLenses?: string[];
+  /** M2: `block` makes this a deterministic hard merge-cap (owner-only). */
+  severity?: "advise" | "block";
+  /** Regex for a block preference (validated by preferenceSchema's refine). */
+  pattern?: string | null;
 };
 
 /** Read the preferences currently on a persona (resolves built-ins too). Rejects
@@ -52,7 +56,9 @@ export async function addOwnerPreference(
   input: AddOwnerPreferenceInput,
   now: string,
 ): Promise<PersonaPreference> {
-  // Owner add: trusted at creation (confirmed-on-create, no confirm step).
+  // Owner add: trusted at creation (confirmed-on-create, no confirm step). severity/
+  // pattern are owner-only (proposePreference never sets them); the schema refine
+  // rejects a block without a valid pattern, so a bad `--block` fails fast here.
   const pref = preferenceSchema.parse({
     id: input.id,
     statement: input.statement,
@@ -60,6 +66,8 @@ export async function addOwnerPreference(
     scope: { lenses: input.scopeLenses ?? [] },
     source: "owner",
     confirmedAt: now,
+    severity: input.severity ?? "advise",
+    pattern: input.pattern ?? null,
   });
   return appendPreference(projectRoot, input.personaId, pref);
 }

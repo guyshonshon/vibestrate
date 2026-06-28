@@ -40,7 +40,7 @@ export type RunAssuranceVerdict =
  *  (failureExcerpt) - never raw provider output. */
 export type RunAssuranceBlocker = {
   stepId: string | null;
-  kind: "provider" | "step";
+  kind: "provider" | "step" | "preference";
   /** Provider failure class (usage-limit/rate-limit/transient/hard), if known. */
   class: string | null;
   detail: string;
@@ -186,6 +186,21 @@ export function deriveRunBlockers(input: {
         detail: str(e.data, "detail") ?? "provider usage limit; gave up",
       });
       if (stepId) coveredSteps.add(stepId);
+    } else if (
+      e.type === "supervisor.preference_block" &&
+      e.data?.["inert"] !== true
+    ) {
+      // M2 hard block: a confirmed block preference's regex matched the diff and
+      // capped merge-readiness. Surface it as the blocking reason (otherwise a run
+      // blocked despite an APPROVED review reads as blocked-for-no-reason).
+      const pid = str(e.data, "preferenceId");
+      const file = str(e.data, "file");
+      blockers.push({
+        stepId: null,
+        kind: "preference",
+        class: pid,
+        detail: `merge blocked by preference "${pid ?? "?"}"${file ? ` (${file})` : ""}: ${str(e.data, "statement") ?? "rule violated"}`,
+      });
     }
   }
   for (const s of input.steps) {

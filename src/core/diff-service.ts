@@ -335,6 +335,43 @@ export async function getDiffSnapshot(input: {
   };
 }
 
+/**
+ * The full unified diff TEXT of a worktree vs a base ref (default HEAD), including
+ * untracked files (each diffed against /dev/null so a brand-new file's added lines
+ * are present). Secret-like files are skipped entirely. Used by the M2 preference
+ * block gate (preference-block-gate.ts) to scan added lines at run completion.
+ */
+export async function getWorktreeDiffText(input: {
+  worktreePath: string;
+  baseRef?: string;
+}): Promise<string> {
+  const worktreePath = input.worktreePath;
+  const baseRef = input.baseRef ?? "HEAD";
+  if (!(await pathExists(worktreePath))) return "";
+  const tracked = await runGit(worktreePath, ["diff", "--no-ext-diff", baseRef]);
+  const parts: string[] = [tracked.stdout];
+  // Untracked files: `git diff <ref>` omits them, so diff each new file against
+  // /dev/null to capture its all-added content. Skip secret-like paths.
+  const status = await runGit(worktreePath, ["status", "--porcelain"]);
+  for (const line of status.stdout.split("\n")) {
+    if (!line.trim()) continue;
+    const code = line.slice(0, 2);
+    const filePath = line.slice(3).trim();
+    if (parseStatusCode(code) !== "untracked") continue;
+    if (filePath.endsWith("/")) continue;
+    if (isSecretLikePath(filePath)) continue;
+    const fileDiff = await runGit(worktreePath, [
+      "diff",
+      "--no-ext-diff",
+      "--no-index",
+      "/dev/null",
+      filePath,
+    ]);
+    if (fileDiff.stdout.trim()) parts.push(fileDiff.stdout);
+  }
+  return parts.join("\n");
+}
+
 export async function getFileDiff(input: {
   worktreePath: string;
   filePath: string;

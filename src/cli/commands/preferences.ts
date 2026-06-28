@@ -47,12 +47,14 @@ export function buildPreferencesCommand(): Command {
     .description("Add an owner preference (active immediately).")
     .option("--fix <text>", "the correction the reviewer should name")
     .option("--lens <lenses...>", "scope to one or more review lenses (default: all reviewer turns)")
+    .option("--block", "make this a hard merge-block (deterministic; requires --pattern)")
+    .option("--pattern <regex>", "regex matched against added diff lines (block only)")
     .action(
       async (
         personaId: string,
         id: string,
         statement: string,
-        opts: { fix?: string; lens?: string[] },
+        opts: { fix?: string; lens?: string[]; block?: boolean; pattern?: string },
       ) => {
         const pref = await addOwnerPreference(
           process.cwd(),
@@ -62,10 +64,15 @@ export function buildPreferencesCommand(): Command {
             statement,
             correction: opts.fix ?? null,
             scopeLenses: opts.lens ?? [],
+            severity: opts.block ? "block" : "advise",
+            pattern: opts.pattern ?? null,
           },
           new Date().toISOString(),
         );
-        console.log(`${symbol.ok} Added "${pref.id}" to ${personaId} (active - the reviewer checks it now).`);
+        const how = pref.severity === "block"
+          ? "blocks the merge when its pattern matches"
+          : "the reviewer checks it now";
+        console.log(`${symbol.ok} Added "${pref.id}" to ${personaId} (active - ${how}).`);
       },
     );
 

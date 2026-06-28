@@ -93,6 +93,12 @@ describe("preferences-service (M1 owner-explicit capture)", () => {
     expect((await removePreference(dir, "r", "a")).removed).toBe(false);
   });
 
+  it("a supervisor-proposed preference can NEVER be a hard block (block is owner-only)", async () => {
+    const p = await proposePreference(dir, { personaId: "staff-engineer", id: "x", statement: "a rule" });
+    expect(p.severity).toBe("advise");
+    expect(p.pattern).toBeNull();
+  });
+
   it("a proposed preference is pending and inert (source supervisor-proposed, confirmedAt null)", async () => {
     const p = await proposePreference(dir, { personaId: "staff-engineer", id: "no-em-dash", statement: "no em-dash" });
     expect(p.source).toBe("supervisor-proposed");

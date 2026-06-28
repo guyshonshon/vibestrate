@@ -98,6 +98,7 @@ export type VibestrateEventType =
   | "supervisor.review_lenses"
   | "supervisor.spec_up_posture"
   | "supervisor.preference_gates"
+  | "supervisor.preference_block"
   | "flow.snapshot.written"
   | "flow.participant.capabilities"
   | "flow.session.opened"

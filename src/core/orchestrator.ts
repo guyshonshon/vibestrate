@@ -148,7 +148,8 @@ import type {
 import { MetricsStore } from "./metrics-store.js";
 import { makeEmptyMetrics, type RoleMetrics } from "./runtime-metrics.js";
 import { extractTurnInternals } from "./turn-internals.js";
-import { getDiffSnapshot, redactSecretsInText } from "./diff-service.js";
+import { getDiffSnapshot, getWorktreeDiffText, redactSecretsInText } from "./diff-service.js";
+import { evaluateBlockPreferences } from "../orchestrator/preference-block-gate.js";
 import { classifyChangedFilesForValidation } from "./validation-scope.js";
 import { protectedPathMatch } from "../orchestrator/protected-paths.js";
 import {
@@ -4386,6 +4387,37 @@ export class Orchestrator {
           fixIterations: o.fixIterations ?? 0,
         })),
       );
+      // M2 preference block gate: a confirmed `block` preference whose regex matches
+      // the run's added diff caps merge-readiness - DETERMINISTIC, independent of the
+      // review decision (it never touches reviewDecision, so no clobber). Computed
+      // only for a write run that actually declares block preferences, so a run with
+      // none is byte-unchanged. The violation is surfaced as an event, which
+      // deriveRunBlockers turns into the blocking reason (run-assurance.ts).
+      let preferencesClean = true;
+      if (!this.readOnly && input.worktreePath) {
+        const blockPrefs = (
+          resolvePersona(this.config, this.personaId).config.preferences ?? []
+        ).filter((p) => p.severity === "block" && p.confirmedAt != null);
+        if (blockPrefs.length > 0) {
+          const diffText = await getWorktreeDiffText({ worktreePath: input.worktreePath });
+          const gate = evaluateBlockPreferences(blockPrefs, diffText);
+          preferencesClean = gate.clean;
+          for (const v of gate.violations) {
+            await input.eventLog.append({
+              type: "supervisor.preference_block",
+              message: `Merge blocked by preference "${v.id}"${v.file ? ` (${v.file})` : ""}: ${v.statement}`,
+              data: { preferenceId: v.id, file: v.file, statement: v.statement },
+            });
+          }
+          for (const inert of gate.inert) {
+            await input.eventLog.append({
+              type: "supervisor.preference_block",
+              message: `Block preference "${inert.id}" is not enforcing: ${inert.reason}`,
+              data: { preferenceId: inert.id, inert: true, reason: inert.reason },
+            });
+          }
+        }
+      }
       const mergeReadinessInput = {
         readOnly: this.readOnly,
         reviewDecision,
@@ -4398,6 +4430,7 @@ export class Orchestrator {
         verified,
         verificationDecision,
         checklistItemsClean: !itemGaps.caps,
+        preferencesClean,
       };
       const reviewSatisfiedByEvidence =
         !reviewTurnRan && reviewSkipEvidence !== null && !this.readOnly;
