@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
+  Download,
   MoreHorizontal,
   Plus,
   Search,
@@ -618,7 +619,7 @@ function HubSection({
             Couldn&apos;t load the hub right now: {hubError}
           </div>
         ) : loading && rows === null ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="h-[150px] rounded-[14px] border border-[color:var(--line)] bg-coal-600/40" aria-hidden />
             ))}
@@ -628,7 +629,7 @@ function HubSection({
             No hub flows match these filters.
           </div>
         ) : rows ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {rows.map((row) => {
               const risk = hubDiagnosisLabel(row.diagnosis);
               const name = row.label || row.name || row.ref;
@@ -639,32 +640,31 @@ function HubSection({
                 typeof row.steps === "number"
                   ? Array.from({ length: Math.max(1, row.steps) }, () => ({}))
                   : [];
-              // Keep the tile row to steps + version so the diagnosis badge sits
-              // inline beside them rather than wrapping to its own line; installs
-              // folds into the @author/curated line below the name.
               const stats: FlowStat[] = [
                 ...(typeof row.steps === "number"
                   ? [{ value: row.steps, label: row.steps === 1 ? "step" : "steps" }]
                   : []),
                 ...(row.version ? [{ value: `v${row.version}`, label: "version" }] : []),
+                ...(typeof row.installs === "number"
+                  ? [
+                      {
+                        value: row.installs.toLocaleString(),
+                        label: "installs",
+                        icon: <Download className="h-3 w-3" strokeWidth={2.2} aria-hidden />,
+                      },
+                    ]
+                  : []),
               ];
               return (
                 <FlowCard
                   key={row.ref}
                   title={name}
                   badge={
-                    <div className="flex shrink-0 items-center gap-2">
-                      {typeof row.installs === "number" && row.installs > 0 ? (
-                        <span className="mono text-[10.5px] text-chalk-400">
-                          {row.installs.toLocaleString()}↓
-                        </span>
-                      ) : null}
-                      {row.verified ? (
-                        <span className="text-[10px] font-bold text-emerald-400">curated</span>
-                      ) : row.author ? (
-                        <span className="mono text-[10.5px] text-violet-soft">@{row.author}</span>
-                      ) : null}
-                    </div>
+                    row.verified ? (
+                      <span className="shrink-0 text-[10px] font-bold text-emerald-400">curated</span>
+                    ) : row.author ? (
+                      <span className="mono shrink-0 text-[10.5px] text-violet-soft">@{row.author}</span>
+                    ) : null
                   }
                   steps={meterSteps}
                   description={row.description}
@@ -931,7 +931,7 @@ function LocalFlowCard({
   );
 }
 
-type FlowStat = { value: string | number; label: string };
+type FlowStat = { value: string | number; label: string; icon?: React.ReactNode };
 
 /**
  * The universal flow card. One component renders a flow the same everywhere -
@@ -995,7 +995,7 @@ function FlowCard({
       {stats.length > 0 || statusBadge ? (
         <div className="mt-3 flex flex-wrap items-stretch gap-1">
           {stats.map((s, i) => (
-            <StatTile key={i} value={s.value} label={s.label} />
+            <StatTile key={i} value={s.value} label={s.label} icon={s.icon} />
           ))}
           {statusBadge}
         </div>
@@ -1011,10 +1011,21 @@ function FlowCard({
  *  the unit carrying violet so a card's facts read as data, not faint grey
  *  text. Hugs its content (no stretch) so the row stays tight, not two
  *  half-card slabs. */
-function StatTile({ value, label }: { value: string | number; label: string }) {
+function StatTile({
+  value,
+  label,
+  icon,
+}: {
+  value: string | number;
+  label: string;
+  icon?: React.ReactNode;
+}) {
   return (
     <div className="flex min-w-[48px] flex-col gap-0.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5">
-      <span className="num-tabular text-[14px] font-bold leading-none text-chalk-100">{value}</span>
+      <span className="flex items-center gap-1 num-tabular text-[14px] font-bold leading-none text-chalk-100">
+        {icon ? <span className="text-violet-soft">{icon}</span> : null}
+        {value}
+      </span>
       <span className="text-[10.5px] font-medium text-violet-soft">{label}</span>
     </div>
   );
