@@ -2,12 +2,12 @@ import { PoliciesPanel } from "../../components/policies/PoliciesPanel.js";
 
 /**
  * The project's rule surface as a first-class page (docs/design/policy-consolidation.md):
- * owner-authored tiered policies (advise + block) plus the hard, fail-closed security
- * gates. Reachable from the sidebar so it is not buried in Settings.
+ * owner-authored tiered policies (advise + block), the fail-closed safety gates, and
+ * the read-only deterministic engine - on the Mission Control design idiom.
  */
 export function PoliciesPage() {
   return (
-    <div className="deep-scene h-full overflow-y-auto">
+    <div className="h-full overflow-y-auto">
       <PoliciesPanel />
     </div>
   );

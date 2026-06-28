@@ -1,42 +1,42 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Plus, Check, X, Trash2 } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { ProjectPolicy } from "../../lib/types.js";
+import { Button } from "../design/Button.js";
 import { Select } from "../design/Select.js";
+import { cn } from "../design/cn.js";
+
+const INPUT =
+  "w-full rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none";
 
 /**
- * Project policies authoring (docs/design/policy-consolidation.md): the owner
- * creates BOTH tiers here - an `advise` rule the reviewer checks, or a `block` rule
- * with a deterministic matcher that caps the merge. This is the project-level rule
- * surface (not the Supervisors cards); it closes the M2 UI parity gap (a block's
- * matcher had no UI before). Pending (supervisor-proposed) rules show Confirm/Reject;
- * active rules show Remove. Optional by design - a plain run needs none.
+ * Project policies (docs/design/policy-consolidation.md): the owner authors both
+ * tiers here - an `advise` rule the reviewer checks, or a `block` rule with a
+ * deterministic matcher that caps the merge. The composer hides behind one button
+ * so the resting view is just the list. Pending (supervisor-proposed) rules show
+ * Confirm/Reject; active rules show Remove.
  */
-export function ProjectPoliciesSection() {
-  const [policies, setPolicies] = useState<ProjectPolicy[]>([]);
-  const [error, setError] = useState<string | null>(null);
+export function ProjectPoliciesSection({
+  policies,
+  onChanged,
+}: {
+  policies: ProjectPolicy[];
+  onChanged: () => void;
+}) {
+  const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [statement, setStatement] = useState("");
   const [fix, setFix] = useState("");
   const [tier, setTier] = useState<"advise" | "block">("advise");
   const [matcher, setMatcher] = useState("");
 
-  async function load() {
-    try {
-      const r = await api.listProjectPolicies();
-      setPolicies(r.policies);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  }
-  useEffect(() => {
-    void load();
-  }, []);
-
   function slugId(text: string): string {
-    const base = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 50);
-    return base || `policy-${Date.now()}`;
+    return (
+      text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 50) ||
+      `policy-${Date.now()}`
+    );
   }
 
   async function mutate(fn: () => Promise<unknown>) {
@@ -44,7 +44,7 @@ export function ProjectPoliciesSection() {
     setError(null);
     try {
       await fn();
-      await load();
+      onChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -71,6 +71,7 @@ export function ProjectPoliciesSection() {
       setFix("");
       setMatcher("");
       setTier("advise");
+      setAdding(false);
     });
   }
 
@@ -78,121 +79,203 @@ export function ProjectPoliciesSection() {
   const active = policies.filter((p) => p.confirmedAt);
 
   return (
-    <section className="border border-vibestrate-border bg-vibestrate-panel-2 p-2">
-      <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-dim">
-        Project policies
-      </h3>
-      <p className="mt-0.5 text-[10.5px] text-vibestrate-fg-dim">
-        Owner-authored, project-scoped rules enforced under any supervisor.{" "}
-        <span className="text-vibestrate-fg">advise</span> = the reviewer checks it;{" "}
-        <span className="text-vibestrate-warn">block</span> = a deterministic matcher
-        caps the merge.
-      </p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="max-w-[60ch] text-[12.5px] leading-snug text-chalk-300">
+          Owner-authored rules enforced under any supervisor.{" "}
+          <span className="text-chalk-100">Advise</span> rules the reviewer checks;{" "}
+          <span className="text-chalk-100">block</span> rules cap the merge with a
+          deterministic matcher.
+        </p>
+        {!adding ? (
+          <Button
+            variant="primary"
+            size="sm"
+            iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />}
+            onClick={() => {
+              setError(null);
+              setAdding(true);
+            }}
+          >
+            New policy
+          </Button>
+        ) : null}
+      </div>
+
+      {adding ? (
+        <div className="space-y-2.5 rounded-[16px] border border-[color:var(--line)] bg-coal-700 p-3.5">
+          <div className="flex items-center gap-2">
+            <input
+              autoFocus
+              value={statement}
+              onChange={(e) => setStatement(e.target.value)}
+              placeholder="Rule, e.g. use a hyphen, not an em-dash"
+              className={cn(INPUT, "flex-1")}
+            />
+            <Select
+              value={tier}
+              ariaLabel="policy tier"
+              onChange={(v) => setTier(v as "advise" | "block")}
+              options={[
+                { value: "advise", label: "advise" },
+                { value: "block", label: "block" },
+              ]}
+            />
+          </div>
+          {tier === "advise" ? (
+            <input
+              value={fix}
+              onChange={(e) => setFix(e.target.value)}
+              placeholder="Fix the reviewer should name (optional)"
+              className={INPUT}
+            />
+          ) : (
+            <input
+              value={matcher}
+              onChange={(e) => setMatcher(e.target.value)}
+              placeholder="Matcher regex, e.g. SectionEyebrow (required for block)"
+              className={cn(INPUT, "font-mono")}
+            />
+          )}
+          <div className="flex items-center gap-2">
+            <Button variant="primary" size="sm" disabled={busy || !statement.trim()} onClick={() => void add()}>
+              Add policy
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              onClick={() => {
+                setAdding(false);
+                setError(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {error ? (
-        <div className="mt-1.5 border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[10.5px] text-vibestrate-fail">
+        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
           {error}
         </div>
       ) : null}
 
-      {policies.length === 0 ? (
-        <p className="mt-2 text-[10.5px] text-vibestrate-fg-dim">
-          None yet. Optional - a plain run needs none.
-        </p>
+      {policies.length === 0 && !adding ? (
+        <div className="rounded-[16px] border border-dashed border-[color:var(--line)] px-4 py-8 text-center">
+          <p className="text-[13px] text-chalk-300">No project policies yet.</p>
+          <p className="mt-1 text-[12px] text-chalk-400">
+            Optional - a plain run needs none.
+          </p>
+        </div>
       ) : (
-        <div className="mt-2 space-y-1.5">
+        <div className="space-y-1.5">
           {pending.map((p) => (
-            <div key={p.id} className="flex items-start gap-2 text-[11px]">
-              <span className="mt-0.5 shrink-0 text-vibestrate-warn">proposed</span>
-              <span className="flex-1 text-vibestrate-fg">
-                {p.statement}
-                {p.correction ? <span className="text-vibestrate-fg-dim"> &rarr; {p.correction}</span> : null}
-              </span>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void mutate(() => api.confirmProjectPolicy(p.id))}
-                className="shrink-0 border border-vibestrate-success/40 px-1.5 text-[10.5px] text-vibestrate-success disabled:opacity-40"
-              >
-                Confirm
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void mutate(() => api.rejectProjectPolicy(p.id))}
-                className="shrink-0 text-vibestrate-fg-dim hover:text-vibestrate-fail disabled:opacity-40"
-              >
-                Reject
-              </button>
-            </div>
+            <PolicyRow
+              key={p.id}
+              policy={p}
+              busy={busy}
+              onConfirm={() => void mutate(() => api.confirmProjectPolicy(p.id))}
+              onReject={() => void mutate(() => api.rejectProjectPolicy(p.id))}
+            />
           ))}
           {active.map((p) => (
-            <div key={p.id} className="flex items-start gap-2 text-[11px]">
-              <span className={`mt-0.5 shrink-0 ${p.tier === "block" ? "text-vibestrate-warn" : "text-vibestrate-fg-dim"}`}>
-                {p.tier}
-              </span>
-              <span className="flex-1 text-vibestrate-fg">
-                {p.statement}
-                {p.tier === "block" && p.matcher ? (
-                  <span className="vibestrate-mono text-vibestrate-fg-dim"> /{p.matcher}/</span>
-                ) : p.correction ? (
-                  <span className="text-vibestrate-fg-dim"> &rarr; {p.correction}</span>
-                ) : null}
-              </span>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void mutate(() => api.removeProjectPolicy(p.id))}
-                className="shrink-0 text-vibestrate-fg-dim hover:text-vibestrate-fail disabled:opacity-40"
-              >
-                Remove
-              </button>
-            </div>
+            <PolicyRow
+              key={p.id}
+              policy={p}
+              busy={busy}
+              onRemove={() => void mutate(() => api.removeProjectPolicy(p.id))}
+            />
           ))}
         </div>
       )}
+    </div>
+  );
+}
 
-      <div className="mt-2.5 space-y-1.5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <input
-            value={statement}
-            onChange={(e) => setStatement(e.target.value)}
-            placeholder="Rule, e.g. use a hyphen, not an em-dash"
-            className="min-w-[200px] flex-1 border border-vibestrate-border bg-vibestrate-panel px-2 py-1 text-[11px] text-vibestrate-fg"
-          />
-          <Select
-            value={tier}
-            onChange={(v) => setTier(v as "advise" | "block")}
-            options={[
-              { value: "advise", label: "advise" },
-              { value: "block", label: "block" },
-            ]}
-          />
+function TierChip({ tier }: { tier: "advise" | "block" }) {
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded-[8px] px-2 py-0.5 text-[10.5px] font-semibold",
+        tier === "block"
+          ? "bg-amber-soft/12 text-amber-soft"
+          : "bg-violet-soft/12 text-violet-soft",
+      )}
+    >
+      {tier}
+    </span>
+  );
+}
+
+function PolicyRow({
+  policy: p,
+  busy,
+  onConfirm,
+  onReject,
+  onRemove,
+}: {
+  policy: ProjectPolicy;
+  busy: boolean;
+  onConfirm?: () => void;
+  onReject?: () => void;
+  onRemove?: () => void;
+}) {
+  const proposed = !p.confirmedAt;
+  return (
+    <div className="flex items-center gap-3 rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-3.5 py-2.5">
+      <TierChip tier={p.tier} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-[13px] font-medium text-chalk-100">{p.statement}</span>
+          {proposed ? (
+            <span className="shrink-0 text-[11px] font-medium text-amber-soft">proposed</span>
+          ) : null}
         </div>
-        {tier === "advise" ? (
-          <input
-            value={fix}
-            onChange={(e) => setFix(e.target.value)}
-            placeholder="Fix the reviewer should name (optional)"
-            className="w-full border border-vibestrate-border bg-vibestrate-panel px-2 py-1 text-[11px] text-vibestrate-fg"
-          />
-        ) : (
-          <input
-            value={matcher}
-            onChange={(e) => setMatcher(e.target.value)}
-            placeholder="Matcher regex, e.g. SectionEyebrow (required for block)"
-            className="vibestrate-mono w-full border border-vibestrate-border bg-vibestrate-panel px-2 py-1 text-[11px] text-vibestrate-fg"
-          />
-        )}
-        <button
-          type="button"
-          onClick={() => void add()}
-          disabled={busy || !statement.trim()}
-          className="border border-vibestrate-border bg-vibestrate-panel px-2 py-1 text-[11px] text-vibestrate-fg disabled:opacity-40"
-        >
-          Add policy
-        </button>
+        {p.tier === "block" && p.matcher ? (
+          <p className="mt-0.5 truncate font-mono text-[11px] text-chalk-400">/{p.matcher}/</p>
+        ) : p.correction ? (
+          <p className="mt-0.5 truncate text-[11.5px] text-chalk-300">Fix: {p.correction}</p>
+        ) : null}
       </div>
-    </section>
+      <div className="flex shrink-0 items-center gap-1">
+        {onConfirm ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            className="text-emerald-400 hover:bg-emerald-500/10"
+            iconLeft={<Check className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />}
+            onClick={onConfirm}
+          >
+            Confirm
+          </Button>
+        ) : null}
+        {onReject ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            className="text-chalk-400 hover:bg-rose-500/10 hover:text-rose-300"
+            iconLeft={<X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />}
+            onClick={onReject}
+          >
+            Reject
+          </Button>
+        ) : null}
+        {onRemove ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onRemove}
+            aria-label={`Remove ${p.id}`}
+            className="rounded-[8px] p-1.5 text-chalk-400 transition hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
+          </button>
+        ) : null}
+      </div>
+    </div>
   );
 }

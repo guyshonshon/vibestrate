@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.36.2
+
+- **Policies page rebuilt on the design system.** The first cut reused the old
+  panel idiom and stacked everything into one long, noisy scroll. It is now on the
+  Mission Control coal/chalk system: a contained header with at-a-glance stat tiles
+  (advise / block / pending / guards), then three focused tabs - **Policies** (author
+  advise + block rules; the composer hides behind one button), **Safety gates** (the
+  toggles, grouped into hard guards / execution / posture, with a real switch), and
+  **Engine & tools** (the read-only `.yml` engine + check-patch). Verified in dark and
+  light themes.
+
 ## 0.36.1
 
 - **Policies are now a first-class page in the sidebar.** The consolidated policy

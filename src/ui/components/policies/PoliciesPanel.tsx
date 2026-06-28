@@ -1,56 +1,52 @@
-import { useEffect, useState } from "react";
-import { api, ApiError } from "../../lib/api.js";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { api } from "../../lib/api.js";
 import type {
-  PolicyCheckResult,
   PolicyStoreSnapshot,
-  PolicySurface,
   SafetyPoliciesConfig,
+  ProjectPolicy,
 } from "../../lib/types.js";
 import { AdvancedSafetySection } from "./AdvancedSafetySection.js";
 import { ProjectPoliciesSection } from "./ProjectPoliciesSection.js";
-import { Select } from "../design/Select.js";
+import { EngineToolsPanel } from "./EngineToolsPanel.js";
+import { cn } from "../design/cn.js";
+
+type TabId = "policies" | "safety" | "engine";
 
 /**
- * Read-only Policies surface.
- *
- *   - Lists rule files + each rule's id, description, appliesTo,
- *     touched-file glob, added-content regex summary, and message.
- *   - Surfaces malformed rule files (parse / schema / regex / glob errors).
- *   - Surfaces duplicate rule ids.
- *   - Mirrors `vibe policies doctor` so the user has the same signal
- *     they would on the CLI.
- *   - Provides a "Check patch" panel that calls the same engine the CLI
- *     and the apply flow call - paste a patch, see violations. Does NOT
- *     apply anything, does NOT execute anything.
- *
- * Editing rules from the browser is intentionally out of scope for V0.
- * Authoring stays file-based in .vibestrate/policies/*.yml.
+ * The project's rule surface as a focused, tabbed page (design: primitives-contract
+ * + docs/design/policy-consolidation.md). A contained header with at-a-glance stat
+ * tiles, then three tabs so the surface is scannable instead of one long dump:
+ *   - Policies: owner-authored tiered rules (advise + block) - the daily surface.
+ *   - Safety gates: the fail-closed `policies.*` / `posture.*` toggles.
+ *   - Engine & tools: the read-only .yml engine + the check-patch tool.
  */
 export function PoliciesPanel() {
+  const [policies, setPolicies] = useState<ProjectPolicy[] | null>(null);
   const [snap, setSnap] = useState<PolicyStoreSnapshot | null>(null);
   const [safety, setSafety] = useState<SafetyPoliciesConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [patch, setPatch] = useState("");
-  const [surface, setSurface] = useState<PolicySurface>("suggestion-apply");
-  const [checking, setChecking] = useState(false);
-  const [check, setCheck] = useState<PolicyCheckResult | null>(null);
+  const [tab, setTab] = useState<TabId>("policies");
+
+  const loadPolicies = useCallback(async () => {
+    const r = await api.listProjectPolicies();
+    setPolicies(r.policies);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     void Promise.all([
-      api.getPolicies(),
+      api.listProjectPolicies().then((r) => r.policies).catch(() => [] as ProjectPolicy[]),
+      api.getPolicies().catch(() => null),
       api.getSafetyConfig().catch(() => null),
     ])
-      .then(([r, s]) => {
-        if (!cancelled) {
-          setSnap(r);
-          setSafety(s);
-          setError(null);
-        }
+      .then(([p, s, sf]) => {
+        if (cancelled) return;
+        setPolicies(p);
+        setSnap(s);
+        setSafety(sf);
       })
       .catch((err: unknown) => {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : String(err));
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       });
     return () => {
       cancelled = true;
@@ -65,321 +61,110 @@ export function PoliciesPanel() {
     const prev = safety;
     setSafety({ ...safety, [key]: value }); // optimistic
     try {
-      const updated = await api.updateSafetyConfig({ [key]: value });
-      setSafety(updated);
+      setSafety(await api.updateSafetyConfig({ [key]: value }));
       setError(null);
     } catch (err) {
-      setSafety(prev); // revert
+      setSafety(prev);
       setError(err instanceof Error ? err.message : String(err));
     }
   }
 
-  async function runCheck() {
-    if (!patch.trim()) {
-      setError("Paste a unified diff into the patch box first.");
-      return;
-    }
-    setChecking(true);
-    setError(null);
-    setCheck(null);
-    try {
-      const r = await api.checkPatchAgainstPolicies({
-        patch,
-        surface,
-      });
-      setCheck(r);
-    } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : String(err),
-      );
-    } finally {
-      setChecking(false);
-    }
-  }
+  const list = policies ?? [];
+  const advise = list.filter((p) => p.confirmedAt && p.tier === "advise").length;
+  const block = list.filter((p) => p.confirmedAt && p.tier === "block").length;
+  const pending = list.filter((p) => !p.confirmedAt).length;
+  const guards = safety
+    ? [safety.forbidMainBranchWrites, safety.forbidSecretsAccess, safety.forbidAutoPush, safety.forbidAutoMerge].filter(Boolean).length
+    : 0;
+
+  const TABS: { id: TabId; label: string; count?: number }[] = [
+    { id: "policies", label: "Policies", count: list.length || undefined },
+    { id: "safety", label: "Safety gates" },
+    { id: "engine", label: "Engine & tools", count: snap ? snap.rules.length + snap.actions.length || undefined : undefined },
+  ];
 
   return (
-    <div className="space-y-4 p-4 text-[12px]">
-      <header>
-        <h2 className="text-[13px] font-medium text-vibestrate-fg">Policies</h2>
-        <p className="mt-0.5 text-[10.5px] text-vibestrate-fg-dim">
-          The project's rule surface: owner-authored tiered policies (advise +
-          block) plus the hard, fail-closed security gates in{" "}
-          <code>.vibestrate/policies/*.yml</code>. Soft rules never bypass the
-          built-in safety checks.
+    <div className="font-jakarta px-10 py-7 fade-up">
+      <div className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+        <h1 className="text-[24px] font-extrabold tracking-[-0.02em] text-chalk-100">Policies</h1>
+        <p className="mt-1 max-w-[72ch] text-[12.5px] leading-snug text-chalk-300">
+          The project's rule surface. Owner-authored policies are enforced under any
+          supervisor; the fail-closed security gates are never weakened by them. A
+          plain run needs none of this.
         </p>
-      </header>
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          <StatTile value={advise} label="advise" />
+          <StatTile value={block} label="block" tone={block > 0 ? "amber" : "default"} />
+          <StatTile value={pending} label="pending" tone={pending > 0 ? "amber" : "default"} />
+          <StatTile value={safety ? `${guards}/4` : "-"} label="guards" tone={guards === 4 ? "emerald" : "amber"} />
+        </div>
+      </div>
 
       {error ? (
-        <div className="border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-vibestrate-fail">
+        <div className="mt-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
           {error}
         </div>
       ) : null}
 
-      <ProjectPoliciesSection />
+      <div className="mt-5 inline-flex items-center gap-1 rounded-[12px] border border-[color:var(--line)] bg-coal-700 p-1">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={cn(
+              "rounded-[9px] px-3 py-1.5 text-[12.5px] font-semibold transition",
+              tab === t.id ? "bg-coal-500 text-chalk-100" : "text-chalk-400 hover:text-chalk-100",
+            )}
+          >
+            {t.label}
+            {t.count != null ? <span className="ml-1.5 num-tabular text-chalk-400">{t.count}</span> : null}
+          </button>
+        ))}
+      </div>
 
-      {safety ? (
-        <AdvancedSafetySection
-          safety={safety}
-          actionCount={snap?.actions.length ?? 0}
-          onToggle={(k, v) => void toggleSafety(k, v)}
-        />
-      ) : null}
-
-      {!snap ? (
-        <div className="text-vibestrate-fg-dim">Loading…</div>
-      ) : (
-        <>
-          <section>
-            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-dim">
-              Status
-            </h3>
-            <div className="mt-1 vibestrate-mono text-[10.5px] text-vibestrate-fg-dim">
-              {snap.rules.length} active rule(s) across {snap.ruleFiles.length}{" "}
-              file(s).{" "}
-              {snap.rules.length > 0 ? (
-                <span className="text-vibestrate-success">
-                  policies are loaded and apply
-                </span>
-              ) : (
-                <span>policies are loaded but empty - no refusals will fire</span>
-              )}
-              .
-            </div>
-          </section>
-
-          {snap.malformedFiles.length > 0 ? (
-            <section className="border border-vibestrate-fail/40 bg-vibestrate-fail/10 p-2">
-              <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fail">
-                Malformed files (skipped)
-              </h3>
-              <ul className="mt-1 space-y-1 text-[10.5px] text-vibestrate-fail">
-                {snap.malformedFiles.map((m) => (
-                  <li key={m.file}>
-                    <div className="vibestrate-mono truncate">{m.file}</div>
-                    <div className="text-vibestrate-fg-muted">{m.reason}</div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {snap.duplicateIds.length > 0 ? (
-            <section className="border border-vibestrate-warn/40 bg-vibestrate-warn/10 p-2 text-[10.5px] text-vibestrate-warn">
-              <span className="font-medium">Duplicate ids:</span>{" "}
-              {snap.duplicateIds.join(", ")} - first occurrence wins; resolve by
-              renaming the rule(s).
-            </section>
-          ) : null}
-
-          <section>
-            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-dim">
-              Rule files
-            </h3>
-            <ul className="mt-1 space-y-1">
-              {snap.ruleFiles.length === 0 ? (
-                <li className="text-vibestrate-fg-dim">
-                  No <code>.vibestrate/policies/*.yml</code> files.
-                </li>
-              ) : (
-                snap.ruleFiles.map((f) => (
-                  <li
-                    key={f.file}
-                    className="border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5"
-                  >
-                    <div className="vibestrate-mono truncate text-vibestrate-fg">{f.file}</div>
-                    <div className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
-                      {f.ruleIds.length === 0 && f.actionIds.length === 0
-                        ? "(empty)"
-                        : [
-                            f.ruleIds.length > 0
-                              ? `rules: ${f.ruleIds.join(", ")}`
-                              : null,
-                            f.actionIds.length > 0
-                              ? `actions: ${f.actionIds.join(", ")}`
-                              : null,
-                          ]
-                            .filter(Boolean)
-                            .join("  ·  ")}
-                    </div>
-                  </li>
-                ))
-              )}
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-dim">
-              Rules
-            </h3>
-            <ul className="mt-1 space-y-1">
-              {snap.rules.length === 0 ? (
-                <li className="text-vibestrate-fg-dim">No rules loaded.</li>
-              ) : (
-                snap.rules.map((r) => (
-                  <li
-                    key={r.id}
-                    className="border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5"
-                  >
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-medium">{r.id}</span>
-                      <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
-                        {r.appliesTo.join(", ")}
-                      </span>
-                    </div>
-                    <p className="text-[10.5px] text-vibestrate-fg-dim">{r.description}</p>
-                    {r.matchTouchedFiles ? (
-                      <p className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
-                        touched-files glob: {r.matchTouchedFiles.glob}
-                      </p>
-                    ) : null}
-                    {r.matchAddedContent ? (
-                      <p className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
-                        added-content regex: /{r.matchAddedContent.regex}/
-                        {r.matchAddedContent.flags ?? ""}
-                      </p>
-                    ) : null}
-                    <p className="text-[10.5px] text-vibestrate-fg-dim">
-                      message: {r.message}
-                    </p>
-                  </li>
-                ))
-              )}
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-dim">
-              Action policies (Action Broker)
-            </h3>
-            <ul className="mt-1 space-y-1">
-              {snap.actions.length === 0 ? (
-                <li className="text-vibestrate-fg-dim">
-                  No action policies loaded.
-                </li>
-              ) : (
-                snap.actions.map((a) => (
-                  <li
-                    key={a.id}
-                    className="border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5"
-                  >
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-medium">{a.id}</span>
-                      <span className="vibestrate-mono text-[10px] text-vibestrate-fail">
-                        {a.effect}
-                      </span>
-                      <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
-                        on {a.on.join(", ")}
-                      </span>
-                    </div>
-                    <p className="text-[10.5px] text-vibestrate-fg-dim">
-                      {a.description}
-                    </p>
-                    {a.match?.providerId ? (
-                      <p className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
-                        providerId: {a.match.providerId}
-                      </p>
-                    ) : null}
-                    {a.match?.commandRegex ? (
-                      <p className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
-                        command regex: /{a.match.commandRegex}/
-                        {a.match.commandFlags ?? ""}
-                      </p>
-                    ) : null}
-                    {a.match?.pathGlob ? (
-                      <p className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
-                        path glob: {a.match.pathGlob}
-                      </p>
-                    ) : null}
-                    {a.match?.status ? (
-                      <p className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
-                        status: {a.match.status}
-                      </p>
-                    ) : null}
-                    <p className="text-[10.5px] text-vibestrate-fg-dim">
-                      message: {a.message}
-                    </p>
-                  </li>
-                ))
-              )}
-            </ul>
-          </section>
-
-          <section className="border border-vibestrate-border bg-vibestrate-panel-2 p-2">
-            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-dim">
-              Check patch
-            </h3>
-            <p className="text-[10.5px] text-vibestrate-fg-dim">
-              Paste a unified diff. Runs the same engine the apply flow uses.
-              Does <strong>not</strong> apply the patch and does{" "}
-              <strong>not</strong> run any command.
-            </p>
-            <div className="mt-2 flex items-center gap-2 text-[10.5px] text-vibestrate-fg-dim">
-              <label className="flex items-center gap-1">
-                surface:
-                <Select
-                  value={surface}
-                  ariaLabel="patch check surface"
-                  className="min-w-[150px]"
-                  onChange={(v) => setSurface(v as PolicySurface)}
-                  options={[
-                    { value: "suggestion-apply", label: "suggestion-apply" },
-                    { value: "bundle-apply", label: "bundle-apply" },
-                  ]}
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => void runCheck()}
-                disabled={checking}
-                className="border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-2 py-0.5 text-vibestrate-fg hover:bg-vibestrate-accent-soft/50 disabled:opacity-60"
-              >
-                {checking ? "Checking…" : "Run check"}
-              </button>
-            </div>
-            <textarea
-              value={patch}
-              onChange={(e) => setPatch(e.target.value)}
-              placeholder={"diff --git a/example.ts b/example.ts\n--- a/example.ts\n+++ b/example.ts\n@@ -1 +1,2 @@\n ok\n+new line"}
-              className="vibestrate-mono mt-2 w-full border border-vibestrate-border bg-vibestrate-panel px-2 py-1.5 text-[10.5px]"
-              rows={10}
-              spellCheck={false}
-            />
-            {check ? (
-              <div className="mt-2 border border-vibestrate-border bg-vibestrate-panel px-2 py-1.5">
-                <div className="vibestrate-mono text-[10.5px] text-vibestrate-fg-dim">
-                  surface: {check.surface} · evaluated{" "}
-                  {check.ruleCountForSurface}/{check.ruleCountTotal} rule(s)
-                </div>
-                {check.violations.length === 0 ? (
-                  <div className="mt-1 text-vibestrate-success">
-                    No violations. Built-in safety checks (path/content secret
-                    scan) still apply at the actual apply call site.
-                  </div>
-                ) : (
-                  <ul className="mt-1 space-y-1 text-vibestrate-warn">
-                    {check.violations.map((v, i) => (
-                      <li key={`${v.ruleId}-${i}`}>
-                        <span className="vibestrate-mono">{v.ruleId}</span>:{" "}
-                        {v.message}
-                        {v.matchedFile ? (
-                          <span className="vibestrate-mono text-vibestrate-fg-muted">
-                            {"  · "}
-                            {v.matchedFile}
-                          </span>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ) : null}
-          </section>
-        </>
-      )}
+      <div className="mt-4">
+        {tab === "policies" ? (
+          policies == null ? (
+            <Loading />
+          ) : (
+            <ProjectPoliciesSection policies={policies} onChanged={() => void loadPolicies()} />
+          )
+        ) : tab === "safety" ? (
+          safety == null ? (
+            <Loading />
+          ) : (
+            <AdvancedSafetySection safety={safety} onToggle={(k, v) => void toggleSafety(k, v)} />
+          )
+        ) : snap == null ? (
+          <Loading />
+        ) : (
+          <EngineToolsPanel snap={snap} />
+        )}
+      </div>
     </div>
   );
+}
+
+function StatTile({
+  value,
+  label,
+  tone = "default",
+}: {
+  value: ReactNode;
+  label: string;
+  tone?: "default" | "emerald" | "amber";
+}) {
+  const valueTone =
+    tone === "emerald" ? "text-emerald-400" : tone === "amber" ? "text-amber-soft" : "text-chalk-100";
+  return (
+    <div className="flex min-w-[56px] flex-col gap-0.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5">
+      <span className={cn("num-tabular text-[15px] font-bold leading-none", valueTone)}>{value}</span>
+      <span className="text-[10.5px] font-medium text-violet-soft">{label}</span>
+    </div>
+  );
+}
+
+function Loading() {
+  return <div className="px-1 py-6 text-[12.5px] text-chalk-400">Loading…</div>;
 }
