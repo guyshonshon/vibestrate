@@ -38,6 +38,7 @@ const baseState = {
   needsTesting: null,
   checklistMode: null,
   sagaMode: false,
+  sagaBudget: { maxSpendUsd: null, maxSteps: null },
   checklistProgress: null,
   checklistItemIds: null,
   contextSources: [],

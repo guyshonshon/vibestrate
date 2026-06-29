@@ -153,6 +153,7 @@ import type {
 } from "../providers/provider-types.js";
 import { MetricsStore } from "./metrics-store.js";
 import { makeEmptyMetrics, type RoleMetrics } from "./runtime-metrics.js";
+import { computeRunSpendUsd, checkSagaStopConditions } from "../feature/budget.js";
 import { extractTurnInternals } from "./turn-internals.js";
 import { getDiffSnapshot, getWorktreeDiffText, redactSecretsInText } from "./diff-service.js";
 import { evaluateBlockPolicies } from "../orchestrator/policy-block.js";
@@ -359,6 +360,11 @@ export type OrchestratorInput = {
    *  halts the run cleanly instead of committing a green-but-broken item, and
    *  each step starts a fresh model context. Set by the saga launch path. */
   sagaMode?: boolean;
+  /** Per-saga budget envelope (Phase 2 Conductor, M4): bounds the saga's TOTAL
+   *  cost/length, enforced BETWEEN steps (see src/feature/budget.ts). Null
+   *  fields mean no limit on that axis. The launch path sets it from
+   *  `task.sagaBudget`; defaults to no limits. */
+  sagaBudget?: { maxSpendUsd: number | null; maxSteps: number | null };
   /** Context sources (Phase 4): files/URLs materialized once at run start and
    *  injected into every agent's prompt (path-guarded / SSRF-guarded + secret
    *  redacted). */
@@ -625,6 +631,7 @@ export class Orchestrator {
   private readonly resumeFrom: ResumeFromInput | null;
   private readonly checklistMode: "continuous" | "step" | null;
   private readonly sagaMode: boolean;
+  private readonly sagaBudget: { maxSpendUsd: number | null; maxSteps: number | null };
   private readonly contextSources: ContextSource[];
   /** Materialized once at run start; merged into every role's prior artifacts. */
   private materializedContext: PriorArtifact[] = [];
@@ -733,6 +740,7 @@ export class Orchestrator {
     this.resumeFrom = input.resumeFrom ?? null;
     this.checklistMode = input.checklistMode ?? null;
     this.sagaMode = input.sagaMode ?? false;
+    this.sagaBudget = input.sagaBudget ?? { maxSpendUsd: null, maxSteps: null };
     this.contextSources = input.contextSources ?? [];
     this.abortSignal = input.abortSignal ?? null;
     this.selection = input.selection ?? null;
@@ -916,6 +924,7 @@ export class Orchestrator {
       params: this.recordedParams,
       checklistMode: this.checklistMode,
       sagaMode: this.sagaMode,
+      sagaBudget: this.sagaBudget,
       contextSources: this.contextSources,
       flow: this.createFlowRunState(flow, "flow.json"),
       resumedFrom: this.resumeFrom
@@ -3863,6 +3872,55 @@ export class Orchestrator {
           if (usingChecklist) {
             const dir = await commitChecklistItem(itemIndex);
             if (dir === "repeat") {
+              // ── Saga budget halt (Phase 2 Conductor, M4) ────────────────
+              // A clean step just finished and committed; more steps remain.
+              // In saga mode, check the per-saga budget BEFORE starting the
+              // next step. This is a BETWEEN-STEPS checkpoint, not a mid-step
+              // wall: the just-finished step may have overshot `maxSpendUsd`
+              // by up to its own cost (the only mid-step ceiling is the global
+              // DAILY spend cap, enforced pre-turn). On halt, KEEP the
+              // completed/committed work (do NOT discardWorktreeChanges - that
+              // differs from the M1 self-heal halt, which resets a FAILED
+              // step), record the halt, force a BLOCKED verdict, and exit the
+              // band so the run ends blocked without the holistic postlude.
+              if (this.sagaMode) {
+                const completedItem = checklistItems[itemIndex]!;
+                const spentUsd = await computeRunSpendUsd(
+                  input.metricsStore,
+                ).catch(() => 0);
+                const stepsCompleted = itemIndex + 1;
+                const stop = checkSagaStopConditions({
+                  spentUsd,
+                  stepsCompleted,
+                  budget: this.sagaBudget,
+                });
+                if (stop.halt) {
+                  if (this.taskId) {
+                    await roadmap
+                      .recordSagaHalt(this.taskId, {
+                        reason: stop.reason ?? "budget reached",
+                        atStepId: completedItem.id,
+                        summary: `Saga halted after step ${stepsCompleted}/${checklistItems.length} (${completedItem.text}): ${stop.reason ?? "budget reached"}. Completed work is committed and kept.`,
+                      })
+                      .catch(() => {});
+                  }
+                  currentChecklistItemId = null;
+                  await input.eventLog.append({
+                    type: "saga.halted",
+                    message: `Saga halted after step ${stepsCompleted}/${checklistItems.length}: ${stop.reason ?? "budget reached"} (completed work kept).`,
+                    data: {
+                      itemId: completedItem.id,
+                      index: itemIndex,
+                      reason: stop.reason,
+                      spentUsd,
+                      stepsCompleted,
+                    },
+                  });
+                  reviewDecision = "BLOCKED";
+                  stepIndex = steps.length;
+                  continue;
+                }
+              }
               itemIndex += 1;
               await maybeStepModeGate(itemIndex);
               stepIndex = segFrom;

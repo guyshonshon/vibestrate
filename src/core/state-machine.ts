@@ -9,6 +9,7 @@ import { defaultDisplayName } from "../utils/slug.js";
 import type { RunStatus } from "../workflow/workflow-types.js";
 import { TERMINAL_STATUSES } from "../workflow/workflow-types.js";
 import { flowRunParticipantStateSchema } from "../flows/runtime/flow-participant-ledger.js";
+import { sagaBudgetSchema } from "../roadmap/roadmap-types.js";
 
 export const runStatusSchema = z.enum([
   "created",
@@ -221,6 +222,10 @@ export const runStateSchema = z.object({
   // exhausts self-heal halts the run cleanly (no green-but-broken commit) and
   // each step starts a fresh model context. Defaulted for older runs.
   sagaMode: z.boolean().default(false),
+  // Per-saga budget envelope (Phase 2 Conductor, M4): bounds the saga's TOTAL
+  // cost/length, enforced BETWEEN steps. Null fields mean no limit on that axis.
+  // Defaulted (no limits) for non-saga and older runs.
+  sagaBudget: sagaBudgetSchema.default({}),
   // Live per-item progress for the dashboard/report. null unless the run is
   // iterating a checklist segment. The authoritative per-item status + commit
   // sha live on the task's own checklist (written back as each item finishes).
@@ -470,6 +475,7 @@ export function createInitialState(input: {
     contextSources: [],
     checklistMode: null,
     sagaMode: false,
+    sagaBudget: { maxSpendUsd: null, maxSteps: null },
     checklistProgress: null,
     checklistItemIds: null,
   };
