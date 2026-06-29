@@ -156,6 +156,7 @@ import { makeEmptyMetrics, type RoleMetrics } from "./runtime-metrics.js";
 import { computeRunSpendUsd, checkSagaStopConditions } from "../feature/budget.js";
 import { extractTurnInternals } from "./turn-internals.js";
 import { getDiffSnapshot, getWorktreeDiffText, redactSecretsInText } from "./diff-service.js";
+import { buildStepPacket, readFreshFileReads } from "../feature/packet.js";
 import { evaluateBlockPolicies } from "../orchestrator/policy-block.js";
 import { classifyChangedFilesForValidation } from "./validation-scope.js";
 import { protectedPathMatch } from "../orchestrator/protected-paths.js";
@@ -3201,7 +3202,16 @@ export class Orchestrator {
     // compact summaries forward). Otherwise the segment runs once - the N=1
     // instant-task case, identical to today.
     const roadmap = new RoadmapService(this.projectRoot);
-    let checklistItems: { id: string; text: string }[] = [];
+    // Carries the saga step fields (objective / acceptanceCheck / fileHints)
+    // alongside id/text so the saga curated packet can ground each step in them.
+    // Non-saga reads only ever touch id/text, so this is inert for them.
+    let checklistItems: {
+      id: string;
+      text: string;
+      objective: string;
+      acceptanceCheck: string;
+      fileHints: string[];
+    }[] = [];
     // F1: ground the brief in the bound card's own context (description + open
     // checklist) for ANY `--task` run, not just the pickup band - otherwise the
     // planner sees only the task string and guesses. The per-item checklist
@@ -3220,7 +3230,13 @@ export class Orchestrator {
         if (input.snapshot.checklistSegment && this.checklistMode) {
           checklistItems = task.checklist
             .filter((c) => c.status !== "done")
-            .map((c) => ({ id: c.id, text: c.text }));
+            .map((c) => ({
+              id: c.id,
+              text: c.text,
+              objective: c.objective,
+              acceptanceCheck: c.acceptanceCheck,
+              fileHints: c.fileHints,
+            }));
           const currentIds = task.checklist.map((c) => c.id);
           if (this.resumeFrom) {
             // Refuse if the checklist was edited between the original run and this
@@ -3499,6 +3515,89 @@ export class Orchestrator {
             label: "Completed checklist items",
             content: priorContent,
             artifactPath: input.artifactStore.relPath(priorAbs),
+          });
+        }
+        // ── Saga: fresh session + curated packet per step (M2b) ──────────────
+        // enterChecklistItem fires ONCE per item, at the band head, BEFORE the
+        // fix loop. So both effects below are guarded to the item boundary, NOT
+        // the fix loop: the session is reset per step (not per fix iteration),
+        // and the packet is built once per step. Gated on sagaMode so non-saga
+        // and plain checklist runs are byte-for-byte unchanged.
+        if (this.sagaMode) {
+          // Deliverable 1: null every participant's sessionId and persist, so the
+          // next provider turn that DOES reuse sessions opens a FRESH one
+          // (prepareFlowParticipantTurn opens a new session when sessionId is
+          // null - flow-participant-ledger.ts). Resetting the whole band is
+          // intentional: the micro-plan -> implement -> review-item step starts
+          // from a clean context, the anti-rot guarantee sagas exist for.
+          // (The saga band steps run via the graph frontier's runRole, which is
+          // already stateless per turn, so for them this is a guard, not a
+          // change; it bites for the linear plan/review participants and any
+          // future session-reusing band.) The context_reset event is the robust
+          // per-step signal: it fires ONCE per step at the band head, NOT per fix
+          // iteration, which is what makes each step a fresh context.
+          let sessionsReset = 0;
+          for (const participant of participantLedger.participants) {
+            if (participant.sessionId !== null) {
+              participant.sessionId = null;
+              sessionsReset += 1;
+            }
+          }
+          if (sessionsReset > 0) {
+            await participantStore.write(participantLedger);
+            state = this.patchFlowParticipants(state, participantLedger);
+          }
+          await input.eventLog.append({
+            type: "saga.step.context_reset",
+            message: `Saga step ${i + 1}/${checklistItems.length}: fresh context (${sessionsReset} session(s) reset).`,
+            data: { itemId: item.id, index: i, sessionsReset },
+          });
+
+          // Deliverable 2: build the curated packet from in-scope values and set
+          // it as the `checklist-item` token (the saga flow's steps read it). The
+          // packet SUPERSEDES the plain brief written above. We still keep the
+          // brief artifact (audit) and also write the packet artifact.
+          let accumulatedDiff = "";
+          if (input.worktreePath) {
+            // Diff from the fork point of the branch the worktree forked from, so
+            // committed prior steps are captured (git diff HEAD would miss them).
+            const baseBranch = await getCurrentBranch(this.projectRoot).catch(
+              () => null,
+            );
+            accumulatedDiff = await getWorktreeDiffText({
+              worktreePath: input.worktreePath,
+              baseBranch,
+            }).catch(() => "");
+          }
+          const fileReads = input.worktreePath
+            ? await readFreshFileReads({
+                worktreePath: input.worktreePath,
+                fileHints: item.fileHints,
+              }).catch(() => [])
+            : [];
+          const packet = buildStepPacket({
+            goal: this.task,
+            priorItemsContext: priorContent,
+            accumulatedDiff,
+            fileReads,
+            item: {
+              text: item.text,
+              objective: item.objective,
+              acceptanceCheck: item.acceptanceCheck,
+              index: i,
+              total: checklistItems.length,
+              fileHints: item.fileHints,
+            },
+          });
+          const packetAbs = await input.artifactStore.write(
+            path.posix.join("flows", "checklist", `item-${i + 1}-packet.md`),
+            packet,
+          );
+          outputs.set("checklist-item", {
+            token: "checklist-item",
+            label: `Saga step ${i + 1}/${checklistItems.length}`,
+            content: packet,
+            artifactPath: input.artifactStore.relPath(packetAbs),
           });
         }
         currentChecklistItemId = item.id;
