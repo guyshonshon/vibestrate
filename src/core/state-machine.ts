@@ -217,6 +217,10 @@ export const runStateSchema = z.object({
   // "continuous" runs items back-to-back; "step" pauses between items for a
   // human. null when the run isn't iterating a checklist.
   checklistMode: z.enum(["continuous", "step"]).nullable().default(null),
+  // Saga mode (Phase 2 Conductor): this run is a supervised saga - a step that
+  // exhausts self-heal halts the run cleanly (no green-but-broken commit) and
+  // each step starts a fresh model context. Defaulted for older runs.
+  sagaMode: z.boolean().default(false),
   // Live per-item progress for the dashboard/report. null unless the run is
   // iterating a checklist segment. The authoritative per-item status + commit
   // sha live on the task's own checklist (written back as each item finishes).
@@ -465,6 +469,7 @@ export function createInitialState(input: {
     needsTesting: null,
     contextSources: [],
     checklistMode: null,
+    sagaMode: false,
     checklistProgress: null,
     checklistItemIds: null,
   };

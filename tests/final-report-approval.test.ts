@@ -37,6 +37,7 @@ const baseState = {
   resumedFrom: null,
   needsTesting: null,
   checklistMode: null,
+  sagaMode: false,
   checklistProgress: null,
   checklistItemIds: null,
   contextSources: [],

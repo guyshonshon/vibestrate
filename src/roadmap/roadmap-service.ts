@@ -16,6 +16,7 @@ import {
   type Priority,
   type RoadmapItem,
   type RoadmapItemStatus,
+  type SagaHalt,
   type Task,
   type TaskKind,
   type TaskStatus,
@@ -238,6 +239,39 @@ export class RoadmapService {
     const t = await this.store.getTask(id);
     if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
     const next: Task = { ...t, status, updatedAt: nowIso(), lastEventAt: nowIso() };
+    await this.store.writeTask(next);
+    return next;
+  }
+
+  /** Saga conductor (Phase 2): record a clean halt - set sagaState to "halted"
+   *  and stamp the halt record. The halted step's checklist status is left for
+   *  the conductor to manage (it resets it to "pending" so a resume re-attempts
+   *  the step from the clean branch tip). */
+  async recordSagaHalt(id: string, halt: SagaHalt): Promise<Task> {
+    const t = await this.store.getTask(id);
+    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
+    const next: Task = {
+      ...t,
+      sagaState: "halted",
+      sagaHalt: halt,
+      updatedAt: nowIso(),
+      lastEventAt: nowIso(),
+    };
+    await this.store.writeTask(next);
+    return next;
+  }
+
+  /** Saga conductor (Phase 2): set the saga lifecycle state (sequencing on
+   *  launch, done on clean completion). */
+  async setSagaState(id: string, sagaState: Task["sagaState"]): Promise<Task> {
+    const t = await this.store.getTask(id);
+    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
+    const next: Task = {
+      ...t,
+      sagaState,
+      updatedAt: nowIso(),
+      lastEventAt: nowIso(),
+    };
     await this.store.writeTask(next);
     return next;
   }

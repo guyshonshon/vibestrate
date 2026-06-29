@@ -121,7 +121,13 @@ import {
 import { localWorktreeBackend } from "../execution/local-worktree-backend.js";
 import { makeDockerBackend } from "../execution/docker-backend.js";
 import type { ExecutionBackend, ExecStrategy, IsolationMode } from "../execution/execution-backend-schema.js";
-import { isGitAvailable, stageAndCommitAll, filesInCommit, getCurrentBranch } from "../git/git.js";
+import {
+  isGitAvailable,
+  stageAndCommitAll,
+  filesInCommit,
+  getCurrentBranch,
+  discardWorktreeChanges,
+} from "../git/git.js";
 import { creditTrailers } from "../git/commit-credit.js";
 import { linkWorktreeEnvironment } from "../git/worktree-env.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
@@ -348,6 +354,11 @@ export type OrchestratorInput = {
    *  "continuous" runs items back-to-back; "step" pauses between items. null /
    *  omitted = no checklist iteration (the instant-task N=1 case). */
   checklistMode?: "continuous" | "step" | null;
+  /** Saga mode (Phase 2 Conductor): when the linked task is `kind:"saga"`, run
+   *  the checklist band as a supervised saga - a step that exhausts self-heal
+   *  halts the run cleanly instead of committing a green-but-broken item, and
+   *  each step starts a fresh model context. Set by the saga launch path. */
+  sagaMode?: boolean;
   /** Context sources (Phase 4): files/URLs materialized once at run start and
    *  injected into every agent's prompt (path-guarded / SSRF-guarded + secret
    *  redacted). */
@@ -613,6 +624,7 @@ export class Orchestrator {
   private readonly flow: ResolvedFlowSnapshot | null;
   private readonly resumeFrom: ResumeFromInput | null;
   private readonly checklistMode: "continuous" | "step" | null;
+  private readonly sagaMode: boolean;
   private readonly contextSources: ContextSource[];
   /** Materialized once at run start; merged into every role's prior artifacts. */
   private materializedContext: PriorArtifact[] = [];
@@ -720,6 +732,7 @@ export class Orchestrator {
     this.postureNotes = input.postureNotes ?? [];
     this.resumeFrom = input.resumeFrom ?? null;
     this.checklistMode = input.checklistMode ?? null;
+    this.sagaMode = input.sagaMode ?? false;
     this.contextSources = input.contextSources ?? [];
     this.abortSignal = input.abortSignal ?? null;
     this.selection = input.selection ?? null;
@@ -902,6 +915,7 @@ export class Orchestrator {
       permissionMode: this.permissionMode,
       params: this.recordedParams,
       checklistMode: this.checklistMode,
+      sagaMode: this.sagaMode,
       contextSources: this.contextSources,
       flow: this.createFlowRunState(flow, "flow.json"),
       resumedFrom: this.resumeFrom
@@ -3803,6 +3817,49 @@ export class Orchestrator {
             };
           }
 
+          // ── Saga clean halt (Phase 2 Conductor) ─────────────────────────
+          // In saga mode a step whose per-item self-heal is exhausted (still
+          // CHANGES_REQUESTED after maxReviewLoops, or BLOCKED) must NOT commit
+          // a green-but-broken item and must NOT let a later step build on a
+          // broken one. Discard this step's uncommitted work so the branch ends
+          // at the last good item, record the halt on the task (the item stays
+          // `pending`, so a later resume re-attempts it from the clean tip),
+          // force a BLOCKED run verdict, and exit the band - the terminal logic
+          // then ends the run blocked, skipping the holistic postlude over
+          // incomplete work.
+          if (
+            this.sagaMode &&
+            isReviewBand &&
+            (lastDecision === "CHANGES_REQUESTED" || lastDecision === "BLOCKED")
+          ) {
+            const haltItem = checklistItems[itemIndex]!;
+            if (input.worktreePath) {
+              await discardWorktreeChanges(input.worktreePath).catch(() => {});
+            }
+            if (this.taskId) {
+              await roadmap
+                .setChecklistItemStatus(this.taskId, haltItem.id, "pending")
+                .catch(() => {});
+              await roadmap
+                .recordSagaHalt(this.taskId, {
+                  reason: "self-heal-exhausted",
+                  atStepId: haltItem.id,
+                  summary: compactImplementationSummary(
+                    outputs.get("review-decision")?.content ?? "",
+                  ),
+                })
+                .catch(() => {});
+            }
+            currentChecklistItemId = null;
+            await input.eventLog.append({
+              type: "saga.halted",
+              message: `Saga halted at step ${itemIndex + 1}/${checklistItems.length}: ${haltItem.text} (self-heal exhausted, verdict ${lastDecision}).`,
+              data: { itemId: haltItem.id, index: itemIndex, verdict: lastDecision },
+            });
+            reviewDecision = "BLOCKED";
+            stepIndex = steps.length;
+            continue;
+          }
           if (usingChecklist) {
             const dir = await commitChecklistItem(itemIndex);
             if (dir === "repeat") {

@@ -357,6 +357,23 @@ export async function reset(
   }
 }
 
+/**
+ * Discard ALL uncommitted work in the worktree at `cwd`: hard-reset tracked
+ * changes to HEAD and remove untracked files/dirs (ignored files are kept).
+ * Used by the saga conductor to leave the feature branch exactly at the last
+ * good checklist-item commit when a step's self-heal is exhausted, so the
+ * branch stays clean and reviewable. The caller owns the safety contract:
+ * `cwd` must be a run-scoped worktree whose only uncommitted content is the
+ * failed step's work.
+ */
+export async function discardWorktreeChanges(cwd: string): Promise<void> {
+  await reset(cwd, "HEAD", { hard: true });
+  const c = await execa("git", ["clean", "-fd"], { cwd, reject: false });
+  if (c.exitCode !== 0) {
+    throw new GitError(`git clean failed in ${cwd}: ${c.stderr || c.stdout}`);
+  }
+}
+
 /** True when a merge is in progress (MERGE_HEAD present). Lets undo tell a
  *  crashed mid-apply (recoverable by reset) from genuine uncommitted work. */
 export async function mergeInProgress(cwd: string): Promise<boolean> {

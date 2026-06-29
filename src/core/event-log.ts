@@ -124,6 +124,7 @@ export type VibestrateEventType =
   | "checklist.item.completed"
   | "checklist.item.blocked"
   | "checklist.item.gate"
+  | "saga.halted"
   | "flow.checklist.item.review"
   | "needs_testing.flagged"
   | "context.materialized"
