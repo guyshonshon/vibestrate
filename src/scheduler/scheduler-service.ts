@@ -8,6 +8,7 @@ import {
   detachedSpawnOptions,
 } from "../platform/process-control.js";
 import { RunQueue } from "./run-queue.js";
+import { readLiveTaskLockHolder } from "../core/run-lock.js";
 import { ConflictsStore, detectConflicts } from "./conflict-detector.js";
 import type { SchedulerConfig } from "../project/config-schema.js";
 import type { Task } from "../roadmap/roadmap-types.js";
@@ -87,17 +88,25 @@ function terminateChildProcess(child: ChildProcess): void {
   timer.unref?.();
 }
 
+/**
+ * The CLI argv the scheduler spawns for a task. A kind:"saga" task SEQUENCES
+ * (the audited `vibe saga sequence` path) so it inherits saga mode, the saga
+ * flow, the per-saga budget + supervisor, the clean halt-with-reset, the run
+ * lock, and the sequencing->done/halted lifecycle - exactly like a CLI launch.
+ * A plain task runs as usual.
+ */
+export function schedulerRunArgs(task: Pick<Task, "id" | "title" | "kind">): string[] {
+  return task.kind === "saga"
+    ? ["saga", "sequence", task.id]
+    : ["run", task.title, "--task", task.id];
+}
+
 function defaultRunTask(
   projectRoot: string,
 ): SchedulerRunTask {
   return async (task, context) => {
     return new Promise((resolve) => {
-      const args = [
-        "run",
-        task.title,
-        "--task",
-        task.id,
-      ];
+      const args = schedulerRunArgs(task);
       // Resolve the vibestrate entry point. Prefer dist next to this file (bundled),
       // fall back to dist resolved from source layout.
       const candidate = [DEFAULT_BIN.distInDist, DEFAULT_BIN.distFromSource].find(
@@ -316,12 +325,22 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
         const result = await runTask(candidate, { signal: runAbort.signal });
         const after = await roadmap.getTask(candidate.id);
         // The orchestrator already wrote the task's final status (done / blocked /
-        // failed). If for some reason it didn't, mirror the exit code.
+        // failed). If for some reason it didn't, mirror the exit code - EXCEPT
+        // when the launch was rejected because the task is already running under
+        // another launcher (the per-task run lock). A lock-rejected child exits
+        // non-zero WITHOUT having run; mislabeling the live task "failed" would
+        // contradict the run that actually owns it. Leave the status to that run.
         if (after && after.status === "running") {
-          await roadmap.updateTaskStatus(
+          const liveHolder = await readLiveTaskLockHolder(
+            input.projectRoot,
             candidate.id,
-            result.exitCode === 0 ? "done" : "failed",
-          );
+          ).catch(() => null);
+          if (!liveHolder) {
+            await roadmap.updateTaskStatus(
+              candidate.id,
+              result.exitCode === 0 ? "done" : "failed",
+            );
+          }
         }
       } catch (err) {
         log(

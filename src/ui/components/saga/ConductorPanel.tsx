@@ -89,6 +89,21 @@ export function ConductorPanel({ taskId }: { taskId: string }) {
     }
   }
 
+  // Launch / resume the saga through the audited queue -> scheduler -> `vibe saga
+  // sequence` path (no HTTP->shell; the scheduler owns the spawn). A halted saga
+  // re-sequences from the clean tip; finished steps are skipped.
+  async function sequence() {
+    setBusy("sequence");
+    try {
+      await api.queueTask(taskId);
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (!status) return null;
 
   const live = status.liveRunId !== null;
@@ -109,22 +124,35 @@ export function ConductorPanel({ taskId }: { taskId: string }) {
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={!live || busy !== null}
-            onClick={() => control("pause")}
-          >
-            Pause
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={!live || busy !== null}
-            onClick={() => control("resume")}
-          >
-            Resume
-          </Button>
+          {live ? (
+            <>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy !== null}
+                onClick={() => control("pause")}
+              >
+                Pause
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy !== null}
+                onClick={() => control("resume")}
+              >
+                Resume
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={busy !== null || status.progress.total === 0}
+              onClick={sequence}
+            >
+              {status.sagaState === "halted" ? "Re-sequence" : "Sequence"}
+            </Button>
+          )}
         </div>
       </div>
 
