@@ -778,6 +778,8 @@ function ChecklistSection({
 }) {
   const items = task.checklist ?? [];
   const [text, setText] = useState("");
+  const [objective, setObjective] = useState("");
+  const [acceptance, setAcceptance] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -822,7 +824,16 @@ function ChecklistSection({
     const t = text.trim();
     if (!t) return;
     await run("add", async () => {
-      await api.addChecklistItem(task.id, t);
+      if (task.kind === "saga") {
+        await api.addChecklistItem(task.id, t, {
+          objective: objective.trim() || undefined,
+          acceptanceCheck: acceptance.trim() || undefined,
+        });
+        setObjective("");
+        setAcceptance("");
+      } else {
+        await api.addChecklistItem(task.id, t);
+      }
       setText("");
     });
   }
@@ -937,6 +948,7 @@ function ChecklistSection({
             <ChecklistRow
               key={item.id}
               item={item}
+              isSaga={task.kind === "saga"}
               busy={busy}
               dragging={draggingId === item.id}
               dragOver={overId === item.id && draggingId !== item.id}
@@ -1015,12 +1027,30 @@ function ChecklistSection({
       ) : null}
 
       <form onSubmit={add} className="mt-2 flex gap-2">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Add a checklist item…"
-          className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
-        />
+        <div className="flex flex-1 flex-col gap-1">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Add a checklist item…"
+            className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
+          />
+          {task.kind === "saga" ? (
+            <>
+              <input
+                value={objective}
+                onChange={(e) => setObjective(e.target.value)}
+                placeholder="Objective (optional)…"
+                className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
+              />
+              <input
+                value={acceptance}
+                onChange={(e) => setAcceptance(e.target.value)}
+                placeholder="Acceptance check (optional)…"
+                className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
+              />
+            </>
+          ) : null}
+        </div>
         <button
           type="submit"
           disabled={busy === "add" || !text.trim()}
@@ -1042,6 +1072,7 @@ function ChecklistSection({
 
 function ChecklistRow({
   item,
+  isSaga,
   busy,
   dragging,
   dragOver,
@@ -1057,6 +1088,7 @@ function ChecklistRow({
   onOpenCard,
 }: {
   item: ChecklistItem;
+  isSaga: boolean;
   busy: string | null;
   dragging: boolean;
   dragOver: boolean;
@@ -1108,7 +1140,11 @@ function ChecklistRow({
         setGrabbed(false);
         onDrop();
       }}
-      className={`flex items-center gap-1.5 border bg-ink-200 px-2 py-1 transition ${
+      className={`flex gap-1.5 border bg-ink-200 px-2 py-1 transition ${
+        isSaga && (item.objective || item.acceptanceCheck)
+          ? "items-start"
+          : "items-center"
+      } ${
         dragging
           ? "border-violet-soft/50 opacity-50"
           : dragOver
@@ -1135,20 +1171,34 @@ function ChecklistRow({
       >
         {checklistGlyph(item.status)}
       </button>
-      <input
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          const next = draft.trim();
-          if (next && next !== item.text) onEdit(next);
-          else setDraft(item.text);
-        }}
-        className={`flex-1 bg-transparent text-[12.5px] focus:outline-none ${
-          item.status === "done"
-            ? "text-fog-400 line-through"
-            : "text-fog-100"
-        }`}
-      />
+      <div className="flex-1 min-w-0">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => {
+            const next = draft.trim();
+            if (next && next !== item.text) onEdit(next);
+            else setDraft(item.text);
+          }}
+          className={`w-full bg-transparent text-[12.5px] focus:outline-none ${
+            item.status === "done"
+              ? "text-fog-400 line-through"
+              : "text-fog-100"
+          }`}
+        />
+        {isSaga && item.objective ? (
+          <div className="mt-0.5 text-[10.5px]">
+            <span className="text-violet-soft">objective</span>{" "}
+            <span className="text-fog-300">{item.objective}</span>
+          </div>
+        ) : null}
+        {isSaga && item.acceptanceCheck ? (
+          <div className="text-[10.5px]">
+            <span className="text-violet-soft">accept</span>{" "}
+            <span className="text-fog-300">{item.acceptanceCheck}</span>
+          </div>
+        ) : null}
+      </div>
       <Select
         value={item.status}
         disabled={anyBusy}
