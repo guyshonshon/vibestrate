@@ -136,11 +136,21 @@ export const checklistItemSchema = z.object({
   updatedAt: z.string(),
   commitSha: z.string().nullable().default(null),
   promotedTaskId: safeIdSchema.nullable().default(null),
+  // Saga step fields (Phase 1): a checklist item IS a Saga "step". Defaulted so
+  // pre-Saga tasks upgrade losslessly on read (getTask never sees a throw).
+  objective: z.string().default(""),
+  acceptanceCheck: z.string().default(""),
+  fileHints: z.array(z.string()).default([]),
 });
 export type ChecklistItem = z.infer<typeof checklistItemSchema>;
+export type Step = ChecklistItem;
+
+export const taskKindSchema = z.enum(["single", "saga"]);
+export type TaskKind = z.infer<typeof taskKindSchema>;
 
 export const taskSchema = z.object({
   id: safeIdSchema,
+  kind: taskKindSchema.default("single"),
   roadmapItemId: safeIdSchema.nullable().default(null),
   title: z.string().min(1),
   description: z.string().default(""),
