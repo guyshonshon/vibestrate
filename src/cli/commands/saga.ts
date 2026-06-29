@@ -268,6 +268,11 @@ export async function cmdSequence(
   let halted = after?.sagaState === "halted";
   if (!halted) {
     if (code === 0) {
+      // Phase 3 Enhance: fold any conductor-revised pending plan back into the
+      // checklist and clear the overlay (a no-op when none). Only on CLEAN
+      // completion - a halt keeps the overlay so a re-sequence continues the
+      // revised plan (the orchestrator re-applies it on start).
+      await s.reconcileSagaPendingRevision(taskId);
       await s.setSagaState(taskId, "done");
     } else {
       await s.recordSagaHalt(taskId, {

@@ -187,7 +187,7 @@ export function buildEnhancePrompt(args: EnhancePromptArgs): string {
   const parts: string[] = [];
 
   parts.push(
-    "You are the SAGA CONDUCTOR re-grounding a multi-step feature plan against the code as it actually is now. This is a PLAN-ONLY pass: you do not write code. You revise only the PENDING steps so the next ones build on reality, not the original guess.",
+    "Saga conductor re-grounding (ENHANCE).\nYou are the saga conductor re-grounding a multi-step feature plan against the code as it actually is now. This is a PLAN-ONLY pass: you do not write code. You revise only the PENDING steps so the next ones build on reality, not the original guess.",
   );
 
   parts.push(`## Feature goal\n${redact(goal)}`);

@@ -160,9 +160,16 @@ import { buildStepPacket, readFreshFileReads } from "../feature/packet.js";
 import {
   buildSupervisorPrompt,
   parseSupervisorDecision,
-  effectiveSupervisorDecision,
   parseNewInvariants,
 } from "../feature/supervisor.js";
+import {
+  buildEnhancePrompt,
+  parseStepDiff,
+  classifyAuthority,
+  applyStepDiff,
+  type EnhanceStep,
+} from "../feature/enhance.js";
+import type { Provenance } from "../roadmap/roadmap-types.js";
 import { evaluateBlockPolicies } from "../orchestrator/policy-block.js";
 import { classifyChangedFilesForValidation } from "./validation-scope.js";
 import { protectedPathMatch } from "../orchestrator/protected-paths.js";
@@ -3227,6 +3234,9 @@ export class Orchestrator {
       objective: string;
       acceptanceCheck: string;
       fileHints: string[];
+      // Phase 3 Enhance: carried so the ENHANCE pass can classify authority
+      // (a conductor may not remove an `owner` step) without a second task read.
+      provenance: Provenance;
     }[] = [];
     // F1: ground the brief in the bound card's own context (description + open
     // checklist) for ANY `--task` run, not just the pickup band - otherwise the
@@ -3252,7 +3262,29 @@ export class Orchestrator {
               objective: c.objective,
               acceptanceCheck: c.acceptanceCheck,
               fileHints: c.fileHints,
+              provenance: c.provenance,
             }));
+          // Phase 3 Enhance: if a prior pass left a saga-scoped pending overlay,
+          // it supersedes the original pending steps (refined text/objective,
+          // resequenced, with removed steps absent). The overlay carries only
+          // EXISTING ids (autonomous add is excluded), so `task.checklist` - and
+          // thus the resume guard below, which compares its ids - is untouched.
+          // Any overlay step that has since completed is filtered out by status.
+          if (this.sagaMode && task.sagaPendingRevision) {
+            const doneIds = new Set(
+              task.checklist.filter((c) => c.status === "done").map((c) => c.id),
+            );
+            checklistItems = task.sagaPendingRevision.pending
+              .filter((p) => !doneIds.has(p.id))
+              .map((p) => ({
+                id: p.id,
+                text: p.text,
+                objective: p.objective,
+                acceptanceCheck: p.acceptanceCheck,
+                fileHints: p.fileHints,
+                provenance: p.provenance,
+              }));
+          }
           const currentIds = task.checklist.map((c) => c.id);
           if (this.resumeFrom) {
             // Refuse if the checklist was edited between the original run and this
@@ -4102,6 +4134,49 @@ export class Orchestrator {
                     reviewDecision = "BLOCKED";
                     stepIndex = steps.length;
                     continue;
+                  }
+                  // ── Saga ENHANCE pass (Phase 3) ───────────────────────
+                  // The supervisor judged the plan has diverged from reality.
+                  // Re-ground the PENDING steps (refine/reorder/remove) before
+                  // the next one. The pass mutates the in-memory pending tail in
+                  // place and persists a saga-scoped overlay atomically (the
+                  // resume guard is untouched). A structural change it may not
+                  // make autonomously (an add, or removing an owner step)
+                  // escalates - a clean halt keeping the committed work, exactly
+                  // like a supervisor ESCALATE.
+                  if (verdict === "ENHANCE") {
+                    const outcome = await this.runSagaEnhanceTurn({
+                      completedItem,
+                      itemIndex,
+                      checklistItems,
+                      input,
+                    }).catch((err: unknown) => {
+                      if (err instanceof __SpendCapStopSignal) throw err;
+                      return "noop" as const;
+                    });
+                    if (outcome === "escalate") {
+                      await roadmap
+                        .recordSagaHalt(this.taskId, {
+                          reason: "enhance-escalate",
+                          atStepId: completedItem.id,
+                          summary: `Saga escalated by the conductor's Enhance pass after step ${stepsCompleted}/${checklistItems.length} (${completedItem.text}): a structural plan change (a new step, or dropping an owner-authored step) needs the owner. Completed work is committed and kept.`,
+                        })
+                        .catch(() => {});
+                      currentChecklistItemId = null;
+                      await input.eventLog.append({
+                        type: "saga.halted",
+                        message: `Saga halted after step ${stepsCompleted}/${checklistItems.length}: Enhance escalated to the owner (completed work kept).`,
+                        data: {
+                          itemId: completedItem.id,
+                          index: itemIndex,
+                          reason: "enhance-escalate",
+                          stepsCompleted,
+                        },
+                      });
+                      reviewDecision = "BLOCKED";
+                      stepIndex = steps.length;
+                      continue;
+                    }
                   }
                 }
               }
@@ -5438,7 +5513,7 @@ export class Orchestrator {
       runId: string;
       metricsStore: MetricsStore;
     };
-  }): Promise<"PROCEED" | "ESCALATE"> {
+  }): Promise<"PROCEED" | "ENHANCE" | "ESCALATE"> {
     const { completedItem, itemIndex, checklistItems, input } = args;
     const taskId = this.taskId!;
     const roadmap = new RoadmapService(this.projectRoot);
@@ -5568,7 +5643,9 @@ export class Orchestrator {
     }
 
     const parsed = parseSupervisorDecision(text);
-    const verdict = effectiveSupervisorDecision(text);
+    // Phase 3: the 3-way decision drives control flow (ENHANCE no longer folds).
+    // An unparseable turn still folds to PROCEED (advisory guard).
+    const verdict = parsed.decision ?? "PROCEED";
     const newInvariants = parseNewInvariants(text);
     if (newInvariants.length > 0) {
       await roadmap.appendSagaInvariants(taskId, newInvariants).catch(() => {});
@@ -5591,6 +5668,238 @@ export class Orchestrator {
       },
     });
     return verdict;
+  }
+
+  // The conductor's ENHANCE pass (Phase 3). A plan-only model turn: it re-grounds
+  // the PENDING steps against the code as-built and emits a step-diff. On `auto`
+  // (refine/reorder/remove of existing ids) it mutates `checklistItems` in place
+  // (tail only, `> itemIndex`, so the band's absolute-index addressing survives)
+  // and persists the revised pending plan to the saga-scoped overlay atomically.
+  // On `escalate` (a structural change it may not make autonomously) it returns
+  // "escalate" and the band halts cleanly. Spend-accounted as a `saga-enhance`
+  // role; any failure/empty diff is a "noop" (advisory, never corrupts the plan).
+  private async runSagaEnhanceTurn(args: {
+    completedItem: { id: string; text: string };
+    itemIndex: number;
+    checklistItems: EnhanceStep[];
+    input: {
+      worktreePath: string | null;
+      eventLog: EventLog;
+      runId: string;
+      metricsStore: MetricsStore;
+    };
+  }): Promise<"applied" | "escalate" | "noop"> {
+    const { completedItem, itemIndex, checklistItems, input } = args;
+    const taskId = this.taskId!;
+    const roadmap = new RoadmapService(this.projectRoot);
+
+    await this.enforceSpendCap({ eventLog: input.eventLog, runId: input.runId });
+
+    // Reuse the supervisor's cheap provider/profile resolution.
+    let profileName = this.sagaSupervisor.profile;
+    if (!profileName) {
+      try {
+        const { crew } = getCrew(this.config, this.activeCrewId);
+        profileName = getCrewRole(crew, this.sagaSupervisor.roleId).profile;
+      } catch {
+        profileName = null;
+      }
+    }
+    const profileCfg = profileName ? this.config.profiles[profileName] : undefined;
+    const providerId =
+      profileCfg?.provider ?? Object.values(this.config.profiles)[0]?.provider;
+    if (!providerId || !this.config.providers[providerId]) {
+      await input.eventLog.append({
+        type: "saga.enhance",
+        message: `Saga enhance skipped after step ${itemIndex + 1}: no resolvable provider.`,
+        data: { index: itemIndex, authority: null, skipped: "no-provider" },
+      });
+      return "noop";
+    }
+
+    // The PENDING tail is everything after the just-finished step.
+    const pending = checklistItems.slice(itemIndex + 1);
+    if (pending.length === 0) return "noop"; // nothing left to re-ground
+
+    const task = await roadmap.getTask(taskId).catch(() => null);
+    const invariants = task?.sagaInvariants ?? [];
+    const doneOutcomes = checklistItems.slice(0, itemIndex + 1).map((c) => ({
+      text: c.text,
+      summary:
+        task?.checklist.find((t) => t.id === c.id)?.outcomeSummary ?? "",
+    }));
+
+    let diffSoFar = "";
+    let freshRead = "";
+    if (input.worktreePath) {
+      const baseBranch = await getCurrentBranch(this.projectRoot).catch(() => null);
+      diffSoFar = await getWorktreeDiffText({
+        worktreePath: input.worktreePath,
+        baseBranch,
+      }).catch(() => "");
+      const hints = [...new Set(pending.flatMap((s) => s.fileHints))];
+      if (hints.length > 0) {
+        const reads = await readFreshFileReads({
+          worktreePath: input.worktreePath,
+          fileHints: hints,
+        }).catch(() => []);
+        freshRead = reads
+          .map((r) => `--- ${r.path} ---\n${r.content ?? ""}`)
+          .join("\n\n");
+      }
+    }
+
+    const prompt = buildEnhancePrompt({
+      goal: this.task,
+      doneOutcomes,
+      pending,
+      diff: diffSoFar,
+      freshRead,
+      invariants,
+      mode: "conductor",
+    });
+
+    if (!this.resolvedCatalog) {
+      this.resolvedCatalog = await resolveCatalog(this.projectRoot).catch(() => null);
+    }
+    let text = "";
+    try {
+      const result = await runProvider(this.config.providers, {
+        providerId,
+        prompt,
+        cwd: input.worktreePath ?? this.projectRoot,
+        model: profileCfg?.model ?? null,
+        effort: profileCfg?.power ?? null,
+        maxTokens: profileCfg?.maxTokens ?? null,
+        catalog: this.resolvedCatalog ?? undefined,
+        // allowWrite omitted -> a read-only, plan-only turn.
+      });
+      text = result.exitCode === 0 ? result.normalized.responseText : "";
+      const m = result.normalized.metrics;
+      let tokenUsage = m?.tokenUsage ?? null;
+      let tokensEstimated = false;
+      const hasRealTokens =
+        !!tokenUsage && ((tokenUsage.input ?? 0) + (tokenUsage.output ?? 0)) > 0;
+      if (!hasRealTokens) {
+        tokenUsage = {
+          input: estimateTokensFromText(prompt),
+          output: estimateTokensFromText(text),
+        };
+        tokensEstimated = true;
+      }
+      const { costUsd, estimated } = resolveCost({
+        reportedCostUsd: m?.totalCostUsd ?? null,
+        model: m?.model ?? null,
+        tokenUsage,
+      });
+      await input.metricsStore
+        .appendRoleMetrics(
+          roleMetricsSchema.parse({
+            roleId: "saga-enhance",
+            stageId: "saga-enhance",
+            providerId,
+            providerType: this.config.providers[providerId]?.type ?? "cli",
+            command: result.command,
+            cwd: result.cwd,
+            startedAt: result.startedAt,
+            endedAt: result.endedAt,
+            durationMs: result.durationMs,
+            exitCode: result.exitCode,
+            model: m?.model ?? null,
+            totalCostUsd: costUsd,
+            costEstimated: estimated,
+            tokenUsage,
+            tokensEstimated,
+          }),
+        )
+        .catch(() => {});
+    } catch (err) {
+      await input.eventLog.append({
+        type: "saga.enhance",
+        message: `Saga enhance errored after step ${itemIndex + 1}; proceeding. ${
+          err instanceof Error ? err.message : ""
+        }`.trim(),
+        data: { index: itemIndex, authority: null, skipped: "error" },
+      });
+      return "noop";
+    }
+
+    const { diff } = parseStepDiff(text);
+    const empty =
+      !diff ||
+      (diff.refine.length === 0 &&
+        diff.remove.length === 0 &&
+        diff.add.length === 0 &&
+        (diff.reorder === null || diff.reorder.length === 0));
+    if (!diff || empty) {
+      await input.eventLog.append({
+        type: "saga.enhance",
+        message: `Saga enhance after step ${itemIndex + 1}: no change (plan already grounded).`,
+        data: { index: itemIndex, authority: "auto", applied: null, noop: true },
+      });
+      return "noop";
+    }
+
+    const authority = classifyAuthority(diff, pending, "conductor");
+    if (authority === "escalate") {
+      await input.eventLog.append({
+        type: "saga.enhance",
+        message: `Saga enhance after step ${itemIndex + 1}: escalating to the owner (structural change).`,
+        data: {
+          index: itemIndex,
+          authority: "escalate",
+          adds: diff.add.length,
+          removes: diff.remove.length,
+        },
+      });
+      return "escalate";
+    }
+
+    // auto: apply to the in-memory pending tail IN PLACE (preserve itemIndex +
+    // the done prefix), then persist the revised pending plan to the overlay.
+    const revisedTail = applyStepDiff(pending, diff);
+    checklistItems.splice(
+      itemIndex + 1,
+      checklistItems.length - (itemIndex + 1),
+      ...revisedTail,
+    );
+    // Build full ChecklistItems for the overlay by patching the revised fields
+    // onto the canonical items by id (every id exists - no autonomous add).
+    const canonicalById = new Map((task?.checklist ?? []).map((c) => [c.id, c]));
+    const overlayPending = revisedTail
+      .map((s) => {
+        const base = canonicalById.get(s.id);
+        if (!base) return null;
+        return {
+          ...base,
+          text: s.text,
+          objective: s.objective,
+          acceptanceCheck: s.acceptanceCheck,
+          fileHints: s.fileHints,
+        };
+      })
+      .filter((c): c is NonNullable<typeof c> => c !== null);
+    await roadmap
+      .setSagaPendingRevision(taskId, {
+        revisedAtStepIndex: itemIndex,
+        pending: overlayPending,
+      })
+      .catch(() => {});
+
+    await input.eventLog.append({
+      type: "saga.enhance",
+      message: `Saga enhance after step ${itemIndex + 1}: re-grounded the pending plan (${diff.refine.length} refined, ${diff.remove.length} removed${diff.reorder ? ", resequenced" : ""}).`,
+      data: {
+        index: itemIndex,
+        authority: "auto",
+        applied: {
+          refine: diff.refine.length,
+          remove: diff.remove.length,
+          reorder: diff.reorder ? diff.reorder.length : 0,
+        },
+      },
+    });
+    return "applied";
   }
 
   private async runRole(input: {

@@ -19,6 +19,7 @@ import {
   type RoadmapItem,
   type RoadmapItemStatus,
   type SagaHalt,
+  type SagaPendingRevision,
   type Task,
   type TaskKind,
   type TaskStatus,
@@ -316,6 +317,68 @@ export class RoadmapService {
     const next: Task = {
       ...t,
       sagaInvariants: merged,
+      updatedAt: nowIso(),
+      lastEventAt: nowIso(),
+    };
+    await this.store.writeTask(next);
+    return next;
+  }
+
+  /** Saga conductor (Phase 3 Enhance): persist the revised pending-plan overlay
+   *  in ONE atomic write. The conductor's Enhance pass mutates only the
+   *  in-memory pending steps and records the result HERE - never into
+   *  `checklist` - so the resume guard (which compares `checklist` ids) is left
+   *  untouched. Pass `null` to clear it. */
+  async setSagaPendingRevision(
+    id: string,
+    revision: SagaPendingRevision | null,
+  ): Promise<Task> {
+    const t = await this.store.getTask(id);
+    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
+    const next: Task = {
+      ...t,
+      sagaPendingRevision: revision,
+      updatedAt: nowIso(),
+      lastEventAt: nowIso(),
+    };
+    await this.store.writeTask(next);
+    return next;
+  }
+
+  /** Saga conductor (Phase 3 Enhance): on clean saga completion, fold the
+   *  pending overlay back into `checklist` and clear it, in ONE write. Refined
+   *  fields are patched onto the matching items by id; a still-pending item the
+   *  overlay dropped (a conductor `remove`, never executed) is removed from the
+   *  checklist. Done items and ids are otherwise preserved. A no-op when no
+   *  overlay is set. */
+  async reconcileSagaPendingRevision(id: string): Promise<Task> {
+    const t = await this.store.getTask(id);
+    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
+    const overlay = t.sagaPendingRevision;
+    if (!overlay) return t;
+    const byId = new Map(overlay.pending.map((p) => [p.id, p]));
+    const overlayIds = new Set(overlay.pending.map((p) => p.id));
+    const checklist = t.checklist
+      // Drop pending items the overlay removed (not done, not in the overlay).
+      .filter((c) => c.status === "done" || overlayIds.has(c.id))
+      // Patch refined fields from the overlay onto the matching items.
+      .map((c) => {
+        const p = byId.get(c.id);
+        return p
+          ? {
+              ...c,
+              text: p.text,
+              objective: p.objective,
+              acceptanceCheck: p.acceptanceCheck,
+              fileHints: p.fileHints,
+              updatedAt: nowIso(),
+            }
+          : c;
+      });
+    const next: Task = {
+      ...t,
+      checklist,
+      sagaPendingRevision: null,
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };

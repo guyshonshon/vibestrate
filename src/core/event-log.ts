@@ -127,6 +127,7 @@ export type VibestrateEventType =
   | "saga.halted"
   | "saga.step.context_reset"
   | "saga.supervisor"
+  | "saga.enhance"
   | "flow.checklist.item.review"
   | "needs_testing.flagged"
   | "context.materialized"
