@@ -54,6 +54,7 @@ import { buildGuideCommand } from "./commands/guide.js";
 import { buildReplayCommand } from "./commands/replay.js";
 import { buildPauseCommand, buildResumeCommand } from "./commands/pause.js";
 import { buildShellCommand } from "./commands/shell.js";
+import { buildSagaCommand } from "./commands/saga.js";
 
 function collectStepProfile(value: string, previous: string[]): string[] {
   return [...previous, value];
@@ -188,6 +189,7 @@ export function buildVibestrateProgram(): Command {
   program.addCommand(buildPauseCommand());
   program.addCommand(buildResumeCommand());
   program.addCommand(buildShellCommand());
+  program.addCommand(buildSagaCommand());
 
   program
     .command("run [task...]")
