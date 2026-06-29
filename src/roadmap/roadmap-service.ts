@@ -17,6 +17,7 @@ import {
   type RoadmapItem,
   type RoadmapItemStatus,
   type Task,
+  type TaskKind,
   type TaskStatus,
   safeIdSchema,
 } from "./roadmap-types.js";
@@ -62,6 +63,7 @@ export type AddTaskInput = {
   profileOverride?: string | null;
   readOnly?: boolean;
   derivedFrom?: { taskId: string; itemId: string } | null;
+  kind?: TaskKind;
 };
 
 export type CommentInput = {
@@ -71,7 +73,10 @@ export type CommentInput = {
 };
 
 export type ChecklistItemPatch = Partial<
-  Pick<ChecklistItem, "text" | "status" | "commitSha" | "promotedTaskId">
+  Pick<
+    ChecklistItem,
+    "text" | "status" | "commitSha" | "promotedTaskId" | "objective" | "acceptanceCheck" | "fileHints"
+  >
 >;
 
 export class RoadmapService {
@@ -155,6 +160,7 @@ export class RoadmapService {
     const ts = nowIso();
     const task: Task = {
       id: makeId(input.title, "task"),
+      kind: input.kind ?? "single",
       roadmapItemId: input.roadmapItemId ?? null,
       title: input.title.trim(),
       description: input.description?.trim() ?? "",
@@ -542,6 +548,7 @@ export class RoadmapService {
   async addChecklistItem(
     taskId: string,
     text: string,
+    fields: { objective?: string; acceptanceCheck?: string; fileHints?: string[] } = {},
   ): Promise<{ task: Task; item: ChecklistItem }> {
     const t = await this.requireTask(taskId);
     const trimmed = text.trim();
@@ -557,6 +564,9 @@ export class RoadmapService {
       updatedAt: ts,
       commitSha: null,
       promotedTaskId: null,
+      objective: fields.objective?.trim() ?? "",
+      acceptanceCheck: fields.acceptanceCheck?.trim() ?? "",
+      fileHints: (fields.fileHints ?? []).map((f) => f.trim()).filter((f) => f.length > 0),
     };
     const task = await this.writeChecklist(t, [...t.checklist, item]);
     return { task, item };
