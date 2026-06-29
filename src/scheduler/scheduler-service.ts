@@ -325,11 +325,13 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
         const result = await runTask(candidate, { signal: runAbort.signal });
         const after = await roadmap.getTask(candidate.id);
         // The orchestrator already wrote the task's final status (done / blocked /
-        // failed). If for some reason it didn't, mirror the exit code - EXCEPT
-        // when the launch was rejected because the task is already running under
-        // another launcher (the per-task run lock). A lock-rejected child exits
-        // non-zero WITHOUT having run; mislabeling the live task "failed" would
-        // contradict the run that actually owns it. Leave the status to that run.
+        // failed); this only mirrors the exit code as a FALLBACK if it didn't (the
+        // task is still "running"). Skip that fallback entirely whenever a live run
+        // holds the task lock: the common case is a lock-rejected concurrent launch
+        // (a saga already sequencing) whose child exits non-zero WITHOUT running -
+        // mirroring it to "failed" would contradict the run that actually owns the
+        // task. (This also skips a stale success-mirror when a successor run has
+        // already taken the lock; harmless, since that run owns the status now.)
         if (after && after.status === "running") {
           const liveHolder = await readLiveTaskLockHolder(
             input.projectRoot,
