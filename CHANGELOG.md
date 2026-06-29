@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.40.0
+
+- **The Saga Conductor comes to the dashboard.** Mission Control's task detail now
+  shows a live **Conductor** panel for a Saga: its lifecycle and step progress with
+  per-step outcomes, the supervisor's PROCEED/ESCALATE decisions, the invariants
+  ledger, and an escalation banner when it halts - polled live. It reaches full
+  parity with the CLI: **Sequence** to launch (or **Re-sequence** to resume a halted
+  Saga from the clean tip), and **Pause** / **Resume** while a run is live.
+- **Launch a Saga from the dashboard.** Queuing a `kind:"saga"` task now sequences it
+  through the same audited path as `vibe saga sequence` - the scheduler runs it in
+  saga mode with the saga flow, the per-Saga budget + supervisor, the run lock, and
+  the clean halt-with-reset. No new launch surface, and a launch rejected because the
+  Saga is already running no longer mislabels the live run as failed.
+- **`GET /api/sagas/:taskId/status`** serves the conductor status (lifecycle, the live
+  run, step progress, halt, invariants) - one source shared with `vibe saga status`,
+  so the dashboard and CLI can't drift. The supervisor's verdicts also surface in the
+  run-detail engagement lane.
+
 ## 0.39.0
 
 - **The Saga Conductor gets judgment - a supervisor between steps.** After each

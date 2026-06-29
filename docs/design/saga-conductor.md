@@ -2,9 +2,27 @@
 
 Status: Phase 2a (execution core) merged to `main` (v0.38.0). Phase 2b part 1
 (the between-steps supervisor turn + non-folding invariants ledger + `vibe saga
-status | pause | resume`) built on `feat/saga-conductor-2b` (v0.39.0). Phase 2b
-part 2 (the live dashboard Conductor view + controls, handwritten prose docs, and
-the resume-re-seeds-prose fidelity item) pending. ENHANCE stays Phase 3.
+status | pause | resume`) merged to `main` (v0.39.0). Phase 2b part 2 (the live
+dashboard Conductor view + `GET /api/sagas/:taskId/status` + Sequence/Pause/Resume
+controls + the dashboard saga-launch path through the scheduler + prose docs) built
+on `feat/saga-conductor-2b-dashboard` (v0.40.0). The Conductor is complete. ENHANCE
+(re-ground the pending plan) stays Phase 3; the resume-re-seeds-prose fidelity item
+remains deferred (the packet's diff + fresh-read carry continuity).
+
+## Phase 2b part 2 (shipped, v0.40.0)
+
+`getSagaStatus` (src/feature/saga-status.ts) is the ONE source for a saga's live
+conductor status, read by both `vibe saga status` and `GET /api/sagas/:taskId/status`
+(UI<->CLI parity, no drift). It resolves the LIVE run via the run-lock holder
+(stale-checked), not `task.currentRunId`. The dashboard's `ConductorPanel` polls it
+(~2s) + the live run's engagement feed (where `saga.supervisor`/`saga.halted` now map).
+Dashboard LAUNCH reuses the audited queue->scheduler path: the scheduler spawns
+`vibe saga sequence <id>` for `kind:"saga"` tasks (was `vibe run --task`), inheriting
+the whole saga lifecycle from `cmdSequence` by construction - NOT a parallel
+implementation in `runFromSpec` (an independent review caught that the queue button
+drives the scheduler, not `runFromSpec`, so the first design was dead code there).
+A lock-rejected concurrent launch no longer mislabels the live task `failed`
+(scheduler re-checks the live lock holder before mirroring the child exit code).
 
 This is a short decision record. The full design and the implementation plan with
 the complete review trail live in:
