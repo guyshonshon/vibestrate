@@ -203,6 +203,9 @@ export class ProposalService {
     // Build a temp graph and check for cycles among the proposed tasks.
     const tempTasks: Task[] = parsed.tasks.map((t) => ({
       id: t.title,
+      sagaState: "idle",
+      sagaHalt: null,
+      sagaBudget: { maxSpendUsd: null, maxSteps: null },
       roadmapItemId: null,
       title: t.title,
       description: t.description,

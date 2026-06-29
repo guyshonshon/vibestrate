@@ -169,6 +169,9 @@ export class RoadmapService {
     const task: Task = {
       id: makeId(input.title, "task"),
       kind: input.kind ?? "single",
+      sagaState: "idle",
+      sagaHalt: null,
+      sagaBudget: { maxSpendUsd: null, maxSteps: null },
       roadmapItemId: input.roadmapItemId ?? null,
       title: input.title.trim(),
       description: input.description?.trim() ?? "",
@@ -573,6 +576,8 @@ export class RoadmapService {
       updatedAt: ts,
       commitSha: null,
       promotedTaskId: null,
+      runId: null,
+      outcomeSummary: "",
       objective: normalized.objective ?? "",
       acceptanceCheck: normalized.acceptanceCheck ?? "",
       fileHints: normalized.fileHints ?? [],

@@ -12,6 +12,8 @@ const ck = (id: string, text: string, status: "pending" | "done") => ({
   updatedAt: TS,
   commitSha: null,
   promotedTaskId: null,
+  runId: null,
+  outcomeSummary: "",
   objective: "",
   acceptanceCheck: "",
   fileHints: [],
