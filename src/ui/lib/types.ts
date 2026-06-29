@@ -556,6 +556,7 @@ export type TaskStatus =
 
 export type Task = {
   id: string;
+  kind?: "single" | "saga";
   roadmapItemId: string | null;
   title: string;
   description: string;
@@ -627,6 +628,10 @@ export type ChecklistItem = {
   updatedAt: string;
   commitSha: string | null;
   promotedTaskId: string | null;
+  // Saga step fields (Phase 1)
+  objective?: string;
+  acceptanceCheck?: string;
+  fileHints?: string[];
 };
 
 export type TaskComment = {

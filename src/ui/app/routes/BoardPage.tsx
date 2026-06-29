@@ -20,6 +20,7 @@ import {
   FlaskConical,
   Grid3X3,
   Hourglass,
+  Layers,
   ListChecks,
   Lock,
   MessageSquare,
@@ -811,21 +812,83 @@ function BoardColumn({
               : null;
             return (
               <li key={t.id}>
-                <TaskCard
-                  task={t}
-                  roadmap={roadmap}
-                  blockedBy={openDeps.length}
-                  unlocks={unlocks}
-                  onOpen={onOpenTask}
-                  onRename={onRename}
-                  onDelete={onDelete}
-                />
+                {t.kind === "saga" ? (
+                  <SagaCard task={t} onOpen={onOpenTask} />
+                ) : (
+                  <TaskCard
+                    task={t}
+                    roadmap={roadmap}
+                    blockedBy={openDeps.length}
+                    unlocks={unlocks}
+                    onOpen={onOpenTask}
+                    onRename={onRename}
+                    onDelete={onDelete}
+                  />
+                )}
               </li>
             );
           })
         )}
       </ol>
     </section>
+  );
+}
+
+// ── Saga card (compact container) ───────────────────────────────────────
+
+function SagaCard({
+  task,
+  onOpen,
+}: {
+  task: Task;
+  onOpen: (taskId: string) => void;
+}) {
+  const checklist = task.checklist ?? [];
+  const total = checklist.length;
+  const done = checklist.filter((c) => c.status === "done").length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(task.id)}
+      onKeyDown={(e) => { if (e.key === "Enter") onOpen(task.id); }}
+      data-task-id={task.id}
+      className="group block w-full cursor-pointer border border-violet-soft/25 bg-violet-500/[0.04] px-2.5 py-2 transition hover:border-violet-soft/50 hover:bg-violet-500/[0.07]"
+    >
+      <div className="flex items-center gap-1.5">
+        <Layers className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
+        <span className="mono text-[9px] uppercase tracking-[0.12em] text-violet-soft">saga</span>
+        <span className="ml-auto mono text-[9.5px] text-fog-300 num-tabular">
+          {done}/{total}
+        </span>
+      </div>
+      <div className="mt-1.5 text-[12px] font-medium leading-snug text-fog-100 break-words line-clamp-2">
+        {task.title}
+      </div>
+      <div className="mt-2 flex items-center gap-1" aria-label={`${done} of ${total} steps done`}>
+        {total === 0 ? (
+          <span className="mono text-[9.5px] text-fog-300">no steps yet</span>
+        ) : (
+          checklist.map((c) => (
+            <span
+              key={c.id}
+              className={cn(
+                "h-1 flex-1 rounded-full",
+                c.status === "done"
+                  ? "bg-violet-soft"
+                  : c.status === "in_progress"
+                    ? "bg-violet-soft/50"
+                    : "bg-white/10",
+              )}
+            />
+          ))
+        )}
+      </div>
+      {total > 0 ? (
+        <div className="mt-1 mono text-[9px] text-fog-300 num-tabular">{pct}%</div>
+      ) : null}
+    </div>
   );
 }
 
