@@ -157,6 +157,12 @@ import { computeRunSpendUsd, checkSagaStopConditions } from "../feature/budget.j
 import { extractTurnInternals } from "./turn-internals.js";
 import { getDiffSnapshot, getWorktreeDiffText, redactSecretsInText } from "./diff-service.js";
 import { buildStepPacket, readFreshFileReads } from "../feature/packet.js";
+import {
+  buildSupervisorPrompt,
+  parseSupervisorDecision,
+  effectiveSupervisorDecision,
+  parseNewInvariants,
+} from "../feature/supervisor.js";
 import { evaluateBlockPolicies } from "../orchestrator/policy-block.js";
 import { classifyChangedFilesForValidation } from "./validation-scope.js";
 import { protectedPathMatch } from "../orchestrator/protected-paths.js";
@@ -366,6 +372,10 @@ export type OrchestratorInput = {
    *  fields mean no limit on that axis. The launch path sets it from
    *  `task.sagaBudget`; defaults to no limits. */
   sagaBudget?: { maxSpendUsd: number | null; maxSteps: number | null };
+  /** Saga supervisor (Phase 2b, M3): the between-steps PROCEED/ESCALATE turn +
+   *  invariants ledger. The launch path sets it from `config.saga.supervisor`;
+   *  defaults to enabled on the `reviewer` role with the role's own profile. */
+  sagaSupervisor?: { enabled: boolean; profile: string | null; roleId: string };
   /** Context sources (Phase 4): files/URLs materialized once at run start and
    *  injected into every agent's prompt (path-guarded / SSRF-guarded + secret
    *  redacted). */
@@ -633,6 +643,7 @@ export class Orchestrator {
   private readonly checklistMode: "continuous" | "step" | null;
   private readonly sagaMode: boolean;
   private readonly sagaBudget: { maxSpendUsd: number | null; maxSteps: number | null };
+  private readonly sagaSupervisor: { enabled: boolean; profile: string | null; roleId: string };
   private readonly contextSources: ContextSource[];
   /** Materialized once at run start; merged into every role's prior artifacts. */
   private materializedContext: PriorArtifact[] = [];
@@ -742,6 +753,11 @@ export class Orchestrator {
     this.checklistMode = input.checklistMode ?? null;
     this.sagaMode = input.sagaMode ?? false;
     this.sagaBudget = input.sagaBudget ?? { maxSpendUsd: null, maxSteps: null };
+    this.sagaSupervisor = input.sagaSupervisor ?? {
+      enabled: true,
+      profile: null,
+      roleId: "reviewer",
+    };
     this.contextSources = input.contextSources ?? [];
     this.abortSignal = input.abortSignal ?? null;
     this.selection = input.selection ?? null;
@@ -3575,11 +3591,19 @@ export class Orchestrator {
                 fileHints: item.fileHints,
               }).catch(() => [])
             : [];
+          // Re-read the invariants ledger FRESH each step: the between-steps
+          // supervisor (M3d) appends to it after the previous step, so a value
+          // cached at band head would be stale by step 2.
+          const sagaInvariants = this.taskId
+            ? (await roadmap.getTask(this.taskId).catch(() => null))
+                ?.sagaInvariants ?? []
+            : [];
           const packet = buildStepPacket({
             goal: this.task,
             priorItemsContext: priorContent,
             accumulatedDiff,
             fileReads,
+            invariants: sagaInvariants,
             item: {
               text: item.text,
               objective: item.objective,
@@ -4029,6 +4053,50 @@ export class Orchestrator {
                   reviewDecision = "BLOCKED";
                   stepIndex = steps.length;
                   continue;
+                }
+
+                // ── Saga supervisor turn (Phase 2b, M3) ─────────────────
+                // The step committed and is within budget. Before the next
+                // step a cheap model judges PROCEED vs ESCALATE and records
+                // any new cross-cutting invariant into the durable ledger.
+                // ESCALATE halts cleanly KEEPING the committed work (unlike
+                // the M1 self-heal halt, which resets a BROKEN step) - the
+                // supervisor caught saga-level drift the per-item review
+                // can't see, not a broken step. A failed/unparseable turn
+                // folds to PROCEED (advisory; the per-item review already
+                // fail-closes correctness). This is the ONLY place a saga
+                // touches `reviewDecision`, and only on the ESCALATE halt.
+                if (this.sagaSupervisor.enabled && this.taskId) {
+                  const verdict = await this.runSagaSupervisorTurn({
+                    completedItem,
+                    itemIndex,
+                    checklistItems,
+                    input,
+                  }).catch(() => "PROCEED" as const);
+                  if (verdict === "ESCALATE") {
+                    // KEEP the committed work - do NOT discardWorktreeChanges.
+                    await roadmap
+                      .recordSagaHalt(this.taskId, {
+                        reason: "supervisor-escalate",
+                        atStepId: completedItem.id,
+                        summary: `Saga escalated by the supervisor after step ${stepsCompleted}/${checklistItems.length} (${completedItem.text}): off-goal or building on something wrong. Completed work is committed and kept.`,
+                      })
+                      .catch(() => {});
+                    currentChecklistItemId = null;
+                    await input.eventLog.append({
+                      type: "saga.halted",
+                      message: `Saga halted after step ${stepsCompleted}/${checklistItems.length}: supervisor ESCALATE (completed work kept).`,
+                      data: {
+                        itemId: completedItem.id,
+                        index: itemIndex,
+                        reason: "supervisor-escalate",
+                        stepsCompleted,
+                      },
+                    });
+                    reviewDecision = "BLOCKED";
+                    stepIndex = steps.length;
+                    continue;
+                  }
                 }
               }
               itemIndex += 1;
@@ -5340,6 +5408,123 @@ export class Orchestrator {
       stateStore: input.stateStore,
       eventLog: input.eventLog,
     });
+  }
+
+  /**
+   * The between-steps SUPERVISOR turn (Phase 2b, M3). Runs a cheap, READ-ONLY
+   * model turn (no write grant - all context is in the prompt) that judges
+   * whether the saga should PROCEED to the next step or ESCALATE (halt), and
+   * records any new cross-cutting INVARIANT into the durable ledger. Pure logic
+   * lives in src/feature/supervisor.ts; this method only wires the provider call
+   * + persistence. It NEVER assigns the run-scoped `reviewDecision` (the caller
+   * owns the ESCALATE halt). Every failure mode - unresolved provider/role,
+   * provider error, unparseable output - folds to PROCEED + a logged event: the
+   * supervisor is advisory ON TOP of the per-item review, which already
+   * fail-closes correctness, so a supervisor hiccup must not halt a good saga.
+   */
+  private async runSagaSupervisorTurn(args: {
+    completedItem: { id: string; text: string };
+    itemIndex: number;
+    checklistItems: { id: string; text: string }[];
+    input: { worktreePath: string | null; eventLog: EventLog };
+  }): Promise<"PROCEED" | "ESCALATE"> {
+    const { completedItem, itemIndex, checklistItems, input } = args;
+    const taskId = this.taskId!;
+    const roadmap = new RoadmapService(this.projectRoot);
+
+    // Resolve the supervisor's provider + cheap-profile knobs: the configured
+    // `profile` wins, else the supervisor role's own profile.
+    let profileName = this.sagaSupervisor.profile;
+    if (!profileName) {
+      try {
+        const { crew } = getCrew(this.config, this.activeCrewId);
+        profileName = getCrewRole(crew, this.sagaSupervisor.roleId).profile;
+      } catch {
+        profileName = null;
+      }
+    }
+    const profileCfg = profileName ? this.config.profiles[profileName] : undefined;
+    const providerId =
+      profileCfg?.provider ?? Object.values(this.config.profiles)[0]?.provider;
+    if (!providerId || !this.config.providers[providerId]) {
+      await input.eventLog.append({
+        type: "saga.supervisor",
+        message: `Saga supervisor skipped after step ${itemIndex + 1}: no resolvable provider.`,
+        data: { index: itemIndex, decision: null, skipped: "no-provider" },
+      });
+      return "PROCEED";
+    }
+
+    // Fresh task read: latest invariants ledger + the just-stamped outcome.
+    const task = await roadmap.getTask(taskId).catch(() => null);
+    const invariants = task?.sagaInvariants ?? [];
+    const outcomeSummary =
+      task?.checklist.find((c) => c.id === completedItem.id)?.outcomeSummary ?? "";
+
+    // Accumulated committed work (fork-point diff) for goal-alignment judgment.
+    let diffSoFar = "";
+    if (input.worktreePath) {
+      const baseBranch = await getCurrentBranch(this.projectRoot).catch(() => null);
+      diffSoFar = await getWorktreeDiffText({
+        worktreePath: input.worktreePath,
+        baseBranch,
+      }).catch(() => "");
+    }
+
+    const prompt = buildSupervisorPrompt({
+      goal: this.task,
+      lastStep: { text: completedItem.text, outcomeSummary },
+      diffSoFar,
+      remainingSteps: checklistItems.slice(itemIndex + 1).map((c) => c.text),
+      invariants,
+    });
+
+    let text = "";
+    try {
+      const result = await runProvider(this.config.providers, {
+        providerId,
+        prompt,
+        cwd: input.worktreePath ?? this.projectRoot,
+        model: profileCfg?.model ?? null,
+        effort: profileCfg?.power ?? null,
+        // allowWrite omitted -> no write grant: a read-only judgment turn.
+      });
+      text = result.exitCode === 0 ? result.normalized.responseText : "";
+    } catch (err) {
+      await input.eventLog.append({
+        type: "saga.supervisor",
+        message: `Saga supervisor errored after step ${itemIndex + 1}; proceeding. ${
+          err instanceof Error ? err.message : ""
+        }`.trim(),
+        data: { index: itemIndex, decision: null, skipped: "error" },
+      });
+      return "PROCEED";
+    }
+
+    const parsed = parseSupervisorDecision(text);
+    const verdict = effectiveSupervisorDecision(text);
+    const newInvariants = parseNewInvariants(text);
+    if (newInvariants.length > 0) {
+      await roadmap.appendSagaInvariants(taskId, newInvariants).catch(() => {});
+    }
+    await input.eventLog.append({
+      type: "saga.supervisor",
+      message: `Saga supervisor after step ${itemIndex + 1}/${checklistItems.length}: ${
+        parsed.decision ?? "PROCEED (unparsed)"
+      }${
+        newInvariants.length
+          ? ` (+${newInvariants.length} invariant${newInvariants.length > 1 ? "s" : ""})`
+          : ""
+      }.`,
+      data: {
+        index: itemIndex,
+        decision: parsed.decision,
+        effective: verdict,
+        newInvariants,
+        unparsed: parsed.decision === null,
+      },
+    });
+    return verdict;
   }
 
   private async runRole(input: {

@@ -1,0 +1,181 @@
+import { describe, it, expect, afterEach } from "vitest";
+import path from "node:path";
+import os from "node:os";
+import fs from "node:fs/promises";
+import { execa } from "execa";
+import { applySetup } from "../src/setup/setup-service.js";
+import { setConfigValue } from "../src/setup/config-update-service.js";
+import { RoadmapService } from "../src/roadmap/roadmap-service.js";
+import { cmdSequence } from "../src/cli/commands/saga.js";
+import { runEventsPath } from "../src/utils/paths.js";
+import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
+
+// Integration coverage for the between-steps SUPERVISOR turn (Phase 2b, M3),
+// driving the REAL orchestrator with a fake provider - the plan's riskiest item
+// (run-scoped reviewDecision coupling) is checked over the real seam, not just
+// the pure parser. The supervisor turn is identified by its distinct prompt
+// header; its verdict + invariant output are controlled by `supervisor-output.txt`
+// (default PROCEED). The flow steps fix-then-approve so each step commits.
+
+const noProvider: ProviderDetectionRunner = async () => ({
+  exitCode: 127,
+  stdout: "",
+  stderr: "",
+});
+
+const FAKE = `#!/usr/bin/env node
+const fs = require('node:fs');
+const path = require('node:path');
+const counts = path.join(__dirname, 'review-counts.json');
+let inp = '';
+process.stdin.on('data', (c) => (inp += c));
+process.stdin.on('end', () => {
+  // The between-steps supervisor turn: matched FIRST by its header. Its output
+  // (decision + any INVARIANT lines) is controlled by supervisor-output.txt.
+  if (/Saga supervisor checkpoint/.test(inp)) {
+    let out = 'DECISION: PROCEED';
+    try { out = fs.readFileSync(path.join(__dirname, 'supervisor-output.txt'), 'utf8'); } catch (e) {}
+    process.stdout.write(out + '\\n');
+    return;
+  }
+  const im = inp.match(/Step (\\d+) of/) || inp.match(/Current checklist item - (\\d+) of/);
+  const n = im ? im[1] : 'x';
+  const sm = inp.match(/Flow step:.*\\(([\\w-]+)\\)/);
+  const id = sm ? sm[1] : '';
+  if (id === 'plan' || id === 'micro-plan') {
+    console.log('# Plan\\nWork the steps in order.');
+    return;
+  }
+  if (id === 'implement') {
+    fs.appendFileSync('item' + n + '.txt', 'work for step ' + n + ' @ ' + Date.now() + '\\n');
+    console.log('# Implementation Summary\\nImplemented saga step ' + n + '.');
+    return;
+  }
+  if (id === 'review-item') {
+    let state = {};
+    try { state = JSON.parse(fs.readFileSync(counts, 'utf8')); } catch (e) {}
+    const pass = (state[n] || 0) + 1;
+    state[n] = pass;
+    fs.writeFileSync(counts, JSON.stringify(state));
+    console.log('# Review step ' + n + '\\nDECISION: ' + (pass === 1 ? 'CHANGES_REQUESTED' : 'APPROVED'));
+    return;
+  }
+  if (id === 'review') {
+    console.log('# Holistic review\\nDECISION: APPROVED');
+    return;
+  }
+  console.log('ok');
+});
+`;
+
+async function makeProject(supervisorOutput?: string): Promise<string> {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-saga-sup-"));
+  await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
+  await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
+  await execa("git", ["config", "user.name", "x"], { cwd: dir });
+  await fs.writeFile(path.join(dir, "package.json"), '{"name":"demo"}');
+  await execa("git", ["add", "."], { cwd: dir });
+  await execa("git", ["commit", "-q", "-m", "init"], { cwd: dir });
+  await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
+  const fakeJs = path.join(dir, "fake.js");
+  await fs.writeFile(fakeJs, FAKE, { mode: 0o755 });
+  await fs.chmod(fakeJs, 0o755);
+  if (supervisorOutput) {
+    await fs.writeFile(path.join(dir, "supervisor-output.txt"), supervisorOutput);
+  }
+  await setConfigValue(
+    dir,
+    "providers.fake",
+    JSON.stringify({ type: "cli", command: "node", args: [fakeJs], input: "stdin" }),
+  );
+  await setConfigValue(dir, "profiles.claude-balanced.provider", "fake");
+  await setConfigValue(dir, "workflow.maxReviewLoops", "2");
+  return dir;
+}
+
+async function readEvents(dir: string): Promise<Array<{ type: string; data?: any }>> {
+  const runsDir = path.join(dir, ".vibestrate", "runs");
+  const runIds = (await fs.readdir(runsDir, { withFileTypes: true }))
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
+  const raw = await fs.readFile(runEventsPath(dir, runIds[0]!), "utf8");
+  return raw.split("\n").filter((l) => l.trim()).map((l) => JSON.parse(l));
+}
+
+async function packetText(dir: string, itemNum: number): Promise<string> {
+  const runsDir = path.join(dir, ".vibestrate", "runs");
+  const id = (await fs.readdir(runsDir, { withFileTypes: true }))
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)[0]!;
+  return fs.readFile(
+    path.join(runsDir, id, "artifacts", "flows", "checklist", `item-${itemNum}-packet.md`),
+    "utf8",
+  );
+}
+
+describe("saga supervisor turn (real executor)", () => {
+  const prevCwd = process.cwd();
+  afterEach(() => process.chdir(prevCwd));
+
+  it("ESCALATE halts the saga cleanly mid-run, keeping the committed step", async () => {
+    const dir = await makeProject("DECISION: ESCALATE\nThe feature has drifted off goal.");
+    const svc = new RoadmapService(dir);
+    await svc.init();
+    const task = await svc.addTask({ title: "Two-step build", kind: "saga" });
+    await svc.addChecklistItem(task.id, "create the first file");
+    await svc.addChecklistItem(task.id, "create the second file");
+
+    process.chdir(dir);
+    const code = await cmdSequence(task.id, { json: true });
+    // A halt is a reportable outcome, not a tool failure.
+    expect(code).toBe(0);
+
+    const after = await svc.getTask(task.id);
+    // Step 1 committed and is KEPT (the supervisor judged the saga off-goal, not
+    // step 1 broken); step 2 never ran and stays pending for a resume.
+    expect(after!.checklist[0]!.status).toBe("done");
+    expect(after!.checklist[0]!.commitSha).not.toBeNull();
+    expect(after!.checklist[1]!.status).toBe("pending");
+    expect(after!.checklist[1]!.commitSha).toBeNull();
+    // Lifecycle: halted, with a supervisor-escalate reason.
+    expect(after!.sagaState).toBe("halted");
+    expect(after!.sagaHalt?.reason).toBe("supervisor-escalate");
+
+    const events = await readEvents(dir);
+    expect(
+      events.some(
+        (e) => e.type === "saga.supervisor" && e.data?.effective === "ESCALATE",
+      ),
+    ).toBe(true);
+  }, 90_000);
+
+  it("PROCEED records an invariant that re-injects into the NEXT step's packet, and never blocks the run", async () => {
+    const dir = await makeProject(
+      "DECISION: PROCEED\nINVARIANT: all responses use snake_case",
+    );
+    const svc = new RoadmapService(dir);
+    await svc.init();
+    const task = await svc.addTask({ title: "Two-step build", kind: "saga" });
+    await svc.addChecklistItem(task.id, "create the first file");
+    await svc.addChecklistItem(task.id, "create the second file");
+
+    process.chdir(dir);
+    const code = await cmdSequence(task.id, { json: true });
+    expect(code).toBe(0);
+
+    const after = await svc.getTask(task.id);
+    // Non-clobber: the supervisor PROCEEDed, so the run reached merge_ready and
+    // the saga completed - the supervisor output never touched reviewDecision.
+    expect(after!.checklist.map((c) => c.status)).toEqual(["done", "done"]);
+    expect(after!.sagaState).toBe("done");
+    // The invariant was recorded to the durable ledger...
+    expect(after!.sagaInvariants).toContain("all responses use snake_case");
+
+    // ...and re-injected into step 2's packet (step 1's packet predates it).
+    const packet1 = await packetText(dir, 1);
+    const packet2 = await packetText(dir, 2);
+    expect(packet1).not.toContain("all responses use snake_case");
+    expect(packet2).toContain("## Invariants");
+    expect(packet2).toContain("all responses use snake_case");
+  }, 90_000);
+});

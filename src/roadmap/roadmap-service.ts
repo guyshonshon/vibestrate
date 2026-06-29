@@ -6,6 +6,7 @@ import { runStatePath } from "../utils/paths.js";
 import { RunStateStore, isTerminal } from "../core/state-machine.js";
 import { RunQueue } from "../scheduler/run-queue.js";
 import { RoadmapStore } from "./roadmap-store.js";
+import { appendInvariants } from "../feature/supervisor.js";
 import { buildDependencyGraph, findFirstCycle } from "./dependency-graph.js";
 import {
   type ChecklistItem,
@@ -191,6 +192,7 @@ export class RoadmapService {
         kind === "saga"
           ? { maxSpendUsd: null, maxSteps: SAGA_DEFAULT_MAX_STEPS }
           : { maxSpendUsd: null, maxSteps: null },
+      sagaInvariants: [],
       roadmapItemId: input.roadmapItemId ?? null,
       title: input.title.trim(),
       description: input.description?.trim() ?? "",
@@ -292,6 +294,26 @@ export class RoadmapService {
       ...t,
       sagaState,
       ...(clearsHalt ? { sagaHalt: null } : {}),
+      updatedAt: nowIso(),
+      lastEventAt: nowIso(),
+    };
+    await this.store.writeTask(next);
+    return next;
+  }
+
+  /** Saga conductor (Phase 2b, M3): append new cross-cutting invariants the
+   *  supervisor recorded to the durable, non-folding ledger. Append-only +
+   *  redacted + deduped + bounded via `appendInvariants` (the secret-shaped text
+   *  is scrubbed before it lands on disk). A no-op write when nothing new
+   *  survives dedup, so a chatty supervisor doesn't churn the task file. */
+  async appendSagaInvariants(id: string, incoming: string[]): Promise<Task> {
+    const t = await this.store.getTask(id);
+    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
+    const merged = appendInvariants(t.sagaInvariants, incoming);
+    if (merged.length === t.sagaInvariants.length) return t; // nothing new
+    const next: Task = {
+      ...t,
+      sagaInvariants: merged,
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };

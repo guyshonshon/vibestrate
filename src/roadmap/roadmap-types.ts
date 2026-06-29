@@ -245,6 +245,11 @@ export const taskSchema = z.object({
   sagaState: sagaStateSchema.default("idle"),
   sagaHalt: sagaHaltSchema.nullable().default(null),
   sagaBudget: sagaBudgetSchema.default({}),
+  // The non-folding INVARIANTS ledger (Phase 2b, M3): append-only cross-cutting
+  // decisions the between-steps supervisor records, re-injected into every step's
+  // packet so conventions don't fold away. Durable (survives resume), redacted +
+  // bounded on write. Default [] for lossless upgrade.
+  sagaInvariants: z.array(z.string()).default([]),
   // Non-blocking advisory: a run finished but a human should eyeball something
   // the model can't perceive (visual/UX/3D). Set from a HUMAN_REVIEW: ADVISORY
   // marker; cleared by a human verdict (pass → done, fail → reopen). (Phase 3)

@@ -16,6 +16,7 @@
 import path from "node:path";
 import { readText, pathExists } from "../utils/fs.js";
 import { isSecretLikePath, redactSecretsInText } from "../core/diff-service.js";
+import { renderInvariantsSection } from "./supervisor.js";
 
 /** One step's view, as the packet needs it. Mirrors the saga step fields on a
  *  checklist item (objective / acceptanceCheck / fileHints) plus its position. */
@@ -45,6 +46,8 @@ export type BuildStepPacketArgs = {
   fileReads: StepPacketFileRead[];
   /** This step's objective + acceptance + text. */
   item: StepPacketItem;
+  /** The non-folding invariants ledger (task.sagaInvariants). "" / [] = none. */
+  invariants?: readonly string[];
 };
 
 // Per-axis bounds. The packet is a context budget, not an archive: a marathon
@@ -69,6 +72,7 @@ function truncate(text: string, max: number): string {
  */
 export function buildStepPacket(args: BuildStepPacketArgs): string {
   const { goal, priorItemsContext, accumulatedDiff, fileReads, item } = args;
+  const invariants = args.invariants ?? [];
   const redact = (s: string): string => redactSecretsInText(s).redacted;
 
   const parts: string[] = [];
@@ -78,12 +82,14 @@ export function buildStepPacket(args: BuildStepPacketArgs): string {
     ["## Feature goal", "", redact(goal.trim()) || "_No goal text._"].join("\n"),
   );
 
-  // ── Phase 2b seam ──────────────────────────────────────────────────────────
-  // The non-folding INVARIANTS LEDGER (the anti-drift section, produced by the
-  // 2b supervisor turn) slots HERE, between the goal and the prior outcomes, per
-  // docs/design. It is deferred to Phase 2b: replace this placeholder line with a
-  // `## Invariants` section and pass it through `redact` like every other section.
-  parts.push("<!-- seam: Phase-2b invariants ledger goes here -->");
+  // 1b. The non-folding INVARIANTS ledger (Phase 2b, M3): cross-cutting decisions
+  // the supervisor recorded, re-injected here - between the goal and the prior
+  // outcomes - so conventions don't fold away. Redacted like every other section;
+  // omitted entirely when the ledger is empty.
+  const invariantsSection = redact(renderInvariantsSection(invariants));
+  if (invariantsSection) {
+    parts.push(invariantsSection);
+  }
 
   // 2. Prior step outcomes (the compact carried ledger).
   const prior = redact(priorItemsContext.trim());

@@ -438,6 +438,9 @@ export async function runRunCommand(
     maxSpendUsd: null,
     maxSteps: null,
   };
+  // Saga supervisor (M3): the between-steps PROCEED/ESCALATE turn + invariants
+  // ledger. Project-level config; only passed through on a saga launch.
+  let sagaSupervisor = loaded.config.saga.supervisor;
   if (roadmapTaskId) {
     try {
       const { RoadmapService } = await import("../../roadmap/roadmap-service.js");
@@ -455,6 +458,7 @@ export async function runRunCommand(
             maxSpendUsd: t.sagaBudget.maxSpendUsd ?? cfg.maxSpendUsd,
             maxSteps: t.sagaBudget.maxSteps ?? cfg.maxSteps,
           };
+          sagaSupervisor = cfg.supervisor;
         }
       }
     } catch {
@@ -660,6 +664,7 @@ export async function runRunCommand(
     checklistMode: options.checklistMode ?? null,
     sagaMode: options.sagaMode ?? false,
     sagaBudget,
+    sagaSupervisor,
     contextSources: options.contextSources ?? [],
     abortSignal: cliAbort.signal,
     onProgress: (msg) => {

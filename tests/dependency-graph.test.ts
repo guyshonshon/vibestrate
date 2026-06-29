@@ -33,6 +33,7 @@ function makeTask(id: string, deps: string[], status: TaskStatus = "ready"): Tas
     sagaState: "idle",
     sagaHalt: null,
     sagaBudget: { maxSpendUsd: null, maxSteps: null },
+    sagaInvariants: [],
     createdAt: ts,
     updatedAt: ts,
     assignedRoles: [],

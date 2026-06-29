@@ -294,10 +294,30 @@ export type BudgetConfig = z.infer<typeof budgetConfigSchema>;
 // The default lives in roadmap-types.ts (SAGA_DEFAULT_MAX_STEPS) so RoadmapService
 // - which has no config access - seeds a new saga with the SAME number this
 // override layer resolves to.
+// The between-steps SUPERVISOR (Phase 2b, M3). After each clean step a cheap
+// model turn judges PROCEED vs ESCALATE (halt cleanly) and records cross-cutting
+// invariants. Enabled by default: it is a SAFETY turn (an early ESCALATE halts a
+// drifting saga before it burns more budget), and a saga is already an opted-into
+// autonomous spend bounded by the budget envelope. `profile` points it at a cheap
+// model profile (null = the supervisor role's own profile); `roleId` is the crew
+// role it runs as (read-only judgment). A failed/unresolved supervisor turn never
+// halts the saga - it is advisory on top of the per-item review, which already
+// fail-closes correctness.
+export const sagaSupervisorConfigSchema = z
+  .object({
+    enabled: z.boolean().default(true).describe("Run the between-steps supervisor turn (default on)."),
+    profile: z.string().min(1).nullable().default(null).describe("Profile id for the cheap supervisor turn; null = the supervisor role's own profile."),
+    roleId: z.string().min(1).default("reviewer").describe("Crew role the supervisor turn runs as (read-only judgment)."),
+  })
+  .strict()
+  .default({});
+export type SagaSupervisorConfig = z.infer<typeof sagaSupervisorConfigSchema>;
+
 export const sagaConfigSchema = z
   .object({
     maxSpendUsd: z.number().nonnegative().nullable().default(null).describe("Default per-saga spend checkpoint (USD) between steps; null = off (default off)."),
     maxSteps: z.number().int().positive().nullable().default(SAGA_DEFAULT_MAX_STEPS).describe("Default cap on total steps in a saga; null = unbounded (default 20)."),
+    supervisor: sagaSupervisorConfigSchema,
   })
   .strict()
   .default({});

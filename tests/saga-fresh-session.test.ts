@@ -202,8 +202,9 @@ describe("saga fresh context per step (M2b)", () => {
     expect(packet1).toContain("Assemble the widget");
     expect(packet1).toContain("## This step");
     expect(packet1).toContain("Add the base module.");
-    // The Phase-2b invariants seam sits between goal and prior outcomes.
-    expect(packet1).toContain("Phase-2b invariants ledger");
+    // The invariants ledger (M3) is empty for this saga (the supervisor recorded
+    // none), so its section is omitted entirely - no empty-section noise.
+    expect(packet1).not.toContain("## Invariants");
 
     // Step 2's packet carries the prior step's outcome (carried-forward ledger).
     const packet2 = await fs.readFile(

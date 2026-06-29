@@ -100,20 +100,33 @@ describe("buildStepPacket", () => {
     expect(out).not.toContain("Fresh code read");
   });
 
-  it("leaves a seam marker for the Phase-2b invariants ledger between goal and prior outcomes", () => {
+  it("renders the invariants ledger between goal and prior outcomes (M3)", () => {
     const out = buildStepPacket({
       goal: "Ship it.",
       priorItemsContext: "1. a - done",
       accumulatedDiff: "",
       fileReads: [],
+      invariants: ["all API responses use snake_case"],
       item: baseItem(),
     });
-    const seamAt = out.indexOf("invariants ledger");
+    const invAt = out.indexOf("## Invariants");
     const goalAt = out.indexOf("Feature goal");
     const priorAt = out.indexOf("Prior step outcomes");
-    // Seam is a comment placeholder sitting after the goal, before prior outcomes.
-    expect(seamAt).toBeGreaterThan(goalAt);
-    expect(seamAt).toBeLessThan(priorAt);
+    expect(invAt).toBeGreaterThan(goalAt);
+    expect(invAt).toBeLessThan(priorAt);
+    expect(out).toContain("all API responses use snake_case");
+  });
+
+  it("omits the invariants section entirely when the ledger is empty", () => {
+    const out = buildStepPacket({
+      goal: "Ship it.",
+      priorItemsContext: "1. a - done",
+      accumulatedDiff: "",
+      fileReads: [],
+      invariants: [],
+      item: baseItem(),
+    });
+    expect(out).not.toContain("## Invariants");
   });
 
   it("bounds each fresh file read and the diff so a marathon step can't blow the packet", () => {

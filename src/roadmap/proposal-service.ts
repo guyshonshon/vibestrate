@@ -206,6 +206,7 @@ export class ProposalService {
       sagaState: "idle",
       sagaHalt: null,
       sagaBudget: { maxSpendUsd: null, maxSteps: null },
+      sagaInvariants: [],
       roadmapItemId: null,
       title: t.title,
       description: t.description,

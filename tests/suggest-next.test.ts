@@ -23,6 +23,7 @@ function task(
     sagaState: "idle",
     sagaHalt: null,
     sagaBudget: { maxSpendUsd: null, maxSteps: null },
+    sagaInvariants: [],
     createdAt: ts,
     updatedAt: ts,
     assignedRoles: [],

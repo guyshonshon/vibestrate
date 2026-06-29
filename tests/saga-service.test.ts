@@ -33,6 +33,36 @@ describe("RoadmapService - saga authoring", () => {
     }
   });
 
+  it("seeds an empty invariants ledger and appends redacted, deduped, durably", async () => {
+    const { dir, svc } = await tmpProject();
+    try {
+      const t = await svc.addTask({ title: "Export pipeline", kind: "saga" });
+      expect(t.sagaInvariants).toEqual([]);
+
+      await svc.appendSagaInvariants(t.id, [
+        "all API responses use snake_case",
+        "auth token is AKIAIOSFODNN7EXAMPLE", // secret-shaped -> must be scrubbed
+      ]);
+      // A dup (normalized) plus a genuinely new one.
+      await svc.appendSagaInvariants(t.id, [
+        "All API Responses Use Snake_Case",
+        "errors return RFC7807",
+      ]);
+
+      const reloaded = await svc.getTask(t.id);
+      expect(reloaded!.sagaInvariants).toContain("all API responses use snake_case");
+      expect(reloaded!.sagaInvariants).toContain("errors return RFC7807");
+      // dedup: snake_case appears exactly once
+      expect(
+        reloaded!.sagaInvariants.filter((i) => /snake_case/i.test(i)).length,
+      ).toBe(1);
+      // the secret never lands on disk verbatim
+      expect(reloaded!.sagaInvariants.join("\n")).not.toContain("AKIAIOSFODNN7EXAMPLE");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("adds a step with objective, acceptance, trimmed file hints", async () => {
     const { dir, svc } = await tmpProject();
     try {
