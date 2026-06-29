@@ -5,7 +5,7 @@ section: cli
 slug: cli/saga
 ---
 
-`vibe saga` is the authoring surface for **Saga tasks** (`kind: "saga"`). A Saga is a task that holds an ordered set of steps, each with a scoped objective, a done-when check, and optional file hints. Author the steps now; sequencing them through a flow is handled by the **Conductor** (coming in a later release).
+`vibe saga` is the surface for **Saga tasks** (`kind: "saga"`). A Saga is a task that holds an ordered set of steps, each with a scoped objective, a done-when check, and optional file hints. Author the steps, then sequence them through a flow with `vibe saga sequence` (the **Conductor**).
 
 See [Saga tasks](/docs/concepts/saga) for the concept.
 
@@ -100,6 +100,20 @@ vibe saga show saga-abc123 --json
 
 The human-readable output prints the title, description (if any), step count, and each step in order with its status, objective, acceptance check, and file hints.
 
+### `vibe saga sequence <id>`
+
+Run a Saga: execute its steps in order through a per-item-review flow, in one worktree, committing one step at a time.
+
+```bash
+vibe saga sequence saga-abc123
+```
+
+Each step is planned, implemented, and reviewed (with a bounded self-heal loop) before the next begins, and starts with a fresh model context grounded by a curated packet (the feature goal, prior-step outcomes, the accumulated diff, and a fresh read of the step's file hints). The run is bounded by the Saga's budget (`maxSteps`, `maxSpendUsd`) and protected by a per-task run lock.
+
+If a step cannot pass review after self-heal, the Saga halts cleanly: the failed step's work is discarded so the branch stays reviewable, the step is left pending, and the run ends blocked with a reason. Fix the cause and re-run `vibe saga sequence` to resume - finished steps are skipped. A finished Saga lands as one reviewable branch and is never auto-merged.
+
+`maxSpendUsd` is checked **between** steps, not mid-step; for an unattended Saga, set the project daily spend cap as the mid-step backstop.
+
 ## Machine-readable output
 
 Every command accepts `--json`. The format matches the internal task/checklist schema and is stable for scripting.
@@ -108,9 +122,9 @@ Every command accepts `--json`. The format matches the internal task/checklist s
 
 Sagas appear as compact container cards on the **Board** page in Mission Control. The task detail view is where you author step objectives, acceptance checks, and file hints - the same fields `vibe saga add-step` and `vibe saga edit-step` write. Reordering is available by drag in the detail view.
 
-## What is not here yet
+## What is coming next
 
-Sequencing - running a Saga's steps as an autonomous, context-carrying flow - is the **Conductor**, a planned next phase. The authoring surface (`vibe saga`) is complete; the execution surface is not. Do not use `vibe tasks pickup` with a Saga and expect Conductor behavior; pickup runs the checklist items as independent flow runs without the cross-step context that the Conductor is designed to carry.
+The execution core (`sequence`) is in. Still to come: a between-steps **supervisor** turn (judging proceed / escalate and maintaining a non-folding invariants ledger across steps), a live **Conductor view** in the dashboard with launch / pause / resume controls, and the plan-only **Enhance** re-ground pass. Until those land, drive Sagas from the CLI.
 
 ## Related
 

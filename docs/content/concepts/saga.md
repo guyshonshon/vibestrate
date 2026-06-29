@@ -16,7 +16,7 @@ A Saga is still a [Task](/docs/concepts/task): it lives on the board, can have a
 
 ## How it differs from a plain checklist
 
-A plain task can have a checklist (via `vibe tasks checklist`). Those items are lightweight: a text label and a status. Saga steps go further: the objective and acceptance check are structured fields that the planned **Conductor** will use to brief each step's run and verify it finished correctly. The file hints narrow the scope so later steps get focused context, not the whole codebase.
+A plain task can have a checklist (via `vibe tasks checklist`). Those items are lightweight: a text label and a status. Saga steps go further: the objective and acceptance check are structured fields the **Conductor** uses to brief each step's run and verify it finished correctly. The file hints narrow the scope so later steps get focused context, not the whole codebase.
 
 If you just need a to-do list on a card, use a plain checklist. Use a Saga when the steps are distinct enough to eventually run independently - each with its own executor turn, its own review, and its own verdict.
 
@@ -40,18 +40,18 @@ Full command reference: [vibe saga](/docs/cli/saga).
 
 ## What is available now
 
-The authoring surface - creating Sagas, adding and editing steps, reordering, listing, and showing - is complete as of v0.37.0. Steps are stored alongside the task in `.vibestrate/roadmap/tasks.json`.
+The Saga can run. `vibe saga sequence <id>` sequences the steps in order through a per-item-review flow in one worktree:
 
-## What is coming next - the Conductor
+- each step is planned, implemented, and reviewed - with a bounded self-heal loop - before the next step starts, so a later step never builds on a broken earlier one,
+- each step starts a **fresh model context** grounded by a **curated packet**: the feature goal, a compact ledger of prior-step outcomes, the accumulated diff so far, and a fresh read of the step's file hints,
+- the Saga commits one step at a time to a single feature branch,
+- it is bounded by a per-Saga budget (`maxSteps`, `maxSpendUsd`) and protected by a per-task run lock.
 
-The autonomous **Conductor** is the planned next phase (not yet built). When it ships, it will:
+If a step cannot pass its review after self-heal, the Saga **halts cleanly**: the failed step's work is discarded (the branch stays reviewable), the step is left pending, and the run ends blocked with a reason. Fix the cause and re-run `vibe saga sequence` - finished steps are skipped, so it resumes from the clean tip. A finished Saga lands as one reviewable branch; it is never auto-merged.
 
-- run each Saga step through a flow, in order,
-- carry a bounded summary of each finished step forward as context for the next,
-- use the step's objective as the executor's brief and the acceptance check as a verifier gate,
-- surface step-by-step status and verdicts on the board.
+## What is coming next
 
-Until the Conductor ships, a Saga is an authoring-only construct. You can see its steps and edit them; you cannot yet run the Saga as a coordinated sequence from the CLI or dashboard.
+The execution core is in. Still to come: a between-steps **supervisor** turn (a cheap model judging proceed / escalate and maintaining a non-folding invariants ledger that prevents convention drift across steps), a live **Conductor view** in the dashboard (current step, its phases, an escalation banner) with launch / pause / resume controls, and the plan-only **Enhance** re-ground pass.
 
 ## Related
 

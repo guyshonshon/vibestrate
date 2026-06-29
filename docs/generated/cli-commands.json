@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.37.0",
+  "version": "0.38.0",
   "commands": [
     {
       "name": "init",
@@ -6135,6 +6135,34 @@
           ],
           "description": "Show a Saga and its steps.",
           "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "sequence",
+          "path": [
+            "vibe",
+            "saga",
+            "sequence"
+          ],
+          "description": "Run a Saga end-to-end: launch the saga flow over its steps (clean halt-with-reset, per-saga budget, run lock).",
+          "usage": "[options] <taskId>",
           "arguments": [
             {
               "name": "name() {\n    return this._name;\n  }",

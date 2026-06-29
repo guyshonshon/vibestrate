@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.38.0
+
+- **Sagas run themselves now - the Conductor (execution core).** Sequence a Saga
+  with `vibe saga sequence <id>`: it runs the steps in order in one worktree, each
+  one planned, implemented, and reviewed before the next, with a fresh model
+  context per step grounded by a curated handoff (the feature goal, prior-step
+  outcomes, the accumulated diff, and a fresh read of the step's files). It is
+  built to be left alone safely:
+  - **Clean halt, never a green-but-broken commit.** If a step can't pass review
+    after a bounded self-heal loop, the Saga discards that step's work (the branch
+    stays clean and reviewable), leaves the step pending, and ends blocked with a
+    reason. Re-run `vibe saga sequence` to resume from the clean tip - finished
+    steps are skipped. A later step never builds on a broken earlier one.
+  - **Bounded.** A per-Saga budget (`maxSteps`, and `maxSpendUsd` checked between
+    steps) halts a runaway Saga and reports honestly; set the daily spend cap as
+    the mid-step backstop for unattended runs.
+  - **Locked, never auto-merged.** A first per-task run lock stops two runs from
+    corrupting one Saga's checklist or branch, and a finished Saga lands as one
+    reviewable branch - merging stays a human decision.
+
+  This is the execution core; the between-steps supervisor turn and the live
+  dashboard Conductor view land next.
+
 ## 0.37.0
 
 - **Saga tasks - author a feature as coordinated steps (authoring surface).** A
