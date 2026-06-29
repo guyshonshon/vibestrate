@@ -5,10 +5,53 @@ import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
 import { runRunCommand } from "./run.js";
+import { readTaskLockHolder } from "../../core/run-lock.js";
+import { RunStateStore } from "../../core/state-machine.js";
+import { EventLog } from "../../core/event-log.js";
+import {
+  PauseError,
+  requestPause,
+  requestResume,
+} from "../../core/pause-service.js";
 
 async function svc() {
   const detected = await detectProject(process.cwd());
   return new RoadmapService(detected.projectRoot);
+}
+
+/** A saga + the project root, with kind/existence already validated. Resolves the
+ *  common pre-flight every saga subcommand shares. */
+async function loadSaga(
+  taskId: string,
+): Promise<
+  | { ok: true; projectRoot: string; s: RoadmapService; task: import("../../roadmap/roadmap-types.js").Task }
+  | { ok: false; code: number }
+> {
+  const detected = await detectProject(process.cwd());
+  const s = new RoadmapService(detected.projectRoot);
+  const task = await s.getTask(taskId).catch(() => null);
+  if (!task) {
+    console.error(`${symbol.fail()} Saga "${taskId}" not found.`);
+    return { ok: false, code: 1 };
+  }
+  if (task.kind !== "saga") {
+    console.error(
+      `${symbol.fail()} Task "${taskId}" is not a saga (kind: ${task.kind}).`,
+    );
+    return { ok: false, code: 1 };
+  }
+  return { ok: true, projectRoot: detected.projectRoot, s, task };
+}
+
+/** The LIVE run sequencing a saga (the run-lock holder), or null when none is
+ *  running. The lock holder is authoritative mid-run; `task.currentRunId` is only
+ *  written after a run ends. */
+async function liveRunId(
+  projectRoot: string,
+  taskId: string,
+): Promise<string | null> {
+  const holder = await readTaskLockHolder(projectRoot, taskId).catch(() => null);
+  return holder?.runId ?? null;
 }
 
 async function cmdCreate(
@@ -271,6 +314,137 @@ export async function cmdSequence(
   return code === 2 ? 2 : 0;
 }
 
+export async function cmdStatus(
+  taskId: string,
+  opts: { json?: boolean },
+): Promise<number> {
+  const loaded = await loadSaga(taskId);
+  if (!loaded.ok) return loaded.code;
+  const { projectRoot, task } = loaded;
+  const live = await liveRunId(projectRoot, taskId);
+
+  const total = task.checklist.length;
+  const done = task.checklist.filter((c) => c.status === "done").length;
+
+  if (opts.json) {
+    console.log(
+      JSON.stringify(
+        {
+          taskId,
+          title: task.title,
+          sagaState: task.sagaState,
+          liveRunId: live,
+          currentRunId: task.currentRunId ?? null,
+          progress: { done, total },
+          sagaHalt: task.sagaHalt,
+          sagaInvariants: task.sagaInvariants,
+          steps: task.checklist.map((c) => ({
+            id: c.id,
+            text: c.text,
+            status: c.status,
+            commitSha: c.commitSha,
+            runId: c.runId,
+            outcomeSummary: c.outcomeSummary,
+          })),
+        },
+        null,
+        2,
+      ),
+    );
+    return 0;
+  }
+
+  console.log(
+    `${symbol.bullet()} ${color.bold(taskId)} ${task.title} ${color.dim(`(${task.sagaState})`)}`,
+  );
+  console.log(
+    indent(`Progress: ${done}/${total} steps done${live ? `  ${color.dim(`· running: ${live}`)}` : ""}`),
+  );
+  for (const [i, c] of task.checklist.entries()) {
+    const mark =
+      c.status === "done" ? symbol.ok() : c.status === "in_progress" ? symbol.arrow() : symbol.bullet();
+    const summary = c.outcomeSummary ? color.dim(` - ${c.outcomeSummary}`) : "";
+    console.log(indent(`${mark} ${i + 1}. ${c.text} ${color.dim(`[${c.status}]`)}${summary}`));
+  }
+  if (task.sagaHalt) {
+    console.log("");
+    console.log(
+      `${symbol.warn()} ${header("Halted")} ${color.yellow(color.bold(task.sagaHalt.reason))}`,
+    );
+    if (task.sagaHalt.summary) console.log(indent(task.sagaHalt.summary));
+  }
+  if (task.sagaInvariants.length > 0) {
+    console.log("");
+    console.log(`${symbol.bullet()} ${header("Invariants")} (${task.sagaInvariants.length})`);
+    for (const inv of task.sagaInvariants) console.log(indent(`- ${inv}`));
+  }
+  return 0;
+}
+
+export async function cmdPause(taskId: string): Promise<number> {
+  const loaded = await loadSaga(taskId);
+  if (!loaded.ok) return loaded.code;
+  const { projectRoot } = loaded;
+  const runId = await liveRunId(projectRoot, taskId);
+  if (!runId) {
+    console.error(
+      `${symbol.fail()} No run is currently sequencing saga "${taskId}" (nothing to pause).`,
+    );
+    return 1;
+  }
+  const store = new RunStateStore(projectRoot, runId);
+  const events = new EventLog(projectRoot, runId);
+  try {
+    const next = await requestPause(store, events);
+    console.log(
+      `${symbol.ok()} Pause requested for saga ${color.bold(taskId)} (run ${runId}). It halts at the next step boundary (currently ${next.status}).`,
+    );
+    return 0;
+  } catch (err) {
+    if (err instanceof PauseError) {
+      console.error(color.yellow(err.message));
+      return 2;
+    }
+    throw err;
+  }
+}
+
+export async function cmdResume(taskId: string): Promise<number> {
+  const loaded = await loadSaga(taskId);
+  if (!loaded.ok) return loaded.code;
+  const { projectRoot, task } = loaded;
+  const runId = await liveRunId(projectRoot, taskId);
+  // A live (paused) run: clear its pause flag. No live run but halted: the
+  // resume path is a fresh sequence from the clean tip (2a), not a pause-clear.
+  if (!runId) {
+    if (task.sagaState === "halted") {
+      console.log(
+        `${symbol.arrow()} Saga "${taskId}" is halted. Re-attempt from the clean tip with ${color.bold(`vibe saga sequence ${taskId}`)}.`,
+      );
+      return 0;
+    }
+    console.error(
+      `${symbol.fail()} No paused run for saga "${taskId}" (nothing to resume).`,
+    );
+    return 1;
+  }
+  const store = new RunStateStore(projectRoot, runId);
+  const events = new EventLog(projectRoot, runId);
+  try {
+    const next = await requestResume(store, events);
+    console.log(
+      `${symbol.ok()} Resume requested for saga ${color.bold(taskId)} (run ${runId}); continuing from ${next.pausedAtStatus ?? next.status}.`,
+    );
+    return 0;
+  } catch (err) {
+    if (err instanceof PauseError) {
+      console.error(color.yellow(err.message));
+      return 2;
+    }
+    throw err;
+  }
+}
+
 export function buildSagaCommand(): Command {
   const cmd = new Command("saga").description(
     "Author multi-step Saga tasks (kind=saga): one feature, coordinated steps.",
@@ -326,5 +500,18 @@ export function buildSagaCommand(): Command {
     )
     .option("--json", "emit JSON")
     .action(async (taskId: string, opts) => process.exit(await cmdSequence(taskId, opts)));
+  cmd
+    .command("status <taskId>")
+    .description("Show a Saga's run state: lifecycle, step progress, halt, invariants.")
+    .option("--json", "emit JSON")
+    .action(async (taskId: string, opts) => process.exit(await cmdStatus(taskId, opts)));
+  cmd
+    .command("pause <taskId>")
+    .description("Request the Saga's active run to pause at the next step boundary.")
+    .action(async (taskId: string) => process.exit(await cmdPause(taskId)));
+  cmd
+    .command("resume <taskId>")
+    .description("Resume the Saga's paused run (or point to sequence if it is halted).")
+    .action(async (taskId: string) => process.exit(await cmdResume(taskId)));
   return cmd;
 }

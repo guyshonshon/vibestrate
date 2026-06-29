@@ -45,7 +45,7 @@ import type { RunStatus } from "../workflow/workflow-types.js";
 export const LOCKS_DIRNAME = "locks";
 
 /** On-disk body of a task lockfile. */
-type TaskLockBody = {
+export type TaskLockBody = {
   runId: string;
   pid: number;
   host: string;
@@ -96,6 +96,19 @@ export function locksDir(projectRoot: string): string {
 
 export function taskLockPath(projectRoot: string, taskId: string): string {
   return path.join(locksDir(projectRoot), `task-${safeSegment(taskId)}.lock`);
+}
+
+/**
+ * Read the current holder of a task's run lock, or null when unheld/unreadable.
+ * Lets a CLI (`vibe saga pause|status`) find the LIVE run sequencing a saga - the
+ * lock holder is the authoritative live runId (unlike `Task.currentRunId`, which
+ * is written only AFTER a run ends). Best-effort: a missing/garbage lock is null.
+ */
+export async function readTaskLockHolder(
+  projectRoot: string,
+  taskId: string,
+): Promise<TaskLockBody | null> {
+  return readLockBody(taskLockPath(projectRoot, taskId));
 }
 
 async function readLockBody(lockPath: string): Promise<TaskLockBody | null> {
