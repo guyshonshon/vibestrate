@@ -113,6 +113,18 @@ async function packetText(dir: string, itemNum: number): Promise<string> {
   );
 }
 
+async function roleMetrics(dir: string): Promise<Array<{ roleId: string }>> {
+  const runsDir = path.join(dir, ".vibestrate", "runs");
+  const id = (await fs.readdir(runsDir, { withFileTypes: true }))
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)[0]!;
+  const raw = await fs.readFile(
+    path.join(runsDir, id, "runtime-metrics.json"),
+    "utf8",
+  );
+  return JSON.parse(raw).roles ?? [];
+}
+
 describe("saga supervisor turn (real executor)", () => {
   const prevCwd = process.cwd();
   afterEach(() => process.chdir(prevCwd));
@@ -177,5 +189,10 @@ describe("saga supervisor turn (real executor)", () => {
     expect(packet1).not.toContain("all responses use snake_case");
     expect(packet2).toContain("## Invariants");
     expect(packet2).toContain("all responses use snake_case");
+
+    // The supervisor turn is NOT free: its cost is recorded as a role metric so
+    // it counts toward the per-saga budget (computeRunSpendUsd) and reporting.
+    const roles = await roleMetrics(dir);
+    expect(roles.some((r) => r.roleId === "saga-supervisor")).toBe(true);
   }, 90_000);
 });

@@ -5,7 +5,7 @@ import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
 import { runRunCommand } from "./run.js";
-import { readTaskLockHolder } from "../../core/run-lock.js";
+import { readLiveTaskLockHolder } from "../../core/run-lock.js";
 import { RunStateStore } from "../../core/state-machine.js";
 import { EventLog } from "../../core/event-log.js";
 import {
@@ -43,14 +43,18 @@ async function loadSaga(
   return { ok: true, projectRoot: detected.projectRoot, s, task };
 }
 
-/** The LIVE run sequencing a saga (the run-lock holder), or null when none is
- *  running. The lock holder is authoritative mid-run; `task.currentRunId` is only
- *  written after a run ends. */
+/** The LIVE run sequencing a saga (the run-lock holder, proven not stale), or
+ *  null when none is running. The lock holder is authoritative mid-run;
+ *  `task.currentRunId` is only written after a run ends. A hard-crashed run that
+ *  left a stale lock resolves to null, so pause/resume don't lie about a process
+ *  that can't honor them. */
 async function liveRunId(
   projectRoot: string,
   taskId: string,
 ): Promise<string | null> {
-  const holder = await readTaskLockHolder(projectRoot, taskId).catch(() => null);
+  const holder = await readLiveTaskLockHolder(projectRoot, taskId).catch(
+    () => null,
+  );
   return holder?.runId ?? null;
 }
 

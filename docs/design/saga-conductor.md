@@ -81,7 +81,9 @@ review `DECISION:` line. ESCALATE halts cleanly **keeping** committed work
 (unlike the M1 self-heal halt, which resets a broken step). Every failure mode -
 unresolved provider/role, provider error, unparseable output - folds to PROCEED +
 a logged `saga.supervisor` event: the turn is advisory on top of the per-step
-review, which already fail-closes correctness. The **invariants ledger** lives on
+review, which already fail-closes correctness. It is spend-accounted like any
+turn: `enforceSpendCap` gates it (a blown daily cap halts the run), and its cost
+is recorded as a `saga-supervisor` role metric so the per-Saga budget counts it. The **invariants ledger** lives on
 `task.sagaInvariants` (durable across resume), redacted + deduped + capped on
 write, re-injected into every step's packet. CLI: `vibe saga status | pause |
 resume` (pause/resume reuse `pause-service` against the run-lock holder's run).

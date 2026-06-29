@@ -9,9 +9,10 @@
   feature drifting off-goal or building on something wrong - distinct from a
   broken-step halt, which resets). The turn is read-only, runs on a cheap profile,
   and is purely advisory on top of the per-step review - a failed or unparseable
-  supervisor turn never halts a healthy Saga. Configure it under
-  `saga.supervisor` in `project.yml` (on by default; point `profile` at a cheap
-  model, or set `enabled: false` to turn it off).
+  supervisor turn never halts a healthy Saga. Its cost is counted (it counts
+  toward the per-Saga budget and the daily spend cap, like any other turn - not
+  free). Configure it under `saga.supervisor` in `project.yml` (on by default;
+  point `profile` at a cheap model, or set `enabled: false` to turn it off).
 - **A non-folding invariants ledger keeps conventions from drifting.** The
   supervisor records cross-cutting decisions ("all API responses use snake_case")
   to a durable, append-only ledger that is re-injected into *every* later step's

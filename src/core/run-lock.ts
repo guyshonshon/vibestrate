@@ -103,12 +103,32 @@ export function taskLockPath(projectRoot: string, taskId: string): string {
  * Lets a CLI (`vibe saga pause|status`) find the LIVE run sequencing a saga - the
  * lock holder is the authoritative live runId (unlike `Task.currentRunId`, which
  * is written only AFTER a run ends). Best-effort: a missing/garbage lock is null.
+ * NOTE: this does NOT prove the holder is alive - a hard-crashed run can leave a
+ * stale lock. Use `readLiveTaskLockHolder` when you need a holder that is
+ * actually running (e.g. before requesting a pause that a dead run can't honor).
  */
 export async function readTaskLockHolder(
   projectRoot: string,
   taskId: string,
 ): Promise<TaskLockBody | null> {
   return readLockBody(taskLockPath(projectRoot, taskId));
+}
+
+/**
+ * Like `readTaskLockHolder`, but returns the holder ONLY when it is provably
+ * LIVE - the same staleness test the acquire path uses (dead pid on this host,
+ * or a terminal run state, => not live). A hard-crashed run that left `state.json`
+ * stuck at a non-terminal status would otherwise look "running" to a CLI and let
+ * `vibe saga pause` report a confident lie about a process that will never read
+ * the flag. Returns null when unheld, unreadable, or stale.
+ */
+export async function readLiveTaskLockHolder(
+  projectRoot: string,
+  taskId: string,
+): Promise<TaskLockBody | null> {
+  const holder = await readLockBody(taskLockPath(projectRoot, taskId));
+  if (!holder) return null;
+  return (await holderIsStale(projectRoot, holder)) ? null : holder;
 }
 
 async function readLockBody(lockPath: string): Promise<TaskLockBody | null> {

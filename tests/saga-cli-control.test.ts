@@ -4,7 +4,7 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
 import { cmdStatus, cmdPause, cmdResume } from "../src/cli/commands/saga.js";
-import { acquireTaskLock } from "../src/core/run-lock.js";
+import { acquireTaskLock, taskLockPath } from "../src/core/run-lock.js";
 import {
   RunStateStore,
   createInitialState,
@@ -127,6 +127,45 @@ describe("vibe saga status | pause | resume", () => {
 
     process.chdir(dir);
     expect(await cmdPause(task.id)).toBe(1);
+  });
+
+  it("a STALE lock (dead pid, run stuck non-terminal) is not a live run", async () => {
+    // The crashed-run scenario: a hard crash left the lock held by a dead pid and
+    // state.json stuck at a non-terminal status. pause/resume must NOT report a
+    // confident success for a process that will never read the flag.
+    const dir = await makeProject();
+    const svc = new RoadmapService(dir);
+    await svc.init();
+    const task = await svc.addTask({ title: "Build it", kind: "saga" });
+    await svc.addChecklistItem(task.id, "step one");
+    const runId = "20260629-130000-crashed-run";
+    // Non-terminal ("created") run state, but a lock held by a dead pid on this host.
+    await new RunStateStore(dir, runId).write(
+      createInitialState({
+        runId,
+        task: "crashed",
+        projectRoot: dir,
+        worktreePath: null,
+        branchName: null,
+        maxReviewLoops: 2,
+      }),
+    );
+    const lockPath = taskLockPath(dir, task.id);
+    await fs.mkdir(path.dirname(lockPath), { recursive: true });
+    await fs.writeFile(
+      lockPath,
+      JSON.stringify({
+        runId,
+        pid: 2 ** 31 - 1, // a pid that is effectively never alive
+        host: os.hostname(),
+        startedAt: new Date(0).toISOString(),
+      }),
+    );
+
+    process.chdir(dir);
+    // Stale holder -> no live run -> pause/resume fail fast instead of lying.
+    expect(await cmdPause(task.id)).toBe(1);
+    expect(await cmdResume(task.id)).toBe(1);
   });
 
   it("resume clears the pause flag on the live run", async () => {

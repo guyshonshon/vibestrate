@@ -152,7 +152,7 @@ import type {
   ProviderSessionRequest,
 } from "../providers/provider-types.js";
 import { MetricsStore } from "./metrics-store.js";
-import { makeEmptyMetrics, type RoleMetrics } from "./runtime-metrics.js";
+import { makeEmptyMetrics, roleMetricsSchema, type RoleMetrics } from "./runtime-metrics.js";
 import { computeRunSpendUsd, checkSagaStopConditions } from "../feature/budget.js";
 import { extractTurnInternals } from "./turn-internals.js";
 import { getDiffSnapshot, getWorktreeDiffText, redactSecretsInText } from "./diff-service.js";
@@ -4072,7 +4072,13 @@ export class Orchestrator {
                     itemIndex,
                     checklistItems,
                     input,
-                  }).catch(() => "PROCEED" as const);
+                  }).catch((err: unknown) => {
+                    // A blown daily spend cap HALTS the run (stopped-by-cap),
+                    // exactly like a real role turn - it is not a supervisor
+                    // failure. Every other failure folds to PROCEED (advisory).
+                    if (err instanceof __SpendCapStopSignal) throw err;
+                    return "PROCEED" as const;
+                  });
                   if (verdict === "ESCALATE") {
                     // KEEP the committed work - do NOT discardWorktreeChanges.
                     await roadmap
@@ -5426,11 +5432,23 @@ export class Orchestrator {
     completedItem: { id: string; text: string };
     itemIndex: number;
     checklistItems: { id: string; text: string }[];
-    input: { worktreePath: string | null; eventLog: EventLog };
+    input: {
+      worktreePath: string | null;
+      eventLog: EventLog;
+      runId: string;
+      metricsStore: MetricsStore;
+    };
   }): Promise<"PROCEED" | "ESCALATE"> {
     const { completedItem, itemIndex, checklistItems, input } = args;
     const taskId = this.taskId!;
     const roadmap = new RoadmapService(this.projectRoot);
+
+    // Gate on the daily spend cap BEFORE spending on this turn, exactly like a
+    // real role turn (runRole). A blown cap throws __SpendCapStopSignal; the
+    // call-site re-throws THAT (so the run halts stopped-by-cap, not a silent
+    // supervisor skip) while folding ordinary supervisor failures to PROCEED.
+    // warn/downgrade/reduce-effort side-effects mirror runRole.
+    await this.enforceSpendCap({ eventLog: input.eventLog, runId: input.runId });
 
     // Resolve the supervisor's provider + cheap-profile knobs: the configured
     // `profile` wins, else the supervisor role's own profile.
@@ -5479,6 +5497,10 @@ export class Orchestrator {
       invariants,
     });
 
+    // Apply the project's catalog overlay (custom model/effort) like a real turn.
+    if (!this.resolvedCatalog) {
+      this.resolvedCatalog = await resolveCatalog(this.projectRoot).catch(() => null);
+    }
     let text = "";
     try {
       const result = await runProvider(this.config.providers, {
@@ -5487,9 +5509,53 @@ export class Orchestrator {
         cwd: input.worktreePath ?? this.projectRoot,
         model: profileCfg?.model ?? null,
         effort: profileCfg?.power ?? null,
+        maxTokens: profileCfg?.maxTokens ?? null,
+        catalog: this.resolvedCatalog ?? undefined,
         // allowWrite omitted -> no write grant: a read-only judgment turn.
       });
       text = result.exitCode === 0 ? result.normalized.responseText : "";
+      // Record the turn's cost as a RoleMetrics entry so it counts toward the
+      // per-saga budget (computeRunSpendUsd reads metrics.totalCostUsd) and the
+      // daily total - the supervisor is NOT free. roleMetricsSchema.parse fills
+      // every defaulted field so we only pass the cost-relevant ones.
+      const m = result.normalized.metrics;
+      let tokenUsage = m?.tokenUsage ?? null;
+      let tokensEstimated = false;
+      const hasRealTokens =
+        !!tokenUsage && ((tokenUsage.input ?? 0) + (tokenUsage.output ?? 0)) > 0;
+      if (!hasRealTokens) {
+        tokenUsage = {
+          input: estimateTokensFromText(prompt),
+          output: estimateTokensFromText(text),
+        };
+        tokensEstimated = true;
+      }
+      const { costUsd, estimated } = resolveCost({
+        reportedCostUsd: m?.totalCostUsd ?? null,
+        model: m?.model ?? null,
+        tokenUsage,
+      });
+      await input.metricsStore
+        .appendRoleMetrics(
+          roleMetricsSchema.parse({
+            roleId: "saga-supervisor",
+            stageId: "saga-supervisor",
+            providerId,
+            providerType: this.config.providers[providerId]?.type ?? "cli",
+            command: result.command,
+            cwd: result.cwd,
+            startedAt: result.startedAt,
+            endedAt: result.endedAt,
+            durationMs: result.durationMs,
+            exitCode: result.exitCode,
+            model: m?.model ?? null,
+            totalCostUsd: costUsd,
+            costEstimated: estimated,
+            tokenUsage,
+            tokensEstimated,
+          }),
+        )
+        .catch(() => {});
     } catch (err) {
       await input.eventLog.append({
         type: "saga.supervisor",
