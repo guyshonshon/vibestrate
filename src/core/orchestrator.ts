@@ -3562,7 +3562,7 @@ export class Orchestrator {
           status: "done",
           commitSha,
           filesTouched,
-          summary: compactImplementationSummary(implOutput),
+          summary: redactSecretsInText(compactImplementationSummary(implOutput)).redacted,
           error: null,
           reviewVerdict: pendingItemReview?.verdict ?? null,
           openFindingCount: pendingItemReview?.openFindingCount ?? 0,
