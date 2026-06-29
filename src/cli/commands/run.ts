@@ -21,6 +21,13 @@ import {
   symbol,
 } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
+import { makeUniqueRunId } from "../../utils/run-id.js";
+import {
+  acquireTaskLock,
+  releaseTaskLock,
+  TaskLockedError,
+  type TaskLockHandle,
+} from "../../core/run-lock.js";
 import { startServer, DEFAULT_VIBESTRATE_PORT } from "../../server/server.js";
 import { setCliWriter } from "../../notifications/gateways/cli-gateway.js";
 import {
@@ -570,6 +577,33 @@ export async function runRunCommand(
     );
   }
 
+  // Per-task RUN LOCK. A task-linked run mutates that task's shared checklist /
+  // feature branch; two runs on the same task at once corrupts both. Pre-assign
+  // the runId (as the dashboard does) so it doubles as the lock holder id - this
+  // makes stale-reclaim by terminal run state work for this path too. Claim the
+  // lock BEFORE the run; release it in a `finally` on every exit (below). A held
+  // task fails fast with a clear error and exits non-zero WITHOUT starting a run.
+  // NOTE: any NEW run launch path MUST acquire this lock the same way - there is
+  // no shared pre-run chokepoint (the dashboard does so in run-launcher.ts).
+  const preassignedRunId = makeUniqueRunId(detected.projectRoot);
+  let taskLock: TaskLockHandle | null = null;
+  if (roadmapTaskId) {
+    try {
+      taskLock = await acquireTaskLock(
+        detected.projectRoot,
+        roadmapTaskId,
+        preassignedRunId,
+      );
+    } catch (err) {
+      if (err instanceof TaskLockedError) {
+        console.error("");
+        console.error(`${symbol.fail()} ${err.message}`);
+        return 1;
+      }
+      throw err;
+    }
+  }
+
   const orchestrator = new Orchestrator({
     projectRoot: detected.projectRoot,
     config: loaded.config,
@@ -577,6 +611,7 @@ export async function runRunCommand(
     task: resolvedTask,
     params: runParams,
     isGitRepo: detected.isGitRepo,
+    runId: preassignedRunId,
     taskId: roadmapTaskId,
     crewId: activeCrewId,
     profileOverride,
@@ -633,6 +668,8 @@ export async function runRunCommand(
   } catch (err) {
     process.off("SIGINT", onSigint);
     process.off("SIGTERM", onSigterm);
+    // The run is over (it threw); free the per-task lock so a retry can start.
+    if (taskLock) await releaseTaskLock(taskLock);
     const raw = isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err);
     const friendly = rewriteFriendly(raw);
     console.error("");
@@ -655,6 +692,10 @@ export async function runRunCommand(
   }
   process.off("SIGINT", onSigint);
   process.off("SIGTERM", onSigterm);
+  // The run reached a terminal state; free the per-task lock. (The server may
+  // linger for inspection below, but no further task work happens, so holding
+  // the lock past this point would needlessly block a follow-up run.)
+  if (taskLock) await releaseTaskLock(taskLock);
 
   // Update the linked roadmap task with the run id, branch, worktree, and
   // final status so the board reflects the outcome immediately.

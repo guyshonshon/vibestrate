@@ -20,6 +20,12 @@ import { resolvePersona } from "../orchestrator/personas.js";
 import { permissionModeSchema } from "../project/config-schema.js";
 import type { ResolvedFlowSnapshot } from "../flows/schemas/flow-schema.js";
 import { contextSourceSchema } from "./context-source-schema.js";
+import {
+  acquireTaskLock,
+  releaseTaskLock,
+  TaskLockedError,
+  type TaskLockHandle,
+} from "./run-lock.js";
 
 /**
  * The shared, non-interactive run pipeline. Both the CLI (`vibe run`) and the
@@ -252,6 +258,32 @@ export async function runFromSpec(
     }
   }
 
+  // Per-task RUN LOCK. A task-linked run mutates that task's shared checklist /
+  // feature branch; two runs on the same task at once corrupts both. Claim the
+  // lock BEFORE any task work and release it in `finally` on every exit (below).
+  // A held task fails fast with a clear reason - we do NOT start a half run.
+  // NOTE: any NEW run launch path MUST acquire this lock the same way. The CLI
+  // (`src/cli/commands/run.ts`) does so independently; there is no shared
+  // pre-run chokepoint. The dashboard's runId is always set here (computed
+  // before the detached child spawns), so it doubles as the lock holder id.
+  let lock: TaskLockHandle | null = null;
+  if (spec.taskId) {
+    try {
+      lock = await acquireTaskLock(
+        detected.projectRoot,
+        spec.taskId,
+        spec.runId ?? `launch-${Date.now()}`,
+      );
+    } catch (err) {
+      if (err instanceof TaskLockedError) {
+        throw new RunLaunchError("task_locked", err.message);
+      }
+      throw err;
+    }
+  }
+
+  try {
+
   // Rewind: the flow runner seeds the upstream step outputs from the source run
   // so the new run resumes at the chosen stage. Works with an explicit flow too.
   let resumeFrom: ResumeFromInput | null = null;
@@ -381,5 +413,10 @@ export async function runFromSpec(
     abortSignal: opts.abortSignal,
     onProgress: opts.onProgress,
   });
-  return orchestrator.run();
+    return await orchestrator.run();
+  } finally {
+    // Release the per-task lock on every exit (success, throw, or abort). Safe:
+    // releaseTaskLock only removes the lockfile if it still belongs to this run.
+    if (lock) await releaseTaskLock(lock);
+  }
 }
