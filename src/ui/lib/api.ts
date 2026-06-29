@@ -66,6 +66,7 @@ import type {
   SkillAssignmentSummary,
   Task,
   TaskComment,
+  SagaStatus,
   TaskSuggestion,
   TerminalAvailability,
   TerminalSession,
@@ -1580,6 +1581,11 @@ export const api = {
     microSteps: { runId: string; steps: MicroStep[] }[];
   }> {
     return jsonGet(`/api/tasks/${encodeURIComponent(taskId)}`);
+  },
+  /** Saga conductor live status (Phase 2b): lifecycle, live run, step progress,
+   *  halt, invariants. Same source as `vibe saga status`. */
+  async getSagaStatus(taskId: string): Promise<{ status: SagaStatus }> {
+    return jsonGet(`/api/sagas/${encodeURIComponent(taskId)}/status`);
   },
   async addTaskComment(input: {
     taskId: string;

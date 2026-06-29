@@ -13,6 +13,7 @@ import {
   requestPause,
   requestResume,
 } from "../../core/pause-service.js";
+import { getSagaStatus, NotASagaError } from "../../feature/saga-status.js";
 
 async function svc() {
   const detected = await detectProject(process.cwd());
@@ -322,65 +323,50 @@ export async function cmdStatus(
   taskId: string,
   opts: { json?: boolean },
 ): Promise<number> {
-  const loaded = await loadSaga(taskId);
-  if (!loaded.ok) return loaded.code;
-  const { projectRoot, task } = loaded;
-  const live = await liveRunId(projectRoot, taskId);
-
-  const total = task.checklist.length;
-  const done = task.checklist.filter((c) => c.status === "done").length;
+  const detected = await detectProject(process.cwd());
+  let status;
+  try {
+    // Shared with GET /api/sagas/:taskId/status - one source, no UI<->CLI drift.
+    status = await getSagaStatus(detected.projectRoot, taskId);
+  } catch (err) {
+    if (err instanceof NotASagaError) {
+      console.error(`${symbol.fail()} ${err.message}`);
+      return 1;
+    }
+    throw err;
+  }
 
   if (opts.json) {
-    console.log(
-      JSON.stringify(
-        {
-          taskId,
-          title: task.title,
-          sagaState: task.sagaState,
-          liveRunId: live,
-          currentRunId: task.currentRunId ?? null,
-          progress: { done, total },
-          sagaHalt: task.sagaHalt,
-          sagaInvariants: task.sagaInvariants,
-          steps: task.checklist.map((c) => ({
-            id: c.id,
-            text: c.text,
-            status: c.status,
-            commitSha: c.commitSha,
-            runId: c.runId,
-            outcomeSummary: c.outcomeSummary,
-          })),
-        },
-        null,
-        2,
-      ),
-    );
+    console.log(JSON.stringify(status, null, 2));
     return 0;
   }
 
+  const { done, total } = status.progress;
   console.log(
-    `${symbol.bullet()} ${color.bold(taskId)} ${task.title} ${color.dim(`(${task.sagaState})`)}`,
+    `${symbol.bullet()} ${color.bold(taskId)} ${status.title} ${color.dim(`(${status.sagaState})`)}`,
   );
   console.log(
-    indent(`Progress: ${done}/${total} steps done${live ? `  ${color.dim(`· running: ${live}`)}` : ""}`),
+    indent(
+      `Progress: ${done}/${total} steps done${status.liveRunId ? `  ${color.dim(`· running: ${status.liveRunId}`)}` : ""}`,
+    ),
   );
-  for (const [i, c] of task.checklist.entries()) {
+  for (const [i, c] of status.steps.entries()) {
     const mark =
       c.status === "done" ? symbol.ok() : c.status === "in_progress" ? symbol.arrow() : symbol.bullet();
     const summary = c.outcomeSummary ? color.dim(` - ${c.outcomeSummary}`) : "";
     console.log(indent(`${mark} ${i + 1}. ${c.text} ${color.dim(`[${c.status}]`)}${summary}`));
   }
-  if (task.sagaHalt) {
+  if (status.sagaHalt) {
     console.log("");
     console.log(
-      `${symbol.warn()} ${header("Halted")} ${color.yellow(color.bold(task.sagaHalt.reason))}`,
+      `${symbol.warn()} ${header("Halted")} ${color.yellow(color.bold(status.sagaHalt.reason))}`,
     );
-    if (task.sagaHalt.summary) console.log(indent(task.sagaHalt.summary));
+    if (status.sagaHalt.summary) console.log(indent(status.sagaHalt.summary));
   }
-  if (task.sagaInvariants.length > 0) {
+  if (status.sagaInvariants.length > 0) {
     console.log("");
-    console.log(`${symbol.bullet()} ${header("Invariants")} (${task.sagaInvariants.length})`);
-    for (const inv of task.sagaInvariants) console.log(indent(`- ${inv}`));
+    console.log(`${symbol.bullet()} ${header("Invariants")} (${status.sagaInvariants.length})`);
+    for (const inv of status.sagaInvariants) console.log(indent(`- ${inv}`));
   }
   return 0;
 }

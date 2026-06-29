@@ -585,6 +585,11 @@ export type Task = {
   profileOverride?: string | null;
   readOnly?: boolean;
   checklist?: ChecklistItem[];
+  // Saga conductor (Phase 2). Present on kind:"saga" tasks.
+  sagaState?: SagaState;
+  sagaHalt?: SagaHalt | null;
+  sagaInvariants?: string[];
+  sagaBudget?: { maxSpendUsd: number | null; maxSteps: number | null };
   needsTesting?: boolean;
   needsTestingReason?: string | null;
   derivedFrom?: { taskId: string; itemId: string } | null;
@@ -632,6 +637,38 @@ export type ChecklistItem = {
   objective?: string;
   acceptanceCheck?: string;
   fileHints?: string[];
+  // Saga conductor (Phase 2): the run that executed this step + its one-line outcome.
+  runId?: string | null;
+  outcomeSummary?: string;
+};
+
+// Saga conductor lifecycle + halt (Phase 2). Mirrors src/roadmap/roadmap-types.ts.
+export type SagaState = "idle" | "sequencing" | "paused" | "halted" | "done";
+export type SagaHalt = {
+  reason: string;
+  atStepId: string | null;
+  summary: string;
+};
+
+// The live conductor status served by GET /api/sagas/:taskId/status (and
+// `vibe saga status`). `liveRunId` is the run sequencing the saga right now.
+export type SagaStatus = {
+  taskId: string;
+  title: string;
+  sagaState: SagaState;
+  liveRunId: string | null;
+  currentRunId: string | null;
+  progress: { done: number; total: number };
+  sagaHalt: SagaHalt | null;
+  sagaInvariants: string[];
+  steps: Array<{
+    id: string;
+    text: string;
+    status: ChecklistItemStatus;
+    commitSha: string | null;
+    runId: string | null;
+    outcomeSummary: string;
+  }>;
 };
 
 export type TaskComment = {

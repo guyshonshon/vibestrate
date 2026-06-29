@@ -4,6 +4,7 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
 import { cmdStatus, cmdPause, cmdResume } from "../src/cli/commands/saga.js";
+import { getSagaStatus, NotASagaError } from "../src/feature/saga-status.js";
 import { acquireTaskLock, taskLockPath } from "../src/core/run-lock.js";
 import {
   RunStateStore,
@@ -209,5 +210,41 @@ describe("vibe saga status | pause | resume", () => {
     process.chdir(dir);
     expect(await cmdStatus(single.id, { json: true })).toBe(1);
     expect(await cmdPause(single.id)).toBe(1);
+  });
+});
+
+describe("getSagaStatus (shared CLI + dashboard source)", () => {
+  it("returns lifecycle, live run, progress, halt, invariants", async () => {
+    const dir = await fs.realpath(
+      await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-saga-svc-")),
+    );
+    const svc = new RoadmapService(dir);
+    await svc.init();
+    const task = await svc.addTask({ title: "Conduct it", kind: "saga" });
+    await svc.addChecklistItem(task.id, "step one");
+    await svc.addChecklistItem(task.id, "step two");
+    const withSteps = await svc.getTask(task.id);
+    await svc.setChecklistItemStatus(task.id, withSteps!.checklist[0]!.id, "done");
+    await svc.appendSagaInvariants(task.id, ["snake_case everywhere"]);
+    const runId = "20260629-140000-live";
+    await acquireTaskLock(dir, task.id, runId);
+
+    const status = await getSagaStatus(dir, task.id);
+    expect(status.sagaState).toBe("idle");
+    expect(status.liveRunId).toBe(runId); // live (this pid) lock holder
+    expect(status.progress).toEqual({ done: 1, total: 2 });
+    expect(status.sagaInvariants).toContain("snake_case everywhere");
+    expect(status.steps).toHaveLength(2);
+  });
+
+  it("throws NotASagaError for a missing or non-saga task", async () => {
+    const dir = await fs.realpath(
+      await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-saga-svc2-")),
+    );
+    const svc = new RoadmapService(dir);
+    await svc.init();
+    const single = await svc.addTask({ title: "Plain", kind: "single" });
+    await expect(getSagaStatus(dir, "nope")).rejects.toBeInstanceOf(NotASagaError);
+    await expect(getSagaStatus(dir, single.id)).rejects.toBeInstanceOf(NotASagaError);
   });
 });
