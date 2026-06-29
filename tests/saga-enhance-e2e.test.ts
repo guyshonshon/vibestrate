@@ -221,6 +221,63 @@ describe("saga ENHANCE pass (real executor)", () => {
     expect(packet2).toContain("OVERLAID");
   }, 90_000);
 
+  it("escalates (not crashes) when a remove would empty the pending tail", async () => {
+    // Step 2 is conductor-provenance, so the autonomous pass is ALLOWED to
+    // remove it - but that empties the pending tail. Emptying the tail would
+    // crash the band's index re-entry, so it must escalate to a clean halt.
+    const dir = await makeProject({
+      supervisor: "DECISION: ENHANCE",
+      enhance: '{"remove":["{PENDING_ID}"]}',
+    });
+    const svc = new RoadmapService(dir);
+    await svc.init();
+    const task = await svc.addTask({ title: "Two-step build", kind: "saga" });
+    await svc.addChecklistItem(task.id, "create the first file");
+    await svc.addChecklistItem(task.id, "create the second file", {
+      provenance: "conductor",
+    });
+
+    process.chdir(dir);
+    const code = await cmdSequence(task.id, { json: true });
+    expect(code).toBe(0); // a clean halt, NOT a crash
+
+    const after = await svc.getTask(task.id);
+    expect(after!.checklist[0]!.status).toBe("done");
+    expect(after!.checklist[1]!.status).toBe("pending");
+    expect(after!.sagaState).toBe("halted");
+    expect(after!.sagaHalt?.reason).toBe("enhance-escalate");
+
+    const events = await readEvents(dir);
+    expect(
+      events.some((e) => e.type === "saga.enhance" && e.data?.emptiedTail === true),
+    ).toBe(true);
+  }, 90_000);
+
+  it("redacts a secret-shaped token in refined step text before it is persisted", async () => {
+    const SECRET = "sk-ant-api03-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    const dir = await makeProject({
+      supervisor: "DECISION: ENHANCE",
+      enhance: `{"refine":[{"id":"{PENDING_ID}","text":"create the second file using ${SECRET}"}]}`,
+    });
+    const svc = new RoadmapService(dir);
+    await svc.init();
+    const task = await svc.addTask({ title: "Two-step build", kind: "saga" });
+    await svc.addChecklistItem(task.id, "create the first file");
+    await svc.addChecklistItem(task.id, "create the second file");
+
+    process.chdir(dir);
+    const code = await cmdSequence(task.id, { json: true });
+    expect(code).toBe(0);
+
+    const after = await svc.getTask(task.id);
+    expect(after!.sagaState).toBe("done");
+    // The raw secret never lands in the persisted (reconciled) checklist...
+    expect(after!.checklist[1]!.text).not.toContain(SECRET);
+    // ...nor in the step's packet that the run executed against.
+    const packet2 = await packetText(dir, 2);
+    expect(packet2).not.toContain(SECRET);
+  }, 90_000);
+
   it("escalates (halts) when the conductor's diff would add a step", async () => {
     const dir = await makeProject({
       supervisor: "DECISION: ENHANCE",

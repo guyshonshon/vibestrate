@@ -3270,11 +3270,23 @@ export class Orchestrator {
           // EXISTING ids (autonomous add is excluded), so `task.checklist` - and
           // thus the resume guard below, which compares its ids - is untouched.
           // Any overlay step that has since completed is filtered out by status.
-          if (this.sagaMode && task.sagaPendingRevision) {
+          //
+          // FAIL-CLOSED: only apply the overlay if every id it lists still exists
+          // in the checklist. A structural checklist edit clears the overlay at
+          // the source (RoadmapService.writeChecklist), but if a stale/foreign
+          // overlay ever slips through, we ignore it and run the real checklist
+          // rather than silently dropping owner steps it doesn't know about.
+          const overlay = task.sagaPendingRevision;
+          const checklistIdSet = new Set(task.checklist.map((c) => c.id));
+          if (
+            this.sagaMode &&
+            overlay &&
+            overlay.pending.every((p) => checklistIdSet.has(p.id))
+          ) {
             const doneIds = new Set(
               task.checklist.filter((c) => c.status === "done").map((c) => c.id),
             );
-            checklistItems = task.sagaPendingRevision.pending
+            checklistItems = overlay.pending
               .filter((p) => !doneIds.has(p.id))
               .map((p) => ({
                 id: p.id,
@@ -5855,36 +5867,68 @@ export class Orchestrator {
       return "escalate";
     }
 
-    // auto: apply to the in-memory pending tail IN PLACE (preserve itemIndex +
-    // the done prefix), then persist the revised pending plan to the overlay.
-    const revisedTail = applyStepDiff(pending, diff);
+    // auto: apply to the pending tail. REDACT the model-authored fields FIRST -
+    // they get persisted (overlay + reconciled checklist) and re-injected into
+    // later packets, so they follow the same redaction rule as every other
+    // model-prose path (commit summaries, the supervisor ledger).
+    const revisedTail: EnhanceStep[] = applyStepDiff(pending, diff).map((s) => ({
+      ...s,
+      text: redactSecretsInText(s.text).redacted,
+      objective: redactSecretsInText(s.objective).redacted,
+      acceptanceCheck: redactSecretsInText(s.acceptanceCheck).redacted,
+      fileHints: s.fileHints.map((h) => redactSecretsInText(h).redacted),
+    }));
+    // A diff that removes every remaining pending step = "drop all remaining
+    // work" - a structural decision (and emptying the tail would break the
+    // band's `itemIndex` re-entry). Escalate rather than auto-apply.
+    if (revisedTail.length === 0) {
+      await input.eventLog.append({
+        type: "saga.enhance",
+        message: `Saga enhance after step ${itemIndex + 1}: escalating - the diff would drop all remaining steps.`,
+        data: { index: itemIndex, authority: "escalate", emptiedTail: true },
+      });
+      return "escalate";
+    }
+    // Mutate the in-memory pending tail IN PLACE (preserve itemIndex + the done
+    // prefix so the band's absolute-index addressing stays valid).
     checklistItems.splice(
       itemIndex + 1,
       checklistItems.length - (itemIndex + 1),
       ...revisedTail,
     );
-    // Build full ChecklistItems for the overlay by patching the revised fields
-    // onto the canonical items by id (every id exists - no autonomous add).
-    const canonicalById = new Map((task?.checklist ?? []).map((c) => [c.id, c]));
-    const overlayPending = revisedTail
-      .map((s) => {
-        const base = canonicalById.get(s.id);
-        if (!base) return null;
-        return {
-          ...base,
-          text: s.text,
-          objective: s.objective,
-          acceptanceCheck: s.acceptanceCheck,
-          fileHints: s.fileHints,
-        };
-      })
-      .filter((c): c is NonNullable<typeof c> => c !== null);
-    await roadmap
-      .setSagaPendingRevision(taskId, {
-        revisedAtStepIndex: itemIndex,
-        pending: overlayPending,
-      })
-      .catch(() => {});
+    // Persist the revised plan to the saga-scoped overlay (one atomic write;
+    // never touches task.checklist). Skip when the task read came back null - a
+    // null read would write an empty, corrupt overlay that strands a resume.
+    if (task) {
+      const canonicalById = new Map(task.checklist.map((c) => [c.id, c]));
+      const overlayPending = revisedTail
+        .map((s) => {
+          const base = canonicalById.get(s.id);
+          if (!base) return null;
+          return {
+            ...base,
+            text: s.text,
+            objective: s.objective,
+            acceptanceCheck: s.acceptanceCheck,
+            fileHints: s.fileHints,
+          };
+        })
+        .filter((c): c is NonNullable<typeof c> => c !== null);
+      await roadmap
+        .setSagaPendingRevision(taskId, {
+          revisedAtStepIndex: itemIndex,
+          pending: overlayPending,
+        })
+        .catch(async (err: unknown) => {
+          await input.eventLog.append({
+            type: "saga.enhance",
+            message: `Saga enhance: could not persist the revised plan; the run continues but a resume would fall back to the original plan. ${
+              err instanceof Error ? err.message : ""
+            }`.trim(),
+            data: { index: itemIndex, authority: "auto", persistFailed: true },
+          });
+        });
+    }
 
     await input.eventLog.append({
       type: "saga.enhance",

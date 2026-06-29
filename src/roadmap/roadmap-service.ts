@@ -689,10 +689,18 @@ export class RoadmapService {
   private async writeChecklist(
     task: Task,
     checklist: ChecklistItem[],
+    opts: { clearSagaPendingRevision?: boolean } = {},
   ): Promise<Task> {
     const next: Task = {
       ...task,
       checklist,
+      // Phase 3 Enhance: a STRUCTURAL checklist edit (add / remove / reorder /
+      // a step's text or fields) invalidates any conductor pending overlay - it
+      // was computed against the pre-edit plan. Clearing it here is the root-
+      // cause guard against a stale overlay silently dropping an owner-added
+      // step on the next sequence. Status-only updates (the run's per-step
+      // commit) DON'T pass this flag, so the overlay survives a live run.
+      ...(opts.clearSagaPendingRevision ? { sagaPendingRevision: null } : {}),
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };
@@ -735,7 +743,9 @@ export class RoadmapService {
       fileHints: normalized.fileHints ?? [],
       provenance: fields.provenance ?? "owner",
     };
-    const task = await this.writeChecklist(t, [...t.checklist, item]);
+    const task = await this.writeChecklist(t, [...t.checklist, item], {
+      clearSagaPendingRevision: true,
+    });
     return { task, item };
   }
 
@@ -764,7 +774,18 @@ export class RoadmapService {
     };
     const checklist = [...t.checklist];
     checklist[idx] = item;
-    const task = await this.writeChecklist(t, checklist);
+    // Only a STRUCTURAL edit (text/objective/acceptanceCheck/fileHints)
+    // invalidates a conductor pending overlay. A status-only update - the run's
+    // own per-step commit - must NOT clear it, or the overlay would be wiped mid
+    // run on the very next step.
+    const structural =
+      patch.text !== undefined ||
+      patch.objective !== undefined ||
+      patch.acceptanceCheck !== undefined ||
+      patch.fileHints !== undefined;
+    const task = await this.writeChecklist(t, checklist, {
+      clearSagaPendingRevision: structural,
+    });
     return { task, item };
   }
 
@@ -784,7 +805,7 @@ export class RoadmapService {
         `Checklist item "${itemId}" not found on task "${taskId}".`,
       );
     }
-    return this.writeChecklist(t, checklist);
+    return this.writeChecklist(t, checklist, { clearSagaPendingRevision: true });
   }
 
   /** Reorder the checklist to `orderedIds`, which must be a permutation of the
@@ -804,7 +825,7 @@ export class RoadmapService {
     }
     const byId = new Map(t.checklist.map((c) => [c.id, c]));
     const checklist = orderedIds.map((id) => byId.get(id)!);
-    return this.writeChecklist(t, checklist);
+    return this.writeChecklist(t, checklist, { clearSagaPendingRevision: true });
   }
 
   /**
