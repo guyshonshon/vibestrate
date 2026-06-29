@@ -51,19 +51,27 @@ If a step cannot pass its review after self-heal, the Saga **halts cleanly**: th
 
 ## The supervisor and the invariants ledger
 
-Between steps, after each one commits cleanly, a cheap **supervisor** turn judges whether the Saga is still on track. It returns **PROCEED** to continue, or **ESCALATE** to halt - used when the work has drifted off the feature goal or an earlier step is irrecoverably wrong. An ESCALATE halt keeps the committed work (unlike a failed-step halt, which resets), because the completed steps are sound; it is the *direction* that went wrong. The supervisor is advisory on top of the per-step review, which already gates correctness, so a failed or unparseable supervisor turn never halts a healthy Saga. It runs read-only on a cheap profile, and its cost counts toward the Saga budget and the daily spend cap like any other turn.
+Between steps, after each one commits cleanly, a cheap **supervisor** turn judges whether the Saga is still on track. It returns one of three verdicts: **PROCEED** to continue, **ENHANCE** to re-ground the pending plan first (see below), or **ESCALATE** to halt - used when the work has drifted off the feature goal or an earlier step is irrecoverably wrong. An ESCALATE halt keeps the committed work (unlike a failed-step halt, which resets), because the completed steps are sound; it is the *direction* that went wrong. The supervisor is advisory on top of the per-step review, which already gates correctness, so a failed or unparseable supervisor turn never halts a healthy Saga. It runs read-only on a cheap profile, and its cost counts toward the Saga budget and the daily spend cap like any other turn.
 
 The supervisor also maintains the **invariants ledger**: a small, append-only list of cross-cutting decisions ("all API responses use snake_case") that is re-injected into *every* later step's packet. This is the fix for convention drift - the compact outcome ledger folds details away over many steps, but an invariant set in step 2 still holds in step 9. The ledger is redacted and bounded like every packet section.
 
 The supervisor is on by default. Configure it under `saga.supervisor` in `project.yml`: point `profile` at a cheap model, or set `enabled: false` to turn it off.
 
+## Re-grounding the plan (Enhance)
+
+A Saga's steps are authored *before* the code exists, so the deeper a long Saga runs, the more its early plan was a guess about a codebase that has since changed under it. When the supervisor judges the pending plan has diverged from reality, it returns **ENHANCE** and the Conductor runs a **plan-only** re-ground pass before the next step: it re-reads the current code and revises the *pending* steps - sharpening a step's objective, dropping one that is no longer needed, or resequencing them. It never writes code and never touches steps already done (those are immutable history).
+
+Enhance is deliberately bounded in what it may do on its own. The autonomous pass may **refine**, **reorder**, or **remove** pending steps, but it may **not add a new step** and may **not remove a step you authored** - either is a structural change to the plan's scope, so the Saga **escalates** that to you (a clean halt that keeps the committed work) rather than deciding it itself. Adding steps stays an owner decision.
+
+The revised plan is held in a saga-scoped overlay and applied atomically, so it survives a halt-and-re-sequence (the Conductor continues the revised plan) without disturbing how a Saga resumes. On clean completion the revisions are folded back into the Saga's steps. The Enhance turn runs read-only on the same cheap profile as the supervisor and is spend-accounted the same way.
+
 ## Driving a Saga from the dashboard
 
-Mission Control's task detail view shows a live **Conductor** panel for a Saga: its lifecycle, step progress with per-step outcomes, the supervisor's decisions, the invariants ledger, and an escalation banner when it halts. The controls reach full parity with the CLI - **Sequence** to launch (or **Re-sequence** to resume a halted Saga from the clean tip), and **Pause** / **Resume** while a run is live. A dashboard launch goes through the same audited path as the CLI, so it inherits the saga flow, budget, supervisor, run lock, and clean-halt semantics.
+Mission Control's task detail view shows a live **Conductor** panel for a Saga: its lifecycle, step progress with per-step outcomes, the supervisor's decisions, the Enhance re-ground events, the invariants ledger, and an escalation banner when it halts. The controls reach full parity with the CLI - **Sequence** to launch (or **Re-sequence** to resume a halted Saga from the clean tip), and **Pause** / **Resume** while a run is live. A dashboard launch goes through the same audited path as the CLI, so it inherits the saga flow, budget, supervisor, run lock, and clean-halt semantics.
 
 ## What is coming next
 
-The Conductor is complete. Still to come is the plan-only **Enhance** re-ground pass: a step the supervisor flags as needing a refreshed plan (the supervisor's reserved third verdict) re-reads the current code and revises the *pending* steps before continuing.
+The Conductor and its autonomous Enhance pass are complete. Still to come is a **manual** Enhance trigger - a way to run the re-ground pass on demand between sequences (and add a step the autonomous pass would escalate), with a dry-run diff to review before it applies.
 
 ## Related
 

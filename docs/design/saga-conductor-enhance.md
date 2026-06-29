@@ -1,8 +1,21 @@
 # Saga Conductor - Phase 3: Enhance (design)
 
-Status: revised-after-review (2026-06-29). An adversarial Opus-4.8 review killed
-the first recommendation (Option B); this records Option C, which it surfaced.
-Owner decision still open on the §4 fork and the §7 forks. Review trail in §8.
+Status: implemented (2026-06-30), autonomous path. An adversarial Opus-4.8 review
+killed the first recommendation (Option B); this records Option C, which it
+surfaced and which shipped. Review trail in §8.
+
+**Build status (v0.41.0, branch `feat/saga-conductor-3-enhance`):** M1 (schema) +
+M2 (pure `enhance.ts`) + M3 (the autonomous ENHANCE engine: 3-way verdict, in-place
+tail mutation, atomic overlay, escalate-on-structural, resume seeding,
+reconcile-on-completion) + read-only dashboard surfacing (`saga.enhance` engagement
+mapping) + docs. M4's separate enhance-pass cap was **reasoned out as redundant**
+(one enhance per step transition; autonomous add excluded; spend-accounted - already
+bounded by `maxSteps`/`maxSpendUsd`). **Deferred to a follow-up phase:** the *manual*
+`vibe saga enhance` trigger (CLI + UI), which needs a between-runs execution context
+(no active run/worktree) and a UI trigger path that avoids HTTP->shell - a distinct
+concern from the autonomous loop. The spec listed manual "first"; the M0 finding
+reshaped that (manual-add is the between-runs path), so the autonomous core shipped
+first.
 
 This is the design for the supervisor's reserved third verdict, `ENHANCE`: a
 plan-only re-ground pass that revises the saga's *pending* steps against the

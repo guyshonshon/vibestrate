@@ -184,6 +184,37 @@ function entryFor(e: VibestrateEvent): Partial | null {
         tone: "bad",
       };
     }
+    // ── Saga conductor (Phase 3): the ENHANCE re-ground pass ──
+    case "saga.enhance": {
+      const idx = num(d, "index");
+      const authority = str(d, "authority");
+      const after = idx != null ? ` after step ${idx + 1}` : "";
+      if (authority === "escalate") {
+        return {
+          cls: "enforced",
+          anchor: "run",
+          stepId: null,
+          title: `enhance · escalated to owner${after}`,
+          detail: "a new step or owner-step removal needs the owner",
+          tone: "bad",
+        };
+      }
+      const applied = (d["applied"] ?? null) as
+        | { refine?: number; remove?: number; reorder?: number }
+        | null;
+      const parts: string[] = [];
+      if (applied?.refine) parts.push(`${applied.refine} refined`);
+      if (applied?.remove) parts.push(`${applied.remove} removed`);
+      if (applied?.reorder) parts.push("resequenced");
+      return {
+        cls: "judgment",
+        anchor: "run",
+        stepId: null,
+        title: `enhance · ${parts.length ? "re-grounded plan" : "no change"}${after}`,
+        detail: parts.length ? parts.join(", ") : null,
+        tone: "ok",
+      };
+    }
     case "verification.decision": {
       const dec = str(d, "decision") ?? "decision";
       return {

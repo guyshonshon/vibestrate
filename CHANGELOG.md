@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.41.0
+
+- **The Saga Conductor re-grounds its own plan (Enhance).** A Saga's steps are
+  planned before the code exists, so a long Saga drifts from a plan that was a
+  guess. Now, when the between-steps supervisor judges the pending plan has
+  diverged from reality, it returns a third verdict - **ENHANCE** - and the
+  Conductor runs a plan-only re-ground pass before the next step: it re-reads the
+  current code and revises the *pending* steps (sharpen an objective, drop a step
+  that's no longer needed, resequence). It never writes code and never touches
+  steps already done.
+- **Bounded autonomy, owner-gated structure.** The autonomous pass may refine,
+  reorder, or remove pending steps - but it may **not** add a new step or remove a
+  step you authored. Either is a change to the plan's scope, so the Saga escalates
+  that to you (a clean halt keeping the committed work) instead of deciding it
+  itself. The revised plan is held in a saga-scoped overlay written atomically, so
+  it survives a halt-and-re-sequence without disturbing how a Saga resumes, and is
+  folded back into the steps on clean completion. Enhance runs read-only on the
+  cheap supervisor profile and is spend-accounted the same way; its events surface
+  live in the dashboard Conductor panel.
+
 ## 0.40.0
 
 - **The Saga Conductor comes to the dashboard.** Mission Control's task detail now
