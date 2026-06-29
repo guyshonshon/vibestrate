@@ -53,6 +53,57 @@ async function cmdAddStep(
   }
 }
 
+async function cmdEditStep(
+  taskId: string,
+  itemId: string,
+  opts: { text?: string; objective?: string; acceptance?: string; files?: string; json?: boolean },
+): Promise<number> {
+  try {
+    const patch: Record<string, unknown> = {};
+    if (opts.text !== undefined) patch.text = opts.text;
+    if (opts.objective !== undefined) patch.objective = opts.objective;
+    if (opts.acceptance !== undefined) patch.acceptanceCheck = opts.acceptance;
+    if (opts.files !== undefined) patch.fileHints = opts.files.split(",").map((f) => f.trim()).filter(Boolean);
+    if (Object.keys(patch).length === 0) {
+      console.error(`${symbol.fail()} At least one of --text, --objective, --acceptance, --files is required.`);
+      return 1;
+    }
+    const s = await svc();
+    const { item } = await s.updateChecklistItem(taskId, itemId, patch as Parameters<typeof s.updateChecklistItem>[2]);
+    if (opts.json) { console.log(JSON.stringify(item, null, 2)); return 0; }
+    console.log(`${symbol.ok()} Step ${color.bold(itemId)} updated on ${color.bold(taskId)}.`);
+    console.log(indent(`text: ${item.text}`));
+    if (item.objective) console.log(indent(`objective: ${item.objective}`));
+    if (item.acceptanceCheck) console.log(indent(`accept: ${item.acceptanceCheck}`));
+    if (item.fileHints.length) console.log(indent(`files: ${item.fileHints.join(", ")}`));
+    return 0;
+  } catch (err) {
+    console.error(`${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`);
+    return 1;
+  }
+}
+
+async function cmdReorder(
+  taskId: string,
+  orderedIds: string,
+  opts: { json?: boolean },
+): Promise<number> {
+  try {
+    const ids = orderedIds.split(",").map((id) => id.trim()).filter(Boolean);
+    const s = await svc();
+    const task = await s.reorderChecklist(taskId, ids);
+    if (opts.json) { console.log(JSON.stringify(task.checklist.map((c) => c.id), null, 2)); return 0; }
+    console.log(`${symbol.ok()} Checklist reordered on ${color.bold(taskId)}.`);
+    task.checklist.forEach((c, i) => {
+      console.log(indent(`${i + 1}. ${c.id}  ${c.text}`));
+    });
+    return 0;
+  } catch (err) {
+    console.error(`${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`);
+    return 1;
+  }
+}
+
 async function cmdList(opts: { json?: boolean }): Promise<number> {
   try {
     const s = await svc();
@@ -114,6 +165,24 @@ export function buildSagaCommand(): Command {
     .option("--json", "emit JSON")
     .action(async (taskId: string, text: string, opts) =>
       process.exit(await cmdAddStep(taskId, text, opts)),
+    );
+  cmd
+    .command("edit-step <taskId> <itemId>")
+    .description("Edit fields of an existing step.")
+    .option("--text <t>", "new step text")
+    .option("--objective <t>", "scoped goal for the step")
+    .option("--acceptance <t>", "done-when check for the step")
+    .option("--files <list>", "comma-separated file hints")
+    .option("--json", "emit JSON")
+    .action(async (taskId: string, itemId: string, opts) =>
+      process.exit(await cmdEditStep(taskId, itemId, opts)),
+    );
+  cmd
+    .command("reorder <taskId> <orderedIds>")
+    .description("Reorder checklist steps (comma-separated item ids).")
+    .option("--json", "emit JSON")
+    .action(async (taskId: string, orderedIds: string, opts) =>
+      process.exit(await cmdReorder(taskId, orderedIds, opts)),
     );
   cmd
     .command("list")

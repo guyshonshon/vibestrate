@@ -780,6 +780,7 @@ function ChecklistSection({
   const [text, setText] = useState("");
   const [objective, setObjective] = useState("");
   const [acceptance, setAcceptance] = useState("");
+  const [fileHintsInput, setFileHintsInput] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -825,12 +826,18 @@ function ChecklistSection({
     if (!t) return;
     await run("add", async () => {
       if (task.kind === "saga") {
+        const fileHints = fileHintsInput
+          .split(",")
+          .map((f) => f.trim())
+          .filter((f) => f.length > 0);
         await api.addChecklistItem(task.id, t, {
           objective: objective.trim() || undefined,
           acceptanceCheck: acceptance.trim() || undefined,
+          fileHints: fileHints.length > 0 ? fileHints : undefined,
         });
         setObjective("");
         setAcceptance("");
+        setFileHintsInput("");
       } else {
         await api.addChecklistItem(task.id, t);
       }
@@ -1048,6 +1055,12 @@ function ChecklistSection({
                 placeholder="Acceptance check (optional)…"
                 className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
               />
+              <input
+                value={fileHintsInput}
+                onChange={(e) => setFileHintsInput(e.target.value)}
+                placeholder="File hints (comma-separated, optional)…"
+                className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
+              />
             </>
           ) : null}
         </div>
@@ -1141,7 +1154,7 @@ function ChecklistRow({
         onDrop();
       }}
       className={`flex gap-1.5 border bg-ink-200 px-2 py-1 transition ${
-        isSaga && (item.objective || item.acceptanceCheck)
+        isSaga && (item.objective || item.acceptanceCheck || item.fileHints?.length)
           ? "items-start"
           : "items-center"
       } ${
@@ -1196,6 +1209,12 @@ function ChecklistRow({
           <div className="text-[10.5px]">
             <span className="text-violet-soft">accept</span>{" "}
             <span className="text-fog-300">{item.acceptanceCheck}</span>
+          </div>
+        ) : null}
+        {isSaga && item.fileHints?.length ? (
+          <div className="text-[10.5px]">
+            <span className="text-violet-soft">files</span>{" "}
+            <span className="text-fog-300">{item.fileHints.join(", ")}</span>
           </div>
         ) : null}
       </div>

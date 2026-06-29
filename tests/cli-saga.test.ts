@@ -20,4 +20,16 @@ describe("vibe saga command wiring", () => {
       expect.arrayContaining(["--objective", "--acceptance", "--files"]),
     );
   });
+
+  it("registers edit-step and reorder", () => {
+    const names = buildSagaCommand().commands.map((c) => c.name());
+    expect(names).toEqual(expect.arrayContaining(["edit-step", "reorder"]));
+  });
+
+  it("edit-step accepts --objective, --acceptance, --files, --text", () => {
+    const editStep = buildSagaCommand().commands.find((c) => c.name() === "edit-step");
+    expect(editStep?.options.map((o) => o.long)).toEqual(
+      expect.arrayContaining(["--objective", "--acceptance", "--files", "--text"]),
+    );
+  });
 });

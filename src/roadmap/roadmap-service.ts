@@ -79,6 +79,14 @@ export type ChecklistItemPatch = Partial<
   >
 >;
 
+function normalizeStepFields(f: { objective?: string; acceptanceCheck?: string; fileHints?: string[] }) {
+  const out: { objective?: string; acceptanceCheck?: string; fileHints?: string[] } = {};
+  if (f.objective !== undefined) out.objective = f.objective.trim();
+  if (f.acceptanceCheck !== undefined) out.acceptanceCheck = f.acceptanceCheck.trim();
+  if (f.fileHints !== undefined) out.fileHints = f.fileHints.map((x) => x.trim()).filter((x) => x.length > 0);
+  return out;
+}
+
 export class RoadmapService {
   readonly store: RoadmapStore;
 
@@ -556,6 +564,7 @@ export class RoadmapService {
       throw new RoadmapServiceError("Checklist item text is required.");
     }
     const ts = nowIso();
+    const normalized = normalizeStepFields(fields);
     const item: ChecklistItem = {
       id: makeId(trimmed, "ci"),
       text: trimmed,
@@ -564,9 +573,9 @@ export class RoadmapService {
       updatedAt: ts,
       commitSha: null,
       promotedTaskId: null,
-      objective: fields.objective?.trim() ?? "",
-      acceptanceCheck: fields.acceptanceCheck?.trim() ?? "",
-      fileHints: (fields.fileHints ?? []).map((f) => f.trim()).filter((f) => f.length > 0),
+      objective: normalized.objective ?? "",
+      acceptanceCheck: normalized.acceptanceCheck ?? "",
+      fileHints: normalized.fileHints ?? [],
     };
     const task = await this.writeChecklist(t, [...t.checklist, item]);
     return { task, item };
@@ -591,6 +600,7 @@ export class RoadmapService {
     const item: ChecklistItem = {
       ...prev,
       ...patch,
+      ...normalizeStepFields(patch),
       text: patch.text !== undefined ? patch.text.trim() : prev.text,
       updatedAt: nowIso(),
     };

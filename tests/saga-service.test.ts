@@ -60,4 +60,20 @@ describe("RoadmapService - saga authoring", () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it("trims objective and fileHints when updating a step", async () => {
+    const { dir, svc } = await tmpProject();
+    try {
+      const task = await svc.addTask({ title: "Feature", kind: "saga" });
+      const { item } = await svc.addChecklistItem(task.id, "Step");
+      const res = await svc.updateChecklistItem(task.id, item.id, {
+        objective: "  goal  ",
+        fileHints: ["  src/x.ts  ", "  "],
+      });
+      expect(res.item.objective).toBe("goal");
+      expect(res.item.fileHints).toEqual(["src/x.ts"]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });
