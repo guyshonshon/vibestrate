@@ -1,6 +1,10 @@
 # Saga Conductor (as-built decision record)
 
-Status: Phase 2a (execution core) built + merged-ready on `feat/saga-conductor`, 2026-06-29. Phase 2b (supervisor + dashboard) pending.
+Status: Phase 2a (execution core) merged to `main` (v0.38.0). Phase 2b part 1
+(the between-steps supervisor turn + non-folding invariants ledger + `vibe saga
+status | pause | resume`) built on `feat/saga-conductor-2b` (v0.39.0). Phase 2b
+part 2 (the live dashboard Conductor view + controls, handwritten prose docs, and
+the resume-re-seeds-prose fidelity item) pending. ENHANCE stays Phase 3.
 
 This is a short decision record. The full design and the implementation plan with
 the complete review trail live in:
@@ -64,10 +68,29 @@ the honest residual that lexical redaction cannot catch a model's paraphrase of 
 secret; no auto-push, no auto-merge (a finished Saga is one reviewable branch);
 the run lock prevents concurrent-saga checklist corruption.
 
-## Deferred to Phase 2b
+## Phase 2b part 1 (shipped, v0.39.0)
 
-The between-steps supervisor turn (PROCEED / ESCALATE + the non-folding invariants
-ledger), the live dashboard Conductor view + launch/pause/resume controls (CLI is
-the only launch surface in 2a), and a fidelity item: a fresh re-`sequence` resumes
+The between-steps **supervisor turn** lands at the same graph seam as the budget
+check (`orchestrator.ts`, `dir === "repeat"`, after a clean commit). It is an
+out-of-band, READ-ONLY `runProvider` call (no write grant; all context - goal,
+accumulated diff, remaining steps, current invariants - is in the prompt), NOT a
+`runRole`/flow step, so it cannot touch the run-scoped `reviewDecision` (the
+review-decision coupling the plan's reviewer flagged). It parses its own
+PROCEED/ESCALATE vocabulary (`src/feature/supervisor.ts`), distinct from the
+review `DECISION:` line. ESCALATE halts cleanly **keeping** committed work
+(unlike the M1 self-heal halt, which resets a broken step). Every failure mode -
+unresolved provider/role, provider error, unparseable output - folds to PROCEED +
+a logged `saga.supervisor` event: the turn is advisory on top of the per-step
+review, which already fail-closes correctness. The **invariants ledger** lives on
+`task.sagaInvariants` (durable across resume), redacted + deduped + capped on
+write, re-injected into every step's packet. CLI: `vibe saga status | pause |
+resume` (pause/resume reuse `pause-service` against the run-lock holder's run).
+
+## Deferred to Phase 2b part 2
+
+The live dashboard Conductor view + launch/pause/resume controls (CLI is the only
+control surface so far), the handwritten `concepts/saga.md` + `cli/saga.md` prose
+for the supervisor/ledger/CLI, and a fidelity item: a fresh re-`sequence` resumes
 from the clean tip but does not re-seed prior-step *prose* (the packet's diff +
-fresh-read still carry continuity).
+fresh-read still carry continuity). The supervisor's third verdict, ENHANCE
+(re-ground the pending plan), stays Phase 3 - it currently folds to PROCEED+log.

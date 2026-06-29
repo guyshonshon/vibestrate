@@ -6181,6 +6181,74 @@
             }
           ],
           "subcommands": []
+        },
+        {
+          "name": "status",
+          "path": [
+            "vibe",
+            "saga",
+            "status"
+          ],
+          "description": "Show a Saga's run state: lifecycle, step progress, halt, invariants.",
+          "usage": "[options] <taskId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "pause",
+          "path": [
+            "vibe",
+            "saga",
+            "pause"
+          ],
+          "description": "Request the Saga's active run to pause at the next step boundary.",
+          "usage": "[options] <taskId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "resume",
+          "path": [
+            "vibe",
+            "saga",
+            "resume"
+          ],
+          "description": "Resume the Saga's paused run (or point to sequence if it is halted).",
+          "usage": "[options] <taskId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
         }
       ]
     },

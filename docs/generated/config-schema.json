@@ -459,6 +459,43 @@
           "default": 20,
           "itemType": null,
           "description": "Default cap on total steps in a saga; null = unbounded (default 20)."
+        },
+        {
+          "key": "supervisor",
+          "fullKey": "saga.supervisor",
+          "type": "object",
+          "required": false,
+          "default": {},
+          "itemType": null,
+          "children": [
+            {
+              "key": "enabled",
+              "fullKey": "saga.supervisor.enabled",
+              "type": "boolean",
+              "required": false,
+              "default": true,
+              "itemType": null,
+              "description": "Run the between-steps supervisor turn (default on)."
+            },
+            {
+              "key": "profile",
+              "fullKey": "saga.supervisor.profile",
+              "type": "string | null",
+              "required": false,
+              "default": null,
+              "itemType": null,
+              "description": "Profile id for the cheap supervisor turn; null = the supervisor role's own profile."
+            },
+            {
+              "key": "roleId",
+              "fullKey": "saga.supervisor.roleId",
+              "type": "string",
+              "required": false,
+              "default": "reviewer",
+              "itemType": null,
+              "description": "Crew role the supervisor turn runs as (read-only judgment)."
+            }
+          ]
         }
       ]
     },

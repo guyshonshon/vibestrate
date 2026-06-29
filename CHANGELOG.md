@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.39.0
+
+- **The Saga Conductor gets judgment - a supervisor between steps.** After each
+  step commits cleanly, a cheap model turn now judges whether the Saga should
+  keep going or stop. It returns **PROCEED** or **ESCALATE**: an ESCALATE halts
+  the Saga cleanly while *keeping* the committed work (the supervisor caught the
+  feature drifting off-goal or building on something wrong - distinct from a
+  broken-step halt, which resets). The turn is read-only, runs on a cheap profile,
+  and is purely advisory on top of the per-step review - a failed or unparseable
+  supervisor turn never halts a healthy Saga. Configure it under
+  `saga.supervisor` in `project.yml` (on by default; point `profile` at a cheap
+  model, or set `enabled: false` to turn it off).
+- **A non-folding invariants ledger keeps conventions from drifting.** The
+  supervisor records cross-cutting decisions ("all API responses use snake_case")
+  to a durable, append-only ledger that is re-injected into *every* later step's
+  packet - so a convention set in step 2 still holds in step 9, where a folding
+  summary would have lost it. Redacted and bounded like every other packet section.
+- **Drive a running Saga from the CLI.** `vibe saga status <id>` shows the
+  lifecycle, step progress, any halt, and the invariants ledger; `vibe saga
+  pause <id>` / `resume <id>` toggle the active run at the next step boundary.
+
+  The live dashboard Conductor view + controls land next.
+
 ## 0.38.0
 
 - **Sagas run themselves now - the Conductor (execution core).** Sequence a Saga
