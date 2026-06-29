@@ -78,7 +78,9 @@ No behavior change. **Files:** `roadmap-types.ts` (Task ~151-219; `checklistItem
 - [ ] Step 6: thread `sagaMode` (RunSpec -> spawnRunBody -> OrchestratorInput -> run state); a `kind:"saga"` run sets it; unit-test the flag arrives. No band behavior yet.
 - [ ] Step 7: commit `feat(saga): phase-2 data model, per-saga budget config, sagaMode wire`.
 
-### M1: Clean halt + fresh session per step (full TDD) - the corrected core
+### M1: Clean halt-with-reset (full TDD) - the corrected core
+
+> **Resequenced:** fresh-session-per-step moved to **M2**. A fresh session is only safe paired with the curated packet that re-grounds it; shipping it alone here would drop continuity between steps (worse than the current reuse). M1 = clean-halt only. SHIPPED (commit 61855d75): `discardWorktreeChanges`, `recordSagaHalt`/`setSagaState`, `sagaMode` on run state, `saga.halted` event, the graph-seam halt block; test `tests/saga-halt-clean.test.ts`. Sagas pin to `pickup-review`.
 
 Both gated on `sagaMode`; non-saga runs byte-for-byte unchanged.
 
@@ -96,7 +98,9 @@ Both gated on `sagaMode`; non-saga runs byte-for-byte unchanged.
 - [ ] Step 8: implement - in `enterChecklistItem`, guard `stepIndex === segFrom` and `sagaMode`, null the band seats' `participant.sessionId`. (Fires for every step that runs, including a resumed re-attempt, since done steps aren't re-entered.)
 - [ ] Step 9: run -> passes; commit `feat(saga): clean halt-with-reset + fresh session per step (saga mode)`.
 
-### M2: Curated packet + non-folding invariants ledger + redaction retrofit
+### M2: Curated packet + fresh session per step + non-folding invariants ledger + redaction retrofit
+
+**Fresh session per step (moved from M1):** at item entry (`enterChecklistItem`, saga mode, guarded to the item boundary - NOT inside the fix loop), null the band seats' `participant.sessionId` so the next turn opens a fresh provider session (`flow-participant-ledger.ts:146`). Paired with the packet below so the fresh context is immediately re-grounded.
 
 **Files:** create `src/feature/packet.ts`; modify the per-item context build in `orchestrator.ts` (saga mode); reuse `pickup/item-summary.ts`. **Test:** `tests/saga-packet.test.ts`.
 **Interfaces:** `buildStepPacket({goal, invariants, priorOutcomes, diffSoFar, fileReads, step}): string` (§5.2's six sections in priority order); `InvariantsLedger` - append-only, non-folding, persisted run-scoped.
