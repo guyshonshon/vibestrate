@@ -20,6 +20,7 @@ const addBody = z.object({
   requiredSkills: z.array(z.string()).optional(),
   touchedFiles: z.array(z.string()).optional(),
   riskLevel: z.enum(["low", "medium", "high"]).optional(),
+  kind: z.enum(["single", "saga"]).optional(),
 });
 
 const commentBody = z.object({
@@ -30,15 +31,31 @@ const commentBody = z.object({
   targetRef: z.string().nullable().optional(),
 });
 
-const checklistAddBody = z.object({ text: z.string().min(1) });
+const checklistAddBody = z.object({
+  text: z.string().min(1),
+  objective: z.string().optional(),
+  acceptanceCheck: z.string().optional(),
+  fileHints: z.array(z.string()).optional(),
+});
 const checklistPatchBody = z
   .object({
     text: z.string().min(1).optional(),
     status: z.enum(["pending", "in_progress", "done", "blocked"]).optional(),
+    objective: z.string().optional(),
+    acceptanceCheck: z.string().optional(),
+    fileHints: z.array(z.string()).optional(),
   })
-  .refine((b) => b.text !== undefined || b.status !== undefined, {
-    message: "Provide at least one of: text, status.",
-  });
+  .refine(
+    (b) =>
+      b.text !== undefined ||
+      b.status !== undefined ||
+      b.objective !== undefined ||
+      b.acceptanceCheck !== undefined ||
+      b.fileHints !== undefined,
+    {
+      message: "Provide at least one of: text, status, objective, acceptanceCheck, fileHints.",
+    },
+  );
 const checklistReorderBody = z.object({ order: z.array(z.string().min(1)) });
 const enhanceBody = z.object({
   apply: z.boolean().optional(),
@@ -217,6 +234,11 @@ export async function registerTasksRoutes(
         const { task, item } = await svc.addChecklistItem(
           req.params.taskId,
           parsed.data.text,
+          {
+            objective: parsed.data.objective,
+            acceptanceCheck: parsed.data.acceptanceCheck,
+            fileHints: parsed.data.fileHints,
+          },
         );
         return { task, item };
       } catch (err) {
