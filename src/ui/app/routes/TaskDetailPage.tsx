@@ -25,6 +25,7 @@ import type {
 import { MicroStepPipeline } from "../../components/board/MicroStepPipeline.js";
 import { TaskGitActivity } from "../../components/tasks/TaskGitActivity.js";
 import { Select } from "../../components/design/Select.js";
+import { ConductorPanel } from "../../components/saga/ConductorPanel.js";
 
 export function TaskDetailPage({
   taskId,
@@ -270,6 +271,8 @@ export function TaskDetailPage({
             )}
           </section>
         ) : null}
+
+        {task.kind === "saga" ? <ConductorPanel taskId={task.id} /> : null}
 
         <ChecklistSection task={task} onChanged={load} onOpenTask={onOpenTask} />
 

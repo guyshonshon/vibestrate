@@ -159,6 +159,31 @@ function entryFor(e: VibestrateEvent): Partial | null {
         tone: dec === "APPROVED" ? "ok" : dec === "BLOCKED" ? "bad" : "warn",
       };
     }
+    // ── Saga conductor (Phase 2b): the between-steps supervisor + clean halt ──
+    case "saga.supervisor": {
+      const decision = str(d, "effective") ?? str(d, "decision") ?? "PROCEED";
+      const invs = len(d, "newInvariants");
+      const idx = num(d, "index");
+      return {
+        cls: "judgment",
+        anchor: "run",
+        stepId: null,
+        title: `supervisor · ${decision.toLowerCase()}${idx != null ? ` after step ${idx + 1}` : ""}`,
+        detail: invs ? `+${invs} invariant${invs > 1 ? "s" : ""}` : null,
+        tone: decision === "ESCALATE" ? "bad" : "ok",
+      };
+    }
+    case "saga.halted": {
+      const idx = num(d, "index");
+      return {
+        cls: "enforced",
+        anchor: "run",
+        stepId: null,
+        title: `saga halted${idx != null ? ` at step ${idx + 1}` : ""}`,
+        detail: str(d, "reason"),
+        tone: "bad",
+      };
+    }
     case "verification.decision": {
       const dec = str(d, "decision") ?? "decision";
       return {
