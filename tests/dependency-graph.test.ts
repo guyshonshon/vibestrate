@@ -32,6 +32,7 @@ function makeTask(id: string, deps: string[], status: TaskStatus = "ready"): Tas
     dependencies: deps,
     sagaState: "idle",
     sagaHalt: null,
+    sagaPendingRevision: null,
     sagaBudget: { maxSpendUsd: null, maxSteps: null },
     sagaInvariants: [],
     createdAt: ts,

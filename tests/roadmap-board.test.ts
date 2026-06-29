@@ -22,6 +22,7 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     dependencies: [],
     sagaState: "idle",
     sagaHalt: null,
+    sagaPendingRevision: null,
     sagaBudget: { maxSpendUsd: null, maxSteps: null },
     sagaInvariants: [],
     createdAt: updatedAt,

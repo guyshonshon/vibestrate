@@ -15,6 +15,7 @@ import {
   type CommentTarget,
   type MicroStep,
   type Priority,
+  type Provenance,
   type RoadmapItem,
   type RoadmapItemStatus,
   type SagaHalt,
@@ -183,6 +184,7 @@ export class RoadmapService {
       kind,
       sagaState: "idle",
       sagaHalt: null,
+      sagaPendingRevision: null,
       // A saga is bounded out of the box: seed the default step ceiling so a
       // runaway actually halts (M4's checkSagaStopConditions never trips when
       // every axis is null). config.saga is the project-level override layer the
@@ -638,7 +640,15 @@ export class RoadmapService {
   async addChecklistItem(
     taskId: string,
     text: string,
-    fields: { objective?: string; acceptanceCheck?: string; fileHints?: string[] } = {},
+    fields: {
+      objective?: string;
+      acceptanceCheck?: string;
+      fileHints?: string[];
+      // Phase 3 Enhance: who authored this step. Defaults to "owner" (a human
+      // add via the board/CLI); the manual `vibe saga enhance --apply` ADD path
+      // passes "conductor" to mark an AI-proposed (owner-approved-once) step.
+      provenance?: Provenance;
+    } = {},
   ): Promise<{ task: Task; item: ChecklistItem }> {
     const t = await this.requireTask(taskId);
     const trimmed = text.trim();
@@ -660,6 +670,7 @@ export class RoadmapService {
       objective: normalized.objective ?? "",
       acceptanceCheck: normalized.acceptanceCheck ?? "",
       fileHints: normalized.fileHints ?? [],
+      provenance: fields.provenance ?? "owner",
     };
     const task = await this.writeChecklist(t, [...t.checklist, item]);
     return { task, item };

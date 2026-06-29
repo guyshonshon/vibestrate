@@ -17,6 +17,7 @@ const ck = (id: string, text: string, status: "pending" | "done") => ({
   objective: "",
   acceptanceCheck: "",
   fileHints: [],
+  provenance: "owner" as const,
 });
 const task = (over: Partial<Task>): Task =>
   taskSchema.parse({

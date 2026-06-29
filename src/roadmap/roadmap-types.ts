@@ -122,6 +122,11 @@ export const microStepSchema = z.object({
 });
 export type MicroStep = z.infer<typeof microStepSchema>;
 
+// Who authored a saga step. Owner = a human; conductor = the autonomous Enhance
+// pass. (Phase 3 Enhance.)
+export const provenanceSchema = z.enum(["owner", "conductor"]);
+export type Provenance = z.infer<typeof provenanceSchema>;
+
 // A single checklist entry ("item"/todo) that lives *inside* a card. The
 // ordered `checklist` array on a Task is the meso-altitude breakdown (see
 // docs/design/roadmap-and-sequencing.md §1). Kept on the task on purpose so
@@ -145,6 +150,12 @@ export const checklistItemSchema = z.object({
   // one-line outcome recorded after it ran. Defaulted for lossless upgrade.
   runId: z.string().nullable().default(null),
   outcomeSummary: z.string().default(""),
+  // Saga step provenance (Phase 3 Enhance): who authored the step. "owner" for
+  // anything a human added (the default, so pre-Phase-3 steps upgrade losslessly);
+  // "conductor" only for a step the autonomous Enhance pass added. Drives the
+  // escalate-on-destructive authority policy deterministically - the conductor
+  // may not silently drop an `owner` step. (docs/design/saga-conductor-enhance.md)
+  provenance: provenanceSchema.default("owner"),
 });
 export type ChecklistItem = z.infer<typeof checklistItemSchema>;
 export type Step = ChecklistItem;
@@ -188,6 +199,23 @@ export const sagaBudgetSchema = z.object({
   maxSteps: z.number().int().positive().nullable().default(null),
 });
 export type SagaBudget = z.infer<typeof sagaBudgetSchema>;
+
+// The saga-scoped pending-plan overlay (Phase 3 Enhance). When the conductor's
+// Enhance pass refines/reorders/removes the *pending* steps mid-run, the revised
+// pending plan is persisted HERE in one atomic write - never into `checklist`,
+// so the resume guard (which compares `checklist` ids) is left untouched. On
+// resume the overlay is applied by id onto the still-pending slice; on clean
+// saga completion it is reconciled into `checklist` and cleared. `pending`
+// carries only EXISTING ids (autonomous add is excluded - see the design's M0
+// finding), so the merge is a pure by-id reconciliation.
+export const sagaPendingRevisionSchema = z.object({
+  // The step index (0-based, into the run's pending iteration) the revision was
+  // made after - for display + debugging, not control flow.
+  revisedAtStepIndex: z.number().int().min(0),
+  // The revised pending steps, in order. Full ChecklistItems (status "pending").
+  pending: z.array(checklistItemSchema),
+});
+export type SagaPendingRevision = z.infer<typeof sagaPendingRevisionSchema>;
 
 export const taskSchema = z.object({
   id: safeIdSchema,
@@ -250,6 +278,11 @@ export const taskSchema = z.object({
   // packet so conventions don't fold away. Durable (survives resume), redacted +
   // bounded on write. Default [] for lossless upgrade.
   sagaInvariants: z.array(z.string()).default([]),
+  // The conductor's revised pending-plan overlay (Phase 3 Enhance). null until an
+  // Enhance pass runs; written atomically so the resume guard never sees a
+  // `checklist` mutation. See sagaPendingRevisionSchema above. Default null for
+  // lossless upgrade.
+  sagaPendingRevision: sagaPendingRevisionSchema.nullable().default(null),
   // Non-blocking advisory: a run finished but a human should eyeball something
   // the model can't perceive (visual/UX/3D). Set from a HUMAN_REVIEW: ADVISORY
   // marker; cleared by a human verdict (pass → done, fail → reopen). (Phase 3)

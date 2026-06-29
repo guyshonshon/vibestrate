@@ -7,7 +7,11 @@ dashboard Conductor view + `GET /api/sagas/:taskId/status` + Sequence/Pause/Resu
 controls + the dashboard saga-launch path through the scheduler + prose docs) built
 on `feat/saga-conductor-2b-dashboard` (v0.40.0). The Conductor is complete. ENHANCE
 (re-ground the pending plan) stays Phase 3; the resume-re-seeds-prose fidelity item
-remains deferred (the packet's diff + fresh-read carry continuity).
+remains deferred (the packet's diff + fresh-read carry continuity). Phase 3 is now
+designed (proposed, review-revised) in
+[`saga-conductor-enhance.md`](./saga-conductor-enhance.md) - Option C (saga-scoped
+pending overlay, atomic, resume guard untouched, `provenance` field), after an
+adversarial review disproved the first persist-and-relax-the-guard plan.
 
 ## Phase 2b part 2 (shipped, v0.40.0)
 
