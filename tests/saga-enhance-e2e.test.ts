@@ -180,6 +180,47 @@ describe("saga ENHANCE pass (real executor)", () => {
     expect(roles.some((r) => r.roleId === "saga-enhance")).toBe(true);
   }, 90_000);
 
+  it("applies a pre-existing overlay on (re)start: revised text runs, a removed step is skipped, then reconciled", async () => {
+    // Simulate a prior Enhance pass: an overlay that refined step 2 and dropped
+    // step 3 is already on the task when this sequence starts. This is the path a
+    // halt+re-sequence (or crash+resume) takes - the overlay must drive the plan,
+    // and the resume guard (checklist ids) must NOT trip since checklist is
+    // untouched. Default supervisor output is PROCEED, so nothing re-enhances.
+    const dir = await makeProject({});
+    const svc = new RoadmapService(dir);
+    await svc.init();
+    const task = await svc.addTask({ title: "Three-step build", kind: "saga" });
+    await svc.addChecklistItem(task.id, "create the first file");
+    await svc.addChecklistItem(task.id, "create the second file");
+    await svc.addChecklistItem(task.id, "create the third file");
+
+    const seeded = await svc.getTask(task.id);
+    const [s1, s2] = seeded!.checklist; // s3 (index 2) is omitted => "removed"
+    await svc.setSagaPendingRevision(task.id, {
+      revisedAtStepIndex: 0,
+      pending: [s1!, { ...s2!, text: "create the second file OVERLAID" }],
+    });
+
+    process.chdir(dir);
+    const code = await cmdSequence(task.id, { json: true });
+    expect(code).toBe(0);
+
+    const after = await svc.getTask(task.id);
+    expect(after!.sagaState).toBe("done");
+    // Step 3 was dropped by the overlay and never ran; only 1 and 2 remain.
+    expect(after!.checklist.map((c) => c.text)).toEqual([
+      "create the first file",
+      "create the second file OVERLAID",
+    ]);
+    expect(after!.checklist.every((c) => c.status === "done")).toBe(true);
+    // Overlay reconciled + cleared on clean completion.
+    expect(after!.sagaPendingRevision).toBeNull();
+
+    // The overlaid text drove step 2's execution.
+    const packet2 = await packetText(dir, 2);
+    expect(packet2).toContain("OVERLAID");
+  }, 90_000);
+
   it("escalates (halts) when the conductor's diff would add a step", async () => {
     const dir = await makeProject({
       supervisor: "DECISION: ENHANCE",
