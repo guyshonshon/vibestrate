@@ -1,15 +1,5 @@
 # Changelog
 
-## 0.38.1
-
-- **Saga budgets are real now (and a saga is bounded by default).** The per-Saga
-  `maxSteps` / `maxSpendUsd` envelope shipped in 0.38.0 was hardcoded to "no
-  limit" at creation, so a runaway Saga never actually halted. A new Saga now
-  inherits a default step ceiling (`maxSteps: 20`), and a new `saga` section in
-  `project.yml` sets the project-wide defaults the per-task budget overrides. A
-  completed step also records which run executed it and a one-line outcome, and a
-  resumed/finished Saga no longer carries a stale halt record.
-
 ## 0.38.0
 
 - **Sagas run themselves now - the Conductor (execution core).** Sequence a Saga
@@ -23,9 +13,10 @@
     stays clean and reviewable), leaves the step pending, and ends blocked with a
     reason. Re-run `vibe saga sequence` to resume from the clean tip - finished
     steps are skipped. A later step never builds on a broken earlier one.
-  - **Bounded.** A per-Saga budget (`maxSteps`, and `maxSpendUsd` checked between
-    steps) halts a runaway Saga and reports honestly; set the daily spend cap as
-    the mid-step backstop for unattended runs.
+  - **Bounded by default.** A new Saga inherits a default step ceiling
+    (`maxSteps: 20`) so a runaway always halts; `maxSpendUsd` is checked between
+    steps. Set project-wide defaults under `saga` in `project.yml`, and the daily
+    spend cap as the mid-step backstop for unattended runs.
   - **Locked, never auto-merged.** A first per-task run lock stops two runs from
     corrupting one Saga's checklist or branch, and a finished Saga lands as one
     reviewable branch - merging stays a human decision.
