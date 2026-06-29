@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.36.0",
+  "version": "0.37.0",
   "commands": [
     {
       "name": "init",
@@ -5907,6 +5907,254 @@
         }
       ],
       "subcommands": []
+    },
+    {
+      "name": "saga",
+      "path": [
+        "vibe",
+        "saga"
+      ],
+      "description": "Author multi-step Saga tasks (kind=saga): one feature, coordinated steps.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "create",
+          "path": [
+            "vibe",
+            "saga",
+            "create"
+          ],
+          "description": "Create a new Saga task.",
+          "usage": "[options] <title>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "-d, --description <text>",
+              "description": "longer description",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "add-step",
+          "path": [
+            "vibe",
+            "saga",
+            "add-step"
+          ],
+          "description": "Add a step to a Saga.",
+          "usage": "[options] <taskId> <text>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--objective <text>",
+              "description": "the step's scoped goal",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--acceptance <text>",
+              "description": "done-when check for the step",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--files <list>",
+              "description": "comma-separated file hints",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "edit-step",
+          "path": [
+            "vibe",
+            "saga",
+            "edit-step"
+          ],
+          "description": "Edit fields of an existing step.",
+          "usage": "[options] <taskId> <itemId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--text <t>",
+              "description": "new step text",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--objective <t>",
+              "description": "scoped goal for the step",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--acceptance <t>",
+              "description": "done-when check for the step",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--files <list>",
+              "description": "comma-separated file hints",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "reorder",
+          "path": [
+            "vibe",
+            "saga",
+            "reorder"
+          ],
+          "description": "Reorder checklist steps (comma-separated item ids).",
+          "usage": "[options] <taskId> <orderedIds>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "list",
+          "path": [
+            "vibe",
+            "saga",
+            "list"
+          ],
+          "description": "List Saga tasks.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "show",
+          "path": [
+            "vibe",
+            "saga",
+            "show"
+          ],
+          "description": "Show a Saga and its steps.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        }
+      ]
     },
     {
       "name": "run",

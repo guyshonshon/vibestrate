@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.37.0
+
+- **Saga tasks - author a feature as coordinated steps (authoring surface).** A
+  task can now be a **Saga**: one card that holds an ordered set of steps, each with
+  its own objective, acceptance check, and file hints. Author them from the dashboard
+  (a compact container card on the board, a step editor in the task detail) or the CLI
+  (`vibe saga create | add-step | edit-step | reorder | list | show`). This is the
+  first slice of a larger program: the autonomous Conductor that sequences a Saga's
+  steps with fresh, curated context per step lands next. Verified in dark and light
+  themes.
+
 ## 0.36.2
 
 - **Policies page rebuilt on the design system.** The first cut reused the old

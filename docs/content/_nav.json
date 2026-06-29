@@ -58,6 +58,10 @@
         {
           "slug": "concepts/spec-up",
           "label": "Spec-up (plan as a CTO)"
+        },
+        {
+          "slug": "concepts/saga",
+          "label": "Saga tasks"
         }
       ]
     },
@@ -174,6 +178,10 @@
         {
           "slug": "cli/dashboard",
           "label": "Mission Control"
+        },
+        {
+          "slug": "cli/saga",
+          "label": "vibe saga"
         }
       ]
     },
