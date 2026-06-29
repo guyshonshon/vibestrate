@@ -145,6 +145,11 @@ export type RunCommandOptions = {
    *  checklistSegment. "continuous" runs items back-to-back; "step" pauses
    *  between items. Requires --task and a checklist-aware flow (e.g. pickup). */
   checklistMode?: "continuous" | "step" | null;
+  /** Saga conductor (Phase 2): run as a SAGA. Enables clean halt-with-reset on
+   *  exhausted self-heal, the between-steps budget, and the per-task run lock.
+   *  Set by `vibe saga sequence`; defaults off so plain `vibe run` is unchanged.
+   *  When set with a linked task, the task's `sagaBudget` is passed through. */
+  sagaMode?: boolean;
   /** Context sources injected into every agent prompt (Phase 4). */
   contextSources?: import("../../core/context-source-schema.js").ContextSource[];
 };
@@ -425,6 +430,13 @@ export async function runRunCommand(
   // read-only on the CLI, inherit those from the roadmap task.
   let profileOverride: string | null = options.profileOverride ?? null;
   let readOnly: boolean = options.readOnly ?? false;
+  // Saga conductor (M4): the per-saga budget envelope is owned by the task. We
+  // only pass it through when this launch is a saga (sagaMode) - a non-saga run
+  // ignores it. Defaults to no limits.
+  let sagaBudget: { maxSpendUsd: number | null; maxSteps: number | null } = {
+    maxSpendUsd: null,
+    maxSteps: null,
+  };
   if (roadmapTaskId) {
     try {
       const { RoadmapService } = await import("../../roadmap/roadmap-service.js");
@@ -433,6 +445,7 @@ export async function runRunCommand(
       if (t) {
         if (profileOverride === null) profileOverride = t.profileOverride;
         if (!options.readOnly) readOnly = t.readOnly;
+        if (options.sagaMode) sagaBudget = t.sagaBudget;
       }
     } catch {
       // Best-effort. The orchestrator will still honor the explicit CLI
@@ -635,6 +648,8 @@ export async function runRunCommand(
     specUpTargetFlowId,
     resumeFrom,
     checklistMode: options.checklistMode ?? null,
+    sagaMode: options.sagaMode ?? false,
+    sagaBudget,
     contextSources: options.contextSources ?? [],
     abortSignal: cliAbort.signal,
     onProgress: (msg) => {

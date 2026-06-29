@@ -2,8 +2,9 @@ import path from "node:path";
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
-import { color, indent, symbol } from "../ui/format.js";
+import { color, header, indent, symbol } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
+import { runRunCommand } from "./run.js";
 
 async function svc() {
   const detected = await detectProject(process.cwd());
@@ -146,6 +147,105 @@ async function cmdShow(id: string, opts: { json?: boolean }): Promise<number> {
   }
 }
 
+export async function cmdSequence(
+  taskId: string,
+  opts: { json?: boolean },
+): Promise<number> {
+  // Pre-flight: load + validate the saga BEFORE flipping any lifecycle state, so
+  // a bad id leaves the task untouched.
+  let s: RoadmapService;
+  try {
+    s = await svc();
+  } catch (err) {
+    console.error(`${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`);
+    return 1;
+  }
+  const task = await s.getTask(taskId);
+  if (!task) {
+    console.error(`${symbol.fail()} Saga "${taskId}" not found.`);
+    return 1;
+  }
+  if (task.kind !== "saga") {
+    console.error(
+      `${symbol.fail()} Task "${taskId}" is not a saga (kind: ${task.kind}). Sequence only runs kind=saga tasks.`,
+    );
+    return 1;
+  }
+  if (task.checklist.length === 0) {
+    console.error(
+      `${symbol.fail()} Saga "${taskId}" has no steps. Add steps with ${color.bold(`vibe saga add-step ${taskId} "<text>"`)}.`,
+    );
+    return 1;
+  }
+
+  // Mark the lifecycle as sequencing. M1/M4 own the transition to "halted"
+  // (from inside the run); we never overwrite that.
+  await s.setSagaState(taskId, "sequencing");
+
+  if (!opts.json) {
+    console.log(
+      `${symbol.bullet()} Sequencing saga ${color.bold(taskId)} (${task.checklist.length} steps): ${task.title}`,
+    );
+    console.log("");
+  }
+
+  // Launch through the AUDITED run path. sagaMode flows into the existing
+  // Orchestrator, which provides clean halt-with-reset + the between-steps
+  // budget + the per-task run lock. No raw command spawn, no shell-out.
+  const code = await runRunCommand(task.title, {
+    taskId,
+    flowId: "saga",
+    checklistMode: "continuous",
+    sagaMode: true,
+  });
+
+  // Re-read the task: the run records "halted" itself on a clean halt (M1
+  // self-heal-exhausted / M4 budget). Treat any non-halted outcome as a clean
+  // completion and stamp "done"; never overwrite a halt the run already set.
+  const after = await s.getTask(taskId);
+  const halted = after?.sagaState === "halted";
+  if (!halted) {
+    await s.setSagaState(taskId, "done");
+  }
+  const final = await s.getTask(taskId);
+
+  if (opts.json) {
+    console.log(
+      JSON.stringify(
+        {
+          taskId,
+          sagaState: final?.sagaState ?? null,
+          sagaHalt: final?.sagaHalt ?? null,
+          runExitCode: code,
+        },
+        null,
+        2,
+      ),
+    );
+    // A halt is a real, reportable outcome - not a tool failure. Exit 0 on a
+    // clean halt-with-reason; only a genuine run failure (exit 2) propagates.
+    return code === 2 ? 2 : 0;
+  }
+
+  console.log("");
+  if (halted) {
+    console.log(
+      `${symbol.warn()} ${header("Saga halted")} ${color.yellow(color.bold(final?.sagaHalt?.reason ?? "halted"))}`,
+    );
+    if (final?.sagaHalt?.summary) {
+      console.log(indent(final.sagaHalt.summary));
+    }
+    console.log(
+      indent(
+        `${symbol.arrow()} The failed step is reset to pending - fix it, then re-run ${color.bold(`vibe saga sequence ${taskId}`)} to resume from the clean tip.`,
+      ),
+    );
+  } else {
+    console.log(`${symbol.ok()} ${header("Saga done")} all ${final?.checklist.length ?? task.checklist.length} steps completed.`);
+  }
+  return code === 2 ? 2 : 0;
+}
+
 export function buildSagaCommand(): Command {
   const cmd = new Command("saga").description(
     "Author multi-step Saga tasks (kind=saga): one feature, coordinated steps.",
@@ -194,5 +294,12 @@ export function buildSagaCommand(): Command {
     .description("Show a Saga and its steps.")
     .option("--json", "emit JSON")
     .action(async (id: string, opts) => process.exit(await cmdShow(id, opts)));
+  cmd
+    .command("sequence <taskId>")
+    .description(
+      "Run a Saga end-to-end: launch the saga flow over its steps (clean halt-with-reset, per-saga budget, run lock).",
+    )
+    .option("--json", "emit JSON")
+    .action(async (taskId: string, opts) => process.exit(await cmdSequence(taskId, opts)));
   return cmd;
 }

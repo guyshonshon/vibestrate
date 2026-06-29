@@ -934,6 +934,98 @@ export const pickupReviewFlow = flowDefinitionSchema.parse({
   },
 });
 
+// The built-in **saga** flow (Saga conductor, Phase 2). A LIGHTER sibling of
+// pickup-review for sequencing a multi-step saga: it keeps the per-item REVIEW
+// band (so the band stays a graph review-band - `review-item` is a review-turn
+// with `needs`, which gives the conductor's saga mode its clean halt-with-reset
+// + between-steps budget hooks for free), but collapses pickup-review's
+// correctness + risk + arbiter PANEL into a SINGLE per-item reviewer. One
+// reviewer hunts real bugs AND security/risk in this item's diff and renders the
+// verdict directly. Holistic plan + review run once, outside the band. The
+// `per-item-findings` input on `implement` carries the prior verdict on fix
+// iterations (absent on i=0).
+export const sagaFlow = flowDefinitionSchema.parse({
+  id: "saga",
+  version: 1,
+  label: "Saga",
+  description:
+    "Sequence a multi-step saga item-by-item with a LIGHT per-item review: a holistic plan once, then for each step the implementer writes it and a SINGLE reviewer checks that step's diff for bugs and security/risk and renders APPROVED / CHANGES_REQUESTED; a per-item fix loop runs before the step commits, then a holistic review. Lighter than pick-up (per-item review) - one reviewer, no arbiter panel.",
+  seats: {
+    planner: { label: "Planner", description: "Plans the saga and each step." },
+    implementer: { label: "Implementer", description: "Implements (and fixes) one step." },
+    reviewer: { label: "Reviewer", description: "Reviews one step's diff end-to-end." },
+  },
+  steps: [
+    {
+      id: "plan",
+      label: "Plan",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief"],
+      outputs: ["plan"],
+    },
+    {
+      id: "micro-plan",
+      label: "Micro-plan step",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "executing",
+      inputs: ["task-brief", "plan", "checklist-item", "prior-items"],
+      outputs: ["micro-plan"],
+    },
+    {
+      id: "implement",
+      label: "Implement step",
+      kind: "agent-turn",
+      seat: "implementer",
+      stage: "executing",
+      needs: ["micro-plan"],
+      // per-item-findings is present only on a fix iteration (>0); absent on iteration 0.
+      inputs: [
+        "task-brief",
+        "plan",
+        "micro-plan",
+        "checklist-item",
+        "prior-items",
+        "per-item-findings",
+      ],
+      outputs: ["execution", "diff"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "review-item",
+      label: "Review step",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      needs: ["implement"],
+      inputs: ["task-brief", "plan", "micro-plan", "execution", "diff", "checklist-item"],
+      outputs: ["review-decision"],
+      instructions:
+        "You are the SINGLE reviewer for THIS saga step's diff only. Hunt real bugs (wrong behavior, broken edge cases, races, mishandled errors, contract violations) AND security/risk (injection, secret/path exposure, unsafe effects, broken boundaries, hard-to-revert moves, architectural drift). Cite file:line; no style nits. Render ONE verdict: APPROVED only if no blocking issue survives, otherwise CHANGES_REQUESTED with the must-fix list. Do not launder confidence.",
+    },
+    {
+      id: "review",
+      label: "Holistic review",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      inputs: ["task-brief", "plan", "execution", "prior-items"],
+      outputs: ["findings", "review-decision"],
+    },
+  ],
+  checklistSegment: { from: "micro-plan", to: "review-item" },
+  complexity: "medium",
+  capabilities: {
+    taskKinds: ["checklist"],
+    strengths: ["multi-step", "checklist", "review"],
+    costClass: "medium",
+    latencyClass: "medium",
+    avoids: { readOnly: true },
+  },
+});
+
 // The built-in **express flow** (A3, proportional-orchestration.md / batch
 // P4b): one implementer turn with a diff-floored safety net. Validation is
 // change-scoped (B3) and the review step is `skipWhen: "inert_diff"` - it runs
@@ -1323,6 +1415,7 @@ export const builtinFlows: readonly FlowDefinition[] = [
   reviewPanelFlow,
   pickupAnalysisFlow,
   pickupReviewFlow,
+  sagaFlow,
   securityReviewFlow,
   expressFlow,
   scaffoldFlow,
