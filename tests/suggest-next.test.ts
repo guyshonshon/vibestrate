@@ -41,6 +41,7 @@ function task(
     derivedFrom: null,
     archived: false,
     contextSources: [],
+    kind: "single",
     ...over,
   };
 }

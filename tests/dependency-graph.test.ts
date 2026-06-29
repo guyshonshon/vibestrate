@@ -51,6 +51,7 @@ function makeTask(id: string, deps: string[], status: TaskStatus = "ready"): Tas
     derivedFrom: null,
     archived: false,
     contextSources: [],
+    kind: "single",
   };
 }
 

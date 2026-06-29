@@ -41,6 +41,7 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     derivedFrom: null,
     archived: false,
     contextSources: [],
+    kind: "single",
   };
 }
 

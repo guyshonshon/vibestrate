@@ -12,6 +12,9 @@ const ck = (id: string, text: string, status: "pending" | "done") => ({
   updatedAt: TS,
   commitSha: null,
   promotedTaskId: null,
+  objective: "",
+  acceptanceCheck: "",
+  fileHints: [],
 });
 const task = (over: Partial<Task>): Task =>
   taskSchema.parse({
