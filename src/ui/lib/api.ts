@@ -1569,6 +1569,7 @@ export const api = {
     requiredSkills?: string[];
     touchedFiles?: string[];
     riskLevel?: "low" | "medium" | "high";
+    kind?: "single" | "saga";
   }): Promise<Task> {
     const r = await jsonPost<{ task: Task }>("/api/tasks", input);
     return r.task;
@@ -1629,16 +1630,17 @@ export const api = {
   async addChecklistItem(
     taskId: string,
     text: string,
+    fields?: { objective?: string; acceptanceCheck?: string; fileHints?: string[] },
   ): Promise<{ task: Task; item: ChecklistItem }> {
     return jsonPost(
       `/api/tasks/${encodeURIComponent(taskId)}/checklist`,
-      { text },
+      { text, ...fields },
     );
   },
   async updateChecklistItem(
     taskId: string,
     itemId: string,
-    patch: { text?: string; status?: ChecklistItemStatus },
+    patch: { text?: string; status?: ChecklistItemStatus; objective?: string; acceptanceCheck?: string; fileHints?: string[] },
   ): Promise<{ task: Task; item: ChecklistItem }> {
     return jsonPatch(
       `/api/tasks/${encodeURIComponent(taskId)}/checklist/${encodeURIComponent(itemId)}`,
