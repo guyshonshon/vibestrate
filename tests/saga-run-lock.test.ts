@@ -8,6 +8,7 @@ import {
   releaseTaskLock,
   TaskLockedError,
   taskLockPath,
+  __setReclaimRaceHookForTests,
 } from "../src/core/run-lock.js";
 import { runStatePath, runDir } from "../src/utils/paths.js";
 import { applySetup } from "../src/setup/setup-service.js";
@@ -35,8 +36,38 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  __setReclaimRaceHookForTests(null); // never leak the fault-injection hook
   await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
 });
+
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Stale-reclaim fault-injection hook that recreates the exact FATAL interleave:
+ * the FIRST racer to reach the pre-unlink point proceeds immediately (it unlinks
+ * the stale lock and recreates a fresh LIVE one), while every LATER racer parks
+ * on `gate` until the test opens it. A test opens the gate only AFTER the winner
+ * has recreated - so a loser's unlink lands on the winner's FRESH live lock. With
+ * a bare unlink that double-acquires; the re-stat guard turns the loser's unlink
+ * into a no-op (the witnessed mtime changed) and the loser is refused instead.
+ */
+function makeStaggeredReclaimGate(): {
+  hook: () => Promise<void>;
+  openLosers: () => void;
+} {
+  let arrived = 0;
+  let openLosers!: () => void;
+  const gate = new Promise<void>((r) => {
+    openLosers = r;
+  });
+  const hook = (): Promise<void> => {
+    arrived += 1;
+    // Arrival #1 is the winner: let it unlink+recreate without waiting.
+    if (arrived === 1) return Promise.resolve();
+    return gate; // losers wait until the winner has recreated a fresh lock
+  };
+  return { hook, openLosers };
+}
 
 /** Write a holder run's state.json with a given status so staleness can be judged. */
 async function writeRunState(runId: string, status: string): Promise<void> {
@@ -191,6 +222,80 @@ describe("acquireTaskLock / releaseTaskLock (M5)", () => {
     );
     expect(winners.length).toBe(1);
     expect(refused.length).toBe(results.length - 1);
+  });
+
+  it("is mutually exclusive when N racers reclaim the SAME stale lock", async () => {
+    // REGRESSION (adversarial review, FATAL): the existing 40-way test only races
+    // a FREE lock. The dangerous window is the STALE-RECLAIM path: an existing
+    // dead-pid lock that several starters all judge reclaimable at once. A naive
+    // reclaim does a bare unlink with no re-check, so the loser's unlink deletes
+    // the winner's FRESH live lock and BOTH acquire. Mutual exclusion must hold:
+    // exactly one wins, the rest get TaskLockedError, and the lock left on disk
+    // belongs to the single winner (no loser clobbered it).
+    //
+    // The window is sub-microsecond on a single-threaded event loop, so we open
+    // it deterministically with a staggered reclaim hook (winner proceeds, losers
+    // park) and release the losers only after the winner has recreated its lock.
+    const N = 8;
+    const lockPath = taskLockPath(dir, "task-stale-race");
+    const { hook, openLosers } = makeStaggeredReclaimGate();
+    __setReclaimRaceHookForTests(hook);
+
+    const pid = await deadPid();
+    await fs.mkdir(path.dirname(lockPath), { recursive: true });
+    await fs.writeFile(
+      lockPath,
+      JSON.stringify({
+        runId: "ghost-run", // the stale holder every racer judges reclaimable
+        pid, // dead -> the lock is reclaimable
+        host: os.hostname(),
+        startedAt: new Date().toISOString(),
+      }),
+      "utf8",
+    );
+
+    const racers = Array.from({ length: N }, (_, i) =>
+      acquireTaskLock(dir, "task-stale-race", `reclaimer-${i}`),
+    );
+
+    // Wait until the winner has reclaimed + recreated a fresh LIVE lock (the
+    // holder is no longer "ghost-run"), then release the parked losers - so a
+    // loser's unlink targets the winner's fresh lock, exactly the race window.
+    for (let i = 0; i < 500; i++) {
+      await sleep(2);
+      try {
+        const body = JSON.parse(await fs.readFile(lockPath, "utf8")) as {
+          runId: string;
+        };
+        if (body.runId !== "ghost-run") break;
+      } catch {
+        // between the winner's unlink and recreate - keep polling
+      }
+    }
+    openLosers();
+
+    const results = await Promise.allSettled(racers);
+    const winners = results.filter((r) => r.status === "fulfilled");
+    const refused = results.filter(
+      (r) => r.status === "rejected" && r.reason instanceof TaskLockedError,
+    );
+    // No racer may fail with anything other than TaskLockedError.
+    const otherErrors = results.filter(
+      (r) => r.status === "rejected" && !(r.reason instanceof TaskLockedError),
+    );
+    expect(otherErrors).toEqual([]);
+    expect(winners.length).toBe(1);
+    expect(refused.length).toBe(results.length - 1);
+
+    // The lock now on disk must be the winner's - proving no loser's unlink
+    // deleted the winner's fresh live lock (which would have let a second in).
+    const winnerRunId = (
+      winners[0] as PromiseFulfilledResult<{ runId: string }>
+    ).value.runId;
+    const onDisk = JSON.parse(await fs.readFile(lockPath, "utf8")) as {
+      runId: string;
+    };
+    expect(onDisk.runId).toBe(winnerRunId);
   });
 });
 

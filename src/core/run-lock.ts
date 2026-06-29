@@ -149,6 +149,57 @@ async function holderIsStale(
   return false;
 }
 
+/** TEST-ONLY fault-injection seam. Invoked inside the stale-reclaim path AFTER a
+ *  racer has read the holder + witnessed the lockfile's mtime, but BEFORE it
+ *  unlinks. A test sets this to yield the event loop, widening the otherwise
+ *  sub-microsecond window so the bare-unlink TOCTOU is deterministically
+ *  exercised. Default no-op: zero effect in production. Not exported on the
+ *  public surface beyond this hook. */
+let reclaimRaceHook: (() => Promise<void>) | null = null;
+
+/** Install (or clear with `null`) the stale-reclaim fault-injection hook. TEST
+ *  ONLY - production never calls this. */
+export function __setReclaimRaceHookForTests(
+  hook: (() => Promise<void>) | null,
+): void {
+  reclaimRaceHook = hook;
+}
+
+/**
+ * Re-stat the lockfile and unlink it ONLY if it is unchanged since the caller
+ * witnessed its mtime at EEXIST-read time. Mirrors file-mutex's `tryReclaimStale`
+ * guard: if the lock was refreshed or replaced under us (mtime changed) we do NOT
+ * unlink - returning false so the caller re-reads the (possibly now-live) holder
+ * instead of deleting a fresh lock a winning racer just created. A vanished lock
+ * (ENOENT) counts as "gone" -> proceed. Without this guard two racers that both
+ * judged a STALE lock reclaimable would both unlink and both acquire (the loser's
+ * unlink deleting the winner's fresh live lock).
+ */
+async function reclaimStaleLock(
+  lockPath: string,
+  witnessedMtimeMs: number,
+): Promise<boolean> {
+  // Test seam: deterministically widen the read->unlink window.
+  if (reclaimRaceHook) await reclaimRaceHook();
+  let fresh: import("node:fs").Stats;
+  try {
+    fresh = await fs.stat(lockPath);
+  } catch {
+    return true; // already gone -> the next create attempt settles it
+  }
+  if (fresh.mtimeMs !== witnessedMtimeMs) {
+    // Refreshed / replaced under us. Back off and re-read the holder; if it is
+    // now a live lock the caller treats the task as held.
+    return false;
+  }
+  try {
+    await fs.unlink(lockPath);
+  } catch {
+    // already gone between the re-stat and here - still safe to re-attempt create
+  }
+  return true;
+}
+
 /** Born-populated exclusive create: write the body to a temp, then atomically
  *  link it to `lockPath`. Throws EEXIST (via link) if the lock already exists.
  *  The temp is always cleaned up. */
@@ -185,38 +236,48 @@ export async function acquireTaskLock(
     startedAt: new Date().toISOString(),
   };
 
-  // Two attempts: the first may hit an existing-but-stale lock that we reclaim;
-  // the reclaim re-attempts the create. If the second create still hits EEXIST,
-  // someone else won the reclaim race - treat as held.
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // A bounded retry loop. Most acquires settle in one or two passes: the create
+  // either wins outright, or hits a holder that is judged held (throw) or stale
+  // (reclaim once, then re-create). The cap is generous enough that a racer which
+  // backs OFF a reclaim (because a peer refreshed the lock under it) still gets a
+  // pass to re-read the now-live holder and throw TaskLockedError - while still
+  // terminating. A FREE-lock race never loops here (losers see a live holder and
+  // throw at once); only stale-reclaim contention needs the extra passes.
+  const MAX_ATTEMPTS = 8;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
       await createLockAtomically(lockPath, body);
       return { projectRoot, taskId, runId };
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
+      // Witness the lockfile's mtime TOGETHER with the holder read, so the later
+      // re-stat in reclaimStaleLock can detect a refresh/replace under us. A
+      // vanished lock here means the next create attempt will settle it.
+      let witnessedMtimeMs: number;
+      try {
+        witnessedMtimeMs = (await fs.stat(lockPath)).mtimeMs;
+      } catch {
+        continue; // gone between EEXIST and stat -> retry the create
+      }
       const holder = await readLockBody(lockPath);
       if (!holder) {
         // Unreadable/garbage lock that still exists: vanished or half-removed.
         // Re-loop to retry the create; if it persists as EEXIST on the last
         // attempt we fall through to the held error below.
-        if (attempt === 0) continue;
-        throw new TaskLockedError(taskId, "unknown", -1);
+        continue;
       }
       const stale = await holderIsStale(projectRoot, holder);
       if (!stale) {
         throw new TaskLockedError(taskId, holder.runId, holder.pid);
       }
-      // Reclaim: remove the stale lock, then loop to re-attempt the create.
-      // re-stat to avoid unlinking a lock a third party just refreshed under us.
-      try {
-        await fs.unlink(lockPath);
-      } catch {
-        // already gone - the next create attempt will settle it
-      }
+      // Reclaim, but ONLY if the lock is still the one we just witnessed. If a
+      // peer reclaimed + recreated under us, reclaimStaleLock returns false and
+      // we loop to re-read the (now live) holder rather than delete its lock.
+      await reclaimStaleLock(lockPath, witnessedMtimeMs);
       // loop continues to the next create attempt
     }
   }
-  // Both create attempts lost to a concurrent holder/reclaimer.
+  // Every attempt lost to a concurrent holder/reclaimer.
   const holder = await readLockBody(lockPath);
   throw new TaskLockedError(
     taskId,

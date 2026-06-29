@@ -268,11 +268,23 @@ export async function runFromSpec(
   // before the detached child spawns), so it doubles as the lock holder id.
   let lock: TaskLockHandle | null = null;
   if (spec.taskId) {
+    // The lock holder id MUST equal the run's own id (the one written into its
+    // state.json), so terminal-state stale-reclaim can find that state file. The
+    // orchestrator records `spec.runId` as the run id; if it were absent it would
+    // mint a fresh id internally that we cannot know here, so the lock holder id
+    // would never match the state file. Require it when a task is linked (the
+    // dashboard always pre-assigns it) rather than fall back to a divergent id.
+    if (!spec.runId) {
+      throw new RunLaunchError(
+        "missing_run_id",
+        "A task-linked run must pre-assign spec.runId (it doubles as the run-lock holder id).",
+      );
+    }
     try {
       lock = await acquireTaskLock(
         detected.projectRoot,
         spec.taskId,
-        spec.runId ?? `launch-${Date.now()}`,
+        spec.runId,
       );
     } catch (err) {
       if (err instanceof TaskLockedError) {

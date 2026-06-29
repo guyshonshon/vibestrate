@@ -585,7 +585,14 @@ export async function runRunCommand(
   // task fails fast with a clear error and exits non-zero WITHOUT starting a run.
   // NOTE: any NEW run launch path MUST acquire this lock the same way - there is
   // no shared pre-run chokepoint (the dashboard does so in run-launcher.ts).
-  const preassignedRunId = makeUniqueRunId(detected.projectRoot);
+  // Pass the worktree dir so the pre-assigned id is unique against the SHARED
+  // worktree namespace too (sibling projects collide on `../.vibestrate-worktrees`),
+  // matching the orchestrator's own makeUniqueRunId call. The CLI hands this id to
+  // the orchestrator, which then skips its re-mint - so the check must happen here.
+  const preassignedRunId = makeUniqueRunId(
+    detected.projectRoot,
+    loaded.config.git.worktreeDir,
+  );
   let taskLock: TaskLockHandle | null = null;
   if (roadmapTaskId) {
     try {
