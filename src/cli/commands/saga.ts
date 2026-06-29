@@ -199,13 +199,37 @@ export async function cmdSequence(
     sagaMode: true,
   });
 
-  // Re-read the task: the run records "halted" itself on a clean halt (M1
-  // self-heal-exhausted / M4 budget). Treat any non-halted outcome as a clean
-  // completion and stamp "done"; never overwrite a halt the run already set.
+  // Attribute the outcome by the run's exit code (runRunCommand contract):
+  //   0 = merge_ready (clean)                  -> "done"
+  //   1 = the run never STARTED (the task is locked by a concurrent run, or a
+  //       pre-run failure) -> a complete state NO-OP. Another invocation may own
+  //       this saga's lifecycle; we must not touch it or claim any outcome.
+  //   2 = the run threw; 3 = blocked/failed/aborted. The run executed but did
+  //       NOT complete, and the orchestrator recorded no step-level halt (e.g.
+  //       the holistic review blocked, a policy block, or an abort). Record a
+  //       clean halt so the lifecycle is honest + resumable instead of being
+  //       stranded at "sequencing" or - the old bug - mislabeled "done".
+  // A real step/budget halt already set sagaState="halted" from inside the run;
+  // we never overwrite that.
+  if (code === 1) {
+    // runRunCommand already printed the reason (e.g. TaskLockedError). Leave the
+    // lifecycle exactly as we found it.
+    return 1;
+  }
   const after = await s.getTask(taskId);
-  const halted = after?.sagaState === "halted";
+  let halted = after?.sagaState === "halted";
   if (!halted) {
-    await s.setSagaState(taskId, "done");
+    if (code === 0) {
+      await s.setSagaState(taskId, "done");
+    } else {
+      await s.recordSagaHalt(taskId, {
+        reason: `run ended ${code === 2 ? "failed" : "blocked"} before completing the saga`,
+        atStepId: null,
+        summary:
+          "The saga run did not complete cleanly (the holistic review blocked, a policy block, or an abort). Committed steps are kept; re-run to continue.",
+      });
+      halted = true;
+    }
   }
   const final = await s.getTask(taskId);
 
@@ -235,11 +259,12 @@ export async function cmdSequence(
     if (final?.sagaHalt?.summary) {
       console.log(indent(final.sagaHalt.summary));
     }
-    console.log(
-      indent(
-        `${symbol.arrow()} The failed step is reset to pending - fix it, then re-run ${color.bold(`vibe saga sequence ${taskId}`)} to resume from the clean tip.`,
-      ),
-    );
+    // A step-level halt reset one step to pending (resume re-attempts it from the
+    // clean tip); a run-level block/abort halt (atStepId null) reset no step.
+    const resumeHint = final?.sagaHalt?.atStepId
+      ? `The failed step is reset to pending - fix it, then re-run ${color.bold(`vibe saga sequence ${taskId}`)} to resume from the clean tip.`
+      : `Address the issue, then re-run ${color.bold(`vibe saga sequence ${taskId}`)} to continue.`;
+    console.log(indent(`${symbol.arrow()} ${resumeHint}`));
   } else {
     console.log(`${symbol.ok()} ${header("Saga done")} all ${final?.checklist.length ?? task.checklist.length} steps completed.`);
   }

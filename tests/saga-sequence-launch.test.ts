@@ -8,6 +8,7 @@ import { setConfigValue } from "../src/setup/config-update-service.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
 import { cmdSequence } from "../src/cli/commands/saga.js";
+import { acquireTaskLock, releaseTaskLock } from "../src/core/run-lock.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({
@@ -53,14 +54,16 @@ process.stdin.on('end', () => {
     return;
   }
   if (id === 'review') {
-    console.log('# Holistic review\\nDECISION: APPROVED');
+    let dec = 'APPROVED';
+    try { dec = (fs.readFileSync(path.join(__dirname, 'holistic-decision.txt'), 'utf8').trim() || 'APPROVED'); } catch (e) {}
+    console.log('# Holistic review\\nDECISION: ' + dec);
     return;
   }
   console.log('ok');
 });
 `;
 
-async function makeProject(): Promise<string> {
+async function makeProject(opts?: { holisticDecision?: string }): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-saga-seq-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
@@ -72,6 +75,11 @@ async function makeProject(): Promise<string> {
   const fakeJs = path.join(dir, "fake.js");
   await fs.writeFile(fakeJs, FAKE, { mode: 0o755 });
   await fs.chmod(fakeJs, 0o755);
+  // The fake's holistic `review` reads its verdict from this file (defaults to
+  // APPROVED when absent), so a test can force the run to end blocked.
+  if (opts?.holisticDecision) {
+    await fs.writeFile(path.join(dir, "holistic-decision.txt"), opts.holisticDecision);
+  }
   await setConfigValue(
     dir,
     "providers.fake",
@@ -114,6 +122,58 @@ describe("vibe saga sequence (launch)", () => {
     // The conductor flipped the lifecycle to done (and never to halted).
     expect(after!.sagaState).toBe("done");
     expect(after!.sagaHalt).toBeNull();
+  }, 90_000);
+
+  it("a lock-rejected sequence is a state no-op: never marks the saga done", async () => {
+    // Concurrency: another run already holds this task's lock (a LIVE holder -
+    // this test's own pid, no terminal state.json, so it is never reclaimed).
+    // cmdSequence's run must fail fast (TaskLockedError -> exit 1) WITHOUT
+    // claiming any terminal outcome on the (possibly still-running) saga.
+    const dir = await makeProject();
+    const svc = new RoadmapService(dir);
+    await svc.init();
+    const task = await svc.addTask({ title: "Already running", kind: "saga" });
+    await svc.addChecklistItem(task.id, "do a thing");
+
+    const lock = await acquireTaskLock(dir, task.id, "other-live-run");
+    try {
+      process.chdir(dir);
+      const code = await cmdSequence(task.id, { json: true });
+      // The run never started; a lock rejection is a non-zero failure, NOT a
+      // clean completion.
+      expect(code).toBe(1);
+      const after = await svc.getTask(task.id);
+      // The bug: cmdSequence stamped "done" (and printed "Saga done") whenever
+      // the saga was not "halted", ignoring that the run never ran.
+      expect(after!.sagaState).not.toBe("done");
+      expect(after!.sagaHalt).toBeNull();
+    } finally {
+      await releaseTaskLock(lock);
+    }
+  }, 30_000);
+
+  it("a run that ends blocked (holistic review) is recorded as halted, not done", async () => {
+    // Every step passes per-item review and commits, but the holistic review
+    // blocks. The run ends `blocked` with no step-level halt - the orchestrator
+    // records nothing. cmdSequence must NOT relabel this "done"; it records a
+    // clean halt so the lifecycle is honest + resumable.
+    const dir = await makeProject({ holisticDecision: "CHANGES_REQUESTED" });
+    const svc = new RoadmapService(dir);
+    await svc.init();
+    const task = await svc.addTask({ title: "Blocks at the end", kind: "saga" });
+    await svc.addChecklistItem(task.id, "create the only file");
+
+    process.chdir(dir);
+    const code = await cmdSequence(task.id, { json: true });
+
+    const after = await svc.getTask(task.id);
+    // The step committed, but the run is blocked - not a clean completion.
+    expect(after!.sagaState).not.toBe("done");
+    expect(after!.sagaState).toBe("halted");
+    expect(after!.sagaHalt).not.toBeNull();
+    // A halt is a reportable outcome, not a tool failure (exit 0); only a thrown
+    // run (exit 2) propagates.
+    expect(code).toBe(0);
   }, 90_000);
 
   it("rejects sequencing a non-saga task and a saga with no steps", async () => {
