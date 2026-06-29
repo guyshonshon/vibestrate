@@ -45,7 +45,7 @@ The Saga can run. `vibe saga sequence <id>` sequences the steps in order through
 - each step is planned, implemented, and reviewed - with a bounded self-heal loop - before the next step starts, so a later step never builds on a broken earlier one,
 - each step starts a **fresh model context** grounded by a **curated packet**: the feature goal, a compact ledger of prior-step outcomes, the accumulated diff so far, and a fresh read of the step's file hints,
 - the Saga commits one step at a time to a single feature branch,
-- it is bounded by a per-Saga budget (`maxSteps`, `maxSpendUsd`) and protected by a per-task run lock.
+- it is bounded by a per-Saga budget (`maxSteps`, `maxSpendUsd`), checked between steps, and protected by a per-task run lock. A new Saga inherits a default step ceiling (`maxSteps: 20`) so a runaway always halts; set project-wide defaults under `saga` in `project.yml` (the per-task budget overrides them where set).
 
 If a step cannot pass its review after self-heal, the Saga **halts cleanly**: the failed step's work is discarded (the branch stays reviewable), the step is left pending, and the run ends blocked with a reason. Fix the cause and re-run `vibe saga sequence` - finished steps are skipped, so it resumes from the clean tip. A finished Saga lands as one reviewable branch; it is never auto-merged.
 

@@ -60,4 +60,30 @@ describe("getConfigValue resolves schema defaults", () => {
     const r = await getConfigValue(dir, "git.totallyBogusKey");
     expect(r.found).toBe(false);
   });
+
+  it("resolves config.saga defaults for a config that never wrote a saga section", async () => {
+    // The saga conductor's per-task budget override layer. An existing project
+    // (no `saga:` in project.yml) must still resolve the defaults, so the launch
+    // path can merge them: maxSteps 20, maxSpendUsd off.
+    const onDisk = await fs.readFile(
+      path.join(dir, ".vibestrate", "project.yml"),
+      "utf8",
+    );
+    expect(onDisk).not.toContain("saga:"); // precondition: unset
+
+    const steps = await getConfigValue(dir, "saga.maxSteps");
+    expect(steps.found).toBe(true);
+    if (steps.found) expect(steps.value).toBe(20);
+
+    const spend = await getConfigValue(dir, "saga.maxSpendUsd");
+    expect(spend.found).toBe(true);
+    if (spend.found) expect(spend.value).toBeNull();
+  });
+
+  it("reads an explicit config.saga override verbatim (the override layer)", async () => {
+    await setConfigValue(dir, "saga.maxSteps", "5");
+    const r = await getConfigValue(dir, "saga.maxSteps");
+    expect(r.found).toBe(true);
+    if (r.found) expect(r.value).toBe(5);
+  });
 });

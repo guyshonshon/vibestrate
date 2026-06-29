@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.38.1
+
+- **Saga budgets are real now (and a saga is bounded by default).** The per-Saga
+  `maxSteps` / `maxSpendUsd` envelope shipped in 0.38.0 was hardcoded to "no
+  limit" at creation, so a runaway Saga never actually halted. A new Saga now
+  inherits a default step ceiling (`maxSteps: 20`), and a new `saga` section in
+  `project.yml` sets the project-wide defaults the per-task budget overrides. A
+  completed step also records which run executed it and a one-line outcome, and a
+  resumed/finished Saga no longer carries a stale halt record.
+
 ## 0.38.0
 
 - **Sagas run themselves now - the Conductor (execution core).** Sequence a Saga

@@ -3683,7 +3683,18 @@ export class Orchestrator {
           renderItemSummaryArtifact(outcome),
         );
         await roadmap
-          .updateChecklistItem(this.taskId!, item.id, { status: "done", commitSha })
+          .updateChecklistItem(this.taskId!, item.id, {
+            status: "done",
+            commitSha,
+            // Saga mode (M1): stamp the step's run + curated outcome so a saga's
+            // checklist records which run executed each step and a one-line
+            // result. Reuse the SAME redacted summary already computed for the
+            // outcome (no second redaction pass). Non-saga checklist runs leave
+            // these fields untouched (their false-capability gap is unchanged).
+            ...(this.sagaMode
+              ? { runId: input.runId, outcomeSummary: outcome.summary }
+              : {}),
+          })
           .catch(() => {});
         state = {
           ...state,

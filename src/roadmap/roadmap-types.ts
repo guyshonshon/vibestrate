@@ -174,6 +174,12 @@ export const sagaHaltSchema = z.object({
 });
 export type SagaHalt = z.infer<typeof sagaHaltSchema>;
 
+// Default step ceiling a freshly created saga inherits when no project override
+// narrows it (config.saga.maxSteps). Lives here (the lightweight types module)
+// so RoadmapService can seed it without importing the heavy config schema; the
+// config schema imports it back so both sides agree on the number.
+export const SAGA_DEFAULT_MAX_STEPS = 20;
+
 // Per-saga budget envelope. `maxSpendUsd` is a BETWEEN-STEPS checkpoint, not a
 // mid-step wall (a single step is bounded only by the global daily spend cap).
 // `maxSteps` caps total steps. Null = no limit on that axis.

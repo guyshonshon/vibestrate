@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { POLICY_LIMITS } from "../policies/policy-types.js";
+import { SAGA_DEFAULT_MAX_STEPS } from "../roadmap/roadmap-types.js";
 import { crewsConfigSchema } from "../crews/crew-schema.js";
 import { profilesConfigSchema } from "../profiles/profile-schema.js";
 import { permissionProfilesSchema } from "../permissions/permission-schema.js";
@@ -282,6 +283,25 @@ export const budgetConfigSchema = z
   .default({ spendCapDailyUsd: null, capAction: "stop", warnThresholdPct: 0.8 });
 
 export type BudgetConfig = z.infer<typeof budgetConfigSchema>;
+
+// Per-saga budget defaults (saga conductor, M4). A kind:"saga" task carries a
+// `sagaBudget` envelope checked BETWEEN steps - `maxSpendUsd` is a checkpoint
+// (not a mid-step wall) and `maxSteps` caps total steps. These are the project
+// DEFAULTS a freshly created saga inherits; the task's own `sagaBudget` is the
+// per-task override applied at launch wherever the task left a value null. The
+// default `maxSteps: 20` means a saga is bounded out of the box, so a runaway
+// actually halts instead of sequencing forever. Both null = no limit on that axis.
+// The default lives in roadmap-types.ts (SAGA_DEFAULT_MAX_STEPS) so RoadmapService
+// - which has no config access - seeds a new saga with the SAME number this
+// override layer resolves to.
+export const sagaConfigSchema = z
+  .object({
+    maxSpendUsd: z.number().nonnegative().nullable().default(null).describe("Default per-saga spend checkpoint (USD) between steps; null = off (default off)."),
+    maxSteps: z.number().int().positive().nullable().default(SAGA_DEFAULT_MAX_STEPS).describe("Default cap on total steps in a saga; null = unbounded (default 20)."),
+  })
+  .strict()
+  .default({});
+export type SagaConfig = z.infer<typeof sagaConfigSchema>;
 
 // Provider resilience (unattended-resilience U2). Recoverable provider failures
 // - rate limits (429/quota) and transient blips (5xx, "server temporarily
@@ -599,6 +619,13 @@ export const projectConfigBaseSchema = z.object({
   flowSizing: z.enum(["off", "deterministic", "assisted"]).default("deterministic").describe("Route trivial tasks to a lighter flow: off, deterministic, or assisted (default deterministic)."),
   adaptiveSpecUp: z.enum(["off", "auto"]).default("auto").describe("Route plan-worthy greenfield/system briefs into the read-only Spec-up chain before executing: off or auto (default auto)."),
   budget: budgetConfigSchema,
+  /**
+   * Per-saga budget defaults (saga conductor, M4). The override layer a freshly
+   * created kind:"saga" task inherits and that the launch path applies wherever
+   * the task's own `sagaBudget` left a value null. Default `maxSteps: 20` keeps a
+   * saga bounded out of the box.
+   */
+  saga: sagaConfigSchema,
   resilience: resilienceConfigSchema,
   session: sessionConfigSchema,
   commands: commandsConfigSchema.default({ validate: [] }),

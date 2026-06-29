@@ -430,9 +430,10 @@ export async function runRunCommand(
   // read-only on the CLI, inherit those from the roadmap task.
   let profileOverride: string | null = options.profileOverride ?? null;
   let readOnly: boolean = options.readOnly ?? false;
-  // Saga conductor (M4): the per-saga budget envelope is owned by the task. We
-  // only pass it through when this launch is a saga (sagaMode) - a non-saga run
-  // ignores it. Defaults to no limits.
+  // Saga conductor (M4): the per-saga budget envelope is owned by the task, with
+  // config.saga as the project-level default/override layer applied wherever the
+  // task left a value null. We only pass it through when this launch is a saga
+  // (sagaMode) - a non-saga run ignores it. Defaults to no limits.
   let sagaBudget: { maxSpendUsd: number | null; maxSteps: number | null } = {
     maxSpendUsd: null,
     maxSteps: null,
@@ -445,7 +446,16 @@ export async function runRunCommand(
       if (t) {
         if (profileOverride === null) profileOverride = t.profileOverride;
         if (!options.readOnly) readOnly = t.readOnly;
-        if (options.sagaMode) sagaBudget = t.sagaBudget;
+        if (options.sagaMode) {
+          // Per-task value wins; fall back to the config.saga default on each
+          // axis the task left null. So a saga is bounded even if its own
+          // envelope is empty, and a project can tighten/loosen the default.
+          const cfg = loaded.config.saga;
+          sagaBudget = {
+            maxSpendUsd: t.sagaBudget.maxSpendUsd ?? cfg.maxSpendUsd,
+            maxSteps: t.sagaBudget.maxSteps ?? cfg.maxSteps,
+          };
+        }
       }
     } catch {
       // Best-effort. The orchestrator will still honor the explicit CLI

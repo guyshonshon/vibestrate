@@ -20,6 +20,7 @@ import {
   type Task,
   type TaskKind,
   type TaskStatus,
+  SAGA_DEFAULT_MAX_STEPS,
   safeIdSchema,
 } from "./roadmap-types.js";
 
@@ -76,7 +77,15 @@ export type CommentInput = {
 export type ChecklistItemPatch = Partial<
   Pick<
     ChecklistItem,
-    "text" | "status" | "commitSha" | "promotedTaskId" | "objective" | "acceptanceCheck" | "fileHints"
+    | "text"
+    | "status"
+    | "commitSha"
+    | "promotedTaskId"
+    | "objective"
+    | "acceptanceCheck"
+    | "fileHints"
+    | "runId"
+    | "outcomeSummary"
   >
 >;
 
@@ -167,12 +176,21 @@ export class RoadmapService {
       }
     }
     const ts = nowIso();
+    const kind: TaskKind = input.kind ?? "single";
     const task: Task = {
       id: makeId(input.title, "task"),
-      kind: input.kind ?? "single",
+      kind,
       sagaState: "idle",
       sagaHalt: null,
-      sagaBudget: { maxSpendUsd: null, maxSteps: null },
+      // A saga is bounded out of the box: seed the default step ceiling so a
+      // runaway actually halts (M4's checkSagaStopConditions never trips when
+      // every axis is null). config.saga is the project-level override layer the
+      // launch path (runRunCommand) merges in wherever this value is still null.
+      // A single (non-sequenced) task carries no envelope.
+      sagaBudget:
+        kind === "saga"
+          ? { maxSpendUsd: null, maxSteps: SAGA_DEFAULT_MAX_STEPS }
+          : { maxSpendUsd: null, maxSteps: null },
       roadmapItemId: input.roadmapItemId ?? null,
       title: input.title.trim(),
       description: input.description?.trim() ?? "",
@@ -262,13 +280,18 @@ export class RoadmapService {
   }
 
   /** Saga conductor (Phase 2): set the saga lifecycle state (sequencing on
-   *  launch, done on clean completion). */
+   *  launch, done on clean completion). Moving to "sequencing" (a resume) or
+   *  "done" (clean completion) also clears any prior `sagaHalt` - otherwise a
+   *  recovered saga would end with a stale halt record contradicting its state.
+   *  ("halted" is set via recordSagaHalt, which owns writing the halt.) */
   async setSagaState(id: string, sagaState: Task["sagaState"]): Promise<Task> {
     const t = await this.store.getTask(id);
     if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
+    const clearsHalt = sagaState === "sequencing" || sagaState === "done";
     const next: Task = {
       ...t,
       sagaState,
+      ...(clearsHalt ? { sagaHalt: null } : {}),
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };

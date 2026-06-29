@@ -435,6 +435,34 @@
       ]
     },
     {
+      "key": "saga",
+      "fullKey": "saga",
+      "type": "object",
+      "required": false,
+      "default": {},
+      "itemType": null,
+      "children": [
+        {
+          "key": "maxSpendUsd",
+          "fullKey": "saga.maxSpendUsd",
+          "type": "number | null",
+          "required": false,
+          "default": null,
+          "itemType": null,
+          "description": "Default per-saga spend checkpoint (USD) between steps; null = off (default off)."
+        },
+        {
+          "key": "maxSteps",
+          "fullKey": "saga.maxSteps",
+          "type": "number | null",
+          "required": false,
+          "default": 20,
+          "itemType": null,
+          "description": "Default cap on total steps in a saga; null = unbounded (default 20)."
+        }
+      ]
+    },
+    {
       "key": "resilience",
       "fullKey": "resilience",
       "type": "object",

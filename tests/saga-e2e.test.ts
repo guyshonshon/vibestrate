@@ -234,6 +234,13 @@ describe("saga e2e - git-level proofs", () => {
       expect(sha1).not.toBeNull();
       expect(sha2).not.toBeNull();
 
+      // M1: every completed saga step records WHICH run executed it and a
+      // one-line curated outcome (previously these were never written).
+      for (const step of after!.checklist) {
+        expect(step.runId).toBe(out.runId);
+        expect(step.outcomeSummary.length).toBeGreaterThan(0);
+      }
+
       // --- Git assertions on the worktree ---
 
       // All commits are on the feature branch, NOT main.
