@@ -45,60 +45,13 @@ Options:
 - `--files <list>` - comma-separated file paths or globs the Conductor should treat as primary context for this step.
 - `--json` - emit the created step as JSON.
 
-### `vibe tasks edit-step <taskId> <itemId>`
+### Editing and reordering steps
 
-Edit fields of an existing step. At least one of `--text`, `--objective`, `--acceptance`, or `--files` is required.
+Edit a step's display text with `vibe tasks checklist edit <taskId> <itemId> <text>`, and reorder steps one at a time with `vibe tasks checklist move <taskId> <itemId> <position>`. To revise a step's structured fields (objective / acceptance check / file hints) from the CLI, re-add the step with the flags above, or edit them inline in the task detail view in Mission Control.
 
-```bash
-vibe tasks edit-step saga-abc123 item-001 --text "Update the settings model and its tests"
-vibe tasks edit-step saga-abc123 item-001 \
-  --acceptance "TS compiles and all settings tests pass"
-vibe tasks edit-step saga-abc123 item-001 \
-  --files "src/models/settings.ts,src/models/__tests__/settings.test.ts"
-```
+### `vibe tasks list` / `vibe tasks show <id>`
 
-Options:
-
-- `--text <t>` - replace the step's display text.
-- `--objective <t>` - replace the step's scoped goal.
-- `--acceptance <t>` - replace the done-when check.
-- `--files <list>` - replace the comma-separated file hints.
-- `--json` - emit the updated step as JSON.
-
-### `vibe tasks reorder <taskId> <orderedIds>`
-
-Reorder the steps of a supervised task. Pass the complete ordered list of item ids as a comma-separated string.
-
-```bash
-vibe tasks reorder saga-abc123 "item-003,item-001,item-002"
-vibe tasks reorder saga-abc123 "item-003,item-001,item-002" --json
-```
-
-Options:
-
-- `--json` - emit the new order as a JSON array of ids.
-
-### `vibe tasks list`
-
-List all supervised tasks in the project.
-
-```bash
-vibe tasks list
-vibe tasks list --json
-```
-
-Each row shows the saga id, title, and a `[done/total steps]` count. `--json` emits the full task array.
-
-### `vibe tasks show <id>`
-
-Show a supervised task and all its steps.
-
-```bash
-vibe tasks show saga-abc123
-vibe tasks show saga-abc123 --json
-```
-
-The human-readable output prints the title, description (if any), step count, and each step in order with its status, objective, acceptance check, and file hints.
+`vibe tasks list` lists the project's tasks (each row shows id, title, and a `[done/total steps]` count); `vibe tasks show <id>` prints one task with each step in order - its status, objective, acceptance check, and file hints. Both accept `--json`.
 
 ### `vibe tasks run <id>`
 
@@ -110,7 +63,7 @@ vibe tasks run saga-abc123
 
 Each step is planned, implemented, and reviewed (with a bounded self-heal loop) before the next begins, and starts with a fresh model context grounded by a curated packet (the feature goal, prior-step outcomes, the accumulated diff, and a fresh read of the step's file hints). The run is bounded by the supervised task's budget (`maxSteps`, `maxSpendUsd`) and protected by a per-task run lock.
 
-Between steps, a cheap **supervisor** turn judges whether to PROCEED or ESCALATE (halt because the work drifted off-goal), and records cross-cutting **invariants** that are re-injected into every later step so conventions do not drift. It is on by default; configure it under `saga.supervisor` in `project.yml`. See [supervised tasks](/docs/concepts/saga) for the full model.
+Between steps, a cheap **supervisor** turn judges whether to PROCEED, ENHANCE, or ESCALATE (halt because the work drifted off-goal), and records cross-cutting **invariants** that are re-injected into every later step so conventions do not drift. It is on by default; configure it under `supervised.supervisor` in `project.yml`. See [supervised tasks](/docs/concepts/saga) for the full model.
 
 If a step cannot pass review after self-heal, the supervised task halts cleanly: the failed step's work is discarded so the branch stays reviewable, the step is left pending, and the run ends blocked with a reason. Fix the cause and re-run `vibe tasks run` to resume - finished steps are skipped. A finished supervised task lands as one reviewable branch and is never auto-merged.
 
@@ -150,7 +103,7 @@ The detail view also shows the live **Conductor** panel, which mirrors `vibe tas
 
 ## What is coming next
 
-The Conductor is complete (sequence, status, pause, resume, and the dashboard view). Still to come is the plan-only **Enhance** re-ground pass - the supervisor's reserved third verdict, which revises the pending steps against the current code before continuing.
+The Conductor is complete, including the autonomous **Enhance** re-ground pass (the supervisor's third verdict, which revises the pending steps against the current code before continuing). Still to come is a *manual* Enhance trigger - running the re-ground on demand between runs, with a dry-run diff to review.
 
 ## Related
 
