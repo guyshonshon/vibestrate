@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.42.0
+
+- **"Saga" is gone - a task now has a run mode.** What used to be a separate
+  `kind: "saga"` is just a **Task with steps**, run in one of two modes:
+  **plain** (the default flow, one holistic pass) or **supervised** (the
+  Conductor: per-step review, fresh context, the supervisor + invariants +
+  Enhance, a per-task budget, the run lock, clean-halt). The engine is still
+  "the Conductor"; the mode is "Supervised". One toggle flips the whole bundle.
+- **One unified surface.** `vibe saga` is retired - the supervised verbs live
+  under `vibe tasks` now: `vibe tasks run <id>` sequences a supervised task (and
+  runs a plain one once), plus `vibe tasks sequence | status | pause | resume`,
+  `vibe tasks add --supervised`, and `--objective/--acceptance/--files` on
+  `vibe tasks checklist add`. The dashboard Board renders a supervised task as a
+  container card; the API takes `runMode`.
+- **Your data carries over.** A one-time migration rewrites existing
+  `kind:"saga"` tasks (and a `saga:` config block) to the new shape on first
+  read - nothing is dropped.
+
 ## 0.41.0
 
 - **The Saga Conductor re-grounds its own plan (Enhance).** A Saga's steps are

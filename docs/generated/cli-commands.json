@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.41.0",
+  "version": "0.42.0",
   "commands": [
     {
       "name": "init",
@@ -2336,6 +2336,13 @@
               "negated": false
             },
             {
+              "flags": "--supervised",
+              "description": "create a supervised task: its steps are sequenced by the Conductor (per-step review, supervisor, budget, clean-halt) instead of running once.",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
               "flags": "--json",
               "description": "emit JSON",
               "required": false,
@@ -2590,7 +2597,103 @@
             "tasks",
             "run"
           ],
-          "description": "Run this task now (foreground; same as vibe run --task <id>).",
+          "description": "Run this task now (foreground). A supervised task sequences its steps (the Conductor); a plain task runs the default flow once.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "sequence",
+          "path": [
+            "vibe",
+            "tasks",
+            "sequence"
+          ],
+          "description": "Sequence a supervised task's steps in order (the Conductor). The stable entry the scheduler spawns; `run` delegates here for supervised tasks.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "status",
+          "path": [
+            "vibe",
+            "tasks",
+            "status"
+          ],
+          "description": "Show a supervised task's live conductor status (lifecycle, steps, invariants, halt).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "pause",
+          "path": [
+            "vibe",
+            "tasks",
+            "pause"
+          ],
+          "description": "Pause a supervised task's live run (between steps).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "resume",
+          "path": [
+            "vibe",
+            "tasks",
+            "resume"
+          ],
+          "description": "Resume a paused supervised task, or re-sequence a halted one from the clean tip.",
           "usage": "[options] <id>",
           "arguments": [
             {
@@ -2680,7 +2783,7 @@
                 "checklist",
                 "add"
               ],
-              "description": "Append a checklist item.",
+              "description": "Append a checklist item (a step). Add --objective/--acceptance/--files to author a structured step for a supervised task.",
               "usage": "[options] <taskId> <text...>",
               "arguments": [
                 {
@@ -2696,7 +2799,29 @@
                   "variadic": true
                 }
               ],
-              "options": [],
+              "options": [
+                {
+                  "flags": "--objective <text>",
+                  "description": "the scoped brief an executor receives for this step",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--acceptance <text>",
+                  "description": "plain-language done-when check for this step",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--files <list>",
+                  "description": "comma-separated file hints (primary context for this step)",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
               "subcommands": []
             },
             {
@@ -5907,350 +6032,6 @@
         }
       ],
       "subcommands": []
-    },
-    {
-      "name": "saga",
-      "path": [
-        "vibe",
-        "saga"
-      ],
-      "description": "Author multi-step Saga tasks (kind=saga): one feature, coordinated steps.",
-      "usage": "[options] [command]",
-      "arguments": [],
-      "options": [],
-      "subcommands": [
-        {
-          "name": "create",
-          "path": [
-            "vibe",
-            "saga",
-            "create"
-          ],
-          "description": "Create a new Saga task.",
-          "usage": "[options] <title>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [
-            {
-              "flags": "-d, --description <text>",
-              "description": "longer description",
-              "required": true,
-              "optional": false,
-              "negated": false
-            },
-            {
-              "flags": "--json",
-              "description": "emit JSON",
-              "required": false,
-              "optional": false,
-              "negated": false
-            }
-          ],
-          "subcommands": []
-        },
-        {
-          "name": "add-step",
-          "path": [
-            "vibe",
-            "saga",
-            "add-step"
-          ],
-          "description": "Add a step to a Saga.",
-          "usage": "[options] <taskId> <text>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            },
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [
-            {
-              "flags": "--objective <text>",
-              "description": "the step's scoped goal",
-              "required": true,
-              "optional": false,
-              "negated": false
-            },
-            {
-              "flags": "--acceptance <text>",
-              "description": "done-when check for the step",
-              "required": true,
-              "optional": false,
-              "negated": false
-            },
-            {
-              "flags": "--files <list>",
-              "description": "comma-separated file hints",
-              "required": true,
-              "optional": false,
-              "negated": false
-            },
-            {
-              "flags": "--json",
-              "description": "emit JSON",
-              "required": false,
-              "optional": false,
-              "negated": false
-            }
-          ],
-          "subcommands": []
-        },
-        {
-          "name": "edit-step",
-          "path": [
-            "vibe",
-            "saga",
-            "edit-step"
-          ],
-          "description": "Edit fields of an existing step.",
-          "usage": "[options] <taskId> <itemId>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            },
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [
-            {
-              "flags": "--text <t>",
-              "description": "new step text",
-              "required": true,
-              "optional": false,
-              "negated": false
-            },
-            {
-              "flags": "--objective <t>",
-              "description": "scoped goal for the step",
-              "required": true,
-              "optional": false,
-              "negated": false
-            },
-            {
-              "flags": "--acceptance <t>",
-              "description": "done-when check for the step",
-              "required": true,
-              "optional": false,
-              "negated": false
-            },
-            {
-              "flags": "--files <list>",
-              "description": "comma-separated file hints",
-              "required": true,
-              "optional": false,
-              "negated": false
-            },
-            {
-              "flags": "--json",
-              "description": "emit JSON",
-              "required": false,
-              "optional": false,
-              "negated": false
-            }
-          ],
-          "subcommands": []
-        },
-        {
-          "name": "reorder",
-          "path": [
-            "vibe",
-            "saga",
-            "reorder"
-          ],
-          "description": "Reorder checklist steps (comma-separated item ids).",
-          "usage": "[options] <taskId> <orderedIds>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            },
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [
-            {
-              "flags": "--json",
-              "description": "emit JSON",
-              "required": false,
-              "optional": false,
-              "negated": false
-            }
-          ],
-          "subcommands": []
-        },
-        {
-          "name": "list",
-          "path": [
-            "vibe",
-            "saga",
-            "list"
-          ],
-          "description": "List Saga tasks.",
-          "usage": "[options]",
-          "arguments": [],
-          "options": [
-            {
-              "flags": "--json",
-              "description": "emit JSON",
-              "required": false,
-              "optional": false,
-              "negated": false
-            }
-          ],
-          "subcommands": []
-        },
-        {
-          "name": "show",
-          "path": [
-            "vibe",
-            "saga",
-            "show"
-          ],
-          "description": "Show a Saga and its steps.",
-          "usage": "[options] <id>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [
-            {
-              "flags": "--json",
-              "description": "emit JSON",
-              "required": false,
-              "optional": false,
-              "negated": false
-            }
-          ],
-          "subcommands": []
-        },
-        {
-          "name": "sequence",
-          "path": [
-            "vibe",
-            "saga",
-            "sequence"
-          ],
-          "description": "Run a Saga end-to-end: launch the saga flow over its steps (clean halt-with-reset, per-saga budget, run lock).",
-          "usage": "[options] <taskId>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [
-            {
-              "flags": "--json",
-              "description": "emit JSON",
-              "required": false,
-              "optional": false,
-              "negated": false
-            }
-          ],
-          "subcommands": []
-        },
-        {
-          "name": "status",
-          "path": [
-            "vibe",
-            "saga",
-            "status"
-          ],
-          "description": "Show a Saga's run state: lifecycle, step progress, halt, invariants.",
-          "usage": "[options] <taskId>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [
-            {
-              "flags": "--json",
-              "description": "emit JSON",
-              "required": false,
-              "optional": false,
-              "negated": false
-            }
-          ],
-          "subcommands": []
-        },
-        {
-          "name": "pause",
-          "path": [
-            "vibe",
-            "saga",
-            "pause"
-          ],
-          "description": "Request the Saga's active run to pause at the next step boundary.",
-          "usage": "[options] <taskId>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [],
-          "subcommands": []
-        },
-        {
-          "name": "resume",
-          "path": [
-            "vibe",
-            "saga",
-            "resume"
-          ],
-          "description": "Resume the Saga's paused run (or point to sequence if it is halted).",
-          "usage": "[options] <taskId>",
-          "arguments": [
-            {
-              "name": "name() {\n    return this._name;\n  }",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [],
-          "subcommands": []
-        }
-      ]
     },
     {
       "name": "run",

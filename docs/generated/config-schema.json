@@ -435,8 +435,8 @@
       ]
     },
     {
-      "key": "saga",
-      "fullKey": "saga",
+      "key": "supervised",
+      "fullKey": "supervised",
       "type": "object",
       "required": false,
       "default": {},
@@ -444,7 +444,7 @@
       "children": [
         {
           "key": "maxSpendUsd",
-          "fullKey": "saga.maxSpendUsd",
+          "fullKey": "supervised.maxSpendUsd",
           "type": "number | null",
           "required": false,
           "default": null,
@@ -453,7 +453,7 @@
         },
         {
           "key": "maxSteps",
-          "fullKey": "saga.maxSteps",
+          "fullKey": "supervised.maxSteps",
           "type": "number | null",
           "required": false,
           "default": 20,
@@ -462,7 +462,7 @@
         },
         {
           "key": "supervisor",
-          "fullKey": "saga.supervisor",
+          "fullKey": "supervised.supervisor",
           "type": "object",
           "required": false,
           "default": {},
@@ -470,7 +470,7 @@
           "children": [
             {
               "key": "enabled",
-              "fullKey": "saga.supervisor.enabled",
+              "fullKey": "supervised.supervisor.enabled",
               "type": "boolean",
               "required": false,
               "default": true,
@@ -479,7 +479,7 @@
             },
             {
               "key": "profile",
-              "fullKey": "saga.supervisor.profile",
+              "fullKey": "supervised.supervisor.profile",
               "type": "string | null",
               "required": false,
               "default": null,
@@ -488,7 +488,7 @@
             },
             {
               "key": "roleId",
-              "fullKey": "saga.supervisor.roleId",
+              "fullKey": "supervised.supervisor.roleId",
               "type": "string",
               "required": false,
               "default": "reviewer",
