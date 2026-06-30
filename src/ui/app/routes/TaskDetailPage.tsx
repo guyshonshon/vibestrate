@@ -874,7 +874,7 @@ function ChecklistSection({
     if (!dragId || dragId === targetId) return;
     const before = items.map((i) => i.id);
     const after = reorderByDrop(before, dragId, targetId);
-    if (after.join(" ") === before.join(" ")) return;
+    if (after.join("") === before.join("")) return;
     void run(`move-${dragId}`, () => api.reorderChecklist(task.id, after));
   }
 
