@@ -303,7 +303,7 @@ export type BudgetConfig = z.infer<typeof budgetConfigSchema>;
 // role it runs as (read-only judgment). A failed/unresolved supervisor turn never
 // halts the saga - it is advisory on top of the per-item review, which already
 // fail-closes correctness.
-export const sagaSupervisorConfigSchema = z
+export const supervisorConfigSchema = z
   .object({
     enabled: z.boolean().default(true).describe("Run the between-steps supervisor turn (default on)."),
     profile: z.string().min(1).nullable().default(null).describe("Profile id for the cheap supervisor turn; null = the supervisor role's own profile."),
@@ -311,17 +311,17 @@ export const sagaSupervisorConfigSchema = z
   })
   .strict()
   .default({});
-export type SagaSupervisorConfig = z.infer<typeof sagaSupervisorConfigSchema>;
+export type SupervisorConfig = z.infer<typeof supervisorConfigSchema>;
 
-export const sagaConfigSchema = z
+export const supervisedConfigSchema = z
   .object({
     maxSpendUsd: z.number().nonnegative().nullable().default(null).describe("Default per-saga spend checkpoint (USD) between steps; null = off (default off)."),
     maxSteps: z.number().int().positive().nullable().default(SUPERVISED_DEFAULT_MAX_STEPS).describe("Default cap on total steps in a saga; null = unbounded (default 20)."),
-    supervisor: sagaSupervisorConfigSchema,
+    supervisor: supervisorConfigSchema,
   })
   .strict()
   .default({});
-export type SagaConfig = z.infer<typeof sagaConfigSchema>;
+export type SupervisedConfig = z.infer<typeof supervisedConfigSchema>;
 
 // Provider resilience (unattended-resilience U2). Recoverable provider failures
 // - rate limits (429/quota) and transient blips (5xx, "server temporarily
@@ -640,12 +640,12 @@ export const projectConfigBaseSchema = z.object({
   adaptiveSpecUp: z.enum(["off", "auto"]).default("auto").describe("Route plan-worthy greenfield/system briefs into the read-only Spec-up chain before executing: off or auto (default auto)."),
   budget: budgetConfigSchema,
   /**
-   * Per-saga budget defaults (saga conductor, M4). The override layer a freshly
-   * created kind:"saga" task inherits and that the launch path applies wherever
-   * the task's own `sagaBudget` left a value null. Default `maxSteps: 20` keeps a
-   * saga bounded out of the box.
+   * Supervised-run defaults (the Conductor). The override layer a freshly created
+   * `runMode:"supervised"` task inherits and that the launch path applies wherever
+   * the task's own run budget left a value null. Default `maxSteps: 20` keeps a
+   * supervised run bounded out of the box.
    */
-  saga: sagaConfigSchema,
+  supervised: supervisedConfigSchema,
   resilience: resilienceConfigSchema,
   session: sessionConfigSchema,
   commands: commandsConfigSchema.default({ validate: [] }),

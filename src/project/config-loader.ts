@@ -35,6 +35,19 @@ export async function loadConfig(projectRoot: string): Promise<LoadedConfig> {
     throw new ConfigError(`Failed to parse YAML config at ${configPath}.`, err);
   }
 
+  // One-time key migration: the supervised-run defaults moved from `saga:` to
+  // `supervised:` (kind:"saga" became runMode:"supervised"). Carry a legacy
+  // block forward so a project that tuned its supervisor/budget doesn't silently
+  // revert to defaults. The schema is non-strict, so a stale `saga:` would
+  // otherwise just be ignored.
+  if (raw && typeof raw === "object") {
+    const r = raw as Record<string, unknown>;
+    if (r.saga !== undefined && r.supervised === undefined) {
+      r.supervised = r.saga;
+    }
+    delete r.saga;
+  }
+
   // Targeted migration error (docs/design/policy-consolidation.md): persona-scoped
   // `preferences` moved to top-level `projectPolicies`. Catch a leftover key before
   // the generic strict-schema rejection so the owner gets an actionable message

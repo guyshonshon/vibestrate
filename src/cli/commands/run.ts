@@ -431,7 +431,7 @@ export async function runRunCommand(
   let profileOverride: string | null = options.profileOverride ?? null;
   let readOnly: boolean = options.readOnly ?? false;
   // Saga conductor (M4): the per-saga budget envelope is owned by the task, with
-  // config.saga as the project-level default/override layer applied wherever the
+  // config.supervised as the project-level default/override layer applied wherever the
   // task left a value null. We only pass it through when this launch is a saga
   // (sagaMode) - a non-saga run ignores it. Defaults to no limits.
   let sagaBudget: { maxSpendUsd: number | null; maxSteps: number | null } = {
@@ -440,7 +440,7 @@ export async function runRunCommand(
   };
   // Saga supervisor (M3): the between-steps PROCEED/ESCALATE turn + invariants
   // ledger. Project-level config; only passed through on a saga launch.
-  let sagaSupervisor = loaded.config.saga.supervisor;
+  let sagaSupervisor = loaded.config.supervised.supervisor;
   if (roadmapTaskId) {
     try {
       const { RoadmapService } = await import("../../roadmap/roadmap-service.js");
@@ -450,10 +450,10 @@ export async function runRunCommand(
         if (profileOverride === null) profileOverride = t.profileOverride;
         if (!options.readOnly) readOnly = t.readOnly;
         if (options.sagaMode) {
-          // Per-task value wins; fall back to the config.saga default on each
+          // Per-task value wins; fall back to the config.supervised default on each
           // axis the task left null. So a saga is bounded even if its own
           // envelope is empty, and a project can tighten/loosen the default.
-          const cfg = loaded.config.saga;
+          const cfg = loaded.config.supervised;
           sagaBudget = {
             maxSpendUsd: t.runOptions.budget.maxSpendUsd ?? cfg.maxSpendUsd,
             maxSteps: t.runOptions.budget.maxSteps ?? cfg.maxSteps,
