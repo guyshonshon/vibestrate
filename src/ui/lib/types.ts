@@ -643,6 +643,9 @@ export type ChecklistItem = {
   // Saga conductor (Phase 2): the run that executed this step + its one-line outcome.
   runId?: string | null;
   outcomeSummary?: string;
+  // Saga conductor (Phase 3): who authored the step - "owner" (human) or
+  // "conductor" (the autonomous Enhance pass).
+  provenance?: "owner" | "conductor";
 };
 
 // Saga conductor lifecycle + halt (Phase 2). Mirrors src/roadmap/roadmap-types.ts.

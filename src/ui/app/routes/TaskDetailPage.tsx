@@ -7,6 +7,7 @@ import {
   FlaskConical,
   GripVertical,
   Lock,
+  PanelRightOpen,
   Plus,
   Sparkles,
   Trash2,
@@ -27,6 +28,7 @@ import type {
 } from "../../lib/types.js";
 import { MicroStepPipeline } from "../../components/board/MicroStepPipeline.js";
 import { TaskGitActivity } from "../../components/tasks/TaskGitActivity.js";
+import { StepDetailDrawer } from "../../components/tasks/StepDetailDrawer.js";
 import { Select } from "../../components/design/Select.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip, type ChipTone } from "../../components/design/Chip.js";
@@ -202,8 +204,10 @@ export function TaskDetailPage({
     );
 
   const { task, comments, microSteps } = data;
-  const open = comments.filter((c) => !c.resolved);
-  const resolved = comments.filter((c) => c.resolved);
+  // Step-scoped comments live in the step detail drawer, not the task-level list.
+  const taskComments = comments.filter((c) => c.target !== "step");
+  const open = taskComments.filter((c) => !c.resolved);
+  const resolved = taskComments.filter((c) => c.resolved);
   const queueDisabled =
     busy !== null || task.status === "queued" || task.status === "running";
   const roadmapTitle = task.roadmapItemId
@@ -291,7 +295,13 @@ export function TaskDetailPage({
 
           {task.runMode === "supervised" ? <ConductorPanel taskId={task.id} /> : null}
 
-          <ChecklistSection task={task} onChanged={load} onOpenTask={onOpenTask} />
+          <ChecklistSection
+            task={task}
+            comments={comments}
+            onChanged={load}
+            onOpenTask={onOpenTask}
+            onOpenRun={onOpenRun}
+          />
 
           <Section title="Runs">
             <div className={CARD}>
@@ -900,14 +910,22 @@ function checklistGlyph(s: ChecklistItemStatus): string {
 
 function ChecklistSection({
   task,
+  comments,
   onChanged,
   onOpenTask,
+  onOpenRun,
 }: {
   task: Task;
+  comments: TaskComment[];
   onChanged: () => Promise<void> | void;
   onOpenTask: (taskId: string) => void;
+  onOpenRun: (runId: string) => void;
 }) {
   const items = task.checklist ?? [];
+  const [openStepId, setOpenStepId] = useState<string | null>(null);
+  const openStep = openStepId
+    ? (items.find((i) => i.id === openStepId) ?? null)
+    : null;
   const [text, setText] = useState("");
   const [objective, setObjective] = useState("");
   const [acceptance, setAcceptance] = useState("");
@@ -1030,6 +1048,22 @@ function ChecklistSection({
   }
 
   return (
+    <>
+    {openStep ? (
+      <StepDetailDrawer
+        task={task}
+        item={openStep}
+        comments={comments}
+        onClose={() => setOpenStepId(null)}
+        onChanged={onChanged}
+        onOpenRun={onOpenRun}
+        onPromote={() =>
+          run(`p-${openStep.id}`, () =>
+            api.promoteChecklistItem(task.id, openStep.id),
+          )
+        }
+      />
+    ) : null}
     <Section
       title={
         <span className="flex items-center gap-2.5">
@@ -1159,6 +1193,7 @@ function ChecklistSection({
                     api.promoteChecklistItem(task.id, item.id),
                   )
                 }
+                onOpen={() => setOpenStepId(item.id)}
                 onOpenCard={onOpenTask}
               />
             ))}
@@ -1247,6 +1282,7 @@ function ChecklistSection({
         ) : null}
       </div>
     </Section>
+    </>
   );
 }
 
@@ -1265,6 +1301,7 @@ function ChecklistRow({
   onEdit,
   onRemove,
   onPromote,
+  onOpen,
   onOpenCard,
 }: {
   item: ChecklistItem;
@@ -1281,6 +1318,7 @@ function ChecklistRow({
   onEdit: (text: string) => void;
   onRemove: () => void;
   onPromote: () => void;
+  onOpen: () => void;
   onOpenCard: (taskId: string) => void;
 }) {
   const [draft, setDraft] = useState(item.text);
@@ -1394,11 +1432,19 @@ function ChecklistRow({
         onChange={(v) => onStatus(v as ChecklistItemStatus)}
         options={CHECKLIST_STATUSES.map((s) => ({ value: s, label: s }))}
       />
+      <button
+        type="button"
+        onClick={onOpen}
+        title="Open this step"
+        className="shrink-0 text-chalk-400 transition hover:text-violet-soft"
+      >
+        <PanelRightOpen className="h-3.5 w-3.5" strokeWidth={1.9} />
+      </button>
       {item.promotedTaskId ? (
         <button
           type="button"
           onClick={() => onOpenCard(item.promotedTaskId!)}
-          title={`Promoted to card ${item.promotedTaskId}`}
+          title={`Detached to card ${item.promotedTaskId} - open it`}
           className="shrink-0 text-violet-soft transition hover:text-chalk-100"
         >
           <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.9} />
@@ -1408,7 +1454,7 @@ function ChecklistRow({
           type="button"
           onClick={onPromote}
           disabled={anyBusy}
-          title="Promote this item to its own card"
+          title="Detach this step into its own independent card"
           className="shrink-0 text-chalk-400 transition hover:text-violet-soft disabled:opacity-50"
         >
           <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.9} />

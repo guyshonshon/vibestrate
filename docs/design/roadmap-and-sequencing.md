@@ -95,10 +95,14 @@ micro = *how to build this one piece in this codebase*. Different jobs.
 ### Vocabulary
 
 - **Checklist** = the ordered breakdown that lives *inside a card*; entries are
-  **items** (todos). They stay in the card on purpose, so context isn't
-  scattered across many cards.
-- **Step** stays reserved for **Flow phases** (Plan/Implement/Review) - see the
-  note in Phase 0. Never call a checklist item a "Step".
+  **steps**. They stay in the card on purpose, so context isn't scattered across
+  many cards. (Updated 2026-06-30: the owner's "steps-as-tasks" model adopts
+  "step" as the checklist-entry noun - a step is a first-class unit of work
+  *inside* its parent, see [`steps-as-tasks.md`](./steps-as-tasks.md). The earlier
+  "never call it a Step" rule is retired; the code already aliases
+  `type Step = ChecklistItem`.)
+- The **Flow-phase** sense of "step" (Plan/Implement/Review) is now namespaced as
+  flow **seats** (Phase 0 rewrite), so the noun no longer collides.
 
 ### "Enhance"
 

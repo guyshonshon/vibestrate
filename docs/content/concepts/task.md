@@ -90,6 +90,14 @@ vibe tasks checklist move <taskId> <itemId> 1     # reorder (1-based)
 
 The same actions live on the task detail page in [Mission Control](/docs/cli/dashboard): add, check off, edit, drag-reorder, remove. Each item carries a status: `pending`, `in_progress`, `done`, or `blocked`.
 
+### Open a step
+
+A checklist entry is a step - a unit of work in its own right, not just a line of text. Open one from the checklist to get its detail drawer: the step's own authoring (title, and for supervised tasks its objective, acceptance check, and file hints), its status, the run and one-line outcome that executed it, and a comment thread scoped to that step.
+
+The parent task owns the shared scaffolding - the [context](/docs/concepts/task#context) every run is grounded in, the [Crew](/docs/concepts/crew) that does the work, the git branch, and any blocking tasks. The step drawer shows those as **inherited from the parent**, read-only, because a checklist runs in one worktree on one branch: every step shares one container. To change them, edit the parent. A plain task's step has no per-step run of its own (a plain task runs holistically); its run and outcome appear once you run the task supervised.
+
+Opening a step is distinct from **detaching** it. Detach (the old "promote") spins a step off into its own independent card with `derivedFrom` pointing back - a separate, deliberate action for when a piece of work has outgrown the checklist.
+
 To draft a checklist instead of writing one by hand, let an assist propose it:
 
 ```bash
@@ -132,7 +140,7 @@ Each item keeps its own arbitration ledger, so findings from item 3 never bleed 
 
 A reviewer or verifier can end a run with a non-blocking advisory: the change is fine to ship, but a human should eyeball something a model cannot perceive, like layout, animation, or UX feel. The run still reaches a normal verdict; it is not stuck like an [approval gate](/docs/glossary#approval-gate). The card is flagged Needs testing with a one-line reason. Resolve it with a verdict: "Looks good" marks the Task Done, "Needs work" reopens it. The flag shows as a banner on the task and a badge on the board.
 
-A checklist item is not a Flow [Step](/docs/concepts/workflow). A Step is a phase of the workflow (plan, implement, review). An item is a piece of what to build. Don't conflate them.
+A checklist step is a piece of what to build - a unit of work inside the Task. It is not a Flow phase (plan, implement, review); a Flow phase is run by a [seat](/docs/concepts/workflow), and is a different concept. Same word, different layer: a checklist step is *what* to build, a Flow phase is *how* a run is structured.
 
 ## Practical tips
 

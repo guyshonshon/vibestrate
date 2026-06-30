@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.43.0
+
+- **Open a checklist step as a task in its own right.** A step is no longer a
+  bare line of text - each one has a detail drawer you open from the checklist.
+  Inside: the step's own authoring (title / objective / acceptance / file hints),
+  its status, the run + outcome that executed it (for supervised tasks), and its
+  own comment thread. The parent task still owns the shared scaffolding - context,
+  crew, git, blockers - and the drawer shows those clearly as "inherited from the
+  parent", read-only, because every step shares one container. A plain task's step
+  is honest about it: no per-step run, just status, commit and comments.
+- **Per-step comments.** Comments can now be scoped to a single step (they live in
+  the step drawer, not the task-level thread). "Detach into its own card" stays as
+  a separate, clearly-labelled action - distinct from opening the step in place.
+
 ## 0.42.1
 
 - **Create a supervised task from the dashboard.** The Board's "New task" form now
