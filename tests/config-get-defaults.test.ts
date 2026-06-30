@@ -61,28 +61,28 @@ describe("getConfigValue resolves schema defaults", () => {
     expect(r.found).toBe(false);
   });
 
-  it("resolves config.saga defaults for a config that never wrote a saga section", async () => {
+  it("resolves config.supervised defaults for a config that never wrote a supervised section", async () => {
     // The saga conductor's per-task budget override layer. An existing project
-    // (no `saga:` in project.yml) must still resolve the defaults, so the launch
+    // (no `supervised:` in project.yml) must still resolve the defaults, so the launch
     // path can merge them: maxSteps 20, maxSpendUsd off.
     const onDisk = await fs.readFile(
       path.join(dir, ".vibestrate", "project.yml"),
       "utf8",
     );
-    expect(onDisk).not.toContain("saga:"); // precondition: unset
+    expect(onDisk).not.toContain("supervised:"); // precondition: unset
 
-    const steps = await getConfigValue(dir, "saga.maxSteps");
+    const steps = await getConfigValue(dir, "supervised.maxSteps");
     expect(steps.found).toBe(true);
     if (steps.found) expect(steps.value).toBe(20);
 
-    const spend = await getConfigValue(dir, "saga.maxSpendUsd");
+    const spend = await getConfigValue(dir, "supervised.maxSpendUsd");
     expect(spend.found).toBe(true);
     if (spend.found) expect(spend.value).toBeNull();
   });
 
-  it("reads an explicit config.saga override verbatim (the override layer)", async () => {
-    await setConfigValue(dir, "saga.maxSteps", "5");
-    const r = await getConfigValue(dir, "saga.maxSteps");
+  it("reads an explicit config.supervised override verbatim (the override layer)", async () => {
+    await setConfigValue(dir, "supervised.maxSteps", "5");
+    const r = await getConfigValue(dir, "supervised.maxSteps");
     expect(r.found).toBe(true);
     if (r.found) expect(r.value).toBe(5);
   });

@@ -99,7 +99,7 @@ export function schedulerRunArgs(
   task: Pick<Task, "id" | "title" | "runMode">,
 ): string[] {
   return task.runMode === "supervised"
-    ? ["saga", "sequence", task.id]
+    ? ["tasks", "sequence", task.id]
     : ["run", task.title, "--task", task.id];
 }
 

@@ -221,7 +221,7 @@ export async function cmdSequence(
   }
   if (task.checklist.length === 0) {
     console.error(
-      `${symbol.fail()} Saga "${taskId}" has no steps. Add steps with ${color.bold(`vibe saga add-step ${taskId} "<text>"`)}.`,
+      `${symbol.fail()} Task "${taskId}" has no steps. Add steps with ${color.bold(`vibe tasks checklist add ${taskId} "<text>"`)}.`,
     );
     return 1;
   }

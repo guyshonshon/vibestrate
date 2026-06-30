@@ -19,10 +19,10 @@ describe("scheduler saga launch", () => {
     );
   });
 
-  it("sequences a saga task via `vibe saga sequence`, runs a plain task via `vibe run`", () => {
+  it("sequences a supervised task via `vibe tasks sequence`, runs a plain task via `vibe run`", () => {
     expect(
       schedulerRunArgs({ id: "task-x", title: "Build it", runMode: "supervised" }),
-    ).toEqual(["saga", "sequence", "task-x"]);
+    ).toEqual(["tasks", "sequence", "task-x"]);
     expect(
       schedulerRunArgs({ id: "task-y", title: "Fix it", runMode: "plain" }),
     ).toEqual(["run", "Fix it", "--task", "task-y"]);

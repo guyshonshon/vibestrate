@@ -7,6 +7,7 @@ import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
 import { cmdSequence } from "../src/cli/commands/saga.js";
+import { cmdRun } from "../src/cli/commands/tasks.js";
 import { runEventsPath } from "../src/utils/paths.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
@@ -128,6 +129,25 @@ async function roleMetrics(dir: string): Promise<Array<{ roleId: string }>> {
 describe("saga supervisor turn (real executor)", () => {
   const prevCwd = process.cwd();
   afterEach(() => process.chdir(prevCwd));
+
+  it("`vibe tasks run` SEQUENCES a supervised task (delegates to the Conductor)", async () => {
+    const dir = await makeProject("DECISION: PROCEED");
+    const svc = new RoadmapService(dir);
+    await svc.init();
+    const task = await svc.addTask({ title: "Two-step build", runMode: "supervised" });
+    await svc.addChecklistItem(task.id, "create the first file");
+    await svc.addChecklistItem(task.id, "create the second file");
+
+    process.chdir(dir);
+    // cmdRun on a supervised task must route to the sequence path, not the
+    // plain single-pass run - both steps execute and the saga completes.
+    const code = await cmdRun(task.id);
+    expect(code).toBe(0);
+
+    const after = await svc.getTask(task.id);
+    expect(after!.checklist.map((c) => c.status)).toEqual(["done", "done"]);
+    expect(after!.supervised.state).toBe("done");
+  }, 90_000);
 
   it("ESCALATE halts the saga cleanly mid-run, keeping the committed step", async () => {
     const dir = await makeProject("DECISION: ESCALATE\nThe feature has drifted off goal.");

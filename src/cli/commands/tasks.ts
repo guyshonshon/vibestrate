@@ -5,6 +5,7 @@ import { detectProject } from "../../project/project-detector.js";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { writeTaskReport } from "../../roadmap/task-report.js";
 import { color, header, indent, symbol } from "../ui/format.js";
+import { cmdSequence, cmdStatus, cmdPause, cmdResume } from "./saga.js";
 import { isVibestrateError } from "../../utils/errors.js";
 import type {
   ChecklistItem,
@@ -41,6 +42,7 @@ async function cmdAdd(
     json?: boolean;
     provider?: string;
     readOnly?: boolean;
+    supervised?: boolean;
   },
 ): Promise<number> {
   try {
@@ -61,6 +63,7 @@ async function cmdAdd(
       touchedFiles: fileList,
       profileOverride: opts.provider ?? null,
       readOnly: opts.readOnly ?? false,
+      runMode: opts.supervised ? "supervised" : "plain",
     });
     if (opts.json) {
       console.log(JSON.stringify(task, null, 2));
@@ -212,10 +215,20 @@ async function cmdChecklistList(taskId: string, opts: { json?: boolean }): Promi
   return 0;
 }
 
-async function cmdChecklistAdd(taskId: string, text: string): Promise<number> {
+async function cmdChecklistAdd(
+  taskId: string,
+  text: string,
+  opts: { objective?: string; acceptance?: string; files?: string } = {},
+): Promise<number> {
   try {
     const { svc: s } = await svc();
-    const { item } = await s.addChecklistItem(taskId, text);
+    const { item } = await s.addChecklistItem(taskId, text, {
+      objective: opts.objective,
+      acceptanceCheck: opts.acceptance,
+      fileHints: opts.files
+        ? opts.files.split(",").map((f) => f.trim()).filter(Boolean)
+        : undefined,
+    });
     console.log(`${symbol.ok()} Added checklist item ${color.dim(item.id)}.`);
     console.log(indent(item.text));
     return 0;
@@ -585,7 +598,7 @@ async function cmdReport(taskId: string): Promise<number> {
   }
 }
 
-async function cmdRun(taskId: string): Promise<number> {
+export async function cmdRun(taskId: string): Promise<number> {
   // Foreground: spawn `vibe run --task <id>` against the local CLI bin so the
   // user sees progress live and the orchestrator handles task linkage.
   const { svc: s, root } = await svc();
@@ -593,6 +606,11 @@ async function cmdRun(taskId: string): Promise<number> {
   if (!task) {
     console.error(`${symbol.fail()} Task "${taskId}" not found.`);
     return 1;
+  }
+  // A supervised task SEQUENCES its steps (the Conductor) rather than running the
+  // default flow once. cmdSequence runs foreground in-process, so delegate to it.
+  if (task.runMode === "supervised") {
+    return cmdSequence(taskId, {});
   }
   // Spawn process self.
   const { fileURLToPath } = await import("node:url");
@@ -689,6 +707,10 @@ export function buildTasksCommand(): Command {
       "--read-only",
       "investigation-only: runs spawned from this task skip executor + fix loop and refuse apply/validate/revert.",
     )
+    .option(
+      "--supervised",
+      "create a supervised task: its steps are sequenced by the Conductor (per-step review, supervisor, budget, clean-halt) instead of running once.",
+    )
     .option("--json", "emit JSON")
     .action(async (title: string, opts) => {
       const code = await cmdAdd(title, opts);
@@ -781,10 +803,42 @@ export function buildTasksCommand(): Command {
 
   cmd
     .command("run <id>")
-    .description("Run this task now (foreground; same as vibe run --task <id>).")
+    .description(
+      "Run this task now (foreground). A supervised task sequences its steps (the Conductor); a plain task runs the default flow once.",
+    )
     .action(async (id: string) => {
       const code = await cmdRun(id);
       process.exit(code);
+    });
+
+  // ── Supervised run (the Conductor) ──────────────────────────────────────────
+  cmd
+    .command("sequence <id>")
+    .description(
+      "Sequence a supervised task's steps in order (the Conductor). The stable entry the scheduler spawns; `run` delegates here for supervised tasks.",
+    )
+    .option("--json", "emit JSON")
+    .action(async (id: string, opts) => {
+      process.exit(await cmdSequence(id, opts));
+    });
+  cmd
+    .command("status <id>")
+    .description("Show a supervised task's live conductor status (lifecycle, steps, invariants, halt).")
+    .option("--json", "emit JSON")
+    .action(async (id: string, opts) => {
+      process.exit(await cmdStatus(id, opts));
+    });
+  cmd
+    .command("pause <id>")
+    .description("Pause a supervised task's live run (between steps).")
+    .action(async (id: string) => {
+      process.exit(await cmdPause(id));
+    });
+  cmd
+    .command("resume <id>")
+    .description("Resume a paused supervised task, or re-sequence a halted one from the clean tip.")
+    .action(async (id: string) => {
+      process.exit(await cmdResume(id));
     });
 
   cmd
@@ -810,9 +864,12 @@ export function buildTasksCommand(): Command {
     });
   checklist
     .command("add <taskId> <text...>")
-    .description("Append a checklist item.")
-    .action(async (taskId: string, text: string[]) => {
-      process.exit(await cmdChecklistAdd(taskId, text.join(" ")));
+    .description("Append a checklist item (a step). Add --objective/--acceptance/--files to author a structured step for a supervised task.")
+    .option("--objective <text>", "the scoped brief an executor receives for this step")
+    .option("--acceptance <text>", "plain-language done-when check for this step")
+    .option("--files <list>", "comma-separated file hints (primary context for this step)")
+    .action(async (taskId: string, text: string[], opts) => {
+      process.exit(await cmdChecklistAdd(taskId, text.join(" "), opts));
     });
   checklist
     .command("check <taskId> <itemId>")
