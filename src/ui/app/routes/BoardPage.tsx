@@ -60,21 +60,24 @@ type CoarseId =
   | "completed"
   | "archived";
 
+type ColumnTone = { dot: string; text: string; band: string };
 type ColumnDef = {
   id: CoarseId;
   label: string;
-  dot: string;
+  tone: ColumnTone;
 };
 
 // The board is a *coarse* human kanban (Phase 3) - not the orchestrator's fine
 // run stages, which live in Mission Control. A card's column is derived from its
-// status + the archived / needs-testing overlays (see coarseColumnOf).
+// status + the archived / needs-testing overlays (see coarseColumnOf). Each
+// column carries a colour identity (tinted header band + count) so the eye lands
+// on the right lane fast.
 const COLUMNS: ColumnDef[] = [
-  { id: "planned",       label: "Planned",       dot: "bg-chalk-400" },
-  { id: "in_progress",   label: "In progress",   dot: "bg-emerald-400" },
-  { id: "needs_testing", label: "Needs testing", dot: "bg-amber-soft" },
-  { id: "completed",     label: "Completed",      dot: "bg-sky-glow" },
-  { id: "archived",      label: "Archived",       dot: "bg-chalk-400" },
+  { id: "planned",       label: "Planned",       tone: { dot: "bg-chalk-400",   text: "text-chalk-300",   band: "bg-white/[0.025]" } },
+  { id: "in_progress",   label: "In progress",   tone: { dot: "bg-emerald-400", text: "text-emerald-400", band: "bg-emerald-400/[0.08]" } },
+  { id: "needs_testing", label: "Needs testing", tone: { dot: "bg-amber-soft",  text: "text-amber-soft",  band: "bg-amber-soft/[0.08]" } },
+  { id: "completed",     label: "Completed",      tone: { dot: "bg-sky-glow",    text: "text-sky-glow",    band: "bg-sky-glow/[0.08]" } },
+  { id: "archived",      label: "Archived",       tone: { dot: "bg-chalk-400",   text: "text-chalk-400",   band: "bg-white/[0.015]" } },
 ];
 
 // Mirror of the canonical coarseColumn() in roadmap-types (server/UI type split).
@@ -329,6 +332,18 @@ export function BoardPage({
         }
         actions={
           <>
+            {suggestions[0] ? (
+              <button
+                type="button"
+                onClick={() => onOpenTask(suggestions[0]!.taskId)}
+                title={suggestions[0]!.reason}
+                className="inline-flex max-w-[280px] items-center gap-1.5 rounded-[10px] border border-violet-soft/30 bg-violet-soft/10 px-2.5 py-1.5 text-[12.5px] transition hover:bg-violet-soft/15"
+              >
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.8} />
+                <span className="shrink-0 font-semibold text-violet-soft">Suggested:</span>
+                <span className="truncate text-chalk-100">{suggestions[0]!.title}</span>
+              </button>
+            ) : null}
             <Button
               variant="secondary"
               size="sm"
@@ -397,19 +412,6 @@ export function BoardPage({
               Add
             </Button>
           </form>
-        ) : null}
-
-        {suggestions[0] ? (
-          <button
-            type="button"
-            onClick={() => onOpenTask(suggestions[0]!.taskId)}
-            title={`Suggested next - ${suggestions[0]!.reason}`}
-            className="mt-2 inline-flex max-w-[420px] items-center gap-1.5 rounded-[10px] border border-violet-soft/30 bg-violet-soft/10 px-2.5 py-1 text-[12px] text-chalk-100 transition hover:bg-violet-soft/15"
-          >
-            <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.8} />
-            <span className="text-chalk-400">next</span>
-            <span className="truncate">{suggestions[0]!.title}</span>
-          </button>
         ) : null}
 
         {toast ? (
@@ -722,14 +724,21 @@ function BoardColumn({
         urgent ? "border-amber-soft/40" : "border-[color:var(--line)]",
       )}
     >
-      <header className="flex items-center justify-between border-b border-[color:var(--line-soft)] bg-white/[0.02] px-3 py-2.5">
+      <header
+        className={cn(
+          "flex items-center justify-between border-b border-[color:var(--line-soft)] px-3 py-2.5",
+          column.tone.band,
+        )}
+      >
         <div className="flex min-w-0 items-center gap-1.5">
-          <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", column.dot)} />
+          <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", column.tone.dot)} />
           <span className="truncate text-[12px] font-semibold text-chalk-100">
             {column.label}
           </span>
         </div>
-        <span className="tabular-nums text-[11px] text-chalk-400">{tasks.length}</span>
+        <span className={cn("tabular-nums text-[11px] font-semibold", column.tone.text)}>
+          {tasks.length}
+        </span>
       </header>
 
       <ol className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2">
