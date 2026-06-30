@@ -287,6 +287,8 @@ export function TaskDetailPage({
             </Section>
           ) : null}
 
+          <ContextSourcesSection task={task} onChanged={load} />
+
           {task.runMode === "supervised" ? <ConductorPanel taskId={task.id} /> : null}
 
           <ChecklistSection task={task} onChanged={load} onOpenTask={onOpenTask} />
@@ -480,8 +482,6 @@ export function TaskDetailPage({
             onOpenTask={onOpenTask}
             onChanged={load}
           />
-
-          <ContextSourcesSection task={task} onChanged={load} />
         </div>
       </div>
     </PageShell>
@@ -787,34 +787,38 @@ function ContextSourcesSection({
   }
 
   return (
-    <Section title="Context sources">
+    <Section title="Context">
       <div className={CARD}>
         <div className="text-[11.5px] text-chalk-300">
-          Files / URLs injected into every agent prompt for this card's runs
-          (path-guarded, SSRF-guarded, secrets redacted).
+          The shared grounding for this task - files and URLs injected into every
+          agent prompt across its runs (path-guarded, SSRF-guarded, secrets redacted).
         </div>
+
         {sources.length > 0 ? (
-          <ul className="mt-2.5 space-y-1">
+          <ul className="mt-3 space-y-1.5">
             {sources.map((s, i) => (
               <li
                 key={`${s.kind}-${s.ref}-${i}`}
-                className="flex items-center gap-2 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-1.5"
+                className="group flex items-center gap-2.5 rounded-[12px] bg-coal-500/60 px-3 py-2"
               >
-                <Chip
-                  tone={s.kind === "url" ? "amber" : "neutral"}
-                  contained
-                  className="shrink-0"
+                <span
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px]",
+                    s.kind === "url"
+                      ? "bg-amber-soft/12 text-amber-soft"
+                      : "bg-violet-soft/12 text-violet-soft",
+                  )}
                 >
-                  {s.kind}
-                </Chip>
-                {s.kind === "url" ? (
-                  <ExternalLink className="h-3 w-3 shrink-0 text-amber-soft" strokeWidth={1.9} />
-                ) : (
-                  <FileCode className="h-3 w-3 shrink-0 text-chalk-400" strokeWidth={1.9} />
-                )}
-                <span className="flex-1 truncate font-mono text-[12px] text-chalk-100">
-                  {s.ref}
+                  {s.kind === "url" ? (
+                    <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.9} />
+                  ) : (
+                    <FileCode className="h-3.5 w-3.5" strokeWidth={1.9} />
+                  )}
                 </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-mono text-[12px] text-chalk-100">{s.ref}</div>
+                  <div className="text-[10px] font-medium text-chalk-400">{s.kind}</div>
+                </div>
                 <button
                   type="button"
                   onClick={() =>
@@ -825,7 +829,7 @@ function ContextSourcesSection({
                     )
                   }
                   disabled={busy}
-                  className="shrink-0 text-chalk-400 transition hover:text-rose-300 disabled:opacity-50"
+                  className="shrink-0 text-chalk-400 opacity-0 transition hover:text-rose-300 disabled:opacity-50 group-hover:opacity-100"
                   title="Remove"
                 >
                   <Trash2 className="h-3.5 w-3.5" strokeWidth={1.9} />
@@ -833,29 +837,40 @@ function ContextSourcesSection({
               </li>
             ))}
           </ul>
-        ) : null}
-        <form onSubmit={add} className="mt-2.5 flex gap-2">
-          <Select
-            value={kind}
-            ariaLabel="Context source kind"
-            className="min-w-[110px]"
-            onChange={(v) => setKind(v as "file" | "url")}
-            options={[
-              { value: "file", label: "file" },
-              { value: "url", label: "url" },
-            ]}
-          />
+        ) : (
+          <div className="mt-3 text-[12px] text-chalk-400">
+            No context yet - add a file or URL below to ground every run.
+          </div>
+        )}
+
+        <form onSubmit={add} className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-[10px] border border-[color:var(--line)] bg-coal-800 p-0.5">
+            {(["file", "url"] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setKind(k)}
+                className={cn(
+                  "rounded-[8px] px-2.5 py-1 text-[12px] font-semibold capitalize transition",
+                  kind === k
+                    ? "bg-coal-600 text-chalk-100"
+                    : "text-chalk-400 hover:text-chalk-200",
+                )}
+              >
+                {k}
+              </button>
+            ))}
+          </div>
           <input
             value={ref}
             onChange={(e) => setRef(e.target.value)}
             placeholder={kind === "file" ? "path/in/project.md" : "https://…"}
-            className={cn(INPUT, "flex-1")}
+            className={cn(INPUT, "min-w-[200px] flex-1")}
           />
           <Button
             type="submit"
             variant="secondary"
             size="sm"
-            className="self-start"
             disabled={busy || !ref.trim()}
             iconLeft={<Plus className="h-3 w-3" strokeWidth={1.9} />}
           >
