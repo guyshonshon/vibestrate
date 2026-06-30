@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   ArrowUpRight,
   Check,
@@ -28,7 +28,6 @@ import { TaskGitActivity } from "../../components/tasks/TaskGitActivity.js";
 import { Select } from "../../components/design/Select.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip, type ChipTone } from "../../components/design/Chip.js";
-import { StatTile } from "../../components/design/StatTile.js";
 import { cn } from "../../components/design/cn.js";
 import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
 import { ConductorPanel } from "../../components/saga/ConductorPanel.js";
@@ -61,6 +60,24 @@ function taskStatusTone(s: Task["status"]): ChipTone {
 }
 
 const humanize = (s: string): string => s.replace(/_/g, " ");
+
+// Priority / risk read as coloured attributes (not metrics): low is quiet,
+// medium is the accent, high is attention.
+const ATTR_TONE: Record<Task["priority"], string> = {
+  low: "text-chalk-300",
+  medium: "text-violet-soft",
+  high: "text-amber-soft",
+};
+
+// One row in the sidebar Details card: a muted label, a coloured value.
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-[color:var(--line-soft)] py-[7px] text-[12px] last:border-0">
+      <span className="shrink-0 text-chalk-400">{label}</span>
+      <span className="truncate text-right font-medium text-chalk-100">{children}</span>
+    </div>
+  );
+}
 
 export function TaskDetailPage({
   taskId,
@@ -240,137 +257,78 @@ export function TaskDetailPage({
             </Button>
           </>
         }
-      >
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {task.derivedFrom ? (
-            <button
-              type="button"
-              onClick={() => onOpenTask(task.derivedFrom!.taskId)}
-              className="inline-flex items-center gap-1 text-[11.5px] font-medium text-chalk-300 transition hover:text-violet-soft"
-              title="This card was promoted from a checklist item on another card."
-            >
-              <ArrowUpRight className="h-3 w-3" strokeWidth={1.9} />
-              derived from {task.derivedFrom.taskId}
-            </button>
-          ) : null}
-          <Chip tone={taskStatusTone(task.status)} contained>
-            {humanize(task.status)}
-          </Chip>
-          {roadmapTitle ? (
-            <Chip tone="sky" contained>
-              {roadmapTitle}
-            </Chip>
-          ) : null}
-          {task.profileOverride ? (
-            <Chip tone="violet" contained className="cursor-default">
-              {task.profileOverride}
-            </Chip>
-          ) : null}
-          {task.readOnly ? (
-            <Chip tone="amber" contained className="cursor-default">
-              <Lock className="h-2.5 w-2.5" strokeWidth={1.9} /> read-only
-            </Chip>
-          ) : null}
-        </div>
-        <div className="mt-2.5 flex flex-wrap items-stretch gap-1.5">
-          <StatTile value={task.priority} label="priority" />
-          <StatTile value={task.riskLevel} label="risk" />
-          {task.est ? <StatTile value={task.est} label="est" /> : null}
-        </div>
-      </PageHeader>
+      />
 
-      <div className="flex flex-col gap-4">
-        {task.needsTesting ? (
-          <NeedsTestingBanner task={task} onResolved={load} />
-        ) : null}
-        {task.description ? (
-          <Section title="Description">
-            <div className={CARD}>
-              <div className="whitespace-pre-wrap text-[12.5px] text-chalk-200">
-                {task.description}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+        {/* ── Main column: what you work on ───────────────────────── */}
+        <div className="flex min-w-0 flex-col gap-4">
+          {task.needsTesting ? (
+            <NeedsTestingBanner task={task} onResolved={load} />
+          ) : null}
+          {task.description ? (
+            <Section title="Description">
+              <div className={CARD}>
+                <div className="whitespace-pre-wrap text-[12.5px] text-chalk-200">
+                  {task.description}
+                </div>
               </div>
+            </Section>
+          ) : null}
+
+          {task.acceptanceCriteria ? (
+            <Section title="Acceptance criteria">
+              <div className={CARD}>
+                <div className="whitespace-pre-wrap text-[12.5px] text-chalk-200">
+                  {task.acceptanceCriteria}
+                </div>
+              </div>
+            </Section>
+          ) : null}
+
+          {task.runMode === "supervised" ? <ConductorPanel taskId={task.id} /> : null}
+
+          <ChecklistSection task={task} onChanged={load} onOpenTask={onOpenTask} />
+
+          <Section title="Runs">
+            <div className={CARD}>
+              {task.runIds.length === 0 ? (
+                <div className="text-[12px] text-chalk-400">No runs yet.</div>
+              ) : (
+                <ul className="space-y-1">
+                  {task.runIds.map((rid) => (
+                    <li key={rid}>
+                      <button
+                        onClick={() => onOpenRun(rid)}
+                        className="inline-flex items-center gap-1.5 font-mono text-[12px] text-chalk-300 transition hover:text-chalk-100"
+                      >
+                        <ExternalLink className="h-3 w-3" strokeWidth={1.9} />
+                        {rid}
+                        {rid === task.currentRunId ? (
+                          <Chip tone="violet" contained className="ml-1">
+                            current
+                          </Chip>
+                        ) : null}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </Section>
-        ) : null}
 
-        {task.acceptanceCriteria ? (
-          <Section title="Acceptance criteria">
-            <div className={CARD}>
-              <div className="whitespace-pre-wrap text-[12.5px] text-chalk-200">
-                {task.acceptanceCriteria}
-              </div>
-            </div>
-          </Section>
-        ) : null}
+          {microSteps.map(({ runId, steps }) => (
+            <MicroStepPipeline key={runId} runId={runId} steps={steps} />
+          ))}
 
-        {task.runMode === "supervised" ? <ConductorPanel taskId={task.id} /> : null}
-
-        <ChecklistSection task={task} onChanged={load} onOpenTask={onOpenTask} />
-
-        <ContextSourcesSection task={task} onChanged={load} />
-
-        <Section title="Run settings">
-          <TaskRunMode
-            task={task}
-            onPatched={(next) => setData((d) => (d ? { ...d, task: next } : d))}
+          <TaskGitActivity
+            runIds={task.runIds}
+            onOpenRun={onOpenRun}
+            onOpenGit={(rid) => navigate({ kind: "git", runId: rid })}
           />
-          <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-chalk-300">
-            Run from CLI:
-            <code className="rounded-[7px] bg-coal-500 px-1.5 py-0.5 font-mono text-[11px] text-chalk-200">
-              vibe tasks run {task.id}
-            </code>
-          </div>
-        </Section>
 
-        <Section title="Runs">
-          <div className={CARD}>
-            {task.runIds.length === 0 ? (
-              <div className="text-[12px] text-chalk-400">No runs yet.</div>
-            ) : (
-              <ul className="space-y-1">
-                {task.runIds.map((rid) => (
-                  <li key={rid}>
-                    <button
-                      onClick={() => onOpenRun(rid)}
-                      className="inline-flex items-center gap-1.5 font-mono text-[12px] text-chalk-300 transition hover:text-chalk-100"
-                    >
-                      <ExternalLink className="h-3 w-3" strokeWidth={1.9} />
-                      {rid}
-                      {rid === task.currentRunId ? (
-                        <Chip tone="violet" contained className="ml-1">
-                          current
-                        </Chip>
-                      ) : null}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </Section>
+          <FilesSection task={task} />
 
-        {microSteps.map(({ runId, steps }) => (
-          <MicroStepPipeline key={runId} runId={runId} steps={steps} />
-        ))}
-
-        <TaskGitActivity
-          runIds={task.runIds}
-          onOpenRun={onOpenRun}
-          onOpenGit={(rid) =>
-            navigate({ kind: "git", runId: rid })
-          }
-        />
-
-        <FilesSection task={task} />
-
-        <DependenciesSection
-          task={task}
-          allTasks={allTasks}
-          onOpenTask={onOpenTask}
-          onChanged={load}
-        />
-
-        <Section title="Comments">
+          <Section title="Comments">
           <div className={CARD}>
             <form onSubmit={submitComment} className="flex gap-2">
               <textarea
@@ -434,7 +392,88 @@ export function TaskDetailPage({
               </div>
             ) : null}
           </div>
-        </Section>
+          </Section>
+        </div>
+
+        {/* ── Sidebar: metadata + settings ────────────────────────── */}
+        <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-0">
+          <Section title="Details">
+            <div className={CARD}>
+              <DetailRow label="Status">
+                <Chip tone={taskStatusTone(task.status)} contained>
+                  {humanize(task.status)}
+                </Chip>
+              </DetailRow>
+              <DetailRow label="Priority">
+                <span className={ATTR_TONE[task.priority]}>{task.priority}</span>
+              </DetailRow>
+              <DetailRow label="Risk">
+                <span className={ATTR_TONE[task.riskLevel]}>{task.riskLevel}</span>
+              </DetailRow>
+              {task.est ? (
+                <DetailRow label="Estimate">
+                  <span className="text-chalk-300">{task.est}</span>
+                </DetailRow>
+              ) : null}
+              <DetailRow label="Roadmap">
+                {roadmapTitle ? (
+                  <span className="text-sky-glow">{roadmapTitle}</span>
+                ) : (
+                  <span className="text-chalk-400">-</span>
+                )}
+              </DetailRow>
+              <DetailRow label="Provider">
+                <span className={task.profileOverride ? "text-violet-soft" : "text-chalk-400"}>
+                  {task.profileOverride ?? "default"}
+                </span>
+              </DetailRow>
+              <DetailRow label="Read-only">
+                {task.readOnly ? (
+                  <span className="inline-flex items-center gap-1 text-amber-soft">
+                    <Lock className="h-2.5 w-2.5" strokeWidth={1.9} /> yes
+                  </span>
+                ) : (
+                  <span className="text-chalk-400">no</span>
+                )}
+              </DetailRow>
+              {task.derivedFrom ? (
+                <DetailRow label="Derived from">
+                  <button
+                    type="button"
+                    onClick={() => onOpenTask(task.derivedFrom!.taskId)}
+                    className="inline-flex items-center gap-1 font-mono text-[11px] text-violet-soft transition hover:text-violet-soft/80"
+                    title="Promoted from a checklist item on another card."
+                  >
+                    <ArrowUpRight className="h-3 w-3" strokeWidth={1.9} />
+                    {task.derivedFrom.taskId}
+                  </button>
+                </DetailRow>
+              ) : null}
+            </div>
+          </Section>
+
+          <Section title="Run settings">
+            <TaskRunMode
+              task={task}
+              onPatched={(next) => setData((d) => (d ? { ...d, task: next } : d))}
+            />
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-chalk-300">
+              Run from CLI:
+              <code className="break-all rounded-[7px] bg-coal-500 px-1.5 py-0.5 font-mono text-[11px] text-chalk-200">
+                vibe tasks run {task.id}
+              </code>
+            </div>
+          </Section>
+
+          <DependenciesSection
+            task={task}
+            allTasks={allTasks}
+            onOpenTask={onOpenTask}
+            onChanged={load}
+          />
+
+          <ContextSourcesSection task={task} onChanged={load} />
+        </div>
       </div>
     </PageShell>
   );
