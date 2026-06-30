@@ -173,6 +173,8 @@ export function BoardPage({
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   const taskTitleRef = useRef<HTMLInputElement | null>(null);
   const roadmapTitleRef = useRef<HTMLInputElement | null>(null);
+  const taskFormRef = useRef<HTMLDivElement | null>(null);
+  const roadmapFormRef = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -210,6 +212,29 @@ export function BoardPage({
   useEffect(() => {
     if (showRoadmapForm) roadmapTitleRef.current?.focus();
   }, [showRoadmapForm]);
+
+  // Close the new-task / roadmap popovers on outside click or Escape.
+  useEffect(() => {
+    if (!showTaskForm && !showRoadmapForm) return;
+    const close = () => {
+      setShowTaskForm(false);
+      setShowRoadmapForm(false);
+    };
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (taskFormRef.current?.contains(t) || roadmapFormRef.current?.contains(t)) return;
+      close();
+    };
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [showTaskForm, showRoadmapForm]);
 
   async function submitRoadmap(e: FormEvent) {
     e.preventDefault();
@@ -415,76 +440,93 @@ export function BoardPage({
                 <span className="truncate text-chalk-100">{suggestions[0]!.title}</span>
               </button>
             ) : null}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setShowRoadmapForm((v) => !v);
-                setShowTaskForm(false);
-              }}
-              iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={1.9} />}
-            >
-              Roadmap item
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                setShowTaskForm((v) => !v);
-                setShowRoadmapForm(false);
-              }}
-              iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={1.9} />}
-            >
-              New task
-            </Button>
+            <div ref={roadmapFormRef} className="relative">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setShowRoadmapForm((v) => !v);
+                  setShowTaskForm(false);
+                }}
+                iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={1.9} />}
+              >
+                Roadmap item
+              </Button>
+              <FormPopover open={showRoadmapForm} width="w-[280px]">
+                <form onSubmit={submitRoadmap} className="flex flex-col gap-2">
+                  <input
+                    ref={roadmapTitleRef}
+                    value={newRoadmapTitle}
+                    onChange={(e) => setNewRoadmapTitle(e.target.value)}
+                    placeholder="Build onboarding flow"
+                    className="w-full rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+                  />
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                    className="w-full"
+                    disabled={busy || !newRoadmapTitle.trim()}
+                  >
+                    Add initiative
+                  </Button>
+                </form>
+              </FormPopover>
+            </div>
+            <div ref={taskFormRef} className="relative">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  setShowTaskForm((v) => !v);
+                  setShowRoadmapForm(false);
+                }}
+                iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={1.9} />}
+              >
+                New task
+              </Button>
+              <FormPopover open={showTaskForm} width="w-[320px]">
+                <form onSubmit={submitTask} className="flex flex-col gap-2">
+                  <input
+                    ref={taskTitleRef}
+                    value={newTaskTitle}
+                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    placeholder="Create setup wizard"
+                    className="w-full rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+                  />
+                  <Select
+                    value={newTaskRoadmap}
+                    onChange={setNewTaskRoadmap}
+                    options={roadmapOptions}
+                    ariaLabel="Link to a roadmap initiative"
+                    placeholder="No roadmap link"
+                    className="w-full"
+                  />
+                  <Select
+                    value={newTaskMode}
+                    onChange={(v) => setNewTaskMode(v as "plain" | "supervised")}
+                    options={[
+                      { value: "plain", label: "Plain run" },
+                      { value: "supervised", label: "Supervised (steps)" },
+                    ]}
+                    ariaLabel="Run mode"
+                    className="w-full"
+                  />
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                    className="w-full"
+                    disabled={busy || !newTaskTitle.trim()}
+                  >
+                    Add task
+                  </Button>
+                </form>
+              </FormPopover>
+            </div>
           </>
         }
       >
-        <MorphForm open={showRoadmapForm}>
-          <form onSubmit={submitRoadmap} className="flex max-w-[640px] gap-2 pt-3">
-            <input
-              ref={roadmapTitleRef}
-              value={newRoadmapTitle}
-              onChange={(e) => setNewRoadmapTitle(e.target.value)}
-              placeholder="Build onboarding flow"
-              className="flex-1 rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
-            />
-            <Button type="submit" variant="secondary" size="md" disabled={busy || !newRoadmapTitle.trim()}>
-              Add
-            </Button>
-          </form>
-        </MorphForm>
-        <MorphForm open={showTaskForm}>
-          <form onSubmit={submitTask} className="flex max-w-[760px] flex-wrap items-center gap-2 pt-3">
-            <input
-              ref={taskTitleRef}
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              placeholder="Create setup wizard"
-              className="min-w-[240px] flex-1 rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
-            />
-            <Select
-              value={newTaskRoadmap}
-              onChange={setNewTaskRoadmap}
-              options={roadmapOptions}
-              ariaLabel="Link to a roadmap initiative"
-              placeholder="No roadmap link"
-            />
-            <Select
-              value={newTaskMode}
-              onChange={(v) => setNewTaskMode(v as "plain" | "supervised")}
-              options={[
-                { value: "plain", label: "Plain run" },
-                { value: "supervised", label: "Supervised (steps)" },
-              ]}
-              ariaLabel="Run mode"
-            />
-            <Button type="submit" variant="secondary" size="md" disabled={busy || !newTaskTitle.trim()}>
-              Add
-            </Button>
-          </form>
-        </MorphForm>
-
         {toast ? (
           <div
             role="status"
@@ -615,19 +657,29 @@ export function BoardPage({
   );
 }
 
-// A bar that morphs open from the action button: it expands its height (grid
-// 0fr -> 1fr) while scaling up from the top-right, where the trigger sits.
-function MorphForm({ open, children }: { open: boolean; children: ReactNode }) {
+// A popover that grows out of its trigger button: absolutely anchored directly
+// below the button (right-aligned), scaling up from the top-right corner where
+// the button sits. The parent <div> is `relative` and holds the button.
+function FormPopover({
+  open,
+  width,
+  children,
+}: {
+  open: boolean;
+  width: string;
+  children: ReactNode;
+}) {
   return (
     <div
       className={cn(
-        "grid origin-top-right transition-all duration-200 ease-out",
-        open
-          ? "scale-100 grid-rows-[1fr] opacity-100"
-          : "pointer-events-none scale-[0.97] grid-rows-[0fr] opacity-0",
+        "absolute right-0 top-full z-30 mt-2 origin-top-right transition-all duration-150 ease-out",
+        width,
+        open ? "scale-100 opacity-100" : "pointer-events-none scale-95 opacity-0",
       )}
     >
-      <div className="overflow-hidden">{children}</div>
+      <div className="rounded-[14px] border border-[color:var(--line)] bg-coal-700 p-3 shadow-2xl">
+        {children}
+      </div>
     </div>
   );
 }
