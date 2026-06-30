@@ -19,6 +19,7 @@ import type {
   ChecklistItem,
   ChecklistItemStatus,
   MicroStep,
+  RoadmapItem,
   Task,
   TaskComment,
 } from "../../lib/types.js";
@@ -59,6 +60,8 @@ function taskStatusTone(s: Task["status"]): ChipTone {
   }
 }
 
+const humanize = (s: string): string => s.replace(/_/g, " ");
+
 export function TaskDetailPage({
   taskId,
   onOpenRun,
@@ -74,18 +77,21 @@ export function TaskDetailPage({
     microSteps: { runId: string; steps: MicroStep[] }[];
   } | null>(null);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [roadmap, setRoadmap] = useState<RoadmapItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
 
   async function load() {
     try {
-      const [r, list] = await Promise.all([
+      const [r, list, rm] = await Promise.all([
         api.getTask(taskId),
         api.listTasks(),
+        api.listRoadmap().catch(() => [] as RoadmapItem[]),
       ]);
       setData(r);
       setAllTasks(list);
+      setRoadmap(rm);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -181,6 +187,9 @@ export function TaskDetailPage({
   const resolved = comments.filter((c) => c.resolved);
   const queueDisabled =
     busy !== null || task.status === "queued" || task.status === "running";
+  const roadmapTitle = task.roadmapItemId
+    ? (roadmap.find((r) => r.id === task.roadmapItemId)?.title ?? null)
+    : null;
 
   return (
     <PageShell>
@@ -188,7 +197,7 @@ export function TaskDetailPage({
         title={
           <span className="flex items-baseline gap-2.5">
             {task.title}
-            <span className="font-mono text-[12px] font-medium tabular-nums text-chalk-400">
+            <span className="font-mono text-[12px] font-medium text-chalk-400">
               {task.id}
             </span>
           </span>
@@ -218,7 +227,7 @@ export function TaskDetailPage({
               Cancel
             </Button>
             <Button
-              variant="ghost"
+              variant="secondary"
               size="sm"
               onClick={() => toggleArchive(!task.archived)}
               disabled={busy !== null}
@@ -245,26 +254,16 @@ export function TaskDetailPage({
             </button>
           ) : null}
           <Chip tone={taskStatusTone(task.status)} contained>
-            {task.status}
+            {humanize(task.status)}
           </Chip>
-          <Chip tone="neutral" contained>
-            priority: {task.priority}
-          </Chip>
-          <Chip tone="neutral" contained>
-            risk: {task.riskLevel}
-          </Chip>
-          {task.roadmapItemId ? (
+          {roadmapTitle ? (
             <Chip tone="sky" contained>
-              roadmap: {task.roadmapItemId}
+              {roadmapTitle}
             </Chip>
           ) : null}
           {task.profileOverride ? (
-            <Chip
-              tone="violet"
-              contained
-              className="cursor-default"
-            >
-              provider: {task.profileOverride}
+            <Chip tone="violet" contained className="cursor-default">
+              {task.profileOverride}
             </Chip>
           ) : null}
           {task.readOnly ? (
@@ -272,19 +271,12 @@ export function TaskDetailPage({
               <Lock className="h-2.5 w-2.5" strokeWidth={1.9} /> read-only
             </Chip>
           ) : null}
-          <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-chalk-300">
-            Run from CLI:
-            <code className="rounded-[7px] bg-coal-500 px-1.5 py-0.5 font-mono text-[11px] text-chalk-200">
-              vibe tasks run {task.id}
-            </code>
-          </span>
         </div>
-        <TaskRunMode
-          task={task}
-          onPatched={(next) =>
-            setData((d) => (d ? { ...d, task: next } : d))
-          }
-        />
+        <div className="mt-2.5 flex flex-wrap items-stretch gap-1.5">
+          <StatTile value={task.priority} label="priority" />
+          <StatTile value={task.riskLevel} label="risk" />
+          {task.est ? <StatTile value={task.est} label="est" /> : null}
+        </div>
       </PageHeader>
 
       <div className="flex flex-col gap-4">
@@ -301,25 +293,12 @@ export function TaskDetailPage({
           </Section>
         ) : null}
 
-        {task.acceptanceCriteria || task.est ? (
-          <Section
-            title="Acceptance criteria"
-            action={
-              task.est ? (
-                <StatTile value={task.est} label="est" tone="violet" />
-              ) : null
-            }
-          >
+        {task.acceptanceCriteria ? (
+          <Section title="Acceptance criteria">
             <div className={CARD}>
-              {task.acceptanceCriteria ? (
-                <div className="whitespace-pre-wrap text-[12.5px] text-chalk-200">
-                  {task.acceptanceCriteria}
-                </div>
-              ) : (
-                <div className="text-[12px] text-chalk-400">
-                  No acceptance criteria yet.
-                </div>
-              )}
+              <div className="whitespace-pre-wrap text-[12.5px] text-chalk-200">
+                {task.acceptanceCriteria}
+              </div>
             </div>
           </Section>
         ) : null}
@@ -329,6 +308,19 @@ export function TaskDetailPage({
         <ChecklistSection task={task} onChanged={load} onOpenTask={onOpenTask} />
 
         <ContextSourcesSection task={task} onChanged={load} />
+
+        <Section title="Run settings">
+          <TaskRunMode
+            task={task}
+            onPatched={(next) => setData((d) => (d ? { ...d, task: next } : d))}
+          />
+          <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-chalk-300">
+            Run from CLI:
+            <code className="rounded-[7px] bg-coal-500 px-1.5 py-0.5 font-mono text-[11px] text-chalk-200">
+              vibe tasks run {task.id}
+            </code>
+          </div>
+        </Section>
 
         <Section title="Runs">
           <div className={CARD}>
