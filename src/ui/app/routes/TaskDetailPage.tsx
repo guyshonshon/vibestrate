@@ -25,7 +25,39 @@ import type {
 import { MicroStepPipeline } from "../../components/board/MicroStepPipeline.js";
 import { TaskGitActivity } from "../../components/tasks/TaskGitActivity.js";
 import { Select } from "../../components/design/Select.js";
+import { Button } from "../../components/design/Button.js";
+import { Chip, type ChipTone } from "../../components/design/Chip.js";
+import { StatTile } from "../../components/design/StatTile.js";
+import { cn } from "../../components/design/cn.js";
+import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
 import { ConductorPanel } from "../../components/saga/ConductorPanel.js";
+
+// Shared input recipe (contract §6, BoardPage idiom).
+const INPUT =
+  "rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none";
+
+// A titled, contained card body for sections that aren't a full Section title.
+const CARD = "rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4";
+
+// Status carries a meaning-based tone (same colour language as the Board
+// columns): active=emerald, fail/blocked=rose, attention=amber, queued=violet.
+function taskStatusTone(s: Task["status"]): ChipTone {
+  switch (s) {
+    case "running":
+    case "done":
+      return "emerald";
+    case "failed":
+    case "blocked":
+      return "rose";
+    case "waiting_for_approval":
+    case "review":
+      return "amber";
+    case "queued":
+      return "violet";
+    default:
+      return "neutral"; // backlog, ready, cancelled
+  }
+}
 
 export function TaskDetailPage({
   taskId,
@@ -130,63 +162,122 @@ export function TaskDetailPage({
   }
 
   if (error)
-    return <div className="deep-scene px-6 py-8 text-rose-400">{error}</div>;
+    return (
+      <PageShell>
+        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
+          {error}
+        </div>
+      </PageShell>
+    );
   if (!data)
-    return <div className="deep-scene px-6 py-8 text-fog-300">Loading task…</div>;
+    return (
+      <PageShell>
+        <div className="text-[13px] text-chalk-300">Loading task…</div>
+      </PageShell>
+    );
 
   const { task, comments, microSteps } = data;
   const open = comments.filter((c) => !c.resolved);
   const resolved = comments.filter((c) => c.resolved);
+  const queueDisabled =
+    busy !== null || task.status === "queued" || task.status === "running";
 
   return (
-    <div className="deep-scene flex h-full flex-col overflow-y-auto">
-      <header className="border-b border-white/10 bg-ink-100 px-6 py-4">
-        <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
-          task · {task.id}
-        </div>
-        {task.derivedFrom ? (
-          <button
-            type="button"
-            onClick={() => onOpenTask(task.derivedFrom!.taskId)}
-            className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] text-fog-300 hover:text-violet-soft"
-            title="This card was promoted from a checklist item on another card."
-          >
-            <ArrowUpRight className="h-3 w-3" strokeWidth={1.5} />
-            derived from {task.derivedFrom.taskId}
-          </button>
-        ) : null}
-        <h1 className="mt-1 text-[16px] font-medium text-fog-100">{task.title}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-fog-300">
-          <span className="vibestrate-mono border border-white/10 px-1.5 py-0.5 text-[10.5px]">
-            {task.status}
-          </span>
-          <span className="vibestrate-mono border border-white/10 px-1.5 py-0.5 text-[10.5px]">
-            priority: {task.priority}
-          </span>
-          <span className="vibestrate-mono border border-white/10 px-1.5 py-0.5 text-[10.5px]">
-            risk: {task.riskLevel}
-          </span>
-          {task.roadmapItemId ? (
-            <span className="vibestrate-mono text-fog-400">
-              roadmap: {task.roadmapItemId}
+    <PageShell>
+      <PageHeader
+        title={
+          <span className="flex items-baseline gap-2.5">
+            {task.title}
+            <span className="font-mono text-[12px] font-medium tabular-nums text-chalk-400">
+              {task.id}
             </span>
+          </span>
+        }
+        actions={
+          <>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={queue}
+              disabled={queueDisabled}
+            >
+              {busy === "queue"
+                ? "Queueing…"
+                : task.status === "running"
+                  ? "Running"
+                  : task.status === "queued"
+                    ? "Queued"
+                    : "Queue task"}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={cancel}
+              disabled={busy !== null || task.status === "cancelled"}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleArchive(!task.archived)}
+              disabled={busy !== null}
+            >
+              {busy === "archive"
+                ? "…"
+                : task.archived
+                  ? "Un-archive"
+                  : "Archive"}
+            </Button>
+          </>
+        }
+      >
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {task.derivedFrom ? (
+            <button
+              type="button"
+              onClick={() => onOpenTask(task.derivedFrom!.taskId)}
+              className="inline-flex items-center gap-1 text-[11.5px] font-medium text-chalk-300 transition hover:text-violet-soft"
+              title="This card was promoted from a checklist item on another card."
+            >
+              <ArrowUpRight className="h-3 w-3" strokeWidth={1.9} />
+              derived from {task.derivedFrom.taskId}
+            </button>
+          ) : null}
+          <Chip tone={taskStatusTone(task.status)} contained>
+            {task.status}
+          </Chip>
+          <Chip tone="neutral" contained>
+            priority: {task.priority}
+          </Chip>
+          <Chip tone="neutral" contained>
+            risk: {task.riskLevel}
+          </Chip>
+          {task.roadmapItemId ? (
+            <Chip tone="sky" contained>
+              roadmap: {task.roadmapItemId}
+            </Chip>
           ) : null}
           {task.profileOverride ? (
-            <span
-              className="vibestrate-mono border border-violet-soft/40 px-1.5 py-0.5 text-[10.5px] text-violet-soft"
-              title="Every agent in runs spawned from this task uses this provider."
+            <Chip
+              tone="violet"
+              contained
+              className="cursor-default"
             >
               provider: {task.profileOverride}
-            </span>
+            </Chip>
           ) : null}
           {task.readOnly ? (
-            <span
-              className="vibestrate-mono border border-amber-400/60 bg-amber-400/15 px-1.5 py-0.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-amber-300"
-              title="Investigation-only - runs spawned from this task skip executor + fix loop and refuse apply/validate/revert."
-            >
-              read-only
-            </span>
+            <Chip tone="amber" contained className="cursor-default">
+              <Lock className="h-2.5 w-2.5" strokeWidth={1.9} /> read-only
+            </Chip>
           ) : null}
+          <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-chalk-300">
+            Run from CLI:
+            <code className="rounded-[7px] bg-coal-500 px-1.5 py-0.5 font-mono text-[11px] text-chalk-200">
+              vibe tasks run {task.id}
+            </code>
+          </span>
         </div>
         <TaskRunMode
           task={task}
@@ -194,82 +285,43 @@ export function TaskDetailPage({
             setData((d) => (d ? { ...d, task: next } : d))
           }
         />
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            onClick={queue}
-            disabled={
-              busy !== null ||
-              task.status === "queued" ||
-              task.status === "running"
-            }
-            className="border border-violet-soft/40 bg-violet-soft/10 px-2.5 py-1 text-[12px] text-violet-soft hover:bg-violet-soft/20 disabled:opacity-50"
-          >
-            {busy === "queue" ? "Queueing…" : "Queue task"}
-          </button>
-          <button
-            onClick={cancel}
-            disabled={busy !== null || task.status === "cancelled"}
-            className="border border-white/10 bg-ink-200 px-2.5 py-1 text-[12px] text-fog-300 hover:bg-ink-100 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => toggleArchive(!task.archived)}
-            disabled={busy !== null}
-            className="border border-white/10 bg-ink-200 px-2.5 py-1 text-[12px] text-fog-300 hover:bg-ink-100 disabled:opacity-50"
-          >
-            {busy === "archive"
-              ? "…"
-              : task.archived
-                ? "Un-archive"
-                : "Archive"}
-          </button>
-          <span className="ml-auto text-[10.5px] text-fog-400">
-            Run from CLI:{" "}
-            <code className="vibestrate-mono bg-ink-200 px-1 py-0.5">
-              vibe tasks run {task.id}
-            </code>
-          </span>
-        </div>
-      </header>
+      </PageHeader>
 
-      <div className="flex flex-col gap-3 p-4">
+      <div className="flex flex-col gap-4">
         {task.needsTesting ? (
           <NeedsTestingBanner task={task} onResolved={load} />
         ) : null}
         {task.description ? (
-          <section className="slab p-3">
-            <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
-              description
+          <Section title="Description">
+            <div className={CARD}>
+              <div className="whitespace-pre-wrap text-[12.5px] text-chalk-200">
+                {task.description}
+              </div>
             </div>
-            <div className="mt-1 whitespace-pre-wrap text-[12.5px] text-fog-200">
-              {task.description}
-            </div>
-          </section>
+          </Section>
         ) : null}
 
         {task.acceptanceCriteria || task.est ? (
-          <section className="slab p-3">
-            <div className="flex items-center justify-between">
-              <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
-                acceptance criteria
-              </div>
-              {task.est ? (
-                <div className="text-[11px] text-fog-300">
-                  est <span className="font-semibold text-fog-100">{task.est}</span>
+          <Section
+            title="Acceptance criteria"
+            action={
+              task.est ? (
+                <StatTile value={task.est} label="est" tone="violet" />
+              ) : null
+            }
+          >
+            <div className={CARD}>
+              {task.acceptanceCriteria ? (
+                <div className="whitespace-pre-wrap text-[12.5px] text-chalk-200">
+                  {task.acceptanceCriteria}
                 </div>
-              ) : null}
+              ) : (
+                <div className="text-[12px] text-chalk-400">
+                  No acceptance criteria yet.
+                </div>
+              )}
             </div>
-            {task.acceptanceCriteria ? (
-              <div className="mt-1 whitespace-pre-wrap text-[12.5px] text-fog-200">
-                {task.acceptanceCriteria}
-              </div>
-            ) : (
-              <div className="mt-1 text-[12px] text-fog-400">
-                No acceptance criteria yet.
-              </div>
-            )}
-          </section>
+          </Section>
         ) : null}
 
         {task.runMode === "supervised" ? <ConductorPanel taskId={task.id} /> : null}
@@ -278,33 +330,32 @@ export function TaskDetailPage({
 
         <ContextSourcesSection task={task} onChanged={load} />
 
-        <section className="slab p-3">
-          <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
-            runs
+        <Section title="Runs">
+          <div className={CARD}>
+            {task.runIds.length === 0 ? (
+              <div className="text-[12px] text-chalk-400">No runs yet.</div>
+            ) : (
+              <ul className="space-y-1">
+                {task.runIds.map((rid) => (
+                  <li key={rid}>
+                    <button
+                      onClick={() => onOpenRun(rid)}
+                      className="inline-flex items-center gap-1.5 font-mono text-[12px] text-chalk-300 transition hover:text-chalk-100"
+                    >
+                      <ExternalLink className="h-3 w-3" strokeWidth={1.9} />
+                      {rid}
+                      {rid === task.currentRunId ? (
+                        <Chip tone="violet" contained className="ml-1">
+                          current
+                        </Chip>
+                      ) : null}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-          {task.runIds.length === 0 ? (
-            <div className="mt-1 text-[12px] text-fog-400">No runs yet.</div>
-          ) : (
-            <ul className="mt-1 space-y-1">
-              {task.runIds.map((rid) => (
-                <li key={rid}>
-                  <button
-                    onClick={() => onOpenRun(rid)}
-                    className="vibestrate-mono inline-flex items-center gap-1.5 text-[12px] text-fog-300 hover:text-fog-100"
-                  >
-                    <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-                    {rid}
-                    {rid === task.currentRunId ? (
-                      <span className="vibestrate-mono ml-1 border border-violet-soft/50 px-1 text-[10px] text-violet-soft">
-                        current
-                      </span>
-                    ) : null}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        </Section>
 
         {microSteps.map(({ runId, steps }) => (
           <MicroStepPipeline key={runId} runId={runId} steps={steps} />
@@ -320,7 +371,6 @@ export function TaskDetailPage({
 
         <FilesSection task={task} />
 
-
         <DependenciesSection
           task={task}
           allTasks={allTasks}
@@ -328,72 +378,73 @@ export function TaskDetailPage({
           onChanged={load}
         />
 
-        <section className="slab p-3">
-          <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
-            comments
-          </div>
-          <form onSubmit={submitComment} className="mt-2 flex gap-2">
-            <textarea
-              rows={2}
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add a comment (saved to .vibestrate/roadmap/comments/<task>.json)"
-              className="flex-1 resize-y border border-white/10 bg-ink-200 px-2 py-1.5 text-[12.5px] text-fog-100 placeholder-fog-500"
-            />
-            <button
-              type="submit"
-              disabled={busy === "comment" || !newComment.trim()}
-              className="self-start border border-white/10 bg-ink-200 px-2.5 py-1 text-[12px] text-fog-100 hover:bg-ink-100 disabled:opacity-50"
-            >
-              {busy === "comment" ? "Saving…" : "Add"}
-            </button>
-          </form>
-          {open.length > 0 ? (
-            <div className="mt-3 space-y-1.5">
-              <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
-                open ({open.length})
-              </div>
-              {open.map((c) => (
-                <div
-                  key={c.id}
-                  className="border border-white/10 bg-ink-200 p-2 text-[12.5px] text-fog-100"
-                >
-                  <div>{c.body}</div>
-                  <div className="mt-1 flex items-center gap-2 text-[10.5px] text-fog-400">
-                    <span className="vibestrate-mono">{c.target}</span>
-                    <span className="vibestrate-mono">
-                      {new Date(c.createdAt).toLocaleString()}
-                    </span>
-                    <button
-                      onClick={() => resolveComment(c.id)}
-                      disabled={busy === c.id}
-                      className="ml-auto inline-flex items-center gap-1 border border-white/10 bg-ink-100 px-1.5 py-0.5 text-[10.5px] text-fog-300 hover:text-fog-100"
-                    >
-                      <Check className="h-3 w-3" strokeWidth={1.5} /> resolve
-                    </button>
+        <Section title="Comments">
+          <div className={CARD}>
+            <form onSubmit={submitComment} className="flex gap-2">
+              <textarea
+                rows={2}
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Add a comment (saved to .vibestrate/roadmap/comments/<task>.json)"
+                className={cn(INPUT, "flex-1 resize-y")}
+              />
+              <Button
+                type="submit"
+                variant="secondary"
+                size="sm"
+                className="self-start"
+                disabled={busy === "comment" || !newComment.trim()}
+              >
+                {busy === "comment" ? "Saving…" : "Add"}
+              </Button>
+            </form>
+            {open.length > 0 ? (
+              <div className="mt-3 space-y-1.5">
+                <div className="text-[11px] font-medium text-violet-soft">
+                  Open ({open.length})
+                </div>
+                {open.map((c) => (
+                  <div
+                    key={c.id}
+                    className="rounded-[12px] border border-[color:var(--line-soft)] bg-coal-500 p-2.5 text-[12.5px] text-chalk-100"
+                  >
+                    <div>{c.body}</div>
+                    <div className="mt-1 flex items-center gap-2 text-[10.5px] text-chalk-400">
+                      <span className="font-mono">{c.target}</span>
+                      <span className="font-mono">
+                        {new Date(c.createdAt).toLocaleString()}
+                      </span>
+                      <button
+                        onClick={() => resolveComment(c.id)}
+                        disabled={busy === c.id}
+                        className="ml-auto inline-flex items-center gap-1 rounded-[7px] bg-coal-600 px-1.5 py-0.5 text-[10.5px] text-chalk-300 transition hover:text-chalk-100 disabled:opacity-50"
+                      >
+                        <Check className="h-3 w-3" strokeWidth={1.9} /> resolve
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-          {resolved.length > 0 ? (
-            <div className="mt-3 space-y-1.5 opacity-60">
-              <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
-                resolved ({resolved.length})
+                ))}
               </div>
-              {resolved.map((c) => (
-                <div
-                  key={c.id}
-                  className="border border-white/10 bg-ink-200 p-2 text-[12.5px] text-fog-300"
-                >
-                  <div className="line-through">{c.body}</div>
+            ) : null}
+            {resolved.length > 0 ? (
+              <div className="mt-3 space-y-1.5 opacity-60">
+                <div className="text-[11px] font-medium text-violet-soft">
+                  Resolved ({resolved.length})
                 </div>
-              ))}
-            </div>
-          ) : null}
-        </section>
+                {resolved.map((c) => (
+                  <div
+                    key={c.id}
+                    className="rounded-[12px] border border-[color:var(--line-soft)] bg-coal-500 p-2.5 text-[12.5px] text-chalk-300"
+                  >
+                    <div className="line-through">{c.body}</div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </Section>
       </div>
-    </div>
+    </PageShell>
   );
 }
 
@@ -442,141 +493,137 @@ function DependenciesSection({
   }
 
   return (
-    <section className="slab p-3">
-      <div className="flex items-center justify-between">
-        <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
-          dependencies
-        </div>
-        {candidates.length > 0 ? (
+    <Section
+      title="Dependencies"
+      action={
+        candidates.length > 0 ? (
           <button
             onClick={() => {
               setError(null);
               setAdding((v) => !v);
             }}
-            className="text-[11px] text-fog-300 hover:text-fog-100"
+            className="text-[12.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
           >
             {adding ? "Cancel" : "+ Add blocker"}
           </button>
-        ) : null}
-      </div>
-
-      {adding ? (
-        <div className="mt-2 flex items-center gap-2">
-          <select
-            disabled={busy}
-            defaultValue=""
-            onChange={(e) => {
-              if (e.target.value) void setDeps([...task.dependencies, e.target.value]);
-            }}
-            className="vibestrate-mono min-w-0 flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12px] text-fog-100"
-          >
-            <option value="" disabled>
-              This task is blocked by...
-            </option>
-            {candidates.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : null}
-      {error ? (
-        <div className="mt-2 text-[12px] text-rose-400">{error}</div>
-      ) : null}
-
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
-        <div>
-          <div className="text-[11px] text-fog-400">
-            Blocked by ({blockers.length + missingBlockers.length})
+        ) : null
+      }
+    >
+      <div className={CARD}>
+        {adding ? (
+          <div className="mb-2 flex items-center gap-2">
+            <Select
+              value=""
+              disabled={busy}
+              ariaLabel="This task is blocked by"
+              placeholder="This task is blocked by..."
+              className="min-w-0 flex-1"
+              onChange={(v) => {
+                if (v) void setDeps([...task.dependencies, v]);
+              }}
+              options={candidates.map((c) => ({ value: c.id, label: c.title }))}
+            />
           </div>
-          {blockers.length === 0 && missingBlockers.length === 0 ? (
-            <div className="mt-1 text-[12px] text-fog-400">-</div>
-          ) : (
-            <ul className="mt-1 space-y-1">
-              {blockers.map((b) => {
-                const open = !isDone(b.status);
-                return (
-                  <li key={b.id} className="flex items-center gap-1">
-                    <button
-                      onClick={() => onOpenTask(b.id)}
-                      className="flex min-w-0 flex-1 items-center gap-2 border border-white/10 bg-ink-200 px-2 py-1 text-left hover:bg-ink-100"
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${open ? "bg-amber-400" : "bg-emerald-400"}`}
-                      />
-                      <span className="vibestrate-mono flex-1 truncate text-[12px] text-fog-100">
-                        {b.title}
-                      </span>
-                      <span className="vibestrate-mono text-[10.5px] text-fog-400">
-                        {b.status}
-                      </span>
-                    </button>
+        ) : null}
+        {error ? (
+          <div className="mb-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <div className="text-[11px] font-medium text-violet-soft">
+              Blocked by ({blockers.length + missingBlockers.length})
+            </div>
+            {blockers.length === 0 && missingBlockers.length === 0 ? (
+              <div className="mt-1 text-[12px] text-chalk-400">-</div>
+            ) : (
+              <ul className="mt-1.5 space-y-1">
+                {blockers.map((b) => {
+                  const open = !isDone(b.status);
+                  return (
+                    <li key={b.id} className="flex items-center gap-1">
+                      <button
+                        onClick={() => onOpenTask(b.id)}
+                        className="flex min-w-0 flex-1 items-center gap-2 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-1.5 text-left transition hover:bg-coal-400"
+                      >
+                        <span
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            open ? "bg-amber-soft" : "bg-emerald-400",
+                          )}
+                        />
+                        <span className="flex-1 truncate text-[12px] text-chalk-100">
+                          {b.title}
+                        </span>
+                        <span className="font-mono text-[10.5px] text-chalk-400">
+                          {b.status}
+                        </span>
+                      </button>
+                      <button
+                        title="Remove this blocker"
+                        disabled={busy}
+                        onClick={() =>
+                          void setDeps(task.dependencies.filter((d) => d !== b.id))
+                        }
+                        className="shrink-0 px-1.5 py-1 text-chalk-400 transition hover:text-rose-300"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.9} />
+                      </button>
+                    </li>
+                  );
+                })}
+                {missingBlockers.map((id) => (
+                  <li key={id} className="flex items-center gap-1">
+                    <span className="flex min-w-0 flex-1 items-center gap-2 rounded-[10px] border border-rose-400/30 bg-rose-500/[0.07] px-2.5 py-1.5 text-[12px] text-rose-300">
+                      <span className="flex-1 truncate font-mono">{id}</span>
+                      <span className="font-mono text-[10.5px]">missing</span>
+                    </span>
                     <button
                       title="Remove this blocker"
                       disabled={busy}
                       onClick={() =>
-                        void setDeps(task.dependencies.filter((d) => d !== b.id))
+                        void setDeps(task.dependencies.filter((d) => d !== id))
                       }
-                      className="shrink-0 px-1.5 py-1 text-[12px] text-fog-500 hover:text-rose-400"
+                      className="shrink-0 px-1.5 py-1 text-chalk-400 transition hover:text-rose-300"
                     >
-                      x
+                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.9} />
                     </button>
                   </li>
-                );
-              })}
-              {missingBlockers.map((id) => (
-                <li
-                  key={id}
-                  className="flex items-center gap-1"
-                >
-                  <span className="flex min-w-0 flex-1 items-center gap-2 border border-rose-400/40 bg-rose-400/5 px-2 py-1 text-[12px] text-rose-400">
-                    <span className="vibestrate-mono flex-1 truncate">{id}</span>
-                    <span className="vibestrate-mono text-[10.5px]">missing</span>
-                  </span>
-                  <button
-                    title="Remove this blocker"
-                    disabled={busy}
-                    onClick={() =>
-                      void setDeps(task.dependencies.filter((d) => d !== id))
-                    }
-                    className="shrink-0 px-1.5 py-1 text-[12px] text-fog-500 hover:text-rose-400"
-                  >
-                    x
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div>
-          <div className="text-[11px] text-fog-400">
-            Unlocks ({unlocks.length})
+                ))}
+              </ul>
+            )}
           </div>
-          {unlocks.length === 0 ? (
-            <div className="mt-1 text-[12px] text-fog-400">-</div>
-          ) : (
-            <ul className="mt-1 space-y-1">
-              {unlocks.map((u) => (
-                <li key={u.id}>
-                  <button
-                    onClick={() => onOpenTask(u.id)}
-                    className="flex w-full items-center gap-2 border border-white/10 bg-ink-200 px-2 py-1 text-left hover:bg-ink-100"
-                  >
-                    <span className="vibestrate-mono flex-1 truncate text-[12px] text-fog-100">
-                      {u.title}
-                    </span>
-                    <span className="vibestrate-mono text-[10.5px] text-fog-400">
-                      {u.status}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div>
+            <div className="text-[11px] font-medium text-violet-soft">
+              Unlocks ({unlocks.length})
+            </div>
+            {unlocks.length === 0 ? (
+              <div className="mt-1 text-[12px] text-chalk-400">-</div>
+            ) : (
+              <ul className="mt-1.5 space-y-1">
+                {unlocks.map((u) => (
+                  <li key={u.id}>
+                    <button
+                      onClick={() => onOpenTask(u.id)}
+                      className="flex w-full items-center gap-2 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-1.5 text-left transition hover:bg-coal-400"
+                    >
+                      <span className="flex-1 truncate text-[12px] text-chalk-100">
+                        {u.title}
+                      </span>
+                      <span className="font-mono text-[10.5px] text-chalk-400">
+                        {u.status}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -604,40 +651,40 @@ function NeedsTestingBanner({
   }
 
   return (
-    <section className="border border-amber-400/50 bg-amber-400/10 p-3">
-      <div className="flex items-start gap-2">
+    <section className="rounded-[22px] border border-amber-soft/25 bg-coal-600 p-5">
+      <div className="flex items-start gap-2.5">
         <FlaskConical
-          className="mt-0.5 h-4 w-4 shrink-0 text-amber-300"
-          strokeWidth={1.7}
+          className="mt-0.5 h-4 w-4 shrink-0 text-amber-soft"
+          strokeWidth={1.9}
         />
         <div className="flex-1">
-          <div className="text-[12.5px] font-medium text-amber-300">
+          <div className="text-[13px] font-semibold text-amber-soft">
             Needs testing - a human should check this
           </div>
-          <div className="mt-0.5 text-[12px] text-fog-300">
+          <div className="mt-1 text-[12.5px] text-chalk-200">
             {task.needsTestingReason ||
               "A run finished but flagged something for human review (e.g. visual / UX the model can't perceive)."}
           </div>
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2.5 flex items-center gap-2">
             <button
               type="button"
               onClick={() => verdict("pass")}
               disabled={busy !== null}
-              className="border border-emerald-400/50 bg-emerald-400/15 px-2 py-1 text-[12px] text-emerald-300 hover:bg-emerald-400/25 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-[10px] bg-emerald-500/15 px-3 py-1.5 text-[12.5px] font-semibold text-emerald-400 transition hover:bg-emerald-500/25 disabled:opacity-50"
             >
               {busy === "pass" ? "…" : "Looks good → Done"}
             </button>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => verdict("fail")}
               disabled={busy !== null}
-              className="border border-white/10 bg-ink-200 px-2 py-1 text-[12px] text-fog-300 hover:bg-ink-100 disabled:opacity-50"
             >
               {busy === "fail" ? "…" : "Needs work → Reopen"}
-            </button>
+            </Button>
           </div>
           {error ? (
-            <div className="mt-1 text-[10.5px] text-rose-400">{error}</div>
+            <div className="mt-1.5 text-[11px] text-rose-300">{error}</div>
           ) : null}
         </div>
       </div>
@@ -680,82 +727,88 @@ function ContextSourcesSection({
   }
 
   return (
-    <section className="slab p-3">
-      <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
-        context sources
-      </div>
-      <div className="mt-0.5 text-[10.5px] text-fog-400">
-        Files / URLs injected into every agent prompt for this card's runs (path-guarded, SSRF-guarded, secrets redacted).
-      </div>
-      {sources.length > 0 ? (
-        <ul className="mt-2 space-y-1">
-          {sources.map((s, i) => (
-            <li
-              key={`${s.kind}-${s.ref}-${i}`}
-              className="flex items-center gap-2 border border-white/10 bg-ink-200 px-2 py-1"
-            >
-              <span className="vibestrate-mono shrink-0 border border-white/10 px-1 text-[10px] text-fog-400">
-                {s.kind}
-              </span>
-              {s.kind === "url" ? (
-                <ExternalLink className="h-3 w-3 shrink-0 text-amber-300" strokeWidth={1.5} />
-              ) : (
-                <FileCode className="h-3 w-3 shrink-0 text-fog-400" strokeWidth={1.5} />
-              )}
-              <span className="vibestrate-mono flex-1 truncate text-[12px] text-fog-100">
-                {s.ref}
-              </span>
-              <button
-                type="button"
-                onClick={() =>
-                  save(
-                    sources
-                      .filter((_, j) => j !== i)
-                      .map((x) => ({ kind: x.kind, ref: x.ref })),
-                  )
-                }
-                disabled={busy}
-                className="shrink-0 text-fog-400 hover:text-rose-400 disabled:opacity-50"
-                title="Remove"
-              >
-                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      <form onSubmit={add} className="mt-2 flex gap-2">
-        <Select
-          value={kind}
-          ariaLabel="Context source kind"
-          className="min-w-[110px]"
-          onChange={(v) => setKind(v as "file" | "url")}
-          options={[
-            { value: "file", label: "file" },
-            { value: "url", label: "url" },
-          ]}
-        />
-        <input
-          value={ref}
-          onChange={(e) => setRef(e.target.value)}
-          placeholder={kind === "file" ? "path/in/project.md" : "https://…"}
-          className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={busy || !ref.trim()}
-          className="inline-flex items-center gap-1 self-start border border-white/10 bg-ink-200 px-2.5 py-1 text-[12px] text-fog-100 hover:bg-ink-100 disabled:opacity-50"
-        >
-          <Plus className="h-3 w-3" strokeWidth={1.5} />
-          Add
-        </button>
-      </form>
-      {error ? (
-        <div className="mt-2 border border-rose-400/40 bg-rose-400/10 px-2 py-1 text-[10.5px] text-rose-400">
-          {error}
+    <Section title="Context sources">
+      <div className={CARD}>
+        <div className="text-[11.5px] text-chalk-300">
+          Files / URLs injected into every agent prompt for this card's runs
+          (path-guarded, SSRF-guarded, secrets redacted).
         </div>
-      ) : null}
-    </section>
+        {sources.length > 0 ? (
+          <ul className="mt-2.5 space-y-1">
+            {sources.map((s, i) => (
+              <li
+                key={`${s.kind}-${s.ref}-${i}`}
+                className="flex items-center gap-2 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-1.5"
+              >
+                <Chip
+                  tone={s.kind === "url" ? "amber" : "neutral"}
+                  contained
+                  className="shrink-0"
+                >
+                  {s.kind}
+                </Chip>
+                {s.kind === "url" ? (
+                  <ExternalLink className="h-3 w-3 shrink-0 text-amber-soft" strokeWidth={1.9} />
+                ) : (
+                  <FileCode className="h-3 w-3 shrink-0 text-chalk-400" strokeWidth={1.9} />
+                )}
+                <span className="flex-1 truncate font-mono text-[12px] text-chalk-100">
+                  {s.ref}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    save(
+                      sources
+                        .filter((_, j) => j !== i)
+                        .map((x) => ({ kind: x.kind, ref: x.ref })),
+                    )
+                  }
+                  disabled={busy}
+                  className="shrink-0 text-chalk-400 transition hover:text-rose-300 disabled:opacity-50"
+                  title="Remove"
+                >
+                  <Trash2 className="h-3.5 w-3.5" strokeWidth={1.9} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <form onSubmit={add} className="mt-2.5 flex gap-2">
+          <Select
+            value={kind}
+            ariaLabel="Context source kind"
+            className="min-w-[110px]"
+            onChange={(v) => setKind(v as "file" | "url")}
+            options={[
+              { value: "file", label: "file" },
+              { value: "url", label: "url" },
+            ]}
+          />
+          <input
+            value={ref}
+            onChange={(e) => setRef(e.target.value)}
+            placeholder={kind === "file" ? "path/in/project.md" : "https://…"}
+            className={cn(INPUT, "flex-1")}
+          />
+          <Button
+            type="submit"
+            variant="secondary"
+            size="sm"
+            className="self-start"
+            disabled={busy || !ref.trim()}
+            iconLeft={<Plus className="h-3 w-3" strokeWidth={1.9} />}
+          >
+            Add
+          </Button>
+        </form>
+        {error ? (
+          <div className="mt-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+            {error}
+          </div>
+        ) : null}
+      </div>
+    </Section>
   );
 }
 
@@ -879,210 +932,210 @@ function ChecklistSection({
   }
 
   return (
-    <section className="slab p-3">
-      <div className="flex items-center gap-2">
-        <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
-          checklist
-        </div>
-        {items.length > 0 ? (
-          <>
-            <span className="vibestrate-mono text-[10.5px] text-fog-400">
-              {done}/{items.length}
-            </span>
-            <div className="ml-1 h-1 w-24 overflow-hidden rounded-full bg-ink-200">
-              <div
-                className="h-full bg-emerald-400 transition-all"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-          </>
-        ) : null}
+    <Section
+      title={
+        <span className="flex items-center gap-2.5">
+          Checklist
+          {items.length > 0 ? (
+            <>
+              <span className="font-mono text-[11px] font-medium tabular-nums text-chalk-300">
+                {done}/{items.length}
+              </span>
+              <span className="h-1 w-24 overflow-hidden rounded-full bg-coal-500">
+                <span
+                  className="block h-full bg-emerald-400 transition-all"
+                  style={{ width: `${pct}%` }}
+                />
+              </span>
+            </>
+          ) : null}
+        </span>
+      }
+      action={
         <button
           type="button"
           onClick={enhance}
           disabled={busy !== null}
           title="Propose a checklist with an AI assist (read-only - you choose whether to add the items)"
-          className="ml-auto inline-flex items-center gap-1 border border-violet-soft/40 bg-violet-soft/10 px-1.5 py-0.5 text-[10.5px] text-violet-soft hover:bg-violet-soft/20 disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-[10px] bg-violet-soft/10 px-2 py-1 text-[11.5px] font-semibold text-violet-soft transition hover:bg-violet-soft/15 disabled:opacity-50"
         >
-          <Sparkles className="h-3 w-3" strokeWidth={1.5} />
+          <Sparkles className="h-3 w-3" strokeWidth={1.9} />
           {busy === "enhance" ? "Thinking…" : "Enhance"}
         </button>
-      </div>
-
-      {proposed ? (
-        <div className="mt-2 border border-violet-soft/30 bg-violet-soft/10 p-2">
-          <div className="flex items-center gap-2">
-            <span className="vibestrate-mono text-[10px] uppercase tracking-[0.10em] text-violet-soft">
-              proposed ({proposed.length}) - not added yet
-            </span>
-            <button
-              type="button"
-              onClick={acceptProposed}
-              disabled={busy !== null || proposed.length === 0}
-              className="ml-auto border border-violet-soft/50 bg-violet-soft/15 px-1.5 py-0.5 text-[11px] text-violet-soft hover:bg-violet-soft/25 disabled:opacity-50"
-            >
-              {busy === "accept" ? "Adding…" : "Add all"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setProposed(null)}
-              disabled={busy !== null}
-              className="border border-white/10 bg-ink-100 px-1.5 py-0.5 text-[11px] text-fog-300 hover:text-fog-100 disabled:opacity-50"
-            >
-              Dismiss
-            </button>
+      }
+    >
+      <div className={CARD}>
+        {proposed ? (
+          <div className="mb-2.5 rounded-[12px] border border-violet-soft/25 bg-violet-soft/10 p-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-violet-soft">
+                Proposed ({proposed.length}) - not added yet
+              </span>
+              <button
+                type="button"
+                onClick={acceptProposed}
+                disabled={busy !== null || proposed.length === 0}
+                className="ml-auto rounded-[8px] bg-violet-soft/15 px-2 py-0.5 text-[11px] font-semibold text-violet-soft transition hover:bg-violet-soft/25 disabled:opacity-50"
+              >
+                {busy === "accept" ? "Adding…" : "Add all"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setProposed(null)}
+                disabled={busy !== null}
+                className="rounded-[8px] bg-coal-600 px-2 py-0.5 text-[11px] text-chalk-300 transition hover:text-chalk-100 disabled:opacity-50"
+              >
+                Dismiss
+              </button>
+            </div>
+            <ol className="mt-1.5 space-y-0.5">
+              {proposed.map((t, i) => (
+                <li key={i} className="text-[12px] text-chalk-100">
+                  <span className="font-mono text-chalk-400">{i + 1}.</span> {t}
+                </li>
+              ))}
+            </ol>
           </div>
-          <ol className="mt-1.5 space-y-0.5">
-            {proposed.map((t, i) => (
-              <li key={i} className="text-[12px] text-fog-100">
-                <span className="vibestrate-mono text-fog-400">
-                  {i + 1}.
-                </span>{" "}
-                {t}
-              </li>
+        ) : null}
+
+        {items.length === 0 ? (
+          <div className="text-[12px] text-chalk-400">
+            No items yet. Break this card into a concrete ordered checklist below.
+          </div>
+        ) : (
+          <ul className="space-y-1" onDragOver={(e) => e.preventDefault()}>
+            {items.map((item) => (
+              <ChecklistRow
+                key={item.id}
+                item={item}
+                isSaga={task.runMode === "supervised"}
+                busy={busy}
+                dragging={draggingId === item.id}
+                dragOver={overId === item.id && draggingId !== item.id}
+                onDragStart={() => setDraggingId(item.id)}
+                onDragEnter={() => {
+                  if (draggingId && draggingId !== item.id) setOverId(item.id);
+                }}
+                onDragEnd={() => {
+                  setDraggingId(null);
+                  setOverId(null);
+                }}
+                onDrop={() => reorderTo(item.id)}
+                onToggle={() =>
+                  run(`s-${item.id}`, () =>
+                    api.updateChecklistItem(task.id, item.id, {
+                      status: item.status === "done" ? "pending" : "done",
+                    }),
+                  )
+                }
+                onStatus={(status) =>
+                  run(`s-${item.id}`, () =>
+                    api.updateChecklistItem(task.id, item.id, { status }),
+                  )
+                }
+                onEdit={(next) =>
+                  run(`e-${item.id}`, () =>
+                    api.updateChecklistItem(task.id, item.id, { text: next }),
+                  )
+                }
+                onRemove={() =>
+                  run(`r-${item.id}`, () =>
+                    api.removeChecklistItem(task.id, item.id),
+                  )
+                }
+                onPromote={() =>
+                  run(`p-${item.id}`, () =>
+                    api.promoteChecklistItem(task.id, item.id),
+                  )
+                }
+                onOpenCard={onOpenTask}
+              />
             ))}
-          </ol>
-        </div>
-      ) : null}
+          </ul>
+        )}
 
-      {items.length === 0 ? (
-        <div className="mt-2 text-[12px] text-fog-400">
-          No items yet. Break this card into a concrete ordered checklist below.
-        </div>
-      ) : (
-        <ul
-          className="mt-2 space-y-1"
-          onDragOver={(e) => e.preventDefault()}
-        >
-          {items.map((item) => (
-            <ChecklistRow
-              key={item.id}
-              item={item}
-              isSaga={task.runMode === "supervised"}
-              busy={busy}
-              dragging={draggingId === item.id}
-              dragOver={overId === item.id && draggingId !== item.id}
-              onDragStart={() => setDraggingId(item.id)}
-              onDragEnter={() => {
-                if (draggingId && draggingId !== item.id) setOverId(item.id);
-              }}
-              onDragEnd={() => {
-                setDraggingId(null);
-                setOverId(null);
-              }}
-              onDrop={() => reorderTo(item.id)}
-              onToggle={() =>
-                run(`s-${item.id}`, () =>
-                  api.updateChecklistItem(task.id, item.id, {
-                    status: item.status === "done" ? "pending" : "done",
-                  }),
-                )
-              }
-              onStatus={(status) =>
-                run(`s-${item.id}`, () =>
-                  api.updateChecklistItem(task.id, item.id, { status }),
-                )
-              }
-              onEdit={(next) =>
-                run(`e-${item.id}`, () =>
-                  api.updateChecklistItem(task.id, item.id, { text: next }),
-                )
-              }
-              onRemove={() =>
-                run(`r-${item.id}`, () =>
-                  api.removeChecklistItem(task.id, item.id),
-                )
-              }
-              onPromote={() =>
-                run(`p-${item.id}`, () =>
-                  api.promoteChecklistItem(task.id, item.id),
-                )
-              }
-              onOpenCard={onOpenTask}
-            />
-          ))}
-        </ul>
-      )}
+        {items.length > 0 ? (
+          <div className="mt-2.5 flex flex-wrap items-center gap-2 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-2">
+            <button
+              type="button"
+              onClick={pickup}
+              disabled={busy !== null || pending === 0}
+              title="Execute the checklist item-by-item in one run (a commit per item)."
+              className="inline-flex items-center gap-1.5 rounded-[10px] bg-violet-soft/15 px-2.5 py-1 text-[12px] font-semibold text-violet-soft transition hover:bg-violet-soft/25 disabled:opacity-50"
+            >
+              {busy === "pickup"
+                ? "Starting…"
+                : `Run checklist (${pending} item${pending === 1 ? "" : "s"})`}
+            </button>
+            <label className="flex items-center gap-1.5 text-[11.5px] text-chalk-300">
+              <input
+                type="checkbox"
+                checked={stepMode}
+                onChange={(e) => setStepMode(e.target.checked)}
+                className="h-3.5 w-3.5 accent-violet-soft"
+              />
+              step-by-step
+            </label>
+            {launched ? (
+              <span className="text-[10.5px] text-emerald-400">{launched}</span>
+            ) : (
+              <span className="ml-auto text-[10.5px] text-chalk-400">
+                one worktree · a commit per item · summaries carried forward
+              </span>
+            )}
+          </div>
+        ) : null}
 
-      {items.length > 0 ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2 border border-white/10 bg-ink-200 px-2 py-1.5">
-          <button
-            type="button"
-            onClick={pickup}
-            disabled={busy !== null || pending === 0}
-            title="Execute the checklist item-by-item in one run (a commit per item)."
-            className="inline-flex items-center gap-1 border border-violet-soft/50 bg-violet-soft/15 px-2 py-1 text-[12px] text-violet-soft hover:bg-violet-soft/25 disabled:opacity-50"
-          >
-            {busy === "pickup"
-              ? "Starting…"
-              : `Run checklist (${pending} item${pending === 1 ? "" : "s"})`}
-          </button>
-          <label className="flex items-center gap-1 text-[11px] text-fog-300">
+        <form onSubmit={add} className="mt-2.5 flex gap-2">
+          <div className="flex flex-1 flex-col gap-1.5">
             <input
-              type="checkbox"
-              checked={stepMode}
-              onChange={(e) => setStepMode(e.target.checked)}
-              className="h-3.5 w-3.5"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Add a checklist item…"
+              className={cn(INPUT, "flex-1")}
             />
-            step-by-step
-          </label>
-          {launched ? (
-            <span className="text-[10.5px] text-emerald-400">{launched}</span>
-          ) : (
-            <span className="ml-auto text-[10.5px] text-fog-400">
-              one worktree · a commit per item · summaries carried forward
-            </span>
-          )}
-        </div>
-      ) : null}
+            {task.runMode === "supervised" ? (
+              <>
+                <input
+                  value={objective}
+                  onChange={(e) => setObjective(e.target.value)}
+                  placeholder="Objective (optional)…"
+                  className={cn(INPUT, "flex-1")}
+                />
+                <input
+                  value={acceptance}
+                  onChange={(e) => setAcceptance(e.target.value)}
+                  placeholder="Acceptance check (optional)…"
+                  className={cn(INPUT, "flex-1")}
+                />
+                <input
+                  value={fileHintsInput}
+                  onChange={(e) => setFileHintsInput(e.target.value)}
+                  placeholder="File hints (comma-separated, optional)…"
+                  className={cn(INPUT, "flex-1")}
+                />
+              </>
+            ) : null}
+          </div>
+          <Button
+            type="submit"
+            variant="secondary"
+            size="sm"
+            className="self-start"
+            disabled={busy === "add" || !text.trim()}
+            iconLeft={<Plus className="h-3 w-3" strokeWidth={1.9} />}
+          >
+            {busy === "add" ? "Adding…" : "Add"}
+          </Button>
+        </form>
 
-      <form onSubmit={add} className="mt-2 flex gap-2">
-        <div className="flex flex-1 flex-col gap-1">
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Add a checklist item…"
-            className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
-          />
-          {task.runMode === "supervised" ? (
-            <>
-              <input
-                value={objective}
-                onChange={(e) => setObjective(e.target.value)}
-                placeholder="Objective (optional)…"
-                className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
-              />
-              <input
-                value={acceptance}
-                onChange={(e) => setAcceptance(e.target.value)}
-                placeholder="Acceptance check (optional)…"
-                className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
-              />
-              <input
-                value={fileHintsInput}
-                onChange={(e) => setFileHintsInput(e.target.value)}
-                placeholder="File hints (comma-separated, optional)…"
-                className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
-              />
-            </>
-          ) : null}
-        </div>
-        <button
-          type="submit"
-          disabled={busy === "add" || !text.trim()}
-          className="inline-flex items-center gap-1 self-start border border-white/10 bg-ink-200 px-2.5 py-1 text-[12px] text-fog-100 hover:bg-ink-100 disabled:opacity-50"
-        >
-          <Plus className="h-3 w-3" strokeWidth={1.5} />
-          {busy === "add" ? "Adding…" : "Add"}
-        </button>
-      </form>
-
-      {error ? (
-        <div className="mt-2 border border-rose-400/40 bg-rose-400/10 px-2 py-1 text-[10.5px] text-rose-400">
-          {error}
-        </div>
-      ) : null}
-    </section>
+        {error ? (
+          <div className="mt-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+            {error}
+          </div>
+        ) : null}
+      </div>
+    </Section>
   );
 }
 
@@ -1135,8 +1188,8 @@ function ChecklistRow({
       : item.status === "in_progress"
         ? "text-violet-soft"
         : item.status === "blocked"
-          ? "text-amber-300"
-          : "text-fog-400";
+          ? "text-amber-soft"
+          : "text-chalk-400";
 
   return (
     <li
@@ -1156,17 +1209,17 @@ function ChecklistRow({
         setGrabbed(false);
         onDrop();
       }}
-      className={`flex gap-1.5 border bg-ink-200 px-2 py-1 transition ${
+      className={cn(
+        "flex gap-1.5 rounded-[10px] border bg-coal-500 px-2.5 py-1.5 transition",
         isSaga && (item.objective || item.acceptanceCheck || item.fileHints?.length)
           ? "items-start"
-          : "items-center"
-      } ${
+          : "items-center",
         dragging
           ? "border-violet-soft/50 opacity-50"
           : dragOver
             ? "border-violet-soft/60 ring-1 ring-violet-soft/40"
-            : "border-white/10"
-      }`}
+            : "border-[color:var(--line-soft)]",
+      )}
     >
       <span
         role="button"
@@ -1174,20 +1227,20 @@ function ChecklistRow({
         title="Drag to reorder"
         onMouseDown={() => setGrabbed(true)}
         onMouseUp={() => setGrabbed(false)}
-        className="shrink-0 cursor-grab text-fog-400 hover:text-fog-100 active:cursor-grabbing"
+        className="shrink-0 cursor-grab text-chalk-400 transition hover:text-chalk-100 active:cursor-grabbing"
       >
-        <GripVertical className="h-3.5 w-3.5" strokeWidth={1.5} />
+        <GripVertical className="h-3.5 w-3.5" strokeWidth={1.9} />
       </span>
       <button
         type="button"
         onClick={onToggle}
         disabled={anyBusy}
         title={item.status === "done" ? "Mark pending" : "Mark done"}
-        className={`shrink-0 text-[14px] leading-none ${glyphColor} disabled:opacity-50`}
+        className={cn("shrink-0 text-[14px] leading-none disabled:opacity-50", glyphColor)}
       >
         {checklistGlyph(item.status)}
       </button>
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -1196,28 +1249,29 @@ function ChecklistRow({
             if (next && next !== item.text) onEdit(next);
             else setDraft(item.text);
           }}
-          className={`w-full bg-transparent text-[12.5px] focus:outline-none ${
+          className={cn(
+            "w-full bg-transparent text-[12.5px] focus:outline-none",
             item.status === "done"
-              ? "text-fog-400 line-through"
-              : "text-fog-100"
-          }`}
+              ? "text-chalk-400 line-through"
+              : "text-chalk-100",
+          )}
         />
         {isSaga && item.objective ? (
           <div className="mt-0.5 text-[10.5px]">
-            <span className="text-violet-soft">objective</span>{" "}
-            <span className="text-fog-300">{item.objective}</span>
+            <span className="font-medium text-violet-soft">objective</span>{" "}
+            <span className="text-chalk-300">{item.objective}</span>
           </div>
         ) : null}
         {isSaga && item.acceptanceCheck ? (
           <div className="text-[10.5px]">
-            <span className="text-violet-soft">accept</span>{" "}
-            <span className="text-fog-300">{item.acceptanceCheck}</span>
+            <span className="font-medium text-violet-soft">accept</span>{" "}
+            <span className="text-chalk-300">{item.acceptanceCheck}</span>
           </div>
         ) : null}
         {isSaga && item.fileHints?.length ? (
           <div className="text-[10.5px]">
-            <span className="text-violet-soft">files</span>{" "}
-            <span className="text-fog-300">{item.fileHints.join(", ")}</span>
+            <span className="font-medium text-violet-soft">files</span>{" "}
+            <span className="text-chalk-300">{item.fileHints.join(", ")}</span>
           </div>
         ) : null}
       </div>
@@ -1234,9 +1288,9 @@ function ChecklistRow({
           type="button"
           onClick={() => onOpenCard(item.promotedTaskId!)}
           title={`Promoted to card ${item.promotedTaskId}`}
-          className="shrink-0 text-violet-soft hover:text-fog-100"
+          className="shrink-0 text-violet-soft transition hover:text-chalk-100"
         >
-          <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.5} />
+          <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.9} />
         </button>
       ) : (
         <button
@@ -1244,9 +1298,9 @@ function ChecklistRow({
           onClick={onPromote}
           disabled={anyBusy}
           title="Promote this item to its own card"
-          className="shrink-0 text-fog-400 hover:text-violet-soft disabled:opacity-50"
+          className="shrink-0 text-chalk-400 transition hover:text-violet-soft disabled:opacity-50"
         >
-          <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.5} />
+          <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.9} />
         </button>
       )}
       <button
@@ -1254,9 +1308,9 @@ function ChecklistRow({
         onClick={onRemove}
         disabled={anyBusy}
         title="Remove item"
-        className="shrink-0 text-fog-400 hover:text-rose-400 disabled:opacity-50"
+        className="shrink-0 text-chalk-400 transition hover:text-rose-300 disabled:opacity-50"
       >
-        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.9} />
       </button>
     </li>
   );
@@ -1295,43 +1349,42 @@ function FilesSection({ task }: { task: Task }) {
   }
 
   return (
-    <section className="slab p-3">
-      <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
-        Files
+    <Section title="Files">
+      <div className={CARD}>
+        {task.touchedFiles.length > 0 ? (
+          <div>
+            <div className="text-[11px] font-medium text-violet-soft">
+              Declared (touchedFiles)
+            </div>
+            <ul className="mt-1.5 grid grid-cols-1 gap-1 sm:grid-cols-2">
+              {task.touchedFiles.map((p) => (
+                <li key={`d-${p}`}>
+                  <FileLink path={p} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {runFiles.length > 0 ? (
+          <div className="mt-3">
+            <div className="text-[11px] font-medium text-violet-soft">
+              Changed by linked runs
+            </div>
+            <ul className="mt-1.5 grid grid-cols-1 gap-1 sm:grid-cols-2">
+              {runFiles.map((f) => (
+                <li key={`r-${f.path}`}>
+                  <FileLink
+                    path={f.path}
+                    status={f.status}
+                    redacted={f.isSecretLike}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
-      {task.touchedFiles.length > 0 ? (
-        <div className="mt-2">
-          <div className="text-[10.5px] text-fog-400">
-            declared (touchedFiles)
-          </div>
-          <ul className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
-            {task.touchedFiles.map((p) => (
-              <li key={`d-${p}`}>
-                <FileLink path={p} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      {runFiles.length > 0 ? (
-        <div className="mt-3">
-          <div className="text-[10.5px] text-fog-400">
-            changed by linked runs
-          </div>
-          <ul className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
-            {runFiles.map((f) => (
-              <li key={`r-${f.path}`}>
-                <FileLink
-                  path={f.path}
-                  status={f.status}
-                  redacted={f.isSecretLike}
-                />
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </section>
+    </Section>
   );
 }
 
@@ -1366,28 +1419,28 @@ function FileLink({
             })
       }
       disabled={redacted}
-      className={`flex w-full items-center gap-1.5 border border-white/10 bg-ink-200 px-2 py-1 text-left text-[11.5px] ${
+      className={cn(
+        "flex w-full items-center gap-1.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-1.5 text-left text-[11.5px] transition",
         redacted
-          ? "text-amber-300 opacity-80"
-          : "text-fog-300 hover:border-violet-soft/40 hover:text-fog-100"
-      }`}
+          ? "text-amber-soft opacity-80"
+          : "text-chalk-300 hover:border-violet-soft/40 hover:text-chalk-100",
+      )}
       title={redacted ? "Secret file - contents redacted" : path}
     >
       {redacted ? (
-        <Lock className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+        <Lock className="h-3 w-3 shrink-0" strokeWidth={1.9} />
       ) : (
-        <FileCode className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+        <FileCode className="h-3 w-3 shrink-0" strokeWidth={1.9} />
       )}
-      <span className="truncate vibestrate-mono">{path}</span>
+      <span className="truncate font-mono">{path}</span>
       {status ? (
-        <span className="vibestrate-mono ml-auto border border-white/10 px-1 text-[10px] text-fog-400">
+        <span className="ml-auto font-mono text-[10px] text-chalk-400">
           {status}
         </span>
       ) : null}
     </button>
   );
 }
-
 
 function TaskRunMode({
   task,
@@ -1426,14 +1479,13 @@ function TaskRunMode({
   }
 
   return (
-    <div className="mt-3 grid grid-cols-1 gap-2 border border-white/10 bg-ink-200 p-2 text-[12px] md:grid-cols-3">
-
+    <div className="mt-3 grid grid-cols-1 gap-3 rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-3 md:grid-cols-3">
       <label className="flex flex-col gap-1">
         <span
-          className="vibestrate-mono text-[10px] uppercase tracking-[0.12em] text-fog-400"
+          className="text-[11px] font-medium text-violet-soft"
           title="Pin every agent in runs spawned from this task to a specific provider id. Wins over effort."
         >
-          provider override
+          Provider override
         </span>
         <input
           type="text"
@@ -1445,7 +1497,7 @@ function TaskRunMode({
             if (v === (task.profileOverride ?? "")) return;
             void setField("profileOverride", v.length === 0 ? null : v);
           }}
-          className="vibestrate-mono border border-white/10 bg-ink-100 px-1.5 py-1 text-[11.5px] text-fog-100 placeholder:text-fog-500 focus:border-violet-soft/60 focus:outline-none"
+          className={cn(INPUT, "font-mono text-[12px]")}
         />
       </label>
 
@@ -1455,18 +1507,18 @@ function TaskRunMode({
           checked={task.readOnly ?? false}
           disabled={busy !== null}
           onChange={(e) => void setField("readOnly", e.target.checked)}
-          className="h-3.5 w-3.5"
+          className="h-3.5 w-3.5 accent-violet-soft"
         />
         <span
-          className="vibestrate-mono text-[11px] uppercase tracking-[0.10em] text-fog-300"
+          className="text-[12px] font-medium text-chalk-200"
           title="Investigation-only: runs spawned from this task skip executor + fix loop and refuse apply/validate/revert."
         >
-          read-only
+          Read-only
         </span>
       </label>
 
       {error ? (
-        <div className="md:col-span-3 border border-rose-400/40 bg-rose-400/10 px-2 py-1 text-[10.5px] text-rose-400">
+        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300 md:col-span-3">
           {error}
         </div>
       ) : null}
