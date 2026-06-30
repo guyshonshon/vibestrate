@@ -583,19 +583,7 @@ export function BoardPage({
         />
       </div>
 
-      {/* ── Roadmap filter rail (horizontal) ──────────────────────── */}
-      {items.length > 0 ? (
-        <div className="mb-3 shrink-0">
-          <RoadmapRail
-            items={items}
-            tasks={tasks}
-            active={roadmapFilter}
-            onSelect={setRoadmapFilter}
-          />
-        </div>
-      ) : null}
-
-      {/* ── Board: toolbar + kanban ───────────────────────────────── */}
+      {/* ── Board: one filter container (roadmap + search + priority) + kanban ── */}
       {tasks.length === 0 ? (
         <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-12 text-center">
           <div className="text-[15px] font-semibold text-chalk-100">No tasks yet.</div>
@@ -605,7 +593,18 @@ export function BoardPage({
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="mb-3 shrink-0">
+          <div className="mb-3 shrink-0 rounded-[14px] border border-[color:var(--line)] bg-coal-650 p-2.5">
+            {items.length > 0 ? (
+              <>
+                <RoadmapRail
+                  items={items}
+                  tasks={tasks}
+                  active={roadmapFilter}
+                  onSelect={setRoadmapFilter}
+                />
+                <div className="my-2.5 h-px bg-[color:var(--line-soft)]" />
+              </>
+            ) : null}
             <BoardToolbar
               query={query}
               onQuery={setQuery}
@@ -797,10 +796,15 @@ function BoardToolbar({
   tasksShown: number;
   totalTasks: number;
 }) {
-  const priorities: Array<"any" | Priority> = ["any", "low", "medium", "high"];
+  const priorities: Array<{ id: "any" | Priority; label: string; active: string }> = [
+    { id: "any", label: "Any", active: "text-chalk-100" },
+    { id: "low", label: "Low", active: "text-chalk-300" },
+    { id: "medium", label: "Med", active: "text-violet-soft" },
+    { id: "high", label: "High", active: "text-amber-soft" },
+  ];
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="relative min-w-[240px] max-w-[360px] flex-1">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div className="relative min-w-[200px] max-w-[320px] flex-1">
         <Search
           className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-chalk-400"
           strokeWidth={1.9}
@@ -809,7 +813,7 @@ function BoardToolbar({
           value={query}
           onChange={(e) => onQuery(e.target.value)}
           placeholder="Filter by title…"
-          className="w-full rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 py-2 pl-8 pr-3 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+          className="w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 py-1.5 pl-8 pr-3 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
         />
         {query ? (
           <button
@@ -822,22 +826,25 @@ function BoardToolbar({
           </button>
         ) : null}
       </div>
-      <div className="inline-flex rounded-[10px] border border-[color:var(--line)] bg-coal-700 p-[3px]">
-        {priorities.map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => onPriority(p)}
-            className={cn(
-              "rounded-[8px] px-2.5 py-1 text-[12px] font-semibold capitalize transition",
-              priority === p
-                ? "bg-coal-500 text-chalk-100"
-                : "text-chalk-400 hover:text-chalk-100",
-            )}
-          >
-            {p === "any" ? "any" : p}
-          </button>
-        ))}
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] font-medium text-chalk-400">Priority</span>
+        <div className="inline-flex items-center gap-0.5 rounded-[10px] border border-[color:var(--line)] bg-coal-800 p-0.5">
+          {priorities.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onPriority(p.id)}
+              className={cn(
+                "rounded-[7px] px-2.5 py-1 text-[12px] font-semibold transition",
+                priority === p.id
+                  ? cn("bg-coal-600 shadow-[0_1px_2px_rgba(0,0,0,0.35)]", p.active)
+                  : "text-chalk-400 hover:text-chalk-200",
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
       </div>
       <span className="ml-auto text-[11.5px] text-chalk-400">
         showing <span className="tabular-nums text-chalk-100">{tasksShown}</span>/{totalTasks}
