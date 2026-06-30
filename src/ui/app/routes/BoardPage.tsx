@@ -142,6 +142,7 @@ export function BoardPage({
   const [newRoadmapTitle, setNewRoadmapTitle] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskRoadmap, setNewTaskRoadmap] = useState<string>("");
+  const [newTaskMode, setNewTaskMode] = useState<"plain" | "supervised">("plain");
   const [busy, setBusy] = useState(false);
 
   const [query, setQuery] = useState("");
@@ -200,9 +201,11 @@ export function BoardPage({
       await api.addTask({
         title: newTaskTitle.trim(),
         roadmapItemId: newTaskRoadmap || null,
+        runMode: newTaskMode,
       });
       setNewTaskTitle("");
       setNewTaskRoadmap("");
+      setNewTaskMode("plain");
       setShowTaskForm(false);
       await load();
     } catch (err) {
@@ -398,6 +401,15 @@ export function BoardPage({
                   {i.title}
                 </option>
               ))}
+            </select>
+            <select
+              value={newTaskMode}
+              onChange={(e) => setNewTaskMode(e.target.value as "plain" | "supervised")}
+              title="Plain runs the task once; Supervised sequences its steps through the Conductor (per-step review, supervisor, budget)."
+              className="mono h-8 border border-white/[0.1] bg-white/[0.03] px-2 text-[11.5px] text-fog-100"
+            >
+              <option value="plain">plain run</option>
+              <option value="supervised">supervised (steps)</option>
             </select>
             <Button type="submit" variant="secondary" size="sm" className="h-8" disabled={busy || !newTaskTitle.trim()}>
               Add
