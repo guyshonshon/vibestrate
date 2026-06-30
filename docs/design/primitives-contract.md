@@ -31,6 +31,29 @@ contained, framed header block). `AppShell`'s `bare` mode is the only escape
 hatch, reserved for focused single-purpose surfaces (e.g. the single-run control
 view).
 
+## 0a. Page canvas - compose, don't hand-roll
+
+The page-level rhythm is a primitive, extracted verbatim from Mission Control.
+Compose `layout/PageShell` + `PageHeader` + `Section` instead of hand-rolling
+`<div class="px-10 py-7"><header class="mb-6">...`. The **live reference is the
+`/canvas` route** (sidebar -> More -> Branding canvas); read it in both themes.
+
+- **`PageShell`** is the body canvas: `font-jakarta`, padding, scroll behaviour.
+  Two archetypes share one canvas:
+  - `scroll` (default) - a vertical-scroll dashboard (`px-10 py-7`); `<main>`
+    owns the scroll. Mission Control, config pages.
+  - `fill` - a height-filling app view (`flex h-full min-h-0 flex-col px-10 pt-5
+    pb-0`) whose `flex-1 min-h-0` child scrolls its own regions. The Board kanban.
+- **`PageHeader`** - the `mb-6` header block: 24px title
+  (`text-[24px] font-extrabold tracking-[-0.02em]`), an optional right-aligned
+  `actions` slot (filled `<Button>`s by their title), optional contained
+  sub-header `children`. No eyebrow, no loose grey subtitle on the canvas.
+- **`Section`** - `mb-4` rhythm; with a `title`, the 18px violet-vivid heading
+  (`text-[18px] font-bold text-violet-vivid mb-3`) + optional inline `action`.
+
+Grid rhythm: outer `gap-4`, card `gap-3`, tight `gap-2.5`. A `fill` page may pass
+`PageHeader className="mb-4"` to reclaim vertical room for the body.
+
 ## 1. Tokens - new only
 
 Use only the new token names. Never `vibestrate-*` / `fog-*` in new/edited code.

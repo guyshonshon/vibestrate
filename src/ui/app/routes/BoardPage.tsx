@@ -1,8 +1,9 @@
-// Mission Control v3 board - compact layout.
-// Cards are still click-to-open + inline-renamable; drag-and-drop is
-// intentionally not wired because the server only exposes a handful
-// of named transitions (queue / cancel / terminate) - partial DnD
-// support was misleading, so we drop it entirely.
+// The task board - a coarse human kanban (roadmap -> tasks -> runs). Re-skinned
+// onto the Mission Control canvas (PageShell `fill` archetype + design
+// primitives); see docs/design/primitives-contract.md ("Page canvas") and the
+// live /canvas route. Cards are click-to-open + inline-renamable; drag-and-drop
+// is intentionally not wired because the server only exposes a handful of named
+// transitions (queue / cancel / terminate) - partial DnD was misleading.
 
 import {
   useCallback,
@@ -12,23 +13,23 @@ import {
   useState,
   type FormEvent,
   type KeyboardEvent,
-  type ReactNode,
 } from "react";
 import {
   Bolt,
+  Check,
   Files,
   FlaskConical,
-  Grid3X3,
   Hourglass,
   Layers,
+  LayoutGrid,
   ListChecks,
   Lock,
   MessageSquare,
   Pencil,
-  Trash2,
   Plus,
   Search,
   Sparkles,
+  Trash2,
   Unlock,
   X,
 } from "lucide-react";
@@ -37,17 +38,17 @@ import type {
   Priority,
   RoadmapItem,
   Task,
-  TaskStatus,
   TaskSuggestion,
 } from "../../lib/types.js";
 import { cn } from "../../components/design/cn.js";
 import { Chip, ToneDot } from "../../components/design/Chip.js";
 import type { ChipTone } from "../../components/design/Chip.js";
 import { Button } from "../../components/design/Button.js";
+import { Select } from "../../components/design/Select.js";
+import { StatTile } from "../../components/design/StatTile.js";
+import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
 
 // ── Columns ──────────────────────────────────────────────────────────────
-
-type ColumnTone = "fog" | "sky" | "violet" | "emerald" | "amber" | "rose";
 
 type CoarseId =
   | "planned"
@@ -59,19 +60,19 @@ type CoarseId =
 type ColumnDef = {
   id: CoarseId;
   label: string;
-  tone: ColumnTone;
-  accent: string;
+  dot: string;
+  bar: string;
 };
 
 // The board is a *coarse* human kanban (Phase 3) - not the orchestrator's fine
 // run stages, which live in Mission Control. A card's column is derived from its
 // status + the archived / needs-testing overlays (see coarseColumnOf).
 const COLUMNS: ColumnDef[] = [
-  { id: "planned",       label: "Planned",      tone: "fog",     accent: "rgba(255,255,255,0.04)" },
-  { id: "in_progress",   label: "In-progress",  tone: "emerald", accent: "rgba(74,222,128,0.55)" },
-  { id: "needs_testing", label: "Needs testing", tone: "amber",  accent: "rgba(251,191,36,0.55)" },
-  { id: "completed",     label: "Completed",    tone: "sky",     accent: "rgba(124,197,255,0.5)" },
-  { id: "archived",      label: "Archived",     tone: "fog",     accent: "rgba(255,255,255,0.04)" },
+  { id: "planned",       label: "Planned",      dot: "bg-chalk-400",   bar: "bg-[color:var(--line-strong)]" },
+  { id: "in_progress",   label: "In progress",  dot: "bg-emerald-400", bar: "bg-emerald-400/70" },
+  { id: "needs_testing", label: "Needs testing", dot: "bg-amber-soft", bar: "bg-amber-soft/70" },
+  { id: "completed",     label: "Completed",    dot: "bg-sky-glow",    bar: "bg-sky-glow/70" },
+  { id: "archived",      label: "Archived",     dot: "bg-chalk-400",   bar: "bg-[color:var(--line-strong)]" },
 ];
 
 // Mirror of the canonical coarseColumn() in roadmap-types (server/UI type split).
@@ -91,21 +92,19 @@ function coarseColumnOf(task: Task): CoarseId {
   }
 }
 
-// `head` is a faint tone wash on the column header / KPI tile - colour where
-// it carries meaning (column + metric identity), bodies stay calm.
-const COLUMN_TONE: Record<ColumnTone, { dot: string; text: string; head: string }> = {
-  fog:     { dot: "bg-fog-500",     text: "text-fog-300",     head: "bg-white/[0.02]"        },
-  sky:     { dot: "bg-sky-glow",    text: "text-sky-glow",    head: "bg-sky-glow/[0.08]"     },
-  violet:  { dot: "bg-violet-soft", text: "text-violet-soft", head: "bg-violet-soft/[0.08]"  },
-  emerald: { dot: "bg-emerald-400", text: "text-emerald-300", head: "bg-emerald-400/[0.08]"  },
-  amber:   { dot: "bg-amber-300",   text: "text-amber-300",   head: "bg-amber-400/[0.08]"    },
-  rose:    { dot: "bg-rose-400",    text: "text-rose-300",    head: "bg-rose-400/[0.08]"     },
+const PRIORITY_LABEL: Record<Priority, { label: string; cls: string }> = {
+  low:    { label: "low",  cls: "text-chalk-400" },
+  medium: { label: "med",  cls: "text-violet-soft" },
+  high:   { label: "high", cls: "text-amber-soft" },
 };
 
-const PRIORITY_PILL: Record<Priority, { label: string; cls: string }> = {
-  low:    { label: "low",  cls: "text-fog-400" },
-  medium: { label: "med",  cls: "text-violet-soft" },
-  high:   { label: "high", cls: "text-amber-300" },
+const TONE_SWATCH: Record<ChipTone, string> = {
+  neutral: "bg-chalk-400",
+  violet: "bg-violet-soft",
+  sky: "bg-sky-glow",
+  emerald: "bg-emerald-400",
+  amber: "bg-amber-soft",
+  rose: "bg-rose-400",
 };
 
 const ROADMAP_TONES: ChipTone[] = ["violet", "sky", "emerald", "amber", "rose"];
@@ -281,7 +280,7 @@ export function BoardPage({
     });
   }, [tasks, roadmapFilter, priorityFilter, query]);
 
-  // Counts for the KPI tiles.
+  // Counts for the stat tiles.
   const counts = useMemo(() => {
     const active = tasks.filter((t) =>
       ["ready", "queued", "running", "review", "waiting_for_approval"].includes(
@@ -300,43 +299,33 @@ export function BoardPage({
 
   if (error) {
     return (
-      <div className="relative z-10 w-full px-6 pt-6">
-        <div className="slab px-5 py-4 text-[13px] text-rose-300">
+      <PageShell>
+        <div className="rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
           {error}
         </div>
-      </div>
+      </PageShell>
     );
   }
 
+  const roadmapOptions = [
+    { value: "", label: "No roadmap link" },
+    ...items.map((i) => ({ value: i.id, label: i.title })),
+  ];
+
   return (
-    <div className="board-scene relative z-10 flex flex-col h-full min-h-0">
-      {/* ── Compact header row ────────────────────────────────────── */}
-      <section className="w-full px-6 pt-5 shrink-0">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <h1 className="text-[15px] font-semibold tracking-tight text-fog-100">
-              Tasks{" "}
-              <span className="mono text-[12px] text-fog-500 num-tabular">
-                {tasks.length}
-              </span>
-            </h1>
-            <span className="text-[11.5px] text-fog-500 hidden md:inline">
-              roadmap → tasks → runs
+    <PageShell variant="fill">
+      <PageHeader
+        className="mb-4"
+        title={
+          <span className="flex items-baseline gap-2.5">
+            Tasks
+            <span className="text-[14px] font-semibold tabular-nums text-chalk-400">
+              {tasks.length}
             </span>
-            {suggestions[0] ? (
-              <button
-                type="button"
-                onClick={() => onOpenTask(suggestions[0]!.taskId)}
-                title={`Suggested next - ${suggestions[0]!.reason}`}
-                className="hidden lg:inline-flex items-center gap-1.5 border border-violet-soft/30 bg-violet-mid/15 px-2.5 py-1 text-[11px] text-fog-100 hover:bg-violet-mid/25 max-w-[280px]"
-              >
-                <Sparkles className="h-3 w-3 text-violet-soft shrink-0" strokeWidth={1.7} />
-                <span className="text-fog-500">next:</span>
-                <span className="truncate">{suggestions[0]!.title}</span>
-              </button>
-            ) : null}
-          </div>
-          <div className="flex items-center gap-2">
+          </span>
+        }
+        actions={
+          <>
             <Button
               variant="secondary"
               size="sm"
@@ -344,7 +333,7 @@ export function BoardPage({
                 setShowRoadmapForm((v) => !v);
                 setShowTaskForm(false);
               }}
-              iconLeft={<Plus className="h-3 w-3" strokeWidth={1.7} />}
+              iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={1.9} />}
             >
               Roadmap item
             </Button>
@@ -355,63 +344,66 @@ export function BoardPage({
                 setShowTaskForm((v) => !v);
                 setShowRoadmapForm(false);
               }}
-              iconLeft={<Plus className="h-3 w-3" strokeWidth={1.7} />}
+              iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={1.9} />}
             >
               New task
             </Button>
-          </div>
-        </div>
+          </>
+        }
+      >
+        {suggestions[0] ? (
+          <button
+            type="button"
+            onClick={() => onOpenTask(suggestions[0]!.taskId)}
+            title={`Suggested next - ${suggestions[0]!.reason}`}
+            className="mt-2 inline-flex max-w-[420px] items-center gap-1.5 rounded-[10px] border border-violet-soft/30 bg-violet-soft/10 px-2.5 py-1 text-[12px] text-chalk-100 transition hover:bg-violet-soft/15"
+          >
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.8} />
+            <span className="text-chalk-400">next:</span>
+            <span className="truncate">{suggestions[0]!.title}</span>
+          </button>
+        ) : null}
 
-        {/* Inline forms - keep the layout from jumping by sharing the
-            same width as the header above. */}
         {showRoadmapForm ? (
-          <form onSubmit={submitRoadmap} className="mt-3 flex gap-2 max-w-[640px]">
+          <form onSubmit={submitRoadmap} className="mt-3 flex max-w-[640px] gap-2">
             <input
               autoFocus
               value={newRoadmapTitle}
               onChange={(e) => setNewRoadmapTitle(e.target.value)}
               placeholder="Build onboarding flow"
-              className="mono flex-1 h-8 border border-white/[0.1] bg-white/[0.03] px-2.5 text-[12px] text-fog-100 placeholder:text-fog-500 focus:outline-none focus:border-violet-soft/40"
+              className="flex-1 rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
             />
-            <Button type="submit" variant="secondary" size="sm" className="h-8" disabled={busy || !newRoadmapTitle.trim()}>
+            <Button type="submit" variant="secondary" size="md" disabled={busy || !newRoadmapTitle.trim()}>
               Add
             </Button>
           </form>
         ) : null}
         {showTaskForm ? (
-          <form
-            onSubmit={submitTask}
-            className="mt-3 flex gap-2 max-w-[760px] flex-wrap"
-          >
+          <form onSubmit={submitTask} className="mt-3 flex max-w-[760px] flex-wrap items-center gap-2">
             <input
               autoFocus
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
               placeholder="Create setup wizard"
-              className="mono flex-1 min-w-[240px] h-8 border border-white/[0.1] bg-white/[0.03] px-2.5 text-[12px] text-fog-100 placeholder:text-fog-500 focus:outline-none focus:border-violet-soft/40"
+              className="min-w-[240px] flex-1 rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
             />
-            <select
+            <Select
               value={newTaskRoadmap}
-              onChange={(e) => setNewTaskRoadmap(e.target.value)}
-              className="mono h-8 border border-white/[0.1] bg-white/[0.03] px-2 text-[11.5px] text-fog-100"
-            >
-              <option value="">no roadmap link</option>
-              {items.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.title}
-                </option>
-              ))}
-            </select>
-            <select
+              onChange={setNewTaskRoadmap}
+              options={roadmapOptions}
+              ariaLabel="Link to a roadmap initiative"
+              placeholder="No roadmap link"
+            />
+            <Select
               value={newTaskMode}
-              onChange={(e) => setNewTaskMode(e.target.value as "plain" | "supervised")}
-              title="Plain runs the task once; Supervised sequences its steps through the Conductor (per-step review, supervisor, budget)."
-              className="mono h-8 border border-white/[0.1] bg-white/[0.03] px-2 text-[11.5px] text-fog-100"
-            >
-              <option value="plain">plain run</option>
-              <option value="supervised">supervised (steps)</option>
-            </select>
-            <Button type="submit" variant="secondary" size="sm" className="h-8" disabled={busy || !newTaskTitle.trim()}>
+              onChange={(v) => setNewTaskMode(v as "plain" | "supervised")}
+              options={[
+                { value: "plain", label: "Plain run" },
+                { value: "supervised", label: "Supervised (steps)" },
+              ]}
+              ariaLabel="Run mode"
+            />
+            <Button type="submit" variant="secondary" size="md" disabled={busy || !newTaskTitle.trim()}>
               Add
             </Button>
           </form>
@@ -421,44 +413,47 @@ export function BoardPage({
           <div
             role="status"
             className={cn(
-              "mt-3 inline-block border px-2.5 py-1 text-[11.5px]",
+              "mt-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-[11.5px]",
               toast.kind === "ok"
-                ? "border-emerald-400/30 bg-emerald-500/5 text-emerald-300"
-                : "border-rose-400/30 bg-rose-500/5 text-rose-300",
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
+                : "border-rose-400/30 bg-rose-500/10 text-rose-300",
             )}
           >
-            {toast.kind === "ok" ? "✓ " : "✗ "}
+            {toast.kind === "ok" ? (
+              <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+            ) : (
+              <X className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+            )}
             {toast.text}
           </div>
         ) : null}
-      </section>
+      </PageHeader>
 
-      {/* ── KPI tiles (half-height of the original) ──────────────── */}
-      <section className="w-full px-6 mt-4 shrink-0">
-        <BoardKpiStrip counts={counts} />
-      </section>
+      {/* Stat tiles */}
+      <div className="mb-4 grid shrink-0 grid-cols-2 gap-2.5 md:grid-cols-4">
+        <StatTile size="lg" value={counts.active} label="active" tone="violet" />
+        <StatTile size="lg" value={counts.waiting} label="awaiting approval" tone="amber" />
+        <StatTile size="lg" value={counts.blocked} label="blocked" tone="rose" />
+        <StatTile size="lg" value={counts.done} label="done" tone="emerald" />
+      </div>
 
-      {/* ── Roadmap rail (wider chips, single row). With zero initiatives
-       * the rail is just an "All initiatives" filter over nothing - the
-       * "+ Roadmap item" button above is the way in. ────────────────── */}
+      {/* Roadmap rail. With zero initiatives the rail is just an "All
+       * initiatives" filter over nothing - the "Roadmap item" button is the
+       * way in, so hide the rail until there's something to filter. */}
       {items.length > 0 ? (
-        <section className="w-full px-6 mt-4 shrink-0">
-          <div className="eyebrow mb-2">
-            Roadmap · {items.length} initiatives
-          </div>
+        <Section className="mb-4 shrink-0" title={`Roadmap - ${items.length} initiatives`}>
           <RoadmapRail
             items={items}
             tasks={tasks}
             active={roadmapFilter}
             onSelect={setRoadmapFilter}
           />
-        </section>
+        </Section>
       ) : null}
 
-      {/* ── Toolbar: filter + count. Pointless with zero tasks - the empty
-       * state below already says what to do. ──────────────────────── */}
+      {/* Toolbar - pointless with zero tasks (the empty state says what to do). */}
       {tasks.length > 0 ? (
-        <section className="w-full px-6 mt-3 shrink-0">
+        <div className="mb-3 shrink-0">
           <BoardToolbar
             query={query}
             onQuery={setQuery}
@@ -467,113 +462,49 @@ export function BoardPage({
             tasksShown={filtered.length}
             totalTasks={tasks.length}
           />
-        </section>
+        </div>
       ) : null}
 
-      {/* ── Kanban - fills the remaining viewport height ─────────── */}
-      <section className="mt-4 flex-1 min-h-0 flex flex-col">
-        {tasks.length === 0 ? (
-          <div className="w-full px-6">
-            <div className="slab px-6 py-10 text-center">
-              <div className="text-[15px] font-medium text-fog-100">
-                No tasks yet.
-              </div>
-              <p className="text-[12.5px] text-fog-400 mt-1">
-                Click <span className="mono text-fog-200">New task</span> above
-                to start the first one.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="overflow-x-auto pb-5 px-6 board-scroll w-full flex-1 min-h-0">
-            <div
-              className="grid gap-2.5 h-full"
-              style={{
-                gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(204px, 1fr))`,
-                minWidth: COLUMNS.length * 212,
-              }}
-            >
-              {COLUMNS.map((col) => {
-                const colTasks = filtered.filter(
-                  (t) => coarseColumnOf(t) === col.id,
-                );
-                return (
-                  <BoardColumn
-                    key={col.id}
-                    column={col}
-                    tasks={colTasks}
-                    allTasks={tasks}
-                    items={items}
-                    onOpenTask={onOpenTask}
-                    onRename={handleRename}
-                    onDelete={handleDelete}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </section>
-    </div>
-  );
-}
-
-// ── KPI strip (half-height of the original) ─────────────────────────────
-
-function BoardKpiStrip({
-  counts,
-}: {
-  counts: { active: number; waiting: number; blocked: number; done: number };
-}) {
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-      <KpiTile label="Active" value={counts.active} tone="violet" sub="in flight or queued" />
-      <KpiTile
-        label="Awaiting approval"
-        value={counts.waiting}
-        tone="amber"
-        sub={counts.waiting > 0 ? "your turn" : "nothing pending"}
-      />
-      <KpiTile
-        label="Blocked"
-        value={counts.blocked}
-        tone="rose"
-        sub={counts.blocked > 0 ? "needs attention" : "all clear"}
-      />
-      <KpiTile label="Done" value={counts.done} tone="emerald" sub="all-time" />
-    </div>
-  );
-}
-
-function KpiTile({
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  label: string;
-  value: number;
-  sub: string;
-  tone: ColumnTone;
-}) {
-  const t = COLUMN_TONE[tone];
-  return (
-    <div className={cn("slab relative overflow-hidden px-3 py-2", t.head)}>
-      <div className="flex items-center justify-between">
-        <div className={cn("eyebrow text-[10px]", t.text)}>{label}</div>
-        <span className={cn("w-1.5 h-1.5 rounded-full", t.dot)} />
-      </div>
-      <div className="mt-0.5 flex items-baseline justify-between gap-2">
-        <div className="text-[20px] font-semibold tracking-tight num-tabular leading-none text-fog-100">
-          {value}
+      {/* Kanban - fills the remaining viewport height */}
+      {tasks.length === 0 ? (
+        <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-12 text-center">
+          <div className="text-[15px] font-semibold text-chalk-100">No tasks yet.</div>
+          <p className="mt-1 text-[12.5px] text-chalk-300">
+            Click <span className="font-semibold text-chalk-100">New task</span> above to start the first one.
+          </p>
         </div>
-        <div className="text-[10.5px] text-fog-400 truncate">{sub}</div>
-      </div>
-    </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-x-auto pb-5">
+          <div
+            className="grid h-full gap-2.5"
+            style={{
+              gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(208px, 1fr))`,
+              minWidth: COLUMNS.length * 216,
+            }}
+          >
+            {COLUMNS.map((col) => {
+              const colTasks = filtered.filter((t) => coarseColumnOf(t) === col.id);
+              return (
+                <BoardColumn
+                  key={col.id}
+                  column={col}
+                  tasks={colTasks}
+                  allTasks={tasks}
+                  items={items}
+                  onOpenTask={onOpenTask}
+                  onRename={handleRename}
+                  onDelete={handleDelete}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </PageShell>
   );
 }
 
-// ── Roadmap rail (original wide chips) ──────────────────────────────────
+// ── Roadmap rail ────────────────────────────────────────────────────────
 
 function RoadmapRail({
   items,
@@ -588,7 +519,7 @@ function RoadmapRail({
 }) {
   const totalLinked = tasks.filter((t) => t.roadmapItemId).length;
   return (
-    <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1 board-scroll">
+    <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1">
       <RoadmapChip
         label="All initiatives"
         meta={`${totalLinked} linked tasks`}
@@ -603,7 +534,7 @@ function RoadmapRail({
           <RoadmapChip
             key={rm.id}
             label={rm.title}
-            meta={`${linked} tasks · ${rm.status}`}
+            meta={`${linked} tasks - ${rm.status}`}
             tone={roadmapToneFor(rm.id)}
             priority={rm.priority}
             active={active === rm.id}
@@ -632,46 +563,36 @@ function RoadmapChip({
   onClick: () => void;
   all?: boolean;
 }) {
-  const swatch: Record<ChipTone, string> = {
-    neutral: "bg-fog-400",
-    violet: "bg-violet-soft",
-    sky: "bg-sky-glow",
-    emerald: "bg-emerald-400",
-    amber: "bg-amber-300",
-    rose: "bg-rose-400",
-  };
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "shrink-0 border px-3.5 py-2.5 text-left transition relative overflow-hidden min-w-[200px]",
+        "relative min-w-[200px] shrink-0 rounded-[12px] border px-3.5 py-2.5 text-left transition",
         active
-          ? "border-violet-soft/55 bg-violet-deep/20 text-fog-100"
-          : "border-white/[0.08] bg-white/[0.018] hover:bg-white/[0.035]",
+          ? "border-violet-soft/55 bg-violet-soft/10"
+          : "border-[color:var(--line)] bg-coal-600 hover:bg-coal-500",
       )}
     >
       <div className="flex items-center gap-2">
         {all ? (
-          <Grid3X3 className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
+          <LayoutGrid className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
         ) : (
-          <span className={cn("w-1.5 h-1.5 rounded-full", swatch[tone])} />
+          <span className={cn("h-1.5 w-1.5 rounded-full", TONE_SWATCH[tone])} />
         )}
-        <span className="text-[12.5px] text-fog-100 font-medium truncate">
-          {label}
-        </span>
+        <span className="truncate text-[12.5px] font-semibold text-chalk-100">{label}</span>
       </div>
-      <div className="mt-1 flex items-center justify-between gap-2 text-[10.5px] text-fog-500 mono">
+      <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-chalk-400">
         <span className="truncate">{meta}</span>
         {priority ? (
           <span
             className={cn(
-              "uppercase tracking-[0.12em] text-[9.5px]",
+              "font-semibold",
               priority === "high"
-                ? "text-amber-300"
+                ? "text-amber-soft"
                 : priority === "medium"
                   ? "text-violet-soft"
-                  : "text-fog-500",
+                  : "text-chalk-400",
             )}
           >
             {priority}
@@ -682,7 +603,7 @@ function RoadmapChip({
   );
 }
 
-// ── Toolbar (filter + count) ────────────────────────────────────────────
+// ── Toolbar ─────────────────────────────────────────────────────────────
 
 function BoardToolbar({
   query,
@@ -701,48 +622,48 @@ function BoardToolbar({
 }) {
   const priorities: Array<"any" | Priority> = ["any", "low", "medium", "high"];
   return (
-    <div className="flex items-center gap-3 flex-wrap">
-      <div className="relative flex-1 min-w-[240px] max-w-[360px]">
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="relative min-w-[240px] max-w-[360px] flex-1">
         <Search
-          className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-fog-500"
-          strokeWidth={1.7}
+          className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-chalk-400"
+          strokeWidth={1.9}
         />
         <input
           value={query}
           onChange={(e) => onQuery(e.target.value)}
           placeholder="Filter by title…"
-          className="w-full h-8 pl-8 pr-3 bg-white/[0.025] border border-white/[0.08] text-[12px] text-fog-100 placeholder:text-fog-500 focus:outline-none focus:border-violet-soft/35 focus:bg-white/[0.04]"
+          className="w-full rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 py-2 pl-8 pr-3 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
         />
         {query ? (
           <button
             type="button"
             onClick={() => onQuery("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-fog-500 hover:text-fog-200"
+            aria-label="Clear filter"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-chalk-400 hover:text-chalk-100"
           >
-            <X className="h-3.5 w-3.5" strokeWidth={1.7} />
+            <X className="h-3.5 w-3.5" strokeWidth={1.9} />
           </button>
         ) : null}
       </div>
-      <div className="inline-flex border border-white/[0.08] bg-white/[0.025] p-[2px]">
+      <div className="inline-flex rounded-[10px] border border-[color:var(--line)] bg-coal-600 p-[3px]">
         {priorities.map((p) => (
           <button
             key={p}
             type="button"
             onClick={() => onPriority(p)}
             className={cn(
-              "h-[26px] px-2.5 text-[11.5px] font-medium",
+              "rounded-[8px] px-2.5 py-1 text-[12px] font-semibold capitalize transition",
               priority === p
-                ? "bg-white/[0.08] text-fog-100"
-                : "text-fog-400 hover:text-fog-100",
+                ? "bg-coal-400 text-chalk-100"
+                : "text-chalk-400 hover:text-chalk-100",
             )}
           >
-            {p === "any" ? "Any" : p}
+            {p === "any" ? "any" : p}
           </button>
         ))}
       </div>
-      <span className="ml-auto text-[11px] text-fog-500 mono">
-        showing <span className="text-fog-200 num-tabular">{tasksShown}</span>
-        /{totalTasks}
+      <span className="ml-auto text-[11.5px] text-chalk-400">
+        showing <span className="tabular-nums text-chalk-100">{tasksShown}</span>/{totalTasks}
       </span>
     </div>
   );
@@ -767,54 +688,37 @@ function BoardColumn({
   onRename: (taskId: string, nextTitle: string) => Promise<void> | void;
   onDelete: (taskId: string) => Promise<void> | void;
 }) {
-  const tone = COLUMN_TONE[column.tone];
-  const isRunning = column.id === "in_progress";
   const urgent = column.id === "needs_testing" && tasks.length > 0;
 
   return (
     <section
       data-column={column.id}
       className={cn(
-        "flex flex-col slab h-full min-h-0",
-        // .slab is unlayered so its `border` shorthand beats a layered
-        // `border-amber-400/40` utility; `!` forces the urgent amber to win.
-        urgent ? "!border-amber-400/40" : undefined,
+        "flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border bg-coal-600",
+        urgent ? "border-amber-soft/40" : "border-[color:var(--line)]",
       )}
     >
-      <div className="h-[2px]" style={{ background: column.accent }} />
-      <header
-        className={cn(
-          "px-3 py-2.5 flex items-center justify-between border-b border-white/[0.05]",
-          tone.head,
-        )}
-      >
-        <div className="flex items-center gap-1.5 min-w-0">
-          {isRunning ? (
-            <span className={cn("pulse-dot", tone.text)} />
-          ) : (
-            <span className={cn("w-1.5 h-1.5 rounded-full", tone.dot)} />
-          )}
-          <span className={cn("mono text-[10px] uppercase tracking-[0.14em] truncate", tone.text)}>
+      <div className={cn("h-[2px]", column.bar)} />
+      <header className="flex items-center justify-between border-b border-[color:var(--line-soft)] px-3 py-2.5">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", column.dot)} />
+          <span className="truncate text-[12px] font-semibold text-chalk-100">
             {column.label}
           </span>
         </div>
-        <span className="mono text-[10px] num-tabular text-fog-500">
-          {tasks.length}
-        </span>
+        <span className="tabular-nums text-[11px] text-chalk-400">{tasks.length}</span>
       </header>
 
-      <ol className="flex-1 min-h-0 p-1.5 space-y-1.5 overflow-y-auto board-scroll">
+      <ol className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-1.5">
         {tasks.length === 0 ? (
-          <li className="text-center py-6 text-[10.5px] text-fog-500 mono select-none">
-            - empty -
+          <li className="select-none py-6 text-center text-[11px] text-chalk-400">
+            empty
           </li>
         ) : (
           tasks.map((t) => {
             const openDeps = t.dependencies.filter((depId) => {
               const dep = allTasks.find((tt) => tt.id === depId);
-              return (
-                !dep || (dep.status !== "done" && dep.status !== "cancelled")
-              );
+              return !dep || (dep.status !== "done" && dep.status !== "cancelled");
             });
             const unlocks = allTasks.filter((tt) =>
               tt.dependencies.includes(t.id),
@@ -846,7 +750,7 @@ function BoardColumn({
   );
 }
 
-// ── Saga card (compact container) ───────────────────────────────────────
+// ── Supervised card (compact container) ─────────────────────────────────
 
 function SagaCard({
   task,
@@ -864,23 +768,25 @@ function SagaCard({
       role="button"
       tabIndex={0}
       onClick={() => onOpen(task.id)}
-      onKeyDown={(e) => { if (e.key === "Enter") onOpen(task.id); }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onOpen(task.id);
+      }}
       data-task-id={task.id}
-      className="group block w-full cursor-pointer border border-violet-soft/25 bg-violet-500/[0.04] px-2.5 py-2 transition hover:border-violet-soft/50 hover:bg-violet-500/[0.07]"
+      className="group block w-full cursor-pointer rounded-[12px] border border-violet-soft/25 bg-violet-soft/[0.06] px-2.5 py-2 transition hover:border-violet-soft/50 hover:bg-violet-soft/10"
     >
       <div className="flex items-center gap-1.5">
-        <Layers className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
-        <span className="mono text-[9px] uppercase tracking-[0.12em] text-violet-soft">supervised</span>
-        <span className="ml-auto mono text-[9.5px] text-fog-300 num-tabular">
+        <Layers className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
+        <Chip tone="violet">supervised</Chip>
+        <span className="ml-auto tabular-nums text-[10px] text-chalk-300">
           {done}/{total}
         </span>
       </div>
-      <div className="mt-1.5 text-[12px] font-medium leading-snug text-fog-100 break-words line-clamp-2">
+      <div className="mt-1.5 line-clamp-2 break-words text-[12px] font-semibold leading-snug text-chalk-100">
         {task.title}
       </div>
       <div className="mt-2 flex items-center gap-1" aria-label={`${done} of ${total} steps done`}>
         {total === 0 ? (
-          <span className="mono text-[9.5px] text-fog-300">no steps yet</span>
+          <span className="text-[10px] text-chalk-300">no steps yet</span>
         ) : (
           checklist.map((c) => (
             <span
@@ -891,14 +797,14 @@ function SagaCard({
                   ? "bg-violet-soft"
                   : c.status === "in_progress"
                     ? "bg-violet-soft/50"
-                    : "bg-white/10",
+                    : "bg-coal-400",
               )}
             />
           ))
         )}
       </div>
       {total > 0 ? (
-        <div className="mt-1 mono text-[9px] text-fog-300 num-tabular">{pct}%</div>
+        <div className="mt-1 tabular-nums text-[10px] text-chalk-400">{pct}%</div>
       ) : null}
     </div>
   );
@@ -923,7 +829,7 @@ function TaskCard({
   onRename: (taskId: string, nextTitle: string) => Promise<void> | void;
   onDelete: (taskId: string) => Promise<void> | void;
 }) {
-  const prio = PRIORITY_PILL[task.priority];
+  const prio = PRIORITY_LABEL[task.priority];
   const isRunning = task.status === "running";
   const isFailed = task.status === "failed";
   const isWaiting = task.status === "waiting_for_approval";
@@ -969,14 +875,6 @@ function TaskCard({
   };
 
   const rmTone: ChipTone | null = roadmap ? roadmapToneFor(roadmap.id) : null;
-  const rmSwatch: Record<ChipTone, string> = {
-    neutral: "bg-fog-400",
-    violet: "bg-violet-soft",
-    sky: "bg-sky-glow",
-    emerald: "bg-emerald-400",
-    amber: "bg-amber-300",
-    rose: "bg-rose-400",
-  };
 
   return (
     <div
@@ -994,73 +892,47 @@ function TaskCard({
       }}
       data-task-id={task.id}
       className={cn(
-        "group block w-full text-left border px-2.5 py-2 transition relative cursor-pointer",
+        "group relative block w-full cursor-pointer rounded-[12px] border px-2.5 py-2 text-left transition",
         isWaiting
-          ? "border-amber-400/40 bg-amber-500/[0.05]"
+          ? "border-amber-soft/40 bg-amber-soft/[0.06]"
           : isFailed
-            ? "border-rose-400/40 bg-rose-500/[0.04]"
+            ? "border-rose-400/40 bg-rose-500/[0.06]"
             : isDone
-              ? "border-white/[0.06] bg-white/[0.015] opacity-75"
-              : "border-white/[0.09] bg-white/[0.04] hover:border-violet-soft/45 hover:bg-white/[0.06]",
+              ? "border-[color:var(--line-soft)] bg-coal-500/40 opacity-75"
+              : "border-[color:var(--line)] bg-coal-500/40 hover:border-violet-soft/45 hover:bg-coal-500",
       )}
     >
       {roadmap && rmTone ? (
         <span
-          className={cn(
-            "absolute left-0 top-2.5 bottom-2.5 w-[2px]",
-            rmSwatch[rmTone],
-          )}
+          className={cn("absolute bottom-2.5 left-0 top-2.5 w-[2px] rounded-full", TONE_SWATCH[rmTone])}
           aria-label={roadmap.title}
         />
       ) : null}
 
-      <div className="flex items-center gap-1 flex-wrap">
-        <span
-          className={cn(
-            "mono text-[9px] uppercase tracking-[0.12em] inline-flex items-center",
-            prio.cls,
-          )}
-        >
-          {prio.label}
-        </span>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className={cn("text-[10.5px] font-semibold", prio.cls)}>{prio.label}</span>
         {isWaiting ? (
-          <Chip
-            tone="amber"
-            className="!text-[9px] !uppercase !tracking-[0.12em] !font-normal"
-          >
-            <Hourglass className="h-2.5 w-2.5" strokeWidth={1.7} /> approval
+          <Chip tone="amber">
+            <Hourglass className="h-2.5 w-2.5" strokeWidth={1.9} /> approval
           </Chip>
         ) : null}
-        {isRunning ? (
-          <Chip
-            tone="emerald"
-            className="!text-[9px] !uppercase !tracking-[0.12em] !font-normal"
-          >
-            <span className="pulse-dot" /> running
-          </Chip>
-        ) : null}
+        {isRunning ? <Chip tone="emerald">running</Chip> : null}
         {isFailed ? (
-          <Chip
-            tone="rose"
-            className="!text-[9px] !uppercase !tracking-[0.12em] !font-normal"
-          >
-            <Bolt className="h-2.5 w-2.5" strokeWidth={1.7} /> failed
+          <Chip tone="rose">
+            <Bolt className="h-2.5 w-2.5" strokeWidth={1.9} /> failed
           </Chip>
         ) : null}
         {task.needsTesting ? (
-          <Chip
-            tone="amber"
-            className="!text-[9px] !uppercase !tracking-[0.12em] !font-normal"
-          >
-            <FlaskConical className="h-2.5 w-2.5" strokeWidth={1.7} /> needs testing
+          <Chip tone="amber">
+            <FlaskConical className="h-2.5 w-2.5" strokeWidth={1.9} /> needs testing
           </Chip>
         ) : null}
-        <span className="ml-auto mono text-[9px] text-fog-500 num-tabular shrink-0">
+        <span className="ml-auto shrink-0 tabular-nums text-[10px] text-chalk-400">
           {task.currentRunId
             ? task.currentRunId.slice(0, 10)
             : task.runIds.length > 0
               ? `${task.runIds.length} run`
-              : "-"}
+              : ""}
         </span>
       </div>
 
@@ -1074,13 +946,13 @@ function TaskCard({
             onBlur={commit}
             onKeyDown={onKey}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 bg-transparent text-[12px] leading-snug font-medium text-fog-100 outline-none border-b border-violet-soft/45 px-0.5"
+            className="flex-1 border-b border-violet-soft/45 bg-transparent px-0.5 text-[12px] font-semibold leading-snug text-chalk-100 outline-none"
           />
         ) : (
           <div
             className={cn(
-              "flex-1 text-[12px] leading-snug font-medium break-words",
-              isDone ? "text-fog-400 line-through-soft" : "text-fog-100",
+              "line-clamp-2 flex-1 break-words text-[12px] font-semibold leading-snug",
+              isDone ? "text-chalk-400 line-through" : "text-chalk-100",
             )}
           >
             {task.title}
@@ -1093,11 +965,11 @@ function TaskCard({
             e.stopPropagation();
             setEditing(true);
           }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-fog-500 hover:text-fog-200 p-0.5 shrink-0"
+          className="shrink-0 p-0.5 text-chalk-400 opacity-0 transition-opacity hover:text-chalk-100 group-hover:opacity-100"
           title="Rename"
           aria-label="Rename task"
         >
-          <Pencil className="h-3 w-3" strokeWidth={1.7} />
+          <Pencil className="h-3 w-3" strokeWidth={1.9} />
         </button>
         <button
           type="button"
@@ -1106,72 +978,67 @@ function TaskCard({
             e.stopPropagation();
             void onDelete(task.id);
           }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-fog-500 hover:text-rose-300 p-0.5 shrink-0"
+          className="shrink-0 p-0.5 text-chalk-400 opacity-0 transition-opacity hover:text-rose-300 group-hover:opacity-100"
           title="Remove task"
           aria-label="Remove task"
         >
-          <Trash2 className="h-3 w-3" strokeWidth={1.7} />
+          <Trash2 className="h-3 w-3" strokeWidth={1.9} />
         </button>
       </div>
 
       {roadmap && rmTone ? (
-        <div className="mt-1 flex items-center gap-1 text-[9.5px] mono text-fog-500 truncate">
-          <span className={cn("w-1 h-1 rounded-full", rmSwatch[rmTone])} />
+        <div className="mt-1 flex items-center gap-1 truncate text-[10px] text-chalk-300">
+          <span className={cn("h-1 w-1 rounded-full", TONE_SWATCH[rmTone])} />
           <span className="truncate">{roadmap.title}</span>
         </div>
       ) : null}
 
       {task.requiredSkills.length > 0 ? (
-        <div className="mt-1.5 flex items-center gap-1 flex-wrap">
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           {task.requiredSkills.slice(0, 2).map((sid) => (
-            <span
-              key={sid}
-              className="inline-flex items-center gap-1 text-[9.5px] text-fog-300"
-            >
+            <span key={sid} className="inline-flex items-center gap-1 text-[10px] text-chalk-300">
               <ToneDot tone="sky" />
-              <span className="truncate max-w-[80px]">{sid}</span>
+              <span className="max-w-[80px] truncate">{sid}</span>
             </span>
           ))}
           {task.requiredSkills.length > 2 ? (
-            <span className="mono text-[9.5px] text-fog-500">
-              +{task.requiredSkills.length - 2}
-            </span>
+            <span className="text-[10px] text-chalk-400">+{task.requiredSkills.length - 2}</span>
           ) : null}
         </div>
       ) : null}
 
-      {(task.assignedRoles.length > 0 ||
-        task.commentsCount > 0 ||
-        task.touchedFiles.length > 0 ||
-        (task.checklist?.length ?? 0) > 0 ||
-        blockedBy > 0 ||
-        unlocks > 0) ? (
-        <div className="mt-2 pt-1.5 border-t border-white/[0.04] flex items-center justify-between gap-2">
+      {task.assignedRoles.length > 0 ||
+      task.commentsCount > 0 ||
+      task.touchedFiles.length > 0 ||
+      (task.checklist?.length ?? 0) > 0 ||
+      blockedBy > 0 ||
+      unlocks > 0 ? (
+        <div className="mt-2 flex items-center justify-between gap-2 border-t border-[color:var(--line-soft)] pt-1.5">
           {task.assignedRoles.length > 0 ? (
             <RoleStack roleIds={task.assignedRoles} />
           ) : (
-            <span className="mono text-[9.5px] text-fog-500">unassigned</span>
+            <span className="text-[10px] text-chalk-400">unassigned</span>
           )}
-          <div className="flex items-center gap-1.5 text-[9.5px] text-fog-500 mono">
+          <div className="flex items-center gap-1.5 tabular-nums text-[10px] text-chalk-400">
             {(task.checklist?.length ?? 0) > 0 ? (
               <span
                 className="inline-flex items-center gap-0.5"
                 title={`${task.checklist!.filter((c) => c.status === "done").length}/${task.checklist!.length} checklist items done`}
               >
-                <ListChecks className="h-2.5 w-2.5" strokeWidth={1.7} />
+                <ListChecks className="h-2.5 w-2.5" strokeWidth={1.9} />
                 {task.checklist!.filter((c) => c.status === "done").length}/
                 {task.checklist!.length}
               </span>
             ) : null}
             {task.commentsCount > 0 ? (
               <span className="inline-flex items-center gap-0.5">
-                <MessageSquare className="h-2.5 w-2.5" strokeWidth={1.7} />
+                <MessageSquare className="h-2.5 w-2.5" strokeWidth={1.9} />
                 {task.commentsCount}
               </span>
             ) : null}
             {task.touchedFiles.length > 0 ? (
               <span className="inline-flex items-center gap-0.5">
-                <Files className="h-2.5 w-2.5" strokeWidth={1.7} />
+                <Files className="h-2.5 w-2.5" strokeWidth={1.9} />
                 {task.touchedFiles.length}
               </span>
             ) : null}
@@ -1180,7 +1047,7 @@ function TaskCard({
                 className="inline-flex items-center gap-0.5 text-rose-300/90"
                 title={`Blocked by ${blockedBy} unfinished dependency`}
               >
-                <Lock className="h-2.5 w-2.5" strokeWidth={1.7} />
+                <Lock className="h-2.5 w-2.5" strokeWidth={1.9} />
                 {blockedBy}
               </span>
             ) : null}
@@ -1189,7 +1056,7 @@ function TaskCard({
                 className="inline-flex items-center gap-0.5"
                 title={`${unlocks} task(s) depend on this one`}
               >
-                <Unlock className="h-2.5 w-2.5" strokeWidth={1.7} />
+                <Unlock className="h-2.5 w-2.5" strokeWidth={1.9} />
                 {unlocks}
               </span>
             ) : null}
@@ -1221,7 +1088,7 @@ function RoleStack({ roleIds }: { roleIds: string[] }) {
         return (
           <span
             key={id}
-            className="w-4 h-4 ring-2 ring-ink-100 flex items-center justify-center font-serif leading-none text-[9px] text-white"
+            className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] leading-none text-white ring-2 ring-coal-600"
             style={{ background: solid[tone] }}
             title={id}
           >
@@ -1230,7 +1097,7 @@ function RoleStack({ roleIds }: { roleIds: string[] }) {
         );
       })}
       {extra > 0 ? (
-        <span className="w-4 h-4 ring-2 ring-ink-100 bg-white/[0.06] flex items-center justify-center text-[8.5px] mono text-fog-300">
+        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-coal-400 text-[8.5px] tabular-nums text-chalk-300 ring-2 ring-coal-600">
           +{extra}
         </span>
       ) : null}

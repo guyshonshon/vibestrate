@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "./cn.js";
 
-export type StatTileTone = "default" | "violet" | "emerald" | "amber";
+export type StatTileTone = "default" | "violet" | "emerald" | "amber" | "rose";
 export type StatTileSize = "sm" | "lg";
 
 /**
@@ -29,9 +29,11 @@ export function StatTile({
       ? "text-emerald-400"
       : tone === "amber"
         ? "text-amber-soft"
-        : tone === "violet"
-          ? "text-violet-soft"
-          : "text-chalk-100";
+        : tone === "rose"
+          ? "text-rose-300"
+          : tone === "violet"
+            ? "text-violet-soft"
+            : "text-chalk-100";
 
   if (size === "lg") {
     return (
