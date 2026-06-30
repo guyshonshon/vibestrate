@@ -106,7 +106,16 @@ export class RoadmapStore {
     if (!text.trim()) return null;
     try {
       return taskSchema.parse(migrateTaskShape(JSON.parse(text)));
-    } catch {
+    } catch (err) {
+      // A task file that can't be parsed (even after the run-mode migration) is
+      // LOUD, not silently dropped: log the id + reason so a corrupt/unreadable
+      // task is visible instead of just vanishing from the board and CLI. The
+      // file is left on disk untouched (never auto-deleted).
+      console.warn(
+        `[roadmap] task "${id}" could not be read and was skipped: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
       return null;
     }
   }
