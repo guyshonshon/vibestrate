@@ -377,6 +377,13 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: "vibe config set <path> <value>", note: "edit one value (e.g. git.mainBranch)" },
         ],
       };
+    case "canvas":
+      return {
+        title: "Branding canvas",
+        blurb:
+          "The live design reference - tokens, type scale, the page canvas, component recipes, and anti-patterns, rendered from the real primitives. A visual reference, not an action surface, so it has no CLI twin.",
+        commands: [],
+      };
     case "consult":
       return {
         title: "Consult",

@@ -11,6 +11,7 @@ import { navigate } from "../App.js";
 import { MissionComposer } from "../../components/mission/MissionComposer.js";
 import { RunActions } from "../../components/mission/RunActions.js";
 import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
+import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { PhaseRail, statusMessage } from "../../components/mission/runPhase.js";
 import type {
   ApprovalRequest,
@@ -317,10 +318,8 @@ export function MissionControlPage({ onSelectRun }: Props) {
   ];
 
   return (
-    <div className="font-jakarta px-10 py-7">
-        <header className="mb-6">
-          <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">Mission control</h1>
-        </header>
+    <PageShell>
+        <PageHeader title="Mission control" />
         <div className="mb-4">
           <MissionComposer />
         </div>
@@ -372,7 +371,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
           label="Dashboard layout"
           panels={panels}
         />
-    </div>
+    </PageShell>
   );
 }
 

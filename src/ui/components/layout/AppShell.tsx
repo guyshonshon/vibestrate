@@ -34,6 +34,7 @@ type AppShellProps = {
   onShowPolicies: () => void;
   onShowProject: () => void;
   onShowConfig: () => void;
+  onShowCanvas: () => void;
   onShowCodebase: () => void;
   onShowGit: () => void;
   onShowGitTree: () => void;
@@ -71,6 +72,7 @@ export function AppShell({
   onShowPolicies,
   onShowProject,
   onShowConfig,
+  onShowCanvas,
   onShowCodebase,
   onShowGit,
   onShowGitTree,
@@ -107,6 +109,7 @@ export function AppShell({
           onShowProposals={onShowProposals}
           onShowProject={onShowProject}
           onShowConfig={onShowConfig}
+          onShowCanvas={onShowCanvas}
           onShowCodebase={onShowCodebase}
           onShowGit={onShowGit}
           onShowGitTree={onShowGitTree}

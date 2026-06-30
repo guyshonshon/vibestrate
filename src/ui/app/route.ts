@@ -49,6 +49,7 @@ export type Route =
   | { kind: "ledger" }
   | { kind: "profiles" }
   | { kind: "config" }
+  | { kind: "canvas" }
   | { kind: "control"; runId: string }
   | { kind: "consult"; taskId: string | null }
   | {
@@ -161,6 +162,7 @@ export function parseHashRoute(hash: string): Route {
     };
   }
   if (parts[0] === "board") return { kind: "board" };
+  if (parts[0] === "canvas") return { kind: "canvas" };
   if (parts[0] === "tasks" && parts[1]) return { kind: "task", taskId: parts[1] };
   // Queue folded into Runs: keep old #/queue links working by landing on Runs,
   // which now shows the scheduler + queue panel at the top.
@@ -289,6 +291,8 @@ export function serializeRoute(route: Route): string {
       return "#/profiles";
     case "config":
       return "#/config";
+    case "canvas":
+      return "#/canvas";
     case "control":
       return `#/control/${encodeURIComponent(route.runId)}`;
     case "consult":

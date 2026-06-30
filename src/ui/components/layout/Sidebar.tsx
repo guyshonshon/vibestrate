@@ -12,6 +12,7 @@ import {
   GitMerge,
   LayoutGrid,
   ListChecks,
+  Palette,
   Plug,
   Plus,
   Scale,
@@ -45,6 +46,7 @@ type Props = {
   onShowProposals: () => void;
   onShowProject: () => void;
   onShowConfig: () => void;
+  onShowCanvas: () => void;
   onShowCodebase: () => void;
   onShowGit: () => void;
   onShowGitTree: () => void;
@@ -93,6 +95,7 @@ export function Sidebar({
   onShowProposals,
   onShowProject,
   onShowConfig,
+  onShowCanvas,
   onShowCodebase,
   onShowGit,
   onShowGitTree,
@@ -141,6 +144,7 @@ export function Sidebar({
           "proposals",
           "project",
           "config",
+          "canvas",
           "workspace",
         ] as NavId[]
       ).includes(currentNav),
@@ -277,6 +281,7 @@ export function Sidebar({
             <MoreItem icon={<FileText className="h-4 w-4" strokeWidth={1.9} />} label="Proposals" active={currentNav === "proposals"} onClick={onShowProposals} />
             <MoreItem icon={<Folder className="h-4 w-4" strokeWidth={1.9} />} label="Project" active={currentNav === "project"} onClick={onShowProject} />
             <MoreItem icon={<Settings2 className="h-4 w-4" strokeWidth={1.9} />} label="Config" active={currentNav === "config"} onClick={onShowConfig} />
+            <MoreItem icon={<Palette className="h-4 w-4" strokeWidth={1.9} />} label="Branding canvas" active={currentNav === "canvas"} onClick={onShowCanvas} />
             <MoreItem icon={<FolderTree className="h-4 w-4" strokeWidth={1.9} />} label="All projects" active={currentNav === "workspace"} onClick={onShowWorkspace} />
           </div>
         ) : null}

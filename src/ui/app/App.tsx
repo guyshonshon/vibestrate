@@ -9,6 +9,7 @@ import { MissionControlPage } from "./routes/MissionControlPage.js";
 import { RunComposePage } from "./routes/RunComposePage.js";
 import { RunDetailPage } from "./routes/RunDetailPage.js";
 import { BoardPage } from "./routes/BoardPage.js";
+import { CanvasPage } from "./routes/CanvasPage.js";
 import { TaskDetailPage } from "./routes/TaskDetailPage.js";
 import { WorkspacePage } from "./routes/WorkspacePage.js";
 import { ProjectPage } from "./routes/ProjectPage.js";
@@ -297,6 +298,8 @@ export function App() {
                                 ? "crew"
                               : route.kind === "config"
                                 ? "config"
+                                : route.kind === "canvas"
+                                ? "canvas"
                                 : route.kind === "consult"
                                   ? "consult"
                                   : route.kind === "runs"
@@ -321,6 +324,7 @@ export function App() {
       onShowPolicies={() => navigate({ kind: "policies" })}
       onShowProject={() => navigate({ kind: "project" })}
       onShowConfig={() => navigate({ kind: "config" })}
+      onShowCanvas={() => navigate({ kind: "canvas" })}
       onShowConsult={() => navigate({ kind: "consult", taskId: null })}
       onShowCodebase={() =>
         navigate({ kind: "codebase", filePath: null, line: null, runId: null })
@@ -438,6 +442,8 @@ export function App() {
         <SupervisorsPage />
       ) : route.kind === "config" ? (
         <ConfigPage />
+      ) : route.kind === "canvas" ? (
+        <CanvasPage />
       ) : route.kind === "consult" ? (
         <ConsultPage
           taskId={route.taskId}
