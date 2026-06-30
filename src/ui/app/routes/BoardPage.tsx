@@ -97,6 +97,22 @@ function coarseColumnOf(task: Task): CoarseId {
   }
 }
 
+// Honest drag targets: only the columns a card can move to via a REAL action the
+// server exposes. Planned -> In progress = queueTask (start it); any non-live,
+// non-terminal card -> Archived = cancelTask. Everything else has no API, so it
+// is not a valid drop (the card snaps back). Columns are otherwise a derived
+// projection of status - we never fake a move the backend can't make.
+function validDropTargets(task: Task): Set<CoarseId> {
+  const targets = new Set<CoarseId>();
+  if (task.archived || task.status === "done" || task.status === "cancelled") {
+    return targets; // terminal - no honest move
+  }
+  const live = task.status === "running" || task.currentRunId != null;
+  if (!live) targets.add("archived"); // cancelTask (live cards use the run controls)
+  if (coarseColumnOf(task) === "planned") targets.add("in_progress"); // queueTask
+  return targets;
+}
+
 const PRIORITY_LABEL: Record<Priority, { label: string; cls: string }> = {
   low:    { label: "low",  cls: "text-chalk-400" },
   medium: { label: "med",  cls: "text-violet-soft" },
@@ -152,6 +168,7 @@ export function BoardPage({
   const [query, setQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<"any" | Priority>("any");
   const [roadmapFilter, setRoadmapFilter] = useState<string | null>(null);
+  const [dragTaskId, setDragTaskId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -272,6 +289,32 @@ export function BoardPage({
     [tasks, load],
   );
 
+  const handleDropTask = useCallback(
+    async (taskId: string, columnId: CoarseId) => {
+      setDragTaskId(null);
+      const task = tasks.find((t) => t.id === taskId);
+      if (!task) return;
+      if (!validDropTargets(task).has(columnId)) return; // snap back - no honest move
+      try {
+        if (columnId === "in_progress") {
+          await api.queueTask(taskId);
+          setToast({ kind: "ok", text: `Queued ${taskId}` });
+        } else if (columnId === "archived") {
+          await api.cancelTask(taskId);
+          setToast({ kind: "ok", text: `Archived ${taskId}` });
+        }
+        await load();
+      } catch (err) {
+        setToast({
+          kind: "err",
+          text: err instanceof Error ? err.message : String(err),
+        });
+        await load();
+      }
+    },
+    [tasks, load],
+  );
+
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
       if (roadmapFilter && t.roadmapItemId !== roadmapFilter) return false;
@@ -317,6 +360,8 @@ export function BoardPage({
     ...items.map((i) => ({ value: i.id, label: i.title })),
   ];
   const total = tasks.length || 1;
+  const draggedTask = dragTaskId ? tasks.find((t) => t.id === dragTaskId) ?? null : null;
+  const draggedTargets = draggedTask ? validDropTargets(draggedTask) : null;
 
   return (
     <PageShell variant="fill">
@@ -512,6 +557,11 @@ export function BoardPage({
             >
               {COLUMNS.map((col) => {
                 const colTasks = filtered.filter((t) => coarseColumnOf(t) === col.id);
+                const dropHint: "valid" | "dim" | null = draggedTargets
+                  ? draggedTargets.has(col.id)
+                    ? "valid"
+                    : "dim"
+                  : null;
                 return (
                   <BoardColumn
                     key={col.id}
@@ -522,6 +572,11 @@ export function BoardPage({
                     onOpenTask={onOpenTask}
                     onRename={handleRename}
                     onDelete={handleDelete}
+                    dragTaskId={dragTaskId}
+                    dropHint={dropHint}
+                    onDropTask={handleDropTask}
+                    onDragStartTask={setDragTaskId}
+                    onDragEndTask={() => setDragTaskId(null)}
                   />
                 );
               })}
@@ -705,6 +760,11 @@ function BoardColumn({
   onOpenTask,
   onRename,
   onDelete,
+  dragTaskId,
+  dropHint,
+  onDropTask,
+  onDragStartTask,
+  onDragEndTask,
 }: {
   column: ColumnDef;
   tasks: Task[];
@@ -713,15 +773,31 @@ function BoardColumn({
   onOpenTask: (taskId: string) => void;
   onRename: (taskId: string, nextTitle: string) => Promise<void> | void;
   onDelete: (taskId: string) => Promise<void> | void;
+  dragTaskId: string | null;
+  dropHint: "valid" | "dim" | null;
+  onDropTask: (taskId: string, columnId: CoarseId) => void;
+  onDragStartTask: (taskId: string) => void;
+  onDragEndTask: () => void;
 }) {
   const urgent = column.id === "needs_testing" && tasks.length > 0;
 
   return (
     <section
       data-column={column.id}
+      onDragOver={(e) => {
+        if (dropHint === "valid") e.preventDefault(); // allow drop
+      }}
+      onDrop={(e) => {
+        if (dropHint !== "valid") return;
+        e.preventDefault();
+        const id = e.dataTransfer.getData("text/plain");
+        if (id) onDropTask(id, column.id);
+      }}
       className={cn(
-        "flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border bg-coal-700",
+        "flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border bg-coal-700 transition",
         urgent ? "border-amber-soft/40" : "border-[color:var(--line)]",
+        dropHint === "valid" && "border-violet-soft/60 ring-1 ring-violet-soft/40",
+        dropHint === "dim" && "opacity-45",
       )}
     >
       <header
@@ -758,10 +834,19 @@ function BoardColumn({
             const roadmap = t.roadmapItemId
               ? items.find((rm) => rm.id === t.roadmapItemId) ?? null
               : null;
+            const canDrag = validDropTargets(t).size > 0;
+            const dragging = dragTaskId === t.id;
             return (
               <li key={t.id}>
                 {t.runMode === "supervised" ? (
-                  <SagaCard task={t} onOpen={onOpenTask} />
+                  <SagaCard
+                    task={t}
+                    onOpen={onOpenTask}
+                    canDrag={canDrag}
+                    dragging={dragging}
+                    onDragStartTask={onDragStartTask}
+                    onDragEndTask={onDragEndTask}
+                  />
                 ) : (
                   <TaskCard
                     task={t}
@@ -771,6 +856,10 @@ function BoardColumn({
                     onOpen={onOpenTask}
                     onRename={onRename}
                     onDelete={onDelete}
+                    canDrag={canDrag}
+                    dragging={dragging}
+                    onDragStartTask={onDragStartTask}
+                    onDragEndTask={onDragEndTask}
                   />
                 )}
               </li>
@@ -787,9 +876,17 @@ function BoardColumn({
 function SagaCard({
   task,
   onOpen,
+  canDrag,
+  dragging,
+  onDragStartTask,
+  onDragEndTask,
 }: {
   task: Task;
   onOpen: (taskId: string) => void;
+  canDrag: boolean;
+  dragging: boolean;
+  onDragStartTask: (taskId: string) => void;
+  onDragEndTask: () => void;
 }) {
   const checklist = task.checklist ?? [];
   const total = checklist.length;
@@ -799,12 +896,23 @@ function SagaCard({
     <div
       role="button"
       tabIndex={0}
+      draggable={canDrag}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", task.id);
+        e.dataTransfer.effectAllowed = "move";
+        onDragStartTask(task.id);
+      }}
+      onDragEnd={onDragEndTask}
       onClick={() => onOpen(task.id)}
       onKeyDown={(e) => {
         if (e.key === "Enter") onOpen(task.id);
       }}
       data-task-id={task.id}
-      className="group block w-full cursor-pointer rounded-[11px] bg-violet-soft/[0.1] px-2.5 py-2 transition hover:bg-violet-soft/[0.15]"
+      className={cn(
+        "group block w-full rounded-[11px] bg-violet-soft/[0.1] px-2.5 py-2 transition hover:bg-violet-soft/[0.15]",
+        canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
+        dragging && "opacity-40",
+      )}
     >
       <div className="flex items-center gap-1.5">
         <Layers className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
@@ -852,6 +960,10 @@ function TaskCard({
   onOpen,
   onRename,
   onDelete,
+  canDrag,
+  dragging,
+  onDragStartTask,
+  onDragEndTask,
 }: {
   task: Task;
   roadmap: RoadmapItem | null;
@@ -860,6 +972,10 @@ function TaskCard({
   onOpen: (taskId: string) => void;
   onRename: (taskId: string, nextTitle: string) => Promise<void> | void;
   onDelete: (taskId: string) => Promise<void> | void;
+  canDrag: boolean;
+  dragging: boolean;
+  onDragStartTask: (taskId: string) => void;
+  onDragEndTask: () => void;
 }) {
   const prio = PRIORITY_LABEL[task.priority];
   const isRunning = task.status === "running";
@@ -912,6 +1028,13 @@ function TaskCard({
     <div
       role="button"
       tabIndex={0}
+      draggable={canDrag && !editing}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", task.id);
+        e.dataTransfer.effectAllowed = "move";
+        onDragStartTask(task.id);
+      }}
+      onDragEnd={onDragEndTask}
       onClick={(e) => {
         if (editing) return;
         const target = e.target as HTMLElement;
@@ -924,7 +1047,9 @@ function TaskCard({
       }}
       data-task-id={task.id}
       className={cn(
-        "group relative block w-full cursor-pointer overflow-hidden rounded-[11px] px-2.5 py-2 text-left transition",
+        "group relative block w-full overflow-hidden rounded-[11px] px-2.5 py-2 text-left transition",
+        canDrag && !editing ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
+        dragging && "opacity-40",
         isWaiting
           ? "bg-amber-soft/[0.1] hover:bg-amber-soft/[0.14]"
           : isFailed
