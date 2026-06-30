@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.42.1
+
+- **Create a supervised task from the dashboard.** The Board's "New task" form now
+  has a Plain / Supervised mode toggle, so you can make a supervised (Conductor-run)
+  task without the CLI. Its detail view already lets you author structured steps
+  (objective / acceptance / file hints) and shows the live Conductor - so the whole
+  make-author-run loop is in the UI now.
+
 ## 0.42.0
 
 - **"Saga" is gone - a task now has a run mode.** What used to be a separate
