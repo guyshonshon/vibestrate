@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { deriveMicroStepsForTask } from "../../roadmap/microstep-derivation.js";
-import { getSagaStatus, NotASagaError } from "../../feature/saga-status.js";
+import { getTaskRunStatus, NotSupervisedError } from "../../feature/saga-status.js";
 import { HttpError } from "../security.js";
 import { safeIdSchema } from "../../roadmap/roadmap-types.js";
 import { RunQueue } from "../../scheduler/run-queue.js";
@@ -151,16 +151,16 @@ export async function registerTasksRoutes(
   );
 
   // Saga conductor STATUS (Phase 2b part 2). Same source as `vibe saga status`
-  // (getSagaStatus) so the dashboard and CLI never drift. Includes the LIVE run
+  // (getTaskRunStatus) so the dashboard and CLI never drift. Includes the LIVE run
   // (lock holder) the dashboard needs to drive pause/resume + fetch live audit.
   app.get<{ Params: { taskId: string } }>(
     "/api/sagas/:taskId/status",
     async (req) => {
       assertSafeId(req.params.taskId);
       try {
-        return { status: await getSagaStatus(deps.projectRoot, req.params.taskId) };
+        return { status: await getTaskRunStatus(deps.projectRoot, req.params.taskId) };
       } catch (err) {
-        if (err instanceof NotASagaError) {
+        if (err instanceof NotSupervisedError) {
           throw new HttpError(err.reason === "not-found" ? 404 : 400, err.message);
         }
         throw err;

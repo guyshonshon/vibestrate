@@ -586,9 +586,9 @@ export type Task = {
   readOnly?: boolean;
   checklist?: ChecklistItem[];
   // Saga conductor (Phase 2). Present on kind:"saga" tasks.
-  sagaState?: SupervisedState;
-  sagaHalt?: SupervisedHalt | null;
-  sagaInvariants?: string[];
+  supervisedState?: SupervisedState;
+  supervisedHalt?: SupervisedHalt | null;
+  supervisedInvariants?: string[];
   sagaBudget?: { maxSpendUsd: number | null; maxSteps: number | null };
   needsTesting?: boolean;
   needsTestingReason?: string | null;
@@ -652,15 +652,15 @@ export type SupervisedHalt = {
 
 // The live conductor status served by GET /api/sagas/:taskId/status (and
 // `vibe saga status`). `liveRunId` is the run sequencing the saga right now.
-export type SagaStatus = {
+export type TaskRunStatus = {
   taskId: string;
   title: string;
-  sagaState: SupervisedState;
+  supervisedState: SupervisedState;
   liveRunId: string | null;
   currentRunId: string | null;
   progress: { done: number; total: number };
-  sagaHalt: SupervisedHalt | null;
-  sagaInvariants: string[];
+  supervisedHalt: SupervisedHalt | null;
+  supervisedInvariants: string[];
   steps: Array<{
     id: string;
     text: string;

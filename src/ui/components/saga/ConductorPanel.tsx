@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
-import type { SagaStatus, EngagementEntry } from "../../lib/types.js";
+import type { TaskRunStatus, EngagementEntry } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
 import { StatTile } from "../design/StatTile.js";
 import { cn } from "../design/cn.js";
@@ -13,7 +13,7 @@ import { cn } from "../design/cn.js";
 // dashboard launch ("Sequence") follows once the saga launch path is threaded
 // through the scheduler.
 
-const STATE_TONE: Record<SagaStatus["sagaState"], string> = {
+const STATE_TONE: Record<TaskRunStatus["supervisedState"], string> = {
   idle: "text-chalk-300",
   sequencing: "text-violet-soft",
   paused: "text-amber-soft",
@@ -46,14 +46,14 @@ function stepTone(status: string): string {
 }
 
 export function ConductorPanel({ taskId }: { taskId: string }) {
-  const [status, setStatus] = useState<SagaStatus | null>(null);
+  const [status, setStatus] = useState<TaskRunStatus | null>(null);
   const [engagement, setEngagement] = useState<EngagementEntry[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   async function load() {
     try {
-      const res = await api.getSagaStatus(taskId);
+      const res = await api.getTaskRunStatus(taskId);
       setStatus(res.status);
       setErr(null);
       if (res.status.liveRunId) {
@@ -117,10 +117,10 @@ export function ConductorPanel({ taskId }: { taskId: string }) {
           <span
             className={cn(
               "num-tabular text-[12px] font-medium",
-              STATE_TONE[status.sagaState] ?? "text-chalk-300",
+              STATE_TONE[status.supervisedState] ?? "text-chalk-300",
             )}
           >
-            {status.sagaState}
+            {status.supervisedState}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -150,7 +150,7 @@ export function ConductorPanel({ taskId }: { taskId: string }) {
               disabled={busy !== null || status.progress.total === 0}
               onClick={sequence}
             >
-              {status.sagaState === "halted" ? "Re-sequence" : "Sequence"}
+              {status.supervisedState === "halted" ? "Re-sequence" : "Sequence"}
             </Button>
           )}
         </div>
@@ -163,21 +163,21 @@ export function ConductorPanel({ taskId }: { taskId: string }) {
           tone={total > 0 && done === total ? "emerald" : "default"}
         />
         <StatTile
-          value={status.sagaInvariants.length}
+          value={status.supervisedInvariants.length}
           label="invariants"
-          tone={status.sagaInvariants.length ? "violet" : "default"}
+          tone={status.supervisedInvariants.length ? "violet" : "default"}
         />
         {live ? <StatTile value="running" label="live run" tone="violet" /> : null}
       </div>
 
-      {status.sagaHalt ? (
+      {status.supervisedHalt ? (
         <div className="mt-3 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2.5">
           <div className="text-[12.5px] font-semibold text-rose-300">
-            Halted · {status.sagaHalt.reason}
+            Halted · {status.supervisedHalt.reason}
           </div>
-          {status.sagaHalt.summary ? (
+          {status.supervisedHalt.summary ? (
             <div className="mt-1 text-[12px] leading-relaxed text-chalk-300">
-              {status.sagaHalt.summary}
+              {status.supervisedHalt.summary}
             </div>
           ) : null}
         </div>
@@ -225,11 +225,11 @@ export function ConductorPanel({ taskId }: { taskId: string }) {
         </div>
       ) : null}
 
-      {status.sagaInvariants.length > 0 ? (
+      {status.supervisedInvariants.length > 0 ? (
         <div className="mt-3">
           <div className="mb-1.5 font-mono text-[11px] text-chalk-300">invariants ledger</div>
           <ul className="flex flex-col gap-1">
-            {status.sagaInvariants.map((inv, i) => (
+            {status.supervisedInvariants.map((inv, i) => (
               <li key={i} className="flex gap-2 text-[12px] text-chalk-100">
                 <span className="shrink-0 text-violet-soft">-</span>
                 <span className="min-w-0">{inv}</span>

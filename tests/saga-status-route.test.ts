@@ -49,10 +49,10 @@ describe("GET /api/sagas/:taskId/status", () => {
     const res = await fetch(`${server.url}/api/sagas/${task.id}/status`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { status: Record<string, unknown> };
-    expect(body.status.sagaState).toBe("idle");
+    expect(body.status.supervisedState).toBe("idle");
     expect(body.status.liveRunId).toBe("20260629-150000-live");
     expect(body.status.progress).toEqual({ done: 1, total: 2 });
-    expect(body.status.sagaInvariants).toContain("responses use snake_case");
+    expect(body.status.supervisedInvariants).toContain("responses use snake_case");
   }, 30_000);
 
   it("404s a missing saga and 400s a non-saga task", async () => {

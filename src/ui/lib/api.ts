@@ -66,7 +66,7 @@ import type {
   SkillAssignmentSummary,
   Task,
   TaskComment,
-  SagaStatus,
+  TaskRunStatus,
   TaskSuggestion,
   TerminalAvailability,
   TerminalSession,
@@ -1584,7 +1584,7 @@ export const api = {
   },
   /** Saga conductor live status (Phase 2b): lifecycle, live run, step progress,
    *  halt, invariants. Same source as `vibe saga status`. */
-  async getSagaStatus(taskId: string): Promise<{ status: SagaStatus }> {
+  async getTaskRunStatus(taskId: string): Promise<{ status: TaskRunStatus }> {
     return jsonGet(`/api/sagas/${encodeURIComponent(taskId)}/status`);
   },
   async addTaskComment(input: {

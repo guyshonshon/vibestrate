@@ -18,44 +18,44 @@ export type SagaStepStatus = {
   outcomeSummary: string;
 };
 
-export type SagaStatus = {
+export type TaskRunStatus = {
   taskId: string;
   title: string;
-  sagaState: SupervisedState;
+  supervisedState: SupervisedState;
   /** The run sequencing this saga right now (lock holder, not stale), else null. */
   liveRunId: string | null;
   /** Last run recorded on the task (written after a run ends). */
   currentRunId: string | null;
   progress: { done: number; total: number };
-  sagaHalt: SupervisedHalt | null;
-  sagaInvariants: string[];
+  supervisedHalt: SupervisedHalt | null;
+  supervisedInvariants: string[];
   steps: SagaStepStatus[];
 };
 
-export class NotASagaError extends Error {
+export class NotSupervisedError extends Error {
   constructor(public readonly taskId: string, public readonly reason: "not-found" | "wrong-kind") {
     super(
       reason === "not-found"
         ? `Saga "${taskId}" not found.`
         : `Task "${taskId}" is not a saga.`,
     );
-    this.name = "NotASagaError";
+    this.name = "NotSupervisedError";
   }
 }
 
 /**
- * Resolve a saga's live conductor status. Throws `NotASagaError` when the id is
+ * Resolve a saga's live conductor status. Throws `NotSupervisedError` when the id is
  * missing or not a `kind:"saga"` task, so callers map it to an exit code / HTTP
  * status uniformly.
  */
-export async function getSagaStatus(
+export async function getTaskRunStatus(
   projectRoot: string,
   taskId: string,
-): Promise<SagaStatus> {
+): Promise<TaskRunStatus> {
   const svc = new RoadmapService(projectRoot);
   const task = await svc.getTask(taskId).catch(() => null);
-  if (!task) throw new NotASagaError(taskId, "not-found");
-  if (task.runMode !== "supervised") throw new NotASagaError(taskId, "wrong-kind");
+  if (!task) throw new NotSupervisedError(taskId, "not-found");
+  if (task.runMode !== "supervised") throw new NotSupervisedError(taskId, "wrong-kind");
 
   const holder = await readLiveTaskLockHolder(projectRoot, taskId).catch(() => null);
   const total = task.checklist.length;
@@ -64,12 +64,12 @@ export async function getSagaStatus(
   return {
     taskId,
     title: task.title,
-    sagaState: task.supervised.state,
+    supervisedState: task.supervised.state,
     liveRunId: holder?.runId ?? null,
     currentRunId: task.currentRunId ?? null,
     progress: { done, total },
-    sagaHalt: task.supervised.halt,
-    sagaInvariants: task.supervised.invariants,
+    supervisedHalt: task.supervised.halt,
+    supervisedInvariants: task.supervised.invariants,
     steps: task.checklist.map((c) => ({
       id: c.id,
       text: c.text,

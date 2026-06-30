@@ -4,7 +4,7 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
 import { cmdStatus, cmdPause, cmdResume } from "../src/cli/commands/saga.js";
-import { getSagaStatus, NotASagaError } from "../src/feature/saga-status.js";
+import { getTaskRunStatus, NotSupervisedError } from "../src/feature/saga-status.js";
 import { acquireTaskLock, taskLockPath } from "../src/core/run-lock.js";
 import {
   RunStateStore,
@@ -70,7 +70,7 @@ describe("vibe saga status | pause | resume", () => {
     expect(code).toBe(0);
 
     const json = JSON.parse(cap.lines.find((l) => l.trim().startsWith("{"))!);
-    expect(json.sagaState).toBe("idle");
+    expect(json.supervisedState).toBe("idle");
     expect(json.progress).toEqual({ done: 0, total: 2 });
     expect(json.steps.map((s: { text: string }) => s.text)).toEqual([
       "step one",
@@ -98,9 +98,9 @@ describe("vibe saga status | pause | resume", () => {
     cap.restore();
 
     const json = JSON.parse(cap.lines.find((l) => l.trim().startsWith("{"))!);
-    expect(json.sagaState).toBe("halted");
-    expect(json.sagaHalt.reason).toBe("supervisor-escalate");
-    expect(json.sagaInvariants).toContain("all responses use snake_case");
+    expect(json.supervisedState).toBe("halted");
+    expect(json.supervisedHalt.reason).toBe("supervisor-escalate");
+    expect(json.supervisedInvariants).toContain("all responses use snake_case");
   });
 
   it("pause writes pauseRequested on the saga's live run", async () => {
@@ -213,7 +213,7 @@ describe("vibe saga status | pause | resume", () => {
   });
 });
 
-describe("getSagaStatus (shared CLI + dashboard source)", () => {
+describe("getTaskRunStatus (shared CLI + dashboard source)", () => {
   it("returns lifecycle, live run, progress, halt, invariants", async () => {
     const dir = await fs.realpath(
       await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-saga-svc-")),
@@ -229,22 +229,22 @@ describe("getSagaStatus (shared CLI + dashboard source)", () => {
     const runId = "20260629-140000-live";
     await acquireTaskLock(dir, task.id, runId);
 
-    const status = await getSagaStatus(dir, task.id);
-    expect(status.sagaState).toBe("idle");
+    const status = await getTaskRunStatus(dir, task.id);
+    expect(status.supervisedState).toBe("idle");
     expect(status.liveRunId).toBe(runId); // live (this pid) lock holder
     expect(status.progress).toEqual({ done: 1, total: 2 });
-    expect(status.sagaInvariants).toContain("snake_case everywhere");
+    expect(status.supervisedInvariants).toContain("snake_case everywhere");
     expect(status.steps).toHaveLength(2);
   });
 
-  it("throws NotASagaError for a missing or non-saga task", async () => {
+  it("throws NotSupervisedError for a missing or non-saga task", async () => {
     const dir = await fs.realpath(
       await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-saga-svc2-")),
     );
     const svc = new RoadmapService(dir);
     await svc.init();
     const single = await svc.addTask({ title: "Plain", runMode: "plain" });
-    await expect(getSagaStatus(dir, "nope")).rejects.toBeInstanceOf(NotASagaError);
-    await expect(getSagaStatus(dir, single.id)).rejects.toBeInstanceOf(NotASagaError);
+    await expect(getTaskRunStatus(dir, "nope")).rejects.toBeInstanceOf(NotSupervisedError);
+    await expect(getTaskRunStatus(dir, single.id)).rejects.toBeInstanceOf(NotSupervisedError);
   });
 });

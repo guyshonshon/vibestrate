@@ -13,7 +13,7 @@ import {
   requestPause,
   requestResume,
 } from "../../core/pause-service.js";
-import { getSagaStatus, NotASagaError } from "../../feature/saga-status.js";
+import { getTaskRunStatus, NotSupervisedError } from "../../feature/saga-status.js";
 
 async function svc() {
   const detected = await detectProject(process.cwd());
@@ -257,7 +257,7 @@ export async function cmdSequence(
   //       the holistic review blocked, a policy block, or an abort). Record a
   //       clean halt so the lifecycle is honest + resumable instead of being
   //       stranded at "sequencing" or - the old bug - mislabeled "done".
-  // A real step/budget halt already set sagaState="halted" from inside the run;
+  // A real step/budget halt already set supervisedState="halted" from inside the run;
   // we never overwrite that.
   if (code === 1) {
     // runRunCommand already printed the reason (e.g. TaskLockedError). Leave the
@@ -291,8 +291,8 @@ export async function cmdSequence(
       JSON.stringify(
         {
           taskId,
-          sagaState: final?.supervised.state ?? null,
-          sagaHalt: final?.supervised.halt ?? null,
+          supervisedState: final?.supervised.state ?? null,
+          supervisedHalt: final?.supervised.halt ?? null,
           runExitCode: code,
         },
         null,
@@ -332,9 +332,9 @@ export async function cmdStatus(
   let status;
   try {
     // Shared with GET /api/sagas/:taskId/status - one source, no UI<->CLI drift.
-    status = await getSagaStatus(detected.projectRoot, taskId);
+    status = await getTaskRunStatus(detected.projectRoot, taskId);
   } catch (err) {
-    if (err instanceof NotASagaError) {
+    if (err instanceof NotSupervisedError) {
       console.error(`${symbol.fail()} ${err.message}`);
       return 1;
     }
@@ -348,7 +348,7 @@ export async function cmdStatus(
 
   const { done, total } = status.progress;
   console.log(
-    `${symbol.bullet()} ${color.bold(taskId)} ${status.title} ${color.dim(`(${status.sagaState})`)}`,
+    `${symbol.bullet()} ${color.bold(taskId)} ${status.title} ${color.dim(`(${status.supervisedState})`)}`,
   );
   console.log(
     indent(
@@ -361,17 +361,17 @@ export async function cmdStatus(
     const summary = c.outcomeSummary ? color.dim(` - ${c.outcomeSummary}`) : "";
     console.log(indent(`${mark} ${i + 1}. ${c.text} ${color.dim(`[${c.status}]`)}${summary}`));
   }
-  if (status.sagaHalt) {
+  if (status.supervisedHalt) {
     console.log("");
     console.log(
-      `${symbol.warn()} ${header("Halted")} ${color.yellow(color.bold(status.sagaHalt.reason))}`,
+      `${symbol.warn()} ${header("Halted")} ${color.yellow(color.bold(status.supervisedHalt.reason))}`,
     );
-    if (status.sagaHalt.summary) console.log(indent(status.sagaHalt.summary));
+    if (status.supervisedHalt.summary) console.log(indent(status.supervisedHalt.summary));
   }
-  if (status.sagaInvariants.length > 0) {
+  if (status.supervisedInvariants.length > 0) {
     console.log("");
-    console.log(`${symbol.bullet()} ${header("Invariants")} (${status.sagaInvariants.length})`);
-    for (const inv of status.sagaInvariants) console.log(indent(`- ${inv}`));
+    console.log(`${symbol.bullet()} ${header("Invariants")} (${status.supervisedInvariants.length})`);
+    for (const inv of status.supervisedInvariants) console.log(indent(`- ${inv}`));
   }
   return 0;
 }
