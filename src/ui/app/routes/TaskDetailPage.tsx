@@ -19,6 +19,7 @@ import type {
   ChecklistItem,
   ChecklistItemStatus,
   MicroStep,
+  ProfileView,
   RoadmapItem,
   Task,
   TaskComment,
@@ -292,7 +293,14 @@ export function TaskDetailPage({
           <Section title="Runs">
             <div className={CARD}>
               {task.runIds.length === 0 ? (
-                <div className="text-[12px] text-chalk-400">No runs yet.</div>
+                <div className="flex flex-col items-start gap-2.5">
+                  <div className="text-[12px] text-chalk-400">
+                    No runs yet - kick one off to see it tracked here.
+                  </div>
+                  <Button variant="secondary" size="sm" onClick={queue} disabled={queueDisabled}>
+                    {busy === "queue" ? "Queueing…" : "Queue the first run"}
+                  </Button>
+                </div>
               ) : (
                 <ul className="space-y-1">
                   {task.runIds.map((rid) => (
@@ -525,7 +533,7 @@ function DependenciesSection({
 
   return (
     <Section
-      title="Dependencies"
+      title="Blockers"
       action={
         candidates.length > 0 ? (
           <button
@@ -541,6 +549,9 @@ function DependenciesSection({
       }
     >
       <div className={CARD}>
+        <div className="mb-2.5 text-[11px] text-chalk-400">
+          What must finish before this can run, and what finishing this unblocks.
+        </div>
         {adding ? (
           <div className="mb-2 flex items-center gap-2">
             <Select
@@ -568,7 +579,22 @@ function DependenciesSection({
               Blocked by ({blockers.length + missingBlockers.length})
             </div>
             {blockers.length === 0 && missingBlockers.length === 0 ? (
-              <div className="mt-1 text-[12px] text-chalk-400">-</div>
+              <div className="mt-1.5 flex flex-col items-start gap-1.5">
+                <div className="text-[12px] text-emerald-400">
+                  Nothing's blocking this - it can run.
+                </div>
+                {candidates.length > 0 ? (
+                  <button
+                    onClick={() => {
+                      setError(null);
+                      setAdding(true);
+                    }}
+                    className="text-[11.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
+                  >
+                    + Add a blocker
+                  </button>
+                ) : null}
+              </div>
             ) : (
               <ul className="mt-1.5 space-y-1">
                 {blockers.map((b) => {
@@ -631,7 +657,9 @@ function DependenciesSection({
               Unlocks ({unlocks.length})
             </div>
             {unlocks.length === 0 ? (
-              <div className="mt-1 text-[12px] text-chalk-400">-</div>
+              <div className="mt-1.5 text-[12px] text-chalk-400">
+                Nothing's waiting on this one yet.
+              </div>
             ) : (
               <ul className="mt-1.5 space-y-1">
                 {unlocks.map((u) => (
@@ -1482,6 +1510,14 @@ function TaskRunMode({
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<ProfileView[]>([]);
+
+  useEffect(() => {
+    api
+      .getProfiles()
+      .then((r) => setProfiles(r.profiles))
+      .catch(() => {});
+  }, []);
 
   async function setField<K extends "profileOverride" | "readOnly">(
     field: K,
@@ -1509,30 +1545,38 @@ function TaskRunMode({
     }
   }
 
+  const providerOptions = [
+    { value: "", label: "Default (crew's provider)" },
+    ...profiles.map((p) => ({
+      value: p.id,
+      label: p.label,
+      hint: p.model ?? p.provider,
+    })),
+  ];
+
   return (
-    <div className="mt-3 grid grid-cols-1 gap-3 rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-3 md:grid-cols-3">
-      <label className="flex flex-col gap-1">
+    <div className="flex flex-col gap-3 rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-3">
+      <label className="flex flex-col gap-1.5">
         <span
           className="text-[11px] font-medium text-violet-soft"
-          title="Pin every agent in runs spawned from this task to a specific provider id. Wins over effort."
+          title="Pin every agent in runs spawned from this task to a specific configured profile. Wins over effort."
         >
-          Provider override
+          Provider
         </span>
-        <input
-          type="text"
+        <Select
           value={task.profileOverride ?? ""}
           disabled={busy !== null}
-          placeholder="e.g. codex"
-          onBlur={(e) => {
-            const v = e.target.value.trim();
+          ariaLabel="Provider override"
+          className="w-full"
+          options={providerOptions}
+          onChange={(v) => {
             if (v === (task.profileOverride ?? "")) return;
             void setField("profileOverride", v.length === 0 ? null : v);
           }}
-          className={cn(INPUT, "font-mono text-[12px]")}
         />
       </label>
 
-      <label className="flex items-center gap-2 self-end">
+      <label className="flex items-center gap-2">
         <input
           type="checkbox"
           checked={task.readOnly ?? false}
@@ -1549,7 +1593,7 @@ function TaskRunMode({
       </label>
 
       {error ? (
-        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300 md:col-span-3">
+        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
           {error}
         </div>
       ) : null}

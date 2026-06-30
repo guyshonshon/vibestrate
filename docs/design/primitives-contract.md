@@ -170,6 +170,24 @@ by real status, never a scripted timer.
 Control's existing inline version exactly - extraction, not invention. Bias to
 fewer primitives.
 
+## 10a. Operational laws - empty + stateful surfaces always offer the next step
+
+Two standing laws (owner-mandated). They make the product read as operational,
+not as a passive read-out.
+
+- **Empty states are CTAs, never dead ends.** No section/card/list may render a
+  bare "No runs yet" / "no X" / "nothing here". It must offer the *solution* -
+  the action that fills it. "No runs yet" -> a **"Queue the first run"** button.
+  "No blockers" -> a "+ Add blocker" affordance. "No checklist items" -> an
+  inline add. The empty state is the primary CTA when a thing is empty.
+- **Errors and stateful messages encourage the next step.** Any error, warning,
+  or status copy names the *resolution / next action*, not just the condition.
+  Not "Provider unreachable." -> "Provider unreachable - retry, or pick another
+  in Run settings." Pair the message with the control that resolves it.
+
+Apply both everywhere, not just where first added. A static dead-end empty state
+is a contract violation, same tier as the anti-patterns below.
+
 ## 11. Anti-patterns (hard no)
 
 - Eyebrow kickers: faint uppercase slug above a title. Retire `SectionEyebrow`, the `.eyebrow` class, and uppercase `vibestrate-mono`. The heading carries the page; a lone section label stays as legible sentence-case.
