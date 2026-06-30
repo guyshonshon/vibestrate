@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowUpRight,
   Check,
@@ -10,6 +10,7 @@ import {
   Plus,
   Sparkles,
   Trash2,
+  X,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { reorderByDrop } from "../../lib/reorder.js";
@@ -960,12 +961,35 @@ function ChecklistSection({
     });
   }
 
+  // Enhance is a toggle: while it's thinking, clicking again aborts it. The
+  // abort cancels the in-flight request (the client stops waiting and discards
+  // any result); it does not claim to halt server-side compute.
+  const enhanceCtl = useRef<AbortController | null>(null);
   async function enhance() {
+    if (busy === "enhance") {
+      enhanceCtl.current?.abort();
+      return;
+    }
     setProposed(null);
-    await run("enhance", async () => {
-      const r = await api.enhanceChecklist(task.id, { apply: false });
+    const ctl = new AbortController();
+    enhanceCtl.current = ctl;
+    setBusy("enhance");
+    setError(null);
+    try {
+      const r = await api.enhanceChecklist(task.id, {
+        apply: false,
+        signal: ctl.signal,
+      });
       setProposed(r.proposal.items);
-    });
+      await onChanged();
+    } catch (e) {
+      if (!(e instanceof Error) || e.name !== "AbortError") {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    } finally {
+      setBusy(null);
+      enhanceCtl.current = null;
+    }
   }
 
   async function acceptProposed() {
@@ -1014,12 +1038,25 @@ function ChecklistSection({
         <button
           type="button"
           onClick={enhance}
-          disabled={busy !== null}
-          title="Propose a checklist with an AI assist (read-only - you choose whether to add the items)"
-          className="inline-flex items-center gap-1 rounded-[10px] bg-violet-soft/10 px-2 py-1 text-[11.5px] font-semibold text-violet-soft transition hover:bg-violet-soft/15 disabled:opacity-50"
+          disabled={busy !== null && busy !== "enhance"}
+          title={
+            busy === "enhance"
+              ? "Thinking… click to abort"
+              : "Propose a checklist with an AI assist (read-only - you choose whether to add the items)"
+          }
+          className={cn(
+            "inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11.5px] font-semibold transition disabled:opacity-50",
+            busy === "enhance"
+              ? "bg-rose-500/10 text-rose-300 hover:bg-rose-500/15"
+              : "bg-violet-soft/10 text-violet-soft hover:bg-violet-soft/15",
+          )}
         >
-          <Sparkles className="h-3 w-3" strokeWidth={1.9} />
-          {busy === "enhance" ? "Thinking…" : "Enhance"}
+          {busy === "enhance" ? (
+            <X className="h-3 w-3" strokeWidth={1.9} />
+          ) : (
+            <Sparkles className="h-3 w-3" strokeWidth={1.9} />
+          )}
+          {busy === "enhance" ? "Abort" : "Enhance"}
         </button>
       }
     >

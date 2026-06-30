@@ -130,11 +130,16 @@ async function readErrorMessage(res: Response): Promise<string> {
   return `${res.status} ${res.statusText}`;
 }
 
-async function jsonPost<T>(path: string, body?: unknown): Promise<T> {
+async function jsonPost<T>(
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
   const res = await fetch(path, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: body ? JSON.stringify(body) : "{}",
+    signal,
   });
   if (!res.ok) {
     throw new ApiError(res.status, await readErrorMessage(res));
@@ -1676,7 +1681,7 @@ export const api = {
   },
   async enhanceChecklist(
     taskId: string,
-    opts: { apply?: boolean; profileId?: string | null } = {},
+    opts: { apply?: boolean; profileId?: string | null; signal?: AbortSignal } = {},
   ): Promise<{
     applied: boolean;
     proposal: {
@@ -1689,10 +1694,11 @@ export const api = {
     task?: Task;
     added?: ChecklistItem[];
   }> {
-    return jsonPost(`/api/tasks/${encodeURIComponent(taskId)}/enhance`, {
-      apply: opts.apply ?? false,
-      profileId: opts.profileId ?? null,
-    });
+    return jsonPost(
+      `/api/tasks/${encodeURIComponent(taskId)}/enhance`,
+      { apply: opts.apply ?? false, profileId: opts.profileId ?? null },
+      opts.signal,
+    );
   },
   async resolveNeedsTesting(
     taskId: string,
