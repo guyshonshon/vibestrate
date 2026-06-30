@@ -13,6 +13,7 @@ import {
   useState,
   type FormEvent,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import {
   Activity,
@@ -29,6 +30,7 @@ import {
   Lock,
   MessageSquare,
   Pencil,
+  Play,
   Plus,
   Search,
   Sparkles,
@@ -97,11 +99,12 @@ function coarseColumnOf(task: Task): CoarseId {
   }
 }
 
-// Honest drag targets: only the columns a card can move to via a REAL action the
-// server exposes. Planned -> In progress = queueTask (start it); any non-live,
-// non-terminal card -> Archived = cancelTask. Everything else has no API, so it
-// is not a valid drop (the card snaps back). Columns are otherwise a derived
-// projection of status - we never fake a move the backend can't make.
+// Honest drag targets: drag is a "dismiss" gesture, never an execution. The only
+// safe, real move on a derived board is archiving a non-live card (-> Archived =
+// cancelTask). Starting a task is an explicit action (the card's Start button),
+// not a drag side effect. Everything else has no API and is not a valid drop
+// (the card snaps back). (A true management-stage board - draggable lanes like
+// "Needs planning" - needs a settable stage field; that's a separate slice.)
 function validDropTargets(task: Task): Set<CoarseId> {
   const targets = new Set<CoarseId>();
   if (task.archived || task.status === "done" || task.status === "cancelled") {
@@ -109,7 +112,6 @@ function validDropTargets(task: Task): Set<CoarseId> {
   }
   const live = task.status === "running" || task.currentRunId != null;
   if (!live) targets.add("archived"); // cancelTask (live cards use the run controls)
-  if (coarseColumnOf(task) === "planned") targets.add("in_progress"); // queueTask
   return targets;
 }
 
@@ -169,6 +171,8 @@ export function BoardPage({
   const [priorityFilter, setPriorityFilter] = useState<"any" | Priority>("any");
   const [roadmapFilter, setRoadmapFilter] = useState<string | null>(null);
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
+  const taskTitleRef = useRef<HTMLInputElement | null>(null);
+  const roadmapTitleRef = useRef<HTMLInputElement | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -197,6 +201,15 @@ export function BoardPage({
     const id = window.setTimeout(() => setToast(null), 4000);
     return () => window.clearTimeout(id);
   }, [toast]);
+
+  // Focus the title field when a form expands (the inputs stay mounted so the
+  // bar can animate open, so autoFocus can't carry it).
+  useEffect(() => {
+    if (showTaskForm) taskTitleRef.current?.focus();
+  }, [showTaskForm]);
+  useEffect(() => {
+    if (showRoadmapForm) roadmapTitleRef.current?.focus();
+  }, [showRoadmapForm]);
 
   async function submitRoadmap(e: FormEvent) {
     e.preventDefault();
@@ -296,13 +309,9 @@ export function BoardPage({
       if (!task) return;
       if (!validDropTargets(task).has(columnId)) return; // snap back - no honest move
       try {
-        if (columnId === "in_progress") {
-          await api.queueTask(taskId);
-          setToast({ kind: "ok", text: `Queued ${taskId}` });
-        } else if (columnId === "archived") {
-          await api.cancelTask(taskId);
-          setToast({ kind: "ok", text: `Archived ${taskId}` });
-        }
+        // archived is the only honest drop target (cancelTask).
+        await api.cancelTask(taskId);
+        setToast({ kind: "ok", text: `Archived ${taskId}` });
         await load();
       } catch (err) {
         setToast({
@@ -313,6 +322,23 @@ export function BoardPage({
       }
     },
     [tasks, load],
+  );
+
+  const handleStart = useCallback(
+    async (taskId: string) => {
+      try {
+        await api.queueTask(taskId);
+        setToast({ kind: "ok", text: `Started ${taskId}` });
+        await load();
+      } catch (err) {
+        setToast({
+          kind: "err",
+          text: err instanceof Error ? err.message : String(err),
+        });
+        await load();
+      }
+    },
+    [load],
   );
 
   const filtered = useMemo(() => {
@@ -414,10 +440,10 @@ export function BoardPage({
           </>
         }
       >
-        {showRoadmapForm ? (
-          <form onSubmit={submitRoadmap} className="mt-3 flex max-w-[640px] gap-2">
+        <MorphForm open={showRoadmapForm}>
+          <form onSubmit={submitRoadmap} className="flex max-w-[640px] gap-2 pt-3">
             <input
-              autoFocus
+              ref={roadmapTitleRef}
               value={newRoadmapTitle}
               onChange={(e) => setNewRoadmapTitle(e.target.value)}
               placeholder="Build onboarding flow"
@@ -427,11 +453,11 @@ export function BoardPage({
               Add
             </Button>
           </form>
-        ) : null}
-        {showTaskForm ? (
-          <form onSubmit={submitTask} className="mt-3 flex max-w-[760px] flex-wrap items-center gap-2">
+        </MorphForm>
+        <MorphForm open={showTaskForm}>
+          <form onSubmit={submitTask} className="flex max-w-[760px] flex-wrap items-center gap-2 pt-3">
             <input
-              autoFocus
+              ref={taskTitleRef}
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
               placeholder="Create setup wizard"
@@ -457,7 +483,7 @@ export function BoardPage({
               Add
             </Button>
           </form>
-        ) : null}
+        </MorphForm>
 
         {toast ? (
           <div
@@ -572,6 +598,7 @@ export function BoardPage({
                     onOpenTask={onOpenTask}
                     onRename={handleRename}
                     onDelete={handleDelete}
+                    onStart={handleStart}
                     dragTaskId={dragTaskId}
                     dropHint={dropHint}
                     onDropTask={handleDropTask}
@@ -585,6 +612,23 @@ export function BoardPage({
         </div>
       )}
     </PageShell>
+  );
+}
+
+// A bar that morphs open from the action button: it expands its height (grid
+// 0fr -> 1fr) while scaling up from the top-right, where the trigger sits.
+function MorphForm({ open, children }: { open: boolean; children: ReactNode }) {
+  return (
+    <div
+      className={cn(
+        "grid origin-top-right transition-all duration-200 ease-out",
+        open
+          ? "scale-100 grid-rows-[1fr] opacity-100"
+          : "pointer-events-none scale-[0.97] grid-rows-[0fr] opacity-0",
+      )}
+    >
+      <div className="overflow-hidden">{children}</div>
+    </div>
   );
 }
 
@@ -760,6 +804,7 @@ function BoardColumn({
   onOpenTask,
   onRename,
   onDelete,
+  onStart,
   dragTaskId,
   dropHint,
   onDropTask,
@@ -773,6 +818,7 @@ function BoardColumn({
   onOpenTask: (taskId: string) => void;
   onRename: (taskId: string, nextTitle: string) => Promise<void> | void;
   onDelete: (taskId: string) => Promise<void> | void;
+  onStart: (taskId: string) => void;
   dragTaskId: string | null;
   dropHint: "valid" | "dim" | null;
   onDropTask: (taskId: string, columnId: CoarseId) => void;
@@ -856,6 +902,7 @@ function BoardColumn({
                     onOpen={onOpenTask}
                     onRename={onRename}
                     onDelete={onDelete}
+                    onStart={onStart}
                     canDrag={canDrag}
                     dragging={dragging}
                     onDragStartTask={onDragStartTask}
@@ -892,18 +939,28 @@ function SagaCard({
   const total = checklist.length;
   const done = checklist.filter((c) => c.status === "done").length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const draggedRef = useRef(false);
   return (
     <div
       role="button"
       tabIndex={0}
       draggable={canDrag}
       onDragStart={(e) => {
+        draggedRef.current = true;
         e.dataTransfer.setData("text/plain", task.id);
         e.dataTransfer.effectAllowed = "move";
         onDragStartTask(task.id);
       }}
-      onDragEnd={onDragEndTask}
-      onClick={() => onOpen(task.id)}
+      onDragEnd={() => {
+        onDragEndTask();
+        window.setTimeout(() => {
+          draggedRef.current = false;
+        }, 60);
+      }}
+      onClick={() => {
+        if (draggedRef.current) return;
+        onOpen(task.id);
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter") onOpen(task.id);
       }}
@@ -960,6 +1017,7 @@ function TaskCard({
   onOpen,
   onRename,
   onDelete,
+  onStart,
   canDrag,
   dragging,
   onDragStartTask,
@@ -972,6 +1030,7 @@ function TaskCard({
   onOpen: (taskId: string) => void;
   onRename: (taskId: string, nextTitle: string) => Promise<void> | void;
   onDelete: (taskId: string) => Promise<void> | void;
+  onStart: (taskId: string) => void;
   canDrag: boolean;
   dragging: boolean;
   onDragStartTask: (taskId: string) => void;
@@ -982,6 +1041,11 @@ function TaskCard({
   const isFailed = task.status === "failed";
   const isWaiting = task.status === "waiting_for_approval";
   const isDone = task.status === "done" || task.status === "cancelled";
+  // Startable = explicit run is meaningful: not terminal, not already live.
+  const startable =
+    !isDone && !task.archived && !isRunning && task.currentRunId == null;
+  // Suppress the click-to-open that a browser may fire right after a drag.
+  const draggedRef = useRef(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task.title);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -1030,13 +1094,20 @@ function TaskCard({
       tabIndex={0}
       draggable={canDrag && !editing}
       onDragStart={(e) => {
+        draggedRef.current = true;
         e.dataTransfer.setData("text/plain", task.id);
         e.dataTransfer.effectAllowed = "move";
         onDragStartTask(task.id);
       }}
-      onDragEnd={onDragEndTask}
+      onDragEnd={() => {
+        onDragEndTask();
+        window.setTimeout(() => {
+          draggedRef.current = false;
+        }, 60);
+      }}
       onClick={(e) => {
         if (editing) return;
+        if (draggedRef.current) return; // a drag just happened - don't open
         const target = e.target as HTMLElement;
         if (target.closest("[data-no-open]")) return;
         onOpen(task.id);
@@ -1108,6 +1179,21 @@ function TaskCard({
             {task.title}
           </div>
         )}
+        {startable ? (
+          <button
+            type="button"
+            data-no-open
+            onClick={(e) => {
+              e.stopPropagation();
+              onStart(task.id);
+            }}
+            className="shrink-0 p-0.5 text-chalk-400 opacity-0 transition-opacity hover:text-violet-soft group-hover:opacity-100"
+            title="Start task"
+            aria-label="Start task"
+          >
+            <Play className="h-3 w-3" strokeWidth={1.9} />
+          </button>
+        ) : null}
         <button
           type="button"
           data-no-open
