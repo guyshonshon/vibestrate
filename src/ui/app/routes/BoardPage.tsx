@@ -64,18 +64,17 @@ type ColumnDef = {
   id: CoarseId;
   label: string;
   dot: string;
-  bar: string;
 };
 
 // The board is a *coarse* human kanban (Phase 3) - not the orchestrator's fine
 // run stages, which live in Mission Control. A card's column is derived from its
 // status + the archived / needs-testing overlays (see coarseColumnOf).
 const COLUMNS: ColumnDef[] = [
-  { id: "planned",       label: "Planned",      dot: "bg-chalk-400",   bar: "bg-[color:var(--line-strong)]" },
-  { id: "in_progress",   label: "In progress",  dot: "bg-emerald-400", bar: "bg-emerald-400/70" },
-  { id: "needs_testing", label: "Needs testing", dot: "bg-amber-soft", bar: "bg-amber-soft/70" },
-  { id: "completed",     label: "Completed",    dot: "bg-sky-glow",    bar: "bg-sky-glow/70" },
-  { id: "archived",      label: "Archived",     dot: "bg-chalk-400",   bar: "bg-[color:var(--line-strong)]" },
+  { id: "planned",       label: "Planned",       dot: "bg-chalk-400" },
+  { id: "in_progress",   label: "In progress",   dot: "bg-emerald-400" },
+  { id: "needs_testing", label: "Needs testing", dot: "bg-amber-soft" },
+  { id: "completed",     label: "Completed",      dot: "bg-sky-glow" },
+  { id: "archived",      label: "Archived",       dot: "bg-chalk-400" },
 ];
 
 // Mirror of the canonical coarseColumn() in roadmap-types (server/UI type split).
@@ -723,8 +722,7 @@ function BoardColumn({
         urgent ? "border-amber-soft/40" : "border-[color:var(--line)]",
       )}
     >
-      <div className={cn("h-[2px]", column.bar)} />
-      <header className="flex items-center justify-between border-b border-[color:var(--line-soft)] px-3 py-2.5">
+      <header className="flex items-center justify-between border-b border-[color:var(--line-soft)] bg-white/[0.02] px-3 py-2.5">
         <div className="flex min-w-0 items-center gap-1.5">
           <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", column.dot)} />
           <span className="truncate text-[12px] font-semibold text-chalk-100">
@@ -734,7 +732,7 @@ function BoardColumn({
         <span className="tabular-nums text-[11px] text-chalk-400">{tasks.length}</span>
       </header>
 
-      <ol className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-1.5">
+      <ol className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2">
         {tasks.length === 0 ? (
           <li className="select-none py-6 text-center text-[11px] text-chalk-400">
             empty
@@ -797,7 +795,7 @@ function SagaCard({
         if (e.key === "Enter") onOpen(task.id);
       }}
       data-task-id={task.id}
-      className="group block w-full cursor-pointer rounded-[12px] border border-violet-soft/25 bg-violet-soft/[0.07] px-2.5 py-2 transition hover:border-violet-soft/50 hover:bg-violet-soft/[0.11]"
+      className="group block w-full cursor-pointer rounded-[11px] bg-violet-soft/[0.1] px-2.5 py-2 transition hover:bg-violet-soft/[0.15]"
     >
       <div className="flex items-center gap-1.5">
         <Layers className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
@@ -917,23 +915,16 @@ function TaskCard({
       }}
       data-task-id={task.id}
       className={cn(
-        "group relative block w-full cursor-pointer overflow-hidden rounded-[12px] border px-2.5 py-2 text-left transition",
+        "group relative block w-full cursor-pointer overflow-hidden rounded-[11px] px-2.5 py-2 text-left transition",
         isWaiting
-          ? "border-amber-soft/40 bg-amber-soft/[0.07]"
+          ? "bg-amber-soft/[0.1] hover:bg-amber-soft/[0.14]"
           : isFailed
-            ? "border-rose-400/40 bg-rose-500/[0.07]"
+            ? "bg-rose-500/[0.1] hover:bg-rose-500/[0.14]"
             : isDone
-              ? "border-[color:var(--line-soft)] bg-coal-600 opacity-70"
-              : "border-[color:var(--line)] bg-coal-600 hover:border-violet-soft/45 hover:bg-coal-500",
+              ? "bg-coal-600 opacity-70"
+              : "bg-coal-600 hover:bg-coal-500",
       )}
     >
-      {roadmap && rmTone ? (
-        <span
-          className={cn("absolute bottom-2 left-0 top-2 w-[2px] rounded-full", TONE_SWATCH[rmTone])}
-          aria-label={roadmap.title}
-        />
-      ) : null}
-
       <div className="flex flex-wrap items-center gap-1.5">
         <span className={cn("text-[10.5px] font-semibold", prio.cls)}>{prio.label}</span>
         {isWaiting ? (
