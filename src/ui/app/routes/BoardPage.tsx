@@ -400,6 +400,19 @@ export function BoardPage({
           </form>
         ) : null}
 
+        {suggestions[0] ? (
+          <button
+            type="button"
+            onClick={() => onOpenTask(suggestions[0]!.taskId)}
+            title={`Suggested next - ${suggestions[0]!.reason}`}
+            className="mt-2 inline-flex max-w-[420px] items-center gap-1.5 rounded-[10px] border border-violet-soft/30 bg-violet-soft/10 px-2.5 py-1 text-[12px] text-chalk-100 transition hover:bg-violet-soft/15"
+          >
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.8} />
+            <span className="text-chalk-400">next</span>
+            <span className="truncate">{suggestions[0]!.title}</span>
+          </button>
+        ) : null}
+
         {toast ? (
           <div
             role="status"
@@ -420,124 +433,108 @@ export function BoardPage({
         ) : null}
       </PageHeader>
 
-      <div className="flex min-h-0 flex-1 gap-4">
-        {/* ── Meta rail: metrics + roadmap filter ───────────────────── */}
-        <aside className="flex w-[244px] shrink-0 flex-col gap-4 overflow-y-auto rounded-[16px] border border-[color:var(--line)] bg-coal-650 p-3">
-          <div className="flex flex-col gap-2">
-            <MetricCard
-              icon={<Activity className="h-3 w-3" strokeWidth={2} />}
-              label="Active"
-              value={counts.active}
-              hint="in flight"
-              tone="violet"
-              share={counts.active / total}
-            />
-            <MetricCard
-              icon={<Hourglass className="h-3 w-3" strokeWidth={2} />}
-              label="Awaiting"
-              value={counts.waiting}
-              hint={counts.waiting > 0 ? "your turn" : "nothing"}
-              tone="amber"
-              share={counts.waiting / total}
-            />
-            <MetricCard
-              icon={<Ban className="h-3 w-3" strokeWidth={2} />}
-              label="Blocked"
-              value={counts.blocked}
-              hint={counts.blocked > 0 ? "attention" : "all clear"}
-              tone="rose"
-              share={counts.blocked / total}
-            />
-            <MetricCard
-              icon={<CircleCheck className="h-3 w-3" strokeWidth={2} />}
-              label="Done"
-              value={counts.done}
-              hint="shipped"
-              tone="emerald"
-              share={counts.done / total}
+      {/* ── Metric strip (top) ────────────────────────────────────── */}
+      <div className="mb-3 grid shrink-0 grid-cols-2 gap-2.5 md:grid-cols-4">
+        <MetricCard
+          icon={<Activity className="h-3 w-3" strokeWidth={2} />}
+          label="Active"
+          value={counts.active}
+          hint="in flight"
+          tone="violet"
+          share={counts.active / total}
+        />
+        <MetricCard
+          icon={<Hourglass className="h-3 w-3" strokeWidth={2} />}
+          label="Awaiting"
+          value={counts.waiting}
+          hint={counts.waiting > 0 ? "your turn" : "nothing"}
+          tone="amber"
+          share={counts.waiting / total}
+        />
+        <MetricCard
+          icon={<Ban className="h-3 w-3" strokeWidth={2} />}
+          label="Blocked"
+          value={counts.blocked}
+          hint={counts.blocked > 0 ? "attention" : "all clear"}
+          tone="rose"
+          share={counts.blocked / total}
+        />
+        <MetricCard
+          icon={<CircleCheck className="h-3 w-3" strokeWidth={2} />}
+          label="Done"
+          value={counts.done}
+          hint="shipped"
+          tone="emerald"
+          share={counts.done / total}
+        />
+      </div>
+
+      {/* ── Roadmap filter rail (horizontal) ──────────────────────── */}
+      {items.length > 0 ? (
+        <div className="mb-3 shrink-0">
+          <RoadmapRail
+            items={items}
+            tasks={tasks}
+            active={roadmapFilter}
+            onSelect={setRoadmapFilter}
+          />
+        </div>
+      ) : null}
+
+      {/* ── Board: toolbar + kanban ───────────────────────────────── */}
+      {tasks.length === 0 ? (
+        <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-12 text-center">
+          <div className="text-[15px] font-semibold text-chalk-100">No tasks yet.</div>
+          <p className="mt-1 text-[12.5px] text-chalk-300">
+            Click <span className="font-semibold text-chalk-100">New task</span> above to start the first one.
+          </p>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="mb-3 shrink-0">
+            <BoardToolbar
+              query={query}
+              onQuery={setQuery}
+              priority={priorityFilter}
+              onPriority={setPriorityFilter}
+              tasksShown={filtered.length}
+              totalTasks={tasks.length}
             />
           </div>
-
-          {suggestions[0] ? (
-            <button
-              type="button"
-              onClick={() => onOpenTask(suggestions[0]!.taskId)}
-              title={`Suggested next - ${suggestions[0]!.reason}`}
-              className="flex items-center gap-1.5 rounded-[12px] border border-violet-soft/30 bg-violet-soft/10 px-2.5 py-2 text-left text-[12px] text-chalk-100 transition hover:bg-violet-soft/15"
+          <div className="min-h-0 flex-1 overflow-x-auto pb-4">
+            <div
+              className="grid h-full gap-2.5"
+              style={{
+                gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(196px, 1fr))`,
+                minWidth: COLUMNS.length * 204,
+              }}
             >
-              <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.8} />
-              <span className="text-chalk-400">next</span>
-              <span className="truncate">{suggestions[0]!.title}</span>
-            </button>
-          ) : null}
-
-          {items.length > 0 ? (
-            <RoadmapList
-              items={items}
-              tasks={tasks}
-              active={roadmapFilter}
-              onSelect={setRoadmapFilter}
-            />
-          ) : null}
-        </aside>
-
-        {/* ── Board: toolbar + kanban ───────────────────────────────── */}
-        <div className="flex min-h-0 flex-1 flex-col">
-          {tasks.length === 0 ? (
-            <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-12 text-center">
-              <div className="text-[15px] font-semibold text-chalk-100">No tasks yet.</div>
-              <p className="mt-1 text-[12.5px] text-chalk-300">
-                Click <span className="font-semibold text-chalk-100">New task</span> above to start the first one.
-              </p>
+              {COLUMNS.map((col) => {
+                const colTasks = filtered.filter((t) => coarseColumnOf(t) === col.id);
+                return (
+                  <BoardColumn
+                    key={col.id}
+                    column={col}
+                    tasks={colTasks}
+                    allTasks={tasks}
+                    items={items}
+                    onOpenTask={onOpenTask}
+                    onRename={handleRename}
+                    onDelete={handleDelete}
+                  />
+                );
+              })}
             </div>
-          ) : (
-            <>
-              <div className="mb-3 shrink-0">
-                <BoardToolbar
-                  query={query}
-                  onQuery={setQuery}
-                  priority={priorityFilter}
-                  onPriority={setPriorityFilter}
-                  tasksShown={filtered.length}
-                  totalTasks={tasks.length}
-                />
-              </div>
-              <div className="min-h-0 flex-1 overflow-x-auto pb-4">
-                <div
-                  className="grid h-full gap-2.5"
-                  style={{
-                    gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(196px, 1fr))`,
-                    minWidth: COLUMNS.length * 204,
-                  }}
-                >
-                  {COLUMNS.map((col) => {
-                    const colTasks = filtered.filter((t) => coarseColumnOf(t) === col.id);
-                    return (
-                      <BoardColumn
-                        key={col.id}
-                        column={col}
-                        tasks={colTasks}
-                        allTasks={tasks}
-                        items={items}
-                        onOpenTask={onOpenTask}
-                        onRename={handleRename}
-                        onDelete={handleDelete}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </PageShell>
   );
 }
 
-// ── Roadmap list (vertical, in the rail) ────────────────────────────────
+// ── Roadmap rail (horizontal filter) ────────────────────────────────────
 
-function RoadmapList({
+function RoadmapRail({
   items,
   tasks,
   active,
@@ -550,40 +547,35 @@ function RoadmapList({
 }) {
   const totalLinked = tasks.filter((t) => t.roadmapItemId).length;
   return (
-    <div className="flex min-h-0 flex-col">
-      <div className="mb-2 px-1 text-[12px] font-bold text-violet-vivid">
-        Roadmap
-        <span className="ml-1.5 font-medium text-chalk-400">{items.length}</span>
-      </div>
-      <div className="flex flex-col gap-0.5">
-        <RoadmapRow
-          label="All initiatives"
-          meta={`${totalLinked} linked`}
-          tone="violet"
-          active={active === null}
-          onClick={() => onSelect(null)}
-          all
-        />
-        {items.map((rm) => {
-          const linked = tasks.filter((t) => t.roadmapItemId === rm.id).length;
-          return (
-            <RoadmapRow
-              key={rm.id}
-              label={rm.title}
-              meta={`${linked} - ${rm.status}`}
-              tone={roadmapToneFor(rm.id)}
-              priority={rm.priority}
-              active={active === rm.id}
-              onClick={() => onSelect(rm.id === active ? null : rm.id)}
-            />
-          );
-        })}
-      </div>
+    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+      <span className="mr-0.5 shrink-0 text-[12px] font-bold text-violet-vivid">Roadmap</span>
+      <RoadmapChip
+        label="All initiatives"
+        meta={`${totalLinked} linked`}
+        tone="violet"
+        active={active === null}
+        onClick={() => onSelect(null)}
+        all
+      />
+      {items.map((rm) => {
+        const linked = tasks.filter((t) => t.roadmapItemId === rm.id).length;
+        return (
+          <RoadmapChip
+            key={rm.id}
+            label={rm.title}
+            meta={`${linked} - ${rm.status}`}
+            tone={roadmapToneFor(rm.id)}
+            priority={rm.priority}
+            active={active === rm.id}
+            onClick={() => onSelect(rm.id === active ? null : rm.id)}
+          />
+        );
+      })}
     </div>
   );
 }
 
-function RoadmapRow({
+function RoadmapChip({
   label,
   meta,
   tone,
@@ -605,10 +597,10 @@ function RoadmapRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2 rounded-[10px] border px-2.5 py-1.5 text-left transition",
+        "flex shrink-0 items-center gap-2 rounded-[10px] border px-3 py-1.5 text-left transition",
         active
           ? "border-violet-soft/45 bg-violet-soft/10"
-          : "border-transparent hover:bg-coal-600",
+          : "border-[color:var(--line)] bg-coal-600 hover:bg-coal-500",
       )}
     >
       {all ? (
@@ -616,10 +608,8 @@ function RoadmapRow({
       ) : (
         <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", TONE_SWATCH[tone])} />
       )}
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[12px] font-medium text-chalk-100">{label}</span>
-        <span className="block truncate text-[10.5px] text-chalk-400">{meta}</span>
-      </span>
+      <span className="max-w-[160px] truncate text-[12px] font-medium text-chalk-100">{label}</span>
+      <span className="shrink-0 text-[10.5px] text-chalk-400">{meta}</span>
       {priority ? (
         <span
           className={cn(
