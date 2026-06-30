@@ -272,7 +272,7 @@ export function TaskDetailPage({
           </section>
         ) : null}
 
-        {task.kind === "saga" ? <ConductorPanel taskId={task.id} /> : null}
+        {task.runMode === "supervised" ? <ConductorPanel taskId={task.id} /> : null}
 
         <ChecklistSection task={task} onChanged={load} onOpenTask={onOpenTask} />
 
@@ -828,7 +828,7 @@ function ChecklistSection({
     const t = text.trim();
     if (!t) return;
     await run("add", async () => {
-      if (task.kind === "saga") {
+      if (task.runMode === "supervised") {
         const fileHints = fileHintsInput
           .split(",")
           .map((f) => f.trim())
@@ -958,7 +958,7 @@ function ChecklistSection({
             <ChecklistRow
               key={item.id}
               item={item}
-              isSaga={task.kind === "saga"}
+              isSaga={task.runMode === "supervised"}
               busy={busy}
               dragging={draggingId === item.id}
               dragOver={overId === item.id && draggingId !== item.id}
@@ -1044,7 +1044,7 @@ function ChecklistSection({
             placeholder="Add a checklist item…"
             className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
           />
-          {task.kind === "saga" ? (
+          {task.runMode === "supervised" ? (
             <>
               <input
                 value={objective}

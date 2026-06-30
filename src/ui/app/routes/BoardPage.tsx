@@ -812,7 +812,7 @@ function BoardColumn({
               : null;
             return (
               <li key={t.id}>
-                {t.kind === "saga" ? (
+                {t.runMode === "supervised" ? (
                   <SagaCard task={t} onOpen={onOpenTask} />
                 ) : (
                   <TaskCard
@@ -858,7 +858,7 @@ function SagaCard({
     >
       <div className="flex items-center gap-1.5">
         <Layers className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
-        <span className="mono text-[9px] uppercase tracking-[0.12em] text-violet-soft">saga</span>
+        <span className="mono text-[9px] uppercase tracking-[0.12em] text-violet-soft">supervised</span>
         <span className="ml-auto mono text-[9.5px] text-fog-300 num-tabular">
           {done}/{total}
         </span>

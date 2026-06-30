@@ -556,7 +556,7 @@ export type TaskStatus =
 
 export type Task = {
   id: string;
-  kind?: "single" | "saga";
+  runMode?: "plain" | "supervised";
   roadmapItemId: string | null;
   title: string;
   description: string;
@@ -585,11 +585,14 @@ export type Task = {
   profileOverride?: string | null;
   readOnly?: boolean;
   checklist?: ChecklistItem[];
-  // Saga conductor (Phase 2). Present on kind:"saga" tasks.
-  supervisedState?: SupervisedState;
-  supervisedHalt?: SupervisedHalt | null;
-  supervisedInvariants?: string[];
-  sagaBudget?: { maxSpendUsd: number | null; maxSteps: number | null };
+  // Supervised run (the Conductor). Grouped to mirror the backend Task shape.
+  supervised?: {
+    state?: SupervisedState;
+    halt?: SupervisedHalt | null;
+    invariants?: string[];
+    pendingRevision?: unknown;
+  };
+  runOptions?: { budget?: { maxSpendUsd: number | null; maxSteps: number | null } };
   needsTesting?: boolean;
   needsTestingReason?: string | null;
   derivedFrom?: { taskId: string; itemId: string } | null;

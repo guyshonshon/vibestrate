@@ -1570,7 +1570,7 @@ export const api = {
     requiredSkills?: string[];
     touchedFiles?: string[];
     riskLevel?: "low" | "medium" | "high";
-    kind?: "single" | "saga";
+    runMode?: "plain" | "supervised";
   }): Promise<Task> {
     const r = await jsonPost<{ task: Task }>("/api/tasks", input);
     return r.task;
@@ -1582,8 +1582,8 @@ export const api = {
   }> {
     return jsonGet(`/api/tasks/${encodeURIComponent(taskId)}`);
   },
-  /** Saga conductor live status (Phase 2b): lifecycle, live run, step progress,
-   *  halt, invariants. Same source as `vibe saga status`. */
+  /** Supervised-run live status (the Conductor): lifecycle, live run, step
+   *  progress, halt, invariants. Same source as `vibe tasks status`. */
   async getTaskRunStatus(taskId: string): Promise<{ status: TaskRunStatus }> {
     return jsonGet(`/api/sagas/${encodeURIComponent(taskId)}/status`);
   },
