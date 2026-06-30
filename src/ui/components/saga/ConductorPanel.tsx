@@ -59,7 +59,7 @@ export function ConductorPanel({ taskId }: { taskId: string }) {
       if (res.status.liveRunId) {
         const eng = await api.getRunEngagement(res.status.liveRunId).catch(() => []);
         // Only the conductor's own moments (supervisor verdicts, clean halts).
-        setEngagement(eng.filter((e) => e.type.startsWith("saga.")));
+        setEngagement(eng.filter((e) => e.type.startsWith("supervised.")));
       } else {
         setEngagement([]);
       }

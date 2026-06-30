@@ -142,7 +142,7 @@ describe("saga fresh context per step (M2b)", () => {
     const events = await readEvents(dir);
 
     // THE per-step / not-per-fix-iteration proof: one context_reset per STEP.
-    const resets = events.filter((e) => e.type === "saga.step.context_reset");
+    const resets = events.filter((e) => e.type === "supervised.step.context_reset");
     expect(resets.length).toBe(2);
     expect(resets.map((e) => e.data.index)).toEqual([0, 1]);
 

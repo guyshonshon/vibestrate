@@ -156,7 +156,7 @@ describe("saga supervisor turn (real executor)", () => {
     const events = await readEvents(dir);
     expect(
       events.some(
-        (e) => e.type === "saga.supervisor" && e.data?.effective === "ESCALATE",
+        (e) => e.type === "supervised.supervisor" && e.data?.effective === "ESCALATE",
       ),
     ).toBe(true);
   }, 90_000);

@@ -162,7 +162,7 @@ describe("saga ENHANCE pass (real executor)", () => {
 
     // The enhance event records what was applied.
     const events = await readEvents(dir);
-    const enh = events.find((e) => e.type === "saga.enhance");
+    const enh = events.find((e) => e.type === "supervised.enhance");
     expect(enh).toBeTruthy();
     expect(enh!.data?.authority).toBe("auto");
 
@@ -249,7 +249,7 @@ describe("saga ENHANCE pass (real executor)", () => {
 
     const events = await readEvents(dir);
     expect(
-      events.some((e) => e.type === "saga.enhance" && e.data?.emptiedTail === true),
+      events.some((e) => e.type === "supervised.enhance" && e.data?.emptiedTail === true),
     ).toBe(true);
   }, 90_000);
 
@@ -301,7 +301,7 @@ describe("saga ENHANCE pass (real executor)", () => {
     expect(after!.supervised.halt?.reason).toBe("enhance-escalate");
 
     const events = await readEvents(dir);
-    expect(events.some((e) => e.type === "saga.enhance" && e.data?.authority === "escalate")).toBe(
+    expect(events.some((e) => e.type === "supervised.enhance" && e.data?.authority === "escalate")).toBe(
       true,
     );
   }, 90_000);

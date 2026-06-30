@@ -3608,7 +3608,7 @@ export class Orchestrator {
             state = this.patchFlowParticipants(state, participantLedger);
           }
           await input.eventLog.append({
-            type: "saga.step.context_reset",
+            type: "supervised.step.context_reset",
             message: `Saga step ${i + 1}/${checklistItems.length}: fresh context (${sessionsReset} session(s) reset).`,
             data: { itemId: item.id, index: i, sessionsReset },
           });
@@ -4039,7 +4039,7 @@ export class Orchestrator {
             }
             currentChecklistItemId = null;
             await input.eventLog.append({
-              type: "saga.halted",
+              type: "supervised.halted",
               message: `Saga halted at step ${itemIndex + 1}/${checklistItems.length}: ${haltItem.text} (self-heal exhausted, verdict ${lastDecision}).`,
               data: { itemId: haltItem.id, index: itemIndex, verdict: lastDecision },
             });
@@ -4084,7 +4084,7 @@ export class Orchestrator {
                   }
                   currentChecklistItemId = null;
                   await input.eventLog.append({
-                    type: "saga.halted",
+                    type: "supervised.halted",
                     message: `Saga halted after step ${stepsCompleted}/${checklistItems.length}: ${stop.reason ?? "budget reached"} (completed work kept).`,
                     data: {
                       itemId: completedItem.id,
@@ -4134,7 +4134,7 @@ export class Orchestrator {
                       .catch(() => {});
                     currentChecklistItemId = null;
                     await input.eventLog.append({
-                      type: "saga.halted",
+                      type: "supervised.halted",
                       message: `Saga halted after step ${stepsCompleted}/${checklistItems.length}: supervisor ESCALATE (completed work kept).`,
                       data: {
                         itemId: completedItem.id,
@@ -4176,7 +4176,7 @@ export class Orchestrator {
                         .catch(() => {});
                       currentChecklistItemId = null;
                       await input.eventLog.append({
-                        type: "saga.halted",
+                        type: "supervised.halted",
                         message: `Saga halted after step ${stepsCompleted}/${checklistItems.length}: Enhance escalated to the owner (completed work kept).`,
                         data: {
                           itemId: completedItem.id,
@@ -5553,7 +5553,7 @@ export class Orchestrator {
       profileCfg?.provider ?? Object.values(this.config.profiles)[0]?.provider;
     if (!providerId || !this.config.providers[providerId]) {
       await input.eventLog.append({
-        type: "saga.supervisor",
+        type: "supervised.supervisor",
         message: `Saga supervisor skipped after step ${itemIndex + 1}: no resolvable provider.`,
         data: { index: itemIndex, decision: null, skipped: "no-provider" },
       });
@@ -5645,7 +5645,7 @@ export class Orchestrator {
         .catch(() => {});
     } catch (err) {
       await input.eventLog.append({
-        type: "saga.supervisor",
+        type: "supervised.supervisor",
         message: `Saga supervisor errored after step ${itemIndex + 1}; proceeding. ${
           err instanceof Error ? err.message : ""
         }`.trim(),
@@ -5663,7 +5663,7 @@ export class Orchestrator {
       await roadmap.appendSagaInvariants(taskId, newInvariants).catch(() => {});
     }
     await input.eventLog.append({
-      type: "saga.supervisor",
+      type: "supervised.supervisor",
       message: `Saga supervisor after step ${itemIndex + 1}/${checklistItems.length}: ${
         parsed.decision ?? "PROCEED (unparsed)"
       }${
@@ -5722,7 +5722,7 @@ export class Orchestrator {
       profileCfg?.provider ?? Object.values(this.config.profiles)[0]?.provider;
     if (!providerId || !this.config.providers[providerId]) {
       await input.eventLog.append({
-        type: "saga.enhance",
+        type: "supervised.enhance",
         message: `Saga enhance skipped after step ${itemIndex + 1}: no resolvable provider.`,
         data: { index: itemIndex, authority: null, skipped: "no-provider" },
       });
@@ -5827,7 +5827,7 @@ export class Orchestrator {
         .catch(() => {});
     } catch (err) {
       await input.eventLog.append({
-        type: "saga.enhance",
+        type: "supervised.enhance",
         message: `Saga enhance errored after step ${itemIndex + 1}; proceeding. ${
           err instanceof Error ? err.message : ""
         }`.trim(),
@@ -5845,7 +5845,7 @@ export class Orchestrator {
         (diff.reorder === null || diff.reorder.length === 0));
     if (!diff || empty) {
       await input.eventLog.append({
-        type: "saga.enhance",
+        type: "supervised.enhance",
         message: `Saga enhance after step ${itemIndex + 1}: no change (plan already grounded).`,
         data: { index: itemIndex, authority: "auto", applied: null, noop: true },
       });
@@ -5855,7 +5855,7 @@ export class Orchestrator {
     const authority = classifyAuthority(diff, pending, "conductor");
     if (authority === "escalate") {
       await input.eventLog.append({
-        type: "saga.enhance",
+        type: "supervised.enhance",
         message: `Saga enhance after step ${itemIndex + 1}: escalating to the owner (structural change).`,
         data: {
           index: itemIndex,
@@ -5883,7 +5883,7 @@ export class Orchestrator {
     // band's `itemIndex` re-entry). Escalate rather than auto-apply.
     if (revisedTail.length === 0) {
       await input.eventLog.append({
-        type: "saga.enhance",
+        type: "supervised.enhance",
         message: `Saga enhance after step ${itemIndex + 1}: escalating - the diff would drop all remaining steps.`,
         data: { index: itemIndex, authority: "escalate", emptiedTail: true },
       });
@@ -5921,7 +5921,7 @@ export class Orchestrator {
         })
         .catch(async (err: unknown) => {
           await input.eventLog.append({
-            type: "saga.enhance",
+            type: "supervised.enhance",
             message: `Saga enhance: could not persist the revised plan; the run continues but a resume would fall back to the original plan. ${
               err instanceof Error ? err.message : ""
             }`.trim(),
@@ -5931,7 +5931,7 @@ export class Orchestrator {
     }
 
     await input.eventLog.append({
-      type: "saga.enhance",
+      type: "supervised.enhance",
       message: `Saga enhance after step ${itemIndex + 1}: re-grounded the pending plan (${diff.refine.length} refined, ${diff.remove.length} removed${diff.reorder ? ", resequenced" : ""}).`,
       data: {
         index: itemIndex,

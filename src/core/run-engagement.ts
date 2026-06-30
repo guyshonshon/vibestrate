@@ -160,7 +160,7 @@ function entryFor(e: VibestrateEvent): Partial | null {
       };
     }
     // ── Saga conductor (Phase 2b): the between-steps supervisor + clean halt ──
-    case "saga.supervisor": {
+    case "supervised.supervisor": {
       const decision = str(d, "effective") ?? str(d, "decision") ?? "PROCEED";
       const invs = len(d, "newInvariants");
       const idx = num(d, "index");
@@ -173,7 +173,7 @@ function entryFor(e: VibestrateEvent): Partial | null {
         tone: decision === "ESCALATE" ? "bad" : "ok",
       };
     }
-    case "saga.halted": {
+    case "supervised.halted": {
       const idx = num(d, "index");
       return {
         cls: "enforced",
@@ -185,7 +185,7 @@ function entryFor(e: VibestrateEvent): Partial | null {
       };
     }
     // ── Saga conductor (Phase 3): the ENHANCE re-ground pass ──
-    case "saga.enhance": {
+    case "supervised.enhance": {
       const idx = num(d, "index");
       const authority = str(d, "authority");
       const after = idx != null ? ` after step ${idx + 1}` : "";
