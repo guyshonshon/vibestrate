@@ -1,17 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  ArrowUpRight,
-  ExternalLink,
-  GitBranch,
-  Lock,
-  Plus,
-  X,
-} from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { ArrowUpRight, ExternalLink, GitBranch, Lock, Plus, X } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { cn } from "../design/cn.js";
 import { Button } from "../design/Button.js";
 import { Select } from "../design/Select.js";
-import { Chip, type ChipTone } from "../design/Chip.js";
+import { StatTile } from "../design/StatTile.js";
 import type {
   ChecklistItem,
   ChecklistItemStatus,
@@ -19,10 +13,9 @@ import type {
   TaskComment,
 } from "../../lib/types.js";
 
-// Local recipes (match TaskDetailPage idiom; contract §6).
+// Canonical input recipe (primitives-contract §6).
 const INPUT =
-  "rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none";
-const CARD = "rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4";
+  "w-full rounded-[14px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2.5 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none";
 
 const STEP_STATUSES: ChecklistItemStatus[] = [
   "pending",
@@ -31,76 +24,56 @@ const STEP_STATUSES: ChecklistItemStatus[] = [
   "blocked",
 ];
 
-function statusTone(s: ChecklistItemStatus): ChipTone {
+// Status as flat tinted text (contract §7 - not a pill, not a dot+sentence).
+function statusTextTone(s: ChecklistItemStatus): string {
   return s === "done"
-    ? "emerald"
+    ? "text-emerald-400"
     : s === "in_progress"
-      ? "violet"
+      ? "text-violet-soft"
       : s === "blocked"
-        ? "amber"
-        : "neutral";
+        ? "text-amber-soft"
+        : "text-chalk-300";
 }
 
-// A labelled section heading inside the drawer body. Colour-carried label
-// (contract: labels carry colour, not grey).
-function Block({
-  label,
-  hint,
+/**
+ * A drawer section - the Mission Control card idiom, verbatim from
+ * `ConductorPanel` (`rounded-[18px] border border-[color:var(--line)]
+ * bg-coal-600 p-4`, a `text-[14px] font-semibold text-chalk-100` header with an
+ * optional action by its title). Composing this instead of hand-rolling labels
+ * is what keeps the drawer on the branding canvas.
+ */
+function DrawerSection({
+  title,
+  action,
   children,
 }: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
+  title: string;
+  action?: ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <div>
-      <div className="mb-1.5 flex items-baseline gap-2">
-        <span className="font-mono text-[11px] font-medium text-violet-soft">
-          {label}
-        </span>
-        {hint ? <span className="text-[10.5px] text-chalk-400">{hint}</span> : null}
+    <section className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-[14px] font-semibold text-chalk-100">{title}</h3>
+        {action ?? null}
       </div>
       {children}
-    </div>
-  );
-}
-
-// One read-only "inherited from parent" row: a coloured label, the value, and a
-// jump-to-parent affordance. The parent OWNS this; the step only shows it.
-function InheritedRow({
-  label,
-  value,
-  empty,
-}: {
-  label: string;
-  value: React.ReactNode;
-  empty?: boolean;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-3 border-b border-[color:var(--line-soft)] py-[7px] text-[12px] last:border-0">
-      <span className="shrink-0 text-chalk-300">{label}</span>
-      <span
-        className={cn(
-          "min-w-0 text-right",
-          empty ? "text-chalk-400" : "font-medium text-chalk-100",
-        )}
-      >
-        {value}
-      </span>
-    </div>
+    </section>
   );
 }
 
 /**
- * The per-step detail surface - "a task in a task". Opens as a right-side drawer
- * over the parent task page so the parent context stays visible behind it.
+ * The per-step detail surface - "a task in a task". A right-side drawer over the
+ * parent task page (portalled to <body> so no ancestor stacking context clamps
+ * the fixed panel). Its chrome is the Mission Control canvas idiom: a
+ * PageHeader-style title and `DrawerSection` cards, not hand-rolled labels.
  *
- * The split the owner asked for:
- *  - The PARENT owns the shared scaffolding (context, flow + crew, git, runs,
- *    blockers). Here it is shown READ-ONLY, labelled "from parent" - the step
- *    inherits it, it does not own a copy.
- *  - The step OWNS its authoring (title/objective/accept/file hints), its
- *    status, its run outcome (supervised runs only), and its own comments.
+ * The owner's split:
+ *  - The PARENT owns the shared scaffolding (context, crew, git, blockers); it
+ *    is shown here READ-ONLY as StatTiles labelled "inherited", because every
+ *    step shares one container.
+ *  - The step OWNS its authoring, status, run outcome (supervised only), and
+ *    its own comments.
  */
 export function StepDetailDrawer({
   task,
@@ -123,7 +96,6 @@ export function StepDetailDrawer({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Editable authoring drafts, kept in sync when the item changes underneath us.
   const [title, setTitle] = useState(item.text);
   const [objective, setObjective] = useState(item.objective ?? "");
   const [acceptance, setAcceptance] = useState(item.acceptanceCheck ?? "");
@@ -136,17 +108,20 @@ export function StepDetailDrawer({
     setFileHints((item.fileHints ?? []).join(", "));
   }, [item.id, item.text, item.objective, item.acceptanceCheck, item.fileHints]);
 
-  // Close on Escape.
+  // Escape closes; lock body scroll while open.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
   }, [onClose]);
 
-  // This step's own comments: target "step" + targetRef === item id. The parent
-  // page already loaded every comment; we just project here.
   const stepComments = useMemo(
     () =>
       comments
@@ -206,57 +181,70 @@ export function StepDetailDrawer({
   }
 
   const blockers = task.dependencies ?? [];
+  const ctxCount = task.contextSources?.length ?? 0;
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
-      {/* Scrim - clicking it closes, parent context stays visible behind. */}
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex justify-end font-jakarta" role="dialog" aria-modal="true">
+      {/* Scrim - parent context stays visible behind. */}
       <button
         type="button"
         aria-label="Close step"
         onClick={onClose}
-        className="absolute inset-0 bg-coal-900/60 backdrop-blur-[1px]"
+        className="absolute inset-0 bg-black/60"
       />
-      <div className="relative flex h-full w-full max-w-[560px] flex-col border-l border-[color:var(--line)] bg-coal-700 shadow-2xl">
-        {/* Header */}
-        <div className="flex items-start gap-3 border-b border-[color:var(--line)] px-5 py-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[10.5px] font-medium text-chalk-400">
-                step in {task.id}
-              </span>
-              <Chip tone={statusTone(item.status)} contained>
-                {item.status.replace(/_/g, " ")}
-              </Chip>
-              {item.provenance === "conductor" ? (
-                <Chip tone="violet" contained>
-                  conductor
-                </Chip>
-              ) : null}
+      <div className="relative flex h-full w-full max-w-[580px] flex-col border-l border-[color:var(--line)] bg-[color:var(--background)] shadow-2xl">
+        {/* ── Header (PageHeader idiom, contained) ─────────────────── */}
+        <div className="shrink-0 border-b border-[color:var(--line)] px-6 pb-4 pt-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="mb-1.5 flex items-center gap-2 font-mono text-[11px] font-medium">
+                <span className="text-chalk-400">step in {task.id}</span>
+                <span className={statusTextTone(item.status)}>
+                  {item.status.replace(/_/g, " ")}
+                </span>
+                {item.provenance === "conductor" ? (
+                  <span className="text-violet-soft">conductor</span>
+                ) : null}
+              </div>
+              <h1 className="text-[22px] font-extrabold leading-tight tracking-[-0.02em] text-chalk-100">
+                {item.text}
+              </h1>
             </div>
-            <div className="mt-1 truncate text-[14px] font-semibold text-chalk-100">
-              {item.text}
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              aria-label="Close"
+              className="shrink-0 px-1.5"
+            >
+              <X className="h-4 w-4" strokeWidth={1.9} />
+            </Button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="shrink-0 rounded-[8px] p-1 text-chalk-400 transition hover:bg-coal-500 hover:text-chalk-100"
-          >
-            <X className="h-4 w-4" strokeWidth={1.9} />
-          </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          {/* ── Authoring (step-owned, editable) ──────────────────── */}
-          <Block label="this step" hint="what this unit of work is">
-            <div className={cn(CARD, "space-y-2")}>
+        {/* ── Body ─────────────────────────────────────────────────── */}
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+          {/* Authoring (step-owned) */}
+          <DrawerSection
+            title="This step"
+            action={
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={busy !== null || !dirty || !title.trim()}
+                onClick={saveAuthoring}
+              >
+                {busy === "save" ? "Saving…" : dirty ? "Save" : "Saved"}
+              </Button>
+            }
+          >
+            <div className="space-y-2">
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Step title…"
-                className={cn(INPUT, "w-full")}
+                className={INPUT}
               />
               {isSupervised ? (
                 <>
@@ -264,32 +252,35 @@ export function StepDetailDrawer({
                     value={objective}
                     onChange={(e) => setObjective(e.target.value)}
                     placeholder="Objective (what done looks like)…"
-                    className={cn(INPUT, "w-full")}
+                    className={INPUT}
                   />
                   <input
                     value={acceptance}
                     onChange={(e) => setAcceptance(e.target.value)}
                     placeholder="Acceptance check…"
-                    className={cn(INPUT, "w-full")}
+                    className={INPUT}
                   />
                   <input
                     value={fileHints}
                     onChange={(e) => setFileHints(e.target.value)}
                     placeholder="File hints (comma-separated)…"
-                    className={cn(INPUT, "w-full")}
+                    className={INPUT}
                   />
                 </>
               ) : (
-                <p className="text-[11px] text-chalk-400">
-                  Objective / acceptance / file hints apply to supervised tasks -
-                  switch this task to supervised to author per-step detail.
+                <p className="text-[11.5px] leading-relaxed text-chalk-300">
+                  Objective, acceptance check and file hints apply to supervised
+                  tasks - switch this task to supervised to author per-step detail.
                 </p>
               )}
               <div className="flex items-center gap-2 pt-0.5">
+                <span className="text-[11.5px] font-medium text-violet-soft">
+                  status
+                </span>
                 <Select
                   value={item.status}
                   ariaLabel="Step status"
-                  className="min-w-[130px]"
+                  className="min-w-[140px]"
                   disabled={busy !== null}
                   onChange={(v) =>
                     run("status", () =>
@@ -300,111 +291,77 @@ export function StepDetailDrawer({
                   }
                   options={STEP_STATUSES.map((s) => ({ value: s, label: s }))}
                 />
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="ml-auto"
-                  disabled={busy !== null || !dirty || !title.trim()}
-                  onClick={saveAuthoring}
-                >
-                  {busy === "save" ? "Saving…" : dirty ? "Save" : "Saved"}
-                </Button>
               </div>
             </div>
-          </Block>
+          </DrawerSection>
 
-          {/* ── Step activity (step-owned outcome) ────────────────── */}
-          <Block label="step activity" hint="the run that executed this step">
-            <div className={CARD}>
-              {item.runId ? (
-                <div className="space-y-1.5">
-                  <button
-                    type="button"
-                    onClick={() => onOpenRun(item.runId!)}
-                    className="inline-flex items-center gap-1.5 font-mono text-[12px] text-chalk-300 transition hover:text-chalk-100"
-                  >
-                    <ExternalLink className="h-3 w-3" strokeWidth={1.9} />
-                    {item.runId}
-                  </button>
-                  {item.outcomeSummary ? (
-                    <p className="text-[12px] text-chalk-200">{item.outcomeSummary}</p>
-                  ) : null}
-                  {item.commitSha ? (
-                    <div className="font-mono text-[11px] text-chalk-400">
-                      commit {item.commitSha.slice(0, 10)}
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="text-[12px] text-chalk-400">
-                  {isSupervised
-                    ? "Not run yet. A supervised run sequences this step and records its outcome here."
-                    : "Plain tasks run holistically - per-step run outcomes are recorded for supervised tasks."}
-                </div>
-              )}
-            </div>
-          </Block>
-
-          {/* ── Inherited from parent (read-only) ─────────────────── */}
-          <Block label="from parent" hint="shared scaffolding the parent owns">
-            <div className={CARD}>
-              <InheritedRow
-                label="Context"
-                value={
-                  task.contextSources && task.contextSources.length > 0
-                    ? `${task.contextSources.length} source${task.contextSources.length === 1 ? "" : "s"}`
-                    : "none"
-                }
-                empty={!task.contextSources || task.contextSources.length === 0}
-              />
-              <InheritedRow
-                label="Crew"
-                value={
-                  task.assignedRoles.length > 0
-                    ? task.assignedRoles.join(", ")
-                    : "default"
-                }
-                empty={task.assignedRoles.length === 0}
-              />
-              <InheritedRow
-                label="Git"
-                value={
-                  task.branchName ? (
-                    <span className="inline-flex items-center gap-1 font-mono text-[11px]">
-                      <GitBranch className="h-3 w-3" strokeWidth={1.9} />
-                      {task.branchName}
-                    </span>
-                  ) : (
-                    "no branch yet"
-                  )
-                }
-                empty={!task.branchName}
-              />
-              <InheritedRow
-                label="Blockers"
-                value={
-                  blockers.length > 0 ? (
-                    <span className="inline-flex items-center gap-1 text-amber-soft">
-                      <Lock className="h-3 w-3" strokeWidth={1.9} />
-                      {blockers.length} blocking task
-                      {blockers.length === 1 ? "" : "s"}
-                    </span>
-                  ) : (
-                    "none - parent can run"
-                  )
-                }
-                empty={blockers.length === 0}
-              />
-              <p className="mt-2 text-[10.5px] leading-relaxed text-chalk-400">
-                The parent task owns context, crew, git and blockers; every step
-                inherits them. Edit them on the parent.
+          {/* Step activity (step-owned outcome) */}
+          <DrawerSection title="Activity">
+            {item.runId ? (
+              <div className="space-y-1.5">
+                <button
+                  type="button"
+                  onClick={() => onOpenRun(item.runId!)}
+                  className="inline-flex items-center gap-1.5 font-mono text-[12px] text-chalk-300 transition hover:text-chalk-100"
+                >
+                  <ExternalLink className="h-3 w-3" strokeWidth={1.9} />
+                  {item.runId}
+                </button>
+                {item.outcomeSummary ? (
+                  <p className="text-[12.5px] leading-relaxed text-chalk-200">
+                    {item.outcomeSummary}
+                  </p>
+                ) : null}
+                {item.commitSha ? (
+                  <div className="font-mono text-[11px] text-chalk-400">
+                    commit {item.commitSha.slice(0, 10)}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-[12.5px] leading-relaxed text-chalk-300">
+                {isSupervised
+                  ? "Not run yet. A supervised run sequences this step and records its outcome here."
+                  : "Plain tasks run holistically - per-step run outcomes are recorded for supervised tasks."}
               </p>
-            </div>
-          </Block>
+            )}
+          </DrawerSection>
 
-          {/* ── Step comments (step-owned) ────────────────────────── */}
-          <Block label="comments" hint="scoped to this step">
-            <div className={cn(CARD, "space-y-2")}>
+          {/* Inherited from parent (read-only StatTiles) */}
+          <DrawerSection title="Inherited from parent">
+            <div className="flex flex-wrap gap-2">
+              <StatTile
+                value={ctxCount > 0 ? ctxCount : "none"}
+                label="context"
+                tone={ctxCount > 0 ? "violet" : "default"}
+              />
+              <StatTile
+                value={task.assignedRoles.length > 0 ? task.assignedRoles.length : "default"}
+                label="crew"
+                tone={task.assignedRoles.length > 0 ? "violet" : "default"}
+              />
+              <StatTile
+                value={task.branchName ? task.branchName : "none"}
+                label="branch"
+                icon={task.branchName ? <GitBranch className="h-3 w-3" strokeWidth={1.9} /> : undefined}
+                tone={task.branchName ? "default" : "default"}
+              />
+              <StatTile
+                value={blockers.length}
+                label="blockers"
+                icon={blockers.length > 0 ? <Lock className="h-3 w-3" strokeWidth={1.9} /> : undefined}
+                tone={blockers.length > 0 ? "amber" : "default"}
+              />
+            </div>
+            <p className="mt-3 text-[11px] leading-relaxed text-chalk-300">
+              The parent task owns context, crew, git and blockers; every step
+              inherits them. Edit them on the parent.
+            </p>
+          </DrawerSection>
+
+          {/* Step comments (step-owned) */}
+          <DrawerSection title="Comments">
+            <div className="space-y-2">
               <div className="flex gap-2">
                 <input
                   value={newComment}
@@ -416,12 +373,11 @@ export function StepDetailDrawer({
                     }
                   }}
                   placeholder="Comment on this step…"
-                  className={cn(INPUT, "flex-1")}
+                  className={INPUT}
                 />
                 <Button
                   variant="secondary"
-                  size="sm"
-                  className="self-stretch"
+                  size="md"
                   disabled={busy === "comment" || !newComment.trim()}
                   onClick={addComment}
                   iconLeft={<Plus className="h-3 w-3" strokeWidth={1.9} />}
@@ -430,7 +386,7 @@ export function StepDetailDrawer({
                 </Button>
               </div>
               {stepComments.length === 0 ? (
-                <div className="text-[11.5px] text-chalk-400">
+                <div className="text-[11.5px] text-chalk-300">
                   No comments on this step yet.
                 </div>
               ) : (
@@ -439,7 +395,7 @@ export function StepDetailDrawer({
                     <li
                       key={c.id}
                       className={cn(
-                        "rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 px-3 py-2",
+                        "rounded-[12px] border border-[color:var(--line-soft)] bg-coal-500 px-3 py-2",
                         c.resolved && "opacity-60",
                       )}
                     >
@@ -448,8 +404,7 @@ export function StepDetailDrawer({
                         <span>{new Date(c.createdAt).toLocaleString()}</span>
                         {c.resolved ? (
                           <span className="text-emerald-400">resolved</span>
-                        ) : null}
-                        {!c.resolved ? (
+                        ) : (
                           <button
                             type="button"
                             onClick={() =>
@@ -461,9 +416,9 @@ export function StepDetailDrawer({
                           >
                             resolve
                           </button>
-                        ) : null}
+                        )}
                       </div>
-                      <p className="mt-1 whitespace-pre-wrap text-[12px] text-chalk-100">
+                      <p className="mt-1 whitespace-pre-wrap text-[12.5px] text-chalk-100">
                         {c.body}
                       </p>
                     </li>
@@ -471,7 +426,7 @@ export function StepDetailDrawer({
                 </ul>
               )}
             </div>
-          </Block>
+          </DrawerSection>
 
           {error ? (
             <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
@@ -480,19 +435,15 @@ export function StepDetailDrawer({
           ) : null}
         </div>
 
-        {/* Footer - the "detach" escape hatch, kept visually distinct from open. */}
-        <div className="flex items-center gap-2 border-t border-[color:var(--line)] px-5 py-3">
-          {item.promotedTaskId ? (
-            <span className="text-[11px] text-chalk-400">
-              Detached to its own card.
-            </span>
-          ) : (
-            <span className="text-[11px] text-chalk-400">
-              Need this to stand alone?
-            </span>
-          )}
+        {/* ── Footer - the detach escape hatch, distinct from "open" ── */}
+        <div className="flex shrink-0 items-center gap-3 border-t border-[color:var(--line)] px-6 py-3">
+          <span className="text-[11.5px] text-chalk-300">
+            {item.promotedTaskId
+              ? "Detached to its own card."
+              : "Need this to stand alone?"}
+          </span>
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
             className="ml-auto"
             disabled={busy !== null}
@@ -503,6 +454,7 @@ export function StepDetailDrawer({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
