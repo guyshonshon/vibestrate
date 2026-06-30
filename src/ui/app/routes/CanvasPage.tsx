@@ -5,11 +5,12 @@
 // Branding canvas"). Verify it in BOTH themes - the tokens flip under :root.light.
 
 import type { ReactNode } from "react";
-import { LayoutList, LayoutDashboard, Layers, Play, Pause, Trash2 } from "lucide-react";
+import { Activity, CircleCheck, LayoutList, LayoutDashboard, Layers, Play, Trash2 } from "lucide-react";
 import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
 import { Button } from "../../components/design/Button.js";
 import { StatTile } from "../../components/design/StatTile.js";
-import { Chip, ToneDot } from "../../components/design/Chip.js";
+import { MetricCard } from "../../components/design/MetricCard.js";
+import { Chip } from "../../components/design/Chip.js";
 
 export function CanvasPage() {
   return (
@@ -22,8 +23,9 @@ export function CanvasPage() {
       </PageHeader>
 
       <Section title="Surfaces - elevation ramp">
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
           <Swatch surface="bg-coal-800" name="canvas" sub="coal-800" />
+          <Swatch surface="bg-coal-650" name="rail" sub="coal-650" />
           <Swatch surface="bg-coal-600" name="card" sub="coal-600" />
           <Swatch surface="bg-coal-500" name="row / chip" sub="coal-500" />
           <Swatch surface="bg-coal-400" name="hover" sub="coal-400" />
@@ -33,8 +35,9 @@ export function CanvasPage() {
       <Section title="Text, accent, status">
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
           <Token cls="text-chalk-100" name="chalk-100" sub="primary" />
+          <Token cls="text-chalk-200" name="chalk-200" sub="bright meta" />
           <Token cls="text-chalk-300" name="chalk-300" sub="dim" />
-          <Token cls="text-chalk-400" name="chalk-400" sub="meta only" />
+          <Token cls="text-chalk-400" name="chalk-400" sub="tertiary" />
           <Token cls="text-violet-soft" name="violet-soft" sub="accent" />
           <Token cls="text-violet-vivid" name="violet-vivid" sub="headings" />
           <Token cls="text-emerald-400" name="emerald" sub="good" />
@@ -99,6 +102,43 @@ export function CanvasPage() {
         </div>
       </Section>
 
+      <Section title="Metric cards - icon + label, big font-display value, inline meter">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          <MetricCard
+            icon={<Activity className="h-3 w-3" strokeWidth={2} />}
+            label="Active"
+            value={6}
+            hint="in flight"
+            tone="violet"
+            share={0.4}
+          />
+          <MetricCard
+            icon={<CircleCheck className="h-3 w-3" strokeWidth={2} />}
+            label="Done"
+            value={12}
+            hint="shipped"
+            tone="emerald"
+            share={0.8}
+          />
+          <MetricCard
+            icon={<Activity className="h-3 w-3" strokeWidth={2} />}
+            label="Blocked"
+            value={1}
+            hint="attention"
+            tone="rose"
+            share={0.1}
+          />
+          <MetricCard
+            icon={<Activity className="h-3 w-3" strokeWidth={2} />}
+            label="Awaiting"
+            value={2}
+            hint="your turn"
+            tone="amber"
+            share={0.2}
+          />
+        </div>
+      </Section>
+
       <Section title="Card, row, stat tiles, chip, status-as-text">
         <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
           <div className="flex items-center gap-2">
@@ -108,7 +148,7 @@ export function CanvasPage() {
             <span className="flex-1 text-[13.5px] font-bold text-chalk-100">
               Card shell - rounded-18 / coal-600
             </span>
-            <span className="text-[11px] text-chalk-400">@author</span>
+            <span className="text-[11px] text-chalk-200">@author</span>
           </div>
           <div className="mt-3 flex items-center gap-3 rounded-[14px] bg-coal-500/60 px-4 py-3">
             <span className="flex-1 text-[12.5px] text-chalk-300">
@@ -122,8 +162,8 @@ export function CanvasPage() {
             <StatTile value="6" label="seats" />
             <StatTile value="v1" label="version" />
             <StatTile value="pass" label="verdict" tone="emerald" />
-            <Chip tone="sky" className="self-center pl-1">
-              <ToneDot tone="sky" /> chip - flat tinted, never a pill
+            <Chip tone="sky" contained className="self-center">
+              chip - contained, never a pill
             </Chip>
           </div>
         </div>
@@ -148,13 +188,20 @@ export function CanvasPage() {
               <LayoutDashboard className="h-4 w-4 text-violet-soft" strokeWidth={1.9} aria-hidden />
             }
             title="Fill app view"
-            note="Board kanban"
+            note="Board: meta rail + kanban"
           >
             <div className="h-2 w-2/5 rounded-full bg-coal-500" />
             <div className="flex gap-1.5">
-              <div className="h-14 flex-1 rounded-[8px] border-t-2 border-violet-soft bg-coal-500" />
-              <div className="h-14 flex-1 rounded-[8px] border-t-2 border-emerald-400 bg-coal-500" />
-              <div className="h-14 flex-1 rounded-[8px] border-t-2 border-amber-soft bg-coal-500" />
+              <div className="flex w-1/3 flex-col gap-1 rounded-[8px] border border-[color:var(--line)] bg-coal-650 p-1">
+                <div className="h-3 rounded bg-violet-soft/15" />
+                <div className="h-3 rounded bg-coal-500" />
+                <div className="h-3 rounded bg-coal-500" />
+              </div>
+              <div className="flex flex-1 gap-1">
+                <div className="h-14 flex-1 rounded-[8px] border-t-2 border-violet-soft bg-coal-600" />
+                <div className="h-14 flex-1 rounded-[8px] border-t-2 border-emerald-400 bg-coal-600" />
+                <div className="h-14 flex-1 rounded-[8px] border-t-2 border-amber-soft bg-coal-600" />
+              </div>
             </div>
           </Archetype>
         </div>

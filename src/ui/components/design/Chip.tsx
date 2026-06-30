@@ -20,15 +20,42 @@ const TONE: Record<ChipTone, string> = {
   rose: "text-rose-300",
 };
 
+// Contained variant: a tinted, lightly-rounded container (NOT a full pill -
+// rounded-[7px], never rounded-full). Used where a flat dot+text reads
+// uncontained; keeps the de-pilled spirit while giving the label an edge.
+const CONTAINED: Record<ChipTone, string> = {
+  neutral: "bg-coal-500 text-chalk-300",
+  violet: "bg-violet-soft/14 text-violet-soft",
+  sky: "bg-sky-glow/14 text-sky-glow",
+  emerald: "bg-emerald-400/14 text-emerald-400",
+  amber: "bg-amber-soft/14 text-amber-soft",
+  rose: "bg-rose-400/14 text-rose-300",
+};
+
 export function Chip({
   children,
   tone = "neutral",
+  contained = false,
   className,
 }: {
   children: ReactNode;
   tone?: ChipTone;
+  contained?: boolean;
   className?: string;
 }) {
+  if (contained) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 whitespace-nowrap rounded-[7px] px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+          CONTAINED[tone],
+          className,
+        )}
+      >
+        {children}
+      </span>
+    );
+  }
   return (
     <span
       className={cn(

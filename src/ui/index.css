@@ -94,10 +94,12 @@
   --color-coal-900: #121213;
   --color-coal-800: #171719;
   --color-coal-700: #1c1c1e;
+  --color-coal-650: #1e1e20;
   --color-coal-600: #212123;
   --color-coal-500: #2b2b2e;
   --color-coal-400: #3a3a3e;
   --color-chalk-100: #f6f6f7;
+  --color-chalk-200: #dcdce0;
   --color-chalk-300: #c7c7cb;
   --color-chalk-400: #8e8e96;
   --color-amber-soft: #fb923c;
@@ -238,12 +240,14 @@
   --color-coal-900: #f4f4f5;
   --color-coal-800: #ededee;
   --color-coal-700: #e7e7e9;
+  --color-coal-650: #f3f3f4;
   --color-coal-600: #ffffff;
   --color-coal-500: #f1f1f3;
   --color-coal-400: #e4e4e7;
 
   /* Mission Control text - chalk (light -> dark), neutral grey */
   --color-chalk-100: #1b1b1f;
+  --color-chalk-200: #34343a;
   --color-chalk-300: #4b4b53;
   --color-chalk-400: #6e6e76;
 
