@@ -59,7 +59,7 @@ describe("vibe saga status | pause | resume", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Build it", kind: "saga" });
+    const task = await svc.addTask({ title: "Build it", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "step one");
     await svc.addChecklistItem(task.id, "step two");
 
@@ -83,7 +83,7 @@ describe("vibe saga status | pause | resume", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Build it", kind: "saga" });
+    const task = await svc.addTask({ title: "Build it", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "step one");
     await svc.recordSagaHalt(task.id, {
       reason: "supervisor-escalate",
@@ -107,7 +107,7 @@ describe("vibe saga status | pause | resume", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Build it", kind: "saga" });
+    const task = await svc.addTask({ title: "Build it", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "step one");
     const runId = "20260629-120000-live-run";
     await seedLiveRun(dir, task.id, runId);
@@ -123,7 +123,7 @@ describe("vibe saga status | pause | resume", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Build it", kind: "saga" });
+    const task = await svc.addTask({ title: "Build it", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "step one");
 
     process.chdir(dir);
@@ -137,7 +137,7 @@ describe("vibe saga status | pause | resume", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Build it", kind: "saga" });
+    const task = await svc.addTask({ title: "Build it", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "step one");
     const runId = "20260629-130000-crashed-run";
     // Non-terminal ("created") run state, but a lock held by a dead pid on this host.
@@ -173,7 +173,7 @@ describe("vibe saga status | pause | resume", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Build it", kind: "saga" });
+    const task = await svc.addTask({ title: "Build it", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "step one");
     const runId = "20260629-120100-live-run";
     await seedLiveRun(dir, task.id, runId);
@@ -190,7 +190,7 @@ describe("vibe saga status | pause | resume", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Build it", kind: "saga" });
+    const task = await svc.addTask({ title: "Build it", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "step one");
     await svc.recordSagaHalt(task.id, {
       reason: "self-heal-exhausted",
@@ -206,7 +206,7 @@ describe("vibe saga status | pause | resume", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const single = await svc.addTask({ title: "One-off", kind: "single" });
+    const single = await svc.addTask({ title: "One-off", runMode: "plain" });
     process.chdir(dir);
     expect(await cmdStatus(single.id, { json: true })).toBe(1);
     expect(await cmdPause(single.id)).toBe(1);
@@ -220,7 +220,7 @@ describe("getSagaStatus (shared CLI + dashboard source)", () => {
     );
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Conduct it", kind: "saga" });
+    const task = await svc.addTask({ title: "Conduct it", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "step one");
     await svc.addChecklistItem(task.id, "step two");
     const withSteps = await svc.getTask(task.id);
@@ -243,7 +243,7 @@ describe("getSagaStatus (shared CLI + dashboard source)", () => {
     );
     const svc = new RoadmapService(dir);
     await svc.init();
-    const single = await svc.addTask({ title: "Plain", kind: "single" });
+    const single = await svc.addTask({ title: "Plain", runMode: "plain" });
     await expect(getSagaStatus(dir, "nope")).rejects.toBeInstanceOf(NotASagaError);
     await expect(getSagaStatus(dir, single.id)).rejects.toBeInstanceOf(NotASagaError);
   });

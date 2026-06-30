@@ -291,7 +291,7 @@ describe("saga per-saga budget (M4)", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Build three things", kind: "saga" });
+    const task = await svc.addTask({ title: "Build three things", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
     await svc.addChecklistItem(task.id, "create the third file");
@@ -311,8 +311,8 @@ describe("saga per-saga budget (M4)", () => {
     expect(after!.checklist[1]!.commitSha).not.toBeNull();
     expect(after!.checklist[2]!.commitSha).toBeNull();
     // The halt is recorded, naming the last completed step, with a max-steps reason.
-    expect(after!.sagaState).toBe("halted");
-    expect(after!.sagaHalt?.reason ?? "").toMatch(/max steps/i);
-    expect(after!.sagaHalt?.atStepId).toBe(after!.checklist[1]!.id);
+    expect(after!.supervised.state).toBe("halted");
+    expect(after!.supervised.halt?.reason ?? "").toMatch(/max steps/i);
+    expect(after!.supervised.halt?.atStepId).toBe(after!.checklist[1]!.id);
   }, 60_000);
 });

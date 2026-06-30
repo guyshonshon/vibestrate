@@ -21,17 +21,17 @@ describe("scheduler saga launch", () => {
 
   it("sequences a saga task via `vibe saga sequence`, runs a plain task via `vibe run`", () => {
     expect(
-      schedulerRunArgs({ id: "task-x", title: "Build it", kind: "saga" }),
+      schedulerRunArgs({ id: "task-x", title: "Build it", runMode: "supervised" }),
     ).toEqual(["saga", "sequence", "task-x"]);
     expect(
-      schedulerRunArgs({ id: "task-y", title: "Fix it", kind: "single" }),
+      schedulerRunArgs({ id: "task-y", title: "Fix it", runMode: "plain" }),
     ).toEqual(["run", "Fix it", "--task", "task-y"]);
   });
 
   it("does NOT mark a task failed when its launch was rejected by a live run lock", async () => {
     const svc = new RoadmapService(projectRoot);
     await svc.init();
-    const task = await svc.addTask({ title: "Locked saga", kind: "saga" });
+    const task = await svc.addTask({ title: "Locked saga", runMode: "supervised" });
     const queue = new RunQueue(projectRoot);
     await queue.enqueue({ taskId: task.id, enqueuedAt: nowIso(), priority: "medium", source: "user" });
 
@@ -62,7 +62,7 @@ describe("scheduler saga launch", () => {
   it("DOES mark a task failed when the launch fails with no live lock holder", async () => {
     const svc = new RoadmapService(projectRoot);
     await svc.init();
-    const task = await svc.addTask({ title: "Genuinely failing", kind: "single" });
+    const task = await svc.addTask({ title: "Genuinely failing", runMode: "plain" });
     const queue = new RunQueue(projectRoot);
     await queue.enqueue({ taskId: task.id, enqueuedAt: nowIso(), priority: "medium", source: "user" });
 

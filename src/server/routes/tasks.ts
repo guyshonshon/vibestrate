@@ -21,7 +21,7 @@ const addBody = z.object({
   requiredSkills: z.array(z.string()).optional(),
   touchedFiles: z.array(z.string()).optional(),
   riskLevel: z.enum(["low", "medium", "high"]).optional(),
-  kind: z.enum(["single", "saga"]).optional(),
+  runMode: z.enum(["plain", "supervised"]).optional(),
 });
 
 const commentBody = z.object({

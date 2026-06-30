@@ -455,8 +455,8 @@ export async function runRunCommand(
           // envelope is empty, and a project can tighten/loosen the default.
           const cfg = loaded.config.saga;
           sagaBudget = {
-            maxSpendUsd: t.sagaBudget.maxSpendUsd ?? cfg.maxSpendUsd,
-            maxSteps: t.sagaBudget.maxSteps ?? cfg.maxSteps,
+            maxSpendUsd: t.runOptions.budget.maxSpendUsd ?? cfg.maxSpendUsd,
+            maxSteps: t.runOptions.budget.maxSteps ?? cfg.maxSteps,
           };
           sagaSupervisor = cfg.supervisor;
         }

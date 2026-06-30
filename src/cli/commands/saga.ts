@@ -35,9 +35,9 @@ async function loadSaga(
     console.error(`${symbol.fail()} Saga "${taskId}" not found.`);
     return { ok: false, code: 1 };
   }
-  if (task.kind !== "saga") {
+  if (task.runMode !== "supervised") {
     console.error(
-      `${symbol.fail()} Task "${taskId}" is not a saga (kind: ${task.kind}).`,
+      `${symbol.fail()} Task "${taskId}" is not a saga (kind: ${task.runMode}).`,
     );
     return { ok: false, code: 1 };
   }
@@ -66,7 +66,7 @@ async function cmdCreate(
   try {
     const s = await svc();
     await s.init();
-    const task = await s.addTask({ title, description: opts.description, kind: "saga" });
+    const task = await s.addTask({ title, description: opts.description, runMode: "supervised" });
     if (opts.json) { console.log(JSON.stringify(task, null, 2)); return 0; }
     console.log(`${symbol.ok()} Saga created.`);
     console.log(indent(`id: ${color.bold(task.id)}`));
@@ -156,7 +156,7 @@ async function cmdReorder(
 async function cmdList(opts: { json?: boolean }): Promise<number> {
   try {
     const s = await svc();
-    const sagas = (await s.listTasks()).filter((t) => t.kind === "saga");
+    const sagas = (await s.listTasks()).filter((t) => t.runMode === "supervised");
     if (opts.json) { console.log(JSON.stringify(sagas, null, 2)); return 0; }
     if (sagas.length === 0) {
       console.log("No sagas yet. Create one with `vibe saga create <title>`.");
@@ -179,7 +179,7 @@ async function cmdShow(id: string, opts: { json?: boolean }): Promise<number> {
     const task = await s.getTask(id);
     if (!task) { console.error(`${symbol.fail()} Saga "${id}" not found.`); return 1; }
     if (opts.json) { console.log(JSON.stringify(task, null, 2)); return 0; }
-    console.log(`${color.bold(task.title)}  (${task.kind})`);
+    console.log(`${color.bold(task.title)}  (${task.runMode})`);
     if (task.description) console.log(indent(task.description));
     console.log(indent(`steps: ${task.checklist.length}`));
     task.checklist.forEach((c, i) => {
@@ -213,9 +213,9 @@ export async function cmdSequence(
     console.error(`${symbol.fail()} Saga "${taskId}" not found.`);
     return 1;
   }
-  if (task.kind !== "saga") {
+  if (task.runMode !== "supervised") {
     console.error(
-      `${symbol.fail()} Task "${taskId}" is not a saga (kind: ${task.kind}). Sequence only runs kind=saga tasks.`,
+      `${symbol.fail()} Task "${taskId}" is not a saga (kind: ${task.runMode}). Sequence only runs kind=saga tasks.`,
     );
     return 1;
   }
@@ -265,7 +265,7 @@ export async function cmdSequence(
     return 1;
   }
   const after = await s.getTask(taskId);
-  let halted = after?.sagaState === "halted";
+  let halted = after?.supervised.state === "halted";
   if (!halted) {
     if (code === 0) {
       // Phase 3 Enhance: fold any conductor-revised pending plan back into the
@@ -291,8 +291,8 @@ export async function cmdSequence(
       JSON.stringify(
         {
           taskId,
-          sagaState: final?.sagaState ?? null,
-          sagaHalt: final?.sagaHalt ?? null,
+          sagaState: final?.supervised.state ?? null,
+          sagaHalt: final?.supervised.halt ?? null,
           runExitCode: code,
         },
         null,
@@ -307,14 +307,14 @@ export async function cmdSequence(
   console.log("");
   if (halted) {
     console.log(
-      `${symbol.warn()} ${header("Saga halted")} ${color.yellow(color.bold(final?.sagaHalt?.reason ?? "halted"))}`,
+      `${symbol.warn()} ${header("Saga halted")} ${color.yellow(color.bold(final?.supervised.halt?.reason ?? "halted"))}`,
     );
-    if (final?.sagaHalt?.summary) {
-      console.log(indent(final.sagaHalt.summary));
+    if (final?.supervised.halt?.summary) {
+      console.log(indent(final.supervised.halt.summary));
     }
     // A step-level halt reset one step to pending (resume re-attempts it from the
     // clean tip); a run-level block/abort halt (atStepId null) reset no step.
-    const resumeHint = final?.sagaHalt?.atStepId
+    const resumeHint = final?.supervised.halt?.atStepId
       ? `The failed step is reset to pending - fix it, then re-run ${color.bold(`vibe saga sequence ${taskId}`)} to resume from the clean tip.`
       : `Address the issue, then re-run ${color.bold(`vibe saga sequence ${taskId}`)} to continue.`;
     console.log(indent(`${symbol.arrow()} ${resumeHint}`));
@@ -412,7 +412,7 @@ export async function cmdResume(taskId: string): Promise<number> {
   // A live (paused) run: clear its pause flag. No live run but halted: the
   // resume path is a fresh sequence from the clean tip (2a), not a pause-clear.
   if (!runId) {
-    if (task.sagaState === "halted") {
+    if (task.supervised.state === "halted") {
       console.log(
         `${symbol.arrow()} Saga "${taskId}" is halted. Re-attempt from the clean tip with ${color.bold(`vibe saga sequence ${taskId}`)}.`,
       );

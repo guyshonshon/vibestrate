@@ -10,13 +10,13 @@ describe("saga phase-2 schema (zod-default migration)", () => {
     const task = taskSchema.parse({
       id: "task-1",
       title: "build feature",
-      kind: "saga",
+      runMode: "supervised",
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
     });
-    expect(task.sagaState).toBe("idle");
-    expect(task.sagaHalt).toBeNull();
-    expect(task.sagaBudget).toEqual({ maxSpendUsd: null, maxSteps: null });
+    expect(task.supervised.state).toBe("idle");
+    expect(task.supervised.halt).toBeNull();
+    expect(task.runOptions.budget).toEqual({ maxSpendUsd: null, maxSteps: null });
   });
 
   it("defaults runId/outcomeSummary on a pre-phase-2 step", () => {
@@ -36,33 +36,37 @@ describe("saga phase-2 schema (zod-default migration)", () => {
     const halted = taskSchema.parse({
       id: "task-2",
       title: "feature",
-      kind: "saga",
+      runMode: "supervised",
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
-      sagaState: "halted",
-      sagaHalt: {
-        reason: "step blocked",
-        atStepId: "ci-3",
-        summary: "review never approved after self-heal",
+      supervised: {
+        state: "halted",
+        halt: {
+          reason: "step blocked",
+          atStepId: "ci-3",
+          summary: "review never approved after self-heal",
+        },
+        invariants: [],
+        pendingRevision: null,
       },
-      sagaBudget: { maxSpendUsd: 5, maxSteps: 10 },
+      runOptions: { budget: { maxSpendUsd: 5, maxSteps: 10 } },
     });
     const round = taskSchema.parse(JSON.parse(JSON.stringify(halted)));
-    expect(round.sagaState).toBe("halted");
-    expect(round.sagaHalt?.atStepId).toBe("ci-3");
-    expect(round.sagaBudget.maxSpendUsd).toBe(5);
-    expect(round.sagaBudget.maxSteps).toBe(10);
+    expect(round.supervised.state).toBe("halted");
+    expect(round.supervised.halt?.atStepId).toBe("ci-3");
+    expect(round.runOptions.budget.maxSpendUsd).toBe(5);
+    expect(round.runOptions.budget.maxSteps).toBe(10);
   });
 
-  it("rejects an unknown sagaState", () => {
+  it("rejects an unknown supervised.state", () => {
     expect(() =>
       taskSchema.parse({
         id: "task-3",
         title: "x",
-        kind: "saga",
+        runMode: "supervised",
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
-        sagaState: "running",
+        supervised: { state: "running" },
       }),
     ).toThrow();
   });

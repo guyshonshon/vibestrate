@@ -20,11 +20,8 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     status,
     priority: "medium",
     dependencies: [],
-    sagaState: "idle",
-    sagaHalt: null,
-    sagaPendingRevision: null,
-    sagaBudget: { maxSpendUsd: null, maxSteps: null },
-    sagaInvariants: [],
+    supervised: { state: "idle", halt: null, invariants: [], pendingRevision: null },
+    runOptions: { budget: { maxSpendUsd: null, maxSteps: null } },
     createdAt: updatedAt,
     updatedAt,
     assignedRoles: [],
@@ -46,7 +43,7 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     derivedFrom: null,
     archived: false,
     contextSources: [],
-    kind: "single",
+    runMode: "plain",
   };
 }
 

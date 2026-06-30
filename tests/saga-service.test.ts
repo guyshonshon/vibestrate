@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
-import { SAGA_DEFAULT_MAX_STEPS } from "../src/roadmap/roadmap-types.js";
+import { SUPERVISED_DEFAULT_MAX_STEPS } from "../src/roadmap/roadmap-types.js";
 
 async function tmpProject() {
   const dir = await mkdtemp(path.join(tmpdir(), "vibe-saga-"));
@@ -16,9 +16,9 @@ describe("RoadmapService - saga authoring", () => {
   it("creates a task with kind=saga and reloads it", async () => {
     const { dir, svc } = await tmpProject();
     try {
-      const task = await svc.addTask({ title: "Build dashboards", kind: "saga" });
-      expect(task.kind).toBe("saga");
-      expect((await svc.getTask(task.id))?.kind).toBe("saga");
+      const task = await svc.addTask({ title: "Build dashboards", runMode: "supervised" });
+      expect(task.runMode).toBe("supervised");
+      expect((await svc.getTask(task.id))?.runMode).toBe("supervised");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -27,7 +27,7 @@ describe("RoadmapService - saga authoring", () => {
   it("defaults kind to single when omitted", async () => {
     const { dir, svc } = await tmpProject();
     try {
-      expect((await svc.addTask({ title: "One-off" })).kind).toBe("single");
+      expect((await svc.addTask({ title: "One-off" })).runMode).toBe("plain");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -36,8 +36,8 @@ describe("RoadmapService - saga authoring", () => {
   it("seeds an empty invariants ledger and appends redacted, deduped, durably", async () => {
     const { dir, svc } = await tmpProject();
     try {
-      const t = await svc.addTask({ title: "Export pipeline", kind: "saga" });
-      expect(t.sagaInvariants).toEqual([]);
+      const t = await svc.addTask({ title: "Export pipeline", runMode: "supervised" });
+      expect(t.supervised.invariants).toEqual([]);
 
       await svc.appendSagaInvariants(t.id, [
         "all API responses use snake_case",
@@ -50,14 +50,14 @@ describe("RoadmapService - saga authoring", () => {
       ]);
 
       const reloaded = await svc.getTask(t.id);
-      expect(reloaded!.sagaInvariants).toContain("all API responses use snake_case");
-      expect(reloaded!.sagaInvariants).toContain("errors return RFC7807");
+      expect(reloaded!.supervised.invariants).toContain("all API responses use snake_case");
+      expect(reloaded!.supervised.invariants).toContain("errors return RFC7807");
       // dedup: snake_case appears exactly once
       expect(
-        reloaded!.sagaInvariants.filter((i) => /snake_case/i.test(i)).length,
+        reloaded!.supervised.invariants.filter((i) => /snake_case/i.test(i)).length,
       ).toBe(1);
       // the secret never lands on disk verbatim
-      expect(reloaded!.sagaInvariants.join("\n")).not.toContain("AKIAIOSFODNN7EXAMPLE");
+      expect(reloaded!.supervised.invariants.join("\n")).not.toContain("AKIAIOSFODNN7EXAMPLE");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -66,7 +66,7 @@ describe("RoadmapService - saga authoring", () => {
   it("adds a step with objective, acceptance, trimmed file hints", async () => {
     const { dir, svc } = await tmpProject();
     try {
-      const task = await svc.addTask({ title: "Feature", kind: "saga" });
+      const task = await svc.addTask({ title: "Feature", runMode: "supervised" });
       const { item } = await svc.addChecklistItem(task.id, "Wire the route", {
         objective: "Expose POST /api/x",
         acceptanceCheck: "curl returns 200",
@@ -83,14 +83,14 @@ describe("RoadmapService - saga authoring", () => {
   it("seeds a saga with the default maxSteps so it is bounded out of the box", async () => {
     const { dir, svc } = await tmpProject();
     try {
-      const task = await svc.addTask({ title: "Build dashboards", kind: "saga" });
+      const task = await svc.addTask({ title: "Build dashboards", runMode: "supervised" });
       // The data-model gap fix: a freshly created saga must NOT ship unbounded.
-      expect(task.sagaBudget.maxSteps).toBe(SAGA_DEFAULT_MAX_STEPS);
-      expect(task.sagaBudget.maxSteps).not.toBeNull();
-      expect(task.sagaBudget.maxSpendUsd).toBeNull();
+      expect(task.runOptions.budget.maxSteps).toBe(SUPERVISED_DEFAULT_MAX_STEPS);
+      expect(task.runOptions.budget.maxSteps).not.toBeNull();
+      expect(task.runOptions.budget.maxSpendUsd).toBeNull();
       // Survives a reload (round-trips through the schema).
-      expect((await svc.getTask(task.id))?.sagaBudget.maxSteps).toBe(
-        SAGA_DEFAULT_MAX_STEPS,
+      expect((await svc.getTask(task.id))?.runOptions.budget.maxSteps).toBe(
+        SUPERVISED_DEFAULT_MAX_STEPS,
       );
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -101,8 +101,8 @@ describe("RoadmapService - saga authoring", () => {
     const { dir, svc } = await tmpProject();
     try {
       const task = await svc.addTask({ title: "One-off" });
-      expect(task.sagaBudget.maxSteps).toBeNull();
-      expect(task.sagaBudget.maxSpendUsd).toBeNull();
+      expect(task.runOptions.budget.maxSteps).toBeNull();
+      expect(task.runOptions.budget.maxSpendUsd).toBeNull();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -111,18 +111,18 @@ describe("RoadmapService - saga authoring", () => {
   it("setSagaState('done') clears a prior sagaHalt (no stale halt on recovery)", async () => {
     const { dir, svc } = await tmpProject();
     try {
-      const task = await svc.addTask({ title: "Recoverable", kind: "saga" });
+      const task = await svc.addTask({ title: "Recoverable", runMode: "supervised" });
       const halted = await svc.recordSagaHalt(task.id, {
         reason: "step failed",
         atStepId: null,
         summary: "self-heal exhausted",
       });
-      expect(halted.sagaHalt).not.toBeNull();
+      expect(halted.supervised.halt).not.toBeNull();
       const done = await svc.setSagaState(task.id, "done");
-      expect(done.sagaState).toBe("done");
-      expect(done.sagaHalt).toBeNull();
+      expect(done.supervised.state).toBe("done");
+      expect(done.supervised.halt).toBeNull();
       // And it is persisted, not just returned.
-      expect((await svc.getTask(task.id))?.sagaHalt).toBeNull();
+      expect((await svc.getTask(task.id))?.supervised.halt).toBeNull();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -131,15 +131,15 @@ describe("RoadmapService - saga authoring", () => {
   it("setSagaState('sequencing') clears a prior sagaHalt on resume", async () => {
     const { dir, svc } = await tmpProject();
     try {
-      const task = await svc.addTask({ title: "Resumable", kind: "saga" });
+      const task = await svc.addTask({ title: "Resumable", runMode: "supervised" });
       await svc.recordSagaHalt(task.id, {
         reason: "max steps",
         atStepId: null,
         summary: "halted at step cap",
       });
       const resumed = await svc.setSagaState(task.id, "sequencing");
-      expect(resumed.sagaState).toBe("sequencing");
-      expect(resumed.sagaHalt).toBeNull();
+      expect(resumed.supervised.state).toBe("sequencing");
+      expect(resumed.supervised.halt).toBeNull();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -148,7 +148,7 @@ describe("RoadmapService - saga authoring", () => {
   it("setSagaState('paused') leaves an existing sagaHalt intact", async () => {
     const { dir, svc } = await tmpProject();
     try {
-      const task = await svc.addTask({ title: "Pauseable", kind: "saga" });
+      const task = await svc.addTask({ title: "Pauseable", runMode: "supervised" });
       await svc.recordSagaHalt(task.id, {
         reason: "halt",
         atStepId: null,
@@ -156,7 +156,7 @@ describe("RoadmapService - saga authoring", () => {
       });
       const paused = await svc.setSagaState(task.id, "paused");
       // Only sequencing/done clear the halt; other transitions preserve it.
-      expect(paused.sagaHalt).not.toBeNull();
+      expect(paused.supervised.halt).not.toBeNull();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -165,7 +165,7 @@ describe("RoadmapService - saga authoring", () => {
   it("patches a step's objective via updateChecklistItem", async () => {
     const { dir, svc } = await tmpProject();
     try {
-      const task = await svc.addTask({ title: "Feature", kind: "saga" });
+      const task = await svc.addTask({ title: "Feature", runMode: "supervised" });
       const { item } = await svc.addChecklistItem(task.id, "Step");
       const res = await svc.updateChecklistItem(task.id, item.id, { objective: "refined goal" });
       expect(res.item.objective).toBe("refined goal");
@@ -177,7 +177,7 @@ describe("RoadmapService - saga authoring", () => {
   it("trims objective and fileHints when updating a step", async () => {
     const { dir, svc } = await tmpProject();
     try {
-      const task = await svc.addTask({ title: "Feature", kind: "saga" });
+      const task = await svc.addTask({ title: "Feature", runMode: "supervised" });
       const { item } = await svc.addChecklistItem(task.id, "Step");
       const res = await svc.updateChecklistItem(task.id, item.id, {
         objective: "  goal  ",

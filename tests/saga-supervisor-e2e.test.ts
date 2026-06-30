@@ -133,7 +133,7 @@ describe("saga supervisor turn (real executor)", () => {
     const dir = await makeProject("DECISION: ESCALATE\nThe feature has drifted off goal.");
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Two-step build", kind: "saga" });
+    const task = await svc.addTask({ title: "Two-step build", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
@@ -150,8 +150,8 @@ describe("saga supervisor turn (real executor)", () => {
     expect(after!.checklist[1]!.status).toBe("pending");
     expect(after!.checklist[1]!.commitSha).toBeNull();
     // Lifecycle: halted, with a supervisor-escalate reason.
-    expect(after!.sagaState).toBe("halted");
-    expect(after!.sagaHalt?.reason).toBe("supervisor-escalate");
+    expect(after!.supervised.state).toBe("halted");
+    expect(after!.supervised.halt?.reason).toBe("supervisor-escalate");
 
     const events = await readEvents(dir);
     expect(
@@ -167,7 +167,7 @@ describe("saga supervisor turn (real executor)", () => {
     );
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Two-step build", kind: "saga" });
+    const task = await svc.addTask({ title: "Two-step build", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
@@ -179,9 +179,9 @@ describe("saga supervisor turn (real executor)", () => {
     // Non-clobber: the supervisor PROCEEDed, so the run reached merge_ready and
     // the saga completed - the supervisor output never touched reviewDecision.
     expect(after!.checklist.map((c) => c.status)).toEqual(["done", "done"]);
-    expect(after!.sagaState).toBe("done");
+    expect(after!.supervised.state).toBe("done");
     // The invariant was recorded to the durable ledger...
-    expect(after!.sagaInvariants).toContain("all responses use snake_case");
+    expect(after!.supervised.invariants).toContain("all responses use snake_case");
 
     // ...and re-injected into step 2's packet (step 1's packet predates it).
     const packet1 = await packetText(dir, 1);

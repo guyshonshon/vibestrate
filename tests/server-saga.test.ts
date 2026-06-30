@@ -47,18 +47,18 @@ describe("server: saga task routes", () => {
     const res = await fetch(`${server!.url}/api/tasks`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ title: "Feature X", kind: "saga" }),
+      body: JSON.stringify({ title: "Feature X", runMode: "supervised" }),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { task: { kind: string } };
-    expect(body.task.kind).toBe("saga");
+    const body = (await res.json()) as { task: { runMode: string } };
+    expect(body.task.runMode).toBe("supervised");
   });
 
   it("adds a step with objective", async () => {
     const created = await fetch(`${server!.url}/api/tasks`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ title: "F", kind: "saga" }),
+      body: JSON.stringify({ title: "F", runMode: "supervised" }),
     });
     const { task } = (await created.json()) as { task: { id: string } };
     const taskId = task.id;
@@ -77,7 +77,7 @@ describe("server: saga task routes", () => {
     const created = await fetch(`${server!.url}/api/tasks`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ title: "F", kind: "saga" }),
+      body: JSON.stringify({ title: "F", runMode: "supervised" }),
     });
     const { task } = (await created.json()) as { task: { id: string } };
     const taskId = task.id;

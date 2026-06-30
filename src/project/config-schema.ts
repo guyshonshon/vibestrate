@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { POLICY_LIMITS } from "../policies/policy-types.js";
-import { SAGA_DEFAULT_MAX_STEPS } from "../roadmap/roadmap-types.js";
+import { SUPERVISED_DEFAULT_MAX_STEPS } from "../roadmap/roadmap-types.js";
 import { crewsConfigSchema } from "../crews/crew-schema.js";
 import { profilesConfigSchema } from "../profiles/profile-schema.js";
 import { permissionProfilesSchema } from "../permissions/permission-schema.js";
@@ -291,7 +291,7 @@ export type BudgetConfig = z.infer<typeof budgetConfigSchema>;
 // per-task override applied at launch wherever the task left a value null. The
 // default `maxSteps: 20` means a saga is bounded out of the box, so a runaway
 // actually halts instead of sequencing forever. Both null = no limit on that axis.
-// The default lives in roadmap-types.ts (SAGA_DEFAULT_MAX_STEPS) so RoadmapService
+// The default lives in roadmap-types.ts (SUPERVISED_DEFAULT_MAX_STEPS) so RoadmapService
 // - which has no config access - seeds a new saga with the SAME number this
 // override layer resolves to.
 // The between-steps SUPERVISOR (Phase 2b, M3). After each clean step a cheap
@@ -316,7 +316,7 @@ export type SagaSupervisorConfig = z.infer<typeof sagaSupervisorConfigSchema>;
 export const sagaConfigSchema = z
   .object({
     maxSpendUsd: z.number().nonnegative().nullable().default(null).describe("Default per-saga spend checkpoint (USD) between steps; null = off (default off)."),
-    maxSteps: z.number().int().positive().nullable().default(SAGA_DEFAULT_MAX_STEPS).describe("Default cap on total steps in a saga; null = unbounded (default 20)."),
+    maxSteps: z.number().int().positive().nullable().default(SUPERVISED_DEFAULT_MAX_STEPS).describe("Default cap on total steps in a saga; null = unbounded (default 20)."),
     supervisor: sagaSupervisorConfigSchema,
   })
   .strict()

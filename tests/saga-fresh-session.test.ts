@@ -119,7 +119,7 @@ describe("saga fresh context per step (M2b)", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Build two things", kind: "saga" });
+    const task = await svc.addTask({ title: "Build two things", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "create the first file", {
       objective: "Create src/first.ts exporting first().",
       acceptanceCheck: "src/first.ts exists and exports first.",
@@ -137,7 +137,7 @@ describe("saga fresh context per step (M2b)", () => {
     const after = await svc.getTask(task.id);
     // Sanity: both steps went green via fix-then-approve (one fix iter each).
     expect(after!.checklist.map((c) => c.status)).toEqual(["done", "done"]);
-    expect(after!.sagaState).toBe("done");
+    expect(after!.supervised.state).toBe("done");
 
     const events = await readEvents(dir);
 
@@ -170,7 +170,7 @@ describe("saga fresh context per step (M2b)", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Assemble the widget", kind: "saga" });
+    const task = await svc.addTask({ title: "Assemble the widget", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "wire the base", {
       objective: "Add the base module.",
       acceptanceCheck: "base compiles.",

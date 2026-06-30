@@ -14,7 +14,7 @@ async function sagaWithOverlay() {
   const dir = await mkdtemp(path.join(tmpdir(), "vibe-enh-ov-"));
   const svc = new RoadmapService(dir);
   await svc.init();
-  const task = await svc.addTask({ title: "feature", kind: "saga" });
+  const task = await svc.addTask({ title: "feature", runMode: "supervised" });
   const { item: a } = await svc.addChecklistItem(task.id, "step a");
   const { item: b } = await svc.addChecklistItem(task.id, "step b");
   await svc.setSagaPendingRevision(task.id, {
@@ -22,7 +22,7 @@ async function sagaWithOverlay() {
     pending: [a, { ...b, text: "step b refined" }],
   });
   // sanity: overlay is set
-  expect((await svc.getTask(task.id))!.sagaPendingRevision).not.toBeNull();
+  expect((await svc.getTask(task.id))!.supervised.pendingRevision).not.toBeNull();
   return { dir, svc, taskId: task.id, aId: a.id, bId: b.id };
 }
 
@@ -31,7 +31,7 @@ describe("saga pending overlay - staleness clearing", () => {
     const { dir, svc, taskId } = await sagaWithOverlay();
     try {
       await svc.addChecklistItem(taskId, "step c (owner-added)");
-      expect((await svc.getTask(taskId))!.sagaPendingRevision).toBeNull();
+      expect((await svc.getTask(taskId))!.supervised.pendingRevision).toBeNull();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -41,7 +41,7 @@ describe("saga pending overlay - staleness clearing", () => {
     const { dir, svc, taskId, aId } = await sagaWithOverlay();
     try {
       await svc.removeChecklistItem(taskId, aId);
-      expect((await svc.getTask(taskId))!.sagaPendingRevision).toBeNull();
+      expect((await svc.getTask(taskId))!.supervised.pendingRevision).toBeNull();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -51,7 +51,7 @@ describe("saga pending overlay - staleness clearing", () => {
     const { dir, svc, taskId, aId, bId } = await sagaWithOverlay();
     try {
       await svc.reorderChecklist(taskId, [bId, aId]);
-      expect((await svc.getTask(taskId))!.sagaPendingRevision).toBeNull();
+      expect((await svc.getTask(taskId))!.supervised.pendingRevision).toBeNull();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -61,7 +61,7 @@ describe("saga pending overlay - staleness clearing", () => {
     const { dir, svc, taskId, aId } = await sagaWithOverlay();
     try {
       await svc.updateChecklistItem(taskId, aId, { text: "step a edited" });
-      expect((await svc.getTask(taskId))!.sagaPendingRevision).toBeNull();
+      expect((await svc.getTask(taskId))!.supervised.pendingRevision).toBeNull();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -71,7 +71,7 @@ describe("saga pending overlay - staleness clearing", () => {
     const { dir, svc, taskId, aId } = await sagaWithOverlay();
     try {
       await svc.setChecklistItemStatus(taskId, aId, "done");
-      expect((await svc.getTask(taskId))!.sagaPendingRevision).not.toBeNull();
+      expect((await svc.getTask(taskId))!.supervised.pendingRevision).not.toBeNull();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -81,7 +81,7 @@ describe("saga pending overlay - staleness clearing", () => {
     const { dir, svc, taskId, bId } = await sagaWithOverlay();
     try {
       const after = await svc.reconcileSagaPendingRevision(taskId);
-      expect(after.sagaPendingRevision).toBeNull();
+      expect(after.supervised.pendingRevision).toBeNull();
       expect(after.checklist.find((c) => c.id === bId)!.text).toBe("step b refined");
     } finally {
       await rm(dir, { recursive: true, force: true });

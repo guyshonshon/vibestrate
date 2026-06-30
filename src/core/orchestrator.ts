@@ -3276,7 +3276,7 @@ export class Orchestrator {
           // the source (RoadmapService.writeChecklist), but if a stale/foreign
           // overlay ever slips through, we ignore it and run the real checklist
           // rather than silently dropping owner steps it doesn't know about.
-          const overlay = task.sagaPendingRevision;
+          const overlay = task.supervised.pendingRevision;
           const checklistIdSet = new Set(task.checklist.map((c) => c.id));
           if (
             this.sagaMode &&
@@ -3640,7 +3640,7 @@ export class Orchestrator {
           // cached at band head would be stale by step 2.
           const sagaInvariants = this.taskId
             ? (await roadmap.getTask(this.taskId).catch(() => null))
-                ?.sagaInvariants ?? []
+                ?.supervised.invariants ?? []
             : [];
           const packet = buildStepPacket({
             goal: this.task,
@@ -5562,7 +5562,7 @@ export class Orchestrator {
 
     // Fresh task read: latest invariants ledger + the just-stamped outcome.
     const task = await roadmap.getTask(taskId).catch(() => null);
-    const invariants = task?.sagaInvariants ?? [];
+    const invariants = task?.supervised.invariants ?? [];
     const outcomeSummary =
       task?.checklist.find((c) => c.id === completedItem.id)?.outcomeSummary ?? "";
 
@@ -5734,7 +5734,7 @@ export class Orchestrator {
     if (pending.length === 0) return "noop"; // nothing left to re-ground
 
     const task = await roadmap.getTask(taskId).catch(() => null);
-    const invariants = task?.sagaInvariants ?? [];
+    const invariants = task?.supervised.invariants ?? [];
     const doneOutcomes = checklistItems.slice(0, itemIndex + 1).map((c) => ({
       text: c.text,
       summary:

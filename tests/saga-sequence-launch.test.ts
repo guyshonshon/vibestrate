@@ -103,7 +103,7 @@ describe("vibe saga sequence (launch)", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Build two things", kind: "saga" });
+    const task = await svc.addTask({ title: "Build two things", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
@@ -120,8 +120,8 @@ describe("vibe saga sequence (launch)", () => {
     expect(after!.checklist[0]!.commitSha).not.toBeNull();
     expect(after!.checklist[1]!.commitSha).not.toBeNull();
     // The conductor flipped the lifecycle to done (and never to halted).
-    expect(after!.sagaState).toBe("done");
-    expect(after!.sagaHalt).toBeNull();
+    expect(after!.supervised.state).toBe("done");
+    expect(after!.supervised.halt).toBeNull();
   }, 90_000);
 
   it("a lock-rejected sequence is a state no-op: never marks the saga done", async () => {
@@ -132,7 +132,7 @@ describe("vibe saga sequence (launch)", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Already running", kind: "saga" });
+    const task = await svc.addTask({ title: "Already running", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "do a thing");
 
     const lock = await acquireTaskLock(dir, task.id, "other-live-run");
@@ -145,8 +145,8 @@ describe("vibe saga sequence (launch)", () => {
       const after = await svc.getTask(task.id);
       // The bug: cmdSequence stamped "done" (and printed "Saga done") whenever
       // the saga was not "halted", ignoring that the run never ran.
-      expect(after!.sagaState).not.toBe("done");
-      expect(after!.sagaHalt).toBeNull();
+      expect(after!.supervised.state).not.toBe("done");
+      expect(after!.supervised.halt).toBeNull();
     } finally {
       await releaseTaskLock(lock);
     }
@@ -160,7 +160,7 @@ describe("vibe saga sequence (launch)", () => {
     const dir = await makeProject({ holisticDecision: "CHANGES_REQUESTED" });
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Blocks at the end", kind: "saga" });
+    const task = await svc.addTask({ title: "Blocks at the end", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "create the only file");
 
     process.chdir(dir);
@@ -168,9 +168,9 @@ describe("vibe saga sequence (launch)", () => {
 
     const after = await svc.getTask(task.id);
     // The step committed, but the run is blocked - not a clean completion.
-    expect(after!.sagaState).not.toBe("done");
-    expect(after!.sagaState).toBe("halted");
-    expect(after!.sagaHalt).not.toBeNull();
+    expect(after!.supervised.state).not.toBe("done");
+    expect(after!.supervised.state).toBe("halted");
+    expect(after!.supervised.halt).not.toBeNull();
     // A halt is a reportable outcome, not a tool failure (exit 0); only a thrown
     // run (exit 2) propagates.
     expect(code).toBe(0);
@@ -180,8 +180,8 @@ describe("vibe saga sequence (launch)", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const single = await svc.addTask({ title: "Just one", kind: "single" });
-    const emptySaga = await svc.addTask({ title: "Empty saga", kind: "saga" });
+    const single = await svc.addTask({ title: "Just one", runMode: "plain" });
+    const emptySaga = await svc.addTask({ title: "Empty saga", runMode: "supervised" });
 
     process.chdir(dir);
     expect(await cmdSequence(single.id, {})).toBe(1);
@@ -190,6 +190,6 @@ describe("vibe saga sequence (launch)", () => {
 
     // A rejected pre-flight never touches the lifecycle.
     const after = await svc.getTask(emptySaga.id);
-    expect(after!.sagaState).toBe("idle");
+    expect(after!.supervised.state).toBe("idle");
   }, 30_000);
 });

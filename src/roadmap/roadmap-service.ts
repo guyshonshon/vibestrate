@@ -18,12 +18,12 @@ import {
   type Provenance,
   type RoadmapItem,
   type RoadmapItemStatus,
-  type SagaHalt,
-  type SagaPendingRevision,
+  type SupervisedHalt,
+  type SupervisedPendingRevision,
   type Task,
-  type TaskKind,
+  type RunMode,
   type TaskStatus,
-  SAGA_DEFAULT_MAX_STEPS,
+  SUPERVISED_DEFAULT_MAX_STEPS,
   safeIdSchema,
 } from "./roadmap-types.js";
 
@@ -68,7 +68,7 @@ export type AddTaskInput = {
   profileOverride?: string | null;
   readOnly?: boolean;
   derivedFrom?: { taskId: string; itemId: string } | null;
-  kind?: TaskKind;
+  runMode?: RunMode;
 };
 
 export type CommentInput = {
@@ -179,23 +179,27 @@ export class RoadmapService {
       }
     }
     const ts = nowIso();
-    const kind: TaskKind = input.kind ?? "single";
+    const runMode: RunMode = input.runMode ?? "plain";
     const task: Task = {
       id: makeId(input.title, "task"),
-      kind,
-      sagaState: "idle",
-      sagaHalt: null,
-      sagaPendingRevision: null,
-      // A saga is bounded out of the box: seed the default step ceiling so a
-      // runaway actually halts (M4's checkSagaStopConditions never trips when
-      // every axis is null). config.saga is the project-level override layer the
-      // launch path (runRunCommand) merges in wherever this value is still null.
-      // A single (non-sequenced) task carries no envelope.
-      sagaBudget:
-        kind === "saga"
-          ? { maxSpendUsd: null, maxSteps: SAGA_DEFAULT_MAX_STEPS }
-          : { maxSpendUsd: null, maxSteps: null },
-      sagaInvariants: [],
+      runMode,
+      supervised: {
+        state: "idle",
+        halt: null,
+        invariants: [],
+        pendingRevision: null,
+      },
+      // A supervised task is bounded out of the box: seed the default step ceiling
+      // so a runaway actually halts (checkSupervisedStopConditions never trips
+      // when every axis is null). config.supervised is the project-level override
+      // layer the launch path merges in wherever this value is still null. A plain
+      // task carries no envelope.
+      runOptions: {
+        budget:
+          runMode === "supervised"
+            ? { maxSpendUsd: null, maxSteps: SUPERVISED_DEFAULT_MAX_STEPS }
+            : { maxSpendUsd: null, maxSteps: null },
+      },
       roadmapItemId: input.roadmapItemId ?? null,
       title: input.title.trim(),
       description: input.description?.trim() ?? "",
@@ -270,13 +274,12 @@ export class RoadmapService {
    *  and stamp the halt record. The halted step's checklist status is left for
    *  the conductor to manage (it resets it to "pending" so a resume re-attempts
    *  the step from the clean branch tip). */
-  async recordSagaHalt(id: string, halt: SagaHalt): Promise<Task> {
+  async recordSagaHalt(id: string, halt: SupervisedHalt): Promise<Task> {
     const t = await this.store.getTask(id);
     if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
     const next: Task = {
       ...t,
-      sagaState: "halted",
-      sagaHalt: halt,
+      supervised: { ...t.supervised, state: "halted", halt },
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };
@@ -289,14 +292,20 @@ export class RoadmapService {
    *  "done" (clean completion) also clears any prior `sagaHalt` - otherwise a
    *  recovered saga would end with a stale halt record contradicting its state.
    *  ("halted" is set via recordSagaHalt, which owns writing the halt.) */
-  async setSagaState(id: string, sagaState: Task["sagaState"]): Promise<Task> {
+  async setSagaState(
+    id: string,
+    state: Task["supervised"]["state"],
+  ): Promise<Task> {
     const t = await this.store.getTask(id);
     if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
-    const clearsHalt = sagaState === "sequencing" || sagaState === "done";
+    const clearsHalt = state === "sequencing" || state === "done";
     const next: Task = {
       ...t,
-      sagaState,
-      ...(clearsHalt ? { sagaHalt: null } : {}),
+      supervised: {
+        ...t.supervised,
+        state,
+        ...(clearsHalt ? { halt: null } : {}),
+      },
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };
@@ -312,11 +321,11 @@ export class RoadmapService {
   async appendSagaInvariants(id: string, incoming: string[]): Promise<Task> {
     const t = await this.store.getTask(id);
     if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
-    const merged = appendInvariants(t.sagaInvariants, incoming);
-    if (merged.length === t.sagaInvariants.length) return t; // nothing new
+    const merged = appendInvariants(t.supervised.invariants, incoming);
+    if (merged.length === t.supervised.invariants.length) return t; // nothing new
     const next: Task = {
       ...t,
-      sagaInvariants: merged,
+      supervised: { ...t.supervised, invariants: merged },
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };
@@ -331,13 +340,13 @@ export class RoadmapService {
    *  untouched. Pass `null` to clear it. */
   async setSagaPendingRevision(
     id: string,
-    revision: SagaPendingRevision | null,
+    revision: SupervisedPendingRevision | null,
   ): Promise<Task> {
     const t = await this.store.getTask(id);
     if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
     const next: Task = {
       ...t,
-      sagaPendingRevision: revision,
+      supervised: { ...t.supervised, pendingRevision: revision },
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };
@@ -354,7 +363,7 @@ export class RoadmapService {
   async reconcileSagaPendingRevision(id: string): Promise<Task> {
     const t = await this.store.getTask(id);
     if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
-    const overlay = t.sagaPendingRevision;
+    const overlay = t.supervised.pendingRevision;
     if (!overlay) return t;
     const byId = new Map(overlay.pending.map((p) => [p.id, p]));
     const overlayIds = new Set(overlay.pending.map((p) => p.id));
@@ -378,7 +387,7 @@ export class RoadmapService {
     const next: Task = {
       ...t,
       checklist,
-      sagaPendingRevision: null,
+      supervised: { ...t.supervised, pendingRevision: null },
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };
@@ -700,7 +709,9 @@ export class RoadmapService {
       // cause guard against a stale overlay silently dropping an owner-added
       // step on the next sequence. Status-only updates (the run's per-step
       // commit) DON'T pass this flag, so the overlay survives a live run.
-      ...(opts.clearSagaPendingRevision ? { sagaPendingRevision: null } : {}),
+      ...(opts.clearSagaPendingRevision
+        ? { supervised: { ...task.supervised, pendingRevision: null } }
+        : {}),
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };

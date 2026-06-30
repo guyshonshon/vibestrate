@@ -37,7 +37,7 @@ describe("GET /api/sagas/:taskId/status", () => {
   it("returns the conductor status incl. the live run, progress, invariants", async () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
-    const task = await svc.addTask({ title: "Dashboard saga", kind: "saga" });
+    const task = await svc.addTask({ title: "Dashboard saga", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "step one");
     await svc.addChecklistItem(task.id, "step two");
     const withSteps = await svc.getTask(task.id);
@@ -58,7 +58,7 @@ describe("GET /api/sagas/:taskId/status", () => {
   it("404s a missing saga and 400s a non-saga task", async () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
-    const single = await svc.addTask({ title: "Plain", kind: "single" });
+    const single = await svc.addTask({ title: "Plain", runMode: "plain" });
 
     server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });
     expect((await fetch(`${server.url}/api/sagas/nope/status`)).status).toBe(404);

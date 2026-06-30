@@ -20,11 +20,8 @@ function task(
     status: "backlog",
     priority: "medium",
     dependencies: [],
-    sagaState: "idle",
-    sagaHalt: null,
-    sagaPendingRevision: null,
-    sagaBudget: { maxSpendUsd: null, maxSteps: null },
-    sagaInvariants: [],
+    supervised: { state: "idle", halt: null, invariants: [], pendingRevision: null },
+    runOptions: { budget: { maxSpendUsd: null, maxSteps: null } },
     createdAt: ts,
     updatedAt: ts,
     assignedRoles: [],
@@ -46,7 +43,7 @@ function task(
     derivedFrom: null,
     archived: false,
     contextSources: [],
-    kind: "single",
+    runMode: "plain",
     ...over,
   };
 }

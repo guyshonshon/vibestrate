@@ -203,11 +203,8 @@ export class ProposalService {
     // Build a temp graph and check for cycles among the proposed tasks.
     const tempTasks: Task[] = parsed.tasks.map((t) => ({
       id: t.title,
-      sagaState: "idle",
-      sagaHalt: null,
-      sagaPendingRevision: null,
-      sagaBudget: { maxSpendUsd: null, maxSteps: null },
-      sagaInvariants: [],
+      supervised: { state: "idle", halt: null, invariants: [], pendingRevision: null },
+      runOptions: { budget: { maxSpendUsd: null, maxSteps: null } },
       roadmapItemId: null,
       title: t.title,
       description: t.description,
@@ -238,7 +235,7 @@ export class ProposalService {
       derivedFrom: null,
       archived: false,
       contextSources: [],
-      kind: "single",
+      runMode: "plain",
     }));
     const graph = buildDependencyGraph(tempTasks);
     const cycleReport = findFirstCycle(graph);

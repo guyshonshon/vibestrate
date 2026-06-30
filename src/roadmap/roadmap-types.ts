@@ -160,66 +160,93 @@ export const checklistItemSchema = z.object({
 export type ChecklistItem = z.infer<typeof checklistItemSchema>;
 export type Step = ChecklistItem;
 
-export const taskKindSchema = z.enum(["single", "saga"]);
-export type TaskKind = z.infer<typeof taskKindSchema>;
+// How a task runs. "plain" = the default flow, one holistic pass. "supervised" =
+// the Conductor bundle (per-step review, fresh context + curated packet, the
+// between-steps supervisor + invariants + Enhance, per-task budget + run lock +
+// clean-halt). This replaced the old `kind: "single" | "saga"` - a saga is no
+// longer a separate KIND of task, just a Task run in "supervised" mode.
+export const runModeSchema = z.enum(["plain", "supervised"]);
+export type RunMode = z.infer<typeof runModeSchema>;
 
-// ─── Saga execution state (Phase 2 Conductor) ───────────────────────────────
-// A saga is one orchestrator run in checklist mode. These track its sequencing
-// lifecycle and a clean-halt record.
-export const sagaStateSchema = z.enum([
+// ─── Supervised run state (the Conductor) ───────────────────────────────────
+// The lifecycle of a task's supervised run. Grouped into task.supervised{}.
+export const supervisedStateSchema = z.enum([
   "idle",
   "sequencing",
   "paused",
   "halted",
   "done",
 ]);
-export type SagaState = z.infer<typeof sagaStateSchema>;
+export type SupervisedState = z.infer<typeof supervisedStateSchema>;
 
 // The single home for halt state. A halted step's checklist status stays
 // `pending` (NOT `blocked`) so resume re-attempts it from a clean branch tip -
 // the failed attempt is reset and leaves no commit.
-export const sagaHaltSchema = z.object({
+export const supervisedHaltSchema = z.object({
   reason: z.string(),
   atStepId: z.string().nullable(),
   summary: z.string(),
 });
-export type SagaHalt = z.infer<typeof sagaHaltSchema>;
+export type SupervisedHalt = z.infer<typeof supervisedHaltSchema>;
 
-// Default step ceiling a freshly created saga inherits when no project override
-// narrows it (config.saga.maxSteps). Lives here (the lightweight types module)
-// so RoadmapService can seed it without importing the heavy config schema; the
-// config schema imports it back so both sides agree on the number.
-export const SAGA_DEFAULT_MAX_STEPS = 20;
+// Default step ceiling a freshly created supervised task inherits when no project
+// override narrows it (config.supervised.maxSteps). Lives here (the lightweight
+// types module) so RoadmapService can seed it without importing the heavy config
+// schema; the config schema imports it back so both sides agree on the number.
+export const SUPERVISED_DEFAULT_MAX_STEPS = 20;
 
-// Per-saga budget envelope. `maxSpendUsd` is a BETWEEN-STEPS checkpoint, not a
+// Per-task run budget envelope. `maxSpendUsd` is a BETWEEN-STEPS checkpoint, not a
 // mid-step wall (a single step is bounded only by the global daily spend cap).
 // `maxSteps` caps total steps. Null = no limit on that axis.
-export const sagaBudgetSchema = z.object({
+export const runBudgetSchema = z.object({
   maxSpendUsd: z.number().nonnegative().nullable().default(null),
   maxSteps: z.number().int().positive().nullable().default(null),
 });
-export type SagaBudget = z.infer<typeof sagaBudgetSchema>;
+export type RunBudget = z.infer<typeof runBudgetSchema>;
 
-// The saga-scoped pending-plan overlay (Phase 3 Enhance). When the conductor's
-// Enhance pass refines/reorders/removes the *pending* steps mid-run, the revised
-// pending plan is persisted HERE in one atomic write - never into `checklist`,
-// so the resume guard (which compares `checklist` ids) is left untouched. On
-// resume the overlay is applied by id onto the still-pending slice; on clean
-// saga completion it is reconciled into `checklist` and cleared. `pending`
+// The supervised-scoped pending-plan overlay (Phase 3 Enhance). When the
+// Conductor's Enhance pass refines/reorders/removes the *pending* steps mid-run,
+// the revised pending plan is persisted HERE in one atomic write - never into
+// `checklist`, so the resume guard (which compares `checklist` ids) is left
+// untouched. On resume the overlay is applied by id onto the still-pending slice;
+// on clean completion it is reconciled into `checklist` and cleared. `pending`
 // carries only EXISTING ids (autonomous add is excluded - see the design's M0
 // finding), so the merge is a pure by-id reconciliation.
-export const sagaPendingRevisionSchema = z.object({
+export const supervisedPendingRevisionSchema = z.object({
   // The step index (0-based, into the run's pending iteration) the revision was
   // made after - for display + debugging, not control flow.
   revisedAtStepIndex: z.number().int().min(0),
   // The revised pending steps, in order. Full ChecklistItems (status "pending").
   pending: z.array(checklistItemSchema),
 });
-export type SagaPendingRevision = z.infer<typeof sagaPendingRevisionSchema>;
+export type SupervisedPendingRevision = z.infer<
+  typeof supervisedPendingRevisionSchema
+>;
+
+// The supervised-run lifecycle, grouped into one object on the task (was four
+// flat `saga*` fields). Always present + defaulted, so a plain task simply has
+// `state: "idle"` forever - no null-guards at the read sites.
+export const supervisedRunSchema = z.object({
+  state: supervisedStateSchema.default("idle"),
+  halt: supervisedHaltSchema.nullable().default(null),
+  invariants: z.array(z.string()).default([]),
+  pendingRevision: supervisedPendingRevisionSchema.nullable().default(null),
+});
+export type SupervisedRun = z.infer<typeof supervisedRunSchema>;
+
+// Per-task run options (the "advanced knobs" that override project defaults).
+// Today: the run budget (was `task.sagaBudget`). Future: per-task supervisor /
+// enhance on-off toggles.
+export const runOptionsSchema = z.object({
+  budget: runBudgetSchema.default({}),
+});
+export type RunOptions = z.infer<typeof runOptionsSchema>;
 
 export const taskSchema = z.object({
   id: safeIdSchema,
-  kind: taskKindSchema.default("single"),
+  // How the task runs (was `kind: "single" | "saga"`). "supervised" flips the
+  // Conductor bundle; "plain" runs the default flow. See runModeSchema.
+  runMode: runModeSchema.default("plain"),
   roadmapItemId: safeIdSchema.nullable().default(null),
   title: z.string().min(1),
   description: z.string().default(""),
@@ -265,24 +292,16 @@ export const taskSchema = z.object({
   // synthetic-1-item case. Defaults to empty for backward-compat with tasks
   // written before this field existed.
   checklist: z.array(checklistItemSchema).default([]),
-  // ─── Saga execution (Phase 2 Conductor) ─────────────────────────────
-  // Lifecycle of a kind:"saga" task's sequenced run. `sagaHalt` is the only
-  // home for halt state; a halted step's checklist status stays `pending` so
-  // resume re-attempts from a clean branch tip. `sagaBudget` is a per-task
-  // override of the config.saga defaults.
-  sagaState: sagaStateSchema.default("idle"),
-  sagaHalt: sagaHaltSchema.nullable().default(null),
-  sagaBudget: sagaBudgetSchema.default({}),
-  // The non-folding INVARIANTS ledger (Phase 2b, M3): append-only cross-cutting
-  // decisions the between-steps supervisor records, re-injected into every step's
-  // packet so conventions don't fold away. Durable (survives resume), redacted +
-  // bounded on write. Default [] for lossless upgrade.
-  sagaInvariants: z.array(z.string()).default([]),
-  // The conductor's revised pending-plan overlay (Phase 3 Enhance). null until an
-  // Enhance pass runs; written atomically so the resume guard never sees a
-  // `checklist` mutation. See sagaPendingRevisionSchema above. Default null for
-  // lossless upgrade.
-  sagaPendingRevision: sagaPendingRevisionSchema.nullable().default(null),
+  // ─── Supervised execution (the Conductor) ───────────────────────────
+  // The supervised-run lifecycle, grouped: `state` + clean-halt record + the
+  // non-folding INVARIANTS ledger (re-injected into every step's packet so
+  // conventions don't fold away) + the Phase 3 Enhance pending-plan overlay.
+  // Always present + defaulted (a plain task stays `state:"idle"`). Durable
+  // across resume; redacted + bounded on write.
+  supervised: supervisedRunSchema.default({}),
+  // Per-task run options / advanced knobs (was `sagaBudget`): the run budget
+  // override of the config.supervised defaults.
+  runOptions: runOptionsSchema.default({}),
   // Non-blocking advisory: a run finished but a human should eyeball something
   // the model can't perceive (visual/UX/3D). Set from a HUMAN_REVIEW: ADVISORY
   // marker; cleared by a human verdict (pass → done, fail → reopen). (Phase 3)

@@ -95,8 +95,10 @@ function terminateChildProcess(child: ChildProcess): void {
  * lock, and the sequencing->done/halted lifecycle - exactly like a CLI launch.
  * A plain task runs as usual.
  */
-export function schedulerRunArgs(task: Pick<Task, "id" | "title" | "kind">): string[] {
-  return task.kind === "saga"
+export function schedulerRunArgs(
+  task: Pick<Task, "id" | "title" | "runMode">,
+): string[] {
+  return task.runMode === "supervised"
     ? ["saga", "sequence", task.id]
     : ["run", task.title, "--task", task.id];
 }

@@ -586,8 +586,8 @@ export type Task = {
   readOnly?: boolean;
   checklist?: ChecklistItem[];
   // Saga conductor (Phase 2). Present on kind:"saga" tasks.
-  sagaState?: SagaState;
-  sagaHalt?: SagaHalt | null;
+  sagaState?: SupervisedState;
+  sagaHalt?: SupervisedHalt | null;
   sagaInvariants?: string[];
   sagaBudget?: { maxSpendUsd: number | null; maxSteps: number | null };
   needsTesting?: boolean;
@@ -643,8 +643,8 @@ export type ChecklistItem = {
 };
 
 // Saga conductor lifecycle + halt (Phase 2). Mirrors src/roadmap/roadmap-types.ts.
-export type SagaState = "idle" | "sequencing" | "paused" | "halted" | "done";
-export type SagaHalt = {
+export type SupervisedState = "idle" | "sequencing" | "paused" | "halted" | "done";
+export type SupervisedHalt = {
   reason: string;
   atStepId: string | null;
   summary: string;
@@ -655,11 +655,11 @@ export type SagaHalt = {
 export type SagaStatus = {
   taskId: string;
   title: string;
-  sagaState: SagaState;
+  sagaState: SupervisedState;
   liveRunId: string | null;
   currentRunId: string | null;
   progress: { done: number; total: number };
-  sagaHalt: SagaHalt | null;
+  sagaHalt: SupervisedHalt | null;
   sagaInvariants: string[];
   steps: Array<{
     id: string;

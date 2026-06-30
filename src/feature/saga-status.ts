@@ -7,7 +7,7 @@
 
 import { RoadmapService } from "../roadmap/roadmap-service.js";
 import { readLiveTaskLockHolder } from "../core/run-lock.js";
-import type { ChecklistItem, SagaHalt, SagaState } from "../roadmap/roadmap-types.js";
+import type { ChecklistItem, SupervisedHalt, SupervisedState } from "../roadmap/roadmap-types.js";
 
 export type SagaStepStatus = {
   id: string;
@@ -21,13 +21,13 @@ export type SagaStepStatus = {
 export type SagaStatus = {
   taskId: string;
   title: string;
-  sagaState: SagaState;
+  sagaState: SupervisedState;
   /** The run sequencing this saga right now (lock holder, not stale), else null. */
   liveRunId: string | null;
   /** Last run recorded on the task (written after a run ends). */
   currentRunId: string | null;
   progress: { done: number; total: number };
-  sagaHalt: SagaHalt | null;
+  sagaHalt: SupervisedHalt | null;
   sagaInvariants: string[];
   steps: SagaStepStatus[];
 };
@@ -55,7 +55,7 @@ export async function getSagaStatus(
   const svc = new RoadmapService(projectRoot);
   const task = await svc.getTask(taskId).catch(() => null);
   if (!task) throw new NotASagaError(taskId, "not-found");
-  if (task.kind !== "saga") throw new NotASagaError(taskId, "wrong-kind");
+  if (task.runMode !== "supervised") throw new NotASagaError(taskId, "wrong-kind");
 
   const holder = await readLiveTaskLockHolder(projectRoot, taskId).catch(() => null);
   const total = task.checklist.length;
@@ -64,12 +64,12 @@ export async function getSagaStatus(
   return {
     taskId,
     title: task.title,
-    sagaState: task.sagaState,
+    sagaState: task.supervised.state,
     liveRunId: holder?.runId ?? null,
     currentRunId: task.currentRunId ?? null,
     progress: { done, total },
-    sagaHalt: task.sagaHalt,
-    sagaInvariants: task.sagaInvariants,
+    sagaHalt: task.supervised.halt,
+    sagaInvariants: task.supervised.invariants,
     steps: task.checklist.map((c) => ({
       id: c.id,
       text: c.text,

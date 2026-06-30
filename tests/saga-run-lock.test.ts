@@ -332,7 +332,7 @@ describe("run-lock wiring: dashboard launch path (runFromSpec)", () => {
     try {
       const svc = new RoadmapService(proj);
       await svc.init();
-      const task = await svc.addTask({ title: "Shared task", kind: "saga" });
+      const task = await svc.addTask({ title: "Shared task", runMode: "supervised" });
 
       // Simulate holder run #1: claim the lock directly (this process is alive,
       // so the holder is live and non-terminal).

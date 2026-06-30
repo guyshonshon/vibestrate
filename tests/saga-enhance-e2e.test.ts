@@ -148,7 +148,7 @@ describe("saga ENHANCE pass (real executor)", () => {
     });
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Two-step build", kind: "saga" });
+    const task = await svc.addTask({ title: "Two-step build", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
@@ -158,7 +158,7 @@ describe("saga ENHANCE pass (real executor)", () => {
 
     const after = await svc.getTask(task.id);
     expect(after!.checklist.map((c) => c.status)).toEqual(["done", "done"]);
-    expect(after!.sagaState).toBe("done");
+    expect(after!.supervised.state).toBe("done");
 
     // The enhance event records what was applied.
     const events = await readEvents(dir);
@@ -173,7 +173,7 @@ describe("saga ENHANCE pass (real executor)", () => {
 
     // Reconciled into the persisted checklist on clean completion; overlay cleared.
     expect(after!.checklist[1]!.text).toContain("REGROUNDED");
-    expect(after!.sagaPendingRevision).toBeNull();
+    expect(after!.supervised.pendingRevision).toBeNull();
 
     // The enhance turn is spend-accounted as its own role.
     const roles = await roleMetrics(dir);
@@ -189,7 +189,7 @@ describe("saga ENHANCE pass (real executor)", () => {
     const dir = await makeProject({});
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Three-step build", kind: "saga" });
+    const task = await svc.addTask({ title: "Three-step build", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
     await svc.addChecklistItem(task.id, "create the third file");
@@ -206,7 +206,7 @@ describe("saga ENHANCE pass (real executor)", () => {
     expect(code).toBe(0);
 
     const after = await svc.getTask(task.id);
-    expect(after!.sagaState).toBe("done");
+    expect(after!.supervised.state).toBe("done");
     // Step 3 was dropped by the overlay and never ran; only 1 and 2 remain.
     expect(after!.checklist.map((c) => c.text)).toEqual([
       "create the first file",
@@ -214,7 +214,7 @@ describe("saga ENHANCE pass (real executor)", () => {
     ]);
     expect(after!.checklist.every((c) => c.status === "done")).toBe(true);
     // Overlay reconciled + cleared on clean completion.
-    expect(after!.sagaPendingRevision).toBeNull();
+    expect(after!.supervised.pendingRevision).toBeNull();
 
     // The overlaid text drove step 2's execution.
     const packet2 = await packetText(dir, 2);
@@ -231,7 +231,7 @@ describe("saga ENHANCE pass (real executor)", () => {
     });
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Two-step build", kind: "saga" });
+    const task = await svc.addTask({ title: "Two-step build", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file", {
       provenance: "conductor",
@@ -244,8 +244,8 @@ describe("saga ENHANCE pass (real executor)", () => {
     const after = await svc.getTask(task.id);
     expect(after!.checklist[0]!.status).toBe("done");
     expect(after!.checklist[1]!.status).toBe("pending");
-    expect(after!.sagaState).toBe("halted");
-    expect(after!.sagaHalt?.reason).toBe("enhance-escalate");
+    expect(after!.supervised.state).toBe("halted");
+    expect(after!.supervised.halt?.reason).toBe("enhance-escalate");
 
     const events = await readEvents(dir);
     expect(
@@ -261,7 +261,7 @@ describe("saga ENHANCE pass (real executor)", () => {
     });
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Two-step build", kind: "saga" });
+    const task = await svc.addTask({ title: "Two-step build", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
@@ -270,7 +270,7 @@ describe("saga ENHANCE pass (real executor)", () => {
     expect(code).toBe(0);
 
     const after = await svc.getTask(task.id);
-    expect(after!.sagaState).toBe("done");
+    expect(after!.supervised.state).toBe("done");
     // The raw secret never lands in the persisted (reconciled) checklist...
     expect(after!.checklist[1]!.text).not.toContain(SECRET);
     // ...nor in the step's packet that the run executed against.
@@ -285,7 +285,7 @@ describe("saga ENHANCE pass (real executor)", () => {
     });
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Two-step build", kind: "saga" });
+    const task = await svc.addTask({ title: "Two-step build", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
@@ -297,8 +297,8 @@ describe("saga ENHANCE pass (real executor)", () => {
     // Step 1 committed + kept; step 2 never ran; halted on the destructive diff.
     expect(after!.checklist[0]!.status).toBe("done");
     expect(after!.checklist[1]!.status).toBe("pending");
-    expect(after!.sagaState).toBe("halted");
-    expect(after!.sagaHalt?.reason).toBe("enhance-escalate");
+    expect(after!.supervised.state).toBe("halted");
+    expect(after!.supervised.halt?.reason).toBe("enhance-escalate");
 
     const events = await readEvents(dir);
     expect(events.some((e) => e.type === "saga.enhance" && e.data?.authority === "escalate")).toBe(

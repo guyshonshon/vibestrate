@@ -126,7 +126,7 @@ describe("saga clean halt (M1)", () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
-    const task = await svc.addTask({ title: "Build two things", kind: "saga" });
+    const task = await svc.addTask({ title: "Build two things", runMode: "supervised" });
     const { item: i0 } = await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
@@ -142,8 +142,8 @@ describe("saga clean halt (M1)", () => {
     // No green-but-broken commit for the halted step.
     expect(after!.checklist[0]!.commitSha).toBeNull();
     // The halt is recorded on the task, naming the step it stopped at.
-    expect(after!.sagaState).toBe("halted");
-    expect(after!.sagaHalt?.atStepId).toBe(i0.id);
-    expect(after!.sagaHalt?.reason).toBe("self-heal-exhausted");
+    expect(after!.supervised.state).toBe("halted");
+    expect(after!.supervised.halt?.atStepId).toBe(i0.id);
+    expect(after!.supervised.halt?.reason).toBe("self-heal-exhausted");
   }, 60_000);
 });

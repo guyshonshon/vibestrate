@@ -210,7 +210,7 @@ describe("saga e2e - git-level proofs", () => {
       process.chdir(dir);
       const svc = new RoadmapService(dir);
       await svc.init();
-      const task = await svc.addTask({ title: "Build three things", kind: "saga" });
+      const task = await svc.addTask({ title: "Build three things", runMode: "supervised" });
       const { item: i0 } = await svc.addChecklistItem(task.id, "create the alpha file");
       const { item: i1 } = await svc.addChecklistItem(task.id, "create the beta file");
       const { item: i2 } = await svc.addChecklistItem(task.id, "create the gamma file");
@@ -305,7 +305,7 @@ describe("saga e2e - git-level proofs", () => {
       process.chdir(dir);
       const svc = new RoadmapService(dir);
       await svc.init();
-      const task = await svc.addTask({ title: "Build with a bad step", kind: "saga" });
+      const task = await svc.addTask({ title: "Build with a bad step", runMode: "supervised" });
       const { item: i0 } = await svc.addChecklistItem(task.id, "write the broken file");
       await svc.addChecklistItem(task.id, "write the second file");
 
@@ -344,8 +344,8 @@ describe("saga e2e - git-level proofs", () => {
       // The failed step is reset to pending, not done; the second step was never reached.
       expect(after!.checklist.map((c) => c.status)).toEqual(["pending", "pending"]);
       expect(after!.checklist[0]!.commitSha).toBeNull();
-      expect(after!.sagaState).toBe("halted");
-      expect(after!.sagaHalt?.atStepId).toBe(i0.id);
+      expect(after!.supervised.state).toBe("halted");
+      expect(after!.supervised.halt?.atStepId).toBe(i0.id);
     },
     60_000,
   );
@@ -367,7 +367,7 @@ describe("saga e2e - git-level proofs", () => {
       process.chdir(dir);
       const svc = new RoadmapService(dir);
       await svc.init();
-      const task = await svc.addTask({ title: "Build in two runs", kind: "saga" });
+      const task = await svc.addTask({ title: "Build in two runs", runMode: "supervised" });
       await svc.addChecklistItem(task.id, "write the first file");
       await svc.addChecklistItem(task.id, "write the second file");
 
@@ -376,7 +376,7 @@ describe("saga e2e - git-level proofs", () => {
       expect(out1.state.status).toBe("blocked");
 
       const afterHalt = await svc.getTask(task.id);
-      expect(afterHalt!.sagaState).toBe("halted");
+      expect(afterHalt!.supervised.state).toBe("halted");
       // Both steps pending: step 1 was reset by the halt; step 2 never ran.
       expect(afterHalt!.checklist.map((c) => c.status)).toEqual(["pending", "pending"]);
 

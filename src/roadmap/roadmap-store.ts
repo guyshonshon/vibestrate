@@ -20,6 +20,7 @@ import {
   type RoadmapItem,
   type Task,
 } from "./roadmap-types.js";
+import { migrateTaskShape } from "./migrate-task.js";
 
 export class RoadmapStore {
   constructor(private readonly projectRoot: string) {}
@@ -104,7 +105,7 @@ export class RoadmapStore {
     const text = await readText(file);
     if (!text.trim()) return null;
     try {
-      return taskSchema.parse(JSON.parse(text));
+      return taskSchema.parse(migrateTaskShape(JSON.parse(text)));
     } catch {
       return null;
     }
