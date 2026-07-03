@@ -2,12 +2,12 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowUpRight,
   Check,
+  ChevronRight,
   ExternalLink,
   FileCode,
   FlaskConical,
   GripVertical,
   Lock,
-  PanelRightOpen,
   Plus,
   Sparkles,
   Trash2,
@@ -29,6 +29,7 @@ import type {
 import { MicroStepPipeline } from "../../components/board/MicroStepPipeline.js";
 import { TaskGitActivity } from "../../components/tasks/TaskGitActivity.js";
 import { StepDetailDrawer } from "../../components/tasks/StepDetailDrawer.js";
+import { Breadcrumbs } from "../../components/layout/Breadcrumbs.js";
 import { Select } from "../../components/design/Select.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip, type ChipTone } from "../../components/design/Chip.js";
@@ -216,6 +217,14 @@ export function TaskDetailPage({
 
   return (
     <PageShell>
+      <Breadcrumbs
+        className="mb-3"
+        items={[
+          { label: "Board", onClick: () => navigate({ kind: "board" }) },
+          ...(roadmapTitle ? [{ label: roadmapTitle, muted: true } as const] : []),
+          { label: task.title },
+        ]}
+      />
       <PageHeader
         title={
           <span className="flex items-baseline gap-2.5">
@@ -271,15 +280,24 @@ export function TaskDetailPage({
           {task.needsTesting ? (
             <NeedsTestingBanner task={task} onResolved={load} />
           ) : null}
-          {task.description ? (
-            <Section title="Description">
-              <div className={CARD}>
+          {/* Brief: the task's description and its grounding (context) as one
+              block - references belong to the brief, not a standalone card. */}
+          <Section title="Brief">
+            <div className={CARD}>
+              {task.description ? (
                 <div className="whitespace-pre-wrap text-[12.5px] text-chalk-200">
                   {task.description}
                 </div>
+              ) : (
+                <div className="text-[12px] text-chalk-400">
+                  No description yet - the brief grounds what the supervisor plans.
+                </div>
+              )}
+              <div className="mt-3 border-t border-[color:var(--line-soft)] pt-3">
+                <ContextSourcesSection task={task} onChanged={load} />
               </div>
-            </Section>
-          ) : null}
+            </div>
+          </Section>
 
           {task.acceptanceCriteria ? (
             <Section title="Acceptance criteria">
@@ -290,8 +308,6 @@ export function TaskDetailPage({
               </div>
             </Section>
           ) : null}
-
-          <ContextSourcesSection task={task} onChanged={load} />
 
           {task.runMode === "supervised" ? <ConductorPanel taskId={task.id} /> : null}
 
@@ -315,31 +331,39 @@ export function TaskDetailPage({
                   </Button>
                 </div>
               ) : (
-                <ul className="space-y-1">
-                  {task.runIds.map((rid) => (
-                    <li key={rid}>
-                      <button
-                        onClick={() => onOpenRun(rid)}
-                        className="inline-flex items-center gap-1.5 font-mono text-[12px] text-chalk-300 transition hover:text-chalk-100"
+                <ul className="space-y-2.5">
+                  {task.runIds.map((rid) => {
+                    const steps =
+                      microSteps.find((m) => m.runId === rid)?.steps ?? [];
+                    return (
+                      <li
+                        key={rid}
+                        className="rounded-[12px] border border-[color:var(--line-soft)] bg-coal-500/50 px-3 py-2"
                       >
-                        <ExternalLink className="h-3 w-3" strokeWidth={1.9} />
-                        {rid}
-                        {rid === task.currentRunId ? (
-                          <Chip tone="violet" contained className="ml-1">
-                            current
-                          </Chip>
+                        <button
+                          onClick={() => onOpenRun(rid)}
+                          className="inline-flex items-center gap-1.5 font-mono text-[12px] text-chalk-300 transition hover:text-chalk-100"
+                        >
+                          <ExternalLink className="h-3 w-3" strokeWidth={1.9} />
+                          {rid}
+                          {rid === task.currentRunId ? (
+                            <Chip tone="violet" contained className="ml-1">
+                              current
+                            </Chip>
+                          ) : null}
+                        </button>
+                        {steps.length > 0 ? (
+                          <div className="mt-2">
+                            <MicroStepPipeline runId={rid} steps={steps} />
+                          </div>
                         ) : null}
-                      </button>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
           </Section>
-
-          {microSteps.map(({ runId, steps }) => (
-            <MicroStepPipeline key={runId} runId={runId} steps={steps} />
-          ))}
 
           <TaskGitActivity
             runIds={task.runIds}
@@ -798,89 +822,57 @@ function ContextSourcesSection({
     setRef("");
   }
 
-  // Collapsed default: no context yet and not adding - a slim trigger, not a big
-  // card. The heavy card (list + form + guardrail caption) mounts only when there
-  // is something to show or the user chooses to add a reference.
-  if (!hasSources && !adding) {
-    return (
-      <div className="mb-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setAdding(true)}
-          iconLeft={<Plus className="h-3 w-3" strokeWidth={1.9} />}
-        >
-          Add references
-        </Button>
-      </div>
-    );
-  }
-
+  // Embedded grounding row - lives inside the Brief card, not a standalone
+  // section. A compact "Grounding" label, the sources as inline chips, and an
+  // add affordance that reveals the file/url input only when opted in.
   return (
-    <Section
-      title="Context"
-      action={
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setAdding((a) => !a)}
-        >
-          {adding ? "Done" : "Add reference"}
-        </Button>
-      }
-    >
-      <div className={CARD}>
+    <div>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <span className="text-[11px] font-medium text-violet-soft">Grounding</span>
         {hasSources ? (
-          <ul className="space-y-1.5">
-            {sources.map((s, i) => (
-              <li
-                key={`${s.kind}-${s.ref}-${i}`}
-                className="group flex items-center gap-2.5 rounded-[12px] bg-coal-500/60 px-3 py-2"
+          sources.map((s, i) => (
+            <span
+              key={`${s.kind}-${s.ref}-${i}`}
+              className="group inline-flex items-center gap-1.5 rounded-[8px] bg-coal-500/70 py-1 pl-2 pr-1.5 text-[11px]"
+            >
+              {s.kind === "url" ? (
+                <ExternalLink className="h-3 w-3 shrink-0 text-amber-soft" strokeWidth={1.9} />
+              ) : (
+                <FileCode className="h-3 w-3 shrink-0 text-violet-soft" strokeWidth={1.9} />
+              )}
+              <span className="max-w-[220px] truncate font-mono text-chalk-200">{s.ref}</span>
+              <button
+                type="button"
+                onClick={() =>
+                  save(
+                    sources
+                      .filter((_, j) => j !== i)
+                      .map((x) => ({ kind: x.kind, ref: x.ref })),
+                  )
+                }
+                disabled={busy}
+                title="Remove reference"
+                className="shrink-0 text-chalk-500 transition hover:text-rose-300 disabled:opacity-50"
               >
-                <span
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px]",
-                    s.kind === "url"
-                      ? "bg-amber-soft/12 text-amber-soft"
-                      : "bg-violet-soft/12 text-violet-soft",
-                  )}
-                >
-                  {s.kind === "url" ? (
-                    <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.9} />
-                  ) : (
-                    <FileCode className="h-3.5 w-3.5" strokeWidth={1.9} />
-                  )}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-mono text-[12px] text-chalk-100">{s.ref}</div>
-                  <div className="text-[10px] font-medium text-chalk-400">{s.kind}</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    save(
-                      sources
-                        .filter((_, j) => j !== i)
-                        .map((x) => ({ kind: x.kind, ref: x.ref })),
-                    )
-                  }
-                  disabled={busy}
-                  className="shrink-0 text-chalk-400 opacity-0 transition hover:text-rose-300 disabled:opacity-50 group-hover:opacity-100"
-                  title="Remove"
-                >
-                  <Trash2 className="h-3.5 w-3.5" strokeWidth={1.9} />
-                </button>
-              </li>
-            ))}
-          </ul>
+                <X className="h-3 w-3" strokeWidth={2} />
+              </button>
+            </span>
+          ))
+        ) : (
+          <span className="text-[11px] text-chalk-400">none</span>
+        )}
+        {!adding ? (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-chalk-300 transition hover:text-violet-soft"
+          >
+            <Plus className="h-3 w-3" strokeWidth={1.9} /> Add
+          </button>
         ) : null}
+      </div>
 
-        {adding ? (
-        <>
-        <p className={cn("text-[11px] text-chalk-300", hasSources && "mt-3")}>
-          Files or URLs injected into every run (path-guarded, SSRF-guarded,
-          secrets redacted).
-        </p>
+      {adding ? (
         <form onSubmit={add} className="mt-2 flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-[10px] border border-[color:var(--line)] bg-coal-800 p-0.5">
             {(["file", "url"] as const).map((k) => (
@@ -903,7 +895,8 @@ function ContextSourcesSection({
             value={ref}
             onChange={(e) => setRef(e.target.value)}
             placeholder={kind === "file" ? "path/in/project.md" : "https://…"}
-            className={cn(INPUT, "min-w-[200px] flex-1")}
+            autoFocus
+            className={cn(INPUT, "min-w-[180px] flex-1")}
           />
           <Button
             type="submit"
@@ -914,28 +907,22 @@ function ContextSourcesSection({
           >
             Add
           </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setAdding(false)}>
+            Done
+          </Button>
         </form>
-        </>
-        ) : null}
-        {error ? (
-          <div className="mt-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
-            {error}
-          </div>
-        ) : null}
-      </div>
-    </Section>
+      ) : null}
+      {adding ? (
+        <p className="mt-1.5 text-[10.5px] text-chalk-400">
+          Files or URLs injected into every run (path-guarded, SSRF-guarded,
+          secrets redacted).
+        </p>
+      ) : null}
+      {error ? (
+        <div className="mt-1.5 text-[11px] text-rose-300">{error}</div>
+      ) : null}
+    </div>
   );
-}
-
-const CHECKLIST_STATUSES: ChecklistItemStatus[] = [
-  "pending",
-  "in_progress",
-  "done",
-  "blocked",
-];
-
-function checklistGlyph(s: ChecklistItemStatus): string {
-  return s === "done" ? "●" : s === "in_progress" ? "◐" : s === "blocked" ? "⊘" : "○";
 }
 
 function ChecklistSection({
@@ -967,6 +954,9 @@ function ChecklistSection({
   const [proposed, setProposed] = useState<string[] | null>(null);
   const [stepMode, setStepMode] = useState(false);
   const [launched, setLaunched] = useState<string | null>(null);
+  // Manual step authoring is the escape hatch, not the default - the supervisor
+  // plans the breakdown. The form stays hidden until the user opts into it.
+  const [manualAdd, setManualAdd] = useState(false);
   const done = items.filter((i) => i.status === "done").length;
   const pending = items.filter((i) => i.status !== "done").length;
   const pct = items.length === 0 ? 0 : Math.round((done / items.length) * 100);
@@ -1087,11 +1077,16 @@ function ChecklistSection({
         onClose={() => setOpenStepId(null)}
         onChanged={onChanged}
         onOpenRun={onOpenRun}
-        onPromote={() =>
-          run(`p-${openStep.id}`, () =>
+        onPromote={() => {
+          // Already detached: navigate to the card. Else detach it now.
+          if (openStep.promotedTaskId) {
+            onOpenTask(openStep.promotedTaskId);
+            return;
+          }
+          void run(`p-${openStep.id}`, () =>
             api.promoteChecklistItem(task.id, openStep.id),
-          )
-        }
+          );
+        }}
       />
     ) : null}
     <Section
@@ -1173,11 +1168,48 @@ function ChecklistSection({
           </div>
         ) : null}
 
-        {items.length === 0 ? (
-          <div className="text-[12px] text-chalk-400">
-            No items yet. Break this card into a concrete ordered checklist below.
+        {items.length === 0 && !proposed && !manualAdd ? (
+          <div className="flex flex-col items-start gap-2.5 rounded-[12px] border border-violet-soft/25 bg-violet-soft/[0.06] px-4 py-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-violet-soft" strokeWidth={1.9} />
+              <span className="text-[13px] font-semibold text-chalk-100">
+                Let the supervisor plan this
+              </span>
+            </div>
+            <p className="max-w-[46ch] text-[12px] leading-relaxed text-chalk-300">
+              Describe what you want in the task above (and any references), and the
+              supervisor breaks it into an ordered set of steps you can review,
+              reorder and run. You don't have to write every step by hand.
+            </p>
+            <div className="mt-0.5 flex items-center gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={enhance}
+                disabled={busy !== null && busy !== "enhance"}
+                iconLeft={
+                  busy === "enhance" ? (
+                    <X className="h-3 w-3" strokeWidth={1.9} />
+                  ) : (
+                    <Sparkles className="h-3 w-3" strokeWidth={1.9} />
+                  )
+                }
+              >
+                {busy === "enhance" ? "Planning… abort" : "Plan the steps"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setManualAdd(true)}
+                iconLeft={<Plus className="h-3 w-3" strokeWidth={1.9} />}
+              >
+                Add manually
+              </Button>
+            </div>
           </div>
-        ) : (
+        ) : null}
+
+        {items.length > 0 ? (
           <ul className="space-y-1" onDragOver={(e) => e.preventDefault()}>
             {items.map((item) => (
               <ChecklistRow
@@ -1203,32 +1235,16 @@ function ChecklistSection({
                     }),
                   )
                 }
-                onStatus={(status) =>
-                  run(`s-${item.id}`, () =>
-                    api.updateChecklistItem(task.id, item.id, { status }),
-                  )
-                }
-                onEdit={(next) =>
-                  run(`e-${item.id}`, () =>
-                    api.updateChecklistItem(task.id, item.id, { text: next }),
-                  )
-                }
                 onRemove={() =>
                   run(`r-${item.id}`, () =>
                     api.removeChecklistItem(task.id, item.id),
                   )
                 }
-                onPromote={() =>
-                  run(`p-${item.id}`, () =>
-                    api.promoteChecklistItem(task.id, item.id),
-                  )
-                }
                 onOpen={() => setOpenStepId(item.id)}
-                onOpenCard={onOpenTask}
               />
             ))}
           </ul>
-        )}
+        ) : null}
 
         {items.length > 0 ? (
           <div className="mt-2.5 flex flex-wrap items-center gap-2 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-2">
@@ -1262,48 +1278,72 @@ function ChecklistSection({
           </div>
         ) : null}
 
-        <form onSubmit={add} className="mt-2.5 flex gap-2">
-          <div className="flex flex-1 flex-col gap-1.5">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Add a checklist item…"
-              className={cn(INPUT, "flex-1")}
-            />
-            {task.runMode === "supervised" ? (
-              <>
-                <input
-                  value={objective}
-                  onChange={(e) => setObjective(e.target.value)}
-                  placeholder="Objective (optional)…"
-                  className={cn(INPUT, "flex-1")}
-                />
-                <input
-                  value={acceptance}
-                  onChange={(e) => setAcceptance(e.target.value)}
-                  placeholder="Acceptance check (optional)…"
-                  className={cn(INPUT, "flex-1")}
-                />
-                <input
-                  value={fileHintsInput}
-                  onChange={(e) => setFileHintsInput(e.target.value)}
-                  placeholder="File hints (comma-separated, optional)…"
-                  className={cn(INPUT, "flex-1")}
-                />
-              </>
-            ) : null}
-          </div>
-          <Button
-            type="submit"
-            variant="secondary"
-            size="sm"
-            className="self-start"
-            disabled={busy === "add" || !text.trim()}
-            iconLeft={<Plus className="h-3 w-3" strokeWidth={1.9} />}
+        {/* Manual authoring is the escape hatch: a reveal button when steps
+            exist, the form itself only when opted in. */}
+        {items.length > 0 && !manualAdd ? (
+          <button
+            type="button"
+            onClick={() => setManualAdd(true)}
+            className="mt-2.5 inline-flex items-center gap-1.5 text-[12px] font-medium text-chalk-300 transition hover:text-chalk-100"
           >
-            {busy === "add" ? "Adding…" : "Add"}
-          </Button>
-        </form>
+            <Plus className="h-3 w-3" strokeWidth={1.9} /> Add a step manually
+          </button>
+        ) : null}
+
+        {manualAdd ? (
+          <form onSubmit={add} className="mt-2.5 flex gap-2">
+            <div className="flex flex-1 flex-col gap-1.5">
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Step title…"
+                autoFocus
+                className={cn(INPUT, "flex-1")}
+              />
+              {task.runMode === "supervised" ? (
+                <>
+                  <input
+                    value={objective}
+                    onChange={(e) => setObjective(e.target.value)}
+                    placeholder="Objective (optional)…"
+                    className={cn(INPUT, "flex-1")}
+                  />
+                  <input
+                    value={acceptance}
+                    onChange={(e) => setAcceptance(e.target.value)}
+                    placeholder="Acceptance check (optional)…"
+                    className={cn(INPUT, "flex-1")}
+                  />
+                  <input
+                    value={fileHintsInput}
+                    onChange={(e) => setFileHintsInput(e.target.value)}
+                    placeholder="File hints (comma-separated, optional)…"
+                    className={cn(INPUT, "flex-1")}
+                  />
+                </>
+              ) : null}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Button
+                type="submit"
+                variant="secondary"
+                size="sm"
+                disabled={busy === "add" || !text.trim()}
+                iconLeft={<Plus className="h-3 w-3" strokeWidth={1.9} />}
+              >
+                {busy === "add" ? "Adding…" : "Add"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setManualAdd(false)}
+              >
+                Done
+              </Button>
+            </div>
+          </form>
+        ) : null}
 
         {error ? (
           <div className="mt-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
@@ -1327,12 +1367,8 @@ function ChecklistRow({
   onDragEnd,
   onDrop,
   onToggle,
-  onStatus,
-  onEdit,
   onRemove,
-  onPromote,
   onOpen,
-  onOpenCard,
 }: {
   item: ChecklistItem;
   isSaga: boolean;
@@ -1344,31 +1380,26 @@ function ChecklistRow({
   onDragEnd: () => void;
   onDrop: () => void;
   onToggle: () => void;
-  onStatus: (status: ChecklistItemStatus) => void;
-  onEdit: (text: string) => void;
   onRemove: () => void;
-  onPromote: () => void;
   onOpen: () => void;
-  onOpenCard: (taskId: string) => void;
 }) {
-  const [draft, setDraft] = useState(item.text);
-  // Drag is initiated only from the grip handle, so the text input stays
-  // selectable. We flip the row's draggable flag on grip mousedown.
+  // Drag is initiated only from the grip handle. We flip the row's draggable
+  // flag on grip mousedown.
   const [grabbed, setGrabbed] = useState(false);
-  // Keep the editable draft in sync when the item changes underneath us
-  // (polling reload or another client).
-  useEffect(() => {
-    setDraft(item.text);
-  }, [item.text]);
   const anyBusy = busy !== null;
-  const glyphColor =
-    item.status === "done"
-      ? "text-emerald-400"
-      : item.status === "in_progress"
-        ? "text-violet-soft"
-        : item.status === "blocked"
-          ? "text-amber-soft"
-          : "text-chalk-400";
+  const done = item.status === "done";
+  // Status beyond the done-check is RUN-DERIVED (the run drives in_progress /
+  // blocked); it is shown read-only, never as an editable control.
+  const runState =
+    item.status === "in_progress"
+      ? { label: "running", tone: "text-violet-soft" }
+      : item.status === "blocked"
+        ? { label: "blocked", tone: "text-amber-soft" }
+        : null;
+  const hasDetail = !!(
+    isSaga &&
+    (item.objective || item.acceptanceCheck || item.fileHints?.length)
+  );
 
   return (
     <li
@@ -1388,11 +1419,12 @@ function ChecklistRow({
         setGrabbed(false);
         onDrop();
       }}
+      onClick={onOpen}
+      role="button"
+      title="Open this step"
       className={cn(
-        "flex gap-1.5 rounded-[10px] border bg-coal-500 px-2.5 py-1.5 transition",
-        isSaga && (item.objective || item.acceptanceCheck || item.fileHints?.length)
-          ? "items-start"
-          : "items-center",
+        "group flex cursor-pointer gap-2 rounded-[10px] border bg-coal-500 px-2.5 py-2 transition hover:border-violet-soft/40 hover:bg-coal-500/70",
+        hasDetail ? "items-start" : "items-center",
         dragging
           ? "border-violet-soft/50 opacity-50"
           : dragOver
@@ -1404,101 +1436,100 @@ function ChecklistRow({
         role="button"
         aria-label="Drag to reorder"
         title="Drag to reorder"
+        onClick={(e) => e.stopPropagation()}
         onMouseDown={() => setGrabbed(true)}
         onMouseUp={() => setGrabbed(false)}
-        className="shrink-0 cursor-grab text-chalk-400 transition hover:text-chalk-100 active:cursor-grabbing"
+        className={cn(
+          "shrink-0 cursor-grab text-chalk-500 opacity-0 transition hover:text-chalk-200 active:cursor-grabbing group-hover:opacity-100",
+          hasDetail && "mt-0.5",
+        )}
       >
         <GripVertical className="h-3.5 w-3.5" strokeWidth={1.9} />
       </span>
+      {/* Done-check: a real V checkbox, the only manual status transition. */}
       <button
         type="button"
-        onClick={onToggle}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle();
+        }}
         disabled={anyBusy}
-        title={item.status === "done" ? "Mark pending" : "Mark done"}
-        className={cn("shrink-0 text-[14px] leading-none disabled:opacity-50", glyphColor)}
+        aria-pressed={done}
+        title={done ? "Mark not done" : "Mark done"}
+        className={cn(
+          "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[6px] border transition disabled:opacity-50",
+          hasDetail && "mt-0.5",
+          done
+            ? "border-emerald-400 bg-emerald-400 text-coal-900"
+            : "border-[color:var(--line-strong)] text-transparent hover:border-emerald-400/60",
+        )}
       >
-        {checklistGlyph(item.status)}
+        <Check className="h-3 w-3" strokeWidth={2.6} />
       </button>
       <div className="min-w-0 flex-1">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => {
-            const next = draft.trim();
-            if (next && next !== item.text) onEdit(next);
-            else setDraft(item.text);
-          }}
-          className={cn(
-            "w-full bg-transparent text-[12.5px] focus:outline-none",
-            item.status === "done"
-              ? "text-chalk-400 line-through"
-              : "text-chalk-100",
-          )}
-        />
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "min-w-0 truncate text-[12.5px]",
+              done ? "text-chalk-400 line-through" : "text-chalk-100",
+            )}
+          >
+            {item.text}
+          </span>
+          {runState ? (
+            <span className={cn("shrink-0 font-mono text-[10px]", runState.tone)}>
+              {runState.label}
+            </span>
+          ) : null}
+          {item.promotedTaskId ? (
+            <span className="shrink-0 font-mono text-[10px] text-chalk-400">
+              detached
+            </span>
+          ) : null}
+        </div>
         {isSaga && item.objective ? (
-          <div className="mt-0.5 text-[10.5px]">
+          <div className="mt-0.5 truncate text-[10.5px]">
             <span className="font-medium text-violet-soft">objective</span>{" "}
             <span className="text-chalk-300">{item.objective}</span>
           </div>
         ) : null}
         {isSaga && item.acceptanceCheck ? (
-          <div className="text-[10.5px]">
+          <div className="truncate text-[10.5px]">
             <span className="font-medium text-violet-soft">accept</span>{" "}
             <span className="text-chalk-300">{item.acceptanceCheck}</span>
           </div>
         ) : null}
         {isSaga && item.fileHints?.length ? (
-          <div className="text-[10.5px]">
+          <div className="truncate text-[10.5px]">
             <span className="font-medium text-violet-soft">files</span>{" "}
             <span className="text-chalk-300">{item.fileHints.join(", ")}</span>
           </div>
         ) : null}
       </div>
-      <Select
-        value={item.status}
-        disabled={anyBusy}
-        ariaLabel="Item status"
-        className="min-w-[120px] shrink-0"
-        onChange={(v) => onStatus(v as ChecklistItemStatus)}
-        options={CHECKLIST_STATUSES.map((s) => ({ value: s, label: s }))}
-      />
       <button
         type="button"
-        onClick={onOpen}
-        title="Open this step"
-        className="shrink-0 text-chalk-400 transition hover:text-violet-soft"
-      >
-        <PanelRightOpen className="h-3.5 w-3.5" strokeWidth={1.9} />
-      </button>
-      {item.promotedTaskId ? (
-        <button
-          type="button"
-          onClick={() => onOpenCard(item.promotedTaskId!)}
-          title={`Detached to card ${item.promotedTaskId} - open it`}
-          className="shrink-0 text-violet-soft transition hover:text-chalk-100"
-        >
-          <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.9} />
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={onPromote}
-          disabled={anyBusy}
-          title="Detach this step into its own independent card"
-          className="shrink-0 text-chalk-400 transition hover:text-violet-soft disabled:opacity-50"
-        >
-          <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.9} />
-        </button>
-      )}
-      <button
-        type="button"
-        onClick={onRemove}
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
         disabled={anyBusy}
-        title="Remove item"
-        className="shrink-0 text-chalk-400 transition hover:text-rose-300 disabled:opacity-50"
+        title="Remove step"
+        className={cn(
+          "shrink-0 text-chalk-500 opacity-0 transition hover:text-rose-300 disabled:opacity-50 group-hover:opacity-100",
+          hasDetail && "mt-0.5",
+        )}
       >
         <Trash2 className="h-3.5 w-3.5" strokeWidth={1.9} />
       </button>
+      {/* Prominent "configure this step" affordance. */}
+      <ChevronRight
+        className={cn(
+          "h-4 w-4 shrink-0 text-chalk-500 transition group-hover:text-violet-soft",
+          hasDetail && "mt-0.5",
+        )}
+        strokeWidth={2}
+        aria-hidden
+      />
     </li>
   );
 }

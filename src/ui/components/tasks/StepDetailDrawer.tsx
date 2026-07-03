@@ -2,30 +2,19 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ArrowUpRight, ExternalLink, GitBranch, Lock, Plus, X } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { navigate } from "../../app/App.js";
 import { cn } from "../design/cn.js";
 import { Button } from "../design/Button.js";
-import { Select } from "../design/Select.js";
 import { StatTile } from "../design/StatTile.js";
-import type {
-  ChecklistItem,
-  ChecklistItemStatus,
-  Task,
-  TaskComment,
-} from "../../lib/types.js";
+import { Breadcrumbs } from "../layout/Breadcrumbs.js";
+import type { ChecklistItem, Task, TaskComment } from "../../lib/types.js";
 
 // Canonical input recipe (primitives-contract §6).
 const INPUT =
   "w-full rounded-[14px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2.5 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none";
 
-const STEP_STATUSES: ChecklistItemStatus[] = [
-  "pending",
-  "in_progress",
-  "done",
-  "blocked",
-];
-
 // Status as flat tinted text (contract §7 - not a pill, not a dot+sentence).
-function statusTextTone(s: ChecklistItemStatus): string {
+function statusTextTone(s: ChecklistItem["status"]): string {
   return s === "done"
     ? "text-emerald-400"
     : s === "in_progress"
@@ -196,16 +185,24 @@ export function StepDetailDrawer({
       <div className="relative flex h-full w-full max-w-[580px] flex-col border-l border-[color:var(--line)] bg-[color:var(--background)] shadow-2xl">
         {/* ── Header (PageHeader idiom, contained) ─────────────────── */}
         <div className="shrink-0 border-b border-[color:var(--line)] px-6 pb-4 pt-5">
+          <Breadcrumbs
+            className="mb-2"
+            items={[
+              { label: "Board", onClick: () => navigate({ kind: "board" }) },
+              { label: task.title, onClick: onClose },
+              { label: "Step", muted: true },
+            ]}
+          />
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="mb-1.5 flex items-center gap-2 font-mono text-[11px] font-medium">
-                <span className="text-chalk-400">step in {task.id}</span>
                 <span className={statusTextTone(item.status)}>
                   {item.status.replace(/_/g, " ")}
                 </span>
                 {item.provenance === "conductor" ? (
                   <span className="text-violet-soft">conductor</span>
                 ) : null}
+                <span className="text-chalk-500">· configure this step</span>
               </div>
               <h1 className="text-[22px] font-extrabold leading-tight tracking-[-0.02em] text-chalk-100">
                 {item.text}
@@ -273,24 +270,30 @@ export function StepDetailDrawer({
                   tasks - switch this task to supervised to author per-step detail.
                 </p>
               )}
+              {/* Status is RUN-DERIVED (a run drives in_progress / blocked); the
+                  only manual transition is marking the step done. */}
               <div className="flex items-center gap-2 pt-0.5">
                 <span className="text-[11.5px] font-medium text-violet-soft">
                   status
                 </span>
-                <Select
-                  value={item.status}
-                  ariaLabel="Step status"
-                  className="min-w-[140px]"
+                <span className={cn("text-[12px] font-medium", statusTextTone(item.status))}>
+                  {item.status.replace(/_/g, " ")}
+                </span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="ml-auto"
                   disabled={busy !== null}
-                  onChange={(v) =>
-                    run("status", () =>
+                  onClick={() =>
+                    run("done", () =>
                       api.updateChecklistItem(task.id, item.id, {
-                        status: v as ChecklistItemStatus,
+                        status: item.status === "done" ? "pending" : "done",
                       }),
                     )
                   }
-                  options={STEP_STATUSES.map((s) => ({ value: s, label: s }))}
-                />
+                >
+                  {item.status === "done" ? "Reopen" : "Mark done"}
+                </Button>
               </div>
             </div>
           </DrawerSection>

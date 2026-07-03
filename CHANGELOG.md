@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.44.0
+
+- **Let the supervisor plan the steps.** A task's checklist no longer opens as a
+  blank "type every step yourself" form. When there are no steps, the card leads
+  with "Let the supervisor plan this" - describe the task (and any references)
+  and it breaks the work into an ordered set of steps you review, reorder and
+  run. Writing a step by hand is still there, demoted to an "Add manually"
+  escape hatch.
+- **A step is a checkbox, not a status dropdown.** Checklist steps get a real
+  check (V), and you can no longer hand-set a step to "in progress" or "blocked"
+  - those are driven by the run. The only manual transition is marking a step
+  done (or reopening it). The step's live state shows read-only.
+- **Steps read as configurable.** A step row is now clickable end-to-end with a
+  clear chevron; opening it lands in a panel that says "configure this step",
+  carries a Board › Task › Step breadcrumb, and keeps "Detach into its own card"
+  as a distinct, separate action.
+- **Runs and their pipeline are one surface.** A run's per-phase micro-step
+  pipeline now renders inside its run row, instead of floating in a separate
+  section on the task page.
+- **References belong to the brief.** Context sources moved into a single "Brief"
+  block with the task description as a compact "Grounding" row, instead of a
+  standalone card.
+
 ## 0.43.0
 
 - **Open a checklist step as a task in its own right.** A step is no longer a

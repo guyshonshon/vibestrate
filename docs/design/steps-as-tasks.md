@@ -1,6 +1,36 @@
 # Steps-as-tasks
 
-Status: revised-after-review (2026-06-30)
+Status: revised-after-review (2026-06-30); UX pivot (2026-07-03)
+
+## UX pivot (2026-07-03) - supervisor-plans-first
+
+Owner feedback after the first cut reframed the surface. The manual per-step
+authoring drawer was the wrong emphasis: "should the user really make all those
+steps every time? I'd want the supervisor to plan/guide the breakdown." Changes
+landed (v0.44.0):
+
+- **Plan-first checklist.** An empty checklist leads with "Let the supervisor
+  plan this" (runs the existing `enhance` breakdown from the task brief). Manual
+  step authoring is demoted to an "Add manually" escape hatch.
+- **Status is run-derived.** The per-step status dropdown is gone (owner: "how
+  come you can change the status of a step?"). The only manual transition is a
+  done-check (a real V checkbox); `in_progress`/`blocked` are shown read-only,
+  driven by the run.
+- **Steps read as configurable.** A checklist row is clickable end-to-end with a
+  chevron; the drawer says "configure this step" and carries a Board › Task ›
+  Step breadcrumb. "Detach into its own card" stays visually distinct.
+- **Recursion: still flat.** A step remains a leaf - it does not own sub-steps
+  (confirmed with owner). The one-container/one-branch invariant is unchanged.
+- **Micro-steps unify with Runs.** The per-run micro-step pipeline renders inside
+  its run row, not as a separate task-page section.
+- **Context → Brief.** Context sources fold into a single "Brief" block with the
+  description as a compact "Grounding" row (no standalone card).
+
+STILL OPEN: wiring the fuller spec-up deep-questioning intake (describe + guided
+inputs) as the front door - today "Plan the steps" uses the one-shot `enhance`.
+The management-stage model remains the next slice.
+
+
 
 ## Context (the real goal)
 
