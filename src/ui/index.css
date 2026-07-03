@@ -730,6 +730,18 @@ button:active,
   animation: vibestrate-meter-shimmer 1.8s ease-in-out infinite;
 }
 
+/* ── Active step processing (progress-track segment) ─────────────────
+   A gentle opacity fade for the one in-progress step segment, ONLY while a
+   run is live. Scoped to functional progress indicators (never idle status
+   chrome/dots) - an explicit, requested exception to the no-pulse default. */
+@keyframes vibestrate-step-processing {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.step-live {
+  animation: vibestrate-step-processing 1.8s ease-in-out infinite;
+}
+
 /* ── Terminal blink ──────────────────────────────────────────────── */
 @keyframes vibestrate-caret {
   0%, 49% { opacity: 1; }

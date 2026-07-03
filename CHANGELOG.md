@@ -8,8 +8,10 @@
   headline plus stat tiles for status, steps done, runs, blockers and priority.
   Starting a task is a parent-level control, so it lives here - not buried in the
   Runs list. The Runs section just lists runs now; "Queue the first run" is gone.
-  The panel carries the task's state as colour - a status-toned spine, a framed
-  status badge, and a steps progress meter - so status reads at a glance.
+  The panel fills its width: a tonal status column carries the task's state as
+  colour, a segmented step track shows exactly where the run is (the in-progress
+  step softly fades to signal live work), and a divided metric strip lays out
+  runs, blockers and priority.
 
 ## 0.44.0
 
