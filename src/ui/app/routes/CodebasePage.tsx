@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Check, MessageSquarePlus, RotateCcw, Trash2 } from "lucide-react";
+import { Bot, Check, MessageSquarePlus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { ApiError, api, type CodebaseAnnotation } from "../../lib/api.js";
 import type {
   FileTreeResult,
@@ -9,7 +9,11 @@ import type {
 import { FileTreeView } from "../../components/codebase/FileTreeView.js";
 import { FileViewer } from "../../components/codebase/FileViewer.js";
 import { FreshnessIndicator } from "../../components/codebase/FreshnessIndicator.js";
+import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
+import { StatTile } from "../../components/design/StatTile.js";
+import { cn } from "../../components/design/cn.js";
+import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { useCodebaseEvents } from "../../lib/useCodebaseEvents.js";
 
 type Props = {
@@ -168,105 +172,135 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
 
   const sourceLabel = useMemo(() => {
     if (source === "project") return "Project root";
-    if (runId) return `Run worktree · ${runId}`;
+    if (runId) return `Run worktree - ${runId}`;
     return "Run worktree (none selected)";
   }, [source, runId]);
 
   return (
-    <div className="deep-scene flex h-full overflow-hidden">
-      <aside className="flex w-72 shrink-0 flex-col border-r border-white/10 bg-ink-100">
-        <header className="flex flex-col gap-2 border-b border-white/10 px-3 py-2.5">
-          <div className="flex items-center gap-1.5">
-            <SourceTab active={source === "project"} onClick={() => setSource("project")}>
-              Project
-            </SourceTab>
-            <SourceTab active={source === "worktree"} onClick={() => setSource("worktree")}>
-              Worktree
-            </SourceTab>
+    <PageShell variant="fill">
+      <PageHeader
+        className="mb-4"
+        title="Codebase"
+        actions={
+          <>
+            <div className="inline-flex items-center gap-0.5 rounded-[10px] border border-[color:var(--line)] bg-coal-800 p-0.5">
+              <SourceTab active={source === "project"} onClick={() => setSource("project")}>
+                Project
+              </SourceTab>
+              <SourceTab active={source === "worktree"} onClick={() => setSource("worktree")}>
+                Worktree
+              </SourceTab>
+            </div>
             {source === "worktree" ? (
               <Select
                 value={runId ?? ""}
                 ariaLabel="Run worktree to inspect"
-                className="ml-auto min-w-[150px] max-w-[150px]"
+                className="min-w-[180px] max-w-[220px]"
+                placeholder="Choose a run"
                 onChange={(v) => {
                   setRunId(v || null);
                   setPath(null);
                   setLine(null);
                 }}
-                options={[
-                  { value: "", label: "- choose run -" },
-                  ...runs.map((r) => ({ value: r.runId, label: r.runId })),
-                ]}
+                options={runs.map((r) => ({ value: r.runId, label: r.runId }))}
               />
             ) : null}
-          </div>
-          <input
-            type="search"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter files…"
-            className="border border-white/10 bg-ink-200 px-2.5 py-1.5 text-[12px] text-fog-100 placeholder-fog-500 outline-none focus:border-violet-soft/40"
-          />
-          <FreshnessIndicator
-            freshness={freshness}
-            onRefresh={() => {
-              void reloadTree();
-              void reloadFile();
-            }}
-          />
-        </header>
-        <div className="flex-1 overflow-y-auto py-1">
-          {error ? (
-            <div className="px-3 py-2 text-[11.5px] text-rose-300">{error}</div>
-          ) : tree ? (
-            <FileTreeView
-              data={tree}
-              selectedPath={path}
-              filter={filter}
-              onSelectFile={(rel) => {
-                setPath(rel);
-                setLine(null);
+            <FreshnessIndicator
+              freshness={freshness}
+              onRefresh={() => {
+                void reloadTree();
+                void reloadFile();
               }}
             />
-          ) : (
-            <div className="px-3 py-2 text-[11.5px] text-fog-300">
-              {source === "worktree" && !runId
-                ? "Pick a run to inspect its worktree."
-                : "Loading…"}
-            </div>
-          )}
-        </div>
-      </aside>
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <FileViewer
-          view={view}
-          loading={loadingFile}
-          error={fileError}
-          runId={runId}
-          highlightLine={line}
-          onAnnotateLine={
-            source === "project"
-              ? (l) => {
-                  setAnnDraftLine(l);
-                  setAnnDraftEndLine(null);
-                }
-              : undefined
-          }
-        />
-      </main>
-      <AnnotationsPanel
-        source={source}
-        sourceLabel={sourceLabel}
-        tree={tree}
-        view={view}
-        line={line}
-        path={path}
-        draftLine={annDraftLine}
-        setDraftLine={setAnnDraftLine}
-        draftEndLine={annDraftEndLine}
-        setDraftEndLine={setAnnDraftEndLine}
+          </>
+        }
       />
-    </div>
+
+      <div className="flex min-h-0 flex-1 gap-3 pb-5">
+        {/* ── File tree ─────────────────────────────────────────────── */}
+        <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-700">
+          <div className="border-b border-[color:var(--line-soft)] p-2.5">
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-chalk-400"
+                strokeWidth={1.9}
+                aria-hidden
+              />
+              <input
+                type="search"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Filter files"
+                className="w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 py-1.5 pl-8 pr-3 text-[12.5px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+              />
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto py-1.5">
+            {error ? (
+              <div className="m-2.5 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[11.5px] text-rose-300">
+                {error}
+                <button
+                  type="button"
+                  onClick={() => void reloadTree()}
+                  className="ml-1 font-semibold text-rose-300 underline underline-offset-2 hover:text-rose-200"
+                >
+                  retry
+                </button>
+              </div>
+            ) : tree ? (
+              <FileTreeView
+                data={tree}
+                selectedPath={path}
+                filter={filter}
+                onSelectFile={(rel) => {
+                  setPath(rel);
+                  setLine(null);
+                }}
+              />
+            ) : source === "worktree" && !runId ? (
+              <div className="m-2.5 rounded-[10px] border border-[color:var(--line)] bg-coal-600 px-3 py-3 text-[11.5px] text-chalk-300">
+                Pick a run above to inspect its worktree.
+              </div>
+            ) : (
+              <div className="px-3 py-2 text-[11.5px] text-chalk-400">Loading tree.</div>
+            )}
+          </div>
+        </aside>
+
+        {/* ── File viewer ───────────────────────────────────────────── */}
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-700">
+          <FileViewer
+            view={view}
+            loading={loadingFile}
+            error={fileError}
+            runId={runId}
+            highlightLine={line}
+            onAnnotateLine={
+              source === "project"
+                ? (l) => {
+                    setAnnDraftLine(l);
+                    setAnnDraftEndLine(null);
+                  }
+                : undefined
+            }
+          />
+        </main>
+
+        {/* ── Inspector + annotations ───────────────────────────────── */}
+        <AnnotationsPanel
+          source={source}
+          sourceLabel={sourceLabel}
+          tree={tree}
+          view={view}
+          line={line}
+          path={path}
+          draftLine={annDraftLine}
+          setDraftLine={setAnnDraftLine}
+          draftEndLine={annDraftEndLine}
+          setDraftEndLine={setAnnDraftEndLine}
+        />
+      </div>
+    </PageShell>
   );
 }
 
@@ -294,11 +328,12 @@ function SourceTab({
     <button
       type="button"
       onClick={onClick}
-      className={`border px-2 py-0.5 text-[11px] transition ${
+      className={cn(
+        "rounded-[8px] px-3 py-1 text-[12px] font-semibold transition",
         active
-          ? "border-violet-soft/40 bg-violet-soft/10 text-fog-100"
-          : "border-white/10 text-fog-300 hover:bg-white/[0.04]"
-      }`}
+          ? "bg-coal-600 text-chalk-100 shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+          : "text-chalk-400 hover:text-chalk-200",
+      )}
     >
       {children}
     </button>
@@ -308,7 +343,7 @@ function SourceTab({
 function anchorLabel(line: number | null, endLine: number | null): string {
   if (line === null) return "Whole file";
   if (endLine === null || endLine === line) return `Line ${line}`;
-  return `Lines ${line}–${endLine}`;
+  return `Lines ${line}-${endLine}`;
 }
 
 function AnnotationsPanel(props: {
@@ -414,145 +449,164 @@ function AnnotationsPanel(props: {
   }
 
   return (
-    <aside className="hidden w-80 shrink-0 flex-col overflow-y-auto border-l border-white/10 bg-ink-100 px-3 py-3 lg:flex">
-      <div className="eyebrow">Inspector</div>
-      <div className="mono mt-2 truncate text-[11.5px] text-fog-100">{sourceLabel}</div>
-      {tree ? (
-        <div className="mono mt-0.5 text-[10.5px] text-fog-500">
-          {tree.totalCount} entries · depth {tree.depth}
-          {tree.truncated ? " · truncated" : ""}
+    <aside className="hidden w-80 shrink-0 flex-col overflow-y-auto rounded-[16px] border border-[color:var(--line)] bg-coal-700 lg:flex">
+      <div className="border-b border-[color:var(--line-soft)] p-3">
+        <h2 className="text-[13px] font-bold text-violet-vivid">Inspector</h2>
+        <div className="num-tabular mt-1.5 truncate text-[12px] font-semibold text-chalk-100">
+          {sourceLabel}
         </div>
-      ) : null}
-      {view ? (
-        <div className="mt-3 flex flex-col gap-1">
-          <KV label="Path">
-            <span className="mono">{view.path}</span>
-          </KV>
-          <KV label="Lines">{view.totalLines === null ? "-" : view.totalLines}</KV>
-          <KV label="Bytes">{view.size}</KV>
-          {view.isSecretLike ? (
-            <KV label="Status">
-              <span className="text-amber-300">redacted</span>
-            </KV>
-          ) : view.isBinary ? (
-            <KV label="Status">binary</KV>
-          ) : null}
-        </div>
-      ) : null}
-
-      <div className="mt-4 mb-2 flex items-center gap-2 border-t border-white/10 pt-3">
-        <MessageSquarePlus className="h-3.5 w-3.5 text-violet-soft" />
-        <div className="eyebrow">Annotations</div>
-      </div>
-      <p className="mb-3 text-[11px] leading-snug text-fog-300">
-        Notes pinned to this file. Ones marked{" "}
-        <span className="text-fog-300">visible to agents</span> are added to every
-        agent's prompt during runs - your guidance, acknowledged by the crew.
-      </p>
-
-      {err ? (
-        <div className="mb-2 border border-rose-400/30 bg-rose-500/5 px-2 py-1.5 text-[11px] text-rose-300">
-          {err}
-        </div>
-      ) : null}
-
-      {source !== "project" ? (
-        <div className="border border-white/10 bg-ink-200 px-2.5 py-2 text-[11.5px] text-fog-300">
-          Switch to <span className="text-fog-200">Project</span> to read or add
-          annotations - they're pinned to the project codebase.
-        </div>
-      ) : !path ? (
-        <div className="border border-white/10 bg-ink-200 px-2.5 py-2 text-[11.5px] text-fog-300">
-          Select a file to see and add annotations.
-        </div>
-      ) : (
-        <>
-          {canAnnotate ? (
-            <div className="border border-white/10 bg-ink-200 p-2.5">
-              <div className="mb-1.5 flex items-center gap-1.5 text-[11px] text-fog-300">
-                <span>Anchor:</span>
-                <span className="border border-white/10 px-1.5 py-0.5 text-fog-200">
-                  {anchorLabel(props.draftLine, props.draftEndLine)}
-                </span>
-                <input
-                  type="number"
-                  min={1}
-                  value={props.draftLine ?? ""}
-                  placeholder="line"
-                  onChange={(e) =>
-                    props.setDraftLine(e.target.value ? Number(e.target.value) : null)
-                  }
-                  className="ml-auto w-14 border border-white/10 bg-ink-300 px-1.5 py-0.5 text-[11px] text-fog-100 outline-none focus:border-violet-soft/40"
-                />
-                <span className="text-fog-600">–</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={props.draftEndLine ?? ""}
-                  placeholder="end"
-                  disabled={props.draftLine === null}
-                  onChange={(e) =>
-                    props.setDraftEndLine(e.target.value ? Number(e.target.value) : null)
-                  }
-                  className="w-14 border border-white/10 bg-ink-300 px-1.5 py-0.5 text-[11px] text-fog-100 outline-none focus:border-violet-soft/40 disabled:opacity-40"
-                />
-              </div>
-              <textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder="e.g. don't refactor this - it's load-bearing for the migration."
-                rows={3}
-                className="w-full resize-y border border-white/10 bg-ink-300 px-2 py-1.5 text-[12px] text-fog-100 placeholder-fog-600 outline-none focus:border-violet-soft/40"
-              />
-              <div className="mt-2 flex items-center justify-between">
-                <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-fog-300">
-                  <input
-                    type="checkbox"
-                    checked={share}
-                    onChange={(e) => setShare(e.target.checked)}
-                    className="accent-violet-500"
-                  />
-                  <Bot className="h-3.5 w-3.5 text-fog-400" />
-                  Visible to agents
-                </label>
-                <button
-                  type="button"
-                  disabled={!body.trim() || saving}
-                  onClick={() => void add()}
-                  className="border border-violet-soft/40 bg-violet-soft/10 px-2.5 py-1 text-[11.5px] text-fog-100 hover:bg-violet-soft/20 disabled:opacity-40"
-                >
-                  {saving ? "Adding…" : "Add note"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="border border-white/10 bg-ink-200 px-2.5 py-2 text-[11.5px] text-fog-300">
-              Annotations are disabled for secret-like files.
-            </div>
-          )}
-
-          <div className="mt-3 flex flex-col gap-2">
-            {loading ? (
-              <div className="text-[11.5px] text-fog-500">Loading…</div>
-            ) : anns.length === 0 ? (
-              <div className="text-[11.5px] text-fog-500">No annotations on this file yet.</div>
-            ) : (
-              anns.map((a) => (
-                <AnnotationCard
-                  key={a.id}
-                  annotation={a}
-                  busy={busyId === a.id}
-                  onToggleResolve={() =>
-                    void patch(a.id, { status: a.status === "open" ? "resolved" : "open" })
-                  }
-                  onToggleShare={() => void patch(a.id, { shareWithRoles: !a.shareWithRoles })}
-                  onDelete={() => void remove(a.id)}
-                />
-              ))
-            )}
+        {tree ? (
+          <div className="mt-2 flex flex-wrap items-stretch gap-1">
+            <StatTile value={tree.totalCount} label="entries" />
+            <StatTile value={tree.depth} label="depth" />
+            {tree.truncated ? (
+              <StatTile value="yes" label="truncated" tone="amber" />
+            ) : null}
           </div>
-        </>
-      )}
+        ) : null}
+        {view ? (
+          <>
+            <div className="mt-2.5 truncate text-[11.5px] font-medium text-chalk-300">
+              <span className="num-tabular">{view.path}</span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-stretch gap-1">
+              <StatTile
+                value={view.totalLines === null ? "-" : view.totalLines}
+                label="lines"
+              />
+              <StatTile value={`${(view.size / 1024).toFixed(1)}k`} label="bytes" />
+              {view.isSecretLike ? (
+                <StatTile value="redacted" label="status" tone="amber" />
+              ) : view.isBinary ? (
+                <StatTile value="binary" label="status" />
+              ) : null}
+            </div>
+          </>
+        ) : null}
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col p-3">
+        <div className="mb-2 flex items-center gap-1.5">
+          <MessageSquarePlus className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} aria-hidden />
+          <h2 className="text-[13px] font-bold text-violet-vivid">Annotations</h2>
+        </div>
+        <p className="mb-3 text-[11.5px] leading-snug text-chalk-300">
+          Notes pinned to this file. Ones marked{" "}
+          <span className="font-semibold text-violet-soft">visible to agents</span> are
+          added to every agent's prompt during runs - your guidance, acknowledged by the
+          crew.
+        </p>
+
+        {err ? (
+          <div className="mb-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+            {err}
+          </div>
+        ) : null}
+
+        {source !== "project" ? (
+          <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2.5 text-[11.5px] text-chalk-300">
+            Switch to <span className="font-semibold text-chalk-100">Project</span> to read
+            or add annotations - they're pinned to the project codebase.
+          </div>
+        ) : !path ? (
+          <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2.5 text-[11.5px] text-chalk-300">
+            Select a file from the tree to see and add its annotations.
+          </div>
+        ) : (
+          <>
+            {canAnnotate ? (
+              <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 p-2.5">
+                <div className="mb-2 flex items-center gap-1.5">
+                  <span className="text-[11px] font-medium text-violet-soft">Anchor</span>
+                  <span className="rounded-[8px] bg-coal-500 px-1.5 py-0.5 text-[11px] font-semibold text-chalk-100">
+                    {anchorLabel(props.draftLine, props.draftEndLine)}
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={props.draftLine ?? ""}
+                    placeholder="line"
+                    aria-label="Anchor line"
+                    onChange={(e) =>
+                      props.setDraftLine(e.target.value ? Number(e.target.value) : null)
+                    }
+                    className="ml-auto w-14 rounded-[8px] border border-[color:var(--line-strong)] bg-coal-800 px-1.5 py-0.5 text-[11px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+                  />
+                  <span className="text-chalk-400">-</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={props.draftEndLine ?? ""}
+                    placeholder="end"
+                    aria-label="Anchor end line"
+                    disabled={props.draftLine === null}
+                    onChange={(e) =>
+                      props.setDraftEndLine(e.target.value ? Number(e.target.value) : null)
+                    }
+                    className="w-14 rounded-[8px] border border-[color:var(--line-strong)] bg-coal-800 px-1.5 py-0.5 text-[11px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none disabled:opacity-40"
+                  />
+                </div>
+                <textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder="e.g. don't refactor this - it's load-bearing for the migration."
+                  rows={3}
+                  className="w-full resize-y rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-2 text-[12px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+                />
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-chalk-300">
+                    <input
+                      type="checkbox"
+                      checked={share}
+                      onChange={(e) => setShare(e.target.checked)}
+                      className="accent-violet-500"
+                    />
+                    <Bot className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} aria-hidden />
+                    Visible to agents
+                  </label>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={!body.trim() || saving}
+                    onClick={() => void add()}
+                  >
+                    {saving ? "Adding" : "Add note"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2.5 text-[11.5px] text-chalk-300">
+                Annotations are disabled for secret-like files.
+              </div>
+            )}
+
+            <div className="mt-3 flex flex-col gap-2">
+              {loading ? (
+                <div className="text-[11.5px] text-chalk-400">Loading annotations.</div>
+              ) : anns.length === 0 ? (
+                <div className="rounded-[12px] border border-[color:var(--line-soft)] bg-coal-600/60 px-3 py-2.5 text-[11.5px] text-chalk-300">
+                  {canAnnotate
+                    ? "No annotations yet. Add the first note above to guide the crew on this file."
+                    : "No annotations on this file yet."}
+                </div>
+              ) : (
+                anns.map((a) => (
+                  <AnnotationCard
+                    key={a.id}
+                    annotation={a}
+                    busy={busyId === a.id}
+                    onToggleResolve={() =>
+                      void patch(a.id, { status: a.status === "open" ? "resolved" : "open" })
+                    }
+                    onToggleShare={() => void patch(a.id, { shareWithRoles: !a.shareWithRoles })}
+                    onDelete={() => void remove(a.id)}
+                  />
+                ))
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </aside>
   );
 }
@@ -573,12 +627,13 @@ function AnnotationCard({
   const resolved = a.status === "resolved";
   return (
     <div
-      className={`border border-white/10 bg-ink-200 p-2.5 ${
-        resolved ? "opacity-55" : ""
-      }`}
+      className={cn(
+        "rounded-[12px] border border-[color:var(--line)] bg-coal-600 p-2.5",
+        resolved && "opacity-60",
+      )}
     >
       <div className="flex items-center gap-1.5">
-        <span className="mono border border-white/10 px-1.5 py-0.5 text-[10px] text-fog-300">
+        <span className="num-tabular rounded-[8px] bg-coal-500 px-1.5 py-0.5 text-[10px] font-semibold text-chalk-200">
           {anchorLabel(a.line, a.endLine)}
         </span>
         <button
@@ -586,25 +641,31 @@ function AnnotationCard({
           onClick={onToggleShare}
           disabled={busy}
           title={a.shareWithRoles ? "Shared with agents - click to make private" : "Private - click to share with agents"}
-          className={`inline-flex items-center gap-1 border px-1.5 py-0.5 text-[10px] ${
+          className={cn(
+            "inline-flex items-center gap-1 rounded-[8px] px-1.5 py-0.5 text-[10px] font-semibold transition disabled:opacity-50",
             a.shareWithRoles
-              ? "border-violet-soft/40 bg-violet-soft/10 text-violet-soft"
-              : "border-white/10 text-fog-500"
-          }`}
+              ? "bg-violet-soft/12 text-violet-soft hover:bg-violet-soft/20"
+              : "text-chalk-400 hover:bg-coal-500 hover:text-chalk-200",
+          )}
         >
-          <Bot className="h-3 w-3" />
+          <Bot className="h-3 w-3" strokeWidth={1.9} aria-hidden />
           {a.shareWithRoles ? "roles" : "private"}
         </button>
         <div className="ml-auto flex items-center gap-1">
           <IconBtn title={resolved ? "Reopen" : "Resolve"} onClick={onToggleResolve} disabled={busy}>
-            {resolved ? <RotateCcw className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+            {resolved ? <RotateCcw className="h-3 w-3" strokeWidth={1.9} /> : <Check className="h-3 w-3" strokeWidth={1.9} />}
           </IconBtn>
           <IconBtn title="Delete" onClick={onDelete} disabled={busy}>
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-3 w-3" strokeWidth={1.9} />
           </IconBtn>
         </div>
       </div>
-      <p className={`mt-1.5 whitespace-pre-wrap text-[12px] leading-snug text-fog-200 ${resolved ? "line-through" : ""}`}>
+      <p
+        className={cn(
+          "mt-1.5 whitespace-pre-wrap text-[12px] leading-snug text-chalk-200",
+          resolved && "line-through",
+        )}
+      >
         {a.body}
       </p>
     </div>
@@ -628,18 +689,9 @@ function IconBtn({
       title={title}
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex h-6 w-6 items-center justify-center border border-white/10 text-fog-300 hover:bg-white/[0.05] hover:text-fog-100 disabled:opacity-40"
+      className="inline-flex h-6 w-6 items-center justify-center rounded-[8px] text-chalk-400 transition hover:bg-coal-500 hover:text-chalk-100 disabled:opacity-40"
     >
       {children}
     </button>
-  );
-}
-
-function KV({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-[64px_1fr] gap-2 text-[11.5px]">
-      <span className="text-fog-500">{label}</span>
-      <span className="truncate text-fog-200">{children}</span>
-    </div>
   );
 }

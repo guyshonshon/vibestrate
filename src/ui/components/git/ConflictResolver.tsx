@@ -24,6 +24,7 @@ import type {
   GitApplyResult,
 } from "../../lib/types.js";
 import { cn } from "../design/cn.js";
+import { Button } from "../design/Button.js";
 
 type Props = {
   source: string;
@@ -127,12 +128,16 @@ export function ConflictResolver({ source, target, conflictedFiles, onApplied }:
     <div className="space-y-3">
       {/* Conflict file list */}
       <div>
-        <div className="text-[11.5px] text-fog-400 mb-2">
-          {conflictedFiles.length} conflicted file{conflictedFiles.length === 1 ? "" : "s"}:
+        <div className="mb-2 text-[11.5px] font-semibold text-violet-soft">
+          {conflictedFiles.length} conflicted file
+          {conflictedFiles.length === 1 ? "" : "s"}
         </div>
-        <ul className="space-y-0.5">
+        <ul className="space-y-1">
           {conflictedFiles.map((f) => (
-            <li key={f} className="mono text-[11.5px] text-rose-300 px-2 py-0.5 bg-rose-500/5 border border-rose-400/15">
+            <li
+              key={f}
+              className="mono rounded-[8px] border border-rose-400/20 bg-rose-500/10 px-2 py-1 text-[11.5px] text-rose-300"
+            >
               {f}
             </li>
           ))}
@@ -142,34 +147,36 @@ export function ConflictResolver({ source, target, conflictedFiles, onApplied }:
       {/* Proposal controls */}
       {!proposal ? (
         <div className="space-y-2">
-          <p className="text-[11.5px] text-fog-400">
+          <p className="text-[11.5px] text-chalk-300">
             Ask the supervisor to propose resolutions. Proposals are advisory - nothing is written until you apply.
           </p>
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => void fetchProposal()}
             disabled={proposing}
-            className="h-8 px-3 border border-white/10 bg-ink-200 hover:bg-ink-100 text-[12px] text-fog-200 flex items-center gap-1.5 disabled:opacity-50"
+            iconLeft={<GitMerge className="h-3.5 w-3.5" strokeWidth={1.9} />}
           >
-            <GitMerge className="h-3.5 w-3.5" strokeWidth={1.6} />
-            {proposing ? "Asking supervisor…" : "Ask supervisor to propose"}
-          </button>
+            {proposing ? "Asking supervisor" : "Ask supervisor to propose"}
+          </Button>
         </div>
       ) : (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-[11.5px] text-fog-300">
+            <span className="text-[11.5px] font-semibold text-violet-soft">
               {proposal.files.length} file{proposal.files.length === 1 ? "" : "s"} in proposal
             </span>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => void fetchProposal()}
               disabled={proposing}
-              className="h-7 px-2 border border-white/10 bg-ink-200 hover:bg-ink-100 text-[11px] text-fog-400 flex items-center gap-1 disabled:opacity-50"
+              iconLeft={
+                <RefreshCw className={cn("h-3 w-3", proposing && "animate-spin")} strokeWidth={1.9} />
+              }
             >
-              <RefreshCw className={cn("h-3 w-3", proposing && "animate-spin")} strokeWidth={1.6} />
               Re-ask
-            </button>
+            </Button>
           </div>
 
           {/* Per-file resolution */}
@@ -186,40 +193,43 @@ export function ConflictResolver({ source, target, conflictedFiles, onApplied }:
 
           {/* Apply resolved */}
           {applyResult ? (
-            <div className="flex items-center gap-2 border border-emerald-400/30 bg-emerald-500/5 px-3 py-2 text-[12px] text-emerald-300">
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.7} />
-              Merge applied. New commit: <span className="mono">{applyResult.mergedSha.slice(0, 8)}</span>
+            <div className="flex items-center gap-2 rounded-[10px] border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-400">
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} />
+              <span>
+                Merge applied. New commit:{" "}
+                <span className="mono">{applyResult.mergedSha.slice(0, 8)}</span>
+              </span>
             </div>
           ) : (
             <div className="space-y-1.5">
               {blockedFiles.length > 0 ? (
-                <div className="text-[11.5px] text-amber-300/90">
+                <div className="rounded-[10px] border border-amber-soft/25 bg-amber-soft/10 px-3 py-2 text-[11.5px] text-amber-soft">
                   {blockedFiles.length} file
                   {blockedFiles.length === 1 ? "" : "s"} can't be resolved here
                   (secret / binary / unparseable). Resolve the whole merge with
                   plain git - this surface can't complete it.
                 </div>
               ) : null}
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => void applyResolved()}
                 disabled={applying || !canApply}
-                className="h-8 px-3 border border-emerald-400/30 bg-emerald-500/10 hover:bg-emerald-500/15 text-[12px] text-emerald-300 flex items-center gap-1.5 disabled:opacity-50"
+                iconLeft={<GitMerge className="h-3.5 w-3.5" strokeWidth={1.9} />}
               >
-                <GitMerge className="h-3.5 w-3.5" strokeWidth={1.6} />
                 {applying
-                  ? "Applying…"
+                  ? "Applying"
                   : `Apply resolved merge (${acceptedCount} file${acceptedCount === 1 ? "" : "s"})`}
-              </button>
+              </Button>
             </div>
           )}
         </div>
       )}
 
       {error ? (
-        <div className="flex items-start gap-2 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12px] text-rose-300">
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" strokeWidth={1.7} />
-          {error}
+        <div className="flex items-start gap-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.9} />
+          <span>{error} - re-ask the supervisor or resolve with plain git.</span>
         </div>
       ) : null}
     </div>
@@ -241,82 +251,82 @@ function FileResolutionCard({
   const statusLabel: Record<GitFileResolution["status"], { label: string; tone: string }> = {
     proposed: { label: "proposed", tone: "text-violet-soft" },
     refusedSecret: { label: "refused (secret)", tone: "text-rose-300" },
-    binary: { label: "binary", tone: "text-amber-300" },
-    unparseable: { label: "unparseable", tone: "text-fog-400" },
+    binary: { label: "binary", tone: "text-amber-soft" },
+    unparseable: { label: "unparseable", tone: "text-chalk-300" },
   };
   const s = statusLabel[resolution.status];
 
   return (
     <div className={cn(
-      "border overflow-hidden",
+      "overflow-hidden rounded-[12px] border",
       resolution.status === "proposed" && accepted
-        ? "border-violet-soft/25 bg-ink-100"
-        : "border-white/[0.07] bg-ink-200",
+        ? "border-violet-soft/30 bg-violet-soft/[0.06]"
+        : "border-[color:var(--line)] bg-coal-500/50",
     )}>
       {/* File header */}
       <div className="flex items-center gap-2 px-3 py-2">
         <button
           type="button"
           onClick={() => setExpanded((x) => !x)}
-          className="flex-1 flex items-center gap-2 text-left min-w-0"
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
         >
-          <span className="mono text-[11.5px] text-fog-100 truncate">{resolution.file}</span>
-          <span className={cn("text-[10.5px] font-mono", s.tone)}>{s.label}</span>
+          <span className="mono truncate text-[11.5px] text-chalk-100">{resolution.file}</span>
+          <span className={cn("mono text-[10.5px] font-semibold", s.tone)}>{s.label}</span>
           {resolution.note ? (
-            <span className="text-[10.5px] text-fog-500 truncate">{resolution.note}</span>
+            <span className="truncate text-[10.5px] text-chalk-300">{resolution.note}</span>
           ) : null}
         </button>
         {resolution.status === "proposed" ? (
-          <label className="flex items-center gap-1.5 shrink-0 cursor-pointer">
+          <label className="flex shrink-0 cursor-pointer items-center gap-1.5">
             <input
               type="checkbox"
               checked={accepted}
               onChange={onToggleAccepted}
-              className="accent-violet-500 w-3.5 h-3.5"
+              className="h-3.5 w-3.5 accent-violet-500"
             />
-            <span className="text-[11px] text-fog-400">include</span>
+            <span className="text-[11px] font-medium text-chalk-300">include</span>
           </label>
         ) : null}
       </div>
 
       {/* Content for non-proposed files */}
       {resolution.status !== "proposed" ? (
-        <div className="border-t border-white/[0.05] px-3 py-2 text-[11.5px] text-fog-400">
+        <div className="border-t border-[color:var(--line-soft)] px-3 py-2 text-[11.5px] text-chalk-300">
           {resolution.status === "refusedSecret"
             ? "Contains secret-like content - resolve manually."
             : resolution.status === "binary"
               ? "Binary file - resolve manually."
               : "Could not parse conflict markers - resolve manually."}
           {resolution.note ? (
-            <span className="block mt-0.5 text-fog-500">{resolution.note}</span>
+            <span className="mt-0.5 block text-chalk-400">{resolution.note}</span>
           ) : null}
         </div>
       ) : null}
 
       {/* Hunk view and editable merge content */}
       {resolution.status === "proposed" && expanded ? (
-        <div className="border-t border-white/[0.05] space-y-2 p-3">
+        <div className="space-y-2 border-t border-[color:var(--line-soft)] p-3">
           {/* Hunk reference table */}
           {resolution.hunks.length > 0 ? (
-            <div className="space-y-2 mb-3">
+            <div className="mb-3 space-y-2">
               {resolution.hunks.map((h) => (
-                <div key={h.index} className="border border-white/[0.05] bg-ink-300 text-[10.5px] font-mono">
-                  <div className="grid grid-cols-3 border-b border-white/[0.05]">
-                    <div className="px-2 py-1 border-r border-white/[0.05]">
-                      <div className="text-fog-500 mb-0.5">ours</div>
-                      <pre className="whitespace-pre-wrap text-sky-glow/80">{h.ours || "(empty)"}</pre>
+                <div key={h.index} className="mono overflow-hidden rounded-[10px] border border-[color:var(--line-soft)] bg-coal-800 text-[10.5px]">
+                  <div className="grid grid-cols-3 border-b border-[color:var(--line-soft)]">
+                    <div className="border-r border-[color:var(--line-soft)] px-2 py-1">
+                      <div className="mb-0.5 font-semibold text-sky-glow">ours</div>
+                      <pre className="whitespace-pre-wrap text-chalk-200">{h.ours || "(empty)"}</pre>
                     </div>
-                    <div className="px-2 py-1 border-r border-white/[0.05]">
-                      <div className="text-fog-500 mb-0.5">theirs</div>
-                      <pre className="whitespace-pre-wrap text-amber-300/80">{h.theirs || "(empty)"}</pre>
+                    <div className="border-r border-[color:var(--line-soft)] px-2 py-1">
+                      <div className="mb-0.5 font-semibold text-amber-soft">theirs</div>
+                      <pre className="whitespace-pre-wrap text-chalk-200">{h.theirs || "(empty)"}</pre>
                     </div>
                     <div className="px-2 py-1">
-                      <div className="text-fog-500 mb-0.5">proposed</div>
-                      <pre className="whitespace-pre-wrap text-emerald-300/80">{h.proposed || "(empty)"}</pre>
+                      <div className="mb-0.5 font-semibold text-emerald-400">proposed</div>
+                      <pre className="whitespace-pre-wrap text-chalk-200">{h.proposed || "(empty)"}</pre>
                     </div>
                   </div>
                   {h.rationale ? (
-                    <div className="px-2 py-1 text-fog-500 italic text-[10px]">{h.rationale}</div>
+                    <div className="px-2 py-1 text-[10px] italic text-chalk-300">{h.rationale}</div>
                   ) : null}
                 </div>
               ))}
@@ -325,18 +335,18 @@ function FileResolutionCard({
 
           {/* Editable whole-file textarea */}
           <div>
-            <div className="text-[10.5px] text-fog-500 mb-1">
-              edit the merged content before applying:
+            <div className="mb-1 text-[10.5px] font-medium text-violet-soft">
+              edit the merged content before applying
             </div>
             <textarea
               value={content}
               onChange={(e) => onContentChange(e.target.value)}
               rows={8}
-              className="w-full mono text-[11px] text-fog-100 bg-ink-300 border border-white/[0.08] px-2 py-1.5 resize-y focus:outline-none focus:border-violet-soft/40"
+              className="mono w-full resize-y rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-2 text-[11px] text-chalk-100 focus:border-violet-soft/50 focus:outline-none"
               spellCheck={false}
             />
           </div>
-          <p className="text-[10.5px] text-fog-500">
+          <p className="text-[10.5px] text-chalk-300">
             Proposals are advisory. Nothing is written until you click "Apply resolved merge".
           </p>
         </div>

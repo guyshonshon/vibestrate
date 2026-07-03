@@ -7,7 +7,6 @@ import {
   PenLine,
   Plus,
   Save,
-  Users,
   X,
 } from "lucide-react";
 import { api, type CrewPresetView } from "../../lib/api.js";
@@ -22,11 +21,13 @@ import type {
 import { Button } from "../../components/design/Button.js";
 import { SuggestInput } from "../../components/design/SuggestInput.js";
 import { EffortScale } from "../../components/design/EffortScale.js";
+import { StatTile } from "../../components/design/StatTile.js";
+import { EntityIcon } from "../../components/design/EntityIcon.js";
+import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
 
 const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [] };
-import { Chip, ToneDot, type ChipTone } from "../../components/design/Chip.js";
+import { ToneDot, type ChipTone } from "../../components/design/Chip.js";
 import { Select } from "../../components/design/Select.js";
-import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { cn } from "../../components/design/cn.js";
 
 // Deterministic tone per role so a role keeps the same accent across renders.
@@ -38,33 +39,35 @@ function toneFor(roleId: string): ChipTone {
 }
 
 // Tailwind can't see runtime-built class names, so map each tone to literal
-// classes (these strings appear verbatim for the JIT to pick up).
-const TONE_RING: Record<ChipTone, string> = {
-  neutral: "ring-white/20",
-  violet: "ring-violet-soft/30",
-  sky: "ring-sky-glow/30",
-  emerald: "ring-emerald-400/30",
-  amber: "ring-amber-300/30",
-  rose: "ring-rose-400/30",
+// classes (these strings appear verbatim for the JIT to pick up). All tones map
+// through the coal/chalk/accent palette so they flip correctly in both themes -
+// no raw hex, no `.slab`.
+// The role card's left accent border.
+const TONE_ACCENT: Record<ChipTone, string> = {
+  neutral: "border-l-chalk-400/50",
+  violet: "border-l-violet-soft/60",
+  sky: "border-l-sky-glow/60",
+  emerald: "border-l-emerald-400/60",
+  amber: "border-l-amber-soft/60",
+  rose: "border-l-rose-400/60",
 };
+// The role avatar chip (initials) - tinted fill + accent text.
+const TONE_AVATAR: Record<ChipTone, string> = {
+  neutral: "bg-coal-500 text-chalk-300",
+  violet: "bg-violet-soft/14 text-violet-soft",
+  sky: "bg-sky-glow/14 text-sky-glow",
+  emerald: "bg-emerald-400/14 text-emerald-400",
+  amber: "bg-amber-soft/14 text-amber-soft",
+  rose: "bg-rose-400/14 text-rose-300",
+};
+// A seat this role takes (selected state), toned to the role.
 const TONE_SEAT_ON: Record<ChipTone, string> = {
-  neutral: "border-white/25 bg-white/[0.05] text-fog-100",
-  violet: "border-violet-soft/40 bg-white/[0.05] text-fog-100",
-  sky: "border-sky-glow/40 bg-white/[0.05] text-fog-100",
-  emerald: "border-emerald-400/40 bg-white/[0.05] text-fog-100",
-  amber: "border-amber-300/40 bg-white/[0.05] text-fog-100",
-  rose: "border-rose-400/40 bg-white/[0.05] text-fog-100",
-};
-// Solid hex per tone for the role card's left accent stripe. Applied inline so
-// it wins over `.slab`'s unlayered `border` shorthand (a Tailwind border-color
-// utility would be overridden - the cascade trap from the board/profiles work).
-const TONE_HEX: Record<ChipTone, string> = {
-  neutral: "#6a7186",
-  violet: "#a78bfa",
-  sky: "#7cc5ff",
-  emerald: "#34d399",
-  amber: "#fbbf24",
-  rose: "#fb7185",
+  neutral: "border-chalk-400/40 bg-coal-500 text-chalk-100",
+  violet: "border-violet-soft/40 bg-violet-soft/10 text-chalk-100",
+  sky: "border-sky-glow/40 bg-sky-glow/10 text-chalk-100",
+  emerald: "border-emerald-400/40 bg-emerald-400/10 text-chalk-100",
+  amber: "border-amber-soft/40 bg-amber-soft/10 text-chalk-100",
+  rose: "border-rose-400/40 bg-rose-400/10 text-chalk-100",
 };
 
 const PERMISSION_OPTIONS = [
@@ -235,16 +238,12 @@ export function CrewPage({
   const hubView = crewId === null;
 
   return (
-    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
-      {error ? (
-        <div className="mb-4 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
-          {error}
-        </div>
-      ) : null}
-
+    <PageShell>
       {hubView ? (
         // ── Stage 1: the crews hub - a list you select from + presets ───────
         <>
+          <PageHeader title="Crews" />
+          {error ? <ErrorBanner text={error} /> : null}
           <CrewHub
             crews={crews}
             defaultCrew={defaultCrew}
@@ -256,109 +255,164 @@ export function CrewPage({
           <CrewPresets onInstalled={() => void load()} flash={flash} />
         </>
       ) : !crews ? (
-        <div className="mt-6 text-fog-400 text-[13px]">Loading crew…</div>
+        <>
+          <PageHeader title="Crew" />
+          <div className="text-[13px] text-chalk-300">Loading crew…</div>
+        </>
       ) : !crew ? (
         // ── Stage 2 (missing): the requested crew doesn't exist ─────────────
-        <div className="mt-6">
-          <BackToCrews onBack={onBackToCrews} />
-          <div className="mt-4 text-fog-400 text-[13px]">
-            No crew named <span className="mono">{crewId}</span>.
+        <>
+          <PageHeader
+            title="Crew not found"
+            actions={
+              <Button
+                variant="secondary"
+                size="sm"
+                iconLeft={<ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                onClick={onBackToCrews}
+              >
+                All crews
+              </Button>
+            }
+          />
+          {error ? <ErrorBanner text={error} /> : null}
+          <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-8 text-center text-[13px] text-chalk-300">
+            No crew named <span className="mono text-chalk-100">{crewId}</span>.
+            Pick one from the list instead.
           </div>
-        </div>
+        </>
       ) : (
         // ── Stage 2: the selected crew's configuration page ─────────────────
         <>
-          <BackToCrews onBack={onBackToCrews} />
-          <section className="mt-3 flex items-end justify-between gap-4 flex-wrap">
-            <div>
-              <div className="mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-fog-300">
-                <Users className="h-3 w-3" strokeWidth={1.8} /> Crew
-              </div>
-              <h1 className="font-display font-semibold leading-[1.05] tracking-[-0.02em] text-[clamp(26px,3vw,38px)] text-fog-100">
-                {crew.label}
-              </h1>
-              <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]">
+          <PageHeader
+            title={crew.label}
+            actions={
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  iconLeft={
+                    <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.9} />
+                  }
+                  onClick={onBackToCrews}
+                >
+                  All crews
+                </Button>
+                {crew.id !== defaultCrew ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={settingDefault}
+                    onClick={() => void makeDefault(crew.id)}
+                    iconLeft={<Check className="h-3.5 w-3.5" strokeWidth={2} />}
+                  >
+                    {settingDefault ? "Setting…" : "Set as default"}
+                  </Button>
+                ) : null}
+              </>
+            }
+          >
+            {/* Contained header: crew facts as stat tiles + what a crew is. */}
+            <div className="mt-4 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+              <div className="flex items-center gap-2.5">
+                <EntityIcon
+                  entity="crew"
+                  size={18}
+                  className="shrink-0 text-violet-soft"
+                />
+                <h2 className="text-[15px] font-bold text-chalk-100">
+                  {crew.label}
+                </h2>
                 {crew.id === defaultCrew ? (
-                  <span className="inline-flex items-center gap-1 font-medium text-emerald-300">
+                  <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-emerald-400">
                     <Check className="h-3.5 w-3.5" strokeWidth={2.2} /> runs by
                     default
                   </span>
                 ) : null}
-                <span className="text-fog-300">
-                  {crew.roles.length} {crew.roles.length === 1 ? "role" : "roles"}
-                </span>
-                {crew.maxReviewLoops !== null ? (
-                  <span className="text-fog-300">
-                    {crew.maxReviewLoops} review loop
-                    {crew.maxReviewLoops === 1 ? "" : "s"}
-                  </span>
-                ) : null}
               </div>
-              <p className="mt-3 max-w-[74ch] text-[13.5px] leading-[1.6] text-fog-200">
+              <p className="mt-2 max-w-[74ch] text-[13px] leading-[1.55] text-chalk-300">
                 A crew is the cast for a run. Each{" "}
-                <strong className="font-semibold text-fog-100">role</strong> runs
-                on a{" "}
-                <strong className="font-semibold text-fog-100">profile</strong>{" "}
+                <strong className="font-semibold text-chalk-100">role</strong>{" "}
+                runs on a{" "}
+                <strong className="font-semibold text-chalk-100">profile</strong>{" "}
                 (the model + effort) and claims one or more{" "}
-                <strong className="font-semibold text-fog-100">seats</strong>.
+                <strong className="font-semibold text-chalk-100">seats</strong>.
                 When a run starts, the flow's required seats are matched to these
                 roles.
               </p>
+              <div className="mt-3 flex flex-wrap items-stretch gap-1">
+                <StatTile
+                  value={crew.roles.length}
+                  label={crew.roles.length === 1 ? "role" : "roles"}
+                />
+                {crew.maxReviewLoops !== null ? (
+                  <StatTile
+                    value={crew.maxReviewLoops}
+                    label={crew.maxReviewLoops === 1 ? "review loop" : "review loops"}
+                  />
+                ) : null}
+              </div>
             </div>
-            {crew.id !== defaultCrew ? (
-              <Button
-                variant="primary"
-                size="md"
-                disabled={settingDefault}
-                onClick={() => void makeDefault(crew.id)}
-                iconLeft={<Check className="h-4 w-4" strokeWidth={2} />}
-              >
-                {settingDefault ? "Setting…" : "Set as default"}
-              </Button>
-            ) : null}
-          </section>
+          </PageHeader>
+
+          {error ? <ErrorBanner text={error} /> : null}
 
           <SeatCoverage seats={knownSeats} coverage={coverage} crew={crew} />
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {crew.roles.map((role) => (
-              <RoleCard
-                key={role.id}
-                crewId={crew.id}
-                role={role}
-                profiles={profiles}
-                providers={providers}
-                catalog={catalog}
-                existingProfileIds={new Set(profiles.map((p) => p.id))}
-                knownSeats={knownSeats}
-                skills={skills}
-                coverage={coverage}
-                saving={savingRole === role.id}
-                onPatch={(patch, okText) =>
-                  void patchRole(role.id, patch, okText)
-                }
-                onCreateProfile={(input) =>
-                  void createAndAssignProfile(role.id, input)
-                }
-                onFlash={flash}
-              />
-            ))}
-          </div>
+          <Section title="Roles">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {crew.roles.map((role) => (
+                <RoleCard
+                  key={role.id}
+                  crewId={crew.id}
+                  role={role}
+                  profiles={profiles}
+                  providers={providers}
+                  catalog={catalog}
+                  existingProfileIds={new Set(profiles.map((p) => p.id))}
+                  knownSeats={knownSeats}
+                  skills={skills}
+                  coverage={coverage}
+                  saving={savingRole === role.id}
+                  onPatch={(patch, okText) =>
+                    void patchRole(role.id, patch, okText)
+                  }
+                  onCreateProfile={(input) =>
+                    void createAndAssignProfile(role.id, input)
+                  }
+                  onFlash={flash}
+                />
+              ))}
+            </div>
+          </Section>
         </>
       )}
 
       {toast ? (
         <div
           className={cn(
-            "fixed bottom-4 right-4 z-30 border px-3.5 py-2 text-[12.5px] shadow-2xl",
+            "fixed bottom-4 right-4 z-30 flex items-center gap-2 rounded-[12px] border px-3.5 py-2 text-[12.5px] shadow-2xl",
             toast.kind === "ok"
               ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
               : "border-rose-400/30 bg-rose-500/10 text-rose-200",
           )}
         >
-          {toast.kind === "ok" ? "✓ " : "✗ "}
+          {toast.kind === "ok" ? (
+            <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} />
+          ) : (
+            <X className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} />
+          )}
           {toast.text}
         </div>
       ) : null}
+    </PageShell>
+  );
+}
+
+/** Inline page-level error banner in the new idiom. */
+function ErrorBanner({ text }: { text: string }) {
+  return (
+    <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
+      {text}
     </div>
   );
 }
@@ -407,74 +461,89 @@ function CrewPresets({
 
   if (!presets || presets.length === 0) return null;
 
-  const effectLine = (e: NonNullable<CrewPresetView["effect"]>): string => {
-    const bits = [
-      e.power ? `${e.power} effort` : null,
-      e.model ? `model ${e.model}` : null,
+  // The preset's effect surfaced as stat tiles so facts read as data, not a
+  // grey dot-separated meta line.
+  type Stat = { value: string | number; label: string };
+  const effectStats = (e: NonNullable<CrewPresetView["effect"]>): Stat[] => {
+    const rows: (Stat | null)[] = [
+      { value: e.provider, label: "provider" },
+      e.power ? { value: e.power, label: "effort" } : null,
+      e.model ? { value: e.model, label: "model" } : null,
       e.maxReviewLoops !== null
-        ? `${e.maxReviewLoops} review loop${e.maxReviewLoops === 1 ? "" : "s"}`
+        ? {
+            value: e.maxReviewLoops,
+            label: e.maxReviewLoops === 1 ? "review loop" : "review loops",
+          }
         : null,
-    ].filter(Boolean);
-    return [`on ${e.provider}`, ...bits].join(" · ");
+    ];
+    return rows.filter((x): x is Stat => x !== null);
   };
 
   return (
-    <section className="mt-10">
-      <h2 className="text-[13px] font-semibold text-fog-200">Presets</h2>
-      <p className="mt-1 text-[12px] text-fog-400">
-        Ready-made crews over the same roster as your default crew - faster,
-        more thorough, cheaper, or local. Adds to{" "}
-        <span className="mono">project.yml</span> without overwriting anything.
+    <div id="crew-presets">
+    <Section title="Presets">
+      <p className="mb-3 max-w-[74ch] text-[13px] leading-[1.55] text-chalk-300">
+        Ready-made crews over the same roster as your default crew - faster, more
+        thorough, cheaper, or local. Adds to{" "}
+        <span className="mono text-chalk-100">project.yml</span> without
+        overwriting anything.
       </p>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {presets.map((p) => (
           <div
             key={p.id}
-            className="slab px-4 py-3"
+            className="flex flex-col rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4"
           >
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-[13px] font-semibold text-fog-100">
-                {p.label}{" "}
-                <span className="mono text-[11px] text-fog-500">({p.id})</span>
-              </div>
+            <div className="flex items-center gap-2">
+              <EntityIcon
+                entity="crew"
+                size={16}
+                className="shrink-0 text-violet-soft"
+              />
+              <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-chalk-100">
+                {p.label}
+              </span>
               {p.installed ? (
-                <span className="text-[11px] text-violet-300/80">installed</span>
-              ) : p.available ? (
-                <button
-                  type="button"
-                  disabled={busy === p.id}
-                  onClick={() => void install(p.id)}
-                  className="border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-[12px] text-violet-200 hover:bg-violet-500/20 disabled:opacity-50"
-                >
-                  {busy === p.id ? "Adding…" : "Add"}
-                </button>
-              ) : (
-                <span className="text-[11px] text-fog-500">n/a here</span>
-              )}
+                <span className="shrink-0 text-[11px] font-semibold text-emerald-400">
+                  installed
+                </span>
+              ) : !p.available ? (
+                <span className="shrink-0 text-[11px] font-medium text-chalk-400">
+                  n/a here
+                </span>
+              ) : null}
             </div>
-            <p className="mt-1 text-[12px] text-fog-400">{p.description}</p>
+            <p className="mt-2 line-clamp-2 text-[12px] leading-snug text-chalk-300">
+              {p.description}
+            </p>
             {!p.installed && p.available && p.effect ? (
-              <p className="mt-1 mono text-[11px] text-fog-500">{effectLine(p.effect)}</p>
+              <div className="mt-3 flex flex-wrap items-stretch gap-1">
+                {effectStats(p.effect).map((s, i) => (
+                  <StatTile key={i} value={s.value} label={s.label} />
+                ))}
+              </div>
             ) : null}
             {!p.available && p.reason ? (
-              <p className="mt-1 text-[11px] text-fog-500">{p.reason}</p>
+              <p className="mt-2 text-[11.5px] text-amber-soft">{p.reason}</p>
+            ) : null}
+            {!p.installed && p.available ? (
+              <div className="mt-3.5 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={busy === p.id}
+                  iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={2} />}
+                  onClick={() => void install(p.id)}
+                >
+                  {busy === p.id ? "Adding…" : "Add to crews"}
+                </Button>
+              </div>
             ) : null}
           </div>
         ))}
       </div>
-    </section>
-  );
-}
-
-function BackToCrews({ onBack }: { onBack: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onBack}
-      className="inline-flex items-center gap-1.5 text-[12px] text-fog-400 hover:text-fog-100"
-    >
-      <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.7} /> All crews
-    </button>
+    </Section>
+    </div>
   );
 }
 
@@ -494,29 +563,47 @@ function CrewHub({
   onSetDefault: (crewId: string) => void;
 }) {
   return (
-    <>
-      <section className="mt-1">
-        <div className="eyebrow mb-1.5 flex items-center gap-1.5">
-          <Users className="h-3 w-3" strokeWidth={1.8} /> Crews
-        </div>
-        <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
-          Your crews
-        </h1>
-        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
-          Each crew is a roster of roles. Pick one to configure its roles,
-          profiles, and seats - or set the one runs use by default.
-        </p>
-      </section>
+    <Section
+      title="Your crews"
+      action={
+        crews && crews.length > 0 ? (
+          <span className="mono text-[12px] text-chalk-400">
+            {crews.length} {crews.length === 1 ? "crew" : "crews"}
+          </span>
+        ) : null
+      }
+    >
+      <p className="mb-4 max-w-[74ch] text-[13px] leading-[1.55] text-chalk-300">
+        Each crew is a roster of roles. Pick one to configure its roles,
+        profiles, and seats - or set the one runs use by default.
+      </p>
 
       {!crews ? (
-        <div className="mt-6 text-fog-400 text-[13px]">Loading crews…</div>
+        <div className="text-[13px] text-chalk-300">Loading crews…</div>
       ) : crews.length === 0 ? (
-        <div className="mt-6 slab px-4 py-6 text-[12.5px] text-fog-400">
-          No crews configured.
+        // Empty state is a CTA, not a dead end - a preset below installs one.
+        <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-8 text-center">
+          <p className="text-[13px] text-chalk-300">
+            No crews yet. Install a ready-made preset to get your first roster.
+          </p>
+          <div className="mt-3 flex justify-center">
+            <Button
+              variant="primary"
+              size="sm"
+              iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={2} />}
+              onClick={() => {
+                document
+                  .getElementById("crew-presets")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            >
+              Add a crew preset
+            </Button>
+          </div>
         </div>
       ) : (
-        <div className="hubp-grid mt-5">
-          {crews.map((c, i) => {
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {crews.map((c) => {
             const { knownSeats, coverage } = computeCoverage(c, flows);
             const uncovered = knownSeats.filter(
               (s) => coverage.get(s)?.status === "uncovered",
@@ -525,71 +612,71 @@ function CrewHub({
               (s) => coverage.get(s)?.status === "ambiguous",
             ).length;
             const isDefault = c.id === defaultCrew;
-            // The default crew is the green "hero" card; the rest alternate
-            // violet / white, exactly like the Flows catalog.
-            const variant = isDefault
-              ? "selected"
-              : i % 2 === 0
-                ? "violet"
-                : "white";
+            const seatStats: { value: string | number; label: string; tone?: "emerald" | "amber" | "rose" }[] = [
+              { value: c.roles.length, label: c.roles.length === 1 ? "role" : "roles" },
+              uncovered > 0
+                ? { value: uncovered, label: uncovered === 1 ? "uncovered seat" : "uncovered seats", tone: "rose" as const }
+                : { value: "all", label: "seats filled", tone: "emerald" as const },
+              ...(ambiguous > 0
+                ? [{ value: ambiguous, label: "ambiguous", tone: "amber" as const }]
+                : []),
+            ];
             return (
               <div
                 key={c.id}
                 className={cn(
-                  "fcard",
-                  variant === "selected" && "is-selected",
-                  variant === "white" && "is-verified",
+                  "flex flex-col rounded-[18px] border bg-coal-600 p-4",
+                  isDefault
+                    ? "border-emerald-500/40"
+                    : "border-[color:var(--line)]",
                 )}
               >
-                <div className="fcard-top">
-                  <div className="fcard-id">
-                    {isDefault ? (
-                      <>
-                        <span className="fcard-check">✓</span>
-                        <span className="fcard-verified">default crew</span>
-                      </>
-                    ) : (
-                      <span className="fcard-author">crew</span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onOpen(c.id)}
-                  className="fcard-name block w-full bg-transparent p-0 text-left"
-                >
-                  {c.label}
-                </button>
-                <div className="fcard-strip">
-                  <span className="fcard-cell">
-                    {c.roles.length} {c.roles.length === 1 ? "role" : "roles"}
-                  </span>
-                  <span className="fcard-cell">
-                    {uncovered > 0
-                      ? `${uncovered} seat${uncovered === 1 ? "" : "s"} uncovered`
-                      : "all seats covered"}
-                  </span>
-                  {ambiguous > 0 ? (
-                    <span className="fcard-cell">{ambiguous} ambiguous</span>
-                  ) : null}
-                </div>
-                <div className="fcard-actions">
+                <div className="flex items-center gap-2">
+                  <EntityIcon
+                    entity="crew"
+                    size={16}
+                    className="shrink-0 text-violet-soft"
+                  />
                   <button
                     type="button"
-                    className="fcard-act"
+                    onClick={() => onOpen(c.id)}
+                    className="min-w-0 flex-1 truncate bg-transparent p-0 text-left text-[13.5px] font-bold text-chalk-100 transition hover:text-violet-soft"
+                  >
+                    {c.label}
+                  </button>
+                  {isDefault ? (
+                    <span className="shrink-0 text-[10px] font-bold text-emerald-400">
+                      default
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-3 flex flex-wrap items-stretch gap-1">
+                  {seatStats.map((s, i) => (
+                    <StatTile
+                      key={i}
+                      value={s.value}
+                      label={s.label}
+                      tone={s.tone}
+                    />
+                  ))}
+                </div>
+                <div className="mt-3.5 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => onOpen(c.id)}
                   >
-                    configure
-                  </button>
+                    Configure
+                  </Button>
                   {!isDefault ? (
-                    <button
-                      type="button"
-                      className="fcard-act"
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       disabled={settingDefault}
                       onClick={() => onSetDefault(c.id)}
                     >
-                      set default
-                    </button>
+                      Set default
+                    </Button>
                   ) : null}
                 </div>
               </div>
@@ -597,7 +684,7 @@ function CrewHub({
           })}
         </div>
       )}
-    </>
+    </Section>
   );
 }
 
@@ -628,19 +715,22 @@ function SeatCoverage({
       a.localeCompare(b),
   );
   return (
-    <section className="mt-6 slab p-5">
+    <Section title="Seat coverage">
+      <div className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-semibold text-fog-100">Seat coverage</h2>
-        <span className="text-[12px] font-medium text-fog-200">
-          {seats.length - uncovered.length}/{seats.length} seats filled
+        <span className="text-[15px] font-bold text-chalk-100">
+          Which seats the roles fill
+        </span>
+        <span className="text-[13px] font-semibold text-emerald-400">
+          {seats.length - uncovered.length}/{seats.length} filled
         </span>
       </div>
-      <p className="mt-1.5 max-w-[80ch] text-[12.5px] leading-[1.55] text-fog-300">
-        A <strong className="text-fog-100">seat</strong> is a slot a flow can ask
-        for. Each should be filled by exactly one role below - a run can only use
-        a flow whose seats this crew all fills.
+      <p className="mt-1.5 max-w-[80ch] text-[12.5px] leading-[1.55] text-chalk-300">
+        A <strong className="text-chalk-100">seat</strong> is a slot a flow can
+        ask for. Each should be filled by exactly one role below - a run can only
+        use a flow whose seats this crew all fills.
       </p>
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[11.5px] text-fog-300">
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[11.5px] text-chalk-300">
         <span className="inline-flex items-center gap-1.5">
           <ToneDot tone="emerald" /> filled by one role
         </span>
@@ -666,11 +756,11 @@ function SeatCoverage({
           return (
             <span
               key={seat}
-              className="inline-flex items-center gap-2 border border-white/12 bg-ink-200 px-2.5 py-1.5 text-[12px]"
+              className="inline-flex items-center gap-2 rounded-[12px] border border-[color:var(--line)] bg-coal-500/60 px-2.5 py-1.5 text-[12px]"
             >
               <ToneDot tone={tone} />
-              <span className="font-medium text-fog-100">{seat}</span>
-              <span className="ml-auto truncate pl-2 text-[11px] text-fog-400">
+              <span className="font-medium text-chalk-100">{seat}</span>
+              <span className="ml-auto truncate pl-2 text-[11px] text-chalk-300">
                 {c.status === "uncovered"
                   ? "no role"
                   : c.status === "ambiguous"
@@ -682,10 +772,10 @@ function SeatCoverage({
         })}
       </div>
       {uncovered.length > 0 || ambiguous.length > 0 ? (
-        <p className="mt-3 text-[12px] leading-[1.5] text-fog-300">
+        <p className="mt-3 text-[12px] leading-[1.5] text-chalk-300">
           {uncovered.length > 0 ? (
             <>
-              <span className="font-medium text-rose-300">
+              <span className="font-semibold text-rose-300">
                 {uncovered.join(", ")}
               </span>{" "}
               {uncovered.length === 1 ? "has" : "have"} no role - assign{" "}
@@ -694,7 +784,7 @@ function SeatCoverage({
           ) : null}
           {ambiguous.length > 0 ? (
             <>
-              <span className="font-medium text-amber-300">
+              <span className="font-semibold text-amber-soft">
                 {ambiguous.join(", ")}
               </span>{" "}
               {ambiguous.length === 1 ? "is" : "are"} filled by more than one role
@@ -703,7 +793,8 @@ function SeatCoverage({
           ) : null}
         </p>
       ) : null}
-    </section>
+      </div>
+    </Section>
   );
 }
 
@@ -748,20 +839,24 @@ function RoleCard({
 
   return (
     <div
-      className="slab flex flex-col gap-5 p-5"
-      style={{ borderLeft: `3px solid ${TONE_HEX[tone]}` }}
+      className={cn(
+        "flex flex-col gap-4 rounded-[18px] border border-l-[3px] border-[color:var(--line)] bg-coal-600 p-4",
+        TONE_ACCENT[tone],
+      )}
     >
       {/* header */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex min-w-0 items-center gap-3">
           <span
-            className="flex h-12 w-12 shrink-0 items-center justify-center mono text-[16px] font-semibold uppercase text-white"
-            style={{ background: TONE_HEX[tone] }}
+            className={cn(
+              "flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] mono text-[15px] font-bold uppercase",
+              TONE_AVATAR[tone],
+            )}
           >
             {role.label.slice(0, 2)}
           </span>
           <div className="min-w-0">
-            <div className="truncate text-[17px] font-semibold leading-tight text-fog-100">
+            <div className="truncate text-[15px] font-bold leading-tight text-chalk-100">
               {role.label}
             </div>
             {/* The id is only worth showing when it adds something the label
@@ -770,18 +865,19 @@ function RoleCard({
                 the duplicate line is noise, so we drop it. */}
             {role.id.toLowerCase() !==
             role.label.toLowerCase().replace(/[^a-z0-9]+/g, "") ? (
-              <div className="mono text-[11px] text-fog-400 truncate">
+              <div className="mono truncate text-[11px] text-chalk-300">
                 {role.id}
               </div>
             ) : null}
           </div>
         </div>
+        {/* Permission renders as flat tinted text, not a pill. */}
         <span
           className={cn(
-            "shrink-0 px-2 py-1 text-[10.5px] mono",
+            "mono shrink-0 text-[11px] font-semibold",
             role.permissions === "code_write"
-              ? "border border-amber-400/40 bg-amber-500/10 text-amber-300"
-              : "border border-white/15 bg-ink-200 text-fog-300",
+              ? "text-amber-soft"
+              : "text-chalk-300",
           )}
         >
           {role.permissions}
@@ -790,7 +886,9 @@ function RoleCard({
 
       {/* seats */}
       <div>
-        <div className="eyebrow mb-1.5">Seats it takes</div>
+        <div className="mb-1.5 text-[12px] font-semibold text-violet-vivid">
+          Seats it takes
+        </div>
         <div className="flex flex-wrap gap-1.5">
           {knownSeats.map((seat) => {
             const on = role.seats.includes(seat);
@@ -819,12 +917,12 @@ function RoleCard({
                   );
                 }}
                 className={cn(
-                  "inline-flex items-center gap-1 border px-2 py-1 text-[11.5px] transition",
+                  "inline-flex items-center gap-1 rounded-[10px] border px-2 py-1 text-[11.5px] transition disabled:opacity-50",
                   on
                     ? ambiguous
-                      ? "border-amber-400/40 bg-amber-500/10 text-amber-200"
+                      ? "border-amber-soft/40 bg-amber-soft/10 text-amber-soft"
                       : TONE_SEAT_ON[tone]
-                    : "border-white/10 bg-transparent text-fog-500 hover:text-fog-200 hover:border-white/20",
+                    : "border-[color:var(--line)] bg-transparent text-chalk-400 hover:border-[color:var(--line-strong)] hover:text-chalk-200",
                 )}
               >
                 {on ? <ToneDot tone={tone} /> : <Plus className="h-2.5 w-2.5" />}
@@ -837,8 +935,10 @@ function RoleCard({
 
       {/* profile */}
       <div>
-        <div className="eyebrow mb-2 text-fog-300">Profile (runtime)</div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="mb-2 text-[12px] font-semibold text-violet-vivid">
+          Profile (runtime)
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <Select
             value={role.profile}
             disabled={saving}
@@ -859,11 +959,11 @@ function RoleCard({
             ]}
           />
           {profile ? (
-            <span className="inline-flex items-center gap-1.5 border border-white/12 bg-ink-200 px-2.5 py-1.5 text-[11.5px] text-fog-300">
+            <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-[color:var(--line)] bg-coal-500/60 px-2.5 py-1.5 text-[11.5px] text-chalk-300">
               <Cpu className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
               <span
                 className={cn(
-                  "text-fog-100",
+                  "text-chalk-100",
                   !role.providerConfigured && "text-rose-300",
                 )}
               >
@@ -871,31 +971,34 @@ function RoleCard({
                 {!role.providerConfigured ? " (not set up)" : ""}
               </span>
               {profile.model ? (
-                <span className="text-fog-400">· {profile.model}</span>
+                <span className="text-chalk-300">- {profile.model}</span>
               ) : null}
               {profile.power ? (
-                <span className="text-fog-400">· {profile.power}</span>
+                <span className="text-chalk-300">- {profile.power}</span>
               ) : null}
             </span>
           ) : (
-            <span className="text-[11.5px] text-rose-300">profile not found</span>
+            <span className="text-[11.5px] text-rose-300">
+              profile not found - pick or create one
+            </span>
           )}
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             disabled={saving}
+            iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={2} />}
             onClick={() => setNewProfileOpen((v) => !v)}
-            className="border border-white/12 bg-ink-200 px-2.5 py-1.5 text-[11.5px] text-fog-300 hover:border-violet-soft/40 hover:text-fog-100 disabled:opacity-50"
             title="Create a new profile and assign it to this role"
           >
-            + New
-          </button>
+            New profile
+          </Button>
           <Select
             value={role.permissions}
             disabled={saving}
             ariaLabel="Permissions"
             className="min-w-[130px]"
             onChange={(v) =>
-              onPatch({ permissions: v }, `${role.label} permissions → ${v}.`)
+              onPatch({ permissions: v }, `${role.label} permissions -> ${v}.`)
             }
             options={[
               ...new Set([...PERMISSION_OPTIONS, role.permissions]),
@@ -921,11 +1024,11 @@ function RoleCard({
       <SkillsRow role={role} skills={skills} saving={saving} onPatch={onPatch} />
 
       {/* prompt editor */}
-      <div className="border-t border-white/[0.06] pt-2.5">
+      <div className="border-t border-[color:var(--line-soft)] pt-3">
         <button
           type="button"
           onClick={() => setPromptOpen((v) => !v)}
-          className="flex items-center gap-1.5 text-[12px] text-fog-300 hover:text-fog-100"
+          className="flex items-center gap-1.5 text-[12px] font-semibold text-chalk-300 transition hover:text-chalk-100"
         >
           <ChevronDown
             className={cn(
@@ -963,15 +1066,30 @@ function SkillsRow({
     .filter((n) => !role.skills.includes(n));
   return (
     <div>
-      <div className="eyebrow mb-1.5">Skills</div>
+      <div className="mb-1.5 text-[12px] font-semibold text-violet-vivid">
+        Skills
+      </div>
       <div className="flex flex-wrap items-center gap-1.5">
-        {role.skills.length === 0 ? (
-          <span className="text-[11.5px] text-fog-500">none</span>
+        {role.skills.length === 0 && !adding ? (
+          available.length > 0 ? (
+            // Empty state is a CTA - attach the first skill inline.
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line)] px-2 py-1 text-[11px] font-medium text-chalk-300 transition hover:border-[color:var(--line-strong)] hover:text-chalk-100"
+            >
+              <Plus className="h-2.5 w-2.5" /> Attach a skill
+            </button>
+          ) : (
+            <span className="text-[11.5px] text-chalk-400">
+              no skills available to attach
+            </span>
+          )
         ) : (
           role.skills.map((s) => (
             <span
               key={s}
-              className="inline-flex items-center gap-1 border border-white/10 bg-ink-200/50 px-2 py-0.5 text-[11px] text-fog-200"
+              className="inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line)] bg-coal-500/50 px-2 py-0.5 text-[11px] text-chalk-200"
             >
               {s}
               <button
@@ -983,14 +1101,14 @@ function SkillsRow({
                     `Removed skill ${s}.`,
                   )
                 }
-                className="text-fog-500 hover:text-rose-300"
+                className="text-chalk-400 transition hover:text-rose-300"
               >
                 <X className="h-2.5 w-2.5" />
               </button>
             </span>
           ))
         )}
-        {available.length > 0 ? (
+        {available.length > 0 && (role.skills.length > 0 || adding) ? (
           adding ? (
             <select
               autoFocus
@@ -1006,7 +1124,7 @@ function SkillsRow({
                 setAdding(false);
               }}
               onBlur={() => setAdding(false)}
-              className="border border-white/10 bg-ink-200 px-1.5 py-0.5 text-[11px] text-fog-100 outline-none"
+              className="rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-1.5 py-0.5 text-[11px] text-chalk-100 outline-none focus:border-violet-soft/50"
             >
               <option value="">+ skill…</option>
               {available.map((n) => (
@@ -1019,7 +1137,7 @@ function SkillsRow({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="inline-flex items-center gap-1 border border-white/10 px-2 py-0.5 text-[11px] text-fog-400 hover:text-fog-200 hover:border-white/20"
+              className="inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line)] px-2 py-0.5 text-[11px] text-chalk-300 transition hover:border-[color:var(--line-strong)] hover:text-chalk-100"
             >
               <Plus className="h-2.5 w-2.5" /> skill
             </button>
@@ -1083,7 +1201,7 @@ function PromptEditor({
   }
 
   if (content === null) {
-    return <div className="mt-2 text-[11.5px] text-fog-500">Loading…</div>;
+    return <div className="mt-2 text-[11.5px] text-chalk-400">Loading…</div>;
   }
   return (
     <div className="mt-2">
@@ -1095,10 +1213,10 @@ function PromptEditor({
         }}
         spellCheck={false}
         rows={8}
-        className="w-full border border-white/10 bg-ink-200 px-2.5 py-2 mono text-[11.5px] leading-[1.55] text-fog-200 outline-none focus:border-violet-soft/40 resize-y"
+        className="mono w-full resize-y rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-2 text-[11.5px] leading-[1.55] text-chalk-200 outline-none focus:border-violet-soft/50"
       />
-      <div className="mt-1.5 flex items-center justify-between">
-        <span className="mono text-[10px] text-fog-500 truncate">{path}</span>
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        <span className="mono truncate text-[10px] text-chalk-400">{path}</span>
         <Button
           size="sm"
           variant={dirty ? "primary" : "ghost"}
@@ -1140,17 +1258,19 @@ function NewProfileInline({
   const valid =
     /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(id.trim()) && !idTaken && !!provider;
   const inputCls =
-    "border border-white/10 bg-ink-200 px-2 py-1.5 text-[12px] text-fog-100 outline-none focus:border-violet-soft/40";
+    "rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2 py-1.5 text-[12px] text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50";
 
   return (
-    <div className="mt-2.5 slab border-violet-soft/25 p-3">
-      <div className="eyebrow mb-2">New profile for this role</div>
+    <div className="mt-2.5 rounded-[16px] border border-violet-soft/25 bg-coal-800 p-3">
+      <div className="mb-2 text-[12px] font-semibold text-violet-vivid">
+        New profile for this role
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         <input
           value={id}
           onChange={(e) => setId(e.target.value)}
           placeholder="id (e.g. claude-cheap)"
-          className={cn(inputCls, "w-[160px]", idTaken && "border-rose-400/40")}
+          className={cn(inputCls, "w-[160px]", idTaken && "border-rose-400/50")}
           autoFocus
         />
         <select value={provider} onChange={(e) => setProvider(e.target.value)} className={inputCls}>
@@ -1167,7 +1287,9 @@ function NewProfileInline({
       </div>
       {caps.powerLevels.length ? (
         <div className="mt-3">
-          <div className="eyebrow mb-1.5">Effort</div>
+          <div className="mb-1.5 text-[12px] font-semibold text-violet-vivid">
+            Effort
+          </div>
           <EffortScale levels={caps.powerLevels} value={power} onChange={setPower} />
         </div>
       ) : null}
@@ -1188,7 +1310,7 @@ function NewProfileInline({
             })
           }
         >
-          Create & use
+          Create and use
         </Button>
       </div>
     </div>

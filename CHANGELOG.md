@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.47.0
+
+- **Five more screens on the new design: Codebase, Profiles, Metrics, Diffs,
+  Crew.** The design-system rollout reaches the config and analysis surfaces.
+  All five pages now compose the Mission Control canvas (PageShell header +
+  sections), dense coal/chalk cards with facts as stat tiles, real buttons by
+  their section titles, and empty states that offer the next action instead of
+  dead-ending. Metrics keeps its single-hue violet viz with status-categorical
+  charts reading theme tokens, so every chart now flips correctly in light
+  mode. The Diffs page (commit DAG + inspector + merge planner) re-themes its
+  SVG graph per theme; merge behavior is untouched. Eyebrow kickers and the
+  legacy slab/fog styling are gone from all five.
+
 ## 0.46.0
 
 - **Guided plan: the supervisor asks before it breaks a task down.** "Plan the

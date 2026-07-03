@@ -20,20 +20,29 @@ const PADDING_LEFT = 16;
 const PADDING_TOP = 24;
 const PADDING_BOTTOM = 16;
 
-// Colours for lanes (cycles)
+// Lane colours cycle through the token palette so they flip with the theme.
+// Violet is the single-hue accent; emerald/amber/sky carry their status meaning
+// (target/attention/source) so the eye reads them consistently. `var(--color-*)`
+// resolves the same token a Tailwind class would, and re-resolves under
+// `:root.light`, so the DAG stays legible in both themes without hardcoded hex.
 const LANE_COLORS = [
-  "#8b5cf6", // violet (main accent)
-  "#38bdf8", // sky
-  "#34d399", // emerald
-  "#f59e0b", // amber
-  "#f472b6", // pink
-  "#a78bfa", // lavender
-  "#fb923c", // orange
+  "var(--color-violet-soft)", // main accent
+  "var(--color-sky-glow)",
+  "var(--color-emerald)",
+  "var(--color-amber-soft)",
+  "var(--color-violet-vivid)",
+  "var(--color-chalk-300)",
 ];
 
 function laneColor(lane: number): string {
   return LANE_COLORS[lane % LANE_COLORS.length] ?? LANE_COLORS[0]!;
 }
+
+// Semantic node/label colours (theme-flipping tokens).
+const COLOR_MAIN = "var(--color-violet-soft)";
+const COLOR_SOURCE = "var(--color-sky-glow)";
+const COLOR_TARGET = "var(--color-emerald)";
+const COLOR_LABEL_DIM = "var(--color-chalk-400)";
 
 type NodeLayout = {
   commit: GitGraphCommit;
@@ -218,8 +227,8 @@ export function GitDag({ graph, selectedHash, onSelectCommit, source, target }: 
 
   if (commits.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32 text-[12px] text-fog-400">
-        No commits loaded.
+      <div className="flex h-32 items-center justify-center text-[12px] text-chalk-300">
+        No commits loaded - refresh once the repository has history.
       </div>
     );
   }
@@ -298,11 +307,11 @@ export function GitDag({ graph, selectedHash, onSelectCommit, source, target }: 
         const isSource = branchNames.includes(source ?? "");
         const isTarget = branchNames.includes(target ?? "");
         const nodeColor = isMain
-          ? "#8b5cf6"
+          ? COLOR_MAIN
           : isSource
-            ? "#38bdf8"
+            ? COLOR_SOURCE
             : isTarget
-              ? "#34d399"
+              ? COLOR_TARGET
               : laneColor(node.lane);
 
         return (
@@ -341,7 +350,7 @@ export function GitDag({ graph, selectedHash, onSelectCommit, source, target }: 
                 x={node.x + NODE_R + LABEL_X_OFF}
                 y={node.y + 4}
                 fontSize={10}
-                fill={isMain ? "#8b5cf6" : isSource ? "#38bdf8" : isTarget ? "#34d399" : "#a1a1aa"}
+                fill={isMain ? COLOR_MAIN : isSource ? COLOR_SOURCE : isTarget ? COLOR_TARGET : COLOR_LABEL_DIM}
                 fontFamily="monospace"
                 fontWeight={isMain || isSource || isTarget ? "600" : "400"}
                 className="select-none"
@@ -354,7 +363,7 @@ export function GitDag({ graph, selectedHash, onSelectCommit, source, target }: 
                 x={node.x + NODE_R + LABEL_X_OFF}
                 y={node.y + 4}
                 fontSize={9.5}
-                fill="#71717a"
+                fill={COLOR_LABEL_DIM}
                 fontFamily="monospace"
                 className="select-none"
               >

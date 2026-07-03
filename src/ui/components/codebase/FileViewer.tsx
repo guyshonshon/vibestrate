@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Copy, ExternalLink, Hash } from "lucide-react";
+import { Copy, ExternalLink, FileCode2, Hash } from "lucide-react";
 import { ApiError, api } from "../../lib/api.js";
 import type { FileView } from "../../lib/types.js";
 import { highlightLines } from "../../lib/syntax-highlight.js";
+import { Button } from "../design/Button.js";
+import { cn } from "../design/cn.js";
 
 type Props = {
   view: FileView | null;
@@ -83,74 +85,79 @@ export function FileViewer({
 
   if (loading) {
     return (
-      <div className="px-4 py-6 text-[12.5px] text-vibestrate-fg-muted">
-        Loading file…
-      </div>
+      <div className="px-4 py-6 text-[12.5px] text-chalk-400">Loading file.</div>
     );
   }
   if (error) {
     return (
-      <div className="px-4 py-6 text-[12.5px] text-vibestrate-fail">{error}</div>
+      <div className="p-3">
+        <div className="rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2.5 text-[12.5px] text-rose-300">
+          {error}
+        </div>
+      </div>
     );
   }
   if (!view) {
     return (
-      <div className="px-4 py-6 text-[12.5px] text-vibestrate-fg-muted">
-        Select a file from the tree.
+      <div className="flex h-full flex-col items-center justify-center gap-2 px-4 py-6 text-center">
+        <FileCode2 className="h-6 w-6 text-chalk-400" strokeWidth={1.6} aria-hidden />
+        <div className="text-[13px] font-semibold text-chalk-100">No file open</div>
+        <p className="max-w-[260px] text-[12px] text-chalk-300">
+          Pick a file from the tree on the left to read it, copy a line reference, or
+          open it in your editor.
+        </p>
       </div>
     );
   }
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-2 border-b border-vibestrate-border bg-vibestrate-panel/40 px-3 py-1.5">
-        <span className="vibestrate-mono truncate text-[12px] text-vibestrate-fg">
+      <header className="flex items-center gap-2 border-b border-[color:var(--line-soft)] px-3 py-2">
+        <span className="num-tabular truncate text-[12px] font-semibold text-chalk-100">
           {view.path}
         </span>
-        <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
+        <span className="shrink-0 rounded-[7px] bg-coal-500 px-1.5 py-0.5 text-[10px] font-medium text-chalk-300">
           {view.rootKind}
         </span>
-        <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
+        <span className="shrink-0 rounded-[7px] bg-coal-500 px-1.5 py-0.5 text-[10px] font-medium text-violet-soft">
           {view.language}
         </span>
-        {view.totalLines !== null ? (
-          <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
-            {view.totalLines} lines · {(view.size / 1024).toFixed(1)} KB
-          </span>
-        ) : (
-          <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
-            {(view.size / 1024).toFixed(1)} KB
-          </span>
-        )}
-        <CopyButton text={view.path} title="Copy path" />
-        <button
-          type="button"
-          onClick={() => void openInEditor(highlightLine ?? null)}
-          disabled={view.isSecretLike}
-          className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2 disabled:opacity-40"
-          title={
-            view.isSecretLike
-              ? "Editor handoff is blocked for secret-like files"
-              : "Open in configured editor"
-          }
-        >
-          <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-          editor
-        </button>
+        <span className="num-tabular shrink-0 text-[10.5px] text-chalk-400">
+          {view.totalLines !== null
+            ? `${view.totalLines} lines / ${(view.size / 1024).toFixed(1)} KB`
+            : `${(view.size / 1024).toFixed(1)} KB`}
+        </span>
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          <CopyButton text={view.path} title="Copy path" />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void openInEditor(highlightLine ?? null)}
+            disabled={view.isSecretLike}
+            iconLeft={<ExternalLink className="h-3.5 w-3.5" strokeWidth={1.9} />}
+            title={
+              view.isSecretLike
+                ? "Editor handoff is blocked for secret-like files"
+                : "Open in configured editor"
+            }
+          >
+            Editor
+          </Button>
+        </div>
       </header>
       {openMsg ? (
-        <div className="border-b border-vibestrate-border bg-vibestrate-panel-2/60 px-3 py-1 text-[10.5px] text-vibestrate-fg-dim">
+        <div className="border-b border-[color:var(--line-soft)] bg-coal-600/60 px-3 py-1.5 text-[11px] text-chalk-300">
           {openMsg}
         </div>
       ) : null}
       {view.notice ? (
-        <div className="border-b border-vibestrate-warn/40 bg-vibestrate-warn/10 px-3 py-1.5 text-[11.5px] text-vibestrate-warn">
+        <div className="border-b border-amber-soft/40 bg-amber-soft/10 px-3 py-1.5 text-[11.5px] text-amber-soft">
           {view.notice}
         </div>
       ) : null}
-      <div className="flex-1 overflow-auto bg-vibestrate-canvas">
+      <div className="flex-1 overflow-auto bg-coal-800">
         {view.lines.length === 0 ? (
-          <div className="px-3 py-6 text-[12px] text-vibestrate-fg-muted">
+          <div className="px-3 py-6 text-[12px] text-chalk-400">
             {view.isSecretLike
               ? "Contents redacted."
               : view.isBinary
@@ -160,38 +167,39 @@ export function FileViewer({
         ) : (
           <>
           {view.lines.length > RENDER_LINE_CAP && !showAllLines ? (
-            <div className="border-b border-vibestrate-warn/40 bg-vibestrate-warn/5 px-3 py-1.5 text-[11px] text-vibestrate-warn">
+            <div className="flex flex-wrap items-center gap-x-1 gap-y-1.5 border-b border-amber-soft/40 bg-amber-soft/10 px-3 py-1.5 text-[11px] text-amber-soft">
               Showing first {RENDER_LINE_CAP.toLocaleString()} of{" "}
-              {view.lines.length.toLocaleString()} lines - rendering the
-              rest can make the page sluggish.{" "}
+              {view.lines.length.toLocaleString()} lines - rendering the rest can make the
+              page sluggish.
               <button
                 type="button"
                 onClick={() => setShowAllLines(true)}
-                className="vibestrate-mono ml-1 rounded border border-vibestrate-warn/60 px-1.5 py-0.5 text-[10.5px] hover:bg-vibestrate-warn/10"
+                className="ml-1 rounded-[8px] bg-amber-soft/15 px-2 py-0.5 text-[10.5px] font-semibold text-amber-soft transition hover:bg-amber-soft/25"
               >
                 Show all {view.lines.length.toLocaleString()}
               </button>
             </div>
           ) : null}
           {view.lines.length > HIGHLIGHT_LINE_CAP ? (
-            <div className="border-b border-vibestrate-border-soft px-3 py-1 text-[10.5px] text-vibestrate-fg-muted">
+            <div className="border-b border-[color:var(--line-soft)] px-3 py-1 text-[10.5px] text-chalk-400">
               Syntax highlighting skipped for files over{" "}
               {HIGHLIGHT_LINE_CAP.toLocaleString()} lines.
             </div>
           ) : null}
-          <pre className="vibestrate-mono m-0 text-[12px] leading-[1.45]">
+          <pre className="num-tabular m-0 text-[12px] leading-[1.45]">
             {visibleLines.map((l, idx) => (
               <div
                 key={l.number}
-                className={`group flex border-b border-transparent ${
+                className={cn(
+                  "group flex border-b border-transparent",
                   highlightLine === l.number
-                    ? "bg-vibestrate-accent-soft/30"
-                    : "hover:bg-vibestrate-panel-2/40"
-                }`}
+                    ? "bg-violet-soft/12"
+                    : "hover:bg-coal-600/50",
+                )}
               >
                 <button
                   type="button"
-                  className="vibestrate-mono inline-flex w-14 shrink-0 select-none items-center justify-end gap-0.5 border-r border-vibestrate-border px-2 py-0.5 text-[10.5px] text-vibestrate-fg-muted hover:text-vibestrate-fg"
+                  className="num-tabular inline-flex w-14 shrink-0 select-none items-center justify-end gap-0.5 border-r border-[color:var(--line-soft)] px-2 py-0.5 text-[10.5px] text-chalk-400 transition hover:text-chalk-100"
                   title="Copy file:line reference"
                   onClick={() => {
                     const ref = `${view.path}:${l.number}${
@@ -206,7 +214,7 @@ export function FileViewer({
                 {onAnnotateLine && !view.isSecretLike ? (
                   <button
                     type="button"
-                    className="inline-flex w-5 shrink-0 select-none items-center justify-center text-[11px] text-fog-500 opacity-0 hover:text-violet-soft group-hover:opacity-100"
+                    className="inline-flex w-5 shrink-0 select-none items-center justify-center text-[11px] text-chalk-400 opacity-0 transition hover:text-violet-soft group-hover:opacity-100"
                     title={`Annotate line ${l.number}`}
                     onClick={() => onAnnotateLine(l.number)}
                   >
@@ -249,11 +257,11 @@ function CopyButton({ text, title }: { text: string; title: string }) {
           // ignore
         }
       }}
-      className="ml-auto inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
+      className="inline-flex items-center gap-1.5 rounded-[10px] bg-coal-500 px-2.5 py-1.5 text-[12px] font-semibold text-chalk-100 transition hover:bg-coal-400"
       title={title}
     >
-      <Copy className="h-3 w-3" strokeWidth={1.5} />
-      {copied ? "copied" : "copy"}
+      <Copy className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
+      {copied ? "Copied" : "Copy path"}
     </button>
   );
 }

@@ -23,7 +23,7 @@ export function FileTreeView({ data, selectedPath, onSelectFile, filter }: Props
   );
   if (!filtered) {
     return (
-      <div className="px-3 py-4 text-[11.5px] text-vibestrate-fg-muted">
+      <div className="px-3 py-4 text-[11.5px] text-chalk-400">
         No matches for “{filter}”.
       </div>
     );
@@ -42,7 +42,7 @@ export function FileTreeView({ data, selectedPath, onSelectFile, filter }: Props
         />
       ))}
       {filtered.truncated ? (
-        <li className="px-2 py-1 text-[10.5px] text-vibestrate-fg-muted">
+        <li className="px-2 py-1 text-[10.5px] text-chalk-400">
           tree truncated - increase ?depth or maxEntries
         </li>
       ) : null}
@@ -90,29 +90,29 @@ function Node({
             onSelectFile(entry.path);
           }
         }}
-        className={`flex w-full items-center gap-1.5 truncate py-0.5 pr-2 text-left hover:bg-vibestrate-panel-2 ${
-          selected ? "bg-vibestrate-panel-2 text-vibestrate-fg" : "text-vibestrate-fg-dim"
+        className={`flex w-full items-center gap-1.5 truncate py-0.5 pr-2 text-left transition hover:bg-coal-500 ${
+          selected ? "bg-violet-soft/12 text-chalk-100" : "text-chalk-300"
         }`}
         title={entry.path}
       >
         {isDir ? (
           expanded ? (
-            <ChevronDown className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+            <ChevronDown className="h-3 w-3 shrink-0" strokeWidth={1.9} />
           ) : (
-            <ChevronRight className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+            <ChevronRight className="h-3 w-3 shrink-0" strokeWidth={1.9} />
           )
         ) : (
           <span className="inline-block w-3" />
         )}
         <Icon
           className={`h-3.5 w-3.5 shrink-0 ${
-            entry.isSecretLike ? "text-vibestrate-warn" : "text-vibestrate-fg-muted"
+            entry.isSecretLike ? "text-amber-soft" : "text-chalk-400"
           }`}
-          strokeWidth={1.5}
+          strokeWidth={1.9}
         />
         <span className="truncate">{label}</span>
         {entry.isSecretLike ? (
-          <span className="ml-auto vibestrate-mono text-[9px] uppercase tracking-[0.1em] text-vibestrate-warn">
+          <span className="ml-auto text-[10px] font-semibold text-amber-soft">
             redacted
           </span>
         ) : null}
@@ -133,7 +133,7 @@ function Node({
       {isDir && expanded && entry.truncated ? (
         <li
           style={{ paddingLeft: 6 + (depth + 1) * 12 }}
-          className="py-0.5 text-[10.5px] text-vibestrate-fg-muted"
+          className="py-0.5 text-[10.5px] text-chalk-400"
         >
           (more entries omitted)
         </li>

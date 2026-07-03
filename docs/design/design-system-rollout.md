@@ -212,7 +212,22 @@ responsive sweep.
   utilities (Jump-to, notifications, settings). Supersedes the Phase-1
   intent to keep the TopBar - see [`primitives-contract.md` §0](./primitives-contract.md).
   Also landed `FlowsPage`'s contained, Mission-Control-matched header.
-- [ ] Phase 4 - config / admin
-- [ ] Phase 5 - git / diff / merge
-- [ ] Phase 6 - specialized panels
+- [~] Phase 4 - config / admin. `CrewPage` + `ProfilesPage` redesigned
+  (branch `design/pages-wave-1`, v0.47.0): PageShell canvas, crew/preset/profile
+  cards on the MC card shell, facts as `StatTile`s, empty states as CTAs,
+  eyebrows removed. Still pending: `ProvidersPage`, `SupervisorsPage`,
+  `ConfigPage`, `SettingsPage`, `WorkspacePage`, `ProjectPage`.
+- [~] Phase 5 - git / diff / merge. `GitTreePage` (the "Diffs" nav) + `git/*`
+  (`GitDag`, `MergePlannerPanel`, `ConflictResolver`) redesigned on
+  `PageShell variant="fill"` with Board-idiom coal-700 regions; the DAG's SVG
+  reads `var(--color-*)` tokens so it theme-flips (branch `design/pages-wave-1`,
+  v0.47.0). Merge logic untouched. Still pending: `GitPage`, `MergePage`,
+  `diff/*`, `workflow/*`.
+- [~] Phase 6 - specialized panels. `MetricsPage` (single-hue violet viz,
+  status-categorical charts on theme vars, KPI cards + `StatTile`s; orphaned
+  `MetricsDashboard.tsx` deleted) and `CodebasePage` + `codebase/*`
+  (`FileTreeView`, `FileViewer`, `FreshnessIndicator`) redesigned (branch
+  `design/pages-wave-1`, v0.47.0). Still pending: `replay/*`, `policies/*`,
+  `notifications/*`, `ProfileMaintenancePanel`, `LedgerPage`, `ConsultPage`,
+  `ProposalsPage`.
 - [ ] Phase 7 - cleanup + old-token deletion

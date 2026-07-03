@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
-import { Copy, Cpu, Plus, Save, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Copy, Cpu, Plus, Save, Trash2 } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { ProfileView, ProviderCatalog } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
-import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { SuggestInput } from "../../components/design/SuggestInput.js";
 import { EffortScale } from "../../components/design/EffortScale.js";
+import { StatTile } from "../../components/design/StatTile.js";
+import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
 import { cn } from "../../components/design/cn.js";
+
+// Contract input recipe (primitives-contract §6): rounded coal field, hairline
+// border that turns violet on focus - no box-shadow ring. Shared by the native
+// <select>, free-text <input>, and the SuggestInput this page renders.
+const INPUT_CLS =
+  "w-full rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50";
 
 function EffortField({
   levels,
@@ -19,16 +26,16 @@ function EffortField({
 }) {
   return (
     <div className="mt-3">
-      <span className="eyebrow">Effort</span>
-      <div className="mt-1.5">
-        {levels.length ? (
-          <EffortScale levels={levels} value={value} onChange={onChange} />
-        ) : (
-          <span className="text-[11px] text-fog-500">
-            This provider exposes no effort control.
-          </span>
-        )}
-      </div>
+      <span className="mb-1.5 block text-[11px] font-semibold text-violet-soft">
+        Effort
+      </span>
+      {levels.length ? (
+        <EffortScale levels={levels} value={value} onChange={onChange} />
+      ) : (
+        <span className="text-[11.5px] text-chalk-300">
+          This provider exposes no effort control.
+        </span>
+      )}
     </div>
   );
 }
@@ -37,20 +44,17 @@ const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [] };
 
 type Toast = { kind: "ok" | "err"; text: string } | null;
 
-const INPUT_CLS =
-  "border border-white/10 bg-ink-200 px-2 py-1.5 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40 w-full";
-
-// Faint tone wash for the per-provider group header - colour where it carries
-// meaning (provider identity), like the board's tinted column headers. The
-// editable profile cards below stay readable dark slabs (solid colour fills
-// would wreck the form inputs' contrast).
-const PROVIDER_TONES: Array<{ tint: string; text: string }> = [
-  { tint: "bg-violet-soft/[0.1]", text: "text-violet-soft" },
-  { tint: "bg-sky-glow/[0.1]", text: "text-sky-glow" },
-  { tint: "bg-emerald-400/[0.1]", text: "text-emerald-300" },
-  { tint: "bg-amber-400/[0.1]", text: "text-amber-300" },
-];
-function providerTone(name: string): { tint: string; text: string } {
+// Per-provider accent, keyed by name hash - colour where it carries meaning
+// (provider identity), like the board's tinted column headers. Only the group
+// heading's icon + count carry the tone; the cards below stay neutral coal so
+// the form inputs keep their contrast.
+const PROVIDER_TONES = [
+  "text-violet-soft",
+  "text-sky-glow",
+  "text-emerald-400",
+  "text-amber-soft",
+] as const;
+function providerTone(name: string): string {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   return PROVIDER_TONES[h % PROVIDER_TONES.length]!;
@@ -129,37 +133,47 @@ export function ProfilesPage() {
     groups.set(p.provider, list);
   }
   const groupedProviders = [...groups.keys()].sort();
+  const total = profiles?.length ?? 0;
 
   return (
-    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
-      <section className="mt-1 flex items-start justify-between gap-4">
-        <div>
-          <div className="eyebrow mb-1.5 flex items-center gap-1.5">
-            <SlidersHorizontal className="h-3 w-3" strokeWidth={1.8} /> Profiles
+    <PageShell className="fade-up">
+      <PageHeader
+        title="Profiles"
+        actions={
+          <Button
+            variant="primary"
+            size="sm"
+            iconLeft={<Plus size={13} />}
+            onClick={() => setCreating((v) => !v)}
+          >
+            New profile
+          </Button>
+        }
+      >
+        {/* Contained header: what a Profile is + the running count, framed
+            instead of a loose grey subtitle floating on the canvas. */}
+        <div className="mt-4 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+          <div className="flex items-center gap-2">
+            <h2 className="text-[15px] font-bold text-chalk-100">Runtime presets</h2>
+            <span className="num-tabular text-[12px] text-chalk-400">
+              {profiles ? total : ""}
+            </span>
           </div>
-          <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
-            Runtime presets
-          </h1>
-          <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
-            A <strong className="text-fog-100">Profile</strong> is a reusable preset
-            of how strong and expensive a run is - a provider plus model and effort.
-            Keep several per provider (say <span className="mono">claude</span>{" "}
-            and <span className="mono">claude-cheap</span>); Crew roles point at one.
+          <p className="mt-1.5 max-w-[72ch] text-[13px] leading-[1.55] text-chalk-300">
+            A{" "}
+            <strong className="font-semibold text-chalk-100">Profile</strong> is a
+            reusable preset of how strong and expensive a run is - a provider plus
+            model and effort. Keep several per provider (say{" "}
+            <span className="font-semibold text-chalk-100">claude</span> and{" "}
+            <span className="font-semibold text-chalk-100">claude-cheap</span>);
+            Crew roles point at one.
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          iconLeft={<Plus size={13} />}
-          onClick={() => setCreating((v) => !v)}
-        >
-          New profile
-        </Button>
-      </section>
+      </PageHeader>
 
       {error ? (
-        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
-          {error}
+        <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
+          {error} - reload the page, or check that the provider config is readable.
         </div>
       ) : null}
 
@@ -178,55 +192,56 @@ export function ProfilesPage() {
       ) : null}
 
       {!profiles ? (
-        <div className="mt-6 text-fog-400 text-[13px]">Loading profiles…</div>
+        <div className="text-[13px] text-chalk-300">Loading profiles…</div>
       ) : profiles.length === 0 ? (
-        <div className="slab mt-8 px-5 py-8 text-center">
-          <p className="text-[13.5px] text-fog-300">No profiles yet.</p>
-          <p className="mx-auto mt-1 max-w-[48ch] text-[12.5px] text-fog-500">
-            Create one to give your crew's roles a provider, model, and effort to run
-            on.
+        <div className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 px-6 py-10 text-center">
+          <p className="text-[14px] font-semibold text-chalk-100">No profiles yet.</p>
+          <p className="mx-auto mt-1.5 max-w-[48ch] text-[12.5px] leading-[1.5] text-chalk-300">
+            Create one to give your crew's roles a provider, model, and effort to
+            run on.
           </p>
-          <div className="mt-4 flex justify-center">
+          <div className="mt-5 flex justify-center">
             <Button
               variant="primary"
               size="sm"
               iconLeft={<Plus size={13} />}
               onClick={() => setCreating(true)}
             >
-              New profile
+              Create your first profile
             </Button>
           </div>
         </div>
       ) : (
-        <div className="mt-7 space-y-7">
+        <div>
           {groupedProviders.map((prov) => {
+            const list = groups.get(prov)!;
             const tone = providerTone(prov);
             return (
-            <div key={prov}>
-              {/* Not `.slab` here: .slab is unlayered and its solid background
-                  would override the layered tint utility. Explicit border +
-                  tint instead so the colour actually shows. */}
-              <div className={cn("mb-2.5 flex items-center gap-2 border border-white/[0.08] px-3 py-2", tone.tint)}>
-                <Cpu className={cn("h-3.5 w-3.5", tone.text)} strokeWidth={1.7} />
-                <span className={cn("mono text-[12.5px]", tone.text)}>{prov}</span>
-                <span className="text-[11.5px] text-fog-500">
-                  {groups.get(prov)!.length} preset
-                  {groups.get(prov)!.length === 1 ? "" : "s"}
-                </span>
-              </div>
-              <div className="space-y-3">
-                {groups.get(prov)!.map((p) => (
-                  <ProfileCard
-                    key={p.id}
-                    profile={p}
-                    providers={providers}
-                    catalog={catalog}
-                    onSaved={() => void load()}
-                    onFlash={flash}
-                  />
-                ))}
-              </div>
-            </div>
+              <Section
+                key={prov}
+                title={
+                  <span className="inline-flex items-center gap-2">
+                    <Cpu className={cn("h-4 w-4", tone)} strokeWidth={1.9} aria-hidden />
+                    <span>{prov}</span>
+                    <span className="num-tabular text-[12px] font-medium text-chalk-400">
+                      {list.length} preset{list.length === 1 ? "" : "s"}
+                    </span>
+                  </span>
+                }
+              >
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {list.map((p) => (
+                    <ProfileCard
+                      key={p.id}
+                      profile={p}
+                      providers={providers}
+                      catalog={catalog}
+                      onSaved={() => void load()}
+                      onFlash={flash}
+                    />
+                  ))}
+                </div>
+              </Section>
             );
           })}
         </div>
@@ -235,7 +250,7 @@ export function ProfilesPage() {
       {toast ? (
         <div
           className={cn(
-            "fixed bottom-4 right-4 z-30 border px-3.5 py-2 text-[12.5px] shadow-2xl",
+            "fixed bottom-4 right-4 z-30 rounded-[12px] border px-3.5 py-2 text-[12.5px] shadow-2xl",
             toast.kind === "ok"
               ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
               : "border-rose-400/30 bg-rose-500/10 text-rose-200",
@@ -245,7 +260,7 @@ export function ProfilesPage() {
           {toast.text}
         </div>
       ) : null}
-    </div>
+    </PageShell>
   );
 }
 
@@ -276,7 +291,8 @@ function CreateProfile({
   const [busy, setBusy] = useState(false);
   const caps = catalog[draft.provider] ?? EMPTY_CAPS;
   const idTaken = existingIds.has(id.trim());
-  const valid = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(id.trim()) && !idTaken && !!draft.provider;
+  const idValid = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(id.trim());
+  const valid = idValid && !idTaken && !!draft.provider;
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -303,10 +319,22 @@ function CreateProfile({
     }
   }
 
+  // The disabled Create button states what's missing in its own label, rather
+  // than a floating status sentence (primitives-contract §4).
+  const missingLabel = !draft.provider
+    ? "Pick a provider"
+    : id.trim() === ""
+      ? "Name the profile"
+      : idTaken
+        ? "Id already exists"
+        : !idValid
+          ? "Id has invalid characters"
+          : null;
+
   return (
-    <div className="mt-5 slab p-4">
-      <div className="eyebrow mb-3">New profile</div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <div className="mb-6 rounded-[16px] border border-[color:var(--line)] bg-coal-800 p-4">
+      <h3 className="mb-3 text-[13px] font-semibold text-violet-vivid">New profile</h3>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <FormField label="Id" hint={idTaken ? "id already exists" : "e.g. claude-cheap"}>
           <input
             value={id}
@@ -331,21 +359,40 @@ function CreateProfile({
           </select>
         </FormField>
         <FormField label="Label">
-          <input value={draft.label} onChange={(e) => set("label", e.target.value)} placeholder={id || "optional"} className={INPUT_CLS} />
+          <input
+            value={draft.label}
+            onChange={(e) => set("label", e.target.value)}
+            placeholder={id || "optional"}
+            className={INPUT_CLS}
+          />
         </FormField>
         <FormField label="Model">
           {caps.modelEnabled ? (
-            <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder="provider default" className={INPUT_CLS} />
+            <SuggestInput
+              value={draft.model}
+              onChange={(v) => set("model", v)}
+              suggestions={caps.models}
+              placeholder="provider default"
+              className={INPUT_CLS}
+            />
           ) : (
-            <span className="text-[11px] text-fog-500">set in the provider config</span>
+            <span className="text-[11.5px] text-chalk-300">set in the provider config</span>
           )}
         </FormField>
       </div>
       <EffortField levels={caps.powerLevels} value={draft.power} onChange={(v) => set("power", v)} />
-      <div className="mt-3 flex justify-end gap-2">
-        <Button size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button size="sm" variant="primary" disabled={!valid || busy} onClick={() => void create()} iconLeft={<Plus className="h-3 w-3" />}>
-          {busy ? "Creating…" : "Create profile"}
+      <div className="mt-4 flex items-center justify-end gap-2">
+        <Button size="sm" variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          variant="primary"
+          disabled={!valid || busy}
+          onClick={() => void create()}
+          iconLeft={<Plus className="h-3 w-3" />}
+        >
+          {busy ? "Creating…" : (missingLabel ?? "Create profile")}
         </Button>
       </div>
     </div>
@@ -424,66 +471,128 @@ function ProfileCard({
     }
   }
 
-  return (
-    <div className="slab p-4">
-      <SectionEyebrow
-        right={
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 border px-2 py-0.5 text-[11px]",
-              usedBy.length > 0
-                ? "border-white/10 bg-ink-200 text-fog-300"
-                : "border-white/10 bg-ink-200 text-fog-500",
-            )}
-            title={usedBy.map((u) => `${u.crewId}/${u.roleId}`).join(", ") || "not used by any role"}
-          >
-            {usedBy.length > 0
-              ? `used by ${usedBy.length} role${usedBy.length === 1 ? "" : "s"}`
-              : "unused"}
-          </span>
-        }
-      >
-        {profile.id}
-      </SectionEyebrow>
+  const usedByTitle =
+    usedBy.map((u) => `${u.crewId}/${u.roleId}`).join(", ") || "not used by any role";
 
-      <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+  return (
+    <div className="flex flex-col rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+      {/* Header row: the profile id + a used-by fact toned by whether any role
+          points at it (emerald = in use, neutral = unused). */}
+      <div className="flex items-center gap-2">
+        <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-chalk-100">
+          {profile.id}
+        </span>
+        <span
+          title={usedByTitle}
+          className={cn(
+            "shrink-0 text-[11px] font-semibold",
+            usedBy.length > 0 ? "text-emerald-400" : "text-chalk-400",
+          )}
+        >
+          {usedBy.length > 0
+            ? `used by ${usedBy.length} role${usedBy.length === 1 ? "" : "s"}`
+            : "unused"}
+        </span>
+      </div>
+
+      {/* Facts as content-width stat tiles - the profile's settled shape reads
+          as data, not a grey dot-separated meta line (primitives-contract §5a). */}
+      <div className="mt-3 flex flex-wrap items-stretch gap-1">
+        <StatTile value={draft.provider || "-"} label="provider" />
+        <StatTile value={draft.model.trim() || "default"} label="model" />
+        <StatTile value={draft.power.trim() || "unset"} label="effort" />
+        <StatTile value={draft.maxTokens.trim() || "-"} label="max tokens" />
+        <StatTile value={draft.timeoutMs.trim() || "-"} label="timeout ms" />
+      </div>
+
+      {/* Editable fields. */}
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <FormField label="Provider">
-          <select value={draft.provider} onChange={(e) => set("provider", e.target.value)} className={INPUT_CLS}>
+          <select
+            value={draft.provider}
+            onChange={(e) => set("provider", e.target.value)}
+            className={INPUT_CLS}
+          >
             {[...new Set([...providers, draft.provider])].map((id) => (
-              <option key={id} value={id}>{id}</option>
+              <option key={id} value={id}>
+                {id}
+              </option>
             ))}
           </select>
         </FormField>
         <FormField label="Label">
-          <input value={draft.label} onChange={(e) => set("label", e.target.value)} placeholder={profile.id} className={INPUT_CLS} />
+          <input
+            value={draft.label}
+            onChange={(e) => set("label", e.target.value)}
+            placeholder={profile.id}
+            className={INPUT_CLS}
+          />
         </FormField>
         <FormField label="Model">
           {caps.modelEnabled ? (
-            <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder="provider default" className={INPUT_CLS} />
+            <SuggestInput
+              value={draft.model}
+              onChange={(v) => set("model", v)}
+              suggestions={caps.models}
+              placeholder="provider default"
+              className={INPUT_CLS}
+            />
           ) : (
-            <span className="text-[11px] text-fog-500">set in the provider config</span>
+            <span className="text-[11.5px] text-chalk-300">set in the provider config</span>
           )}
         </FormField>
         <FormField label="Max tokens">
-          <input value={draft.maxTokens} onChange={(e) => set("maxTokens", e.target.value)} inputMode="numeric" placeholder="-" className={INPUT_CLS} />
+          <input
+            value={draft.maxTokens}
+            onChange={(e) => set("maxTokens", e.target.value)}
+            inputMode="numeric"
+            placeholder="-"
+            className={INPUT_CLS}
+          />
         </FormField>
         <FormField label="Timeout (ms)">
-          <input value={draft.timeoutMs} onChange={(e) => set("timeoutMs", e.target.value)} inputMode="numeric" placeholder="-" className={INPUT_CLS} />
+          <input
+            value={draft.timeoutMs}
+            onChange={(e) => set("timeoutMs", e.target.value)}
+            inputMode="numeric"
+            placeholder="-"
+            className={INPUT_CLS}
+          />
         </FormField>
       </div>
 
       <EffortField levels={caps.powerLevels} value={draft.power} onChange={(v) => set("power", v)} />
 
-      <div className="mt-3 flex items-center justify-end gap-2">
-        <Button size="sm" variant="ghost" onClick={() => void duplicate()} iconLeft={<Copy className="h-3 w-3" />}>
+      {/* Footer: real buttons in a bordered row. Save is the primary action
+          once the draft is dirty. */}
+      <div className="mt-4 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => void duplicate()}
+          iconLeft={<Copy className="h-3 w-3" />}
+        >
           Duplicate
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => void remove()} iconLeft={<Trash2 className="h-3 w-3" />}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => void remove()}
+          iconLeft={<Trash2 className="h-3 w-3" />}
+        >
           Delete
         </Button>
-        <Button size="sm" variant={dirty ? "primary" : "ghost"} disabled={!dirty || saving} onClick={() => void save()} iconLeft={<Save className="h-3 w-3" />}>
-          {saving ? "Saving…" : "Save"}
-        </Button>
+        <div className="ml-auto">
+          <Button
+            size="sm"
+            variant={dirty ? "primary" : "secondary"}
+            disabled={!dirty || saving}
+            onClick={() => void save()}
+            iconLeft={<Save className="h-3 w-3" />}
+          >
+            {saving ? "Saving…" : dirty ? "Save" : "Saved"}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -499,10 +608,10 @@ function FormField({
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="eyebrow">{label}</span>
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[11px] font-semibold text-violet-soft">{label}</span>
       {children}
-      {hint ? <span className="text-[10px] text-fog-500">{hint}</span> : null}
+      {hint ? <span className="text-[10.5px] text-chalk-300">{hint}</span> : null}
     </label>
   );
 }

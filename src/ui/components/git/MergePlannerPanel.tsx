@@ -16,7 +16,8 @@ import type {
   GitApplyResult,
   GitUndoResult,
 } from "../../lib/types.js";
-import { cn } from "../design/cn.js";
+import { Button } from "../design/Button.js";
+import { Select } from "../design/Select.js";
 import { ConflictResolver } from "./ConflictResolver.js";
 
 type Props = {
@@ -105,11 +106,15 @@ export function MergePlannerPanel({
   }
 
   const canPredict = !!source && !!target && source !== target;
+  const predictHint =
+    !source || !target
+      ? "Pick a source and target branch to predict a merge."
+      : source === target
+        ? "Pick two different branches to merge."
+        : null;
 
   return (
     <div className="space-y-4">
-      <div className="text-[13px] font-medium text-fog-100">Merge planner</div>
-
       {/* Branch selectors */}
       <div className="grid grid-cols-2 gap-2">
         <BranchSelect
@@ -129,15 +134,21 @@ export function MergePlannerPanel({
       </div>
 
       {/* Predict button */}
-      <button
-        type="button"
-        onClick={() => void predict()}
-        disabled={!canPredict || predicting}
-        className="h-8 px-3 border border-white/10 bg-ink-200 hover:bg-ink-100 text-[12px] text-fog-200 flex items-center gap-1.5 disabled:opacity-40"
-      >
-        <GitMerge className="h-3.5 w-3.5" strokeWidth={1.6} />
-        {predicting ? "Predicting…" : "Predict merge"}
-      </button>
+      <div className="space-y-1.5">
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => void predict()}
+          disabled={!canPredict || predicting}
+          iconLeft={<GitMerge className="h-3.5 w-3.5" strokeWidth={1.9} />}
+          className="w-full"
+        >
+          {predicting ? "Predicting" : "Predict merge"}
+        </Button>
+        {predictHint ? (
+          <div className="text-[11.5px] text-chalk-300">{predictHint}</div>
+        ) : null}
+      </div>
 
       {/* Prediction result */}
       {prediction ? (
@@ -155,26 +166,31 @@ export function MergePlannerPanel({
 
       {/* Undo */}
       {target ? (
-        <div className="border-t border-white/[0.06] pt-3 space-y-2">
-          <div className="text-[11.5px] text-fog-500">Undo last merge on target branch</div>
-          <button
-            type="button"
+        <div className="space-y-2 border-t border-[color:var(--line-soft)] pt-3">
+          <div className="text-[11.5px] font-semibold text-violet-soft">
+            Undo last merge on target
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => void undoMerge()}
             disabled={undoing || !target}
-            className="h-7 px-2.5 border border-white/10 bg-ink-200 hover:bg-ink-100 text-[11.5px] text-fog-300 flex items-center gap-1.5 disabled:opacity-40"
+            iconLeft={<RotateCcw className="h-3 w-3" strokeWidth={1.9} />}
           >
-            <RotateCcw className="h-3 w-3" strokeWidth={1.6} />
-            {undoing ? "Undoing…" : `Undo merge on "${target}"`}
-          </button>
+            {undoing ? "Undoing" : `Undo merge on "${target}"`}
+          </Button>
           {undoResult ? (
             undoResult.undone ? (
-              <div className="flex items-center gap-2 border border-emerald-400/30 bg-emerald-500/5 px-3 py-1.5 text-[12px] text-emerald-300">
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.7} />
-                Undone. Reverted to <span className="mono">{undoResult.preSha.slice(0, 8)}</span>
+              <div className="flex items-center gap-2 rounded-[10px] border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-[12px] text-emerald-400">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} />
+                <span>
+                  Undone. Reverted to{" "}
+                  <span className="mono">{undoResult.preSha.slice(0, 8)}</span>
+                </span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 border border-amber-400/30 bg-amber-500/5 px-3 py-1.5 text-[12px] text-amber-300">
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.7} />
+              <div className="flex items-center gap-2 rounded-[10px] border border-amber-soft/30 bg-amber-soft/10 px-3 py-1.5 text-[12px] text-amber-soft">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} />
                 {undoResult.reason}
               </div>
             )
@@ -184,9 +200,9 @@ export function MergePlannerPanel({
 
       {/* Error */}
       {error ? (
-        <div className="flex items-start gap-2 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12px] text-rose-300">
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" strokeWidth={1.7} />
-          {error}
+        <div className="flex items-start gap-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.9} />
+          <span>{error} - adjust the branches or retry the prediction.</span>
         </div>
       ) : null}
     </div>
@@ -206,24 +222,24 @@ function BranchSelect({
   onChange: (v: string | null) => void;
   exclude: string | null;
 }) {
+  const selectOptions = options
+    .filter((b) => b.name !== exclude)
+    .map((b) => ({
+      value: b.name,
+      label: b.name,
+      hint: b.isMain ? "main" : undefined,
+    }));
   return (
     <div>
-      <div className="text-[10.5px] text-fog-500 mb-1">{label}</div>
-      <select
-        aria-label={label}
+      <div className="mb-1 text-[10.5px] font-semibold text-violet-soft">{label}</div>
+      <Select
+        ariaLabel={label}
         value={value ?? ""}
-        onChange={(e) => onChange(e.target.value || null)}
-        className="w-full h-8 px-2 text-[12px] mono text-fog-100 bg-ink-200 border border-white/10 focus:outline-none focus:border-violet-soft/40"
-      >
-        <option value="">-- pick a branch --</option>
-        {options
-          .filter((b) => b.name !== exclude)
-          .map((b) => (
-            <option key={b.name} value={b.name}>
-              {b.name}{b.isMain ? " (main)" : ""}
-            </option>
-          ))}
-      </select>
+        onChange={(v) => onChange(v || null)}
+        options={selectOptions}
+        placeholder="pick a branch"
+        className="w-full"
+      />
     </div>
   );
 }
@@ -243,8 +259,8 @@ function PredictionResult({
 }) {
   if (prediction.alreadyUpToDate) {
     return (
-      <div className="flex items-center gap-2 border border-white/[0.07] bg-ink-200 px-3 py-2 text-[12.5px] text-fog-300">
-        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={1.7} />
+      <div className="flex items-center gap-2 rounded-[12px] border border-[color:var(--line)] bg-coal-500/60 px-3 py-2.5 text-[12.5px] text-chalk-300">
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={1.9} />
         Already up to date - nothing to merge.
       </div>
     );
@@ -252,28 +268,29 @@ function PredictionResult({
 
   if (prediction.clean) {
     return (
-      <div className="space-y-2 border border-emerald-400/20 bg-emerald-500/5 px-3 py-3">
-        <div className="flex items-center gap-2 text-[12.5px] text-emerald-300">
-          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.7} />
+      <div className="space-y-2.5 rounded-[12px] border border-emerald-400/25 bg-emerald-500/10 px-3 py-3">
+        <div className="flex items-center gap-2 text-[12.5px] font-semibold text-emerald-400">
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} />
           Clean merge - no conflicts predicted.
         </div>
         {applyResult ? (
-          <div className="text-[11.5px] text-emerald-300/80">
-            Merged. New commit: <span className="mono">{applyResult.mergedSha.slice(0, 8)}</span>
+          <div className="text-[11.5px] text-emerald-400/90">
+            Merged. New commit:{" "}
+            <span className="mono">{applyResult.mergedSha.slice(0, 8)}</span>
           </div>
         ) : (
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={onApply}
             disabled={applying}
-            className="h-8 px-3 border border-emerald-400/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-[12px] text-emerald-300 flex items-center gap-1.5 disabled:opacity-50"
+            iconLeft={<GitMerge className="h-3.5 w-3.5" strokeWidth={1.9} />}
           >
-            <GitMerge className="h-3.5 w-3.5" strokeWidth={1.6} />
-            {applying ? "Applying…" : `Apply merge`}
-          </button>
+            {applying ? "Applying" : "Apply merge"}
+          </Button>
         )}
         {prediction.note ? (
-          <div className="text-[10.5px] text-fog-500">{prediction.note}</div>
+          <div className="text-[10.5px] text-chalk-300">{prediction.note}</div>
         ) : null}
       </div>
     );
@@ -281,13 +298,14 @@ function PredictionResult({
 
   // Conflicts
   return (
-    <div className="space-y-3 border border-rose-400/20 bg-rose-500/5 px-3 py-3">
-      <div className="flex items-center gap-2 text-[12.5px] text-rose-300">
-        <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.7} />
-        {prediction.conflictedFiles.length} conflicted file{prediction.conflictedFiles.length === 1 ? "" : "s"}
+    <div className="space-y-3 rounded-[12px] border border-rose-400/25 bg-rose-500/10 px-3 py-3">
+      <div className="flex items-center gap-2 text-[12.5px] font-semibold text-rose-300">
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} />
+        {prediction.conflictedFiles.length} conflicted file
+        {prediction.conflictedFiles.length === 1 ? "" : "s"} - resolve below to merge.
       </div>
       {prediction.note ? (
-        <div className="text-[10.5px] text-fog-500">{prediction.note}</div>
+        <div className="text-[10.5px] text-chalk-300">{prediction.note}</div>
       ) : null}
       <ConflictResolver
         source={prediction.source}

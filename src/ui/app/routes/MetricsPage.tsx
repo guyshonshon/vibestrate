@@ -9,11 +9,33 @@ import {
 } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
-import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { Sparkline } from "../../components/design/Sparkline.js";
+import { StatTile, type StatTileTone } from "../../components/design/StatTile.js";
+import {
+  PageShell,
+  PageHeader,
+  Section,
+} from "../../components/layout/PageShell.js";
 import { cn } from "../../components/design/cn.js";
 
 const RANGES: OverviewRange[] = ["24h", "7d", "30d", "90d"];
+
+// Status-categorical outcome colours (merged / changes / failed) are read from
+// the theme tokens so they flip under :root.light instead of being hardcoded.
+// Non-categorical viz (latency, tokens, spend, heatmap, leaderboard) stays the
+// single-hue violet house style.
+const CSS = {
+  emerald: "var(--color-emerald, #34d399)",
+  amber: "var(--color-amber-soft, #fb923c)",
+  rose: "var(--color-fail, #fb7185)",
+  violet: "var(--color-violet-soft, #a78bfa)",
+  axis: "var(--color-chalk-400, #8e8e96)",
+  line: "var(--line-soft, rgba(255,255,255,0.06))",
+} as const;
+
+// Card shell recipe (primitives-contract §5): coal-600 surface, hairline border.
+const CARD =
+  "rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-5";
 
 export function MetricsPage() {
   const [range, setRange] = useState<OverviewRange>("7d");
@@ -72,118 +94,107 @@ export function MetricsPage() {
   };
 
   return (
-    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
-      {/* ── Hero ─ */}
-      <section className="mt-2 flex items-start justify-between gap-6 flex-wrap">
-        <div className="min-w-0 max-w-[720px]">
-          <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
-            What did your{" "}
-            <em className="text-display italic text-violet-soft">agents</em>{" "}
-            ship this week?
-          </h1>
-          <p className="text-fog-300 text-[13px] mt-1.5 max-w-[640px]">
-            Runs, outcomes, spend, latency - rolled up across every model and
-            flow.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 mt-1">
-          <div className="inline-flex border border-white/[0.12] bg-ink-200 p-[3px]">
-            {RANGES.map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRange(r)}
-                className={cn(
-                  "h-7 px-3 text-[12px] font-medium",
-                  range === r
-                    ? "bg-white/[0.08] text-fog-100"
-                    : "text-fog-300 hover:text-fog-100",
-                )}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={exportCsv}
-            iconLeft={<Download className="h-3 w-3" strokeWidth={1.7} />}
-          >
-            Export
-          </Button>
-        </div>
-      </section>
+    <PageShell>
+      <PageHeader
+        title="Metrics"
+        actions={
+          <>
+            <div className="inline-flex items-center gap-1 rounded-[12px] border border-[color:var(--line-strong)] bg-coal-500 p-[3px]">
+              {RANGES.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRange(r)}
+                  className={cn(
+                    "rounded-[9px] px-3 py-1.5 text-[12px] font-semibold transition",
+                    range === r
+                      ? "bg-violet-soft text-coal-900"
+                      : "text-chalk-300 hover:text-chalk-100",
+                  )}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={exportCsv}
+              disabled={!overview}
+              iconLeft={<Download className="h-4 w-4" strokeWidth={1.9} />}
+            >
+              Export CSV
+            </Button>
+          </>
+        }
+      />
 
       {error ? (
-        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
-          {error}
+        <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
+          {error} - retry loads automatically, or switch the range above.
         </div>
       ) : null}
 
-      {/* ── KPI strip ─ */}
       <KpiStrip overview={overview} />
 
-      {/* ── Daily spend cap ─ */}
       <BudgetControl />
 
-      {/* ── Runs + Outcomes ─ */}
-      <section className="mt-7 grid grid-cols-12 gap-5">
-        <div className="col-span-12 xl:col-span-8 slab p-5">
-          <RunsAreaChart overview={overview} />
+      <Section title="Runs and outcomes">
+        <div className="grid grid-cols-12 gap-4">
+          <div className={cn(CARD, "col-span-12 xl:col-span-8")}>
+            <RunsAreaChart overview={overview} />
+          </div>
+          <div className={cn(CARD, "col-span-12 xl:col-span-4")}>
+            <OutcomesDonut overview={overview} />
+          </div>
         </div>
-        <div className="col-span-12 xl:col-span-4 slab p-5">
-          <OutcomesDonut overview={overview} />
-        </div>
-      </section>
+      </Section>
 
-      {/* ── Spend + Latency ─ */}
-      <section className="mt-5 grid grid-cols-12 gap-5">
-        <div className="col-span-12 lg:col-span-7 slab p-5">
-          <SpendByRolePanel overview={overview} />
+      <Section title="Spend and latency">
+        <div className="grid grid-cols-12 gap-4">
+          <div className={cn(CARD, "col-span-12 lg:col-span-7")}>
+            <SpendByRolePanel overview={overview} />
+          </div>
+          <div className={cn(CARD, "col-span-12 lg:col-span-5")}>
+            <LatencyByPhasePanel overview={overview} />
+          </div>
         </div>
-        <div className="col-span-12 lg:col-span-5 slab p-5">
-          <LatencyByPhasePanel overview={overview} />
-        </div>
-      </section>
+      </Section>
 
-      {/* ── Heatmap ─ */}
-      <section className="mt-5">
-        <div className="slab p-5">
+      <Section title="Activity">
+        <div className={CARD}>
           <ActivityHeatmapPanel overview={overview} />
         </div>
-      </section>
+      </Section>
 
-      {/* ── Token ledger: per-model + tokens-by-role ─ */}
-      <section className="mt-5 grid grid-cols-12 gap-5">
-        <div className="col-span-12 lg:col-span-7 slab p-5">
-          <PerModelPanel overview={overview} />
-        </div>
-        <div className="col-span-12 lg:col-span-5 slab p-5">
-          <TokensByRolePanel overview={overview} />
-        </div>
-      </section>
-
-      {/* ── Leaderboard ─ */}
-      <section className="mt-5">
-        <div className="flex items-end justify-between mb-3">
-          <div>
-            <div className="eyebrow mb-1.5">Agents · ranked by usage</div>
-            <h2 className="text-[20px] font-semibold tracking-tight">
-              Leaderboard
-            </h2>
+      <Section title="Token ledger">
+        <div className="grid grid-cols-12 gap-4">
+          <div className={cn(CARD, "col-span-12 lg:col-span-7")}>
+            <PerModelPanel overview={overview} />
           </div>
-          <button
-            type="button"
-            onClick={exportCsv}
-            className="text-[12px] text-fog-300 hover:text-fog-100 flex items-center gap-1.5"
-          >
-            <Save className="h-3 w-3" strokeWidth={1.7} /> Export CSV
-          </button>
+          <div className={cn(CARD, "col-span-12 lg:col-span-5")}>
+            <TokensByRolePanel overview={overview} />
+          </div>
         </div>
+      </Section>
+
+      <Section
+        title="Leaderboard"
+        action={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={exportCsv}
+            disabled={!overview}
+            iconLeft={<Save className="h-3.5 w-3.5" strokeWidth={1.9} />}
+          >
+            Export CSV
+          </Button>
+        }
+      >
         <LeaderboardTable overview={overview} />
-      </section>
-    </div>
+      </Section>
+    </PageShell>
   );
 }
 
@@ -193,7 +204,7 @@ function KpiStrip({ overview }: { overview: MetricsOverview | null }) {
   const totals = overview?.totals;
   const sparks = overview?.kpiSparks;
   return (
-    <section className="mt-7 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+    <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
       <BigKpi
         label="Runs"
         value={(totals?.runs ?? 0).toLocaleString()}
@@ -208,7 +219,7 @@ function KpiStrip({ overview }: { overview: MetricsOverview | null }) {
             ? `${Math.round(totals.successRate * 100)}%`
             : "-"
         }
-        sub="merged ÷ completed"
+        sub="merged / completed"
         tone="emerald"
         spark={sparks?.success ?? []}
       />
@@ -219,7 +230,7 @@ function KpiStrip({ overview }: { overview: MetricsOverview | null }) {
         }
         sub={
           totals?.medianDurationSeconds
-            ? `avg · median ${totals.medianDurationSeconds}s`
+            ? `avg, median ${totals.medianDurationSeconds}s`
             : "avg per run"
         }
         tone="sky"
@@ -249,7 +260,7 @@ function KpiStrip({ overview }: { overview: MetricsOverview | null }) {
         tone="amber"
         spark={sparks?.spend ?? []}
       />
-    </section>
+    </div>
   );
 }
 
@@ -273,22 +284,58 @@ function BigKpi({
   spark: number[];
   tone: "violet" | "sky" | "amber" | "emerald";
 }) {
+  const valueTone =
+    tone === "emerald"
+      ? "text-emerald-400"
+      : tone === "amber"
+        ? "text-amber-soft"
+        : tone === "sky"
+          ? "text-sky-glow"
+          : "text-chalk-100";
   return (
-    <div className="slab p-4 relative overflow-hidden">
-      <div className="flex items-center justify-between">
-        <div className="eyebrow">{label}</div>
+    <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
+      <div className="text-[11.5px] font-semibold text-violet-soft">
+        {label}
       </div>
       <div className="mt-2 flex items-end justify-between gap-3">
-        <div>
-          <div className="text-[28px] font-semibold tracking-tight num-tabular">
+        <div className="min-w-0">
+          <div
+            className={cn(
+              "num-tabular text-[28px] font-bold leading-none tracking-tight",
+              valueTone,
+            )}
+          >
             {value}
           </div>
-          <div className="text-[11.5px] text-fog-300 mt-0.5">{sub}</div>
+          <div className="mt-1 text-[11.5px] text-chalk-300">{sub}</div>
         </div>
-        <div className="opacity-90 mb-1">
+        {spark.length > 0 ? (
           <Sparkline values={spark} tone={tone} width={110} height={36} />
-        </div>
+        ) : null}
       </div>
+    </div>
+  );
+}
+
+// ── Empty state (CTA, never a dead end - primitives-contract §10a) ─────────
+
+function EmptyState({
+  text,
+  actionLabel,
+  onAction,
+}: {
+  text: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-[14px] border border-[color:var(--line-soft)] bg-coal-500/40 py-10 text-center">
+      <span className="max-w-[360px] text-[12.5px] text-chalk-300">{text}</span>
+      {actionLabel && onAction ? (
+        <Button variant="secondary" size="sm" onClick={onAction}>
+          {actionLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -310,7 +357,7 @@ function RunsAreaChart({ overview }: { overview: MetricsOverview | null }) {
   const stepX = innerW / Math.max(1, data.length - 1);
   const yScale = (v: number) => innerH - (v / maxTotal) * innerH;
 
-  const colors = { merged: "#4ade80", changes: "#fbbf24", failed: "#fb7185" };
+  const colors = { merged: CSS.emerald, changes: CSS.amber, failed: CSS.rose };
   const cum = data.map(() => ({ merged: 0, changes: 0, failed: 0 }));
   data.forEach((d, i) => {
     cum[i]!.merged = d.merged;
@@ -340,27 +387,30 @@ function RunsAreaChart({ overview }: { overview: MetricsOverview | null }) {
 
   return (
     <div>
-      <div className="flex items-end justify-between mb-3 gap-4 flex-wrap">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <div className="eyebrow mb-1.5">
-            Runs · {data.length} days ·{" "}
+          <div className="text-[26px] font-bold leading-none tracking-tight num-tabular text-chalk-100">
+            {totals.toLocaleString()}
+            <span className="ml-1.5 text-[13px] font-semibold text-violet-soft">
+              runs
+            </span>
+          </div>
+          <div className="mt-1.5 text-[12px] text-chalk-300">
+            {data.length} days,{" "}
             {totals > 0 ? Math.round((totalMerged / totals) * 100) : 0}% merged
           </div>
-          <h3 className="text-[18px] font-semibold tracking-tight num-tabular">
-            {totals.toLocaleString()} runs
-          </h3>
         </div>
-        <div className="flex items-center gap-3 text-[11.5px] shrink-0">
-          <Legend swatch="#4ade80" label="Merged" />
-          <Legend swatch="#fbbf24" label="Changes requested" />
-          <Legend swatch="#fb7185" label="Failed" />
+        <div className="flex shrink-0 items-center gap-3 text-[11.5px]">
+          <Legend swatch={CSS.emerald} label="Merged" />
+          <Legend swatch={CSS.amber} label="Changes requested" />
+          <Legend swatch={CSS.rose} label="Failed" />
         </div>
       </div>
       {data.length === 0 ? (
-        <EmptyState text="No runs yet - every completed run lands here." />
+        <EmptyState text="No runs yet. Every completed run lands here - queue one from Mission control to get started." />
       ) : (
         <div className="w-full overflow-visible">
-          <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto block">
+          <svg viewBox={`0 0 ${w} ${h}`} className="block h-auto w-full">
             <defs>
               {Object.entries(colors).map(([k, c]) => (
                 <linearGradient
@@ -385,14 +435,14 @@ function RunsAreaChart({ overview }: { overview: MetricsOverview | null }) {
                     x2={w - pad.r}
                     y1={y}
                     y2={y}
-                    stroke="rgba(255,255,255,0.05)"
+                    stroke={CSS.line}
                   />
                   <text
                     x={pad.l - 8}
                     y={y + 3}
                     fontSize="10"
                     textAnchor="end"
-                    fill="#6a7186"
+                    fill={CSS.axis}
                     fontFamily="Geist Mono"
                   >
                     {v}
@@ -430,7 +480,7 @@ function RunsAreaChart({ overview }: { overview: MetricsOverview | null }) {
                   y={h - 6}
                   fontSize="10"
                   textAnchor="middle"
-                  fill="#6a7186"
+                  fill={CSS.axis}
                   fontFamily="Geist Mono"
                 >
                   {d.label}
@@ -442,7 +492,8 @@ function RunsAreaChart({ overview }: { overview: MetricsOverview | null }) {
               x2={pad.l + (data.length - 1) * stepX}
               y1={pad.t}
               y2={pad.t + innerH}
-              stroke="rgba(167,139,250,0.4)"
+              stroke={CSS.violet}
+              strokeOpacity="0.4"
               strokeDasharray="3 3"
             />
             <text
@@ -450,11 +501,11 @@ function RunsAreaChart({ overview }: { overview: MetricsOverview | null }) {
               y={pad.t - 5}
               fontSize="10"
               textAnchor="end"
-              fill="#a78bfa"
+              fill={CSS.violet}
               fontFamily="Geist Mono"
-              style={{ letterSpacing: "0.12em", textTransform: "uppercase" }}
+              style={{ letterSpacing: "0.12em" }}
             >
-              TODAY
+              today
             </text>
           </svg>
         </div>
@@ -465,21 +516,13 @@ function RunsAreaChart({ overview }: { overview: MetricsOverview | null }) {
 
 function Legend({ swatch, label }: { swatch: string; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-fog-300">
+    <span className="inline-flex items-center gap-1.5 text-chalk-300">
       <span
-        className="w-2.5 h-2.5 rounded-sm"
+        className="h-2.5 w-2.5 rounded-sm"
         style={{ background: swatch }}
       />{" "}
       {label}
     </span>
-  );
-}
-
-function EmptyState({ text }: { text: string }) {
-  return (
-    <div className="border border-white/[0.08] bg-ink-200 py-10 text-center text-[12.5px] text-fog-300">
-      {text}
-    </div>
   );
 }
 
@@ -511,7 +554,11 @@ function BudgetControl() {
       .then((r) => {
         setBudget(r.budget);
         setToday(r.todaySpendUsd);
-        setCapInput(r.budget.spendCapDailyUsd != null ? String(r.budget.spendCapDailyUsd) : "");
+        setCapInput(
+          r.budget.spendCapDailyUsd != null
+            ? String(r.budget.spendCapDailyUsd)
+            : "",
+        );
         setAction(r.budget.capAction);
         setFallback(r.budget.fallbackProfile ?? "");
         const s = (n: number | null | undefined) => (n != null ? String(n) : "");
@@ -542,125 +589,156 @@ function BudgetControl() {
   }
 
   const cap = budget?.spendCapDailyUsd ?? null;
-  const pct = cap && cap > 0 ? Math.min(100, Math.round((today / cap) * 100)) : 0;
+  const pct =
+    cap && cap > 0 ? Math.min(100, Math.round((today / cap) * 100)) : 0;
+
+  const fieldCls =
+    "w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-1.5 text-[13px] text-chalk-100 outline-none placeholder:text-chalk-400 focus:border-violet-soft/50";
 
   return (
-    <section className="mt-3 slab p-4">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <div className="eyebrow">Daily spend cap</div>
-        <div className="flex items-center gap-1.5 text-[12.5px]">
-          <span className="text-fog-300">$</span>
-          <input
-            type="number"
-            min={0}
-            step="0.5"
-            value={capInput}
-            onChange={(e) => setCapInput(e.target.value)}
-            placeholder="off"
-            className="w-20 border border-white/15 bg-ink-200 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
-          />
-          <span className="text-fog-500">/day</span>
-        </div>
-        <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
-          at cap:
-          <Select
-            value={action}
-            ariaLabel="At cap action"
-            className="min-w-[170px]"
-            onChange={(v) => setAction(v as BudgetSettings["capAction"])}
-            options={CAP_ACTIONS.map((a) => ({ value: a, label: a }))}
-          />
-        </label>
-        {action === "downgrade-model" ? (
-          <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
-            fallback profile:
-            <input
-              value={fallback}
-              onChange={(e) => setFallback(e.target.value)}
-              placeholder="profile id"
-              className="w-28 border border-white/15 bg-ink-200 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
-            />
-          </label>
-        ) : null}
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={saving}
-          onClick={() =>
-            void save({
-              spendCapDailyUsd: capInput.trim() === "" ? null : Number(capInput),
-              capAction: action,
-              fallbackProfile: fallback.trim() === "" ? null : fallback.trim(),
-            })
-          }
-        >
-          {saving ? "Saving…" : "Save"}
-        </Button>
-        {msg ? <span className="text-[11.5px] text-fog-400">{msg}</span> : null}
-        <span className="mono ml-auto text-[11.5px] text-fog-400">
-          today: ${today.toFixed(2)}
-          {cap ? ` · ${pct}% of cap` : ""}
-        </span>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-white/5 pt-3">
-        <div className="eyebrow">Hard ceilings</div>
-        {(
-          [
-            ["turns/run", turnsRun, setTurnsRun],
-            ["min/run", timeRun, setTimeRun],
-            ["turns/day", turnsDay, setTurnsDay],
-            ["min/day", timeDay, setTimeDay],
-          ] as const
-        ).map(([label, val, set]) => (
-          <label key={label} className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
+    <Section title="Spend cap and ceilings">
+      <div className={CARD}>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <label className="flex items-center gap-2 text-[12.5px] text-chalk-300">
+            <span className="font-semibold text-violet-soft">Daily cap</span>
+            <span className="text-chalk-400">$</span>
             <input
               type="number"
               min={0}
-              value={val}
-              onChange={(e) => set(e.target.value)}
+              step="0.5"
+              value={capInput}
+              onChange={(e) => setCapInput(e.target.value)}
               placeholder="off"
-              className="w-16 border border-white/15 bg-ink-200 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
+              aria-label="Daily spend cap in dollars"
+              className={cn(fieldCls, "w-20")}
             />
-            {label}
+            <span className="text-chalk-400">/day</span>
           </label>
-        ))}
-        <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
-          on hit:
-          <Select
-            value={onLimit}
-            ariaLabel="On limit hit"
-            className="min-w-[110px]"
-            onChange={(v) => setOnLimit(v as "stop" | "pause")}
-            options={[
-              { value: "stop", label: "stop" },
-              { value: "pause", label: "pause" },
-            ]}
-          />
-        </label>
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={saving}
-          onClick={() =>
-            void save({
-              maxTurnsPerRun: numOrNull(turnsRun),
-              maxWallClockMinPerRun: numOrNull(timeRun),
-              maxTurnsPerDay: numOrNull(turnsDay),
-              maxWallClockMinPerDay: numOrNull(timeDay),
-              onLimit,
-            })
-          }
-        >
-          {saving ? "Saving…" : "Save ceilings"}
-        </Button>
+          <label className="flex items-center gap-2 text-[12.5px] text-chalk-300">
+            <span className="font-semibold text-violet-soft">At cap</span>
+            <Select
+              value={action}
+              ariaLabel="At cap action"
+              className="min-w-[170px]"
+              onChange={(v) => setAction(v as BudgetSettings["capAction"])}
+              options={CAP_ACTIONS.map((a) => ({ value: a, label: a }))}
+            />
+          </label>
+          {action === "downgrade-model" ? (
+            <label className="flex items-center gap-2 text-[12.5px] text-chalk-300">
+              <span className="font-semibold text-violet-soft">Fallback</span>
+              <input
+                value={fallback}
+                onChange={(e) => setFallback(e.target.value)}
+                placeholder="profile id"
+                aria-label="Fallback profile id"
+                className={cn(fieldCls, "w-28")}
+              />
+            </label>
+          ) : null}
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={saving}
+            onClick={() =>
+              void save({
+                spendCapDailyUsd:
+                  capInput.trim() === "" ? null : Number(capInput),
+                capAction: action,
+                fallbackProfile:
+                  fallback.trim() === "" ? null : fallback.trim(),
+              })
+            }
+          >
+            {saving ? "Saving..." : "Save cap"}
+          </Button>
+          {msg ? (
+            <span className="text-[11.5px] text-chalk-300">{msg}</span>
+          ) : null}
+          <span className="ml-auto flex items-center gap-2">
+            <StatTile
+              value={`$${today.toFixed(2)}`}
+              label="today"
+              tone="violet"
+            />
+            {cap ? (
+              <StatTile
+                value={`${pct}%`}
+                label="of cap"
+                tone={pct >= 90 ? "amber" : "default"}
+              />
+            ) : null}
+          </span>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-[color:var(--line-soft)] pt-4">
+          <span className="text-[12.5px] font-semibold text-violet-soft">
+            Hard ceilings
+          </span>
+          {(
+            [
+              ["turns/run", turnsRun, setTurnsRun],
+              ["min/run", timeRun, setTimeRun],
+              ["turns/day", turnsDay, setTurnsDay],
+              ["min/day", timeDay, setTimeDay],
+            ] as const
+          ).map(([label, val, set]) => (
+            <label
+              key={label}
+              className="flex items-center gap-2 text-[12.5px] text-chalk-300"
+            >
+              <input
+                type="number"
+                min={0}
+                value={val}
+                onChange={(e) => set(e.target.value)}
+                placeholder="off"
+                aria-label={label}
+                className={cn(fieldCls, "w-16")}
+              />
+              {label}
+            </label>
+          ))}
+          <label className="flex items-center gap-2 text-[12.5px] text-chalk-300">
+            <span className="font-semibold text-violet-soft">On hit</span>
+            <Select
+              value={onLimit}
+              ariaLabel="On limit hit"
+              className="min-w-[110px]"
+              onChange={(v) => setOnLimit(v as "stop" | "pause")}
+              options={[
+                { value: "stop", label: "stop" },
+                { value: "pause", label: "pause" },
+              ]}
+            />
+          </label>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={saving}
+            onClick={() =>
+              void save({
+                maxTurnsPerRun: numOrNull(turnsRun),
+                maxWallClockMinPerRun: numOrNull(timeRun),
+                maxTurnsPerDay: numOrNull(turnsDay),
+                maxWallClockMinPerDay: numOrNull(timeDay),
+                onLimit,
+              })
+            }
+          >
+            {saving ? "Saving..." : "Save ceilings"}
+          </Button>
+        </div>
+        <p className="mt-3 text-[11.5px] leading-relaxed text-chalk-300">
+          Checked before each agent turn. <b>stop</b> blocks the run;{" "}
+          <b>downgrade-model</b> switches to the cheaper fallback Profile;{" "}
+          <b>reduce-effort</b> drops to the provider's minimum effort. Ceilings
+          bind even when token cost is unmeasured (local CLI providers) - the
+          reliable backstop for unattended runs. Leave a field blank for no
+          limit.
+        </p>
       </div>
-      <p className="mt-2 text-[11px] text-fog-500">
-        Checked before each agent turn. <b>stop</b> blocks the run; <b>downgrade-model</b> switches
-        to the cheaper fallback Profile; <b>reduce-effort</b> drops to the provider's minimum effort.
-        Ceilings bind even when token cost is unmeasured (local CLI providers) - the reliable
-        backstop for unattended runs. Leave a field blank for no limit.
-      </p>
-    </section>
+    </Section>
   );
 }
 
@@ -670,26 +748,37 @@ function PerModelPanel({ overview }: { overview: MetricsOverview | null }) {
   const rows = overview?.perModel ?? [];
   return (
     <>
-      <div className="eyebrow mb-3">Per model · calls · tokens · cost</div>
+      <h3 className="mb-3 text-[13.5px] font-semibold text-violet-soft">
+        Per model
+      </h3>
       {rows.length === 0 ? (
-        <EmptyState text="No model usage in this window yet." />
+        <EmptyState text="No model usage in this window yet. Once a run completes, its model calls tally here." />
       ) : (
         <table className="w-full text-[12.5px]">
           <thead>
-            <tr className="text-left text-[10.5px] uppercase tracking-[0.14em] text-fog-500">
-              <th className="pb-2 font-normal">Model</th>
-              <th className="pb-2 font-normal text-right">Calls</th>
-              <th className="pb-2 font-normal text-right">Tokens</th>
-              <th className="pb-2 font-normal text-right">Cost</th>
+            <tr className="text-left text-[11px] font-semibold text-chalk-300">
+              <th className="pb-2">Model</th>
+              <th className="pb-2 text-right">Calls</th>
+              <th className="pb-2 text-right">Tokens</th>
+              <th className="pb-2 text-right">Cost</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.model} className="border-t border-white/[0.06]">
-                <td className="mono max-w-[220px] truncate py-1.5 text-fog-200">{r.model}</td>
-                <td className="num-tabular py-1.5 text-right text-fog-300">{r.calls}</td>
-                <td className="num-tabular py-1.5 text-right text-fog-300">{fmtTokensShort(r.tokens)}</td>
-                <td className="num-tabular py-1.5 text-right text-fog-300">
+              <tr
+                key={r.model}
+                className="border-t border-[color:var(--line-soft)]"
+              >
+                <td className="mono max-w-[220px] truncate py-1.5 text-chalk-100">
+                  {r.model}
+                </td>
+                <td className="num-tabular py-1.5 text-right text-chalk-300">
+                  {r.calls}
+                </td>
+                <td className="num-tabular py-1.5 text-right text-chalk-300">
+                  {fmtTokensShort(r.tokens)}
+                </td>
+                <td className="num-tabular py-1.5 text-right text-chalk-100">
                   {r.costUsd > 0 ? `$${r.costUsd.toFixed(2)}` : "-"}
                 </td>
               </tr>
@@ -706,20 +795,24 @@ function TokensByRolePanel({ overview }: { overview: MetricsOverview | null }) {
   const max = Math.max(1, ...rows.map((r) => r.tokens));
   return (
     <>
-      <div className="eyebrow mb-3">Tokens by role</div>
+      <h3 className="mb-3 text-[13.5px] font-semibold text-violet-soft">
+        Tokens by role
+      </h3>
       {rows.length === 0 ? (
-        <EmptyState text="No tokens recorded yet." />
+        <EmptyState text="No tokens recorded yet. They accrue as agents run." />
       ) : (
         <div className="space-y-2.5">
           {rows.map((r) => (
             <div key={r.role}>
-              <div className="mb-0.5 flex items-center justify-between text-[11.5px]">
-                <span className="text-fog-300">{r.role}</span>
-                <span className="mono text-fog-400">{fmtTokensShort(r.tokens)}</span>
+              <div className="mb-1 flex items-center justify-between text-[11.5px]">
+                <span className="text-chalk-100">{r.role}</span>
+                <span className="mono text-chalk-300">
+                  {fmtTokensShort(r.tokens)}
+                </span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded bg-white/[0.05]">
+              <div className="h-1.5 overflow-hidden rounded-full bg-coal-500">
                 <div
-                  className="h-full rounded bg-violet-soft/60"
+                  className="h-full rounded-full bg-violet-soft/70"
                   style={{ width: `${(r.tokens / max) * 100}%` }}
                 />
               </div>
@@ -741,17 +834,35 @@ function OutcomesDonut({ overview }: { overview: MetricsOverview | null }) {
     runs: 0,
   };
   const sum = totals.merged + totals.changes + totals.failed;
-  const segs: { key: string; value: number; color: string; label: string }[] =
-    [
-      { key: "merged", value: totals.merged, color: "#4ade80", label: "Merged" },
-      {
-        key: "changes",
-        value: totals.changes,
-        color: "#fbbf24",
-        label: "Changes requested",
-      },
-      { key: "failed", value: totals.failed, color: "#fb7185", label: "Failed" },
-    ];
+  const segs: {
+    key: string;
+    value: number;
+    color: string;
+    label: string;
+    tone: StatTileTone;
+  }[] = [
+    {
+      key: "merged",
+      value: totals.merged,
+      color: CSS.emerald,
+      label: "Merged",
+      tone: "emerald",
+    },
+    {
+      key: "changes",
+      value: totals.changes,
+      color: CSS.amber,
+      label: "Changes requested",
+      tone: "amber",
+    },
+    {
+      key: "failed",
+      value: totals.failed,
+      color: CSS.rose,
+      label: "Failed",
+      tone: "rose",
+    },
+  ];
 
   const cx = 100;
   const cy = 100;
@@ -762,88 +873,98 @@ function OutcomesDonut({ overview }: { overview: MetricsOverview | null }) {
 
   return (
     <div>
-      <SectionEyebrow className="mb-3">
-        <span>Outcomes</span>
-      </SectionEyebrow>
+      <h3 className="mb-3 text-[13.5px] font-semibold text-violet-soft">
+        Outcomes
+      </h3>
       {sum === 0 ? (
-        <EmptyState text="No outcomes recorded for this range." />
+        <EmptyState text="No outcomes recorded for this range. Completed runs split into merged, changes requested, and failed here." />
       ) : (
-        <div className="flex items-center gap-5">
-          <div className="relative shrink-0">
-            <svg viewBox="0 0 200 200" width="180" height="180" className="block">
-              <circle
-                cx={cx}
-                cy={cy}
-                r={r}
-                stroke="rgba(255,255,255,0.06)"
-                strokeWidth={sw}
-                fill="none"
-              />
-              {segs.map((s) => {
-                const len = (s.value / sum) * circ;
-                const dash = `${len} ${circ - len}`;
-                const dashOffset = -offset;
-                offset += len;
-                return (
-                  <circle
-                    key={s.key}
-                    cx={cx}
-                    cy={cy}
-                    r={r}
-                    stroke={s.color}
-                    strokeWidth={sw}
-                    fill="none"
-                    strokeDasharray={dash}
-                    strokeDashoffset={dashOffset}
-                    transform="rotate(-90 100 100)"
-                    strokeLinecap="butt"
-                  />
-                );
-              })}
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <div className="text-display text-[36px] leading-none num-tabular">
-                {Math.round((totals.merged / sum) * 100)}%
-              </div>
-              <div className="mono text-[9.5px] uppercase tracking-[0.16em] text-fog-500 mt-1">
-                merged
+        <>
+          <div className="flex items-center gap-5">
+            <div className="relative shrink-0">
+              <svg
+                viewBox="0 0 200 200"
+                width="180"
+                height="180"
+                className="block"
+              >
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={r}
+                  stroke={CSS.line}
+                  strokeWidth={sw}
+                  fill="none"
+                />
+                {segs.map((s) => {
+                  const len = (s.value / sum) * circ;
+                  const dash = `${len} ${circ - len}`;
+                  const dashOffset = -offset;
+                  offset += len;
+                  return (
+                    <circle
+                      key={s.key}
+                      cx={cx}
+                      cy={cy}
+                      r={r}
+                      stroke={s.color}
+                      strokeWidth={sw}
+                      fill="none"
+                      strokeDasharray={dash}
+                      strokeDashoffset={dashOffset}
+                      transform="rotate(-90 100 100)"
+                      strokeLinecap="butt"
+                    />
+                  );
+                })}
+              </svg>
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <div className="num-tabular text-[36px] font-bold leading-none tracking-tight text-chalk-100">
+                  {Math.round((totals.merged / sum) * 100)}%
+                </div>
+                <div className="mt-1 text-[11px] font-medium text-violet-soft">
+                  merged
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex-1 space-y-2.5">
-            {segs.map((s) => (
-              <div key={s.key} className="text-[12.5px]">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="flex items-center gap-2 text-fog-200">
-                    <span
-                      className="w-2 h-2 rounded-sm"
-                      style={{ background: s.color }}
-                    />{" "}
-                    {s.label}
-                  </span>
-                  <span className="mono text-fog-100 num-tabular">{s.value}</span>
+            <div className="flex-1 space-y-2.5">
+              {segs.map((s) => (
+                <div key={s.key} className="text-[12.5px]">
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-chalk-100">
+                      <span
+                        className="h-2 w-2 rounded-sm"
+                        style={{ background: s.color }}
+                      />{" "}
+                      {s.label}
+                    </span>
+                    <span className="mono num-tabular text-chalk-100">
+                      {s.value}
+                    </span>
+                  </div>
+                  <div className="h-1 overflow-hidden rounded-full bg-coal-500">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${(s.value / sum) * 100}%`,
+                        background: s.color,
+                        opacity: 0.85,
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${(s.value / sum) * 100}%`,
-                      background: s.color,
-                      opacity: 0.85,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+          <div className="mt-4 border-t border-[color:var(--line-soft)] pt-3">
+            <StatTile
+              value={sum.toLocaleString()}
+              label="total runs"
+              tone="violet"
+            />
+          </div>
+        </>
       )}
-      <div className="mt-4 pt-3 border-t border-white/[0.06] text-[11.5px] text-fog-400 flex items-center justify-between">
-        <span>Total runs</span>
-        <span className="mono text-fog-100 num-tabular">
-          {sum.toLocaleString()}
-        </span>
-      </div>
     </div>
   );
 }
@@ -858,58 +979,58 @@ function SpendByRolePanel({ overview }: { overview: MetricsOverview | null }) {
   const weeklyCap = cap !== null ? cap * 7 : null;
   return (
     <div>
-      <div className="flex items-end justify-between mb-4">
+      <div className="mb-4 flex items-end justify-between gap-3">
         <div>
-          <div className="eyebrow mb-1.5">Spend by agent</div>
-          <h3 className="text-[18px] font-semibold tracking-tight num-tabular">
-            ${total.toFixed(2)}
+          <h3 className="mb-1.5 text-[13.5px] font-semibold text-violet-soft">
+            Spend by agent
           </h3>
+          <div className="num-tabular text-[26px] font-bold leading-none tracking-tight text-chalk-100">
+            ${total.toFixed(2)}
+          </div>
         </div>
         {weeklyCap !== null ? (
-          <span className="text-[11.5px] text-fog-400">
-            Cap ${weeklyCap.toFixed(0)} / wk ·{" "}
-            <span className="text-emerald-300/90">
-              {Math.round((1 - total / weeklyCap) * 100)}% under
-            </span>
-          </span>
+          <StatTile
+            value={`${Math.round((1 - total / weeklyCap) * 100)}%`}
+            label={`under $${weeklyCap.toFixed(0)}/wk cap`}
+            tone="emerald"
+          />
         ) : null}
       </div>
       {data.length === 0 ? (
-        <EmptyState text="No agent spend recorded yet - once metrics land, they show up here." />
+        <EmptyState text="No agent spend recorded yet. Once metered runs complete, spend per agent shows up here." />
       ) : (
-        <div className="space-y-3.5">
+        <div className="space-y-3">
           {data.map((d) => {
             const pct = (d.dollars / max) * 100;
-            const color = "#a78bfa";
             return (
               <div
                 key={d.providerId}
                 className="grid grid-cols-[140px_1fr_72px] items-center gap-3"
               >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-7 h-7 bg-violet-soft/15 ring-1 ring-violet-soft/30 flex items-center justify-center text-violet-soft mono text-[12px]">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-violet-soft/15 text-[12px] font-semibold text-violet-soft ring-1 ring-violet-soft/30">
                     {d.label.charAt(0)}
                   </span>
-                  <span className="text-[12.5px] text-fog-200 truncate">
+                  <span className="truncate text-[12.5px] text-chalk-100">
                     {d.label}
                   </span>
                 </div>
-                <div className="relative h-7 bg-ink-200 overflow-hidden border border-white/[0.08]">
+                <div className="relative h-7 overflow-hidden rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500">
                   <div
-                    className="absolute inset-y-0 left-0"
+                    className="absolute inset-y-0 left-0 rounded-[10px]"
                     style={{
                       width: `${Math.max(pct, 2)}%`,
-                      background: `${color}33`,
-                      borderRight: `1.5px solid ${color}`,
+                      background: `${CSS.violet}33`,
+                      borderRight: `1.5px solid ${CSS.violet}`,
                     }}
                   />
-                  <div className="absolute inset-y-0 left-2 flex items-center text-[10.5px] mono text-fog-300">
+                  <div className="mono absolute inset-y-0 left-2.5 flex items-center text-[10.5px] text-chalk-300">
                     {d.dollars > 0
                       ? `${Math.round((d.dollars / total) * 100)}% of spend`
                       : "idle"}
                   </div>
                 </div>
-                <div className="text-right mono text-[13px] text-fog-100 num-tabular">
+                <div className="mono num-tabular text-right text-[13px] text-chalk-100">
                   ${d.dollars.toFixed(2)}
                 </div>
               </div>
@@ -939,118 +1060,120 @@ function LatencyByPhasePanel({
   const barW = bw * 0.36;
   return (
     <div>
-      <SectionEyebrow
-        className="mb-3"
-        right={<span className="text-[11px] text-fog-400">seconds</span>}
-      >
-        Latency by phase
-      </SectionEyebrow>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-[13.5px] font-semibold text-violet-soft">
+          Latency by phase
+        </h3>
+        <span className="text-[11px] text-chalk-300">seconds</span>
+      </div>
       {data.length === 0 ? (
         <EmptyState text="Phase latency lands here after a few runs complete." />
       ) : (
-        <div className="mx-auto" style={{ maxWidth: 420 }}>
-          <svg
-            viewBox={`0 0 ${w} ${h}`}
-            className="w-full h-auto block"
-            preserveAspectRatio="xMidYMid meet"
-          >
-            {[0, 0.5, 1].map((t, i) => {
-              const v = Math.round(max * t);
-              const y = pad.t + innerH - t * innerH;
-              return (
-                <g key={i}>
-                  <line
-                    x1={pad.l}
-                    x2={w - pad.r}
-                    y1={y}
-                    y2={y}
-                    stroke="rgba(255,255,255,0.05)"
-                  />
-                  <text
-                    x={pad.l - 6}
-                    y={y + 3}
-                    fontSize="9"
-                    textAnchor="end"
-                    fill="#6a7186"
-                    fontFamily="Geist Mono"
-                  >
-                    {v}s
-                  </text>
-                </g>
-              );
-            })}
-            {data.map((d, i) => {
-              const cx = pad.l + bw * i + bw / 2;
-              const p95h = (d.p95 / max) * innerH;
-              const p50h = (d.p50 / max) * innerH;
-              return (
-                <g key={d.phase}>
-                  <rect
-                    x={cx - barW / 2}
-                    y={pad.t + innerH - p95h}
-                    width={barW}
-                    height={p95h}
-                    fill="rgba(167,139,250,0.18)"
-                    stroke="rgba(167,139,250,0.35)"
-                    rx="2"
-                  />
-                  <rect
-                    x={cx - barW / 2 + 1}
-                    y={pad.t + innerH - p50h}
-                    width={barW - 2}
-                    height={p50h}
-                    fill="rgba(167,139,250,0.7)"
-                    rx="2"
-                  />
-                  <text
-                    x={cx}
-                    y={h - 14}
-                    fontSize="10"
-                    textAnchor="middle"
-                    fill="#9aa0b3"
-                    fontFamily="Geist Mono"
-                    style={{
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {d.phase}
-                  </text>
-                  <text
-                    x={cx}
-                    y={h - 2}
-                    fontSize="9"
-                    textAnchor="middle"
-                    fill="#6a7186"
-                    fontFamily="Geist Mono"
-                  >
-                    {d.p50}/{d.p95}s
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
+        <>
+          <div className="mx-auto" style={{ maxWidth: 420 }}>
+            <svg
+              viewBox={`0 0 ${w} ${h}`}
+              className="block h-auto w-full"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              {[0, 0.5, 1].map((t, i) => {
+                const v = Math.round(max * t);
+                const y = pad.t + innerH - t * innerH;
+                return (
+                  <g key={i}>
+                    <line
+                      x1={pad.l}
+                      x2={w - pad.r}
+                      y1={y}
+                      y2={y}
+                      stroke={CSS.line}
+                    />
+                    <text
+                      x={pad.l - 6}
+                      y={y + 3}
+                      fontSize="9"
+                      textAnchor="end"
+                      fill={CSS.axis}
+                      fontFamily="Geist Mono"
+                    >
+                      {v}s
+                    </text>
+                  </g>
+                );
+              })}
+              {data.map((d, i) => {
+                const cx = pad.l + bw * i + bw / 2;
+                const p95h = (d.p95 / max) * innerH;
+                const p50h = (d.p50 / max) * innerH;
+                return (
+                  <g key={d.phase}>
+                    <rect
+                      x={cx - barW / 2}
+                      y={pad.t + innerH - p95h}
+                      width={barW}
+                      height={p95h}
+                      fill={CSS.violet}
+                      fillOpacity="0.18"
+                      stroke={CSS.violet}
+                      strokeOpacity="0.35"
+                      rx="2"
+                    />
+                    <rect
+                      x={cx - barW / 2 + 1}
+                      y={pad.t + innerH - p50h}
+                      width={barW - 2}
+                      height={p50h}
+                      fill={CSS.violet}
+                      fillOpacity="0.7"
+                      rx="2"
+                    />
+                    <text
+                      x={cx}
+                      y={h - 14}
+                      fontSize="10"
+                      textAnchor="middle"
+                      fill={CSS.axis}
+                      fontFamily="Geist Mono"
+                      style={{ letterSpacing: "0.1em" }}
+                    >
+                      {d.phase}
+                    </text>
+                    <text
+                      x={cx}
+                      y={h - 2}
+                      fontSize="9"
+                      textAnchor="middle"
+                      fill={CSS.axis}
+                      fontFamily="Geist Mono"
+                    >
+                      {d.p50}/{d.p95}s
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+          <div className="mt-2 flex items-center justify-end gap-3 text-[11px] text-chalk-300">
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className="h-2.5 w-2.5 rounded-sm"
+                style={{ background: CSS.violet, opacity: 0.7 }}
+              />{" "}
+              p50
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className="h-2.5 w-2.5 rounded-sm"
+                style={{
+                  background: `${CSS.violet}40`,
+                  border: `1px solid ${CSS.violet}66`,
+                }}
+              />{" "}
+              p95
+            </span>
+          </div>
+        </>
       )}
-      <div className="mt-2 flex items-center justify-end gap-3 text-[11px] text-fog-400">
-        <span className="inline-flex items-center gap-1.5">
-          <span
-            className="w-2.5 h-2.5 rounded-sm"
-            style={{ background: "rgba(167,139,250,0.7)" }}
-          />{" "}
-          p50
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span
-            className="w-2.5 h-2.5 rounded-sm"
-            style={{
-              background: "rgba(167,139,250,0.25)",
-              border: "1px solid rgba(167,139,250,0.4)",
-            }}
-          />{" "}
-          p95
-        </span>
-      </div>
     </div>
   );
 }
@@ -1066,102 +1189,103 @@ function ActivityHeatmapPanel({
   const max = Math.max(...data.flatMap((r) => r.cells), 1);
   return (
     <div>
-      <div className="flex items-end justify-between mb-4">
+      <div className="mb-4 flex items-end justify-between gap-3">
         <div>
-          <div className="eyebrow mb-1.5">
-            Activity · runs by hour-of-day × weekday
-          </div>
-          <h3 className="text-[18px] font-semibold tracking-tight">
+          <h3 className="mb-1.5 text-[13.5px] font-semibold text-violet-soft">
             When the crew is busiest
           </h3>
+          <div className="text-[12px] text-chalk-300">
+            Runs by hour-of-day and weekday
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-fog-400">
+        <div className="flex items-center gap-2 text-[11px] text-chalk-300">
           <span>quiet</span>
           <span className="flex items-center gap-[2px]">
             {[0.06, 0.18, 0.34, 0.5, 0.7, 0.9].map((o, i) => (
               <span
                 key={i}
-                className="w-3.5 h-3.5 rounded-sm"
-                style={{ background: `rgba(167,139,250,${o})` }}
+                className="h-3.5 w-3.5 rounded-sm"
+                style={{ background: `${CSS.violet}`, opacity: o }}
               />
             ))}
           </span>
           <span>busy</span>
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <div className="inline-block min-w-full">
-          <div
-            className="grid"
-            style={{
-              gridTemplateColumns: "36px repeat(24, 1fr)",
-              gap: "3px",
-            }}
-          >
-            <span />
-            {Array.from({ length: 24 }, (_, h) => (
-              <span
-                key={h}
-                className="mono text-[9px] uppercase tracking-[0.12em] text-fog-500 text-center"
-              >
-                {h % 3 === 0 ? String(h).padStart(2, "0") : ""}
-              </span>
-            ))}
-            {data.map((row) => (
-              <Fragment key={row.day}>
-                <span className="mono text-[10px] uppercase tracking-[0.12em] text-fog-500 self-center">
-                  {row.day}
+      {data.length === 0 ? (
+        <EmptyState text="No activity recorded yet. Runs plot by hour and weekday once they start landing." />
+      ) : (
+        <div className="overflow-x-auto">
+          <div className="inline-block min-w-full">
+            <div
+              className="grid"
+              style={{
+                gridTemplateColumns: "36px repeat(24, 1fr)",
+                gap: "3px",
+              }}
+            >
+              <span />
+              {Array.from({ length: 24 }, (_, h) => (
+                <span
+                  key={h}
+                  className="mono text-center text-[9px] text-chalk-400"
+                >
+                  {h % 3 === 0 ? String(h).padStart(2, "0") : ""}
                 </span>
-                {row.cells.map((v, h) => {
-                  const op = v === 0 ? 0.04 : 0.1 + (v / max) * 0.7;
-                  return (
-                    <span
-                      key={h}
-                      className="aspect-square rounded-sm border border-white/[0.04]"
-                      style={{
-                        background: `rgba(167,139,250,${op.toFixed(2)})`,
-                      }}
-                      title={`${row.day} ${String(h).padStart(2, "0")}:00 · ${v} runs`}
-                    />
-                  );
-                })}
-              </Fragment>
-            ))}
+              ))}
+              {data.map((row) => (
+                <Fragment key={row.day}>
+                  <span className="mono self-center text-[10px] text-chalk-300">
+                    {row.day}
+                  </span>
+                  {row.cells.map((v, h) => {
+                    const op = v === 0 ? 0.04 : 0.1 + (v / max) * 0.7;
+                    return (
+                      <span
+                        key={h}
+                        className="aspect-square rounded-sm border border-[color:var(--line-soft)]"
+                        style={{
+                          background: CSS.violet,
+                          opacity: op,
+                        }}
+                        title={`${row.day} ${String(h).padStart(2, "0")}:00, ${v} runs`}
+                      />
+                    );
+                  })}
+                </Fragment>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
 // ── Leaderboard ───────────────────────────────────────────────────────────
 
-function LeaderboardTable({
-  overview,
-}: {
-  overview: MetricsOverview | null;
-}) {
+function LeaderboardTable({ overview }: { overview: MetricsOverview | null }) {
   const rows: LeaderboardEntry[] = overview?.leaderboard ?? [];
   const maxRuns = Math.max(...rows.map((r) => r.runs), 1);
   if (rows.length === 0)
     return (
-      <div className="slab">
-        <EmptyState text="No agents have produced runs in this window yet." />
+      <div className={CARD}>
+        <EmptyState text="No agents have produced runs in this window yet. Queue a run to populate the ranking." />
       </div>
     );
   return (
-    <div className="slab overflow-hidden">
+    <div className="overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600">
       <table className="w-full">
         <thead>
-          <tr className="text-left text-[10.5px] uppercase tracking-[0.14em] text-fog-500">
-            <th className="font-normal px-4 py-2.5">#</th>
-            <th className="font-normal px-3 py-2.5">Agent</th>
-            <th className="font-normal px-3 py-2.5">Runs · {overview?.range}</th>
-            <th className="font-normal px-3 py-2.5">Success</th>
-            <th className="font-normal px-3 py-2.5 text-right">Avg dur</th>
-            <th className="font-normal px-3 py-2.5 text-right">p95</th>
-            <th className="font-normal px-3 py-2.5 text-right">Cost</th>
-            <th className="font-normal px-3 py-2.5 text-right">Δ vs prev</th>
+          <tr className="text-left text-[11px] font-semibold text-chalk-300">
+            <th className="px-4 py-3">#</th>
+            <th className="px-3 py-3">Agent</th>
+            <th className="px-3 py-3">Runs, {overview?.range}</th>
+            <th className="px-3 py-3">Success</th>
+            <th className="px-3 py-3 text-right">Avg dur</th>
+            <th className="px-3 py-3 text-right">p95</th>
+            <th className="px-3 py-3 text-right">Cost</th>
+            <th className="px-3 py-3 text-right">vs prev</th>
           </tr>
         </thead>
         <tbody>
@@ -1169,45 +1293,45 @@ function LeaderboardTable({
             const pctBar = (row.runs / maxRuns) * 100;
             const deltaTone =
               row.delta > 0
-                ? "text-emerald-300/90"
+                ? "text-emerald-400"
                 : row.delta < 0
-                  ? "text-rose-300/90"
-                  : "text-fog-500";
+                  ? "text-rose-300"
+                  : "text-chalk-400";
             return (
               <tr
                 key={row.providerId}
                 className={cn(
-                  "hover:bg-white/[0.02] transition-colors",
-                  i !== 0 && "border-t border-white/[0.05]",
+                  "transition-colors hover:bg-coal-500/40",
+                  i !== 0 && "border-t border-[color:var(--line-soft)]",
                 )}
               >
-                <td className="px-4 py-3 mono text-[12px] text-fog-500 w-10">
+                <td className="mono w-10 px-4 py-3 text-[12px] text-chalk-400">
                   {String(i + 1).padStart(2, "0")}
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-2.5">
-                    <span className="w-7 h-7 bg-violet-soft/15 ring-1 ring-violet-soft/30 flex items-center justify-center text-violet-soft mono text-[13px]">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-violet-soft/15 text-[13px] font-semibold text-violet-soft ring-1 ring-violet-soft/30">
                       {row.label.charAt(0)}
                     </span>
                     <div className="min-w-0">
-                      <div className="text-[12.5px] text-fog-100 truncate">
+                      <div className="truncate text-[12.5px] text-chalk-100">
                         {row.label}
                       </div>
-                      <div className="text-[10.5px] text-fog-500 mono">
+                      <div className="mono text-[10.5px] text-chalk-400">
                         {row.vendor ?? "-"}
                       </div>
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-3 min-w-[200px]">
+                <td className="min-w-[200px] px-3 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-coal-500">
                       <div
                         className="h-full rounded-full bg-violet-soft"
                         style={{ width: `${pctBar}%`, opacity: 0.85 }}
                       />
                     </div>
-                    <span className="mono text-[12px] text-fog-100 num-tabular w-10 text-right">
+                    <span className="mono num-tabular w-10 text-right text-[12px] text-chalk-100">
                       {row.runs}
                     </span>
                   </div>
@@ -1216,38 +1340,38 @@ function LeaderboardTable({
                   {row.successRate !== null ? (
                     <span
                       className={cn(
-                        "mono text-[12px] num-tabular",
+                        "mono num-tabular text-[12px]",
                         row.successRate >= 0.92
-                          ? "text-emerald-300/90"
+                          ? "text-emerald-400"
                           : row.successRate >= 0.85
-                            ? "text-fog-100"
-                            : "text-amber-300",
+                            ? "text-chalk-100"
+                            : "text-amber-soft",
                       )}
                     >
                       {Math.round(row.successRate * 100)}%
                     </span>
                   ) : (
-                    <span className="text-fog-500 text-[12px]">-</span>
+                    <span className="text-[12px] text-chalk-400">-</span>
                   )}
                 </td>
-                <td className="px-3 py-3 text-right mono text-[12px] text-fog-200 num-tabular">
+                <td className="mono num-tabular px-3 py-3 text-right text-[12px] text-chalk-300">
                   {row.avgDurSeconds !== null ? `${row.avgDurSeconds}s` : "-"}
                 </td>
-                <td className="px-3 py-3 text-right mono text-[12px] text-fog-200 num-tabular">
+                <td className="mono num-tabular px-3 py-3 text-right text-[12px] text-chalk-300">
                   {row.p95Seconds !== null ? `${row.p95Seconds}s` : "-"}
                 </td>
-                <td className="px-3 py-3 text-right mono text-[12px] text-fog-100 num-tabular">
+                <td className="mono num-tabular px-3 py-3 text-right text-[12px] text-chalk-100">
                   ${row.costUsd.toFixed(2)}
                 </td>
                 <td
                   className={cn(
-                    "px-3 py-3 text-right mono text-[12px] num-tabular",
+                    "mono num-tabular px-3 py-3 text-right text-[12px]",
                     deltaTone,
                   )}
                 >
                   {row.delta === 0
                     ? "-"
-                    : `${row.delta > 0 ? "↑" : "↓"} ${Math.abs(row.delta)}`}
+                    : `${row.delta > 0 ? "+" : "-"}${Math.abs(row.delta)}`}
                 </td>
               </tr>
             );
@@ -1257,4 +1381,3 @@ function LeaderboardTable({
     </div>
   );
 }
-
