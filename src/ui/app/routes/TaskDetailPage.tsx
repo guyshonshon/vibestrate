@@ -774,6 +774,8 @@ function ContextSourcesSection({
   const [ref, setRef] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const hasSources = sources.length > 0;
 
   async function save(next: { kind: "file" | "url"; ref: string }[]) {
     setBusy(true);
@@ -796,16 +798,40 @@ function ContextSourcesSection({
     setRef("");
   }
 
-  return (
-    <Section title="Context">
-      <div className={CARD}>
-        <div className="text-[11.5px] text-chalk-300">
-          The shared grounding for this task - files and URLs injected into every
-          agent prompt across its runs (path-guarded, SSRF-guarded, secrets redacted).
-        </div>
+  // Collapsed default: no context yet and not adding - a slim trigger, not a big
+  // card. The heavy card (list + form + guardrail caption) mounts only when there
+  // is something to show or the user chooses to add a reference.
+  if (!hasSources && !adding) {
+    return (
+      <div className="mb-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setAdding(true)}
+          iconLeft={<Plus className="h-3 w-3" strokeWidth={1.9} />}
+        >
+          Add references
+        </Button>
+      </div>
+    );
+  }
 
-        {sources.length > 0 ? (
-          <ul className="mt-3 space-y-1.5">
+  return (
+    <Section
+      title="Context"
+      action={
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setAdding((a) => !a)}
+        >
+          {adding ? "Done" : "Add reference"}
+        </Button>
+      }
+    >
+      <div className={CARD}>
+        {hasSources ? (
+          <ul className="space-y-1.5">
             {sources.map((s, i) => (
               <li
                 key={`${s.kind}-${s.ref}-${i}`}
@@ -847,13 +873,15 @@ function ContextSourcesSection({
               </li>
             ))}
           </ul>
-        ) : (
-          <div className="mt-3 text-[12px] text-chalk-400">
-            No context yet - add a file or URL below to ground every run.
-          </div>
-        )}
+        ) : null}
 
-        <form onSubmit={add} className="mt-3 flex flex-wrap items-center gap-2">
+        {adding ? (
+        <>
+        <p className={cn("text-[11px] text-chalk-300", hasSources && "mt-3")}>
+          Files or URLs injected into every run (path-guarded, SSRF-guarded,
+          secrets redacted).
+        </p>
+        <form onSubmit={add} className="mt-2 flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-[10px] border border-[color:var(--line)] bg-coal-800 p-0.5">
             {(["file", "url"] as const).map((k) => (
               <button
@@ -887,6 +915,8 @@ function ContextSourcesSection({
             Add
           </Button>
         </form>
+        </>
+        ) : null}
         {error ? (
           <div className="mt-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
             {error}
