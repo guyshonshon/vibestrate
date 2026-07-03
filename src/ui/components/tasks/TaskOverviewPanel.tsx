@@ -24,12 +24,42 @@ function statusTone(s: Task["status"]): StatTileTone {
   }
 }
 
-const TONE_TEXT: Record<StatTileTone, string> = {
-  default: "text-chalk-300",
-  violet: "text-violet-soft",
-  emerald: "text-emerald-400",
-  amber: "text-amber-soft",
-  rose: "text-rose-300",
+// Per-tone surfaces so the hero carries the task's state as colour: a left
+// spine, a framed status badge, and the progress meter all read the same tone.
+const TONE: Record<
+  StatTileTone,
+  { spine: string; text: string; badge: string; bar: string }
+> = {
+  default: {
+    spine: "bg-chalk-500/40",
+    text: "text-chalk-200",
+    badge: "border-[color:var(--line-strong)] bg-coal-500/60",
+    bar: "bg-chalk-400",
+  },
+  violet: {
+    spine: "bg-violet-soft",
+    text: "text-violet-soft",
+    badge: "border-violet-soft/30 bg-violet-soft/10",
+    bar: "bg-violet-soft",
+  },
+  emerald: {
+    spine: "bg-emerald-400",
+    text: "text-emerald-400",
+    badge: "border-emerald-400/30 bg-emerald-500/10",
+    bar: "bg-emerald-400",
+  },
+  amber: {
+    spine: "bg-amber-soft",
+    text: "text-amber-soft",
+    badge: "border-amber-soft/30 bg-amber-500/10",
+    bar: "bg-amber-400",
+  },
+  rose: {
+    spine: "bg-rose-400",
+    text: "text-rose-300",
+    badge: "border-rose-400/30 bg-rose-500/10",
+    bar: "bg-rose-400",
+  },
 };
 
 // The one-line "where does this task stand / what's next" headline.
@@ -104,7 +134,9 @@ export function TaskOverviewPanel({
 }) {
   const blockers = task.dependencies?.length ?? 0;
   const tone = statusTone(task.status);
+  const t = TONE[tone];
   const { title, sub } = headlineFor(task, stepsTotal, blockers);
+  const pct = stepsTotal > 0 ? Math.round((stepsDone / stepsTotal) * 100) : 0;
   const startLabel =
     busy === "queue"
       ? "Starting…"
@@ -115,20 +147,32 @@ export function TaskOverviewPanel({
           : "Start task";
 
   return (
-    <section className="rounded-[22px] border border-[color:var(--line)] bg-coal-600 p-5">
+    <section className="relative overflow-hidden rounded-[22px] border border-[color:var(--line)] bg-coal-600 p-5 pl-6">
+      {/* Status spine - the task's state carried as colour down the edge. */}
+      <span className={cn("absolute inset-y-0 left-0 w-1", t.spine)} aria-hidden />
+
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="mb-1 flex items-center gap-2 text-[11px] font-medium">
-            <span className="text-violet-soft">
-              {task.runMode === "supervised" ? "Supervised task" : "Plain task"}
+        <div className="flex min-w-0 items-start gap-4">
+          {/* Prominent, framed status badge (the "add status" element). */}
+          <div
+            className={cn(
+              "flex shrink-0 flex-col justify-center rounded-[14px] border px-3.5 py-2.5",
+              t.badge,
+            )}
+          >
+            <span className="text-[10px] font-medium uppercase tracking-wide text-chalk-400">
+              {task.runMode === "supervised" ? "supervised" : "plain"}
             </span>
-            <span className="text-chalk-500">·</span>
-            <span className={TONE_TEXT[tone]}>{task.status.replace(/_/g, " ")}</span>
+            <span className={cn("text-[16px] font-bold leading-tight", t.text)}>
+              {task.status.replace(/_/g, " ")}
+            </span>
           </div>
-          <h2 className="text-[19px] font-bold tracking-[-0.01em] text-chalk-100">
-            {title}
-          </h2>
-          <p className="mt-0.5 text-[12.5px] text-chalk-300">{sub}</p>
+          <div className="min-w-0">
+            <h2 className="text-[19px] font-bold tracking-[-0.01em] text-chalk-100">
+              {title}
+            </h2>
+            <p className="mt-0.5 text-[12.5px] text-chalk-300">{sub}</p>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Button
@@ -162,19 +206,25 @@ export function TaskOverviewPanel({
         </div>
       </div>
 
+      {/* Steps progress meter (only when there are steps). */}
+      {stepsTotal > 0 ? (
+        <div className="mt-4">
+          <div className="mb-1 flex items-baseline justify-between text-[11px]">
+            <span className="font-medium text-violet-soft">Steps</span>
+            <span className="num-tabular text-chalk-300">
+              {stepsDone}/{stepsTotal} done
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-coal-500">
+            <span
+              className={cn("block h-full rounded-full transition-all", t.bar)}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-4 flex flex-wrap gap-2">
-        <StatTile
-          size="lg"
-          value={task.status.replace(/_/g, " ")}
-          label="status"
-          tone={tone}
-        />
-        <StatTile
-          size="lg"
-          value={stepsTotal > 0 ? `${stepsDone}/${stepsTotal}` : "-"}
-          label="steps done"
-          tone={stepsTotal > 0 && stepsDone === stepsTotal ? "emerald" : "default"}
-        />
         <StatTile size="lg" value={runsCount} label={runsCount === 1 ? "run" : "runs"} />
         <StatTile
           size="lg"
@@ -188,6 +238,7 @@ export function TaskOverviewPanel({
           label="priority"
           tone={task.priority === "high" ? "amber" : "default"}
         />
+        {task.est ? <StatTile size="lg" value={task.est} label="estimate" /> : null}
       </div>
     </section>
   );
