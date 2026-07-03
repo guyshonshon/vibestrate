@@ -107,7 +107,7 @@ describe("enhance", () => {
       ),
     });
     expect(questions.map((q) => q.id)).toEqual(["provider", "scope"]);
-    expect(questions[0].options).toEqual(["OAuth", "password"]);
+    expect(questions[0]!.options).toEqual(["OAuth", "password"]);
     // dry run - nothing written to the task
     const reloaded = await svc.getTask(task.id);
     expect(reloaded!.checklist).toHaveLength(0);
