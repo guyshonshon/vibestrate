@@ -1681,7 +1681,12 @@ export const api = {
   },
   async enhanceChecklist(
     taskId: string,
-    opts: { apply?: boolean; profileId?: string | null; signal?: AbortSignal } = {},
+    opts: {
+      apply?: boolean;
+      profileId?: string | null;
+      answers?: { question: string; answer: string }[];
+      signal?: AbortSignal;
+    } = {},
   ): Promise<{
     applied: boolean;
     proposal: {
@@ -1696,7 +1701,35 @@ export const api = {
   }> {
     return jsonPost(
       `/api/tasks/${encodeURIComponent(taskId)}/enhance`,
-      { apply: opts.apply ?? false, profileId: opts.profileId ?? null },
+      {
+        apply: opts.apply ?? false,
+        profileId: opts.profileId ?? null,
+        answers: opts.answers,
+      },
+      opts.signal,
+    );
+  },
+  async planQuestions(
+    taskId: string,
+    opts: { signal?: AbortSignal } = {},
+  ): Promise<{
+    proposal: {
+      taskId: string;
+      questions: {
+        id: string;
+        question: string;
+        why: string;
+        kind: "choice" | "text";
+        options: string[];
+      }[];
+      providerId: string;
+      profileId: string;
+      attempts: number;
+    };
+  }> {
+    return jsonPost(
+      `/api/tasks/${encodeURIComponent(taskId)}/plan-questions`,
+      {},
       opts.signal,
     );
   },

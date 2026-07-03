@@ -61,6 +61,20 @@ const checklistReorderBody = z.object({ order: z.array(z.string().min(1)) });
 const enhanceBody = z.object({
   apply: z.boolean().optional(),
   profileId: z.string().min(1).nullable().optional(),
+  // Guided plan: owner answers to clarifying questions, used to shape the steps.
+  answers: z
+    .array(
+      z.object({
+        question: z.string().min(1).max(400),
+        answer: z.string().min(1).max(2000),
+      }),
+    )
+    .max(8)
+    .optional(),
+});
+
+const planQuestionsBody = z.object({
+  profileId: z.string().min(1).nullable().optional(),
 });
 const needsTestingVerdictBody = z.object({
   verdict: z.enum(["pass", "fail"]),
@@ -349,21 +363,47 @@ export async function registerTasksRoutes(
       const { proposeChecklist, enhanceChecklist } = await import(
         "../../assist/enhance.js"
       );
+      const opts = {
+        profileId: parsed.data.profileId ?? null,
+        answers: parsed.data.answers,
+      };
       try {
         if (parsed.data.apply) {
           const { task, added, proposal } = await enhanceChecklist(
             deps.projectRoot,
             req.params.taskId,
-            { profileId: parsed.data.profileId ?? null },
+            opts,
           );
           return { applied: true, task, added, proposal };
         }
         const proposal = await proposeChecklist(
           deps.projectRoot,
           req.params.taskId,
-          { profileId: parsed.data.profileId ?? null },
+          opts,
         );
         return { applied: false, proposal };
+      } catch (err) {
+        throw new HttpError(400, err instanceof Error ? err.message : String(err));
+      }
+    },
+  );
+
+  // Guided plan: a bounded round of clarifying questions before the checklist
+  // breakdown. Read-only; returns [] when the task is already clear enough.
+  app.post<{ Params: { taskId: string }; Body: unknown }>(
+    "/api/tasks/:taskId/plan-questions",
+    async (req) => {
+      assertSafeId(req.params.taskId);
+      const parsed = planQuestionsBody.safeParse(req.body ?? {});
+      if (!parsed.success) throw new HttpError(400, parsed.error.message);
+      const { proposeChecklistQuestions } = await import("../../assist/enhance.js");
+      try {
+        const proposal = await proposeChecklistQuestions(
+          deps.projectRoot,
+          req.params.taskId,
+          { profileId: parsed.data.profileId ?? null },
+        );
+        return { proposal };
       } catch (err) {
         throw new HttpError(400, err instanceof Error ? err.message : String(err));
       }

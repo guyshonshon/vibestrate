@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.46.0
+
+- **Guided plan: the supervisor asks before it breaks a task down.** "Plan the
+  steps" now runs a short, bounded round of clarifying questions first - the ones
+  whose answers actually change the breakdown (a provider choice, a scope
+  boundary) - then turns your answers into the ordered checklist. Answer what you
+  can, skip the rest, or skip straight to the breakdown. If the task is already
+  clear, it asks nothing and goes straight through. Choices render as one-tap
+  chips; open questions get a text box. Manual authoring stays as the escape
+  hatch. (Reuses the assist runner, not the heavier spec-up card-planning chain.)
+
 ## 0.45.0
 
 - **A task leads with an overview panel.** The top of a task is now a rich,

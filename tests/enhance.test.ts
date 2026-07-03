@@ -5,7 +5,11 @@ import fs from "node:fs/promises";
 import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
-import { proposeChecklist, enhanceChecklist } from "../src/assist/enhance.js";
+import {
+  proposeChecklist,
+  enhanceChecklist,
+  proposeChecklistQuestions,
+} from "../src/assist/enhance.js";
 import { AssistError, type AssistProviderRunner } from "../src/assist/assist-runner.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
@@ -93,5 +97,47 @@ describe("enhance", () => {
         runner: fakeRunner('{"items":["x"]}'),
       }),
     ).rejects.toBeInstanceOf(AssistError);
+  });
+
+  it("proposes guided clarifying questions (bounded, structured)", async () => {
+    const task = await svc.addTask({ title: "Add auth" });
+    const { questions } = await proposeChecklistQuestions(projectRoot, task.id, {
+      runner: fakeRunner(
+        '{"questions":[{"id":"provider","question":"Which auth provider?","why":"changes the steps","kind":"choice","options":["OAuth","password"]},{"id":"scope","question":"Login only or also signup?","kind":"text"}]}',
+      ),
+    });
+    expect(questions.map((q) => q.id)).toEqual(["provider", "scope"]);
+    expect(questions[0].options).toEqual(["OAuth", "password"]);
+    // dry run - nothing written to the task
+    const reloaded = await svc.getTask(task.id);
+    expect(reloaded!.checklist).toHaveLength(0);
+  });
+
+  it("allows an empty question set (task already clear)", async () => {
+    const task = await svc.addTask({ title: "Rename a var" });
+    const { questions } = await proposeChecklistQuestions(projectRoot, task.id, {
+      runner: fakeRunner('{"questions":[]}'),
+    });
+    expect(questions).toEqual([]);
+  });
+
+  it("threads answers into the breakdown prompt", async () => {
+    const task = await svc.addTask({ title: "Add auth" });
+    let seenInstruction = "";
+    const capturingRunner: AssistProviderRunner = async (_providers, input) => {
+      seenInstruction = JSON.stringify(input);
+      return {
+        exitCode: 0,
+        normalized: { responseText: '{"items":["wire oauth"]}', metrics: null },
+      };
+    };
+    const proposal = await proposeChecklist(projectRoot, task.id, {
+      runner: capturingRunner,
+      answers: [{ question: "Which auth provider?", answer: "OAuth" }],
+    });
+    expect(proposal.items).toEqual(["wire oauth"]);
+    // the answer text reached the model instruction
+    expect(seenInstruction).toContain("OAuth");
+    expect(seenInstruction).toContain("Which auth provider?");
   });
 });

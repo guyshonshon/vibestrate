@@ -898,6 +898,16 @@ function ChecklistSection({
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [proposed, setProposed] = useState<string[] | null>(null);
+  const [planQ, setPlanQ] = useState<{
+    questions: {
+      id: string;
+      question: string;
+      why: string;
+      kind: "choice" | "text";
+      options: string[];
+    }[];
+    answers: Record<string, string>;
+  } | null>(null);
   const [stepMode, setStepMode] = useState(false);
   const [launched, setLaunched] = useState<string | null>(null);
   // Manual step authoring is the escape hatch, not the default - the supervisor
@@ -964,7 +974,7 @@ function ChecklistSection({
   // abort cancels the in-flight request (the client stops waiting and discards
   // any result); it does not claim to halt server-side compute.
   const enhanceCtl = useRef<AbortController | null>(null);
-  async function enhance() {
+  async function enhance(answers?: { question: string; answer: string }[]) {
     if (busy === "enhance") {
       enhanceCtl.current?.abort();
       return;
@@ -977,6 +987,7 @@ function ChecklistSection({
     try {
       const r = await api.enhanceChecklist(task.id, {
         apply: false,
+        answers,
         signal: ctl.signal,
       });
       setProposed(r.proposal.items);
@@ -989,6 +1000,50 @@ function ChecklistSection({
       setBusy(null);
       enhanceCtl.current = null;
     }
+  }
+
+  // Guided plan: ask a bounded round of clarifying questions first, then break
+  // down using the answers. If the model has nothing to ask, go straight to the
+  // breakdown (seamless).
+  const planCtl = useRef<AbortController | null>(null);
+  async function startPlan() {
+    if (busy === "plan") {
+      planCtl.current?.abort();
+      return;
+    }
+    setProposed(null);
+    setPlanQ(null);
+    const ctl = new AbortController();
+    planCtl.current = ctl;
+    setBusy("plan");
+    setError(null);
+    try {
+      const r = await api.planQuestions(task.id, { signal: ctl.signal });
+      if (r.proposal.questions.length === 0) {
+        setBusy(null);
+        planCtl.current = null;
+        await enhance();
+        return;
+      }
+      setPlanQ({ questions: r.proposal.questions, answers: {} });
+    } catch (e) {
+      if (!(e instanceof Error) || e.name !== "AbortError") {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    } finally {
+      setBusy((b) => (b === "plan" ? null : b));
+      planCtl.current = null;
+    }
+  }
+
+  async function buildFromAnswers() {
+    const pq = planQ;
+    if (!pq) return;
+    const answers = pq.questions
+      .map((q) => ({ question: q.question, answer: (pq.answers[q.id] ?? "").trim() }))
+      .filter((a) => a.answer.length > 0);
+    setPlanQ(null);
+    await enhance(answers.length > 0 ? answers : undefined);
   }
 
   async function acceptProposed() {
@@ -1057,7 +1112,7 @@ function ChecklistSection({
       action={
         <button
           type="button"
-          onClick={enhance}
+          onClick={() => enhance()}
           disabled={busy !== null && busy !== "enhance"}
           title={
             busy === "enhance"
@@ -1114,7 +1169,110 @@ function ChecklistSection({
           </div>
         ) : null}
 
-        {items.length === 0 && !proposed && !manualAdd ? (
+        {/* Guided plan: the clarifying-questions round before the breakdown. */}
+        {planQ ? (
+          <div className="mb-2.5 rounded-[12px] border border-violet-soft/25 bg-violet-soft/[0.06] p-3">
+            <div className="mb-2 flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
+              <span className="text-[12px] font-semibold text-chalk-100">
+                A few questions before I break this down
+              </span>
+              <span className="text-[10.5px] text-chalk-400">
+                answer what you can - skip the rest
+              </span>
+            </div>
+            <div className="space-y-2.5">
+              {planQ.questions.map((q) => (
+                <div key={q.id}>
+                  <div className="text-[12px] font-medium text-chalk-100">{q.question}</div>
+                  {q.why ? (
+                    <div className="text-[10.5px] text-chalk-400">{q.why}</div>
+                  ) : null}
+                  {q.kind === "choice" && q.options.length > 0 ? (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {q.options.map((opt) => {
+                        const active = planQ.answers[q.id] === opt;
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() =>
+                              setPlanQ((p) =>
+                                p
+                                  ? {
+                                      ...p,
+                                      answers: {
+                                        ...p.answers,
+                                        [q.id]: active ? "" : opt,
+                                      },
+                                    }
+                                  : p,
+                              )
+                            }
+                            className={cn(
+                              "rounded-[9px] border px-2.5 py-1 text-[11.5px] transition",
+                              active
+                                ? "border-violet-soft/50 bg-violet-soft/15 text-violet-soft"
+                                : "border-[color:var(--line-soft)] bg-coal-500 text-chalk-300 hover:text-chalk-100",
+                            )}
+                          >
+                            {opt}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <input
+                      value={planQ.answers[q.id] ?? ""}
+                      onChange={(e) =>
+                        setPlanQ((p) =>
+                          p
+                            ? { ...p, answers: { ...p.answers, [q.id]: e.target.value } }
+                            : p,
+                        )
+                      }
+                      placeholder="Your answer…"
+                      className={cn(INPUT, "mt-1.5 w-full")}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={buildFromAnswers}
+                disabled={busy !== null}
+                iconLeft={<Sparkles className="h-3 w-3" strokeWidth={1.9} />}
+              >
+                Build the steps
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setPlanQ(null);
+                  void enhance();
+                }}
+                disabled={busy !== null}
+              >
+                Skip, just break it down
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto"
+                onClick={() => setPlanQ(null)}
+                disabled={busy !== null}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {items.length === 0 && !proposed && !planQ && !manualAdd ? (
           <div className="flex flex-col items-start gap-2.5 rounded-[12px] border border-violet-soft/25 bg-violet-soft/[0.06] px-4 py-4">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-violet-soft" strokeWidth={1.9} />
@@ -1123,25 +1281,26 @@ function ChecklistSection({
               </span>
             </div>
             <p className="max-w-[46ch] text-[12px] leading-relaxed text-chalk-300">
-              Describe what you want in the task above (and any references), and the
-              supervisor breaks it into an ordered set of steps you can review,
-              reorder and run. You don't have to write every step by hand.
+              Describe what you want in the task above (and any references). The
+              supervisor asks a couple of clarifying questions, then breaks it into
+              an ordered set of steps you can review, reorder and run - you don't
+              have to write every step by hand.
             </p>
             <div className="mt-0.5 flex items-center gap-2">
               <Button
                 variant="primary"
                 size="sm"
-                onClick={enhance}
-                disabled={busy !== null && busy !== "enhance"}
+                onClick={startPlan}
+                disabled={busy !== null && busy !== "plan"}
                 iconLeft={
-                  busy === "enhance" ? (
+                  busy === "plan" ? (
                     <X className="h-3 w-3" strokeWidth={1.9} />
                   ) : (
                     <Sparkles className="h-3 w-3" strokeWidth={1.9} />
                   )
                 }
               >
-                {busy === "enhance" ? "Planning… abort" : "Plan the steps"}
+                {busy === "plan" ? "Thinking… abort" : "Plan the steps"}
               </Button>
               <Button
                 variant="ghost"
