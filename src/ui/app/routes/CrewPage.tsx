@@ -42,14 +42,16 @@ function toneFor(roleId: string): ChipTone {
 // classes (these strings appear verbatim for the JIT to pick up). All tones map
 // through the coal/chalk/accent palette so they flip correctly in both themes -
 // no raw hex, no `.slab`.
-// The role card's left accent border.
-const TONE_ACCENT: Record<ChipTone, string> = {
-  neutral: "border-l-chalk-400/50",
-  violet: "border-l-violet-soft/60",
-  sky: "border-l-sky-glow/60",
-  emerald: "border-l-emerald-400/60",
-  amber: "border-l-amber-soft/60",
-  rose: "border-l-rose-400/60",
+// The role card's tonal header wash - the task hero's tonal-anchor treatment
+// (TaskOverviewPanel TONE.colBg): colour as a structural surface region inside
+// an overflow-hidden card, never an edge stripe.
+const TONE_WASH: Record<ChipTone, string> = {
+  neutral: "bg-coal-500/40",
+  violet: "bg-violet-soft/[0.08]",
+  sky: "bg-sky-glow/[0.08]",
+  emerald: "bg-emerald-500/[0.09]",
+  amber: "bg-amber-500/[0.09]",
+  rose: "bg-rose-500/[0.09]",
 };
 // The role avatar chip (initials) - tinted fill + accent text.
 const TONE_AVATAR: Record<ChipTone, string> = {
@@ -838,14 +840,15 @@ function RoleCard({
   const [newProfileOpen, setNewProfileOpen] = useState(false);
 
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-4 rounded-[18px] border border-l-[3px] border-[color:var(--line)] bg-coal-600 p-4",
-        TONE_ACCENT[tone],
-      )}
-    >
-      {/* header */}
-      <div className="flex items-start justify-between gap-3">
+    <div className="overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600">
+      {/* Tonal header band - the hero's status-column treatment, horizontal:
+          the role's tone is a washed surface region split off by a hairline. */}
+      <div
+        className={cn(
+          "flex items-start justify-between gap-3 border-b border-[color:var(--line-soft)] px-4 py-3",
+          TONE_WASH[tone],
+        )}
+      >
         <div className="flex min-w-0 items-center gap-3">
           <span
             className={cn(
@@ -884,6 +887,8 @@ function RoleCard({
         </span>
       </div>
 
+      {/* body */}
+      <div className="flex flex-col gap-4 p-4">
       {/* seats */}
       <div>
         <div className="mb-1.5 text-[12px] font-semibold text-violet-vivid">
@@ -1041,6 +1046,7 @@ function RoleCard({
         {promptOpen ? (
           <PromptEditor crewId={crewId} role={role} onFlash={onFlash} />
         ) : null}
+      </div>
       </div>
     </div>
   );
