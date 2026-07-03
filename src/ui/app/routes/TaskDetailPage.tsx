@@ -29,6 +29,7 @@ import type {
 import { MicroStepPipeline } from "../../components/board/MicroStepPipeline.js";
 import { TaskGitActivity } from "../../components/tasks/TaskGitActivity.js";
 import { StepDetailDrawer } from "../../components/tasks/StepDetailDrawer.js";
+import { TaskOverviewPanel } from "../../components/tasks/TaskOverviewPanel.js";
 import { Breadcrumbs } from "../../components/layout/Breadcrumbs.js";
 import { Select } from "../../components/design/Select.js";
 import { Button } from "../../components/design/Button.js";
@@ -43,28 +44,6 @@ const INPUT =
 
 // A titled, contained card body for sections that aren't a full Section title.
 const CARD = "rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4";
-
-// Status carries a meaning-based tone (same colour language as the Board
-// columns): active=emerald, fail/blocked=rose, attention=amber, queued=violet.
-function taskStatusTone(s: Task["status"]): ChipTone {
-  switch (s) {
-    case "running":
-    case "done":
-      return "emerald";
-    case "failed":
-    case "blocked":
-      return "rose";
-    case "waiting_for_approval":
-    case "review":
-      return "amber";
-    case "queued":
-      return "violet";
-    default:
-      return "neutral"; // backlog, ready, cancelled
-  }
-}
-
-const humanize = (s: string): string => s.replace(/_/g, " ");
 
 // Priority / risk read as coloured attributes (not metrics): low is quiet,
 // medium is the accent, high is attention.
@@ -234,45 +213,21 @@ export function TaskDetailPage({
             </span>
           </span>
         }
-        actions={
-          <>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={queue}
-              disabled={queueDisabled}
-            >
-              {busy === "queue"
-                ? "Queueing…"
-                : task.status === "running"
-                  ? "Running"
-                  : task.status === "queued"
-                    ? "Queued"
-                    : "Queue task"}
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={cancel}
-              disabled={busy !== null || task.status === "cancelled"}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => toggleArchive(!task.archived)}
-              disabled={busy !== null}
-            >
-              {busy === "archive"
-                ? "…"
-                : task.archived
-                  ? "Un-archive"
-                  : "Archive"}
-            </Button>
-          </>
-        }
       />
+
+      <div className="mb-4">
+        <TaskOverviewPanel
+          task={task}
+          stepsDone={(task.checklist ?? []).filter((i) => i.status === "done").length}
+          stepsTotal={(task.checklist ?? []).length}
+          runsCount={task.runIds.length}
+          busy={busy}
+          queueDisabled={queueDisabled}
+          onStart={queue}
+          onCancel={cancel}
+          onArchive={() => toggleArchive(!task.archived)}
+        />
+      </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         {/* ── Main column: what you work on ───────────────────────── */}
@@ -322,13 +277,9 @@ export function TaskDetailPage({
           <Section title="Runs">
             <div className={CARD}>
               {task.runIds.length === 0 ? (
-                <div className="flex flex-col items-start gap-2.5">
-                  <div className="text-[12px] text-chalk-400">
-                    No runs yet - kick one off to see it tracked here.
-                  </div>
-                  <Button variant="secondary" size="sm" onClick={queue} disabled={queueDisabled}>
-                    {busy === "queue" ? "Queueing…" : "Queue the first run"}
-                  </Button>
+                <div className="text-[12px] text-chalk-400">
+                  No runs yet. Use <span className="font-medium text-chalk-200">Start task</span> at
+                  the top to kick one off - runs show up here.
                 </div>
               ) : (
                 <ul className="space-y-2.5">
@@ -444,11 +395,6 @@ export function TaskDetailPage({
         <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-0">
           <Section title="Details">
             <div className={CARD}>
-              <DetailRow label="Status">
-                <Chip tone={taskStatusTone(task.status)} contained>
-                  {humanize(task.status)}
-                </Chip>
-              </DetailRow>
               <DetailRow label="Priority">
                 <span className={ATTR_TONE[task.priority]}>{task.priority}</span>
               </DetailRow>

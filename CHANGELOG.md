@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.45.0
+
+- **A task leads with an overview panel.** The top of a task is now a rich,
+  contained panel that owns the task's high-level controls (Start, Cancel,
+  Archive) and a designed state summary: a "where does this stand / what's next"
+  headline plus stat tiles for status, steps done, runs, blockers and priority.
+  Starting a task is a parent-level control, so it lives here - not buried in the
+  Runs list. The Runs section just lists runs now; "Queue the first run" is gone.
+
 ## 0.44.0
 
 - **Let the supervisor plan the steps.** A task's checklist no longer opens as a
