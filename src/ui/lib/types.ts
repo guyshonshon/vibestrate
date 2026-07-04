@@ -1175,6 +1175,47 @@ export type FileTreeResult = {
   tree: FileTreeEntry;
 };
 
+// ── Codebase content + supervisor search ────────────────────────────────────
+
+export type CodeSearchMatch = { line: number; text: string };
+
+export type CodeSearchFileResult = {
+  path: string;
+  matches: CodeSearchMatch[];
+  matchCount: number;
+  matchesTruncated: boolean;
+};
+
+export type CodeSearchResult = {
+  available: boolean;
+  error: string | null;
+  query: string;
+  regex: boolean;
+  files: CodeSearchFileResult[];
+  totalMatches: number;
+  totalFiles: number;
+  truncated: boolean;
+  redactedCount: number;
+};
+
+export type SupervisorSearchFile = { path: string; reason: string };
+
+export type SupervisorSearchResult = {
+  result: {
+    files: SupervisorSearchFile[];
+    searchTerms: string[];
+    summary: string;
+    confidence: "low" | "medium" | "high";
+    caveats: string[];
+  };
+  providerId: string;
+  profileId: string;
+  model: string | null;
+  effort: string | null;
+  candidateCount: number;
+  candidatesTruncated: boolean;
+};
+
 export type FileViewLine = { number: number; text: string };
 
 export type FileView = {

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.52.0
+
+- **Search your codebase - by name, by content, or by asking.** The Codebase
+  page's left rail now has three modes. **Files** filters the tree by name (as
+  before). **Content** searches file contents across the whole repo (git grep)
+  with Include/Exclude globs, a Regex toggle, and case sensitivity - results
+  list every file and matching line, click one to open it right at that line.
+  **Ask** is natural-language search: describe what you're after ("the file
+  that handles login") and the supervisor ranks the files that fit and explains
+  why, with grep terms you can drill into. Content matches are secret-safe:
+  secret-named files are skipped and every snippet is redacted before it leaves
+  the server, so a stray key can't surface in results.
+
 ## 0.51.0
 
 - **HeroCard reaches the run overview and the projects grid.** The run detail

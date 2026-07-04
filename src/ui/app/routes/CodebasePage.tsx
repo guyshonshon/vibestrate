@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Check, MessageSquarePlus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Bot, Check, FolderTree, MessageSquarePlus, RotateCcw, Search, Sparkles, Trash2 } from "lucide-react";
 import { ApiError, api, type CodebaseAnnotation } from "../../lib/api.js";
 import type {
   FileTreeResult,
@@ -9,6 +9,10 @@ import type {
 import { FileTreeView } from "../../components/codebase/FileTreeView.js";
 import { FileViewer } from "../../components/codebase/FileViewer.js";
 import { FreshnessIndicator } from "../../components/codebase/FreshnessIndicator.js";
+import {
+  ContentResults,
+  SupervisorResults,
+} from "../../components/codebase/CodebaseSearchResults.js";
 import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
 import { StatTile } from "../../components/design/StatTile.js";
@@ -34,6 +38,15 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
   const [runId, setRunId] = useState<string | null>(initial.runId);
   const [tree, setTree] = useState<FileTreeResult | null>(null);
   const [filter, setFilter] = useState("");
+  // Search: mode + query + content-search options. `filter` stays the fast
+  // filename filter for the tree; content/supervisor search hit the server.
+  const [searchMode, setSearchMode] = useState<"files" | "content" | "supervisor">("files");
+  const [query, setQuery] = useState("");
+  const [include, setInclude] = useState("");
+  const [exclude, setExclude] = useState("");
+  const [regex, setRegex] = useState(false);
+  const [caseSensitive, setCaseSensitive] = useState(false);
+  const [supervisorToken, setSupervisorToken] = useState(0);
   const [path, setPath] = useState<string | null>(initial.path);
   const [line, setLine] = useState<number | null>(initial.line);
   const [view, setView] = useState<FileView | null>(null);
@@ -187,7 +200,15 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
               <SourceTab active={source === "project"} onClick={() => setSource("project")}>
                 Project
               </SourceTab>
-              <SourceTab active={source === "worktree"} onClick={() => setSource("worktree")}>
+              <SourceTab
+                active={source === "worktree"}
+                onClick={() => {
+                  setSource("worktree");
+                  // Content/supervisor search runs against the project git repo,
+                  // not a run worktree - fall back to the filename filter.
+                  setSearchMode("files");
+                }}
+              >
                 Worktree
               </SourceTab>
             </div>
@@ -217,26 +238,81 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
       />
 
       <div className="flex min-h-0 flex-1 gap-3 pb-5">
-        {/* ── File tree ─────────────────────────────────────────────── */}
+        {/* ── File tree + search ────────────────────────────────────── */}
         <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-700">
           <div className="border-b border-[color:var(--line-soft)] p-2.5">
-            <div className="relative">
-              <Search
-                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-chalk-400"
-                strokeWidth={1.9}
-                aria-hidden
-              />
-              <input
-                type="search"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                placeholder="Filter files"
-                className="w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 py-1.5 pl-8 pr-3 text-[12.5px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
-              />
+            {/* Mode chips. Content + supervisor search hit the project's git
+                repo, so they're offered only in project mode. */}
+            <div className="mb-2 inline-flex items-center gap-0.5 rounded-[9px] border border-[color:var(--line)] bg-coal-800 p-0.5">
+              <ModeChip active={searchMode === "files"} onClick={() => setSearchMode("files")} icon={<FolderTree className="h-3 w-3" strokeWidth={1.9} />} label="Files" />
+              {source === "project" ? (
+                <>
+                  <ModeChip active={searchMode === "content"} onClick={() => setSearchMode("content")} icon={<Search className="h-3 w-3" strokeWidth={1.9} />} label="Content" />
+                  <ModeChip active={searchMode === "supervisor"} onClick={() => setSearchMode("supervisor")} icon={<Sparkles className="h-3 w-3" strokeWidth={1.9} />} label="Ask" />
+                </>
+              ) : null}
             </div>
+
+            {searchMode === "files" ? (
+              <SearchInput icon={<Search />} value={filter} onChange={setFilter} placeholder="Filter files by name" />
+            ) : searchMode === "content" ? (
+              <div className="space-y-1.5">
+                <SearchInput icon={<Search />} value={query} onChange={setQuery} placeholder="Search file contents" />
+                <div className="grid grid-cols-2 gap-1.5">
+                  <MiniInput value={include} onChange={setInclude} placeholder="Include glob" />
+                  <MiniInput value={exclude} onChange={setExclude} placeholder="Exclude glob" />
+                </div>
+                <div className="flex items-center gap-3 px-0.5 pt-0.5">
+                  <Toggle checked={regex} onChange={setRegex} label="Regex" />
+                  <Toggle checked={caseSensitive} onChange={setCaseSensitive} label="Case" />
+                </div>
+              </div>
+            ) : (
+              <form
+                className="space-y-1.5"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (query.trim()) setSupervisorToken((t) => t + 1);
+                }}
+              >
+                <SearchInput icon={<Sparkles />} value={query} onChange={setQuery} placeholder="e.g. the file that handles login" />
+                <Button type="submit" variant="primary" size="sm" className="w-full" disabled={!query.trim()} iconLeft={<Sparkles className="h-3.5 w-3.5" strokeWidth={1.9} />}>
+                  Ask the supervisor
+                </Button>
+              </form>
+            )}
           </div>
+
           <div className="min-h-0 flex-1 overflow-y-auto py-1.5">
-            {error ? (
+            {searchMode === "content" ? (
+              <ContentResults
+                query={query}
+                regex={regex}
+                caseSensitive={caseSensitive}
+                include={include}
+                exclude={exclude}
+                selectedPath={path}
+                onOpen={(p, l) => {
+                  setPath(p);
+                  setLine(l ?? null);
+                }}
+              />
+            ) : searchMode === "supervisor" ? (
+              <SupervisorResults
+                query={query}
+                submitToken={supervisorToken}
+                selectedPath={path}
+                onOpen={(p) => {
+                  setPath(p);
+                  setLine(null);
+                }}
+                onRunTerm={(term) => {
+                  setSearchMode("content");
+                  setRegex(false);
+                  setQuery(term);
+                }}
+              />
+            ) : error ? (
               <div className="m-2.5 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[11.5px] text-rose-300">
                 {error}
                 <button
@@ -344,6 +420,103 @@ function anchorLabel(line: number | null, endLine: number | null): string {
   if (line === null) return "Whole file";
   if (endLine === null || endLine === line) return `Line ${line}`;
   return `Lines ${line}-${endLine}`;
+}
+
+function ModeChip({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-1 rounded-[7px] px-2 py-1 text-[11px] font-semibold transition",
+        active
+          ? "bg-coal-600 text-chalk-100 shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+          : "text-chalk-400 hover:text-chalk-100",
+      )}
+    >
+      <span className={active ? "text-violet-soft" : ""}>{icon}</span>
+      {label}
+    </button>
+  );
+}
+
+function SearchInput({
+  icon,
+  value,
+  onChange,
+  placeholder,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-chalk-400 [&>svg]:h-3.5 [&>svg]:w-3.5">
+        {icon}
+      </span>
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 py-1.5 pl-8 pr-3 text-[12.5px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+      />
+    </div>
+  );
+}
+
+function MiniInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      spellCheck={false}
+      className="mono w-full rounded-[8px] border border-[color:var(--line-strong)] bg-coal-800 px-2 py-1 text-[11px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+    />
+  );
+}
+
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-chalk-300">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-3 w-3 accent-violet-soft"
+      />
+      {label}
+    </label>
+  );
 }
 
 function AnnotationsPanel(props: {

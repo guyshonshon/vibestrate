@@ -10,6 +10,8 @@ import type {
   WorkflowSelectionView,
   ChecklistItemStatus,
   CodeReference,
+  CodeSearchResult,
+  SupervisorSearchResult,
   ConflictWarning,
   CrewView,
   ProfileView,
@@ -2030,6 +2032,28 @@ export const api = {
       `/api/project/file?${q.toString()}`,
     );
     return r.file;
+  },
+  async searchProjectContent(input: {
+    query: string;
+    regex?: boolean;
+    caseSensitive?: boolean;
+    include?: string | null;
+    exclude?: string | null;
+  }): Promise<CodeSearchResult> {
+    const r = await jsonPost<{ result: CodeSearchResult }>(
+      "/api/project/search",
+      input,
+    );
+    return r.result;
+  },
+  async searchProjectSupervisor(input: {
+    query: string;
+  }): Promise<SupervisorSearchResult> {
+    const r = await jsonPost<{ result: SupervisorSearchResult }>(
+      "/api/project/search/supervisor",
+      input,
+    );
+    return r.result;
   },
   async listAnnotations(input?: {
     path?: string;

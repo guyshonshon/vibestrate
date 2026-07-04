@@ -9,6 +9,11 @@ import {
 import { getProjectMetadata } from "../../core/project-context-service.js";
 import { buildFileTree } from "../../core/file-tree-service.js";
 import { FileViewError, viewFile } from "../../core/file-view-service.js";
+import { searchCodebaseContent } from "../../core/codebase-search-service.js";
+import {
+  supervisorFileSearch,
+  CodebaseSearchError,
+} from "../../consult/codebase-search.js";
 import { runStatePath } from "../../utils/paths.js";
 import { pathExists } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";
@@ -376,6 +381,58 @@ export async function registerProjectRoutes(
       includeVibestrate: req.query.includeVibestrate === "true",
     });
     return { tree };
+  });
+
+  // Read-only content search (git grep). Secret-like paths are dropped and
+  // every snippet is redacted before it leaves the server.
+  const searchBody = z.object({
+    query: z.string().min(1).max(500),
+    regex: z.boolean().optional(),
+    caseSensitive: z.boolean().optional(),
+    include: z.string().max(400).nullish(),
+    exclude: z.string().max(400).nullish(),
+  });
+  app.post<{ Body: unknown }>("/api/project/search", async (req) => {
+    const parsed = searchBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    return {
+      result: await searchCodebaseContent({
+        projectRoot,
+        query: parsed.data.query,
+        regex: parsed.data.regex,
+        caseSensitive: parsed.data.caseSensitive,
+        include: parsed.data.include,
+        exclude: parsed.data.exclude,
+      }),
+    };
+  });
+
+  // Read-only natural-language file search via the supervisor (assist runner).
+  const supervisorSearchBody = z.object({
+    query: z.string().min(1).max(500),
+    profileId: z.string().min(1).max(200).nullish(),
+    providerId: z.string().min(1).max(200).nullish(),
+    model: z.string().min(1).max(200).nullish(),
+    effort: z.string().min(1).max(50).nullish(),
+  });
+  app.post<{ Body: unknown }>("/api/project/search/supervisor", async (req) => {
+    const parsed = supervisorSearchBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    try {
+      return {
+        result: await supervisorFileSearch({
+          projectRoot,
+          query: parsed.data.query,
+          profileId: parsed.data.profileId,
+          providerId: parsed.data.providerId,
+          model: parsed.data.model,
+          effort: parsed.data.effort,
+        }),
+      };
+    } catch (err) {
+      if (err instanceof CodebaseSearchError) throw new HttpError(400, err.message);
+      throw err;
+    }
   });
 
   app.get<{
