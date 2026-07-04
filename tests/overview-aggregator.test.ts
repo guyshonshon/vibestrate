@@ -210,18 +210,36 @@ describe("spendByRole", () => {
 });
 
 describe("activityHeatmap", () => {
-  it("counts runs by weekday × hour-of-day", () => {
+  it("counts runs by weekday × hour-of-day with a per-provider breakdown", () => {
     // 2026-05-25 is a Monday at 18:00 local.
     const monday = new Date(2026, 4, 25, 18, 0, 0).toISOString();
     const friday = new Date(2026, 4, 22, 9, 0, 0).toISOString();
-    const rows = activityHeatmap([
-      run({ runId: "a", startedAt: monday }),
-      run({ runId: "b", startedAt: monday }),
-      run({ runId: "c", startedAt: friday }),
-    ]);
-    expect(rows.find((r) => r.day === "Mon")!.cells[18]).toBe(2);
-    expect(rows.find((r) => r.day === "Fri")!.cells[9]).toBe(1);
-    expect(rows.find((r) => r.day === "Sun")!.cells[0]).toBe(0);
+    const rows = activityHeatmap(
+      [
+        run({ runId: "a", startedAt: monday }),
+        run({ runId: "b", startedAt: monday }),
+        run({ runId: "c", startedAt: friday }),
+      ],
+      new Map([
+        ["a", metrics("a", [{ stageId: "exec", providerId: "claude-sonnet", totalCostUsd: 0.5, tokens: { input: 100, output: 20 } }])],
+        ["b", metrics("b", [{ stageId: "exec", providerId: "claude-sonnet", totalCostUsd: 0.25, tokens: { input: 40, output: 10 } }])],
+      ]),
+      { "claude-sonnet": { label: "Sonnet", vendor: "Anthropic" } },
+    );
+    const mon18 = rows.find((r) => r.day === "Mon")!.cells[18]!;
+    expect(mon18.count).toBe(2);
+    expect(mon18.providers).toHaveLength(1);
+    expect(mon18.providers[0]).toMatchObject({
+      label: "Sonnet",
+      runs: 2,
+      costUsd: 0.75,
+      tokens: 170,
+    });
+    // A run with no metrics still counts but adds no provider rows.
+    const fri9 = rows.find((r) => r.day === "Fri")!.cells[9]!;
+    expect(fri9.count).toBe(1);
+    expect(fri9.providers).toHaveLength(0);
+    expect(rows.find((r) => r.day === "Sun")!.cells[0]!.count).toBe(0);
   });
 });
 

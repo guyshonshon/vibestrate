@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Activity,
   CircleCheck,
@@ -12,6 +12,7 @@ import {
 import {
   api,
   type BudgetSettings,
+  type HeatmapCell,
   type LeaderboardEntry,
   type MetricsOverview,
   type OverviewRange,
@@ -19,8 +20,9 @@ import {
 import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
 import { Sparkline } from "../../components/design/Sparkline.js";
-import { SegmentRing } from "../../components/design/SegmentRing.js";
 import { RunsAreaChart } from "../../components/metrics/RunsAreaChart.js";
+import { DonutChart } from "../../components/metrics/DonutChart.js";
+import { LatencyDumbbell } from "../../components/metrics/LatencyDumbbell.js";
 import { StatTile, type StatTileTone } from "../../components/design/StatTile.js";
 import {
   PageShell,
@@ -269,7 +271,7 @@ function KpiStrip({ overview }: { overview: MetricsOverview | null }) {
       <BigKpi
         label="Spend"
         icon={<DollarSign className="h-3.5 w-3.5" strokeWidth={2} />}
-        value={`$${(totals?.costUsd ?? 0).toFixed(2)}`}
+        value={fmtCost(totals?.costUsd ?? 0)}
         sub={
           totals?.spendCapDailyUsd
             ? `capped at $${totals.spendCapDailyUsd.toFixed(0)}/day`
@@ -307,6 +309,13 @@ const KPI_TONE: Record<
     icon: "text-sky-glow",
   },
 };
+
+// Cost readouts show "FREE" rather than "$0.00" - unmetered local-CLI runs cost
+// nothing, and that reads clearer than a zero. Applies to spend/cost only, never
+// to cap/ceiling config (a "$0 cap" is not "free").
+function fmtCost(n: number): string {
+  return n > 0 ? `$${n.toFixed(2)}` : "FREE";
+}
 
 function fmtTokensShort(n: number): string {
   const a = Math.abs(n);
@@ -918,7 +927,7 @@ function PerModelPanel({ overview }: { overview: MetricsOverview | null }) {
                   {fmtTokensShort(r.tokens)}
                 </td>
                 <td className="num-tabular py-1.5 text-right text-chalk-100">
-                  {r.costUsd > 0 ? `$${r.costUsd.toFixed(2)}` : "-"}
+                  {fmtCost(r.costUsd)}
                 </td>
               </tr>
             ))}
@@ -1013,10 +1022,10 @@ function OutcomesDonut({ overview }: { overview: MetricsOverview | null }) {
       ) : (
         <>
           <div className="flex items-center gap-5">
-            <SegmentRing
+            <DonutChart
               size={168}
-              thickness={16}
-              segments={segs.map((s) => ({
+              thickness={20}
+              slices={segs.map((s) => ({
                 key: s.key,
                 value: s.value,
                 color: s.color,
@@ -1028,7 +1037,7 @@ function OutcomesDonut({ overview }: { overview: MetricsOverview | null }) {
               <div className="mt-1 text-[11px] font-medium text-violet-soft">
                 merged
               </div>
-            </SegmentRing>
+            </DonutChart>
             <div className="flex-1 space-y-2.5">
               {segs.map((s) => (
                 <div key={s.key} className="text-[12.5px]">
@@ -1087,7 +1096,7 @@ function SpendByRolePanel({ overview }: { overview: MetricsOverview | null }) {
             Spend by agent
           </h3>
           <div className="num-tabular text-[26px] font-bold leading-none tracking-tight text-chalk-100">
-            ${total.toFixed(2)}
+            {fmtCost(total)}
           </div>
         </div>
         {weeklyCap !== null ? (
@@ -1133,7 +1142,7 @@ function SpendByRolePanel({ overview }: { overview: MetricsOverview | null }) {
                   </div>
                 </div>
                 <div className="mono num-tabular text-right text-[13px] text-chalk-100">
-                  ${d.dollars.toFixed(2)}
+                  {fmtCost(d.dollars)}
                 </div>
               </div>
             );
@@ -1152,14 +1161,6 @@ function LatencyByPhasePanel({
   overview: MetricsOverview | null;
 }) {
   const data = overview?.phaseLatency ?? [];
-  const w = 320;
-  const h = 210;
-  const pad = { l: 38, r: 8, t: 8, b: 28 };
-  const innerW = w - pad.l - pad.r;
-  const innerH = h - pad.t - pad.b;
-  const max = Math.max(...data.map((d) => d.p95), 1);
-  const bw = innerW / Math.max(1, data.length);
-  const barW = bw * 0.36;
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
@@ -1172,103 +1173,21 @@ function LatencyByPhasePanel({
         <EmptyState text="Phase latency lands here after a few runs complete." />
       ) : (
         <>
-          <div className="mx-auto" style={{ maxWidth: 420 }}>
-            <svg
-              viewBox={`0 0 ${w} ${h}`}
-              className="block h-auto w-full"
-              preserveAspectRatio="xMidYMid meet"
-            >
-              {[0, 0.5, 1].map((t, i) => {
-                const v = Math.round(max * t);
-                const y = pad.t + innerH - t * innerH;
-                return (
-                  <g key={i}>
-                    <line
-                      x1={pad.l}
-                      x2={w - pad.r}
-                      y1={y}
-                      y2={y}
-                      stroke={CSS.line}
-                    />
-                    <text
-                      x={pad.l - 6}
-                      y={y + 3}
-                      fontSize="9"
-                      textAnchor="end"
-                      fill={CSS.axis}
-                      fontFamily="Geist Mono"
-                    >
-                      {v}s
-                    </text>
-                  </g>
-                );
-              })}
-              {data.map((d, i) => {
-                const cx = pad.l + bw * i + bw / 2;
-                const p95h = (d.p95 / max) * innerH;
-                const p50h = (d.p50 / max) * innerH;
-                return (
-                  <g key={d.phase}>
-                    <rect
-                      x={cx - barW / 2}
-                      y={pad.t + innerH - p95h}
-                      width={barW}
-                      height={p95h}
-                      fill={CSS.violet}
-                      fillOpacity="0.18"
-                      stroke={CSS.violet}
-                      strokeOpacity="0.35"
-                      rx="2"
-                    />
-                    <rect
-                      x={cx - barW / 2 + 1}
-                      y={pad.t + innerH - p50h}
-                      width={barW - 2}
-                      height={p50h}
-                      fill={CSS.violet}
-                      fillOpacity="0.7"
-                      rx="2"
-                    />
-                    <text
-                      x={cx}
-                      y={h - 14}
-                      fontSize="10"
-                      textAnchor="middle"
-                      fill={CSS.axis}
-                      fontFamily="Geist Mono"
-                      style={{ letterSpacing: "0.1em" }}
-                    >
-                      {d.phase}
-                    </text>
-                    <text
-                      x={cx}
-                      y={h - 2}
-                      fontSize="9"
-                      textAnchor="middle"
-                      fill={CSS.axis}
-                      fontFamily="Geist Mono"
-                    >
-                      {d.p50}/{d.p95}s
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
+          <LatencyDumbbell data={data} />
           <div className="mt-2 flex items-center justify-end gap-3 text-[11px] text-chalk-300">
             <span className="inline-flex items-center gap-1.5">
               <span
-                className="h-2.5 w-2.5 rounded-sm"
-                style={{ background: CSS.violet, opacity: 0.7 }}
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ background: CSS.violet }}
               />{" "}
               p50
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span
-                className="h-2.5 w-2.5 rounded-sm"
+                className="h-2.5 w-2.5 rounded-full"
                 style={{
-                  background: `${CSS.violet}40`,
-                  border: `1px solid ${CSS.violet}66`,
+                  background: "var(--card)",
+                  border: `1.5px solid ${CSS.violet}`,
                 }}
               />{" "}
               p95
@@ -1282,13 +1201,24 @@ function LatencyByPhasePanel({
 
 // ── Heatmap ───────────────────────────────────────────────────────────────
 
+type HeatHover = {
+  day: string;
+  hour: number;
+  cell: HeatmapCell;
+  x: number;
+  y: number;
+};
+
 function ActivityHeatmapPanel({
   overview,
 }: {
   overview: MetricsOverview | null;
 }) {
   const data = overview?.heatmap ?? [];
-  const max = Math.max(...data.flatMap((r) => r.cells), 1);
+  const max = Math.max(1, ...data.flatMap((r) => r.cells.map((c) => c.count)));
+  const [hover, setHover] = useState<HeatHover | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
   return (
     <div>
       <div className="mb-4 flex items-end justify-between gap-3">
@@ -1317,47 +1247,106 @@ function ActivityHeatmapPanel({
       {data.length === 0 ? (
         <EmptyState text="No activity recorded yet. Runs plot by hour and weekday once they start landing." />
       ) : (
-        <div className="overflow-x-auto">
-          <div className="inline-block min-w-full">
-            <div
-              className="grid"
-              style={{
-                gridTemplateColumns: "36px repeat(24, 1fr)",
-                gap: "3px",
-              }}
-            >
-              <span />
-              {Array.from({ length: 24 }, (_, h) => (
-                <span
-                  key={h}
-                  className="mono text-center text-[9px] text-chalk-400"
-                >
-                  {h % 3 === 0 ? String(h).padStart(2, "0") : ""}
-                </span>
-              ))}
-              {data.map((row) => (
-                <Fragment key={row.day}>
-                  <span className="mono self-center text-[10px] text-chalk-300">
-                    {row.day}
+        <div className="relative" ref={ref}>
+          <div className="overflow-x-auto">
+            <div className="inline-block min-w-full">
+              <div
+                className="grid"
+                style={{
+                  gridTemplateColumns: "36px repeat(24, 1fr)",
+                  gap: "3px",
+                }}
+              >
+                <span />
+                {Array.from({ length: 24 }, (_, h) => (
+                  <span
+                    key={h}
+                    className="mono text-center text-[9px] text-chalk-400"
+                  >
+                    {h % 3 === 0 ? String(h).padStart(2, "0") : ""}
                   </span>
-                  {row.cells.map((v, h) => {
-                    const op = v === 0 ? 0.04 : 0.1 + (v / max) * 0.7;
-                    return (
-                      <span
-                        key={h}
-                        className="aspect-square rounded-sm border border-[color:var(--line-soft)]"
-                        style={{
-                          background: CSS.violet,
-                          opacity: op,
-                        }}
-                        title={`${row.day} ${String(h).padStart(2, "0")}:00, ${v} runs`}
-                      />
-                    );
-                  })}
-                </Fragment>
-              ))}
+                ))}
+                {data.map((row) => (
+                  <Fragment key={row.day}>
+                    <span className="mono self-center text-[10px] text-chalk-300">
+                      {row.day}
+                    </span>
+                    {row.cells.map((cell, h) => {
+                      const op =
+                        cell.count === 0 ? 0.04 : 0.1 + (cell.count / max) * 0.7;
+                      return (
+                        <span
+                          key={h}
+                          className="aspect-square cursor-default rounded-sm border border-[color:var(--line-soft)] transition-transform hover:scale-110"
+                          style={{ background: CSS.violet, opacity: op }}
+                          onMouseEnter={(e) => {
+                            const cr = ref.current?.getBoundingClientRect();
+                            const b = e.currentTarget.getBoundingClientRect();
+                            if (!cr) return;
+                            setHover({
+                              day: row.day,
+                              hour: h,
+                              cell,
+                              x: b.left - cr.left + b.width / 2,
+                              y: b.top - cr.top,
+                            });
+                          }}
+                          onMouseLeave={() => setHover(null)}
+                        />
+                      );
+                    })}
+                  </Fragment>
+                ))}
+              </div>
             </div>
           </div>
+          {hover ? (
+            <HeatTooltip hover={hover} width={ref.current?.clientWidth ?? 0} />
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HeatTooltip({ hover, width }: { hover: HeatHover; width: number }) {
+  const { day, hour, cell } = hover;
+  const left = Math.max(104, Math.min(hover.x, width - 104));
+  const providers = cell.providers;
+  return (
+    <div
+      className="pointer-events-none absolute z-10 w-max max-w-[240px] rounded-[12px] border border-[color:var(--line)] bg-[color:var(--card)] p-2.5 shadow-[0_6px_24px_rgba(0,0,0,0.35)]"
+      style={{
+        left,
+        top: hover.y - 8,
+        transform: "translate(-50%, -100%)",
+      }}
+    >
+      <div className="mb-1 flex items-center justify-between gap-4">
+        <span className="text-[11px] font-semibold text-chalk-300">
+          {day} {String(hour).padStart(2, "0")}:00
+        </span>
+        <span className="num-tabular text-[11px] font-bold text-chalk-100">
+          {cell.count} {cell.count === 1 ? "run" : "runs"}
+        </span>
+      </div>
+      {providers.length === 0 ? (
+        <div className="text-[11px] text-chalk-400">
+          {cell.count === 0 ? "No runs this hour." : "No metered provider data."}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1 border-t border-[color:var(--line-soft)] pt-1.5">
+          {providers.map((p) => (
+            <div
+              key={p.label}
+              className="flex items-center justify-between gap-3 text-[11px]"
+            >
+              <span className="truncate text-chalk-100">{p.label}</span>
+              <span className="num-tabular mono shrink-0 text-chalk-300">
+                {p.runs} · {fmtCost(p.costUsd)} · {fmtTokensShort(p.tokens)}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -1463,7 +1452,7 @@ function LeaderboardTable({ overview }: { overview: MetricsOverview | null }) {
                   {row.p95Seconds !== null ? `${row.p95Seconds}s` : "-"}
                 </td>
                 <td className="mono num-tabular px-3 py-3 text-right text-[12px] text-chalk-100">
-                  ${row.costUsd.toFixed(2)}
+                  {fmtCost(row.costUsd)}
                 </td>
                 <td
                   className={cn(

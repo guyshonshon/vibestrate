@@ -222,7 +222,17 @@ export type PhaseLatencyEntry = {
   samples: number;
 };
 
-export type HeatmapRow = { day: string; cells: number[] };
+export type HeatmapProviderUsage = {
+  label: string;
+  runs: number;
+  costUsd: number;
+  tokens: number;
+};
+export type HeatmapCell = {
+  count: number;
+  providers: HeatmapProviderUsage[];
+};
+export type HeatmapRow = { day: string; cells: HeatmapCell[] };
 
 export type LeaderboardEntry = {
   providerId: string;

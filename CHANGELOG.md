@@ -2,13 +2,23 @@
 
 ## 0.54.0
 
-- **Metrics page, rebuilt around one chart language.** The dashboard's charts
-  were each styled a little differently; they now share a single house idiom
-  (LOUD/Raycast: deeper surface layering, rounded cards, a restrained top-lit
-  highlight, single-hue violet viz). KPI tiles lead with a tone icon chip and a
-  display-weight number over an inline sparkline. The Outcomes donut is now a
-  gapped segment ring - the same relation-ring shape the Crew seat chart uses,
-  extracted to a shared `SegmentRing` primitive so the two never drift.
+- **Metrics charts, rebuilt on a real charting library.** The hand-rolled SVG
+  charts are replaced with **visx**-backed ones in a consistent, interactive
+  style: the runs-over-time chart is a smooth single-hue area with a floating
+  card on hover (day + the merged/changes/failed split), the Outcomes donut is a
+  thick rounded-cap ring, and latency-by-phase is a p50-to-p95 dumbbell instead
+  of nested bars. Deeper surface layering, rounded cards, and a restrained
+  top-lit highlight tie the whole page together; KPI tiles lead with a tone icon
+  chip over an inline sparkline. Everything reads from theme tokens, so it holds
+  in both themes.
+- **The activity heatmap is interactive.** Hovering an hour cell now floats a
+  card listing the providers that ran in that hour, each with its runs, cost,
+  and tokens. The aggregator was extended to carry that per-provider breakdown
+  per cell.
+- **Cost reads "FREE", not "$0.00".** Anywhere actual spend or cost is zero
+  (KPI, spend-by-agent, per-model, leaderboard, heatmap tooltip) it now says
+  FREE - clearer for unmetered local-CLI runs. Spend caps and ceilings are
+  untouched (a "$0 cap" is a limit, not "free").
 - **Spend cap and ceilings is summary-first.** By default it shows a clean cap
   meter (today's spend against the daily cap, tinted amber past 90%) with the
   rest of the policy - at-cap action, the four ceilings, on-hit - as quiet

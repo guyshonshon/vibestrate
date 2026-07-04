@@ -32,11 +32,29 @@ export type PhaseLatencyEntry = {
   samples: number;
 };
 
+export type HeatmapProviderUsage = {
+  /** Provider display label. */
+  label: string;
+  /** Runs in this cell that used this provider. */
+  runs: number;
+  /** Cost attributed to this provider in this cell (0 on unmetered local CLI). */
+  costUsd: number;
+  /** Tokens attributed to this provider in this cell. */
+  tokens: number;
+};
+
+export type HeatmapCell = {
+  /** Runs started in this hour-of-day (drives the colour scale). */
+  count: number;
+  /** Per-provider breakdown for the tooltip; empty when count is 0. */
+  providers: HeatmapProviderUsage[];
+};
+
 export type HeatmapRow = {
   /** Short day-of-week label, "Sun"…"Sat". */
   day: string;
-  /** Length 24, runs per hour-of-day for that weekday. */
-  cells: number[];
+  /** Length 24, one cell per hour-of-day for that weekday. */
+  cells: HeatmapCell[];
 };
 
 export type LeaderboardEntry = {
@@ -305,18 +323,60 @@ export function phaseLatency(
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function activityHeatmap(runs: RunState[]): HeatmapRow[] {
-  const rows: HeatmapRow[] = WEEKDAYS.map((day) => ({
+export function activityHeatmap(
+  runs: RunState[],
+  metricsByRun: Map<string, RuntimeMetrics | null>,
+  providers: ProviderLookup,
+): HeatmapRow[] {
+  type Acc = {
+    count: number;
+    byProvider: Map<string, { runs: number; costUsd: number; tokens: number }>;
+  };
+  const rows = WEEKDAYS.map((day) => ({
     day,
-    cells: Array.from({ length: 24 }, () => 0),
+    cells: Array.from(
+      { length: 24 },
+      (): Acc => ({ count: 0, byProvider: new Map() }),
+    ),
   }));
   for (const run of runs) {
     const t = new Date(run.startedAt);
     if (!Number.isFinite(t.getTime())) continue;
-    const row = rows[t.getDay()]!;
-    row.cells[t.getHours()]! += 1;
+    const cell = rows[t.getDay()]!.cells[t.getHours()]!;
+    cell.count += 1;
+    const m = metricsByRun.get(run.runId);
+    if (!m) continue;
+    // Fold the run's per-agent cost/tokens up to distinct providers, then merge
+    // into the cell so each provider counts the run once.
+    const perRun = new Map<string, { costUsd: number; tokens: number }>();
+    for (const a of m.roles) {
+      const e = perRun.get(a.providerId) ?? { costUsd: 0, tokens: 0 };
+      e.costUsd += a.totalCostUsd ?? 0;
+      e.tokens += roleTokens(a);
+      perRun.set(a.providerId, e);
+    }
+    for (const [id, e] of perRun) {
+      const agg = cell.byProvider.get(id) ?? { runs: 0, costUsd: 0, tokens: 0 };
+      agg.runs += 1;
+      agg.costUsd += e.costUsd;
+      agg.tokens += e.tokens;
+      cell.byProvider.set(id, agg);
+    }
   }
-  return rows;
+  return rows.map((r) => ({
+    day: r.day,
+    cells: r.cells.map((c) => ({
+      count: c.count,
+      providers: [...c.byProvider.entries()]
+        .map(([id, e]) => ({
+          label: providerLabel(id, providers).label,
+          runs: e.runs,
+          costUsd: round2(e.costUsd),
+          tokens: e.tokens,
+        }))
+        .sort((a, b) => b.runs - a.runs || b.costUsd - a.costUsd),
+    })),
+  }));
 }
 
 // ── Leaderboard ───────────────────────────────────────────────────────────
@@ -557,7 +617,11 @@ export function buildMetricsOverview(
       ),
     ),
   );
-  const heat = activityHeatmap(windowRuns);
+  const heat = activityHeatmap(
+    windowRuns,
+    inputs.metricsByRun,
+    inputs.providers,
+  );
   const board = leaderboard({
     runs: allRuns,
     metricsByRun: inputs.metricsByRun,
