@@ -23,6 +23,7 @@ import { Button } from "../../components/design/Button.js";
 import { SuggestInput } from "../../components/design/SuggestInput.js";
 import { EffortScale } from "../../components/design/EffortScale.js";
 import { StatTile } from "../../components/design/StatTile.js";
+import { annularPath } from "../../components/design/ring.js";
 import {
   HeroCard,
   type HeroMetric,
@@ -806,27 +807,6 @@ const TONE_WIRE: Record<ChipTone, string> = {
   amber: "bg-amber-soft/50",
   rose: "bg-rose-400/50",
 };
-
-function polar(cx: number, cy: number, r: number, rad: number): [number, number] {
-  return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
-}
-
-// An annular sector (ring wedge) from angle a0 to a1 (radians), inner radius ri
-// to outer ro. Seat arcs are always < 180 deg, so the large-arc flag is 0.
-function annularPath(
-  cx: number,
-  cy: number,
-  ri: number,
-  ro: number,
-  a0: number,
-  a1: number,
-): string {
-  const [x0o, y0o] = polar(cx, cy, ro, a0);
-  const [x1o, y1o] = polar(cx, cy, ro, a1);
-  const [x1i, y1i] = polar(cx, cy, ri, a1);
-  const [x0i, y0i] = polar(cx, cy, ri, a0);
-  return `M ${x0o} ${y0o} A ${ro} ${ro} 0 0 1 ${x1o} ${y1o} L ${x1i} ${y1i} A ${ri} ${ri} 0 0 0 ${x0i} ${y0i} Z`;
-}
 
 type SeatArc = {
   seat: string;

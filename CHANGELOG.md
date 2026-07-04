@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.54.0
+
+- **Metrics page, rebuilt around one chart language.** The dashboard's charts
+  were each styled a little differently; they now share a single house idiom
+  (LOUD/Raycast: deeper surface layering, rounded cards, a restrained top-lit
+  highlight, single-hue violet viz). KPI tiles lead with a tone icon chip and a
+  display-weight number over an inline sparkline. The Outcomes donut is now a
+  gapped segment ring - the same relation-ring shape the Crew seat chart uses,
+  extracted to a shared `SegmentRing` primitive so the two never drift.
+- **Spend cap and ceilings is summary-first.** By default it shows a clean cap
+  meter (today's spend against the daily cap, tinted amber past 90%) with the
+  rest of the policy - at-cap action, the four ceilings, on-hit - as quiet
+  read-only facts. An **Edit** reveal opens a tidy labelled form (no more
+  cramped row of tiny inputs); with no cap set it leads with a "Set a daily
+  cap" call to action instead of a dead read-out.
+
 ## 0.53.0
 
 - **Seat coverage is now a chart, not a list.** A crew's role/seat relationship
