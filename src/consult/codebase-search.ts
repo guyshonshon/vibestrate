@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { runAssist, type AssistProviderRunner } from "../assist/assist-runner.js";
+import {
+  runAssist,
+  resolveAssistTarget,
+  type AssistProviderRunner,
+} from "../assist/assist-runner.js";
+import { capabilitiesForProvider } from "../providers/provider-catalog.js";
 import { loadConfig } from "../project/config-loader.js";
 import { listCodebaseFiles } from "../core/codebase-search-service.js";
 
@@ -65,6 +70,35 @@ export type SupervisorSearchResult = {
 
 export class CodebaseSearchError extends Error {}
 
+/**
+ * The cheapest effort the ranking task can reliably run at. `"minimal"` is too
+ * weak for dependable structured JSON on some providers (codex returns unparse-
+ * able output), so we floor at the lowest level that is at least `"low"` -
+ * still a large saving over the profile's usual high effort.
+ */
+export function cheapEffort(
+  levels: string[] | undefined,
+  fallback: string | null,
+): string | null {
+  if (!levels || levels.length === 0) return fallback;
+  return levels.find((l) => l !== "minimal") ?? levels[0]!;
+}
+
+// Files that are essentially never the answer to "which file handles X" and
+// only bloat the prompt (input tokens) + dilute ranking. Dropped from the
+// candidate list handed to the model - content search still sees everything.
+const RANK_NOISE =
+  /(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$|\.(min\.(js|css)|map|snap|lock)$|(^|\/)(docs\/generated|dist|build|coverage|__snapshots__|vendor)\//;
+
+const MAX_CANDIDATES = 700;
+
+/** Trim the candidate paths for ranking: drop generated/lock/minified noise and
+ *  cap, so the model reads a smaller, more relevant list (fewer tokens, faster). */
+export function trimForRanking(paths: string[]): { paths: string[]; truncated: boolean } {
+  const kept = paths.filter((p) => !RANK_NOISE.test(p));
+  return { paths: kept.slice(0, MAX_CANDIDATES), truncated: kept.length > MAX_CANDIDATES };
+}
+
 export async function supervisorFileSearch(input: {
   projectRoot: string;
   query: string;
@@ -85,12 +119,14 @@ export async function supervisorFileSearch(input: {
     );
   }
 
-  const list = await listCodebaseFiles({ projectRoot: input.projectRoot, max: 1500 });
+  const list = await listCodebaseFiles({ projectRoot: input.projectRoot, max: 3000 });
   if (!list.available) {
     throw new CodebaseSearchError(
       list.error ?? "Supervisor search needs a git repository.",
     );
   }
+  // Hand the model a trimmed, source-relevant list - fewer input tokens, faster.
+  const trimmed = trimForRanking(list.paths);
   if (list.paths.length === 0) {
     return {
       result: {
@@ -109,24 +145,37 @@ export async function supervisorFileSearch(input: {
     };
   }
 
+  // Ranking file NAMES by intent is a cheap, mechanical task - it must not burn
+  // a high-effort reasoning budget. Resolve the would-be profile's provider,
+  // then force its LOWEST effort (and its cheapest model where one is
+  // designated - many providers, e.g. codex, designate none). An explicit
+  // caller override (providerId/model/effort) still wins.
+  const target = resolveAssistTarget(loaded, { profileId: input.profileId });
+  const provCfg = loaded.config.providers[target.providerId];
+  const caps = provCfg
+    ? capabilitiesForProvider(target.providerId, provCfg)
+    : null;
+  const adHoc = {
+    providerId: input.providerId ?? target.providerId,
+    model: input.model ?? caps?.cheapModel ?? target.model,
+    effort: input.effort ?? cheapEffort(caps?.powerLevels, target.effort),
+  };
+
   const res = await runAssist<SupervisorSearch>({
     projectRoot: input.projectRoot,
     label: "codebase-search",
     auditBucket: "assist",
-    instruction: buildInstruction(query, list.paths, list.truncated),
+    instruction: buildInstruction(query, trimmed.paths, trimmed.truncated || list.truncated),
     schema: supervisorSearchSchema,
     schemaHint: SCHEMA_HINT,
     loaded,
-    profileId: input.profileId,
-    adHocProvider: input.providerId
-      ? { providerId: input.providerId, model: input.model ?? null, effort: input.effort ?? null }
-      : null,
+    adHocProvider: adHoc,
     signal: input.signal,
     runner: input.runner,
   });
 
   // Drop any path the model invented - the answer can only point at real files.
-  const known = new Set(list.paths);
+  const known = new Set(trimmed.paths);
   const files = res.parsed.files.filter((f) => known.has(f.path)).slice(0, 8);
 
   return {
@@ -135,7 +184,7 @@ export async function supervisorFileSearch(input: {
     profileId: res.profileId,
     model: res.model,
     effort: res.effort,
-    candidateCount: list.paths.length,
-    candidatesTruncated: list.truncated,
+    candidateCount: trimmed.paths.length,
+    candidatesTruncated: trimmed.truncated || list.truncated,
   };
 }

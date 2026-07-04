@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.52.1
+
+- **Codebase "Ask" search is much cheaper.** Ranking files by intent is a light
+  task, so it now runs at the provider's lowest viable effort (floored just
+  above "minimal", which some providers can't emit valid JSON at) and its
+  cheapest model where one is designated - instead of inheriting the crew
+  planner's full effort. It also hands the model a trimmed, source-relevant
+  file list (generated, lock, and minified files dropped), cutting input
+  tokens. Note: on providers with no faster model (e.g. codex/gpt-5.5) the
+  wall-clock time is bounded by the base model; the win here is token cost.
+
 ## 0.52.0
 
 - **Search your codebase - by name, by content, or by asking.** The Codebase
