@@ -24,10 +24,15 @@ import {
 } from "./graph-math.js";
 
 const ROW_H = 32; // px per row - two tight text lines, dense git-log rhythm
-const LANE_W = 16; // px per lane
+const LANE_W = 13; // px per lane
 const NODE_R = 4;
 const TIP_R = 5.5; // branch tips render bigger than plain commits
-const PADDING_LEFT = 10;
+const PADDING_LEFT = 8;
+// The rail reserves width for the max lane across ALL commits, and that width
+// left-pads EVERY row's text. A few deep divergent branches must not shove the
+// subject of the (common) linear rows far to the right, so lanes past the cap
+// clamp to the last column - the text stays tight next to the rail.
+const LANE_CAP = 4;
 
 // Lane colours cycle through the token palette so they flip with the theme.
 // Lane 0 is always main = the violet spine.
@@ -163,11 +168,14 @@ function computeLayout(
   return sorted.map((c) => {
     const row = rowMap.get(c.hash) ?? 0;
     const lane = laneMap.get(c.hash) ?? 0;
+    // Clamp the drawn column so the rail (and the text gutter it drives) stays
+    // narrow; `lane` is kept for colour variety.
+    const drawLane = Math.min(lane, LANE_CAP - 1);
     return {
       commit: c,
       row,
       lane,
-      x: PADDING_LEFT + lane * LANE_W + TIP_R,
+      x: PADDING_LEFT + drawLane * LANE_W + TIP_R,
       y: row * ROW_H + ROW_H / 2,
     };
   });
@@ -230,8 +238,11 @@ export function GitDag({ graph, selectedHash, onSelectCommit, source, target }: 
     return { lit, landed };
   }, [selectedHash, idx, mainTip]);
 
-  const numLanes = layout.reduce((max, n) => Math.max(max, n.lane + 1), 1);
-  const railW = PADDING_LEFT + numLanes * LANE_W + TIP_R * 2 + 6;
+  const numLanes = Math.min(
+    layout.reduce((max, n) => Math.max(max, n.lane + 1), 1),
+    LANE_CAP,
+  );
+  const railW = PADDING_LEFT + numLanes * LANE_W + TIP_R * 2 + 4;
   const svgH = layout.length * ROW_H;
   const hashSet = useMemo(() => new Set(commits.map((c) => c.hash)), [commits]);
 
