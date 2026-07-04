@@ -53,6 +53,14 @@ export function ConsultDock() {
     if (open) textRef.current?.focus();
   }, [open]);
 
+  // Broadcast open/closed so the CLI launcher (which stacks above the resting
+  // orb) can step aside while the full panel is up and would otherwise overlap.
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("vibestrate:consult-state", { detail: { open } }),
+    );
+  }, [open]);
+
   // Open from elsewhere (e.g. the composer's supervisor orb), optionally seeded
   // with a question to ask about.
   useEffect(() => {
@@ -124,22 +132,24 @@ export function ConsultDock() {
     <div className="fixed bottom-5 right-5 z-40 print:hidden">
       {open ? (
         <div
-          className="flex w-[min(440px,calc(100vw-2.5rem))] flex-col overflow-hidden border border-white/[0.1] bg-ink-50 shadow-2xl shadow-black/50 fade-up"
+          className="flex w-[min(440px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-[20px] border border-[color:var(--line)] bg-coal-700 shadow-2xl shadow-black/50 fade-up"
           style={{ height: "min(78vh, 720px)" }}
           role="dialog"
           aria-label="Consult the project orchestrator"
         >
           {/* Header */}
-          <div className="flex items-center gap-2.5 border-b border-white/[0.07] px-4 py-3">
+          <div className="flex items-center gap-2.5 border-b border-[color:var(--line)] px-4 py-3">
             <ConsultOrb state={busy ? "thinking" : "idle"} size={28} />
             <div className="min-w-0">
-              <div className="text-[13px] font-medium text-fog-100">Consult</div>
-              <div className="truncate text-[10.5px] text-fog-500">read-only project advisor</div>
+              <div className="text-[13px] font-semibold text-chalk-100">Consult</div>
+              <div className="truncate text-[10.5px] font-medium text-violet-soft">
+                read-only project advisor
+              </div>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="ml-auto grid h-7 w-7 place-items-center text-fog-300 hover:bg-white/[0.06] hover:text-fog-100"
+              className="ml-auto grid h-7 w-7 place-items-center rounded-[9px] text-chalk-400 transition hover:bg-coal-500 hover:text-chalk-100"
               aria-label="Close consult"
             >
               <X className="h-4 w-4" strokeWidth={1.8} />
@@ -152,26 +162,26 @@ export function ConsultDock() {
               <div className="flex h-full flex-col items-center justify-center gap-5 py-8 text-center">
                 <ConsultOrb state="thinking" size={148} />
                 <div>
-                  <div className="text-[13px] text-fog-100">Thinking…</div>
-                  <div className="mt-1 max-w-[28ch] text-[11.5px] text-fog-500">
+                  <div className="text-[13px] text-chalk-100">Thinking…</div>
+                  <div className="mt-1 max-w-[28ch] text-[11.5px] text-chalk-300">
                     reading your project context to answer
                   </div>
                 </div>
                 {asked ? (
-                  <div className="max-w-[34ch] truncate text-[11px] italic text-fog-600" title={asked}>
+                  <div className="max-w-[34ch] truncate text-[11px] italic text-chalk-400" title={asked}>
                     "{asked}"
                   </div>
                 ) : null}
               </div>
             ) : error ? (
               <div className="space-y-3">
-                <div className="border border-rose-400/30 bg-rose-500/5 px-3 py-2.5 text-[12.5px] leading-relaxed text-rose-200 whitespace-pre-wrap">
+                <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-2.5 text-[12.5px] leading-relaxed text-rose-300 whitespace-pre-wrap">
                   {error}
                 </div>
-                <p className="text-[11px] text-fog-400">
+                <p className="text-[11px] text-chalk-300">
                   Tip: model and effort options are per-provider suggestions, not probed from your
                   install - if your CLI rejects one, pick the provider default or run{" "}
-                  <span className="mono">vibe provider test</span>.
+                  <span className="mono text-violet-soft">vibe provider test</span>.
                 </p>
               </div>
             ) : result ? (
@@ -184,7 +194,7 @@ export function ConsultDock() {
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-4 py-10 text-center">
                 <ConsultOrb state="idle" size={96} />
-                <p className="max-w-[30ch] text-[12.5px] text-fog-300">
+                <p className="max-w-[30ch] text-[12.5px] text-chalk-300">
                   Ask about this project - why a run blocked, whether a change needs a heavier
                   review, what to do next. It answers only from your project context and never acts.
                 </p>
@@ -193,7 +203,7 @@ export function ConsultDock() {
           </div>
 
           {/* Composer */}
-          <div className="border-t border-white/[0.07] p-3">
+          <div className="border-t border-[color:var(--line)] p-3">
             <textarea
               ref={textRef}
               value={question}
@@ -204,10 +214,10 @@ export function ConsultDock() {
               placeholder="Ask the project orchestrator…"
               rows={2}
               disabled={busy}
-              className="w-full resize-none border border-white/10 bg-ink-200 px-3 py-2 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40 disabled:opacity-60"
+              className="w-full resize-none rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50 disabled:opacity-60"
             />
             <div className="mt-2 flex items-center justify-between gap-2">
-              <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] text-fog-300">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] text-chalk-300">
                 <Cpu className="h-3 w-3 shrink-0 text-violet-soft" strokeWidth={1.9} />
                 <Select
                   value={providerId}

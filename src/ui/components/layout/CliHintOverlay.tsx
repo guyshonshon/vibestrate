@@ -22,6 +22,7 @@ const ABOVE_ORB = 92;
 
 export function CliHintOverlay({ route }: Props) {
   const [open, setOpen] = useState(false);
+  const [consultOpen, setConsultOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [hidden, setHidden] = useState<boolean>(() => {
     try {
@@ -31,6 +32,16 @@ export function CliHintOverlay({ route }: Props) {
     }
   });
   const panelRef = useRef<HTMLDivElement | null>(null);
+
+  // Step aside while the consult panel is open - it fills the same corner.
+  useEffect(() => {
+    const onConsult = (e: Event) => {
+      setConsultOpen(!!(e as CustomEvent<{ open?: boolean }>).detail?.open);
+    };
+    window.addEventListener("vibestrate:consult-state", onConsult);
+    return () =>
+      window.removeEventListener("vibestrate:consult-state", onConsult);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +82,9 @@ export function CliHintOverlay({ route }: Props) {
       // Clipboard can be unavailable (no permissions / no secure context).
     }
   };
+
+  // The consult panel owns the corner while it's open.
+  if (consultOpen) return null;
 
   // Hidden: a minimal edge nub to bring it back (hiding is never one-way).
   if (hidden) {
