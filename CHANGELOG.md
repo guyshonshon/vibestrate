@@ -19,6 +19,10 @@
   (KPI, spend-by-agent, per-model, leaderboard, heatmap tooltip) it now says
   FREE - clearer for unmetered local-CLI runs. Spend caps and ceilings are
   untouched (a "$0 cap" is a limit, not "free").
+- **The same chart idiom reaches the home dashboard.** The shared sparkline is
+  now a smooth gradient mini-area (matching the Metrics area chart), and Mission
+  Control's KPI cards use it instead of a hand-rolled flat line - so every
+  sparkline across the app reads as one family.
 - **Spend cap and ceilings is summary-first.** By default it shows a clean cap
   meter (today's spend against the daily cap, tinted amber past 90%) with the
   rest of the policy - at-cap action, the four ceilings, on-hit - as quiet

@@ -13,6 +13,10 @@ import { RunActions } from "../../components/mission/RunActions.js";
 import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { PhaseRail, statusMessage } from "../../components/mission/runPhase.js";
+import {
+  Sparkline,
+  type SparkTone,
+} from "../../components/design/Sparkline.js";
 import type {
   ApprovalRequest,
   RunState,
@@ -55,6 +59,13 @@ const TONE_COLOR: Record<string, string> = {
   chalk: "#8c8a96",
 };
 
+const SPARK_TONES: SparkTone[] = ["violet", "sky", "emerald", "amber", "rose"];
+function sparkTone(tone: string): SparkTone {
+  return SPARK_TONES.includes(tone as SparkTone)
+    ? (tone as SparkTone)
+    : "violet";
+}
+
 const STATUS_META: Partial<Record<RunStatus, { tone: string; label: string }>> = {
   merge_ready: { tone: "emerald", label: "merge ready" },
   failed: { tone: "rose", label: "failed" },
@@ -79,19 +90,6 @@ function relTime(iso: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-function sparkPath(vals: number[]): string {
-  if (vals.length === 0) return "";
-  const max = Math.max(1, ...vals);
-  const w = 156;
-  const h = 50;
-  const step = vals.length > 1 ? w / (vals.length - 1) : 0;
-  return vals
-    .map(
-      (v, i) =>
-        `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)},${(h - (v / max) * (h - 6) - 3).toFixed(1)}`,
-    )
-    .join(" ");
-}
 
 export function MissionControlPage({ onSelectRun }: Props) {
   const [runs, setRuns] = useState<RunState[]>([]);
@@ -396,9 +394,7 @@ function StatCard({
           {value}
         </span>
         {spark && spark.length > 0 ? (
-          <svg viewBox="0 0 156 50" className="h-9 w-[120px]" fill="none" aria-hidden>
-            <path d={sparkPath(spark)} stroke={TONE_COLOR[tone]} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <Sparkline values={spark} tone={sparkTone(tone)} width={120} height={36} />
         ) : (
           <span className="h-2.5 w-2.5 rounded-full" style={{ background: TONE_COLOR[tone] }} />
         )}
