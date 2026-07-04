@@ -461,7 +461,7 @@ export function App() {
         />
       )}
       </ErrorBoundary>
-      <CliHintOverlay route={route} />
+      <CliHintOverlay route={route} inset={route.kind === "control" ? 12 : 246} />
       <GlobalErrorOverlay />
       {/* Floating consult dock - the orb entry point, available on every page
           (replaces the old top-right Consult button). The full-page Consult

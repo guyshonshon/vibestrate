@@ -267,12 +267,12 @@ export function ConsultDock() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="group flex items-center gap-0 rounded-full border border-violet-soft/30 bg-ink-50 p-1.5 shadow-xl shadow-black/40 transition-all hover:border-violet-soft/50 hover:pr-4"
+          className="group flex items-center gap-0 rounded-full border border-violet-soft/30 bg-coal-600 p-1.5 shadow-xl shadow-black/40 transition-all hover:border-violet-soft/50"
           aria-label="Open consult"
           title="Consult the project orchestrator"
         >
           <ConsultOrb state="idle" size={48} />
-          <span className="max-w-0 overflow-hidden whitespace-nowrap text-[12.5px] font-medium text-fog-100 transition-all duration-300 group-hover:ml-2.5 group-hover:max-w-[120px]">
+          <span className="max-w-0 overflow-hidden whitespace-nowrap text-[12.5px] font-medium text-chalk-100 transition-all duration-300 group-hover:ml-2.5 group-hover:mr-1.5 group-hover:max-w-[120px]">
             Consult
           </span>
         </button>
