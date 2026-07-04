@@ -22,6 +22,11 @@ import { Button } from "../../components/design/Button.js";
 import { SuggestInput } from "../../components/design/SuggestInput.js";
 import { EffortScale } from "../../components/design/EffortScale.js";
 import { StatTile } from "../../components/design/StatTile.js";
+import {
+  HeroCard,
+  type HeroMetric,
+  type HeroTone,
+} from "../../components/design/HeroCard.js";
 import { EntityIcon } from "../../components/design/EntityIcon.js";
 import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
 
@@ -314,47 +319,93 @@ export function CrewPage({
               </>
             }
           >
-            {/* Contained header: crew facts as stat tiles + what a crew is. */}
-            <div className="mt-4 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
-              <div className="flex items-center gap-2.5">
-                <EntityIcon
-                  entity="crew"
-                  size={18}
-                  className="shrink-0 text-violet-soft"
+            {/* The crew hero: roster state as the tonal anchor, the explainer
+                as the headline sub, facts as the divided metric strip. */}
+            {(() => {
+              const uncoveredCount = knownSeats.filter(
+                (s) => coverage.get(s)?.status === "uncovered",
+              ).length;
+              const ambiguousCount = knownSeats.filter(
+                (s) => coverage.get(s)?.status === "ambiguous",
+              ).length;
+              const isDefault = crew.id === defaultCrew;
+              const tone: HeroTone =
+                uncoveredCount > 0
+                  ? "rose"
+                  : ambiguousCount > 0
+                    ? "amber"
+                    : isDefault
+                      ? "emerald"
+                      : "violet";
+              const headline =
+                uncoveredCount > 0
+                  ? "Seats need filling"
+                  : ambiguousCount > 0
+                    ? "Some seats have several takers"
+                    : isDefault
+                      ? "This crew runs by default"
+                      : "Ready to crew a run";
+              return (
+                <HeroCard
+                  className="mt-4"
+                  tone={tone}
+                  overline="Crew"
+                  status={
+                    uncoveredCount > 0 ? "gaps" : isDefault ? "default" : "ready"
+                  }
+                  statusSub={
+                    uncoveredCount > 0
+                      ? `${uncoveredCount} seat${uncoveredCount === 1 ? "" : "s"} open`
+                      : isDefault
+                        ? "picked for every run"
+                        : null
+                  }
+                  title={headline}
+                  sub={
+                    <>
+                      A crew is the cast for a run. Each{" "}
+                      <strong className="font-semibold text-chalk-100">role</strong>{" "}
+                      runs on a{" "}
+                      <strong className="font-semibold text-chalk-100">
+                        profile
+                      </strong>{" "}
+                      (the model + effort) and claims one or more{" "}
+                      <strong className="font-semibold text-chalk-100">seats</strong>
+                      . When a run starts, the flow's required seats are matched to
+                      these roles.
+                    </>
+                  }
+                  metrics={[
+                    {
+                      value: crew.roles.length,
+                      label: crew.roles.length === 1 ? "role" : "roles",
+                    },
+                    uncoveredCount > 0
+                      ? {
+                          value: uncoveredCount,
+                          label: "uncovered",
+                          valueClass: "text-rose-300",
+                        }
+                      : {
+                          value: "all",
+                          label: "seats filled",
+                          valueClass: "text-emerald-400",
+                        },
+                    ...(crew.maxReviewLoops !== null
+                      ? [
+                          {
+                            value: crew.maxReviewLoops,
+                            label:
+                              crew.maxReviewLoops === 1
+                                ? "review loop"
+                                : "review loops",
+                          },
+                        ]
+                      : []),
+                  ]}
                 />
-                <h2 className="text-[15px] font-bold text-chalk-100">
-                  {crew.label}
-                </h2>
-                {crew.id === defaultCrew ? (
-                  <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-emerald-400">
-                    <Check className="h-3.5 w-3.5" strokeWidth={2.2} /> runs by
-                    default
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-2 max-w-[74ch] text-[13px] leading-[1.55] text-chalk-300">
-                A crew is the cast for a run. Each{" "}
-                <strong className="font-semibold text-chalk-100">role</strong>{" "}
-                runs on a{" "}
-                <strong className="font-semibold text-chalk-100">profile</strong>{" "}
-                (the model + effort) and claims one or more{" "}
-                <strong className="font-semibold text-chalk-100">seats</strong>.
-                When a run starts, the flow's required seats are matched to these
-                roles.
-              </p>
-              <div className="mt-3 flex flex-wrap items-stretch gap-1">
-                <StatTile
-                  value={crew.roles.length}
-                  label={crew.roles.length === 1 ? "role" : "roles"}
-                />
-                {crew.maxReviewLoops !== null ? (
-                  <StatTile
-                    value={crew.maxReviewLoops}
-                    label={crew.maxReviewLoops === 1 ? "review loop" : "review loops"}
-                  />
-                ) : null}
-              </div>
-            </div>
+              );
+            })()}
           </PageHeader>
 
           {error ? <ErrorBanner text={error} /> : null}
@@ -604,7 +655,7 @@ function CrewHub({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
           {crews.map((c) => {
             const { knownSeats, coverage } = computeCoverage(c, flows);
             const uncovered = knownSeats.filter(
@@ -614,74 +665,80 @@ function CrewHub({
               (s) => coverage.get(s)?.status === "ambiguous",
             ).length;
             const isDefault = c.id === defaultCrew;
-            const seatStats: { value: string | number; label: string; tone?: "emerald" | "amber" | "rose" }[] = [
+            // The status column carries roster health: gaps beat ambiguity
+            // beats readiness; the default crew reads emerald.
+            const tone: HeroTone =
+              uncovered > 0
+                ? "rose"
+                : ambiguous > 0
+                  ? "amber"
+                  : isDefault
+                    ? "emerald"
+                    : "violet";
+            const status =
+              uncovered > 0 ? "gaps" : isDefault ? "default" : "ready";
+            const statusSub =
+              uncovered > 0
+                ? `${uncovered} seat${uncovered === 1 ? "" : "s"} open`
+                : isDefault
+                  ? "runs by default"
+                  : ambiguous > 0
+                    ? `${ambiguous} ambiguous`
+                    : "seats filled";
+            const metrics: HeroMetric[] = [
               { value: c.roles.length, label: c.roles.length === 1 ? "role" : "roles" },
               uncovered > 0
-                ? { value: uncovered, label: uncovered === 1 ? "uncovered seat" : "uncovered seats", tone: "rose" as const }
-                : { value: "all", label: "seats filled", tone: "emerald" as const },
+                ? { value: uncovered, label: "uncovered", valueClass: "text-rose-300" }
+                : { value: "all", label: "seats filled", valueClass: "text-emerald-400" },
               ...(ambiguous > 0
-                ? [{ value: ambiguous, label: "ambiguous", tone: "amber" as const }]
+                ? [{ value: ambiguous, label: "ambiguous", valueClass: "text-amber-soft" }]
                 : []),
             ];
             return (
-              <div
+              <HeroCard
                 key={c.id}
-                className={cn(
-                  "flex flex-col rounded-[18px] border bg-coal-600 p-4",
-                  isDefault
-                    ? "border-emerald-500/40"
-                    : "border-[color:var(--line)]",
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <EntityIcon
-                    entity="crew"
-                    size={16}
-                    className="shrink-0 text-violet-soft"
-                  />
+                size="md"
+                tone={tone}
+                overline="Crew"
+                status={status}
+                statusSub={statusSub}
+                title={
                   <button
                     type="button"
                     onClick={() => onOpen(c.id)}
-                    className="min-w-0 flex-1 truncate bg-transparent p-0 text-left text-[13.5px] font-bold text-chalk-100 transition hover:text-violet-soft"
+                    className="inline-flex min-w-0 items-center gap-2 bg-transparent p-0 text-left transition hover:text-violet-soft"
                   >
-                    {c.label}
-                  </button>
-                  {isDefault ? (
-                    <span className="shrink-0 text-[10px] font-bold text-emerald-400">
-                      default
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-3 flex flex-wrap items-stretch gap-1">
-                  {seatStats.map((s, i) => (
-                    <StatTile
-                      key={i}
-                      value={s.value}
-                      label={s.label}
-                      tone={s.tone}
+                    <EntityIcon
+                      entity="crew"
+                      size={15}
+                      className="shrink-0 text-violet-soft"
                     />
-                  ))}
-                </div>
-                <div className="mt-3.5 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => onOpen(c.id)}
-                  >
-                    Configure
-                  </Button>
-                  {!isDefault ? (
+                    <span className="truncate">{c.label}</span>
+                  </button>
+                }
+                metrics={metrics}
+                footer={
+                  <>
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       size="sm"
-                      disabled={settingDefault}
-                      onClick={() => onSetDefault(c.id)}
+                      onClick={() => onOpen(c.id)}
                     >
-                      Set default
+                      Configure
                     </Button>
-                  ) : null}
-                </div>
-              </div>
+                    {!isDefault ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={settingDefault}
+                        onClick={() => onSetDefault(c.id)}
+                      >
+                        Set default
+                      </Button>
+                    ) : null}
+                  </>
+                }
+              />
             );
           })}
         </div>

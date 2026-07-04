@@ -10,6 +10,7 @@ import { PageShell, PageHeader, Section } from "../../components/layout/PageShel
 import { Button } from "../../components/design/Button.js";
 import { StatTile } from "../../components/design/StatTile.js";
 import { MetricCard } from "../../components/design/MetricCard.js";
+import { HeroCard } from "../../components/design/HeroCard.js";
 import { Chip } from "../../components/design/Chip.js";
 
 export function CanvasPage() {
@@ -135,6 +136,93 @@ export function CanvasPage() {
             hint="your turn"
             tone="amber"
             share={0.2}
+          />
+        </div>
+      </Section>
+
+      <Section title="Hero card - state as a tonal column, never an edge stripe">
+        <p className="mb-3 max-w-[80ch] text-[12.5px] leading-[1.55] text-chalk-300">
+          The task hero's anatomy as THE overview surface (
+          <span className="font-semibold text-chalk-100">design/HeroCard</span>
+          ): a washed tonal status column anchors the state, the main column
+          stacks headline + actions, optional custom sections, a divided metric
+          strip, and a bordered footer.{" "}
+          <span className="font-semibold text-chalk-100">lg</span> is the
+          page-level hero;{" "}
+          <span className="font-semibold text-chalk-100">md</span> is the
+          delightful board item for grids.
+        </p>
+        <HeroCard
+          tone="emerald"
+          overline="Supervised"
+          status="running"
+          statusSub="live now"
+          title="Running now"
+          sub="An agent is working the task in its worktree."
+          actions={
+            <>
+              <Button variant="primary" size="sm">
+                Start task
+              </Button>
+              <Button variant="secondary" size="sm">
+                Cancel
+              </Button>
+            </>
+          }
+          metrics={[
+            { value: 3, label: "runs" },
+            { value: 0, label: "blockers" },
+            { value: "high", label: "priority", valueClass: "text-amber-soft" },
+          ]}
+        >
+          <div className="border-b border-[color:var(--line-soft)] px-5 py-3">
+            <div className="mb-1.5 flex items-baseline justify-between text-[11px]">
+              <span className="font-medium text-violet-soft">Steps</span>
+              <span className="num-tabular text-chalk-300">2/5 done · 40%</span>
+            </div>
+            <div className="flex gap-1">
+              <span className="h-2 flex-1 rounded-[3px] bg-emerald-400" />
+              <span className="h-2 flex-1 rounded-[3px] bg-emerald-400" />
+              <span className="h-2 flex-1 rounded-[3px] bg-violet-soft" />
+              <span className="h-2 flex-1 rounded-[3px] bg-coal-500" />
+              <span className="h-2 flex-1 rounded-[3px] bg-coal-500" />
+            </div>
+          </div>
+        </HeroCard>
+        <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <HeroCard
+            size="md"
+            tone="violet"
+            overline="Crew"
+            status="ready"
+            statusSub="seats filled"
+            title="Fast crew"
+            metrics={[
+              { value: 6, label: "roles" },
+              { value: "all", label: "seats filled", valueClass: "text-emerald-400" },
+            ]}
+            footer={
+              <Button variant="secondary" size="sm">
+                Configure
+              </Button>
+            }
+          />
+          <HeroCard
+            size="md"
+            tone="rose"
+            overline="Crew"
+            status="gaps"
+            statusSub="2 seats open"
+            title="Review panel"
+            metrics={[
+              { value: 4, label: "roles" },
+              { value: 2, label: "uncovered", valueClass: "text-rose-300" },
+            ]}
+            footer={
+              <Button variant="secondary" size="sm">
+                Configure
+              </Button>
+            }
           />
         </div>
       </Section>

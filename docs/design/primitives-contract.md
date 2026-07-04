@@ -163,9 +163,12 @@ by real status, never a scripted timer.
 ## 10. Shared primitives to reuse (do not re-derive)
 
 `layout/Sidebar` (the one shell, §0), `FlowCard` + `StatTile` (the one flow card,
-§5a), `design/EntityIcon`, `design/ThemeToggle`, `mission/runPhase` (`PhaseRail`,
-`statusMessage`), `layout/PanelBoard`, `runs/RunStatusBadge`, `design/Chip`
-(de-pilled), `design/Select`, `design/EffortScale`. If a block repeats across
+§5a), `design/HeroCard` (the one overview surface: a washed tonal status column
+anchors state - never an edge stripe; `lg` = page hero, `md` = the board grid
+item; live reference on `/canvas`), `design/EntityIcon`, `design/ThemeToggle`,
+`mission/runPhase` (`PhaseRail`, `statusMessage`), `layout/PanelBoard`,
+`runs/RunStatusBadge`, `design/Chip` (de-pilled), `design/Select`,
+`design/EffortScale`. If a block repeats across
 3+ pages and none of these fit, extract a new primitive that renders Mission
 Control's existing inline version exactly - extraction, not invention. Bias to
 fewer primitives.
