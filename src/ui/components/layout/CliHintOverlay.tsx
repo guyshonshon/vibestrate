@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Terminal, X, Copy, Check, ChevronRight } from "lucide-react";
+import { Terminal, X, Copy, Check } from "lucide-react";
 import type { Route } from "../../app/route.js";
 import { hintForRoute, type CliHint } from "../../lib/cli-hints.js";
 
 type Props = {
   route: Route;
-  /** Pixels to inset from the left so the pill clears the sidebar (0 in bare
-   *  mode, which has no sidebar). */
-  inset?: number;
 };
 
 const HIDDEN_KEY = "vibe.cliHint.hidden";
@@ -19,7 +16,11 @@ const HIDDEN_KEY = "vibe.cliHint.hidden";
  * so it never covers it). Can be hidden entirely (persisted) - a tiny edge nub
  * brings it back so hiding is never a one-way trap.
  */
-export function CliHintOverlay({ route, inset = 12 }: Props) {
+// Stacked above the consult orb (bottom-right): orb height (~62px) + bottom-5
+// inset + a small gap.
+const ABOVE_ORB = 92;
+
+export function CliHintOverlay({ route }: Props) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [hidden, setHidden] = useState<boolean>(() => {
@@ -77,20 +78,20 @@ export function CliHintOverlay({ route, inset = 12 }: Props) {
       <button
         type="button"
         onClick={() => setHiddenPersisted(false)}
-        style={{ left: inset }}
-        className="pointer-events-auto fixed bottom-5 z-40 flex h-8 w-3.5 items-center justify-center rounded-r-[8px] border border-l-0 border-[color:var(--line)] bg-coal-600/80 text-chalk-400 opacity-60 backdrop-blur transition hover:w-5 hover:opacity-100 print:hidden"
+        style={{ bottom: ABOVE_ORB }}
+        className="pointer-events-auto fixed right-5 z-40 flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--line)] bg-coal-600/80 text-chalk-400 opacity-60 backdrop-blur transition hover:opacity-100 print:hidden"
         aria-label="Show CLI launcher"
         title="Show CLI launcher"
       >
-        <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+        <Terminal className="h-4 w-4" strokeWidth={1.8} />
       </button>
     );
   }
 
   return (
     <div
-      style={{ left: inset }}
-      className="pointer-events-none fixed bottom-5 z-40 flex flex-col items-start gap-2 print:hidden"
+      style={{ bottom: ABOVE_ORB }}
+      className="pointer-events-none fixed right-5 z-40 flex flex-col items-end gap-2 print:hidden"
     >
       {open ? (
         <div
