@@ -1209,12 +1209,25 @@ type HeatHover = {
   y: number;
 };
 
+// Crash-safety at the render boundary: a hover must never take down the page.
+// A dashboard server that predates the per-provider heatmap serves bare numeric
+// cells - keep the count (so the colours stay right) and show an empty
+// breakdown until `vibe ui` is restarted on the new build.
+function normalizeCell(c: HeatmapCell | number): HeatmapCell {
+  return c !== null && typeof c === "object"
+    ? { count: c.count ?? 0, providers: c.providers ?? [] }
+    : { count: typeof c === "number" ? c : 0, providers: [] };
+}
+
 function ActivityHeatmapPanel({
   overview,
 }: {
   overview: MetricsOverview | null;
 }) {
-  const data = overview?.heatmap ?? [];
+  const data = (overview?.heatmap ?? []).map((r) => ({
+    day: r.day,
+    cells: (r.cells as (HeatmapCell | number)[]).map(normalizeCell),
+  }));
   const max = Math.max(1, ...data.flatMap((r) => r.cells.map((c) => c.count)));
   const [hover, setHover] = useState<HeatHover | null>(null);
   const ref = useRef<HTMLDivElement>(null);
