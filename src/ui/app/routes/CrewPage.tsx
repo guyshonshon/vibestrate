@@ -4,6 +4,7 @@ import {
   Check,
   ChevronDown,
   Cpu,
+  Eye,
   PenLine,
   Plus,
   Save,
@@ -83,6 +84,26 @@ const PERMISSION_OPTIONS = [
   "review_only",
   "verify_only",
 ];
+
+// Human labels for the permission tokens - never surface the raw snake_case id
+// (a design anti-pattern: a code slug masquerading as a label).
+const PERMISSION_LABEL: Record<string, string> = {
+  read_only: "Read only",
+  code_write: "Can write",
+  review_only: "Review only",
+  verify_only: "Verify only",
+};
+
+// A seat's work-type category, derived from the permission of the role that
+// fills it: read / write / review / verify. "Not all seats are equal" - this is
+// their kind of work, and it's complete (every role has a permission) and
+// authoritative, unlike per-step flow stages which many seats never set.
+const WORKTYPE_LABEL: Record<string, string> = {
+  read_only: "Reading",
+  code_write: "Writing",
+  review_only: "Reviewing",
+  verify_only: "Verifying",
+};
 
 type SeatStatus = "covered" | "uncovered" | "ambiguous";
 type SeatCoverageEntry = { roleIds: string[]; status: SeatStatus };
@@ -318,7 +339,12 @@ export function CrewPage({
                 ) : null}
               </>
             }
-          >
+          />
+
+          {error ? <ErrorBanner text={error} /> : null}
+
+          <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-stretch">
+            <div className="min-w-0 xl:flex-1">
             {/* The crew hero: roster state as the tonal anchor, the explainer
                 as the headline sub, facts as the divided metric strip. */}
             {(() => {
@@ -347,7 +373,6 @@ export function CrewPage({
                       : "Ready to crew a run";
               return (
                 <HeroCard
-                  className="mt-4"
                   tone={tone}
                   overline="Crew"
                   status={
@@ -403,14 +428,18 @@ export function CrewPage({
                         ]
                       : []),
                   ]}
-                />
+                  className="xl:h-full"
+                >
+                  {/* Spacer: at xl the hero stretches to the seat panel's
+                      height, so grow the gap and pin the metric strip to the
+                      bottom instead of leaving dead space mid-card. */}
+                  <div className="hidden grow xl:block" aria-hidden />
+                </HeroCard>
               );
             })()}
-          </PageHeader>
-
-          {error ? <ErrorBanner text={error} /> : null}
-
-          <SeatCoverage seats={knownSeats} coverage={coverage} crew={crew} />
+            </div>
+            <SeatCoverage seats={knownSeats} coverage={coverage} crew={crew} />
+          </div>
           <Section title="Roles">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {crew.roles.map((role) => (
@@ -747,8 +776,71 @@ function CrewHub({
   );
 }
 
-// ─── Seat coverage strip ────────────────────────────────────────────────────
+// ─── Seat coverage ──────────────────────────────────────────────────────────
 
+const TONE_TEXT: Record<ChipTone, string> = {
+  neutral: "text-chalk-400",
+  violet: "text-violet-soft",
+  sky: "text-sky-glow",
+  emerald: "text-emerald-400",
+  amber: "text-amber-soft",
+  rose: "text-rose-300",
+};
+
+// Border + wire colours for the hover detail tree (Tailwind can't apply an
+// opacity modifier to `currentColor`, so each tone maps to a literal class).
+const TONE_LINE: Record<ChipTone, string> = {
+  neutral: "border-chalk-400/40",
+  violet: "border-violet-soft/50",
+  sky: "border-sky-glow/50",
+  emerald: "border-emerald-400/50",
+  amber: "border-amber-soft/50",
+  rose: "border-rose-400/50",
+};
+
+const TONE_WIRE: Record<ChipTone, string> = {
+  neutral: "bg-chalk-400/40",
+  violet: "bg-violet-soft/50",
+  sky: "bg-sky-glow/50",
+  emerald: "bg-emerald-400/50",
+  amber: "bg-amber-soft/50",
+  rose: "bg-rose-400/50",
+};
+
+function polar(cx: number, cy: number, r: number, rad: number): [number, number] {
+  return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+}
+
+// An annular sector (ring wedge) from angle a0 to a1 (radians), inner radius ri
+// to outer ro. Seat arcs are always < 180 deg, so the large-arc flag is 0.
+function annularPath(
+  cx: number,
+  cy: number,
+  ri: number,
+  ro: number,
+  a0: number,
+  a1: number,
+): string {
+  const [x0o, y0o] = polar(cx, cy, ro, a0);
+  const [x1o, y1o] = polar(cx, cy, ro, a1);
+  const [x1i, y1i] = polar(cx, cy, ri, a1);
+  const [x0i, y0i] = polar(cx, cy, ri, a0);
+  return `M ${x0o} ${y0o} A ${ro} ${ro} 0 0 1 ${x1o} ${y1o} L ${x1i} ${y1i} A ${ri} ${ri} 0 0 0 ${x0i} ${y0i} Z`;
+}
+
+type SeatArc = {
+  seat: string;
+  roleLabel: string;
+  groupKey: string;
+  tone: ChipTone;
+  status: SeatStatus;
+  d: string;
+};
+
+// The relation as a shape: one ring = the full set of seats, each seat an arc
+// coloured by the role that fills it, so a role's seats read as one coloured
+// wedge. Empty seats are hollow dashed gaps. Centre = the coverage count, or
+// the hovered seat -> its role.
 function SeatCoverage({
   seats,
   coverage,
@@ -758,102 +850,360 @@ function SeatCoverage({
   coverage: Map<string, SeatCoverageEntry>;
   crew: CrewView;
 }) {
+  const [hoverSeat, setHoverSeat] = useState<string | null>(null);
+  const [hoverKey, setHoverKey] = useState<string | null>(null);
+
   if (seats.length === 0) return null;
+
   const uncovered = seats.filter((s) => coverage.get(s)?.status === "uncovered");
   const ambiguous = seats.filter((s) => coverage.get(s)?.status === "ambiguous");
-  // Problem seats first (empty, then ambiguous, then filled) so the things
-  // that need attention sit at the front of the list.
-  const order: Record<SeatStatus, number> = {
-    uncovered: 0,
-    ambiguous: 1,
-    covered: 2,
+  const filled = seats.length - uncovered.length;
+
+  // On the ring, adjacent roles must be visually distinct - so colour by role
+  // order through the palette, not by the toneFor hash (which clusters several
+  // roles onto the same hue and blurs their wedges together).
+  const PALETTE: ChipTone[] = [
+    "violet",
+    "emerald",
+    "amber",
+    "sky",
+    "rose",
+    "neutral",
+  ];
+  const roleTone = (roleId: string): ChipTone =>
+    PALETTE[
+      Math.max(
+        0,
+        crew.roles.findIndex((r) => r.id === roleId),
+      ) % PALETTE.length
+    ]!;
+
+  // Ordered seat list, grouped: each role's covered seats, then a "several
+  // takers" group, then the empty seats. Sectors of the ring, in this order.
+  const items: {
+    seat: string;
+    roleLabel: string;
+    groupKey: string;
+    tone: ChipTone;
+    status: SeatStatus;
+  }[] = [];
+  for (const role of crew.roles) {
+    for (const seat of role.seats) {
+      if (coverage.get(seat)?.status !== "covered") continue;
+      items.push({
+        seat,
+        roleLabel: role.label,
+        groupKey: role.id,
+        tone: roleTone(role.id),
+        status: "covered",
+      });
+    }
+  }
+  for (const seat of ambiguous) {
+    items.push({
+      seat,
+      roleLabel: `${coverage.get(seat)!.roleIds.length} roles`,
+      groupKey: "__amb",
+      tone: "amber",
+      status: "ambiguous",
+    });
+  }
+  for (const seat of uncovered) {
+    items.push({
+      seat,
+      roleLabel: "unassigned",
+      groupKey: "__unc",
+      tone: "rose",
+      status: "uncovered",
+    });
+  }
+
+  const total = items.length;
+  const groups = new Set(items.map((i) => i.groupKey)).size;
+  const cx = 90;
+  const cy = 90;
+  const ro = 82;
+  const ri = 56;
+  const groupGap = 0.05;
+  const seatGap = 0.028;
+  const usable = Math.PI * 2 - groupGap * groups;
+  const seatAngle = usable / total;
+
+  const arcs: SeatArc[] = [];
+  let a = -Math.PI / 2;
+  let prevKey: string | null = null;
+  for (const it of items) {
+    if (prevKey !== null && it.groupKey !== prevKey) a += groupGap;
+    const d = annularPath(cx, cy, ri, ro, a, a + seatAngle - seatGap);
+    arcs.push({ ...it, d });
+    a += seatAngle;
+    prevKey = it.groupKey;
+  }
+
+  const hovered = hoverSeat ? arcs.find((x) => x.seat === hoverSeat) : null;
+  const hoveredGroup =
+    !hovered && hoverKey ? arcs.find((x) => x.groupKey === hoverKey) : null;
+
+  const lit = (arc: SeatArc) => {
+    if (hoverSeat) return arc.seat === hoverSeat;
+    if (hoverKey) return arc.groupKey === hoverKey;
+    return true;
   };
-  const sortedSeats = [...seats].sort(
-    (a, b) =>
-      order[coverage.get(a)!.status] - order[coverage.get(b)!.status] ||
-      a.localeCompare(b),
-  );
+
+  // The group currently hovered (via an arc or a legend row) - drives the
+  // detail tree on the right.
+  const activeKey = hoverSeat
+    ? (arcs.find((x) => x.seat === hoverSeat)?.groupKey ?? null)
+    : hoverKey;
+  let activeGroup: {
+    label: string;
+    tone: ChipTone;
+    seats: string[];
+    workType?: string;
+  } | null = null;
+  if (activeKey === "__amb") {
+    activeGroup = { label: "Several takers", tone: "amber", seats: ambiguous };
+  } else if (activeKey === "__unc") {
+    activeGroup = { label: "Unassigned", tone: "rose", seats: uncovered };
+  } else if (activeKey) {
+    const role = crew.roles.find((r) => r.id === activeKey);
+    if (role) {
+      activeGroup = {
+        label: role.label,
+        tone: roleTone(role.id),
+        workType:
+          WORKTYPE_LABEL[role.permissions] ??
+          role.permissions.replace(/_/g, " "),
+        seats: role.seats.filter(
+          (s) => coverage.get(s)?.status === "covered",
+        ),
+      };
+    }
+  }
+
   return (
-    <Section title="Seat coverage">
-      <div className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[15px] font-bold text-chalk-100">
-          Which seats the roles fill
-        </span>
-        <span className="text-[13px] font-semibold text-emerald-400">
-          {seats.length - uncovered.length}/{seats.length} filled
-        </span>
-      </div>
-      <p className="mt-1.5 max-w-[80ch] text-[12.5px] leading-[1.55] text-chalk-300">
-        A <strong className="text-chalk-100">seat</strong> is a slot a flow can
-        ask for. Each should be filled by exactly one role below - a run can only
-        use a flow whose seats this crew all fills.
-      </p>
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[11.5px] text-chalk-300">
-        <span className="inline-flex items-center gap-1.5">
-          <ToneDot tone="emerald" /> filled by one role
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <ToneDot tone="amber" /> filled by several - a run picks which
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <ToneDot tone="rose" /> empty - a flow needing it fails
-        </span>
-      </div>
-      <div className="mt-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-        {sortedSeats.map((seat) => {
-          const c = coverage.get(seat)!;
-          const tone: ChipTone =
-            c.status === "covered"
-              ? "emerald"
-              : c.status === "ambiguous"
-                ? "amber"
-                : "rose";
-          const roleLabels = c.roleIds
-            .map((id) => crew.roles.find((r) => r.id === id)?.label ?? id)
-            .join(", ");
-          return (
-            <span
-              key={seat}
-              className="inline-flex items-center gap-2 rounded-[12px] border border-[color:var(--line)] bg-coal-500/60 px-2.5 py-1.5 text-[12px]"
-            >
-              <ToneDot tone={tone} />
-              <span className="font-medium text-chalk-100">{seat}</span>
-              <span className="ml-auto truncate pl-2 text-[11px] text-chalk-300">
-                {c.status === "uncovered"
-                  ? "no role"
-                  : c.status === "ambiguous"
-                    ? `${c.roleIds.length} roles`
-                    : roleLabels}
-              </span>
-            </span>
-          );
-        })}
-      </div>
-      {uncovered.length > 0 || ambiguous.length > 0 ? (
-        <p className="mt-3 text-[12px] leading-[1.5] text-chalk-300">
-          {uncovered.length > 0 ? (
-            <>
-              <span className="font-semibold text-rose-300">
-                {uncovered.join(", ")}
-              </span>{" "}
-              {uncovered.length === 1 ? "has" : "have"} no role - assign{" "}
-              {uncovered.length === 1 ? "it" : "them"} below.{" "}
-            </>
-          ) : null}
+    <div className="flex w-full max-w-[640px] items-stretch gap-5 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-5">
+        <div className="relative shrink-0" style={{ width: 180, height: 180 }}>
+          <svg width="180" height="180" viewBox="0 0 180 180">
+            {arcs.map((arc) => {
+              const empty = arc.status === "uncovered";
+              return (
+                <path
+                  key={arc.seat}
+                  d={arc.d}
+                  onMouseEnter={() => setHoverSeat(arc.seat)}
+                  onMouseLeave={() => setHoverSeat(null)}
+                  className={cn(
+                    "cursor-default transition-opacity duration-150",
+                    empty ? "text-rose-300" : TONE_TEXT[arc.tone],
+                    lit(arc) ? "opacity-100" : "opacity-25",
+                  )}
+                  fill="currentColor"
+                  fillOpacity={empty ? 0.1 : 0.9}
+                  stroke="currentColor"
+                  strokeOpacity={empty ? 0.55 : 0}
+                  strokeWidth={1}
+                  strokeDasharray={empty ? "3 3" : undefined}
+                />
+              );
+            })}
+          </svg>
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+            {hovered ? (
+              <>
+                <span className="max-w-[110px] truncate font-mono text-[12.5px] font-semibold text-chalk-100">
+                  {hovered.seat}
+                </span>
+                <span
+                  className={cn(
+                    "text-[10.5px]",
+                    hovered.status === "uncovered"
+                      ? "text-rose-300"
+                      : hovered.status === "ambiguous"
+                        ? "text-amber-soft"
+                        : "text-chalk-400",
+                  )}
+                >
+                  {hovered.status === "covered" ? "→ " : ""}
+                  {hovered.roleLabel}
+                </span>
+              </>
+            ) : hoveredGroup ? (
+              <>
+                <span className="max-w-[110px] truncate text-[13px] font-bold text-chalk-100">
+                  {hoveredGroup.groupKey === "__amb"
+                    ? "Several takers"
+                    : hoveredGroup.groupKey === "__unc"
+                      ? "Unassigned"
+                      : hoveredGroup.roleLabel}
+                </span>
+                <span className="text-[10.5px] text-chalk-400">
+                  {arcs.filter((x) => x.groupKey === hoveredGroup.groupKey).length}{" "}
+                  seat
+                  {arcs.filter((x) => x.groupKey === hoveredGroup.groupKey)
+                    .length === 1
+                    ? ""
+                    : "s"}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="text-[24px] font-extrabold leading-none text-chalk-100">
+                  {filled}
+                  <span className="text-chalk-400">/{seats.length}</span>
+                </span>
+                <span className="mt-1 text-[10.5px] text-chalk-400">
+                  seats filled
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="min-w-0 flex-1 space-y-1">
+          {crew.roles.map((role) => {
+            const count = role.seats.filter(
+              (s) => coverage.get(s)?.status === "covered",
+            ).length;
+            if (count === 0) return null;
+            return (
+              <div
+                key={role.id}
+                onMouseEnter={() => setHoverKey(role.id)}
+                onMouseLeave={() => setHoverKey(null)}
+                className="flex items-center gap-2 rounded-[8px] px-1.5 py-1 text-[12px] transition-colors hover:bg-coal-500/50"
+              >
+                <ToneDot tone={roleTone(role.id)} />
+                <span className="truncate font-medium text-chalk-100">
+                  {role.label}
+                </span>
+                <span className="ml-auto shrink-0 text-[10px] text-chalk-400">
+                  {WORKTYPE_LABEL[role.permissions] ??
+                    role.permissions.replace(/_/g, " ")}
+                </span>
+                <span className="w-3 shrink-0 text-right font-mono text-[11px] text-chalk-400">
+                  {count}
+                </span>
+              </div>
+            );
+          })}
           {ambiguous.length > 0 ? (
-            <>
-              <span className="font-semibold text-amber-soft">
-                {ambiguous.join(", ")}
-              </span>{" "}
-              {ambiguous.length === 1 ? "is" : "are"} filled by more than one role
-              - a run will ask which.
-            </>
+            <div
+              onMouseEnter={() => setHoverKey("__amb")}
+              onMouseLeave={() => setHoverKey(null)}
+              className="flex items-center gap-2 rounded-[8px] px-1.5 py-1 text-[12px] transition-colors hover:bg-coal-500/50"
+            >
+              <ToneDot tone="amber" />
+              <span className="truncate font-medium text-amber-soft">
+                Several takers
+              </span>
+              <span className="ml-auto shrink-0 font-mono text-[11px] text-chalk-400">
+                {ambiguous.length}
+              </span>
+            </div>
           ) : null}
-        </p>
-      ) : null}
+          {uncovered.length > 0 ? (
+            <div
+              onMouseEnter={() => setHoverKey("__unc")}
+              onMouseLeave={() => setHoverKey(null)}
+              className="flex items-center gap-2 rounded-[8px] px-1.5 py-1 text-[12px] transition-colors hover:bg-coal-500/50"
+            >
+              <ToneDot tone="rose" />
+              <span className="truncate font-medium text-rose-300">
+                Unassigned - assign below
+              </span>
+              <span className="ml-auto shrink-0 font-mono text-[11px] text-rose-300">
+                {uncovered.length}
+              </span>
+            </div>
+          ) : null}
+        </div>
+
+        <SeatPyramid group={activeGroup} activeSeat={hoverSeat} />
       </div>
-    </Section>
+  );
+}
+
+// The hover detail: the role at the top, the seats it takes wired beneath it -
+// a role apex over its seats, connected by a tone-coloured trunk + elbows.
+function SeatPyramid({
+  group,
+  activeSeat,
+}: {
+  group: {
+    label: string;
+    tone: ChipTone;
+    seats: string[];
+    workType?: string;
+  } | null;
+  activeSeat: string | null;
+}) {
+  return (
+    <div className="flex w-[196px] shrink-0 flex-col rounded-[14px] border border-[color:var(--line)] bg-coal-800/50 p-3">
+      {!group ? (
+        <div className="flex flex-1 items-center justify-center">
+          <span className="text-center text-[11px] leading-[1.5] text-chalk-400">
+            Hover a role to see
+            <br />
+            the seats it takes
+          </span>
+        </div>
+      ) : (
+        <div>
+          <div
+            className={cn(
+              "inline-flex max-w-full items-center gap-1.5 rounded-[9px] border px-2.5 py-1",
+              TONE_LINE[group.tone],
+            )}
+          >
+            <ToneDot tone={group.tone} />
+            <span className="truncate text-[11.5px] font-semibold text-chalk-100">
+              {group.label}
+            </span>
+          </div>
+          {group.seats.length === 0 ? (
+            <div className="mt-2 pl-1 text-[11px] italic text-chalk-400">
+              no seats
+            </div>
+          ) : (
+            <div className="mt-2">
+              {group.workType ? (
+                <div className="mb-1 pl-1 text-[10.5px] font-semibold text-chalk-400">
+                  {group.workType}
+                </div>
+              ) : null}
+              <div
+                className={cn(
+                  "relative ml-[10px] space-y-1.5 border-l-2 pl-4",
+                  TONE_LINE[group.tone],
+                )}
+              >
+                {group.seats.map((seat) => (
+                  <div key={seat} className="relative flex items-center">
+                    <span
+                      className={cn(
+                        "absolute -left-4 top-1/2 h-px w-4 -translate-y-1/2",
+                        TONE_WIRE[group.tone],
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        "rounded-[7px] px-2 py-[3px] font-mono text-[11px]",
+                        seat === activeSeat
+                          ? "bg-coal-500 text-chalk-100"
+                          : "bg-coal-600 text-chalk-200",
+                      )}
+                    >
+                      {seat}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -931,16 +1281,23 @@ function RoleCard({
             ) : null}
           </div>
         </div>
-        {/* Permission renders as flat tinted text, not a pill. */}
+        {/* Permission as a human label with an icon - never the raw snake_case
+            token (a code slug is not a label). */}
         <span
           className={cn(
-            "mono shrink-0 text-[11px] font-semibold",
+            "inline-flex shrink-0 items-center gap-1 text-[11.5px] font-semibold",
             role.permissions === "code_write"
               ? "text-amber-soft"
               : "text-chalk-300",
           )}
         >
-          {role.permissions}
+          {role.permissions === "code_write" ? (
+            <PenLine className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
+          ) : (
+            <Eye className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
+          )}
+          {PERMISSION_LABEL[role.permissions] ??
+            role.permissions.replace(/_/g, " ")}
         </span>
       </div>
 
@@ -1064,7 +1421,10 @@ function RoleCard({
             }
             options={[
               ...new Set([...PERMISSION_OPTIONS, role.permissions]),
-            ].map((p) => ({ value: p, label: p }))}
+            ].map((p) => ({
+              value: p,
+              label: PERMISSION_LABEL[p] ?? p.replace(/_/g, " "),
+            }))}
           />
         </div>
         {newProfileOpen ? (

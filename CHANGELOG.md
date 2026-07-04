@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.53.0
+
+- **Seat coverage is now a chart, not a list.** A crew's role/seat relationship
+  reads as a donut: one ring is the full set of seats a flow can ask for, each
+  seat an arc coloured by the role that fills it, so a role's seats form one
+  coloured wedge and the centre shows the coverage count. Hover a role (in the
+  ring or the legend) and a detail panel to the right shows that role at the
+  top wired down to the seats it takes, grouped by **work-type** (Writing,
+  Reading, Reviewing, Verifying) from the role's permission - so not all seats
+  read as equal. Empty seats show as hollow gaps in the ring. The crew hero
+  slims to half width with the chart beside it, matched to the same height.
+- **Permission reads like a label, not a token.** A role's permission renders
+  as "Read only" / "Can write" with an icon in the card header and the picker,
+  instead of the raw `read_only` / `code_write` slug.
+
 ## 0.52.1
 
 - **Codebase "Ask" search is much cheaper.** Ranking files by intent is a light
