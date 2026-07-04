@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
+  getBranchesOverview,
   getCommitDetail,
   getGitGraph,
   getGitHistory,
@@ -71,6 +72,18 @@ export async function registerGitRoutes(
       };
     },
   );
+
+  // Read-only per-branch overview (ahead/behind + diffstat vs main) for the
+  // Branches panel.
+  app.get("/api/project/git/branches", async () => {
+    const loaded = await loadConfig(projectRoot);
+    return {
+      overview: await getBranchesOverview({
+        worktreePath: projectRoot,
+        mainBranch: loaded.config.git.mainBranch,
+      }),
+    };
+  });
 
   // Read-only single-commit detail (message body + per-file numstat) for the
   // inspector. The hash is strictly validated - no ref expressions.

@@ -25,6 +25,7 @@ import type {
   FileTreeResult,
   FileView,
   GatewayView,
+  GitBranchesOverview,
   GitCommitDetail,
   GitGraph,
   GitHistory,
@@ -2116,6 +2117,12 @@ export const api = {
       `/api/project/git/commit/${encodeURIComponent(hash)}`,
     );
     return r.commit;
+  },
+  async getProjectGitBranches(): Promise<GitBranchesOverview> {
+    const r = await jsonGet<{ overview: GitBranchesOverview }>(
+      "/api/project/git/branches",
+    );
+    return r.overview;
   },
   async predictGitMerge(source: string, target: string): Promise<GitMergePrediction> {
     const r = await jsonPost<{ prediction: GitMergePrediction }>(

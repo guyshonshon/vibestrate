@@ -1259,6 +1259,29 @@ export type GitCommitStats = {
   deletions: number;
 };
 
+/** One branch's standing vs main - powers the Branches panel. */
+export type GitBranchOverview = {
+  name: string;
+  hash: string;
+  shortHash: string;
+  isMain: boolean;
+  mergedIntoMain: boolean;
+  ahead: number;
+  behind: number;
+  stats: GitCommitStats | null;
+  subject: string;
+  author: string;
+  date: string;
+};
+
+export type GitBranchesOverview = {
+  available: boolean;
+  worktreePath: string;
+  gitRoot: string | null;
+  mainBranch: string;
+  branches: GitBranchOverview[];
+};
+
 /** A node in the topology graph: a commit + its shortstat (null for merges). */
 export type GitGraphCommit = GitCommit & { stats: GitCommitStats | null };
 

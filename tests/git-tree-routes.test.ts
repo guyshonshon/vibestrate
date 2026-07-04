@@ -136,6 +136,46 @@ describe("git-tree routes", () => {
     expect(res.status).toBe(400);
   });
 
+  it("GET /branches returns 200 overview with available=true and the expected branches", async () => {
+    const dir = await makeRepo();
+    server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });
+
+    const res = await fetch(`${server.url}/api/project/git/branches`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      overview: {
+        available: boolean;
+        mainBranch: string;
+        branches: { name: string; isMain: boolean }[];
+      };
+    };
+    expect(body.overview.available).toBe(true);
+    expect(body.overview.mainBranch).toBe("main");
+    const names = body.overview.branches.map((b) => b.name).sort();
+    // makeRepo builds "main" plus a "feat-clean" feature branch.
+    expect(names).toEqual(["feat-clean", "main"]);
+    const main = body.overview.branches.find((b) => b.name === "main");
+    expect(main?.isMain).toBe(true);
+  });
+
+  it("GET /branches returns available=false for a non-git project dir", async () => {
+    // A configured (applySetup) project that is NOT a git repo: loadConfig
+    // succeeds so the route runs, but getBranchesOverview finds no git root.
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-nogit-srv-"));
+    await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
+    server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });
+
+    const res = await fetch(`${server.url}/api/project/git/branches`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      overview: { available: boolean; branches: unknown[] };
+    };
+    expect(body.overview.available).toBe(false);
+    expect(body.overview.branches).toEqual([]);
+
+    await fs.rm(dir, { recursive: true, force: true });
+  });
+
   it("applies + audits with a token and bearer auth", async () => {
     const dir = await makeRepo();
     process.env.VIBESTRATE_API_TOKEN = "test-token";

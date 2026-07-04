@@ -75,6 +75,36 @@ export type GitCommitFileStat = {
   deletions: number | null;
 };
 
+/**
+ * One branch's standing relative to main: how far ahead/behind, its own diff
+ * size (vs the merge-base with main), and its tip. Powers the Branches panel,
+ * which reads the same for a linear (ff-only) or a branching repo.
+ */
+export type GitBranchOverview = {
+  name: string;
+  hash: string;
+  shortHash: string;
+  isMain: boolean;
+  mergedIntoMain: boolean;
+  /** Commits on this branch not on main. */
+  ahead: number;
+  /** Commits on main not on this branch. */
+  behind: number;
+  /** Diff of the branch vs its merge-base with main (null for main itself / empty). */
+  stats: GitCommitStats | null;
+  subject: string;
+  author: string;
+  date: string;
+};
+
+export type GitBranchesOverview = {
+  available: boolean;
+  worktreePath: string;
+  gitRoot: string | null;
+  mainBranch: string;
+  branches: GitBranchOverview[];
+};
+
 /** Full detail of one commit for the inspector: message body + per-file stats. */
 export type GitCommitDetail = {
   available: boolean;
@@ -146,6 +176,12 @@ function parseShortstat(text: string): GitCommitStats | null {
 }
 
 const SAFE_HASH = /^[0-9a-f]{7,40}$/i;
+
+// A ref name safe to pass positionally to git (no leading dash, no `..`, no
+// whitespace). Mirrors the route-level SAFE_BRANCH so a config `mainBranch`
+// never reaches git argv unvalidated (defense in depth - it's a config value,
+// not HTTP input, but this closes the one place raw config text hit git).
+const SAFE_REF = /^[a-zA-Z0-9][a-zA-Z0-9._/-]{0,199}$/;
 
 const TIMEOUT_MS = 4_000;
 
@@ -304,6 +340,146 @@ export async function getGitHistory(input: {
   };
 }
 
+/**
+ * Every local branch's standing vs main: ahead/behind counts, its own diff
+ * size (vs the merge-base with main), merged flag, and tip metadata. Read-only.
+ * Bounded to `maxBranches`; branch names come from `for-each-ref` (git's own
+ * output) but are still guarded against leading-dash flag injection.
+ */
+export async function getBranchesOverview(input: {
+  worktreePath: string;
+  mainBranch: string;
+  maxBranches?: number;
+}): Promise<GitBranchesOverview> {
+  const maxBranches = Math.max(1, Math.min(input.maxBranches ?? 100, 500));
+  const empty: GitBranchesOverview = {
+    available: false,
+    worktreePath: input.worktreePath,
+    gitRoot: null,
+    mainBranch: input.mainBranch,
+    branches: [],
+  };
+  if (!(await pathExists(input.worktreePath))) return empty;
+  const gitRoot = await findGitRoot(input.worktreePath);
+  if (!gitRoot) return empty;
+
+  // One call for name/hash/short/author/date/subject (subject last so a tab
+  // inside it can't shift the earlier columns).
+  const refs = await git(input.worktreePath, [
+    "for-each-ref",
+    "refs/heads/",
+    `--count=${maxBranches}`,
+    "--sort=-committerdate",
+    "--format=%(refname:short)\t%(objectname)\t%(objectname:short)\t%(authorname)\t%(committerdate:iso-strict)\t%(contents:subject)",
+  ]);
+  if (refs.exitCode !== 0) {
+    return { ...empty, available: true, gitRoot };
+  }
+
+  // Does main exist? ahead/behind + diffstat only make sense against it.
+  const mainExists = await git(input.worktreePath, [
+    "rev-parse",
+    "--verify",
+    "--quiet",
+    `refs/heads/${input.mainBranch}`,
+  ]);
+  const haveMain =
+    mainExists.exitCode === 0 && SAFE_REF.test(input.mainBranch);
+
+  // Which branches are already fully merged into main.
+  const mergedSet = new Set<string>();
+  if (haveMain) {
+    const merged = await git(input.worktreePath, [
+      "branch",
+      "--format=%(refname:short)",
+      "--merged",
+      input.mainBranch,
+    ]);
+    if (merged.exitCode === 0) {
+      for (const l of merged.stdout.split("\n")) {
+        const t = l.trim();
+        if (t) mergedSet.add(t);
+      }
+    }
+  }
+
+  // Parse the ref rows first (cheap), then fetch ahead/behind + diffstat with
+  // bounded concurrency so a wide repo can't pin a worker for minutes on the
+  // serial 2-calls-per-branch path (each git call has its own 4s timeout).
+  type Row = { name: string; hash: string; shortHash: string; author: string; date: string; subject: string; isMain: boolean };
+  const rows: Row[] = [];
+  for (const line of refs.stdout.split("\n")) {
+    if (!line.trim()) continue;
+    const cols = line.split("\t");
+    const name = (cols[0] ?? "").trim();
+    const hash = (cols[1] ?? "").trim();
+    if (!name || !hash || !SAFE_REF.test(name)) continue;
+    rows.push({
+      name,
+      hash,
+      shortHash: (cols[2] ?? "").trim(),
+      author: (cols[3] ?? "").trim(),
+      date: (cols[4] ?? "").trim(),
+      subject: cols.slice(5).join("\t").trim(),
+      isMain: name === input.mainBranch,
+    });
+  }
+
+  const toBranch = async (r: Row): Promise<GitBranchOverview> => {
+    let ahead = 0;
+    let behind = 0;
+    let stats: GitCommitStats | null = null;
+    if (haveMain && !r.isMain) {
+      const range = `${input.mainBranch}...${r.name}`;
+      const counts = await git(input.worktreePath, [
+        "rev-list",
+        "--left-right",
+        "--count",
+        range,
+      ]);
+      if (counts.exitCode === 0) {
+        // left = main-only (behind), right = branch-only (ahead).
+        const [left, right] = counts.stdout.trim().split(/\s+/).map(Number);
+        if (Number.isFinite(left)) behind = left as number;
+        if (Number.isFinite(right)) ahead = right as number;
+      }
+      const diff = await git(input.worktreePath, ["diff", "--shortstat", range]);
+      if (diff.exitCode === 0) stats = parseShortstat(diff.stdout);
+    }
+    return {
+      name: r.name,
+      hash: r.hash,
+      shortHash: r.shortHash,
+      isMain: r.isMain,
+      mergedIntoMain: !r.isMain && mergedSet.has(r.name),
+      ahead,
+      behind,
+      stats,
+      subject: r.subject,
+      author: r.author,
+      date: r.date,
+    };
+  };
+
+  const branches: GitBranchOverview[] = [];
+  const CONCURRENCY = 8;
+  for (let i = 0; i < rows.length; i += CONCURRENCY) {
+    const chunk = rows.slice(i, i + CONCURRENCY);
+    branches.push(...(await Promise.all(chunk.map(toBranch))));
+  }
+
+  // Main first, then most-recently-committed (for-each-ref already sorted).
+  branches.sort((a, b) => (a.isMain === b.isMain ? 0 : a.isMain ? -1 : 1));
+
+  return {
+    available: true,
+    worktreePath: input.worktreePath,
+    gitRoot,
+    mainBranch: input.mainBranch,
+    branches,
+  };
+}
+
 async function resolveBaseRef(
   worktreePath: string,
   baseRef: string | null | undefined,
@@ -376,7 +552,7 @@ export async function getGitGraph(input: {
 
   // Which branches are already fully merged into main - one git call, so the
   // merge planner can tell "already landed" from "still open" up front.
-  if (branchHeads.some((b) => b.isMain)) {
+  if (branchHeads.some((b) => b.isMain) && SAFE_REF.test(input.mainBranch)) {
     const merged = await git(input.worktreePath, [
       "branch",
       "--format=%(refname:short)",

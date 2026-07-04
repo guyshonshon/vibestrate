@@ -23,11 +23,11 @@ import {
   landingOnMain,
 } from "./graph-math.js";
 
-const ROW_H = 46; // px per row - two text lines
-const LANE_W = 18; // px per lane
-const NODE_R = 4.5;
-const TIP_R = 6; // branch tips render bigger than plain commits
-const PADDING_LEFT = 12;
+const ROW_H = 32; // px per row - two tight text lines, dense git-log rhythm
+const LANE_W = 16; // px per lane
+const NODE_R = 4;
+const TIP_R = 5.5; // branch tips render bigger than plain commits
+const PADDING_LEFT = 10;
 
 // Lane colours cycle through the token palette so they flip with the theme.
 // Lane 0 is always main = the violet spine.
@@ -370,7 +370,7 @@ export function GitDag({ graph, selectedHash, onSelectCommit, source, target }: 
             type="button"
             onClick={() => onSelectCommit(c.hash)}
             className={cn(
-              "absolute flex flex-col justify-center gap-0.5 rounded-[10px] px-2.5 text-left transition",
+              "absolute flex flex-col justify-center rounded-[8px] px-2 text-left leading-tight transition",
               isSelected
                 ? "bg-violet-soft/10"
                 : "hover:bg-coal-500/60",
@@ -378,8 +378,8 @@ export function GitDag({ graph, selectedHash, onSelectCommit, source, target }: 
             )}
             style={{
               left: railW,
-              top: node.row * ROW_H + 3,
-              height: ROW_H - 6,
+              top: node.row * ROW_H + 1,
+              height: ROW_H - 2,
               width: `calc(100% - ${railW}px)`,
             }}
           >

@@ -26,6 +26,16 @@ Click a commit and the graph tells its story: the commit's history stays lit,
 everything unrelated dims, and if the commit reached `main` through a merge,
 the merge commit is marked **merged here**.
 
+## See every branch
+
+Switch the left panel to **Branches** for a flat list of every local branch -
+the view that works even when history is linear and the graph collapses to one
+rail. Each row shows the branch's standing against `main`: how far ahead and
+behind (`up`/`down`), its own diff size (`+added -removed`), whether it is
+already merged or still open, and its latest commit. A one-line ledger up top
+counts open vs merged. Click a branch to focus its tip in the graph and stage
+it as the merge planner's source.
+
 ## Inspect a commit
 
 The middle panel answers the first question about any commit - is it on main? -
@@ -54,7 +64,17 @@ applying.
 
 </div>
 
-The prediction is read-only and the scratch worktree is always torn down.
+The prediction is read-only and the scratch worktree is always torn down. When
+every branch is already merged, the planner says so instead of offering a no-op.
+
+## Ask the supervisor
+
+The planner has an **Ask the supervisor** button that consults your local
+provider for advice - which open branch is worth merging next, and whether the
+pair you picked is safe to merge now. It is read-only: the supervisor never
+merges for you. **Guided merge** takes it one step further: it runs the
+prediction and, on a conflict, has the supervisor propose a resolution
+automatically - but applying the result is always a separate, explicit click.
 
 ## Let the supervisor resolve conflicts
 

@@ -14,7 +14,7 @@
  *
  * Design note: proposals are advisory - nothing is written until Apply.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, GitMerge, RefreshCw } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type {
@@ -30,6 +30,8 @@ type Props = {
   source: string;
   target: string;
   conflictedFiles: string[];
+  /** Guided mode: fetch the supervisor's proposal on mount (still never applies). */
+  autoPropose?: boolean;
   onApplied: (result: GitApplyResult) => void;
 };
 
@@ -39,13 +41,24 @@ type FileState = {
   accepted: boolean;
 };
 
-export function ConflictResolver({ source, target, conflictedFiles, onApplied }: Props) {
+export function ConflictResolver({ source, target, conflictedFiles, autoPropose, onApplied }: Props) {
   const [proposal, setProposal] = useState<GitResolutionProposal | null>(null);
   const [fileStates, setFileStates] = useState<FileState[]>([]);
   const [proposing, setProposing] = useState(false);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [applyResult, setApplyResult] = useState<GitApplyResult | null>(null);
+
+  // Guided merge: request the supervisor's proposal once, automatically. Apply
+  // still requires an explicit confirmed click below - autoPropose never writes.
+  const autoDone = useRef(false);
+  useEffect(() => {
+    if (autoPropose && !autoDone.current) {
+      autoDone.current = true;
+      void fetchProposal();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPropose]);
 
   async function fetchProposal() {
     setProposing(true);

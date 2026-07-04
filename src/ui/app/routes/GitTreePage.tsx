@@ -8,9 +8,10 @@
  *
  * Loads api.getProjectGitGraph() on mount; re-loads after apply/undo.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowUpRight,
+  GitBranch,
   GitCommitHorizontal,
   GitMerge,
   MousePointerClick,
@@ -21,6 +22,8 @@ import type {
   GitGraph,
   GitGraphCommit,
   GitBranchHead,
+  GitBranchOverview,
+  GitBranchesOverview,
   GitCommitDetail,
 } from "../../lib/types.js";
 import { cn } from "../../components/design/cn.js";
@@ -29,11 +32,14 @@ import { Button } from "../../components/design/Button.js";
 import { HeroCard, type HeroTone } from "../../components/design/HeroCard.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { GitDag } from "../../components/git/GitDag.js";
+import { BranchesPanel } from "../../components/git/BranchesPanel.js";
 import { MergePlannerPanel } from "../../components/git/MergePlannerPanel.js";
 import {
   buildIndex,
   landingOnMain,
 } from "../../components/git/graph-math.js";
+
+type LeftTab = "graph" | "branches";
 
 export function GitTreePage() {
   const [graph, setGraph] = useState<GitGraph | null>(null);
@@ -42,6 +48,9 @@ export function GitTreePage() {
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
   const [sourceBranch, setSourceBranch] = useState<string | null>(null);
   const [targetBranch, setTargetBranch] = useState<string | null>(null);
+  const [leftTab, setLeftTab] = useState<LeftTab>("graph");
+  const [branches, setBranches] = useState<GitBranchesOverview | null>(null);
+  const [branchesLoading, setBranchesLoading] = useState(false);
 
   async function load() {
     setRefreshing(true);
@@ -54,11 +63,31 @@ export function GitTreePage() {
     } finally {
       setRefreshing(false);
     }
+    void loadBranches();
+  }
+
+  async function loadBranches() {
+    setBranchesLoading(true);
+    try {
+      setBranches(await api.getProjectGitBranches());
+    } catch {
+      setBranches(null);
+    } finally {
+      setBranchesLoading(false);
+    }
   }
 
   useEffect(() => {
     void load();
   }, []);
+
+  // Selecting a branch focuses its tip in the graph and stages it as the
+  // merge source, so "see each branch" flows straight into "merge this one".
+  const onSelectBranch = (b: GitBranchOverview) => {
+    setSelectedHash(b.hash);
+    if (!b.isMain) setSourceBranch(b.name);
+    setLeftTab("graph");
+  };
 
   // When the graph loads, pre-select the main branch head as selected hash.
   useEffect(() => {
@@ -177,26 +206,56 @@ export function GitTreePage() {
         </div>
       ) : (
         <div className="grid min-h-0 flex-1 grid-cols-12 gap-4 pb-5">
-          {/* LEFT - DAG (the widest region: rows carry subject + stats now) */}
+          {/* LEFT - Graph / Branches (the widest region) */}
           <section className="col-span-12 flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-700 lg:col-span-5">
-            <header className="flex items-center gap-2 border-b border-[color:var(--line-soft)] px-4 py-3">
-              <GitCommitHorizontal className="h-4 w-4 text-violet-soft" strokeWidth={1.9} />
-              <span className="text-[13px] font-semibold text-chalk-100">Commit graph</span>
+            <header className="flex items-center gap-2 border-b border-[color:var(--line-soft)] px-3 py-2">
+              {/* Segmented tab control - graph vs a flat list of every branch. */}
+              <div className="inline-flex items-center gap-0.5 rounded-[10px] border border-[color:var(--line)] bg-coal-800 p-0.5">
+                <TabButton
+                  active={leftTab === "graph"}
+                  onClick={() => setLeftTab("graph")}
+                  icon={<GitCommitHorizontal className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                  label="Graph"
+                />
+                <TabButton
+                  active={leftTab === "branches"}
+                  onClick={() => setLeftTab("branches")}
+                  icon={<GitBranch className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                  label="Branches"
+                  count={branches?.branches.length}
+                />
+              </div>
               <span className="ml-auto text-[11.5px] font-semibold text-violet-soft tabular-nums">
-                {graph.commits.length} commit{graph.commits.length === 1 ? "" : "s"}
-                {graph.bounded ? (
-                  <span className="ml-1 font-medium text-amber-soft">truncated</span>
+                {leftTab === "graph" ? (
+                  <>
+                    {graph.commits.length} commit{graph.commits.length === 1 ? "" : "s"}
+                    {graph.bounded ? (
+                      <span className="ml-1 font-medium text-amber-soft">truncated</span>
+                    ) : null}
+                  </>
                 ) : null}
               </span>
             </header>
-            <div className="min-h-0 flex-1 overflow-auto p-3">
-              <GitDag
-                graph={graph}
-                selectedHash={selectedHash}
-                onSelectCommit={setSelectedHash}
-                source={sourceBranch}
-                target={targetBranch}
-              />
+            <div className="min-h-0 flex-1 overflow-auto">
+              {leftTab === "graph" ? (
+                <div className="p-3">
+                  <GitDag
+                    graph={graph}
+                    selectedHash={selectedHash}
+                    onSelectCommit={setSelectedHash}
+                    source={sourceBranch}
+                    target={targetBranch}
+                  />
+                </div>
+              ) : (
+                <BranchesPanel
+                  overview={branches}
+                  loading={branchesLoading}
+                  selectedBranch={sourceBranch}
+                  onSelectBranch={onSelectBranch}
+                  onRetry={() => void loadBranches()}
+                />
+              )}
             </div>
           </section>
 
@@ -245,6 +304,7 @@ export function GitTreePage() {
             <div className="min-h-0 flex-1 overflow-auto p-4">
               <MergePlannerPanel
                 branchHeads={graph.branchHeads}
+                branchesOverview={branches}
                 commits={graph.commits}
                 mainBranch={graph.mainBranch}
                 source={sourceBranch}
@@ -268,6 +328,39 @@ export function GitTreePage() {
  * "landed on main" row jumps to the merge commit, and the file list comes
  * from the commit-detail endpoint.
  */
+function TabButton({
+  active,
+  onClick,
+  icon,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+  label: string;
+  count?: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-1.5 rounded-[8px] px-2.5 py-1.5 text-[12px] font-semibold transition",
+        active
+          ? "bg-coal-600 text-chalk-100 shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+          : "text-chalk-300 hover:text-chalk-100",
+      )}
+    >
+      <span className={active ? "text-violet-soft" : ""}>{icon}</span>
+      {label}
+      {typeof count === "number" ? (
+        <span className="num-tabular text-[10.5px] text-chalk-400">{count}</span>
+      ) : null}
+    </button>
+  );
+}
+
 function CommitInspector({
   commit,
   branches,

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.50.0
+
+- **Diffs: see every branch, and let the supervisor help you merge.** The
+  commit graph is denser now (the rows were too spaced), and a new **Branches**
+  tab lists every local branch with how far it is ahead/behind main, its own
+  diff size, whether it is merged or still open, and its latest commit - so you
+  can see each branch even when linear history collapses the graph to one rail.
+  Click a branch to focus it and stage it for merge. The merge planner grew a
+  brain: **Ask the supervisor** for read-only advice on which branch to merge
+  next and whether your pick is safe, and **Guided merge** runs the prediction
+  and auto-proposes a conflict resolution (applying is still always your
+  explicit click). When everything is already merged, the planner says so
+  instead of offering a no-op.
+
 ## 0.49.0
 
 - **The Diffs page tells the story of your history.** The commit graph is no
