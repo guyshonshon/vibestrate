@@ -20,6 +20,7 @@ import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
 import { Sparkline } from "../../components/design/Sparkline.js";
 import { SegmentRing } from "../../components/design/SegmentRing.js";
+import { RunsAreaChart } from "../../components/metrics/RunsAreaChart.js";
 import { StatTile, type StatTileTone } from "../../components/design/StatTile.js";
 import {
   PageShell,
@@ -154,7 +155,7 @@ export function MetricsPage() {
       <Section title="Runs and outcomes">
         <div className="grid grid-cols-12 gap-4">
           <div className={cn(CARD, "col-span-12 xl:col-span-8")}>
-            <RunsAreaChart overview={overview} />
+            <RunsPanel overview={overview} />
           </div>
           <div className={cn(CARD, "col-span-12 xl:col-span-4")}>
             <OutcomesDonut overview={overview} />
@@ -389,50 +390,12 @@ function EmptyState({
   );
 }
 
-// ── Runs area chart (stacked) ─────────────────────────────────────────────
+// ── Runs area chart (smooth single-hue area + floating tooltip, visx) ──────
 
-function RunsAreaChart({ overview }: { overview: MetricsOverview | null }) {
+function RunsPanel({ overview }: { overview: MetricsOverview | null }) {
   const data = overview?.daily ?? [];
-  const w = 720;
-  const h = 240;
-  const pad = { l: 36, r: 12, t: 18, b: 24 };
-  const innerW = w - pad.l - pad.r;
-  const innerH = h - pad.t - pad.b;
-
-  const maxTotal = Math.max(
-    1,
-    ...data.map((d) => d.merged + d.changes + d.failed),
-  );
-  const stepX = innerW / Math.max(1, data.length - 1);
-  const yScale = (v: number) => innerH - (v / maxTotal) * innerH;
-
-  const colors = { merged: CSS.emerald, changes: CSS.amber, failed: CSS.rose };
-  const cum = data.map(() => ({ merged: 0, changes: 0, failed: 0 }));
-  data.forEach((d, i) => {
-    cum[i]!.merged = d.merged;
-    cum[i]!.changes = d.merged + d.changes;
-    cum[i]!.failed = d.merged + d.changes + d.failed;
-  });
-
-  const pathFor = (
-    key: "merged" | "changes" | "failed",
-    prevKey?: "merged" | "changes",
-  ) => {
-    const top = data
-      .map((_, i) => `${pad.l + i * stepX},${pad.t + yScale(cum[i]![key])}`)
-      .join(" L");
-    const bot = data
-      .map((_, i) => {
-        const prev = prevKey ? cum[i]![prevKey] : 0;
-        return `${pad.l + (data.length - 1 - i) * stepX},${pad.t + yScale(prev)}`;
-      })
-      .join(" L");
-    return `M${top} L${bot} Z`;
-  };
-
   const totals = data.reduce((a, d) => a + d.merged + d.changes + d.failed, 0);
   const totalMerged = data.reduce((a, d) => a + d.merged, 0);
-  const tickVals = [0, 0.5, 1].map((t) => Math.round(t * maxTotal));
 
   return (
     <div>
@@ -458,106 +421,7 @@ function RunsAreaChart({ overview }: { overview: MetricsOverview | null }) {
       {data.length === 0 ? (
         <EmptyState text="No runs yet. Every completed run lands here - queue one from Mission control to get started." />
       ) : (
-        <div className="w-full overflow-visible">
-          <svg viewBox={`0 0 ${w} ${h}`} className="block h-auto w-full">
-            <defs>
-              {Object.entries(colors).map(([k, c]) => (
-                <linearGradient
-                  key={k}
-                  id={`ra-${k}`}
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="0%" stopColor={c} stopOpacity="0.35" />
-                  <stop offset="100%" stopColor={c} stopOpacity="0.05" />
-                </linearGradient>
-              ))}
-            </defs>
-            {tickVals.map((v, i) => {
-              const y = pad.t + yScale(v);
-              return (
-                <g key={i}>
-                  <line
-                    x1={pad.l}
-                    x2={w - pad.r}
-                    y1={y}
-                    y2={y}
-                    stroke={CSS.line}
-                  />
-                  <text
-                    x={pad.l - 8}
-                    y={y + 3}
-                    fontSize="10"
-                    textAnchor="end"
-                    fill={CSS.axis}
-                    fontFamily="Geist Mono"
-                  >
-                    {v}
-                  </text>
-                </g>
-              );
-            })}
-            <path
-              d={pathFor("failed", "changes")}
-              fill="url(#ra-failed)"
-              stroke={colors.failed}
-              strokeOpacity="0.7"
-              strokeWidth="1"
-            />
-            <path
-              d={pathFor("changes", "merged")}
-              fill="url(#ra-changes)"
-              stroke={colors.changes}
-              strokeOpacity="0.7"
-              strokeWidth="1"
-            />
-            <path
-              d={pathFor("merged")}
-              fill="url(#ra-merged)"
-              stroke={colors.merged}
-              strokeOpacity="0.9"
-              strokeWidth="1.4"
-            />
-            {data.map((d, i) => {
-              if (i % 2 !== 0 && i !== data.length - 1) return null;
-              return (
-                <text
-                  key={i}
-                  x={pad.l + i * stepX}
-                  y={h - 6}
-                  fontSize="10"
-                  textAnchor="middle"
-                  fill={CSS.axis}
-                  fontFamily="Geist Mono"
-                >
-                  {d.label}
-                </text>
-              );
-            })}
-            <line
-              x1={pad.l + (data.length - 1) * stepX}
-              x2={pad.l + (data.length - 1) * stepX}
-              y1={pad.t}
-              y2={pad.t + innerH}
-              stroke={CSS.violet}
-              strokeOpacity="0.4"
-              strokeDasharray="3 3"
-            />
-            <text
-              x={pad.l + (data.length - 1) * stepX}
-              y={pad.t - 5}
-              fontSize="10"
-              textAnchor="end"
-              fill={CSS.violet}
-              fontFamily="Geist Mono"
-              style={{ letterSpacing: "0.12em" }}
-            >
-              today
-            </text>
-          </svg>
-        </div>
+        <RunsAreaChart data={data} height={240} />
       )}
     </div>
   );
