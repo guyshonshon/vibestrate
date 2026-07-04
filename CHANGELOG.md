@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.51.0
+
+- **HeroCard reaches the run overview and the projects grid.** The run detail
+  page's status block is now the canonical hero: a tonal column carries the run
+  state (merge-ready green, failed red, running blue), the phase rail sits in
+  the middle, and provider / elapsed / diff / review-loop read as a divided
+  metric strip. The "All projects" page was rebuilt on the same system - each
+  project card is a hero whose column shows current / live / dormant, and the
+  page itself moved onto the shared canvas (header, KPI cards, contained intro)
+  so it finally matches the rest of the dashboard. The run breadcrumb and the
+  Flows catalog cards (with their step bars) were intentionally left alone.
+
 ## 0.50.0
 
 - **Diffs: see every branch, and let the supervisor help you merge.** The
