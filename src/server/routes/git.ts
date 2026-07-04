@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
+  getCommitDetail,
   getGitGraph,
   getGitHistory,
   getGitStatus,
@@ -68,6 +69,23 @@ export async function registerGitRoutes(
           mainBranch: loaded.config.git.mainBranch,
         }),
       };
+    },
+  );
+
+  // Read-only single-commit detail (message body + per-file numstat) for the
+  // inspector. The hash is strictly validated - no ref expressions.
+  app.get<{ Params: { hash: string } }>(
+    "/api/project/git/commit/:hash",
+    async (req) => {
+      const parsed = z
+        .string()
+        .regex(/^[0-9a-f]{7,40}$/i, "invalid commit hash")
+        .safeParse(req.params.hash);
+      if (!parsed.success) throw new HttpError(400, "invalid commit hash");
+      const hash = parsed.data;
+      const commit = await getCommitDetail({ worktreePath: projectRoot, hash });
+      if (!commit) throw new HttpError(404, `no such commit: ${hash}`);
+      return { commit };
     },
   );
 

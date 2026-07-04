@@ -131,7 +131,7 @@ export function HeroCard({
             <div className="min-w-0">
               <h3
                 className={cn(
-                  "font-bold tracking-[-0.01em] text-chalk-100",
+                  "line-clamp-2 break-words font-bold tracking-[-0.01em] text-chalk-100",
                   lg ? "text-[16px]" : "text-[13.5px]",
                 )}
               >

@@ -8,17 +8,32 @@
  *
  * Loads api.getProjectGitGraph() on mount; re-loads after apply/undo.
  */
-import { useEffect, useState } from "react";
-import { GitCommitHorizontal, GitMerge, MousePointerClick, RefreshCw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowUpRight,
+  GitCommitHorizontal,
+  GitMerge,
+  MousePointerClick,
+  RefreshCw,
+} from "lucide-react";
 import { api } from "../../lib/api.js";
-import type { GitGraph, GitGraphCommit, GitBranchHead } from "../../lib/types.js";
+import type {
+  GitGraph,
+  GitGraphCommit,
+  GitBranchHead,
+  GitCommitDetail,
+} from "../../lib/types.js";
 import { cn } from "../../components/design/cn.js";
 import { relTime } from "../../components/design/format.js";
 import { Button } from "../../components/design/Button.js";
-import { StatTile } from "../../components/design/StatTile.js";
+import { HeroCard, type HeroTone } from "../../components/design/HeroCard.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { GitDag } from "../../components/git/GitDag.js";
 import { MergePlannerPanel } from "../../components/git/MergePlannerPanel.js";
+import {
+  buildIndex,
+  landingOnMain,
+} from "../../components/git/graph-math.js";
 
 export function GitTreePage() {
   const [graph, setGraph] = useState<GitGraph | null>(null);
@@ -59,6 +74,44 @@ export function GitTreePage() {
 
   const branchesForHash = (hash: string): GitBranchHead[] =>
     graph ? graph.branchHeads.filter((b) => b.hash === hash) : [];
+
+  // Full detail (message body + per-file numstat) follows the selection.
+  const [detail, setDetail] = useState<GitCommitDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  useEffect(() => {
+    if (!selectedHash) {
+      setDetail(null);
+      return;
+    }
+    let alive = true;
+    setDetailLoading(true);
+    void api
+      .getProjectGitCommit(selectedHash)
+      .then((d) => {
+        if (alive) setDetail(d);
+      })
+      .catch(() => {
+        if (alive) setDetail(null);
+      })
+      .finally(() => {
+        if (alive) setDetailLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [selectedHash]);
+
+  // Where the selected commit landed on main - shared with the graph's
+  // highlight so the inspector and the rail tell the same story.
+  const idx = useMemo(
+    () => (graph ? buildIndex(graph.commits) : null),
+    [graph],
+  );
+  const mainTip = graph?.branchHeads.find((b) => b.isMain)?.hash ?? null;
+  const landedAt = useMemo(() => {
+    if (!idx || !selectedHash) return null;
+    return landingOnMain(idx, mainTip, selectedHash);
+  }, [idx, mainTip, selectedHash]);
 
   return (
     <PageShell variant="fill">
@@ -124,8 +177,8 @@ export function GitTreePage() {
         </div>
       ) : (
         <div className="grid min-h-0 flex-1 grid-cols-12 gap-4 pb-5">
-          {/* LEFT - DAG */}
-          <section className="col-span-12 flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-700 lg:col-span-4">
+          {/* LEFT - DAG (the widest region: rows carry subject + stats now) */}
+          <section className="col-span-12 flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-700 lg:col-span-5">
             <header className="flex items-center gap-2 border-b border-[color:var(--line-soft)] px-4 py-3">
               <GitCommitHorizontal className="h-4 w-4 text-violet-soft" strokeWidth={1.9} />
               <span className="text-[13px] font-semibold text-chalk-100">Commit graph</span>
@@ -152,12 +205,21 @@ export function GitTreePage() {
             <header className="flex items-center gap-2 border-b border-[color:var(--line-soft)] px-4 py-3">
               <span className="text-[13px] font-semibold text-chalk-100">Inspector</span>
             </header>
-            <div className="min-h-0 flex-1 overflow-auto p-4">
+            <div className="min-h-0 flex-1 overflow-auto p-3">
               {selectedCommit ? (
-                <CommitDetail
+                <CommitInspector
                   commit={selectedCommit}
                   branches={branchesForHash(selectedCommit.hash)}
                   mainBranch={graph.mainBranch}
+                  landedAt={landedAt}
+                  landedCommit={
+                    landedAt
+                      ? (graph.commits.find((c) => c.hash === landedAt) ?? null)
+                      : null
+                  }
+                  detail={detail?.hash === selectedCommit.hash ? detail : null}
+                  detailLoading={detailLoading}
+                  onJump={setSelectedHash}
                 />
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
@@ -175,7 +237,7 @@ export function GitTreePage() {
           </section>
 
           {/* RIGHT - merge planner */}
-          <section className="col-span-12 flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-700 lg:col-span-4">
+          <section className="col-span-12 flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-700 lg:col-span-3">
             <header className="flex items-center gap-2 border-b border-[color:var(--line-soft)] px-4 py-3">
               <GitMerge className="h-4 w-4 text-violet-soft" strokeWidth={1.9} />
               <span className="text-[13px] font-semibold text-chalk-100">Merge planner</span>
@@ -183,6 +245,8 @@ export function GitTreePage() {
             <div className="min-h-0 flex-1 overflow-auto p-4">
               <MergePlannerPanel
                 branchHeads={graph.branchHeads}
+                commits={graph.commits}
+                mainBranch={graph.mainBranch}
                 source={sourceBranch}
                 target={targetBranch}
                 onSourceChange={setSourceBranch}
@@ -197,74 +261,233 @@ export function GitTreePage() {
   );
 }
 
-function CommitDetail({
+/**
+ * The commit inspector - a HeroCard whose tonal column answers the question
+ * the old grey facts never did: IS this commit on main? Everything below is
+ * interactive: parents jump the selection, branch tips select their tip, the
+ * "landed on main" row jumps to the merge commit, and the file list comes
+ * from the commit-detail endpoint.
+ */
+function CommitInspector({
   commit,
   branches,
   mainBranch,
+  landedAt,
+  landedCommit,
+  detail,
+  detailLoading,
+  onJump,
 }: {
   commit: GitGraphCommit;
   branches: GitBranchHead[];
   mainBranch: string;
+  landedAt: string | null;
+  landedCommit: GitGraphCommit | null;
+  detail: GitCommitDetail | null;
+  detailLoading: boolean;
+  onJump: (hash: string) => void;
 }) {
+  const onMainDirectly = landedAt === commit.hash;
+  const isMerge = commit.parents.length > 1;
+  const tone: HeroTone = onMainDirectly
+    ? "violet"
+    : landedAt
+      ? "emerald"
+      : "amber";
+  const status = onMainDirectly ? "on main" : landedAt ? "merged" : "unmerged";
+  const statusSub = onMainDirectly
+    ? mainBranch
+    : landedAt
+      ? `into ${mainBranch}`
+      : `not on ${mainBranch} yet`;
+  const stats = detail?.stats ?? commit.stats;
+
   return (
-    <div className="space-y-4">
-      <div className="text-[13.5px] font-semibold leading-snug text-chalk-100">
-        {commit.subject}
-      </div>
+    <div className="space-y-3">
+      <HeroCard
+        size="md"
+        tone={tone}
+        overline={isMerge ? "Merge commit" : "Commit"}
+        status={status}
+        statusSub={statusSub}
+        title={commit.subject || commit.shortHash}
+        sub={
+          <>
+            <span className="mono text-violet-soft/90">{commit.shortHash}</span>{" "}
+            · {commit.author} · {relTime(commit.date)}
+          </>
+        }
+        metrics={
+          stats
+            ? [
+                {
+                  value: `+${stats.insertions}`,
+                  label: "added",
+                  valueClass: "text-emerald-400",
+                },
+                {
+                  value: `-${stats.deletions}`,
+                  label: "removed",
+                  valueClass: "text-rose-300",
+                },
+                { value: stats.filesChanged, label: "files" },
+              ]
+            : undefined
+        }
+      />
 
-      {/* Facts as content-width stat tiles (violet unit labels). */}
-      <div className="flex flex-wrap items-stretch gap-1">
-        <StatTile value={<span className="mono">{commit.hash.slice(0, 8)}</span>} label="hash" />
-        <StatTile value={commit.author} label="author" />
-        <StatTile value={relTime(commit.date)} label="when" />
-        {commit.parents.length > 0 ? (
-          <StatTile
-            value={
-              <span className="mono">
-                {commit.parents.map((p) => p.slice(0, 8)).join(", ")}
-              </span>
-            }
-            label={commit.parents.length > 1 ? "parents" : "parent"}
-          />
-        ) : (
-          <StatTile value="root" label="parent" tone="violet" />
-        )}
-      </div>
+      {/* Where it landed - jump to the merge commit; or the honest gap. */}
+      {landedAt && !onMainDirectly ? (
+        <button
+          type="button"
+          onClick={() => onJump(landedAt)}
+          className="flex w-full items-center gap-2 rounded-[12px] border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-2 text-left transition hover:bg-emerald-500/[0.12]"
+        >
+          <GitMerge className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={1.9} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[10.5px] font-medium text-emerald-400">
+              landed on {mainBranch} at
+            </span>
+            <span className="block truncate text-[11.5px] font-semibold text-chalk-100">
+              <span className="mono">{landedAt.slice(0, 8)}</span>
+              {landedCommit ? ` ${landedCommit.subject}` : ""}
+            </span>
+          </span>
+          <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={1.9} />
+        </button>
+      ) : null}
+      {!landedAt ? (
+        <div className="rounded-[12px] border border-amber-soft/25 bg-amber-500/[0.07] px-3 py-2 text-[11.5px] text-amber-soft">
+          Not reachable from {mainBranch} - merge its branch in the planner to
+          land it.
+        </div>
+      ) : null}
 
+      {/* Parents - jump the selection. */}
+      {commit.parents.length > 0 ? (
+        <div>
+          <div className="mb-1.5 text-[11px] font-semibold text-violet-soft">
+            {commit.parents.length > 1 ? "Parents" : "Parent"}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {commit.parents.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => onJump(p)}
+                className="mono rounded-[8px] border border-[color:var(--line)] bg-coal-500/60 px-2 py-1 text-[11px] text-chalk-100 transition hover:border-violet-soft/40 hover:text-violet-soft"
+              >
+                {p.slice(0, 8)}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Branch tips here - click selects the tip commit. */}
       {branches.length > 0 ? (
-        <div className="space-y-2">
-          <div className="text-[11.5px] font-semibold text-violet-soft">
+        <div>
+          <div className="mb-1.5 text-[11px] font-semibold text-violet-soft">
             Branch tips here
           </div>
           <div className="flex flex-wrap gap-1.5">
             {branches.map((b) => {
               const isMain = b.isMain || b.name === mainBranch;
               return (
-                <span
+                <button
                   key={b.name}
+                  type="button"
+                  onClick={() => onJump(b.hash)}
                   className={cn(
-                    "mono rounded-[8px] border px-2 py-1 text-[11px]",
+                    "mono rounded-[8px] border px-2 py-1 text-[11px] transition",
                     isMain
-                      ? "border-violet-soft/25 bg-violet-soft/10 text-violet-soft"
-                      : "border-[color:var(--line)] bg-coal-500/60 text-chalk-300",
+                      ? "border-violet-soft/25 bg-violet-soft/10 text-violet-soft hover:bg-violet-soft/20"
+                      : b.mergedIntoMain
+                        ? "border-[color:var(--line)] bg-coal-500/60 text-chalk-300 hover:text-chalk-100"
+                        : "border-emerald-500/25 bg-emerald-500/[0.07] text-emerald-400 hover:bg-emerald-500/[0.12]",
                   )}
+                  title={
+                    isMain
+                      ? mainBranch
+                      : b.mergedIntoMain
+                        ? `${b.name} - already merged into ${mainBranch}`
+                        : `${b.name} - open (not merged)`
+                  }
                 >
                   {b.name}
-                </span>
+                  {!isMain ? (
+                    <span
+                      className={cn(
+                        "ml-1.5 font-sans text-[9.5px] font-semibold",
+                        b.mergedIntoMain ? "text-chalk-400" : "text-emerald-400",
+                      )}
+                    >
+                      {b.mergedIntoMain ? "merged" : "open"}
+                    </span>
+                  ) : null}
+                </button>
               );
             })}
           </div>
         </div>
       ) : null}
 
-      {commit.refs.length > 0 ? (
-        <div className="rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5">
-          <div className="mb-0.5 text-[10.5px] font-medium text-violet-soft">refs</div>
-          <div className="mono truncate text-[10.5px] text-chalk-300">
-            {commit.refs.join(", ")}
-          </div>
+      {/* Message body, when the commit has one. */}
+      {detail?.body ? (
+        <div className="rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-2">
+          <div className="mb-1 text-[10.5px] font-medium text-violet-soft">message</div>
+          <pre className="mono max-h-40 overflow-auto whitespace-pre-wrap text-[10.5px] leading-[1.5] text-chalk-200">
+            {detail.body}
+          </pre>
         </div>
       ) : null}
+
+      {/* Files changed - per-file numstat from the detail endpoint. */}
+      <div>
+        <div className="mb-1.5 flex items-baseline justify-between">
+          <span className="text-[11px] font-semibold text-violet-soft">
+            Files changed
+          </span>
+          {detail && detail.files.length > 0 ? (
+            <span className="num-tabular text-[10.5px] text-chalk-300">
+              {detail.files.length}
+            </span>
+          ) : null}
+        </div>
+        {detailLoading && !detail ? (
+          <div className="text-[11.5px] text-chalk-300">Loading files…</div>
+        ) : !detail || detail.files.length === 0 ? (
+          <div className="text-[11.5px] text-chalk-300">
+            {isMerge
+              ? "A merge commit - its changes live in the merged commits."
+              : "No file changes recorded."}
+          </div>
+        ) : (
+          <ul className="space-y-0.5">
+            {detail.files.map((f) => (
+              <li
+                key={f.path}
+                className="flex items-center gap-2 rounded-[8px] px-2 py-1 hover:bg-coal-500/60"
+                title={f.path}
+              >
+                <span className="mono min-w-0 flex-1 truncate text-[11px] text-chalk-100">
+                  {f.path}
+                </span>
+                <span className="num-tabular shrink-0 text-[10.5px] font-semibold">
+                  {f.insertions === null ? (
+                    <span className="text-chalk-400">binary</span>
+                  ) : (
+                    <>
+                      <span className="text-emerald-400">+{f.insertions}</span>{" "}
+                      <span className="text-rose-300">-{f.deletions}</span>
+                    </>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

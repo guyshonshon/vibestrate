@@ -7,11 +7,12 @@
  *     conflicts -> ConflictResolver
  *   Undo last merge affordance (calls undoGitMerge on current target)
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, GitMerge, RotateCcw } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type {
   GitBranchHead,
+  GitGraphCommit,
   GitMergePrediction,
   GitApplyResult,
   GitUndoResult,
@@ -19,9 +20,13 @@ import type {
 import { Button } from "../design/Button.js";
 import { Select } from "../design/Select.js";
 import { ConflictResolver } from "./ConflictResolver.js";
+import { buildIndex, isAncestor } from "./graph-math.js";
 
 type Props = {
   branchHeads: GitBranchHead[];
+  /** The bounded commit topology - lets the planner spot already-merged pairs before predicting. */
+  commits: GitGraphCommit[];
+  mainBranch: string;
   source: string | null;
   target: string | null;
   onSourceChange: (name: string | null) => void;
@@ -31,6 +36,8 @@ type Props = {
 
 export function MergePlannerPanel({
   branchHeads,
+  commits,
+  mainBranch,
   source,
   target,
   onSourceChange,
@@ -106,6 +113,21 @@ export function MergePlannerPanel({
   }
 
   const canPredict = !!source && !!target && source !== target;
+
+  // Already-merged awareness, BEFORE any prediction runs. For target=main the
+  // flag comes straight from git (`branch --merged`); for other targets it is
+  // derived from the bounded topology, so it is best-effort when truncated.
+  const alreadyMerged = useMemo(() => {
+    if (!source || !target || source === target) return false;
+    const src = branchHeads.find((b) => b.name === source);
+    const tgt = branchHeads.find((b) => b.name === target);
+    if (!src || !tgt) return false;
+    if (tgt.name === mainBranch) return src.mergedIntoMain;
+    const idx = buildIndex(commits);
+    if (!idx.byHash.has(src.hash) || !idx.byHash.has(tgt.hash)) return false;
+    return isAncestor(idx, src.hash, tgt.hash);
+  }, [source, target, branchHeads, commits, mainBranch]);
+
   const predictHint =
     !source || !target
       ? "Pick a source and target branch to predict a merge."
@@ -133,17 +155,33 @@ export function MergePlannerPanel({
         />
       </div>
 
+      {/* Already merged - say so up front instead of suggesting a no-op. */}
+      {alreadyMerged ? (
+        <div className="flex items-start gap-2 rounded-[12px] border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-2 text-[12px] text-emerald-400">
+          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.9} />
+          <span>
+            <span className="mono">{source}</span> is already merged into{" "}
+            <span className="mono">{target}</span> - there is nothing new to
+            bring over. Pick an open branch, or predict anyway to double-check.
+          </span>
+        </div>
+      ) : null}
+
       {/* Predict button */}
       <div className="space-y-1.5">
         <Button
-          variant="primary"
+          variant={alreadyMerged ? "secondary" : "primary"}
           size="sm"
           onClick={() => void predict()}
           disabled={!canPredict || predicting}
           iconLeft={<GitMerge className="h-3.5 w-3.5" strokeWidth={1.9} />}
           className="w-full"
         >
-          {predicting ? "Predicting" : "Predict merge"}
+          {predicting
+            ? "Predicting"
+            : alreadyMerged
+              ? "Predict anyway"
+              : "Predict merge"}
         </Button>
         {predictHint ? (
           <div className="text-[11.5px] text-chalk-300">{predictHint}</div>
@@ -227,7 +265,9 @@ function BranchSelect({
     .map((b) => ({
       value: b.name,
       label: b.name,
-      hint: b.isMain ? "main" : undefined,
+      // The picker itself says which branches are already landed vs open, so
+      // a merged branch is never a surprise suggestion.
+      hint: b.isMain ? "main" : b.mergedIntoMain ? "merged" : "open",
     }));
   return (
     <div>

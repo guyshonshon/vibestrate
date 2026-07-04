@@ -11,21 +11,36 @@ you can see and reverse. It is the interactive, any-node-to-any-node evolution o
 the [merge advisor](/docs/getting-started/merging): the same safety model, but
 you drive it from a graph instead of a list.
 
-Open it from the dashboard nav (**Git tree**). Nothing on this page touches a real
+Open it from the dashboard nav (**Diffs**). Nothing on this page touches a real
 branch until you click Apply.
 
 ## See the shape of your history
 
-The left panel draws your branches and commits as a graph. Each dot is a commit;
-the lines are its parents. Branch tips are labelled, and `main` stands out. Click
-any node to inspect it (author, subject, time, parents) in the middle panel. On a
-large repository the graph is bounded to the most recent commits.
+The left panel is the commit graph: a lane rail next to rich commit rows - each
+row carries the subject, the diff size (`+added -removed`), the author, and the
+short hash. Branch tips render as labelled ring nodes so a tip never looks like
+a plain commit, and `main` is the violet spine. On a large repository the graph
+is bounded to the most recent commits.
+
+Click a commit and the graph tells its story: the commit's history stays lit,
+everything unrelated dims, and if the commit reached `main` through a merge,
+the merge commit is marked **merged here**.
+
+## Inspect a commit
+
+The middle panel answers the first question about any commit - is it on main? -
+as a toned status (on main / merged / unmerged), then the diff totals, the
+files it changed with per-file `+`/`-`, the full message body, and its parents
+and branch tips as jump links. Branch tips also say whether that branch is
+already **merged** or still **open**.
 
 ## Predict before you apply
 
-In the planner (right panel), pick a **source** and a **target** branch, then
-**Predict**. Vibestrate performs the merge in a throwaway worktree - never on a
-real branch - and tells you one of three things:
+In the planner (right panel), pick a **source** and a **target** branch. The
+pickers annotate every branch as `main`, `merged`, or `open`, and if the pair
+you picked is already merged the planner says so up front - before any
+prediction runs. Then **Predict**: Vibestrate performs the merge in a throwaway
+worktree - never on a real branch - and tells you one of three things:
 
 <div class="docs-cards">
 

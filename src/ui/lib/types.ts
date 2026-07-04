@@ -1248,10 +1248,42 @@ export type GitBranchHead = {
   name: string;
   hash: string;
   isMain: boolean;
+  /** True when this branch's tip is already reachable from main (fully merged). */
+  mergedIntoMain: boolean;
 };
 
-/** A node in the topology graph. Identical to `GitCommit`; edges are `parents`. */
-export type GitGraphCommit = GitCommit;
+/** Aggregate diff size of one commit vs its (first) parent. */
+export type GitCommitStats = {
+  filesChanged: number;
+  insertions: number;
+  deletions: number;
+};
+
+/** A node in the topology graph: a commit + its shortstat (null for merges). */
+export type GitGraphCommit = GitCommit & { stats: GitCommitStats | null };
+
+/** Per-file numstat row of a single commit ("-" for binary → nulls). */
+export type GitCommitFileStat = {
+  path: string;
+  insertions: number | null;
+  deletions: number | null;
+};
+
+/** Full single-commit detail for the inspector. */
+export type GitCommitDetail = {
+  available: boolean;
+  hash: string;
+  shortHash: string;
+  subject: string;
+  body: string;
+  author: string;
+  authorEmail: string;
+  date: string;
+  refs: string[];
+  parents: string[];
+  files: GitCommitFileStat[];
+  stats: GitCommitStats | null;
+};
 
 /** Branch topology across all refs: commits (with parents) + branch heads. */
 export type GitGraph = {

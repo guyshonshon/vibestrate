@@ -51,10 +51,46 @@ export type GitBranchHead = {
   hash: string;
   /** True only for the configured main/trunk branch. */
   isMain: boolean;
+  /** True when this branch's tip is already reachable from main (fully merged). */
+  mergedIntoMain: boolean;
 };
 
-/** A node in the topology graph. Identical to `GitCommit`; edges are the `parents`. */
-export type GitGraphCommit = GitCommit;
+/** Aggregate diff size of one commit vs its (first) parent. */
+export type GitCommitStats = {
+  filesChanged: number;
+  insertions: number;
+  deletions: number;
+};
+
+/**
+ * A node in the topology graph: a `GitCommit` plus its `--shortstat` diff size
+ * (null for merge commits, which show no direct diff without `-m`).
+ */
+export type GitGraphCommit = GitCommit & { stats: GitCommitStats | null };
+
+/** Per-file numstat row of a single commit ("-" for binary → nulls). */
+export type GitCommitFileStat = {
+  path: string;
+  insertions: number | null;
+  deletions: number | null;
+};
+
+/** Full detail of one commit for the inspector: message body + per-file stats. */
+export type GitCommitDetail = {
+  available: boolean;
+  hash: string;
+  shortHash: string;
+  subject: string;
+  /** Full message body below the subject (may be empty). */
+  body: string;
+  author: string;
+  authorEmail: string;
+  date: string;
+  refs: string[];
+  parents: string[];
+  files: GitCommitFileStat[];
+  stats: GitCommitStats | null;
+};
 
 /** Branch topology across all refs: commits (with parents) + branch heads. */
 export type GitGraph = {
@@ -95,6 +131,21 @@ function parseCommitRecord(rec: string, fieldSep: string): GitCommit {
       .filter(Boolean),
   };
 }
+
+/** Parse a `--shortstat` line ("3 files changed, 10 insertions(+), 2 deletions(-)"). */
+function parseShortstat(text: string): GitCommitStats | null {
+  const files = /(\d+) files? changed/.exec(text);
+  if (!files) return null;
+  const ins = /(\d+) insertions?\(\+\)/.exec(text);
+  const del = /(\d+) deletions?\(-\)/.exec(text);
+  return {
+    filesChanged: Number(files[1]),
+    insertions: ins ? Number(ins[1]) : 0,
+    deletions: del ? Number(del[1]) : 0,
+  };
+}
+
+const SAFE_HASH = /^[0-9a-f]{7,40}$/i;
 
 const TIMEOUT_MS = 4_000;
 
@@ -313,31 +364,75 @@ export async function getGitGraph(input: {
       const n = (name ?? "").trim();
       const h = (hash ?? "").trim();
       if (n && h) {
-        branchHeads.push({ name: n, hash: h, isMain: n === input.mainBranch });
+        branchHeads.push({
+          name: n,
+          hash: h,
+          isMain: n === input.mainBranch,
+          mergedIntoMain: false,
+        });
       }
     }
   }
 
-  // Commits across all refs, bounded. Fetch one extra to detect truncation.
+  // Which branches are already fully merged into main - one git call, so the
+  // merge planner can tell "already landed" from "still open" up front.
+  if (branchHeads.some((b) => b.isMain)) {
+    const merged = await git(input.worktreePath, [
+      "branch",
+      "--format=%(refname:short)",
+      "--merged",
+      input.mainBranch,
+    ]);
+    if (merged.exitCode === 0) {
+      const mergedSet = new Set(
+        merged.stdout
+          .split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      );
+      for (const b of branchHeads) {
+        b.mergedIntoMain = !b.isMain && mergedSet.has(b.name);
+      }
+    }
+  }
+
+  // Commits across all refs, bounded, WITH per-commit shortstat - one pass.
+  // With `--shortstat` git prints the stat line after each record's \x1e, so
+  // splitting on \x1e yields: [fields(c1), stat(c1)+fields(c2), ..., stat(cn)].
+  // The fields line is the one containing the \x1f field separator; anything
+  // before it belongs to the PREVIOUS commit. Merge commits print no stat.
   const fmt = COMMIT_FIELDS.join(FIELD);
   const log = await git(input.worktreePath, [
     "log",
     "--all",
     `--max-count=${maxNodes + 1}`,
     `--pretty=format:${fmt}${RECORD}`,
+    "--shortstat",
   ]);
   if (log.exitCode !== 0) {
     // Repo with no commits yet, or log unavailable: still a valid git root.
     return { ...empty, available: true, gitRoot, branchHeads };
   }
-  const records = log.stdout
-    .split(RECORD)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const bounded = records.length > maxNodes;
-  const commits = records
-    .slice(0, maxNodes)
-    .map((rec) => parseCommitRecord(rec, FIELD));
+  const commitsAll: GitGraphCommit[] = [];
+  for (const chunk of log.stdout.split(RECORD)) {
+    const lines = chunk.split("\n");
+    const fieldIdx = lines.findIndex((l) => l.includes(FIELD));
+    const statText = lines
+      .slice(0, fieldIdx === -1 ? lines.length : fieldIdx)
+      .join(" ");
+    const stat = parseShortstat(statText);
+    if (stat && commitsAll.length > 0) {
+      commitsAll[commitsAll.length - 1]!.stats = stat;
+    }
+    if (fieldIdx !== -1) {
+      const rec = lines.slice(fieldIdx).join("\n").trim();
+      if (rec) {
+        commitsAll.push({ ...parseCommitRecord(rec, FIELD), stats: null });
+      }
+    }
+  }
+  const bounded = commitsAll.length > maxNodes;
+  const commits = commitsAll.slice(0, maxNodes);
 
   return {
     available: true,
@@ -347,5 +442,69 @@ export async function getGitGraph(input: {
     commits,
     branchHeads,
     bounded,
+  };
+}
+
+/**
+ * Full detail of a single commit for the inspector: message body plus per-file
+ * numstat rows. Read-only; the hash is strictly validated (no ref expressions,
+ * no path traversal into `git show` arguments).
+ */
+export async function getCommitDetail(input: {
+  worktreePath: string;
+  hash: string;
+}): Promise<GitCommitDetail | null> {
+  if (!SAFE_HASH.test(input.hash)) return null;
+  if (!(await pathExists(input.worktreePath))) return null;
+  const gitRoot = await findGitRoot(input.worktreePath);
+  if (!gitRoot) return null;
+
+  // Explicit escapes (not literal control bytes) so the separators can never
+  // be silently lost in an edit - the tests caught exactly that once.
+  const FIELD = "\x1f";
+  const RECORD = "\x1e";
+  // Fields, then %b (multi-line body) last, then the record sep, then numstat
+  // rows. Split on the record sep first so body newlines can't break parsing.
+  const fmt = [...COMMIT_FIELDS, "%b"].join(FIELD);
+  const r = await git(input.worktreePath, [
+    "show",
+    input.hash,
+    "--no-color",
+    "--numstat",
+    `--format=${fmt}${RECORD}`,
+  ]);
+  if (r.exitCode !== 0) return null;
+
+  const sepIdx = r.stdout.indexOf(RECORD);
+  if (sepIdx === -1) return null;
+  const head = r.stdout.slice(0, sepIdx);
+  const tail = r.stdout.slice(sepIdx + RECORD.length);
+
+  const parts = head.split(FIELD);
+  const body = (parts[COMMIT_FIELDS.length] ?? "").trim();
+  const base = parseCommitRecord(parts.slice(0, COMMIT_FIELDS.length).join(FIELD), FIELD);
+
+  const files: GitCommitFileStat[] = [];
+  let insertions = 0;
+  let deletions = 0;
+  for (const line of tail.split("\n")) {
+    const m = /^(\d+|-)\t(\d+|-)\t(.+)$/.exec(line.trim());
+    if (!m) continue;
+    const ins = m[1] === "-" ? null : Number(m[1]);
+    const del = m[2] === "-" ? null : Number(m[2]);
+    files.push({ path: m[3]!, insertions: ins, deletions: del });
+    insertions += ins ?? 0;
+    deletions += del ?? 0;
+  }
+
+  return {
+    available: true,
+    ...base,
+    body,
+    files,
+    stats:
+      files.length > 0
+        ? { filesChanged: files.length, insertions, deletions }
+        : null,
   };
 }

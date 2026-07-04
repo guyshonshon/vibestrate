@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.49.0
+
+- **The Diffs page tells the story of your history.** The commit graph is no
+  longer a column of grey hashes: every row now carries the commit subject,
+  its diff size (+added -removed), author and time, and branch tips render as
+  labelled ring nodes on a violet main spine - you can finally see where each
+  branch worked. Click a commit and the graph lights its history, dims
+  everything unrelated, and marks the exact merge commit where it landed on
+  main. The inspector leads with the question that matters - on main, merged,
+  or unmerged - then the files it changed with per-file +/-, the full message,
+  and clickable parents and branch tips. The merge planner now knows what has
+  already landed: branch pickers annotate every branch as main/merged/open,
+  and picking an already-merged pair says so up front instead of suggesting a
+  no-op merge.
+
+## 0.48.0
+
+- **One hero, everywhere.** The task overview's anatomy - a tonal status
+  column that anchors the state, a headline row, a divided metric strip - is
+  now a canonical primitive (HeroCard), documented on the branding canvas as
+  the page hero and the board grid item. The Crew page adopts it end to end:
+  crew cards lead with roster health (gaps, ambiguous, default, ready) and the
+  configure page opens with a state headline instead of a name echo.
+
 ## 0.47.0
 
 - **Five more screens on the new design: Codebase, Profiles, Metrics, Diffs,

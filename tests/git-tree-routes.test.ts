@@ -107,6 +107,35 @@ describe("git-tree routes", () => {
     expect(undo.status).toBe(403);
   });
 
+  it("GET /commit/:hash returns 200 for a real hash, 404 for an unknown well-formed hash", async () => {
+    const dir = await makeRepo();
+    server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });
+    const head = (
+      await execa("git", ["rev-parse", "HEAD"], { cwd: dir })
+    ).stdout.trim();
+
+    const ok = await fetch(`${server.url}/api/project/git/commit/${head}`);
+    expect(ok.status).toBe(200);
+    const body = (await ok.json()) as { commit: { available: boolean } };
+    expect(body.commit.available).toBe(true);
+
+    // Well-formed hex hash (passes the zod regex) that does not resolve -> 404.
+    const missing = await fetch(
+      `${server.url}/api/project/git/commit/deadbeefdeadbeef`,
+    );
+    expect(missing.status).toBe(404);
+  });
+
+  it("GET /commit/:hash returns 400 for a ref expression", async () => {
+    const dir = await makeRepo();
+    server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });
+    // "HEAD" fails the /^[0-9a-f]{7,40}$/i guard - getCommitDetail is never
+    // called with a ref expression (the security goal), and the client gets
+    // a clean 400 rather than a raw ZodError 500.
+    const res = await fetch(`${server.url}/api/project/git/commit/HEAD`);
+    expect(res.status).toBe(400);
+  });
+
   it("applies + audits with a token and bearer auth", async () => {
     const dir = await makeRepo();
     process.env.VIBESTRATE_API_TOKEN = "test-token";

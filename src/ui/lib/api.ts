@@ -25,6 +25,7 @@ import type {
   FileTreeResult,
   FileView,
   GatewayView,
+  GitCommitDetail,
   GitGraph,
   GitHistory,
   GitStatus,
@@ -2109,6 +2110,12 @@ export const api = {
       `/api/project/git/graph?maxNodes=${maxNodes}`,
     );
     return r.graph;
+  },
+  async getProjectGitCommit(hash: string): Promise<GitCommitDetail> {
+    const r = await jsonGet<{ commit: GitCommitDetail }>(
+      `/api/project/git/commit/${encodeURIComponent(hash)}`,
+    );
+    return r.commit;
   },
   async predictGitMerge(source: string, target: string): Promise<GitMergePrediction> {
     const r = await jsonPost<{ prediction: GitMergePrediction }>(
