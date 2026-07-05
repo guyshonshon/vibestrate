@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.60.0
+
+- **Config is now a real editor, not a read-only mirror.** The Config page used
+  to just display `project.yml` and split every setting into "live editor" vs
+  "via CLI" - so half of it wasn't editable in the UI at all. It's now a
+  schema-driven editor: every settable knob renders the right control for its
+  type (toggle, dropdown, number/text input, JSON field) and saves through the
+  same setter the CLI's `vibe config set` uses, so the UI and CLI stay in
+  parity. Complex, id-keyed sections (providers, crews, profiles, personas) link
+  to their dedicated editors. Shell/executable-valued keys (`commands.validate`,
+  `editor.command`) are shown read-only and stay CLI-authored - the dashboard
+  never accepts a shell command over HTTP. The write endpoint only accepts
+  schema-defined keys, with size caps, reviewed against config-tamper attacks.
+
 ## 0.59.0
 
 - **Git, Diffs, and Merge are now one Source page.** Three overlapping git

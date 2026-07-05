@@ -495,6 +495,31 @@ export type ConfigViewResponse = {
   view: ConfigView;
 };
 
+// ─── Config fields (schema-driven editor) ──────────────────────────────────
+// Mirrors GET /api/config/fields. Every settable leaf key with its type/enum/
+// default/description (off the Zod schema) + its CURRENT value. Record-container
+// leaves (providers/crews/profiles/personas/permissions.profiles) are flagged so
+// the UI links out to their dedicated editor rather than raw-editing.
+export type ConfigFieldDto = {
+  fullKey: string;
+  /** e.g. "string", "number", "boolean", "enum", "array<string>", "record<...>". */
+  type: string;
+  enum: string[] | null;
+  default: unknown;
+  description: string | null;
+  required: boolean;
+  isRecordContainer: boolean;
+  /** Shell/executable-valued (commands.validate, editor.command): read-only in
+   *  the UI, CLI-authored for safety - the server rejects a write to these. */
+  execGuarded: boolean;
+  /** Current effective value (falls back to the schema default). */
+  current: unknown;
+};
+export type ConfigFieldsResponse = {
+  configPath: string;
+  fields: ConfigFieldDto[];
+};
+
 /** Result of probing CLI providers (codex `debug models` JSON, else `--help`)
  *  to refresh the overlay. */
 export type CatalogProbeFinding = {
