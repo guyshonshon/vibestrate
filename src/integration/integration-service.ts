@@ -1,4 +1,4 @@
-// ── Integration / merge-preview (Phase 5) ───────────────────────────────────
+// ── Integration / merge-preview ───────────────────────────────────
 //
 // Parallel runs already land on separate branches; this is the missing half -
 // a *gated* surface to preview real git merges and then sequentially integrate
@@ -269,7 +269,7 @@ export type IntegrationRecord = {
   integrated: string[];
   stoppedAt: string | null;
   /** The integration branch tip at apply time - finish refuses on drift so
-   *  the human merges exactly what they reviewed (adversarial-review fix). */
+   *  the human merges exactly what they reviewed. */
   tipSha: string | null;
   createdAt: string;
 };
@@ -357,7 +357,7 @@ export async function finishIntegration(input: {
     }
   };
   if (!(await acquire())) {
-    // Stale-lock recovery (adversarial-review fix): a SIGKILLed finish leaves
+    // Stale-lock recovery: a SIGKILLed finish leaves
     // the dir behind forever. If the recorded holder is dead, reclaim once.
     let holderAlive = false;
     try {
@@ -447,7 +447,7 @@ export async function finishIntegration(input: {
       );
     }
 
-    // Never relocate the user's HEAD (adversarial-review fix): a silent
+    // Never relocate the user's HEAD: a silent
     // checkout - especially on a FAILED merge - mutates state beyond the
     // contract. The human checks out main themselves; we refuse otherwise.
     const head = await execa("git", ["rev-parse", "--abbrev-ref", "HEAD"], {

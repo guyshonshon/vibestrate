@@ -1,9 +1,9 @@
-// ── A2: protected-path matcher (proportional-orchestration.md) ──────────────
+// ── Protected-path matcher (proportional-orchestration.md) ──────────────────
 //
 // The deterministic floor under every "do less checking" decision. A diff that
 // touches a protected path always gets the full check descent: it is never
-// inert for validation scoping (B3), and the express flow's review descent
-// (A3) must run a real review turn. Pure - no I/O, no model judgment; the
+// inert for validation scoping, and the express flow's review descent
+// must run a real review turn. Pure - no I/O, no model judgment; the
 // caller supplies the changed paths.
 //
 // Semantics (locked by the batch design + its adversarial review):

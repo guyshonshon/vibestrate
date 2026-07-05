@@ -32,7 +32,7 @@ export function CompletionOverlay({
   const win = windowFromTop(items, scroll, MAX_VISIBLE);
   // Pad to the widest VISIBLE row (capped), not the widest of the whole list -
   // one long off-screen candidate shouldn't blow the layout wide and push every
-  // description off the right edge (T8: "autocomplete truncates").
+  // description off the right edge (avoid "autocomplete truncates").
   const width = Math.min(
     36,
     win.lines.reduce((m, it) => Math.max(m, it.value.length), 0),

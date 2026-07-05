@@ -298,7 +298,7 @@ function TimelineRow({
 }
 
 /** The expanded seat pane: prompt received, live transcript while working,
- *  response artifact when done (carried over from the P5 seat board). */
+ *  response artifact when done (carried over from the seat board). */
 function SeatDetail({
   runId,
   status,

@@ -18,7 +18,7 @@ export type ProviderStreamLine = {
   stream: "stdout" | "stderr";
   chunk: string;
   at: string;
-  /** Transcript kind (P2). Absent on older lines / verbatim providers ⇒ text. */
+  /** Transcript kind. Absent on older lines / verbatim providers ⇒ text. */
   kind?: "text" | "thinking" | "tool" | "subagent";
 };
 
@@ -58,7 +58,7 @@ export async function appendStreamLine(
   line: ProviderStreamLine,
 ): Promise<void> {
   try {
-    // Redaction at the capture seam (P2, required deliverable): streams were
+    // Redaction at the capture seam: streams were
     // unredacted, and the transcript view makes their content far more
     // readable - so high-precision token shapes are scrubbed before anything
     // is persisted. Raw view, transcript, and the SSE tail all inherit this.
@@ -75,7 +75,7 @@ export async function appendStreamLine(
 /** List the stream files recorded for a run, newest first. Each entry
  *  carries enough to render a tab without reading the body.
  *
- *  Recursive (P2 root-cause fix): flow runs write their streams NESTED
+ *  Recursive (root-cause fix): flow runs write their streams NESTED
  *  (`streams/flows/<step>/prompt.ndjson` - the stream name mirrors the
  *  prompt artifact path), and the old flat readdir missed every one of
  *  them - so the live panel showed "no output" for every flow run, i.e.

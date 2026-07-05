@@ -117,7 +117,7 @@ export class SuggestionBundleService {
   private readonly suggestionService: ReviewSuggestionService;
   private readonly approvals: ApprovalService;
   private readonly events: EventLog;
-  /** S0 Action Broker boundary - every bundle patch apply/revert is decided and
+  /** Action Broker boundary - every bundle patch apply/revert is decided and
    *  recorded as evidence in `runs/<id>/actions.ndjson`. Shared with the inner
    *  ReviewSuggestionService so injected (test) brokers propagate. */
   private readonly broker: ActionBroker;
@@ -467,7 +467,7 @@ export class SuggestionBundleService {
       return { bundle: updated, preflight };
     }
 
-    // ── Action Broker boundary (S0): file.patch (bundle apply) ───────────
+    // ── Action Broker boundary: file.patch (bundle apply) ────────────────
     // One decision for the whole transactional apply, after preflight cleared.
     // Fail-closed: a non-allow verdict refuses the bundle (worktree untouched).
     const action: ActionRequest = {
@@ -860,7 +860,7 @@ export class SuggestionBundleService {
       return { bundle: finalBundle, result };
     }
 
-    // ── Action Broker boundary (S0): file.patch (bundle smartApply) ──────
+    // ── Action Broker boundary: file.patch (bundle smartApply) ───────────
     // One decision for the whole step-by-step pass, after preflight cleared.
     // (Per-step reverts delegate to the gated ReviewSuggestionService.revert.)
     const action: ActionRequest = {
@@ -1406,7 +1406,7 @@ export class SuggestionBundleService {
       return updated;
     }
 
-    // ── Action Broker boundary (S0): file.patch (bundle revert) ──────────
+    // ── Action Broker boundary: file.patch (bundle revert) ───────────────
     const action: ActionRequest = {
       runId: this.runId,
       kind: "file.patch",

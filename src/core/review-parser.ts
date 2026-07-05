@@ -4,7 +4,7 @@ import type { ReviewDecision, VerificationDecision } from "./state-machine.js";
 import { REVIEW_DECISION_RE as REVIEW_LINE_RE } from "../flows/runtime/review-findings.js";
 const VERIFY_LINE_RE = /^\s*VERIFICATION\s*:\s*(PASSED|FAILED|NEEDS_HUMAN)\s*$/m;
 
-// Advisory "a human should look at this" marker (Phase 3). Non-blocking - the
+// Advisory "a human should look at this" marker. Non-blocking - the
 // run still reaches its terminal verdict; the linked card is flagged so a human
 // can eyeball something the model can't perceive (visual/UX/3D), then pass it or
 // send it back. Distinct from HUMAN_APPROVAL, which blocks.

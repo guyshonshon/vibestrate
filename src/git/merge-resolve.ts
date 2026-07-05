@@ -214,7 +214,7 @@ export async function proposeResolutions(input: {
       }
       // Reconstruct the FULL file: splice each proposed region back into the
       // original, preserving all non-conflict context (per-hunk text alone
-      // would truncate the file - adversarial-review HIGH).
+      // would truncate the file).
       const rebuilt = rebuildResolvedFile(
         content,
         hunks.map((h) => h.proposed),

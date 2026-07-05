@@ -136,7 +136,7 @@ export async function registerFlowsRoutes(
     return { flows, invalid: catalog.invalid, defaultFlow };
   });
 
-  // ─── hub (Phase 5) ────────────────────────────────────────────────────────
+  // ─── hub ──────────────────────────────────────────────────────────────────
   // Browse + install community flows. The API never allows private hosts
   // (SSRF), and install goes through the same validated/guarded import writer.
   app.get<{ Querystring: { baseUrl?: string; q?: string; tag?: string; author?: string } }>(

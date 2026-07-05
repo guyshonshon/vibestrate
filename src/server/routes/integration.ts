@@ -59,7 +59,7 @@ export async function registerIntegrationRoutes(
     return { preview };
   });
 
-  // T13 slice 1b: cheap read-only projection for the Merge page hub list -
+  // cheap read-only projection for the Merge page hub list -
   // lanes + topology only (rev-list/diff counts; NO scratch-worktree preview,
   // NO recommendation). Full advice is fetched on drill-in via /advice.
   app.get("/api/integration/overview", async () => {
@@ -67,7 +67,7 @@ export async function registerIntegrationRoutes(
     return { rows };
   });
 
-  // T13 slice 1a (design/merge-advisor.md): READ-ONLY merge advice. Same
+  // (design/merge-advisor.md): READ-ONLY merge advice. Same
   // gating and cost class as /preview (it wraps mergePreview's scratch
   // worktree + cheap rev-list/diff facts): open on a tokenless loopback bind,
   // bearer-gated when a token is configured. Mutates no branch; the
@@ -87,7 +87,7 @@ export async function registerIntegrationRoutes(
     }
   });
 
-  // T13 slice 2: OPTIONAL "analyze deeper" - a read-only consult-style LLM
+  // OPTIONAL "analyze deeper" - a read-only consult-style LLM
   // pass over the run's redacted diff. Spawns a local provider (broker-gated
   // via the assist primitive, same exposure class as POST /api/consult),
   // creates no run, writes only a cached markdown artifact under the run's
@@ -144,7 +144,7 @@ export async function registerIntegrationRoutes(
     confirm: z.literal("merge-to-main"),
   });
   app.post<{ Body: unknown }>("/api/integration/finish", async (req) => {
-    // Fail-closed surface gate (adversarial-review fix): on a tokenless bind
+    // Fail-closed surface gate: on a tokenless bind
     // any local process can POST here, and the broker has no seeded git.merge
     // policy - so the HTTP surface itself refuses unless the API is
     // token-gated. The CLI (a real human terminal with typed confirmation)

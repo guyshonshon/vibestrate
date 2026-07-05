@@ -103,7 +103,7 @@ const spawnRunBody = z.object({
     .max(64)
     .optional(),
   concise: z.boolean().optional(),
-  // Flow parameter values (T11), name -> raw string. Validated against the
+  // Flow parameter values, name -> raw string. Validated against the
   // flow's declared `params` at run start; secrets recorded redacted.
   params: z
     .record(z.string().min(1).max(60), z.string().max(2000))
@@ -203,7 +203,7 @@ export async function registerRunsRoutes(
   });
 
   // ─── GET /api/runs/:id/restore-preview?stage=reviewing ────────────────
-  // Non-destructive dry-run of a downstream rewind (ISSUE-001 P2): the file
+  // Non-destructive dry-run of a downstream rewind: the file
   // overwrite/remove set the restore would apply, so the user sees the blast
   // radius before launching. Read-only; never starts a run. `preview: null`
   // means there's nothing to restore for that stage (upstream stage, or no
@@ -303,9 +303,9 @@ export async function registerRunsRoutes(
       contextSources: body.contextSources,
       resumeFrom: body.resumeFrom ?? null,
     };
-    // C1: best-effort flow-complexity advice (non-blocking, informational).
+    // best-effort flow-complexity advice (non-blocking, informational).
     let flowAdvice: { level: string; message: string | null } | null = null;
-    // Slice 4: fan-out cost warning for graph flows (also non-blocking).
+    // fan-out cost warning for graph flows (also non-blocking).
     let fanoutAdvice: { maxFanout: number; message: string | null } | null =
       null;
     if (body.flow) {
@@ -358,7 +358,7 @@ export async function registerRunsRoutes(
   });
 
   // ─── POST /api/runs/snapshots/prune ───────────────────────────────────
-  // The dashboard half of `vibe runs prune` (ISSUE-001 P1). Explicit, user-
+  // The dashboard half of `vibe runs prune`. Explicit, user-
   // triggered deletion of rewind-snapshot refs: orphans (run dir gone), beyond
   // a keep-N window, or one run. `dryRun: true` returns the plan WITHOUT
   // deleting (the UI previews, the user confirms, then re-posts to execute).
@@ -445,7 +445,7 @@ export async function registerRunsRoutes(
     },
   );
 
-  // Run Assurance artifact (S5). Returns the persisted verdict; if the run is
+  // Run Assurance artifact. Returns the persisted verdict; if the run is
   // terminal but the artifact is missing (e.g. an older run), derive it on read.
   app.get<{ Params: { runId: string } }>(
     "/api/runs/:runId/assurance",
@@ -553,7 +553,7 @@ export async function registerRunsRoutes(
     },
   );
 
-  // The orchestrator's flow-selection record (Slice 2), when the run's flow was
+  // The orchestrator's flow-selection record, when the run's flow was
   // selected. null for forced/default runs (their flow is in flow.json).
   app.get<{ Params: { runId: string } }>(
     "/api/runs/:runId/selection",
@@ -601,7 +601,7 @@ export async function registerRunsRoutes(
   // Lets the dashboard tail what the provider CLI is *currently
   // saying* - the missing link between "spawned" and "artifact
   // written". Listed first, then per-stream full read + SSE tail.
-  // Stream names are slash-separated since the recursive lister (P2): nested
+  // Stream names are slash-separated since the recursive lister: nested
   // flow streams report as e.g. `flows/implement/prompt`. Each segment must
   // start alphanumeric (which rejects `.`/`..` traversal segments), and the
   // store re-guards the resolved path against escapes (isPathInside).
@@ -702,7 +702,7 @@ export async function registerRunsRoutes(
   );
 
   // ─── POST /api/runs/:runId/rename ────────────────────────────────
-  // Give a run a friendly display name (T6). The runId stays the stable
+  // Give a run a friendly display name. The runId stays the stable
   // identifier; this only updates the cosmetic label.
   app.post<{ Params: { runId: string }; Body: unknown }>(
     "/api/runs/:runId/rename",

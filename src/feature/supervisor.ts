@@ -1,12 +1,12 @@
-// The between-steps SUPERVISOR turn (Saga Phase 2b, M3).
+// The between-steps SUPERVISOR turn.
 //
 // After a saga step commits cleanly, a cheap model turn judges whether the saga
 // should PROCEED to the next step or ESCALATE (halt cleanly with a report). It
 // also maintains the non-folding INVARIANTS ledger: an append-only list of
 // cross-cutting decisions (e.g. "all API responses use snake_case") re-injected
 // into every step's packet - the anti-drift guarantee a folding outcome summary
-// cannot give. `ENHANCE` (re-ground the pending plan) is reserved for Phase 3;
-// here it folds to PROCEED and is logged.
+// cannot give. `ENHANCE` (re-ground the pending plan) is reserved for the
+// dedicated enhance pass; here it folds to PROCEED and is logged.
 //
 // This module is PURE: the prompt builder, the decision/invariants parsers, and
 // the ledger accumulation are all testable without a provider. The orchestrator
@@ -66,8 +66,8 @@ export function parseSupervisorDecision(text: string): SupervisorParse {
 }
 
 /**
- * The decision that drives control flow: ENHANCE folds to PROCEED (Phase 3
- * reserves the real re-ground pass), and an unparseable turn folds to PROCEED.
+ * The decision that drives control flow: ENHANCE folds to PROCEED (the dedicated
+ * enhance pass reserves the real re-ground), and an unparseable turn folds to PROCEED.
  * Only an explicit ESCALATE halts the saga.
  */
 export function effectiveSupervisorDecision(text: string): "PROCEED" | "ESCALATE" {

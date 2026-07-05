@@ -33,7 +33,7 @@ const STATIC_VALUES: Partial<Record<ValueKind, string[]>> = {
   priority: ["low", "medium", "high"],
   "flow-context": ["balanced", "compact", "artifact-heavy"],
   checklist: ["continuous", "step"],
-  // Settable config keys, straight from the schema (T8) - the same source as
+  // Settable config keys, straight from the schema - the same source as
   // `vibe config keys` / `config set --help`.
   "config-key": configLeafKeys().map((k) => k.fullKey),
 };

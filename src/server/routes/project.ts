@@ -66,7 +66,7 @@ export async function registerProjectRoutes(
     return { metadata: await getProjectMetadata(projectRoot) };
   });
 
-  // Project continuity ledger (T9): the computed "where the project stands"
+  // Project continuity ledger: the computed "where the project stands"
   // brief - read-only.
   app.get("/api/ledger", async () => {
     const { LedgerStore, renderLedgerBrief } = await import(
@@ -511,7 +511,7 @@ export async function registerProjectRoutes(
     const requested = (req.query.path ?? "").trim();
     if (!requested) throw new HttpError(400, "?path is required.");
     // Worktree-first + prefer-existing so a file created or modified inside the
-    // run resolves to the run's own copy, never a stale/absent project one (T1).
+    // run resolves to the run's own copy, never a stale/absent project one.
     const roots = buildProjectRoots({
       projectRoot,
       worktreePath: state.worktreePath,

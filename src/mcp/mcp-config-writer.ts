@@ -22,7 +22,7 @@ import {
 export async function writeMcpConfigFile(input: {
   dir: string;
   servers: ReadonlyArray<ResolvedMcpServer>;
-  /** S0 Action Broker - when provided, this secret-bearing config write crosses
+  /** Action Broker - when provided, this secret-bearing config write crosses
    *  the boundary (fail-closed: a deny throws). */
   broker?: ActionBroker;
   runId?: string;
@@ -30,7 +30,7 @@ export async function writeMcpConfigFile(input: {
   if (input.servers.length === 0) return null;
   const file = path.join(input.dir, "mcp.json");
 
-  // ── Action Broker boundary (S0): file.write ───────────────────────────
+  // ── Action Broker boundary: file.write ───────────────────────────
   if (input.broker && input.runId) {
     const action: ActionRequest = {
       runId: input.runId,

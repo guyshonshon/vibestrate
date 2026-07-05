@@ -80,7 +80,7 @@ const startBody = z
   .object({
     task: z.string().min(1).max(2000),
     persona: z.string().min(1).max(40).optional(),
-    /** Adaptive spec-up (P1): the flow to BUILD once the spec is approved. */
+    /** Adaptive spec-up: the flow to BUILD once the spec is approved. */
     flowId: z.string().min(1).max(80).optional(),
   })
   .strict();
@@ -174,7 +174,7 @@ export async function registerSpecUpRoutes(
     },
   );
 
-  // Approve the spec-up draft -> BUILD it (P1): launch the chosen flow seeded with
+  // Approve the spec-up draft -> BUILD it: launch the chosen flow seeded with
   // the approved spec as context. The chosen flow is the carried target unless
   // the body overrides it; falls back to the project default when unbound.
   app.post<{ Body: unknown }>("/api/spec-up/build", async (req) => {

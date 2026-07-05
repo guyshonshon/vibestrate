@@ -1,4 +1,4 @@
-// ── Ledger duplicate/conflict detection (T9 ingestion slice) ─────────────────
+// ── Ledger duplicate/conflict detection ───────────────────────────────────────
 //
 // When a new run's task arrives, compare it against the live ledger and FLAG
 // (never remove) suspected duplicates of open/shipped work and conflicts with

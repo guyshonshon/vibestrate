@@ -9,7 +9,7 @@ type Line = {
   stream: "stdout" | "stderr";
   chunk: string;
   at: string;
-  /** Transcript kind (P2). Absent on old lines / verbatim providers = text. */
+  /** Transcript kind. Absent on old lines / verbatim providers = text. */
   kind?: "text" | "thinking" | "tool" | "subagent";
 };
 type StreamMeta = {
@@ -54,7 +54,7 @@ export function LiveOutputPanel({
 }: {
   runId: string;
   status: RunStatus;
-  /** Pin the panel to one stream (P5 seat board) instead of following latest. */
+  /** Pin the panel to one stream (seat board) instead of following latest. */
   focusStream?: string | null;
 }) {
   const [streams, setStreams] = useState<StreamMeta[]>([]);
@@ -321,7 +321,7 @@ export function LiveOutputPanel({
   );
 }
 
-/** Transcript rendering (P2): consecutive text chunks merge into prose
+/** Transcript rendering: consecutive text chunks merge into prose
  *  blocks; tool/sub-agent chunks render as one-line activity rows; thinking
  *  is folded behind the header toggle. Pure display over the same lines the
  *  raw view shows. */

@@ -4,7 +4,7 @@ import { pathExists, readText, ensureDir } from "../utils/fs.js";
 import { projectLedgerPath, vibestrateRoot } from "../utils/paths.js";
 import { withFileMutex } from "../utils/file-mutex.js";
 
-// ── Project continuity ledger (T9) ───────────────────────────────────────────
+// ── Project continuity ledger ─────────────────────────────────────────────────
 //
 // Durable, machine-written, human-editable project state that survives across
 // runs. One append-only NDJSON file under `.vibestrate/`; the reader skips torn
@@ -17,7 +17,7 @@ export const ledgerEntryKindSchema = z.enum([
   "decision", // a decision made, including "decided against"
   "mention", // mentioned in a run/consult but never acted on
   "residual", // a known follow-up left by a shipped slice
-  "flag", // a suspected duplicate/conflict link (T9) - flags, never removes
+  "flag", // a suspected duplicate/conflict link - flags, never removes
 ]);
 export type LedgerEntryKind = z.infer<typeof ledgerEntryKindSchema>;
 
@@ -69,7 +69,7 @@ export type LedgerState = {
   mentions: LedgerEntry[];
   /** Decisions, including "decided against" (status abandoned). */
   decisions: LedgerEntry[];
-  /** Suspected duplicate/conflict flags (T9), open ones, newest first. Each
+  /** Suspected duplicate/conflict flags, open ones, newest first. Each
    *  links a run/task to an existing entry (`relatesTo`); never auto-resolved. */
   flags: LedgerEntry[];
 };
@@ -164,7 +164,7 @@ function baseEntry(over: Partial<LedgerEntry> & Pick<LedgerEntry, "id" | "kind" 
 }
 
 /**
- * Pure: the ledger entries a run contributes AT START (Slice 3). Records the
+ * Pure: the ledger entries a run contributes AT START. Records the
  * run's goal as an `open` intent so STATE.md shows what's in flight / not yet
  * shipped. Skips read-only runs (an investigation isn't a goal). A *resumed* run
  * supersedes the source run's intent (continuity - the same goal carried
@@ -197,7 +197,7 @@ export function buildRunStartLedgerEntries(input: {
   ];
 }
 
-/** Pure: the ledger entries a completed run contributes AT TERMINAL (Slice 3).
+/** Pure: the ledger entries a completed run contributes AT TERMINAL.
  *  Idempotent - returns [] if a terminal entry (`shipped:` or `blocked:`) for
  *  this run already exists. Read-only runs don't touch the goal ledger.
  *  - merge_ready -> a `shipped` entry (which supersedes the run's open intent,
@@ -298,7 +298,7 @@ async function appendAndRefresh(
   }
 }
 
-/** Disk write-back: record a run's GOAL as an open intent AT START (Slice 3).
+/** Disk write-back: record a run's GOAL as an open intent AT START.
  *  Best-effort + idempotent; the orchestrator calls it in a try/catch. */
 export async function recordRunStartInLedger(
   projectRoot: string,
@@ -325,7 +325,7 @@ export async function recordRunStartInLedger(
   return entries;
 }
 
-/** Disk write-back (T9 slice 2): record a completed run in the ledger. Reads the
+/** Disk write-back: record a completed run in the ledger. Reads the
  *  run state for the title/status and (best-effort) assurance for residual
  *  hints, then appends - idempotently. Best-effort: a ledger hiccup never fails
  *  a run, so the orchestrator calls this in a try/catch. */
@@ -359,7 +359,7 @@ export async function recordRunInLedger(
 }
 
 /** A deterministic, human-readable session-pickup brief assembled from the
- *  ledger state (T9 slice 4 / the answer to "we stopped here, you've done xyz").
+ *  ledger state (the answer to "we stopped here, you've done xyz").
  *  Pure - same state => same brief. */
 export function renderLedgerBrief(
   state: LedgerState,
@@ -369,7 +369,7 @@ export function renderLedgerBrief(
   const maxDetail = opts?.maxDetail;
   const clip = (d: string) =>
     maxDetail && d.length > maxDetail ? `${d.slice(0, maxDetail - 1)}…` : d;
-  // Staleness (Slice 5): mark OPEN WORK (intents/residuals) that hasn't been
+  // Staleness: mark OPEN WORK (intents/residuals) that hasn't been
   // touched in `staleAfterDays` as "unconfirmed", so a grounded planner can't
   // treat a long-stale open item as current truth (it may have been resolved
   // out-of-band). Off unless both `now` and `staleAfterDays` are given.
@@ -408,7 +408,7 @@ export const STALE_OPEN_WORK_DAYS = 14;
 
 /**
  * Pre-render the continuity ledger as a prompt section for a run's planning
- * context (T9): the bounded brief, framed as READ-ONLY background so a fresh
+ * context: the bounded brief, framed as READ-ONLY background so a fresh
  * run knows what shipped / what's open / what was decided, without treating any
  * line as a task. Returns "" when the ledger has no live entries (no section is
  * added). Pure; the caller redacts before injecting.

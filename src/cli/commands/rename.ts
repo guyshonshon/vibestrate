@@ -4,7 +4,7 @@ import { renameRun } from "../../core/state-machine.js";
 import { color, symbol } from "../ui/format.js";
 
 /**
- * `vibe rename <runId> <name...>` - give a run a friendly display name (T6).
+ * `vibe rename <runId> <name...>` - give a run a friendly display name.
  * The run ID stays the stable identifier; this is just a nicer label for lists
  * and headers. The name is variadic so it works without quotes.
  */

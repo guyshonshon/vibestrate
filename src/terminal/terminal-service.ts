@@ -45,7 +45,7 @@ type LiveEntry = {
 export class TerminalService {
   private readonly store: TerminalSessionStore;
   private readonly live = new Map<string, LiveEntry>();
-  /** S0 Action Broker factory - one broker per run; injectable for tests. */
+  /** Action Broker factory - one broker per run; injectable for tests. */
   private readonly brokerFor: (runId: string) => ActionBroker;
 
   constructor(
@@ -128,7 +128,7 @@ export class TerminalService {
     const shell = pickShell();
     const env = buildSafeEnv();
 
-    // ── Action Broker boundary (S0): terminal.create ──────────────────────
+    // ── Action Broker boundary: terminal.create ──────────────────────
     // A live PTY is an open-ended effect surface; it crosses the broker before
     // the child is spawned. Fail-closed: a non-allow verdict refuses (403).
     const broker = this.brokerFor(input.runId);

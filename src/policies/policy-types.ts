@@ -77,7 +77,7 @@ export const policyRuleSchema = z
 export type PolicyRule = z.infer<typeof policyRuleSchema>;
 
 /**
- * S2 - Action policies. Where `rules` gate *patch content* at the apply
+ * Action policies. Where `rules` gate *patch content* at the apply
  * surfaces, `actions` gate the Action Broker's effect kinds (provider spawn,
  * command run, file write, terminal create, run completion) with a `deny` or
  * `require_approval` effect. An action policy with no `match` applies to every
@@ -181,7 +181,7 @@ export type MalformedPolicyFile = {
  */
 export type PolicyStoreSnapshot = {
   rules: PolicyRule[];
-  /** S2 - broker action policies (deny / require_approval on effect kinds). */
+  /** Broker action policies (deny / require_approval on effect kinds). */
   actions: ActionPolicy[];
   /** Files keyed by absolute path, with the rule + action ids parsed from them. */
   ruleFiles: { file: string; ruleIds: string[]; actionIds: string[] }[];

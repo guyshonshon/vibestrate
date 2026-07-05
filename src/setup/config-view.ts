@@ -199,7 +199,7 @@ export function buildConfigView(config: ProjectConfig): ConfigView {
     ],
   });
 
-  // ── Merge advisor (T13, design/merge-advisor.md) ─────────────────────────
+  // ── Merge advisor (design/merge-advisor.md) ─────────────────────────
   sections.push({
     id: "merge-advisor",
     title: "Merge advisor",

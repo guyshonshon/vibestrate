@@ -78,7 +78,7 @@ export const flowContextPolicySchema = z.enum([
 ]);
 export type FlowContextPolicy = z.infer<typeof flowContextPolicySchema>;
 
-// How heavy a Flow is - its "weight class" (Phase 3 C1). Used to warn when a
+// How heavy a Flow is - its "weight class". Used to warn when a
 // heavy flow is run against a light task ("this flow might be too much"). When
 // a Flow doesn't declare it, the runner infers it from the number of agent
 // turns (see flow-complexity.ts).
@@ -106,7 +106,7 @@ export const flowCapabilitiesSchema = z
   .strict();
 export type FlowCapabilities = z.infer<typeof flowCapabilitiesSchema>;
 
-// ── Flow parameters (T11) ────────────────────────────────────────────────────
+// ── Flow parameters ──────────────────────────────────────────────────────────
 // A Flow can declare typed `params:` the caller fills at run start (flags /
 // interactive prompts / a dashboard form). They substitute into the task + step
 // instructions via `{{params.<name>}}`. A `secret: true` param is recorded
@@ -214,7 +214,7 @@ export const flowStepSchema = z
     seat: flowTokenSchema.optional(),
     inputs: z.array(flowTokenSchema).default([]),
     outputs: z.array(flowTokenSchema).default([]),
-    // Explicit DAG edges (Slice 4 / custom-workflow-dags.md Phase A): the step
+    // Explicit DAG edges (custom-workflow-dags.md): the step
     // ids this step depends on. Empty (the default) means today's linear flow -
     // a flow that declares ANY `needs` opts the whole flow into graph mode, and
     // validation then requires the array order to be a valid topological sort
@@ -233,7 +233,7 @@ export const flowStepSchema = z
     // validation, verification. A read-only run does plan/architect/review-style
     // steps only, so the runner skips these and (see runner) disables looping.
     skipWhenReadOnly: z.boolean().default(false),
-    // Continue-past-failure (Slice 5): a best-effort turn. If it hard-fails at
+    // Continue-past-failure: a best-effort turn. If it hard-fails at
     // runtime (the provider throws - missing CLI, spawn/internal error), the run
     // is NOT aborted; the step is marked `failed`, recorded, and the graph
     // advances so a join (e.g. an arbiter) proceeds with the surviving siblings.
@@ -243,7 +243,7 @@ export const flowStepSchema = z
     // continues by design; this covers the hard-throw case the fan-out would
     // otherwise let take the whole run down. See custom-workflow-dags.md.
     continueOnError: z.boolean().default(false),
-    // Per-step retries (Slice 5): extra attempts for a flaky turn. If the turn
+    // Per-step retries: extra attempts for a flaky turn. If the turn
     // fails (provider non-zero exit) or throws (non-control) on an attempt, it's
     // re-run up to `retries` more times before the outcome is final (then
     // continueOnError / abort decide). Total attempts = retries + 1. Control
@@ -254,8 +254,8 @@ export const flowStepSchema = z
     stage: flowStageSchema.optional(),
     approval: flowApprovalGateSchema.optional(),
     repeat: flowStepRepeatSchema.optional(),
-    // A3 express (proportional-orchestration.md / run-experience batch P4b):
-    // deterministic review descent. A review-turn marked `skipWhen:
+    // Express (proportional-orchestration.md): deterministic review descent.
+    // A review-turn marked `skipWhen:
     // "inert_diff"` is skipped at runtime ONLY when the run's ACTUAL diff is
     // strict-prose (.md/.markdown/.txt/.rst) AND touches no protected path
     // (orchestrator/protected-paths.ts) - recorded evidence, never model
@@ -272,7 +272,7 @@ export const flowStepSchema = z
     // reviewer weakens spec-compliance review, while dropping the brief cost
     // nothing.) Opt-in per step, default off; never prunes declared `inputs`.
     cleanRoom: z.boolean().default(false),
-    // Per-step skills (P2 / "flow owns skills"): skill ids attached to THIS
+    // Per-step skills ("flow owns skills"): skill ids attached to THIS
     // step's agent prompt, merged (deduped) with the agent's own skills and the
     // run-level runtimeSkills - scoped to this turn only. Knowledge bound to a
     // phase (e.g. a "WhatsApp integration" skill on the build step) without a new
@@ -300,7 +300,7 @@ export const flowLoopSchema = z
 export type FlowLoop = z.infer<typeof flowLoopSchema>;
 
 // A contiguous body of steps that repeats **once per checklist item** when a
-// run is picked up from a card with a Checklist (Phase 3). `from`..`to` is the
+// run is picked up from a card with a Checklist. `from`..`to` is the
 // per-item band; steps before it run once (the holistic plan), steps after it
 // run once (the holistic review/verify). The runner iterates it in order in one
 // worktree, committing + carrying a compact summary forward per item. A flow
@@ -331,7 +331,7 @@ const flowDefinitionBaseSchema = z
      *  use the flow runner as a substrate but must NOT read as a selectable
      *  flow. NOT access control - the by-id resolvers still serve it. */
     hidden: z.boolean().optional(),
-    /** Typed parameters the caller fills at run start (T11), keyed by name. */
+    /** Typed parameters the caller fills at run start, keyed by name. */
     params: z.record(flowParamNameSchema, flowParamSchema).optional(),
     /**
      * Checklist-review lens configuration. When set, `resolveFlow` expands the
@@ -356,10 +356,10 @@ const TURN_STEP_KINDS = new Set<FlowStepKind>([
 ]);
 
 /**
- * The skipWhen (A3 express deterministic review-descent) constraints, asserted
+ * The skipWhen (express deterministic review-descent) constraints, asserted
  * on BOTH the authored flow definition AND the resolved snapshot so a
  * hand-crafted snapshot can't bypass them if a future code path ever feeds one
- * in (ISSUE-003, defense-in-depth). skipWhen is valid only on a review-turn, in
+ * in (defense-in-depth). skipWhen is valid only on a review-turn, in
  * a linear flow (no `needs`), never in a checklist flow, and never inside the
  * adaptive loop body - a skipped decision step would leave the loop's exit
  * contract undefined or narrow the band review to a per-item diff slice.
@@ -477,7 +477,7 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
           message: `Flow approval gate "${step.id}" cannot repeat.`,
         });
       }
-      // continueOnError (Slice 5) is honored only by the graph scheduler and only
+      // continueOnError is honored only by the graph scheduler and only
       // for model turns, so reject it elsewhere rather than let it silently no-op.
       if (step.continueOnError && !TURN_STEP_KINDS.has(step.kind)) {
         ctx.addIssue({
@@ -501,7 +501,7 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
           message: `Flow step "${step.id}" of kind "${step.kind}" can't use retries (turn steps only).`,
         });
       }
-      // Per-step skills (P2) only attach to a model turn's prompt; a seatless
+      // Per-step skills only attach to a model turn's prompt; a seatless
       // validation/approval-gate step has no prompt to inject them into.
       if (step.skills.length > 0 && !TURN_STEP_KINDS.has(step.kind)) {
         ctx.addIssue({
@@ -556,7 +556,7 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
       // suggestion ingest are run-global and keyed by model-supplied finding id,
       // so arbitration-output tokens would silently overwrite across items.
       // summary-turns are also excluded (they write to the run-global ledger).
-      // NOTE: review-turns ARE permitted in the band (Shape B / pickup-review):
+      // NOTE: review-turns ARE permitted in the band (pickup-review):
       // a per-item review panel (review-correctness, review-risk, arbiter) writes
       // only per-item scoped tokens (findings-correctness, findings-risk,
       // review-decision) - none of which are arbitration tokens - so there is no
@@ -636,7 +636,7 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
       }
     }
 
-    // ── Graph (DAG) validation (Slice 4, custom-workflow-dags.md Phase A+D) ──
+    // ── Graph (DAG) validation (custom-workflow-dags.md) ──
     // A flow is in "graph mode" iff any step declares `needs`. The linear path
     // is preserved byte-for-byte for non-graph flows, so this whole block is a
     // no-op for them. For graph flows we validate structure only (acyclicity,
@@ -645,7 +645,7 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
     const graphMode = flow.steps.some((s) => s.needs.length > 0);
     if (graphMode) {
       // Loop x graph is still deferred (the adaptive review loop crossed with a
-      // DAG). The checklist x graph cross IS supported (Phase D): a DAG inside
+      // DAG). The checklist x graph cross IS supported: a DAG inside
       // the per-item band, repeated once per checklist item - see below.
       if (flow.loop) {
         ctx.addIssue({
@@ -659,7 +659,7 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
       const indexById = new Map<string, number>();
       flow.steps.forEach((s, i) => indexById.set(s.id, i));
 
-      // Phase D - checklist DAGs (graph x per-item band): when a graph flow also
+      // Checklist DAGs (graph x per-item band): when a graph flow also
       // declares a `checklistSegment`, the DAG must be CONFINED to the band. The
       // band [from..to] repeats once per checklist item and runs through the
       // frontier scheduler; the prelude (before `from`) and postlude (after `to`)
@@ -753,7 +753,7 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
       // Parallel groups = steps sharing an identical `needs` set. Members may run
       // concurrently, so they must (a) stay within the width cap and (b) never
       // write the same output token (the join consumes each by name). For a
-      // checklist + graph flow the DAG lives only in the band (Phase D), so group
+      // checklist + graph flow the DAG lives only in the band, so group
       // over the band steps - else empty-`needs` prelude/postlude steps (linear,
       // not concurrent) would be miscounted as one giant parallel group and
       // falsely trip the width cap / distinct-output checks.
@@ -856,12 +856,12 @@ export const resolvedFlowStepSchema = z
     cleanRoom: z.boolean().default(false),
     // Per-step skills (see flowStepSchema.skills): merged into this turn's prompt.
     skills: z.array(skillReferenceSchema).max(32).default([]),
-    // A3 express deterministic review descent (see flowStepSchema.skipWhen).
+    // Express deterministic review descent (see flowStepSchema.skipWhen).
     skipWhen: z.enum(["inert_diff"]).nullable().default(null),
-    // Best-effort turn (Slice 5): a hard runtime failure is tolerated by the
+    // Best-effort turn: a hard runtime failure is tolerated by the
     // graph scheduler (mark failed + continue) instead of aborting the run.
     continueOnError: z.boolean().default(false),
-    // Extra attempts for a flaky turn (Slice 5); total attempts = retries + 1.
+    // Extra attempts for a flaky turn; total attempts = retries + 1.
     retries: z.number().int().min(0).max(5).default(0),
     stage: flowStageSchema.nullable(),
     // The Seat this step needs (null for validation / approval-gate steps).
@@ -874,7 +874,7 @@ export const resolvedFlowStepSchema = z
     providerId: z.string().min(1).nullable(),
     inputs: z.array(flowTokenSchema),
     outputs: z.array(flowTokenSchema),
-    // DAG dependencies (Slice 4). Source step ids - graph flows reject `repeat`
+    // DAG dependencies. Source step ids - graph flows reject `repeat`
     // and loop/checklist, so resolved ids equal source ids and these carry over
     // unchanged. Empty for linear flows (the runner then uses the linear path).
     needs: z.array(flowTokenSchema).default([]),
@@ -907,18 +907,18 @@ export const resolvedFlowSnapshotSchema = z
     // Carried through unchanged when the flow declares an adaptive loop; the
     // runner (not the resolver) iterates it. null for linear flows.
     loop: flowLoopSchema.nullable().default(null),
-    // The per-item band (Phase 3 pick-up execution). Carried through from the
+    // The per-item band (checklist pick-up execution). Carried through from the
     // definition; the runner repeats from..to once per checklist item. null
     // when the flow isn't checklist-aware (then every run is the N=1 case).
     checklistSegment: flowChecklistSegmentSchema.nullable().default(null),
-    // Declared weight class (Phase 3 C1). null ⇒ infer from agent-turn count.
+    // Declared weight class. null ⇒ infer from agent-turn count.
     complexity: flowComplexitySchema.nullable().default(null),
-    // The flow's declared param schema (T11), carried through for the dashboard
+    // The flow's declared param schema, carried through for the dashboard
     // form + re-resolution. null when the flow declares no params.
     params: z.record(flowParamNameSchema, flowParamSchema).nullable().default(null),
   })
   .strict()
-  // Re-assert the skipWhen constraints on the resolved snapshot too (ISSUE-003).
+  // Re-assert the skipWhen constraints on the resolved snapshot too.
   // Every path into a running snapshot is gated by the source schema today, so
   // this is defense-in-depth: a hand-crafted snapshot fed in by a future code
   // path can't bypass the review-turn-only / linear-only / no-checklist /

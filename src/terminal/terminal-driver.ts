@@ -17,7 +17,7 @@ export async function loadNodePtyDriver(
   platform: Platform = process.platform,
 ): Promise<TerminalDriver> {
   if (cached) return cached;
-  // Carve-out (TODO E1): the integrated terminal needs a POSIX shell (pickShell
+  // Carve-out (TODO): the integrated terminal needs a POSIX shell (pickShell
   // returns /bin/zsh|bash|sh) and ConPTY wiring we don't support on native
   // Windows yet. Refuse with a clear reason so availability()/create() surface
   // "use WSL" instead of spawning a nonexistent /bin/sh. Revisit as a later slice.

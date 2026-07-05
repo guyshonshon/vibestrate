@@ -1,14 +1,14 @@
-// ── Action Broker (Epic S / S0) ────────────────────────────────────────────
+// ── Action Broker ───────────────────────────────────────────────────────────
 //
 // The Vibestrate-owned boundary every real effect crosses: provider spawn,
 // command run, file patch/write, network/MCP, terminal create, run completion.
 // A request is *decided* (allow / deny / require_approval) by a chain of pure
 // evaluators, then *recorded* to an append-only per-run evidence log
 // (`runs/<id>/actions.ndjson`) - the audit trail the Run Assurance artifact
-// (S5) and replay read from.
+// and replay read from.
 //
-// S0 is the boundary + the decision/evidence records. Default policy is
-// allow (no evaluators wired yet); Policy Engine V2 (S2) plugs in as
+// The broker is the boundary + the decision/evidence records. Default policy is
+// allow (no evaluators wired yet); the action-policy engine plugs in as
 // evaluators without changing call sites. Design:
 // docs/design/policy-enforcement-assurance.md.
 
@@ -56,7 +56,7 @@ export type ActionEvidence = {
 };
 
 /** The write/outcome/irreversible kinds that must FAIL CLOSED when policy can't
- *  be loaded (P4): file writes, run completion, and the merge to main. The
+ *  be loaded: file writes, run completion, and the merge to main. The
  *  remaining kinds (provider.spawn, command.run, terminal.create,
  *  network.request, mcp.tool) stay permissive so a transient policy-load error
  *  can't brick benign runs - provider.spawn throwing would stop every run from
@@ -71,7 +71,7 @@ const POLICY_UNAVAILABLE_KINDS = new Set<ActionKind>([
 ]);
 
 /**
- * Injected in place of `[]` when the policy loader throws (P4): a loader error
+ * Injected in place of `[]` when the policy loader throws: a loader error
  * is no longer fail-OPEN. It DENIES write/outcome effects (so an apply refuses, a
  * diff rolls back, a run can't reach merge_ready) and ABSTAINS on everything else
  * (so runs still start). Malformed policy FILES never reach here - the store
@@ -141,7 +141,7 @@ export class DefaultActionBroker implements ActionBroker {
   private async allEvaluators(): Promise<ActionEvaluator[]> {
     if (!this.evaluatorLoader) return this.evaluators;
     if (!this.loaded) {
-      // Fail-CLOSED on a loader error (P4): a broken policy load denies
+      // Fail-CLOSED on a loader error: a broken policy load denies
       // write/outcome effects (apply refuses, diff rolls back, run can't
       // complete) but abstains on read-only kinds so runs still start. Malformed
       // policy FILES are already skipped by the store; this guards an unexpected
@@ -185,7 +185,7 @@ export class DefaultActionBroker implements ActionBroker {
 /**
  * Single construction point for a run's broker. Both the orchestrator and the
  * effect-site services (suggestion/bundle apply, …) build their broker here so
- * the Policy Engine V2 (S2) can wire the evaluator chain in ONE place and every
+ * the action-policy engine can wire the evaluator chain in ONE place and every
  * effect kind inherits it - the "one boundary" guarantee. They all append to
  * the same per-run `runs/<id>/actions.ndjson`.
  */
@@ -196,7 +196,7 @@ export function createActionBroker(
 ): ActionBroker {
   return new DefaultActionBroker(projectRoot, runId, {
     ...opts,
-    // Wire on-disk action policies (S2) unless the caller supplied a loader
+    // Wire on-disk action policies unless the caller supplied a loader
     // (e.g. tests injecting evaluators directly).
     evaluatorLoader:
       opts.evaluatorLoader ??

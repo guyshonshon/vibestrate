@@ -1,4 +1,4 @@
-// ── Assist primitive (Phase 3) ─────────────────────────────────────────────
+// ── Assist primitive ────────────────────────────────────────────────────────
 //
 // One internal, one-shot, READ-ONLY, structured-output run: build a minimal
 // prompt, spawn a provider once (gated through the Action Broker like every

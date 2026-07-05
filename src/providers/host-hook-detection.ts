@@ -2,7 +2,7 @@ import path from "node:path";
 import os from "node:os";
 import { pathExists, readText } from "../utils/fs.js";
 
-// ── Host Claude Code hook detection (T4) ─────────────────────────────────────
+// ── Host Claude Code hook detection ──────────────────────────────────────────
 //
 // The `claude-code` provider runs the user's own `claude` CLI as a subprocess.
 // Unless the provider is started with `--safe-mode` (our opt-in `settings.safe

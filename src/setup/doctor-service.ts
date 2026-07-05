@@ -245,7 +245,7 @@ export async function runDoctor(input: {
     });
   }
 
-  // Host Claude Code hooks (T4): when a claude provider runs WITHOUT safeMode,
+  // Host Claude Code hooks: when a claude provider runs WITHOUT safeMode,
   // the operator's own `~/.claude` + project `.claude` hooks fire inside every
   // Vibestrate turn - a personal `UserPromptSubmit` "supervisor" directive then
   // pollutes prompts and can skew reviewer verdicts. We don't isolate by default

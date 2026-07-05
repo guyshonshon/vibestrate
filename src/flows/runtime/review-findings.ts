@@ -1,4 +1,4 @@
-// ── Review-output parsing (P1, run-experience batch) ────────────────────────
+// ── Review-output parsing ────────────────────────────────────────────────────
 //
 // One dependency-free parser for a review turn's output, shared by the web
 // dashboard, the shell TUI, and the CLI (same pattern as flow-graph-layout.ts:

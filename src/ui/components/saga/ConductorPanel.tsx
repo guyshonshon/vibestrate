@@ -5,7 +5,7 @@ import { Button } from "../design/Button.js";
 import { StatTile } from "../design/StatTile.js";
 import { cn } from "../design/cn.js";
 
-// The live Saga CONDUCTOR view (Phase 2b part 2). A self-contained MC-idiom card
+// The live Saga CONDUCTOR view. A self-contained MC-idiom card
 // that polls GET /api/sagas/:taskId/status (~2s) for a saga's lifecycle, step
 // progress, the non-folding invariants ledger, and any clean halt - plus the
 // LIVE run's supervisor decisions (the saga.* engagement moments). Pause/Resume

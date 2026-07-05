@@ -85,7 +85,7 @@ const safetyConfigSchema = z
     forbidSecretsAccess: z.boolean().optional(),
     forbidAutoPush: z.boolean().optional(),
     forbidAutoMerge: z.boolean().optional(),
-    // Posture auto-apply (Slice 2b). Carried by the same endpoint but routed to
+    // Posture auto-apply. Carried by the same endpoint but routed to
     // the `posture.*` config namespace, not `policies.*`.
     autoApplySandbox: z.boolean().optional(),
     autoApplyApproval: z.boolean().optional(),

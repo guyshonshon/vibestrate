@@ -55,7 +55,7 @@ export type ShellEvent = {
 export type ShellRunRow = {
   runId: string;
   task: string;
-  /** Friendly editable label (T6); falls back to the task when unset. */
+  /** Friendly editable label; falls back to the task when unset. */
   displayName: string | null;
   taskId: string | null;
   status: RunStatus;
@@ -89,17 +89,17 @@ export type ShellRunRow = {
   /** From the run's state.json - handy on the Overview for finished runs. */
   finalDecision: string | null;
   verification: string | null;
-  /** The run's isolated git worktree + branch (T1) - so the Inspector can
+  /** The run's isolated git worktree + branch - so the Inspector can
    *  answer "where is the work / how do I cd into it?". null before the
    *  worktree is prepared. */
   worktreePath: string | null;
   branchName: string | null;
-  /** Staged startup progress (T7), derived from `run.startup` events. null once
+  /** Staged startup progress, derived from `run.startup` events. null once
    *  there are no startup events (older runs) or none in the event tail. */
   startup: StartupProgress | null;
   /**
    * Parsed review output for terminal runs whose review asked for changes /
-   * blocked (P1, run-experience batch). Best-effort: null when the artifact
+   * blocked. Best-effort: null when the artifact
    * is missing or unparseable - the decision line above still renders.
    */
   reviewSummary: {
@@ -117,7 +117,7 @@ export type ShellRunRow = {
     completedSteps: number;
     totalSteps: number;
     participantContexts: string[];
-    /** Compact per-step seat strip (P5 Control Center parity). */
+    /** Compact per-step seat strip (Control Center parity). */
     seatStrip: { label: string; role: string | null; status: string }[];
   } | null;
 };

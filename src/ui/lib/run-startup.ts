@@ -1,4 +1,4 @@
-// UI mirror of src/core/run-startup.ts (T7). The UI build can't import from
+// UI mirror of src/core/run-startup.ts. The UI build can't import from
 // src/core, so this small pure deriver is duplicated here, like the other
 // type/logic mirrors in this folder. Keep it in sync with the core version.
 import type { VibestrateEvent } from "./types.js";

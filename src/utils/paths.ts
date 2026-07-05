@@ -29,7 +29,7 @@ export function projectRulesPath(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), RULES_FILENAME);
 }
 
-/** Append-only project continuity ledger (T9): one JSON entry per line. */
+/** Append-only project continuity ledger: one JSON entry per line. */
 export function projectLedgerPath(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), "ledger.ndjson");
 }

@@ -1,4 +1,4 @@
-// ── Live transcript filter (run-experience batch P2) ────────────────────────
+// ── Live transcript filter ───────────────────────────────────────────────────
 //
 // Turns a provider's incremental stream-json stdout into typed transcript
 // chunks for the live view: assistant text, thinking, and tool/sub-agent

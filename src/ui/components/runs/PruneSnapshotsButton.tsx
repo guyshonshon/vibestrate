@@ -5,7 +5,7 @@ import { api, type SnapshotPrunePlan } from "../../lib/api.js";
 type Phase = "idle" | "previewing" | "confirm" | "pruning" | "done" | "error";
 
 /**
- * Dashboard half of `vibe runs prune` (ISSUE-001 P1). Explicitly reclaims
+ * Dashboard half of `vibe runs prune`. Explicitly reclaims
  * rewind-snapshot refs for runs whose directory is gone (orphans) - the
  * clearly-uncrucial cleanup. Previews first (a dry run), then deletes only on
  * the user's confirmation. The tool never purges on its own; this is the user

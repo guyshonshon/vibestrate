@@ -1,4 +1,4 @@
-// ── "Enhance" - decompose a card into a checklist (Phase 3) ─────────────────
+// ── "Enhance" - decompose a card into a checklist ───────────────────────────
 //
 // The meso-altitude planning move: take a task/card and break it into an
 // ordered Checklist of concrete items. An assist run (read-only, structured

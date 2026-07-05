@@ -1,4 +1,4 @@
-// ── Posture-applies (Slice 2b) ──────────────────────────────────────────────
+// ── Posture-applies ─────────────────────────────────────────────────────────
 //
 // A run's *suggested* posture (sandbox-suggested / approval-suggested, set by the
 // --select LLM selector or a persona's prefersPosture nudge) is advisory by

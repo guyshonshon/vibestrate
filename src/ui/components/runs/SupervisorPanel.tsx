@@ -72,7 +72,7 @@ function flowStory(sel: WorkflowSelectionView): string {
 
 function selectionStory(sel: WorkflowSelectionView | null): string | null {
   if (!sel) return null;
-  // Adaptive spec-up (P1): the brief is under-specified, so it runs spec-up FIRST
+  // Adaptive spec-up: the brief is under-specified, so it runs spec-up FIRST
   // (a read-only intake -> spec) and the chosen flow then builds from the spec.
   if (sel.needsSpecUp) {
     return `ran spec-up on this brief first, then builds with ${sel.flowId} from the approved spec`;

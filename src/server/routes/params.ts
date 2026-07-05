@@ -126,7 +126,7 @@ export async function registerParamsRoutes(
     }
   });
 
-  // Generate a suggested value for a `generate`-enabled param (P4). Strictly
+  // Generate a suggested value for a `generate`-enabled param. Strictly
   // user-initiated (a button press) - this is the only provider call in the
   // profiling loop. Returns a suggestion the caller reviews; it does NOT persist.
   app.post<{ Body: unknown }>("/api/params/generate", async (req) => {

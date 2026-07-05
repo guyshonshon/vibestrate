@@ -43,7 +43,7 @@ export function renderTaskGrounding(task: Task): string {
     }
     parts.push(`Checklist:\n${lines.join("\n")}`);
   }
-  // Acceptance criteria (P5): the card's "done-when". Carried into the brief so
+  // Acceptance criteria: the card's "done-when". Carried into the brief so
   // the implementer builds TO it and the VERIFIER confirms each criterion (the
   // LLM-judge half of the acceptance gate). Bounded like the description.
   const acceptance = task.acceptanceCriteria.trim();

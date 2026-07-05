@@ -108,7 +108,7 @@ export type MergeRecord = {
   preSha: string;
   /** Source tip at apply time. Lets undo positively identify a half-applied
    *  merge (parents == {preSha, sourceSha}) instead of trusting "preSha is a
-   *  parent", which any merge off this base would satisfy (adversarial-review). */
+   *  parent", which any merge off this base would satisfy. */
   sourceSha: string;
   /** Set once the merge commit lands and is finalized; null while applying. */
   mergedSha: string | null;
@@ -237,8 +237,8 @@ export async function predictMerge(input: {
 }
 
 /**
- * Apply a CLEAN merge of `source` into `target` on the real branch. Resolved-
- * conflict apply is Phase 3; this refuses anything that isn't clean.
+ * Apply a CLEAN merge of `source` into `target` on the real branch. This
+ * refuses anything that isn't clean; resolved-conflict apply is handled elsewhere.
  *
  * HUMAN-TRIGGERED ONLY: `humanConfirmed` must be the literal `true` from an
  * interactive surface. Gated by the Action Broker; never moves HEAD; records the
@@ -530,7 +530,7 @@ export async function applyResolvedMerge(input: {
             `Refusing a binary resolution for "${p}" - resolve it manually.`,
           );
         }
-        // Symlink-safe write (adversarial-review BLOCKER): `conflicted.has(p)`
+        // Symlink-safe write: `conflicted.has(p)`
         // only validates the path STRING, but git can leave a conflict as a
         // symlink - a naive writeFile would follow it outside the repo or into
         // `.git/hooks` (RCE). Refuse a symlinked leaf, a parent that resolves
@@ -700,7 +700,7 @@ export async function undoMerge(input: {
     return { undone: false, reason: `Branch "${target}" no longer exists.` };
   }
   // Defense-in-depth: the record must be FOR this branch. Guards against a
-  // record-file aliasing bug ever resetting the wrong branch (adversarial-review).
+  // record-file aliasing bug ever resetting the wrong branch.
   if (record.target !== target) {
     return {
       undone: false,
@@ -724,7 +724,7 @@ export async function undoMerge(input: {
 
   // Guard (a) - identity / tip-advance. Positively identify the commit we'd be
   // discarding before any reset; "preSha is a parent" alone is NOT enough -
-  // every merge off this base satisfies it (adversarial-review BLOCKER).
+  // every merge off this base satisfies it.
   if (record.mergedSha) {
     // Normal apply: the tip must be exactly the recorded merge.
     if (cur !== record.mergedSha) {
@@ -756,7 +756,7 @@ export async function undoMerge(input: {
         reason: `Cannot confirm the current tip of "${target}" is the recorded merge of "${record.source}" - refusing.`,
       };
     }
-    // Identity, not just parentage (adversarial-review): a parent set is shared
+    // Identity, not just parentage: a parent set is shared
     // by every merge of this source into this base. The tip's tree must be
     // EXACTLY the clean merge of preSha+sourceSha, so an amended/edited merge
     // (extra work folded in) or a differently-resolved redo can't be reset away.
@@ -780,7 +780,7 @@ export async function undoMerge(input: {
   // Guard (b) - published: refuse if the MERGE COMMIT itself (the current tip,
   // when the branch advanced) is already on the upstream - i.e. it may be
   // pushed. Checking the merge commit, not preSha, is what makes a normal
-  // local-only merge (origin still at preSha) undoable (adversarial-review HIGH).
+  // local-only merge (origin still at preSha) undoable.
   if (cur !== record.preSha) {
     const upstream = await upstreamRef(input.projectRoot, target);
     if (upstream && (await isAncestor(input.projectRoot, cur, upstream))) {

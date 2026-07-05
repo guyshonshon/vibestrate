@@ -613,7 +613,7 @@ body,
 
 body {
   font-family: var(--font-sans);
-  /* Phase 1: the app canvas is the coal --background (a touch lighter than the
+  /* The app canvas is the coal --background (a touch lighter than the
    * old near-black ink-0), so migrated coal surfaces sit on their intended
    * ground. Unmigrated `.slab` pages still read the --s-* scene tokens and
    * stay coherent on top of it. */

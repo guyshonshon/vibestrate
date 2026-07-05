@@ -1,4 +1,4 @@
-// ── Action Policy engine (Epic S / S2) ──────────────────────────────────────
+// ── Action Policy engine ────────────────────────────────────────────────────
 //
 // Turns the user's declarative `actions` policies into Action Broker
 // `ActionEvaluator`s. Each policy becomes one pure evaluator that inspects an

@@ -51,7 +51,7 @@ export interface ProviderOutputAdapter {
    */
   createLiveFilter?(): (rawChunk: string) => string;
   /**
-   * Optional, richer than createLiveFilter (P2 live transcript): typed chunks
+   * Optional, richer than createLiveFilter (live transcript): typed chunks
    * (text / thinking / tool / subagent) for the transcript view. When present
    * the caller prefers it over createLiveFilter. Display only, never the
    * control path.

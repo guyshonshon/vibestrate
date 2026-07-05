@@ -18,7 +18,7 @@ export class MetricsStore {
     private readonly runId: string,
   ) {}
 
-  // Serialize the read-modify-write mutators. A parallel review panel (Slice 4)
+  // Serialize the read-modify-write mutators. A parallel review panel
   // runs several turns concurrently, each appending its own role metrics; an
   // unguarded read-modify-write would lose updates (last writer wins). This
   // promise-chain mutex makes appendRoleMetrics/update/write atomic per store.

@@ -1,4 +1,4 @@
-// ── T13 slice 2: "analyze deeper" (design/merge-advisor.md D5) ───────────────
+// ── "analyze deeper" (design/merge-advisor.md) ───────────────
 //
 // An OPTIONAL, read-only consult-style LLM pass over a merge-ready run's diff
 // vs main, plus deterministic hot-path context. It is ADVISORY PROSE ONLY: it
@@ -86,7 +86,7 @@ export type MergeAnalysisContext = {
   /** Files in this diff that other merge-ready runs also touch (overlap risk). */
   overlaps: { file: string; otherRunIds: string[] }[];
   /** Whether the project has validate commands that would exercise the change.
-   *  A PROXY for "test coverage of touched files" (design D5) - not real
+   *  A PROXY for "test coverage of touched files" - not real
    *  coverage data. */
   validation: { configured: boolean; commandCount: number };
 };
@@ -182,7 +182,7 @@ async function collectRedactedDiff(input: {
     ).stdout;
     if (!body.trim()) continue;
     // Redact BOTH the path header and the body - a token-shaped file path
-    // would otherwise reach the prompt unredacted (adversarial-review fix).
+    // would otherwise reach the prompt unredacted.
     const headerRes = redactSecretsInText(`### ${file}`);
     const bodyRes = redactSecretsInText(body);
     redactedTokenCount += headerRes.count + bodyRes.count;

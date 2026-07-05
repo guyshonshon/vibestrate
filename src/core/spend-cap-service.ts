@@ -36,7 +36,7 @@ export async function computeDailySpendUsd(
 
 /**
  * Today's usage (local day) summed across runs - **count/time**, not dollars,
- * so it binds even when CLI cost is unmeasured (unattended-resilience U1).
+ * so it binds even when CLI cost is unmeasured (unattended-resilience).
  * Excludes `exceptRunId` (the current run, whose in-flight turns the caller adds
  * from memory to avoid double-counting its already-persisted turns).
  */

@@ -77,7 +77,7 @@ export async function loadProjectManual(projectRoot: string): Promise<ProjectMan
 
 /**
  * Starter template for a new `VIBESTRATE.md`. Used by consult to suggest creating
- * one, and (later, Slice 1b) by the guarded apply path. The sections mirror the
+ * one, and (later) by the guarded apply path. The sections mirror the
  * design doc so the orchestrator knows where to look for each kind of guidance.
  */
 export const STARTER_MANUAL = `# VIBESTRATE.md
@@ -148,7 +148,7 @@ export async function writeProjectManual(
     },
   );
 
-  // Action Broker boundary (S0): file.write, fail-closed.
+  // Action Broker boundary: file.write, fail-closed.
   const broker = createActionBroker(projectRoot, "manual");
   const action = {
     runId: "manual",

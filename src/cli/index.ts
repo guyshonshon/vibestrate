@@ -63,7 +63,7 @@ function collectFlowStep(value: string, previous: string[]): string[] {
   return [...previous, value];
 }
 
-/** `--param key=value` collector (T11): builds a name -> raw-string record. */
+/** `--param key=value` collector: builds a name -> raw-string record. */
 function collectParam(
   value: string,
   previous: Record<string, string>,

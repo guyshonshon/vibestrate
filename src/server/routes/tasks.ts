@@ -164,7 +164,7 @@ export async function registerTasksRoutes(
     },
   );
 
-  // Saga conductor STATUS (Phase 2b part 2). Same source as `vibe saga status`
+  // Saga conductor STATUS. Same source as `vibe saga status`
   // (getTaskRunStatus) so the dashboard and CLI never drift. Includes the LIVE run
   // (lock holder) the dashboard needs to drive pause/resume + fetch live audit.
   app.get<{ Params: { taskId: string } }>(

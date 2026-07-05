@@ -9,7 +9,7 @@ import type { RunState } from "../../lib/types.js";
 /**
  * Global "jump to run" quick switcher (Cmd/Ctrl-K). Lists recent runs and lets
  * you filter by task, runId, or status and jump straight to one - so reaching a
- * run never requires going through the full "all runs" page. (Epic B / B2.)
+ * run never requires going through the full "all runs" page.
  */
 export function RunSwitcher({
   onClose,

@@ -54,7 +54,7 @@ export type WorkflowSelection = {
   /** Recommended crew, when the orchestrator chose one (else null = config/default). */
   crewId: string | null;
   source: WorkflowSelectionSource;
-  /** Adaptive spec-up (P1): the brief is under-specified, so the run is SPEC'D UP
+  /** Adaptive spec-up: the brief is under-specified, so the run is SPEC'D UP
    *  FIRST (read-only intake -> spec) and then `flowId` (the chosen/default
    *  flow, NOT a spec-up flow) executes seeded with that spec. Orthogonal to flow
    *  selection - any flow can be spec'd up. Omitted/false = run the flow directly. */
@@ -271,7 +271,7 @@ export type ChooseRunFlowInput = {
   forceSelect?: boolean;
   /** --no-select: skip selection; use the default (or built-in default) flow. */
   noSelect?: boolean;
-  /** Loop guard (P1): this run is itself a spec-up-phase run (intake/spec-up/roadmap)
+  /** Loop guard: this run is itself a spec-up-phase run (intake/spec-up/roadmap)
    *  or the post-spec-up executor launched from the chain. Suppresses adaptive
    *  spec-up so a spec-up-phase run never re-enters spec-up. */
   specUpPhase?: boolean;
@@ -385,7 +385,7 @@ async function maybeUpgradeForPersona(input: {
 export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<WorkflowSelection> {
   const defaultFlowId = input.config.defaultFlow ?? null;
   const persona = resolvePersona(input.config, input.personaOverride);
-  // Adaptive spec-up (P1) is ORTHOGONAL to flow selection: decide it ONCE here and
+  // Adaptive spec-up is ORTHOGONAL to flow selection: decide it ONCE here and
   // stamp it on every return path via `tag`. A plan-worthy/under-specified brief
   // runs spec-up FIRST (read-only intake -> spec) and then the CHOSEN flow runs
   // seeded with that spec - the chosen flow is never replaced by a spec-up flow.
@@ -468,7 +468,7 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
     return tag(selected);
   }
 
-  // 3a. A1 flow sizing (flow-sizing.ts) - ONLY when nothing explicit applies:
+  // 3a. Flow sizing (flow-sizing.ts) - ONLY when nothing explicit applies:
   //     no --flow, no --select, and no config.defaultFlow (an explicit user
   //     choice always wins). The sizer may pick FRONT leanness only - its sole
   //     target is the diff-floored `express` flow, whose back gates are decided
@@ -507,7 +507,7 @@ const SIZING_SCHEMA_HINT = `{
   "reasons": ["string - what made it trivial/standard"]
 }`;
 
-/** A1: decide whether this run sizes down to `express`. Deterministic tier
+/** Decide whether this run sizes down to `express`. Deterministic tier
  *  first (free); gray-zone assist tier only on `flowSizing: "assisted"`. Any
  *  failure/uncertainty -> null (the caller falls through to the default flow -
  *  fail toward more checking). */

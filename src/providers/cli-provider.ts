@@ -40,7 +40,7 @@ export async function runCliProvider(
     env.VIBESTRATE_MCP_CONFIG = input.mcpConfigPath;
   }
 
-  // Container/cloud execution (T14 slice 2): rewrite the spawn through the
+  // Container/cloud execution: rewrite the spawn through the
   // backend's strategy (e.g. `docker exec` into the run's container). The
   // strategy controls the in-container env (allowlist), so the host env is not
   // forwarded into the container. location records where it actually ran.

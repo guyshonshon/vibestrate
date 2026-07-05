@@ -59,7 +59,7 @@ export const runSpecSchema = z.object({
   /** Seat → Role overrides (disambiguate seats filled by >1 crew role). */
   seatRoleOverrides: z.record(z.string(), z.string()).optional(),
   readOnly: z.boolean().optional(),
-  /** Permission mode (T14 P4): read-only / ask / accept-edits / auto. Omitted ⇒
+  /** Permission mode: read-only / ask / accept-edits / auto. Omitted ⇒
    *  config.policies.defaultPermissionMode. `readOnly: true` is the legacy alias
    *  for read-only. */
   permissionMode: permissionModeSchema.optional(),
@@ -74,18 +74,18 @@ export const runSpecSchema = z.object({
   select: z.boolean().nullable().optional(),
   /** Supervisor persona (judgment posture) for this run; default = defaultPersona. */
   persona: z.string().min(1).max(40).nullable().optional(),
-  /** Pick-up execution (Phase 3): iterate the linked task's checklist through
+  /** Pick-up execution: iterate the linked task's checklist through
    *  the flow's checklistSegment. "continuous" runs items back-to-back; "step"
    *  pauses between items. Omitted = no checklist iteration. */
   checklistMode: z.enum(["continuous", "step"]).nullable().optional(),
-  /** Context sources (Phase 4): files/URLs injected into every agent prompt.
+  /** Context sources: files/URLs injected into every agent prompt.
    *  Omitted ⇒ inherit the linked task's sources (if any). */
   contextSources: z.array(contextSourceSchema).max(32).optional(),
-  /** Adaptive spec-up (P1): true marks this run as a spec-up-phase run (intake/spec-up/
+  /** Adaptive spec-up: true marks this run as a spec-up-phase run (intake/spec-up/
    *  roadmap) or the post-spec-up executor, so it is NOT itself re-shaped (loop
    *  guard). Omitted = a normal user run, eligible for adaptive spec-up. */
   specUpPhase: z.boolean().optional(),
-  /** Adaptive spec-up (P1): the flow to BUILD once spec-up is approved. Carried
+  /** Adaptive spec-up: the flow to BUILD once spec-up is approved. Carried
    *  across the detached chain via the `spec-up-target-flow.json` sidecar. */
   specUpTargetFlowId: z.string().min(1).max(80).nullable().optional(),
   /** Deep-questioning loop: the round this intake run represents (server-owned,
@@ -188,7 +188,7 @@ export async function resolveResumeFrom(
 
 /**
  * Non-destructive preview of a downstream rewind: the file overwrite/remove set
- * the restore WOULD apply (ISSUE-001 P2). Validates the source run exists, then
+ * the restore WOULD apply. Validates the source run exists, then
  * returns the diff of the snapshot vs the worktree base. Returns null for an
  * upstream stage (planning/architecting/executing restore no code) or when the
  * source has no snapshot for that stage. Throws RunLaunchError if the source run
@@ -322,7 +322,7 @@ export async function runFromSpec(
     });
   }
 
-  // Adaptive spec-up (P1): an under-specified brief is SPEC'D UP FIRST. This run
+  // Adaptive spec-up: an under-specified brief is SPEC'D UP FIRST. This run
   // becomes the read-only `spec-up-intake` run (emits the gap questions); the
   // CHOSEN flow (selection.flowId) is carried to the post-spec-up `approve & build`
   // handoff via the spec-up-target sidecar - it is never replaced. The loop guard
@@ -378,7 +378,7 @@ export async function runFromSpec(
     });
   }
 
-  // Posture-applies (Slice 2b): fold a suggested posture into this run's effective
+  // Posture-applies: fold a suggested posture into this run's effective
   // permissionMode + isolation, gated per-posture by config (default off). On
   // resume/checklist `selection` is null ⇒ posture "normal" ⇒ this reproduces the
   // prior `spec.permissionMode ?? (readOnly ? "read-only" : undefined)` exactly.
@@ -417,7 +417,7 @@ export async function runFromSpec(
     specUpTargetFlowId,
     specUpRound: spec.specUpRound ?? null,
     specUpRootRunId: spec.specUpRootRunId ?? null,
-    // Permission mode (P4): explicit spec value > read-only/no-write clamp >
+    // Permission mode: explicit spec value > read-only/no-write clamp >
     // auto-applied approval posture (resolved in resolveRunPosture).
     permissionMode: effectivePosture.permissionMode,
     isolationOverride: effectivePosture.isolationOverride ?? null,

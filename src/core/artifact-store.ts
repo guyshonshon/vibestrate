@@ -49,7 +49,7 @@ export class ArtifactStore {
 
   /**
    * Symlink/hardlink-safe overwrite for content of UNTRUSTED origin (e.g. a
-   * browser edit), reusing the merge-service applyResolvedMerge BLOCKER pattern.
+   * browser edit), reusing the merge-service applyResolvedMerge hardening pattern.
    * `write()` uses fs.writeFile, which FOLLOWS a symlink and could escape the run
    * dir or clobber a hardlinked file; this refuses a symlinked leaf, a parent that
    * resolves outside THIS run's artifacts dir, and a hardlinked target (nlink > 1),

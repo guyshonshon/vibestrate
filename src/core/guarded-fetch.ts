@@ -1,4 +1,4 @@
-// ── SSRF-guarded, bounded text fetch (Phase 4) ──────────────────────────────
+// ── SSRF-guarded, bounded text fetch ──────────────────────────────────────────
 //
 // A reusable outbound-fetch guard for user-supplied URLs: http(s) only, the
 // resolved host must not be private/loopback/link-local (SSRF), and the body is

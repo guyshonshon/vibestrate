@@ -131,7 +131,7 @@ export type ConsultResult = {
   usedSources: string[];
   /** Non-fatal context notes (e.g. a refused file, missing manual). */
   notes: string[];
-  /** Deterministic, code-computed project-state sections (T10). Rendered
+  /** Deterministic, code-computed project-state sections. Rendered
    *  verbatim alongside the model's narrated answer - same state => same
    *  sections. */
   sections: ConsultSections;

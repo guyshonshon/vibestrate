@@ -4,7 +4,7 @@ import { substituteParams } from "../flows/runtime/prompt-params.js";
 import { resolveParamsForFlow, type ProjectParams } from "./project-params.js";
 import type { FlowParam } from "../flows/schemas/flow-schema.js";
 
-// ── Generate a default (Profiling, P4) ───────────────────────────────────────
+// ── Generate a default (Profiling) ───────────────────────────────────────
 //
 // The ONLY place a provider touches the profiling loop, and it's strictly:
 // optional, user-initiated, one-shot, read-only, and never auto-committed. A

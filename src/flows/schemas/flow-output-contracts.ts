@@ -158,7 +158,7 @@ export type FlowDecisionSummaryOutput = z.infer<
   typeof flowDecisionSummaryOutputSchema
 >;
 
-// ── Builder-side handoff contracts (Slice 3 deferred item) ──────────────────
+// ── Builder-side handoff contracts ──────────────────────────────────────────
 //
 // The review side above gives reviewers/arbiters a structured shape. These give
 // the *builder* phases (plan -> architecture -> execution) the same: a planner

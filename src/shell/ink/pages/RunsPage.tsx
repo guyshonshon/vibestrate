@@ -332,7 +332,7 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
         </Text>
       ) : null}
 
-      {/* Starting up (T7): a staged checklist while the run sets up, or the
+      {/* Starting up: a staged checklist while the run sets up, or the
           failed stage. Hidden once the run is doing real work. */}
       {row.startup && (!row.startup.complete || row.startup.failedStage) ? (
         <Box flexDirection="column">
@@ -369,7 +369,7 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
         </Box>
       ) : null}
 
-      {/* Workspace (T1): where the run's work lives. `vibe path <id>` prints
+      {/* Workspace: where the run's work lives. `vibe path <id>` prints
           a copy-able cd line; here we just surface the location + branch. */}
       {row.worktreePath ? (
         <Text wrap="truncate-middle">

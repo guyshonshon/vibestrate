@@ -50,7 +50,7 @@ export function buildConfigCommand(): Command {
       const code = await runConfigSet(path, value);
       process.exit(code);
     });
-  // Schema-driven help (T8): list the actual settable keys + their types/enums
+  // Schema-driven help: list the actual settable keys + their types/enums
   // straight from the Zod schema, so `config set --help` enumerates reality.
   setCmd.addHelpText("after", () => {
     const keys = configLeafKeys();

@@ -4,7 +4,7 @@ import { LedgerStore, renderLedgerBrief } from "../../core/project-ledger.js";
 import { color } from "../ui/format.js";
 
 /**
- * `vibe ledger` - the project continuity brief (T9): a deterministic "here's
+ * `vibe ledger` - the project continuity brief: a deterministic "here's
  * where the project stands" assembled from the append-only ledger - recently
  * shipped, open intents, follow-ups, mentions, decisions. The thing a new
  * session reads instead of re-deriving the project state from scratch.

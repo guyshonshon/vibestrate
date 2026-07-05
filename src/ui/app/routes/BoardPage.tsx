@@ -79,7 +79,7 @@ type ColumnDef = {
   tone: ColumnTone;
 };
 
-// The board is a *coarse* human kanban (Phase 3) - not the orchestrator's fine
+// The board is a *coarse* human kanban - not the orchestrator's fine
 // run stages, which live in Mission Control. A card's column is derived from its
 // status + the archived / needs-testing overlays (see coarseColumnOf). Each
 // column carries a colour identity (tinted header band + count) so the eye lands

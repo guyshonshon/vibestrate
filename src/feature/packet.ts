@@ -1,4 +1,4 @@
-// Curated step packet (Saga Phase 2a, M2b).
+// Curated step packet.
 //
 // A saga gives each step a FRESH model context. To stop step N from drifting
 // from step 2 without re-feeding an ever-growing transcript, the conductor hands
@@ -82,7 +82,7 @@ export function buildStepPacket(args: BuildStepPacketArgs): string {
     ["## Feature goal", "", redact(goal.trim()) || "_No goal text._"].join("\n"),
   );
 
-  // 1b. The non-folding INVARIANTS ledger (Phase 2b, M3): cross-cutting decisions
+  // 1b. The non-folding INVARIANTS ledger: cross-cutting decisions
   // the supervisor recorded, re-injected here - between the goal and the prior
   // outcomes - so conventions don't fold away. Redacted like every other section;
   // omitted entirely when the ledger is empty.

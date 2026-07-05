@@ -100,7 +100,7 @@ export type RunCommandOptions = {
   /** Seat → Role overrides (disambiguate seats filled by >1 crew role). */
   seatRoleOverrides?: Record<string, string>;
   readOnly?: boolean;
-  /** Permission mode (P4): read-only / ask / accept-edits / auto. */
+  /** Permission mode: read-only / ask / accept-edits / auto. */
   permissionMode?: "read-only" | "ask" | "accept-edits" | "auto";
   /** Never pause for a human (forces budget onLimit->stop, onExhausted->fail). */
   unattended?: boolean;
@@ -108,7 +108,7 @@ export type RunCommandOptions = {
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
-  /** Flow parameter values (T11), name -> raw string, from `--param k=v`. */
+  /** Flow parameter values, name -> raw string, from `--param k=v`. */
   params?: Record<string, string>;
   /** Flow id to resolve before start. */
   flowId?: string | null;
@@ -145,12 +145,12 @@ export type RunCommandOptions = {
    *  checklistSegment. "continuous" runs items back-to-back; "step" pauses
    *  between items. Requires --task and a checklist-aware flow (e.g. pickup). */
   checklistMode?: "continuous" | "step" | null;
-  /** Saga conductor (Phase 2): run as a SAGA. Enables clean halt-with-reset on
+  /** Saga conductor: run as a SAGA. Enables clean halt-with-reset on
    *  exhausted self-heal, the between-steps budget, and the per-task run lock.
    *  Set by `vibe saga sequence`; defaults off so plain `vibe run` is unchanged.
    *  When set with a linked task, the task's `sagaBudget` is passed through. */
   sagaMode?: boolean;
-  /** Context sources injected into every agent prompt (Phase 4). */
+  /** Context sources injected into every agent prompt. */
   contextSources?: import("../../core/context-source-schema.js").ContextSource[];
 };
 
@@ -260,7 +260,7 @@ export async function runRunCommand(
   // Choose the Flow transparently (forced > default > orchestrator selection),
   // unless resuming or running a checklist (the flow is implied). Always shown.
   let selection: WorkflowSelection | null = null;
-  // Adaptive spec-up (P1): the chosen flow to BUILD after spec-up (carried via the
+  // Adaptive spec-up: the chosen flow to BUILD after spec-up (carried via the
   // spec-up-target sidecar). Set when chooseRunFlow marks the brief needs-spec-up.
   let specUpTargetFlowId: string | null = null;
   if (!options.resumeFromRunId && !options.checklistMode) {
@@ -430,7 +430,7 @@ export async function runRunCommand(
   // read-only on the CLI, inherit those from the roadmap task.
   let profileOverride: string | null = options.profileOverride ?? null;
   let readOnly: boolean = options.readOnly ?? false;
-  // Saga conductor (M4): the per-saga budget envelope is owned by the task, with
+  // Saga conductor: the per-saga budget envelope is owned by the task, with
   // config.supervised as the project-level default/override layer applied wherever the
   // task left a value null. We only pass it through when this launch is a saga
   // (sagaMode) - a non-saga run ignores it. Defaults to no limits.
@@ -438,7 +438,7 @@ export async function runRunCommand(
     maxSpendUsd: null,
     maxSteps: null,
   };
-  // Saga supervisor (M3): the between-steps PROCEED/ESCALATE turn + invariants
+  // Saga supervisor: the between-steps PROCEED/ESCALATE turn + invariants
   // ledger. Project-level config; only passed through on a saga launch.
   let sagaSupervisor = loaded.config.supervised.supervisor;
   if (roadmapTaskId) {
@@ -553,7 +553,7 @@ export async function runRunCommand(
     );
   }
 
-  // C1: warn (non-blocking) when the chosen flow looks heavier than the task.
+  // Warn (non-blocking) when the chosen flow looks heavier than the task.
   if (resolvedFlow) {
     const { inferFlowComplexity, flowComplexityAdvice, flowFanoutAdvice } =
       await import("../../flows/runtime/flow-complexity.js");
@@ -569,14 +569,14 @@ export async function runRunCommand(
         `${advice.level === "overkill" ? symbol.warn() : symbol.bullet()} ${advice.message}`,
       );
     }
-    // Slice 4: graph flows that fan out N parallel agents multiply spend loudly.
+    // Graph flows that fan out N parallel agents multiply spend loudly.
     const fanout = flowFanoutAdvice(resolvedFlow);
     if (fanout.message) {
       console.log(`${symbol.warn()} ${fanout.message}`);
     }
   }
 
-  // Flow params (T11) + durable param memory (Profiling): seed stored answers
+  // Flow params + durable param memory (Profiling): seed stored answers
   // (and VIBESTRATE_PARAM_* env) into the explicit values FIRST, so the
   // interactive prompt only asks for what's genuinely unfilled (and never
   // re-asks for a stored value, nor lets the answer override it). Then persist
@@ -652,7 +652,7 @@ export async function runRunCommand(
     stepProfileOverrides: options.flowStepProfiles ?? {},
     seatRoleOverrides: options.seatRoleOverrides ?? {},
     readOnly,
-    // Permission mode (P4): explicit flag, else the legacy --read-only alias.
+    // Permission mode: explicit flag, else the legacy --read-only alias.
     permissionMode: options.permissionMode ?? (readOnly ? "read-only" : undefined),
     unattended: options.unattended ?? false,
     runtimeSkills: options.runtimeSkills ?? [],
@@ -877,7 +877,7 @@ async function persistPromptedAnswers(
   }
 }
 
-/** Fill any missing required flow params interactively (T11). Non-TTY runs skip
+/** Fill any missing required flow params interactively. Non-TTY runs skip
  *  this - the orchestrator then fails fast naming the missing params. Secret
  *  params use a masked prompt; the value is recorded redacted downstream. */
 async function promptMissingFlowParams(
@@ -930,7 +930,7 @@ function printResolvedFlow(snapshot: ReturnType<typeof resolveFlow>): void {
   }
 }
 
-// Always show the active Flow and where the choice came from (Slice 2).
+// Always show the active Flow and where the choice came from.
 function printFlowChoice(label: string, selection: WorkflowSelection): void {
   const sourceLabel: Record<WorkflowSelection["source"], string> = {
     forced: "forced",
@@ -951,7 +951,7 @@ function printFlowChoice(label: string, selection: WorkflowSelection): void {
   console.log(
     `${header("Flow:")} ${color.bold(label)} ${color.dim(`(${selection.flowId})`)}  ${color.dim("·")}  ${color.cyan(sourceLabel[selection.source])}`,
   );
-  // Adaptive spec-up (P1): the brief is under-specified, so it goes through
+  // Adaptive spec-up: the brief is under-specified, so it goes through
   // spec-up FIRST (a read-only intake -> spec) and the chosen flow then builds.
   if (selection.needsSpecUp) {
     console.log(

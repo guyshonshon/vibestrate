@@ -1,4 +1,4 @@
-// ── Apply-only gateway (Epic S / S4) ────────────────────────────────────────
+// ── Apply-only gateway ──────────────────────────────────────────────────────
 //
 // In strict apply-only mode, write-capable roles run READ-ONLY - they cannot
 // touch the disk. Instead they propose a unified diff, and Vibestrate applies

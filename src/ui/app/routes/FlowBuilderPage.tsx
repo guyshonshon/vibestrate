@@ -80,7 +80,7 @@ type StepDraft = {
   // null = clear; undefined = no change; string = set
   seat?: string | null;
   approval?: FlowApprovalGatePatch | null;
-  // Per-step skills (P2): undefined = no change; array = set the whole list.
+  // Per-step skills: undefined = no change; array = set the whole list.
   skills?: string[];
   // Free-form per-step prompt instructions: undefined = no change; null = clear;
   // string = set.

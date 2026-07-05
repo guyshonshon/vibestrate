@@ -1,4 +1,4 @@
-// ── OpenTelemetry exporter (Phase 6) ────────────────────────────────────────
+// ── OpenTelemetry exporter ────────────────────────────────────────
 //
 // Maps a finished run's persisted metrics into an OTLP/HTTP trace and POSTs it
 // to a user-configured collector (Langfuse, Grafana Tempo, Jaeger, …). This is

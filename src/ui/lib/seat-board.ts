@@ -1,4 +1,4 @@
-// ── Seat board derivation (P5 Control Center) ───────────────────────────────
+// ── Seat board derivation (Control Center) ───────────────────────────────
 // Pure helpers folding a run's live flow state + role metrics into the seat
 // cards the Control Center renders. No React/browser imports (node-tested,
 // same pattern as run-outcome.ts).

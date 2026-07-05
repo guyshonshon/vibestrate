@@ -190,7 +190,7 @@ type MergeReady = { runId: string; task: string; branchName: string; taskId: str
 type PreviewRow = { branch: string; runId?: string; clean: boolean; conflictedFiles: string[]; note: string };
 
 /**
- * Integration surface (Phase 5): preview real git merges of merge-ready run
+ * Integration surface: preview real git merges of merge-ready run
  * branches, then integrate the clean ones into a dedicated branch. Never main,
  * never push. Only shown when there are merge-ready runs.
  */

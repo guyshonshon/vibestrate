@@ -1,4 +1,4 @@
-// ── Run startup progress (T7) ────────────────────────────────────────────────
+// ── Run startup progress ──────────────────────────────────────────────────────
 //
 // Between "run created" and the first agent turn, the orchestrator does real
 // setup work - create the git worktree, link the environment, materialize

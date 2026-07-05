@@ -1,4 +1,4 @@
-// ── Known methodologies (durable-memory Slice 4, bounded) ────────────────────
+// ── Known methodologies (durable-memory, bounded) ─────────────────────────────
 //
 // The project's development methodology is just a durable param (`vibe params
 // set methodology=tdd`, a project-global key). When it's set to a value this

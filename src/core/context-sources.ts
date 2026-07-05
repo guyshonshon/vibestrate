@@ -1,4 +1,4 @@
-// ── Context-source materializer (Phase 4) ───────────────────────────────────
+// ── Context-source materializer ───────────────────────────────────────────────
 //
 // Turns a run's ContextSource[] into prompt artifacts, safely:
 //   - file: resolved through the path guard (no traversal / symlink escape),

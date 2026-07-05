@@ -1,4 +1,4 @@
-// Pure helpers for the run-navigation + terminal-state UX (Epic B / B2).
+// Pure helpers for the run-navigation + terminal-state UX.
 // No React / browser imports, so they unit-test under the node Vitest env.
 
 import type { RunState, RunStatus } from "./types.js";

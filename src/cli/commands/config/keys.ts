@@ -3,7 +3,7 @@ import { color } from "../../ui/format.js";
 
 /**
  * `vibe config keys [filter]` - enumerate every settable config key straight
- * from the Zod schema (T8): the key, its type, allowed enum values, and default.
+ * from the Zod schema: the key, its type, allowed enum values, and default.
  * No hand-maintained list, so it can't drift from the schema. `config set --help`
  * points here, and the shell completion reads the same source.
  */

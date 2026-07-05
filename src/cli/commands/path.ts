@@ -8,7 +8,7 @@ import { color, symbol } from "../ui/format.js";
 /**
  * `vibe path <runId>` - print a run's workspace: the worktree path, its branch,
  * and a copy-able `cd` line. The companion to the dashboard "Workspace" panel
- * (T1) - it answers "where is the work / how do I get into that git worktree?".
+ * It answers "where is the work / how do I get into that git worktree?".
  *
  * `--cd` prints ONLY the absolute worktree path, for shell use:
  *   cd "$(vibe path <runId> --cd)"

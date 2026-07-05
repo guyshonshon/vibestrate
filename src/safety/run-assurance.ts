@@ -1,4 +1,4 @@
-// ── Run Assurance artifact (Epic S / S5) ────────────────────────────────────
+// ── Run Assurance artifact ──────────────────────────────────────────────────
 //
 // At a run's terminal state, derive a single honest verdict from *evidence* -
 // the Action Broker log (`actions.ndjson`) plus the run's review/verification
@@ -105,11 +105,11 @@ export type RunAssurance = {
   /** Informational context that does NOT hold the verdict down: lanes that were
    *  not required for this run (not_applicable) and the recorded inert-diff
    *  review skip. Rendered muted, separate from `caps`, so "nothing to verify"
-   *  reads as a clean state instead of a missing-evidence gap (T2). */
+   *  reads as a clean state instead of a missing-evidence gap. */
   notes: string[];
   /** True iff at least one REAL check actually ran and passed (validation
    *  passed, review approved, or verification passed). Lets a consumer (e.g. the
-   *  T13 merge advisor) distinguish a `verified` run that was genuinely checked
+   *  merge advisor) distinguish a `verified` run that was genuinely checked
    *  from one where nothing was required - WITHOUT re-deriving it from the lane
    *  statuses. A `verified` run with `anyRealCheckPassed: false` means "nothing
    *  needed checking", never "checked and approved". */
@@ -248,15 +248,15 @@ export function deriveRunAssurance(input: {
   runId: string;
   runStatus: string;
   finalDecision: "APPROVED" | "CHANGES_REQUESTED" | "BLOCKED" | null;
-  /** A3 express: the review-turn was skipped on recorded inert-diff evidence
+  /** Express: the review-turn was skipped on recorded inert-diff evidence
    *  (state.reviewSkipped). Only meaningful when finalDecision is null. */
   reviewSkipped?: boolean;
   verification: "PASSED" | "FAILED" | "NEEDS_HUMAN" | null;
   actionLog: ActionRecord[];
-  // ── Applicability (T2): whether each lane's evidence was actually EXPECTED ──
+  // ── Applicability: whether each lane's evidence was actually EXPECTED ───────
   // for this run. When a lane is not applicable, the absence of evidence reads
   // as "nothing to verify" (a note), not "missing" (a verdict-capping gap).
-  // All default to `true` so direct callers keep the pre-T2 behavior; the real
+  // All default to `true` so direct callers keep the permissive default; the real
   // disk path (buildAndWriteRunAssurance) computes them from the run's flow +
   // events. `validationApplicable` false ⇒ a 0/0 validation tally is n/a;
   // `validationScopedInert` only refines the note (inert-diff skip vs no
@@ -283,7 +283,7 @@ export function deriveRunAssurance(input: {
   /** A rewind worktree-snapshot restore did not complete (refused, or one of
    *  the destructive git steps failed) - the worktree may be empty or
    *  half-restored, so its code can't be trusted. Poisons the verdict to
-   *  `unsafe`, exactly like a failed rollback (ISSUE-001 P1). Defaults false. */
+   *  `unsafe`, exactly like a failed rollback. Defaults false. */
   restoreFailed?: boolean;
   /** Shape B: per-item checklist gaps note. When set, it is appended to the
    *  assurance `notes` array (informational context, not a verdict-capping gap -
@@ -346,7 +346,7 @@ export function deriveRunAssurance(input: {
   const cmdFailed = cmds.filter(
     (r) => r.evidence?.ok === false && !isEnv(r),
   ).length;
-  // T2: when validation isn't applicable (no validation step / no validate
+  // When validation isn't applicable (no validation step / no validate
   // commands / inert-diff scope-skip), a 0/0 tally is "not_applicable" - there
   // was nothing to verify - rather than "missing" (a check we expected and lost).
   const validationApplicable = input.validationApplicable ?? true;
@@ -364,7 +364,7 @@ export function deriveRunAssurance(input: {
           : "passed";
 
   // ── Review + verification (from the run's recorded decisions) ────────────
-  // A skip-evidence run (A3 express, deterministic inert-diff descent) reports
+  // A skip-evidence run (express, deterministic inert-diff descent) reports
   // `skipped_inert_diff` - distinct from `missing` (the skip is recorded
   // evidence, not absence) and never `approved` (no reviewer spoke). A flow with
   // no review step at all reports `not_applicable` (nothing to approve).
@@ -389,7 +389,7 @@ export function deriveRunAssurance(input: {
 
   // ── Caps (REAL gaps / weak checks) vs notes (informational, n/a) ─────────
   // A cap holds the verdict below "verified"; a note never does. The split is
-  // the heart of T2: a `not_applicable` lane or an inert-diff review skip is
+  // the whole point here: a `not_applicable` lane or an inert-diff review skip is
   // honest context, not a missing-evidence gap.
   const caps: string[] = [];
   const notes: string[] = [];
@@ -505,7 +505,7 @@ function pickVerdict(s: {
   // Anything that didn't reach merge_ready cannot continue.
   if (s.runStatus !== "merge_ready") return "blocked";
 
-  // merge_ready: weigh the evidence per lane (T2). Each lane is one of:
+  // merge_ready: weigh the evidence per lane. Each lane is one of:
   //   PASS - a real check ran and passed
   //   NA   - the lane wasn't applicable (nothing to check) or an inert-diff
   //          review skip (recorded evidence that review wasn't needed)
@@ -554,7 +554,7 @@ function pickVerdict(s: {
   }
   // No fail, no gap: every lane PASSED or was NOT APPLICABLE. The run is as
   // verified as it can be - including the "nothing was required" case (all NA),
-  // which T2 stops shaming as partially_verified. A tolerated step failure still
+  // which we no longer shame as partially_verified. A tolerated step failure still
   // degrades coverage, so it caps here.
   if (s.toleratedStepFailures > 0) return "partially_verified";
   return "verified";
@@ -593,7 +593,7 @@ function summarize(
       return "No validation, review, or verification evidence exists for this run.";
     case "verified": {
       // Distinguish "real checks passed" from "nothing was required for this
-      // change" (T2). The lane statuses stay visible, so "verified + nothing
+      // change". The lane statuses stay visible, so "verified + nothing
       // required" is never confused with "review approved + tests passed".
       const passed: string[] = [];
       if (d.reviewStatus === "approved") passed.push("review");
@@ -666,7 +666,7 @@ export async function buildAndWriteRunAssurance(
   let toleratedStepFailures = 0;
   let reviewSkipped = false;
   let stepStates: { id: string; status: string; error: string | null }[] = [];
-  // T2 applicability: which lanes the flow actually exercised. A step that ran
+  // Applicability: which lanes the flow actually exercised. A step that ran
   // (or would have) counts; a `skipped` step does not. Read-only runs skip
   // validation + verification entirely, so those lanes are n/a regardless.
   let flowHasValidationStep = false;
@@ -763,7 +763,7 @@ export async function buildAndWriteRunAssurance(
   } catch {
     // best-effort; independence falls back to "single-profile"
   }
-  // ── T2 applicability: was each lane's evidence actually expected? ─────────
+  // ── Applicability: was each lane's evidence actually expected? ────────────
   // validation: applicable only when the flow ran a validation step AND the
   // project has validate commands AND the change wasn't inert-scoped AND the run
   // wasn't read-only. Otherwise a 0/0 tally is "nothing to verify", not a gap.
@@ -776,12 +776,12 @@ export async function buildAndWriteRunAssurance(
   // value. Real validation PASS/FAIL is never affected (it comes from the
   // immutable broker log, not config); only the evidence-less 0/0 case can shift
   // between `missing` and `not_applicable`. Persisting applicability into run
-  // state is a T13 follow-up (it needs the verdict for merge advice).
+  // state is a follow-up (it needs the verdict for merge advice).
   const validationScopedInert = events.some((e) => e.type === "validation.scoped");
   // A rewind restore that didn't complete (refused, or a destructive git step
   // failed) is recorded as `run.rewound.restored` with `ok: false` (covers both
   // the refused-unsafe-target and the failed-steps cases). Poisons the verdict
-  // so a half-restored rewind can never read as `verified` (ISSUE-001 P1).
+  // so a half-restored rewind can never read as `verified`.
   const restoreFailed = events.some(
     (e) => e.type === "run.rewound.restored" && e.data?.ok === false,
   );

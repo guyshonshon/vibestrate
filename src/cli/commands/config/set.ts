@@ -18,7 +18,7 @@ export async function runConfigSet(pathArg: string, value: string): Promise<numb
     );
     return 1;
   }
-  // Fail fast on an unknown key (T8): setConfigValue auto-creates intermediate
+  // Fail fast on an unknown key: setConfigValue auto-creates intermediate
   // maps, so `config set provider claude` would silently write an invalid
   // top-level key. Validate against the schema first and point to real keys.
   const check = validateConfigPath(pathArg);

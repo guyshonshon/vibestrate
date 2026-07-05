@@ -436,7 +436,7 @@ export type ProviderRow = {
   profilesUsing: string[];
 };
 
-/** T9 project continuity ledger - the folded state surfaced read-only. */
+/** Project continuity ledger - the folded state surfaced read-only. */
 export type LedgerEntryDto = {
   id: string;
   kind: "shipped" | "intent" | "decision" | "mention" | "residual" | "flag";
@@ -456,7 +456,7 @@ export type LedgerStateDto = {
   residuals: LedgerEntryDto[];
   mentions: LedgerEntryDto[];
   decisions: LedgerEntryDto[];
-  /** Suspected duplicate/conflict flags (T9) - never auto-resolved. */
+  /** Suspected duplicate/conflict flags - never auto-resolved. */
   flags: LedgerEntryDto[];
 };
 
@@ -501,7 +501,7 @@ export type FlowStepPatch = {
   kind?: FlowStepKind;
   seat?: string | null;
   approval?: FlowApprovalGatePatch | null;
-  /** Per-step skills (P2). */
+  /** Per-step skills. */
   skills?: string[];
   /** Free-form per-step prompt instructions (null clears). */
   instructions?: string | null;
@@ -521,7 +521,7 @@ export type FlowStepFull = {
   optional?: boolean;
   approval?: FlowApprovalGatePatch;
   repeat?: { times: number };
-  /** Per-step skills (P2). */
+  /** Per-step skills. */
   skills?: string[];
   /** Free-form per-step prompt instructions. */
   instructions?: string;
@@ -562,9 +562,9 @@ export type ComposerPreset = {
   updatedAt?: string;
 };
 
-/** T13 merge advice (design/merge-advisor.md). Structural mirror of the
+/** Merge advice (design/merge-advisor.md). Structural mirror of the
  *  server's MergeAdvice - deterministic advisory data, no model output. */
-/** T13 hub-list row: facts only (no preview, no recommendation - those come
+/** Hub-list row: facts only (no preview, no recommendation - those come
  *  from the full advice on drill-in). */
 export type MergeOverviewRowDto = {
   runId: string;
@@ -576,7 +576,7 @@ export type MergeOverviewRowDto = {
   assurance: MergeAdviceDto["assurance"];
 };
 
-/** T13 slice 2: the analyze-deeper result. Advisory prose + the deterministic
+/** The analyze-deeper result. Advisory prose + the deterministic
  *  context that was fed to the model; never a merge verdict. */
 export type MergeAnalysisDto = {
   runId: string;
@@ -688,7 +688,7 @@ export const api = {
     concise?: boolean;
     /** Force orchestrator flow selection even when a default flow is set. */
     select?: boolean;
-    /** Flow parameter values (T11), name -> raw string. */
+    /** Flow parameter values, name -> raw string. */
     params?: Record<string, string>;
     /** Supervisor persona (judgment posture); default = project.defaultPersona. */
     persona?: string;
@@ -788,7 +788,7 @@ export const api = {
     return jsonPost("/api/spec-up/roadmap", { specUpRunId });
   },
   /** Approve the spec-up draft -> BUILD it: run the chosen flow seeded with the
-   *  approved spec as context (P1). `flowId` overrides the carried target. */
+   *  approved spec as context. `flowId` overrides the carried target. */
   async buildSpecUp(
     specUpRunId: string,
     flowId?: string | null,
@@ -1154,7 +1154,7 @@ export const api = {
   }> {
     return jsonPost("/api/flows/import", input);
   },
-  // ─── hub (real API, P3) ──────────────────────────────────────────────────
+  // ─── hub (real API) ──────────────────────────────────────────────────
   async listHubFlows(q?: string): Promise<{ flows: HubFlowRow[] }> {
     return jsonGet(`/api/flows/hub${q ? `?q=${encodeURIComponent(q)}` : ""}`);
   },
@@ -1242,7 +1242,7 @@ export const api = {
   async getCrews(): Promise<{ crews: CrewView[]; defaultCrew: string | null }> {
     return jsonGet("/api/crews");
   },
-  /** T9: the project continuity ledger - folded state + a plain-text brief. */
+  /** The project continuity ledger - folded state + a plain-text brief. */
   async getLedger(): Promise<{ state: LedgerStateDto; brief: string }> {
     return jsonGet("/api/ledger");
   },
@@ -1490,7 +1490,7 @@ export const api = {
     const r = await jsonGet<{ tasks: Task[] }>("/api/tasks");
     return r.tasks;
   },
-  // ─── integration (Phase 5) ──────────────────────────────────────────────
+  // ─── integration ──────────────────────────────────────────────
   async listMergeReady(): Promise<
     { runId: string; task: string; branchName: string; taskId: string | null }[]
   > {
@@ -1530,12 +1530,12 @@ export const api = {
     } }>("/api/integration/apply", { into, runIds });
     return r.result;
   },
-  /** T13: cheap hub-list projection - lanes + topology, no preview, no
+  /** Cheap hub-list projection - lanes + topology, no preview, no
    *  recommendation. Safe per page load. */
   async integrationOverview(): Promise<{ rows: MergeOverviewRowDto[] }> {
     return jsonGet<{ rows: MergeOverviewRowDto[] }>("/api/integration/overview");
   },
-  /** T13: read-only merge advice (deterministic - no model output). Same
+  /** Read-only merge advice (deterministic - no model output). Same
    *  cost class as preview; call it on drill-in, not per hub-list row. */
   async adviseIntegration(runIds?: string[]): Promise<{
     advice: MergeAdviceDto[];
@@ -1546,7 +1546,7 @@ export const api = {
       { runIds },
     );
   },
-  /** T13 slice 2: optional read-only LLM pass over the run's redacted diff.
+  /** Optional read-only LLM pass over the run's redacted diff.
    *  Spawns a local provider (same exposure class as /api/consult); advisory
    *  prose only, never changes the deterministic advice. */
   async analyzeIntegration(runId: string): Promise<{ result: MergeAnalysisDto }> {

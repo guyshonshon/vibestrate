@@ -88,7 +88,7 @@ export function buildConsultCommand(): Command {
         console.log("");
         console.log(answer.answer.trim());
 
-        // Deterministic project-state sections (T10): computed in code, the same
+        // Deterministic project-state sections: computed in code, the same
         // for the same project state - shown verbatim alongside the narration.
         if (!consultSectionsEmpty(sections)) {
           console.log("");

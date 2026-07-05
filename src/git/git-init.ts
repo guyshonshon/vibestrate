@@ -5,7 +5,7 @@
 // gitInit body field; a generic --yes never implies it - creating repo history
 // must never be a side effect).
 //
-// The initial commit is guarded, not automatic (adversarial-review finding):
+// The initial commit is guarded, not automatic:
 // a directory that was never a repo can contain .env files, credentials, and
 // build junk. We write a starter .gitignore first, then scan what WOULD be
 // staged - any secret-like path means NO commit (git init still succeeds, the

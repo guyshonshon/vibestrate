@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// ── Context sources (Phase 4) ───────────────────────────────────────────────
+// ── Context sources ───────────────────────────────────────────────────────────
 // Per-run / per-task attachments materialized into each agent's prompt:
 //   - file: a path-guarded file inside the project / worktree (secret files
 //           refused; secret-shaped content redacted).

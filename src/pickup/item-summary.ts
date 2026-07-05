@@ -1,4 +1,4 @@
-// ── Per-item forward-carry (Phase 3 pick-up execution) ──────────────────────
+// ── Per-item forward-carry (pick-up execution) ──────────────────────
 //
 // The make-or-break of continuous-mode execution (design §1): after each
 // checklist item, write a *compact* summary and feed it forward - NOT full

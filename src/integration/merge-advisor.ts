@@ -1,13 +1,13 @@
-// ── T13 slice 1a: merge advisor (design/merge-advisor.md) ───────────────────
+// ── Merge advisor (design/merge-advisor.md) ───────────────────
 //
 // A READ-ONLY advisory layer over the integration machinery. It predicts and
 // explains what the existing apply + finish path will do - it never widens it.
-// The recommendation is deterministic code from observable git facts + the T2
+// The recommendation is deterministic code from observable git facts + the
 // assurance lanes; same inputs, same advice. No LLM anywhere in this module
-// (the optional "analyze deeper" pass is slice 2 and can only add prose
+// (the optional "analyze deeper" pass is opt-in and can only add prose
 // caution, never change `recommendation` or `flags`).
 //
-// Honesty contract (the design's D2): consume lane statuses +
+// Honesty contract: consume lane statuses +
 // `anyRealCheckPassed`, never the bare verdict - `verified` with
 // `anyRealCheckPassed: false` means "nothing needed checking", not "checked
 // and approved", and is surfaced as the `no_real_check` caution.
@@ -119,7 +119,7 @@ export type MergeAdvice = {
   manualSteps: string[] | null;
 };
 
-/** D6 thresholds. User values come from project config
+/** Advisor thresholds. User values come from project config
  *  (`merge.advisor.suggestIntegrationBranchWhen`, schema in
  *  config-schema.ts - its defaults mirror DEFAULT_ADVISOR_THRESHOLDS).
  *  Crossing one only flips the recommendation to
@@ -322,7 +322,7 @@ export function computeMergeAdvice(input: MergeAdviceInput): MergeAdvice {
     }
     // Derived from the projection, NOT the verdict - the verdict happens to
     // cap at partially_verified on tolerated failures today, but the advisor
-    // must not depend on that coupling (adversarial-review fix).
+    // must not depend on that coupling.
     if (assurance.toleratedStepFailures > 0) {
       flags.push({
         id: "tolerated_failures",
@@ -598,7 +598,7 @@ export async function adviseMergeReadyRuns(input: {
   const mainBranch = loaded.config.git.mainBranch;
   const personaDefault = loaded.config.defaultPersona;
   const policies = loaded.config.policies;
-  // D6 thresholds from project config (merge.advisor); schema defaults match
+  // Advisor thresholds from project config (merge.advisor); schema defaults match
   // DEFAULT_ADVISOR_THRESHOLDS. Suggestion-only - crossing one never blocks.
   const thresholds: MergeAdvisorThresholds =
     loaded.config.merge.advisor.suggestIntegrationBranchWhen;
@@ -630,8 +630,7 @@ export async function adviseMergeReadyRuns(input: {
     const run = selected[i]!;
     // A merge-ready run whose branch was deleted must degrade to a flagged
     // per-run advice, not fail the whole call - mergePreview already records
-    // "branch not found" and continues; the advisor matches that behavior
-    // (adversarial-review fix).
+    // "branch not found" and continues; the advisor matches that behavior.
     const branchExists = await refExists(input.projectRoot, run.branchName);
     const topology = branchExists
       ? await collectBranchTopology({

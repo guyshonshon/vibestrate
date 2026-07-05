@@ -1,4 +1,4 @@
-// ── Post-turn diff gate (Epic S / S3) ───────────────────────────────────────
+// ── Post-turn diff gate ─────────────────────────────────────────────────────
 //
 // Around every write-capable agent turn, snapshot the worktree, let the agent
 // run, then diff what changed and evaluate it before the run continues:

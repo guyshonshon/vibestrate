@@ -1,4 +1,4 @@
-// Per-saga budget + stop-conditions (Saga Phase 2a, M4).
+// Per-saga budget + stop-conditions.
 //
 // A saga is one orchestrator run iterating a checklist on a per-item review
 // band. This module bounds a saga's TOTAL cost/length and lets the conductor

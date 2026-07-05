@@ -68,7 +68,7 @@ export async function runClaudeCodeProvider(
     env.VIBESTRATE_MCP_CONFIG = input.mcpConfigPath;
   }
 
-  // Container/cloud execution (T14 slice 2): rewrite the spawn through the
+  // Container/cloud execution: rewrite the spawn through the
   // backend's strategy (e.g. `docker exec`), keeping backend=docker consistent
   // across providers. The strategy controls the in-container env (allowlist).
   const wrapped = input.execStrategy

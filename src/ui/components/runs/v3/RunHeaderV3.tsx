@@ -5,7 +5,7 @@ import { shortRunId } from "../../design/format.js";
 import type { RunState, RunStatus } from "../../../lib/types.js";
 import { isSpecUpRun } from "../../../lib/run-outcome.js";
 
-/** Inline-editable run display name (T6). Click the pencil to rename; Enter
+/** Inline-editable run display name. Click the pencil to rename; Enter
  *  saves, Escape cancels. Falls back to the task when no name is set. */
 function EditableRunName({
   run,

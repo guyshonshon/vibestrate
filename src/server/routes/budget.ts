@@ -13,7 +13,7 @@ const updateSchema = z
     capAction: z.enum(["stop", "downgrade-model", "reduce-effort"]).optional(),
     warnThresholdPct: z.number().min(0).max(1).optional(),
     fallbackProfile: z.string().min(1).nullable().optional(),
-    // Count/time ceilings (unattended-resilience U1).
+    // Count/time ceilings (unattended-resilience).
     maxTurnsPerRun: z.number().int().positive().nullable().optional(),
     maxWallClockMinPerRun: z.number().positive().nullable().optional(),
     maxTurnsPerDay: z.number().int().positive().nullable().optional(),

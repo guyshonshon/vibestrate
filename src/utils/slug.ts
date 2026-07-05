@@ -18,7 +18,7 @@ export function slugify(input: string): string {
   return truncated || FALLBACK_SLUG;
 }
 
-/** A short, human-readable run label derived from the task (T6). The run ID
+/** A short, human-readable run label derived from the task. The run ID
  *  stays the stable identifier; this is just a friendlier name for lists and
  *  headers. First ~6 words, sentence-cased, with a trailing "..." when the task
  *  is longer. Users can override it (`vibe rename`). */

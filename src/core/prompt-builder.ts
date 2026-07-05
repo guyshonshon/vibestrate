@@ -37,13 +37,13 @@ export type PromptBuildInput = {
    * Pre-rendered "# Project state (continuity ledger)" section (see
    * project-ledger.ts renderLedgerForPrompt) - read-only background on what the
    * project shipped / has open / decided, so a fresh run picks up the thread
-   * (T9). Already redacted by the caller. Empty/undefined → no section.
+   * Already redacted by the caller. Empty/undefined → no section.
    */
   projectLedger?: string;
   /**
    * Pre-rendered "# Continuity flags" section (see ledger-match.ts
    * renderFlagsForPrompt) - heads-up that this task may duplicate earlier work
-   * or conflict with a decision (T9). Advisory, never a blocker. Already
+   * or conflict with a decision. Advisory, never a blocker. Already
    * redacted by the caller. Empty/undefined → no section.
    */
   continuityFlags?: string;

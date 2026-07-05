@@ -65,7 +65,7 @@ export class ReviewSuggestionService {
   readonly store: ReviewSuggestionStore;
   private readonly approvals: ApprovalService;
   private readonly events: EventLog;
-  /** The S0 Action Broker boundary - every patch apply/revert is decided and
+  /** The Action Broker boundary - every patch apply/revert is decided and
    *  recorded as evidence in `runs/<id>/actions.ndjson`. Injectable for tests
    *  (e.g. a deny evaluator); defaults to the run's shared broker. */
   private readonly broker: ActionBroker;
@@ -401,10 +401,10 @@ export class ReviewSuggestionService {
       return updated;
     }
 
-    // ── Action Broker boundary (S0): file.patch ──────────────────────────
+    // ── Action Broker boundary: file.patch ───────────────────────────────
     // Decide + record before any bytes touch the worktree. Fail-closed: a
     // non-allow verdict refuses the apply (default policy is allow, so behavior
-    // is unchanged until S2 wires evaluators). Evidence is appended below.
+    // is unchanged until evaluators are wired). Evidence is appended below.
     const action: ActionRequest = {
       runId: this.runId,
       kind: "file.patch",
@@ -827,7 +827,7 @@ export class ReviewSuggestionService {
       return updated;
     }
 
-    // ── Action Broker boundary (S0): file.patch (reverse) ────────────────
+    // ── Action Broker boundary: file.patch (reverse) ─────────────────────
     const action: ActionRequest = {
       runId: this.runId,
       kind: "file.patch",

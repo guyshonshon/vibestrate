@@ -9,7 +9,7 @@ export const executionBackendIdSchema = z.enum([
 
 export type ExecutionBackendId = z.infer<typeof executionBackendIdSchema>;
 
-// Provider-native OS sandbox posture (T14 slice 1). "off" = today's behavior:
+// Provider-native OS sandbox posture. "off" = today's behavior:
 // the run is isolated by the git worktree + the post-turn diff gate, but the
 // provider's own shell tools can read/write anywhere the host user can. When
 // "sandboxed", the orchestrator asks each turn's provider for an OS-level
@@ -20,7 +20,7 @@ export const isolationModeSchema = z.enum(["off", "sandboxed"]);
 
 export type IsolationMode = z.infer<typeof isolationModeSchema>;
 
-// Container backend (T14 slice 2). Opt-in disposable-container execution: the
+// Container backend. Opt-in disposable-container execution: the
 // agent's provider turns run inside a throwaway Docker container whose blast
 // radius is the container, independent of the provider (the model-agnostic
 // isolation a provider-native sandbox can't give - that only covers its OWN

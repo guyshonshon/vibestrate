@@ -7,7 +7,7 @@
 //   - Suggest:  draft an answer grounded in the user's prior answers. DRAFT-ONLY -
 //     these functions return a value; they never submit it.
 //
-// Security (Tier-2 BLOCKER #1): `runAssist` does NOT redact its free-text input.
+// Security: `runAssist` does NOT redact its free-text input.
 // The user's prior answers + brief are user-typed and may contain secrets, so we
 // call `redactSecretsInText` HERE, explicitly, before the text reaches the prompt.
 

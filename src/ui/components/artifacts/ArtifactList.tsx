@@ -3,7 +3,7 @@ import { api } from "../../lib/api.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
 import type { ArtifactEntry } from "../../lib/types.js";
 
-// ── Curated artifact browser (P9c, widened in T3) ────────────────────────────
+// ── Curated artifact browser ────────────────────────────
 // A run writes a LOT of plumbing per step (context packets, prompt record
 // copies, diff snapshots, the resolved-flow + selection + participant records,
 // validation stdout) - listing it flat buried the few artifacts a human
@@ -50,7 +50,7 @@ export function ArtifactList({
 }) {
   const [items, setItems] = useState<ArtifactEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
-  // Persisted per browser; default off (T3).
+  // Persisted per browser; default off.
   const [showInternals, setShowInternals] = usePersistedState(
     "vibestrate.artifacts.showInternals",
     false,

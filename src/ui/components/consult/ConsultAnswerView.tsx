@@ -137,7 +137,7 @@ export function ConsultAnswerView({
   );
 }
 
-/** Deterministic, code-computed project-state sections (T10) - rendered verbatim
+/** Deterministic, code-computed project-state sections - rendered verbatim
  *  next to the model's narration so "what's open / next" is the same for the
  *  same project state, not whatever the model volunteered. */
 export function ComputedSections({ sections }: { sections: ConsultSections }) {

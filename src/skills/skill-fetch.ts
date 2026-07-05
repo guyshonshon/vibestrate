@@ -1,4 +1,4 @@
-// ── Skill fetching + AI overview (Phase 5) ──────────────────────────────────
+// ── Skill fetching + AI overview ──────────────────────────────────
 //
 // Fetch a skill (a markdown file) from a URL and install it into
 // `.vibestrate/skills/`, guarded like every other external content (SSRF +

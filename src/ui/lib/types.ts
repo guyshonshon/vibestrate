@@ -64,7 +64,7 @@ export type FlowRunStepState = {
     | "reviewing"
     | "verifying"
     | null;
-  /** DAG dependencies (Slice 4); empty for linear flows. */
+  /** DAG dependencies; empty for linear flows. */
   needs?: string[];
   seat: string | null;
   resolvedRoleId: string | null;
@@ -112,7 +112,7 @@ export type FlowRunParticipantState = {
 export type RunState = {
   runId: string;
   task: string;
-  /** Friendly, editable run label (T6). Falls back to the task when absent. */
+  /** Friendly, editable run label. Falls back to the task when absent. */
   displayName?: string | null;
   status: RunStatus;
   projectRoot: string;
@@ -137,7 +137,7 @@ export type RunState = {
   /** Per-step Profile overrides (step id → profile id). */
   stepProfileOverrides?: Record<string, string>;
   readOnly?: boolean;
-  /** The resolved permission mode (P4) that governed this run. */
+  /** The resolved permission mode that governed this run. */
   permissionMode?: "read-only" | "ask" | "accept-edits" | "auto";
   /** Skill ids attached to every agent for this single run. */
   runtimeSkills?: string[];
@@ -194,11 +194,11 @@ export type FlowStepDefinition = {
   seat?: string;
   inputs: string[];
   outputs: string[];
-  /** DAG dependencies (Slice 4). Steps sharing a `needs` set can fan out. */
+  /** DAG dependencies. Steps sharing a `needs` set can fan out. */
   needs?: string[];
   /** Step-specific prompt instruction (e.g. a reviewer's lens). */
   instructions?: string;
-  /** Per-step skills (P2): skill ids injected into this turn's prompt. */
+  /** Per-step skills: skill ids injected into this turn's prompt. */
   skills?: string[];
   optional: boolean;
   skipWhenReadOnly?: boolean;
@@ -221,7 +221,7 @@ export type FlowLoop = {
   maxIterations: number;
 };
 
-/** A declared flow parameter (T11). */
+/** A declared flow parameter. */
 export type FlowParam = {
   type: "string" | "number" | "boolean" | "enum" | "path";
   description?: string;
@@ -231,7 +231,7 @@ export type FlowParam = {
   secret?: boolean;
   /** Durable param memory: project-global (shared) vs flow-namespaced storage. */
   shared?: boolean;
-  /** Optional model-independent "generate a default" hint (P4). */
+  /** Optional model-independent "generate a default" hint. */
   generate?: { instruction: string };
 };
 
@@ -242,10 +242,10 @@ export type FlowDefinition = {
   description: string;
   seats: Record<string, FlowSeatDefinition>;
   steps: FlowStepDefinition[];
-  /** Caller-filled params (T11), keyed by name. */
+  /** Caller-filled params, keyed by name. */
   params?: Record<string, FlowParam>;
   loop?: FlowLoop;
-  // The per-item band (Phase 3 pick-up + Phase D checklist DAGs); from/to step ids.
+  // The per-item band (pick-up + checklist DAGs); from/to step ids.
   checklistSegment?: { from: string; to: string };
 };
 
@@ -280,9 +280,9 @@ export type ResolvedFlowStep = {
   providerId: string | null;
   inputs: string[];
   outputs: string[];
-  /** DAG dependencies (Slice 4); empty for linear flows. */
+  /** DAG dependencies; empty for linear flows. */
   needs?: string[];
-  /** A3 express deterministic review descent (P4b). NOTE: this type is a
+  /** Express deterministic review descent. NOTE: this type is a
    *  hand-maintained mirror of resolvedFlowStepSchema - keep them tracking. */
   skipWhen?: "inert_diff" | null;
   /** Step-specific prompt instruction (e.g. a reviewer's lens), or null. */
@@ -324,7 +324,7 @@ export type ResolvedFlowSnapshot = {
   crewId: string;
   seats: ResolvedFlowSeat[];
   steps: ResolvedFlowStep[];
-  // The per-item band (Phase 3 pick-up + Phase D checklist DAGs): the runner
+  // The per-item band (pick-up + checklist DAGs): the runner
   // repeats from..to once per checklist item. null when not checklist-aware.
   checklistSegment?: { from: string; to: string } | null;
 };
@@ -364,7 +364,7 @@ export type WorkflowSelectionView = {
     | "sized"
     | "spec-up"
     | "supervisor-upgraded";
-  /** Adaptive spec-up (P1): the brief is under-specified, so the run is spec'd up
+  /** Adaptive spec-up: the brief is under-specified, so the run is spec'd up
    *  first and then `flowId` executes seeded with the derived spec. */
   needsSpecUp?: boolean;
   confidence: "low" | "medium" | "high";
@@ -397,7 +397,7 @@ export type ConsultAnswer = {
   proposedManualUpdate: { rationale: string; evidence: string; suggestedText: string } | null;
 };
 
-/** Deterministic, code-computed consult sections (T10). */
+/** Deterministic, code-computed consult sections. */
 /** What a computed consult item links to (run -> run detail, task -> board). */
 export type ConsultRef =
   | { kind: "run"; id: string }
@@ -419,7 +419,7 @@ export type ConsultResult = {
   answer: ConsultAnswer;
   usedSources: string[];
   notes: string[];
-  /** Deterministic project-state sections - same state => same sections (T10). */
+  /** Deterministic project-state sections - same state => same sections. */
   sections?: ConsultSections;
   providerId: string;
   profileId: string;
@@ -585,9 +585,9 @@ export type Task = {
   roadmapItemId: string | null;
   title: string;
   description: string;
-  // Spec-up phase (M4): prose acceptance criteria + a rough size estimate.
+  // Spec-up phase: prose acceptance criteria + a rough size estimate.
   acceptanceCriteria?: string;
-  // P5: user-authored machine-checkable acceptance commands (extra validation
+  // User-authored machine-checkable acceptance commands (extra validation
   // pass on the card's run). Prose criteria are LLM-judged; these are machine-run.
   acceptanceCommands?: string[];
   est?: string;
@@ -661,19 +661,19 @@ export type ChecklistItem = {
   updatedAt: string;
   commitSha: string | null;
   promotedTaskId: string | null;
-  // Saga step fields (Phase 1)
+  // Saga step fields
   objective?: string;
   acceptanceCheck?: string;
   fileHints?: string[];
-  // Saga conductor (Phase 2): the run that executed this step + its one-line outcome.
+  // Saga conductor: the run that executed this step + its one-line outcome.
   runId?: string | null;
   outcomeSummary?: string;
-  // Saga conductor (Phase 3): who authored the step - "owner" (human) or
+  // Saga conductor: who authored the step - "owner" (human) or
   // "conductor" (the autonomous Enhance pass).
   provenance?: "owner" | "conductor";
 };
 
-// Saga conductor lifecycle + halt (Phase 2). Mirrors src/roadmap/roadmap-types.ts.
+// Saga conductor lifecycle + halt. Mirrors src/roadmap/roadmap-types.ts.
 export type SupervisedState = "idle" | "sequencing" | "paused" | "halted" | "done";
 export type SupervisedHalt = {
   reason: string;
@@ -1844,7 +1844,7 @@ export type SafetyPoliciesConfig = {
   forbidAutoPush: boolean;
   forbidAutoMerge: boolean;
   requireApprovalAtStages: string[];
-  /** Posture auto-apply (Slice 2b). Carried by the safety endpoint, persisted
+  /** Posture auto-apply. Carried by the safety endpoint, persisted
    *  to `posture.*`. Both default off. */
   autoApplySandbox: boolean;
   autoApplyApproval: boolean;

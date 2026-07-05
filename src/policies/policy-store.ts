@@ -139,7 +139,7 @@ export async function loadPolicySnapshot(
       fileIds.push(rule.id);
     }
 
-    // S2 - action policies share the rule id space (one namespace per project).
+    // Action policies share the rule id space (one namespace per project).
     const actionIds: string[] = [];
     for (const action of result.data.actions) {
       if (action.match?.commandRegex) {

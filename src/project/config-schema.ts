@@ -24,7 +24,7 @@ export const gitConfigSchema = z.object({
    *  each new worktree so validation commands actually run there
    *  (lockfile-guarded for JS). "off" restores bare worktrees. */
   linkEnvironment: z.enum(["auto", "off"]).default("auto").describe("Link env dirs (node_modules/.venv) into worktrees (default auto)."),
-  /** OPT-IN rewind-snapshot retention (ISSUE-001 #1). Each run writes durable
+  /** OPT-IN rewind-snapshot retention. Each run writes durable
    *  `refs/vibestrate/snapshots/...` so it can be rewound to review/fix/verify;
    *  without pruning, `.git` grows over time. Vibestrate NEVER prunes on its own:
    *  the default 0 = never prune. Set this to a positive N to enable a
@@ -68,7 +68,7 @@ const validationProfileEntrySchema = z.object({
 export const commandsConfigSchema = z.object({
   validate: z.array(z.string()).default([]).describe("Validation commands run on a run's diff (e.g. typecheck, test)."),
   /**
-   * Proportional validation scoping (proportional-orchestration.md, slice 1).
+   * Proportional validation scoping (proportional-orchestration.md).
    * When true (default), a run whose entire diff is provably-inert (only
    * docs/text/asset files - see validation-scope.ts) skips the configured
    * `validate` commands, since running the project's code checks (tests,
@@ -135,7 +135,7 @@ export const commitsConfigSchema = z.object({
 });
 export type CommitsConfig = z.infer<typeof commitsConfigSchema>;
 
-// T13 slice 3 (design/merge-advisor.md D6): suggestion-only thresholds.
+// Suggestion-only thresholds (design/merge-advisor.md).
 // Crossing one flips the merge advisor's recommendation to
 // stage-on-integration-branch - it NEVER blocks an action. The hard merge
 // policies (forbidAutoMerge / forbidAutoPush / requireHumanMerge) live
@@ -174,8 +174,8 @@ export const policyApprovalStageSchema = z.enum([
 ]);
 export type PolicyApprovalStage = z.infer<typeof policyApprovalStageSchema>;
 
-// Permission modes (T14 P4): the model-agnostic policy Vibestrate applies to a
-// run's writes. read-only = no writes (clamp + claude plan flag + the P3
+// Permission modes: the model-agnostic policy Vibestrate applies to a
+// run's writes. read-only = no writes (clamp + claude plan flag + the
 // container as the hard wall); ask = each turn diff requires human approval;
 // accept-edits = writes auto-apply, but the run does not auto-complete - it holds
 // for your sign-off at the completion boundary and resumes to merge_ready on
@@ -205,12 +205,12 @@ export const policiesConfigSchema = z.object({
   // an already-created PTY over a WS channel; the server never executes
   // a shell command string supplied over HTTP.
   allowInteractiveTerminal: z.boolean().default(false).describe("Enable the dashboard's local terminal panel (default off)."),
-  // S4 - strict apply-only mode. When true, write-capable roles run read-only
+  // Strict apply-only mode. When true, write-capable roles run read-only
   // (no direct disk writes); they propose a unified diff, which Vibestrate
   // applies through the Action Broker gateway (secret/path safety + file.patch
   // policy + audited git apply). High-assurance: every change crosses the gate.
   strictApplyOnly: z.boolean().default(false).describe("Roles run read-only; changes applied via the diff gate (default off)."),
-  // S6 follow-up - harden read-only claude seats. When true, a read-only
+  // Harden read-only claude seats. When true, a read-only
   // claude-code seat (planner/architect/reviewer/verifier, investigation runs)
   // is run with `--permission-mode plan` so the CLI itself enforces no-write
   // (the agent won't even attempt edits), instead of relying on claude's
@@ -228,7 +228,7 @@ export const policiesConfigSchema = z.object({
   // no human is watching. Default 0 = block promptly (after one poll); set higher
   // (ms) to give a delayed watcher a window. Applies only when a run is unattended.
   unattendedApprovalTimeoutMs: z.number().int().nonnegative().default(0).describe("Ms an unattended run waits at a gate before blocking; 0 = block promptly (default 0)."),
-  // A2 - protected paths (proportional-orchestration.md). Globs whose changed
+  // Protected paths (proportional-orchestration.md). Globs whose changed
   // files always demand the full check descent: never inert for validation
   // scoping, and (future slices) always reviewed. ADDITIVE: these extend the
   // built-in set in orchestrator/protected-paths.ts; they cannot remove it.
@@ -259,7 +259,7 @@ export const budgetConfigSchema = z
      * new model - see the orchestrator's enforceSpendCap.
      */
     fallbackProfile: z.string().min(1).optional().describe("Cheaper profile to switch to on downgrade-model; unset falls back to stop."),
-    // ── Count/time ceilings (unattended-resilience U1) ──────────────────────
+    // ── Count/time ceilings (unattended-resilience) ─────────────────────────
     // Hard caps that bind WITHOUT measured cost - the reliable backstop for
     // unattended runs, since USD cost is often unmeasured for local CLI
     // providers. Checked before every agent turn at the spend-cap checkpoint.
@@ -284,7 +284,7 @@ export const budgetConfigSchema = z
 
 export type BudgetConfig = z.infer<typeof budgetConfigSchema>;
 
-// Per-saga budget defaults (saga conductor, M4). A kind:"saga" task carries a
+// Per-saga budget defaults (saga conductor). A kind:"saga" task carries a
 // `sagaBudget` envelope checked BETWEEN steps - `maxSpendUsd` is a checkpoint
 // (not a mid-step wall) and `maxSteps` caps total steps. These are the project
 // DEFAULTS a freshly created saga inherits; the task's own `sagaBudget` is the
@@ -294,7 +294,7 @@ export type BudgetConfig = z.infer<typeof budgetConfigSchema>;
 // The default lives in roadmap-types.ts (SUPERVISED_DEFAULT_MAX_STEPS) so RoadmapService
 // - which has no config access - seeds a new saga with the SAME number this
 // override layer resolves to.
-// The between-steps SUPERVISOR (Phase 2b, M3). After each clean step a cheap
+// The between-steps SUPERVISOR. After each clean step a cheap
 // model turn judges PROCEED vs ESCALATE (halt cleanly) and records cross-cutting
 // invariants. Enabled by default: it is a SAFETY turn (an early ESCALATE halts a
 // drifting saga before it burns more budget), and a saga is already an opted-into
@@ -323,7 +323,7 @@ export const supervisedConfigSchema = z
   .default({});
 export type SupervisedConfig = z.infer<typeof supervisedConfigSchema>;
 
-// Provider resilience (unattended-resilience U2). Recoverable provider failures
+// Provider resilience (unattended-resilience). Recoverable provider failures
 // - rate limits (429/quota) and transient blips (5xx, "server temporarily
 // unavailable", overloaded, timeouts) - are auto-retried with backoff before the
 // turn's outcome is final, so an overnight run rides them out instead of dying.
@@ -368,7 +368,7 @@ export const resilienceConfigSchema = z
       maxDelayMs: 60000,
       patterns: [],
     }),
-    // Subscription usage limits / quotas (U6): a time-windowed per-model quota
+    // Subscription usage limits / quotas: a time-windowed per-model quota
     // that *resets* (often hours out), distinct from a per-minute rate limit. On
     // `wait`, sleep for the reset window (the parsed hint, capped at `maxWaitMin`)
     // then retry - "run until the window refills"; `fallback` switches model;
@@ -392,7 +392,7 @@ export const resilienceConfigSchema = z
   .default({});
 export type ResilienceConfig = z.infer<typeof resilienceConfigSchema>;
 
-// Provider-session lifetime (U7). vibestrate already rebuilds bounded per-turn
+// Provider-session lifetime. vibestrate already rebuilds bounded per-turn
 // context from artifacts, so context doesn't grow with run length - but a
 // *reused* provider session (claude --resume) can still balloon over a marathon.
 // `maxReuseTurns` caps consecutive reuses before re-opening a fresh session
@@ -557,7 +557,7 @@ export const personaConfigSchema = z
 export type PersonaConfig = z.infer<typeof personaConfigSchema>;
 
 /**
- * Posture-applies (Slice 2b): opt-in, per-posture switches that let a run's
+ * Posture-applies: opt-in, per-posture switches that let a run's
  * *suggested* posture actually take effect. Both default false (a behavior change
  * is never the default). See orchestrator/posture-apply.ts.
  */
@@ -630,7 +630,7 @@ export const projectConfigBaseSchema = z.object({
    */
   projectPolicies: z.array(projectPolicySchema).default([]).describe("Project-scoped tiered rules (advise = reviewer-injected; block = deterministic merge-cap). Default none."),
   /**
-   * A1 flow sizing (orchestrator/flow-sizing.ts): route obviously-trivial
+   * Flow sizing (orchestrator/flow-sizing.ts): route obviously-trivial
    * tasks to the diff-floored `express` flow. Applies ONLY when no --flow,
    * no --select, and no defaultFlow. `deterministic` = structural classifier,
    * zero model calls (default); `assisted` adds one cheap gray-zone assist

@@ -53,7 +53,7 @@ export function RunComposePage() {
   const [crewId, setCrewId] = useState<string | null>(null);
   const [personaId, setPersonaId] = useState<string | null>(null);
   const [concise, setConcise] = useState(false);
-  // Permission mode (P4): read-only is the strict end of the same axis, so it's
+  // Permission mode: read-only is the strict end of the same axis, so it's
   // derived from the mode rather than a separate toggle.
   const [permissionMode, setPermissionMode] = useState<
     "read-only" | "ask" | "accept-edits" | "auto"

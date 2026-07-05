@@ -1,4 +1,4 @@
-// ── Provider resilience: failure classification + backoff (U2) ──────────────
+// ── Provider resilience: failure classification + backoff ───────────────────
 //
 // Recoverable provider failures are auto-retried (see the orchestrator's
 // runProviderResilient). This module is the pure, testable core: classify a
@@ -94,7 +94,7 @@ export function classifyProviderFailure(
 
 /**
  * Pick the session request for a provider (re)invocation inside the resilience
- * retry loop (ISSUE-002 B). A retried `open` MUST NOT re-send a session id a
+ * retry loop. A retried `open` MUST NOT re-send a session id a
  * prior attempt already issued: claude registers `--session-id <U>` on first use
  * and errors "Session ID <U> is already in use." on a second open. An "opened"
  * turn re-sends full context, so a fresh id is semantically identical and never

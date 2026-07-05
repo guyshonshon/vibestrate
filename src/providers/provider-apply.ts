@@ -225,7 +225,7 @@ export function profileSpawnArgs(
   return out;
 }
 
-// ── Provider-native OS sandbox (T14 slice 1) ─────────────────────────────────
+// ── Provider-native OS sandbox ───────────────────────────────────────────────
 //
 // Same "real knobs only" rule as model/effort above: a provider appears here
 // ONLY if its CLI enforces an OS-level filesystem sandbox that we have verified

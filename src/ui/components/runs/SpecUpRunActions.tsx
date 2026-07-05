@@ -8,7 +8,7 @@ import type { RunState } from "../../lib/types.js";
 // handled by RunGapQuestions; this is the terminal links, surfaced on the run
 // they belong to so the whole chain is advanceable from the run view (UI<->CLI
 // parity with `vibe spec-up build` / `vibe spec-up approve` / `vibe spec-up roadmap`):
-//   - a completed `spec-up` run         -> "Approve & build" (P1: run the chosen
+//   - a completed `spec-up` run         -> "Approve & build" (run the chosen
 //        flow seeded with the approved spec) OR "Approve & generate roadmap"
 //   - a completed `spec-up-roadmap` run -> "Create board cards"
 // All reuse the already-gated spec-up endpoints; nothing spawns a command.

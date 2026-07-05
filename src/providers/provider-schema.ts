@@ -24,7 +24,7 @@ export type ClaudeCodeProviderSchemaConfig = z.infer<
   typeof claudeCodeProviderSchema
 >;
 
-// ── Non-CLI providers (Phase 4) ─────────────────────────────────────────────
+// ── Non-CLI providers ───────────────────────────────────────────────────────
 // Two HTTP-backed provider types. Both speak the same request machinery
 // (src/providers/http-api-provider.ts); they differ in *where* they send and
 // whether a key is required:

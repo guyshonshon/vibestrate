@@ -44,7 +44,7 @@ export type ConsultContext = {
   usedSources: string[];
   /** Non-fatal skips (e.g. a refused file, an unknown task). */
   notes: string[];
-  /** Deterministic, code-computed project-state sections (T10): recent activity,
+  /** Deterministic, code-computed project-state sections: recent activity,
    *  open intents, mentioned-never-worked, suggested next steps. Same project
    *  state => same sections; the model only narrates them. */
   sections: ConsultSections;
@@ -202,7 +202,7 @@ export async function assembleConsultContext(
     notes.push(...materialized.notes);
   }
 
-  // Deterministic computed project-state sections (T10): folded from the ledger
+  // Deterministic computed project-state sections: folded from the ledger
   // + roadmap + recent runs, in code. Inserted at the TOP as authoritative
   // context (the model narrates these facts, never invents them) AND returned
   // structured so the CLI/UI render them verbatim.

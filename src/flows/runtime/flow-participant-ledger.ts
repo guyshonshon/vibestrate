@@ -138,7 +138,7 @@ export function createFlowParticipantLedger(input: {
 export function prepareFlowParticipantTurn(
   ledger: FlowParticipantLedger,
   seat: string,
-  // U7: cap consecutive reuses before re-opening a fresh session (re-seeded from
+  // Cap consecutive reuses before re-opening a fresh session (re-seeded from
   // artifacts). 0 = unlimited.
   maxReuseTurns = 0,
 ): PreparedFlowParticipantTurn {

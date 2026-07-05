@@ -261,7 +261,7 @@ export const qualityArbitrationFlow = flowDefinitionSchema.parse({
 });
 
 // The built-in **pick-up flow**: the checklist-aware shape for executing a card
-// item-by-item (Phase 3, design §1). A holistic `plan` runs ONCE (it sees the
+// item-by-item. A holistic `plan` runs ONCE (it sees the
 // whole card + all items via the task brief); then the `checklistSegment`
 // (`micro-plan` → `implement`) repeats ONCE PER checklist item, in one worktree,
 // with the current-item brief + carried compact summaries injected as the
@@ -346,8 +346,8 @@ export const pickupFlow = flowDefinitionSchema.parse({
   },
 });
 
-// The built-in **late review panel**: the first graph (DAG) flow (Slice 4,
-// custom-workflow-dags.md Phase A+B). It runs the standard plan -> architect ->
+// The built-in **late review panel**: the first graph (DAG) flow
+// (custom-workflow-dags.md). It runs the standard plan -> architect ->
 // implement -> validate spine, then fans out into THREE read-only reviewers
 // that inspect the *same* real diff + validation evidence from distinct lenses
 // (correctness, tests, security/risk), concurrently, and an arbiter join reads
@@ -359,11 +359,11 @@ export const pickupFlow = flowDefinitionSchema.parse({
 // lenses via per-step `instructions`) and write DISTINCT output tokens, so the
 // frontier scheduler can run them in parallel with no worktree collision - the
 // read-only-ness is hard-enforced at resolve time. The reviewers are
-// `continueOnError` (Slice 5): if one lens's provider hard-fails, the run is not
+// `continueOnError`: if one lens's provider hard-fails, the run is not
 // sunk - that step is marked failed + recorded, and the arbiter still renders a
 // verdict from the surviving lenses (the brief tells it which lens is missing). There is no fix loop or
 // second validation here: graph flows can't yet combine with the adaptive loop
-// (deferred to Phase D), so the panel SURFACES a verdict + findings; a
+// (still deferred), so the panel SURFACES a verdict + findings; a
 // CHANGES_REQUESTED arbiter blocks the run honestly for a human/next run.
 //
 // The orchestrator selects this only when evidence warrants the extra spend
@@ -682,8 +682,8 @@ export const securityReviewFlow = flowDefinitionSchema.parse({
   },
 });
 
-// The built-in **per-item analysis pick-up**: the first checklist DAG (Slice 5,
-// custom-workflow-dags.md Phase D - "Shape A"). It is the pick-up flow with a
+// The built-in **per-item analysis pick-up**: the first checklist DAG
+// (custom-workflow-dags.md). It is the pick-up flow with a
 // GRAPH inside the per-item band: for EACH checklist item, two read-only analysts
 // study the item in parallel from distinct lenses (risk/impact + test-surface),
 // then a single serial implementer writes the item informed by both. "Think in
@@ -691,7 +691,7 @@ export const securityReviewFlow = flowDefinitionSchema.parse({
 //
 // Why this shape first: the analysts are read-only `agent-turn`s (not
 // review-turns), so the band produces NO arbitration findings - it sidesteps the
-// run-global arbitration-ledger collision that a per-item REVIEW panel (Shape B)
+// run-global arbitration-ledger collision that a per-item REVIEW panel
 // would hit when the same step ids run N times. The analysts share `needs`
 // (a parallel group) and are hard-enforced read-only at resolve time, so the
 // frontier runs them concurrently with no worktree collision; the implementer is
@@ -807,8 +807,8 @@ export const pickupAnalysisFlow = flowDefinitionSchema.parse({
   },
 });
 
-// The built-in **pick-up (per-item review)** flow (Shape B /
-// checklist-dag-shape-b): like pickupAnalysisFlow but the per-item band runs
+// The built-in **pick-up (per-item review)** flow: like pickupAnalysisFlow but
+// the per-item band runs
 // REVIEW AFTER implementation rather than analysis before it. Band structure:
 //   micro-plan -> implement -> [review-correctness, review-risk] -> arbiter
 // The two reviewer turns fan out in parallel (both read-only, review-turn),
@@ -934,7 +934,7 @@ export const pickupReviewFlow = flowDefinitionSchema.parse({
   },
 });
 
-// The built-in **saga** flow (Saga conductor, Phase 2). A LIGHTER sibling of
+// The built-in **saga** flow (Saga conductor). A LIGHTER sibling of
 // pickup-review for sequencing a multi-step saga: it keeps the per-item REVIEW
 // band (so the band stays a graph review-band - `review-item` is a review-turn
 // with `needs`, which gives the conductor's saga mode its clean halt-with-reset
@@ -1026,11 +1026,11 @@ export const sagaFlow = flowDefinitionSchema.parse({
   },
 });
 
-// The built-in **express flow** (A3, proportional-orchestration.md / batch
-// P4b): one implementer turn with a diff-floored safety net. Validation is
-// change-scoped (B3) and the review step is `skipWhen: "inert_diff"` - it runs
+// The built-in **express flow** (proportional-orchestration.md): one implementer
+// turn with a diff-floored safety net. Validation is change-scoped and the
+// review step is `skipWhen: "inert_diff"` - it runs
 // UNLESS the run's actual diff is strict-prose (.md/.markdown/.txt/.rst) and
-// touches no protected path (A2). The skip is recorded evidence; assurance
+// touches no protected path. The skip is recorded evidence; assurance
 // then reports `review: skipped_inert_diff` and caps at partially_verified.
 // A gate-free "solo" variant was explicitly rejected (adversarial review):
 // the back gate must be decided by the diff, never by task text.
@@ -1091,7 +1091,7 @@ export const expressFlow = flowDefinitionSchema.parse({
   },
 });
 
-// ── Parameterized example (T11) ──────────────────────────────────────────────
+// ── Parameterized example ────────────────────────────────────────────────────
 // Demonstrates `params:` + `{{params.x}}` substitution. A "scaffold" flow that
 // takes a project name + framework and builds a starter. Real, runnable - and
 // the worked example the docs point at.

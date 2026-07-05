@@ -123,7 +123,7 @@ export const microStepSchema = z.object({
 export type MicroStep = z.infer<typeof microStepSchema>;
 
 // Who authored a saga step. Owner = a human; conductor = the autonomous Enhance
-// pass. (Phase 3 Enhance.)
+// pass.
 export const provenanceSchema = z.enum(["owner", "conductor"]);
 export type Provenance = z.infer<typeof provenanceSchema>;
 
@@ -141,17 +141,17 @@ export const checklistItemSchema = z.object({
   updatedAt: z.string(),
   commitSha: z.string().nullable().default(null),
   promotedTaskId: safeIdSchema.nullable().default(null),
-  // Saga step fields (Phase 1): a checklist item IS a Saga "step". Defaulted so
+  // Saga step fields: a checklist item IS a Saga "step". Defaulted so
   // pre-Saga tasks upgrade losslessly on read (getTask never sees a throw).
   objective: z.string().default(""),
   acceptanceCheck: z.string().default(""),
   fileHints: z.array(z.string()).default([]),
-  // Saga step fields (Phase 2): the run that executed this step and a curated
+  // Saga step run link: the run that executed this step and a curated
   // one-line outcome recorded after it ran. Defaulted for lossless upgrade.
   runId: z.string().nullable().default(null),
   outcomeSummary: z.string().default(""),
-  // Saga step provenance (Phase 3 Enhance): who authored the step. "owner" for
-  // anything a human added (the default, so pre-Phase-3 steps upgrade losslessly);
+  // Saga step provenance: who authored the step. "owner" for
+  // anything a human added (the default, so legacy steps upgrade losslessly);
   // "conductor" only for a step the autonomous Enhance pass added. Drives the
   // escalate-on-destructive authority policy deterministically - the conductor
   // may not silently drop an `owner` step. (docs/design/saga-conductor-enhance.md)
@@ -204,14 +204,14 @@ export const runBudgetSchema = z.object({
 });
 export type RunBudget = z.infer<typeof runBudgetSchema>;
 
-// The supervised-scoped pending-plan overlay (Phase 3 Enhance). When the
+// The supervised-scoped pending-plan overlay. When the
 // Conductor's Enhance pass refines/reorders/removes the *pending* steps mid-run,
 // the revised pending plan is persisted HERE in one atomic write - never into
 // `checklist`, so the resume guard (which compares `checklist` ids) is left
 // untouched. On resume the overlay is applied by id onto the still-pending slice;
 // on clean completion it is reconciled into `checklist` and cleared. `pending`
-// carries only EXISTING ids (autonomous add is excluded - see the design's M0
-// finding), so the merge is a pure by-id reconciliation.
+// carries only EXISTING ids (autonomous add is excluded by design), so the
+// merge is a pure by-id reconciliation.
 export const supervisedPendingRevisionSchema = z.object({
   // The step index (0-based, into the run's pending iteration) the revision was
   // made after - for display + debugging, not control flow.
@@ -250,13 +250,13 @@ export const taskSchema = z.object({
   roadmapItemId: safeIdSchema.nullable().default(null),
   title: z.string().min(1),
   description: z.string().default(""),
-  // Spec-up phase (M4): prose acceptance criteria ("done when…") and a rough size
+  // Spec-up phase: prose acceptance criteria ("done when…") and a rough size
   // estimate (free label, e.g. "S" / "M" / "L" / "2d"). Authored by the roadmap
   // synthesis and editable on the card. The authoring contract is "may be
   // omitted"; "" is the empty state (a card without criteria yet), not a
   // back-compat backfill.
   acceptanceCriteria: z.string().default(""),
-  // Machine-checkable acceptance (P5): shell commands that must PASS for the card
+  // Machine-checkable acceptance: shell commands that must PASS for the card
   // to be "done" - run as an extra validation pass on the card's run, feeding the
   // same gate as `commands.validate`. USER-AUTHORED (not LLM-generated), so it
   // carries the same trust as the project's validate commands. Empty = LLM-judged
@@ -287,7 +287,7 @@ export const taskSchema = z.object({
   // the executor / fix loop - investigation only.
   profileOverride: z.string().nullable().default(null),
   readOnly: z.boolean().default(false),
-  // Ordered breakdown that lives inside the card (Phase 3 "Checklist"). The
+  // Ordered breakdown that lives inside the card (the "Checklist"). The
   // pick-up loop iterates this in order; an instant task is the degenerate
   // synthetic-1-item case. Defaults to empty for backward-compat with tasks
   // written before this field existed.
@@ -295,7 +295,7 @@ export const taskSchema = z.object({
   // ─── Supervised execution (the Conductor) ───────────────────────────
   // The supervised-run lifecycle, grouped: `state` + clean-halt record + the
   // non-folding INVARIANTS ledger (re-injected into every step's packet so
-  // conventions don't fold away) + the Phase 3 Enhance pending-plan overlay.
+  // conventions don't fold away) + the Enhance pending-plan overlay.
   // Always present + defaulted (a plain task stays `state:"idle"`). Durable
   // across resume; redacted + bounded on write.
   supervised: supervisedRunSchema.default({}),
@@ -304,10 +304,10 @@ export const taskSchema = z.object({
   runOptions: runOptionsSchema.default({}),
   // Non-blocking advisory: a run finished but a human should eyeball something
   // the model can't perceive (visual/UX/3D). Set from a HUMAN_REVIEW: ADVISORY
-  // marker; cleared by a human verdict (pass → done, fail → reopen). (Phase 3)
+  // marker; cleared by a human verdict (pass → done, fail → reopen).
   needsTesting: z.boolean().default(false),
   needsTestingReason: z.string().nullable().default(null),
-  // "Derived from" back-pointer (Phase 3 promote-item-to-card): set when this
+  // "Derived from" back-pointer (promote-item-to-card): set when this
   // card was promoted out of another card's checklist item. A *relation*, not a
   // reparent - the origin item keeps its own status and points here via
   // `promotedTaskId`. null for normal cards.
@@ -315,11 +315,11 @@ export const taskSchema = z.object({
     .object({ taskId: safeIdSchema, itemId: z.string().min(1) })
     .nullable()
     .default(null),
-  // Filed-away flag (Phase 3 board): an archived card sits in the board's
+  // Filed-away flag (board): an archived card sits in the board's
   // Archived column regardless of its run status. Orthogonal to status so a
   // done OR abandoned card can be archived without losing its real state.
   archived: z.boolean().default(false),
-  // Context sources (Phase 4): files/URLs injected into every agent's prompt
+  // Context sources: files/URLs injected into every agent's prompt
   // for runs launched from this card (inherited when the run doesn't override).
   contextSources: z.array(contextSourceSchema).default([]),
 });
@@ -354,7 +354,7 @@ export const TASK_STATUSES_BOARD: readonly TaskStatus[] = [
   "cancelled",
 ] as const;
 
-// ── Coarse board columns (Phase 3) ──────────────────────────────────────────
+// ── Coarse board columns ─────────────────────────────────────────────────────
 // The planning board shows a *coarse* human kanban - not the orchestrator's
 // fine run stages (those live in Mission Control). A card's column is derived
 // from its status plus the archived / needs-testing overlays. Auto-nudged: as

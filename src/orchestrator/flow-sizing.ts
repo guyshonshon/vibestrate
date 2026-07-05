@@ -1,4 +1,4 @@
-// ── A1: flow sizer (proportional-orchestration.md / batch P4c) ──────────────
+// ── Flow sizer (proportional-orchestration.md) ──────────────────────────────
 //
 // Routes obviously-trivial tasks to the `express` flow so "make a test.txt"
 // stops paying for plan -> architect -> review. Two tiers:
@@ -11,7 +11,7 @@
 //
 // Why this cannot launder risk (the locked guardrails):
 //   - Task-text judgment here chooses FRONT leanness only. The back gates stay
-//     diff-decided inside `express` itself (skipWhen: inert_diff + A2
+//     diff-decided inside `express` itself (skipWhen: inert_diff +
 //     protected paths): a "trivial" task whose agent actually edits code gets
 //     a real review turn, whatever the sizer believed.
 //   - The sizer's target set is structurally ["express"] - it can never route

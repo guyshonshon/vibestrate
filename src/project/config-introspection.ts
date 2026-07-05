@@ -1,7 +1,7 @@
 import { z, type ZodTypeAny } from "zod";
 import { projectConfigBaseSchema } from "./config-schema.js";
 
-// ── Config schema introspection (T8) ─────────────────────────────────────────
+// ── Config schema introspection ─────────────────────────────────────────
 //
 // One source of truth for "what config keys exist, of what type, with what
 // allowed values" - walked straight off the Zod schema. The docs generator and
@@ -217,7 +217,7 @@ export type ConfigPathCheck = {
   suggestions?: string[];
 };
 
-/** Validate a dotted config path against the schema BEFORE writing it (T8).
+/** Validate a dotted config path against the schema BEFORE writing it.
  *  `setConfigValue` auto-creates intermediate maps, so without this a typo like
  *  `provider` silently writes an invalid top-level key. Record segments (e.g.
  *  `providers.<id>`) are accepted from the record onward - their inner keys are

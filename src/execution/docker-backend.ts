@@ -13,7 +13,7 @@ import type {
   CleanupInput,
 } from "./execution-backend-schema.js";
 
-// ── Container execution backend (T14 slice 2) ────────────────────────────────
+// ── Container execution backend ────────────────────────────────
 //
 // Runs each provider turn inside a disposable Docker container whose blast
 // radius is the container - model-agnostic isolation a provider-native sandbox

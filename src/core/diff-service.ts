@@ -427,7 +427,7 @@ export async function getDiffSnapshot(input: {
 /**
  * The full unified diff TEXT of a worktree vs a base ref (default HEAD), including
  * untracked files (each diffed against /dev/null so a brand-new file's added lines
- * are present). Secret-like files are skipped entirely. Used by the M2 preference
+ * are present). Secret-like files are skipped entirely. Used by the preference
  * block gate (preference-block-gate.ts) to scan added lines at run completion.
  */
 export async function getWorktreeDiffText(input: {

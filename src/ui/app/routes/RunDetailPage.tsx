@@ -365,7 +365,7 @@ export function RunDetailPage({
         />
       )}
 
-      {/* Staged "starting up" checklist (T7): self-hides once the run is past
+      {/* Staged "starting up" checklist: self-hides once the run is past
           startup (or stays to show the failed stage). */}
       <StartupPanel runId={runId} status={run.status} />
 
@@ -767,7 +767,7 @@ function RerunDialog({
   const [providers, setProviders] = useState<ProviderRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  // Restore dry-run for the selected downstream stage (ISSUE-001 P2).
+  // Restore dry-run for the selected downstream stage.
   const [preview, setPreview] = useState<RestorePreview | null>(null);
   const [previewState, setPreviewState] = useState<
     "idle" | "loading" | "none" | "ready" | "error"
@@ -1129,9 +1129,9 @@ function MetaPair({
   );
 }
 
-/** Why the orchestrator chose this Flow (Slice 2 - only for selected runs). */
+/** Why the orchestrator chose this Flow (only for selected runs). */
 
-/** Where the run's work lives (T1). Answers "how do I get into that git
+/** Where the run's work lives. Answers "how do I get into that git
  *  worktree?" - shows the worktree path + branch and a copy-able `cd` line.
  *  Read-only; the worktree is bounded to the run and never edited from here. */
 function WorkspacePanel({
@@ -1187,7 +1187,7 @@ function WorkspacePanel({
   );
 }
 
-/** Compact, evidence-backed run-assurance verdict (S5). */
+/** Compact, evidence-backed run-assurance verdict. */
 function AssuranceBadge({
   assurance,
   onViewReview,

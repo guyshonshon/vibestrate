@@ -45,7 +45,7 @@ export async function runHubList(opts: {
   console.log("");
   for (const f of flows) {
     // "hub-curated", not "verified": the flag is the hub's curation claim,
-    // not an integrity guarantee (run-experience batch P3, reviewer finding).
+    // not an integrity guarantee.
     const verified = f.verified ? color.dim(" (hub-curated)") : "";
     console.log(`${color.bold(f.ref)}${verified}`);
     if (f.name && f.name !== f.ref) console.log(indent(color.dim(f.name)));

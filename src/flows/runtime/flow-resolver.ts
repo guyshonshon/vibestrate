@@ -416,7 +416,7 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
     // carry over unchanged for the runner to map onto resolved step indices.
     checklistSegment: input.flow.checklistSegment ?? null,
     complexity: input.flow.complexity ?? null,
-    // Declared flow params (T11) carry through for resolution + the dashboard
+    // Declared flow params carry through for resolution + the dashboard
     // form. null when the flow declares none.
     params: input.flow.params ?? null,
   });
@@ -428,7 +428,7 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
  * before the run starts - this upholds the one-writer-per-worktree invariant
  * that read-only fan-out depends on. No-op for linear (non-graph) flows.
  *
- * For a checklist + graph flow (Phase D) the DAG lives only in the per-item
+ * For a checklist + graph flow the DAG lives only in the per-item
  * band, so the grouping is scoped to the band - else the empty-`needs` prelude
  * and band root would share the "" signature and the prelude (often a writer)
  * would be wrongly flagged as a parallel writer, falsely rejecting the flow.

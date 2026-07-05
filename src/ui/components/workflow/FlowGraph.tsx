@@ -1,4 +1,4 @@
-// A compact top-down render of a Flow's dependency graph (Slice 4 DAG). Steps
+// A compact top-down render of a Flow's dependency graph (DAG). Steps
 // are placed in topological layers (longest-path); steps that share a layer ran
 // (or can run) concurrently and are drawn side by side - so a review panel's
 // fan-out and its arbiter join are legible at a glance. Reused for both the

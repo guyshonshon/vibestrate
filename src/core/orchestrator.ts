@@ -298,7 +298,7 @@ import { SuggestionBundleService } from "../reviews/suggestion-bundle-service.js
  *  normal from-scratch run; the executing stages regenerate the downstream code
  *  from a fresh worktree. The DOWNSTREAM stages (reviewing/fixing/verifying)
  *  operate on existing code, so they additionally restore the source run's
- *  per-phase worktree snapshot (Rewind phase 2). */
+ *  per-phase worktree snapshot. */
 export type ResumeStage =
   | "planning"
   | "architecting"
@@ -327,7 +327,7 @@ export type OrchestratorInput = {
   task: string;
   isGitRepo: boolean;
   onProgress?: (message: string) => void;
-  /** Raw flow parameter values (T11), name -> string, from the caller (CLI
+  /** Raw flow parameter values, name -> string, from the caller (CLI
    *  flags / dashboard form / interactive prompts). Resolved against the flow's
    *  declared `params` at run start, substituted into the task + step
    *  instructions, and recorded (secrets redacted). */
@@ -368,26 +368,26 @@ export type OrchestratorInput = {
    *  upstream artifacts from a prior run instead of regenerating them.
    *  Mutually exclusive with `flow`. */
   resumeFrom?: ResumeFromInput | null;
-  /** Pick-up execution (Phase 3): when the linked task has a checklist and the
+  /** Pick-up execution: when the linked task has a checklist and the
    *  flow declares a checklistSegment, iterate the segment once per item.
    *  "continuous" runs items back-to-back; "step" pauses between items. null /
    *  omitted = no checklist iteration (the instant-task N=1 case). */
   checklistMode?: "continuous" | "step" | null;
-  /** Saga mode (Phase 2 Conductor): when the linked task is `kind:"saga"`, run
+  /** Saga mode (Conductor): when the linked task is `kind:"saga"`, run
    *  the checklist band as a supervised saga - a step that exhausts self-heal
    *  halts the run cleanly instead of committing a green-but-broken item, and
    *  each step starts a fresh model context. Set by the saga launch path. */
   sagaMode?: boolean;
-  /** Per-saga budget envelope (Phase 2 Conductor, M4): bounds the saga's TOTAL
+  /** Per-saga budget envelope (Conductor): bounds the saga's TOTAL
    *  cost/length, enforced BETWEEN steps (see src/feature/budget.ts). Null
    *  fields mean no limit on that axis. The launch path sets it from
    *  `task.sagaBudget`; defaults to no limits. */
   sagaBudget?: { maxSpendUsd: number | null; maxSteps: number | null };
-  /** Saga supervisor (Phase 2b, M3): the between-steps PROCEED/ESCALATE turn +
+  /** Saga supervisor (Conductor): the between-steps PROCEED/ESCALATE turn +
    *  invariants ledger. The launch path sets it from `config.saga.supervisor`;
    *  defaults to enabled on the `reviewer` role with the role's own profile. */
   sagaSupervisor?: { enabled: boolean; profile: string | null; roleId: string };
-  /** Context sources (Phase 4): files/URLs materialized once at run start and
+  /** Context sources: files/URLs materialized once at run start and
    *  injected into every agent's prompt (path-guarded / SSRF-guarded + secret
    *  redacted). */
   contextSources?: ContextSource[];
@@ -400,7 +400,7 @@ export type OrchestratorInput = {
    *  the resume path (where `selection` is null because the flow is fixed by the
    *  source run). The launcher passes `spec.persona ?? selection?.personaId`. */
   personaId?: string | null;
-  /** Adaptive spec-up (P1): the flow the chain should BUILD after spec-up. Set on a
+  /** Adaptive spec-up: the flow the chain should BUILD after spec-up. Set on a
    *  spec-up-phase run (intake/spec-up) so the chosen flow is carried across the
    *  detached chain; persisted as the `spec-up-target-flow.json` sidecar at run
    *  start and read by the `approve & build` handoff. null = no build target. */
@@ -410,16 +410,16 @@ export type OrchestratorInput = {
    *  `spec-up-root-run.json` sidecars at run start, read by the spec-up-chain. */
   specUpRound?: number | null;
   specUpRootRunId?: string | null;
-  /** Permission mode (T14 P4): read-only / ask / accept-edits / auto. The
+  /** Permission mode: read-only / ask / accept-edits / auto. The
    *  model-agnostic policy Vibestrate applies to this run's writes. Omitted ⇒
    *  config.policies.defaultPermissionMode (default "auto"). */
   permissionMode?: PermissionMode;
-  /** Per-run isolation override (Slice 2b posture-applies): when set, it raises
+  /** Per-run isolation override (posture-applies): when set, it raises
    *  this run's OS-sandbox posture above `config.execution.isolation` for this run
    *  only (never lowers; never mutates config). Today only "sandboxed". Omitted ⇒
    *  use the config value. */
   isolationOverride?: IsolationMode | null;
-  /** Human-facing notes about an auto-applied posture (Slice 2b): what was applied
+  /** Human-facing notes about an auto-applied posture: what was applied
    *  or why it was suppressed. Surfaced once at run start; empty ⇒ nothing applied. */
   postureNotes?: string[];
   /** CLI/process lifecycle signal. Aborting it kills the active provider
@@ -485,7 +485,7 @@ class __ActionDeniedSignal extends Error {
 }
 
 /**
- * Permission mode (T14 P4) as broker evaluators, scoped to the run-level effects
+ * Permission mode as broker evaluators, scoped to the run-level effects
  * Vibestrate actually owns (NOT per-shell-command - codex is opaque, claude
  * tool_use is display-only):
  *  - ask: every turn diff (file.patch) requires human approval before it's kept.
@@ -524,7 +524,7 @@ export function permissionModeEvaluators(mode: PermissionMode): ActionEvaluator[
   return [];
 }
 
-/** Thrown when a count/time budget ceiling is hit (unattended-resilience U1).
+/** Thrown when a count/time budget ceiling is hit (unattended-resilience).
  *  Like the spend cap, the run() loop catches it and blocks the run (not fails)
  *  - hitting a configured ceiling is an intentional stop, not an error. */
 class __BudgetLimitSignal extends Error {
@@ -535,7 +535,7 @@ class __BudgetLimitSignal extends Error {
 }
 
 /** Control-flow signals that must ALWAYS propagate - they are not ordinary
- *  step failures and must never be swallowed by continueOnError (Slice 5). An
+ *  step failures and must never be swallowed by continueOnError. An
  *  aborted/approval-rejected/spend-capped/denied run has to unwind regardless. */
 function __isControlSignal(err: unknown): boolean {
   return (
@@ -625,16 +625,16 @@ export class Orchestrator {
   /** Crew the active flow snapshot was resolved against; set in run(). Used by
    *  runRole to look up the resolved Role's config (prompt/permissions/skills). */
   private activeCrewId: string | null = null;
-  /** Action Broker for this run; set in run(). Every real effect (S0: provider
+  /** Action Broker for this run; set in run(). Every real effect (provider
    *  spawn) is decided + recorded through it. Null only before run() is called. */
   private broker: ActionBroker | null = null;
   /** One-time guard so the spend warning fires once per run, not every turn. */
   private spendWarned = false;
-  // Count/time budget ceilings (U1): agent turns started in this run, and the
+  // Count/time budget ceilings: agent turns started in this run, and the
   // run's wall-clock anchor (set lazily on the first turn).
   private turnsStarted = 0;
   private runStartMs: number | null = null;
-  // Spend-cap action override (U4): set once when the daily $ cap is hit with a
+  // Spend-cap action override: set once when the daily $ cap is hit with a
   // continue-action, then applied to every subsequent turn (downgrade -> switch
   // to the cheaper fallback Profile; reduce-effort -> minimum effort). The hard
   // count/time ceilings remain the ultimate stop.
@@ -642,7 +642,7 @@ export class Orchestrator {
     | { kind: "downgrade"; profileId: string }
     | { kind: "reduce-effort" }
     | null = null;
-  // onLimit: pause (U5) - once a human approves continuing past a ceiling, don't
+  // onLimit: pause - once a human approves continuing past a ceiling, don't
   // re-pause every turn for the rest of the run.
   private budgetCeilingAcknowledged = false;
   private readonly readOnly: boolean;
@@ -658,7 +658,7 @@ export class Orchestrator {
   private readonly contextSources: ContextSource[];
   /** Materialized once at run start; merged into every role's prior artifacts. */
   private materializedContext: PriorArtifact[] = [];
-  /** Pre-rendered + redacted continuity-ledger block (T9), loaded once at run
+  /** Pre-rendered + redacted continuity-ledger block, loaded once at run
    *  start and injected into the PLANNER turn (the planning context) so a fresh
    *  run picks up where the project stands. "" when the ledger is empty. */
   private ledgerPromptBlock = "";
@@ -682,11 +682,11 @@ export class Orchestrator {
    *  at run start from `config.ponytail` and appended to code-WRITING turns only
    *  (implementer/fixer). null = the knob is off (write turns unchanged). */
   private ponytailBlock: string | null = null;
-  /** Pre-rendered "# Continuity flags" block (T9) for THIS run's task - the
+  /** Pre-rendered "# Continuity flags" block for THIS run's task - the
    *  suspected dup/conflict heads-up. Injected into the planner turn alongside
    *  the ledger block. "" when nothing was flagged. */
   private ledgerFlagsBlock = "";
-  /** Pre-rendered "# Methodology" block (durable-memory Slice 4): the project's
+  /** Pre-rendered "# Methodology" block (durable-memory): the project's
    *  selected methodology (`vibe params set methodology=tdd`) as bounded planning
    *  guidance. Injected into the PLANNER turn alongside the ledger. "" when unset
    *  or set to an unknown value. */
@@ -702,14 +702,14 @@ export class Orchestrator {
   private readonly specUpTargetFlowId: string | null;
   private readonly specUpRound: number | null;
   private readonly specUpRootRunId: string | null;
-  /** Container/cloud execution strategy (T14 slice 2), set at run startup when
+  /** Container/cloud execution strategy, set at run startup when
    *  execution.backend runs turns off-host. null ⇒ host execution. */
   private execStrategy: ExecStrategy | null = null;
   /** Backend teardown (e.g. `docker rm -f`), run when the flow finishes. */
   private containerTeardown: (() => Promise<void>) | null = null;
-  /** Permission mode (T14 P4) governing this run's writes. */
+  /** Permission mode governing this run's writes. */
   private readonly permissionMode: PermissionMode;
-  /** Per-run isolation override (Slice 2b): raises the OS-sandbox posture for this
+  /** Per-run isolation override: raises the OS-sandbox posture for this
    *  run only. null ⇒ use config.execution.isolation. */
   private readonly isolationOverride: IsolationMode | null;
   /** Notes about an auto-applied posture, surfaced once at run start. */
@@ -746,7 +746,7 @@ export class Orchestrator {
     ) {
       this.readOnly = true;
     }
-    // Permission mode (T14 P4). "read-only" forces the read-only clamp (no write
+    // Permission mode. "read-only" forces the read-only clamp (no write
     // grant on any seat) - the honest model-agnostic no-write guarantee. The
     // ask/accept-edits approval policy is wired into the broker at run start.
     this.permissionMode = input.permissionMode ?? input.config.policies.defaultPermissionMode ?? "auto";
@@ -759,7 +759,7 @@ export class Orchestrator {
     if (this.permissionMode === "read-only") {
       this.readOnly = true;
     }
-    // Posture-applies (Slice 2b): a per-run isolation override that only ever
+    // Posture-applies: a per-run isolation override that only ever
     // RAISES the OS sandbox (never lowers); claude seats degrade per-seat at
     // runtime. Notes are surfaced once at run start.
     this.isolationOverride = input.isolationOverride ?? null;
@@ -819,7 +819,7 @@ export class Orchestrator {
     return localWorktreeBackend;
   }
 
-  /** Tear down the disposable container (T14 slice 2), idempotent. MUST run on
+  /** Tear down the disposable container, idempotent. MUST run on
    *  any throw once the container exists, not only on a flow-end throw - else a
    *  failure between container creation and the flow leaks a container with the
    *  worktree (RW) + provider credential (RO) still mounted. */
@@ -846,7 +846,7 @@ export class Orchestrator {
     // the `default` flow is resolved here. There is one runner.
     let flow = this.flow ?? (await this.resolveDefaultFlow());
 
-    // ── Flow parameters (T11) + durable param memory (Profiling) ───────────
+    // ── Flow parameters + durable param memory (Profiling) ───────────
     // Seed the caller's explicit values with the durable project profile and
     // `VIBESTRATE_PARAM_*` env, WITHOUT overwriting anything explicit, so the
     // precedence is: explicit (--param / body.params) > env > project profile >
@@ -970,7 +970,7 @@ export class Orchestrator {
     };
     await writeJson(runFlowSnapshotPath(this.projectRoot, runId), flow);
     await stateStore.write(state);
-    // Project memory (Slice 3): record this run's goal as an open intent at
+    // Project memory: record this run's goal as an open intent at
     // start, so STATE.md shows what's in flight / not yet shipped. Skips
     // read-only investigations; a resumed run carries the source run's intent
     // forward. Best-effort - the ledger is advisory.
@@ -996,7 +996,7 @@ export class Orchestrator {
         readOnly: this.readOnly,
       },
     });
-    // OPT-IN snapshot retention (ISSUE-001 #1). Vibestrate never prunes on its
+    // OPT-IN snapshot retention. Vibestrate never prunes on its
     // own (default 0 = off). When the USER has set a positive retention, run this
     // their-configured automation at run start (not finalize, so a prior run that
     // crashed or was killed still gets reclaimed on the next run). Keyed on
@@ -1014,7 +1014,7 @@ export class Orchestrator {
       // Also reclaim refs orphaned out-of-band (a run dir removed manually) -
       // they can never be rewound, so they're pure git clutter. Rides the SAME
       // opt-in (only when the user enabled retention); never a behind-the-back
-      // purge. ISSUE-001 P1.
+      // purge.
       //
       // FAIL CLOSED on the run-dir read: a real readdir (not the error-swallowing
       // readDirSafe), and ANY failure - or an empty result - skips the sweep.
@@ -1066,7 +1066,7 @@ export class Orchestrator {
 
     await artifactStore.write("00-idea.md", `# Task\n\n${this.task}\n`);
 
-    // Adaptive spec-up (P1): record the flow this spec-up-phase run should BUILD once its
+    // Adaptive spec-up: record the flow this spec-up-phase run should BUILD once its
     // spec is approved. The chain is detached runs glued by artifacts, so the
     // chosen flow id rides as a small sidecar (read by readSpecUpQuestions and the
     // `approve & build` handoff) - no run-state schema change, no durable pause.
@@ -1099,7 +1099,7 @@ export class Orchestrator {
     }
 
     // Record how this run's Flow was chosen, but only for an actual orchestrator
-    // judgment (LLM `selected`, persona `supervisor-upgraded`, or the A1
+    // judgment (LLM `selected`, persona `supervisor-upgraded`, or the
     // `sized` route) - a forced/default run's flow is already in flow.json, so
     // we add no extra artifact/event there (keeps normal runs unchanged).
     if (
@@ -1108,7 +1108,7 @@ export class Orchestrator {
         this.selection.source === "supervisor-upgraded" ||
         this.selection.source === "sized" ||
         this.selection.source === "spec-up" ||
-        // Adaptive spec-up (P1): a needs-spec-up run is an orchestrator judgment
+        // Adaptive spec-up: a needs-spec-up run is an orchestrator judgment
         // worth recording even on the `default`/`forced` source, so the
         // dashboard can narrate "spec'd up first, then builds with <flow>".
         this.selection.needsSpecUp === true)
@@ -1240,7 +1240,7 @@ export class Orchestrator {
     let worktreePath: string | null = null;
     let branchName: string | null = null;
 
-    // Staged startup progress (T7): emit a `run.startup` event at each setup
+    // Staged startup progress: emit a `run.startup` event at each setup
     // boundary so the dashboard + TUI show a checklist instead of a blank screen.
     const startup = async (
       stage: "workspace" | "environment" | "context" | "models" | "provider",
@@ -1256,7 +1256,7 @@ export class Orchestrator {
 
     try {
       await startup("workspace", "active");
-      // Execution backend (T14 slice 2): local-worktree (host) by default, or a
+      // Execution backend: local-worktree (host) by default, or a
       // disposable Docker container when execution.backend = "docker". A failed
       // container preflight throws here (fail-closed) before any turn runs.
       const backend = this.selectExecutionBackend();
@@ -1279,14 +1279,14 @@ export class Orchestrator {
       });
       worktreePath = prep.worktreePath;
       branchName = prep.branchName;
-      // Record the RESOLVED permission mode (P4) so the audit/assurance reflect
+      // Record the RESOLVED permission mode so the audit/assurance reflect
       // the policy that actually governed this run, not just the request.
       await eventLog.append({
         type: "policy.permission_mode",
         message: `Permission mode: ${this.permissionMode}.`,
         data: { permissionMode: this.permissionMode },
       });
-      // Posture-applies (Slice 2b): surface what an auto-applied posture did (or
+      // Posture-applies: surface what an auto-applied posture did (or
       // why it was suppressed) once at run start. Empty ⇒ nothing applied.
       if (this.postureNotes.length > 0) {
         await eventLog.append({
@@ -1323,7 +1323,7 @@ export class Orchestrator {
         data: { worktreePath: prep.worktreePath, branchName: prep.branchName },
       });
       await startup("workspace", "done");
-      // P8c: a bare worktree has no gitignored environment, so validation
+      // A bare worktree has no gitignored environment, so validation
       // commands fail with "command not found" and a correct change gets
       // blocked for an environmental reason. Link the project's env dirs in
       // (lockfile-guarded for JS). Best-effort: skips are events, not errors.
@@ -1427,7 +1427,7 @@ export class Orchestrator {
       await startup("models", "skipped", describeError(err));
     }
 
-    // Load the continuity ledger once (T9): render the bounded brief, redact
+    // Load the continuity ledger once: render the bounded brief, redact
     // it, and stash it for the planner's planning context. Then run the
     // duplicate/conflict matcher on this run's task and FLAG (never remove) any
     // suspected overlap as an append-only ledger entry linking the two, surface
@@ -1437,7 +1437,7 @@ export class Orchestrator {
     try {
       const store = new LedgerStore(this.projectRoot);
       const fullState = await store.state();
-      // This run's own start-intent (Slice 3) is not prior context: drop it so
+      // This run's own start-intent is not prior context: drop it so
       // the planner's ledger block doesn't echo the current goal back, and the
       // duplicate matcher doesn't flag the run against its own just-recorded
       // intent.
@@ -1498,7 +1498,7 @@ export class Orchestrator {
       this.ledgerFlagsBlock = "";
     }
 
-    // Methodology (durable-memory Slice 4): the project's selected methodology is
+    // Methodology (durable-memory): the project's selected methodology is
     // a durable param (`methodology`, project-global). If it resolves to a known
     // value, stash that one's bounded planning guidance for the planner turn; an
     // unknown value is warned once and ignored (no silent wrong-doing, no block).
@@ -1556,7 +1556,7 @@ export class Orchestrator {
         ctx,
       });
     } finally {
-      // Tear down the disposable container (T14 slice 2) on ANY exit of the
+      // Tear down the disposable container on ANY exit of the
       // post-prepare region - success or throw. The worktree persists (the host
       // diff-gate reads it). Idempotent + null when no container was created.
       await this.teardownContainer();
@@ -2387,7 +2387,7 @@ export class Orchestrator {
 
   /**
    * The bounded read-only fan-out/join scheduler for graph (DAG) flows
-   * (custom-workflow-dags.md Phase B). Walks the dependency frontier: a step is
+   * (custom-workflow-dags.md). Walks the dependency frontier: a step is
    * ready once all its `needs` are done. Ready steps that belong to a parallel
    * group (>= 2 steps sharing one `needs` set - guaranteed read-only at resolve
    * time) run CONCURRENTLY; every other step runs one at a time, so a write turn
@@ -2403,18 +2403,18 @@ export class Orchestrator {
    */
   private async runGraphFrontier(input: {
     snapshot: ResolvedFlowSnapshot;
-    // Phase D (checklist DAGs): run a SUBSET of the snapshot's steps - the
+    // Checklist DAGs: run a SUBSET of the snapshot's steps - the
     // per-item band - instead of the whole flow. Default = snapshot.steps (the
     // whole-flow path, byte-for-byte unchanged). All frontier reasoning
     // (parallel groups, readiness, the processed-count exit) is over this set.
     stepsOverride?: ResolvedFlowStep[];
-    // Phase D: seed the done/processed sets explicitly instead of deriving them
+    // Checklist DAGs: seed the done/processed sets explicitly instead of deriving them
     // from persisted state. The band passes an EMPTY set so its steps re-run on
     // every checklist item (their persisted "passed" status from the prior item
     // must NOT make the frontier treat them as already-done and stall). The
     // whole-flow path omits this and seeds from state for mid-DAG resume.
     priorDoneOverride?: Set<string>;
-    // Phase D: gate the flow.graph.started / flow.graph.completed lifecycle
+    // Checklist DAGs: gate the flow.graph.started / flow.graph.completed lifecycle
     // events. The band runs once per item, so it suppresses them to avoid N
     // duplicate pairs (the per-wave flow.frontier.scheduled events still fire,
     // so the fan-out stays visible). Default true (the whole-flow path).
@@ -2466,7 +2466,7 @@ export class Orchestrator {
     let reviewArtifact: RoleRunResult | null = null;
     let verificationArtifact: RoleRunResult | null = null;
     let arbitrationLedger = input.arbitrationLedger;
-    // Continue-past-failure (Slice 5): count of best-effort steps that hard-failed
+    // Continue-past-failure: count of best-effort steps that hard-failed
     // but were tolerated, for the graph-completed event (honest partial coverage).
     let continuedFailures = 0;
 
@@ -2499,7 +2499,7 @@ export class Orchestrator {
     const done = new Set<string>();
     const processed = new Set<string>();
     if (input.priorDoneOverride) {
-      // Phase D: the caller owns what's already done (the per-item band passes an
+      // Checklist DAGs: the caller owns what's already done (the per-item band passes an
       // EMPTY set so every band step re-runs this item). We deliberately do NOT
       // read persisted state here - the band steps carry "passed" status from the
       // prior item, which would otherwise make them count as done and stall.
@@ -2618,7 +2618,7 @@ export class Orchestrator {
       });
     };
 
-    // Per-step retries (Slice 5): re-run a flaky turn up to `step.retries` extra
+    // Per-step retries: re-run a flaky turn up to `step.retries` extra
     // times before its outcome is final. A non-zero exit or an ordinary throw on
     // a non-final attempt triggers a retry; a control signal is never retried (it
     // propagates immediately). The final attempt's result is returned (or its
@@ -2829,7 +2829,7 @@ export class Orchestrator {
       });
     };
 
-    // Continue-past-failure (Slice 5): record a best-effort turn's hard failure
+    // Continue-past-failure: record a best-effort turn's hard failure
     // without aborting the run, and let the graph advance - the step counts as
     // "done" so a downstream join proceeds with the surviving siblings. The
     // failure is on the record (a `flow.step.failed` event with `continued: true`
@@ -3181,13 +3181,13 @@ export class Orchestrator {
     // the post-loop comparisons. The `as` keeps the full union type.
     let lastValidation = null as ValidationResults | null;
     let reviewDecision = "BLOCKED" as ReviewDecision;
-    // A3 express: skip evidence is set ONLY by the deterministic inert-diff
+    // Express: skip evidence is set ONLY by the deterministic inert-diff
     // evaluator; reviewTurnRan is true once ANY review-turn executed (a review
     // that ran always beats evidence). Widened (`as`) - assigned in runStep.
     let reviewSkipEvidence = null as ReviewSkipEvidence | null;
     let reviewTurnRan = false as boolean;
     let verificationDecision = "NEEDS_HUMAN" as VerificationDecision;
-    // Non-blocking "a human should look at this" advisory (Phase 3). Set if a
+    // Non-blocking "a human should look at this" advisory. Set if a
     // reviewer/verifier emits HUMAN_REVIEW: ADVISORY; surfaced at finalize.
     // Widened initializer (`as`) - reassigned inside the runStep closure, which
     // TS control-flow can't see (same pattern as reviewDecision above).
@@ -3242,7 +3242,7 @@ export class Orchestrator {
       });
     await arbitrationStore.write(arbitrationLedger);
 
-    // ── Pick-up execution setup (Phase 3) ──────────────────────────────────
+    // ── Pick-up execution setup ──────────────────────────────────
     // When this run is bound to a task, the task has a Checklist, the flow
     // declares a checklistSegment, and a checklist mode was requested, the
     // segment band repeats once per item (in this one worktree, carrying
@@ -3258,11 +3258,11 @@ export class Orchestrator {
       objective: string;
       acceptanceCheck: string;
       fileHints: string[];
-      // Phase 3 Enhance: carried so the ENHANCE pass can classify authority
+      // ENHANCE pass: carried so the ENHANCE pass can classify authority
       // (a conductor may not remove an `owner` step) without a second task read.
       provenance: Provenance;
     }[] = [];
-    // F1: ground the brief in the bound card's own context (description + open
+    // Ground the brief in the bound card's own context (description + open
     // checklist) for ANY `--task` run, not just the pickup band - otherwise the
     // planner sees only the task string and guesses. The per-item checklist
     // ITERATION still gates on the pickup flow + --checklist-mode (below);
@@ -3288,7 +3288,7 @@ export class Orchestrator {
               fileHints: c.fileHints,
               provenance: c.provenance,
             }));
-          // Phase 3 Enhance: if a prior pass left a saga-scoped pending overlay,
+          // ENHANCE pass: if a prior pass left a saga-scoped pending overlay,
           // it supersedes the original pending steps (refined text/objective,
           // resequenced, with removed steps absent). The overlay carries only
           // EXISTING ids (autonomous add is excluded), so `task.checklist` - and
@@ -3394,7 +3394,7 @@ export class Orchestrator {
     try {
       const steps = input.snapshot.steps;
       const loop = input.snapshot.loop;
-      // Per-item band indices (Phase 3). Disjoint from the adaptive loop by
+      // Per-item band indices. Disjoint from the adaptive loop by
       // schema (segment ends before any loop), so the two jump-backs never
       // collide. Read-only runs never iterate items (the band writes code).
       const segment = input.snapshot.checklistSegment;
@@ -3404,7 +3404,7 @@ export class Orchestrator {
       const segTo = segment
         ? steps.findIndex((s) => s.sourceStepId === segment.to)
         : -1;
-      // Phase D (checklist DAGs): the per-item band itself declares `needs`, so
+      // Checklist DAGs: the per-item band itself declares `needs`, so
       // each item runs the band as a mini-DAG through the frontier scheduler
       // (read-only fan-out -> serial writer join) rather than the linear walk.
       // The schema confines graph edges to the band, so this is true iff a band
@@ -3467,7 +3467,7 @@ export class Orchestrator {
       // locals the finalize block reads, then we park the linear cursor at the
       // end so the `while` below is a no-op - the linear path stays byte-for-byte
       // unchanged for every other flow. A graph flow that DOES declare a
-      // checklistSegment (Phase D) takes the linear path below instead, which
+      // checklistSegment takes the linear path below instead, which
       // runs the per-item band through the frontier once per item (see the
       // `bandIsGraph` branch in the walk) - so it is excluded here.
       if (isGraphFlow(input.snapshot) && !input.snapshot.checklistSegment) {
@@ -3547,7 +3547,7 @@ export class Orchestrator {
         stepIndex = seeded.resumeStartIndex;
         if (seeded.planArtifact) planArtifact = seeded.planArtifact;
         if (seeded.executionArtifact) executionArtifact = seeded.executionArtifact;
-        // Phase D: resuming INTO a per-item band DAG is out of scope this slice -
+        // Checklist DAGs: resuming INTO a per-item band DAG is not supported -
         // the band is run as a unit (per item) by the frontier, so landing the
         // cursor between segFrom and segTo would seed a partial band and stall
         // (a band root's `needs` is unsatisfied). Resuming at/before segFrom
@@ -3567,10 +3567,10 @@ export class Orchestrator {
       // `from`. The gate can sit at the body head so an early APPROVED skips the
       // remaining body (e.g. the default flow's fix) - mirroring run()'s loop.
 
-      // ── Per-item band entry/exit, factored (Phase 3 + D) ──────────────────
+      // ── Per-item band entry/exit, factored ──────────────────
       // The side-effecting bodies of the per-item band entry (scope the segment
       // to one item) and exit (commit/summarize/carry the item) are shared by
-      // BOTH the linear walk and the Phase-D graph band so there is one source of
+      // BOTH the linear walk and the graph band so there is one source of
       // truth for per-item commit. Control flow (jump-back, itemIndex, the
       // step-mode pause) stays inline at the call sites.
       const enterChecklistItem = async (i: number): Promise<void> => {
@@ -3601,7 +3601,7 @@ export class Orchestrator {
             artifactPath: input.artifactStore.relPath(priorAbs),
           });
         }
-        // ── Saga: fresh session + curated packet per step (M2b) ──────────────
+        // ── Saga: fresh session + curated packet per step ──────────────
         // enterChecklistItem fires ONCE per item, at the band head, BEFORE the
         // fix loop. So both effects below are guarded to the item boundary, NOT
         // the fix loop: the session is reset per step (not per fix iteration),
@@ -3660,7 +3660,7 @@ export class Orchestrator {
               }).catch(() => [])
             : [];
           // Re-read the invariants ledger FRESH each step: the between-steps
-          // supervisor (M3d) appends to it after the previous step, so a value
+          // supervisor appends to it after the previous step, so a value
           // cached at band head would be stale by step 2.
           const sagaInvariants = this.taskId
             ? (await roadmap.getTask(this.taskId).catch(() => null))
@@ -3748,7 +3748,7 @@ export class Orchestrator {
           }
         }
         // Summarize the item by the writer's `execution` output when present
-        // (Phase D: the band tail `segTo` may be a read-only join/arbiter whose
+        // (with a band DAG the tail `segTo` may be a read-only join/arbiter whose
         // first output is a verdict, not the build) - fall back to segTo's output.
         const implTok = outputs.has("execution")
           ? "execution"
@@ -3778,7 +3778,7 @@ export class Orchestrator {
           .updateChecklistItem(this.taskId!, item.id, {
             status: "done",
             commitSha,
-            // Saga mode (M1): stamp the step's run + curated outcome so a saga's
+            // Saga mode: stamp the step's run + curated outcome so a saga's
             // checklist records which run executed each step and a one-line
             // result. Reuse the SAME redacted summary already computed for the
             // outcome (no second redaction pass). Non-saga checklist runs leave
@@ -3851,7 +3851,7 @@ export class Orchestrator {
             },
           });
         }
-        // ── Per-item band as a DAG (Phase D): run the band via the frontier ──
+        // ── Per-item band as a DAG: run the band via the frontier ──
         // When the band declares `needs`, run [segFrom..segTo] through the
         // frontier scheduler (read-only fan-out -> serial writer join) instead of
         // the linear walk: once per checklist item, or ONCE for a read-only / N=1
@@ -3965,11 +3965,11 @@ export class Orchestrator {
               throw err;
             }
             // Adopt the frontier's state BEFORE the per-item commit, or the commit
-            // would write a stale copy over the band's per-step writes (P-HIGH-3).
+            // would write a stale copy over the band's per-step writes.
             state = gr.state;
             // Carry the writer's artifacts forward (last item wins). The band's own
             // review/verify decisions are per-item and deliberately NOT propagated:
-            // run-level verdicts come from the linear postlude (P4).
+            // run-level verdicts come from the linear postlude.
             planArtifact = gr.planArtifact ?? planArtifact;
             executionArtifact = gr.executionArtifact ?? executionArtifact;
             // Read the per-item verdict IMMEDIATELY this pass: the run-scoped
@@ -4028,7 +4028,7 @@ export class Orchestrator {
             };
           }
 
-          // ── Saga clean halt (Phase 2 Conductor) ─────────────────────────
+          // ── Saga clean halt (Conductor) ─────────────────────────
           // In saga mode a step whose per-item self-heal is exhausted (still
           // CHANGES_REQUESTED after maxReviewLoops, or BLOCKED) must NOT commit
           // a green-but-broken item and must NOT let a later step build on a
@@ -4074,7 +4074,7 @@ export class Orchestrator {
           if (usingChecklist) {
             const dir = await commitChecklistItem(itemIndex);
             if (dir === "repeat") {
-              // ── Saga budget halt (Phase 2 Conductor, M4) ────────────────
+              // ── Saga budget halt (Conductor) ────────────────
               // A clean step just finished and committed; more steps remain.
               // In saga mode, check the per-saga budget BEFORE starting the
               // next step. This is a BETWEEN-STEPS checkpoint, not a mid-step
@@ -4082,7 +4082,7 @@ export class Orchestrator {
               // by up to its own cost (the only mid-step ceiling is the global
               // DAILY spend cap, enforced pre-turn). On halt, KEEP the
               // completed/committed work (do NOT discardWorktreeChanges - that
-              // differs from the M1 self-heal halt, which resets a FAILED
+              // differs from the self-heal halt, which resets a FAILED
               // step), record the halt, force a BLOCKED verdict, and exit the
               // band so the run ends blocked without the holistic postlude.
               if (this.sagaMode) {
@@ -4123,12 +4123,12 @@ export class Orchestrator {
                   continue;
                 }
 
-                // ── Saga supervisor turn (Phase 2b, M3) ─────────────────
+                // ── Saga supervisor turn (Conductor) ─────────────────
                 // The step committed and is within budget. Before the next
                 // step a cheap model judges PROCEED vs ESCALATE and records
                 // any new cross-cutting invariant into the durable ledger.
                 // ESCALATE halts cleanly KEEPING the committed work (unlike
-                // the M1 self-heal halt, which resets a BROKEN step) - the
+                // the self-heal halt, which resets a BROKEN step) - the
                 // supervisor caught saga-level drift the per-item review
                 // can't see, not a broken step. A failed/unparseable turn
                 // folds to PROCEED (advisory; the per-item review already
@@ -4171,7 +4171,7 @@ export class Orchestrator {
                     stepIndex = steps.length;
                     continue;
                   }
-                  // ── Saga ENHANCE pass (Phase 3) ───────────────────────
+                  // ── Saga ENHANCE pass ───────────────────────
                   // The supervisor judged the plan has diverged from reality.
                   // Re-ground the PENDING steps (refine/reorder/remove) before
                   // the next one. The pass mutates the in-memory pending tail in
@@ -4225,7 +4225,7 @@ export class Orchestrator {
           stepIndex = segTo + 1;
           continue;
         }
-        // ── Per-item band entry (Phase 3, linear band): scope it to this item ──
+        // ── Per-item band entry (linear band): scope it to this item ──
         if (usingChecklist && stepIndex === segFrom) {
           await enterChecklistItem(itemIndex);
         }
@@ -4256,7 +4256,7 @@ export class Orchestrator {
             return;
           }
 
-          // A3 (express): deterministic review descent. A review-turn marked
+          // Express: deterministic review descent. A review-turn marked
           // `skipWhen: "inert_diff"` is skipped ONLY on recorded diff evidence -
           // every changed file strict-prose AND unprotected (review-descent.ts).
           // Model judgment and task text play no part. Read-only runs always
@@ -4706,7 +4706,7 @@ export class Orchestrator {
           });
         };
         await runStep();
-        // ── Rewind phase 2: snapshot the worktree after code-producing steps ──
+        // ── Snapshot the worktree after code-producing steps ──
         // (implement → "executing", fix → "fixing") so a later run can rewind to
         // review/verify/fix with this exact code. Best-effort; never blocks.
         await this.maybeCapturePhaseSnapshot({
@@ -4715,7 +4715,7 @@ export class Orchestrator {
           runId: input.runId,
           eventLog: input.eventLog,
         });
-        // ── Per-item band exit (Phase 3, linear band): commit, summarize, carry ──
+        // ── Per-item band exit (linear band): commit, summarize, carry ──
         // Runs at the segment tail (disjoint from the adaptive loop by schema).
         // The graph band (above) commits via the same closure; only the linear
         // band reaches this site (a graph band already `continue`d).
@@ -4871,10 +4871,10 @@ export class Orchestrator {
       const reviewSatisfiedByEvidence =
         !reviewTurnRan && reviewSkipEvidence !== null && !this.readOnly;
       const mergeReady = computeMergeReady(mergeReadinessInput);
-      // ── Action Broker boundary (S0): run.complete ─────────────────────
+      // ── Action Broker boundary: run.complete ─────────────────────
       // The run's terminal verdict crosses the broker. A non-allow decision
       // cannot reach merge_ready - it downgrades to blocked (fail-closed). The
-      // verdict + evidence anchor the S5 Run Assurance artifact.
+      // verdict + evidence anchor the Run Assurance artifact.
       const completeReq: ActionRequest = {
         runId: input.runId,
         kind: "run.complete",
@@ -5128,7 +5128,7 @@ export class Orchestrator {
       approvalsSummary: summarizeApprovals(approvals),
     }));
 
-    // ── Run Assurance artifact (S5) ───────────────────────────────────────
+    // ── Run Assurance artifact ───────────────────────────────────────
     // Derive a single evidence-backed verdict from the broker log + the run's
     // review/verification decisions and persist runs/<id>/assurance.json.
     // Best-effort: a failure here must never mask the run's real outcome.
@@ -5138,7 +5138,7 @@ export class Orchestrator {
       // assurance is advisory; swallow.
     }
 
-    // ── Project continuity ledger (T9 + Slice 3) ──────────────────────────
+    // ── Project continuity ledger ──────────────────────────
     // Record the run's terminal outcome so a future session can pick up "what
     // shipped" and "what's blocked + how to resume" across runs. Idempotent
     // (keyed by runId) + best-effort - a ledger hiccup never masks the run's
@@ -5530,7 +5530,7 @@ export class Orchestrator {
   }
 
   /**
-   * The between-steps SUPERVISOR turn (Phase 2b, M3). Runs a cheap, READ-ONLY
+   * The between-steps SUPERVISOR turn. Runs a cheap, READ-ONLY
    * model turn (no write grant - all context is in the prompt) that judges
    * whether the saga should PROCEED to the next step or ESCALATE (halt), and
    * records any new cross-cutting INVARIANT into the durable ledger. Pure logic
@@ -5681,7 +5681,7 @@ export class Orchestrator {
     }
 
     const parsed = parseSupervisorDecision(text);
-    // Phase 3: the 3-way decision drives control flow (ENHANCE no longer folds).
+    // The 3-way decision drives control flow (ENHANCE no longer folds).
     // An unparseable turn still folds to PROCEED (advisory guard).
     const verdict = parsed.decision ?? "PROCEED";
     const newInvariants = parseNewInvariants(text);
@@ -5708,7 +5708,7 @@ export class Orchestrator {
     return verdict;
   }
 
-  // The conductor's ENHANCE pass (Phase 3). A plan-only model turn: it re-grounds
+  // The conductor's ENHANCE pass. A plan-only model turn: it re-grounds
   // the PENDING steps against the code as-built and emits a step-diff. On `auto`
   // (refine/reorder/remove of existing ids) it mutates `checklistItems` in place
   // (tail only, `> itemIndex`, so the band's absolute-index addressing survives)
@@ -5994,7 +5994,7 @@ export class Orchestrator {
      */
     cleanRoom?: boolean;
     /**
-     * Per-step skills (P2 / "flow owns skills"): skill ids declared on the flow
+     * Per-step skills ("flow owns skills"): skill ids declared on the flow
      * step, merged (deduped) with the agent's own skills + run-level
      * runtimeSkills for THIS turn only. Omitted/undefined = the step declares no
      * skills (unchanged behaviour).
@@ -6028,7 +6028,7 @@ export class Orchestrator {
     // configured. Using the builtin name guarantees resolution via
     // resolveProfile's builtin fallback even on a project that hasn't defined a
     // read-only profile of its own.
-    // S4 - strict apply-only: a write-capable role runs READ-ONLY (no direct
+    // Strict apply-only: a write-capable role runs READ-ONLY (no direct
     // disk writes); it proposes a diff that Vibestrate applies through the
     // gateway after the turn. Detect write-capability from the role's own
     // profile, then force read_only execution.
@@ -6046,7 +6046,7 @@ export class Orchestrator {
     // Effective provider id: the resolved snapshot already mapped this step's
     // Seat → Role → Profile → Provider, so input.providerId is authoritative.
     // Fall back to the role's Profile's provider if (defensively) absent.
-    // Budget downgrade (U4): when the daily $ cap forced a downgrade, this turn
+    // Budget downgrade: when the daily $ cap forced a downgrade, this turn
     // runs on the cheaper fallback Profile instead of its resolved one.
     const downgradeProfileId =
       this.budgetOverride?.kind === "downgrade"
@@ -6078,7 +6078,7 @@ export class Orchestrator {
 
     const promptTemplate = await loadRolePrompt(this.projectRoot, agent.prompt);
     // Merge the agent's configured skills with the per-run runtimeSkills and the
-    // per-STEP skills (P2 / "flow owns skills") into one deduped, order-preserving
+    // per-STEP skills ("flow owns skills") into one deduped, order-preserving
     // list, scoped to THIS turn (the set is rebuilt per runRole call, so step
     // skills never leak into the next step). All-empty is a no-op, so existing
     // runs keep their exact behavior.
@@ -6152,7 +6152,7 @@ export class Orchestrator {
     const humanAnnotations = renderAnnotationsForPrompt(
       await listAnnotations(this.projectRoot, { status: "open" }),
     );
-    // Continuity ledger (T9): inject the planning-context block into the
+    // Continuity ledger: inject the planning-context block into the
     // PLANNER turn only - it primes the role that decides the approach with
     // where the project stands. Other roles build on the run's own brief, and
     // resumed runs (no planner re-run) correctly skip it. One-shot guards
@@ -6218,7 +6218,7 @@ export class Orchestrator {
 
     const promptName = input.promptName ?? this.defaultPromptName(input.promptIndex, roleId);
     // The artifact is the RECORD copy (and feeds later steps' context + the
-    // P5 control center) - scrub high-precision token shapes before persisting.
+    // control center) - scrub high-precision token shapes before persisting.
     // The prompt actually sent to the provider below is the unredacted local.
     const promptArtifactPathAbs = await ctx.artifactStore.write(
       promptName,
@@ -6248,11 +6248,11 @@ export class Orchestrator {
       data: { roleId, provider: effectiveProviderId, cwd },
     });
 
-    // ── Action Broker boundary (S0) ──────────────────────────────────────
+    // ── Action Broker boundary ──────────────────────────────────────
     // Every provider spawn is decided and recorded as evidence before the
     // child process is started. Fail-closed: a non-allow decision blocks the
-    // run (default policy is allow, so behavior is unchanged until S2 wires
-    // evaluators). The post-execution evidence is appended after runProvider.
+    // run (default policy is allow, so behavior is unchanged until evaluators
+    // are wired). The post-execution evidence is appended after runProvider.
     const actionRequest: ActionRequest = {
       runId: ctx.runId,
       roleId,
@@ -6289,7 +6289,7 @@ export class Orchestrator {
       );
     }
 
-    // ── Post-turn diff gate (S3): pre-turn snapshot ──────────────────────
+    // ── Post-turn diff gate: pre-turn snapshot ──────────────────────
     // For write-capable turns, snapshot the worktree so the diff this turn
     // produces can be evaluated (and rolled back) after the provider returns.
     // Best-effort: a snapshot failure disables the gate for this turn, never
@@ -6298,7 +6298,7 @@ export class Orchestrator {
     if (profile.allowWrite && ctx.worktreePath) {
       preTurnTree = await snapshotWorktree(ctx.worktreePath).catch(() => null);
       if (preTurnTree === null) {
-        // Fail-CLOSED (T14 P4): a write-capable turn with no pre-turn baseline
+        // Fail-CLOSED: a write-capable turn with no pre-turn baseline
         // can't be diff-gated OR rolled back. Refuse it BEFORE the provider runs,
         // so no unevaluated writes ever land - rather than silently skipping the
         // gate (the second fail-open seam the broker fix alone wouldn't close).
@@ -6329,7 +6329,7 @@ export class Orchestrator {
     const outputAdapter = selectOutputAdapter(
       this.config.providers[effectiveProviderId]!,
     );
-    // P2: prefer the typed transcript filter (text/thinking/tool/subagent)
+    // Prefer the typed transcript filter (text/thinking/tool/subagent)
     // over the text-only live filter - it's what lets the live view show the
     // model *working* (tools, thinking) instead of going silent between
     // visible-text stretches. Both are display-only, never the control path.
@@ -6416,7 +6416,7 @@ export class Orchestrator {
           }
         }
       }
-      // ── Provider-native OS sandbox (T14 slice 1) ────────────────────────
+      // ── Provider-native OS sandbox ────────────────────────
       // Only when execution.isolation = "sandboxed". A write-capable seat asks
       // for "workspace-write" (writes confined to the worktree); a read-only
       // seat for "read-only". This is only the REQUEST passed to the provider;
@@ -6449,7 +6449,7 @@ export class Orchestrator {
           // `--permission-mode plan`). A no-op when off or on a write turn.
           hardenReadOnly: this.config.policies?.hardenReadOnlySeats === true,
           model: runtimeProfile?.model ?? undefined,
-          // reduce-effort (U4): drop to the provider's minimum effort if it has one.
+          // reduce-effort: drop to the provider's minimum effort if it has one.
           effort:
             this.budgetOverride?.kind === "reduce-effort"
               ? this.lowestEffort(effectiveProviderId) ?? runtimeProfile?.power ?? undefined
@@ -6460,7 +6460,7 @@ export class Orchestrator {
           timeoutMs: runtimeProfile?.timeoutMs ?? undefined,
           catalog: this.resolvedCatalog,
           mcpConfigPath: mcpConfigAbsPath ?? undefined,
-          // Container/cloud execution (T14 slice 2): run this turn off-host.
+          // Container/cloud execution: run this turn off-host.
           execStrategy: this.execStrategy ?? undefined,
           onChunk: (c) => {
             if (transcriptFilter && c.stream === "stdout") {
@@ -6569,7 +6569,7 @@ export class Orchestrator {
           at: new Date().toISOString(),
         }).catch(() => undefined);
       }
-      // Post-execution evidence for the allowed action (S0 audit trail).
+      // Post-execution evidence for the allowed action (audit trail).
       await this.broker!.record(actionRequest, actionDecision, {
         ok: providerResult.exitCode === 0,
         summary: `provider.spawn ${effectiveProviderId} exited ${providerResult.exitCode}`,
@@ -6662,7 +6662,7 @@ export class Orchestrator {
       this.abortSignal?.removeEventListener("abort", abortFromSignal);
     }
 
-    // ── Post-turn diff gate (S3) ──────────────────────────────────────────
+    // ── Post-turn diff gate ──────────────────────────────────────────
     // The turn ran with write access; evaluate what it wrote. `accept` →
     // continue; `rollback` (deny/unsafe) → restore the worktree to the pre-turn
     // snapshot and block; `approve` (require_approval) → pause for a human via
@@ -6683,7 +6683,7 @@ export class Orchestrator {
         ).catch(() => false);
         // Record the rollback outcome as broker evidence. A failed rollback
         // leaves the worktree dirty - the "rollback failed" summary is what the
-        // Run Assurance artifact (S5) keys on to render the verdict `unsafe`.
+        // Run Assurance artifact keys on to render the verdict `unsafe`.
         await this.broker!.record(
           {
             runId: ctx.runId,
@@ -6768,7 +6768,7 @@ export class Orchestrator {
       redactSecretsInText(outputBody).redacted,
     );
 
-    // ── Apply-only gateway (S4) ───────────────────────────────────────────
+    // ── Apply-only gateway ───────────────────────────────────────────
     // The role ran read-only; apply its proposed diff through the broker. A
     // refusal (unsafe patch / denied policy / failed apply) blocks the run.
     if (applyOnly && ctx.worktreePath) {
@@ -6857,7 +6857,7 @@ export class Orchestrator {
       model: metrics?.model ?? null,
       tokenUsage,
     });
-    // Turn internals (audit Phase C): what the provider did inside this turn,
+    // Turn internals: what the provider did inside this turn,
     // from its raw stream-json stdout (opaque for plain-text providers).
     const internals = extractTurnInternals(providerResult.stdout ?? "");
     const metric: RoleMetrics = {
@@ -6921,7 +6921,7 @@ export class Orchestrator {
     };
   }
 
-  /** A3 express: evaluate the deterministic review descent against the run's
+  /** Express: evaluate the deterministic review descent against the run's
    *  actual diff. Null on any uncertainty (no worktree, diff error) - the
    *  caller then runs the review (fail toward more checking). */
   private async evaluateReviewDescentForWorktree(
@@ -6957,7 +6957,7 @@ export class Orchestrator {
       message: `Validation starting in ${ctx.worktreePath}.`,
     });
 
-    // Proportional validation scoping (proportional-orchestration.md, slice 1):
+    // Proportional validation scoping (proportional-orchestration.md):
     // when the run's entire diff is provably-inert (docs/text/assets) skip the
     // configured code checks - running `pnpm test` for a `.md` change is pure
     // waste. Keyed on the ACTUAL changed files (same uncommitted-vs-HEAD diff the
@@ -6969,7 +6969,7 @@ export class Orchestrator {
       let decision: ReturnType<typeof classifyChangedFilesForValidation> | null = null;
       try {
         const snap = await getDiffSnapshot({ worktreePath: ctx.worktreePath });
-        // A2 floor: a protected path (built-in globs + policies.protectedPaths)
+        // Protected-path floor: a protected path (built-in globs + policies.protectedPaths)
         // is never inert - a workflow .yml or a user-protected .md still
         // validates in full. See orchestrator/protected-paths.ts.
         decision = classifyChangedFilesForValidation(
@@ -7024,7 +7024,7 @@ export class Orchestrator {
         },
       });
     }
-    // P5: the linked card's machine-checkable acceptance commands run as an
+    // The linked card's machine-checkable acceptance commands run as an
     // extra validation pass, feeding the SAME gate (a failure caps merge_ready).
     await this.mergeAcceptanceValidation(results, ctx, input.prefix);
     await ctx.artifactStore.writeJson(input.artifactsName, results);
@@ -7032,7 +7032,7 @@ export class Orchestrator {
   }
 
   /**
-   * P5 acceptance gate (machine half): run the linked roadmap card's
+   * Acceptance gate (machine half): run the linked roadmap card's
    * `acceptanceCommands` (USER-authored - same trust as `commands.validate`) and
    * merge them into `results`, so an unmet machine criterion fails validation and
    * caps the verdict. No-op when there's no linked card / no commands. The prose
@@ -7096,7 +7096,7 @@ export class Orchestrator {
    * configured ⇒ no-op.
    */
   /**
-   * Pause the run for a human at a limit (U5), reusing the standard approval
+   * Pause the run for a human at a limit, reusing the standard approval
    * flow. Returns true if approved (continue), false if rejected (stop/give up).
    * For ATTENDED runs only - the caller must already have checked `!unattended`.
    */
@@ -7132,7 +7132,7 @@ export class Orchestrator {
   }
 
   /**
-   * Count/time budget ceilings (unattended-resilience U1). Checked before every
+   * Count/time budget ceilings (unattended-resilience). Checked before every
    * agent turn. Unlike the dollar cap, these bind WITHOUT measured cost - the
    * reliable backstop for unattended runs where CLI token cost is unmeasured.
    * `onLimit: stop` blocks the run honestly (a __BudgetLimitSignal → "blocked").
@@ -7230,7 +7230,7 @@ export class Orchestrator {
   }
 
   /**
-   * Provider resilience (unattended-resilience U2). Wraps a single provider
+   * Provider resilience (unattended-resilience). Wraps a single provider
    * invocation: a recoverable failure - rate limit (429/quota) or transient blip
    * (5xx, "server temporarily unavailable", overloaded, timeout) - is retried
    * with backoff (rate-limit honors a parsed Retry-After) before the turn's
@@ -7251,8 +7251,8 @@ export class Orchestrator {
     const providers = this.config.providers;
     if (!r || !r.enabled) return runProvider(providers, input.args);
 
-    let usageWaits = 0; // U6: reset-waits used for a usage-limit, separate budget.
-    // ISSUE-002 (B): a retried `open` session must not re-send an id a prior
+    let usageWaits = 0; // reset-waits used for a usage-limit, separate budget.
+    // A retried `open` session must not re-send an id a prior
     // attempt already opened (claude: "Session ID <U> is already in use."). Track
     // whether an open was ever issued across the WHOLE loop - NOT keyed off
     // `attempt`, which resets to 0 on the onExhausted=pause human-approval round
@@ -7297,7 +7297,7 @@ export class Orchestrator {
       };
       if (cls === "hard") return giveUp();
 
-      // Usage limit / quota (U6): a windowed quota that resets (often hours out),
+      // Usage limit / quota: a windowed quota that resets (often hours out),
       // handled separately from the seconds-scale rate-limit/transient backoff.
       if (cls === "usage-limit") {
         const ul = r.usageLimit;
@@ -7402,7 +7402,7 @@ export class Orchestrator {
   }
 
   /**
-   * Resilience fallback (U3 + U8): after retries for a recoverable class are
+   * Resilience fallback: after retries for a recoverable class are
    * exhausted, run the turn once on an alternate Profile (a different model that
    * may not be limited/down). The profile is the explicitly configured
    * fallbackProfile when set; otherwise one is auto-derived per
@@ -7544,7 +7544,7 @@ export class Orchestrator {
     const at = `Daily spend ~$${dailySpendUsd.toFixed(2)} reached the $${cap}/day cap`;
 
     // Already applied a continue-action this run? Keep going - the hard
-    // count/time ceilings (U1) are the ultimate stop, so we don't re-decide or
+    // count/time ceilings are the ultimate stop, so we don't re-decide or
     // re-notify every turn once downgraded.
     if (this.budgetOverride) return;
 
@@ -7588,7 +7588,7 @@ export class Orchestrator {
       message: `${at}. Stopping per budget policy (capAction=${budget.capAction}).`,
       data: { action: "stop", dailySpendUsd, cap },
     });
-    // A6: notify on cap-hit so it reaches the user's local gateways (in-app/CLI).
+    // Notify on cap-hit so it reaches the user's local gateways (in-app/CLI).
     const notify = (this as unknown as { _notify?: (d: NotificationDraft) => void })._notify;
     notify?.(
       draftSpendCapHit({

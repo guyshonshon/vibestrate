@@ -197,8 +197,8 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
     },
   );
 
-  // Lock down to localhost + block cross-site CSRF on state-changing routes
-  // (ISSUE-004). Two layers:
+  // Lock down to localhost + block cross-site CSRF on state-changing routes.
+  // Two layers:
   //   1. Origin: when present it must resolve to a local host - and a MALFORMED
   //      Origin is now refused (fail-closed), not waved through.
   //   2. Sec-Fetch-Site: on mutating methods, reject a request a browser marked

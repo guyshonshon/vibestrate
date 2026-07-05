@@ -21,7 +21,7 @@ export function shortRunId(runId: string): string {
   return m ? m[1]! : runId;
 }
 
-/** The friendly run label (T6): the editable display name, falling back to the
+/** The friendly run label: the editable display name, falling back to the
  *  task for older runs that predate it. */
 export function runLabel(run: { displayName?: string | null; task: string }): string {
   return run.displayName || run.task;

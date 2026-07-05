@@ -66,7 +66,7 @@ export async function runValidationCommands(input: {
   cwd: string;
   store: ArtifactStore;
   prefix?: string;
-  /** S0 Action Broker - when provided, every command.run crosses the boundary
+  /** Action Broker - when provided, every command.run crosses the boundary
    *  (fail-closed: a deny records the denial and skips the command). */
   broker?: ActionBroker;
   runId?: string;
@@ -92,7 +92,7 @@ export async function runValidationCommands(input: {
     const stdoutRel = `${baseRel}.stdout.txt`;
     const stderrRel = `${baseRel}.stderr.txt`;
 
-    // ── Action Broker boundary (S0): command.run ──────────────────────────
+    // ── Action Broker boundary: command.run ──────────────────────────
     // Fail-closed: a non-allow verdict records the denial and skips the command
     // (recorded as a failed result so the summary stays honest).
     const action: ActionRequest | null =

@@ -107,7 +107,7 @@ export async function capturePhaseSnapshot(input: {
     const existing = await readPhaseSnapshots(projectRoot, runId);
     const treeSha = await snapshotWorktree(worktree);
     const message = `vibestrate snapshot: run ${runId} stage ${stage}`;
-    // Ref hygiene (ISSUE-001 P3): ONE ref per run instead of one per phase.
+    // Ref hygiene: ONE ref per run instead of one per phase.
     // Chain each snapshot commit to the previous (commit-tree -p <prev>) and keep
     // a single ref at the tip - the parent chain keeps every earlier snapshot's
     // tree/blobs reachable across gc, so restore-by-treeSha still works for any
@@ -182,7 +182,7 @@ async function realpathOr(p: string): Promise<string> {
  * Decide whether `worktree` is a safe DESTRUCTIVE-restore target. Restore runs
  * `checkout-index -f` + `clean -fd`, so it must only ever touch a dedicated,
  * throwaway run worktree - never the user's checkout or some unrelated dir. Three
- * positive assertions (ISSUE-001 P2 - "≠ root" alone was too weak):
+ * positive assertions ("≠ root" alone was too weak):
  *   1. not the project root itself;
  *   2. strictly inside the configured `git.worktreeDir` base (a mis-set
  *      worktreeDir pointing at a meaningful sibling can't be restored into);
@@ -259,7 +259,7 @@ function mapDiffStatus(code: string): RestorePreviewFile["status"] {
 }
 
 /**
- * Non-destructive DRY-RUN of a downstream rewind restore (ISSUE-001 P2): the
+ * Non-destructive DRY-RUN of a downstream rewind restore: the
  * overwrite/remove set a restore WOULD apply, computed as the diff between the
  * snapshot tree and the ref the fresh rewind worktree forks from (HEAD by
  * default). `added`/`modified` files the restore would write; `deleted` files it
@@ -348,7 +348,7 @@ export function selectOrphanedSnapshotRuns(
 }
 
 /**
- * Delete snapshot refs whose run directory is gone (ISSUE-001 P1). The tool has
+ * Delete snapshot refs whose run directory is gone. The tool has
  * NO run-delete path (runs are never purged behind the user's back), so this
  * only ever cleans refs orphaned out-of-band (a run dir removed manually). It is
  * NOT automatic: the caller runs it only under the user's opt-in
@@ -479,7 +479,7 @@ export function selectStaleSnapshotRuns(
 }
 
 /**
- * Prune rewind-snapshot refs so `.git` can't grow without bound (ISSUE-001 #1):
+ * Prune rewind-snapshot refs so `.git` can't grow without bound:
  * keep the `keepRuns` most-recent runs' snapshots, delete the rest. Only refs
  * are removed (the runs' branches/worktrees/artifacts are untouched, and git's
  * reflog keeps the objects through its gc grace), and recent runs stay fully
@@ -565,7 +565,7 @@ export type SnapshotPrunePlan = {
 };
 
 /**
- * EXPLICIT manual prune planning (ISSUE-001 P1, `vibe runs prune`). Computes
+ * EXPLICIT manual prune planning (`vibe runs prune`). Computes
  * which runs' snapshot refs a prune would delete for the given scope - READ-ONLY,
  * deletes nothing. The caller (CLI/API) shows this plan and only deletes on the
  * user's confirmation (explicit consent; the tool never purges on its own).

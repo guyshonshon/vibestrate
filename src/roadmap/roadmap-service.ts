@@ -270,7 +270,7 @@ export class RoadmapService {
     return next;
   }
 
-  /** Saga conductor (Phase 2): record a clean halt - set sagaState to "halted"
+  /** Saga conductor: record a clean halt - set sagaState to "halted"
    *  and stamp the halt record. The halted step's checklist status is left for
    *  the conductor to manage (it resets it to "pending" so a resume re-attempts
    *  the step from the clean branch tip). */
@@ -287,7 +287,7 @@ export class RoadmapService {
     return next;
   }
 
-  /** Saga conductor (Phase 2): set the saga lifecycle state (sequencing on
+  /** Saga conductor: set the saga lifecycle state (sequencing on
    *  launch, done on clean completion). Moving to "sequencing" (a resume) or
    *  "done" (clean completion) also clears any prior `sagaHalt` - otherwise a
    *  recovered saga would end with a stale halt record contradicting its state.
@@ -313,7 +313,7 @@ export class RoadmapService {
     return next;
   }
 
-  /** Saga conductor (Phase 2b, M3): append new cross-cutting invariants the
+  /** Saga conductor: append new cross-cutting invariants the
    *  supervisor recorded to the durable, non-folding ledger. Append-only +
    *  redacted + deduped + bounded via `appendInvariants` (the secret-shaped text
    *  is scrubbed before it lands on disk). A no-op write when nothing new
@@ -333,7 +333,7 @@ export class RoadmapService {
     return next;
   }
 
-  /** Saga conductor (Phase 3 Enhance): persist the revised pending-plan overlay
+  /** Saga conductor (Enhance): persist the revised pending-plan overlay
    *  in ONE atomic write. The conductor's Enhance pass mutates only the
    *  in-memory pending steps and records the result HERE - never into
    *  `checklist` - so the resume guard (which compares `checklist` ids) is left
@@ -354,7 +354,7 @@ export class RoadmapService {
     return next;
   }
 
-  /** Saga conductor (Phase 3 Enhance): on clean saga completion, fold the
+  /** Saga conductor (Enhance): on clean saga completion, fold the
    *  pending overlay back into `checklist` and clear it, in ONE write. Refined
    *  fields are patched onto the matching items by id; a still-pending item the
    *  overlay dropped (a conductor `remove`, never executed) is removed from the
@@ -599,7 +599,7 @@ export class RoadmapService {
     return next;
   }
 
-  /** Replace a task's context sources (Phase 4). */
+  /** Replace a task's context sources. */
   async setContextSources(
     taskId: string,
     sources: import("../core/context-source-schema.js").ContextSource[],
@@ -703,7 +703,7 @@ export class RoadmapService {
     const next: Task = {
       ...task,
       checklist,
-      // Phase 3 Enhance: a STRUCTURAL checklist edit (add / remove / reorder /
+      // A STRUCTURAL checklist edit (add / remove / reorder /
       // a step's text or fields) invalidates any conductor pending overlay - it
       // was computed against the pre-edit plan. Clearing it here is the root-
       // cause guard against a stale overlay silently dropping an owner-added
@@ -726,7 +726,7 @@ export class RoadmapService {
       objective?: string;
       acceptanceCheck?: string;
       fileHints?: string[];
-      // Phase 3 Enhance: who authored this step. Defaults to "owner" (a human
+      // Who authored this step. Defaults to "owner" (a human
       // add via the board/CLI); the manual `vibe saga enhance --apply` ADD path
       // passes "conductor" to mark an AI-proposed (owner-approved-once) step.
       provenance?: Provenance;

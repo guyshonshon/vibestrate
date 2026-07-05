@@ -1,10 +1,10 @@
 import type { LedgerState } from "../core/project-ledger.js";
 
-// ── Deterministic consult sections (T10) ─────────────────────────────────────
+// ── Deterministic consult sections ───────────────────────────────────────────
 //
 // The consult answer used to be whatever the LLM volunteered, so "what should I
 // do next / what did we mention but never do" was non-deterministic. These
-// sections are COMPUTED IN CODE from the project ledger (T9) + roadmap + run
+// sections are COMPUTED IN CODE from the project ledger + roadmap + run
 // history; the LLM only narrates/ranks them. Same inputs => same sections, so
 // it's testable. Pure - no disk, no clock.
 

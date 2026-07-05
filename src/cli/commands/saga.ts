@@ -226,7 +226,7 @@ export async function cmdSequence(
     return 1;
   }
 
-  // Mark the lifecycle as sequencing. M1/M4 own the transition to "halted"
+  // Mark the lifecycle as sequencing. The run owns the transition to "halted"
   // (from inside the run); we never overwrite that.
   await s.setSagaState(taskId, "sequencing");
 
@@ -268,7 +268,7 @@ export async function cmdSequence(
   let halted = after?.supervised.state === "halted";
   if (!halted) {
     if (code === 0) {
-      // Phase 3 Enhance: fold any conductor-revised pending plan back into the
+      // Enhance: fold any conductor-revised pending plan back into the
       // checklist and clear the overlay (a no-op when none). Only on CLEAN
       // completion - a halt keeps the overlay so a re-sequence continues the
       // revised plan (the orchestrator re-applies it on start).

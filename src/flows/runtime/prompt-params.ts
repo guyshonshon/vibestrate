@@ -1,6 +1,6 @@
 import type { FlowParam } from "../schemas/flow-schema.js";
 
-// ── Flow parameter resolution + substitution (T11) ───────────────────────────
+// ── Flow parameter resolution + substitution ─────────────────────────────────
 //
 // A flow declares typed `params:`; the caller fills them at run start (CLI
 // flags, interactive prompts, or a dashboard form). They substitute into the

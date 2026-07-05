@@ -68,7 +68,7 @@ export const flowRunStepStateSchema = z
       .nullable()
       .default(null),
     seat: z.string().nullable().default(null),
-    // DAG dependencies (Slice 4): the step ids this step waits on. Empty for
+    // DAG dependencies: the step ids this step waits on. Empty for
     // linear flows. Carried on the run state so the dashboard can draw the graph
     // (concurrent review-panel branches + their join) with live per-step status.
     needs: z.array(z.string()).default([]),
@@ -104,7 +104,7 @@ export type FlowRunState = z.infer<typeof flowRunStateSchema>;
 export const runStateSchema = z.object({
   runId: z.string().min(1),
   task: z.string().min(1),
-  /** A friendly, editable run label (T6). The runId stays the stable
+  /** A friendly, editable run label. The runId stays the stable
    *  identifier; this is just nicer to read in lists/headers. Defaults to the
    *  first words of the task; `vibe rename` / the UI overrides it. Nullable +
    *  defaulted so older run state files (which predate it) still parse. */
@@ -118,7 +118,7 @@ export const runStateSchema = z.object({
   startedAt: z.string(),
   updatedAt: z.string(),
   finalDecision: reviewDecisionSchema.nullable().default(null),
-  // A3 express: set ONLY by the deterministic inert-diff evaluator when a
+  // Express: set ONLY by the deterministic inert-diff evaluator when a
   // `skipWhen: "inert_diff"` review-turn was skipped on recorded diff evidence
   // (strict-prose, unprotected files). Feeds assurance `review:
   // skipped_inert_diff` + the merge-readiness predicate. Null everywhere else.
@@ -160,12 +160,12 @@ export const runStateSchema = z.object({
   /** Seat → Role overrides used to disambiguate seats filled by >1 role. */
   seatRoleOverrides: z.record(z.string(), z.string()).default({}),
   readOnly: z.boolean().default(false),
-  /** The RESOLVED permission mode (T14 P4) that governed this run - recorded so
+  /** The RESOLVED permission mode that governed this run - recorded so
    *  reports reflect the policy actually enforced, not the request. */
   permissionMode: z
     .enum(["read-only", "ask", "accept-edits", "auto"])
     .optional(),
-  /** Resolved flow parameter values (T11), name -> value. Secret params are
+  /** Resolved flow parameter values, name -> value. Secret params are
    *  recorded as "[secret]" - the real value never lands on disk. */
   params: z
     .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
@@ -203,26 +203,26 @@ export const runStateSchema = z.object({
     })
     .nullable()
     .default(null),
-  // Non-blocking "a human should look at this" advisory (Phase 3). Set when a
+  // Non-blocking "a human should look at this" advisory. Set when a
   // reviewer/verifier emits HUMAN_REVIEW: ADVISORY. Does NOT change the run's
   // terminal verdict; it flags the linked card for human testing.
   needsTesting: z
     .object({ reason: z.string().nullable() })
     .nullable()
     .default(null),
-  // Context sources (Phase 4): the files/URLs attached to this run's prompts.
+  // Context sources: the files/URLs attached to this run's prompts.
   // Recorded for display; the materialized content lives under
   // runs/<id>/artifacts/context/.
   contextSources: z.array(contextSourceSchema).default([]),
-  // Pick-up execution (Phase 3): how the per-item checklist band advances.
+  // Pick-up execution: how the per-item checklist band advances.
   // "continuous" runs items back-to-back; "step" pauses between items for a
   // human. null when the run isn't iterating a checklist.
   checklistMode: z.enum(["continuous", "step"]).nullable().default(null),
-  // Saga mode (Phase 2 Conductor): this run is a supervised saga - a step that
+  // Saga mode (the Conductor): this run is a supervised saga - a step that
   // exhausts self-heal halts the run cleanly (no green-but-broken commit) and
   // each step starts a fresh model context. Defaulted for older runs.
   sagaMode: z.boolean().default(false),
-  // Per-saga budget envelope (Phase 2 Conductor, M4): bounds the saga's TOTAL
+  // Per-saga budget envelope (the Conductor): bounds the saga's TOTAL
   // cost/length, enforced BETWEEN steps. Null fields mean no limit on that axis.
   // Defaulted (no limits) for non-saga and older runs.
   sagaBudget: runBudgetSchema.default({}),
@@ -328,7 +328,7 @@ const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
     "verifying",
     "waiting_for_approval",
     "paused",
-    // Express (A3) skips review on recorded inert-diff evidence, so a run
+    // Express skips review on recorded inert-diff evidence, so a run
     // whose last executed step is validation goes terminal from here - the
     // skip is evidence, not absence (assurance still caps the verdict).
     "merge_ready",
@@ -356,7 +356,7 @@ const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
     "verifying",
     "waiting_for_approval",
     "paused",
-    // Belt-and-suspenders (P4): a flow that ends merge-ready at the fixing stage
+    // Belt-and-suspenders: a flow that ends merge-ready at the fixing stage
     // (e.g. a response-turn terminal) - including via the accept-edits approval
     // hold's resume - can reach merge_ready. Gated by computeMergeReady like every
     // other stage, so a write flow stuck at fixing without review still blocks.
@@ -503,7 +503,7 @@ export class RunStateStore {
   }
 }
 
-/** Set a run's friendly display name (T6). Reads the freshest state immediately
+/** Set a run's friendly display name. Reads the freshest state immediately
  *  before writing so a concurrent orchestrator write isn't reverted - the
  *  display name is cosmetic, and terminal runs (the common rename target) have
  *  no concurrent writer. Throws if the run doesn't exist or the name is empty. */

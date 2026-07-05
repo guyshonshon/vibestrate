@@ -46,7 +46,7 @@ const ANSWERED_PATH = "flows/intake/answered.json";
 const IDEA_PATH = "00-idea.md";
 const ANSWERS_PATH = "spec-up-answers.md";
 const SYNTHESIZE_OUTPUT_PATH = "flows/synthesize/output.md";
-/** The flow to BUILD after spec-up (P1), written at run start by the orchestrator
+/** The flow to BUILD after spec-up, written at run start by the orchestrator
  *  and carried across the detached chain (intake -> spec-up -> build). */
 const TARGET_FLOW_PATH = "spec-up-target-flow.json";
 /** Deep-questioning loop (server-owned): the current round, written at run start
@@ -70,7 +70,7 @@ export const APPROVED_SPEC_PATH = "spec-up-approved-spec.md";
  *  Exported as the editable-section set for the guarded artifact-edit service. */
 export const SPEC_UP_SPEC_STEPS = ["scope", "spec", "architecture", "risks"] as const;
 
-/** Read the carried build-target flow id (P1) from a run's sidecar, or null. */
+/** Read the carried build-target flow id from a run's sidecar, or null. */
 async function readTargetFlowId(
   store: ArtifactStore,
 ): Promise<string | null> {
@@ -173,7 +173,7 @@ export type PendingSpecUpQuestions = {
   questions: ServedSpecUpQuestion[];
   /** The original brief, carried forward as the spec-up run's task. */
   task: string;
-  /** Adaptive spec-up (P1): the flow to BUILD once the spec is approved, carried
+  /** Adaptive spec-up: the flow to BUILD once the spec is approved, carried
    *  from the run that triggered spec-up. null = no bound flow (build with the
    *  project default at approve time). */
   targetFlowId: string | null;
@@ -361,7 +361,7 @@ export async function readAccumulatedAnswers(
 /**
  * Terminal handoff: launch the `spec-up` flow seeded with the accumulated answers
  * (the union of every round) as a `file` contextSource, carrying the chosen build
- * flow forward (P1). Shared by submit (finalize branch) and proceed.
+ * flow forward. Shared by submit (finalize branch) and proceed.
  */
 async function finalizeSpecUpSpec(input: {
   projectRoot: string;
@@ -386,7 +386,7 @@ async function finalizeSpecUpSpec(input: {
     task: input.task || "Spec up this work (brief carried from intake).",
     runId,
     // A spec-up-phase run: never re-shaped (loop guard). The chosen build flow is
-    // carried forward so the `approve & build` handoff can target it (P1).
+    // carried forward so the `approve & build` handoff can target it.
     specUpPhase: true,
     specUpTargetFlowId: input.targetFlowId,
     // Carry the persona so the spec-up agents (scope/spec/architecture) inherit its
@@ -544,7 +544,7 @@ export async function approveSpecUpAndStartRoadmap(input: {
 }
 
 /**
- * Approve the spec-up draft and BUILD it (P1). Reads the spec-up run's spec outputs
+ * Approve the spec-up draft and BUILD it. Reads the spec-up run's spec outputs
  * (scope / spec / architecture / risks), concatenates them into one approved-spec
  * artifact, and launches the CHOSEN flow (carried via the spec-up-target sidecar,
  * or `fallbackFlowId` / the caller's override) seeded with that spec as a `file`
@@ -588,7 +588,7 @@ export async function approveSpecUpAndBuild(input: {
 
   // Assemble the approved spec from the spec-up run's spec-producing steps. Fail
   // fast if NONE produced content - launching a build with empty context would
-  // silently re-derive from the bare task (the P1 keystone failure).
+  // silently re-derive from the bare task (the keystone failure this guards against).
   const sections: string[] = [];
   for (const step of SPEC_UP_SPEC_STEPS) {
     const p = `flows/${step}/output.md`;
@@ -661,7 +661,7 @@ export async function startSpecUpIntake(input: {
   projectRoot: string;
   task: string;
   persona?: string | null;
-  /** Adaptive spec-up (P1): the flow to BUILD once the spec is approved, carried to
+  /** Adaptive spec-up: the flow to BUILD once the spec is approved, carried to
    *  the `approve & build` handoff. null = build with the project default. */
   targetFlowId?: string | null;
 }): Promise<{ runId: string; pid: number | null }> {

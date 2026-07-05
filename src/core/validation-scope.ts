@@ -1,4 +1,4 @@
-// Proportional validation scoping (proportional-orchestration.md, slice 1 / B3).
+// Proportional validation scoping (proportional-orchestration.md).
 //
 // The orchestrator should not run a project's code checks (tests, typecheck,
 // lint) for a change that is only documentation/text/assets. This module makes
@@ -64,7 +64,7 @@ export type ValidationScopeDecision = {
 
 export type ValidationScopeOptions = {
   /**
-   * A2 floor (protected-paths.ts): when provided, a path this returns true for
+   * Protected-path floor (protected-paths.ts): when provided, a path this returns true for
    * is NEVER inert, whatever its extension - a protected `.md` (e.g. under
    * `.github/workflows/` or a user-protected dir) still validates. Optional so
    * the classifier stays pure and the caller owns the config.

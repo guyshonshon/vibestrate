@@ -7,7 +7,7 @@ import {
   type StartupStageStatus,
 } from "../../lib/run-startup.js";
 
-// ── Staged startup checklist (T7) ────────────────────────────────────────────
+// ── Staged startup checklist ────────────────────────────────────────────
 // Between "run created" and the first agent turn the orchestrator creates the
 // worktree, links the environment, materializes context, and spawns the
 // provider. This renders those `run.startup` events as a live checklist so a

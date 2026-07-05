@@ -53,7 +53,7 @@ export function killProcessTree(
     const runTaskkill =
       deps.runTaskkill ??
       ((p: number): void => {
-        // Don't fail silently (P1 Tier-2 follow-up): if taskkill can't be
+        // Don't fail silently: if taskkill can't be
         // SPAWNED at all (missing from PATH / unspawnable), fall back to a direct
         // single-process kill so the process isn't left alive unnoticed.
         // Best-effort and deliberately narrow: this does NOT cover taskkill

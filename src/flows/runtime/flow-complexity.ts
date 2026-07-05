@@ -1,4 +1,4 @@
-// ── Flow-complexity warning (Phase 3 C1) ────────────────────────────────────
+// ── Flow-complexity warning ──────────────────────────────────────────────────
 //
 // A flow has a "weight class" (low/medium/high). Compared against the task's
 // estimated effort, we can warn when a heavy flow is run against a light task
@@ -47,7 +47,7 @@ export type FlowFanoutAdvice = {
 };
 
 /**
- * Fan-out cost warning (Slice 4): a graph flow that runs N agents in parallel
+ * Fan-out cost warning: a graph flow that runs N agents in parallel
  * multiplies spend, and each turn is an opaque box that may itself parallelize -
  * so the real footprint can exceed the per-turn estimate. Say so loudly. Returns
  * a null message for linear flows (no fan-out). See custom-workflow-dags.md.

@@ -34,7 +34,7 @@ export type ProviderRunResult = {
    */
   appliedReadOnlyHardening?: boolean;
   /**
-   * Where this turn ACTUALLY ran (T14 slice 2): "container" only when the turn
+   * Where this turn ACTUALLY ran: "container" only when the turn
    * was wrapped through `docker exec` against the run's container, "host"
    * otherwise. The assurance posture keys off this - it never claims a container
    * a turn didn't run in. Absent ⇒ host (unchanged).
@@ -104,7 +104,7 @@ export type ProviderRunInput = {
    */
   hardenReadOnly?: boolean;
   /**
-   * Requested OS-level filesystem sandbox for this turn (T14 slice 1), or
+   * Requested OS-level filesystem sandbox for this turn, or
    * null/omitted for none. Set by the orchestrator only when
    * `execution.isolation` is "sandboxed": a write-capable seat asks for
    * "workspace-write" (writes confined to the worktree/cwd), a read-only seat
@@ -148,7 +148,7 @@ export type ProviderRunInput = {
    */
   timeoutMs?: number | null;
   /**
-   * Container/cloud execution strategy (T14 slice 2). When set, the turn's spawn
+   * Container/cloud execution strategy. When set, the turn's spawn
    * is rewritten through it (e.g. `docker exec` into the run's container) instead
    * of running on the host. Omitted ⇒ run on the host as before.
    */

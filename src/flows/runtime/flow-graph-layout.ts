@@ -1,4 +1,4 @@
-// Pure topological layering for a Flow's dependency graph (Slice 4 DAG).
+// Pure topological layering for a Flow's dependency graph (DAG).
 // Kept dependency-free so every surface can share one layout: the web
 // dashboard (`FlowGraph.tsx`), the `vibe flows show` CLI, and the Ink TUI
 // flow page. Steps are placed in longest-path layers; steps that share a
@@ -42,7 +42,7 @@ export function layersOf<T extends GraphLayoutStep>(steps: readonly T[]): T[][] 
   return out;
 }
 
-// One zone of a checklist + graph flow (Phase D, custom-workflow-dags.md). The
+// One zone of a checklist + graph flow (custom-workflow-dags.md). The
 // flow splits into a prelude (runs once), the per-item band (a DAG repeated once
 // per checklist item), and a postlude (runs once). Renderers draw the band
 // boundary + its "repeats per item" nature so a reader sees both the parallelism
