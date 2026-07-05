@@ -17,7 +17,6 @@ import { CodebasePage } from "./routes/CodebasePage.js";
 import { GitPage } from "./routes/GitPage.js";
 import { GitTreePage } from "./routes/GitTreePage.js";
 import { MergePage } from "./routes/MergePage.js";
-import { LedgerPage } from "./routes/LedgerPage.js";
 import { ConsultDock } from "../components/consult/ConsultDock.js";
 import { FlowBuilderPage } from "./routes/FlowBuilderPage.js";
 import { FlowsPage } from "./routes/FlowsPage.js";
@@ -261,7 +260,9 @@ export function App() {
       bare={route.kind === "control"}
       currentRunId={route.kind === "run" ? route.runId : null}
       currentNav={
-        route.kind === "board" || route.kind === "task"
+        route.kind === "board" ||
+        route.kind === "task" ||
+        route.kind === "ledger"
           ? "board"
           : route.kind === "workspace"
             ? "workspace"
@@ -281,8 +282,6 @@ export function App() {
                         ? "git-tree"
                       : route.kind === "merge"
                         ? "merge"
-                        : route.kind === "ledger"
-                          ? "ledger"
                       : route.kind === "flow" || route.kind === "flows"
                         ? "flows"
                         : route.kind === "metrics"
@@ -330,7 +329,6 @@ export function App() {
       onShowGit={() => navigate({ kind: "git", runId: null })}
       onShowGitTree={() => navigate({ kind: "git-tree" })}
       onShowMerge={() => navigate({ kind: "merge", runId: null })}
-      onShowLedger={() => navigate({ kind: "ledger" })}
       onOpenNotification={(n) => navigate(notificationRoute(n))}
     >
       <ErrorBoundary resetKey={pageKey}>
@@ -365,7 +363,14 @@ export function App() {
           replayFocus={route.replayFocus ?? null}
         />
       ) : route.kind === "board" ? (
-        <BoardPage onOpenTask={(taskId) => navigate({ kind: "task", taskId })} />
+        <BoardPage
+          tab="board"
+          onSwitchTab={(t) =>
+            navigate(t === "ledger" ? { kind: "ledger" } : { kind: "board" })
+          }
+          onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
+          onOpenRun={(runId) => navigate({ kind: "run", runId })}
+        />
       ) : route.kind === "task" ? (
         <TaskDetailPage
           taskId={route.taskId}
@@ -414,7 +419,14 @@ export function App() {
           onOpenRun={(runId) => navigate({ kind: "run", runId })}
         />
       ) : route.kind === "ledger" ? (
-        <LedgerPage onOpenRun={(runId) => navigate({ kind: "run", runId })} />
+        <BoardPage
+          tab="ledger"
+          onSwitchTab={(t) =>
+            navigate(t === "ledger" ? { kind: "ledger" } : { kind: "board" })
+          }
+          onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
+          onOpenRun={(runId) => navigate({ kind: "run", runId })}
+        />
       ) : route.kind === "flow" ? (
         <FlowBuilderPage
           initialFlowId={route.flowId}

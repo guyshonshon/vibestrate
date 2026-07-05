@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.58.0
+
+- **The Ledger is now a tab on the Board.** The project's continuity log (what
+  shipped, open intents, follow-ups, flagged runs, decisions on record) moved
+  from its own nav item to a **Board / Ledger** tab, so the record sits next to
+  the work it describes. It was also restyled onto the new design system in the
+  move. Old `/ledger` deep-links still resolve to the tab. The segmented Board /
+  Ledger and Crews / Providers toggles now share one `SegmentedControl` so they
+  can't drift apart.
+
 ## 0.57.0
 
 - **Providers now live inside Crew.** The standalone Providers page is gone; Crew

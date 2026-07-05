@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  BookMarked,
   ChevronDown,
   ChevronUp,
   FileText,
@@ -49,7 +48,6 @@ type Props = {
   onShowGit: () => void;
   onShowGitTree: () => void;
   onShowMerge: () => void;
-  onShowLedger: () => void;
   onShowSettings: () => void;
   onShowPolicies: () => void;
   onOpenNotification: (n: NotificationRecord) => void;
@@ -97,7 +95,6 @@ export function Sidebar({
   onShowGit,
   onShowGitTree,
   onShowMerge,
-  onShowLedger,
   onShowSettings,
   onShowPolicies,
   onOpenNotification,
@@ -136,7 +133,6 @@ export function Sidebar({
           "git",
           "merge",
           "supervisors",
-          "ledger",
           "proposals",
           "project",
           "config",
@@ -272,7 +268,6 @@ export function Sidebar({
             <MoreItem icon={<GitMerge className="h-4 w-4" strokeWidth={1.9} />} label="Merge" active={currentNav === "merge"} onClick={onShowMerge} />
             <MoreItem icon={<ShieldCheck className="h-4 w-4" strokeWidth={1.9} />} label="Supervisors" active={currentNav === "supervisors"} onClick={onShowSupervisors} />
             <MoreItem icon={<Scale className="h-4 w-4" strokeWidth={1.9} />} label="Policies" active={currentNav === "policies"} onClick={onShowPolicies} />
-            <MoreItem icon={<BookMarked className="h-4 w-4" strokeWidth={1.9} />} label="Ledger" active={currentNav === "ledger"} onClick={onShowLedger} />
             <MoreItem icon={<FileText className="h-4 w-4" strokeWidth={1.9} />} label="Proposals" active={currentNav === "proposals"} onClick={onShowProposals} />
             <MoreItem icon={<Folder className="h-4 w-4" strokeWidth={1.9} />} label="Project" active={currentNav === "project"} onClick={onShowProject} />
             <MoreItem icon={<Settings2 className="h-4 w-4" strokeWidth={1.9} />} label="Config" active={currentNav === "config"} onClick={onShowConfig} />

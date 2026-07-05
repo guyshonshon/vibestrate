@@ -51,7 +51,17 @@ import type { ChipTone } from "../../components/design/Chip.js";
 import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
 import { MetricCard } from "../../components/design/MetricCard.js";
+import { SegmentedControl } from "../../components/design/SegmentedControl.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { LedgerView } from "../../components/ledger/LedgerView.js";
+
+// The Board's top-level tabs: the kanban itself, or the project ledger folded in
+// here (the standalone Ledger nav item was retired). An interactive switch.
+export type BoardTab = "board" | "ledger";
+const BOARD_TABS: { value: BoardTab; label: string }[] = [
+  { value: "board", label: "Board" },
+  { value: "ledger", label: "Ledger" },
+];
 
 // ── Columns ──────────────────────────────────────────────────────────────
 
@@ -147,9 +157,16 @@ function roleTone(id: string): ChipTone {
 // ── Page ─────────────────────────────────────────────────────────────────
 
 export function BoardPage({
+  tab = "board",
+  onSwitchTab,
   onOpenTask,
+  onOpenRun,
 }: {
+  /** Which top-level tab is active: the kanban board or the ledger. */
+  tab?: BoardTab;
+  onSwitchTab: (tab: BoardTab) => void;
   onOpenTask: (taskId: string) => void;
+  onOpenRun: (runId: string) => void;
 }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [items, setItems] = useState<RoadmapItem[]>([]);
@@ -396,9 +413,35 @@ export function BoardPage({
     return { active, waiting, blocked, done };
   }, [tasks]);
 
+  const tabControl = (
+    <SegmentedControl
+      className="mt-3"
+      options={BOARD_TABS}
+      value={tab}
+      onChange={onSwitchTab}
+    />
+  );
+
+  // The ledger tab reuses the same page shell + header (title "Board" + the
+  // segmented control); its body is the self-scrolling LedgerView. Board-data
+  // errors (listTasks) don't gate it - it fetches its own state.
+  if (tab === "ledger") {
+    return (
+      <PageShell variant="fill">
+        <PageHeader className="mb-4" title="Board">
+          {tabControl}
+        </PageHeader>
+        <LedgerView onOpenRun={onOpenRun} />
+      </PageShell>
+    );
+  }
+
   if (error) {
     return (
-      <PageShell>
+      <PageShell variant="fill">
+        <PageHeader className="mb-4" title="Board">
+          {tabControl}
+        </PageHeader>
         <div className="rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
           {error}
         </div>
@@ -527,6 +570,7 @@ export function BoardPage({
           </>
         }
       >
+        {tabControl}
         {toast ? (
           <div
             role="status"

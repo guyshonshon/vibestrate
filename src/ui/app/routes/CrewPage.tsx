@@ -35,6 +35,7 @@ import { PageShell, PageHeader, Section } from "../../components/layout/PageShel
 const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [] };
 import { ToneDot, type ChipTone } from "../../components/design/Chip.js";
 import { Select } from "../../components/design/Select.js";
+import { SegmentedControl } from "../../components/design/SegmentedControl.js";
 import { cn } from "../../components/design/cn.js";
 import { ProvidersView } from "../../components/providers/ProvidersView.js";
 
@@ -43,38 +44,10 @@ import { ProvidersView } from "../../components/providers/ProvidersView.js";
  *  An interactive segmented control - not a status label. */
 type CrewTab = "crews" | "providers";
 
-function TabSwitch({
-  tab,
-  onSwitch,
-}: {
-  tab: CrewTab;
-  onSwitch: (tab: CrewTab) => void;
-}) {
-  return (
-    <div className="mt-4 inline-flex rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 p-1">
-      {(
-        [
-          ["crews", "Crews"],
-          ["providers", "Providers"],
-        ] as const
-      ).map(([id, label]) => (
-        <button
-          key={id}
-          type="button"
-          onClick={() => onSwitch(id)}
-          className={cn(
-            "rounded-[10px] px-3 py-1.5 text-[13px] transition",
-            tab === id
-              ? "bg-violet-soft font-bold text-coal-900"
-              : "text-chalk-300 hover:text-chalk-100",
-          )}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-}
+const CREW_TABS: { value: CrewTab; label: string }[] = [
+  { value: "crews", label: "Crews" },
+  { value: "providers", label: "Providers" },
+];
 
 // Deterministic tone per role so a role keeps the same accent across renders.
 const TONES: ChipTone[] = ["violet", "sky", "emerald", "amber", "rose"];
@@ -316,7 +289,12 @@ export function CrewPage({
         // ── Providers tab: the relocated provider-management surface ────────
         <>
           <PageHeader title="Crew">
-            <TabSwitch tab="providers" onSwitch={onSwitchTab} />
+            <SegmentedControl
+              className="mt-4"
+              options={CREW_TABS}
+              value="providers"
+              onChange={onSwitchTab}
+            />
           </PageHeader>
           <ProvidersView />
         </>
@@ -324,7 +302,12 @@ export function CrewPage({
         // ── Stage 1: the crews hub - a list you select from + presets ───────
         <>
           <PageHeader title="Crew">
-            <TabSwitch tab="crews" onSwitch={onSwitchTab} />
+            <SegmentedControl
+              className="mt-4"
+              options={CREW_TABS}
+              value="crews"
+              onChange={onSwitchTab}
+            />
           </PageHeader>
           {error ? <ErrorBanner text={error} /> : null}
           <CrewHub
