@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.63.0
+
+- **Policies got a supervisor and a test bench.** The Policies page can now help
+  you write and check rules: describe a rule in plain English and the supervisor
+  drafts an editable policy (statement + a suggested matcher + tier) for you to
+  review and save - nothing is committed automatically. A "Suggested policies"
+  section proposes rules from your recent runs on demand. And a Test panel dry-
+  runs any matcher against a pasted snippet or your recent run diffs, showing
+  exactly what it would flag - with matched lines redacted. The block-vs-advise
+  distinction is now spelled out: advise rules are reviewer-checked, block rules
+  cap the merge with a deterministic matcher. Each works in the UI and the CLI
+  (`vibe policies draft | suggest | test`).
+- **Safety, verified.** A block tier stays owner-only - the supervisor can only
+  suggest a draft; committing it is always your explicit action. Every model
+  call redacts its input first, and the Test dry-run is read-only, runs through
+  the same bounded matcher engine the merge-gate uses, and never echoes raw
+  secret content. Independently security-reviewed.
+
 ## 0.62.0
 
 - **Providers are cards now, and the drag/lock cruft is gone.** The Providers

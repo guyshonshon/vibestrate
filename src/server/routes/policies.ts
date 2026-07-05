@@ -16,8 +16,47 @@ import {
   confirmPolicy,
   rejectPolicy,
 } from "../../project/project-policy-service.js";
+import {
+  draftPolicyFromDescription,
+  suggestPoliciesFromRuns,
+  testPolicyRule,
+  PolicyAssistError,
+} from "../../policies/policy-assist.js";
 
 export type PoliciesRoutesDeps = { projectRoot: string };
+
+// ── Assist bodies (all .strict(), all read-only, all model input redacted at the
+// source in the service). None of these can write a policy - committing a
+// tier/matcher stays the owner's explicit POST /api/policies/rules action.
+const draftBody = z.object({ description: z.string().min(1).max(500) }).strict();
+
+const suggestBody = z
+  .object({ limit: z.number().int().min(1).max(10).optional() })
+  .strict();
+
+const testBody = z
+  .object({
+    rule: z
+      .object({
+        regex: z.string().min(1).max(POLICY_LIMITS.maxRegexLength).optional(),
+        flags: z.string().max(8).optional(),
+        glob: z.string().min(1).max(POLICY_LIMITS.maxGlobLength).optional(),
+        appliesTo: z.array(policySurfaceSchema).min(1),
+      })
+      .strict()
+      .refine((r) => !!r.regex || !!r.glob, {
+        message: "rule needs a regex, a glob, or both",
+      }),
+    source: z.union([
+      z
+        .object({ kind: z.literal("snippet"), patch: z.string().max(20_000) })
+        .strict(),
+      z
+        .object({ kind: z.literal("recent"), limit: z.number().int().min(1).max(10).optional() })
+        .strict(),
+    ]),
+  })
+  .strict();
 
 // Owner-authored project-policy add body (docs/design/policy-consolidation.md).
 // This is the OWNER surface, so it accepts `tier` + `matcher` (the UI authors a
@@ -225,5 +264,71 @@ export async function registerPoliciesRoutes(
         maxPatchBytes: MAX_PATCH_BYTES,
       },
     };
+  });
+
+  // ── Supervisor-assisted authoring (draft / suggest) + dry-run (test) ──────
+  // SECURITY: none of these write a policy. /draft and /suggest return an
+  // EDITABLE DRAFT the owner must explicitly save via POST /api/policies/rules
+  // (the only tier/matcher-accepting write). The model may SUGGEST a tier/regex;
+  // committing it is the owner's action. All model input is redacted at the
+  // service source; /test is deterministic (no model) and read-only.
+
+  // POST /api/policies/draft - one English description -> an editable draft.
+  app.post("/api/policies/draft", async (req, reply) => {
+    const parsed = draftBody.safeParse(req.body);
+    if (!parsed.success) {
+      reply.code(400);
+      return { error: parsed.error.issues.map((i) => i.message).join("; ") };
+    }
+    try {
+      return await draftPolicyFromDescription({
+        projectRoot,
+        description: parsed.data.description,
+      });
+    } catch (e) {
+      const code = e instanceof PolicyAssistError ? 400 : 500;
+      reply.code(code);
+      return { error: e instanceof Error ? e.message : "Could not draft a policy." };
+    }
+  });
+
+  // POST /api/policies/suggest - propose candidate policies from recent runs.
+  app.post("/api/policies/suggest", async (req, reply) => {
+    const parsed = suggestBody.safeParse(req.body);
+    if (!parsed.success) {
+      reply.code(400);
+      return { error: parsed.error.issues.map((i) => i.message).join("; ") };
+    }
+    try {
+      return await suggestPoliciesFromRuns({
+        projectRoot,
+        limit: parsed.data.limit,
+      });
+    } catch (e) {
+      const code = e instanceof PolicyAssistError ? 400 : 500;
+      reply.code(code);
+      return { error: e instanceof Error ? e.message : "Could not suggest policies." };
+    }
+  });
+
+  // POST /api/policies/test - dry-run a candidate matcher against a snippet or
+  // recent runs. Deterministic (no model), no write, redacted matched lines.
+  app.post("/api/policies/test", async (req, reply) => {
+    const parsed = testBody.safeParse(req.body);
+    if (!parsed.success) {
+      reply.code(400);
+      return { error: parsed.error.issues.map((i) => i.message).join("; ") };
+    }
+    try {
+      return await testPolicyRule({
+        projectRoot,
+        rule: parsed.data.rule,
+        source: parsed.data.source,
+      });
+    } catch (e) {
+      const code = e instanceof PolicyAssistError ? 400 : 500;
+      reply.code(code);
+      return { error: e instanceof Error ? e.message : "Could not run the policy test." };
+    }
   });
 }

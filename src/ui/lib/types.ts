@@ -2098,6 +2098,30 @@ export type PolicyCheckResult = {
   limits: { maxScanItemLength: number; maxPatchBytes: number };
 };
 
+// ── Supervisor-assisted policy authoring / dry-run (draft / suggest / test) ────
+// A model-proposed, EDITABLE draft. Nothing here is committed - the owner adopts
+// it by an explicit addProjectPolicy() Save. `suggestedTier`/`matcher` are hints.
+export type PolicyDraft = {
+  statement: string;
+  message: string;
+  suggestedTier: "advise" | "block";
+  matcher: { regex: string; flags: string } | null;
+  glob: string | null;
+  appliesTo: PolicySurface[];
+};
+
+export type PolicyTestMatch = {
+  file: string | null;
+  /** Redacted + truncated matched line (never raw diff content). */
+  line: string | null;
+  runId?: string;
+};
+
+export type PolicyTestResult = {
+  matches: PolicyTestMatch[];
+  evaluatedCount: number;
+};
+
 export type ReplayPhaseKey =
   | "flows"
   | "planning"
