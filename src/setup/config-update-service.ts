@@ -1,6 +1,6 @@
 import path from "node:path";
 import YAML from "yaml";
-import { readText, writeText, pathExists } from "../utils/fs.js";
+import { readText, writeTextAtomic, pathExists } from "../utils/fs.js";
 import { ConfigError } from "../utils/errors.js";
 import {
   projectConfigPath,
@@ -86,7 +86,7 @@ export async function writeDocument(
       `Refusing to write invalid config:\n${issues}`,
     );
   }
-  await writeText(configPath, text);
+  await writeTextAtomic(configPath, text);
   return configPath;
 }
 

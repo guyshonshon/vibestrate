@@ -1,10 +1,11 @@
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import {
-  detectAllProviders,
+  detectAllProvidersCached,
   type DetectedProvider,
 } from "../../providers/provider-detection.js";
 import { loadConfig } from "../../project/config-loader.js";
+import type { LoadedConfig } from "../../project/config-loader.js";
 import { MetricsStore } from "../../core/metrics-store.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import {
@@ -56,14 +57,23 @@ async function loadAllRuns(projectRoot: string) {
 
 async function loadProviderLookup(
   projectRoot: string,
+  // The poll caller already loads config for the spend cap; pass it through
+  // to avoid a second `loadConfig` on the same request. `undefined` means
+  // "load it here"; `null` means "already tried, and it failed".
+  preloadedConfig?: LoadedConfig | null,
 ): Promise<{
   lookup: ProviderLookup;
   detected: DetectedProvider[];
   configuredIds: Set<string>;
 }> {
+  // Poll path: use the cached, in-flight-deduped detection so overlapping
+  // Metrics/Providers-overview polls share ONE `--version` sweep instead of
+  // each spawning up to 16 subprocesses.
   const [detected, loaded] = await Promise.all([
-    detectAllProviders(),
-    loadConfig(projectRoot).catch(() => null),
+    detectAllProvidersCached(),
+    preloadedConfig !== undefined
+      ? Promise.resolve(preloadedConfig)
+      : loadConfig(projectRoot).catch(() => null),
   ]);
   const configuredIds = new Set(
     loaded ? Object.keys(loaded.config.providers ?? {}) : [],
@@ -135,10 +145,14 @@ export async function registerMetricsRoutes(
       const parsed = rangeSchema.safeParse(req.query.range ?? "7d");
       if (!parsed.success) throw new HttpError(400, parsed.error.message);
       const range = parsed.data as OverviewRange;
+      // Load config once and thread it into the provider lookup so this
+      // request hits `loadConfig` a single time (spend cap + configured ids),
+      // while still running the disk/detection work concurrently.
+      const configPromise = loadConfig(projectRoot).catch(() => null);
       const [{ runs, metricsByRun }, { lookup }, loaded] = await Promise.all([
         loadAllRuns(projectRoot),
-        loadProviderLookup(projectRoot),
-        loadConfig(projectRoot).catch(() => null),
+        configPromise.then((cfg) => loadProviderLookup(projectRoot, cfg)),
+        configPromise,
       ]);
       return buildMetricsOverview(range, {
         runs,

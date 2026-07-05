@@ -2,7 +2,7 @@
 title: Supervised tasks (run modes)
 description: A task has steps and a run mode - plain (one pass) or supervised (the Conductor sequences each step with its own review). One card for a whole feature.
 section: concepts
-slug: concepts/saga
+slug: concepts/supervised-tasks
 ---
 
 There is no separate "saga" kind of task. A [Task](/docs/concepts/task) has an
@@ -49,7 +49,7 @@ The same authoring is available in Mission Control: a supervised task renders as
 container card on the Board, and the task detail view lets you add, edit, and
 reorder steps.
 
-Full command reference: [vibe tasks](/docs/cli/saga).
+Full command reference: [vibe tasks](/docs/cli/supervised-tasks).
 
 ## What is available now
 
@@ -89,6 +89,6 @@ The Conductor and its autonomous Enhance pass are complete. Still to come is a *
 
 ## Related
 
-- [vibe tasks](/docs/cli/saga) - the CLI reference for all supervised-task commands.
+- [vibe tasks](/docs/cli/supervised-tasks) - the CLI reference for all supervised-task commands.
 - [Task](/docs/concepts/task) - the base task concept, including plain checklists.
 - [Spec-up](/docs/concepts/spec-up) - the planning surface that can produce a roadmap of tasks (including Supervised tasks).

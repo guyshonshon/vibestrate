@@ -11,6 +11,26 @@ export async function writeText(filePath: string, contents: string): Promise<voi
   await fs.writeFile(filePath, contents, "utf8");
 }
 
+/**
+ * Atomically replace `filePath` with `contents`: write a sibling temp file in the
+ * SAME directory (so `rename` stays on one filesystem and is atomic), then rename
+ * it onto the target. A crash/kill mid-write can only leave a stray `.tmp` file,
+ * never a truncated target. Mirrors the temp+rename technique in
+ * `src/project/project-params.ts` (`writeAtomic`). The temp file is cleaned up on
+ * a rename failure.
+ */
+export async function writeTextAtomic(filePath: string, contents: string): Promise<void> {
+  await ensureDir(path.dirname(filePath));
+  const tmp = `${filePath}.tmp.${process.pid}`;
+  await fs.writeFile(tmp, contents, "utf8");
+  try {
+    await fs.rename(tmp, filePath);
+  } catch (err) {
+    await fs.unlink(tmp).catch(() => undefined);
+    throw err;
+  }
+}
+
 export async function readText(filePath: string): Promise<string> {
   return fs.readFile(filePath, "utf8");
 }

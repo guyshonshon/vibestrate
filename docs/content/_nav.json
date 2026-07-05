@@ -60,8 +60,8 @@
           "label": "Spec-up (plan as a CTO)"
         },
         {
-          "slug": "concepts/saga",
-          "label": "Saga tasks"
+          "slug": "concepts/supervised-tasks",
+          "label": "Supervised tasks"
         }
       ]
     },
@@ -180,8 +180,8 @@
           "label": "Mission Control"
         },
         {
-          "slug": "cli/saga",
-          "label": "vibe saga"
+          "slug": "cli/supervised-tasks",
+          "label": "vibe tasks"
         }
       ]
     },

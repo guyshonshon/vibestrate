@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.64.0
+
+- **Launch-prep fixes.** Three v1-readiness items from the launch audit:
+  - The docs no longer tell you to run `vibe saga create` - a command that was
+    migrated to `vibe tasks --supervised` and no longer exists. README + the CLI
+    and concept docs now describe the real (shipped) supervised-task + Conductor
+    flow.
+  - **Config writes are atomic.** `project.yml` (config and policy edits) now
+    writes to a temp file and renames it into place, so a crash mid-write can no
+    longer truncate your project config.
+  - **Provider detection is cached off the poll path.** The Metrics and Providers
+    pages were re-probing up to 16 provider CLIs (a subprocess each) on every
+    poll; detection is now cached (30s) with in-flight de-duplication, so those
+    pages no longer stall while probing.
+
 ## 0.63.1
 
 - **Broader secret redaction, safely.** The shared redactor (used before every

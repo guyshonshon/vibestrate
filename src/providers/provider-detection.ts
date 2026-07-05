@@ -298,6 +298,66 @@ export async function detectAllProviders(
   return results;
 }
 
+/**
+ * TTL for the poll-path detection cache. Installed CLIs don't change
+ * second-to-second, so a short window is plenty to collapse the 8-10s
+ * Metrics/Providers-overview polls (each spawning up to 16 `--version`
+ * subprocesses) into one detection run.
+ */
+const DETECTION_CACHE_TTL_MS = 30_000;
+
+type DetectionCacheEntry = { value: DetectedProvider[]; expiresAt: number };
+let detectionCache: DetectionCacheEntry | null = null;
+// The single in-flight detection run, shared by concurrent callers so
+// overlapping polls await ONE run instead of each spawning its own.
+let detectionInFlight: Promise<DetectedProvider[]> | null = null;
+
+/**
+ * Cached, de-duplicated variant of {@link detectAllProviders} for the
+ * high-frequency POLL endpoints (`/api/metrics/overview`,
+ * `/api/providers/overview`). A fresh result is cached for
+ * `DETECTION_CACHE_TTL_MS`; concurrent callers within that window share the
+ * cached value, and concurrent callers during a cold run share the single
+ * in-flight promise. Failed runs are not cached.
+ *
+ * The CLI and explicit "refresh" actions must keep using the uncached
+ * {@link detectAllProviders} so they always see current state.
+ *
+ * `forceRefresh` bypasses the cache (and any in-flight run) and repopulates
+ * it with a fresh detection.
+ */
+export async function detectAllProvidersCached(
+  runner: ProviderDetectionRunner = defaultRunner,
+  opts: { forceRefresh?: boolean } = {},
+): Promise<DetectedProvider[]> {
+  const now = Date.now();
+  if (!opts.forceRefresh) {
+    if (detectionCache && detectionCache.expiresAt > now) {
+      return detectionCache.value;
+    }
+    if (detectionInFlight) return detectionInFlight;
+  }
+
+  const run = detectAllProviders(runner)
+    .then((value) => {
+      detectionCache = { value, expiresAt: Date.now() + DETECTION_CACHE_TTL_MS };
+      return value;
+    })
+    .finally(() => {
+      // Only clear the shared promise if it's still ours (a forceRefresh may
+      // have replaced it with a newer run).
+      if (detectionInFlight === run) detectionInFlight = null;
+    });
+  detectionInFlight = run;
+  return run;
+}
+
+/** Drop the cached detection so the next cached call re-detects. Test-only helper. */
+export function resetDetectionCache(): void {
+  detectionCache = null;
+  detectionInFlight = null;
+}
+
 export function installHintForCommand(command: string): string | null {
   const basename = command.split(/[\\/]/).pop() ?? command;
   const def = KNOWN_PROVIDERS.find((p) => p.command === basename);
