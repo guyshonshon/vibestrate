@@ -47,6 +47,7 @@ import {
 } from "../../core/phase-snapshots.js";
 import { makeUniqueRunId } from "../../utils/run-id.js";
 import { startDetachedRun } from "../../core/detached-run.js";
+import { planDocsBatch, executeDocsBatch } from "../../core/docs-batch.js";
 import {
   appendControl,
   listControls,
@@ -65,6 +66,23 @@ const pruneBody = z
     orphans: z.boolean().optional(),
     runId: z.string().min(1).max(200).regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/).optional(),
     dryRun: z.boolean().optional(),
+  })
+  .strict();
+
+// Schema for `POST /api/runs/docs-batch` - the dashboard half of `vibe docs`.
+const docsBatchBody = z
+  .object({
+    items: z
+      .array(
+        z
+          .object({
+            task: z.string().min(1).max(2000),
+            targetPath: z.string().min(1).max(400).optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(32),
   })
   .strict();
 
@@ -399,6 +417,38 @@ export async function registerRunsRoutes(
     }
     const pruned = await executeSnapshotPrune(projectRoot, plan.runs);
     return { plan, pruned };
+  });
+
+  // ─── POST /api/runs/docs-batch ────────────────────────────────────────
+  // The dashboard half of `vibe docs`: launch N isolated `docs`-flow runs (one
+  // per page). We plan (validate + mint ids) synchronously and return the ids
+  // right away, then run the batch through the SAME bounded executor as the CLI
+  // in the background - so the network path can't spawn more than the cap at once
+  // (no 32x fork bomb). Each run reports through /api/runs, so the UI polls the
+  // runs list; it never blocks on completion. The overlap guard fails 400.
+  app.post<{ Body: unknown }>("/api/runs/docs-batch", async (req) => {
+    const body = docsBatchBody.safeParse(req.body ?? {});
+    if (!body.success) throw new HttpError(400, body.error.message);
+    let planned;
+    try {
+      planned = planDocsBatch(projectRoot, body.data.items);
+    } catch (err) {
+      throw new HttpError(400, err instanceof Error ? err.message : String(err));
+    }
+    // Bounded, server-owned execution. Runs are git-isolated per worktree; if the
+    // server restarts, in-flight runs stop (like the scheduler) but their
+    // worktrees/branches persist.
+    void executeDocsBatch({ projectRoot, planned }).catch(() => {
+      // Per-item errors are already captured in each outcome; a top-level throw
+      // here (should not happen post-plan) must not crash the server.
+    });
+    return {
+      ok: true,
+      launched: planned.map((p) => ({
+        runId: p.runId,
+        targetPath: p.item.targetPath ?? null,
+      })),
+    };
   });
 
   app.get<{ Params: { runId: string } }>(

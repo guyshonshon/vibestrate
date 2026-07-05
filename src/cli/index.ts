@@ -29,6 +29,7 @@ import { buildRoadmapCommand } from "./commands/roadmap.js";
 import { buildTasksCommand } from "./commands/tasks.js";
 import { buildIntegrateCommand } from "./commands/integrate.js";
 import { buildQueueCommand } from "./commands/queue.js";
+import { buildDocsCommand } from "./commands/docs.js";
 import { buildLogsCommand } from "./commands/logs.js";
 import { buildTelemetryCommand } from "./commands/telemetry.js";
 import { buildWorkspaceCommand } from "./commands/workspace.js";
@@ -165,6 +166,7 @@ export function buildVibestrateProgram(): Command {
   program.addCommand(buildTasksCommand());
   program.addCommand(buildIntegrateCommand());
   program.addCommand(buildQueueCommand());
+  program.addCommand(buildDocsCommand());
   program.addCommand(buildLogsCommand());
   program.addCommand(buildTelemetryCommand());
   program.addCommand(buildWorkspaceCommand());

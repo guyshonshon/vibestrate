@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.69.0
+
+- **Concurrent multi-doc.** `vibe docs <paths...>` revises several documentation
+  pages at once - one isolated `docs`-flow run per page, a few in parallel, each
+  in its own worktree and branch. One failing page never blocks the others.
+  Launchable from the dashboard too (`POST /api/runs/docs-batch`); the runs show
+  up in the normal runs list. Built on the run boundary (each run is already
+  isolated) rather than parallel writes inside one run, which the architecture
+  forbids for good reason. Best for prose edits to distinct pages - concurrent
+  structural/nav changes can conflict at merge (isolated, so never corrupted;
+  you resolve the merge normally). Bounded concurrency on both the CLI and the
+  HTTP path, and Ctrl-C cleanly stops in-flight runs.
+
 ## 0.68.0
 
 - **Sub-agent denylist per role.** Profiles gained a `disallowedTools` knob that

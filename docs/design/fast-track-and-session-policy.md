@@ -79,7 +79,7 @@ re-litigating them, and one small additive knob.
 | **`disallowedTools` profile knob** -> the flag | PROPOSED (additive) | new `profile-schema.ts` field + one `args.push`, mirrors `--allowed-tools` |
 | **Session-keying rule written into code comment + tunable `sessionReuse`/`maxReuseTurns` from profile** | PROPOSED | comment + lift existing knobs into profile config |
 | **Serial multi-doc via checklist-segment band** (one worktree, one commit per item, needs a checklist-bearing card) | PROPOSED (small wiring, NOT free) | `flow-schema.ts:302-314`, `builtin-flows.ts:263-271` |
-| **Concurrent multi-doc (several docs at once, isolated)** | FOUNDATION - out of scope | no across-checklist-item concurrency primitive exists (fan-out is within a band, not across items) |
+| **Concurrent multi-doc (several docs at once, isolated)** | SHIPPED (v0.69.0) via the RUN boundary, not intra-run | `src/core/docs-batch.ts` - N isolated `docs` runs, one process + worktree each; `vibe docs` + `POST /api/runs/docs-batch` |
 
 **Honest headline:** the single-doc fast track needs **no** new runtime - `express`
 is it. There is exactly one real foundation lurking, and it is *concurrent*
@@ -418,6 +418,34 @@ and the fast flow still terminates cleanly as `merge_ready`"* - it does not;
 review is the load-bearing termination condition, and `express`/inert-diff is the
 only sanctioned way to skip it on prose. That correction is now the spine of
 Decision 1.
+
+### Concurrent multi-doc (2026-07-05, v0.69.0)
+
+Built at the **run boundary**, not by relaxing the intra-run parallel-write ban.
+Each document is a separate `docs`-flow run in its own process + worktree +
+branch (`src/core/docs-batch.ts`); `vibe docs <paths...>` (bounded, awaited) and
+`POST /api/runs/docs-batch` (bounded, background). Two adversarial Opus reviews
+shaped it:
+
+- **Design review** rejected the first design (an in-process promise pool): it
+  would break the `.tmp.${pid}` atomic-write invariant (all runs share one pid),
+  reinvent the existing scheduler, and collide run ids. Switched to
+  process-per-run (`run-entry.js`) with sequentially pre-minted ids.
+- **Implementation review returned NO-GO** and caught three blockers, all fixed
+  before merge: (1) the HTTP path launched all N runs unthrottled (fork bomb) ->
+  now the SAME bounded executor as the CLI, run in the background; (2) a
+  plan-worthy brief with `flow:{id:"docs"}` was silently diverted to a read-only
+  spec-up run that writes nothing -> `select:false` suppresses selection/spec-up;
+  (3) the overlap guard is best-effort - it checks declared `targetPath`, not
+  what the agent writes, and the flow's own `docs:generate` rewrites shared
+  `docs/generated/*`, so concurrent STRUCTURAL edits can conflict at merge.
+  Documented honestly: isolation prevents corruption, not merge conflicts;
+  pure-prose edits (which regenerate nothing) don't collide. Also added
+  abort->child-kill so Ctrl-C doesn't orphan write-capable runs.
+
+Deliberately NOT built: intra-run parallel writers (would rewrite the safety-
+critical write path) and cross-invocation id locking (fails loud at
+`createWorktree`, acceptable per repo posture).
 
 ### P2/P3 pre-merge review (2026-07-05, independent Opus 4.8, CLI-probed)
 
