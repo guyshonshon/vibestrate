@@ -49,18 +49,41 @@ describe("container arg + env builders (pure, daemon-free)", () => {
       image: "node:22-bookworm-slim",
       worktreePath: wt,
       roFileMounts: ["/Users/x/.codex/auth.json"],
+      readonlyRoot: true,
+      pidsLimit: 512,
     });
     const j = args.join(" ");
     expect(j).toContain(`-v ${wt}:${wt}`);
     expect(j).toContain("-v /Users/x/.codex/auth.json:/Users/x/.codex/auth.json:ro");
     expect(j).toContain("--cap-drop=ALL");
     expect(j).toContain("--security-opt=no-new-privileges");
+    // Hardening flags.
+    expect(j).toContain("--pids-limit=512");
+    expect(j).toContain("--read-only");
+    expect(j).toContain("--tmpfs /tmp:rw,nosuid,nodev,size=1g");
+    expect(j).toContain("--tmpfs /root:rw,nosuid,nodev,size=256m");
     expect(j).not.toContain("--privileged");
     expect(j).not.toContain("docker.sock");
     expect(j).not.toContain("--network=host");
     // No host root / $HOME / ssh / aws mounts.
     expect(j).not.toContain("-v /:/");
     expect(args.slice(-3)).toEqual(["node:22-bookworm-slim", "sleep", "infinity"]);
+  });
+
+  it("readonlyRoot:false drops --read-only/tmpfs but keeps --pids-limit and caps", () => {
+    const args = buildDockerRunArgs({
+      containerName: "vibestrate-c",
+      image: "node:22-bookworm-slim",
+      worktreePath: "/private/tmp/wt/c",
+      roFileMounts: [],
+      readonlyRoot: false,
+      pidsLimit: 256,
+    });
+    const j = args.join(" ");
+    expect(j).not.toContain("--read-only");
+    expect(j).not.toContain("--tmpfs");
+    expect(j).toContain("--pids-limit=256");
+    expect(j).toContain("--cap-drop=ALL");
   });
 
   it("docker exec argv: -i -w cwd <envFlags> containerId command args", () => {
@@ -100,6 +123,8 @@ describe("container backend fail-closed (git only, no daemon needed)", () => {
     const backend = makeDockerBackend({
       image: "busybox",
       onUnavailable: "fail",
+      readonlyRoot: true,
+      pidsLimit: 512,
       available: async () => false,
       exec: async () => {
         ranDocker = true;
@@ -123,6 +148,8 @@ describe("container backend fail-closed (git only, no daemon needed)", () => {
     const backend = makeDockerBackend({
       image: "busybox",
       onUnavailable: "degrade",
+      readonlyRoot: true,
+      pidsLimit: 512,
       available: async () => false,
     });
     const prep = await backend.prepareRun({
@@ -134,6 +161,35 @@ describe("container backend fail-closed (git only, no daemon needed)", () => {
     });
     expect(prep.exec).toBeUndefined(); // host: location never reports "container"
     expect(prep.worktreePath).toContain("calm-yak");
+  });
+
+  it("readonlyRoot + non-writable HOME => fails LOUDLY at start (diagnosable, not a silent mid-turn EROFS)", async () => {
+    const { projectRoot, worktreeDir } = await tempGitProject();
+    const backend = makeDockerBackend({
+      image: "custom-nonroot",
+      onUnavailable: "fail",
+      readonlyRoot: true,
+      pidsLimit: 512,
+      available: async () => true,
+      // `docker run` succeeds; the HOME write-probe fails (non-root HOME on the
+      // read-only rootfs); teardown `rm -f` succeeds.
+      exec: async (_file, args) => {
+        if (args[0] === "run") return { exitCode: 0, stdout: "container-xyz", stderr: "" };
+        if (args.includes("$HOME/.vibestrate-write-probe") || args.join(" ").includes("write-probe")) {
+          return { exitCode: 1, stdout: "", stderr: "touch: /home/appuser/.x: Read-only file system" };
+        }
+        return { exitCode: 0, stdout: "", stderr: "" };
+      },
+    });
+    await expect(
+      backend.prepareRun({
+        projectRoot,
+        runId: "spry-vole",
+        branchPrefix: "vibe",
+        worktreeDir,
+        mainBranch: "main",
+      }),
+    ).rejects.toThrow(/read-only|readonlyRoot/i);
   });
 });
 
@@ -163,7 +219,7 @@ describe.skipIf(!dockerSmoke)("container backend smoke (real Docker)", () => {
       return;
     }
     const { projectRoot, worktreeDir } = await tempGitProject();
-    const backend = makeDockerBackend({ image: "busybox", onUnavailable: "fail" });
+    const backend = makeDockerBackend({ image: "busybox", onUnavailable: "fail", readonlyRoot: true, pidsLimit: 512 });
     const prep = await backend.prepareRun({
       projectRoot,
       runId: "brisk-otter",

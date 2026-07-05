@@ -804,6 +804,8 @@ export class Orchestrator {
       return makeDockerBackend({
         image: c?.image ?? "node:22-bookworm-slim",
         onUnavailable: c?.onUnavailable ?? "fail",
+        readonlyRoot: c?.readonlyRoot ?? true,
+        pidsLimit: c?.pidsLimit ?? 512,
       });
     }
     return localWorktreeBackend;

@@ -31,6 +31,24 @@ export type IsolationMode = z.infer<typeof isolationModeSchema>;
 export const containerConfigSchema = z.object({
   image: z.string().min(1).max(400).default("node:22-bookworm-slim"),
   onUnavailable: z.enum(["fail", "degrade"]).default("fail"),
+  // Hardening. `readonlyRoot` mounts the container root read-only (only the
+  // worktree, tmpfs /tmp, and a tmpfs HOME are writable), so a rogue agent's
+  // blast radius shrinks to disposable surfaces. Default on for the stock
+  // node:22 image; a custom image whose CLI writes outside /tmp or $HOME may
+  // need it off. `pidsLimit` caps in-container processes (fork-bomb guard).
+  readonlyRoot: z
+    .boolean()
+    .default(true)
+    .describe(
+      "Mount the run container root filesystem read-only (default on). Writable: the worktree, tmpfs /tmp, and tmpfs /root (the stock node:22 image HOME). Set false for a custom image that runs as a non-root user or writes outside /tmp and $HOME - the run start probes HOME writability and fails loudly otherwise.",
+    ),
+  pidsLimit: z
+    .number()
+    .int()
+    .min(1)
+    .max(100000)
+    .default(512)
+    .describe("Max processes inside the run container (fork-bomb guard; default 512)."),
 });
 
 export type ContainerConfig = z.infer<typeof containerConfigSchema>;

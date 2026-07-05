@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.65.0
+
+- **Hardened run containers.** When a run executes in the Docker backend, the
+  container now runs with a **read-only root filesystem** (only the worktree,
+  a tmpfs `/tmp`, and a tmpfs HOME are writable) and a **process cap**
+  (`--pids-limit`, default 512) on top of the existing dropped capabilities and
+  no-privilege-escalation. A rogue or buggy agent's blast radius shrinks to
+  disposable surfaces. Both are configurable (`execution.container.readonlyRoot`,
+  `execution.container.pidsLimit`); read-only root is on by default for the
+  stock image, and if a custom image's HOME isn't writable the run fails at
+  start with a clear message (set `readonlyRoot: false`) instead of a cryptic
+  mid-run error.
+
 ## 0.64.0
 
 - **Launch-prep fixes.** Three v1-readiness items from the launch audit:

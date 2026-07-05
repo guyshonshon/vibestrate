@@ -108,6 +108,10 @@ export function buildDockerRunArgs(input: {
   worktreePath: string;
   /** Absolute host file paths to mount read-only (e.g. codex auth.json). */
   roFileMounts: string[];
+  /** Mount the container root read-only (writable = worktree + tmpfs only). */
+  readonlyRoot: boolean;
+  /** Cap in-container process count (fork-bomb guard). */
+  pidsLimit: number;
 }): string[] {
   const args = [
     "run",
@@ -123,13 +127,33 @@ export function buildDockerRunArgs(input: {
     // surface that touches the host.
     "--cap-drop=ALL",
     "--security-opt=no-new-privileges",
+    // Fork-bomb guard: cap the container's process count.
+    `--pids-limit=${input.pidsLimit}`,
+  ];
+  if (input.readonlyRoot) {
+    // Read-only root FS. The provider CLI still needs to write temp files and a
+    // HOME (claude writes ~/.claude, npm/tools write caches), so give it two
+    // disposable tmpfs mounts: /tmp and the default image HOME (/root for the
+    // stock node:22 image). The worktree (RW volume below) is unaffected by
+    // --read-only, and the codex auth mount stays RO. nosuid,nodev harden the
+    // tmpfs against setuid/device tricks.
+    args.push(
+      "--read-only",
+      "--tmpfs",
+      "/tmp:rw,nosuid,nodev,size=1g",
+      // HOME for the stock (root) image; small - only CLI config/cache/session.
+      "--tmpfs",
+      "/root:rw,nosuid,nodev,size=256m",
+    );
+  }
+  args.push(
     // Identical-path worktree mount (RW): the host diff-gate / path-guard /
     // attribution all read this absolute path off run state.
     "-v",
     `${input.worktreePath}:${input.worktreePath}`,
     "-w",
     input.worktreePath,
-  ];
+  );
   for (const f of input.roFileMounts) {
     args.push("-v", `${f}:${f}:ro`);
   }
@@ -159,6 +183,10 @@ const UNAVAILABLE_MESSAGE =
 export type DockerBackendDeps = {
   image: string;
   onUnavailable: "fail" | "degrade";
+  /** Mount the container root read-only (writable = worktree + tmpfs). */
+  readonlyRoot: boolean;
+  /** Cap in-container process count (fork-bomb guard). */
+  pidsLimit: number;
   /** Test seam: override the credential file probe + the host env. */
   authFile?: string;
   hostEnv?: Record<string, string | undefined>;
@@ -224,6 +252,8 @@ export function makeDockerBackend(deps: DockerBackendDeps): ExecutionBackend {
         image: deps.image,
         worktreePath: prep.worktreePath,
         roFileMounts,
+        readonlyRoot: deps.readonlyRoot,
+        pidsLimit: deps.pidsLimit,
       });
       const started = await runExec("docker", runArgs);
       if (started.exitCode !== 0) {
@@ -235,6 +265,30 @@ export function makeDockerBackend(deps: DockerBackendDeps): ExecutionBackend {
         );
       }
       const containerId = started.stdout.trim() || containerName;
+
+      // Pre-flight: with a read-only root, a custom/non-root image whose $HOME
+      // isn't the tmpfs we mounted (/root) would EROFS deep inside the first
+      // provider turn with an opaque error. Probe $HOME writability now and fail
+      // LOUDLY with the fix, instead of silently mid-turn.
+      if (deps.readonlyRoot) {
+        const probe = await runExec("docker", [
+          "exec",
+          containerId,
+          "sh",
+          "-c",
+          'touch "$HOME/.vibestrate-write-probe" && rm -f "$HOME/.vibestrate-write-probe"',
+        ]);
+        if (probe.exitCode !== 0) {
+          await runExec("docker", ["rm", "-f", containerId]).catch(() => {});
+          throw new VibestrateError(
+            "DOCKER_READONLY_HOME",
+            `The run container's root filesystem is read-only (execution.container.readonlyRoot) but the image "${deps.image}" ` +
+              `has a HOME that is not writable inside it (typically a non-root image whose HOME is not /root). ` +
+              `The provider CLI would fail to write its config/cache. Fix: use a root image (HOME=/root), or set ` +
+              `execution.container.readonlyRoot: false to disable the read-only root for this project.`,
+          );
+        }
+      }
 
       const exec: ExecStrategy = {
         location: "container",
