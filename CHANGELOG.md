@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.57.0
+
+- **Providers now live inside Crew.** The standalone Providers page is gone; Crew
+  gained a prominent **Crews / Providers** segmented header, and everything the
+  old page did (detect, edit command/args, connectivity test, set default,
+  install/setup) is one click away under Crew. Old `/providers` deep-links still
+  resolve - they land on the Crew Providers tab. Fewer top-level nav items, and
+  the engines that power a crew now sit next to the crew that uses them.
+
 ## 0.56.0
 
 - **Git, Merge, and the diff/workflow panels moved onto the new design system.**

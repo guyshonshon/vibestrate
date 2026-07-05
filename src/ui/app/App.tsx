@@ -25,7 +25,6 @@ import { MetricsPage } from "./routes/MetricsPage.js";
 import { CrewPage } from "./routes/CrewPage.js";
 import { ProfilesPage } from "./routes/ProfilesPage.js";
 import { ConsultPage } from "./routes/ConsultPage.js";
-import { ProvidersPage } from "./routes/ProvidersPage.js";
 import { SupervisorsPage } from "./routes/SupervisorsPage.js";
 import { PoliciesPage } from "./routes/PoliciesPage.js";
 import { ConfigPage } from "./routes/ConfigPage.js";
@@ -291,7 +290,7 @@ export function App() {
                           : route.kind === "profiles"
                             ? "profiles"
                             : route.kind === "providers"
-                              ? "providers"
+                              ? "crew"
                               : route.kind === "supervisors"
                                 ? "supervisors"
                               : route.kind === "crew"
@@ -312,7 +311,6 @@ export function App() {
       onShowFlows={() => navigate({ kind: "flows" })}
       onShowMetrics={() => navigate({ kind: "metrics" })}
       onShowCrew={() => navigate({ kind: "crew", crewId: null })}
-      onShowProviders={() => navigate({ kind: "providers" })}
       onShowSupervisors={() => navigate({ kind: "supervisors" })}
       onShowProfiles={() => navigate({ kind: "profiles" })}
       onShowRunsList={() => navigate({ kind: "runs" })}
@@ -430,14 +428,34 @@ export function App() {
         <MetricsPage />
       ) : route.kind === "crew" ? (
         <CrewPage
+          tab="crews"
           crewId={route.crewId}
           onOpenCrew={(crewId) => navigate({ kind: "crew", crewId })}
           onBackToCrews={() => navigate({ kind: "crew", crewId: null })}
+          onSwitchTab={(t) =>
+            navigate(
+              t === "providers"
+                ? { kind: "providers" }
+                : { kind: "crew", crewId: null },
+            )
+          }
         />
       ) : route.kind === "profiles" ? (
         <ProfilesPage />
       ) : route.kind === "providers" ? (
-        <ProvidersPage />
+        <CrewPage
+          tab="providers"
+          crewId={null}
+          onOpenCrew={(crewId) => navigate({ kind: "crew", crewId })}
+          onBackToCrews={() => navigate({ kind: "crew", crewId: null })}
+          onSwitchTab={(t) =>
+            navigate(
+              t === "providers"
+                ? { kind: "providers" }
+                : { kind: "crew", crewId: null },
+            )
+          }
+        />
       ) : route.kind === "supervisors" ? (
         <SupervisorsPage />
       ) : route.kind === "config" ? (

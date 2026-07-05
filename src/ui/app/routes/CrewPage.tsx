@@ -36,6 +36,45 @@ const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [] };
 import { ToneDot, type ChipTone } from "../../components/design/Chip.js";
 import { Select } from "../../components/design/Select.js";
 import { cn } from "../../components/design/cn.js";
+import { ProvidersView } from "../../components/providers/ProvidersView.js";
+
+/** Top-level tab across the Crew surface: the crews roster, or the providers
+ *  management view (relocated here from the retired standalone Providers page).
+ *  An interactive segmented control - not a status label. */
+type CrewTab = "crews" | "providers";
+
+function TabSwitch({
+  tab,
+  onSwitch,
+}: {
+  tab: CrewTab;
+  onSwitch: (tab: CrewTab) => void;
+}) {
+  return (
+    <div className="mt-4 inline-flex rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 p-1">
+      {(
+        [
+          ["crews", "Crews"],
+          ["providers", "Providers"],
+        ] as const
+      ).map(([id, label]) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => onSwitch(id)}
+          className={cn(
+            "rounded-[10px] px-3 py-1.5 text-[13px] transition",
+            tab === id
+              ? "bg-violet-soft font-bold text-coal-900"
+              : "text-chalk-300 hover:text-chalk-100",
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // Deterministic tone per role so a role keeps the same accent across renders.
 const TONES: ChipTone[] = ["violet", "sky", "emerald", "amber", "rose"];
@@ -137,13 +176,18 @@ function computeCoverage(
 
 export function CrewPage({
   crewId,
+  tab = "crews",
   onOpenCrew,
   onBackToCrews,
+  onSwitchTab,
 }: {
   /** null = the crews hub (list); set = that crew's configuration page. */
   crewId: string | null;
+  /** Which top-level tab is active: the crews roster or the providers view. */
+  tab?: CrewTab;
   onOpenCrew: (crewId: string) => void;
   onBackToCrews: () => void;
+  onSwitchTab: (tab: CrewTab) => void;
 }) {
   const [crews, setCrews] = useState<CrewView[] | null>(null);
   const [defaultCrew, setDefaultCrew] = useState<string | null>(null);
@@ -268,10 +312,20 @@ export function CrewPage({
 
   return (
     <PageShell>
-      {hubView ? (
+      {tab === "providers" ? (
+        // ── Providers tab: the relocated provider-management surface ────────
+        <>
+          <PageHeader title="Crew">
+            <TabSwitch tab="providers" onSwitch={onSwitchTab} />
+          </PageHeader>
+          <ProvidersView />
+        </>
+      ) : hubView ? (
         // ── Stage 1: the crews hub - a list you select from + presets ───────
         <>
-          <PageHeader title="Crews" />
+          <PageHeader title="Crew">
+            <TabSwitch tab="crews" onSwitch={onSwitchTab} />
+          </PageHeader>
           {error ? <ErrorBanner text={error} /> : null}
           <CrewHub
             crews={crews}

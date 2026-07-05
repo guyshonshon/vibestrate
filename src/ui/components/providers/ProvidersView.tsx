@@ -27,16 +27,12 @@ import {
 import { applyOrder, reorderByDrop } from "../../lib/reorder.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
 import { setDragGhost } from "../../lib/drag-ghost.js";
-import { Button } from "../../components/design/Button.js";
-import { Chip, type ChipTone } from "../../components/design/Chip.js";
-import { StatTile } from "../../components/design/StatTile.js";
-import { cn } from "../../components/design/cn.js";
-import { LockToggle } from "../../components/providers/LockToggle.js";
-import {
-  PageShell,
-  PageHeader,
-  Section,
-} from "../../components/layout/PageShell.js";
+import { Button } from "../design/Button.js";
+import { Chip, type ChipTone } from "../design/Chip.js";
+import { StatTile } from "../design/StatTile.js";
+import { cn } from "../design/cn.js";
+import { LockToggle } from "./LockToggle.js";
+import { Section } from "../layout/PageShell.js";
 
 /** The CLI sections whose rows can be drag-reordered (a client-side preference). */
 type ReorderSection = "popular" | "optional";
@@ -46,18 +42,21 @@ type Busy = { id: string; action: "apply" | "default" | "test" } | null;
 type Toast = { kind: "ok" | "err"; text: string } | null;
 
 /**
- * Providers page - the dashboard mirror of `vibe provider …`, and the
+ * Providers view - the dashboard mirror of `vibe provider …`, and the
  * complete provider-management surface: detect, set up, **edit
  * command/args/input**, test (with the edit→save→test loop in one place),
  * set-default, login guidance, and **remove**. Full parity with the CLI, so
  * nothing about a provider requires dropping to a terminal.
+ *
+ * Shell-less: this renders the provider body only; the host page (Crew's
+ * Providers tab) supplies the PageShell + PageHeader around it.
  *
  * The browser never spawns commands: edits write config through the audited
  * config-update service, "test" runs the fixed safe-magic-token probe against
  * the *saved* config, and login is only ever surfaced as an instruction the
  * user runs themselves in their terminal.
  */
-export function ProvidersPage() {
+export function ProvidersView() {
   const [rows, setRows] = useState<ProviderRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
@@ -349,36 +348,32 @@ export function ProvidersPage() {
   };
 
   return (
-    <PageShell>
-      <PageHeader
-        title="Providers"
-      >
-        <div className="mt-4 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
-          <div className="flex flex-wrap items-stretch gap-1.5">
-            <StatTile
-              value={rows ? availableCount : "-"}
-              label="detected"
-              size="lg"
-            />
-            <StatTile
-              value={rows ? configuredCount : "-"}
-              label="configured"
-              size="lg"
-              tone="emerald"
-            />
-          </div>
-          <p className="mt-3 max-w-[74ch] text-[13px] leading-[1.55] text-chalk-300">
-            Detect installed coding-agent CLIs, set up and{" "}
-            <span className="text-chalk-100">edit their command/args</span>, run a
-            safe connectivity test, set a default, and remove - everything{" "}
-            <code className="text-violet-soft">vibe provider …</code> can do,
-            here. When a provider isn't authenticated, Vibestrate shows the login
-            command to run{" "}
-            <span className="text-chalk-100">in your own terminal</span> - it
-            never logs you in for you.
-          </p>
+    <>
+      <div className="mb-4 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+        <div className="flex flex-wrap items-stretch gap-1.5">
+          <StatTile
+            value={rows ? availableCount : "-"}
+            label="detected"
+            size="lg"
+          />
+          <StatTile
+            value={rows ? configuredCount : "-"}
+            label="configured"
+            size="lg"
+            tone="emerald"
+          />
         </div>
-      </PageHeader>
+        <p className="mt-3 max-w-[74ch] text-[13px] leading-[1.55] text-chalk-300">
+          Detect installed coding-agent CLIs, set up and{" "}
+          <span className="text-chalk-100">edit their command/args</span>, run a
+          safe connectivity test, set a default, and remove - everything{" "}
+          <code className="text-violet-soft">vibe provider …</code> can do,
+          here. When a provider isn't authenticated, Vibestrate shows the login
+          command to run{" "}
+          <span className="text-chalk-100">in your own terminal</span> - it
+          never logs you in for you.
+        </p>
+      </div>
 
       {error ? <ErrorBanner text={error} /> : null}
 
@@ -538,7 +533,7 @@ export function ProvidersPage() {
           {toast.text}
         </div>
       ) : null}
-    </PageShell>
+    </>
   );
 }
 

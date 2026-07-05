@@ -13,7 +13,6 @@ import {
   LayoutGrid,
   ListChecks,
   Palette,
-  Plug,
   Plus,
   Scale,
   Search,
@@ -37,7 +36,6 @@ type Props = {
   onShowFlows: () => void;
   onShowMetrics: () => void;
   onShowCrew: () => void;
-  onShowProviders: () => void;
   onShowSupervisors: () => void;
   onShowProfiles: () => void;
   onShowBoard: () => void;
@@ -86,7 +84,6 @@ export function Sidebar({
   onShowFlows,
   onShowMetrics,
   onShowCrew,
-  onShowProviders,
   onShowSupervisors,
   onShowProfiles,
   onShowBoard,
@@ -138,7 +135,6 @@ export function Sidebar({
         [
           "git",
           "merge",
-          "providers",
           "supervisors",
           "ledger",
           "proposals",
@@ -274,7 +270,6 @@ export function Sidebar({
           <div className="mb-1 ml-[22px] flex flex-col gap-0.5 border-l-[1.5px] border-[color:var(--line-strong)] pl-2.5">
             <MoreItem icon={<GitCommit className="h-4 w-4" strokeWidth={1.9} />} label="Git" active={currentNav === "git"} onClick={onShowGit} />
             <MoreItem icon={<GitMerge className="h-4 w-4" strokeWidth={1.9} />} label="Merge" active={currentNav === "merge"} onClick={onShowMerge} />
-            <MoreItem icon={<Plug className="h-4 w-4" strokeWidth={1.9} />} label="Providers" active={currentNav === "providers"} onClick={onShowProviders} />
             <MoreItem icon={<ShieldCheck className="h-4 w-4" strokeWidth={1.9} />} label="Supervisors" active={currentNav === "supervisors"} onClick={onShowSupervisors} />
             <MoreItem icon={<Scale className="h-4 w-4" strokeWidth={1.9} />} label="Policies" active={currentNav === "policies"} onClick={onShowPolicies} />
             <MoreItem icon={<BookMarked className="h-4 w-4" strokeWidth={1.9} />} label="Ledger" active={currentNav === "ledger"} onClick={onShowLedger} />
