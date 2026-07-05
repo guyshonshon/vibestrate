@@ -99,6 +99,7 @@ export type VibestrateEventType =
   | "supervisor.spec_up_posture"
   | "supervisor.policy_advise"
   | "supervisor.policy_block"
+  | "supervisor.ponytail"
   | "flow.snapshot.written"
   | "flow.participant.capabilities"
   | "flow.session.opened"

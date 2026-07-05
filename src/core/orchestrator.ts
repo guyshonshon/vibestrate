@@ -231,6 +231,10 @@ import {
 } from "../orchestrator/review-lenses.js";
 import { renderPolicyAdviseBlock } from "../orchestrator/policy-advise.js";
 import {
+  isCodeWritingStep,
+  renderPonytailBlock,
+} from "../orchestrator/ponytail-posture.js";
+import {
   isSpecUpFlow,
   renderSpecUpPostureBlock,
 } from "../spec-up/spec-up-posture.js";
@@ -674,6 +678,10 @@ export class Orchestrator {
    *  reviewer turns so a model verifies the change against them. null = no
    *  confirmed/in-scope policies (review turns byte-identical to before). */
   private policyAdviseBlock: string | null = null;
+  /** Pre-rendered ponytail minimalism block (ponytail-posture.ts), computed once
+   *  at run start from `config.ponytail` and appended to code-WRITING turns only
+   *  (implementer/fixer). null = the knob is off (write turns unchanged). */
+  private ponytailBlock: string | null = null;
   /** Pre-rendered "# Continuity flags" block (T9) for THIS run's task - the
    *  suspected dup/conflict heads-up. Injected into the planner turn alongside
    *  the ledger block. "" when nothing was flagged. */
@@ -1215,6 +1223,18 @@ export class Orchestrator {
           });
         }
       }
+    }
+    // ponytail (ponytail-posture.ts): the minimalism posture is a project-level
+    // knob (config.ponytail, default on), NOT persona-scoped - it aims the
+    // code-WRITING seats (implementer/fixer) the way reviewLenses aim reviewers.
+    // Computed once here; composeReviewerStepNotes appends it on write turns only.
+    this.ponytailBlock = renderPonytailBlock(this.config.ponytail ?? true);
+    if (this.ponytailBlock) {
+      await eventLog.append({
+        type: "supervisor.ponytail",
+        message: "Code-writing agents aim for the smallest solution that works (ponytail).",
+        data: { flowId: flow.flowId },
+      });
     }
 
     let worktreePath: string | null = null;
@@ -2576,6 +2596,8 @@ export class Orchestrator {
         isReviewer: isReviewerStep(step),
         policyAdviseBlock: this.policyAdviseBlock,
         specUpPostureBlock: this.specUpPostureBlock,
+        ponytailBlock: this.ponytailBlock,
+        isCodeWriting: isCodeWritingStep(step),
       });
       return this.runRole({
         roleId: step.resolvedRoleId!,
@@ -4464,6 +4486,8 @@ export class Orchestrator {
               isReviewer: isReviewerStep(step),
               policyAdviseBlock: this.policyAdviseBlock,
               specUpPostureBlock: this.specUpPostureBlock,
+              ponytailBlock: this.ponytailBlock,
+              isCodeWriting: isCodeWritingStep(step),
             }),
             ...(preparedTurn
               ? {

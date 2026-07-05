@@ -638,6 +638,15 @@ export const projectConfigBaseSchema = z.object({
    */
   flowSizing: z.enum(["off", "deterministic", "assisted"]).default("deterministic").describe("Route trivial tasks to a lighter flow: off, deterministic, or assisted (default deterministic)."),
   adaptiveSpecUp: z.enum(["off", "auto"]).default("auto").describe("Route plan-worthy greenfield/system briefs into the read-only Spec-up chain before executing: off or auto (default auto)."),
+  /**
+   * Ponytail minimalism posture (orchestrator/ponytail-posture.ts): inject a
+   * "lazy senior dev" ruleset into the code-WRITING seats (implementer/fixer) so
+   * implementation defaults to the smallest solution that works. On by default
+   * (the "backbone" behavior); reviewers, the arbiter, and the spec-up/planning
+   * agents never see it. Free-text trust class of `specUpPosture` (the human
+   * reviews the diff before merge). Vendored from the ponytail skill (MIT).
+   */
+  ponytail: z.boolean().default(true).describe("Inject the ponytail minimalism posture into code-writing agents so they default to the smallest solution that works (credit: the ponytail skill, MIT). Default on."),
   budget: budgetConfigSchema,
   /**
    * Supervised-run defaults (the Conductor). The override layer a freshly created

@@ -141,6 +141,12 @@ export function composeReviewerStepNotes(input: {
   policyAdviseBlock?: string | null;
   /** Persona spec-up posture block; set only on a spec-up run (else null). */
   specUpPostureBlock?: string | null;
+  /** Ponytail minimalism block (ponytail-posture.ts); appended on code-writing
+   *  turns only (never reviewers/planners/arbiter). null when the knob is off. */
+  ponytailBlock?: string | null;
+  /** True when this step is a code-WRITING seat (implementer/fixer). Gates the
+   *  ponytail block so reviewers/planners never get told to "be lazy". */
+  isCodeWriting?: boolean;
 }): string {
   let notes = input.stepInstructions
     ? `${input.baseNotes}\n\nStep lens / instructions:\n${input.stepInstructions}`
@@ -148,5 +154,6 @@ export function composeReviewerStepNotes(input: {
   if (input.lensEmphasis && input.isReviewer) notes += `\n\n${input.lensEmphasis}`;
   if (input.policyAdviseBlock && input.isReviewer) notes += `\n\n${input.policyAdviseBlock}`;
   if (input.specUpPostureBlock) notes += `\n\n${input.specUpPostureBlock}`;
+  if (input.ponytailBlock && input.isCodeWriting) notes += `\n\n${input.ponytailBlock}`;
   return notes;
 }

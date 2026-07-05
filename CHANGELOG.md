@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.66.0
+
+- **Ponytail minimalism, built in.** Code-writing agents (the implementer and
+  fixer seats) now run with the **ponytail** "lazy senior dev" posture by
+  default: before writing code they climb the ladder - does this need to exist
+  (YAGNI)? already in the codebase? stdlib? native feature? one line? - and only
+  then write the minimum that works, with the hard guards intact (understand the
+  problem first, validate at trust boundaries, leave one runnable check). The
+  result is smaller, less over-engineered diffs. Reviewers and planners are
+  deliberately left out of it. Toggle with `ponytail` in project config (on by
+  default). Vendored verbatim from the open-source ponytail skill
+  (github.com/DietrichGebert/ponytail, MIT) so it is genuinely ponytail and works
+  across every provider, with no plugin dependency.
+
 ## 0.65.0
 
 - **Hardened run containers.** When a run executes in the Docker backend, the
