@@ -66,62 +66,58 @@ export function WorkflowTimeline({
   pausedAtStatus?: RunStatus | null;
 }) {
   return (
-    <div className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
-      <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
-        workflow
-      </div>
-      <ol className="mt-2 grid grid-cols-7 gap-2">
+    <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+      <div className="text-[12.5px] font-semibold text-chalk-300">Workflow</div>
+      <ol className="mt-3 grid grid-cols-7 gap-2">
         {STAGES.map((s) => {
           const state = stageState(status, s.statuses, pausedAtStatus);
           const isSelected = selectedStage === s.id;
           const dot =
             state === "done"
-              ? "bg-vibestrate-success"
+              ? "bg-emerald-400"
               : state === "active"
-                ? "bg-vibestrate-accent"
+                ? "bg-violet-soft"
                 : state === "awaiting"
-                  ? "bg-vibestrate-accent"
-                  : "bg-vibestrate-fg-muted/40";
+                  ? "bg-sky-glow"
+                  : "bg-chalk-400/40";
           const text =
             state === "done"
-              ? "text-vibestrate-fg"
-              : state === "active" || state === "awaiting"
-                ? "text-vibestrate-accent"
-                : "text-vibestrate-fg-muted";
+              ? "text-chalk-100"
+              : state === "active"
+                ? "text-violet-soft"
+                : state === "awaiting"
+                  ? "text-sky-glow"
+                  : "text-chalk-400";
           return (
             <li key={s.id}>
               <button
                 onClick={() => onSelectStage?.(s.id)}
-                className={`group flex w-full flex-col items-start gap-1.5 rounded px-2 py-1.5 text-left hover:bg-vibestrate-panel-2 ${
-                  isSelected ? "bg-vibestrate-panel-2" : ""
+                className={`group flex w-full flex-col items-start gap-1.5 rounded-[10px] px-2 py-1.5 text-left transition hover:bg-coal-500 ${
+                  isSelected ? "bg-coal-500" : ""
                 }`}
               >
                 <span className="flex w-full items-center gap-1.5">
                   <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-                  <span className={`text-[12px] ${text}`}>
+                  <span className={`text-[12px] font-medium ${text}`}>
                     {s.label}
                     {state === "awaiting" ? (
-                      <span className="ml-1 text-[10.5px] text-vibestrate-fg-muted">
-                        · awaiting
+                      <span className="ml-1 text-[10.5px] text-chalk-400">
+                        awaiting
                       </span>
                     ) : null}
                   </span>
                 </span>
-                <span className="block h-px w-full overflow-hidden">
-                  {state === "active" ? (
-                    <span className="vibestrate-pulse-bar block" />
-                  ) : (
-                    <span
-                      className={`block h-px w-full ${
-                        state === "done"
-                          ? "bg-vibestrate-success/60"
-                          : state === "awaiting"
-                            ? "bg-vibestrate-accent/60"
-                            : "bg-vibestrate-border"
-                      }`}
-                    />
-                  )}
-                </span>
+                <span
+                  className={`block h-px w-full ${
+                    state === "done"
+                      ? "bg-emerald-400/60"
+                      : state === "active"
+                        ? "bg-violet-soft/60"
+                        : state === "awaiting"
+                          ? "bg-sky-glow/60"
+                          : "bg-[color:var(--line)]"
+                  }`}
+                />
               </button>
             </li>
           );

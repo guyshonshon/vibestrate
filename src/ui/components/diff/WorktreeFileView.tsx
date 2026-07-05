@@ -46,52 +46,52 @@ export function WorktreeFileView({
 
   if (!filePath)
     return (
-      <div className="px-4 py-8 text-center text-[12.5px] text-fog-400">
+      <div className="px-4 py-8 text-center text-[12.5px] text-chalk-400">
         Select a changed file to view its contents in the run's worktree.
       </div>
     );
   if (error)
     return (
-      <div className="rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+      <div className="rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[12.5px] text-rose-300">
         {error}
       </div>
     );
   if (!view)
     return (
-      <div className="px-4 py-6 text-[12.5px] text-fog-400">Loading file…</div>
+      <div className="px-4 py-6 text-[12.5px] text-chalk-400">Loading file…</div>
     );
   if (view.isSecretLike)
     return (
-      <div className="rounded-lg border border-amber-400/30 bg-amber-500/5 px-3 py-2 text-[12.5px] text-amber-200">
+      <div className="rounded-[12px] border border-amber-soft/30 bg-amber-soft/10 px-4 py-2.5 text-[12.5px] text-amber-soft">
         {view.notice ?? "Secret-like file - contents are not shown."}
       </div>
     );
   if (view.isBinary)
     return (
-      <div className="px-4 py-6 text-[12.5px] text-fog-400">
+      <div className="px-4 py-6 text-[12.5px] text-chalk-400">
         Binary file ({view.size} bytes) - no text view.
       </div>
     );
 
   return (
-    <div className="overflow-hidden rounded-lg border border-white/[0.07]">
-      <div className="flex items-center gap-2 border-b border-white/[0.06] bg-white/[0.02] px-3 py-1.5">
-        <span className="mono text-[11px] text-fog-300 truncate">{view.path}</span>
-        <span className="mono ml-auto shrink-0 text-[10.5px] text-fog-500">
+    <div className="overflow-hidden rounded-[18px] border border-[color:var(--line)]">
+      <div className="flex items-center gap-2 border-b border-[color:var(--line-soft)] bg-coal-500/60 px-3 py-1.5">
+        <span className="mono truncate text-[11px] text-chalk-300">{view.path}</span>
+        <span className="mono ml-auto shrink-0 text-[10.5px] text-chalk-400">
           {view.rootLabel}
           {view.totalLines != null ? ` · ${view.totalLines} lines` : ""}
           {view.isTruncated ? " · truncated" : ""}
         </span>
       </div>
-      <div className="max-h-[480px] overflow-auto bg-black/40">
+      <div className="max-h-[480px] overflow-auto bg-coal-700">
         <table className="w-full border-collapse">
           <tbody>
             {view.lines.map((l) => (
               <tr key={l.number}>
-                <td className="select-none border-r border-white/[0.05] px-2 py-0 text-right mono text-[11px] leading-[1.7] text-fog-500 w-[1%] whitespace-nowrap">
+                <td className="mono w-[1%] select-none whitespace-nowrap border-r border-[color:var(--line-soft)] px-2 py-0 text-right text-[11px] leading-[1.7] text-chalk-400">
                   {l.number}
                 </td>
-                <td className="px-3 py-0 mono text-[12px] leading-[1.7] text-fog-200 whitespace-pre">
+                <td className="mono whitespace-pre px-3 py-0 text-[12px] leading-[1.7] text-chalk-200">
                   {l.text}
                 </td>
               </tr>

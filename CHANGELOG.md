@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.56.0
+
+- **Git, Merge, and the diff/workflow panels moved onto the new design system.**
+  The Git and Merge pages and the shared diff viewer, changed-files list,
+  worktree view, secret-diff warning, workflow timeline, flow graph, event
+  stream, and active-role card were the last surfaces drawn in the old idiom.
+  They now compose the PageShell canvas and coal/chalk cards, with facts as
+  `StatTile`s and empty/error states that point at the next action. The tuned,
+  theme-aware diff add/remove colours are preserved. A leftover pulsing bar on
+  the active workflow stage was removed (static tint instead). Groundwork for
+  folding Git, Diffs, and Merge into one unified Source surface.
+
 ## 0.55.0
 
 - **Config / admin pages moved onto the new design system.** Providers, Project,

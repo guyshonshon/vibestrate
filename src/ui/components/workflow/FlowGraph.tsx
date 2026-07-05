@@ -35,11 +35,11 @@ export type FlowGraphStep = {
 
 const STATUS_DOT: Record<FlowGraphStepStatus, string> = {
   passed: "bg-emerald-400",
-  running: "bg-violet-400",
-  blocked: "bg-amber-300",
+  running: "bg-violet-soft",
+  blocked: "bg-amber-soft",
   failed: "bg-rose-400",
-  skipped: "bg-fog-600",
-  pending: "bg-fog-600/50",
+  skipped: "bg-chalk-400",
+  pending: "bg-chalk-400/50",
 };
 
 function LayerStack({ layers }: { layers: FlowGraphStep[][] }) {
@@ -49,19 +49,19 @@ function LayerStack({ layers }: { layers: FlowGraphStep[][] }) {
         <div key={li}>
           {li > 0 ? (
             <div className="flex justify-center py-0.5">
-              <span className="h-3 w-px bg-white/10" />
+              <span className="h-3 w-px bg-[color:var(--line-strong)]" />
             </div>
           ) : null}
           <div
             className={
               layerSteps.length > 1
-                ? "flex flex-wrap items-stretch gap-2 rounded-md border border-dashed border-white/10 p-1.5"
+                ? "flex flex-wrap items-stretch gap-2 rounded-[12px] border border-dashed border-[color:var(--line)] p-1.5"
                 : "flex flex-wrap items-stretch gap-2"
             }
           >
             {layerSteps.length > 1 ? (
-              <span className="self-center px-1 text-[10px] uppercase tracking-wide text-fog-500">
-                parallel ×{layerSteps.length}
+              <span className="self-center px-1 text-[10px] font-medium text-chalk-400">
+                parallel x{layerSteps.length}
               </span>
             ) : null}
             {layerSteps.map((s) => (
@@ -87,21 +87,21 @@ export function FlowGraph({
   checklistSegment?: { from: string; to: string } | null;
 }) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-ink-200/30 p-3">
-      <div className="eyebrow mb-2">{title}</div>
+    <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+      <div className="mb-3 text-[12.5px] font-semibold text-chalk-300">{title}</div>
       {checklistSegment ? (
         <div className="flex flex-col items-stretch gap-1">
           {zonedLayersOf(steps, checklistSegment).map((zone, zi) => (
             <div key={zi}>
               {zi > 0 ? (
                 <div className="flex justify-center py-0.5">
-                  <span className="h-3 w-px bg-white/10" />
+                  <span className="h-3 w-px bg-[color:var(--line-strong)]" />
                 </div>
               ) : null}
               {zone.repeats ? (
-                <div className="rounded-md border border-violet-400/30 bg-violet-400/[0.04] p-1.5">
-                  <div className="mb-1 px-1 text-[10px] uppercase tracking-wide text-violet-300/80">
-                    Per checklist item · repeats
+                <div className="rounded-[12px] border border-violet-soft/30 bg-violet-soft/[0.06] p-1.5">
+                  <div className="mb-1 px-1 text-[10px] font-medium text-violet-soft">
+                    Per checklist item - repeats
                   </div>
                   <LayerStack layers={zone.layers} />
                 </div>
@@ -120,19 +120,19 @@ export function FlowGraph({
 
 function Node({ step }: { step: FlowGraphStep }) {
   const status = step.status ?? null;
-  const dot = status ? STATUS_DOT[status] : "bg-fog-600/50";
+  const dot = status ? STATUS_DOT[status] : "bg-chalk-400/50";
   return (
-    <div className="min-w-[132px] flex-1 rounded-md border border-white/[0.06] bg-ink-200/50 px-2.5 py-1.5">
+    <div className="min-w-[132px] flex-1 rounded-[14px] border border-[color:var(--line)] bg-coal-500/60 px-2.5 py-1.5">
       <div className="flex items-center gap-1.5">
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
-        <span className="truncate text-[12px] text-fog-100">{step.label}</span>
+        <span className="truncate text-[12px] text-chalk-100">{step.label}</span>
       </div>
-      <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-fog-500">
-        <span className="mono">{step.kind}</span>
+      <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-chalk-400">
+        <span className="font-mono">{step.kind}</span>
         {step.seat ? (
           <>
             <span>·</span>
-            <span className="mono">{step.seat}</span>
+            <span className="font-mono">{step.seat}</span>
           </>
         ) : null}
         {status ? (
@@ -144,7 +144,7 @@ function Node({ step }: { step: FlowGraphStep }) {
       </div>
       {step.instructions ? (
         <div
-          className="mt-0.5 truncate text-[10.5px] text-fog-400"
+          className="mt-0.5 truncate text-[10.5px] text-chalk-300"
           title={step.instructions}
         >
           {step.instructions}

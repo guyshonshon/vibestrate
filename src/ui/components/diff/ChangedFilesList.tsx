@@ -4,12 +4,12 @@ import { api } from "../../lib/api.js";
 import type { ChangedFile, DiffSnapshot } from "../../lib/types.js";
 
 const STATUS_COLORS: Record<ChangedFile["status"], string> = {
-  added: "text-vibestrate-success",
-  modified: "text-vibestrate-accent",
-  deleted: "text-vibestrate-fail",
-  renamed: "text-vibestrate-warn",
-  untracked: "text-vibestrate-fg-dim",
-  unknown: "text-vibestrate-fg-muted",
+  added: "text-emerald-400",
+  modified: "text-violet-soft",
+  deleted: "text-rose-300",
+  renamed: "text-amber-soft",
+  untracked: "text-chalk-300",
+  unknown: "text-chalk-400",
 };
 
 const STATUS_GLYPH: Record<ChangedFile["status"], string> = {
@@ -57,25 +57,32 @@ export function ChangedFilesList({
 
   return (
     <div>
-      <div className="flex items-center justify-between text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
-        <span>changed files</span>
+      <div className="flex items-center justify-between text-[12.5px] font-semibold text-chalk-100">
+        <span>Changed files</span>
         {snapshot ? (
-          <span className="vibestrate-mono normal-case tracking-normal">
-            {snapshot.totals.files} · +{snapshot.totals.insertions} −{snapshot.totals.deletions}
-            {snapshot.totals.redactedFiles > 0
-              ? ` · ${snapshot.totals.redactedFiles} redacted`
-              : ""}
+          <span className="mono text-[11.5px] text-chalk-300">
+            {snapshot.totals.files}{" "}
+            <span className="text-emerald-400">+{snapshot.totals.insertions}</span>{" "}
+            <span className="text-rose-300">-{snapshot.totals.deletions}</span>
+            {snapshot.totals.redactedFiles > 0 ? (
+              <span className="text-amber-soft">
+                {" "}
+                {snapshot.totals.redactedFiles} redacted
+              </span>
+            ) : null}
           </span>
         ) : null}
       </div>
       {error ? (
-        <div className="mt-2 text-[12px] text-vibestrate-fail">{error}</div>
+        <div className="mt-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[12px] text-rose-300">
+          {error}
+        </div>
       ) : snapshot === null ? (
-        <div className="mt-2 text-[12px] text-vibestrate-fg-muted">
+        <div className="mt-2 text-[12px] text-chalk-400">
           Worktree not available yet.
         </div>
       ) : snapshot.files.length === 0 ? (
-        <div className="mt-2 text-[12px] text-vibestrate-fg-muted">
+        <div className="mt-2 text-[12px] text-chalk-400">
           No changes detected.
         </div>
       ) : (
@@ -84,26 +91,28 @@ export function ChangedFilesList({
             <li key={f.path}>
               <button
                 onClick={() => onSelect(f.path)}
-                className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-vibestrate-panel-2 ${
-                  selectedPath === f.path ? "bg-vibestrate-panel-2" : ""
+                className={`flex w-full items-center gap-2 rounded-[14px] px-3 py-2 text-left transition hover:bg-coal-400 ${
+                  selectedPath === f.path ? "bg-coal-500/60" : ""
                 }`}
               >
                 <span
-                  className={`vibestrate-mono w-4 text-[11px] ${STATUS_COLORS[f.status]}`}
+                  className={`mono w-4 text-[11px] ${STATUS_COLORS[f.status]}`}
                 >
                   {STATUS_GLYPH[f.status]}
                 </span>
-                <span className="vibestrate-mono flex-1 truncate text-[12px] text-vibestrate-fg">
+                <span className="mono flex-1 truncate text-[12px] text-chalk-100">
                   {f.path}
                 </span>
                 {f.isSecretLike ? (
                   <Lock
-                    className="h-3 w-3 text-vibestrate-warn"
-                    strokeWidth={1.5}
+                    className="h-3.5 w-3.5 text-amber-soft"
+                    strokeWidth={1.9}
+                    aria-hidden
                   />
                 ) : null}
-                <span className="vibestrate-mono text-[11px] text-vibestrate-fg-muted">
-                  +{f.insertions} −{f.deletions}
+                <span className="mono text-[11px] text-chalk-300">
+                  <span className="text-emerald-400">+{f.insertions}</span>{" "}
+                  <span className="text-rose-300">-{f.deletions}</span>
                 </span>
               </button>
             </li>

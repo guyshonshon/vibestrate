@@ -31,9 +31,11 @@ import type {
   GitStatus,
   RunState,
 } from "../../lib/types.js";
+import { Button } from "../../components/design/Button.js";
 import { Chip } from "../../components/design/Chip.js";
 import { cn } from "../../components/design/cn.js";
 import { relTime } from "../../components/design/format.js";
+import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
 import { ChangedFilesList } from "../../components/diff/ChangedFilesList.js";
 import { DiffViewer } from "../../components/diff/DiffViewer.js";
 import { navigate } from "../App.js";
@@ -111,11 +113,10 @@ export function GitPage({ onSelectRun }: Props) {
   );
 
   return (
-    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-5 pb-12">
-      {/* Compact header */}
-      <section className="flex items-center justify-between gap-4 flex-wrap mb-4">
-        <div className="flex items-baseline gap-3 min-w-0">
-          <h1 className="text-[15px] font-semibold tracking-tight text-fog-100">
+    <PageShell>
+      <PageHeader
+        title={
+          <span className="flex items-baseline gap-2.5">
             {projectStatus?.branch ? (
               <>
                 On branch{" "}
@@ -126,128 +127,138 @@ export function GitPage({ onSelectRun }: Props) {
             ) : (
               "Project repository"
             )}
-          </h1>
-          {projectStatus ? (
+          </span>
+        }
+        actions={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void load()}
+            disabled={refreshing}
+            iconLeft={
+              <RefreshCw
+                className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
+                strokeWidth={1.9}
+              />
+            }
+          >
+            {refreshing ? "Refreshing" : "Refresh"}
+          </Button>
+        }
+      >
+        {projectStatus ? (
+          <div className="mt-3">
             <ProjectStateChips status={projectStatus} />
-          ) : null}
-        </div>
-        <button
-          type="button"
-          onClick={() => void load()}
-          disabled={refreshing}
-          className="h-8 px-2.5 border border-white/10 bg-ink-200 hover:bg-ink-100 text-[12px] text-fog-300 flex items-center gap-1.5 disabled:opacity-50"
-        >
-          <RefreshCw
-            className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
-            strokeWidth={1.6}
-          />
-          Refresh
-        </button>
-      </section>
-
-      {error ? (
-        <div className="mb-4 border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
-          {error}
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+        {error ? (
+          <div className="mt-3 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
+            {error} - refresh to retry, or check that git is available in this project.
+          </div>
+        ) : null}
+      </PageHeader>
 
       {/* Two-column main: changes (left) + recent commits (right) */}
-      <section className="grid grid-cols-12 gap-5">
-        <div className="col-span-12 xl:col-span-7 slab p-4">
-          <div className="mb-3 flex items-baseline justify-between gap-3">
-            <span className="eyebrow">Changes since the last commit</span>
-            {projectStatus ? (
-              <span className="mono text-[11px] text-fog-400">
-                {projectStatus.changedFiles.length} file
-                {projectStatus.changedFiles.length === 1 ? "" : "s"}
+      <Section>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4 xl:col-span-7">
+            <div className="mb-3 flex items-baseline justify-between gap-3">
+              <span className="text-[13px] font-semibold text-chalk-100">
+                Changes since the last commit
               </span>
-            ) : null}
-          </div>
-          {!projectStatus ? (
-            <div className="text-[12.5px] text-fog-300">Loading…</div>
-          ) : projectStatus.changedFiles.length === 0 ? (
-            <div className="text-[12.5px] text-fog-300">
-              Nothing changed. Your working tree matches the last commit.
-            </div>
-          ) : (
-            <ul className="space-y-1.5">
-              {projectStatus.changedFiles.slice(0, 50).map((f) => (
-                <li
-                  key={f.path}
-                  className="flex items-center gap-2.5 border border-white/[0.07] bg-ink-200 px-2.5 py-1.5"
-                >
-                  <ChangeKindBadge status={f.status} />
-                  <FileText className="h-3 w-3 text-fog-500" strokeWidth={1.7} />
-                  <span className="flex-1 mono text-[12px] text-fog-100 truncate">
-                    {f.path}
-                  </span>
-                </li>
-              ))}
-              {projectStatus.changedFiles.length > 50 ? (
-                <li className="text-[11.5px] text-fog-500 mono pl-1">
-                  …{projectStatus.changedFiles.length - 50} more
-                </li>
+              {projectStatus ? (
+                <span className="mono text-[11px] text-chalk-400">
+                  {projectStatus.changedFiles.length} file
+                  {projectStatus.changedFiles.length === 1 ? "" : "s"}
+                </span>
               ) : null}
-            </ul>
-          )}
-        </div>
-
-        <div className="col-span-12 xl:col-span-5 slab p-4">
-          <div className="mb-3 flex items-baseline justify-between gap-3">
-            <span className="eyebrow">Recent commits</span>
-            {projectHistory ? (
-              <span className="mono text-[11px] text-fog-400">
-                {projectHistory.commits.length}
-              </span>
-            ) : null}
+            </div>
+            {!projectStatus ? (
+              <div className="text-[12.5px] text-chalk-300">Loading…</div>
+            ) : projectStatus.changedFiles.length === 0 ? (
+              <div className="text-[12.5px] text-chalk-300">
+                Nothing changed. Your working tree matches the last commit.
+              </div>
+            ) : (
+              <ul className="space-y-1.5">
+                {projectStatus.changedFiles.slice(0, 50).map((f) => (
+                  <li
+                    key={f.path}
+                    className="flex items-center gap-2.5 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-1.5"
+                  >
+                    <ChangeKindBadge status={f.status} />
+                    <FileText className="h-3 w-3 text-chalk-400" strokeWidth={1.7} />
+                    <span className="flex-1 mono text-[12px] text-chalk-100 truncate">
+                      {f.path}
+                    </span>
+                  </li>
+                ))}
+                {projectStatus.changedFiles.length > 50 ? (
+                  <li className="text-[11.5px] text-chalk-400 mono pl-1">
+                    …{projectStatus.changedFiles.length - 50} more
+                  </li>
+                ) : null}
+              </ul>
+            )}
           </div>
-          {!projectHistory ? (
-            <div className="text-[12.5px] text-fog-300">Loading…</div>
-          ) : projectHistory.commits.length === 0 ? (
-            <div className="text-[12.5px] text-fog-300">No commits yet.</div>
-          ) : (
-            <ol className="space-y-2">
-              {projectHistory.commits.map((c) => (
-                <li
-                  key={c.hash}
-                  className="border border-white/[0.07] bg-ink-200 px-2.5 py-2"
-                >
-                  <div className="flex items-start gap-2">
-                    <GitCommitIcon
-                      className="h-3 w-3 text-violet-soft mt-0.5 shrink-0"
-                      strokeWidth={1.7}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[12px] text-fog-100 leading-snug truncate">
-                        {c.subject}
-                      </div>
-                      <div className="text-[10.5px] text-fog-500 mono mt-0.5 truncate">
-                        {c.shortHash} · {c.author} · {relTime(c.date)}
+
+          <div className="col-span-12 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4 xl:col-span-5">
+            <div className="mb-3 flex items-baseline justify-between gap-3">
+              <span className="text-[13px] font-semibold text-chalk-100">
+                Recent commits
+              </span>
+              {projectHistory ? (
+                <span className="mono text-[11px] text-chalk-400">
+                  {projectHistory.commits.length}
+                </span>
+              ) : null}
+            </div>
+            {!projectHistory ? (
+              <div className="text-[12.5px] text-chalk-300">Loading…</div>
+            ) : projectHistory.commits.length === 0 ? (
+              <div className="text-[12.5px] text-chalk-300">No commits yet.</div>
+            ) : (
+              <ol className="space-y-2">
+                {projectHistory.commits.map((c) => (
+                  <li
+                    key={c.hash}
+                    className="rounded-[12px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-2"
+                  >
+                    <div className="flex items-start gap-2">
+                      <GitCommitIcon
+                        className="h-3 w-3 text-violet-soft mt-0.5 shrink-0"
+                        strokeWidth={1.7}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[12px] text-chalk-100 leading-snug truncate">
+                          {c.subject}
+                        </div>
+                        <div className="text-[10.5px] text-chalk-300 mono mt-0.5 truncate">
+                          {c.shortHash} · {c.author} · {relTime(c.date)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
         </div>
-      </section>
+      </Section>
 
       {/* Per-run worktrees */}
-      <section className="mt-5">
-        <div className="flex items-baseline justify-between mb-3">
-          <div className="eyebrow">
-            What each run changed · {activeWorktrees.length} active worktree
-            {activeWorktrees.length === 1 ? "" : "s"}
-          </div>
-          <span className="text-[11px] text-fog-500 mono">
+      <Section
+        title="What each run changed"
+        action={
+          <span className="text-[11.5px] text-chalk-400 mono">
             click a worktree to open it in Codebase
           </span>
-        </div>
+        }
+      >
         {activeWorktrees.length === 0 ? (
-          <div className="slab px-6 py-10 text-center text-[12.5px] text-fog-300">
+          <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-700 px-6 py-10 text-center text-[12.5px] text-chalk-300">
             No active worktrees right now. Each run gets its own branch - they
-            show up here while the run is in flight.
+            show up here while the run is in flight. Queue a run to fill this.
           </div>
         ) : (
           <ul className="space-y-2.5">
@@ -262,8 +273,8 @@ export function GitPage({ onSelectRun }: Props) {
             ))}
           </ul>
         )}
-      </section>
-    </div>
+      </Section>
+    </PageShell>
   );
 }
 
@@ -294,16 +305,16 @@ function ChangeKindBadge({ status }: { status: string }) {
   const code = status.trim().charAt(0).toUpperCase();
   const map: Record<string, { label: string; cls: string }> = {
     A: { label: "+", cls: "text-emerald-300 bg-emerald-500/10 border-emerald-400/30" },
-    M: { label: "M", cls: "text-amber-300 bg-amber-500/10 border-amber-400/30" },
+    M: { label: "M", cls: "text-amber-soft bg-amber-500/10 border-amber-400/30" },
     D: { label: "−", cls: "text-rose-300 bg-rose-500/10 border-rose-400/30" },
     R: { label: "R", cls: "text-sky-glow bg-sky-500/10 border-sky-400/30" },
-    "?": { label: "?", cls: "text-fog-400 bg-white/[0.025] border-white/10" },
+    "?": { label: "?", cls: "text-chalk-400 bg-coal-500 border-[color:var(--line)]" },
   };
   const m = map[code] ?? map.M!;
   return (
     <span
       className={cn(
-        "mono text-[10px] w-5 h-5 rounded border flex items-center justify-center shrink-0",
+        "mono text-[10px] w-5 h-5 rounded-[8px] border flex items-center justify-center shrink-0",
         m.cls,
       )}
       title={status}
@@ -330,10 +341,10 @@ function WorktreeCard({
   return (
     <div
       className={cn(
-        "border transition overflow-hidden",
+        "rounded-[16px] border transition overflow-hidden",
         open
-          ? "border-violet-soft/30 bg-ink-100"
-          : "border-white/[0.07] bg-ink-200 hover:bg-ink-100 hover:border-violet-soft/30",
+          ? "border-violet-soft/30 bg-coal-500"
+          : "border-[color:var(--line)] bg-coal-600 hover:bg-coal-500 hover:border-violet-soft/30",
       )}
     >
       <button
@@ -349,7 +360,7 @@ function WorktreeCard({
           />
         ) : (
           <ChevronRight
-            className="h-3.5 w-3.5 text-fog-400 shrink-0"
+            className="h-3.5 w-3.5 text-chalk-400 shrink-0"
             strokeWidth={1.7}
           />
         )}
@@ -357,13 +368,13 @@ function WorktreeCard({
           className="h-3.5 w-3.5 text-violet-soft shrink-0"
           strokeWidth={1.7}
         />
-        <span className="mono text-[12px] text-fog-100 truncate shrink-0 max-w-[260px]">
+        <span className="mono text-[12px] text-chalk-100 truncate shrink-0 max-w-[260px]">
           {branch}
         </span>
-        <span className="hidden md:inline text-[12.5px] text-fog-300 truncate min-w-0 flex-1">
+        <span className="hidden md:inline text-[12.5px] text-chalk-300 truncate min-w-0 flex-1">
           {run.task}
         </span>
-        <span className="mono text-[10.5px] text-fog-500 flex items-center gap-1 shrink-0">
+        <span className="mono text-[10.5px] text-chalk-400 flex items-center gap-1 shrink-0">
           <History className="h-2.5 w-2.5" strokeWidth={1.7} />
           {run.status}
         </span>
@@ -371,12 +382,12 @@ function WorktreeCard({
           <span className="mono text-[10.5px] shrink-0">
             <span className="text-emerald-300/90">+{diff.totals.insertions}</span>{" "}
             <span className="text-rose-300/90">−{diff.totals.deletions}</span>{" "}
-            <span className="text-fog-500">
+            <span className="text-chalk-400">
               · {diff.totals.files} file{diff.totals.files === 1 ? "" : "s"}
             </span>
           </span>
         ) : (
-          <span className="mono text-[10.5px] text-fog-500 shrink-0">
+          <span className="mono text-[10.5px] text-chalk-400 shrink-0">
             no diff yet
           </span>
         )}
@@ -385,7 +396,7 @@ function WorktreeCard({
             e.stopPropagation();
             onOpenRun(run.runId);
           }}
-          className="ml-1 inline-flex items-center gap-1 border border-white/10 bg-ink-200 hover:bg-ink-100 px-2 py-0.5 text-[10.5px] text-fog-300 hover:text-fog-100 shrink-0 cursor-pointer"
+          className="ml-1 inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-500 hover:bg-coal-400 px-2 py-0.5 text-[10.5px] text-chalk-300 hover:text-chalk-100 shrink-0 cursor-pointer"
           title="Open this run"
         >
           Open run
@@ -394,9 +405,11 @@ function WorktreeCard({
       </button>
 
       {open ? (
-        <div className="border-t border-white/[0.06] grid grid-cols-12 gap-0">
-          <div className="col-span-12 md:col-span-4 border-b md:border-b-0 md:border-r border-white/[0.06] p-3">
-            <div className="eyebrow mb-2">Changed files</div>
+        <div className="border-t border-[color:var(--line-soft)] grid grid-cols-12 gap-0">
+          <div className="col-span-12 border-b md:col-span-4 md:border-b-0 md:border-r border-[color:var(--line-soft)] p-3">
+            <div className="mb-2 text-[11px] font-semibold text-violet-soft">
+              Changed files
+            </div>
             {hasChanges ? (
               <ChangedFilesList
                 runId={run.runId}
@@ -404,7 +417,7 @@ function WorktreeCard({
                 onSelect={setSelectedFile}
               />
             ) : (
-              <div className="text-[12px] text-fog-300">
+              <div className="text-[12px] text-chalk-300">
                 No files changed in this worktree yet.
               </div>
             )}
@@ -433,12 +446,12 @@ function WorktreeCard({
                   }
                 />
               ) : (
-                <div className="text-[12.5px] text-fog-300 px-1 py-3">
+                <div className="text-[12.5px] text-chalk-300 px-1 py-3">
                   Pick a file on the left to view its diff.
                 </div>
               )
             ) : (
-              <div className="text-[12.5px] text-fog-300 px-1 py-3">
+              <div className="text-[12.5px] text-chalk-300 px-1 py-3">
                 Nothing to show yet.
               </div>
             )}

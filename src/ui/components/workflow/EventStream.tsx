@@ -47,18 +47,20 @@ export function EventStream({
   }, [events]);
 
   return (
-    <div className="rounded border border-vibestrate-border bg-vibestrate-panel">
-      <header className="flex items-center justify-between border-b border-vibestrate-border px-3 py-2 text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
-        <span>events</span>
-        <span className="vibestrate-mono normal-case tracking-normal">
+    <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600">
+      <header className="flex items-center justify-between border-b border-[color:var(--line)] px-4 py-2.5">
+        <span className="text-[12.5px] font-semibold text-chalk-300">Events</span>
+        <span className="font-mono text-[11.5px] text-chalk-400">
           {events.length}
         </span>
       </header>
       {error ? (
-        <div className="px-3 py-2 text-[12px] text-vibestrate-fail">{error}</div>
+        <div className="m-3 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+          {error} - the stream will retry automatically.
+        </div>
       ) : events.length === 0 ? (
-        <div className="px-3 py-2 text-[12px] text-vibestrate-fg-muted">
-          No events yet.
+        <div className="px-4 py-3 text-[12.5px] text-chalk-300">
+          No events yet - they'll stream in as the run progresses.
         </div>
       ) : (
         <ol className="max-h-72 overflow-y-auto">
@@ -66,19 +68,19 @@ export function EventStream({
             <li
               key={`${event.timestamp}-${i}`}
               onClick={() => onSelect?.(event)}
-              className="grid cursor-pointer grid-cols-[120px_140px_1fr] gap-3 border-b border-vibestrate-border-soft px-3 py-1.5 hover:bg-vibestrate-panel-2"
+              className="grid cursor-pointer grid-cols-[120px_140px_1fr] gap-3 border-b border-[color:var(--line-soft)] px-4 py-1.5 transition hover:bg-coal-500/60"
             >
-              <span className="vibestrate-mono text-[11px] text-vibestrate-fg-muted">
+              <span className="font-mono text-[11px] text-chalk-400">
                 {new Date(event.timestamp).toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit",
                   second: "2-digit",
                 })}
               </span>
-              <span className="vibestrate-mono text-[11.5px] text-vibestrate-fg-dim">
+              <span className="font-mono text-[11.5px] text-chalk-300">
                 {event.type}
               </span>
-              <span className="text-[12.5px] text-vibestrate-fg">
+              <span className="text-[12.5px] text-chalk-100">
                 {event.message}
               </span>
             </li>

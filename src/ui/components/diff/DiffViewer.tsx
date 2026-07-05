@@ -55,7 +55,7 @@ export function DiffViewer({
 
   if (!filePath) {
     return (
-      <div className="text-[12px] text-vibestrate-fg-muted">
+      <div className="text-[12px] text-chalk-400">
         Select a file to see its diff.
       </div>
     );
@@ -63,12 +63,14 @@ export function DiffViewer({
 
   if (error) {
     return (
-      <div className="text-[12px] text-vibestrate-fail">{error}</div>
+      <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[12px] text-rose-300">
+        {error}
+      </div>
     );
   }
 
   if (!diff) {
-    return <div className="text-[12px] text-vibestrate-fg-muted">Loading diff…</div>;
+    return <div className="text-[12px] text-chalk-400">Loading diff…</div>;
   }
 
   if (diff.redacted) {
@@ -78,18 +80,18 @@ export function DiffViewer({
   const lines = diff.body.split("\n").map(classifyLine);
 
   return (
-    <div className="overflow-auto rounded border border-vibestrate-border bg-vibestrate-canvas">
-      <header className="flex items-center gap-1.5 border-b border-vibestrate-border bg-vibestrate-panel px-3 py-1.5 text-[11.5px] text-vibestrate-fg-dim">
-        <span className="vibestrate-mono truncate">{diff.path}</span>
+    <div className="overflow-auto rounded-[18px] border border-[color:var(--line)] bg-coal-600">
+      <header className="flex items-center gap-1.5 border-b border-[color:var(--line-soft)] bg-coal-500/60 px-3 py-1.5 text-[11.5px] text-chalk-300">
+        <span className="mono truncate">{diff.path}</span>
         <div className="ml-auto flex items-center gap-1">
           {onOpenInProject ? (
             <button
               type="button"
               onClick={() => onOpenInProject(diff.path)}
-              className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
+              className="inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11px] font-semibold text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
               title="Open this file in the project codebase view"
             >
-              <FolderOpen className="h-3 w-3" strokeWidth={1.5} />
+              <FolderOpen className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
               project
             </button>
           ) : null}
@@ -97,10 +99,10 @@ export function DiffViewer({
             <button
               type="button"
               onClick={() => onOpenInWorktree(diff.path)}
-              className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
+              className="inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11px] font-semibold text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
               title="Open this file in the run's worktree"
             >
-              <GitBranch className="h-3 w-3" strokeWidth={1.5} />
+              <GitBranch className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
               worktree
             </button>
           ) : null}
@@ -109,10 +111,10 @@ export function DiffViewer({
             onClick={() => {
               void navigator.clipboard.writeText(diff.path).catch(() => {});
             }}
-            className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
+            className="inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11px] font-semibold text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
             title="Copy path"
           >
-            <Copy className="h-3 w-3" strokeWidth={1.5} />
+            <Copy className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
             copy
           </button>
           <button
@@ -126,23 +128,23 @@ export function DiffViewer({
                   }
                 });
             }}
-            className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
+            className="inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11px] font-semibold text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
             title="Open in editor (if configured)"
           >
-            <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
+            <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
             editor
           </button>
         </div>
       </header>
-      <pre className="vibestrate-mono whitespace-pre p-3 text-[12.5px] leading-[1.55]">
+      <pre className="mono whitespace-pre p-3 text-[12.5px] leading-[1.55]">
         {lines.map((line, i) => {
-          let cls = "text-vibestrate-fg-dim";
+          let cls = "text-chalk-300";
           if (line.kind === "add")
             cls = "text-vibestrate-diff-add-fg bg-vibestrate-diff-add/40";
           else if (line.kind === "del")
             cls = "text-vibestrate-diff-del-fg bg-vibestrate-diff-del/40";
-          else if (line.kind === "hunk") cls = "text-vibestrate-accent";
-          else if (line.kind === "header") cls = "text-vibestrate-fg-muted";
+          else if (line.kind === "hunk") cls = "text-violet-soft";
+          else if (line.kind === "header") cls = "text-chalk-400";
           return (
             <span key={i} className={`block px-2 ${cls}`}>
               {line.text || " "}
