@@ -9,10 +9,28 @@ import { configLeafKeys } from "../../project/config-introspection.js";
 import { ConfigError } from "../../utils/errors.js";
 import { projectConfigPath } from "../../utils/paths.js";
 import { buildPersonaCatalog } from "../../orchestrator/personas.js";
+import { listSupervisorArchetypes } from "../../orchestrator/supervisor-archetypes.js";
+import {
+  adoptArchetype,
+  setDefaultPersona,
+  removePersona,
+} from "../../orchestrator/persona-service.js";
 
 export type ConfigRoutesDeps = {
   projectRoot: string;
 };
+
+// Supervisor write-surface request bodies (server-owned definitions: the client
+// only ever sends an id, never a persona object). All `.strict()` so an unexpected
+// field is a 400.
+const adoptArchetypeBody = z
+  // Name-shaped: defense-in-depth so junk / prototype-name ids are 400 at the
+  // door (the Object.hasOwn guard in adoptArchetype is the load-bearing check).
+  .object({ archetypeId: z.string().min(1).max(60).regex(/^[a-zA-Z0-9_-]+$/) })
+  .strict();
+const setDefaultPersonaBody = z
+  .object({ personaId: z.string().min(1).max(60) })
+  .strict();
 
 /** Read a dotted path out of a loaded config object (no schema needed). */
 function valueAtPath(root: unknown, dottedPath: string): unknown {
@@ -183,5 +201,68 @@ export async function registerConfigRoutes(
   app.get("/api/personas", async () => {
     const loaded = await loadConfig(projectRoot).catch(() => null);
     return buildPersonaCatalog(loaded?.config ?? null);
+  });
+
+  // ── Supervisor archetype gallery + write-surface ──────────────────────────
+  // The read-only Supervisors page becomes an authoring surface. All writes go
+  // through the shared persona-service (the same functions `vibe supervisor`
+  // uses), which route through the schema-validated config layer. The client
+  // only ever sends an id - the persona definitions are server-owned
+  // (SUPERVISOR_ARCHETYPES), never accepted as a raw object over HTTP.
+
+  // The curated archetype catalog, each flagged `adopted` against the project's
+  // current personas. Read-only.
+  app.get("/api/supervisors/archetypes", async () => {
+    const loaded = await loadConfig(projectRoot).catch(() => null);
+    const ids = new Set(Object.keys(loaded?.config.personas ?? {}));
+    return { archetypes: listSupervisorArchetypes(ids) };
+  });
+
+  // Adopt an archetype by id -> writes personas.<id> with the SERVER-OWNED
+  // definition. Unknown id -> 400 (ConfigError). No persona object is accepted.
+  app.post("/api/supervisors/adopt", async (req) => {
+    const parsed = adoptArchetypeBody.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(
+        400,
+        parsed.error.issues[0]?.message ?? "Invalid request body.",
+      );
+    }
+    try {
+      return await adoptArchetype(projectRoot, parsed.data.archetypeId);
+    } catch (err) {
+      if (err instanceof ConfigError) throw new HttpError(400, err.message);
+      throw err;
+    }
+  });
+
+  // Set the project's default supervisor. The id must resolve to a built-in or an
+  // existing config persona; anything else -> 400.
+  app.post("/api/supervisors/default", async (req) => {
+    const parsed = setDefaultPersonaBody.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(
+        400,
+        parsed.error.issues[0]?.message ?? "Invalid request body.",
+      );
+    }
+    try {
+      return await setDefaultPersona(projectRoot, parsed.data.personaId);
+    } catch (err) {
+      if (err instanceof ConfigError) throw new HttpError(400, err.message);
+      throw err;
+    }
+  });
+
+  // Remove a project (non-built-in, non-active-default) persona. Built-in /
+  // active-default / unknown -> 400.
+  app.delete("/api/supervisors/personas/:id", async (req) => {
+    const { id } = req.params as { id: string };
+    try {
+      return await removePersona(projectRoot, id);
+    } catch (err) {
+      if (err instanceof ConfigError) throw new HttpError(400, err.message);
+      throw err;
+    }
   });
 }

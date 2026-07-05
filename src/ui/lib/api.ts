@@ -62,6 +62,7 @@ import type {
   EngagementEntry,
   RunAssurance,
   PersonasResponse,
+  SupervisorArchetypeView,
   ProjectPolicy,
   RunAudit,
   RunControlDirective,
@@ -913,6 +914,28 @@ export const api = {
   },
   async listPersonas(): Promise<PersonasResponse> {
     return jsonGet<PersonasResponse>("/api/personas");
+  },
+  /** The curated supervisor archetype gallery, each flagged `adopted`. */
+  async getSupervisorArchetypes(): Promise<{
+    archetypes: SupervisorArchetypeView[];
+  }> {
+    return jsonGet("/api/supervisors/archetypes");
+  },
+  /** Adopt an archetype by id -> writes a persona into project.yml (server owns
+   *  the definition; only the id is sent). Parity with `vibe supervisor adopt`. */
+  async adoptArchetype(archetypeId: string): Promise<{ id: string }> {
+    return jsonPost("/api/supervisors/adopt", { archetypeId });
+  },
+  /** Set the project's default supervisor. Parity with `vibe supervisor default`. */
+  async setDefaultPersona(
+    personaId: string,
+  ): Promise<{ defaultPersona: string }> {
+    return jsonPost("/api/supervisors/default", { personaId });
+  },
+  /** Remove a project (non-built-in, non-active-default) persona. Parity with
+   *  `vibe supervisor remove`. */
+  async removePersona(id: string): Promise<{ removed: boolean }> {
+    return jsonDelete(`/api/supervisors/personas/${encodeURIComponent(id)}`);
   },
   async listProjectPolicies(): Promise<{ policies: ProjectPolicy[] }> {
     return jsonGet(`/api/policies/rules`);

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.61.0
+
+- **Supervisors is now an authoring surface with an archetype gallery.** The
+  page used to only list the active supervisors read-only. It now offers a
+  gallery of six curated archetypes - Security Hawk, Performance Skeptic,
+  Correctness Purist, Frontend Reviewer, Data & Migration Guardian, Ship-fast
+  Pragmatist - each with the review lenses it aims the reviewers at. Adopt one
+  and it writes the persona into `project.yml`; you can also set the default
+  supervisor and remove a project persona. Every action works in both the UI and
+  the CLI (`vibe supervisor archetypes | adopt | default | remove`) over one
+  shared service. The client only ever sends an archetype id - persona
+  definitions are server-owned, closed-vocabulary, and schema-validated, so the
+  UI can't inject an arbitrary persona.
+
 ## 0.60.0
 
 - **Config is now a real editor, not a read-only mirror.** The Config page used

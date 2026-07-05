@@ -1985,6 +1985,20 @@ export type PersonasResponse = {
   personas: PersonaSummary[];
 };
 
+// A curated supervisor archetype (server-owned; the client adopts one by id).
+export type SupervisorArchetypeView = {
+  id: string;
+  label: string;
+  description?: string;
+  reviewLenses: string[];
+  prefersFlows: string[];
+  reviewerProfile: string | null;
+  prefersPosture: string | null;
+  specUpPosture: string | null;
+  /** This archetype's id is already present in config.personas. */
+  adopted: boolean;
+};
+
 // Run audit tree (see src/core/run-audit.ts).
 export type AuditAttemptOutcome =
   | "success"
