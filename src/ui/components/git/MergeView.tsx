@@ -11,11 +11,11 @@ import {
   type MergeAnalysisDto,
   type MergeOverviewRowDto,
 } from "../../lib/api.js";
-import { Chip, type ChipTone } from "../../components/design/Chip.js";
-import { Button } from "../../components/design/Button.js";
-import { StatTile } from "../../components/design/StatTile.js";
-import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
-import { cn } from "../../components/design/cn.js";
+import { Chip, type ChipTone } from "../design/Chip.js";
+import { Button } from "../design/Button.js";
+import { StatTile } from "../design/StatTile.js";
+import { Section } from "../layout/PageShell.js";
+import { cn } from "../design/cn.js";
 
 type Props = {
   /** null = hub list of merge-ready runs; set = the merge window for one run. */
@@ -32,8 +32,11 @@ type Props = {
  * deterministic advice. All advice is read-only; the only mutating actions
  * are the existing apply/finish, embedded unchanged with their existing
  * confirmation UX and server-side gates.
+ *
+ * Shell-less: SourcePage owns the PageShell/PageHeader; this returns just the
+ * content. Extracted verbatim from the former MergePage.
  */
-export function MergePage({ runId, onOpenMergeRun, onOpenRun }: Props) {
+export function MergeView({ runId, onOpenMergeRun, onOpenRun }: Props) {
   return runId === null ? (
     <MergeHub onOpenMergeRun={onOpenMergeRun} onOpenRun={onOpenRun} />
   ) : (
@@ -144,33 +147,30 @@ function MergeHub({
   }, [load]);
 
   return (
-    <PageShell>
-      <PageHeader
-        title={
-          <span className="flex items-center gap-2.5">
+    <div>
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5 text-[15px] font-semibold text-chalk-100">
             <GitMerge className="h-5 w-5 text-emerald-400" strokeWidth={1.9} aria-hidden />
             Merge window
-          </span>
-        }
-        actions={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => void load()}
-            disabled={busy}
-            aria-label="Refresh"
-            iconLeft={
-              <RefreshCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} strokeWidth={1.9} aria-hidden />
-            }
-          >
-            Refresh
-          </Button>
-        }
-      >
-        <p className="mt-2 text-[12.5px] text-chalk-300">
-          Advice is read-only. Merging stays explicit, and nothing is ever pushed.
-        </p>
-      </PageHeader>
+          </div>
+          <p className="mt-1.5 text-[12.5px] text-chalk-300">
+            Advice is read-only. Merging stays explicit, and nothing is ever pushed.
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => void load()}
+          disabled={busy}
+          aria-label="Refresh"
+          iconLeft={
+            <RefreshCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} strokeWidth={1.9} aria-hidden />
+          }
+        >
+          Refresh
+        </Button>
+      </div>
 
       {error ? (
         <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
@@ -251,7 +251,7 @@ function MergeHub({
           </ul>
         </Section>
       ) : null}
-    </PageShell>
+    </div>
   );
 }
 
@@ -318,31 +318,27 @@ function MergeWindow({
   const warnings = advice?.flags.filter((f) => f.severity === "warning") ?? [];
 
   return (
-    <PageShell>
-      <PageHeader
-        title={
-          <span className="flex min-w-0 items-center gap-2.5">
-            <GitMerge className="h-5 w-5 shrink-0 text-emerald-400" strokeWidth={1.9} aria-hidden />
-            <span className="truncate">{advice?.task ?? runId}</span>
-          </span>
-        }
-        actions={
-          <>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onBack}
-              aria-label="Back to merge list"
-              iconLeft={<ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />}
-            >
-              Back
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => onOpenRun(runId)}>
-              open run
-            </Button>
-          </>
-        }
-      />
+    <div>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-2.5 text-[15px] font-semibold text-chalk-100">
+          <GitMerge className="h-5 w-5 shrink-0 text-emerald-400" strokeWidth={1.9} aria-hidden />
+          <span className="truncate">{advice?.task ?? runId}</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onBack}
+            aria-label="Back to merge list"
+            iconLeft={<ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />}
+          >
+            Back
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => onOpenRun(runId)}>
+            open run
+          </Button>
+        </div>
+      </div>
 
       {loading ? (
         <div className="text-[12.5px] text-chalk-300">
@@ -638,6 +634,6 @@ function MergeWindow({
           </section>
         </>
       ) : null}
-    </PageShell>
+    </div>
   );
 }

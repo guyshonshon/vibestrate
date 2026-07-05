@@ -7,8 +7,6 @@ import {
   FolderTree,
   Gauge,
   GitBranch,
-  GitCommit,
-  GitMerge,
   LayoutGrid,
   ListChecks,
   Palette,
@@ -45,9 +43,7 @@ type Props = {
   onShowConfig: () => void;
   onShowCanvas: () => void;
   onShowCodebase: () => void;
-  onShowGit: () => void;
-  onShowGitTree: () => void;
-  onShowMerge: () => void;
+  onShowSource: () => void;
   onShowSettings: () => void;
   onShowPolicies: () => void;
   onOpenNotification: (n: NotificationRecord) => void;
@@ -92,9 +88,7 @@ export function Sidebar({
   onShowConfig,
   onShowCanvas,
   onShowCodebase,
-  onShowGit,
-  onShowGitTree,
-  onShowMerge,
+  onShowSource,
   onShowSettings,
   onShowPolicies,
   onOpenNotification,
@@ -130,8 +124,6 @@ export function Sidebar({
     () =>
       (
         [
-          "git",
-          "merge",
           "supervisors",
           "proposals",
           "project",
@@ -216,9 +208,9 @@ export function Sidebar({
         />
         <NavItem
           icon={<GitBranch className="h-[18px] w-[18px]" />}
-          label="Diffs"
-          selected={currentNav === "git-tree"}
-          onClick={onShowGitTree}
+          label="Source"
+          selected={currentNav === "source"}
+          onClick={onShowSource}
         />
         <NavItem
           icon={<ListChecks className="h-[18px] w-[18px]" />}
@@ -264,8 +256,6 @@ export function Sidebar({
         </button>
         {moreOpen ? (
           <div className="mb-1 ml-[22px] flex flex-col gap-0.5 border-l-[1.5px] border-[color:var(--line-strong)] pl-2.5">
-            <MoreItem icon={<GitCommit className="h-4 w-4" strokeWidth={1.9} />} label="Git" active={currentNav === "git"} onClick={onShowGit} />
-            <MoreItem icon={<GitMerge className="h-4 w-4" strokeWidth={1.9} />} label="Merge" active={currentNav === "merge"} onClick={onShowMerge} />
             <MoreItem icon={<ShieldCheck className="h-4 w-4" strokeWidth={1.9} />} label="Supervisors" active={currentNav === "supervisors"} onClick={onShowSupervisors} />
             <MoreItem icon={<Scale className="h-4 w-4" strokeWidth={1.9} />} label="Policies" active={currentNav === "policies"} onClick={onShowPolicies} />
             <MoreItem icon={<FileText className="h-4 w-4" strokeWidth={1.9} />} label="Proposals" active={currentNav === "proposals"} onClick={onShowProposals} />

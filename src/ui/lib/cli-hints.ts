@@ -210,6 +210,52 @@ export function hintForRoute(route: Route): CliHint {
         commands: cmds,
       };
     }
+    case "source":
+      // The unified Source page - hint by the active tab.
+      if (route.tab === "tree") {
+        return {
+          title: "Git tree",
+          blurb:
+            "Interactive any-node-to-any-node merge: pick source + target, see the predicted result and conflicts before anything is applied, and undo with one click. UI-only by design - the underlying ops are plain git.",
+          commands: [
+            { cmd: "git merge --no-ff <source>", note: "what an applied merge runs on the target branch" },
+            { cmd: "git reset --hard <pre-merge-sha>", note: "what an undo runs (only while unpushed + nothing built on top)" },
+            { cmd: "vibe integrate preview", note: "the CLI's batch dry-run conflict report (per-run flow)" },
+          ],
+          tips: [
+            "The interactive canvas has no CLI equivalent (a sanctioned UI-only exception); apply/undo are human-clicked, broker-gated, and never pushed.",
+          ],
+        };
+      }
+      if (route.tab === "merge") {
+        return {
+          title: "Merge window",
+          blurb:
+            "Read-only merge advice per merge-ready run, then the explicit integrate/finish actions. Full parity on the CLI.",
+          commands: [
+            { cmd: "vibe integrate advise", note: "deterministic advice for all merge-ready runs" },
+            { cmd: `vibe integrate advise ${route.runId ?? "<runId>"} --json`, note: "one run, machine-readable" },
+            { cmd: `vibe integrate analyze ${route.runId ?? "<runId>"}`, note: "optional LLM read of the diff (advisory, not a verdict)" },
+            { cmd: "vibe integrate preview", note: "dry-run merge conflict report" },
+            { cmd: "vibe integrate apply --into integration/<name>", note: "integrate into a dedicated branch (never main)" },
+            { cmd: "vibe integrate finish <branch>", note: "merge to main - typed confirmation, local only" },
+          ],
+          tips: [
+            "Advice is computed from git facts + check lanes - no model output; it never merges anything.",
+          ],
+        };
+      }
+      return {
+        title: "Git overview",
+        blurb:
+          "Per-run worktree + diff state. Bundles and validation live on the CLI.",
+        commands: [
+          { cmd: "vibe bundles list", note: "validation bundles per run" },
+          { cmd: "vibe bundles apply <bundleId>", note: "apply a bundle to the project root" },
+          { cmd: "vibe bundles revert <bundleId>", note: "revert a previously applied bundle" },
+          { cmd: "vibe validation run", note: "execute the validation profile" },
+        ],
+      };
     case "git":
       return {
         title: "Git overview",

@@ -37,6 +37,11 @@ export type Route =
   | { kind: "settings" }
   | { kind: "policies" }
   | { kind: "project" }
+  | {
+      kind: "source";
+      tab: "changes" | "tree" | "merge";
+      runId: string | null;
+    }
   | { kind: "git"; runId: string | null }
   | { kind: "git-tree" }
   | { kind: "merge"; runId: string | null }
@@ -182,6 +187,21 @@ export function parseHashRoute(hash: string): Route {
       runId: runId ?? null,
     };
   }
+  // Unified Source page. Scheme:
+  //   #/source                    -> changes
+  //   #/source/tree               -> tree
+  //   #/source/changes/:runId     -> changes (run preselected)
+  //   #/source/merge/:runId       -> merge (run preselected)
+  if (parts[0] === "source") {
+    const sub = parts[1];
+    const runId = parts[2] ?? null;
+    if (sub === "tree") return { kind: "source", tab: "tree", runId: null };
+    if (sub === "merge") return { kind: "source", tab: "merge", runId };
+    if (sub === "changes") return { kind: "source", tab: "changes", runId };
+    return { kind: "source", tab: "changes", runId: null };
+  }
+  // Legacy git surfaces - kept parseable so old deep-links still resolve.
+  // App.tsx maps these onto the Source page.
   if (parts[0] === "git-tree") return { kind: "git-tree" };
   if (parts[0] === "git") {
     const runId = query.get("runId");
@@ -258,6 +278,17 @@ export function serializeRoute(route: Route): string {
       if (route.runId) q.set("runId", route.runId);
       const qs = q.toString();
       return `#/codebase${qs ? `?${qs}` : ""}`;
+    }
+    case "source": {
+      if (route.tab === "tree") return "#/source/tree";
+      if (route.tab === "merge")
+        return route.runId
+          ? `#/source/merge/${encodeURIComponent(route.runId)}`
+          : "#/source/merge";
+      // changes
+      return route.runId
+        ? `#/source/changes/${encodeURIComponent(route.runId)}`
+        : "#/source";
     }
     case "git": {
       const q = new URLSearchParams();

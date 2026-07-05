@@ -1,12 +1,16 @@
 /**
- * Git tree page - interactive commit DAG + inspector + merge planner.
+ * Git "Tree" view - interactive commit DAG + inspector + merge planner.
  *
- * Three regions (a PageShell `fill` app view - each region scrolls its own body):
+ * Three regions (each region scrolls its own body):
  *   LEFT   - scrollable SVG DAG (GitDag)
  *   MIDDLE - commit/branch inspector (selected node detail)
  *   RIGHT  - merge planner (MergePlannerPanel + ConflictResolver)
  *
  * Loads api.getProjectGitGraph() on mount; re-loads after apply/undo.
+ *
+ * Shell-less: SourcePage owns the PageShell(fill)/PageHeader; this returns a
+ * `flex-1 min-h-0` column with a compact tool row + the three regions.
+ * Extracted verbatim from the former GitTreePage.
  */
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
@@ -26,22 +30,18 @@ import type {
   GitBranchesOverview,
   GitCommitDetail,
 } from "../../lib/types.js";
-import { cn } from "../../components/design/cn.js";
-import { relTime } from "../../components/design/format.js";
-import { Button } from "../../components/design/Button.js";
-import { HeroCard, type HeroTone } from "../../components/design/HeroCard.js";
-import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
-import { GitDag } from "../../components/git/GitDag.js";
-import { BranchesPanel } from "../../components/git/BranchesPanel.js";
-import { MergePlannerPanel } from "../../components/git/MergePlannerPanel.js";
-import {
-  buildIndex,
-  landingOnMain,
-} from "../../components/git/graph-math.js";
+import { cn } from "../design/cn.js";
+import { relTime } from "../design/format.js";
+import { Button } from "../design/Button.js";
+import { HeroCard, type HeroTone } from "../design/HeroCard.js";
+import { GitDag } from "./GitDag.js";
+import { BranchesPanel } from "./BranchesPanel.js";
+import { MergePlannerPanel } from "./MergePlannerPanel.js";
+import { buildIndex, landingOnMain } from "./graph-math.js";
 
 type LeftTab = "graph" | "branches";
 
-export function GitTreePage() {
+export function GitTreeView() {
   const [graph, setGraph] = useState<GitGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -143,42 +143,37 @@ export function GitTreePage() {
   }, [idx, mainTip, selectedHash]);
 
   return (
-    <PageShell variant="fill">
-      <PageHeader
-        className="mb-4"
-        title={
-          <span className="flex items-baseline gap-2.5">
-            Diffs
-            {graph?.available ? (
-              <span className="text-[14px] font-semibold tabular-nums text-chalk-400">
-                {graph.commits.length}
-              </span>
-            ) : null}
-          </span>
-        }
-        actions={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => void load()}
-            disabled={refreshing}
-            iconLeft={
-              <RefreshCw
-                className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
-                strokeWidth={1.9}
-              />
-            }
-          >
-            {refreshing ? "Refreshing" : "Refresh"}
-          </Button>
-        }
-      >
-        {error ? (
-          <div className="mt-3 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
-            {error} - refresh to retry, or check that git is available in this project.
-          </div>
-        ) : null}
-      </PageHeader>
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* Compact tool row: commit count + refresh. */}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <span className="text-[13px] font-semibold text-chalk-100">
+          Commit graph
+          {graph?.available ? (
+            <span className="ml-2 text-[13px] font-semibold tabular-nums text-chalk-400">
+              {graph.commits.length}
+            </span>
+          ) : null}
+        </span>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => void load()}
+          disabled={refreshing}
+          iconLeft={
+            <RefreshCw
+              className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
+              strokeWidth={1.9}
+            />
+          }
+        >
+          {refreshing ? "Refreshing" : "Refresh"}
+        </Button>
+      </div>
+      {error ? (
+        <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
+          {error} - refresh to retry, or check that git is available in this project.
+        </div>
+      ) : null}
 
       {!graph ? (
         <div className="flex min-h-0 flex-1 items-center justify-center rounded-[16px] border border-[color:var(--line)] bg-coal-700 text-[13px] text-chalk-300">
@@ -317,7 +312,7 @@ export function GitTreePage() {
           </section>
         </div>
       )}
-    </PageShell>
+    </div>
   );
 }
 

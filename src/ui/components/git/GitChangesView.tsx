@@ -1,16 +1,19 @@
 /**
- * Git page - consumer-friendly view of the project's git state plus
+ * Git "Changes" view - consumer-friendly view of the project's git state plus
  * per-run worktrees. Written in plain language: "Changes since the
  * last commit", "What each run changed", "Recent activity". Avoids
  * git jargon (rebase / staged / etc.) and shows commits with a
  * one-line summary, author, and time-ago.
  *
  * Sections:
- *   1. Project header - branch + ahead/behind + dirty state at a glance
+ *   1. Project header row - branch + ahead/behind + dirty state at a glance
  *   2. Uncommitted changes - file list with insert/delete counts
  *   3. Recent commits - last 10 commits with short hash + subject
  *   4. Per-run worktrees - one card per active/recent run with its
  *      branch + diff stats; click to inspect in Codebase
+ *
+ * Shell-less: SourcePage owns the PageShell/PageHeader; this returns just
+ * the content regions. Extracted verbatim from the former GitPage.
  */
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -31,21 +34,21 @@ import type {
   GitStatus,
   RunState,
 } from "../../lib/types.js";
-import { Button } from "../../components/design/Button.js";
-import { Chip } from "../../components/design/Chip.js";
-import { cn } from "../../components/design/cn.js";
-import { relTime } from "../../components/design/format.js";
-import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
-import { ChangedFilesList } from "../../components/diff/ChangedFilesList.js";
-import { DiffViewer } from "../../components/diff/DiffViewer.js";
-import { navigate } from "../App.js";
+import { Button } from "../design/Button.js";
+import { Chip } from "../design/Chip.js";
+import { cn } from "../design/cn.js";
+import { relTime } from "../design/format.js";
+import { Section } from "../layout/PageShell.js";
+import { ChangedFilesList } from "../diff/ChangedFilesList.js";
+import { DiffViewer } from "../diff/DiffViewer.js";
+import { navigate } from "../../app/App.js";
 
 type Props = {
   initialRunId?: string | null;
   onSelectRun: (runId: string) => void;
 };
 
-export function GitPage({ onSelectRun }: Props) {
+export function GitChangesView({ onSelectRun }: Props) {
   const [projectStatus, setProjectStatus] = useState<GitStatus | null>(null);
   const [projectHistory, setProjectHistory] = useState<GitHistory | null>(null);
   const [runs, setRuns] = useState<RunState[]>([]);
@@ -113,50 +116,48 @@ export function GitPage({ onSelectRun }: Props) {
   );
 
   return (
-    <PageShell>
-      <PageHeader
-        title={
-          <span className="flex items-baseline gap-2.5">
+    <div>
+      {/* Project state row - branch + ahead/behind + dirty + refresh. */}
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="text-[15px] font-semibold text-chalk-100">
             {projectStatus?.branch ? (
-              <>
+              <span className="flex items-baseline gap-2.5">
                 On branch{" "}
                 <span className="mono text-violet-soft">
                   {projectStatus.branch}
                 </span>
-              </>
+              </span>
             ) : (
               "Project repository"
             )}
-          </span>
-        }
-        actions={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => void load()}
-            disabled={refreshing}
-            iconLeft={
-              <RefreshCw
-                className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
-                strokeWidth={1.9}
-              />
-            }
-          >
-            {refreshing ? "Refreshing" : "Refresh"}
-          </Button>
-        }
-      >
-        {projectStatus ? (
-          <div className="mt-3">
-            <ProjectStateChips status={projectStatus} />
           </div>
-        ) : null}
-        {error ? (
-          <div className="mt-3 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
-            {error} - refresh to retry, or check that git is available in this project.
-          </div>
-        ) : null}
-      </PageHeader>
+          {projectStatus ? (
+            <div className="mt-2">
+              <ProjectStateChips status={projectStatus} />
+            </div>
+          ) : null}
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => void load()}
+          disabled={refreshing}
+          iconLeft={
+            <RefreshCw
+              className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
+              strokeWidth={1.9}
+            />
+          }
+        >
+          {refreshing ? "Refreshing" : "Refresh"}
+        </Button>
+      </div>
+      {error ? (
+        <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
+          {error} - refresh to retry, or check that git is available in this project.
+        </div>
+      ) : null}
 
       {/* Two-column main: changes (left) + recent commits (right) */}
       <Section>
@@ -274,7 +275,7 @@ export function GitPage({ onSelectRun }: Props) {
           </ul>
         )}
       </Section>
-    </PageShell>
+    </div>
   );
 }
 

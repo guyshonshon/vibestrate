@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.59.0
+
+- **Git, Diffs, and Merge are now one Source page.** Three overlapping git
+  surfaces collapsed into a single **Source** nav item with **Changes / Tree /
+  Merge** tabs: Changes (working diff, commits, worktrees), Tree (the commit DAG
+  + inspector + merge planner), and Merge (the per-run integrate flow). Old
+  `/git`, `/git-tree`, and `/merge` deep-links still resolve to the matching
+  tab, and the merge/integrate flow is unchanged - still explicit, still never
+  pushes. Two fewer nav items.
+
 ## 0.58.0
 
 - **The Ledger is now a tab on the Board.** The project's continuity log (what

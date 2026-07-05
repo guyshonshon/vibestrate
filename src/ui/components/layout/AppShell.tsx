@@ -35,9 +35,7 @@ type AppShellProps = {
   onShowConfig: () => void;
   onShowCanvas: () => void;
   onShowCodebase: () => void;
-  onShowGit: () => void;
-  onShowGitTree: () => void;
-  onShowMerge: () => void;
+  onShowSource: () => void;
   onShowConsult: () => void;
   onOpenNotification: (n: NotificationRecord) => void;
 };
@@ -71,9 +69,7 @@ export function AppShell({
   onShowConfig,
   onShowCanvas,
   onShowCodebase,
-  onShowGit,
-  onShowGitTree,
-  onShowMerge,
+  onShowSource,
   onOpenNotification,
 }: AppShellProps) {
   if (bare) {
@@ -106,9 +102,7 @@ export function AppShell({
           onShowConfig={onShowConfig}
           onShowCanvas={onShowCanvas}
           onShowCodebase={onShowCodebase}
-          onShowGit={onShowGit}
-          onShowGitTree={onShowGitTree}
-          onShowMerge={onShowMerge}
+          onShowSource={onShowSource}
           onShowSettings={onShowSettings}
           onShowPolicies={onShowPolicies}
           onOpenNotification={onOpenNotification}

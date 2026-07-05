@@ -14,9 +14,7 @@ import { TaskDetailPage } from "./routes/TaskDetailPage.js";
 import { WorkspacePage } from "./routes/WorkspacePage.js";
 import { ProjectPage } from "./routes/ProjectPage.js";
 import { CodebasePage } from "./routes/CodebasePage.js";
-import { GitPage } from "./routes/GitPage.js";
-import { GitTreePage } from "./routes/GitTreePage.js";
-import { MergePage } from "./routes/MergePage.js";
+import { SourcePage } from "./routes/SourcePage.js";
 import { ConsultDock } from "../components/consult/ConsultDock.js";
 import { FlowBuilderPage } from "./routes/FlowBuilderPage.js";
 import { FlowsPage } from "./routes/FlowsPage.js";
@@ -276,12 +274,11 @@ export function App() {
                   ? "project"
                   : route.kind === "codebase"
                     ? "codebase"
-                    : route.kind === "git"
-                      ? "git"
-                      : route.kind === "git-tree"
-                        ? "git-tree"
-                      : route.kind === "merge"
-                        ? "merge"
+                    : route.kind === "source" ||
+                        route.kind === "git" ||
+                        route.kind === "git-tree" ||
+                        route.kind === "merge"
+                      ? "source"
                       : route.kind === "flow" || route.kind === "flows"
                         ? "flows"
                         : route.kind === "metrics"
@@ -326,9 +323,9 @@ export function App() {
       onShowCodebase={() =>
         navigate({ kind: "codebase", filePath: null, line: null, runId: null })
       }
-      onShowGit={() => navigate({ kind: "git", runId: null })}
-      onShowGitTree={() => navigate({ kind: "git-tree" })}
-      onShowMerge={() => navigate({ kind: "merge", runId: null })}
+      onShowSource={() =>
+        navigate({ kind: "source", tab: "changes", runId: null })
+      }
       onOpenNotification={(n) => navigate(notificationRoute(n))}
     >
       <ErrorBoundary resetKey={pageKey}>
@@ -405,19 +402,42 @@ export function App() {
           }}
           onUrlChange={onCodebaseUrlChange}
         />
-      ) : route.kind === "git" ? (
-        <GitPage
-          initialRunId={route.runId}
-          onSelectRun={(runId) => navigate({ kind: "run", runId })}
-        />
-      ) : route.kind === "git-tree" ? (
-        <GitTreePage />
-      ) : route.kind === "merge" ? (
-        <MergePage
-          runId={route.runId}
-          onOpenMergeRun={(runId) => navigate({ kind: "merge", runId })}
-          onOpenRun={(runId) => navigate({ kind: "run", runId })}
-        />
+      ) : route.kind === "source" ||
+        route.kind === "git" ||
+        route.kind === "git-tree" ||
+        route.kind === "merge" ? (
+        (() => {
+          // Legacy git/git-tree/merge routes resolve to the unified Source
+          // page. Map each onto the right tab + runId (deep-links preserved).
+          const tab: "changes" | "tree" | "merge" =
+            route.kind === "source"
+              ? route.tab
+              : route.kind === "git-tree"
+                ? "tree"
+                : route.kind === "merge"
+                  ? "merge"
+                  : "changes";
+          const runId =
+            route.kind === "source" ||
+            route.kind === "git" ||
+            route.kind === "merge"
+              ? route.runId
+              : null;
+          return (
+            <SourcePage
+              tab={tab}
+              runId={runId}
+              onSwitchTab={(t) =>
+                navigate({ kind: "source", tab: t, runId })
+              }
+              onSelectRun={(rid) => navigate({ kind: "run", runId: rid })}
+              onOpenMergeRun={(rid) =>
+                navigate({ kind: "source", tab: "merge", runId: rid })
+              }
+              onOpenRun={(rid) => navigate({ kind: "run", runId: rid })}
+            />
+          );
+        })()
       ) : route.kind === "ledger" ? (
         <BoardPage
           tab="ledger"
