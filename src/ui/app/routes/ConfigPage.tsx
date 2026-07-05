@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowUpRight, RefreshCw, Settings2, Terminal } from "lucide-react";
+import { ArrowUpRight, RefreshCw, Terminal } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type {
   ConfigRow,
@@ -9,7 +9,7 @@ import type {
 import { serializeRoute, type Route } from "../route.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip } from "../../components/design/Chip.js";
-import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
+import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
 import { cn } from "../../components/design/cn.js";
 
 /**
@@ -38,19 +38,22 @@ export function ConfigPage() {
   }, []);
 
   return (
-    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
-      <section className="mt-1 flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <div className="eyebrow mb-1.5 flex items-center gap-1.5">
-            <Settings2 className="h-3 w-3" strokeWidth={1.8} /> Config
-          </div>
-          <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
-            {data?.view.project.name || "Project config"}
-            {data?.view.project.type ? (
-              <span className="text-fog-400"> · {data.view.project.type}</span>
-            ) : null}
-          </h1>
-          <p className="text-fog-300 text-[13px] mt-1.5 max-w-[72ch]">
+    <PageShell>
+      <PageHeader
+        title={data?.view.project.name || "Project config"}
+        actions={
+          <Button
+            variant="secondary"
+            size="sm"
+            iconLeft={<RefreshCw className="h-3.5 w-3.5" strokeWidth={1.9} />}
+            onClick={() => void load()}
+          >
+            Refresh
+          </Button>
+        }
+      >
+        <div className="mt-3 rounded-[16px] border border-[color:var(--line)] bg-coal-600 px-4 py-3">
+          <p className="max-w-[72ch] text-[13px] leading-[1.55] text-chalk-300">
             A readable, grouped view of{" "}
             {data ? (
               <code className="mono text-violet-soft">{data.configPath}</code>
@@ -58,30 +61,30 @@ export function ConfigPage() {
               "your project config"
             )}{" "}
             - what each part controls and where to change it. The raw YAML is{" "}
-            <code className="text-violet-soft">vibe config show</code>.
+            <code className="mono text-violet-soft">vibe config show</code>.
           </p>
+          {data?.view.project.type ? (
+            <p className="mt-1.5 text-[12px] text-chalk-400">
+              Project type{" "}
+              <span className="mono text-chalk-100">
+                {data.view.project.type}
+              </span>
+            </p>
+          ) : null}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          iconLeft={<RefreshCw size={13} />}
-          onClick={() => void load()}
-        >
-          Refresh
-        </Button>
-      </section>
+      </PageHeader>
 
       {error ? (
-        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+        <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
 
       {data && !data.valid ? (
-        <div className="mt-4 border border-amber-300/30 bg-amber-400/5 px-3 py-2.5 text-[12.5px] text-amber-200">
-          <div className="font-medium">Config has validation issues.</div>
+        <div className="mb-4 rounded-[12px] border border-amber-soft/30 bg-amber-400/5 px-4 py-2.5 text-[12.5px] text-amber-soft">
+          <div className="font-semibold">Config has validation issues.</div>
           {data.error ? (
-            <pre className="mt-1.5 bg-black/30 px-2 py-1 mono text-[11.5px] text-amber-100/90 overflow-x-auto whitespace-pre-wrap">
+            <pre className="mt-1.5 overflow-x-auto whitespace-pre-wrap rounded-[10px] bg-coal-800 px-2 py-1 mono text-[11.5px] text-amber-soft/90">
               {data.error}
             </pre>
           ) : null}
@@ -89,15 +92,17 @@ export function ConfigPage() {
       ) : null}
 
       {!data ? (
-        <div className="mt-7 text-fog-300 text-[13px]">Loading config…</div>
+        <div className="text-[13px] text-chalk-300">Loading config…</div>
       ) : (
-        <div className="mt-7 grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {data.view.sections.map((section) => (
-            <SectionCard key={section.id} section={section} />
-          ))}
-        </div>
+        <Section>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {data.view.sections.map((section) => (
+              <SectionCard key={section.id} section={section} />
+            ))}
+          </div>
+        </Section>
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -109,45 +114,44 @@ function SectionCard({ section }: { section: ConfigSection }) {
   const e = section.editable;
   const editRoute = e.live && e.route ? e.route : null;
   return (
-    <div className="slab p-4 flex flex-col gap-3">
-      <SectionEyebrow
-        right={
-          <Chip tone={e.live ? "emerald" : "neutral"}>
-            {e.live ? "live editor" : "via CLI"}
-          </Chip>
-        }
-      >
-        {section.title}
-      </SectionEyebrow>
-      <p className="text-fog-300 text-[12px] -mt-1 leading-snug">
+    <div className="flex flex-col gap-3 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-[13.5px] font-bold text-chalk-100">
+          {section.title}
+        </h3>
+        <Chip tone={e.live ? "emerald" : "neutral"}>
+          {e.live ? "live editor" : "via CLI"}
+        </Chip>
+      </div>
+      <p className="-mt-1 text-[12px] leading-snug text-chalk-300">
         {section.summary}
       </p>
 
-      <div className="border border-white/[0.06] bg-ink-100 divide-y divide-white/[0.05]">
+      <div className="divide-y divide-[color:var(--line-soft)] overflow-hidden rounded-[14px] border border-[color:var(--line)] bg-coal-500/40">
         {section.rows.map((row, i) => (
           <Row key={i} row={row} />
         ))}
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap pt-0.5">
+      <div className="flex flex-wrap items-center gap-2 pt-0.5">
         {editRoute ? (
           <Button
             variant="secondary"
             size="sm"
-            iconLeft={<ArrowUpRight size={13} />}
+            iconLeft={<ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.9} />}
             onClick={() => navTo(routeFor(editRoute))}
           >
             Edit in {e.surface ?? "editor"}
           </Button>
         ) : e.surface ? (
-          <span className="text-[11.5px] text-fog-500">edit: {e.surface}</span>
+          <span className="text-[11.5px] text-chalk-400">edit: {e.surface}</span>
         ) : null}
         {e.cli.map((cli) => (
           <code
             key={cli}
-            className="mono inline-flex items-center gap-1.5 bg-black/30 px-2 py-1 text-[11px] text-fog-300"
+            className="mono inline-flex items-center gap-1.5 rounded-[10px] bg-coal-800 px-2 py-1 text-[11px] text-chalk-300"
           >
-            <Terminal size={11} className="text-fog-500" />
+            <Terminal className="h-3 w-3 text-chalk-400" strokeWidth={1.9} />
             {cli}
           </code>
         ))}
@@ -157,22 +161,22 @@ function SectionCard({ section }: { section: ConfigSection }) {
 }
 
 const ROW_TONE: Record<NonNullable<ConfigRow["tone"]>, string> = {
-  default: "text-fog-100",
-  on: "text-emerald-300",
-  off: "text-fog-500",
-  warn: "text-amber-300",
+  default: "text-chalk-100",
+  on: "text-emerald-400",
+  off: "text-chalk-400",
+  warn: "text-amber-soft",
 };
 
 function Row({ row }: { row: ConfigRow }) {
   return (
     <div className="flex items-baseline justify-between gap-4 px-3 py-1.5">
-      <span className="text-[11.5px] text-fog-300 shrink-0">{row.label}</span>
-      <span className="text-right min-w-0">
+      <span className="shrink-0 text-[11.5px] text-chalk-300">{row.label}</span>
+      <span className="min-w-0 text-right">
         <span className={cn("mono text-[12px]", ROW_TONE[row.tone ?? "default"])}>
           {row.value}
         </span>
         {row.hint ? (
-          <span className="block text-[10.5px] text-fog-600">{row.hint}</span>
+          <span className="block text-[10.5px] text-chalk-400">{row.hint}</span>
         ) : null}
       </span>
     </div>

@@ -29,7 +29,7 @@ export function LockToggle({
         "grid h-7 w-7 shrink-0 place-items-center rounded-md border transition-colors duration-200",
         locked
           ? "border-violet-soft/40 bg-violet-soft/10 text-violet-soft"
-          : "border-white/10 bg-transparent text-fog-500 hover:border-white/20 hover:text-fog-200",
+          : "border-[color:var(--line)] bg-transparent text-chalk-400 hover:border-[color:var(--line-strong)] hover:text-chalk-200",
       )}
     >
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">

@@ -212,11 +212,15 @@ responsive sweep.
   utilities (Jump-to, notifications, settings). Supersedes the Phase-1
   intent to keep the TopBar - see [`primitives-contract.md` §0](./primitives-contract.md).
   Also landed `FlowsPage`'s contained, Mission-Control-matched header.
-- [~] Phase 4 - config / admin. `CrewPage` + `ProfilesPage` redesigned
+- [x] Phase 4 - config / admin. `CrewPage` + `ProfilesPage` redesigned
   (branch `design/pages-wave-1`, v0.47.0): PageShell canvas, crew/preset/profile
   cards on the MC card shell, facts as `StatTile`s, empty states as CTAs,
-  eyebrows removed. Still pending: `ProvidersPage`, `SupervisorsPage`,
-  `ConfigPage`, `SettingsPage`, `WorkspacePage`, `ProjectPage`.
+  eyebrows removed. `ProvidersPage` (+ `LockToggle`), `ProjectPage` (now leads
+  with a `HeroCard`), `ConfigPage`, `SupervisorsPage`, and `SettingsPage`
+  migrated on `design/pages-wave-2` (v0.55.0): PageShell/PageHeader/Section,
+  `.slab`/`.deep-scene`/`.eyebrow`/`fog-*`/`vibestrate-*` all removed, facts as
+  `StatTile`s, empty states + errors as CTAs, both themes verified rendered.
+  `WorkspacePage` was already migrated (HeroCard round). Phase 4 done.
 - [~] Phase 5 - git / diff / merge. `GitTreePage` (the "Diffs" nav) + `git/*`
   (`GitDag`, `MergePlannerPanel`, `ConflictResolver`) redesigned on
   `PageShell variant="fill"` with Board-idiom coal-700 regions; the DAG's SVG

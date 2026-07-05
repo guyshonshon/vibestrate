@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.55.0
+
+- **Config / admin pages moved onto the new design system.** Providers, Project,
+  Config, Supervisors, and Settings were still drawn in the old idiom (the boxy
+  `deep-scene` canvas, `.slab` cards, faint uppercase eyebrows, `fog-*`
+  colours). They now compose the same PageShell canvas as Mission Control: a
+  24px page header, violet-vivid section headings, dense coal/chalk cards, facts
+  as `StatTile`s instead of grey dotted meta lines, and buttons that look like
+  buttons. The Project page now leads with a `HeroCard` status hero. Empty
+  states and errors point at the next action instead of dead-ending. Everything
+  reads from theme tokens, so it holds in both light and dark.
+
 ## 0.54.0
 
 - **Metrics charts, rebuilt on a real charting library.** The hand-rolled SVG

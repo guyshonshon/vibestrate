@@ -29,8 +29,14 @@ import { usePersistedState } from "../../lib/usePersistedState.js";
 import { setDragGhost } from "../../lib/drag-ghost.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip, type ChipTone } from "../../components/design/Chip.js";
+import { StatTile } from "../../components/design/StatTile.js";
 import { cn } from "../../components/design/cn.js";
 import { LockToggle } from "../../components/providers/LockToggle.js";
+import {
+  PageShell,
+  PageHeader,
+  Section,
+} from "../../components/layout/PageShell.js";
 
 /** The CLI sections whose rows can be drag-reordered (a client-side preference). */
 type ReorderSection = "popular" | "optional";
@@ -198,10 +204,10 @@ export function ProvidersPage() {
             : undefined
         }
         className={cn(
-          "border bg-ink-100 px-4 py-3.5 transition",
+          "rounded-[18px] border bg-coal-600 px-4 py-3.5 transition",
           isDropTarget
             ? "border-violet-soft/60 ring-1 ring-violet-soft/40"
-            : "border-white/10",
+            : "border-[color:var(--line)]",
           isDragging && "opacity-50",
         )}
       >
@@ -225,10 +231,10 @@ export function ProvidersPage() {
               }}
               title={locked ? "Locked - unlock to reorder" : "Drag to reorder"}
               className={cn(
-                "mt-1 grid h-6 w-5 shrink-0 place-items-center rounded text-fog-600",
+                "mt-1 grid h-6 w-5 shrink-0 place-items-center rounded text-chalk-400",
                 locked
                   ? "cursor-not-allowed opacity-30"
-                  : "cursor-grab hover:text-fog-300 active:cursor-grabbing",
+                  : "cursor-grab hover:text-chalk-200 active:cursor-grabbing",
               )}
             >
               <GripVertical size={15} />
@@ -237,12 +243,12 @@ export function ProvidersPage() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5">
               <Icon size={15} className="text-violet-soft shrink-0" />
-              <span className="text-[15px] text-fog-100 font-medium">
+              <span className="text-[15px] text-chalk-100 font-medium">
                 {p.label}
               </span>
-              <span className="mono text-[11.5px] text-fog-500">
+              <span className="mono text-[11.5px] text-chalk-400">
                 {p.command}
-                {p.version ? ` · v${p.version}` : ""}
+                {p.version ? ` v${p.version}` : ""}
               </span>
               <Chip tone={statusChip.tone}>{statusChip.label}</Chip>
               {p.external ? (
@@ -258,27 +264,27 @@ export function ProvidersPage() {
             {p.notes.length > 0 ? (
               <ul className="mt-2 space-y-0.5">
                 {p.notes.map((n, i) => (
-                  <li key={i} className="text-[12px] text-fog-300 leading-snug">
+                  <li key={i} className="text-[12px] text-chalk-300 leading-snug">
                     {n}
                   </li>
                 ))}
               </ul>
             ) : null}
             {p.configured ? (
-              <div className="mt-2 text-[11.5px] text-fog-500">
+              <div className="mt-2 text-[11.5px] text-chalk-400">
                 {p.profilesUsing.length > 0 ? (
                   <>
                     Used by{" "}
                     {p.profilesUsing.map((id, i) => (
                       <span key={id}>
                         {i > 0 ? ", " : ""}
-                        <span className="mono text-fog-300">{id}</span>
+                        <span className="mono text-chalk-300">{id}</span>
                       </span>
                     ))}{" "}
                     {p.profilesUsing.length === 1 ? "profile" : "profiles"}.
                   </>
                 ) : (
-                  <span className="text-fog-600">
+                  <span className="text-chalk-400">
                     No profiles run on this provider yet.
                   </span>
                 )}
@@ -343,73 +349,77 @@ export function ProvidersPage() {
   };
 
   return (
-    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
-      <section className="mt-1">
-        <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
-          {rows ? `${availableCount} detected` : "-"}
-          <span className="text-fog-300">
-            {rows ? ` · ${configuredCount} configured` : ""}
-          </span>
-        </h1>
-        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
-          Detect installed coding-agent CLIs, set up and{" "}
-          <span className="text-fog-100">edit their command/args</span>, run a
-          safe connectivity test, set a default, and remove - everything{" "}
-          <code className="text-violet-soft">vibe provider …</code> can do,
-          here. When a provider isn't authenticated, Vibestrate shows the login
-          command to run <span className="text-fog-100">in your own terminal</span>{" "}
-          - it never logs you in for you.
-        </p>
-      </section>
-
-      {error ? (
-        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
-          {error}
+    <PageShell>
+      <PageHeader
+        title="Providers"
+      >
+        <div className="mt-4 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+          <div className="flex flex-wrap items-stretch gap-1.5">
+            <StatTile
+              value={rows ? availableCount : "-"}
+              label="detected"
+              size="lg"
+            />
+            <StatTile
+              value={rows ? configuredCount : "-"}
+              label="configured"
+              size="lg"
+              tone="emerald"
+            />
+          </div>
+          <p className="mt-3 max-w-[74ch] text-[13px] leading-[1.55] text-chalk-300">
+            Detect installed coding-agent CLIs, set up and{" "}
+            <span className="text-chalk-100">edit their command/args</span>, run a
+            safe connectivity test, set a default, and remove - everything{" "}
+            <code className="text-violet-soft">vibe provider …</code> can do,
+            here. When a provider isn't authenticated, Vibestrate shows the login
+            command to run{" "}
+            <span className="text-chalk-100">in your own terminal</span> - it
+            never logs you in for you.
+          </p>
         </div>
-      ) : null}
+      </PageHeader>
+
+      {error ? <ErrorBanner text={error} /> : null}
 
       {!rows ? (
-        <section className="mt-7">
-          <div className="text-fog-300 text-[13px]">Detecting providers…</div>
-        </section>
+        <Section>
+          <div className="text-[13px] text-chalk-300">Detecting providers…</div>
+        </Section>
       ) : (
         <>
-          <section className="mt-7 space-y-3">
-            <div className="eyebrow">Popular · configured out of the box</div>
-            {orderedPopular.map((p) =>
-              renderRow(p, { section: "popular", ids: popularIds }),
-            )}
-          </section>
+          <Section title="Popular">
+            <p className="mb-3 max-w-[74ch] text-[12.5px] leading-[1.55] text-chalk-300">
+              Configured out of the box - detected and ready to bind to a run.
+            </p>
+            <div className="space-y-3">
+              {orderedPopular.map((p) =>
+                renderRow(p, { section: "popular", ids: popularIds }),
+              )}
+            </div>
+          </Section>
 
           {optionalRows.length > 0 ? (
-            <section className="mt-7 space-y-3">
-              <div className="eyebrow">Optional · opt-in, not auto-configured</div>
-              <p className="text-fog-300 text-[12.5px] -mt-1 max-w-[70ch]">
-                Detected but never auto-bound. Set one up to wire it into this
-                project, then test it like any other provider. Drag the handle to
-                reorder, or lock a row to pin it.
+            <Section title="Optional">
+              <p className="mb-3 max-w-[74ch] text-[12.5px] leading-[1.55] text-chalk-300">
+                Opt-in, not auto-configured. Detected but never auto-bound. Set
+                one up to wire it into this project, then test it like any other
+                provider. Drag the handle to reorder, or lock a row to pin it.
               </p>
-              {orderedOptional.map((p) =>
-                renderRow(p, { section: "optional", ids: optionalIds }),
-              )}
-            </section>
+              <div className="space-y-3">
+                {orderedOptional.map((p) =>
+                  renderRow(p, { section: "optional", ids: optionalIds }),
+                )}
+              </div>
+            </Section>
           ) : null}
 
-          <section className="mt-7 space-y-3">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div>
-                <div className="eyebrow">Cloud APIs & local model servers</div>
-                <p className="text-fog-300 text-[12.5px] mt-0.5 max-w-[70ch]">
-                  Drive a model over HTTP instead of a CLI. Cloud APIs use{" "}
-                  <span className="text-fog-100">your own key</span> (an env
-                  reference, never stored in config) over https; local servers
-                  (Ollama, LM Studio, vLLM) stay on{" "}
-                  <span className="text-fog-100">localhost - no egress</span>.
-                </p>
-              </div>
+          <Section
+            title="Cloud APIs & local model servers"
+            action={
               <div className="flex shrink-0 items-center gap-2">
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   iconLeft={<Cloud size={13} />}
                   onClick={() => setCreateKind("http-api")}
@@ -417,7 +427,7 @@ export function ProvidersPage() {
                   Add cloud API
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   iconLeft={<Server size={13} />}
                   onClick={() => setCreateKind("localhost-proxy")}
@@ -433,15 +443,44 @@ export function ProvidersPage() {
                   Custom CLI
                 </Button>
               </div>
-            </div>
+            }
+          >
+            <p className="mb-3 max-w-[74ch] text-[12.5px] leading-[1.55] text-chalk-300">
+              Drive a model over HTTP instead of a CLI. Cloud APIs use{" "}
+              <span className="text-chalk-100">your own key</span> (an env
+              reference, never stored in config) over https; local servers
+              (Ollama, LM Studio, vLLM) stay on{" "}
+              <span className="text-chalk-100">localhost - no egress</span>.
+            </p>
             {httpRows.length > 0 ? (
-              httpRows.map((p) => renderRow(p))
+              <div className="space-y-3">{httpRows.map((p) => renderRow(p))}</div>
             ) : (
-              <p className="text-fog-500 text-[12px]">
-                None configured yet. Add a cloud API or a local model server above.
-              </p>
+              <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-8 text-center">
+                <p className="text-[13px] text-chalk-300">
+                  No cloud APIs or local servers yet. Add one to drive a model
+                  over HTTP.
+                </p>
+                <div className="mt-3 flex justify-center gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    iconLeft={<Cloud size={13} />}
+                    onClick={() => setCreateKind("http-api")}
+                  >
+                    Add cloud API
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    iconLeft={<Server size={13} />}
+                    onClick={() => setCreateKind("localhost-proxy")}
+                  >
+                    Add local server
+                  </Button>
+                </div>
+              </div>
             )}
-          </section>
+          </Section>
 
           <ProviderCatalogPanel />
         </>
@@ -485,16 +524,29 @@ export function ProvidersPage() {
       {toast ? (
         <div
           className={cn(
-            "fixed bottom-4 right-4 z-30 border px-3.5 py-2 text-[12.5px] shadow-2xl",
+            "fixed bottom-4 right-4 z-30 flex items-center gap-2 rounded-[12px] border px-3.5 py-2 text-[12.5px] shadow-2xl",
             toast.kind === "ok"
               ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
               : "border-rose-400/30 bg-rose-500/10 text-rose-200",
           )}
         >
-          {toast.kind === "ok" ? "✓ " : "✗ "}
+          {toast.kind === "ok" ? (
+            <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} />
+          ) : (
+            <X className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} />
+          )}
           {toast.text}
         </div>
       ) : null}
+    </PageShell>
+  );
+}
+
+/** Inline page-level error banner in the new idiom. */
+function ErrorBanner({ text }: { text: string }) {
+  return (
+    <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
+      {text}
     </div>
   );
 }
@@ -574,19 +626,11 @@ function ProviderCatalogPanel() {
     .sort();
 
   return (
-    <section className="mt-9 space-y-3">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <div className="eyebrow">Capability catalog · models & effort per provider</div>
-          <p className="text-fog-300 text-[12.5px] mt-0.5 max-w-[70ch]">
-            The model and effort knobs the Profile editor offers - built-in, plus
-            your overlay.{" "}
-            <code className="text-violet-soft">vibe provider catalog</code> shows
-            the same.
-          </p>
-        </div>
+    <Section
+      title="Capability catalog"
+      action={
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           iconLeft={<RefreshCw size={13} />}
           disabled={busy}
@@ -595,25 +639,34 @@ function ProviderCatalogPanel() {
         >
           {busy ? "Detecting…" : "Refresh from providers"}
         </Button>
-      </div>
+      }
+    >
+      <p className="mb-3 max-w-[74ch] text-[12.5px] leading-[1.55] text-chalk-300">
+        Models & effort per provider - the model and effort knobs the Profile
+        editor offers, built-in plus your overlay.{" "}
+        <code className="text-violet-soft">vibe provider catalog</code> shows the
+        same.
+      </p>
 
       {note ? (
-        <div className="border border-white/10 bg-ink-200 px-3 py-2 text-[12px] text-fog-300">
+        <div className="mb-3 rounded-[12px] border border-[color:var(--line)] bg-coal-500/60 px-3 py-2 text-[12px] text-chalk-300">
           {note}
         </div>
       ) : null}
 
-      <div className="text-[12px]">
+      <div className="mb-3 text-[12px]">
         {data.overlay.present ? (
           <span className="inline-flex items-center gap-2">
             <Chip tone="violet">overlay active</Chip>
-            <code className="mono text-fog-400 text-[11.5px]">{data.overlay.path}</code>
+            <code className="mono text-[11.5px] text-chalk-400">
+              {data.overlay.path}
+            </code>
           </span>
         ) : (
-          <span className="text-fog-500">
+          <span className="text-chalk-400">
             No overlay. Create{" "}
-            <code className="mono text-fog-300">{data.overlay.path}</code> to add or
-            refine a provider's models / effort.
+            <code className="mono text-chalk-300">{data.overlay.path}</code> to
+            add or refine a provider's models / effort.
           </span>
         )}
       </div>
@@ -625,29 +678,37 @@ function ProviderCatalogPanel() {
           return (
             <div
               key={id}
-              className="slab px-3.5 py-2.5"
+              className="rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-3.5 py-2.5"
             >
               <div className="flex items-center gap-2">
-                <span className="text-[13.5px] text-fog-100 font-medium mono">{id}</span>
+                <span className="mono text-[13.5px] font-medium text-chalk-100">
+                  {id}
+                </span>
                 <Chip tone={overlaid ? "violet" : "neutral"}>
                   {overlaid ? "overlay" : "built-in"}
                 </Chip>
               </div>
-              <div className="mt-1.5 text-[12px] text-fog-400 flex flex-wrap gap-x-6 gap-y-1">
+              <div className="mt-1.5 flex flex-wrap gap-x-6 gap-y-1 text-[12px] text-chalk-300">
                 <span>
-                  <span className="text-fog-500">models </span>
+                  <span className="text-chalk-400">models </span>
                   {c.models.length ? (
-                    <span className="mono text-fog-200">{c.models.join(", ")}</span>
+                    <span className="mono text-chalk-200">
+                      {c.models.join(", ")}
+                    </span>
                   ) : (
-                    <span className="text-fog-600">{c.modelEnabled ? "free-text" : "n/a"}</span>
+                    <span className="text-chalk-400">
+                      {c.modelEnabled ? "free-text" : "n/a"}
+                    </span>
                   )}
                 </span>
                 <span>
-                  <span className="text-fog-500">effort </span>
+                  <span className="text-chalk-400">effort </span>
                   {c.powerLevels.length ? (
-                    <span className="mono text-fog-200">{c.powerLevels.join(" / ")}</span>
+                    <span className="mono text-chalk-200">
+                      {c.powerLevels.join(" / ")}
+                    </span>
                   ) : (
-                    <span className="text-fog-600">none</span>
+                    <span className="text-chalk-400">none</span>
                   )}
                 </span>
               </div>
@@ -655,7 +716,7 @@ function ProviderCatalogPanel() {
           );
         })}
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -953,7 +1014,7 @@ function ProviderEditor({
   }
 
   const anyBusy = busy !== null;
-  const eyebrow = isNew
+  const modalKind = isNew
     ? kind === "http-api"
       ? "Add cloud API provider"
       : kind === "localhost-proxy"
@@ -979,50 +1040,55 @@ function ProviderEditor({
   }
 
   const inputCls =
-    "mono w-full h-9 border border-white/10 bg-ink-200 px-3 text-[12.5px] text-fog-100 focus:outline-none focus:border-violet-soft/40";
+    "mono w-full h-9 rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 text-[12.5px] text-chalk-100 placeholder:text-chalk-400 focus:outline-none focus:border-violet-soft/50";
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`${eyebrow} ${headerTitle}`}
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-10"
+      aria-label={`${modalKind} ${headerTitle}`}
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-10 font-jakarta"
       onClick={onClose}
     >
       <div
-        className="slab w-full max-w-[620px] p-5"
+        className="w-full max-w-[620px] rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="eyebrow">{eyebrow}</div>
-            <h2 className="text-display text-[19px] mt-0.5">{headerTitle}</h2>
-            <div className="mono text-[11px] text-fog-500 mt-1 flex items-center gap-2 flex-wrap">
+          <div className="min-w-0">
+            <div className="text-[12px] font-semibold text-violet-vivid">
+              {modalKind}
+            </div>
+            <h2 className="mt-0.5 text-[19px] font-extrabold tracking-[-0.02em] text-chalk-100">
+              {headerTitle}
+            </h2>
+            <div className="mono mt-1 flex flex-wrap items-center gap-2 text-[11px] text-chalk-400">
               {!isNew ? <span>{p!.id}</span> : null}
-              {!isNew ? <span className="text-fog-600">·</span> : null}
+              {!isNew ? <span className="text-chalk-400">·</span> : null}
               {kind === "cli" ? (
-                <span className={p?.available ? "text-emerald-300/90" : "text-amber-300"}>
+                <span className={p?.available ? "text-emerald-400" : "text-amber-soft"}>
                   {p?.available ? "CLI detected" : "CLI not detected"}
                 </span>
               ) : kind === "http-api" ? (
-                <span className="text-amber-300">external · egress over https</span>
+                <span className="text-amber-soft">external · egress over https</span>
               ) : (
-                <span className="text-emerald-300/90">local only · no egress</span>
+                <span className="text-emerald-400">local only · no egress</span>
               )}
             </div>
           </div>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={onClose}
             aria-label="Close"
-            className="border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
+            iconLeft={<X size={13} />}
           >
             Close
-          </button>
+          </Button>
         </div>
 
         {loading ? (
-          <div className="mt-5 text-[13px] text-fog-300">Loading config…</div>
+          <div className="mt-5 text-[13px] text-chalk-300">Loading config…</div>
         ) : (
           <>
             <div className="mt-4 grid grid-cols-1 gap-2.5">
@@ -1056,17 +1122,17 @@ function ProviderEditor({
                     />
                   </FormField>
                   <FormField label="input">
-                    <div className="inline-flex border border-white/10 bg-ink-200 p-[2px]">
+                    <div className="inline-flex rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 p-[2px]">
                       {(["stdin", "arg"] as const).map((mode) => (
                         <button
                           key={mode}
                           type="button"
                           onClick={() => setInput(mode)}
                           className={cn(
-                            "h-[26px] px-3 rounded text-[11.5px] font-medium mono",
+                            "mono h-[26px] rounded-[8px] px-3 text-[11.5px] font-medium transition",
                             input === mode
-                              ? "bg-ink-50 text-fog-100"
-                              : "text-fog-300 hover:text-fog-100",
+                              ? "bg-coal-500 text-chalk-100"
+                              : "text-chalk-300 hover:text-chalk-100",
                           )}
                         >
                           {mode}
@@ -1078,17 +1144,17 @@ function ProviderEditor({
               ) : (
                 <>
                   <FormField label="api (wire protocol)">
-                    <div className="inline-flex border border-white/10 bg-ink-200 p-[2px]">
+                    <div className="inline-flex rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 p-[2px]">
                       {apiOptions.map((opt) => (
                         <button
                           key={opt}
                           type="button"
                           onClick={() => onApiChange(opt)}
                           className={cn(
-                            "h-[26px] px-3 rounded text-[11.5px] font-medium mono",
+                            "mono h-[26px] rounded-[8px] px-3 text-[11.5px] font-medium transition",
                             apiName === opt
-                              ? "bg-ink-50 text-fog-100"
-                              : "text-fog-300 hover:text-fog-100",
+                              ? "bg-coal-500 text-chalk-100"
+                              : "text-chalk-300 hover:text-chalk-100",
                           )}
                         >
                           {opt}
@@ -1121,8 +1187,8 @@ function ProviderEditor({
                       placeholder="env:ANTHROPIC_API_KEY"
                       className={inputCls}
                     />
-                    <p className="text-[10.5px] text-fog-500 mt-1">
-                      An <span className="text-fog-300">env reference</span> like{" "}
+                    <p className="mt-1 text-[10.5px] text-chalk-400">
+                      An <span className="text-chalk-300">env reference</span> like{" "}
                       <code className="text-violet-soft">env:NAME</code> - the key
                       stays in your environment, never in config.
                     </p>
@@ -1144,7 +1210,7 @@ function ProviderEditor({
                         rows={2}
                         spellCheck={false}
                         placeholder="anthropic-beta: prompt-caching-2024-07-31"
-                        className="mono w-full border border-white/10 bg-ink-200 px-3 py-2 text-[12px] text-fog-100 focus:outline-none focus:border-violet-soft/40 resize-y"
+                        className="mono w-full resize-y rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[12px] text-chalk-100 placeholder:text-chalk-400 focus:outline-none focus:border-violet-soft/50"
                       />
                     </FormField>
                   ) : null}
@@ -1154,13 +1220,15 @@ function ProviderEditor({
 
             <div className="mt-4">
               <div className="mb-2 flex items-center justify-between gap-3">
-                <span className="eyebrow">
-                  {yamlMode ? "Advanced · raw provider YAML" : "YAML written to .vibestrate/project.yml"}
+                <span className="text-[12px] font-semibold text-violet-vivid">
+                  {yamlMode
+                    ? "Advanced - raw provider YAML"
+                    : "YAML written to .vibestrate/project.yml"}
                 </span>
                 <button
                   type="button"
                   onClick={toggleYamlMode}
-                  className="text-[11px] text-violet-soft hover:text-violet-300"
+                  className="text-[12.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
                 >
                   {yamlMode ? "Back to form" : "Edit as YAML"}
                 </button>
@@ -1172,30 +1240,32 @@ function ProviderEditor({
                     onChange={(e) => setYamlText(e.target.value)}
                     spellCheck={false}
                     rows={Math.min(22, Math.max(8, yamlText.split("\n").length + 1))}
-                    className="mono text-[11.5px] w-full resize-y text-fog-100 border border-violet-soft/30 bg-black/40 px-3 py-2.5 focus:outline-none focus:border-violet-soft/60"
+                    className="mono w-full resize-y rounded-[12px] border border-violet-soft/40 bg-coal-800 px-3 py-2.5 text-[11.5px] text-chalk-100 focus:border-violet-soft/60 focus:outline-none"
                   />
-                  <div className="text-[11px] text-fog-500 mt-1.5 leading-relaxed">
+                  <div className="mt-1.5 text-[11px] leading-relaxed text-chalk-400">
                     Edit the whole block, so anything the form doesn't surface is
                     still yours to set here:{" "}
-                    <span className="mono text-fog-300">env</span>, claude-code{" "}
-                    <span className="mono text-fog-300">settings</span>,{" "}
-                    <span className="mono text-fog-300">extraArgs</span>, custom
+                    <span className="mono text-chalk-300">env</span>, claude-code{" "}
+                    <span className="mono text-chalk-300">settings</span>,{" "}
+                    <span className="mono text-chalk-300">extraArgs</span>, custom
                     headers. Keep the{" "}
-                    <span className="mono text-fog-300">
+                    <span className="mono text-chalk-300">
                       providers: {idForSave || "<id>"}:
                     </span>{" "}
                     shape - it's validated on save.
                   </div>
                 </>
               ) : (
-                <pre className="mono text-[11.5px] text-fog-200 border border-white/[0.07] bg-black/40 px-3 py-2.5 overflow-x-auto whitespace-pre">
+                <pre className="mono overflow-x-auto whitespace-pre rounded-[12px] border border-[color:var(--line)] bg-coal-800 px-3 py-2.5 text-[11.5px] text-chalk-200">
                   {yamlPreview}
                 </pre>
               )}
               {profilesUsing.length > 0 ? (
-                <div className="text-[11px] text-fog-500 mt-2">
+                <div className="mt-2 text-[11px] text-chalk-400">
                   Used by role{profilesUsing.length === 1 ? "" : "s"}:{" "}
-                  <span className="mono text-fog-300">{profilesUsing.join(", ")}</span>
+                  <span className="mono text-chalk-300">
+                    {profilesUsing.join(", ")}
+                  </span>
                 </div>
               ) : null}
             </div>
@@ -1236,7 +1306,7 @@ function ProviderEditor({
                           : "Remove?"}
                       </span>
                       <Button
-                        variant="outline"
+                        variant="danger"
                         size="sm"
                         disabled={anyBusy || profilesUsing.length > 0}
                         title={
@@ -1249,13 +1319,13 @@ function ProviderEditor({
                       >
                         {busy === "remove" ? "Removing…" : "Confirm"}
                       </Button>
-                      <button
-                        type="button"
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setConfirmRemove(false)}
-                        className="text-[11.5px] text-fog-400 hover:text-fog-200"
                       >
-                        cancel
-                      </button>
+                        Cancel
+                      </Button>
                     </div>
                   ) : (
                     <Button
@@ -1287,7 +1357,7 @@ function FormField({
 }) {
   return (
     <label className="block">
-      <div className="mono text-[10px] uppercase tracking-[0.14em] text-fog-500 mb-1">
+      <div className="mb-1 text-[12px] font-semibold text-violet-vivid">
         {label}
       </div>
       {children}
@@ -1306,37 +1376,45 @@ function TestResultRow({
 }) {
   if (result.ok) {
     return (
-      <div className="mt-3 border border-emerald-400/25 bg-emerald-500/5 px-3 py-2 text-[12px] text-emerald-200">
-        ✓ Responded with the magic token in {result.durationMs}ms.
+      <div className="mt-3 flex items-center gap-1.5 rounded-[12px] border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-200">
+        <Check size={13} className="shrink-0" />
+        Responded with the magic token in {result.durationMs}ms.
       </div>
     );
   }
   if (result.needsLogin) {
     const cmd = result.loginCommand ?? loginCommand;
     return (
-      <div className="mt-3 border border-amber-300/30 bg-amber-400/5 px-3 py-2.5 text-[12px] text-amber-200">
-        <div className="font-medium">Not logged in.</div>
+      <div className="mt-3 rounded-[12px] border border-amber-soft/30 bg-amber-500/10 px-3 py-2.5 text-[12px] text-amber-200">
+        <div className="font-medium">Not logged in - authenticate to continue.</div>
         {cmd ? (
           <div className="mt-1.5">
-            Run this <span className="text-fog-100 font-medium">in your own terminal</span> (Vibestrate won't do it for you):
-            <pre className="mt-1 rounded bg-black/30 px-2 py-1 mono text-[12px] text-amber-100 overflow-x-auto">
+            Run this{" "}
+            <span className="font-medium text-chalk-100">
+              in your own terminal
+            </span>{" "}
+            (Vibestrate won't do it for you):
+            <pre className="mono mt-1 overflow-x-auto rounded-[10px] bg-coal-800 px-2 py-1 text-[12px] text-amber-100">
               {cmd}
             </pre>
           </div>
         ) : (
-          <div className="mt-1 text-amber-300/90">{loginNote}</div>
+          <div className="mt-1 text-amber-soft">{loginNote}</div>
         )}
       </div>
     );
   }
   return (
-    <div className="mt-3 border border-rose-400/25 bg-rose-500/5 px-3 py-2 text-[12px] text-rose-200">
+    <div className="mt-3 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-200">
       <div className="flex items-center gap-1.5">
-        <X size={12} /> Test failed (exit {result.exitCode}).
+        <X size={12} className="shrink-0" /> Test failed (exit {result.exitCode}) -
+        check the config, then test again.
       </div>
-      {result.hint ? <div className="mt-1 text-rose-300/90">{result.hint}</div> : null}
+      {result.hint ? (
+        <div className="mt-1 text-rose-300">{result.hint}</div>
+      ) : null}
       {result.stderr ? (
-        <pre className="mt-1.5 rounded bg-black/30 px-2 py-1 mono text-[11px] text-rose-300/80 overflow-x-auto max-h-24 whitespace-pre-wrap break-all">
+        <pre className="mono mt-1.5 max-h-24 overflow-x-auto whitespace-pre-wrap break-all rounded-[10px] bg-coal-800 px-2 py-1 text-[11px] text-rose-300/80">
           {result.stderr.slice(0, 400)}
         </pre>
       ) : null}
@@ -1379,50 +1457,68 @@ function InstallWizard({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-10"
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-10 font-jakarta"
       onClick={onClose}
     >
-      <div className="slab w-full max-w-[560px] p-5" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="w-full max-w-[560px] rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="eyebrow">Install · runs on your machine</div>
-            <h2 className="text-display text-[18px] mt-0.5">{p.label}</h2>
+          <div className="min-w-0">
+            <div className="text-[12px] font-semibold text-violet-vivid">
+              Install - runs on your machine
+            </div>
+            <h2 className="mt-0.5 text-[18px] font-extrabold tracking-[-0.02em] text-chalk-100">
+              {p.label}
+            </h2>
           </div>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={onClose}
-            className="border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
+            aria-label="Close"
+            iconLeft={<X size={13} />}
           >
             Close
-          </button>
+          </Button>
         </div>
 
         {p.available ? (
-          <div className="mt-4 border border-emerald-400/30 bg-emerald-500/5 px-3 py-2 text-[12.5px] text-emerald-200">
-            ✓ {p.command} detected{p.version ? ` (v${p.version})` : ""}. Close this,
-            then <span className="text-fog-100">Set up</span> and{" "}
-            <span className="text-fog-100">Test</span>.
+          <div className="mt-4 flex items-start gap-1.5 rounded-[12px] border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-[12.5px] text-emerald-200">
+            <Check size={14} className="mt-px shrink-0" />
+            <span>
+              {p.command} detected{p.version ? ` (v${p.version})` : ""}. Close
+              this, then <span className="text-chalk-100">Set up</span> and{" "}
+              <span className="text-chalk-100">Test</span>.
+            </span>
           </div>
         ) : null}
 
         <ol className="mt-4 space-y-3.5">
           <li>
-            <div className="text-[12.5px] font-medium text-fog-200">1 · Install the CLI</div>
+            <div className="text-[12.5px] font-medium text-chalk-200">
+              1 - Install the CLI
+            </div>
             {installCmds.length > 0 ? (
               installCmds.map((c, i) => <CopyLine key={i} cmd={c} />)
             ) : (
-              <p className="mt-1 text-[12px] text-fog-300">
+              <p className="mt-1 text-[12px] text-chalk-300">
                 See {p.label}'s site for install instructions.
               </p>
             )}
           </li>
           <li>
-            <div className="text-[12.5px] font-medium text-fog-200">2 · Authenticate</div>
+            <div className="text-[12.5px] font-medium text-chalk-200">
+              2 - Authenticate
+            </div>
             {p.loginCommand ? <CopyLine cmd={p.loginCommand} /> : null}
-            <p className="mt-1 text-[11.5px] text-fog-500">{p.loginNote}</p>
+            <p className="mt-1 text-[11.5px] text-chalk-400">{p.loginNote}</p>
           </li>
           <li>
-            <div className="text-[12.5px] font-medium text-fog-200">3 · Verify</div>
+            <div className="text-[12.5px] font-medium text-chalk-200">
+              3 - Verify
+            </div>
             <Button
               variant="secondary"
               size="sm"
@@ -1436,9 +1532,9 @@ function InstallWizard({
           </li>
         </ol>
 
-        <p className="mt-4 text-[11px] text-fog-500">
-          Install and login run entirely on your machine - Vibestrate never runs them
-          for you and never sees your credentials.
+        <p className="mt-4 text-[11px] text-chalk-400">
+          Install and login run entirely on your machine - Vibestrate never runs
+          them for you and never sees your credentials.
         </p>
       </div>
     </div>
@@ -1448,8 +1544,8 @@ function InstallWizard({
 function CopyLine({ cmd }: { cmd: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="mt-1 flex items-center gap-2 bg-black/30 px-2 py-1.5">
-      <code className="mono flex-1 truncate text-[12px] text-fog-100">{cmd}</code>
+    <div className="mt-1 flex items-center gap-2 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-800 px-2 py-1.5">
+      <code className="mono flex-1 truncate text-[12px] text-chalk-100">{cmd}</code>
       <button
         type="button"
         title="Copy"
@@ -1462,7 +1558,7 @@ function CopyLine({ cmd }: { cmd: string }) {
             /* ignore */
           }
         }}
-        className="inline-flex shrink-0 items-center gap-1 text-[10.5px] text-fog-400 hover:text-fog-100"
+        className="inline-flex shrink-0 items-center gap-1 text-[10.5px] font-semibold text-chalk-400 transition hover:text-chalk-100"
       >
         <Copy size={12} /> {copied ? "copied" : "copy"}
       </button>
