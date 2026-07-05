@@ -4,7 +4,6 @@ import {
   Cloud,
   Copy,
   Download,
-  GripVertical,
   Pencil,
   Play,
   Plug,
@@ -24,18 +23,11 @@ import {
   renderProviderYaml,
   type EditorProviderConfig,
 } from "../../lib/provider-yaml.js";
-import { applyOrder, reorderByDrop } from "../../lib/reorder.js";
-import { usePersistedState } from "../../lib/usePersistedState.js";
-import { setDragGhost } from "../../lib/drag-ghost.js";
 import { Button } from "../design/Button.js";
-import { Chip, type ChipTone } from "../design/Chip.js";
+import { Chip } from "../design/Chip.js";
 import { StatTile } from "../design/StatTile.js";
 import { cn } from "../design/cn.js";
-import { LockToggle } from "./LockToggle.js";
 import { Section } from "../layout/PageShell.js";
-
-/** The CLI sections whose rows can be drag-reordered (a client-side preference). */
-type ReorderSection = "popular" | "optional";
 
 type TestResult = Awaited<ReturnType<typeof api.testProvider>>;
 type Busy = { id: string; action: "apply" | "default" | "test" } | null;
@@ -67,32 +59,6 @@ export function ProvidersView() {
   // A from-scratch provider the dashboard can't auto-detect (cloud API, local
   // model server, or a hand-rolled CLI). The user names it and fills the form.
   const [createKind, setCreateKind] = useState<EditorProviderConfig["type"] | null>(null);
-
-  // Drag-to-reorder + lock are a purely local view preference (providers bind
-  // to runs via profiles, not list position), so they live in localStorage -
-  // no config write, no server round-trip. `order` holds the user's per-section
-  // sequence; `lockedIds` are rows pinned out of the drag (a locked row can't be
-  // picked up). `dragId`/`overId` are transient drag-in-flight state.
-  const [order, setOrder] = usePersistedState<Partial<Record<ReorderSection, string[]>>>(
-    "vibestrate.providers.order",
-    {},
-  );
-  const [lockedIds, setLockedIds] = usePersistedState<string[]>(
-    "vibestrate.providers.locked",
-    [],
-  );
-  const [dragId, setDragId] = useState<string | null>(null);
-  const [overId, setOverId] = useState<string | null>(null);
-
-  const isLocked = (id: string) => lockedIds.includes(id);
-  const toggleLock = (id: string) =>
-    setLockedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  const reorder = (section: ReorderSection, ids: string[], target: string) => {
-    if (!dragId) return;
-    setOrder((prev) => ({ ...prev, [section]: reorderByDrop(ids, dragId, target) }));
-  };
 
   async function load() {
     try {
@@ -158,191 +124,139 @@ export function ProvidersView() {
   // HTTP-backed providers (cloud APIs + local model servers). They only appear
   // once configured, so this section also hosts the "add" controls.
   const httpRows = rows?.filter((r) => r.kind !== "cli") ?? [];
-  // Apply the saved drag preference to the two CLI sections (HTTP rows aren't
-  // reorderable - they're a small, config-driven set).
-  const orderedPopular = applyOrder(popularRows, order.popular ?? []);
-  const orderedOptional = applyOrder(optionalRows, order.optional ?? []);
-  const popularIds = orderedPopular.map((r) => r.id);
-  const optionalIds = orderedOptional.map((r) => r.id);
 
-  const renderRow = (
-    p: ProviderRow,
-    dnd?: { section: ReorderSection; ids: string[] },
-  ) => {
+  const renderCard = (p: ProviderRow) => {
     const t = tests[p.id];
     const statusChip = providerStatus(p);
     const isBusy = busy?.id === p.id;
     const Icon =
       p.kind === "http-api" ? Cloud : p.kind === "localhost-proxy" ? Server : Plug;
-    const locked = isLocked(p.id);
-    const isDragging = dragId === p.id;
-    const isDropTarget = dnd != null && overId === p.id && dragId !== p.id;
     return (
       <div
         key={p.id}
-        onDragOver={
-          dnd
-            ? (e) => {
-                if (!dragId || dragId === p.id) return;
-                e.preventDefault();
-                setOverId(p.id);
-              }
-            : undefined
-        }
-        onDragLeave={
-          dnd ? () => setOverId((o) => (o === p.id ? null : o)) : undefined
-        }
-        onDrop={
-          dnd
-            ? (e) => {
-                e.preventDefault();
-                reorder(dnd.section, dnd.ids, p.id);
-                setDragId(null);
-                setOverId(null);
-              }
-            : undefined
-        }
-        className={cn(
-          "rounded-[18px] border bg-coal-600 px-4 py-3.5 transition",
-          isDropTarget
-            ? "border-violet-soft/60 ring-1 ring-violet-soft/40"
-            : "border-[color:var(--line)]",
-          isDragging && "opacity-50",
-        )}
+        className="flex flex-col rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4"
       >
-        <div className="flex items-start gap-3">
-          {dnd ? (
-            <span
-              draggable={!locked}
-              onDragStart={(e) => {
-                if (locked) {
-                  e.preventDefault();
-                  return;
-                }
-                e.dataTransfer.effectAllowed = "move";
-                e.dataTransfer.setData("text/plain", p.id);
-                setDragGhost(e.dataTransfer, p.label);
-                setDragId(p.id);
-              }}
-              onDragEnd={() => {
-                setDragId(null);
-                setOverId(null);
-              }}
-              title={locked ? "Locked - unlock to reorder" : "Drag to reorder"}
-              className={cn(
-                "mt-1 grid h-6 w-5 shrink-0 place-items-center rounded text-chalk-400",
-                locked
-                  ? "cursor-not-allowed opacity-30"
-                  : "cursor-grab hover:text-chalk-200 active:cursor-grabbing",
-              )}
-            >
-              <GripVertical size={15} />
-            </span>
-          ) : null}
+        {/* Header: icon + name + version, with status as flat tinted text. */}
+        <div className="flex items-start gap-2.5">
+          <Icon size={16} className="mt-0.5 shrink-0 text-violet-soft" />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2.5">
-              <Icon size={15} className="text-violet-soft shrink-0" />
-              <span className="text-[15px] text-chalk-100 font-medium">
+            <div className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-chalk-100">
                 {p.label}
               </span>
-              <span className="mono text-[11.5px] text-chalk-400">
-                {p.command}
-                {p.version ? ` v${p.version}` : ""}
-              </span>
-              <Chip tone={statusChip.tone}>{statusChip.label}</Chip>
-              {p.external ? (
-                <Chip tone="amber">external</Chip>
-              ) : null}
               {p.recommended ? (
-                <Chip tone="violet">
-                  <Star size={10} className="inline -mt-px mr-1" />
+                <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-violet-soft">
+                  <Star size={11} />
                   recommended
-                </Chip>
+                </span>
+              ) : null}
+              <span
+                className={cn(
+                  "shrink-0 text-[11px] font-semibold",
+                  statusChip.textClass,
+                )}
+              >
+                {statusChip.label}
+              </span>
+            </div>
+            <div className="mono mt-0.5 flex items-center gap-1.5 text-[11px] text-chalk-400">
+              <span className="truncate">{p.command}</span>
+              {p.version ? (
+                <span className="shrink-0 text-chalk-300">v{p.version}</span>
+              ) : null}
+              {p.external ? (
+                <span className="shrink-0 text-amber-soft">external</span>
               ) : null}
             </div>
-            {p.notes.length > 0 ? (
-              <ul className="mt-2 space-y-0.5">
-                {p.notes.map((n, i) => (
-                  <li key={i} className="text-[12px] text-chalk-300 leading-snug">
-                    {n}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {p.configured ? (
-              <div className="mt-2 text-[11.5px] text-chalk-400">
-                {p.profilesUsing.length > 0 ? (
-                  <>
-                    Used by{" "}
-                    {p.profilesUsing.map((id, i) => (
-                      <span key={id}>
-                        {i > 0 ? ", " : ""}
-                        <span className="mono text-chalk-300">{id}</span>
-                      </span>
-                    ))}{" "}
-                    {p.profilesUsing.length === 1 ? "profile" : "profiles"}.
-                  </>
-                ) : (
-                  <span className="text-chalk-400">
-                    No profiles run on this provider yet.
-                  </span>
-                )}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            {dnd ? (
-              <LockToggle locked={locked} onToggle={() => toggleLock(p.id)} />
-            ) : null}
-            {p.popular && !p.available ? (
-              <Button
-                variant="primary"
-                size="sm"
-                iconLeft={<Download size={13} />}
-                onClick={() => setInstallFor(p)}
-              >
-                Install
-              </Button>
-            ) : null}
-            {/* Set up (unconfigured) / Edit (configured) both open the editor -
-                the single place to compose command/args/input, test, save. */}
-            <Button
-              variant={p.configured ? "outline" : "primary"}
-              size="sm"
-              iconLeft={
-                p.configured ? <Pencil size={12} /> : <Plus size={13} />
-              }
-              disabled={isBusy}
-              onClick={() => setEditFor(p)}
-            >
-              {p.configured ? "Edit" : "Set up"}
-            </Button>
-            {p.configured ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                iconLeft={<Check size={13} />}
-                disabled={isBusy}
-                onClick={() => setDefault(p.id)}
-              >
-                Set default
-              </Button>
-            ) : null}
-            <Button
-              variant="outline"
-              size="sm"
-              iconLeft={<Play size={12} />}
-              disabled={isBusy || !p.configured}
-              title={p.configured ? "Run the safe connectivity test" : "Set it up first"}
-              onClick={() => test(p.id)}
-            >
-              {isBusy && busy?.action === "test" ? "Testing…" : "Test"}
-            </Button>
           </div>
         </div>
 
-        {t ? <TestResultRow result={t} loginCommand={p.loginCommand} loginNote={p.loginNote} /> : null}
+        {/* Guidance / install hint - cards clamp. */}
+        {p.notes.length > 0 ? (
+          <p className="mt-2 line-clamp-2 text-[12px] leading-snug text-chalk-300">
+            {p.notes.join(" ")}
+          </p>
+        ) : null}
+
+        {/* Facts: which profiles bind to a configured provider, as a tile. */}
+        {p.configured ? (
+          <div className="mt-3 flex flex-wrap items-stretch gap-1">
+            {p.profilesUsing.length > 0 ? (
+              <StatTile
+                value={p.profilesUsing.length}
+                label={p.profilesUsing.length === 1 ? "profile uses" : "profiles use"}
+                tone="emerald"
+              />
+            ) : (
+              <StatTile value="0" label="profiles use" />
+            )}
+          </div>
+        ) : null}
+        {p.configured && p.profilesUsing.length > 0 ? (
+          <p className="mt-2 text-[11.5px] text-chalk-300">
+            Used by{" "}
+            {p.profilesUsing.map((id, i) => (
+              <span key={id}>
+                {i > 0 ? ", " : ""}
+                <span className="mono text-chalk-100">{id}</span>
+              </span>
+            ))}
+          </p>
+        ) : null}
+
+        {t ? (
+          <TestResultRow
+            result={t}
+            loginCommand={p.loginCommand}
+            loginNote={p.loginNote}
+          />
+        ) : null}
+
+        {/* Footer: the real provider actions, preserved verbatim. */}
+        <div className="mt-3.5 flex flex-wrap items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
+          {p.popular && !p.available ? (
+            <Button
+              variant="primary"
+              size="sm"
+              iconLeft={<Download size={13} />}
+              onClick={() => setInstallFor(p)}
+            >
+              Install
+            </Button>
+          ) : null}
+          {/* Set up (unconfigured) / Edit (configured) both open the editor -
+              the single place to compose command/args/input, test, save. */}
+          <Button
+            variant={p.configured ? "outline" : "primary"}
+            size="sm"
+            iconLeft={p.configured ? <Pencil size={12} /> : <Plus size={13} />}
+            disabled={isBusy}
+            onClick={() => setEditFor(p)}
+          >
+            {p.configured ? "Edit" : "Set up"}
+          </Button>
+          {p.configured ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              iconLeft={<Check size={13} />}
+              disabled={isBusy}
+              onClick={() => setDefault(p.id)}
+            >
+              Set default
+            </Button>
+          ) : null}
+          <Button
+            variant="outline"
+            size="sm"
+            iconLeft={<Play size={12} />}
+            disabled={isBusy || !p.configured}
+            title={p.configured ? "Run the safe connectivity test" : "Set it up first"}
+            onClick={() => test(p.id)}
+          >
+            {isBusy && busy?.action === "test" ? "Testing…" : "Test"}
+          </Button>
+        </div>
       </div>
     );
   };
@@ -387,10 +301,8 @@ export function ProvidersView() {
             <p className="mb-3 max-w-[74ch] text-[12.5px] leading-[1.55] text-chalk-300">
               Configured out of the box - detected and ready to bind to a run.
             </p>
-            <div className="space-y-3">
-              {orderedPopular.map((p) =>
-                renderRow(p, { section: "popular", ids: popularIds }),
-              )}
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {popularRows.map((p) => renderCard(p))}
             </div>
           </Section>
 
@@ -399,12 +311,10 @@ export function ProvidersView() {
               <p className="mb-3 max-w-[74ch] text-[12.5px] leading-[1.55] text-chalk-300">
                 Opt-in, not auto-configured. Detected but never auto-bound. Set
                 one up to wire it into this project, then test it like any other
-                provider. Drag the handle to reorder, or lock a row to pin it.
+                provider.
               </p>
-              <div className="space-y-3">
-                {orderedOptional.map((p) =>
-                  renderRow(p, { section: "optional", ids: optionalIds }),
-                )}
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                {optionalRows.map((p) => renderCard(p))}
               </div>
             </Section>
           ) : null}
@@ -448,7 +358,9 @@ export function ProvidersView() {
               <span className="text-chalk-100">localhost - no egress</span>.
             </p>
             {httpRows.length > 0 ? (
-              <div className="space-y-3">{httpRows.map((p) => renderRow(p))}</div>
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                {httpRows.map((p) => renderCard(p))}
+              </div>
             ) : (
               <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-8 text-center">
                 <p className="text-[13px] text-chalk-300">
@@ -546,10 +458,10 @@ function ErrorBanner({ text }: { text: string }) {
   );
 }
 
-function providerStatus(p: ProviderRow): { tone: ChipTone; label: string } {
-  if (p.configured) return { tone: "emerald", label: "configured" };
-  if (!p.available) return { tone: "neutral", label: "not installed" };
-  return { tone: "sky", label: "detected" };
+function providerStatus(p: ProviderRow): { textClass: string; label: string } {
+  if (p.configured) return { textClass: "text-emerald-400", label: "configured" };
+  if (!p.available) return { textClass: "text-chalk-400", label: "not installed" };
+  return { textClass: "text-sky-glow", label: "detected" };
 }
 
 /**

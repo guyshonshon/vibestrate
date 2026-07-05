@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.62.0
+
+- **Providers are cards now, and the drag/lock cruft is gone.** The Providers
+  tab (under Crew) rendered providers as horizontal stripes with a drag-to-
+  reorder handle and a padlock "lock" toggle - both were local-only cosmetics
+  (provider binding is by id; order never affected anything) and the lock only
+  existed to pin a row against that useless drag. Removed both, and rebuilt the
+  rows as a proper card grid matching the rest of the app: icon, name, version,
+  status, guidance, and the real actions (Edit / Set default / Test, or Install /
+  Set up) in a footer. Every provider action is unchanged.
+
 ## 0.61.0
 
 - **Supervisors is now an authoring surface with an archetype gallery.** The
