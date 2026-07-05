@@ -1407,8 +1407,73 @@ export const specUpRoadmapFlow = flowDefinitionSchema.parse({
   },
 });
 
+// ── Docs (fast track) ────────────────────────────────────────────────────────
+// The fast track for documentation content under `docs/content/` - prose, not
+// code. One author turn edits the page(s); review runs ONLY when the diff isn't
+// pure prose. The review-descent (`skipWhen: "inert_diff"`) skips the review turn
+// for an all-markdown, unprotected diff and lets it reach merge_ready with no
+// model review; the moment the change touches frontmatter-driven metadata
+// (`docs/generated/*`) or `_nav.json` - both non-prose `.json` - a real review
+// runs. That is the intended shape: copy edits stay instant, structural changes
+// get a look.
+//
+// Unlike `express`, this flow has NO validation step: docs don't need the
+// project's code checks (typecheck/test), so `validationPassed` is vacuously
+// true. Keeping metadata in sync is the author's job, spelled out in the step
+// instructions - not a code-validation gate.
+export const docsFlow = flowDefinitionSchema.parse({
+  id: "docs",
+  version: 1,
+  label: "Docs (fast track)",
+  description:
+    "Fast track for documentation content under docs/content/. One author turn revises the page(s); review runs only when the diff isn't pure prose - a frontmatter, nav, or generated-metadata change gets a real review turn, a plain copy edit does not. No code validation: docs don't need typecheck/test.",
+  seats: {
+    author: {
+      label: "Author",
+      description: "Revises the documentation page(s) directly.",
+    },
+    reviewer: {
+      label: "Reviewer",
+      description:
+        "Reviews the diff when it isn't pure prose (frontmatter, nav, or structural changes).",
+    },
+  },
+  steps: [
+    {
+      id: "write",
+      label: "Write",
+      kind: "agent-turn",
+      seat: "author",
+      stage: "executing",
+      instructions:
+        "Revise the documentation under docs/content/ to satisfy the task. Keep each page's frontmatter intact and complete - a page without frontmatter does not render on the site. If you change a page's frontmatter, title, structure, or the nav, run `pnpm docs:generate` and include the regenerated docs/generated/* files so the metadata stays in sync. This is a docs-only exercise: do not modify source code.",
+      inputs: ["task-brief"],
+      outputs: ["execution", "diff"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "review",
+      label: "Review (diff-floored)",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      inputs: ["task-brief", "execution"],
+      outputs: ["findings", "review-decision"],
+      skipWhen: "inert_diff",
+    },
+  ],
+  complexity: "low",
+  capabilities: {
+    taskKinds: ["docs"],
+    strengths: ["speed", "small-changes"],
+    costClass: "low",
+    latencyClass: "low",
+  },
+});
+
 export const builtinFlows: readonly FlowDefinition[] = [
   defaultFlow,
+  docsFlow,
   planOnlyFlow,
   qualityArbitrationFlow,
   pickupFlow,

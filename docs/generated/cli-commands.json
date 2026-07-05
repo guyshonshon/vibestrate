@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.50.0",
+  "version": "0.67.0",
   "commands": [
     {
       "name": "init",
@@ -988,6 +988,87 @@
               "negated": false
             }
           ],
+          "subcommands": []
+        },
+        {
+          "name": "archetypes",
+          "path": [
+            "vibe",
+            "supervisor",
+            "archetypes"
+          ],
+          "description": "List the curated supervisor archetypes you can adopt.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "adopt",
+          "path": [
+            "vibe",
+            "supervisor",
+            "adopt"
+          ],
+          "description": "Adopt a curated archetype into this project's personas.",
+          "usage": "[options] <archetypeId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "default",
+          "path": [
+            "vibe",
+            "supervisor",
+            "default"
+          ],
+          "description": "Set the project's default supervisor (built-in or a project persona).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "remove",
+          "path": [
+            "vibe",
+            "supervisor",
+            "remove"
+          ],
+          "description": "Remove a project persona (not a built-in or the active default).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
           "subcommands": []
         }
       ]
@@ -5334,6 +5415,140 @@
           "usage": "[options]",
           "arguments": [],
           "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "draft",
+          "path": [
+            "vibe",
+            "policies",
+            "draft"
+          ],
+          "description": "Turn an English rule into an editable policy draft (supervisor-assisted). Draft only - never writes; adopt it with `policies add`.",
+          "usage": "[options] <description>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "suggest",
+          "path": [
+            "vibe",
+            "policies",
+            "suggest"
+          ],
+          "description": "Propose candidate policies from recent runs' diffs (supervisor-assisted). Draft only - never writes.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--limit <n>",
+              "description": "how many recent runs to scan (1-10)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "test",
+          "path": [
+            "vibe",
+            "policies",
+            "test"
+          ],
+          "description": "Dry-run a matcher against a diff snippet or recent runs (read-only). Give an existing block-policy id, or --regex.",
+          "usage": "[options] [policyId]",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": false,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--regex <pattern>",
+              "description": "regex to test (instead of a policy id)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--flags <flags>",
+              "description": "regex flags (subset of gimsuy)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--glob <glob>",
+              "description": "touched-file glob to test",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--snippet <file>",
+              "description": "path to a diff/patch file to test against",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--recent",
+              "description": "test against recent runs' diffs",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--limit <n>",
+              "description": "recent runs to scan (1-10)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--surface <surface>",
+              "description": "apply surface (suggestion-apply | bundle-apply)",
+              "defaultValue": "suggestion-apply",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
           "subcommands": []
         },
         {

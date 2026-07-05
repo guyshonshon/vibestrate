@@ -221,6 +221,68 @@
       }
     },
     {
+      "id": "docs",
+      "version": 1,
+      "label": "Docs (fast track)",
+      "description": "Fast track for documentation content under docs/content/. One author turn revises the page(s); review runs only when the diff isn't pure prose - a frontmatter, nav, or generated-metadata change gets a real review turn, a plain copy edit does not. No code validation: docs don't need typecheck/test.",
+      "seats": [
+        {
+          "id": "author",
+          "label": "Author",
+          "description": "Revises the documentation page(s) directly."
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "description": "Reviews the diff when it isn't pure prose (frontmatter, nav, or structural changes)."
+        }
+      ],
+      "steps": [
+        {
+          "id": "write",
+          "label": "Write",
+          "kind": "agent-turn",
+          "seat": "author",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "execution",
+            "diff"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review",
+          "label": "Review (diff-floored)",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "execution"
+          ],
+          "outputs": [
+            "findings",
+            "review-decision"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": null
+    },
+    {
       "id": "plan-only",
       "version": 1,
       "label": "Plan",

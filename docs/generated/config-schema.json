@@ -226,6 +226,24 @@
                 "degrade"
               ],
               "itemType": null
+            },
+            {
+              "key": "readonlyRoot",
+              "fullKey": "execution.container.readonlyRoot",
+              "type": "boolean",
+              "required": false,
+              "default": true,
+              "itemType": null,
+              "description": "Mount the run container root filesystem read-only (default on). Writable: the worktree, tmpfs /tmp, and tmpfs /root (the stock node:22 image HOME). Set false for a custom image that runs as a non-root user or writes outside /tmp and $HOME - the run start probes HOME writability and fails loudly otherwise."
+            },
+            {
+              "key": "pidsLimit",
+              "fullKey": "execution.container.pidsLimit",
+              "type": "number",
+              "required": false,
+              "default": 512,
+              "itemType": null,
+              "description": "Max processes inside the run container (fork-bomb guard; default 512)."
             }
           ],
           "description": "Container backend settings (used when backend=docker)."
@@ -330,6 +348,15 @@
       ],
       "itemType": null,
       "description": "Route plan-worthy greenfield/system briefs into the read-only Spec-up chain before executing: off or auto (default auto)."
+    },
+    {
+      "key": "ponytail",
+      "fullKey": "ponytail",
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "itemType": null,
+      "description": "Inject the ponytail minimalism posture into code-writing agents so they default to the smallest solution that works (credit: the ponytail skill, MIT). Default on."
     },
     {
       "key": "budget",

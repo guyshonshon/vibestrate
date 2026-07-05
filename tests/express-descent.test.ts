@@ -6,7 +6,7 @@ import {
   type MergeReadinessInput,
 } from "../src/core/merge-readiness.js";
 import { deriveRunAssurance } from "../src/safety/run-assurance.js";
-import { expressFlow } from "../src/flows/catalog/builtin-flows.js";
+import { expressFlow, docsFlow } from "../src/flows/catalog/builtin-flows.js";
 import { flowDefinitionSchema } from "../src/flows/schemas/flow-schema.js";
 
 // ── The descent evaluator: strict-prose AND unprotected, else review runs ──
@@ -374,5 +374,59 @@ describe("skipWhen schema validation", () => {
       ],
     });
     expect(r.success).toBe(false);
+  });
+});
+
+// ── The docs fast track: express's descent, minus code validation ───────────
+
+describe("docs flow (fast track)", () => {
+  it("parses, is a low-complexity docs flow", () => {
+    expect(docsFlow.id).toBe("docs");
+    expect(docsFlow.complexity).toBe("low");
+    expect(docsFlow.capabilities?.taskKinds).toContain("docs");
+  });
+
+  it("has NO validation step (prose skips the project's code checks)", () => {
+    // The whole reason `docs` is a separate flow from `express`: validation runs
+    // the project's `commands.validate` (typecheck/test), which is waste on
+    // prose. Dropping it leaves `validationPassed` vacuously true.
+    expect(docsFlow.steps.some((s) => s.kind === "validation")).toBe(false);
+  });
+
+  it("keeps the inert-diff review descent (copy edits skip review)", () => {
+    expect(docsFlow.steps.find((s) => s.id === "review")?.skipWhen).toBe(
+      "inert_diff",
+    );
+  });
+
+  it("a pure docs/content markdown diff skips review -> reaches merge_ready", () => {
+    const d = evaluateReviewDescent([
+      "docs/content/concepts/seat.md",
+      "docs/content/cli/overview.md",
+    ]);
+    expect(d.skip).toBe(true);
+    expect(
+      computeMergeReady({
+        ...base,
+        reviewSkipEvidence: { stepId: "review", files: d.files },
+      }),
+    ).toBe(true);
+  });
+
+  it("regenerated metadata (docs/generated/*.json) forces a real review", () => {
+    // §10: a structural docs change regenerates docs/generated/*. JSON is not
+    // strict-prose, so the descent must NOT skip - the change gets a look.
+    const d = evaluateReviewDescent([
+      "docs/content/concepts/seat.md",
+      "docs/generated/docs-metadata.json",
+    ]);
+    expect(d.skip).toBe(false);
+    expect(d.reason).toBe("non-prose-files");
+  });
+
+  it("a _nav.json change forces a real review", () => {
+    const d = evaluateReviewDescent(["docs/content/_nav.json"]);
+    expect(d.skip).toBe(false);
+    expect(d.reason).toBe("non-prose-files");
   });
 });
