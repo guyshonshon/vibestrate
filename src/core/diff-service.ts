@@ -179,6 +179,85 @@ function redactSecret(token: string): string {
  * marker. Used to scrub external content (fetched URLs, referenced files)
  * before it enters an agent prompt. Returns the scrubbed text + a match count.
  */
+// Generic secret-ASSIGNMENT shape, to catch novel-shaped secrets the vendor
+// token patterns miss (e.g. `DB_PASS=hunter2longstring`, `client_secret: "abc..."`).
+// Deliberately conservative - this redactor runs on diffs/text the model must
+// still read, so a false positive corrupts context. It fires only when a
+// secret-ish KEY name is assigned a contiguous, non-placeholder VALUE, and it
+// preserves the key + separator so "a secret was set here" context survives.
+// Groups: 1=key, 2=sep, 3=opening quote (if any), 4=value.
+// ONE bounded key capture (no nested/adjacent unbounded stars) so a keyword-ish
+// run like `token_token_...` can't be partitioned exponentially - this closes the
+// catastrophic-backtracking ReDoS. The key is length-bounded, the value is a
+// bounded secret-charset token (so it stops at `;`/`,`/comments instead of eating
+// them). Whether the KEY names a secret is decided in JS (keyLooksSecret), which
+// requires the secret word to be the TRAILING segment - so `access_key` matches
+// but `access_key_header`, `tokenizer`, `password_hint`, `privateKeyPath` do not.
+// Groups: 1=key, 2=sep, 3=opening quote (if any), 4=value.
+const SECRET_ASSIGNMENT_RE =
+  /(?<![A-Za-z0-9_.-])([A-Za-z0-9_.-]{1,64})(\s*[=:]\s*)(["'`]?)([A-Za-z0-9+/=_.-]{8,64})\3/g;
+
+// Secret "type" words that, when they are the LAST segment of a key, mark it a
+// secret (e.g. DB_PASS, client_secret, auth_token, MY_APIKEY, credential).
+const SECRET_KEY_SEGMENTS = new Set([
+  "password",
+  "passwd",
+  "pass",
+  "secret",
+  "token",
+  "apikey",
+  "credential",
+  "credentials",
+]);
+// Two-segment secret suffixes (the word is split by a separator or camelCase).
+const SECRET_KEY_PAIRS = new Set([
+  "api key",
+  "access key",
+  "secret key",
+  "private key",
+  "signing key",
+  "client secret",
+  "auth token",
+  "access token",
+  "refresh token",
+]);
+
+/** Does the assignment KEY name a secret? True only when a secret "type" word is
+ *  the trailing segment (or trailing pair) of the key - so `DB_PASS`/`api_key`
+ *  match but `tokenizer`/`access_key_header`/`password_hint` do not. */
+function keyLooksSecret(key: string): boolean {
+  const segs = key
+    .split(/[_.\-]|(?<=[a-z0-9])(?=[A-Z])/)
+    .filter(Boolean)
+    .map((s) => s.toLowerCase());
+  if (segs.length === 0) return false;
+  const last = segs[segs.length - 1]!;
+  if (SECRET_KEY_SEGMENTS.has(last)) return true;
+  if (segs.length >= 2 && SECRET_KEY_PAIRS.has(`${segs[segs.length - 2]} ${last}`)) {
+    return true;
+  }
+  return false;
+}
+
+/** A captured assignment value that is clearly NOT a literal secret - an env
+ *  reference, a variable interpolation, a path, a number, or a placeholder -
+ *  so it should be left untouched (redacting it would only corrupt context). */
+function isNonSecretValue(value: string): boolean {
+  return (
+    /^env:/i.test(value) || // the app's own `env:NAME` secret-ref shape
+    /^\$/.test(value) || // ${VAR} / $VAR interpolation
+    /^process\.env/i.test(value) ||
+    /^import\.meta/i.test(value) ||
+    /^</.test(value) || // <your-key-here>
+    /^[./~]/.test(value) || // paths: ./x /x ~/x
+    /^-?\d+(?:\.\d+)?$/.test(value) || // pure numbers
+    /^(?:changeme|placeholder|example|redacted|todo|tbd|none|null|undefined|true|false|xxx+|\*+|\.+|-+)$/i.test(
+      value,
+    ) ||
+    /^your[_-]/i.test(value) // your_key_here style
+  );
+}
+
 export function redactSecretsInText(text: string): {
   redacted: string;
   count: number;
@@ -192,6 +271,16 @@ export function redactSecretsInText(text: string): {
       return `[REDACTED:${name}]`;
     });
   }
+  // Second pass: generic `SECRET_KEY = value` assignments the vendor patterns miss.
+  out = out.replace(
+    SECRET_ASSIGNMENT_RE,
+    (full, key: string, sep: string, quote: string, value: string) => {
+      if (!keyLooksSecret(key)) return full;
+      if (isNonSecretValue(value)) return full;
+      count += 1;
+      return `${key}${sep}${quote}[REDACTED:secret assignment]${quote}`;
+    },
+  );
   return { redacted: out, count };
 }
 

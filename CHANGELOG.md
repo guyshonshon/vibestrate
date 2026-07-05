@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.63.1
+
+- **Broader secret redaction, safely.** The shared redactor (used before every
+  model call) now also catches generic `SECRET_KEY = value` assignments the
+  vendor-token patterns missed (e.g. `DB_PASS=...`, `client_secret: "..."`),
+  redacting only the value and preserving the key for context. The matcher is
+  bounded (no catastrophic backtracking on hostile input) and only fires when
+  the secret word is the trailing segment of the key, so `tokenizer`,
+  `access_key_header`, and `password_hint` are left alone. Hardened after an
+  adversarial review caught a ReDoS and a false-positive class in the first cut.
+
 ## 0.63.0
 
 - **Policies got a supervisor and a test bench.** The Policies page can now help

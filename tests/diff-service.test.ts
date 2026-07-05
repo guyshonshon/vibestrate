@@ -7,6 +7,7 @@ import {
   getDiffSnapshot,
   getFileDiff,
   isSecretLikePath,
+  redactSecretsInText,
 } from "../src/core/diff-service.js";
 
 async function makeRepo(): Promise<string> {
@@ -34,6 +35,86 @@ describe("isSecretLikePath", () => {
   it("does not flag normal files", () => {
     expect(isSecretLikePath("src/index.ts")).toBe(false);
     expect(isSecretLikePath("README.md")).toBe(false);
+  });
+});
+
+describe("redactSecretsInText", () => {
+  it("still redacts the known vendor token shapes", () => {
+    const r = redactSecretsInText('const k = "AKIAIOSFODNN7EXAMPLE";');
+    expect(r.redacted).toContain("[REDACTED:AWS access key id]");
+    expect(r.redacted).not.toContain("AKIAIOSFODNN7EXAMPLE");
+  });
+
+  it("redacts novel-shaped secret assignments, preserving the key name", () => {
+    for (const line of [
+      "DB_PASS=hunter2longstring",
+      'client_secret: "abc123def456ghi789"',
+      "MY_API_KEY = s3cr3t-value-here",
+      "auth_token='longlivedtokenvalue123'",
+      "APIKEY=abcdef0123456789",
+      "MY_API_KEY=abcdef0123456789",
+    ]) {
+      const r = redactSecretsInText(line);
+      expect(r.redacted, line).toContain("[REDACTED:secret assignment]");
+      expect(r.count, line).toBeGreaterThan(0);
+    }
+    // The key name survives (context preserved), the value does not.
+    const r = redactSecretsInText("DB_PASS=hunter2longstring");
+    expect(r.redacted).toContain("DB_PASS=");
+    expect(r.redacted).not.toContain("hunter2longstring");
+  });
+
+  it("leaves non-secret VALUES untouched (env-ref/interp/path/placeholder)", () => {
+    for (const line of [
+      "password = env:DB_PASSWORD", // an env-ref, not a literal
+      'api_key = "${VITE_API_KEY}"', // interpolation
+      "secret_path = ./secrets/dev", // a path (key also non-secret)
+      'token = "changeme"', // placeholder (also < 8)
+      "clientSecret = process.env.CLIENT_SECRET",
+      'AUTH_TOKEN = "your_token_here"',
+    ]) {
+      const r = redactSecretsInText(line);
+      expect(r.redacted, line).toBe(line);
+      expect(r.count, line).toBe(0);
+    }
+  });
+
+  it("does NOT fire when the secret word is not the trailing key segment (the FP class)", () => {
+    // Every one of these has 'secret'/'token'/'key'/'pass' as a substring or
+    // non-trailing segment, and a long value - the exact false positives the
+    // security review reproduced. None may be redacted.
+    for (const line of [
+      'tokenizer = "SentencePieceBPE1"',
+      'access_key_header = "X-Amz-Access-Key"',
+      'client_secret_field_name = "clientsecretfield"',
+      'authTokenHeader = "Authorization1"',
+      'password_hint = "mothersmaidenname"',
+      "privateKeyPath = getConfigDirectory",
+      'keyboard_shortcut = "ctrl-shift-k-x-1"',
+      'compass = "northeastbearing12"',
+      'passenger_name = "Jonathanappleseed"',
+      'bypass_cache = "enabledforever123"',
+      'username = "a-very-long-username-value"',
+    ]) {
+      const r = redactSecretsInText(line);
+      expect(r.redacted, line).toBe(line);
+      expect(r.count, line).toBe(0);
+    }
+  });
+
+  it("does not over-grab trailing punctuation on unquoted values", () => {
+    const r = redactSecretsInText("token = abcdef0123; // trailing comment");
+    expect(r.redacted).toContain("[REDACTED:secret assignment]");
+    expect(r.redacted).toContain("; // trailing comment"); // the ; and comment survive
+  });
+
+  it("is ReDoS-safe: a pathological keyword run redacts in bounded time", () => {
+    const evil = "token_".repeat(20000) + " end"; // ~120 KB, no assignment
+    const start = performance.now();
+    const r = redactSecretsInText(evil);
+    const ms = performance.now() - start;
+    expect(ms).toBeLessThan(500); // was 28s with the old unbounded regex
+    expect(r.count).toBe(0);
   });
 });
 
