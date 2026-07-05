@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.68.0
+
+- **Sub-agent denylist per role.** Profiles gained a `disallowedTools` knob that
+  maps to the provider's `--disallowedTools`. Its main use is `["Task"]` on a
+  strict flow's write seats, so a seat's agent can't spin up its own nested
+  sub-agents that schedule work outside the flow DAG - keeping the supervisor's
+  view of what ran legible. Off by default (nothing changes until a profile opts
+  in). It is about orchestration legibility, not a write guard: read/explore
+  sub-agents on a read-only seat are already write-safe via `--permission-mode
+  plan`, and the denylist is best-effort (it blocks the default `Task` path, not
+  every possible fan-out).
+- **Session continuity is per-seat, on the record.** Provider sessions are
+  reused across a flow's steps by **Seat**, never by profile - a same-model
+  reviewer and writer stay independent processes so the reviewer can't inherit
+  and rubber-stamp the writer's context. This was already the behavior; it is now
+  pinned by a load-bearing comment and an invariant test so it can't silently
+  regress into a profile-keyed rule.
+
 ## 0.67.0
 
 - **A fast track for docs.** New built-in **`docs`** flow for revising

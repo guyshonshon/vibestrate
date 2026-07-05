@@ -6455,6 +6455,9 @@ export class Orchestrator {
               ? this.lowestEffort(effectiveProviderId) ?? runtimeProfile?.power ?? undefined
               : runtimeProfile?.power ?? undefined,
           maxTokens: runtimeProfile?.maxTokens ?? undefined,
+          // Tool denylist (profile `disallowedTools`) - e.g. ["Task"] on a strict
+          // flow's write seat so nested sub-agents can't schedule outside the DAG.
+          disallowedTools: runtimeProfile?.disallowedTools ?? undefined,
           // Real wall-clock cap (no longer advisory): the provider tree-kills the
           // whole turn if it overruns - matters most for fanned-out review turns.
           timeoutMs: runtimeProfile?.timeoutMs ?? undefined,

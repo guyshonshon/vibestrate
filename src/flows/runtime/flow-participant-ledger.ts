@@ -108,6 +108,13 @@ export function createFlowParticipantLedger(input: {
   // for. The provider/label come from the seat's resolved Role/Profile (the
   // first resolved step using that seat). Steps that share a seat reuse the
   // participant - that's what lets a Role keep a session across steps.
+  //
+  // Keyed on SEAT, never on profile. Two seats can resolve to the same provider,
+  // model, and effort (a staff-engineer writer and a staff-engineer reviewer)
+  // yet must stay independent processes - the reviewer inheriting the writer's
+  // session would let it grade its own homework. Profile equality is a
+  // coincidence, not a continuity signal. Do NOT change this to a profile/model
+  // key. (See docs/design/fast-track-and-session-policy.md, Decision 2.)
   const bySeat = new Map<string, { providerId: string; label: string }>();
   for (const step of input.snapshot.steps) {
     if (!step.seat || !step.providerId) continue;

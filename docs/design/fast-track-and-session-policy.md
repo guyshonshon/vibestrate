@@ -1,6 +1,6 @@
 # Fast Track, Session Policy, and Sub-agent Boundary
 
-Status: P1 shipped (2026-07-05, `feat/docs-fast-track`, v0.67.0); P2-P4 open
+Status: P1-P3 shipped, P4 declined (2026-07-05); v0.67.0 (P1) + v0.68.0 (P2-P3)
 
 > **Execution log.**
 > - **M0 settled (code-read, not run):** the review descent
@@ -334,9 +334,18 @@ Dependency-ordered; each phase independently shippable and mergeable.
 - **P3 - Sub-agent knob.** `disallowedTools` profile field threaded to the flag,
   format proven by M0(1). Default-off = zero behavior change until a flow opts
   in. Ship a strict-flow example that sets it on write seats. Depends on M0(1).
-- **P4 (optional) - Serial multi-doc.** Checklist band on the `docs` flow. Only
-  if the owner accepts serial, one-commit-per-item. Concurrent multi-doc stays
-  out of scope (foundation).
+- **P4 - Serial multi-doc: DECLINED (2026-07-05).** The valuable multi-doc
+  capability - edit several pages in one author turn, one inert diff,
+  review-skipped, merge_ready - already ships in P1 and is tested
+  (`express-descent.test.ts`, the two-file prose case). A checklist-segment
+  variant would be *strictly worse* for the fast-track goal: `skipWhen:
+  "inert_diff"` is schema-incompatible with a `checklistSegment` (existing guard
+  test), so a per-page-commit docs flow reviews EVERY page and loses the skip
+  that makes the track fast. So we do not add a checklist docs flow. If per-page
+  commits are ever genuinely needed, run the `default`/`express` flow with a
+  checklist and accept the real per-page review - that is not a "fast" track and
+  shouldn't pretend to be one. Concurrent multi-doc remains a FOUNDATION, out of
+  scope.
 
 ---
 
@@ -409,3 +418,17 @@ and the fast flow still terminates cleanly as `merge_ready`"* - it does not;
 review is the load-bearing termination condition, and `express`/inert-diff is the
 only sanctioned way to skip it on prose. That correction is now the spine of
 Decision 1.
+
+### P2/P3 pre-merge review (2026-07-05, independent Opus 4.8, CLI-probed)
+
+The `disallowedTools` implementation (P3) got a Tier-2 review before merge. It
+proved, against the real `claude` CLI, that comma-joining the tool list does NOT
+stop the variadic `--disallowedTools` from consuming the trailing positional
+prompt on an `input:"arg"` provider - and that `--allowed-tools` and
+`--mcp-config` share the same latent prompt-swallow. It ships safe only because
+the default provider streams the prompt over stdin. **Accepted the root-cause
+fix:** push a `--` end-of-options separator before the positional prompt in the
+arg branch (`claude-code-provider.ts`), which closes all three variadic-swallow
+paths at once. Everything else - no shell-injection (execa, no `shell:true`),
+honest legibility-not-write-guard scoping, zero-behavior-change when off, and the
+additive `.strict()` schema - was confirmed safe.

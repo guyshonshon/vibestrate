@@ -40,6 +40,15 @@ export async function runClaudeCodeProvider(
   if (input.effort) {
     args.push("--effort", input.effort);
   }
+  if (input.disallowedTools && input.disallowedTools.length > 0) {
+    // One comma-joined token (Claude Code splits it), mirroring `--allowed-tools`
+    // in claude-code-settings.ts. `--disallowedTools` is variadic (`<tools...>`),
+    // so on an `input: "arg"` provider it would keep consuming argv past the list
+    // - the `--` separator pushed before the prompt (below) is what actually
+    // stops the trailing positional being read as more tool names. The default
+    // provider streams the prompt over stdin, so no positional exists there.
+    args.push("--disallowedTools", input.disallowedTools.join(","));
+  }
   if (input.mcpConfigPath) {
     // `--mcp-config <path>` is the documented Claude Code flag for
     // pointing the runtime at an `.mcp.json`. Inject it before the
@@ -55,7 +64,11 @@ export async function runClaudeCodeProvider(
   let stdin: string | undefined;
 
   if (config.input === "arg") {
-    args.push(input.prompt);
+    // `--` ends option parsing so the prompt can never be swallowed by a
+    // preceding variadic flag. --disallowedTools, --allowed-tools, and
+    // --mcp-config all take `<...>` and would otherwise read this trailing
+    // positional as one more of their values (a silently prompt-stripped run).
+    args.push("--", input.prompt);
   } else {
     stdin = input.prompt;
   }

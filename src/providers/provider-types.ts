@@ -78,6 +78,10 @@ export type ProviderRunInput = {
   model?: string | null;
   effort?: string | null;
   maxTokens?: number | null;
+  /** Provider tool names to disallow for this turn (profile `disallowedTools`).
+   *  The `claude-code` provider maps these to `--disallowedTools`. Omitted/empty
+   *  = nothing disallowed. */
+  disallowedTools?: string[] | null;
   /** Resolved capability catalog (built-in merged with the project's
    *  `.vibestrate/providers-catalog.yml` overlay). When set, the provider applies
    *  model/effort from this instead of the built-in defaults. Omitted = built-in. */

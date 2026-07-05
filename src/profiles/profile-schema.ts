@@ -33,6 +33,18 @@ const profileBaseSchema = z
     maxTokens: z.number().int().positive().nullable().default(null),
     /** Per-turn wall-clock timeout in milliseconds. null = provider default. */
     timeoutMs: z.number().int().positive().nullable().default(null),
+    /**
+     * Provider tool names this role may NOT use (maps to the `claude-code`
+     * provider's `--disallowedTools`). The main use is `["Task"]` on a strict
+     * flow's write seats, so nested sub-agents can't orchestrate outside the
+     * flow DAG - keeping the supervisor's scheduling legible. Best-effort, not a
+     * hard boundary: it blocks the default sub-agent path (the `Task` tool), not
+     * `--agents` or MCP tools that fan out under other names. Read/explore
+     * sub-agents on a read-only seat are already write-safe via
+     * `--permission-mode plan`; this knob is about orchestration legibility, not
+     * a write guard. null/empty = today's behavior (nothing disallowed).
+     */
+    disallowedTools: z.array(z.string().min(1)).nullable().default(null),
     /** Escape hatch for raw provider-specific options. */
     providerOptions: z.record(z.string(), z.unknown()).default({}),
   })
