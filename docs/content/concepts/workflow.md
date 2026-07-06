@@ -65,13 +65,10 @@ vibe run "..." --flow quality-arbitration
 
 ### Fast tracks
 
-Not every task deserves the full seven-stage line. For small, low-risk work there are lighter recipes:
-
-- **`express`** - one implementer turn plus a review that only runs when the change demands it. A pure-prose or otherwise inert diff skips review entirely and goes straight to merge-ready; anything touching code or a protected path gets a real review turn.
-- **`docs`** - the fast track for documentation content under `docs/content/`. One author turn revises the page(s); there is no code-validation step (docs don't need typecheck/test). Review runs only when the diff isn't pure prose - a plain copy edit sails through, but a frontmatter, nav, or regenerated-metadata change (`docs/generated/*`) gets a look. Editing several pages in one turn is a single diff, so "update a handful of docs" is one quick run.
+Not every task deserves the full seven-stage line. For small, low-risk work the built-in **`express`** flow runs one implementer turn plus a review that only fires when the change demands it: a pure-prose or otherwise inert diff skips review entirely and goes straight to merge-ready, while anything touching code or a protected path gets a real review turn.
 
 ```bash
-vibe run "fix the typo in the seat concept page" --flow docs
+vibe run "fix the typo in the seat concept page" --flow express
 ```
 
 To pick up a flow partway through, `vibe run --resume-from <runId> --resume-stage <stage>` rewinds any flow that declares the matching stage. The runner seeds the earlier steps' outputs from the source run and starts from there.

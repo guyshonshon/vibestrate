@@ -1,6 +1,12 @@
 # Fast Track, Session Policy, and Sub-agent Boundary
 
-Status: P1-P3 shipped, P4 declined (2026-07-05); v0.67.0 (P1) + v0.68.0 (P2-P3)
+Status: REVERTED except session/sub-agent (2026-07-06). Decision 1 (the `docs`
+flow) and concurrent multi-doc (`vibe docs`) were removed after the owner
+clarified the original ask was updating the vibestrate.com marketing docs (whose
+content is authored in this repo's `docs/content/` and pulled into the Astro
+marketing site at build), NOT product docs tooling. What REMAINS shipped: Decision
+2 (session continuity keys on Seat) and Decision 3 (`disallowedTools` profile
+knob), both at v0.68.0. The rest below is kept as a design record only.
 
 > **Execution log.**
 > - **M0 settled (code-read, not run):** the review descent

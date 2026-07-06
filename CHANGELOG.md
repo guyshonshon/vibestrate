@@ -18,19 +18,6 @@
   pinned by a load-bearing comment and an invariant test so it can't silently
   regress into a profile-keyed rule.
 
-## 0.67.0
-
-- **A fast track for docs.** New built-in **`docs`** flow for revising
-  documentation content under `docs/content/` without paying for the full
-  plan → architect → … → verify line. One author turn revises the page(s); there
-  is no code-validation step (prose doesn't need typecheck/test). Review is
-  diff-floored: a pure-prose edit skips review and goes straight to merge-ready,
-  while a frontmatter, nav, or regenerated-metadata change (`docs/generated/*`)
-  still gets a real review turn - so copy edits are instant and structural
-  changes get a look. Editing several pages in one turn is a single diff, so
-  "update a handful of docs" is one quick run. Launch it with
-  `vibe run "..." --flow docs` or pick it from the Board.
-
 ## 0.66.0
 
 - **Ponytail minimalism, built in.** Code-writing agents (the implementer and
