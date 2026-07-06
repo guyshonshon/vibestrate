@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.69.0",
+  "version": "0.68.0",
   "commands": [
     {
       "name": "init",
@@ -3485,47 +3485,6 @@
           "subcommands": []
         }
       ]
-    },
-    {
-      "name": "docs",
-      "path": [
-        "vibe",
-        "docs"
-      ],
-      "description": "Revise several documentation pages concurrently - one isolated `docs` run per page. Best for prose edits to distinct pages; concurrent structural/nav changes may conflict at merge (each run is isolated, so nothing is corrupted).",
-      "usage": "[options] <paths...>",
-      "arguments": [
-        {
-          "name": "name() {\n    return this._name;\n  }",
-          "description": "documentation file paths to revise (distinct files)",
-          "required": true,
-          "variadic": true
-        }
-      ],
-      "options": [
-        {
-          "flags": "-m, --message <text>",
-          "description": "instruction applied to every page (default: a generic revise prompt)",
-          "required": true,
-          "optional": false,
-          "negated": false
-        },
-        {
-          "flags": "-c, --concurrency <n>",
-          "description": "max runs in flight at once (default 4)",
-          "required": true,
-          "optional": false,
-          "negated": false
-        },
-        {
-          "flags": "--json",
-          "description": "emit JSON results",
-          "required": false,
-          "optional": false,
-          "negated": false
-        }
-      ],
-      "subcommands": []
     },
     {
       "name": "logs",

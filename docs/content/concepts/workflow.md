@@ -74,14 +74,6 @@ Not every task deserves the full seven-stage line. For small, low-risk work ther
 vibe run "fix the typo in the seat concept page" --flow docs
 ```
 
-To revise **several pages at once**, `vibe docs` runs one isolated `docs` run per page, a few in parallel, each with its own branch:
-
-```bash
-vibe docs docs/content/concepts/seat.md docs/content/concepts/crew.md -m "tighten the intro"
-```
-
-Each page is a separate run, so one failing page never blocks the others. This works best for prose edits to distinct pages; concurrent structural or nav changes can conflict when you merge (the runs stay isolated, so nothing is corrupted - you just resolve the merge normally).
-
 To pick up a flow partway through, `vibe run --resume-from <runId> --resume-stage <stage>` rewinds any flow that declares the matching stage. The runner seeds the earlier steps' outputs from the source run and starts from there.
 
 ## How the crew stays on the same page
