@@ -59,14 +59,7 @@ describe("runDocsBatch", () => {
     for (const s of specs) {
       expect(s.flow?.id).toBe("docs");
       expect(s.select).toBe(false);
-      // Batch runs are steered away from regenerating shared docs/generated/*,
-      // which would conflict across the parallel branches.
-      expect(s.task).toMatch(/do not run `pnpm docs:generate`/i);
     }
-    // Each run's ORIGINAL brief is preserved (order-independent).
-    const tasks = specs.map((s) => s.task).join("\n");
-    expect(tasks).toContain("Fix seat page");
-    expect(tasks).toContain("Fix crew page");
     // Status + branch read back from each run's state file.
     expect(out.map((o) => o.status)).toEqual(["merge_ready", "merge_ready"]);
     expect(out.every((o) => o.branchName === `vibe/${o.runId}`)).toBe(true);

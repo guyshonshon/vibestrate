@@ -22,7 +22,6 @@ export type ReplayFocus =
 export type Route =
   | { kind: "mission" }
   | { kind: "compose" }
-  | { kind: "docs-batch" }
   | { kind: "runs" }
   | {
       kind: "run";
@@ -154,7 +153,6 @@ export function parseHashRoute(hash: string): Route {
   const query = new URLSearchParams(queryPart ?? "");
   if (parts[0] === "mission") return { kind: "mission" };
   if (parts[0] === "compose") return { kind: "compose" };
-  if (parts[0] === "docs-batch") return { kind: "docs-batch" };
   if (parts[0] === "runs" && parts[1]) {
     const tabRaw = query.get("tab");
     const tab =
@@ -248,8 +246,6 @@ export function serializeRoute(route: Route): string {
       return "#/";
     case "compose":
       return "#/compose";
-    case "docs-batch":
-      return "#/docs-batch";
     case "runs":
       return "#/runs";
     case "run": {

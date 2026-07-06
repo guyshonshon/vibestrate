@@ -7,7 +7,6 @@ import { GlobalErrorOverlay } from "../components/layout/GlobalErrorOverlay.js";
 import { RunsPage } from "./routes/RunsPage.js";
 import { MissionControlPage } from "./routes/MissionControlPage.js";
 import { RunComposePage } from "./routes/RunComposePage.js";
-import { DocsBatchPage } from "./routes/DocsBatchPage.js";
 import { RunDetailPage } from "./routes/RunDetailPage.js";
 import { BoardPage } from "./routes/BoardPage.js";
 import { CanvasPage } from "./routes/CanvasPage.js";
@@ -346,8 +345,6 @@ export function App() {
         <RunControlPage runId={route.runId} />
       ) : route.kind === "compose" ? (
         <RunComposePage />
-      ) : route.kind === "docs-batch" ? (
-        <DocsBatchPage />
       ) : route.kind === "runs" ? (
         <RunsPage
           onSelect={(runId) => navigate({ kind: "run", runId })}

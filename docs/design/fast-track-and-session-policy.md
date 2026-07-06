@@ -443,17 +443,6 @@ shaped it:
   pure-prose edits (which regenerate nothing) don't collide. Also added
   abort->child-kill so Ctrl-C doesn't orphan write-capable runs.
 
-Follow-up mitigation (v0.69.x): each batch run's brief now carries an explicit
-directive NOT to run `docs:generate` or touch `docs/generated/*` (`specFor`,
-`BATCH_NO_REGEN`) - the shared metadata is rebuilt ONCE after the batch is
-merged, so N branches no longer each regenerate the same global JSON. This is a
-soft steer (model behavior), the same class as the flow instruction it overrides;
-a hard guarantee would need a post-merge single-regeneration step (an integration
-stage this batch deliberately does not own, since it never auto-merges).
-Deliberately NOT closed: intra-run parallel writers (would rewrite the banned
-write path for no gain) and a cross-invocation run-id lock (the race already
-fails loud at `createWorktree`; a global mint-lock is over-engineering).
-
 Deliberately NOT built: intra-run parallel writers (would rewrite the safety-
 critical write path) and cross-invocation id locking (fails loud at
 `createWorktree`, acceptable per repo posture).

@@ -1,17 +1,5 @@
 # Changelog
 
-## 0.69.1
-
-- **Docs batch, now with a dashboard form.** The concurrent multi-doc launcher
-  (`vibe docs`) got its UI: a `Docs batch` page (reachable from the New-run
-  screen's `Batch docs` action) where you add the pages to revise, write one
-  shared instruction, and launch - each page becomes its own run in the runs
-  list. Mirrors the run-composer idiom; verified in both themes.
-- **Fewer batch merge conflicts.** Each batch run is now told not to regenerate
-  the shared `docs/generated/*` metadata - that is rebuilt once after the batch
-  is merged, so parallel branches no longer collide on the same generated files.
-  (Still best-effort: isolation prevents corruption, not every merge conflict.)
-
 ## 0.69.0
 
 - **Concurrent multi-doc.** `vibe docs <paths...>` revises several documentation

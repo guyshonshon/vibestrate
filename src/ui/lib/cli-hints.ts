@@ -63,21 +63,6 @@ export function hintForRoute(route: Route): CliHint {
         ],
         tips: TIPS_RUN,
       };
-    case "docs-batch":
-      return {
-        title: "Docs batch",
-        blurb:
-          "Revise several documentation pages at once - one isolated docs run per page, a few in parallel, each on its own branch. The CLI maps 1:1.",
-        commands: [
-          {
-            cmd: "vibe docs <path...>",
-            note: "one docs run per page, concurrently",
-          },
-          { cmd: "vibe docs <path...> -m <instruction>", note: "shared instruction" },
-          { cmd: "vibe docs <path...> -c <n>", note: "max runs in flight" },
-        ],
-        tips: TIPS_RUN,
-      };
     case "runs":
       return {
         title: "Runs & queue",
