@@ -39,6 +39,22 @@ Nothing else is mounted: no Docker socket, no project root, no home directory, n
 
 The container's environment is built from a fixed **provider-auth allowlist** (`ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`, `OPENAI_API_KEY`, and a few siblings) plus Vibestrate's own variables. Your shell's `AWS_*`, `GITHUB_TOKEN`, and everything else **never become container environment variables** - the host environment is not forwarded across the wall.
 
+## Hardened by default
+
+On top of the dropped capabilities and no-privilege-escalation, the run container shrinks its own writable surface and process budget so a rogue or buggy agent has less to work with:
+
+<div class="docs-cards">
+
+**Read-only root (`execution.container.readonlyRoot`, on)**
+The container's root filesystem is mounted read-only. Only three places stay writable: the run's worktree, a tmpfs `/tmp`, and a tmpfs HOME. An agent can't scribble across the rest of the image. Turn it off only for a custom image that runs as a non-root user or writes outside `/tmp` and `$HOME` - the run probes HOME writability at start and fails loudly rather than half-working.
+
+**Process cap (`execution.container.pidsLimit`, 512)**
+A `--pids-limit` on the container, so a fork bomb inside a turn hits a wall instead of your host's process table.
+
+</div>
+
+Both are configurable, and both are on top of the existing `--cap-drop=ALL --security-opt=no-new-privileges` (never `--privileged`).
+
 ## Fail-closed: it refuses rather than pretend
 
 If `execution.backend` is `docker` but the Docker daemon isn't running, the run **refuses** with a message telling you to start (or install) Docker. It does **not** quietly fall back to running on your host while reporting a sandbox - a sandbox you didn't get is worse than an honest stop.
@@ -52,6 +68,8 @@ execution:
   container:
     image: my-org/vibestrate-agent:latest  # MUST carry the provider CLI
     onUnavailable: fail       # default. "degrade" = fall back to host (not recommended)
+    readonlyRoot: true        # default. read-only root fs; writable: worktree, /tmp, HOME
+    pidsLimit: 512            # default. max processes in the container (fork-bomb guard)
 ```
 
 ## The image must carry the provider CLI

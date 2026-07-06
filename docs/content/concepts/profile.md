@@ -74,6 +74,24 @@ A Profile does not set a budget. An earlier version had a `budget` (low/medium/h
 
 Spend is controlled where it actually bites: a per-turn output cap with `maxTokens`, and a real project-level daily cap (`config.budget`, the `vibe budget` command and Budget section) that stops or downgrades runs. The editor shows a dial only where it ties to a genuine effect.
 
+## Fencing off a role's tools
+
+A Profile can also name provider tools a Role may **not** use, with `disallowedTools`. The main use is `["Task"]` on the write seats of a strict Flow: it stops a seat's agent from spinning up its own nested sub-agents that would schedule work **outside** the Flow's plan, so what actually ran stays legible to the supervisor and the run tree.
+
+```yaml
+profiles:
+  strict-writer:
+    provider: claude
+    model: opus
+    disallowedTools: ["Task"]   # no nested sub-agent orchestration
+```
+
+<div class="docs-callout warn">
+
+**This is about legibility, not a write guard.** `disallowedTools` keeps the Flow the single scheduler; it is not what stops a read-only seat from writing (that's the seat's permission mode). It is also best-effort - it blocks the default sub-agent path, not every possible fan-out. Off by default: with no list, nothing is disallowed and a run behaves exactly as before.
+
+</div>
+
 ## Advanced
 
 The schema fields:
@@ -86,6 +104,7 @@ The schema fields:
 | `power` | string \| null | provider-specific effort level (applied via the provider's flag) |
 | `maxTokens` | number \| null | per-turn output cap when supported |
 | `timeoutMs` | number \| null | per-turn wall-clock timeout |
+| `disallowedTools` | string[] \| null | provider tool names this Role may not use (e.g. `["Task"]`); default none |
 | `providerOptions` | record | raw provider-specific escape hatch |
 
 - **CLI:** `vibe profile list|add|set|duplicate|remove`; `vibe run "task" --profile claude-max` (run-wide), `--step-profile implement=claude-max` (one step).

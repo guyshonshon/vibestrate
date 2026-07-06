@@ -93,6 +93,8 @@ Each turn's context is rebuilt from the artifacts (the run brief plus the named 
 
 When a provider supports session reuse (for example `claude --resume`), Vibestrate reuses the session across a role's turns for speed and cost, sending just what changed instead of replaying everything. To keep even a reused session from ballooning on a marathon run, `session.maxReuseTurns` caps how many turns a session lives before Vibestrate opens a fresh one and re-grounds it from the artifacts (`0` means unlimited). That re-grounding is lossless, and the provider's own auto-compaction stays the safety net.
 
+Reuse is keyed on the **[Seat](concepts/seat)**, never on which model a step runs. That distinction matters: a writer and a reviewer can run the same model at the same effort, yet they are different seats, so the reviewer starts a **fresh** process and never inherits the writer's session. Independent context is the whole point of a review - a reviewer that resumed the writer's session would just rubber-stamp its own reasoning. Continuity follows the seat doing the work, not a coincidence of matching profiles.
+
 ## When a step fails
 
 A model turn only counts as success if its provider exits cleanly **and** returns usable output. A non-zero provider exit or an empty response is a real failure, named honestly rather than passed downstream as an empty result. In a graph flow, a step with `retries: N` is re-tried first, and a `continueOnError` step records the failure and continues with reduced coverage (which the [run assurance](/docs/concepts/safety) verdict then reflects). Control signals - a user abort, an approval rejection, the spend cap - always stop the run and are never retried.
