@@ -109,10 +109,20 @@ export function planDocsBatch(
   });
 }
 
+// Steer each batch run away from rebuilding the SHARED derived metadata. The
+// `docs` flow tells a single-page author to run `pnpm docs:generate` (so a lone
+// run keeps docs/generated/* in sync). Under concurrency that is exactly wrong:
+// N branches each regenerating the same global JSON conflict at merge. So a batch
+// run edits only its page; metadata is rebuilt ONCE after the batch is merged.
+// This is a soft directive (model behavior), like the flow instruction it
+// overrides - not an enforced path scope.
+const BATCH_NO_REGEN =
+  "\n\nThis page is one of several being revised concurrently. Edit ONLY the target file above. Do NOT run `pnpm docs:generate` or touch `docs/generated/*` - the docs metadata is rebuilt once after this batch is merged, so regenerating it per-run would only create merge conflicts across the parallel branches.";
+
 function specFor(projectRoot: string, item: DocsBatchItem, runId: string): RunSpec {
   return {
     projectRoot,
-    task: item.task,
+    task: `${item.task}${BATCH_NO_REGEN}`,
     runId,
     flow: { id: "docs" },
     // Pin the docs flow: skip adaptive selection AND spec-up. Without this a

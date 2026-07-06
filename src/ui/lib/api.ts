@@ -721,6 +721,17 @@ export const api = {
   }> {
     return jsonPost("/api/runs", input);
   },
+  /** Launch a docs batch: one isolated `docs` run per page, bounded concurrency.
+   *  Mirrors `vibe docs`. Returns the planned run ids immediately; the runs
+   *  report through the normal runs list. */
+  async spawnDocsBatch(input: {
+    items: { task: string; targetPath?: string }[];
+  }): Promise<{
+    ok: true;
+    launched: { runId: string; targetPath: string | null }[];
+  }> {
+    return jsonPost("/api/runs/docs-batch", input);
+  },
   // ── Spec-up phase (docs/design/spec-up-phase.md): the CTO planning chain. ──
   /** Start the Spec-up phase from a brief: launch the read-only intake run that
    *  asks the gap questions (the UI "Plan" action; mirrors `vibe spec-up start`).

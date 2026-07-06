@@ -290,10 +290,18 @@ export function RunComposePage() {
 
   return (
     <div className="font-jakarta px-10 py-7 fade-up">
-      <header className="mb-6">
+      <header className="mb-6 flex items-start justify-between gap-4">
         <h1 className="text-[24px] font-extrabold tracking-[-0.02em] text-chalk-100">
           New run
         </h1>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate({ kind: "docs-batch" })}
+          iconLeft={<LayoutGrid className="h-3.5 w-3.5" strokeWidth={2.1} />}
+        >
+          Batch docs
+        </Button>
       </header>
 
       {/* Contained header: the page's intent + the live command mirror (CLI =
