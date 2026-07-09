@@ -9,6 +9,7 @@
 
 import { getProjectMetadata } from "../core/project-context-service.js";
 import { loadProjectManual } from "../project/project-manual.js";
+import { loadCodebaseMap, renderCodebaseMapForPrompt } from "../project/codebase-map.js";
 import { loadConfig, type LoadedConfig } from "../project/config-loader.js";
 import { listAnnotations, renderAnnotationsForPrompt } from "../core/annotations-service.js";
 import { materializeContextSources } from "../core/context-sources.js";
@@ -87,6 +88,19 @@ export async function assembleConsultContext(
     notes.push(
       "No VIBESTRATE.md - the project has no operating manual yet, so answers rely on config + run evidence only.",
     );
+  }
+
+  // 1b. Codebase map (`vibe learn`) - deterministic stack/layout/routes
+  // snapshot, so the answer can ground itself in the real repo shape without
+  // re-deriving it. Absent (never run `vibe learn`) is normal, not an error.
+  const codebaseMap = await loadCodebaseMap(projectRoot).catch(() => ({
+    present: false,
+    map: null,
+    stale: false,
+  }));
+  if (codebaseMap.present && codebaseMap.map) {
+    sections.push(renderCodebaseMapForPrompt(codebaseMap.map, { stale: codebaseMap.stale, maxBytes: 6144 }));
+    usedSources.push("codebase-map");
   }
 
   // 2. Project Instructions (.vibestrate/rules.md) - per-turn guidance.

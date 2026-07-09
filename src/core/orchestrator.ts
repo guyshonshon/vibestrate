@@ -76,6 +76,7 @@ import {
   buildFlagEntries,
   renderFlagsForPrompt,
 } from "./ledger-match.js";
+import { loadCodebaseMap, writeCodebaseMap, renderCodebaseMapForPrompt } from "../project/codebase-map.js";
 import {
   resolveFlowParams,
   substituteParams,
@@ -662,6 +663,10 @@ export class Orchestrator {
    *  start and injected into the PLANNER turn (the planning context) so a fresh
    *  run picks up where the project stands. "" when the ledger is empty. */
   private ledgerPromptBlock = "";
+  /** Pre-rendered, redacted `vibe learn` codebase map block, loaded once at run
+   *  start and injected into the PLANNER turn alongside the continuity ledger
+   *  so a fresh run is grounded in the real repo shape. "" when absent. */
+  private codebaseMapBlock = "";
   /** Pre-rendered persona review-lens emphasis block (orchestrator-personas.md
    *  follow-up), computed once at run start from the active persona's
    *  `reviewLenses` (closed vocabulary) and appended to independent-reviewer turns
@@ -1496,6 +1501,21 @@ export class Orchestrator {
     } catch {
       this.ledgerPromptBlock = "";
       this.ledgerFlagsBlock = "";
+    }
+
+    // Codebase map (`vibe learn`): load the deterministic, regenerable-cache
+    // snapshot once and stash it for the planner alongside the continuity
+    // ledger. A missing/absent map is normal (never run `vibe learn`) and a
+    // bad one must never fail a run - same best-effort posture as the ledger
+    // stash above.
+    try {
+      const cm = await loadCodebaseMap(this.projectRoot);
+      this.codebaseMapBlock =
+        cm.present && cm.map
+          ? redactSecretsInText(renderCodebaseMapForPrompt(cm.map, { stale: cm.stale })).redacted
+          : "";
+    } catch {
+      this.codebaseMapBlock = "";
     }
 
     // Methodology (durable-memory): the project's selected methodology is
@@ -6165,7 +6185,13 @@ export class Orchestrator {
     // Methodology rides the same planner-only, one-shot channel as the ledger.
     const methodologyGuidance =
       injectContinuity && this.methodologyBlock ? this.methodologyBlock : "";
-    if (projectLedger || continuityFlags || methodologyGuidance)
+    // The codebase map rides the same channel: planner-only judges reason
+    // from the live repo, not a summary, so broadcasting the map to every
+    // turn would just be token waste on top of what the provider CLI already
+    // reads natively from the worktree.
+    const projectMemory =
+      injectContinuity && this.codebaseMapBlock ? this.codebaseMapBlock : "";
+    if (projectLedger || continuityFlags || methodologyGuidance || projectMemory)
       this.ledgerInjected = true;
     // Clean-room seat (context-scaling.md rung 2): drop the producer's run-derived
     // NARRATIVE - the run brief (the "story so far") and the planner-only
@@ -6196,6 +6222,7 @@ export class Orchestrator {
       ...(humanAnnotations ? { humanAnnotations } : {}),
       ...(!cleanRoom && input.runBrief ? { runBrief: input.runBrief } : {}),
       ...(!cleanRoom && projectLedger ? { projectLedger } : {}),
+      ...(!cleanRoom && projectMemory ? { projectMemory } : {}),
       ...(!cleanRoom && continuityFlags ? { continuityFlags } : {}),
       ...(!cleanRoom && methodologyGuidance ? { methodologyGuidance } : {}),
     });

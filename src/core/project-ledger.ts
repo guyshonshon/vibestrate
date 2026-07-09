@@ -3,6 +3,7 @@ import { appendFile } from "node:fs/promises";
 import { pathExists, readText, ensureDir } from "../utils/fs.js";
 import { projectLedgerPath, vibestrateRoot } from "../utils/paths.js";
 import { withFileMutex } from "../utils/file-mutex.js";
+import { writeCodebaseMap } from "../project/codebase-map.js";
 
 // ── Project continuity ledger ─────────────────────────────────────────────────
 //
@@ -279,14 +280,16 @@ export function buildRunLedgerEntries(input: {
   return [];
 }
 
-/** Append entries then regenerate the durable STATE digest. Best-effort: the
- *  digest is a regenerable cache, so a refresh hiccup never affects the ledger.
+/** Append entries then regenerate the durable STATE digest (and, at a run's
+ *  terminal outcome, the `vibe learn` codebase map). Best-effort: both are
+ *  regenerable caches, so a refresh hiccup never affects the ledger.
  *  Dynamic import avoids a require cycle (the digest module imports this one). */
 async function appendAndRefresh(
   projectRoot: string,
   store: LedgerStore,
   entries: LedgerEntry[],
   now: string,
+  opts?: { refreshCodebaseMap?: boolean },
 ): Promise<void> {
   await store.append(entries);
   if (entries.length === 0) return;
@@ -295,6 +298,14 @@ async function appendAndRefresh(
     await writeProjectStateDigest(projectRoot, now);
   } catch {
     // STATE.md is a regenerable cache - a failure to refresh is non-fatal.
+  }
+  if (opts?.refreshCodebaseMap) {
+    // A merge/run boundary is exactly when the repo shape is most likely to
+    // have moved (new files, routes, scripts) - refresh the map so the next
+    // planner turn isn't grounded in a stale snapshot. Best-effort: this is a
+    // regenerable cache, so a refresh failure must never fail the run whose
+    // completion is being recorded.
+    await writeCodebaseMap(projectRoot, now).catch(() => {});
   }
 }
 
@@ -354,7 +365,7 @@ export async function recordRunInLedger(
     readOnly: input.readOnly,
     blockedStage: input.blockedStage,
   });
-  await appendAndRefresh(projectRoot, store, entries, now);
+  await appendAndRefresh(projectRoot, store, entries, now, { refreshCodebaseMap: true });
   return entries;
 }
 

@@ -41,6 +41,14 @@ export type PromptBuildInput = {
    */
   projectLedger?: string;
   /**
+   * Pre-rendered "# Codebase map (auto-derived)" section (see codebase-map.ts
+   * renderCodebaseMapForPrompt) - the deterministic, `vibe learn`-generated
+   * stack/layout/routes summary, grounding the planner in the real repo shape
+   * without a model re-deriving it each run. Already redacted by the caller.
+   * Empty/undefined → no section.
+   */
+  projectMemory?: string;
+  /**
    * Pre-rendered "# Continuity flags" section (see ledger-match.ts
    * renderFlagsForPrompt) - heads-up that this task may duplicate earlier work
    * or conflict with a decision. Advisory, never a blocker. Already
@@ -182,6 +190,11 @@ export function buildRolePrompt(input: PromptBuildInput): string {
   if (input.projectLedger && input.projectLedger.trim().length > 0) {
     sections.push(``);
     sections.push(input.projectLedger.trim());
+  }
+
+  if (input.projectMemory && input.projectMemory.trim().length > 0) {
+    sections.push(``);
+    sections.push(input.projectMemory.trim());
   }
 
   if (input.methodologyGuidance && input.methodologyGuidance.trim().length > 0) {

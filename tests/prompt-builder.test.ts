@@ -81,6 +81,29 @@ describe("prompt builder", () => {
     expect(withLedger).toContain("merge advisor");
   });
 
+  it("includes the codebase map section only when projectMemory is passed", () => {
+    const base = {
+      roleId: "planner",
+      task: "x",
+      rules: "rules",
+      rolePromptTemplate: "Plan.",
+      skills: [],
+      priorArtifacts: [],
+      permission: readProfile,
+      permissionName: "read_only",
+      worktreePath: "/wt",
+      branchName: "b",
+      projectName: "demo",
+    };
+    expect(buildRolePrompt(base)).not.toContain("Codebase map (auto-derived)");
+    const withMap = buildRolePrompt({
+      ...base,
+      projectMemory: "# Codebase map (auto-derived)\n\n## Stack\n\n- Name: demo\n- Type: node",
+    });
+    expect(withMap).toContain("Codebase map (auto-derived)");
+    expect(withMap).toContain("Type: node");
+  });
+
   it("includes the methodology section only when one is passed (Slice 4)", () => {
     const base = {
       roleId: "planner",
