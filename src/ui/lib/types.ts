@@ -2271,6 +2271,41 @@ export type ReplayTruncation = {
   note: string;
 };
 
+// ── Codebase map ──────────────────────────────────────────────────────────
+// Mirrors `CodebaseMap` in src/project/codebase-map.ts. Kept as a separate UI
+// type (this file's own convention) rather than importing the server/zod
+// type directly.
+export type CodebaseMapView = {
+  schemaVersion: 1;
+  generatedAt: string;
+  rev: string | null;
+  project: {
+    name: string;
+    packageManager: string | null;
+    type: string;
+    scripts: Record<string, string>;
+    validationCommands: string[];
+  };
+  layout: Array<{ dir: string; files: number }>;
+  languages: Array<{ ext: string; files: number }>;
+  entryPoints: string[];
+  httpRoutes: {
+    detected: Array<{ method: string; route: string; file: string }>;
+    conventionFiles: string[];
+    truncated: boolean;
+  };
+  tooling: string[];
+  totalTrackedFiles: number;
+  truncated: boolean;
+  notes: string[];
+};
+
+export type CodebaseMapResult = {
+  present: boolean;
+  stale: boolean;
+  map: CodebaseMapView | null;
+};
+
 export type RunReplay = {
   runId: string;
   task: string;

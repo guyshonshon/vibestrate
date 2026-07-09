@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Check, FolderTree, MessageSquarePlus, RotateCcw, Search, Sparkles, Trash2 } from "lucide-react";
+import { Bot, Check, FolderTree, Map as MapIcon, MessageSquarePlus, RotateCcw, Search, Sparkles, Trash2 } from "lucide-react";
 import { ApiError, api, type CodebaseAnnotation } from "../../lib/api.js";
 import type {
   FileTreeResult,
@@ -9,6 +9,7 @@ import type {
 import { FileTreeView } from "../../components/codebase/FileTreeView.js";
 import { FileViewer } from "../../components/codebase/FileViewer.js";
 import { FreshnessIndicator } from "../../components/codebase/FreshnessIndicator.js";
+import { CodebaseMapPanel } from "../../components/codebase/CodebaseMapPanel.js";
 import {
   ContentResults,
   SupervisorResults,
@@ -40,7 +41,7 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
   const [filter, setFilter] = useState("");
   // Search: mode + query + content-search options. `filter` stays the fast
   // filename filter for the tree; content/supervisor search hit the server.
-  const [searchMode, setSearchMode] = useState<"files" | "content" | "supervisor">("files");
+  const [searchMode, setSearchMode] = useState<"files" | "content" | "supervisor" | "map">("files");
   const [query, setQuery] = useState("");
   const [include, setInclude] = useState("");
   const [exclude, setExclude] = useState("");
@@ -249,11 +250,17 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
                 <>
                   <ModeChip active={searchMode === "content"} onClick={() => setSearchMode("content")} icon={<Search className="h-3 w-3" strokeWidth={1.9} />} label="Content" />
                   <ModeChip active={searchMode === "supervisor"} onClick={() => setSearchMode("supervisor")} icon={<Sparkles className="h-3 w-3" strokeWidth={1.9} />} label="Ask" />
+                  <ModeChip active={searchMode === "map"} onClick={() => setSearchMode("map")} icon={<MapIcon className="h-3 w-3" strokeWidth={1.9} />} label="Map" />
                 </>
               ) : null}
             </div>
 
-            {searchMode === "files" ? (
+            {searchMode === "map" ? (
+              <p className="px-0.5 text-[11px] leading-snug text-chalk-300">
+                Deterministic snapshot of stack, layout, entry points, and best-effort
+                routes - shown on the right.
+              </p>
+            ) : searchMode === "files" ? (
               <SearchInput icon={<Search />} value={filter} onChange={setFilter} placeholder="Filter files by name" />
             ) : searchMode === "content" ? (
               <div className="space-y-1.5">
@@ -284,7 +291,7 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto py-1.5">
-            {searchMode === "content" ? (
+            {searchMode === "map" ? null : searchMode === "content" ? (
               <ContentResults
                 query={query}
                 regex={regex}
@@ -343,38 +350,47 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
           </div>
         </aside>
 
-        {/* ── File viewer ───────────────────────────────────────────── */}
-        <main className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-700">
-          <FileViewer
-            view={view}
-            loading={loadingFile}
-            error={fileError}
-            runId={runId}
-            highlightLine={line}
-            onAnnotateLine={
-              source === "project"
-                ? (l) => {
-                    setAnnDraftLine(l);
-                    setAnnDraftEndLine(null);
-                  }
-                : undefined
-            }
-          />
-        </main>
+        {searchMode === "map" ? (
+          /* ── Codebase map ────────────────────────────────────────── */
+          <main className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-700">
+            <CodebaseMapPanel />
+          </main>
+        ) : (
+          <>
+            {/* ── File viewer ─────────────────────────────────────────── */}
+            <main className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-700">
+              <FileViewer
+                view={view}
+                loading={loadingFile}
+                error={fileError}
+                runId={runId}
+                highlightLine={line}
+                onAnnotateLine={
+                  source === "project"
+                    ? (l) => {
+                        setAnnDraftLine(l);
+                        setAnnDraftEndLine(null);
+                      }
+                    : undefined
+                }
+              />
+            </main>
 
-        {/* ── Inspector + annotations ───────────────────────────────── */}
-        <AnnotationsPanel
-          source={source}
-          sourceLabel={sourceLabel}
-          tree={tree}
-          view={view}
-          line={line}
-          path={path}
-          draftLine={annDraftLine}
-          setDraftLine={setAnnDraftLine}
-          draftEndLine={annDraftEndLine}
-          setDraftEndLine={setAnnDraftEndLine}
-        />
+            {/* ── Inspector + annotations ─────────────────────────────── */}
+            <AnnotationsPanel
+              source={source}
+              sourceLabel={sourceLabel}
+              tree={tree}
+              view={view}
+              line={line}
+              path={path}
+              draftLine={annDraftLine}
+              setDraftLine={setAnnDraftLine}
+              draftEndLine={annDraftEndLine}
+              setDraftEndLine={setAnnDraftEndLine}
+            />
+          </>
+        )}
       </div>
     </PageShell>
   );

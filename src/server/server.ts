@@ -41,6 +41,7 @@ import {
   type TerminalRoutesDeps,
 } from "./routes/terminal.js";
 import { registerPoliciesRoutes } from "./routes/policies.js";
+import { registerCodebaseMapRoutes } from "./routes/codebase-map.js";
 import {
   HttpError,
   bearerToken,
@@ -408,6 +409,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
     driver: opts.terminalDriver,
   });
   await registerPoliciesRoutes(app, { projectRoot: opts.projectRoot });
+  await registerCodebaseMapRoutes(app, { projectRoot: opts.projectRoot });
   const { registerProvidersRoutes } = await import("./routes/providers.js");
   await registerProvidersRoutes(app, { projectRoot: opts.projectRoot });
 

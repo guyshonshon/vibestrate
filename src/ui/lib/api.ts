@@ -11,6 +11,7 @@ import type {
   ChecklistItemStatus,
   CodeReference,
   CodeSearchResult,
+  CodebaseMapResult,
   SupervisorSearchResult,
   ConflictWarning,
   CrewView,
@@ -2102,6 +2103,12 @@ export const api = {
       input,
     );
     return r.result;
+  },
+  async getCodebaseMap(): Promise<CodebaseMapResult> {
+    return jsonGet<CodebaseMapResult>("/api/codebase-map");
+  },
+  async refreshCodebaseMap(): Promise<CodebaseMapResult> {
+    return jsonPost<CodebaseMapResult>("/api/codebase-map/refresh");
   },
   async listAnnotations(input?: {
     path?: string;
