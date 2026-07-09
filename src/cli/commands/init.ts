@@ -7,6 +7,7 @@ import {
 import { color, header, indent, isInteractiveTTY, symbol } from "../ui/format.js";
 import { runInteractiveSetupWizard } from "../wizards/setup-wizard.js";
 import { isVibestrateError } from "../../utils/errors.js";
+import { runLearn } from "./learn.js";
 
 export type InitCommandOptions = {
   force?: boolean;
@@ -195,6 +196,14 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
         ),
       ),
     );
+  }
+  console.log("");
+
+  const learned = await runLearn(detected.projectRoot, new Date().toISOString());
+  if (learned.ok) {
+    console.log(`${symbol.ok()} Learned the codebase -> ${color.bold(".vibestrate/CODEBASE.md")}`);
+  } else {
+    console.log(`${symbol.warn()} Codebase map skipped: ${learned.error} (run ${color.bold("vibe learn")} later)`);
   }
   console.log("");
 
