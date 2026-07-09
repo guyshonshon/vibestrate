@@ -86,6 +86,11 @@ async function currentGitRev(projectRoot: string): Promise<string | null> {
     const r = await execa("git", ["rev-parse", "HEAD"], {
       cwd: projectRoot,
       reject: false,
+      // Bounded like the repo's other git spawn sites (codebase-search-service
+      // uses the same 8s): this runs on every extract and every staleness
+      // check, so a hung git (index.lock contention, slow fs) must degrade to
+      // rev=null instead of hanging the caller indefinitely.
+      timeout: 8_000,
     });
     if (r.exitCode !== 0) return null;
     return r.stdout.trim() || null;
