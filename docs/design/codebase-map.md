@@ -111,3 +111,22 @@ takes the same posture, for the same two reasons:
 ## Review trail
 
 <!-- filled in by the whole-branch review -->
+
+Whole-branch adversarial review (Opus, 2026-07-10) over 644e43c1..eb82708a.
+The write path (atomic temp+rename, redact-before-write of both artifacts,
+fail-closed loadCodebaseMap), the clean-room isolation (planner-only
+continuity channel, proven by a real fake-provider injection test), the
+inherited HTTP auth posture (global origin/CSRF/bearer hooks, strict body
+schema), and the deterministic no-model-call invariant all held up. The
+review found one Important blocking issue: the refresh endpoint returned the
+raw in-memory map from writeCodebaseMap, bypassing the secret redaction
+applied to the persisted JSON - a secret-shaped string in a script or route
+would render live in the dashboard on Refresh though a reload would hide it.
+Fixed at the source: writeCodebaseMap now returns the map re-parsed from the
+exact redacted JSON it persisted, so no caller can receive unredacted
+content. All other findings (tiny-maxBytes truncation overrun, entry-point
+path containment, terminal-outcome refresh cost, dashboard error-state
+ergonomics) were triaged as deferred low-severity; the theoretical
+JSON-corruption-via-redaction concern was verified safe because the redactor
+emits only balanced quotes and the loader is fail-closed to an empty-state
+map.

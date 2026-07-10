@@ -206,6 +206,20 @@ describe("writeCodebaseMap / loadCodebaseMap", () => {
     // The redacted JSON must still be valid JSON.
     expect(() => JSON.parse(json)).not.toThrow();
   });
+
+  it("returns a map matching the redacted disk artifact, never the raw pre-redaction one", async () => {
+    const pkgPath = path.join(projectRoot, "package.json");
+    const pkg = JSON.parse(await fs.readFile(pkgPath, "utf8"));
+    pkg.scripts.deploy = "aws s3 sync --key AKIAIOSFODNN7EXAMPLE .";
+    await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
+    await execa("git", ["add", "."], { cwd: projectRoot });
+    await execa("git", ["commit", "-q", "-m", "add deploy script"], { cwd: projectRoot });
+
+    const { map } = await writeCodebaseMap(projectRoot, "2026-07-10T00:00:00.000Z");
+
+    expect(JSON.stringify(map)).not.toContain("AKIAIOSFODNN7EXAMPLE");
+    expect(map.project.scripts.deploy).toContain("REDACTED");
+  });
 });
 
 describe("renderCodebaseMapForPrompt", () => {

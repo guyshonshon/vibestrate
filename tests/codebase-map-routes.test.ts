@@ -88,4 +88,21 @@ describe("codebase map routes", () => {
     const res = await post(`${server.url}/api/codebase-map/refresh`, { force: true });
     expect(res.status).toBe(400);
   });
+
+  it("POST /api/codebase-map/refresh: never renders a raw secret from the live map object", async () => {
+    const dir = await makeRepo();
+    const pkgPath = path.join(dir, "package.json");
+    const pkg = JSON.parse(await fs.readFile(pkgPath, "utf8"));
+    pkg.scripts.deploy = "aws s3 sync --key AKIAIOSFODNN7EXAMPLE .";
+    await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
+    await execa("git", ["add", "."], { cwd: dir });
+    await execa("git", ["commit", "-q", "-m", "add deploy script"], { cwd: dir });
+
+    server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });
+
+    const refreshRes = await post(`${server.url}/api/codebase-map/refresh`);
+    expect(refreshRes.status).toBe(200);
+    const bodyText = await refreshRes.text();
+    expect(bodyText).not.toContain("AKIAIOSFODNN7EXAMPLE");
+  });
 });

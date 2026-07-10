@@ -455,7 +455,13 @@ export async function writeCodebaseMap(
   await writeTextAtomic(markdownPath, markdown);
   await writeTextAtomic(codebaseMapJsonPath(projectRoot), json);
 
-  return { map, markdownPath };
+  // Re-parse the exact redacted JSON that was just persisted rather than
+  // returning the raw `map` above: HTTP/UI callers (the refresh route) render
+  // this return value directly, so it must never diverge from the redacted
+  // disk artifact. No fallback if this throws - unparsable redacted JSON
+  // means the disk artifact is equally broken, so failing fast is correct.
+  const redactedMap = JSON.parse(json) as CodebaseMap;
+  return { map: redactedMap, markdownPath };
 }
 
 function isCodebaseMapShape(value: unknown): value is CodebaseMap {
