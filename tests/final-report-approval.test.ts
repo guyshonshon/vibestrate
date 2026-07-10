@@ -84,6 +84,7 @@ describe("final report - approval section", () => {
         resolvedAt: "2026-01-01T00:00:30.000Z",
         resolvedBy: "local-user",
         decisionNote: "looks fine",
+        guidance: null,
       },
     ];
     const r = renderFinalReport({

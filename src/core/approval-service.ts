@@ -98,6 +98,7 @@ export class ApprovalService {
       resolvedAt: null,
       resolvedBy: null,
       decisionNote: null,
+      guidance: null,
     };
     const all = await this.readAll();
     all.push(req);
@@ -127,11 +128,28 @@ export class ApprovalService {
     });
   }
 
+  async requestChanges(input: {
+    approvalId: string;
+    guidance: string;
+    decidedBy?: string;
+  }): Promise<ApprovalRequest> {
+    if (!input.guidance.trim()) {
+      throw new Error("Request-changes requires non-empty guidance.");
+    }
+    return this.resolve({
+      approvalId: input.approvalId,
+      status: "changes_requested",
+      decidedBy: input.decidedBy,
+      guidance: input.guidance,
+    });
+  }
+
   private async resolve(input: {
     approvalId: string;
-    status: "approved" | "rejected";
+    status: "approved" | "rejected" | "changes_requested";
     decidedBy?: string;
     note?: string | null;
+    guidance?: string | null;
   }): Promise<ApprovalRequest> {
     const all = await this.readAll();
     const idx = all.findIndex((a) => a.id === input.approvalId);
@@ -152,6 +170,7 @@ export class ApprovalService {
       resolvedAt: ts,
       resolvedBy: input.decidedBy ?? "local-user",
       decisionNote: input.note ?? null,
+      guidance: input.guidance ?? null,
     };
     all[idx] = updated;
     await this.writeAll(all);

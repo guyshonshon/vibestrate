@@ -2541,6 +2541,14 @@ export class Orchestrator {
       }
     }
 
+    // Human-in-the-loop "request changes": a gated agent turn that got change
+    // guidance re-runs FORWARD (a fresh guided turn), never re-running the
+    // already-committed turn. The guidance rides `additionalNotes` into the next
+    // turn's prompt; the round counter bounds an accidental infinite loop.
+    const stepGuidance = new Map<string, string>();
+    const changeRounds = new Map<string, number>();
+    const MAX_CHANGE_ROUNDS = 3;
+
     // Serial: move the run to the step's status and build its context packet.
     const prepareStep = async (step: ResolvedFlowStep) => {
       state = await this.moveToFlowStepStatus({
@@ -2609,7 +2617,7 @@ export class Orchestrator {
       // Persona reviewLens emphasis is appended to lensed reviewer turns only
       // (never the arbiter, never executors/planners), so the active persona
       // actually aims WHAT is scrutinised. Composition is a pure, tested helper.
-      const additionalNotes = composeReviewerStepNotes({
+      const baseNotes = composeReviewerStepNotes({
         baseNotes: this.renderFlowStepNotes({ snapshot, step }),
         stepInstructions: step.instructions,
         lensEmphasis: this.reviewLensEmphasis,
@@ -2619,6 +2627,13 @@ export class Orchestrator {
         ponytailBlock: this.ponytailBlock,
         isCodeWriting: isCodeWritingStep(step),
       });
+      // A prior turn at this step asked for human approval and the human
+      // requested changes: their guidance (already redacted) is injected here so
+      // this fresh turn acts on it - forward, never a re-run of the committed turn.
+      const guidance = stepGuidance.get(step.id);
+      const additionalNotes = guidance
+        ? `${baseNotes ? `${baseNotes}\n\n` : ""}Human guidance on your previous attempt (address it directly):\n${guidance}`
+        : baseNotes;
       return this.runRole({
         roleId: step.resolvedRoleId!,
         providerId: step.providerId,
@@ -2700,7 +2715,7 @@ export class Orchestrator {
     const commitTurn = async (
       step: ResolvedFlowStep,
       result: RoleRunResult,
-    ): Promise<void> => {
+    ): Promise<"committed" | "changes-requested"> => {
       await this.registerFlowRoleOutputs({
         step,
         result,
@@ -2825,6 +2840,39 @@ export class Orchestrator {
         });
         throw new __ApprovalRejectedSignal();
       }
+      if (gate.changesGuidance != null) {
+        const round = (changeRounds.get(step.id) ?? 0) + 1;
+        changeRounds.set(step.id, round);
+        // Bound the loop: a human drives each round, but a cap stops an accidental
+        // request-changes <-> re-ask cycle from running unbounded. On exhaustion,
+        // block honestly (same terminal path as a reject).
+        if (round > MAX_CHANGE_ROUNDS) {
+          state = this.patchFlowStep(
+            state,
+            step.id,
+            { status: "blocked", endedAt: nowIso() },
+            step.id,
+          );
+          await input.stateStore.write(state);
+          await input.eventLog.append({
+            type: "flow.step.failed",
+            message: `Flow step ${step.id} blocked: change-request limit (${MAX_CHANGE_ROUNDS}) reached.`,
+            data: { flowId: snapshot.flowId, stepId: step.id },
+          });
+          throw new __ApprovalRejectedSignal();
+        }
+        // Stash the guidance for the re-run and leave the step un-done so the
+        // frontier re-selects it; `runTurn` injects the guidance into the prompt.
+        stepGuidance.set(step.id, gate.changesGuidance);
+        await input.eventLog.append({
+          type: "flow.step.changes_requested",
+          message: `Flow step ${step.id} returning for a guided re-run (round ${round}).`,
+          data: { flowId: snapshot.flowId, stepId: step.id, round },
+        });
+        return "changes-requested";
+      }
+      // Approved (or no gate): the guidance for this step, if any, is consumed.
+      stepGuidance.delete(step.id);
       state = this.patchFlowStep(
         state,
         step.id,
@@ -2847,6 +2895,7 @@ export class Orchestrator {
           outputArtifactPath: result.outputArtifactPath,
         },
       });
+      return "committed";
     };
 
     // Continue-past-failure: record a best-effort turn's hard failure
@@ -2915,7 +2964,11 @@ export class Orchestrator {
     };
 
     // One non-parallel step: validation / approval-gate / a single seated turn.
-    const runSerialStep = async (step: ResolvedFlowStep): Promise<void> => {
+    // Returns "changes-requested" when a gated turn got human change guidance and
+    // must re-run forward (the caller leaves it un-done so the frontier re-selects it).
+    const runSerialStep = async (
+      step: ResolvedFlowStep,
+    ): Promise<"committed" | "changes-requested" | void> => {
       if (step.kind === "validation") {
         await prepareStep(step);
         const out = await this.runFlowValidationStep({
@@ -3016,7 +3069,7 @@ export class Orchestrator {
       // The turn returned: a non-zero exit or empty output is still a failure.
       const turn = this.assessTurnResult(result);
       if (turn.ok) {
-        await commitTurn(step, result);
+        return await commitTurn(step, result);
       } else if (step.continueOnError) {
         await markStepFailedContinue(step, new Error(turn.reason), turn.failureClass);
         continuedFailures += 1;
@@ -3141,7 +3194,10 @@ export class Orchestrator {
 
       // Otherwise run exactly one ready step (deterministic: flow order).
       const step = ready[0]!;
-      await runSerialStep(step);
+      const outcome = await runSerialStep(step);
+      // A gated turn that got change guidance stays un-done so the loop re-runs
+      // it forward with the guidance injected (bounded by MAX_CHANGE_ROUNDS).
+      if (outcome === "changes-requested") continue;
       processed.add(step.id);
       done.add(step.id);
     }
@@ -5352,7 +5408,7 @@ export class Orchestrator {
     approvalService: ApprovalService;
     stateStore: RunStateStore;
     eventLog: EventLog;
-  }): Promise<{ state: RunState; rejected: boolean }> {
+  }): Promise<{ state: RunState; rejected: boolean; changesGuidance: string | null }> {
     this.onProgress(input.progressMessage);
 
     const req = await input.approvalService.create({
@@ -5445,7 +5501,30 @@ export class Orchestrator {
         message: input.resumedMessage,
         data: { stageId: input.stageId },
       });
-      return { state: next, rejected: false };
+      return { state: next, rejected: false, changesGuidance: null };
+    }
+
+    if (resolved.status === "changes_requested") {
+      // Resume FORWARD (like approved): the caller re-runs this stage's next
+      // turn with the guidance injected. It never re-runs the already-committed
+      // turn, so no worktree double-apply. Guidance is redacted before it enters
+      // the event log or any prompt.
+      let next: RunState = applyTransition(pendingState, input.fromStatus);
+      next = {
+        ...next,
+        pendingApprovalId: null,
+        approvalRequestedFromStatus: null,
+      };
+      await input.stateStore.write(next);
+      const safeGuidance = resolved.guidance
+        ? redactSecretsInText(resolved.guidance).redacted
+        : null;
+      await input.eventLog.append({
+        type: "approval.changes_requested",
+        message: `Approval ${req.id} returned to ${input.roleId} with change guidance.`,
+        data: { approvalId: req.id, guidance: safeGuidance },
+      });
+      return { state: next, rejected: false, changesGuidance: safeGuidance };
     }
 
     let blockedState: RunState = applyTransition(pendingState, "blocked");
@@ -5469,7 +5548,7 @@ export class Orchestrator {
         decisionNote: resolved.decisionNote ?? null,
       },
     });
-    return { state: blockedState, rejected: true };
+    return { state: blockedState, rejected: true, changesGuidance: null };
   }
 
   /**
@@ -5491,7 +5570,7 @@ export class Orchestrator {
     eventLog: EventLog;
     /** Tracks which policy stages have already triggered approval this run (mutated). */
     policyStagesAlreadyForced: Set<string>;
-  }): Promise<{ state: RunState; rejected: boolean }> {
+  }): Promise<{ state: RunState; rejected: boolean; changesGuidance: string | null }> {
     const detection = input.roleArtifact
       ? detectApprovalRequest(input.roleArtifact.output)
       : null;
@@ -5502,7 +5581,7 @@ export class Orchestrator {
 
     const roleRequested = !!detection?.required;
     if (!roleRequested && !policyForcedThisStage) {
-      return { state: input.state, rejected: false };
+      return { state: input.state, rejected: false, changesGuidance: null };
     }
 
     // Build approval payload. Prefer agent-provided metadata when present,

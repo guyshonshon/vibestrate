@@ -4,6 +4,7 @@ export const approvalStatusSchema = z.enum([
   "pending",
   "approved",
   "rejected",
+  "changes_requested",
   "expired",
 ]);
 export type ApprovalStatus = z.infer<typeof approvalStatusSchema>;
@@ -37,12 +38,16 @@ export const approvalRequestSchema = z.object({
   resolvedAt: z.string().nullable().default(null),
   resolvedBy: z.string().nullable().default(null),
   decisionNote: z.string().nullable().default(null),
+  // Free-form guidance the human attaches to a `changes_requested` decision.
+  // Injected (redacted) into the stage's next guided turn - never re-runs the
+  // already-committed turn. Null for approve/reject.
+  guidance: z.string().nullable().default(null),
 });
 export type ApprovalRequest = z.infer<typeof approvalRequestSchema>;
 
 export const approvalDecisionSchema = z.object({
   approvalId: z.string().min(1),
-  decision: z.enum(["approved", "rejected"]),
+  decision: z.enum(["approved", "rejected", "changes_requested"]),
   decidedAt: z.string(),
   decidedBy: z.string().default("local-user"),
   note: z.string().nullable().default(null),
