@@ -310,11 +310,11 @@ const KPI_TONE: Record<
   },
 };
 
-// Cost readouts show "FREE" rather than "$0.00" - unmetered local-CLI runs cost
-// nothing, and that reads clearer than a zero. Applies to spend/cost only, never
-// to cap/ceiling config (a "$0 cap" is not "free").
+// Cost readouts always show the dollar amount, including a zero ("$0.00") -
+// unmetered local-CLI runs read consistently with metered ones rather than as a
+// special "FREE" word.
 function fmtCost(n: number): string {
-  return n > 0 ? `$${n.toFixed(2)}` : "FREE";
+  return `$${n.toFixed(2)}`;
 }
 
 function fmtTokensShort(n: number): string {
