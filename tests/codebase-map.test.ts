@@ -147,6 +147,39 @@ describe("extractCodebaseMap", () => {
     expect(map.httpRoutes.detected.every((r) => !r.route.includes("/from/docs"))).toBe(true);
   });
 
+  it("derives real route areas for pages-router and src/app layouts, not phantom module names", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-codebase-map-pages-"));
+    await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
+    await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
+    await execa("git", ["config", "user.name", "x"], { cwd: dir });
+    await fs.writeFile(
+      path.join(dir, "package.json"),
+      JSON.stringify({ name: "pages-demo", scripts: { build: "next build" } }, null, 2),
+    );
+    // Pages Router: the leaf file IS the route (pages/api/users/[id].ts -> users).
+    await fs.mkdir(path.join(dir, "src", "pages", "api", "users"), { recursive: true });
+    await fs.writeFile(
+      path.join(dir, "src", "pages", "api", "users", "[id].ts"),
+      "export default function handler() {}\n",
+    );
+    await fs.mkdir(path.join(dir, "pages", "api"), { recursive: true });
+    await fs.writeFile(
+      path.join(dir, "pages", "api", "health.ts"),
+      "export default function handler() {}\n",
+    );
+    await fs.writeFile(path.join(dir, ".gitignore"), ".vibestrate/\n");
+    await execa("git", ["add", "."], { cwd: dir });
+    await execa("git", ["commit", "-q", "-m", "init"], { cwd: dir });
+
+    const map = await extractCodebaseMap(dir, "2026-07-10T00:00:00.000Z");
+    const block = renderCodebaseMapForPrompt(map);
+
+    // Areas are the real resource names, never "pages"/"src"/"route".
+    expect(block).toMatch(/areas:.*\bhealth\b/);
+    expect(block).toMatch(/areas:.*\busers\b/);
+    expect(block).not.toMatch(/areas:.*\b(pages|src|route|api)\b/);
+  });
+
   it("degrades honestly for a non-git directory without throwing", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-codebase-map-nogit-"));
     await fs.writeFile(path.join(dir, "package.json"), JSON.stringify({ name: "no-git" }));

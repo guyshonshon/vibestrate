@@ -448,12 +448,21 @@ function truncateToBytes(text: string, maxBytes: number): string {
  *  route files as a handful of areas instead of dumping every path. */
 function routeArea(p: string): string | null {
   const segs = p.split("/");
-  const anchor = Math.max(segs.indexOf("app"), segs.indexOf("routes"));
+  // Anchor on the routing root of any supported convention: `app/` (App
+  // Router), `api/` (Pages Router `pages/api/**`), or `routes/`. Without the
+  // `api` anchor, a `pages/api/foo.ts` file would derive its area as "pages" -
+  // a phantom module name that misleads the planner.
+  const anchor = Math.max(segs.indexOf("app"), segs.indexOf("api"), segs.indexOf("routes"));
+  if (anchor === -1) return null;
   let i = anchor + 1;
   while (segs[i] === "api") i += 1;
   const area = segs[i];
+  // `route.ts`/`route.js` directly under the anchor is a root handler with no
+  // area (App Router). A Pages Router leaf like `foo.ts` IS the area, so only
+  // the App Router handler filename is treated as area-less.
   if (!area || area === "route.ts" || area === "route.js") return null;
-  return area.replace(/^\[(\.\.\.)?/, "").replace(/\]$/, ""); // strip [id] / [...slug] brackets
+  const base = area.replace(/^\[(\.\.\.)?/, "").replace(/\]$/, ""); // strip [id] / [...slug] brackets
+  return base.replace(/\.(ts|js|tsx|jsx)$/, ""); // a Pages Router leaf may be a file, not a dir
 }
 
 function renderCommandsForPrompt(map: CodebaseMap): string[] {
