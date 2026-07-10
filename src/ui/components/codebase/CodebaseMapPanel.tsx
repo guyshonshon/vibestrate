@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, X } from "lucide-react";
 import { ApiError, api } from "../../lib/api.js";
 import type { CodebaseMapResult } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
+import { Chip } from "../design/Chip.js";
 import { StatTile } from "../design/StatTile.js";
 import { Section } from "../layout/PageShell.js";
 
@@ -61,7 +62,11 @@ export function CodebaseMapPanel() {
 
   if (loading) return <MapSkeleton />;
 
-  if (error) {
+  // An error with nothing loaded yet = the initial fetch failed; there is no
+  // map to preserve, so show the full recovery view and Retry re-runs the load.
+  // A failed *refresh* is handled separately below: it keeps the existing map
+  // on screen and its Retry re-runs the refresh, never destroying a good view.
+  if (error && !result) {
     return (
       <div className="p-4">
         <div className="rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2.5 text-[12px] text-rose-300">
@@ -91,6 +96,9 @@ export function CodebaseMapPanel() {
         >
           {refreshing ? "Refreshing" : "Generate map"}
         </Button>
+        {error ? (
+          <p className="max-w-xs text-[11px] leading-snug text-rose-300">{error}</p>
+        ) : null}
       </div>
     );
   }
@@ -110,9 +118,9 @@ export function CodebaseMapPanel() {
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {result.stale ? (
-            <span className="rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-2.5 py-1 text-[11px] font-semibold text-amber-soft">
+            <Chip tone="amber" contained>
               Generated at an older commit
-            </span>
+            </Chip>
           ) : null}
           <Button
             variant="secondary"
@@ -125,6 +133,30 @@ export function CodebaseMapPanel() {
           </Button>
         </div>
       </div>
+
+      {error ? (
+        <div className="mt-2 flex items-center justify-between gap-3 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300">
+          <span className="min-w-0">Refresh failed: {error}</span>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={refreshing}
+              onClick={() => void refresh()}
+            >
+              {refreshing ? "Refreshing" : "Retry"}
+            </Button>
+            <button
+              type="button"
+              aria-label="Dismiss error"
+              className="rounded-[8px] p-1 text-rose-300 hover:bg-rose-500/10"
+              onClick={() => setError(null)}
+            >
+              <X className="h-3.5 w-3.5" strokeWidth={2} />
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <p className="mb-4 text-[11px] text-chalk-300">
         Generated {new Date(map.generatedAt).toLocaleString()}

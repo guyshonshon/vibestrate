@@ -155,6 +155,16 @@ function normalizeEntry(p: string): string {
   return p.replace(/^\.\//, "");
 }
 
+// A declared main/bin can be any string a package.json author wrote, including
+// `../secret` or an absolute path. This map is shown in the UI and injected
+// into planner/consult prompts, so a candidate that resolves outside the
+// project root is never recorded - only in-root paths are legitimate entries.
+function isWithinRoot(projectRoot: string, candidate: string): boolean {
+  const root = path.resolve(projectRoot);
+  const rel = path.relative(root, path.resolve(root, candidate));
+  return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
+}
+
 function declaredEntryPoints(pkg: EntryPointPackageFields | null): string[] {
   if (!pkg) return [];
   const out: string[] = [];
@@ -277,6 +287,7 @@ export async function extractCodebaseMap(
   const declaredCandidates = declaredEntryPoints(pkgFields);
   const declared: string[] = [];
   for (const candidate of declaredCandidates) {
+    if (!isWithinRoot(projectRoot, candidate)) continue;
     if (await pathExists(path.join(projectRoot, candidate))) declared.push(candidate);
   }
   const conventional = ENTRY_POINT_CANDIDATES.filter((c) => trackedSet.has(c));

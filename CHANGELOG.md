@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.70.1
+
+- **A failed map refresh no longer wipes the map.** On the Codebase Map view, a
+  transient refresh error used to replace the whole map with a full-page error
+  whose "Retry" re-ran the initial load, not the refresh. Now the map stays on
+  screen and the failure shows as a dismissable inline banner whose Retry
+  actually re-runs the refresh.
+- **Declared entry points can't escape the project root.** A `package.json`
+  `main`/`bin` pointing outside the repo (`../secret`, an absolute path) is now
+  dropped from the map instead of being recorded and surfaced in the UI and
+  planner grounding.
+
 ## 0.70.0
 
 - **`vibe learn` now reads Next.js apps properly.** Measured against a real

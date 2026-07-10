@@ -105,6 +105,29 @@ describe("extractCodebaseMap", () => {
     expect(map.entryPoints).not.toContain("dist/cli.js");
   });
 
+  it("drops a declared entry point that escapes the project root even if it exists on disk", async () => {
+    // A hand-edited or hostile package.json could point main/bin outside the
+    // project (`../secret`, `/etc/passwd`). The map is shown in the UI and
+    // injected into planner/consult prompts, so an out-of-root path must never
+    // be recorded even when the target exists.
+    const sentinel = `${path.basename(projectRoot)}-escape.js`;
+    await fs.writeFile(path.join(projectRoot, "..", sentinel), "module.exports = {};\n");
+
+    const pkgPath = path.join(projectRoot, "package.json");
+    const pkg = JSON.parse(await fs.readFile(pkgPath, "utf8"));
+    pkg.main = `../${sentinel}`; // relative escape
+    pkg.bin = { demo: path.join(projectRoot, "..", sentinel) }; // absolute escape
+    await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
+    await execa("git", ["add", "."], { cwd: projectRoot });
+    await execa("git", ["commit", "-q", "-m", "escaping entry points"], { cwd: projectRoot });
+
+    const map = await extractCodebaseMap(projectRoot, "2026-07-10T00:00:00.000Z");
+    for (const e of map.entryPoints) {
+      expect(e).not.toContain("-escape.js");
+      expect(path.isAbsolute(e)).toBe(false);
+    }
+  });
+
   it("captures Next.js src/app route handlers and ignores pages and routes named in markdown", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-codebase-map-next-"));
     await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });

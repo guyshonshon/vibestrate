@@ -81,6 +81,26 @@ describe("codebase map routes", () => {
     expect(getBody.map!.project.name).toBe("demo-project");
   });
 
+  it("GET /api/codebase-map: reports stale:true after HEAD moves past the generated rev", async () => {
+    const dir = await makeRepo();
+    server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });
+
+    const refreshRes = await post(`${server.url}/api/codebase-map/refresh`);
+    expect(refreshRes.status).toBe(200);
+    expect(((await refreshRes.json()) as { stale: boolean }).stale).toBe(false);
+
+    // A new commit moves HEAD off the rev the map was generated at.
+    await fs.writeFile(path.join(dir, "NEW.md"), "new\n");
+    await execa("git", ["add", "."], { cwd: dir });
+    await execa("git", ["commit", "-q", "-m", "advance HEAD"], { cwd: dir });
+
+    const getRes = await get(`${server.url}/api/codebase-map`);
+    expect(getRes.status).toBe(200);
+    const body = (await getRes.json()) as { present: boolean; stale: boolean };
+    expect(body.present).toBe(true);
+    expect(body.stale).toBe(true);
+  });
+
   it("POST /api/codebase-map/refresh: rejects a non-empty body with 400", async () => {
     const dir = await makeRepo();
     server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });
