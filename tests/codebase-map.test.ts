@@ -105,6 +105,48 @@ describe("extractCodebaseMap", () => {
     expect(map.entryPoints).not.toContain("dist/cli.js");
   });
 
+  it("captures Next.js src/app route handlers and ignores pages and routes named in markdown", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-codebase-map-next-"));
+    await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
+    await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
+    await execa("git", ["config", "user.name", "x"], { cwd: dir });
+    await fs.writeFile(
+      path.join(dir, "package.json"),
+      JSON.stringify({ name: "next-demo", scripts: { build: "next build" } }, null, 2),
+    );
+    await fs.mkdir(path.join(dir, "src", "app", "api", "widgets", "[id]"), { recursive: true });
+    await fs.writeFile(
+      path.join(dir, "src", "app", "api", "widgets", "route.ts"),
+      "export function GET() {}\n",
+    );
+    await fs.writeFile(
+      path.join(dir, "src", "app", "api", "widgets", "[id]", "route.ts"),
+      "export function POST() {}\n",
+    );
+    // A page, not a route handler - must never be counted as an HTTP route.
+    await fs.mkdir(path.join(dir, "src", "app", "dashboard"), { recursive: true });
+    await fs.writeFile(
+      path.join(dir, "src", "app", "dashboard", "page.tsx"),
+      "export default function Page() { return null; }\n",
+    );
+    // A markdown doc that quotes an express call - documentation, not a route.
+    await fs.writeFile(path.join(dir, "NOTES.md"), 'Example: `app.get("/from/docs", handler)`\n');
+    await fs.writeFile(path.join(dir, ".gitignore"), ".vibestrate/\n");
+    await execa("git", ["add", "."], { cwd: dir });
+    await execa("git", ["commit", "-q", "-m", "init"], { cwd: dir });
+
+    const map = await extractCodebaseMap(dir, "2026-07-10T00:00:00.000Z");
+
+    expect(map.httpRoutes.conventionFiles).toEqual(
+      expect.arrayContaining([
+        "src/app/api/widgets/route.ts",
+        "src/app/api/widgets/[id]/route.ts",
+      ]),
+    );
+    expect(map.httpRoutes.conventionFiles).not.toContain("src/app/dashboard/page.tsx");
+    expect(map.httpRoutes.detected.every((r) => !r.route.includes("/from/docs"))).toBe(true);
+  });
+
   it("degrades honestly for a non-git directory without throwing", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-codebase-map-nogit-"));
     await fs.writeFile(path.join(dir, "package.json"), JSON.stringify({ name: "no-git" }));
@@ -242,5 +284,56 @@ describe("renderCodebaseMapForPrompt", () => {
     const map = await extractCodebaseMap(projectRoot, "2026-07-10T00:00:00.000Z");
     const rendered = renderCodebaseMapForPrompt(map, { stale: true });
     expect(rendered).toContain("generated at an older commit");
+  });
+
+  it("curates a large project into a bounded, prioritized projection", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-codebase-map-big-"));
+    await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
+    await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
+    await execa("git", ["config", "user.name", "x"], { cwd: dir });
+    const scripts: Record<string, string> = {
+      build: "next build",
+      dev: "next dev",
+      test: "vitest run",
+      lint: "eslint .",
+      "check:tenant-isolation": "node scripts/tenant.mjs",
+      "check:route-protection": "node scripts/route.mjs",
+    };
+    // Add noise scripts that should be summarized away, not dumped.
+    for (let i = 0; i < 20; i += 1) scripts[`chore-${i}`] = `echo ${i}`;
+    await fs.writeFile(
+      path.join(dir, "package.json"),
+      JSON.stringify({ name: "big-app", scripts }, null, 2),
+    );
+    for (const area of ["activity", "auth", "billing"]) {
+      await fs.mkdir(path.join(dir, "src", "app", "api", area), { recursive: true });
+      await fs.writeFile(
+        path.join(dir, "src", "app", "api", area, "route.ts"),
+        "export function GET() {}\n",
+      );
+    }
+    await fs.writeFile(path.join(dir, "vitest.config.ts"), "export default {};\n");
+    await fs.writeFile(path.join(dir, "playwright.config.ts"), "export default {};\n");
+    await fs.writeFile(path.join(dir, ".gitignore"), ".vibestrate/\n");
+    await execa("git", ["add", "."], { cwd: dir });
+    await execa("git", ["commit", "-q", "-m", "init"], { cwd: dir });
+
+    const map = await extractCodebaseMap(dir, "2026-07-10T00:00:00.000Z");
+    const block = renderCodebaseMapForPrompt(map);
+
+    // Fits the budget without truncation - curation, not a byte-cut dump.
+    expect(Buffer.byteLength(block, "utf8")).toBeLessThanOrEqual(4096);
+    expect(block).not.toContain("-- truncated --");
+    // High-signal sections all survive.
+    expect(block).toContain("## Tooling");
+    expect(block).toContain("playwright");
+    expect(block).toContain("## HTTP routes");
+    // Routes are summarized (count + areas), not dumped as raw file paths.
+    expect(block).toContain("areas:");
+    expect(block).not.toContain("src/app/api/activity/route.ts");
+    // Invariant-signaling scripts are prioritized over chore noise.
+    expect(block).toContain("check:tenant-isolation");
+    expect(block).not.toContain("chore-0");
+    expect(block).toMatch(/more scripts/);
   });
 });

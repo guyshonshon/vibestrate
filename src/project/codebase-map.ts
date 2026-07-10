@@ -79,6 +79,17 @@ const ENTRY_POINT_CANDIDATES = [
 ];
 
 const HTTP_ROUTE_QUERY = "(app|router|server|api|fastify)\\.(get|post|put|patch|delete)\\(";
+const HTTP_ROUTE_SCAN_INCLUDE = "*.ts,*.tsx,*.js,*.jsx,*.mjs,*.cjs";
+// The prompt projection is deliberately tighter than the human `CODEBASE.md`:
+// a planner turn has a byte budget, so it gets a curated, prioritized slice
+// (high-signal scripts, a route summary, top dirs) instead of the full dump.
+const MAX_PROMPT_COMMANDS = 16;
+const MAX_PROMPT_LAYOUT_DIRS = 8;
+const MAX_PROMPT_ROUTE_AREAS = 12;
+// Scripts that signal how the project is built, tested, or guarded - the ones a
+// planner should see first. `check:`/`ci:` scripts often encode project
+// invariants (tenant isolation, route protection), so they rank above chores.
+const PROMPT_COMMAND_PRIORITY = /^(build|dev|start|test|lint|typecheck|type-check|check|ci|verify|coverage|migrate|db)/i;
 const HTTP_ROUTE_SNIPPET_RE = /\.(get|post|put|patch|delete)\(\s*["'`]([^"'`]+)/;
 
 async function currentGitRev(projectRoot: string): Promise<string | null> {
@@ -162,8 +173,14 @@ function declaredEntryPoints(pkg: EntryPointPackageFields | null): string[] {
 function isConventionRouteFile(p: string): boolean {
   const segments = p.split("/");
   const base = segments[segments.length - 1];
-  if (segments[0] === "app" && (base === "route.ts" || base === "route.js")) return true;
-  if (p.startsWith("pages/api/")) return true;
+  const isRouteHandler = base === "route.ts" || base === "route.js";
+  // Next.js App Router puts handlers at `app/**/route.ts`, either at the repo
+  // root or under `src/` (the two layouts `create-next-app` offers). The old
+  // check only matched a root-level `app/`, so a `src/app/` project - the more
+  // common layout - reported zero routes.
+  if (isRouteHandler && (segments[0] === "app" || (segments[0] === "src" && segments[1] === "app")))
+    return true;
+  if (p.startsWith("pages/api/") || p.startsWith("src/pages/api/")) return true;
   if (p.startsWith("src/server/routes/") && segments.length === 4) return true;
   return false;
 }
@@ -190,6 +207,10 @@ async function detectHttpRoutes(
     projectRoot,
     query: HTTP_ROUTE_QUERY,
     regex: true,
+    // Only source files declare routes. Without this, the pattern also matches
+    // an `app.get("/x")` quoted inside a markdown doc or a demo script's prose,
+    // which surfaced as phantom routes that would mislead a grounded planner.
+    include: HTTP_ROUTE_SCAN_INCLUDE,
   });
   const detected: CodebaseMap["httpRoutes"]["detected"] = [];
   let truncated = result.truncated;
@@ -422,8 +443,89 @@ function truncateToBytes(text: string, maxBytes: number): string {
   return `${out}${marker}`;
 }
 
-/** Pure: bounded prompt-facing rendering (same sections, no machine-owned
- *  banner - the caller already knows this text was injected by the tool). */
+/** The top-level "area" a convention route file belongs to, e.g.
+ *  `src/app/api/activity/[id]/route.ts` -> `activity`. Used to summarize many
+ *  route files as a handful of areas instead of dumping every path. */
+function routeArea(p: string): string | null {
+  const segs = p.split("/");
+  const anchor = Math.max(segs.indexOf("app"), segs.indexOf("routes"));
+  let i = anchor + 1;
+  while (segs[i] === "api") i += 1;
+  const area = segs[i];
+  if (!area || area === "route.ts" || area === "route.js") return null;
+  return area.replace(/^\[(\.\.\.)?/, "").replace(/\]$/, ""); // strip [id] / [...slug] brackets
+}
+
+function renderCommandsForPrompt(map: CodebaseMap): string[] {
+  const entries = Object.entries(map.project.scripts);
+  if (entries.length === 0) return [];
+  const priority = entries.filter(([name]) => PROMPT_COMMAND_PRIORITY.test(name));
+  const chosen = (priority.length > 0 ? priority : entries)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(0, MAX_PROMPT_COMMANDS);
+  const lines = ["## Commands", ""];
+  for (const [name, cmd] of chosen) lines.push(`- \`${name}\`: ${cmd}`);
+  const remaining = entries.length - chosen.length;
+  if (remaining > 0) lines.push(`- (+${remaining} more scripts)`);
+  lines.push("");
+  return lines;
+}
+
+function renderLayoutForPrompt(map: CodebaseMap): string[] {
+  if (map.layout.length === 0) return [];
+  const lines = ["## Layout", ""];
+  for (const { dir, files } of map.layout.slice(0, MAX_PROMPT_LAYOUT_DIRS)) {
+    lines.push(`- ${dir} - ${files} file${files === 1 ? "" : "s"}`);
+  }
+  lines.push("");
+  return lines;
+}
+
+function renderRouteSummaryForPrompt(map: CodebaseMap): string[] {
+  const { detected, conventionFiles, truncated } = map.httpRoutes;
+  if (detected.length === 0 && conventionFiles.length === 0) return [];
+  const lines = ["## HTTP routes (best effort)", ""];
+  if (conventionFiles.length > 0) {
+    const count = truncated ? `${conventionFiles.length}+` : `${conventionFiles.length}`;
+    const areas = [...new Set(conventionFiles.map(routeArea).filter((a): a is string => a !== null))]
+      .sort()
+      .slice(0, MAX_PROMPT_ROUTE_AREAS);
+    const areaStr = areas.length > 0 ? `; areas: ${areas.join(", ")}` : "";
+    lines.push(
+      `- ${count} convention route handler${conventionFiles.length === 1 ? "" : "s"} (framework file routing)${areaStr}`,
+    );
+  }
+  if (detected.length > 0) {
+    lines.push(
+      `- ${detected.length} route call${detected.length === 1 ? "" : "s"} found by code scan (e.g. ${detected[0]!.method} ${detected[0]!.route})`,
+    );
+  }
+  lines.push("_Heuristic - verify against the code._", "");
+  return lines;
+}
+
+/** The curated, prioritized section set for a planner turn: high-signal and
+ *  compact first (stack, tooling, key commands), then a route summary and top
+ *  dirs. Deliberately omits the per-extension Languages breakdown (the stack
+ *  type already implies it) and never dumps every script or route path - that
+ *  is what the human `CODEBASE.md` is for. */
+function renderSectionsForPrompt(map: CodebaseMap): string {
+  const blocks = [
+    renderStackSection(map),
+    renderToolingSection(map),
+    renderCommandsForPrompt(map),
+    renderLayoutForPrompt(map),
+    renderRouteSummaryForPrompt(map),
+    renderEntryPointsSection(map),
+    renderNotesSection(map),
+  ].filter((block) => block.length > 0);
+  return blocks.map((block) => block.join("\n")).join("\n");
+}
+
+/** Pure: bounded, curated prompt-facing rendering (no machine-owned banner -
+ *  the caller already knows this text was injected by the tool). Prioritized so
+ *  the highest-signal grounding survives the byte budget rather than being lost
+ *  to document-order truncation. */
 export function renderCodebaseMapForPrompt(
   map: CodebaseMap,
   opts?: { maxBytes?: number; stale?: boolean },
@@ -433,7 +535,7 @@ export function renderCodebaseMapForPrompt(
   if (opts?.stale) {
     lines.push("(generated at an older commit - verify against the live repo)", "");
   }
-  const full = `${lines.join("\n")}${renderSections(map)}`;
+  const full = `${lines.join("\n")}${renderSectionsForPrompt(map)}`;
   return truncateToBytes(full, maxBytes);
 }
 
