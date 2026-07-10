@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.69.0
+
+- **`vibe learn` - a codebase map the orchestrator actually uses.** One command
+  deterministically scans your project (stack, scripts, layout, languages,
+  best-effort HTTP routes, tooling) into a machine-owned, regenerable map -
+  `.vibestrate/CODEBASE.md` + `codebase-map.json` - with no model call, secret
+  redaction, and atomic writes. `vibe init` runs it for you, the planner and
+  Consult ground on it (judges stay clean-room), and it refreshes itself at run
+  terminal outcomes, flagging itself stale once `HEAD` moves.
+- **A Map view on the Codebase page.** Stat tiles and dense sections for the
+  whole map, a Refresh action, and an explicit stale indicator - backed by
+  `GET /api/codebase-map` and `POST /api/codebase-map/refresh`.
+
 ## 0.68.0
 
 - **Sub-agent denylist per role.** Profiles gained a `disallowedTools` knob that

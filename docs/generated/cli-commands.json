@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.68.0",
+  "version": "0.69.0",
   "commands": [
     {
       "name": "init",
@@ -6035,6 +6035,32 @@
               "variadic": false
             }
           ],
+          "options": [],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "learn",
+      "path": [
+        "vibe",
+        "learn"
+      ],
+      "description": "Regenerate .vibestrate/CODEBASE.md, an auto-derived map of the project's stack, layout, and routes.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "show",
+          "path": [
+            "vibe",
+            "learn",
+            "show"
+          ],
+          "description": "Print the current CODEBASE.md (run `vibe learn` first if there is none).",
+          "usage": "[options]",
+          "arguments": [],
           "options": [],
           "subcommands": []
         }

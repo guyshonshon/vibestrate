@@ -89,6 +89,17 @@ vibe config validate                       # check against the Zod schema
 
 `config set` accepts JSON for non-scalar values, and a plain string otherwise.
 
+## Learning your codebase
+
+`vibe learn` scans your project (stack, scripts, layout, languages, best-effort HTTP routes, tooling markers) and writes a machine-owned, regenerable map: `.vibestrate/CODEBASE.md` (human/prompt-facing) and `.vibestrate/codebase-map.json` (structured, server/UI-facing). `vibe init` already runs it best-effort at the end, so most projects have a map from the start.
+
+```bash
+vibe learn                                 # regenerate the codebase map
+vibe learn show                            # print the current CODEBASE.md
+```
+
+It is entirely deterministic - no model call, so it can run on demand without surprising drift. Everything is secret-redacted, size-bounded, and written atomically. A non-git project degrades honestly (a note in the map, not an error). See [Codebase map](/docs/concepts/vibestrate-md) for what grounds on it and why it stays separate from `VIBESTRATE.md`.
+
 ## Working with skills
 
 A skill is reusable guidance you attach to an agent:

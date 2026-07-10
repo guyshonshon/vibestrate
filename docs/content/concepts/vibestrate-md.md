@@ -53,4 +53,15 @@ It is distinct from `.vibestrate/rules.md`, and the precedence is explicit:
 
 You don't only write to VIBESTRATE.md. You can also ask the orchestrator about your project and get an answer grounded in it. That read-only advisor is [Consult](/docs/concepts/consult).
 
+## The codebase map: machine-owned, not authored
+
+Next to VIBESTRATE.md sits a different kind of memory: `.vibestrate/CODEBASE.md` and `.vibestrate/codebase-map.json`, regenerated on demand by `vibe learn` (and best-effort by `vibe init`). Where VIBESTRATE.md is *your* intent - project model, conventions, lessons - the codebase map is a deterministic scan: stack, scripts, top-level layout, languages, entry points, best-effort HTTP routes, and tooling markers. Nobody writes it by hand; regenerating it (`vibe learn`) always produces the same map from the same repo state, so there is nothing to keep in sync.
+
+The map grounds the planner - injected once per run alongside the project's ledger digest - and Consult, so both reason from the real shape of your project instead of asking you to describe it. Judges (review, verify) stay clean-room and never see it, the same isolation VIBESTRATE.md gets. It refreshes automatically whenever a run reaches a terminal outcome, and marks itself stale in `vibe learn show` when your `HEAD` has moved since it was generated.
+
+```bash
+vibe learn                                 # regenerate the map
+vibe learn show                            # print the current CODEBASE.md
+```
+
 Related: [[consult]], [[safety]], [[configuration]].
