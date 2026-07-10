@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.70.0
+
+- **`vibe learn` now reads Next.js apps properly.** Measured against a real
+  Next.js/Shopify project, the map was missing every `src/app/**/route.ts`
+  handler (it only recognized a root-level `app/`) and scraping phantom routes
+  from prose in markdown docs. Route detection now covers the `src/app` and
+  `src/pages/api` layouts and scans source files only.
+- **The planner gets a curated map, not a truncated dump.** The grounding fed
+  to the planner is now a prioritized projection - invariant-signaling scripts
+  first, a route summary (count + areas) instead of a wall of paths - so the
+  high-signal grounding survives the token budget instead of being cut off. On
+  the same project the planner block went from 4084 truncated bytes to 1857
+  complete ones.
+
 ## 0.69.0
 
 - **`vibe learn` - a codebase map the orchestrator actually uses.** One command

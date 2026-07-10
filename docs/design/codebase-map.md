@@ -130,3 +130,27 @@ ergonomics) were triaged as deferred low-severity; the theoretical
 JSON-corruption-via-redaction concern was verified safe because the redactor
 emits only balanced quotes and the loader is fail-closed to an empty-state
 map.
+
+### Follow-up: Next.js route capture + curated projection (2026-07-10)
+
+A post-merge measurement ran `vibe learn` against a real Next.js/Shopify
+project and inspected what the planner actually received. It found two defects
+the synthetic tests missed: the convention-route matcher only recognized a
+root-level `app/`, so the common `src/app/**/route.ts` layout captured zero of
+155 real routes; and the planner projection reused the full human `CODEBASE.md`
+body and byte-truncated it, so on a script-heavy repo the high-signal grounding
+(tooling, routes, entry points) was truncated away while 40 raw npm scripts
+consumed the budget. The fix broadens the matcher to `src/app` and
+`src/pages/api`, scopes the route content-scan to source files (a route quoted
+in a markdown doc is no longer a phantom route), and gives the prompt its own
+curated, prioritized projection: invariant-signaling scripts first, a route
+summary of count + areas instead of every path, top dirs, no per-extension
+Languages dump. Measured effect on that project: the planner block went from
+4084 truncated bytes to 1857 complete ones, with the real route surface (50+
+handlers across named areas) and CI-invariant scripts now present. An
+adversarial review (Opus) of the fix found one Important issue - `routeArea`
+derived a phantom "pages"/"src" area for Pages Router routes because it anchored
+only on `app`/`routes`; fixed by anchoring on `api` too and adding a
+pages-router area-derivation test. This is why the design gates LLM distillation
+on a measured need: the *deterministic* extractor itself needed real-project
+measurement to be trustworthy.
