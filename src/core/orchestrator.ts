@@ -3167,7 +3167,17 @@ export class Orchestrator {
             // steps fail the run.
             const turn = this.assessTurnResult(outcome.value);
             if (turn.ok) {
-              await commitTurn(step, outcome.value);
+              const committed = await commitTurn(step, outcome.value);
+              // Forward-resume (leave the step un-done and re-run it) only works
+              // for a serial step. One sibling of an in-flight fan-out can't be
+              // cleanly re-run, so a change-request here fails CLOSED - blocking
+              // the run - rather than completing it with an un-applied human gate.
+              if (committed === "changes-requested") {
+                await failStepFatal(
+                  step,
+                  "request-changes is not supported on a parallel (fan-out) step",
+                );
+              }
             } else if (step.continueOnError) {
               await markStepFailedContinue(step, new Error(turn.reason), turn.failureClass);
               continuedFailures += 1;
