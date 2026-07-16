@@ -3037,7 +3037,9 @@ export class Orchestrator {
           eventLog: input.eventLog,
         });
         state = gate.state;
-        if (gate.rejected) {
+        // A policy approval-gate step has no agent turn to re-run, so a human
+        // "request changes" here fails CLOSED (blocks) rather than proceeding.
+        if (gate.rejected || gate.changesGuidance != null) {
           state = this.patchFlowStep(
             state,
             step.id,
@@ -4533,7 +4535,9 @@ export class Orchestrator {
               eventLog: input.eventLog,
             });
             state = gate.state;
-            if (gate.rejected) {
+            // A policy approval-gate step has no agent turn to re-run, so a human
+            // "request changes" here fails CLOSED (blocks) rather than proceeding.
+            if (gate.rejected || gate.changesGuidance != null) {
               state = this.patchFlowStep(
                 state,
                 step.id,
@@ -5071,8 +5075,11 @@ export class Orchestrator {
           eventLog: input.eventLog,
         });
         state = held.state;
-        completionApprovalRejected = held.rejected;
-        effectiveMergeReady = !held.rejected;
+        // The final sign-off has no turn to re-run: a human "request changes"
+        // here fails CLOSED (does not complete merge_ready), same as a reject.
+        const heldBlocked = held.rejected || held.changesGuidance != null;
+        completionApprovalRejected = heldBlocked;
+        effectiveMergeReady = !heldBlocked;
       } else if (completeDecision.effect !== "allow") {
         // deny, or require_approval on a run that DIDN'T earn merge_ready anyway.
         effectiveMergeReady = false;
@@ -6925,7 +6932,9 @@ export class Orchestrator {
           stateStore: ctx.stateStore,
           eventLog: ctx.eventLog,
         });
-        if (res.rejected) {
+        // The post-turn diff gate restores + aborts on reject; a human "request
+        // changes" here has no re-run seam, so it fails CLOSED the same way.
+        if (res.rejected || res.changesGuidance != null) {
           await restoreWorktree(ctx.worktreePath, preTurnTree).catch(
             () => undefined,
           );
@@ -7311,7 +7320,9 @@ export class Orchestrator {
       stateStore: input.ctx.stateStore,
       eventLog: input.ctx.eventLog,
     });
-    return !res.rejected;
+    // Budget pause is a policy gate with no turn to re-run: "request changes"
+    // fails CLOSED (does not resume), same as a reject.
+    return !res.rejected && res.changesGuidance == null;
   }
 
   /**
