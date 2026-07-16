@@ -1,170 +1,179 @@
 import { useState } from "react";
-import { ShieldQuestion, ShieldAlert, Check, X } from "lucide-react";
+import { Check, X, MessageSquareText, Send, MessagesSquare } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { ApprovalRequest } from "../../lib/types.js";
+import { Button } from "../design/Button.js";
+import { HeroCard, type HeroTone } from "../design/HeroCard.js";
 
 type Props = {
   runId: string;
   approval: ApprovalRequest;
   onResolved: (a: ApprovalRequest) => void;
+  /** Opens the consult dock pre-seeded with this approval (advisory). */
+  onDiscuss?: (a: ApprovalRequest) => void;
+  /** Demo/deep-link: open with the guidance composer already showing. */
+  defaultMode?: "idle" | "changes";
 };
 
-const RISK_PILL: Record<ApprovalRequest["riskLevel"], string> = {
-  low: "border-vibestrate-fg-muted/40 text-vibestrate-fg-dim",
-  medium: "border-vibestrate-accent/50 text-vibestrate-accent",
-  // High risk warns clearly without going panic-red. Failure red is reserved
-  // for actually-broken runs.
-  high: "border-vibestrate-warn/60 text-vibestrate-warn",
+const RISK_TONE: Record<ApprovalRequest["riskLevel"], HeroTone> = {
+  low: "violet",
+  medium: "amber",
+  high: "rose",
 };
 
-const RISK_LABEL: Record<ApprovalRequest["riskLevel"], string> = {
-  low: "low risk",
-  medium: "medium risk",
-  high: "high risk",
-};
-
-function describeSource(approval: ApprovalRequest): string {
-  if (approval.source === "policy") {
-    return "Project policy requires approval at this stage.";
-  }
-  if (approval.alsoRequiredByPolicy) {
-    return `The ${approval.roleId} agent requested your approval - and project policy also requires it at this stage.`;
-  }
-  return `The ${approval.roleId} agent requested your approval.`;
+function describeSource(a: ApprovalRequest): string {
+  if (a.source === "policy") return "Project policy pauses the run at this stage.";
+  if (a.alsoRequiredByPolicy)
+    return `The ${a.roleId} agent asked for your call, and policy requires it here.`;
+  return `The ${a.roleId} agent asked for your call before continuing.`;
 }
 
-export function ApprovalBanner({ runId, approval, onResolved }: Props) {
-  const [note, setNote] = useState("");
-  const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
+export function ApprovalBanner({ runId, approval, onResolved, onDiscuss, defaultMode }: Props) {
+  const [mode, setMode] = useState<"idle" | "changes">(defaultMode ?? "idle");
+  const [guidance, setGuidance] = useState("");
+  const [busy, setBusy] = useState<"approve" | "reject" | "changes" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function decide(kind: "approve" | "reject") {
+  const canRequestChanges = approval.source !== "policy";
+  const tone = RISK_TONE[approval.riskLevel];
+
+  async function run(
+    kind: "approve" | "reject" | "changes",
+    fn: () => Promise<ApprovalRequest>,
+  ) {
     setBusy(kind);
     setError(null);
     try {
-      const updated =
-        kind === "approve"
-          ? await api.approveApproval({
-              runId,
-              approvalId: approval.id,
-              note: note.trim() || undefined,
-            })
-          : await api.rejectApproval({
-              runId,
-              approvalId: approval.id,
-              note: note.trim() || undefined,
-            });
-      onResolved(updated);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      onResolved(await fn());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(null);
     }
   }
 
-  const isHigh = approval.riskLevel === "high";
-  const Icon = isHigh ? ShieldAlert : ShieldQuestion;
-  const containerBorder = isHigh
-    ? "border-vibestrate-warn/50 bg-vibestrate-warn/5"
-    : "border-vibestrate-accent/40 bg-vibestrate-accent-soft/40";
-  const iconColor = isHigh ? "text-vibestrate-warn" : "text-vibestrate-accent";
+  const approve = () =>
+    run("approve", () => api.approveApproval({ runId, approvalId: approval.id }));
+  const reject = () =>
+    run("reject", () => api.rejectApproval({ runId, approvalId: approval.id }));
+  const sendChanges = () =>
+    run("changes", () =>
+      api.requestChangesApproval({ runId, approvalId: approval.id, guidance: guidance.trim() }),
+    );
+
+  function discuss() {
+    if (onDiscuss) {
+      onDiscuss(approval);
+      return;
+    }
+    // Open the global consult dock seeded with this gate's context (advisory -
+    // consult never resolves the gate; it just helps you decide).
+    const q = `The ${approval.roleId} agent paused at ${approval.stageId} and asked: "${approval.requestedAction}". Reason: ${approval.reason}. How should I respond?`;
+    window.dispatchEvent(
+      new CustomEvent("vibestrate:consult-open", { detail: { question: q } }),
+    );
+  }
 
   return (
-    <div className={`rounded border ${containerBorder} p-3`}>
-      <div className="flex items-start gap-3">
-        <Icon
-          className={`mt-0.5 h-4 w-4 ${iconColor}`}
-          strokeWidth={1.5}
-        />
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[12.5px] font-medium text-vibestrate-fg">
-              Awaiting your decision
-            </span>
-            <span
-              className={`vibestrate-mono rounded border px-1.5 py-0.5 text-[10.5px] ${RISK_PILL[approval.riskLevel]}`}
+    <HeroCard
+      size="md"
+      tone={tone}
+      overline={approval.source === "policy" ? "policy gate" : "agent-requested"}
+      status="your turn"
+      statusSub={`${approval.riskLevel} risk`}
+      title={approval.requestedAction || `Approve continuing past ${approval.stageId}.`}
+      sub={describeSource(approval)}
+      actions={
+        <span className="mono text-[11px] text-chalk-400">{approval.stageId}</span>
+      }
+      footer={
+        mode === "changes" ? (
+          <>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={busy !== null || !guidance.trim()}
+              iconLeft={<Send className="h-3.5 w-3.5" strokeWidth={1.9} />}
+              onClick={sendChanges}
             >
-              {RISK_LABEL[approval.riskLevel]}
-            </span>
-            <span
-              className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-muted"
-              title={
-                approval.source === "policy"
-                  ? "Required by project config"
-                  : "Requested by the agent"
-              }
+              {busy === "changes" ? "Sending" : "Send guidance"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy !== null}
+              onClick={() => {
+                setMode("idle");
+                setGuidance("");
+              }}
             >
-              {approval.source === "policy" ? "policy" : "agent-requested"}
-            </span>
-            <span className="vibestrate-mono ml-auto text-[10.5px] text-vibestrate-fg-muted">
-              {approval.stageId}
-            </span>
-          </div>
-          <div className="mt-1 text-[12px] text-vibestrate-fg-dim">
-            {describeSource(approval)}
-          </div>
-
-          {approval.requestedAction ? (
-            <div className="mt-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5">
-              <div className="text-[10.5px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
-                requested action
-              </div>
-              <div className="mt-0.5 text-[12.5px] text-vibestrate-fg">
-                {approval.requestedAction}
-              </div>
-            </div>
-          ) : null}
-
-          {approval.reason ? (
-            <div className="mt-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5">
-              <div className="text-[10.5px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
-                reason
-              </div>
-              <div className="mt-0.5 text-[12.5px] text-vibestrate-fg">
-                {approval.reason}
-              </div>
-            </div>
-          ) : null}
-
-          {approval.sourceArtifactPath ? (
-            <div className="mt-1 text-[11.5px] text-vibestrate-fg-muted">
-              Source artifact:{" "}
-              <span className="vibestrate-mono text-vibestrate-fg-dim">
-                {approval.sourceArtifactPath}
-              </span>
-            </div>
-          ) : null}
-
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={busy !== null}
+              iconLeft={<Check className="h-3.5 w-3.5" strokeWidth={1.9} />}
+              onClick={approve}
+            >
+              {busy === "approve" ? "Approving" : "Approve"}
+            </Button>
+            {canRequestChanges ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={busy !== null}
+                iconLeft={<MessageSquareText className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                onClick={() => setMode("changes")}
+              >
+                Request changes
+              </Button>
+            ) : null}
+            <Button
+              variant="danger"
+              size="sm"
+              disabled={busy !== null}
+              iconLeft={<X className="h-3.5 w-3.5" strokeWidth={1.9} />}
+              onClick={reject}
+            >
+              {busy === "reject" ? "Rejecting" : "Reject"}
+            </Button>
+            <button
+              type="button"
+              className="ml-auto inline-flex items-center gap-1.5 rounded-[10px] px-2 py-1 text-[12px] font-medium text-violet-soft hover:bg-violet-soft/10"
+              onClick={discuss}
+            >
+              <MessagesSquare className="h-3.5 w-3.5" strokeWidth={1.9} />
+              Discuss
+            </button>
+          </>
+        )
+      }
+    >
+      <div className="border-b border-[color:var(--line-soft)] px-4 py-3">
+        {approval.reason ? (
+          <p className="text-[12.5px] leading-snug text-chalk-300">{approval.reason}</p>
+        ) : null}
+        {approval.sourceArtifactPath ? (
+          <p className="mt-2 text-[11px] text-chalk-400">
+            from <span className="mono text-chalk-300">{approval.sourceArtifactPath}</span>
+          </p>
+        ) : null}
+        {mode === "changes" ? (
           <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Optional decision note (recorded in approvals.json)"
-            rows={2}
-            className="mt-2 block w-full resize-y rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5 text-[12.5px] text-vibestrate-fg placeholder-vibestrate-fg-muted"
+            autoFocus
+            value={guidance}
+            onChange={(e) => setGuidance(e.target.value)}
+            placeholder="What should the agent change? It re-runs this stage with your guidance."
+            rows={3}
+            className="mt-3 block w-full resize-y rounded-[10px] border border-violet-soft/40 bg-coal-800 px-3 py-2 text-[12.5px] text-chalk-100 placeholder:text-chalk-400 focus:outline-none focus:ring-1 focus:ring-violet-soft/50"
           />
-          {error ? (
-            <div className="mt-1.5 text-[12px] text-vibestrate-fail">{error}</div>
-          ) : null}
-          <div className="mt-2 flex items-center gap-2">
-            <button
-              onClick={() => decide("approve")}
-              disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 rounded border border-vibestrate-success/40 bg-vibestrate-success/10 px-2.5 py-1 text-[12px] text-vibestrate-success hover:bg-vibestrate-success/15 disabled:opacity-50"
-            >
-              <Check className="h-3.5 w-3.5" strokeWidth={1.5} />
-              {busy === "approve" ? "Approving…" : "Approve"}
-            </button>
-            <button
-              onClick={() => decide("reject")}
-              disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-2.5 py-1 text-[12px] text-vibestrate-warn hover:bg-vibestrate-warn/15 disabled:opacity-50"
-            >
-              <X className="h-3.5 w-3.5" strokeWidth={1.5} />
-              {busy === "reject" ? "Rejecting…" : "Reject"}
-            </button>
-          </div>
-        </div>
+        ) : null}
+        {error ? <p className="mt-2 text-[12px] text-rose-300">{error}</p> : null}
       </div>
-    </div>
+    </HeroCard>
   );
 }
