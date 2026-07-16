@@ -7,6 +7,7 @@ import {
 } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { PageShell } from "../../components/layout/PageShell.js";
+import { LoadingState } from "../../components/design/ErrorState.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { navigate, type ReplayFocus } from "../App.js";
 import type {
@@ -189,11 +190,7 @@ export function RunDetailPage({
             actions={[
               { label: "Back to runs", onClick: () => navigate({ kind: "runs" }) },
               { label: "New run", onClick: () => navigate({ kind: "compose" }) },
-              {
-                label: "Mission control",
-                variant: "ghost",
-                onClick: () => navigate({ kind: "mission" }),
-              },
+              { label: "Mission control", onClick: () => navigate({ kind: "mission" }) },
             ]}
           />
         </div>
@@ -201,16 +198,14 @@ export function RunDetailPage({
     );
   if (!run)
     return (
-      <div className="deep-scene mx-auto flex max-w-[1520px] items-center gap-2.5 px-8 pt-6 text-[13px] text-chalk-300">
-        <span className="h-1.5 w-1.5 rounded-full bg-violet-soft" />
-        <span>
-          Starting run
-          <span className="text-chalk-400">
-            {" "}
-            - creating the worktree and launching the first step…
-          </span>
-        </span>
-      </div>
+      <PageShell>
+        <div className="mx-auto max-w-[560px] pt-10">
+          <LoadingState
+            title="Starting run"
+            detail="Creating the worktree and launching the first step. This usually takes a few seconds."
+          />
+        </div>
+      </PageShell>
     );
 
   const handlePauseToggle = async () => {

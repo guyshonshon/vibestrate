@@ -1,15 +1,8 @@
 import { RefreshCw } from "lucide-react";
 import { ApiError } from "./api.js";
-import {
-  ErrorState,
-  type ErrorAction,
-  type ErrorGlyph,
-  type ErrorTone,
-} from "../components/design/ErrorState.js";
+import { ErrorState, type ErrorAction } from "../components/design/ErrorState.js";
 
 export type ErrorDescription = {
-  tone: ErrorTone;
-  glyph: ErrorGlyph;
   title: string;
   detail?: string;
   hint?: string;
@@ -21,77 +14,53 @@ function firstLine(s: string): string {
   return (i === -1 ? s : s.slice(0, i)).trim();
 }
 
-const TONE_FOR: Record<ErrorGlyph, ErrorTone> = {
-  "not-found": "rose",
-  forbidden: "amber",
-  validation: "amber",
-  server: "rose",
-  offline: "amber",
-  blocked: "amber",
-  generic: "rose",
-};
-
-function glyphForHttp(kind: string | undefined, status: number): ErrorGlyph {
-  if (status === 404 || kind === "http-404") return "not-found";
-  if (status === 401 || status === 403 || kind === "http-401" || kind === "http-403")
-    return "forbidden";
-  if (status === 400 || status === 422) return "validation";
-  if (status >= 500 || (kind ?? "").startsWith("http-5")) return "server";
-  return "generic";
-}
-
-/** Fallback hint when the server didn't send one - matches error-format.ts. */
+/** Fallback hint when the server didn't send one. Two sentences so it renders
+ *  as two lines (what happened / what to do). Mirrors src/core/error-format.ts;
+ *  the UI build can't import src/core (separate tsconfig), so keep in sync. */
 function defaultHint(status: number): string | undefined {
   if (status === 404)
     return "The resource no longer exists. It may have been deleted, cancelled, or never existed.";
   if (status === 401 || status === 403)
     return "This action needs an API token or broader permission. Set VIBESTRATE_API_TOKEN, or run it from the CLI.";
   if (status === 400 || status === 422)
-    return "Fix the input and try again - the change was not partially applied.";
+    return "The request was rejected. Fix the input and try again - the change was not partially applied.";
   if (status >= 500)
-    return "vibestrate logged this to .vibestrate/issues.ndjson - check the Issues panel, then retry.";
+    return "The server hit an error. vibestrate logged it to .vibestrate/issues.ndjson - check the Issues panel, then retry.";
   return undefined;
 }
 
 /**
  * Classify any thrown value into a designed error shape. For an ApiError it
- * prefers the server's own classification (kind/title/hint from formatError, so
- * the dashboard reads the same as the CLI) and falls back to status-derived
- * copy. Network / unknown errors get the offline / generic treatment.
+ * prefers the server's own classification (title/hint from formatError, so the
+ * dashboard reads the same as the CLI) and falls back to status-derived copy.
+ * Network / unknown errors get the offline / generic treatment.
  */
 export function describeError(err: unknown): ErrorDescription {
   if (err instanceof ApiError) {
     const s = err.status;
-    const glyph = glyphForHttp(err.kind, s);
     const title =
       err.title?.trim() ||
       firstLine(err.message) ||
       (s >= 500 ? `Server error ${s}` : `Request failed (${s})`);
     const hint = err.hint?.trim() || defaultHint(s);
-    // Show the raw message as detail ONLY when it adds something the title/hint
-    // don't already say - otherwise the flattened "title - hint" message would
-    // echo the card three times.
-    const detail =
-      err.title || (hint && firstLine(err.message) === title)
-        ? undefined
-        : firstLine(err.message) !== title
-          ? err.message
-          : undefined;
-    return { tone: TONE_FOR[glyph], glyph, title, detail, hint, retryable: s >= 500 };
+    // Raw message as detail ONLY when it adds something title/hint don't already
+    // say - otherwise the flattened "title - hint" message echoes the card.
+    const detail = err.title
+      ? undefined
+      : firstLine(err.message) !== title
+        ? err.message
+        : undefined;
+    return { title, detail, hint, retryable: s >= 500 };
   }
   const msg = (err instanceof Error ? err.message : String(err ?? "")).trim();
   if (/failed to fetch|networkerror|load failed|\bfetch\b/i.test(msg))
     return {
-      tone: "amber",
-      glyph: "offline",
       title: "Can't reach the dashboard",
       detail: msg,
       hint: "The dashboard server may have stopped. Check it's running, then retry.",
       retryable: true,
     };
   return {
-    tone: "rose",
-    glyph: "generic",
     title: firstLine(msg) || "Something went wrong",
     detail: msg || undefined,
     retryable: true,
@@ -132,8 +101,6 @@ export function ErrorView({
       : [];
   return (
     <ErrorState
-      tone={d.tone}
-      glyph={d.glyph}
       title={d.title}
       detail={d.detail}
       hint={d.hint}

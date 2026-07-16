@@ -1,56 +1,16 @@
 import type { ReactNode } from "react";
-import {
-  AlertCircle,
-  Ban,
-  Lock,
-  RefreshCw,
-  SearchX,
-  ServerCrash,
-  TriangleAlert,
-  WifiOff,
-} from "lucide-react";
 import { cn } from "./cn.js";
 import { Button, type ButtonVariant } from "./Button.js";
 
 /**
- * The canonical error/empty surface. Every failed fetch, missing resource, or
- * forbidden action renders through this instead of a bare rose <div>, so an
- * error is a designed state with a way FORWARD (recovery actions), never a
- * terminus. See docs/design/primitives-contract.md and the CLAUDE.md empty-state
- * doctrine ("every error offers recovery: what happened + the fix + a control").
- *
- * Presentational only: the call site owns the copy and the recovery actions
- * (it knows the resource and where "back" goes). Use `describeError()` +
- * `<ErrorView>` in lib/error-view for the common "classify an ApiError" path.
+ * The canonical error / not-found / loading surface. A failed fetch, missing
+ * resource, or in-progress state renders through one family instead of a bare
+ * rose <div> or a loose spinner line - a designed card with a headline, the
+ * fix split into readable lines, and a way FORWARD (recovery actions). Matches
+ * the app's text-first state idiom (ProfilesPage empty): coal-600 card, semibold
+ * title, per-sentence body, centered footer - NO decorative icon disc. See
+ * docs/design/primitives-contract.md + the CLAUDE.md empty-state doctrine.
  */
-
-export type ErrorTone = "rose" | "amber" | "sky";
-
-const TONE: Record<ErrorTone, { icon: string; disc: string }> = {
-  rose: { icon: "text-rose-300", disc: "bg-rose-500/12 border-rose-400/25" },
-  amber: { icon: "text-amber-soft", disc: "bg-amber-soft/12 border-amber-soft/25" },
-  sky: { icon: "text-sky-glow", disc: "bg-sky-glow/12 border-sky-glow/25" },
-};
-
-/** Named glyphs so a call site can pick a shape by intent without importing lucide. */
-export type ErrorGlyph =
-  | "not-found"
-  | "forbidden"
-  | "server"
-  | "offline"
-  | "validation"
-  | "blocked"
-  | "generic";
-
-const GLYPH = {
-  "not-found": SearchX,
-  forbidden: Lock,
-  server: ServerCrash,
-  offline: WifiOff,
-  validation: TriangleAlert,
-  blocked: Ban,
-  generic: AlertCircle,
-} as const;
 
 export type ErrorAction = {
   label: ReactNode;
@@ -59,10 +19,97 @@ export type ErrorAction = {
   iconLeft?: ReactNode;
 };
 
+// Split a hint/detail paragraph into sentences so "what happened" and "what to
+// do about it" read as separate lines instead of one wrapped block.
+function sentences(s: string): string[] {
+  return s
+    .split(/(?<=[.!?])\s+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+function StateCard({
+  lead,
+  title,
+  lines,
+  detail,
+  footer,
+  compact,
+  className,
+  role = "status",
+}: {
+  /** Optional top element (a progress bar for loading). */
+  lead?: ReactNode;
+  title: ReactNode;
+  lines?: string[];
+  detail?: ReactNode;
+  footer?: ReactNode;
+  compact?: boolean;
+  className?: string;
+  role?: "status" | "alert";
+}) {
+  return (
+    <div
+      role={role}
+      className={cn(
+        "rounded-[20px] border border-[color:var(--line)] bg-coal-600",
+        compact ? "px-4 py-4" : "px-6 py-10 text-center",
+        className,
+      )}
+    >
+      {lead ? (
+        <div className={cn(compact ? "mb-2.5" : "mb-4 flex justify-center")}>
+          {lead}
+        </div>
+      ) : null}
+      <h3
+        className={cn(
+          "font-semibold text-chalk-100",
+          compact ? "text-[13px]" : "text-[15px]",
+        )}
+      >
+        {title}
+      </h3>
+      {lines && lines.length > 0 ? (
+        <div className={cn("mx-auto", compact ? "mt-1" : "mt-2 max-w-[52ch]")}>
+          {lines.map((l, i) => (
+            <p
+              key={i}
+              className={cn(
+                "text-chalk-300",
+                compact ? "text-[12px] leading-[1.5]" : "text-[13px] leading-[1.55]",
+              )}
+            >
+              {l}
+            </p>
+          ))}
+        </div>
+      ) : null}
+      {detail ? (
+        <p
+          className={cn(
+            "mono mx-auto break-words text-chalk-400",
+            compact ? "mt-1.5 text-[11px]" : "mt-2.5 max-w-[52ch] text-[11.5px]",
+          )}
+        >
+          {detail}
+        </p>
+      ) : null}
+      {footer ? (
+        <div
+          className={cn(
+            "flex flex-wrap gap-2",
+            compact ? "mt-3" : "mt-5 justify-center",
+          )}
+        >
+          {footer}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function ErrorState({
-  tone = "rose",
-  glyph = "generic",
-  icon,
   title,
   detail,
   hint,
@@ -70,87 +117,27 @@ export function ErrorState({
   compact = false,
   className,
 }: {
-  tone?: ErrorTone;
-  glyph?: ErrorGlyph;
-  /** Override the glyph with a custom node. */
-  icon?: ReactNode;
   title: ReactNode;
-  /** Technical message (path, status line) - rendered mono + muted. */
+  /** Technical message (path, status line) - mono + muted, only when it adds info. */
   detail?: ReactNode;
-  /** The fix: one plain-language line on what to do next. */
-  hint?: ReactNode;
-  /** Recovery forks. First action renders primary; the rest secondary/ghost. */
+  /** The fix. Rendered one sentence per line. */
+  hint?: string;
+  /** Recovery forks. First renders primary, the rest secondary. */
   actions?: ErrorAction[];
-  /** Inline/panel density (smaller, left-aligned) vs full-page centered. */
   compact?: boolean;
   className?: string;
 }) {
-  const t = TONE[tone];
-  const Glyph = GLYPH[glyph];
   return (
-    <div
-      className={cn(
-        "rounded-[18px] border border-[color:var(--line)] bg-coal-600",
-        compact
-          ? "flex items-start gap-3.5 px-4 py-3.5"
-          : "flex flex-col items-center px-6 py-10 text-center",
-        className,
-      )}
+    <StateCard
       role="alert"
-    >
-      <div
-        className={cn(
-          "grid shrink-0 place-items-center rounded-[14px] border",
-          compact ? "h-9 w-9" : "h-12 w-12",
-          t.disc,
-        )}
-      >
-        {icon ?? (
-          <Glyph
-            className={cn(compact ? "h-4 w-4" : "h-6 w-6", t.icon)}
-            strokeWidth={1.9}
-          />
-        )}
-      </div>
-
-      <div className={cn("min-w-0", compact ? "flex-1" : "mt-4 max-w-[46ch]")}>
-        <h3
-          className={cn(
-            "font-bold text-chalk-100",
-            compact ? "text-[13.5px]" : "text-[17px]",
-          )}
-        >
-          {title}
-        </h3>
-        {hint ? (
-          <p
-            className={cn(
-              "text-chalk-300",
-              compact ? "mt-0.5 text-[12px]" : "mt-2 text-[13px] leading-relaxed",
-            )}
-          >
-            {hint}
-          </p>
-        ) : null}
-        {detail ? (
-          <p
-            className={cn(
-              "mono break-words text-chalk-400",
-              compact ? "mt-0.5 text-[11px]" : "mt-2 text-[11.5px]",
-            )}
-          >
-            {detail}
-          </p>
-        ) : null}
-
-        {actions && actions.length > 0 ? (
-          <div
-            className={cn(
-              "flex flex-wrap items-center gap-2",
-              compact ? "mt-2.5" : "mt-5 justify-center",
-            )}
-          >
-            {actions.map((a, i) => (
+      title={title}
+      lines={hint ? sentences(hint) : undefined}
+      detail={detail}
+      compact={compact}
+      className={className}
+      footer={
+        actions && actions.length > 0
+          ? actions.map((a, i) => (
               <Button
                 key={i}
                 variant={a.variant ?? (i === 0 ? "primary" : "secondary")}
@@ -160,10 +147,55 @@ export function ErrorState({
               >
                 {a.label}
               </Button>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    </div>
+            ))
+          : undefined
+      }
+    />
+  );
+}
+
+/**
+ * An in-progress state in the same card family - a progressive `.meter` bar
+ * (the app's marquee progress indicator) + a headline and description. Use for
+ * "still spinning up" states so they read as a designed process, not a loose
+ * spinner line.
+ */
+export function LoadingState({
+  title,
+  detail,
+  actions,
+  compact = false,
+  className,
+}: {
+  title: ReactNode;
+  detail?: string;
+  /** Optional escape hatches (e.g. Back) if the process runs long. */
+  actions?: ErrorAction[];
+  compact?: boolean;
+  className?: string;
+}) {
+  return (
+    <StateCard
+      lead={<div className={cn("meter", compact ? "w-20" : "w-40")} />}
+      title={title}
+      lines={detail ? sentences(detail) : undefined}
+      compact={compact}
+      className={className}
+      footer={
+        actions && actions.length > 0
+          ? actions.map((a, i) => (
+              <Button
+                key={i}
+                variant={a.variant ?? "secondary"}
+                size="sm"
+                onClick={a.onClick}
+                iconLeft={a.iconLeft}
+              >
+                {a.label}
+              </Button>
+            ))
+          : undefined
+      }
+    />
   );
 }
