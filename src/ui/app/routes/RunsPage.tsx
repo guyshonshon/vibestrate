@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { GitMerge, History } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { ErrorView } from "../../lib/error-view.js";
 import type { RunState } from "../../lib/types.js";
 import { isSpecUpRun } from "../../lib/run-outcome.js";
 import { cn } from "../../components/design/cn.js";
@@ -31,20 +32,21 @@ export function RunsPage({
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
+  const load = useCallback(async () => {
+    try {
+      const data = await api.listRuns();
+      setRuns([...data].reverse());
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await api.listRuns();
-        setRuns([...data].reverse());
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      }
-    };
     void load();
     const interval = window.setInterval(load, 4000);
     return () => window.clearInterval(interval);
-  }, []);
+  }, [load]);
 
   const filtered = query
     ? runs.filter(
@@ -79,9 +81,7 @@ export function RunsPage({
       />
 
       {error ? (
-        <div className="mt-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[12.5px] text-rose-300">
-          {error}
-        </div>
+        <ErrorView className="mt-4" compact err={error} onRetry={() => void load()} />
       ) : null}
 
       {onOpenTask ? <SchedulerQueuePanel onOpenTask={onOpenTask} /> : null}

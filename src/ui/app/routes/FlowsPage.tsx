@@ -9,6 +9,7 @@ import {
   Upload,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { ErrorView } from "../../lib/error-view.js";
 import type { DiscoveredFlow, HubFlowRow, HubPublishResult } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
 import { EntityIcon } from "../../components/design/EntityIcon.js";
@@ -344,9 +345,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       ) : null}
 
       {error ? (
-        <div className="mt-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
-          {error}
-        </div>
+        <ErrorView className="mt-4" compact err={error} onRetry={() => void load()} />
       ) : null}
 
       {invalid.length > 0 ? (
@@ -619,9 +618,11 @@ function HubSection({
 
           <div className="mt-0">
         {hubError ? (
-          <div className="rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2.5 text-[12.5px] text-rose-300">
-            Couldn&apos;t load the hub right now: {hubError}
-          </div>
+          <ErrorView
+            compact
+            err={hubError}
+            override={{ title: "Couldn't load the hub" }}
+          />
         ) : loading && rows === null ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Array.from({ length: 6 }).map((_, i) => (

@@ -6,6 +6,7 @@ import { usePersistedState } from "../../lib/usePersistedState.js";
 import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { ErrorView } from "../../lib/error-view.js";
 import {
   ConsultAnswerView,
   type ProposalState,
@@ -194,9 +195,7 @@ export function ConsultPage({
       </section>
 
       {error ? (
-        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
-          {error}
-        </div>
+        <ErrorView className="mt-4" compact err={error} onRetry={() => void ask()} />
       ) : null}
 
       {answer && result ? (

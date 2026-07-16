@@ -12,6 +12,7 @@ import { MissionComposer } from "../../components/mission/MissionComposer.js";
 import { RunActions } from "../../components/mission/RunActions.js";
 import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { ErrorView } from "../../lib/error-view.js";
 import { PhaseRail, statusMessage } from "../../components/mission/runPhase.js";
 import {
   Sparkline,
@@ -323,9 +324,14 @@ export function MissionControlPage({ onSelectRun }: Props) {
         </div>
 
         {error ? (
-          <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
-            {error}
-          </div>
+          <ErrorView
+            className="mb-4"
+            compact
+            err={error}
+            onRetry={() =>
+              window.dispatchEvent(new Event("vibestrate:runs-refresh"))
+            }
+          />
         ) : null}
         {toast ? (
           <div

@@ -6,6 +6,7 @@ import type {
   SupervisorArchetypeView,
 } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
+import { ErrorView } from "../../lib/error-view.js";
 import { StatTile } from "../../components/design/StatTile.js";
 import {
   PageShell,
@@ -143,10 +144,7 @@ export function SupervisorsPage() {
       </PageHeader>
 
       {error ? (
-        <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
-          {error} - retry the refresh, or check{" "}
-          <span className="mono text-rose-200">project.yml</span> is readable.
-        </div>
+        <ErrorView className="mb-4" compact err={error} onRetry={() => void load()} />
       ) : null}
 
       {!loaded && !error ? (

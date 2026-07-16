@@ -6,6 +6,7 @@ import { serializeRoute, type Route } from "../route.js";
 import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
 import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
+import { ErrorView } from "../../lib/error-view.js";
 import { cn } from "../../components/design/cn.js";
 
 /**
@@ -124,9 +125,7 @@ export function ConfigPage() {
       </PageHeader>
 
       {error ? (
-        <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
-          {error} - retry with Refresh, or fix the YAML and reload.
-        </div>
+        <ErrorView className="mb-4" compact err={error} onRetry={() => void load()} />
       ) : null}
 
       {!fields ? (

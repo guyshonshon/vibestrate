@@ -18,6 +18,7 @@ import type { RunStatus } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
 import { HeroCard, type HeroMetric, type HeroTone } from "../../components/design/HeroCard.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { ErrorView } from "../../lib/error-view.js";
 import { cn } from "../../components/design/cn.js";
 
 const RANGES: OverviewRange[] = ["24h", "7d", "30d", "90d"];
@@ -117,9 +118,7 @@ export function WorkspacePage() {
       </PageHeader>
 
       {error ? (
-        <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
-          {error} - retry, or check that the workspace registry is readable.
-        </div>
+        <ErrorView className="mb-4" compact err={error} onRetry={reload} />
       ) : null}
 
       {/* ── KPI strip ─ */}

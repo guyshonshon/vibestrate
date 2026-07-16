@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.72.2
+
+- **The error surface reached across the app.** A dozen more places that used to
+  print a line of red text - a task or board that won't load, the runs list,
+  flows, config, workspace, supervisors, consult, metrics, the crew and provider
+  pages - now render the designed error card with a Retry and a way back, and
+  the two one-off "error banner" components were folded into the shared one. The
+  starting-run and not-found states were reworked to the app's text-first look
+  (no more icon-in-a-box), with the message split one sentence per line and a
+  progressive bar while a run spins up.
+
 ## 0.72.0
 
 - **Errors are a fork now, not a dead end.** A missing run, a failed fetch, or a

@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { ErrorView } from "../../lib/error-view.js";
 import { reorderByDrop } from "../../lib/reorder.js";
 import { navigate } from "../App.js";
 import type {
@@ -171,9 +172,13 @@ export function TaskDetailPage({
   if (error)
     return (
       <PageShell>
-        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
-          {error}
-        </div>
+        <ErrorView
+          err={error}
+          onRetry={() => void load()}
+          actions={[
+            { label: "Back to board", onClick: () => navigate({ kind: "board" }) },
+          ]}
+        />
       </PageShell>
     );
   if (!data)

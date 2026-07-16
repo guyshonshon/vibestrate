@@ -39,6 +39,7 @@ import {
   X,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { ErrorView } from "../../lib/error-view.js";
 import type {
   Priority,
   RoadmapItem,
@@ -442,9 +443,7 @@ export function BoardPage({
         <PageHeader className="mb-4" title="Board">
           {tabControl}
         </PageHeader>
-        <div className="rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
-          {error}
-        </div>
+        <ErrorView err={error} onRetry={() => void load()} />
       </PageShell>
     );
   }

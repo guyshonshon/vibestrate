@@ -37,6 +37,8 @@ import { ToneDot, type ChipTone } from "../../components/design/Chip.js";
 import { Select } from "../../components/design/Select.js";
 import { SegmentedControl } from "../../components/design/SegmentedControl.js";
 import { cn } from "../../components/design/cn.js";
+import { ErrorState } from "../../components/design/ErrorState.js";
+import { ErrorView } from "../../lib/error-view.js";
 import { ProvidersView } from "../../components/providers/ProvidersView.js";
 
 /** Top-level tab across the Crew surface: the crews roster, or the providers
@@ -309,7 +311,7 @@ export function CrewPage({
               onChange={onSwitchTab}
             />
           </PageHeader>
-          {error ? <ErrorBanner text={error} /> : null}
+          {error ? <ErrorView err={error} compact /> : null}
           <CrewHub
             crews={crews}
             defaultCrew={defaultCrew}
@@ -341,11 +343,12 @@ export function CrewPage({
               </Button>
             }
           />
-          {error ? <ErrorBanner text={error} /> : null}
-          <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-8 text-center text-[13px] text-chalk-300">
-            No crew named <span className="mono text-chalk-100">{crewId}</span>.
-            Pick one from the list instead.
-          </div>
+          {error ? <ErrorView err={error} compact /> : null}
+          <ErrorState
+            title="Crew not found"
+            hint={`No crew named ${crewId}. Pick one from the list, or install a preset to get a roster.`}
+            actions={[{ label: "All crews", onClick: onBackToCrews }]}
+          />
         </>
       ) : (
         // ── Stage 2: the selected crew's configuration page ─────────────────
@@ -379,7 +382,7 @@ export function CrewPage({
             }
           />
 
-          {error ? <ErrorBanner text={error} /> : null}
+          {error ? <ErrorView err={error} compact /> : null}
 
           <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-stretch">
             <div className="min-w-0 xl:flex-1">
@@ -525,15 +528,6 @@ export function CrewPage({
         </div>
       ) : null}
     </PageShell>
-  );
-}
-
-/** Inline page-level error banner in the new idiom. */
-function ErrorBanner({ text }: { text: string }) {
-  return (
-    <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
-      {text}
-    </div>
   );
 }
 

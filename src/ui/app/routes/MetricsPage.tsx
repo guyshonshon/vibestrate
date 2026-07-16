@@ -1,4 +1,11 @@
-import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   Activity,
   CircleCheck,
@@ -29,6 +36,7 @@ import {
   PageHeader,
   Section,
 } from "../../components/layout/PageShell.js";
+import { ErrorView } from "../../lib/error-view.js";
 import { cn } from "../../components/design/cn.js";
 
 const RANGES: OverviewRange[] = ["24h", "7d", "30d", "90d"];
@@ -57,27 +65,21 @@ export function MetricsPage() {
   const [overview, setOverview] = useState<MetricsOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const r = await api.getMetricsOverview(range);
-        if (!cancelled) {
-          setOverview(r);
-          setError(null);
-        }
-      } catch (err) {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : String(err));
-      }
-    };
-    void load();
-    const id = window.setInterval(load, 8000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
+  const load = useCallback(async () => {
+    try {
+      const r = await api.getMetricsOverview(range);
+      setOverview(r);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
   }, [range]);
+
+  useEffect(() => {
+    void load();
+    const id = window.setInterval(() => void load(), 8000);
+    return () => window.clearInterval(id);
+  }, [load]);
 
   const exportCsv = () => {
     if (!overview) return;
@@ -145,9 +147,7 @@ export function MetricsPage() {
       />
 
       {error ? (
-        <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
-          {error} - retry loads automatically, or switch the range above.
-        </div>
+        <ErrorView className="mb-4" compact err={error} onRetry={() => void load()} />
       ) : null}
 
       <KpiStrip overview={overview} />

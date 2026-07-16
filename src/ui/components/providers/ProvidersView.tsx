@@ -28,6 +28,7 @@ import { Chip } from "../design/Chip.js";
 import { StatTile } from "../design/StatTile.js";
 import { cn } from "../design/cn.js";
 import { Section } from "../layout/PageShell.js";
+import { ErrorView } from "../../lib/error-view.js";
 
 type TestResult = Awaited<ReturnType<typeof api.testProvider>>;
 type Busy = { id: string; action: "apply" | "default" | "test" } | null;
@@ -289,7 +290,7 @@ export function ProvidersView() {
         </p>
       </div>
 
-      {error ? <ErrorBanner text={error} /> : null}
+      {error ? <ErrorView err={error} compact /> : null}
 
       {!rows ? (
         <Section>
@@ -449,15 +450,6 @@ export function ProvidersView() {
   );
 }
 
-/** Inline page-level error banner in the new idiom. */
-function ErrorBanner({ text }: { text: string }) {
-  return (
-    <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
-      {text}
-    </div>
-  );
-}
-
 function providerStatus(p: ProviderRow): { textClass: string; label: string } {
   if (p.configured) return { textClass: "text-emerald-400", label: "configured" };
   if (!p.available) return { textClass: "text-chalk-400", label: "not installed" };
@@ -473,22 +465,21 @@ function providerStatus(p: ProviderRow): { textClass: string; label: string } {
  */
 function ProviderCatalogPanel() {
   const [data, setData] = useState<ProviderCatalogResponse | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
 
+  async function loadCatalog() {
+    try {
+      setError(null);
+      setData(await api.getProviderCatalog());
+    } catch (err) {
+      setError(err);
+    }
+  }
+
   useEffect(() => {
-    let cancelled = false;
-    void api
-      .getProviderCatalog()
-      .then((d) => {
-        if (!cancelled) setData(d);
-      })
-      .catch(() => {
-        /* non-critical panel; stay hidden on error */
-      });
-    return () => {
-      cancelled = true;
-    };
+    void loadCatalog();
   }, []);
 
   async function refresh() {
@@ -522,7 +513,14 @@ function ProviderCatalogPanel() {
     }
   }
 
-  if (!data) return null;
+  // A failed catalog load is a recoverable state, not a silent hide - surface a
+  // compact error with a retry so the capability panel doesn't just vanish.
+  if (!data)
+    return error ? (
+      <Section title="Capability catalog">
+        <ErrorView err={error} compact onRetry={() => void loadCatalog()} />
+      </Section>
+    ) : null;
   // Only show providers that actually expose a knob (or are overlaid) - hides
   // the many CLIs with no model/effort spec, which would just be noise.
   const ids = Object.keys(data.catalog)
