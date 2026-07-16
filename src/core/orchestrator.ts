@@ -282,7 +282,6 @@ export type {
   OrchestratorInput,
   OrchestratorOutput,
 } from "./run-engine/types.js";
-export { permissionModeEvaluators } from "./run-engine/helpers.js";
 
 export class Orchestrator {
   private readonly projectRoot: string;

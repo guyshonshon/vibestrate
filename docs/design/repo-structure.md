@@ -1,6 +1,15 @@
 # Repo structure: consolidation + big-file split program
 
-Status: revised-after-review (2026-07-16); Wave A executed (2026-07-16)
+Status: revised-after-review (2026-07-16); Waves A + B executed (2026-07-16).
+Wave B outcome: orchestrator.ts 7,876 -> ~5,200 lines, 12 modules under
+core/run-engine/ (types, signals, helpers, flow-run-state, flow-outputs,
+resume-seeder, validation, report, approval-gate, budget-governor,
+resilient-provider, saga-turns); notify monkey-patch replaced by a typed
+field; RunContext named; dead core/run-context.ts and the unused
+permissionModeEvaluators re-export deleted. Adversarial diff review vs main
+(all 8 risk seams attested, 4,069 diff lines swept): no BLOCKER, no MAJOR.
+The runners (runFlowSequence/runGraphFrontier/runRole) stay in the class by
+design - split only if a future need arises.
 
 ## Context
 
