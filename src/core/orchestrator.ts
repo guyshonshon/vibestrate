@@ -15,7 +15,7 @@ import {
   effectiveVerificationDecision,
   detectNeedsTesting,
 } from "./review-parser.js";
-import { runValidationCommands, type ValidationResults } from "./validation-runner.js";
+import type { ValidationResults } from "./validation-runner.js";
 import { buildRolePrompt, type PriorArtifact } from "./prompt-builder.js";
 import {
   initRunBrief,
@@ -34,7 +34,6 @@ import {
   pendingControls,
   renderControlNotes,
 } from "./run-control.js";
-import { renderFinalReport } from "./final-report.js";
 import { runPreflightChecks, type PolicyWarning } from "./policy-engine.js";
 import type { ProjectConfig, PermissionMode } from "../project/config-schema.js";
 import { loadRolePrompt } from "../project/config-loader.js";
@@ -90,15 +89,8 @@ import {
   KNOWN_METHODOLOGY_IDS,
 } from "./known-methodologies.js";
 import {
-  capturePhaseSnapshot,
   pruneOldSnapshots,
   sweepOrphanedSnapshotRefs,
-  readPhaseSnapshots,
-  pickSnapshotForResume,
-  restorePhaseSnapshot,
-  checkRestoreTarget,
-  type SnapshotStage,
-  type DownstreamResumeStage,
 } from "./phase-snapshots.js";
 import {
   snapshotWorktree,
@@ -167,12 +159,6 @@ import {
 } from "./saga/enhance.js";
 import type { Provenance } from "../roadmap/roadmap-types.js";
 import { evaluateBlockPolicies } from "../supervisor/policy-block.js";
-import { classifyChangedFilesForValidation } from "./validation-scope.js";
-import { protectedPathMatch } from "../supervisor/protected-paths.js";
-import {
-  evaluateReviewDescent,
-  type ReviewDescentDecision,
-} from "./review-descent.js";
 import {
   computeMergeReady,
   type ReviewSkipEvidence,
@@ -194,8 +180,6 @@ import {
 } from "../notifications/notification-router.js";
 import type { NotificationDraft } from "../notifications/notification-router.js";
 import type { RunStatus } from "./workflow/workflow-types.js";
-import { ReviewSuggestionService } from "../reviews/review-suggestion-service.js";
-import type { SuggestionSource } from "../reviews/review-suggestion-types.js";
 import { applyPauseIfRequested } from "./pause-service.js";
 import { isTerminal, runStateSchema } from "./state-machine.js";
 import { writeJson, readJson } from "../utils/json.js";
@@ -244,10 +228,7 @@ import {
   openFindingCount,
 } from "../flows/runtime/per-item-verdicts.js";
 import { checklistItemGapsCap } from "../safety/run-assurance.js";
-import {
-  buildFlowContextPacket as buildFlowContextPacketValue,
-  type FlowContextOutput,
-} from "../flows/runtime/flow-context-builder.js";
+import type { FlowContextOutput } from "../flows/runtime/flow-context-builder.js";
 import {
   FlowParticipantLedgerStore,
   createFlowParticipantLedger,
@@ -258,36 +239,11 @@ import {
 import {
   FlowArbitrationStore,
   createFlowArbitrationLedger,
-  formatFlowFindingSuggestionBody,
-  flowAcceptedFindingResponses,
-  flowArbitrationCanonicalFindings,
-  flowArbitrationCanonicalResolutions,
-  flowArbitrationCanonicalResponses,
-  parseFlowJsonContract,
-  recordFlowArbitrationParseIssue,
   recordFlowDecision,
-  recordFlowFindingResolutions,
-  recordFlowFindingResponses,
-  recordFlowFindings,
-  renderFlowDecisionSummaryMarkdown,
-  renderFlowOutputContractNotes,
-  setFlowAcceptedReviewPassId,
-  setFlowDecisionSummaryPath,
-  setFlowFindingSuggestionId,
   type FlowArbitrationLedger,
 } from "../flows/runtime/flow-arbitration.js";
-import {
-  flowDecisionSummaryOutputSchema,
-  flowFindingResolutionsOutputSchema,
-  flowFindingResponsesOutputSchema,
-  flowFindingsOutputSchema,
-  flowHandoffContracts,
-  isFlowHandoffToken,
-} from "../flows/schemas/flow-output-contracts.js";
-import { SuggestionBundleService } from "../reviews/suggestion-bundle-service.js";
 
 import {
-  DOWNSTREAM_RESUME_STAGES,
   type ResumeStage,
   type ResumeFromInput,
   type OrchestratorInput,
@@ -306,7 +262,6 @@ import {
 import {
   permissionModeEvaluators,
   summarizeApprovals,
-  flowFindingSuggestionTitle,
 } from "./run-engine/helpers.js";
 import {
   createFlowRunState,
@@ -315,6 +270,27 @@ import {
   flowStatusForStep,
   moveToFlowStepStatus,
 } from "./run-engine/flow-run-state.js";
+import {
+  assessTurnResult,
+  buildFlowContextPacket,
+  composeGuidedNotes,
+  recordFlowArbitrationOutputs,
+  recordFlowHandoffOutputs,
+  registerFlowRoleOutputs,
+  renderFlowStepNotes,
+} from "./run-engine/flow-outputs.js";
+import {
+  maybeCapturePhaseSnapshot,
+  seedResumedSteps,
+} from "./run-engine/resume-seeder.js";
+import {
+  evaluateReviewDescentForWorktree,
+  runFlowValidationStep,
+} from "./run-engine/validation.js";
+import {
+  ingestSuggestionsFromArtifact,
+  writeFlowFinalReport,
+} from "./run-engine/report.js";
 
 // Re-exported so existing importers (server routes, CLI, workflow runner) keep
 // resolving these from here; the definitions live under run-engine/.
@@ -1308,719 +1284,6 @@ export class Orchestrator {
     }
   }
 
-  /** Append a human's change-request guidance (already redacted) to a step's
-   *  notes, so a re-run of that step acts on it. Used by both the graph and the
-   *  linear execution paths. */
-  private composeGuidedNotes(baseNotes: string, guidance: string | undefined): string {
-    if (!guidance) return baseNotes;
-    const head = baseNotes ? `${baseNotes}\n\n` : "";
-    return `${head}Human guidance on your previous attempt (address it directly):\n${guidance}`;
-  }
-
-  private renderFlowStepNotes(input: {
-    snapshot: ResolvedFlowSnapshot;
-    step: ResolvedFlowStep;
-  }): string {
-    const brief = input.snapshot.brief
-      ? `Run brief:\n${input.snapshot.brief.trim()}\n\n`
-      : "";
-    const outputs =
-      input.step.outputs.length > 0
-        ? input.step.outputs.map((token) => `- ${token}`).join("\n")
-        : "- No named outputs declared.";
-    const contractNotes = renderFlowOutputContractNotes(input.step);
-    return [
-      `Flow: ${input.snapshot.label} (${input.snapshot.flowId} v${input.snapshot.flowVersion})`,
-      `Flow step: ${input.step.label} (${input.step.id})`,
-      `Flow step kind: ${input.step.kind}`,
-      `Context policy: ${input.snapshot.contextPolicy}`,
-      "",
-      brief.trimEnd(),
-      "",
-      "Only this step should be completed now. Use the named prior artifacts as the handoff packet.",
-      "Expected named outputs:",
-      outputs,
-      "",
-      contractNotes,
-    ]
-      .filter((line, index, all) => line !== "" || all[index - 1] !== "")
-      .join("\n");
-  }
-
-  private async buildFlowContextPacket(input: {
-    snapshot: ResolvedFlowSnapshot;
-    step: ResolvedFlowStep;
-    outputs: Map<string, FlowContextOutput>;
-    artifactStore: ArtifactStore;
-    contextMode: PreparedFlowParticipantTurn["contextMode"];
-    forceFullTokens?: ReadonlySet<string>;
-  }): Promise<{
-    priorArtifacts: PriorArtifact[];
-    contextPacketPath: string;
-    budget: ReturnType<typeof buildFlowContextPacketValue>["packet"]["budget"];
-  }> {
-    const built = buildFlowContextPacketValue({
-      snapshot: input.snapshot,
-      step: input.step,
-      outputs: input.outputs,
-      contextMode: input.contextMode,
-      forceFullTokens: input.forceFullTokens,
-      generatedAt: nowIso(),
-    });
-    const absPath = await input.artifactStore.writeJson(
-      path.posix.join("flows", input.step.id, "context-packet.json"),
-      built.packet,
-    );
-    return {
-      priorArtifacts: built.priorArtifacts,
-      contextPacketPath: input.artifactStore.relPath(absPath),
-      budget: built.packet.budget,
-    };
-  }
-
-  // Honest turn outcome: a model turn "succeeded" only if its provider exited 0
-  // AND it produced usable output. A non-zero exit (an invocation failure the
-  // runner used to swallow) or empty/whitespace output (a silent no-op) is a
-  // real failure - the caller fails the run (or, for a continueOnError graph
-  // step, tolerates it) instead of registering empty output as success.
-  private assessTurnResult(result: RoleRunResult): {
-    ok: boolean;
-    reason: string;
-    failureClass: ProviderFailureClass | null;
-  } {
-    const exit = result.providerResult.exitCode;
-    if (exit !== 0) {
-      // Carry the resilience layer's diagnosis (class + redacted excerpt)
-      // instead of laundering every failure into "provider exited N".
-      const f = result.providerResult.failure;
-      return {
-        ok: false,
-        reason: f
-          ? `provider exited ${exit} (${f.class}: ${f.excerpt})`
-          : `provider exited ${exit}`,
-        failureClass: f?.class ?? null,
-      };
-    }
-    if (result.output.trim().length === 0) {
-      return { ok: false, reason: "provider returned no output", failureClass: null };
-    }
-    return { ok: true, reason: "", failureClass: null };
-  }
-
-  private async registerFlowRoleOutputs(input: {
-    step: ResolvedFlowStep;
-    result: RoleRunResult;
-    outputs: Map<string, FlowContextOutput>;
-    artifactStore: ArtifactStore;
-    worktreePath: string | null;
-  }): Promise<void> {
-    for (const token of input.step.outputs) {
-      if (token === "diff") {
-        if (!input.worktreePath) continue;
-        const snapshot = await getDiffSnapshot({
-          worktreePath: input.worktreePath,
-        });
-        const absPath = await input.artifactStore.writeJson(
-          path.posix.join("flows", input.step.id, "diff-snapshot.json"),
-          snapshot,
-        );
-        input.outputs.set(token, {
-          token,
-          label: `${input.step.label}: ${token}`,
-          content: `${JSON.stringify(snapshot, null, 2)}\n`,
-          artifactPath: input.artifactStore.relPath(absPath),
-        });
-        continue;
-      }
-      input.outputs.set(token, {
-        token,
-        label: `${input.step.label}: ${token}`,
-        content: input.result.output,
-        artifactPath: input.result.outputArtifactPath,
-      });
-    }
-  }
-
-  private registerFlowValidationOutputs(input: {
-    step: ResolvedFlowStep;
-    validation: ValidationResults;
-    validationArtifactPath: string;
-    outputs: Map<string, FlowContextOutput>;
-  }): void {
-    for (const token of input.step.outputs) {
-      input.outputs.set(token, {
-        token,
-        label: `${input.step.label}: ${token}`,
-        content: `${JSON.stringify(input.validation, null, 2)}\n`,
-        artifactPath: input.validationArtifactPath,
-      });
-    }
-  }
-
-  private async recordFlowArbitrationOutputs(input: {
-    step: ResolvedFlowStep;
-    result: RoleRunResult;
-    outputs: Map<string, FlowContextOutput>;
-    validation: ValidationResults | null;
-    artifactStore: ArtifactStore;
-    eventLog: EventLog;
-    ledger: FlowArbitrationLedger;
-    store: FlowArbitrationStore;
-  }): Promise<FlowArbitrationLedger> {
-    let ledger = input.ledger;
-    let findingsChanged = false;
-
-    if (input.step.outputs.includes("findings")) {
-      const parsed = parseFlowJsonContract({
-        text: input.result.output,
-        schema: flowFindingsOutputSchema,
-        expectedStepId: input.step.id,
-      });
-      if (parsed.ok) {
-        ledger = recordFlowFindings({
-          ledger,
-          output: parsed.output,
-          sourceArtifactPath: input.result.outputArtifactPath,
-        });
-        const absPath = await input.artifactStore.writeJson(
-          path.posix.join("flows", "findings.json"),
-          flowArbitrationCanonicalFindings(ledger, input.step.id),
-        );
-        input.outputs.set("findings", {
-          token: "findings",
-          label: "Flow Findings",
-          content: `${JSON.stringify(
-            flowArbitrationCanonicalFindings(ledger, input.step.id),
-            null,
-            2,
-          )}\n`,
-          artifactPath: input.artifactStore.relPath(absPath),
-        });
-        findingsChanged = true;
-      } else {
-        ledger = recordFlowArbitrationParseIssue({
-          ledger,
-          stepId: input.step.id,
-          outputToken: "findings",
-          sourceArtifactPath: input.result.outputArtifactPath,
-          message: parsed.message,
-        });
-      }
-    }
-
-    if (input.step.outputs.includes("finding-responses")) {
-      const parsed = parseFlowJsonContract({
-        text: input.result.output,
-        schema: flowFindingResponsesOutputSchema,
-        expectedStepId: input.step.id,
-      });
-      if (parsed.ok) {
-        ledger = recordFlowFindingResponses({
-          ledger,
-          output: parsed.output,
-          sourceArtifactPath: input.result.outputArtifactPath,
-        });
-        ledger = await this.feedFlowAcceptedFindings(ledger);
-        const canonical = flowArbitrationCanonicalResponses(
-          ledger,
-          input.step.id,
-        );
-        const absPath = await input.artifactStore.writeJson(
-          path.posix.join("flows", "finding-responses.json"),
-          canonical,
-        );
-        input.outputs.set("finding-responses", {
-          token: "finding-responses",
-          label: "Flow Finding Responses",
-          content: `${JSON.stringify(canonical, null, 2)}\n`,
-          artifactPath: input.artifactStore.relPath(absPath),
-        });
-        findingsChanged = true;
-      } else {
-        ledger = recordFlowArbitrationParseIssue({
-          ledger,
-          stepId: input.step.id,
-          outputToken: "finding-responses",
-          sourceArtifactPath: input.result.outputArtifactPath,
-          message: parsed.message,
-        });
-      }
-    }
-
-    if (input.step.outputs.includes("finding-resolutions")) {
-      const parsed = parseFlowJsonContract({
-        text: input.result.output,
-        schema: flowFindingResolutionsOutputSchema,
-        expectedStepId: input.step.id,
-      });
-      if (parsed.ok) {
-        ledger = recordFlowFindingResolutions({
-          ledger,
-          output: parsed.output,
-          sourceArtifactPath: input.result.outputArtifactPath,
-        });
-        const canonical = flowArbitrationCanonicalResolutions(
-          ledger,
-          input.step.id,
-        );
-        const absPath = await input.artifactStore.writeJson(
-          path.posix.join("flows", "finding-resolutions.json"),
-          canonical,
-        );
-        input.outputs.set("finding-resolutions", {
-          token: "finding-resolutions",
-          label: "Flow Finding Resolutions",
-          content: `${JSON.stringify(canonical, null, 2)}\n`,
-          artifactPath: input.artifactStore.relPath(absPath),
-        });
-        findingsChanged = true;
-      } else {
-        ledger = recordFlowArbitrationParseIssue({
-          ledger,
-          stepId: input.step.id,
-          outputToken: "finding-resolutions",
-          sourceArtifactPath: input.result.outputArtifactPath,
-          message: parsed.message,
-        });
-      }
-    }
-
-    if (input.step.outputs.includes("decision-summary")) {
-      const parsed = parseFlowJsonContract({
-        text: input.result.output,
-        schema: flowDecisionSummaryOutputSchema,
-        expectedStepId: input.step.id,
-      });
-      if (parsed.ok) {
-        ledger = recordFlowDecision({
-          ledger,
-          output: parsed.output,
-          sourceArtifactPath: input.result.outputArtifactPath,
-        });
-        const absPath = await input.artifactStore.writeJson(
-          path.posix.join("flows", "decision-summary.json"),
-          parsed.output,
-        );
-        input.outputs.set("decision-summary", {
-          token: "decision-summary",
-          label: "Flow Decision Summary",
-          content: `${JSON.stringify(parsed.output, null, 2)}\n`,
-          artifactPath: input.artifactStore.relPath(absPath),
-        });
-      } else {
-        ledger = recordFlowArbitrationParseIssue({
-          ledger,
-          stepId: input.step.id,
-          outputToken: "decision-summary",
-          sourceArtifactPath: input.result.outputArtifactPath,
-          message: parsed.message,
-        });
-      }
-      ledger = await this.writeFlowDecisionSummaryArtifact({
-        ledger,
-        stepId: input.step.id,
-        outputs: input.outputs,
-        validation: input.validation,
-        artifactStore: input.artifactStore,
-      });
-      await input.eventLog.append({
-        type: "flow.decision.completed",
-        message: `Flow decision summary persisted for ${input.step.id}.`,
-        data: {
-          stepId: input.step.id,
-          decisionSummaryPath: ledger.decisionSummaryPath,
-          structuredDecisionParsed: ledger.decision !== null,
-        },
-      });
-    }
-
-    if (findingsChanged) {
-      await input.eventLog.append({
-        type: "flow.findings.updated",
-        message: `Flow arbitration records updated at ${input.step.id}.`,
-        data: {
-          stepId: input.step.id,
-          findings: ledger.findings.length,
-          responses: ledger.responses.length,
-          resolutions: ledger.resolutions.length,
-        },
-      });
-    }
-
-    await input.store.write(ledger);
-    return ledger;
-  }
-
-  // Builder-side structured handoffs (plan/architecture/execution). Mirrors the
-  // review-side contract handling but stateless: for each handoff token a step
-  // declares, parse the step output against its contract; on success replace the
-  // registered output with the canonical JSON (so the next step consumes clean
-  // structured data) and persist it as an artifact; on failure leave the raw
-  // text in place (already registered by registerFlowRoleOutputs) and record a
-  // parse issue. Either way emit `flow.handoff.parsed` so adoption is visible.
-  private async recordFlowHandoffOutputs(input: {
-    step: ResolvedFlowStep;
-    result: RoleRunResult;
-    outputs: Map<string, FlowContextOutput>;
-    artifactStore: ArtifactStore;
-    eventLog: EventLog;
-  }): Promise<void> {
-    for (const token of input.step.outputs) {
-      if (!isFlowHandoffToken(token)) continue;
-      const spec = flowHandoffContracts[token];
-      const parsed = parseFlowJsonContract({
-        text: input.result.output,
-        schema: spec.schema,
-        expectedStepId: input.step.id,
-      });
-      if (parsed.ok) {
-        const absPath = await input.artifactStore.writeJson(
-          path.posix.join("flows", input.step.id, `${token}.json`),
-          parsed.output,
-        );
-        input.outputs.set(token, {
-          token,
-          label: spec.label,
-          content: `${JSON.stringify(parsed.output, null, 2)}\n`,
-          artifactPath: input.artifactStore.relPath(absPath),
-        });
-      }
-      await input.eventLog.append({
-        type: "flow.handoff.parsed",
-        message: parsed.ok
-          ? `Structured ${token} parsed at ${input.step.id}.`
-          : `Structured ${token} at ${input.step.id} did not parse; kept raw output.`,
-        data: {
-          stepId: input.step.id,
-          token,
-          parsed: parsed.ok,
-          ...(parsed.ok ? {} : { message: parsed.message }),
-        },
-      });
-    }
-  }
-
-  private async feedFlowAcceptedFindings(
-    ledger: FlowArbitrationLedger,
-  ): Promise<FlowArbitrationLedger> {
-    const svc = new ReviewSuggestionService(this.projectRoot, ledger.runId);
-    for (const accepted of flowAcceptedFindingResponses(ledger)) {
-      if (accepted.finding.suggestionId) continue;
-      const fileRef = accepted.finding.finding.evidence.find(
-        (evidence) => evidence.kind === "file",
-      );
-      const suggestion = await svc.addArtifactSuggestion({
-        title: flowFindingSuggestionTitle(accepted.finding.finding),
-        body: formatFlowFindingSuggestionBody({
-          finding: accepted.finding.finding,
-          response: accepted.response.response,
-        }),
-        file: fileRef?.ref ?? null,
-        sourceArtifactPath: accepted.finding.sourceArtifactPath,
-      });
-      ledger = setFlowFindingSuggestionId({
-        ledger,
-        findingId: accepted.finding.finding.id,
-        suggestionId: suggestion.id,
-      });
-    }
-
-    if (ledger.acceptedReviewPassId) return ledger;
-    const suggestionIds = flowAcceptedFindingResponses(ledger)
-      .map((accepted) => accepted.finding.suggestionId)
-      .filter((id): id is string => id !== null);
-    if (suggestionIds.length === 0) return ledger;
-    const bundle = await new SuggestionBundleService(
-      this.projectRoot,
-      ledger.runId,
-    ).create({
-      title: "Quality Arbitration accepted findings",
-      description:
-        "Findings the builder accepted or fixed during the Flow challenge response.",
-      suggestionIds,
-    });
-    return setFlowAcceptedReviewPassId(ledger, bundle.id);
-  }
-
-  private async writeFlowDecisionSummaryArtifact(input: {
-    ledger: FlowArbitrationLedger;
-    stepId: string;
-    outputs: Map<string, FlowContextOutput>;
-    validation: ValidationResults | null;
-    artifactStore: ArtifactStore;
-  }): Promise<FlowArbitrationLedger> {
-    await input.artifactStore.writeJson(
-      path.posix.join("flows", "findings.json"),
-      flowArbitrationCanonicalFindings(input.ledger, input.stepId),
-    );
-    await input.artifactStore.writeJson(
-      path.posix.join("flows", "finding-responses.json"),
-      flowArbitrationCanonicalResponses(input.ledger, input.stepId),
-    );
-    await input.artifactStore.writeJson(
-      path.posix.join("flows", "finding-resolutions.json"),
-      flowArbitrationCanonicalResolutions(input.ledger, input.stepId),
-    );
-    const absPath = await input.artifactStore.write(
-      path.posix.join("flows", "decision-summary.md"),
-      `${renderFlowDecisionSummaryMarkdown({
-        ledger: input.ledger,
-        validation: input.validation,
-        validationArtifactPath:
-          input.outputs.get("validation")?.artifactPath ?? null,
-      })}\n`,
-    );
-    return setFlowDecisionSummaryPath(
-      input.ledger,
-      input.artifactStore.relPath(absPath),
-    );
-  }
-
-  /** Capture a per-phase worktree snapshot after a code-producing step, so a
-   *  later run can rewind to review/verify/fix with this code. Best-effort. */
-  private async maybeCapturePhaseSnapshot(input: {
-    step: { kind: string; stage: string | null };
-    worktreePath: string | null;
-    runId: string;
-    eventLog: EventLog;
-  }): Promise<void> {
-    if (!input.worktreePath) return;
-    const { step } = input;
-    let stage: SnapshotStage | null = null;
-    if (step.kind === "agent-turn" && step.stage === "executing") stage = "executing";
-    else if (step.kind === "response-turn") stage = "fixing";
-    if (!stage) return;
-    const snap = await capturePhaseSnapshot({
-      projectRoot: this.projectRoot,
-      runId: input.runId,
-      worktree: input.worktreePath,
-      stage,
-    });
-    if (snap) {
-      await input.eventLog.append({
-        type: "run.snapshot.captured",
-        message: `Captured ${stage} worktree snapshot (#${snap.seq}) for rewind.`,
-        data: { seq: snap.seq, stage, treeSha: snap.treeSha },
-      });
-    }
-  }
-
-  /** Resolve the step index to resume at. Upstream stages match the step's
-   *  declared `stage`; the downstream `fixing` resume targets the fixer step by
-   *  KIND (the fix step is declared stage "executing", not "fixing"). */
-  private resolveResumeIndex(
-    snapshot: ResolvedFlowSnapshot,
-    fromStage: ResumeStage,
-  ): number {
-    if (fromStage === "fixing") {
-      return snapshot.steps.findIndex((s) => s.kind === "response-turn");
-    }
-    if (fromStage === "reviewing") {
-      return snapshot.steps.findIndex(
-        (s) => s.stage === "reviewing" || s.kind === "review-turn",
-      );
-    }
-    if (fromStage === "verifying") {
-      return snapshot.steps.findIndex(
-        (s) => s.stage === "verifying" || s.kind === "summary-turn",
-      );
-    }
-    return snapshot.steps.findIndex((s) => s.stage === fromStage);
-  }
-
-  /** Seed the outputs of every step before the resume stage from the source
-   *  run and mark them skipped. Returns the index to start the walk at, the
-   *  updated state, and seeded plan/execution artifacts (for the report). */
-  private async seedResumedSteps(input: {
-    snapshot: ResolvedFlowSnapshot;
-    resumeFrom: ResumeFromInput;
-    state: RunState;
-    worktreePath: string | null;
-    outputs: Map<string, FlowContextOutput>;
-    targetStore: ArtifactStore;
-    stateStore: RunStateStore;
-    eventLog: EventLog;
-  }): Promise<{
-    state: RunState;
-    resumeStartIndex: number;
-    planArtifact: RoleRunResult | null;
-    executionArtifact: RoleRunResult | null;
-  }> {
-    const { snapshot, resumeFrom } = input;
-    const resumeStartIndex = this.resolveResumeIndex(snapshot, resumeFrom.fromStage);
-    if (resumeStartIndex < 0) {
-      throw new Error(
-        `Cannot resume from stage "${resumeFrom.fromStage}": flow "${snapshot.flowId}" has no step at that stage.`,
-      );
-    }
-
-    // Downstream stages (review/fix/verify) operate on existing code - restore
-    // the source run's per-phase worktree snapshot into this run's worktree.
-    if (DOWNSTREAM_RESUME_STAGES.has(resumeFrom.fromStage) && input.worktreePath) {
-      const sourceSnaps = await readPhaseSnapshots(
-        this.projectRoot,
-        resumeFrom.sourceRunId,
-      );
-      const pick = pickSnapshotForResume(
-        sourceSnaps,
-        resumeFrom.fromStage as DownstreamResumeStage,
-      );
-      if (pick) {
-        // Defense in depth: restore is destructive (checkout-index -f +
-        // clean -fd), so positively verify the target is a real run worktree
-        // (≠ root, inside the configured worktreeDir, an actual git worktree
-        // root) before touching it - never the user's checkout or a stray dir.
-        const worktreeDir = this.config.git.worktreeDir;
-        const check = await checkRestoreTarget(
-          input.worktreePath,
-          this.projectRoot,
-          worktreeDir,
-        );
-        const ok = check.safe
-          ? await restorePhaseSnapshot(input.worktreePath, pick.treeSha, this.projectRoot, worktreeDir)
-          : false;
-        await input.eventLog.append({
-          type: "run.rewound.restored",
-          message: !check.safe
-            ? `Refused to restore: ${check.reason}.`
-            : ok
-              ? `Restored ${pick.stage} worktree snapshot (#${pick.seq}) from run ${resumeFrom.sourceRunId}.`
-              : `Failed to restore worktree snapshot from run ${resumeFrom.sourceRunId}; the resumed stage may see no code.`,
-          data: { sourceRunId: resumeFrom.sourceRunId, seq: pick.seq, stage: pick.stage, ok, safe: check.safe },
-        });
-      } else {
-        await input.eventLog.append({
-          type: "run.rewound.restored",
-          message: `Source run ${resumeFrom.sourceRunId} has no worktree snapshot to restore for stage "${resumeFrom.fromStage}".`,
-          data: { sourceRunId: resumeFrom.sourceRunId, ok: false },
-        });
-      }
-    }
-    let state = input.state;
-    let planArtifact: RoleRunResult | null = null;
-    let executionArtifact: RoleRunResult | null = null;
-    const sourceStore = new ArtifactStore(
-      this.projectRoot,
-      resumeFrom.sourceRunId,
-    );
-
-    // Downstream resumes (review/fix/verify) seed everything before the resume
-    // step - which can include non-agent steps (validation) whose outputs aren't
-    // artifact files. A missing output there is fine (the code itself is restored
-    // from the worktree snapshot), so tolerate it; upstream resumes keep the
-    // strict contract (a missing plan/architecture is a real error).
-    const tolerateMissing = DOWNSTREAM_RESUME_STAGES.has(resumeFrom.fromStage);
-    for (let i = 0; i < resumeStartIndex; i += 1) {
-      const upstream = snapshot.steps[i]!;
-      for (const token of upstream.outputs) {
-        const seeded = await this.seedResumedOutput({
-          token,
-          step: upstream,
-          sourceStore,
-          targetStore: input.targetStore,
-          tolerateMissing,
-        });
-        if (!seeded) continue; // missing non-essential output - skip
-        input.outputs.set(token, seeded);
-        if (token === "plan" || token === "plan-handoff")
-          planArtifact = this.seededFlowResult(upstream, seeded);
-        if (token === "execution" || token === "execution-handoff")
-          executionArtifact = this.seededFlowResult(upstream, seeded);
-      }
-      state = patchFlowStep(
-        state,
-        upstream.id,
-        { status: "skipped", endedAt: nowIso() },
-        upstream.id,
-      );
-      await input.stateStore.write(state);
-      await input.eventLog.append({
-        type: "flow.step.skipped",
-        message: `Flow step ${upstream.id} skipped (resumed from ${resumeFrom.fromStage}).`,
-        data: {
-          flowId: snapshot.flowId,
-          stepId: upstream.id,
-          resumedFrom: resumeFrom.fromStage,
-        },
-      });
-    }
-
-    await input.eventLog.append({
-      type: "run.rewound",
-      message: `Resumed from run ${resumeFrom.sourceRunId} at stage ${resumeFrom.fromStage}; seeded ${resumeStartIndex} upstream step(s).`,
-      data: {
-        sourceRunId: resumeFrom.sourceRunId,
-        fromStage: resumeFrom.fromStage,
-        seededSteps: resumeStartIndex,
-      },
-    });
-
-    return { state, resumeStartIndex, planArtifact, executionArtifact };
-  }
-
-  /** Read a single upstream output from the source run and copy it into this
-   *  run's artifacts. `diff` outputs come from the step's diff snapshot; every
-   *  other token comes from the step's role output. Throws clearly if missing. */
-  private async seedResumedOutput(input: {
-    token: string;
-    step: ResolvedFlowStep;
-    sourceStore: ArtifactStore;
-    targetStore: ArtifactStore;
-    /** When true, a missing source output returns null instead of throwing. */
-    tolerateMissing?: boolean;
-  }): Promise<FlowContextOutput | null> {
-    const isDiff = input.token === "diff";
-    const rel = path.posix.join(
-      "flows",
-      input.step.id,
-      isDiff ? "diff-snapshot.json" : "output.md",
-    );
-    if (!(await input.sourceStore.exists(rel))) {
-      if (input.tolerateMissing) return null;
-      throw new Error(
-        `Cannot resume: source run is missing "${rel}" (output "${input.token}" of step "${input.step.id}").`,
-      );
-    }
-    const content = await input.sourceStore.read(rel);
-    const abs = await input.targetStore.write(rel, content);
-    return {
-      token: input.token,
-      label: `${input.step.label}: ${input.token} (seeded)`,
-      content,
-      artifactPath: input.targetStore.relPath(abs),
-    };
-  }
-
-  /** Synthetic RoleRunResult for an output seeded from a prior run during a
-   *  resume. Only `.output`/`.outputArtifactPath` are read downstream; the
-   *  provider stub records that no agent turn was spent regenerating it. */
-  private seededFlowResult(
-    step: ResolvedFlowStep,
-    output: FlowContextOutput,
-  ): RoleRunResult {
-    const ts = nowIso();
-    return {
-      roleId: step.resolvedRoleId ?? "(seeded)",
-      output: output.content,
-      outputArtifactPath: output.artifactPath,
-      promptArtifactPath: "",
-      providerResult: {
-        providerId: "(seeded)",
-        command: "(seeded)",
-        args: [],
-        cwd: this.projectRoot,
-        exitCode: 0,
-        stdout: output.content,
-        stderr: "",
-        durationMs: 0,
-        startedAt: ts,
-        endedAt: ts,
-        session: null,
-        normalized: { responseText: output.content, metrics: null },
-      },
-    };
-  }
-
   /**
    * The bounded read-only fan-out/join scheduler for graph (DAG) flows
    * (custom-workflow-dags.md). Walks the dependency frontier: a step is
@@ -2173,7 +1436,7 @@ export class Orchestrator {
         step,
         stateStore: input.stateStore,
       });
-      const context = await this.buildFlowContextPacket({
+      const context = await buildFlowContextPacket({
         snapshot,
         step,
         outputs: input.outputs,
@@ -2235,7 +1498,7 @@ export class Orchestrator {
       // (never the arbiter, never executors/planners), so the active persona
       // actually aims WHAT is scrutinised. Composition is a pure, tested helper.
       const baseNotes = composeReviewerStepNotes({
-        baseNotes: this.renderFlowStepNotes({ snapshot, step }),
+        baseNotes: renderFlowStepNotes({ snapshot, step }),
         stepInstructions: step.instructions,
         lensEmphasis: this.reviewLensEmphasis,
         isReviewer: isReviewerStep(step),
@@ -2247,7 +1510,7 @@ export class Orchestrator {
       // A prior turn at this step asked for human approval and the human
       // requested changes: their guidance (already redacted) is injected here so
       // this fresh turn acts on it - forward, never a re-run of the committed turn.
-      const additionalNotes = this.composeGuidedNotes(baseNotes, stepGuidance.get(step.id));
+      const additionalNotes = composeGuidedNotes(baseNotes, stepGuidance.get(step.id));
       return this.runRole({
         roleId: step.resolvedRoleId!,
         providerId: step.providerId,
@@ -2330,14 +1593,15 @@ export class Orchestrator {
       step: ResolvedFlowStep,
       result: RoleRunResult,
     ): Promise<"committed" | "changes-requested"> => {
-      await this.registerFlowRoleOutputs({
+      await registerFlowRoleOutputs({
         step,
         result,
         outputs: input.outputs,
         artifactStore: input.artifactStore,
         worktreePath: input.worktreePath,
       });
-      arbitrationLedger = await this.recordFlowArbitrationOutputs({
+      arbitrationLedger = await recordFlowArbitrationOutputs({
+        projectRoot: this.projectRoot,
         step,
         result,
         outputs: input.outputs,
@@ -2347,7 +1611,7 @@ export class Orchestrator {
         ledger: arbitrationLedger,
         store: input.arbitrationStore,
       });
-      await this.recordFlowHandoffOutputs({
+      await recordFlowHandoffOutputs({
         step,
         result,
         outputs: input.outputs,
@@ -2384,7 +1648,8 @@ export class Orchestrator {
         });
       }
       if (step.kind === "review-turn" || step.kind === "summary-turn") {
-        await this.ingestSuggestionsFromArtifact({
+        await ingestSuggestionsFromArtifact({
+          projectRoot: this.projectRoot,
           runId: input.runId,
           artifactRelPath: result.outputArtifactPath,
           artifactBody: result.output,
@@ -2593,14 +1858,22 @@ export class Orchestrator {
     ): Promise<"committed" | "changes-requested" | void> => {
       if (step.kind === "validation") {
         await prepareStep(step);
-        const out = await this.runFlowValidationStep({
-          step,
-          state,
-          outputs: input.outputs,
-          artifactStore: input.artifactStore,
-          stateStore: input.stateStore,
-          ctx: input.ctx,
-        });
+        const out = await runFlowValidationStep(
+          {
+            projectRoot: this.projectRoot,
+            config: this.config,
+            taskId: this.taskId,
+            broker: this.broker,
+          },
+          {
+            step,
+            state,
+            outputs: input.outputs,
+            artifactStore: input.artifactStore,
+            stateStore: input.stateStore,
+            ctx: input.ctx,
+          },
+        );
         state = out.state;
         lastValidation = out.validation;
         if (out.validation.summary.failed > 0) {
@@ -2691,7 +1964,7 @@ export class Orchestrator {
         return;
       }
       // The turn returned: a non-zero exit or empty output is still a failure.
-      const turn = this.assessTurnResult(result);
+      const turn = assessTurnResult(result);
       if (turn.ok) {
         return await commitTurn(step, result);
       } else if (step.continueOnError) {
@@ -2789,7 +2062,7 @@ export class Orchestrator {
             // is a failure, not a silent empty commit. Best-effort steps record
             // it and continue (the join knows the lens is missing); required
             // steps fail the run.
-            const turn = this.assessTurnResult(outcome.value);
+            const turn = assessTurnResult(outcome.value);
             if (turn.ok) {
               const committed = await commitTurn(step, outcome.value);
               // Forward-resume (leave the step un-done and re-run it) only works
@@ -3188,7 +2461,9 @@ export class Orchestrator {
         // the remaining fan-out/join. The steps array is a valid topological
         // sort, so seeding [0, resumeStartIndex) can never strand a dependency.
         if (this.resumeFrom) {
-          const seeded = await this.seedResumedSteps({
+          const seeded = await seedResumedSteps({
+            projectRoot: this.projectRoot,
+            worktreeDir: this.config.git.worktreeDir,
             snapshot: input.snapshot,
             resumeFrom: this.resumeFrom,
             state,
@@ -3243,7 +2518,9 @@ export class Orchestrator {
         verificationArtifact = gr.verificationArtifact ?? verificationArtifact;
         stepIndex = steps.length; // frontier ran everything; linear walk is a no-op
       } else if (this.resumeFrom) {
-        const seeded = await this.seedResumedSteps({
+        const seeded = await seedResumedSteps({
+          projectRoot: this.projectRoot,
+          worktreeDir: this.config.git.worktreeDir,
           snapshot: input.snapshot,
           resumeFrom: this.resumeFrom,
           state,
@@ -3984,8 +3261,9 @@ export class Orchestrator {
             step.skipWhen === "inert_diff" &&
             !this.readOnly
           ) {
-            const descent = await this.evaluateReviewDescentForWorktree(
+            const descent = await evaluateReviewDescentForWorktree(
               input.worktreePath,
+              this.config.policies,
             );
             if (descent?.skip) {
               reviewSkipEvidence = { stepId: step.id, files: descent.files };
@@ -4037,7 +3315,7 @@ export class Orchestrator {
                 this.config.session?.maxReuseTurns ?? 0,
               )
             : null;
-          const context = await this.buildFlowContextPacket({
+          const context = await buildFlowContextPacket({
             snapshot: input.snapshot,
             step,
             outputs,
@@ -4091,14 +3369,22 @@ export class Orchestrator {
           this.onProgress(`Flow ${step.id}...`);
 
           if (step.kind === "validation") {
-            const validationOutput = await this.runFlowValidationStep({
-              step,
-              state,
-              outputs,
-              artifactStore: input.artifactStore,
-              stateStore: input.stateStore,
-              ctx: input.ctx,
-            });
+            const validationOutput = await runFlowValidationStep(
+              {
+                projectRoot: this.projectRoot,
+                config: this.config,
+                taskId: this.taskId,
+                broker: this.broker,
+              },
+              {
+                step,
+                state,
+                outputs,
+                artifactStore: input.artifactStore,
+                stateStore: input.stateStore,
+                ctx: input.ctx,
+              },
+            );
             state = validationOutput.state;
             lastValidation = validationOutput.validation;
             if (validationOutput.validation.summary.failed > 0) {
@@ -4197,9 +3483,9 @@ export class Orchestrator {
             // the default flow is linear, so this is the path a plain run takes.
             // A pending human change-guidance for this step is appended so the
             // re-run acts on it.
-            additionalNotes: this.composeGuidedNotes(
+            additionalNotes: composeGuidedNotes(
               composeReviewerStepNotes({
-                baseNotes: this.renderFlowStepNotes({
+                baseNotes: renderFlowStepNotes({
                   snapshot: input.snapshot,
                   step,
                 }),
@@ -4268,21 +3554,22 @@ export class Orchestrator {
           // registered as a successful step. Throw so the run fails honestly -
           // the outer catch marks this step (currentStepId) failed. Linear steps
           // are always required (continueOnError is graph-only).
-          const turn = this.assessTurnResult(result);
+          const turn = assessTurnResult(result);
           if (!turn.ok) {
             throw new Error(`Flow step "${step.id}" failed: ${turn.reason}.`);
           }
           // Any executed review-turn invalidates skip evidence at finalize -
           // a review that ran always wins over the deterministic descent.
           if (step.kind === "review-turn") reviewTurnRan = true;
-          await this.registerFlowRoleOutputs({
+          await registerFlowRoleOutputs({
             step,
             result,
             outputs,
             artifactStore: input.artifactStore,
             worktreePath: input.worktreePath,
           });
-          arbitrationLedger = await this.recordFlowArbitrationOutputs({
+          arbitrationLedger = await recordFlowArbitrationOutputs({
+            projectRoot: this.projectRoot,
             step,
             result,
             outputs,
@@ -4292,7 +3579,7 @@ export class Orchestrator {
             ledger: arbitrationLedger,
             store: arbitrationStore,
           });
-          await this.recordFlowHandoffOutputs({
+          await recordFlowHandoffOutputs({
             step,
             result,
             outputs,
@@ -4330,7 +3617,8 @@ export class Orchestrator {
             });
           }
           if (step.kind === "review-turn" || step.kind === "summary-turn") {
-            await this.ingestSuggestionsFromArtifact({
+            await ingestSuggestionsFromArtifact({
+              projectRoot: this.projectRoot,
               runId: input.runId,
               artifactRelPath: result.outputArtifactPath,
               artifactBody: result.output,
@@ -4469,7 +3757,8 @@ export class Orchestrator {
         // ── Snapshot the worktree after code-producing steps ──
         // (implement → "executing", fix → "fixing") so a later run can rewind to
         // review/verify/fix with this exact code. Best-effort; never blocks.
-        await this.maybeCapturePhaseSnapshot({
+        await maybeCapturePhaseSnapshot({
+          projectRoot: this.projectRoot,
           step,
           worktreePath: input.worktreePath,
           runId: input.runId,
@@ -4861,8 +4150,9 @@ export class Orchestrator {
         } catch {
           // metrics finalize best-effort
         }
-        await this.writeFlowFinalReport({
+        await writeFlowFinalReport({
           ...input,
+          projectRoot: this.projectRoot,
           state,
           lastValidation,
           reviewLoops: Math.max(0, loopIteration - 1),
@@ -4918,8 +4208,9 @@ export class Orchestrator {
       // ledger is advisory; swallow.
     }
 
-    const finalReportPath = await this.writeFlowFinalReport({
+    const finalReportPath = await writeFlowFinalReport({
       ...input,
+      projectRoot: this.projectRoot,
       state,
       lastValidation,
       reviewLoops: Math.max(0, loopIteration - 1),
@@ -4937,143 +4228,6 @@ export class Orchestrator {
       finalReportPath,
       policyWarnings: input.policyWarnings,
     };
-  }
-
-  private async runFlowValidationStep(input: {
-    step: ResolvedFlowStep;
-    state: RunState;
-    outputs: Map<string, FlowContextOutput>;
-    artifactStore: ArtifactStore;
-    stateStore: RunStateStore;
-    ctx: {
-      worktreePath: string | null;
-      artifactStore: ArtifactStore;
-      eventLog: EventLog;
-    };
-  }): Promise<{ state: RunState; validation: ValidationResults }> {
-    const artifactsName = path.posix.join(
-      "flows",
-      input.step.id,
-      "validation-results.json",
-    );
-    const validation = await this.runValidation({
-      artifactsName,
-      prefix: path.posix.join("flows", input.step.id, "validation"),
-      ctx: input.ctx,
-    });
-    const validationArtifactPath = input.artifactStore.relPath(
-      input.artifactStore.resolveArtifactPath(artifactsName),
-    );
-    this.registerFlowValidationOutputs({
-      step: input.step,
-      validation,
-      validationArtifactPath,
-      outputs: input.outputs,
-    });
-    const state = patchFlowStep(
-      input.state,
-      input.step.id,
-      {
-        status: "passed",
-        validationArtifactPath,
-        endedAt: nowIso(),
-      },
-      input.step.id,
-    );
-    await input.stateStore.write(state);
-    return { state, validation };
-  }
-
-  private async writeFlowFinalReport(input: {
-    artifactStore: ArtifactStore;
-    state: RunState;
-    lastValidation: ValidationResults | null;
-    policyWarnings: PolicyWarning[];
-    reviewLoops: number;
-    metricsStore: MetricsStore;
-    approvalService: ApprovalService;
-    planArtifact: RoleRunResult | null;
-    executionArtifact: RoleRunResult | null;
-    reviewArtifact: RoleRunResult | null;
-    verificationArtifact: RoleRunResult | null;
-    checklistOutcomes?: ChecklistItemOutcome[];
-  }): Promise<string> {
-    const metrics = (await input.metricsStore.read()) ?? null;
-    const approvals = await input.approvalService.readAll().catch(() => []);
-    // Pick-up runs: a consolidated per-item outcomes table alongside the report.
-    const outcomes = input.checklistOutcomes ?? [];
-    if (outcomes.length > 0) {
-      const done = outcomes.filter((o) => o.status === "done").length;
-      const table = [
-        "# Checklist outcomes",
-        "",
-        `${done}/${outcomes.length} items completed.`,
-        "",
-        "| # | Item | Status | Commit | Files |",
-        "| --- | --- | --- | --- | --- |",
-        ...outcomes.map(
-          (o) =>
-            `| ${o.index + 1} | ${o.text.replace(/\|/g, "\\|")} | ${o.status} | ${o.commitSha ? o.commitSha.slice(0, 8) : "-"} | ${o.filesTouched.length} |`,
-        ),
-        "",
-      ].join("\n");
-      await input.artifactStore
-        .write(path.posix.join("flows", "checklist", "outcomes.md"), table)
-        .catch(() => {});
-    }
-    return this.writeFinalReport({
-      artifactStore: input.artifactStore,
-      state: input.state,
-      validation: input.lastValidation,
-      policyWarnings: input.policyWarnings,
-      reviewLoops: input.reviewLoops,
-      metrics,
-      approvals,
-      artifacts: {
-        plan: input.planArtifact?.outputArtifactPath,
-        execution: input.executionArtifact?.outputArtifactPath,
-        review: input.reviewArtifact?.outputArtifactPath,
-        verification: input.verificationArtifact?.outputArtifactPath,
-      },
-    });
-  }
-
-  /**
-   * Capture VIBESTRATE_SUGGESTION marker blocks from a stage artifact. Best-effort:
-   * never throws into the orchestrator's hot path. Notifies the dashboard via
-   * the notification service when a suggestion was extracted (one summary
-   * notification per stage, not one per suggestion).
-   */
-  private async ingestSuggestionsFromArtifact(input: {
-    runId: string;
-    artifactRelPath: string;
-    artifactBody: string;
-    source: SuggestionSource;
-    notify?: (draft: NotificationDraft) => void;
-  }): Promise<void> {
-    try {
-      const svc = new ReviewSuggestionService(this.projectRoot, input.runId);
-      const created = await svc.ingestArtifact({
-        artifactRelPath: input.artifactRelPath,
-        artifactBody: input.artifactBody,
-        source: input.source,
-      });
-      if (created.length === 0) return;
-      input.notify?.({
-        severity: "attention",
-        category: "review",
-        title: `${created.length} suggestion${created.length > 1 ? "s" : ""} ready for review`,
-        message: `Captured from ${input.source} artifact ${input.artifactRelPath}.`,
-        runId: input.runId,
-        sourceEventType: "suggestion.created",
-        actionRequired: true,
-        actionLabel: "Open run",
-        actionUrl: `#/runs/${input.runId}`,
-      });
-    } catch {
-      // Suggestion ingestion is best-effort - never fail a run because the
-      // marker parser hiccupped.
-    }
   }
 
   private async awaitApprovalRequest(input: {
@@ -6723,166 +5877,6 @@ export class Orchestrator {
     };
   }
 
-  /** Express: evaluate the deterministic review descent against the run's
-   *  actual diff. Null on any uncertainty (no worktree, diff error) - the
-   *  caller then runs the review (fail toward more checking). */
-  private async evaluateReviewDescentForWorktree(
-    worktreePath: string | null | undefined,
-  ): Promise<ReviewDescentDecision | null> {
-    if (!worktreePath) return null;
-    try {
-      const snap = await getDiffSnapshot({ worktreePath });
-      return evaluateReviewDescent(
-        snap.files.map((f) => f.path),
-        this.config.policies,
-      );
-    } catch {
-      return null;
-    }
-  }
-
-  private async runValidation(input: {
-    artifactsName: string;
-    prefix?: string;
-    ctx: {
-      worktreePath: string | null;
-      artifactStore: ArtifactStore;
-      eventLog: EventLog;
-    };
-  }): Promise<ValidationResults> {
-    const { ctx } = input;
-    if (!ctx.worktreePath) {
-      throw new GitError("Cannot run validation: worktree not prepared.");
-    }
-    await ctx.eventLog.append({
-      type: "validation.started",
-      message: `Validation starting in ${ctx.worktreePath}.`,
-    });
-
-    // Proportional validation scoping (proportional-orchestration.md):
-    // when the run's entire diff is provably-inert (docs/text/assets) skip the
-    // configured code checks - running `pnpm test` for a `.md` change is pure
-    // waste. Keyed on the ACTUAL changed files (same uncommitted-vs-HEAD diff the
-    // orchestrator uses elsewhere), never the task text, and fail-safe: any
-    // non-inert/unknown file, an empty diff, or a diff error -> validate as
-    // configured. Off when `commands.scopeValidationByChange` is false.
-    const configured = this.config.commands.validate;
-    if (configured.length > 0 && this.config.commands.scopeValidationByChange) {
-      let decision: ReturnType<typeof classifyChangedFilesForValidation> | null = null;
-      try {
-        const snap = await getDiffSnapshot({ worktreePath: ctx.worktreePath });
-        // Protected-path floor: a protected path (built-in globs + policies.protectedPaths)
-        // is never inert - a workflow .yml or a user-protected .md still
-        // validates in full. See orchestrator/protected-paths.ts.
-        decision = classifyChangedFilesForValidation(
-          snap.files.map((f) => f.path),
-          {
-            isProtected: (p) =>
-              protectedPathMatch(p, this.config.policies) !== null,
-          },
-        );
-      } catch {
-        // Diff unavailable -> fail safe: fall through and validate as configured.
-        decision = null;
-      }
-      if (decision?.allInert) {
-        await ctx.eventLog.append({
-          type: "validation.scoped",
-          message: `Validation scoped: ${decision.changedFileCount} inert file(s) changed (docs/text/assets); skipped ${configured.length} configured command(s).`,
-          data: {
-            reason: "all-changed-files-inert",
-            changedFiles: decision.changedFileCount,
-            inert: decision.inert,
-            skippedCommands: [...configured],
-          },
-        });
-        const scoped: ValidationResults = {
-          commands: [],
-          summary: { total: 0, passed: 0, failed: 0, environment: 0 },
-          note: `Scoped: ${decision.inert.length} inert file(s) changed (docs/text/assets); ${configured.length} configured validation command(s) skipped.`,
-        };
-        await ctx.artifactStore.writeJson(input.artifactsName, scoped);
-        return scoped;
-      }
-    }
-
-    const results = await runValidationCommands({
-      commands: configured,
-      cwd: ctx.worktreePath,
-      store: ctx.artifactStore,
-      prefix: input.prefix,
-      broker: this.broker ?? undefined,
-      runId: ctx.artifactStore.runIdValue,
-    });
-    for (const c of results.commands) {
-      await ctx.eventLog.append({
-        type: "validation.command.completed",
-        message: `${c.command} → exit ${c.exitCode}`,
-        data: {
-          command: c.command,
-          exitCode: c.exitCode,
-          status: c.status,
-          durationMs: c.durationMs,
-        },
-      });
-    }
-    // The linked card's machine-checkable acceptance commands run as an
-    // extra validation pass, feeding the SAME gate (a failure caps merge_ready).
-    await this.mergeAcceptanceValidation(results, ctx, input.prefix);
-    await ctx.artifactStore.writeJson(input.artifactsName, results);
-    return results;
-  }
-
-  /**
-   * Acceptance gate (machine half): run the linked roadmap card's
-   * `acceptanceCommands` (USER-authored - same trust as `commands.validate`) and
-   * merge them into `results`, so an unmet machine criterion fails validation and
-   * caps the verdict. No-op when there's no linked card / no commands. The prose
-   * `acceptanceCriteria` are the LLM-judge half (verifier confirms each).
-   */
-  private async mergeAcceptanceValidation(
-    results: ValidationResults,
-    ctx: { worktreePath: string | null; artifactStore: ArtifactStore; eventLog: EventLog },
-    prefix: string | undefined,
-  ): Promise<void> {
-    if (!this.taskId || !ctx.worktreePath) return;
-    let commands: string[] = [];
-    try {
-      const { RoadmapService } = await import("../roadmap/roadmap-service.js");
-      const card = await new RoadmapService(this.projectRoot).getTask(this.taskId);
-      commands = card?.acceptanceCommands ?? [];
-    } catch {
-      return;
-    }
-    if (commands.length === 0) return;
-    const acc = await runValidationCommands({
-      commands,
-      cwd: ctx.worktreePath,
-      store: ctx.artifactStore,
-      prefix: prefix ? `${prefix}-acceptance` : "acceptance",
-      broker: this.broker ?? undefined,
-      runId: ctx.artifactStore.runIdValue,
-    });
-    for (const c of acc.commands) {
-      await ctx.eventLog.append({
-        type: "validation.command.completed",
-        message: `[acceptance] ${c.command} → exit ${c.exitCode}`,
-        data: {
-          command: c.command,
-          exitCode: c.exitCode,
-          status: c.status,
-          durationMs: c.durationMs,
-          acceptance: true,
-        },
-      });
-    }
-    results.commands.push(...acc.commands);
-    results.summary.total += acc.summary.total;
-    results.summary.passed += acc.summary.passed;
-    results.summary.failed += acc.summary.failed;
-    results.summary.environment += acc.summary.environment;
-  }
-
   private defaultPromptName(index: number, roleId: string): string {
     const padded = index.toString().padStart(2, "0");
     return `${padded}-${roleId}-prompt.md`;
@@ -7418,66 +6412,5 @@ export class Orchestrator {
       this.resolvedCatalog,
     ).powerLevels;
     return levels.length > 0 ? levels[0] : undefined;
-  }
-
-  private async writeFinalReport(input: {
-    artifactStore: ArtifactStore;
-    state: RunState;
-    validation: ValidationResults | null;
-    policyWarnings: PolicyWarning[];
-    reviewLoops: number;
-    metrics: import("./runtime-metrics.js").RuntimeMetrics | null;
-    approvals: import("./approval-types.js").ApprovalRequest[];
-    artifacts: {
-      plan?: string;
-      architecture?: string;
-      execution?: string;
-      review?: string;
-      verification?: string;
-    };
-  }): Promise<string> {
-    let suggestions: import("../reviews/review-suggestion-types.js").ReviewSuggestion[] = [];
-    try {
-      suggestions = await new ReviewSuggestionService(
-        this.projectRoot,
-        input.state.runId,
-      ).list();
-    } catch {
-      suggestions = [];
-    }
-    let bundles: import("../reviews/suggestion-bundle-types.js").SuggestionBundle[] = [];
-    try {
-      const { SuggestionBundleService } = await import(
-        "../reviews/suggestion-bundle-service.js"
-      );
-      bundles = await new SuggestionBundleService(
-        this.projectRoot,
-        input.state.runId,
-      ).list();
-    } catch {
-      bundles = [];
-    }
-    let arbitration: FlowArbitrationLedger | null = null;
-    try {
-      arbitration = await new FlowArbitrationStore(
-        this.projectRoot,
-        input.state.runId,
-      ).read();
-    } catch {
-      arbitration = null;
-    }
-    const report = renderFinalReport({
-      state: input.state,
-      artifactPaths: input.artifacts,
-      validation: input.validation,
-      policyWarnings: input.policyWarnings,
-      reviewLoops: input.reviewLoops,
-      metrics: input.metrics,
-      approvals: input.approvals,
-      suggestions,
-      bundles,
-      arbitration,
-    });
-    return input.artifactStore.write("12-final-report.md", report);
   }
 }
