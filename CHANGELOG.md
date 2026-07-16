@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.71.2
+
+- **The sub-surfaces caught up to the design system.** Popups, form fields, and
+  opened panels that still wore the old visual language were rebuilt on the
+  canonical recipes in one pass - the notifications drawer and bell, the
+  project-parameters and gateway settings forms, the profile-maintenance and
+  replay panels, the artifact/validation/diff views, the help popup, the consult
+  answer card, and the spec-up gap-questions screen. Borders now show up in light
+  mode instead of vanishing, chips are flat instead of pills, and buttons are
+  real buttons. Along the way we confirmed a cluster of superseded components
+  (an old Mission Control exploration, the notes/skills panels) were dead code
+  and left them for removal rather than restyling what nothing renders.
+
 ## 0.71.1
 
 - **Every page wears the same header now.** The last pages still on the old
