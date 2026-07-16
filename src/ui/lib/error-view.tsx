@@ -3,6 +3,8 @@ import { ApiError } from "./api.js";
 import { ErrorState, type ErrorAction } from "../components/design/ErrorState.js";
 
 export type ErrorDescription = {
+  /** Short rose eyebrow shown above the headline (e.g. "Error 404"). */
+  kicker?: string;
   title: string;
   detail?: string;
   hint?: string;
@@ -12,6 +14,14 @@ export type ErrorDescription = {
 function firstLine(s: string): string {
   const i = s.indexOf("\n");
   return (i === -1 ? s : s.slice(0, i)).trim();
+}
+
+function kickerForStatus(status: number): string {
+  if (status === 404) return "Error 404";
+  if (status === 401 || status === 403) return "Access denied";
+  if (status === 400 || status === 422) return "Request rejected";
+  if (status >= 500) return "Server error";
+  return `Error ${status}`;
 }
 
 /** Fallback hint when the server didn't send one. Two sentences so it renders
@@ -50,17 +60,19 @@ export function describeError(err: unknown): ErrorDescription {
       : firstLine(err.message) !== title
         ? err.message
         : undefined;
-    return { title, detail, hint, retryable: s >= 500 };
+    return { kicker: kickerForStatus(s), title, detail, hint, retryable: s >= 500 };
   }
   const msg = (err instanceof Error ? err.message : String(err ?? "")).trim();
   if (/failed to fetch|networkerror|load failed|\bfetch\b/i.test(msg))
     return {
+      kicker: "Connection lost",
       title: "Can't reach the dashboard",
       detail: msg,
       hint: "The dashboard server may have stopped. Check it's running, then retry.",
       retryable: true,
     };
   return {
+    kicker: "Error",
     title: firstLine(msg) || "Something went wrong",
     detail: msg || undefined,
     retryable: true,
@@ -101,6 +113,7 @@ export function ErrorView({
       : [];
   return (
     <ErrorState
+      kicker={compact ? undefined : d.kicker}
       title={d.title}
       detail={d.detail}
       hint={d.hint}
