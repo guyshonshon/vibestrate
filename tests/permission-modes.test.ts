@@ -5,7 +5,7 @@ import {
   type ActionKind,
   type ActionRequest,
 } from "../src/safety/action-broker.js";
-import { permissionModeEvaluators } from "../src/core/orchestrator.js";
+import { permissionModeEvaluators } from "../src/core/run-engine/helpers.js";
 
 // ── P4 permission modes ──────────────────────────────────────────────────────
 // The broker fail-closed seam + the mode -> evaluator mapping carry the

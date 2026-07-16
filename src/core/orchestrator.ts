@@ -61,7 +61,6 @@ import {
   createActionBroker,
   type ActionBroker,
   type ActionRequest,
-  type ActionEvaluator,
 } from "../safety/action-broker.js";
 import { buildAndWriteRunAssurance } from "../safety/run-assurance.js";
 import {
@@ -148,10 +147,6 @@ import { makeUniqueRunId } from "../utils/run-id.js";
 // Re-exported so existing importers (server routes, workflow runner) keep
 // getting `makeRunId` from here; the implementation now lives in run-id.ts.
 export { makeRunId } from "../utils/run-id.js";
-import type {
-  ProviderRunResult,
-  ProviderSessionRequest,
-} from "../providers/provider-types.js";
 import { MetricsStore } from "./metrics-store.js";
 import { makeEmptyMetrics, roleMetricsSchema, type RoleMetrics } from "./runtime-metrics.js";
 import { computeRunSpendUsd, checkSagaStopConditions } from "./saga/budget.js";
@@ -258,8 +253,6 @@ import {
   createFlowParticipantLedger,
   prepareFlowParticipantTurn,
   recordFlowParticipantTurn,
-  summarizeFlowParticipants,
-  type FlowParticipantLedger,
   type PreparedFlowParticipantTurn,
 } from "../flows/runtime/flow-participant-ledger.js";
 import {
@@ -293,313 +286,45 @@ import {
 } from "../flows/schemas/flow-output-contracts.js";
 import { SuggestionBundleService } from "../reviews/suggestion-bundle-service.js";
 
-/** Stages a run can be rewound to. The flow runner seeds the outputs of every
- *  step before the first step at this stage from the source run, then starts
- *  there. `planning` is the flow's first stage, so resuming there is just a
- *  normal from-scratch run; the executing stages regenerate the downstream code
- *  from a fresh worktree. The DOWNSTREAM stages (reviewing/fixing/verifying)
- *  operate on existing code, so they additionally restore the source run's
- *  per-phase worktree snapshot. */
-export type ResumeStage =
-  | "planning"
-  | "architecting"
-  | "executing"
-  | "reviewing"
-  | "fixing"
-  | "verifying";
+import {
+  DOWNSTREAM_RESUME_STAGES,
+  type ResumeStage,
+  type ResumeFromInput,
+  type OrchestratorInput,
+  type OrchestratorOutput,
+  type RoleRunResult,
+  type FlowRoleTurn,
+} from "./run-engine/types.js";
+import {
+  __ApprovalRejectedSignal,
+  __RunAbortedSignal,
+  __SpendCapStopSignal,
+  __ActionDeniedSignal,
+  __BudgetLimitSignal,
+  __isControlSignal,
+} from "./run-engine/signals.js";
+import {
+  permissionModeEvaluators,
+  summarizeApprovals,
+  flowFindingSuggestionTitle,
+} from "./run-engine/helpers.js";
+import {
+  createFlowRunState,
+  patchFlowStep,
+  patchFlowParticipants,
+  flowStatusForStep,
+  moveToFlowStepStatus,
+} from "./run-engine/flow-run-state.js";
 
-/** The subset that needs the source run's code restored before running. */
-const DOWNSTREAM_RESUME_STAGES = new Set<ResumeStage>([
-  "reviewing",
-  "fixing",
-  "verifying",
-]);
-
-export type ResumeFromInput = {
-  /** The run whose upstream step outputs are reused (seeded) by the runner. */
-  sourceRunId: string;
-  fromStage: ResumeStage;
-};
-
-export type OrchestratorInput = {
-  projectRoot: string;
-  config: ProjectConfig;
-  rules: string;
-  task: string;
-  isGitRepo: boolean;
-  onProgress?: (message: string) => void;
-  /** Raw flow parameter values, name -> string, from the caller (CLI
-   *  flags / dashboard form / interactive prompts). Resolved against the flow's
-   *  declared `params` at run start, substituted into the task + step
-   *  instructions, and recorded (secrets redacted). */
-  params?: Record<string, string>;
-  /** Optional roadmap task this run is bound to. Persisted on state.json + events. */
-  taskId?: string | null;
-  /** Pre-assigned run id (dashboard spawns compute it server-side so the UI
-   * can navigate to the run immediately). Omitted = derive from the task. */
-  runId?: string | null;
-  /** Crew to resolve the flow against. null = project.defaultCrew. Ignored when
-   * an already-resolved `flow` snapshot is supplied (it carries its own crew). */
-  crewId?: string | null;
-  /** Run-wide Profile override applied to every seated step at resolve time. */
-  profileOverride?: string | null;
-  /** Per-step Profile overrides (step id → profile id) applied at resolve time. */
-  stepProfileOverrides?: Record<string, string>;
-  /** Pin a Role to a Seat (seat → roleId) - disambiguates a seat filled by
-   *  more than one Crew role. Applied at resolve time. */
-  seatRoleOverrides?: Record<string, string>;
-  /** Investigation-only run: force readOnly permissions on every agent,
-   * skip the executor / fix loop entirely, refuse write-side actions. */
-  readOnly?: boolean;
-  /** Unattended run: never pause for a human. Forces budget `onLimit` to stop
-   * and resilience `onExhausted` to fail, so the run always reaches a terminal
-   * state on its own even if pause is configured. */
-  unattended?: boolean;
-  /** Skill ids to attach to every agent for this single run, merged
-   * (deduped) with the agent's configured skill list. Empty / omitted
-   * means "use the agent's configured skills only". */
-  runtimeSkills?: string[];
-  /** Brevity directive applied to every agent prompt for this run. */
-  concise?: boolean;
-  /** Immutable resolved flow recipe to run. When omitted, the orchestrator
-   * resolves the built-in `default` flow - every run executes a flow through
-   * the one runner. */
-  flow?: ResolvedFlowSnapshot | null;
-  /** Rewind: fork a fresh run that resumes at a chosen stage, reusing the
-   *  upstream artifacts from a prior run instead of regenerating them.
-   *  Mutually exclusive with `flow`. */
-  resumeFrom?: ResumeFromInput | null;
-  /** Pick-up execution: when the linked task has a checklist and the
-   *  flow declares a checklistSegment, iterate the segment once per item.
-   *  "continuous" runs items back-to-back; "step" pauses between items. null /
-   *  omitted = no checklist iteration (the instant-task N=1 case). */
-  checklistMode?: "continuous" | "step" | null;
-  /** Saga mode (Conductor): when the linked task is `kind:"saga"`, run
-   *  the checklist band as a supervised saga - a step that exhausts self-heal
-   *  halts the run cleanly instead of committing a green-but-broken item, and
-   *  each step starts a fresh model context. Set by the saga launch path. */
-  sagaMode?: boolean;
-  /** Per-saga budget envelope (Conductor): bounds the saga's TOTAL
-   *  cost/length, enforced BETWEEN steps (see src/core/saga/budget.ts). Null
-   *  fields mean no limit on that axis. The launch path sets it from
-   *  `task.sagaBudget`; defaults to no limits. */
-  sagaBudget?: { maxSpendUsd: number | null; maxSteps: number | null };
-  /** Saga supervisor (Conductor): the between-steps PROCEED/ESCALATE turn +
-   *  invariants ledger. The launch path sets it from `config.saga.supervisor`;
-   *  defaults to enabled on the `reviewer` role with the role's own profile. */
-  sagaSupervisor?: { enabled: boolean; profile: string | null; roleId: string };
-  /** Context sources: files/URLs materialized once at run start and
-   *  injected into every agent's prompt (path-guarded / SSRF-guarded + secret
-   *  redacted). */
-  contextSources?: ContextSource[];
-  /** How this run's Flow was chosen (forced / default / orchestrator-selected).
-   *  Recorded for transparency: persisted as `selection.json` + a
-   *  `workflow.selected` event at run start. Does not affect execution - the
-   *  launcher has already resolved `flow` from it. */
-  selection?: WorkflowSelection | null;
-  /** The resolved supervisor persona id, independent of `selection` so it survives
-   *  the resume path (where `selection` is null because the flow is fixed by the
-   *  source run). The launcher passes `spec.persona ?? selection?.personaId`. */
-  personaId?: string | null;
-  /** Adaptive spec-up: the flow the chain should BUILD after spec-up. Set on a
-   *  spec-up-phase run (intake/spec-up) so the chosen flow is carried across the
-   *  detached chain; persisted as the `spec-up-target-flow.json` sidecar at run
-   *  start and read by the `approve & build` handoff. null = no build target. */
-  specUpTargetFlowId?: string | null;
-  /** Deep-questioning loop: the round this intake run represents + the chain-root
-   *  run id (where accumulated answers live). Persisted as `spec-up-round.json` /
-   *  `spec-up-root-run.json` sidecars at run start, read by the spec-up-chain. */
-  specUpRound?: number | null;
-  specUpRootRunId?: string | null;
-  /** Permission mode: read-only / ask / accept-edits / auto. The
-   *  model-agnostic policy Vibestrate applies to this run's writes. Omitted ⇒
-   *  config.policies.defaultPermissionMode (default "auto"). */
-  permissionMode?: PermissionMode;
-  /** Per-run isolation override (posture-applies): when set, it raises
-   *  this run's OS-sandbox posture above `config.execution.isolation` for this run
-   *  only (never lowers; never mutates config). Today only "sandboxed". Omitted ⇒
-   *  use the config value. */
-  isolationOverride?: IsolationMode | null;
-  /** Human-facing notes about an auto-applied posture: what was applied
-   *  or why it was suppressed. Surfaced once at run start; empty ⇒ nothing applied. */
-  postureNotes?: string[];
-  /** CLI/process lifecycle signal. Aborting it kills the active provider
-   * invocation and records the run as aborted instead of leaving orphan CLIs. */
-  abortSignal?: AbortSignal;
-};
-
-export type OrchestratorOutput = {
-  runId: string;
-  state: RunState;
-  worktreePath: string | null;
-  branchName: string | null;
-  finalReportPath: string;
-  policyWarnings: PolicyWarning[];
-};
-
-type RoleRunResult = {
-  roleId: string;
-  output: string;
-  outputArtifactPath: string;
-  promptArtifactPath: string;
-  providerResult: RichProviderRunResult;
-};
-
-type FlowRoleTurn = {
-  seat: string;
-  contextMode: PreparedFlowParticipantTurn["contextMode"];
-  fallbackReason: string | null;
-  sessionRequest?: ProviderSessionRequest;
-};
-
-class __ApprovalRejectedSignal extends Error {
-  constructor() {
-    super("Run blocked after approval rejected");
-    this.name = "ApprovalRejectedSignal";
-  }
-}
-
-class __RunAbortedSignal extends Error {
-  constructor() {
-    super("Run aborted by user signal");
-    this.name = "RunAbortedSignal";
-  }
-}
-
-/** Thrown when the daily spend cap is hit and the action is (or falls back to)
- *  "stop" - the run() loop catches it and blocks the run with this message. */
-class __SpendCapStopSignal extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "SpendCapStopSignal";
-  }
-}
-
-/** Thrown when the Action Broker denies (or requires unavailable approval for)
- *  a proposed effect. Fail-closed: the run() loop catches it and blocks the
- *  run rather than failing it - the decision is already recorded as evidence. */
-class __ActionDeniedSignal extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ActionDeniedSignal";
-  }
-}
-
-/**
- * Permission mode as broker evaluators, scoped to the run-level effects
- * Vibestrate actually owns (NOT per-shell-command - codex is opaque, claude
- * tool_use is display-only):
- *  - ask: every turn diff (file.patch) requires human approval before it's kept.
- *  - accept-edits: writes auto-apply, but the run does NOT auto-complete - it
- *    HOLDS at the completion boundary (require_approval on run.complete) for human
- *    sign-off and RESUMES to merge_ready on approval (reject / unattended-timeout
- *    -> blocked). See the run.complete handler in runFlowSequence.
- *  - auto / read-only: none here (read-only is the readOnly clamp).
- */
-export function permissionModeEvaluators(mode: PermissionMode): ActionEvaluator[] {
-  if (mode === "ask") {
-    return [
-      (req) =>
-        req.kind === "file.patch"
-          ? {
-              effect: "require_approval",
-              ruleIds: ["permission-mode.ask"],
-              reason: "Permission mode 'ask': a human approves each change.",
-            }
-          : null,
-    ];
-  }
-  if (mode === "accept-edits") {
-    return [
-      (req) =>
-        req.kind === "run.complete"
-          ? {
-              effect: "require_approval",
-              ruleIds: ["permission-mode.accept-edits"],
-              reason:
-                "Permission mode 'accept-edits': the run holds for human review (the applied diff) before it can be merged.",
-            }
-          : null,
-    ];
-  }
-  return [];
-}
-
-/** Thrown when a count/time budget ceiling is hit (unattended-resilience).
- *  Like the spend cap, the run() loop catches it and blocks the run (not fails)
- *  - hitting a configured ceiling is an intentional stop, not an error. */
-class __BudgetLimitSignal extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "BudgetLimitSignal";
-  }
-}
-
-/** Control-flow signals that must ALWAYS propagate - they are not ordinary
- *  step failures and must never be swallowed by continueOnError. An
- *  aborted/approval-rejected/spend-capped/denied run has to unwind regardless. */
-function __isControlSignal(err: unknown): boolean {
-  return (
-    err instanceof __ApprovalRejectedSignal ||
-    err instanceof __RunAbortedSignal ||
-    err instanceof __SpendCapStopSignal ||
-    err instanceof __ActionDeniedSignal ||
-    err instanceof __BudgetLimitSignal
-  );
-}
-
-function summarizeApprovals(
-  approvals: import("./approval-types.js").ApprovalRequest[],
-): {
-  total: number;
-  pending: number;
-  approved: number;
-  rejected: number;
-  expired: number;
-  totalWaitMs: number;
-} {
-  let pending = 0;
-  let approved = 0;
-  let rejected = 0;
-  let expired = 0;
-  let totalWaitMs = 0;
-  for (const a of approvals) {
-    switch (a.status) {
-      case "pending":
-        pending += 1;
-        break;
-      case "approved":
-        approved += 1;
-        break;
-      case "rejected":
-        rejected += 1;
-        break;
-      case "expired":
-        expired += 1;
-        break;
-    }
-    if (a.resolvedAt) {
-      totalWaitMs +=
-        Date.parse(a.resolvedAt) - Date.parse(a.createdAt) || 0;
-    }
-  }
-  return {
-    total: approvals.length,
-    pending,
-    approved,
-    rejected,
-    expired,
-    totalWaitMs,
-  };
-}
-
-function flowFindingSuggestionTitle(
-  finding: import("../flows/schemas/flow-output-contracts.js").FlowFinding,
-): string {
-  const prefix = `Quality Arbitration ${finding.id}: `;
-  const claim = finding.claim.replace(/\s+/g, " ").trim();
-  return `${prefix}${claim}`.slice(0, 200);
-}
+// Re-exported so existing importers (server routes, CLI, workflow runner) keep
+// resolving these from here; the definitions live under run-engine/.
+export type {
+  ResumeStage,
+  ResumeFromInput,
+  OrchestratorInput,
+  OrchestratorOutput,
+} from "./run-engine/types.js";
+export { permissionModeEvaluators } from "./run-engine/helpers.js";
 
 export class Orchestrator {
   private readonly projectRoot: string;
@@ -965,7 +690,7 @@ export class Orchestrator {
       sagaMode: this.sagaMode,
       sagaBudget: this.sagaBudget,
       contextSources: this.contextSources,
-      flow: this.createFlowRunState(flow, "flow.json"),
+      flow: createFlowRunState(flow, "flow.json"),
       resumedFrom: this.resumeFrom
         ? {
             sourceRunId: this.resumeFrom.sourceRunId,
@@ -1581,124 +1306,6 @@ export class Orchestrator {
       // diff-gate reads it). Idempotent + null when no container was created.
       await this.teardownContainer();
     }
-  }
-
-  private createFlowRunState(
-    snapshot: ResolvedFlowSnapshot,
-    snapshotPath: string,
-  ): NonNullable<RunState["flow"]> {
-    return {
-      flowId: snapshot.flowId,
-      flowVersion: snapshot.flowVersion,
-      label: snapshot.label,
-      snapshotPath,
-      participantLedgerPath: "participants.json",
-      participants: [],
-      currentStepId: null,
-      steps: snapshot.steps.map((step) => ({
-        id: step.id,
-        label: step.label,
-        kind: step.kind,
-        status: step.enabled ? "pending" : "skipped",
-        optional: step.optional,
-        stage: step.stage,
-        seat: step.seat,
-        needs: step.needs,
-        resolvedRoleId: step.resolvedRoleId,
-        resolvedRoleLabel: step.resolvedRoleLabel,
-        profileId: step.profileId,
-        providerId: step.providerId,
-        promptArtifactPath: null,
-        outputArtifactPath: null,
-        contextPacketPath: null,
-        validationArtifactPath: null,
-        startedAt: null,
-        endedAt: null,
-        error: null,
-      })),
-    };
-  }
-
-  private patchFlowStep(
-    state: RunState,
-    stepId: string,
-    patch: Partial<NonNullable<RunState["flow"]>["steps"][number]>,
-    currentStepId = state.flow?.currentStepId ?? null,
-  ): RunState {
-    if (!state.flow) {
-      throw new Error("Cannot update a flow step before flow state is initialized.");
-    }
-    return {
-      ...state,
-      updatedAt: nowIso(),
-      flow: {
-        ...state.flow,
-        currentStepId,
-        steps: state.flow.steps.map((step) =>
-          step.id === stepId ? { ...step, ...patch } : step,
-        ),
-      },
-    };
-  }
-
-  private patchFlowParticipants(
-    state: RunState,
-    ledger: FlowParticipantLedger,
-  ): RunState {
-    if (!state.flow) {
-      throw new Error("Cannot update flow participants before flow state is initialized.");
-    }
-    return {
-      ...state,
-      updatedAt: nowIso(),
-      flow: {
-        ...state.flow,
-        participantLedgerPath: "participants.json",
-        participants: summarizeFlowParticipants(ledger),
-      },
-    };
-  }
-
-  private flowStatusForStep(step: ResolvedFlowStep): RunStatus {
-    switch (step.kind) {
-      case "review-turn":
-        return "reviewing";
-      case "response-turn":
-        return "fixing";
-      case "validation":
-        return "validating";
-      case "summary-turn":
-        return "verifying";
-      case "approval-gate":
-        return "waiting_for_approval";
-      case "agent-turn":
-      default:
-        // Prefer the declared stage (planning/architecting/executing) so the
-        // run status and policy-approval matching are accurate (e.g. architect
-        // → "architecting"). Falls back to the planner/other heuristic.
-        if (
-          step.stage === "planning" ||
-          step.stage === "architecting" ||
-          step.stage === "executing"
-        ) {
-          return step.stage;
-        }
-        return step.resolvedRoleId === "planner" ? "planning" : "executing";
-    }
-  }
-
-  private async moveToFlowStepStatus(input: {
-    state: RunState;
-    step: ResolvedFlowStep;
-    stateStore: RunStateStore;
-  }): Promise<RunState> {
-    const target = this.flowStatusForStep(input.step);
-    if (target === "waiting_for_approval" || input.state.status === target) {
-      return input.state;
-    }
-    const next = applyTransition(input.state, target);
-    await input.stateStore.write(next);
-    return next;
   }
 
   /** Append a human's change-request guidance (already redacted) to a step's
@@ -2320,7 +1927,7 @@ export class Orchestrator {
         if (token === "execution" || token === "execution-handoff")
           executionArtifact = this.seededFlowResult(upstream, seeded);
       }
-      state = this.patchFlowStep(
+      state = patchFlowStep(
         state,
         upstream.id,
         { status: "skipped", endedAt: nowIso() },
@@ -2561,7 +2168,7 @@ export class Orchestrator {
 
     // Serial: move the run to the step's status and build its context packet.
     const prepareStep = async (step: ResolvedFlowStep) => {
-      state = await this.moveToFlowStepStatus({
+      state = await moveToFlowStepStatus({
         state,
         step,
         stateStore: input.stateStore,
@@ -2580,7 +2187,7 @@ export class Orchestrator {
             ? new Set(["diff"])
             : undefined,
       });
-      state = this.patchFlowStep(
+      state = patchFlowStep(
         state,
         step.id,
         {
@@ -2818,7 +2425,7 @@ export class Orchestrator {
       const gate = await this.maybeAwaitApproval({
         state,
         fromStatus: state.status,
-        stageId: this.flowStatusForStep(step),
+        stageId: flowStatusForStep(step),
         stepId: step.id,
         roleId: step.resolvedRoleId!,
         roleArtifact: result,
@@ -2829,7 +2436,7 @@ export class Orchestrator {
       });
       state = gate.state;
       if (gate.rejected) {
-        state = this.patchFlowStep(
+        state = patchFlowStep(
           state,
           step.id,
           {
@@ -2862,7 +2469,7 @@ export class Orchestrator {
           // (the reject path gets this from awaitApprovalRequest) so the run
           // terminates blocked, not stuck mid-stage.
           state = applyTransition(state, "blocked");
-          state = this.patchFlowStep(
+          state = patchFlowStep(
             state,
             step.id,
             { status: "blocked", endedAt: nowIso() },
@@ -2888,7 +2495,7 @@ export class Orchestrator {
       }
       // Approved (or no gate): the guidance for this step, if any, is consumed.
       stepGuidance.delete(step.id);
-      state = this.patchFlowStep(
+      state = patchFlowStep(
         state,
         step.id,
         {
@@ -2930,7 +2537,7 @@ export class Orchestrator {
         failureClass ??
         (err as { failureClass?: ProviderFailureClass } | null)?.failureClass ??
         null;
-      state = this.patchFlowStep(
+      state = patchFlowStep(
         state,
         step.id,
         { status: "failed", endedAt: nowIso(), error: reason },
@@ -2968,7 +2575,7 @@ export class Orchestrator {
       step: ResolvedFlowStep,
       reason: string,
     ): Promise<never> => {
-      state = this.patchFlowStep(
+      state = patchFlowStep(
         state,
         step.id,
         { status: "failed", endedAt: nowIso(), error: reason },
@@ -3040,7 +2647,7 @@ export class Orchestrator {
         // A policy approval-gate step has no agent turn to re-run, so a human
         // "request changes" here fails CLOSED (blocks) rather than proceeding.
         if (gate.rejected || gate.changesGuidance != null) {
-          state = this.patchFlowStep(
+          state = patchFlowStep(
             state,
             step.id,
             { status: "blocked", endedAt: nowIso() },
@@ -3054,7 +2661,7 @@ export class Orchestrator {
           });
           throw new __ApprovalRejectedSignal();
         }
-        state = this.patchFlowStep(
+        state = patchFlowStep(
           state,
           step.id,
           { status: "passed", endedAt: nowIso() },
@@ -3121,7 +2728,7 @@ export class Orchestrator {
       if (skips.length > 0) {
         for (const step of skips) {
           const readOnlySkip = this.readOnly && step.skipWhenReadOnly;
-          state = this.patchFlowStep(
+          state = patchFlowStep(
             state,
             step.id,
             { status: "skipped", endedAt: nowIso() },
@@ -3319,7 +2926,7 @@ export class Orchestrator {
           providerCapabilities(this.config.providers, providerId),
       });
     await participantStore.write(participantLedger);
-    state = this.patchFlowParticipants(state, participantLedger);
+    state = patchFlowParticipants(state, participantLedger);
     await input.stateStore.write(state);
     for (const participant of participantLedger.participants) {
       await input.eventLog.append({
@@ -3732,7 +3339,7 @@ export class Orchestrator {
           }
           if (sessionsReset > 0) {
             await participantStore.write(participantLedger);
-            state = this.patchFlowParticipants(state, participantLedger);
+            state = patchFlowParticipants(state, participantLedger);
           }
           await input.eventLog.append({
             type: "supervised.step.context_reset",
@@ -4345,7 +3952,7 @@ export class Orchestrator {
           // skip too.
           const readOnlySkip = this.readOnly && step.skipWhenReadOnly;
           if (!step.enabled || readOnlySkip) {
-            state = this.patchFlowStep(
+            state = patchFlowStep(
               state,
               step.id,
               { status: "skipped", endedAt: nowIso() },
@@ -4382,7 +3989,7 @@ export class Orchestrator {
             );
             if (descent?.skip) {
               reviewSkipEvidence = { stepId: step.id, files: descent.files };
-              state = this.patchFlowStep(
+              state = patchFlowStep(
                 state,
                 step.id,
                 { status: "skipped", endedAt: nowIso() },
@@ -4417,7 +4024,7 @@ export class Orchestrator {
             events: input.eventLog,
           });
           if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
-          state = await this.moveToFlowStepStatus({
+          state = await moveToFlowStepStatus({
             state,
             step,
             stateStore: input.stateStore,
@@ -4443,7 +4050,7 @@ export class Orchestrator {
                 ? new Set(["diff"])
                 : undefined,
           });
-          state = this.patchFlowStep(
+          state = patchFlowStep(
             state,
             step.id,
             {
@@ -4538,7 +4145,7 @@ export class Orchestrator {
             // A policy approval-gate step has no agent turn to re-run, so a human
             // "request changes" here fails CLOSED (blocks) rather than proceeding.
             if (gate.rejected || gate.changesGuidance != null) {
-              state = this.patchFlowStep(
+              state = patchFlowStep(
                 state,
                 step.id,
                 { status: "blocked", endedAt: nowIso() },
@@ -4553,7 +4160,7 @@ export class Orchestrator {
               throw new __ApprovalRejectedSignal();
             }
 
-            state = this.patchFlowStep(
+            state = patchFlowStep(
               state,
               step.id,
               { status: "passed", endedAt: nowIso() },
@@ -4634,7 +4241,7 @@ export class Orchestrator {
               providerSessionId: result.providerResult.session?.sessionId ?? null,
             });
             await participantStore.write(participantLedger);
-            state = this.patchFlowParticipants(state, participantLedger);
+            state = patchFlowParticipants(state, participantLedger);
             await input.stateStore.write(state);
             await input.eventLog.append({
               type:
@@ -4769,7 +4376,7 @@ export class Orchestrator {
             // Policy approvals are configured per run phase
             // (planning/architecting/executing/validating/reviewing/fixing/
             // verifying); match on the step's phase, not its id.
-            stageId: this.flowStatusForStep(step),
+            stageId: flowStatusForStep(step),
             stepId: step.id,
             roleId: step.resolvedRoleId,
             roleArtifact: result,
@@ -4780,7 +4387,7 @@ export class Orchestrator {
           });
           state = gate.state;
           if (gate.rejected) {
-            state = this.patchFlowStep(
+            state = patchFlowStep(
               state,
               step.id,
               {
@@ -4811,7 +4418,7 @@ export class Orchestrator {
               // Move the run itself to blocked (the gate resumed it to its stage
               // status); otherwise it terminates stuck mid-stage.
               state = applyTransition(state, "blocked");
-              state = this.patchFlowStep(
+              state = patchFlowStep(
                 state,
                 step.id,
                 { status: "blocked", endedAt: nowIso() },
@@ -4835,7 +4442,7 @@ export class Orchestrator {
           }
           stepGuidance.delete(step.id);
 
-          state = this.patchFlowStep(
+          state = patchFlowStep(
             state,
             step.id,
             {
@@ -5198,7 +4805,7 @@ export class Orchestrator {
       } else if (!(err instanceof __ApprovalRejectedSignal)) {
         const stepId = state.flow?.currentStepId;
         if (stepId) {
-          state = this.patchFlowStep(
+          state = patchFlowStep(
             state,
             stepId,
             {
@@ -5363,7 +4970,7 @@ export class Orchestrator {
       validationArtifactPath,
       outputs: input.outputs,
     });
-    const state = this.patchFlowStep(
+    const state = patchFlowStep(
       input.state,
       input.step.id,
       {
