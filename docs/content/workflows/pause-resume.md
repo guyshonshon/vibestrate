@@ -64,12 +64,16 @@ git branch -D vibestrate/<runId>-<slug>
 
 ## Policy-gated pauses are different
 
-Some pauses are scheduled by a policy rather than asked for by you. If `policies.requireApprovalAtStages` names a stage, the run pauses on its own at the boundary into that stage, with the status `waiting_for_approval`. This kind of pause is waiting for your decision, so `vibe resume` is not the right tool. Use `vibe approvals decide` instead:
+Some pauses are scheduled by a policy rather than asked for by you. If `policies.requireApprovalAtStages` names a stage, the run pauses on its own at the boundary into that stage, with the status `waiting_for_approval`. This kind of pause is waiting for your decision, so `vibe resume` is not the right tool. Use `vibe approvals` instead:
 
 ```bash
 vibe approvals list <runId>
-vibe approvals decide <runId> <approvalId> --approve   # or --reject
+vibe approvals approve <runId> <approvalId>
+vibe approvals reject <runId> <approvalId>
+vibe approvals request-changes <runId> <approvalId> --guidance "what to change"
 ```
+
+When an agent asks for your approval (it emitted a `HUMAN_APPROVAL` request, not a policy gate), you have a third option: **request changes**. Instead of a dead-end reject, you return free-form guidance and the run re-runs that stage with it, then pauses again for your call - bounded by `policies.approvalMaxChangeRounds` (default 3). Policy gates have no agent turn to re-run, so they stay approve-or-reject.
 
 Each of these stopping points has its own status, so you always know why a run is sitting still:
 

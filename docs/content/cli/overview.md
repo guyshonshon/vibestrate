@@ -181,9 +181,14 @@ When a run pauses for your sign-off, these commands review and decide it:
 ```bash
 vibe approvals list <runId>                # what's awaiting approval
 vibe approvals show <runId> <approvalId>   # the approval context
-vibe approvals decide <runId> <approvalId> --approve
-vibe approvals decide <runId> <approvalId> --reject
+vibe approvals approve <runId> <approvalId>
+vibe approvals reject <runId> <approvalId>
+vibe approvals request-changes <runId> <approvalId> --guidance "what to change"
 ```
+
+`request-changes` returns free-form guidance to an agent-requested gate; the run
+re-runs that stage with your guidance instead of stopping. It is refused on a
+policy gate (which has no agent turn to re-run) - approve or reject those.
 
 ## Working with the dashboard
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.71.0
+
+- **Approval gates carry a purpose now: request changes, don't just approve or
+  reject.** When an agent pauses and asks for your call, you can return
+  free-form guidance and the run **re-runs that stage with it** instead of
+  dead-ending on a reject. It's bounded (`policies.approvalMaxChangeRounds`,
+  default 3), fails closed on policy gates (which have no agent turn to re-run),
+  and works from every surface: the dashboard card, `vibe approvals
+  request-changes <run> <id> --guidance "..."`, and the shell TUI (press `c`).
+  A **Discuss** action on the card opens the supervisor consult, pre-seeded with
+  the gate's context, when you want advice before deciding.
+- **The approval card, rebuilt.** It now uses the canonical hero-card anatomy - a
+  tonal status column that reads the risk at a glance, the agent's ask as the
+  headline, and real buttons - replacing the old flat, grey-labelled banner.
+
 ## 0.70.1
 
 - **A failed map refresh no longer wipes the map.** On the Codebase Map view, a

@@ -989,6 +989,15 @@
           "description": "Ms an unattended run waits at a gate before blocking; 0 = block promptly (default 0)."
         },
         {
+          "key": "approvalMaxChangeRounds",
+          "fullKey": "policies.approvalMaxChangeRounds",
+          "type": "number",
+          "required": false,
+          "default": 3,
+          "itemType": null,
+          "description": "Max times a human can 'request changes' at one approval gate before the run blocks (bounds an accidental request-changes loop; default 3)."
+        },
+        {
           "key": "protectedPaths",
           "fullKey": "policies.protectedPaths",
           "type": "array<string>",

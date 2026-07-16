@@ -136,7 +136,7 @@ List the pending approvals and decide on one:
 
 ```bash
 vibe approvals list <runId>
-vibe approvals decide <runId> <approvalId> --approve   # or --reject
+vibe approvals approve <runId> <approvalId>   # or: reject / request-changes --guidance "..."
 ```
 
 To check it worked, watch the status move back into the stage it was about to enter.
