@@ -29,7 +29,7 @@ const GUIDANCE = "CLARIFY_WTF_MEANS_FROBNICATE";
  * once the guidance appears in its prompt, produces a clean output - so reaching
  * merge_ready proves the guidance was injected and the run picked up forward.
  */
-async function makeRepo(): Promise<string> {
+async function makeRepo(alwaysRequest = false): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-appr-rc-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
@@ -54,7 +54,9 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
   } else if (i.includes('Vibestrate Agent: planner')) {
     console.log('# Plan');
   } else if (i.includes('Vibestrate Agent: architect')) {
-    if (i.includes(${JSON.stringify(GUIDANCE)})) {
+    const hasG = i.includes(${JSON.stringify(GUIDANCE)});
+    require('fs').appendFileSync(${JSON.stringify(path.join(dir, "arch.log"))}, 'arch hasG='+hasG+'\\n');
+    if (!${alwaysRequest} && hasG) {
       console.log('# Architecture\\nClarified per the human guidance.');
     } else {
       console.log('# Architecture\\n\\n${requestLine}');
@@ -123,10 +125,70 @@ describe("orchestrator approval gate — request changes (guidance-forward)", ()
       // The run picked up FORWARD after the guidance, not blocked.
       expect(state.status).toBe("merge_ready");
 
+      // The architect must have re-run WITH the guidance (2 turns: request, then
+      // clarify) - not merely proceeded past the gate. The 2nd turn saw guidance.
+      const archTurns = (await fs.readFile(path.join(dir, "arch.log"), "utf8"))
+        .split("\n")
+        .filter(Boolean);
+      expect(archTurns).toEqual(["arch hasG=false", "arch hasG=true"]);
+
       const all = await new ApprovalService(dir, result.runId).list();
       expect(all).toHaveLength(1);
       expect(all[0]!.status).toBe("changes_requested");
       expect(all[0]!.guidance).toContain("FROBNICATE");
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("blocks after the configured change-round cap (derived from persisted approvals)", async () => {
+    const dir = await makeRepo(true); // architect re-asks every time, ignoring guidance
+    await setConfigValue(dir, "policies.approvalMaxChangeRounds", "2");
+    try {
+      const loaded = await loadConfig(dir);
+      const orch = new Orchestrator({
+        projectRoot: dir,
+        config: loaded.config,
+        rules: loaded.rules,
+        task: "cap test",
+        isGitRepo: true,
+        onProgress: () => {},
+      });
+
+      // Resolve EVERY pending gate with request-changes; the cap must stop the
+      // loop rather than let it run forever.
+      const seen = new Set<string>();
+      const timer = setInterval(async () => {
+        try {
+          const runs = await fs.readdir(path.join(dir, ".vibestrate", "runs"));
+          if (runs.length === 0) return;
+          const runId = runs[runs.length - 1]!;
+          const svc = new ApprovalService(dir, runId);
+          const pending = await svc.firstPending();
+          if (pending && !seen.has(pending.id)) {
+            seen.add(pending.id);
+            await svc.requestChanges({ approvalId: pending.id, guidance: GUIDANCE });
+          }
+        } catch {
+          // ignore
+        }
+      }, 60);
+
+      const result = await orch.run();
+      clearInterval(timer);
+
+      const stateRaw = await fs.readFile(
+        path.join(dir, ".vibestrate", "runs", result.runId, "state.json"),
+        "utf8",
+      );
+      const state = runStateSchema.parse(JSON.parse(stateRaw));
+      expect(state.status).toBe("blocked");
+
+      // cap=2 -> rounds 1 and 2 re-run, the 3rd request trips the cap and blocks.
+      const changed = (await new ApprovalService(dir, result.runId).list()).filter(
+        (a) => a.status === "changes_requested",
+      );
+      expect(changed.length).toBe(3);
     } finally {
       await fs.rm(dir, { recursive: true, force: true });
     }

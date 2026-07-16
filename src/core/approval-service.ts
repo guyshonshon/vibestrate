@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ensureDir, pathExists, readText, writeText } from "../utils/fs.js";
 import { runDir } from "../utils/paths.js";
 import { nowIso } from "../utils/time.js";
+import { withFileMutex } from "../utils/file-mutex.js";
 import {
   approvalRequestSchema,
   type ApprovalRequest,
@@ -151,30 +152,37 @@ export class ApprovalService {
     note?: string | null;
     guidance?: string | null;
   }): Promise<ApprovalRequest> {
-    const all = await this.readAll();
-    const idx = all.findIndex((a) => a.id === input.approvalId);
-    if (idx < 0) {
-      throw new Error(`Approval "${input.approvalId}" not found.`);
-    }
-    const current = all[idx]!;
-    if (current.status !== "pending") {
-      throw new Error(
-        `Approval "${input.approvalId}" is already ${current.status}; refusing to overwrite.`,
-      );
-    }
-    const ts = nowIso();
-    const updated: ApprovalRequest = {
-      ...current,
-      status: input.status,
-      updatedAt: ts,
-      resolvedAt: ts,
-      resolvedBy: input.decidedBy ?? "local-user",
-      decisionNote: input.note ?? null,
-      guidance: input.guidance ?? null,
-    };
-    all[idx] = updated;
-    await this.writeAll(all);
-    return updated;
+    // The whole read-guard-write is under a cross-process mutex: two deciders
+    // (dashboard + CLI, or retries) can otherwise both read `pending`, both pass
+    // the guard, and both write - a silent last-writer-wins that clobbers the
+    // real decision's note/guidance. Serialized, the loser sees non-pending and
+    // fails loud.
+    return withFileMutex(`${this.filePath}.lock`, async () => {
+      const all = await this.readAll();
+      const idx = all.findIndex((a) => a.id === input.approvalId);
+      if (idx < 0) {
+        throw new Error(`Approval "${input.approvalId}" not found.`);
+      }
+      const current = all[idx]!;
+      if (current.status !== "pending") {
+        throw new Error(
+          `Approval "${input.approvalId}" is already ${current.status}; refusing to overwrite.`,
+        );
+      }
+      const ts = nowIso();
+      const updated: ApprovalRequest = {
+        ...current,
+        status: input.status,
+        updatedAt: ts,
+        resolvedAt: ts,
+        resolvedBy: input.decidedBy ?? "local-user",
+        decisionNote: input.note ?? null,
+        guidance: input.guidance ?? null,
+      };
+      all[idx] = updated;
+      await this.writeAll(all);
+      return updated;
+    });
   }
 
   async waitForResolution(

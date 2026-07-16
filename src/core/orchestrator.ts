@@ -1701,6 +1701,15 @@ export class Orchestrator {
     return next;
   }
 
+  /** Append a human's change-request guidance (already redacted) to a step's
+   *  notes, so a re-run of that step acts on it. Used by both the graph and the
+   *  linear execution paths. */
+  private composeGuidedNotes(baseNotes: string, guidance: string | undefined): string {
+    if (!guidance) return baseNotes;
+    const head = baseNotes ? `${baseNotes}\n\n` : "";
+    return `${head}Human guidance on your previous attempt (address it directly):\n${guidance}`;
+  }
+
   private renderFlowStepNotes(input: {
     snapshot: ResolvedFlowSnapshot;
     step: ResolvedFlowStep;
@@ -2544,10 +2553,11 @@ export class Orchestrator {
     // Human-in-the-loop "request changes": a gated agent turn that got change
     // guidance re-runs FORWARD (a fresh guided turn), never re-running the
     // already-committed turn. The guidance rides `additionalNotes` into the next
-    // turn's prompt; the round counter bounds an accidental infinite loop.
+    // turn's prompt. The round cap is derived from the persisted approvals count
+    // (below), so it survives a resume - unlike this in-memory guidance map,
+    // which only steers while the run process is alive (documented limitation).
     const stepGuidance = new Map<string, string>();
-    const changeRounds = new Map<string, number>();
-    const MAX_CHANGE_ROUNDS = 3;
+    const maxChangeRounds = this.config.policies.approvalMaxChangeRounds;
 
     // Serial: move the run to the step's status and build its context packet.
     const prepareStep = async (step: ResolvedFlowStep) => {
@@ -2630,10 +2640,7 @@ export class Orchestrator {
       // A prior turn at this step asked for human approval and the human
       // requested changes: their guidance (already redacted) is injected here so
       // this fresh turn acts on it - forward, never a re-run of the committed turn.
-      const guidance = stepGuidance.get(step.id);
-      const additionalNotes = guidance
-        ? `${baseNotes ? `${baseNotes}\n\n` : ""}Human guidance on your previous attempt (address it directly):\n${guidance}`
-        : baseNotes;
+      const additionalNotes = this.composeGuidedNotes(baseNotes, stepGuidance.get(step.id));
       return this.runRole({
         roleId: step.resolvedRoleId!,
         providerId: step.providerId,
@@ -2841,12 +2848,20 @@ export class Orchestrator {
         throw new __ApprovalRejectedSignal();
       }
       if (gate.changesGuidance != null) {
-        const round = (changeRounds.get(step.id) ?? 0) + 1;
-        changeRounds.set(step.id, round);
-        // Bound the loop: a human drives each round, but a cap stops an accidental
-        // request-changes <-> re-ask cycle from running unbounded. On exhaustion,
-        // block honestly (same terminal path as a reject).
-        if (round > MAX_CHANGE_ROUNDS) {
+        // Round = number of change-requests recorded at this stage so far (the
+        // just-made one included). Derived from the persisted approvals, so the
+        // cap holds across a resume, not just in memory. A human drives each
+        // round, but the cap stops an accidental request-changes <-> re-ask
+        // cycle from running unbounded.
+        const stageId = this.flowStatusForStep(step);
+        const round = (await input.approvalService.readAll()).filter(
+          (a) => a.stageId === stageId && a.status === "changes_requested",
+        ).length;
+        if (round > maxChangeRounds) {
+          // The gate resumed the run to its stage status; move it to blocked
+          // (the reject path gets this from awaitApprovalRequest) so the run
+          // terminates blocked, not stuck mid-stage.
+          state = applyTransition(state, "blocked");
           state = this.patchFlowStep(
             state,
             step.id,
@@ -2856,7 +2871,7 @@ export class Orchestrator {
           await input.stateStore.write(state);
           await input.eventLog.append({
             type: "flow.step.failed",
-            message: `Flow step ${step.id} blocked: change-request limit (${MAX_CHANGE_ROUNDS}) reached.`,
+            message: `Flow step ${step.id} blocked: change-request limit (${maxChangeRounds}) reached.`,
             data: { flowId: snapshot.flowId, stepId: step.id },
           });
           throw new __ApprovalRejectedSignal();
@@ -3921,6 +3936,13 @@ export class Orchestrator {
         });
       };
 
+      // Human "request changes" on the linear path: guidance rides into the
+      // step's next turn (re-run forward by not advancing stepIndex). The cap is
+      // derived from the persisted approvals below, so it survives a resume; this
+      // map only steers while the run process is alive (documented limitation).
+      const stepGuidance = new Map<string, string>();
+      const maxChangeRounds = this.config.policies.approvalMaxChangeRounds;
+
       while (stepIndex < steps.length) {
         const step = steps[stepIndex]!;
         if (loop && stepIndex === loopFrom) {
@@ -4315,7 +4337,7 @@ export class Orchestrator {
         if (usingChecklist && stepIndex === segFrom) {
           await enterChecklistItem(itemIndex);
         }
-        const runStep = async (): Promise<void> => {
+        const runStep = async (): Promise<"rerun" | void> => {
           // Read-only runs skip write/validation/verify steps the same way
           // run() does - investigation only. Disabled (skipped-optional) steps
           // skip too.
@@ -4562,19 +4584,24 @@ export class Orchestrator {
             // Linear walk: the persona blocks (review lenses, owner preferences,
             // spec-up posture) inject here too, not just on the graph frontier -
             // the default flow is linear, so this is the path a plain run takes.
-            additionalNotes: composeReviewerStepNotes({
-              baseNotes: this.renderFlowStepNotes({
-                snapshot: input.snapshot,
-                step,
+            // A pending human change-guidance for this step is appended so the
+            // re-run acts on it.
+            additionalNotes: this.composeGuidedNotes(
+              composeReviewerStepNotes({
+                baseNotes: this.renderFlowStepNotes({
+                  snapshot: input.snapshot,
+                  step,
+                }),
+                stepInstructions: step.instructions,
+                lensEmphasis: this.reviewLensEmphasis,
+                isReviewer: isReviewerStep(step),
+                policyAdviseBlock: this.policyAdviseBlock,
+                specUpPostureBlock: this.specUpPostureBlock,
+                ponytailBlock: this.ponytailBlock,
+                isCodeWriting: isCodeWritingStep(step),
               }),
-              stepInstructions: step.instructions,
-              lensEmphasis: this.reviewLensEmphasis,
-              isReviewer: isReviewerStep(step),
-              policyAdviseBlock: this.policyAdviseBlock,
-              specUpPostureBlock: this.specUpPostureBlock,
-              ponytailBlock: this.ponytailBlock,
-              isCodeWriting: isCodeWritingStep(step),
-            }),
+              stepGuidance.get(step.id),
+            ),
             ...(preparedTurn
               ? {
                   flowTurn: {
@@ -4767,6 +4794,43 @@ export class Orchestrator {
             });
             throw new __ApprovalRejectedSignal();
           }
+          if (gate.changesGuidance != null) {
+            // Re-run this step FORWARD with the guidance (do not advance
+            // stepIndex, do not mark it passed). Round = persisted change-request
+            // count at this stage (the just-made one included); over the cap ->
+            // block honestly.
+            const round = (await input.approvalService.readAll()).filter(
+              (a) =>
+                a.stageId === this.flowStatusForStep(step) &&
+                a.status === "changes_requested",
+            ).length;
+            if (round > maxChangeRounds) {
+              // Move the run itself to blocked (the gate resumed it to its stage
+              // status); otherwise it terminates stuck mid-stage.
+              state = applyTransition(state, "blocked");
+              state = this.patchFlowStep(
+                state,
+                step.id,
+                { status: "blocked", endedAt: nowIso() },
+                step.id,
+              );
+              await input.stateStore.write(state);
+              await input.eventLog.append({
+                type: "flow.step.failed",
+                message: `Flow step ${step.id} blocked: change-request limit (${maxChangeRounds}) reached.`,
+                data: { flowId: input.snapshot.flowId, stepId: step.id },
+              });
+              throw new __ApprovalRejectedSignal();
+            }
+            stepGuidance.set(step.id, gate.changesGuidance);
+            await input.eventLog.append({
+              type: "flow.step.changes_requested",
+              message: `Flow step ${step.id} returning for a guided re-run (round ${round}).`,
+              data: { flowId: input.snapshot.flowId, stepId: step.id, round },
+            });
+            return "rerun"; // caller leaves stepIndex unchanged -> re-run this step
+          }
+          stepGuidance.delete(step.id);
 
           state = this.patchFlowStep(
             state,
@@ -4791,7 +4855,7 @@ export class Orchestrator {
             },
           });
         };
-        await runStep();
+        if ((await runStep()) === "rerun") continue; // guided re-run: same step, no advance
         // ── Snapshot the worktree after code-producing steps ──
         // (implement → "executing", fix → "fixing") so a later run can rewind to
         // review/verify/fix with this exact code. Best-effort; never blocks.

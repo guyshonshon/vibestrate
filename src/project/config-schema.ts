@@ -228,6 +228,7 @@ export const policiesConfigSchema = z.object({
   // no human is watching. Default 0 = block promptly (after one poll); set higher
   // (ms) to give a delayed watcher a window. Applies only when a run is unattended.
   unattendedApprovalTimeoutMs: z.number().int().nonnegative().default(0).describe("Ms an unattended run waits at a gate before blocking; 0 = block promptly (default 0)."),
+  approvalMaxChangeRounds: z.number().int().positive().default(3).describe("Max times a human can 'request changes' at one approval gate before the run blocks (bounds an accidental request-changes loop; default 3)."),
   // Protected paths (proportional-orchestration.md). Globs whose changed
   // files always demand the full check descent: never inert for validation
   // scoping, and (future slices) always reviewed. ADDITIVE: these extend the
