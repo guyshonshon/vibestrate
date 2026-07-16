@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Cpu, MessagesSquare, Send } from "lucide-react";
+import { Cpu, Send } from "lucide-react";
 import { api, type ProviderRow } from "../../lib/api.js";
 import type { ConsultResult, ProviderCatalog } from "../../lib/types.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
 import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
+import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import {
   ConsultAnswerView,
   type ProposalState,
@@ -98,32 +99,30 @@ export function ConsultPage({
   const answer = result?.answer;
 
   return (
-    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-20 fade-up">
-      <section className="mt-1">
-        <div className="eyebrow mb-1.5 flex items-center gap-1.5">
-          <MessagesSquare className="h-3 w-3" strokeWidth={1.8} /> Consult
-        </div>
-        <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
-          Ask the project orchestrator
-        </h1>
-        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
-          A read-only, project-aware advisor. It answers only from controlled context
-          - your <span className="mono">VIBESTRATE.md</span>, config, recent runs, and
-          annotations - and is honest about what it could not verify. It recommends;
-          it never acts.
+    <PageShell>
+      <PageHeader
+        title="Ask the project orchestrator"
+        actions={
+          taskId ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onOpenTask(taskId)}
+            >
+              Scoped to task <span className="mono ml-1">{taskId}</span>
+            </Button>
+          ) : undefined
+        }
+      >
+        <p className="mt-2 max-w-[70ch] rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-4 py-3 text-[12.5px] leading-relaxed text-chalk-300">
+          A read-only, project-aware advisor. It answers only from controlled
+          context - your <span className="mono">VIBESTRATE.md</span>, config,
+          recent runs, and annotations - and is honest about what it could not
+          verify. It recommends; it never acts.
         </p>
-        {taskId ? (
-          <button
-            type="button"
-            onClick={() => onOpenTask(taskId)}
-            className="mt-2 inline-flex items-center gap-1.5 border border-white/10 bg-ink-200 px-2 py-0.5 text-[11px] text-fog-300 hover:text-fog-100"
-          >
-            scoped to task <span className="mono">{taskId}</span>
-          </button>
-        ) : null}
-      </section>
+      </PageHeader>
 
-      <section className="mt-5 slab p-4">
+      <section className="mb-4 rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
         <textarea
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
@@ -132,10 +131,10 @@ export function ConsultPage({
           }}
           placeholder="e.g. Should this auth refactor use a heavier review flow? Why did the last run block?"
           rows={3}
-          className="w-full resize-y border border-white/10 bg-ink-200 px-3 py-2 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40"
+          className="w-full resize-y rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 outline-none focus:border-violet-soft/50"
         />
         <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] text-fog-300">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] text-chalk-300">
             <span className="flex items-center gap-1.5">
               <Cpu className="h-3 w-3 text-violet-soft" strokeWidth={1.9} /> Model
             </span>
@@ -163,7 +162,7 @@ export function ConsultPage({
                   ]}
                 />
               ) : (
-                <span className="text-[10.5px] text-fog-500">model: provider default</span>
+                <span className="text-[10.5px] text-chalk-400">model: provider default</span>
               )
             ) : null}
             {providerId && efforts.length > 0 ? (
@@ -180,7 +179,7 @@ export function ConsultPage({
             ) : null}
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[11px] text-fog-500">⌘/Ctrl + Enter to ask</span>
+            <span className="text-[11px] text-chalk-400">⌘/Ctrl + Enter to ask</span>
             <Button
               variant="primary"
               size="sm"
@@ -209,6 +208,6 @@ export function ConsultPage({
           />
         </section>
       ) : null}
-    </div>
+    </PageShell>
   );
 }

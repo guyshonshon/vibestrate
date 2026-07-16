@@ -12,6 +12,7 @@ import {
 import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
 import { SchedulerQueuePanel } from "../../components/runs/SchedulerQueuePanel.js";
 import { PruneSnapshotsButton } from "../../components/runs/PruneSnapshotsButton.js";
+import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 
 /**
  * Overflow view of every run on disk. Mission Control caps Recent Runs
@@ -54,24 +55,28 @@ export function RunsPage({
     : runs;
 
   return (
-    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-5 pb-12">
-      <section className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-[16px] font-semibold tracking-tight text-chalk-100">
-          All runs{" "}
-          <span className="mono num-tabular text-[12px] text-chalk-400">
-            {runs.length}
+    <PageShell>
+      <PageHeader
+        title={
+          <span className="flex items-baseline gap-2.5">
+            All runs
+            <span className="mono num-tabular text-[14px] font-semibold text-chalk-400">
+              {runs.length}
+            </span>
           </span>
-        </h1>
-        <div className="flex items-center gap-3">
-          <PruneSnapshotsButton />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter by task or id…"
-            className="h-8 w-[260px] rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-3 text-[12px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
-          />
-        </div>
-      </section>
+        }
+        actions={
+          <>
+            <PruneSnapshotsButton />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Filter by task or id…"
+              className="h-8 w-[260px] rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-3 text-[12px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+            />
+          </>
+        }
+      />
 
       {error ? (
         <div className="mt-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[12.5px] text-rose-300">
@@ -182,7 +187,7 @@ export function RunsPage({
           </table>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }
 

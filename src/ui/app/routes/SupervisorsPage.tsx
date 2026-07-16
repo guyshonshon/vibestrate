@@ -132,7 +132,7 @@ export function SupervisorsPage() {
           </Button>
         }
       >
-        <p className="mt-3 max-w-[74ch] text-[13px] leading-[1.55] text-chalk-300">
+        <p className="mt-3 max-w-[74ch] rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-4 py-3 text-[13px] leading-[1.55] text-chalk-300">
           The orchestrator's judgment postures. A supervisor decides how hard to
           look at a run - which lenses the independent reviewers are aimed at,
           which flow risky work is upgraded to, and the safety posture it

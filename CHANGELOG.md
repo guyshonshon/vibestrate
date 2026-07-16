@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.71.1
+
+- **Every page wears the same header now.** The last pages still on the old
+  visual language - Roadmap proposals and the Consult surface - were rebuilt on
+  the design system (contained framed intros, real buttons, the 24px page
+  title), and the Supervisors and All-runs headers were normalized to match.
+  No page leads with a loose grey subtitle or an undersized title anymore;
+  verified in both themes.
+
 ## 0.71.0
 
 - **Approval gates carry a purpose now: request changes, don't just approve or
