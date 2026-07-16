@@ -8,6 +8,11 @@ import { EffortScale } from "../../components/design/EffortScale.js";
 import { StatTile } from "../../components/design/StatTile.js";
 import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
 import { cn } from "../../components/design/cn.js";
+import {
+  useToast,
+  ToastView,
+  type Toast,
+} from "../../components/design/useToast.js";
 
 // Contract input recipe (primitives-contract §6): rounded coal field, hairline
 // border that turns violet on focus - no box-shadow ring. Shared by the native
@@ -41,8 +46,6 @@ function EffortField({
 }
 
 const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [] };
-
-type Toast = { kind: "ok" | "err"; text: string } | null;
 
 // Per-provider accent, keyed by name hash - colour where it carries meaning
 // (provider identity), like the board's tinted column headers. Only the group
@@ -93,7 +96,7 @@ export function ProfilesPage() {
   const [providers, setProviders] = useState<string[]>([]);
   const [catalog, setCatalog] = useState<ProviderCatalog>({});
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<Toast>(null);
+  const { toast, showToast: flash } = useToast();
   const [creating, setCreating] = useState(false);
 
   async function load() {
@@ -120,10 +123,6 @@ export function ProfilesPage() {
     void load();
   }, []);
 
-  function flash(t: Toast) {
-    setToast(t);
-    if (t) window.setTimeout(() => setToast(null), 3200);
-  }
 
   // Group by provider so "claude" presets (claude, claude-cheap, …) sit together.
   const groups = new Map<string, ProfileView[]>();
@@ -247,19 +246,11 @@ export function ProfilesPage() {
         </div>
       )}
 
-      {toast ? (
-        <div
-          className={cn(
-            "fixed bottom-4 right-4 z-30 rounded-[12px] border px-3.5 py-2 text-[12.5px] shadow-2xl",
-            toast.kind === "ok"
-              ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-              : "border-rose-400/30 bg-rose-500/10 text-rose-200",
-          )}
-        >
-          {toast.kind === "ok" ? "Saved " : "Error "}
-          {toast.text}
-        </div>
-      ) : null}
+      <ToastView
+        toast={toast}
+        prefix="word"
+        className="fixed bottom-4 right-4 z-30 rounded-[12px] border px-3.5 py-2 text-[12.5px] shadow-2xl"
+      />
     </PageShell>
   );
 }
@@ -598,6 +589,9 @@ function ProfileCard({
   );
 }
 
+// Deliberately not design/FormField: this page's variant stacks with a tighter
+// gap, a smaller violet-soft label, and an inline hint line - swapping to the
+// shared block-layout FormField would visibly change the form.
 function FormField({
   label,
   hint,

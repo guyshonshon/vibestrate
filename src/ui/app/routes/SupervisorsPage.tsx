@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ShieldCheck, RefreshCw, Check, Trash2, Plus, X } from "lucide-react";
+import { ShieldCheck, RefreshCw, Check, Trash2, Plus } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type {
   PersonaSummary,
@@ -14,8 +14,7 @@ import {
   Section,
 } from "../../components/layout/PageShell.js";
 import { cn } from "../../components/design/cn.js";
-
-type Toast = { kind: "ok" | "err"; text: string } | null;
+import { useToast, ToastView } from "../../components/design/useToast.js";
 
 /**
  * Supervisors - the authoring surface for supervisor personas (the orchestrator's
@@ -34,12 +33,7 @@ export function SupervisorsPage() {
   const [busy, setBusy] = useState(false);
   const [action, setAction] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [toast, setToast] = useState<Toast>(null);
-
-  function flash(t: Toast) {
-    setToast(t);
-    if (t) window.setTimeout(() => setToast(null), 3200);
-  }
+  const { toast, showToast: flash } = useToast();
 
   async function load() {
     setBusy(true);
@@ -179,23 +173,7 @@ export function SupervisorsPage() {
         </>
       )}
 
-      {toast ? (
-        <div
-          className={cn(
-            "fixed bottom-4 right-4 z-30 flex items-center gap-2 rounded-[12px] border px-3.5 py-2 text-[12.5px] shadow-2xl",
-            toast.kind === "ok"
-              ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-              : "border-rose-400/30 bg-rose-500/10 text-rose-200",
-          )}
-        >
-          {toast.kind === "ok" ? (
-            <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} />
-          ) : (
-            <X className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} />
-          )}
-          {toast.text}
-        </div>
-      ) : null}
+      <ToastView toast={toast} />
     </PageShell>
   );
 }

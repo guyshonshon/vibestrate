@@ -348,7 +348,7 @@ describe("finishIntegration (P7b guided merge)", () => {
       "src/server/routes/integration.ts",
       "src/ui/components/git/MergeView.tsx", // T13 merge window confirm-modal button
       "src/ui/app/routes/RunsPage.tsx", // the confirm-modal button
-      "src/ui/lib/api.ts", // the typed client for the route
+      "src/ui/lib/api/integration.ts", // the typed client for the route
     ].sort());
   });
 });

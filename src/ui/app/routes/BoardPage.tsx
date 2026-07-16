@@ -19,7 +19,6 @@ import {
   Activity,
   Ban,
   Bolt,
-  Check,
   CircleCheck,
   Files,
   FlaskConical,
@@ -47,8 +46,9 @@ import type {
   TaskSuggestion,
 } from "../../lib/types.js";
 import { cn } from "../../components/design/cn.js";
-import { Chip } from "../../components/design/Chip.js";
+import { Chip, toneForId } from "../../components/design/Chip.js";
 import type { ChipTone } from "../../components/design/Chip.js";
+import { useToast, ToastView } from "../../components/design/useToast.js";
 import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
 import { MetricCard } from "../../components/design/MetricCard.js";
@@ -141,20 +141,6 @@ const TONE_SWATCH: Record<ChipTone, string> = {
   rose: "bg-rose-400",
 };
 
-const ROADMAP_TONES: ChipTone[] = ["violet", "sky", "emerald", "amber", "rose"];
-function roadmapToneFor(id: string): ChipTone {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return ROADMAP_TONES[h % ROADMAP_TONES.length]!;
-}
-
-const AGENT_TONES: ChipTone[] = ["violet", "sky", "emerald", "amber", "rose"];
-function roleTone(id: string): ChipTone {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return AGENT_TONES[h % AGENT_TONES.length]!;
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────
 
 export function BoardPage({
@@ -173,9 +159,7 @@ export function BoardPage({
   const [items, setItems] = useState<RoadmapItem[]>([]);
   const [suggestions, setSuggestions] = useState<TaskSuggestion[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ kind: "ok" | "err"; text: string } | null>(
-    null,
-  );
+  const { toast, showToast } = useToast(4000);
 
   const [showRoadmapForm, setShowRoadmapForm] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
@@ -216,11 +200,6 @@ export function BoardPage({
     return () => window.clearInterval(interval);
   }, [load]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => setToast(null), 4000);
-    return () => window.clearTimeout(id);
-  }, [toast]);
 
   // Focus the title field when a form expands (the inputs stay mounted so the
   // bar can animate open, so autoFocus can't carry it).
@@ -301,9 +280,9 @@ export function BoardPage({
       );
       try {
         await api.patchTask(taskId, { title: nextTitle });
-        setToast({ kind: "ok", text: `Renamed ${taskId}` });
+        showToast({ kind: "ok", text: `Renamed ${taskId}` });
       } catch (err) {
-        setToast({
+        showToast({
           kind: "err",
           text: err instanceof Error ? err.message : String(err),
         });
@@ -328,14 +307,14 @@ export function BoardPage({
       setTasks((cur) => cur.filter((t) => t.id !== taskId));
       try {
         const { worktreePath } = await api.deleteTask(taskId);
-        setToast({
+        showToast({
           kind: "ok",
           text: worktreePath
             ? `Removed ${taskId} (worktree left at ${worktreePath})`
             : `Removed ${taskId}`,
         });
       } catch (err) {
-        setToast({
+        showToast({
           kind: "err",
           text: err instanceof Error ? err.message : String(err),
         });
@@ -354,10 +333,10 @@ export function BoardPage({
       try {
         // archived is the only honest drop target (cancelTask).
         await api.cancelTask(taskId);
-        setToast({ kind: "ok", text: `Archived ${taskId}` });
+        showToast({ kind: "ok", text: `Archived ${taskId}` });
         await load();
       } catch (err) {
-        setToast({
+        showToast({
           kind: "err",
           text: err instanceof Error ? err.message : String(err),
         });
@@ -371,10 +350,10 @@ export function BoardPage({
     async (taskId: string) => {
       try {
         await api.queueTask(taskId);
-        setToast({ kind: "ok", text: `Started ${taskId}` });
+        showToast({ kind: "ok", text: `Started ${taskId}` });
         await load();
       } catch (err) {
-        setToast({
+        showToast({
           kind: "err",
           text: err instanceof Error ? err.message : String(err),
         });
@@ -570,24 +549,12 @@ export function BoardPage({
         }
       >
         {tabControl}
-        {toast ? (
-          <div
-            role="status"
-            className={cn(
-              "mt-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-[11.5px]",
-              toast.kind === "ok"
-                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
-                : "border-rose-400/30 bg-rose-500/10 text-rose-300",
-            )}
-          >
-            {toast.kind === "ok" ? (
-              <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-            ) : (
-              <X className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-            )}
-            {toast.text}
-          </div>
-        ) : null}
+        <ToastView
+          toast={toast}
+          variant="inline"
+          iconStrokeWidth={2}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-[11.5px]"
+        />
       </PageHeader>
 
       {/* ── Metric strip (top) ────────────────────────────────────── */}
@@ -758,7 +725,7 @@ function RoadmapRail({
             key={rm.id}
             label={rm.title}
             meta={`${linked} - ${rm.status}`}
-            tone={roadmapToneFor(rm.id)}
+            tone={toneForId(rm.id)}
             priority={rm.priority}
             active={active === rm.id}
             onClick={() => onSelect(rm.id === active ? null : rm.id)}
@@ -1188,7 +1155,7 @@ function TaskCard({
     }
   };
 
-  const rmTone: ChipTone | null = roadmap ? roadmapToneFor(roadmap.id) : null;
+  const rmTone: ChipTone | null = roadmap ? toneForId(roadmap.id) : null;
 
   return (
     <div
@@ -1419,7 +1386,7 @@ function RoleStack({ roleIds }: { roleIds: string[] }) {
   return (
     <div className="flex items-center -space-x-1">
       {shown.map((id) => {
-        const tone = roleTone(id);
+        const tone = toneForId(id);
         const initial =
           id.replace(/[^a-zA-Z]/g, "").charAt(0).toUpperCase() || "?";
         return (

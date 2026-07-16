@@ -33,7 +33,12 @@ import { EntityIcon } from "../../components/design/EntityIcon.js";
 import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
 
 const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [] };
-import { ToneDot, type ChipTone } from "../../components/design/Chip.js";
+import { ToneDot, toneForId, type ChipTone } from "../../components/design/Chip.js";
+import {
+  useToast,
+  ToastView,
+  type Toast,
+} from "../../components/design/useToast.js";
 import { Select } from "../../components/design/Select.js";
 import { SegmentedControl } from "../../components/design/SegmentedControl.js";
 import { cn } from "../../components/design/cn.js";
@@ -50,14 +55,6 @@ const CREW_TABS: { value: CrewTab; label: string }[] = [
   { value: "crews", label: "Crews" },
   { value: "providers", label: "Providers" },
 ];
-
-// Deterministic tone per role so a role keeps the same accent across renders.
-const TONES: ChipTone[] = ["violet", "sky", "emerald", "amber", "rose"];
-function toneFor(roleId: string): ChipTone {
-  let h = 0;
-  for (const ch of roleId) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return TONES[h % TONES.length]!;
-}
 
 // Tailwind can't see runtime-built class names, so map each tone to literal
 // classes (these strings appear verbatim for the JIT to pick up). All tones map
@@ -122,7 +119,6 @@ const WORKTYPE_LABEL: Record<string, string> = {
 
 type SeatStatus = "covered" | "uncovered" | "ambiguous";
 type SeatCoverageEntry = { roleIds: string[]; status: SeatStatus };
-type Toast = { kind: "ok" | "err"; text: string } | null;
 
 /** Seats any flow asks for (plus seats the crew already assigns) and how many
  *  of the crew's roles fill each - shared by the hub cards and the config page
@@ -172,7 +168,7 @@ export function CrewPage({
   const [flows, setFlows] = useState<DiscoveredFlow[]>([]);
   const [skills, setSkills] = useState<DiscoveredSkill[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<Toast>(null);
+  const { toast, showToast: flash } = useToast();
   const [savingRole, setSavingRole] = useState<string | null>(null);
   const [settingDefault, setSettingDefault] = useState(false);
 
@@ -211,11 +207,6 @@ export function CrewPage({
   useEffect(() => {
     void load();
   }, []);
-
-  function flash(t: Toast) {
-    setToast(t);
-    if (t) window.setTimeout(() => setToast(null), 3200);
-  }
 
   const crew = useMemo(
     () => crews?.find((c) => c.id === crewId) ?? null,
@@ -510,23 +501,7 @@ export function CrewPage({
         </>
       )}
 
-      {toast ? (
-        <div
-          className={cn(
-            "fixed bottom-4 right-4 z-30 flex items-center gap-2 rounded-[12px] border px-3.5 py-2 text-[12.5px] shadow-2xl",
-            toast.kind === "ok"
-              ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-              : "border-rose-400/30 bg-rose-500/10 text-rose-200",
-          )}
-        >
-          {toast.kind === "ok" ? (
-            <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} />
-          ) : (
-            <X className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} />
-          )}
-          {toast.text}
-        </div>
-      ) : null}
+      <ToastView toast={toast} />
     </PageShell>
   );
 }
@@ -871,8 +846,8 @@ function SeatCoverage({
   const filled = seats.length - uncovered.length;
 
   // On the ring, adjacent roles must be visually distinct - so colour by role
-  // order through the palette, not by the toneFor hash (which clusters several
-  // roles onto the same hue and blurs their wedges together).
+  // order through the palette, not by the toneForId hash (which clusters
+  // several roles onto the same hue and blurs their wedges together).
   const PALETTE: ChipTone[] = [
     "violet",
     "emerald",
@@ -1252,7 +1227,7 @@ function RoleCard({
   onCreateProfile: (input: Parameters<typeof api.createProfile>[0]) => void;
   onFlash: (t: Toast) => void;
 }) {
-  const tone = toneFor(role.id);
+  const tone = toneForId(role.id);
   const profile = profiles.find((p) => p.id === role.profile) ?? null;
   const [promptOpen, setPromptOpen] = useState(false);
   const [newProfileOpen, setNewProfileOpen] = useState(false);

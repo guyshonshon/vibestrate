@@ -27,6 +27,21 @@ export function runLabel(run: { displayName?: string | null; task: string }): st
   return run.displayName || run.task;
 }
 
+// Cost readouts always show the dollar amount, including a zero ("$0.00") -
+// unmetered local-CLI runs read consistently with metered ones rather than as a
+// special "FREE" word.
+export function fmtCost(n: number): string {
+  return `$${n.toFixed(2)}`;
+}
+
+/** Compact token counts for tiles and table cells: 1234 -> "1.2k", 2.5M. */
+export function fmtTokensShort(n: number): string {
+  const a = Math.abs(n);
+  if (a >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (a >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
+
 export function relTime(iso: string, now = Date.now()): string {
   const t = new Date(iso).getTime();
   if (!Number.isFinite(t)) return "";

@@ -20,9 +20,9 @@ import {
 import { ReviewSuggestionStore } from "../src/reviews/review-suggestion-store.js";
 import {
   ReviewSuggestionService,
-  checkPatchSafety,
   SuggestionServiceError,
 } from "../src/reviews/review-suggestion-service.js";
+import { checkPatchSafety } from "../src/safety/patch-safety.js";
 import { renderFinalReport } from "../src/core/final-report.js";
 import { runStateSchema } from "../src/core/state-machine.js";
 import { writeJson } from "../src/utils/json.js";

@@ -1,5 +1,16 @@
 import { z } from "zod";
 
+/** Typed failure for bundle operations; statusCode maps to the HTTP reply. */
+export class SuggestionBundleError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "SuggestionBundleError";
+  }
+}
+
 export const bundleStatusSchema = z.enum([
   "draft",
   "approved",

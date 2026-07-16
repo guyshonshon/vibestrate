@@ -38,6 +38,7 @@ import {
 } from "../../components/layout/PageShell.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { cn } from "../../components/design/cn.js";
+import { fmtCost, fmtTokensShort } from "../../components/design/format.js";
 
 const RANGES: OverviewRange[] = ["24h", "7d", "30d", "90d"];
 
@@ -309,20 +310,6 @@ const KPI_TONE: Record<
     icon: "text-sky-glow",
   },
 };
-
-// Cost readouts always show the dollar amount, including a zero ("$0.00") -
-// unmetered local-CLI runs read consistently with metered ones rather than as a
-// special "FREE" word.
-function fmtCost(n: number): string {
-  return `$${n.toFixed(2)}`;
-}
-
-function fmtTokensShort(n: number): string {
-  const a = Math.abs(n);
-  if (a >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (a >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return String(n);
-}
 
 function BigKpi({
   label,

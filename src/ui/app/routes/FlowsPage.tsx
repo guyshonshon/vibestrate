@@ -17,13 +17,13 @@ import { FlowBars } from "../../components/design/FlowBars.js";
 import { StatTile } from "../../components/design/StatTile.js";
 import { StepKindLegend } from "../../components/design/StepKindLegend.js";
 import { cn } from "../../components/design/cn.js";
+import { useToast, ToastView } from "../../components/design/useToast.js";
 
 type Props = {
   /** Open a flow in the Flow Builder (customize slots/steps, then run). */
   onOpenInFlow: (flowId: string) => void;
 };
 
-type Toast = { kind: "ok" | "err"; text: string } | null;
 type Busy = { id: string; action: "fork" | "delete" | "export" } | null;
 type ImportMode = "yaml" | "url";
 
@@ -69,7 +69,9 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   const [defaultFlowId, setDefaultFlowId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
-  const [toast, setToast] = useState<Toast>(null);
+  // setToast (sticky, no auto-dismiss) is kept for the hub install results the
+  // user may need to read; flash auto-dismisses like every other page.
+  const { toast, showToast: flash, setToast } = useToast();
   const [importOpen, setImportOpen] = useState(false);
   const [importMode, setImportMode] = useState<ImportMode>("yaml");
   const [importText, setImportText] = useState("");
@@ -93,11 +95,6 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   useEffect(() => {
     void load();
   }, []);
-
-  function flash(t: Toast) {
-    setToast(t);
-    if (t) window.setTimeout(() => setToast(null), 3200);
-  }
 
   async function fork(flowId: string) {
     setBusy({ id: flowId, action: "fork" });
@@ -417,19 +414,11 @@ export function FlowsPage({ onOpenInFlow }: Props) {
         onError={(text) => setToast({ kind: "err", text })}
       />
 
-      {toast ? (
-        <div
-          className={cn(
-            "fixed bottom-4 right-4 z-30 border px-3.5 py-2 text-[12.5px] shadow-2xl",
-            toast.kind === "ok"
-              ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-              : "border-rose-400/30 bg-rose-500/10 text-rose-200",
-          )}
-        >
-          {toast.kind === "ok" ? "✓ " : "✗ "}
-          {toast.text}
-        </div>
-      ) : null}
+      <ToastView
+        toast={toast}
+        prefix="glyph"
+        className="fixed bottom-4 right-4 z-30 border px-3.5 py-2 text-[12.5px] shadow-2xl"
+      />
     </div>
   );
 }

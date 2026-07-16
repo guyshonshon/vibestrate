@@ -17,7 +17,7 @@
 
 import { execa } from "execa";
 import { resetOutOfTreeStagedSymlinks } from "../git/git.js";
-import { checkPatchSafety } from "../reviews/review-suggestion-service.js";
+import { checkPatchSafety } from "./patch-safety.js";
 import {
   gateAction,
   type ActionBroker,

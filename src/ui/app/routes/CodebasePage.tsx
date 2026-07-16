@@ -18,6 +18,7 @@ import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
 import { StatTile } from "../../components/design/StatTile.js";
 import { cn } from "../../components/design/cn.js";
+import { IconBtn } from "../../components/design/IconBtn.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { useCodebaseEvents } from "../../lib/useCodebaseEvents.js";
 
@@ -841,10 +842,10 @@ function AnnotationCard({
           {a.shareWithRoles ? "roles" : "private"}
         </button>
         <div className="ml-auto flex items-center gap-1">
-          <IconBtn title={resolved ? "Reopen" : "Resolve"} onClick={onToggleResolve} disabled={busy}>
+          <IconBtn variant="plain" title={resolved ? "Reopen" : "Resolve"} onClick={onToggleResolve} disabled={busy}>
             {resolved ? <RotateCcw className="h-3 w-3" strokeWidth={1.9} /> : <Check className="h-3 w-3" strokeWidth={1.9} />}
           </IconBtn>
-          <IconBtn title="Delete" onClick={onDelete} disabled={busy}>
+          <IconBtn variant="plain" title="Delete" onClick={onDelete} disabled={busy}>
             <Trash2 className="h-3 w-3" strokeWidth={1.9} />
           </IconBtn>
         </div>
@@ -861,26 +862,3 @@ function AnnotationCard({
   );
 }
 
-function IconBtn({
-  title,
-  onClick,
-  disabled,
-  children,
-}: {
-  title: string;
-  onClick: () => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      title={title}
-      onClick={onClick}
-      disabled={disabled}
-      className="inline-flex h-6 w-6 items-center justify-center rounded-[8px] text-chalk-400 transition hover:bg-coal-500 hover:text-chalk-100 disabled:opacity-40"
-    >
-      {children}
-    </button>
-  );
-}

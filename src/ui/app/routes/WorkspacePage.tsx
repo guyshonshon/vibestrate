@@ -20,6 +20,7 @@ import { HeroCard, type HeroMetric, type HeroTone } from "../../components/desig
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { cn } from "../../components/design/cn.js";
+import { fmtTokensShort } from "../../components/design/format.js";
 
 const RANGES: OverviewRange[] = ["24h", "7d", "30d", "90d"];
 
@@ -185,13 +186,6 @@ export function WorkspacePage() {
       ) : null}
     </PageShell>
   );
-}
-
-function fmtTokensShort(n: number): string {
-  const a = Math.abs(n);
-  if (a >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (a >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return String(n);
 }
 
 function Kpi({

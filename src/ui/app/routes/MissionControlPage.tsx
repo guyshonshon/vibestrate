@@ -18,6 +18,7 @@ import {
   Sparkline,
   type SparkTone,
 } from "../../components/design/Sparkline.js";
+import { useToast, ToastView } from "../../components/design/useToast.js";
 import type {
   ApprovalRequest,
   RunState,
@@ -98,7 +99,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
     Record<string, { insertions: number; deletions: number }>
   >({});
   const [approvals, setApprovals] = useState<ApprovalRow[]>([]);
-  const [toast, setToast] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const { toast, showToast } = useToast(4000);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -183,12 +184,6 @@ export function MissionControlPage({ onSelectRun }: Props) {
     return () => disconnect();
   }, [onSelectRun]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => setToast(null), 4000);
-    return () => window.clearTimeout(id);
-  }, [toast]);
-
   const activeRuns = useMemo(() => runs.filter((r) => isActive(r.status)), [runs]);
   const completed = useMemo(
     () =>
@@ -228,9 +223,9 @@ export function MissionControlPage({ onSelectRun }: Props) {
     try {
       if (approve) await api.approveApproval({ runId: a.runId, approvalId: a.id });
       else await api.rejectApproval({ runId: a.runId, approvalId: a.id });
-      setToast({ kind: "ok", text: approve ? "approved" : "rejected" });
+      showToast({ kind: "ok", text: approve ? "approved" : "rejected" });
     } catch (err) {
-      setToast({ kind: "err", text: err instanceof Error ? err.message : String(err) });
+      showToast({ kind: "err", text: err instanceof Error ? err.message : String(err) });
     }
   };
 
@@ -333,18 +328,12 @@ export function MissionControlPage({ onSelectRun }: Props) {
             }
           />
         ) : null}
-        {toast ? (
-          <div
-            role="status"
-            className={`mb-4 rounded-[12px] border px-4 py-2.5 text-[13px] ${
-              toast.kind === "ok"
-                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
-                : "border-rose-400/30 bg-rose-500/10 text-rose-300"
-            }`}
-          >
-            {toast.text}
-          </div>
-        ) : null}
+        <ToastView
+          toast={toast}
+          variant="inline"
+          prefix="none"
+          className="mb-4 rounded-[12px] border px-4 py-2.5 text-[13px]"
+        />
 
         {approvals.length > 0 ? (
           <section className="mb-4 rounded-[22px] border border-amber-soft/25 bg-coal-600 p-6">

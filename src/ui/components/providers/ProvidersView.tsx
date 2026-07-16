@@ -25,14 +25,15 @@ import {
 } from "../../lib/provider-yaml.js";
 import { Button } from "../design/Button.js";
 import { Chip } from "../design/Chip.js";
+import { FormField } from "../design/FormField.js";
 import { StatTile } from "../design/StatTile.js";
 import { cn } from "../design/cn.js";
+import { useToast, ToastView } from "../design/useToast.js";
 import { Section } from "../layout/PageShell.js";
 import { ErrorView } from "../../lib/error-view.js";
 
 type TestResult = Awaited<ReturnType<typeof api.testProvider>>;
 type Busy = { id: string; action: "apply" | "default" | "test" } | null;
-type Toast = { kind: "ok" | "err"; text: string } | null;
 
 /**
  * Providers view - the dashboard mirror of `vibe provider …`, and the
@@ -54,7 +55,7 @@ export function ProvidersView() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
   const [tests, setTests] = useState<Record<string, TestResult>>({});
-  const [toast, setToast] = useState<Toast>(null);
+  const { toast, showToast: flash } = useToast(4500);
   const [installFor, setInstallFor] = useState<ProviderRow | null>(null);
   const [editFor, setEditFor] = useState<ProviderRow | null>(null);
   // A from-scratch provider the dashboard can't auto-detect (cloud API, local
@@ -84,11 +85,6 @@ export function ProvidersView() {
       window.clearInterval(id);
     };
   }, []);
-
-  function flash(t: Toast) {
-    setToast(t);
-    window.setTimeout(() => setToast(null), 4500);
-  }
 
   async function setDefault(id: string) {
     setBusy({ id, action: "default" });
@@ -429,23 +425,7 @@ export function ProvidersView() {
         />
       ) : null}
 
-      {toast ? (
-        <div
-          className={cn(
-            "fixed bottom-4 right-4 z-30 flex items-center gap-2 rounded-[12px] border px-3.5 py-2 text-[12.5px] shadow-2xl",
-            toast.kind === "ok"
-              ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-              : "border-rose-400/30 bg-rose-500/10 text-rose-200",
-          )}
-        >
-          {toast.kind === "ok" ? (
-            <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} />
-          ) : (
-            <X className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} />
-          )}
-          {toast.text}
-        </div>
-      ) : null}
+      <ToastView toast={toast} />
     </>
   );
 }
@@ -1250,23 +1230,6 @@ function ProviderEditor({
         )}
       </div>
     </div>
-  );
-}
-
-function FormField({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <div className="mb-1 text-[12px] font-semibold text-violet-vivid">
-        {label}
-      </div>
-      {children}
-    </label>
   );
 }
 

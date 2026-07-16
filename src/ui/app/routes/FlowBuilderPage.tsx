@@ -49,6 +49,8 @@ import {
   stepKindGroup,
 } from "../../components/design/stepKind.js";
 import { cn } from "../../components/design/cn.js";
+import { IconBtn } from "../../components/design/IconBtn.js";
+import { useToast, ToastView } from "../../components/design/useToast.js";
 import { FlowGraph, isGraphSteps } from "../../components/workflow/FlowGraph.js";
 import { extractFlowFromYaml, renderFlowYaml } from "../../lib/flow-yaml.js";
 
@@ -239,10 +241,7 @@ export function FlowBuilderPage({
   const [saving, setSaving] = useState(false);
   const [forking, setForking] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [toast, setToast] = useState<{
-    kind: "ok" | "err";
-    text: string;
-  } | null>(null);
+  const { toast, showToast } = useToast(4000);
   // Dry-run preview: resolve the saved flow into the snapshot a real run
   // would instantiate (provider per slot, enabled steps, gates) - no run.
   const [dryRun, setDryRun] = useState<ResolvedFlowSnapshot | null>(null);
@@ -363,11 +362,6 @@ export function FlowBuilderPage({
     setHistVer((v) => v + 1);
   }, [draftLabel, draftSteps, draftStepList, draftLoop, selected?.id]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => setToast(null), 4000);
-    return () => window.clearTimeout(id);
-  }, [toast]);
 
   // The list we render: the structural draft (if any) or the saved list, with
   // each step's in-progress field draft folded in so edits (label, kind,
@@ -437,12 +431,12 @@ export function FlowBuilderPage({
       setDraftSteps({});
       setDraftStepList(null);
       setDraftLoop(result.flow.definition.loop ?? null);
-      setToast({
+      showToast({
         kind: "ok",
         text: `Saved ${result.flow.label} (${result.definitionPath})`,
       });
     } catch (err) {
-      setToast({
+      showToast({
         kind: "err",
         text: err instanceof Error ? err.message : String(err),
       });
@@ -498,7 +492,7 @@ export function FlowBuilderPage({
       setDraftSteps({});
       setDraftStepList(null);
       setDraftLoop(result.flow.definition.loop ?? null);
-      setToast({
+      showToast({
         kind: "ok",
         text: `Saved ${result.flow.label} (${result.definitionPath})`,
       });
@@ -517,14 +511,14 @@ export function FlowBuilderPage({
       setFlows((cur) =>
         cur.map((g) => (g.id === result.flow.id ? result.flow : g)),
       );
-      setToast({
+      showToast({
         kind: "ok",
         text: result.alreadyForked
           ? `${result.flowId} already lives in .vibestrate/flows/`
           : `Forked to ${result.definitionPath} - now editable`,
       });
     } catch (err) {
-      setToast({
+      showToast({
         kind: "err",
         text: err instanceof Error ? err.message : String(err),
       });
@@ -540,9 +534,9 @@ export function FlowBuilderPage({
       await api.deleteFlow(selected.id);
       setFlows((cur) => cur.filter((g) => g.id !== selected.id));
       setSelectedId(null);
-      setToast({ kind: "ok", text: `Deleted ${selected.id}` });
+      showToast({ kind: "ok", text: `Deleted ${selected.id}` });
     } catch (err) {
-      setToast({
+      showToast({
         kind: "err",
         text: err instanceof Error ? err.message : String(err),
       });
@@ -588,7 +582,7 @@ export function FlowBuilderPage({
     if (!selected || !isProjectFlow) return;
     const list = ensureStepList();
     if (list.length <= 1) {
-      setToast({
+      showToast({
         kind: "err",
         text: "A flow must have at least one step.",
       });
@@ -835,13 +829,13 @@ export function FlowBuilderPage({
                     .setDefaultFlow(selected.id)
                     .then(() => {
                       setDefaultFlowId(selected.id);
-                      setToast({
+                      showToast({
                         kind: "ok",
                         text: `"${selected.label}" now runs by default.`,
                       });
                     })
                     .catch((err) =>
-                      setToast({
+                      showToast({
                         kind: "err",
                         text: err instanceof Error ? err.message : String(err),
                       }),
@@ -872,19 +866,12 @@ export function FlowBuilderPage({
           {error}
         </div>
       ) : null}
-      {toast ? (
-        <div
-          role="status"
-          className={
-            toast.kind === "ok"
-              ? "mt-4 rounded-[12px] border px-3 py-2 text-[12.5px] border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
-              : "mt-4 rounded-[12px] border px-3 py-2 text-[12.5px] border-rose-400/30 bg-rose-500/10 text-rose-300"
-          }
-        >
-          {toast.kind === "ok" ? "✓ " : "✗ "}
-          {toast.text}
-        </div>
-      ) : null}
+      <ToastView
+        toast={toast}
+        variant="inline"
+        prefix="glyph"
+        className="mt-4 rounded-[12px] border px-3 py-2 text-[12.5px]"
+      />
 
       {selected && yamlMode ? (
         <section className="mt-8">
@@ -1444,39 +1431,6 @@ function StepRow({
       ) : null}
       <ChevronRight className="h-3.5 w-3.5 text-chalk-300" strokeWidth={1.7} />
     </li>
-  );
-}
-
-function IconBtn({
-  children,
-  title,
-  disabled,
-  danger,
-  onClick,
-}: {
-  children: React.ReactNode;
-  title: string;
-  disabled?: boolean;
-  danger?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      title={title}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "h-6 w-6 inline-flex items-center justify-center rounded-[10px] border transition",
-        disabled
-          ? "border-[color:var(--line-soft)] text-chalk-400 cursor-not-allowed"
-          : danger
-            ? "border-rose-300/20 text-rose-300/80 hover:bg-rose-500/10 hover:text-rose-200"
-            : "border-[color:var(--line-strong)] text-chalk-300 hover:bg-coal-500 hover:text-chalk-100",
-      )}
-    >
-      {children}
-    </button>
   );
 }
 

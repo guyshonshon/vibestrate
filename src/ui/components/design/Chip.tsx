@@ -69,6 +69,22 @@ export function Chip({
   );
 }
 
+// Accent tones only - "neutral" is excluded so a hashed id always lands on a
+// real hue.
+const ID_TONES: ChipTone[] = ["violet", "sky", "emerald", "amber", "rose"];
+
+/**
+ * Deterministic accent for an arbitrary id (role, roadmap item, ...) so the
+ * same id keeps the same tone across renders and surfaces. Adjacent ids can
+ * still collide on a hue - when items must be pairwise distinct (e.g. wedges
+ * on a ring), assign tones by position instead.
+ */
+export function toneForId(id: string): ChipTone {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return ID_TONES[h % ID_TONES.length]!;
+}
+
 export function ToneDot({ tone = "violet" }: { tone?: ChipTone }) {
   const dots: Record<ChipTone, string> = {
     neutral: "bg-chalk-400",

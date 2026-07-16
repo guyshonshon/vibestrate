@@ -8,7 +8,7 @@
 // agent's direct write would have bypassed.
 
 import { execa } from "execa";
-import { checkPatchSafety } from "../reviews/review-suggestion-service.js";
+import { checkPatchSafety } from "./patch-safety.js";
 import {
   gateAction,
   type ActionBroker,
