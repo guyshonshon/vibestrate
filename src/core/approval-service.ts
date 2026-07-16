@@ -69,6 +69,7 @@ export class ApprovalService {
 
   async create(input: {
     stageId: string;
+    stepId?: string | null;
     roleId: string;
     reason: string | null;
     prompt: string | null;
@@ -84,6 +85,7 @@ export class ApprovalService {
       id: randomUUID(),
       runId: this.runId,
       stageId: input.stageId,
+      stepId: input.stepId ?? null,
       roleId: input.roleId,
       createdAt: ts,
       updatedAt: ts,
@@ -101,9 +103,13 @@ export class ApprovalService {
       decisionNote: null,
       guidance: null,
     };
-    const all = await this.readAll();
-    all.push(req);
-    await this.writeAll(all);
+    // Same mutex as resolve(): append under the lock so a concurrent resolve or
+    // a second create can't read-modify-write over each other.
+    await withFileMutex(`${this.filePath}.lock`, async () => {
+      const all = await this.readAll();
+      all.push(req);
+      await this.writeAll(all);
+    });
     return req;
   }
 
@@ -203,22 +209,25 @@ export class ApprovalService {
       }
       if (current.status !== "pending") return current;
       if (opts.timeoutMs && Date.now() - startedAt > opts.timeoutMs) {
-        // Mark expired and return.
-        const all = await this.readAll();
-        const idx = all.findIndex((a) => a.id === approvalId);
-        if (idx >= 0 && all[idx]!.status === "pending") {
+        // Mark expired and return - under the same mutex as resolve()/create()
+        // so the timeout write can't race a just-landed human decision.
+        const expired = await withFileMutex(`${this.filePath}.lock`, async () => {
+          const all = await this.readAll();
+          const idx = all.findIndex((a) => a.id === approvalId);
+          if (idx < 0 || all[idx]!.status !== "pending") return null;
           const ts = nowIso();
-          const expired: ApprovalRequest = {
+          const rec: ApprovalRequest = {
             ...all[idx]!,
             status: "expired",
             updatedAt: ts,
             resolvedAt: ts,
             resolvedBy: "system-timeout",
           };
-          all[idx] = expired;
+          all[idx] = rec;
           await this.writeAll(all);
-          return expired;
-        }
+          return rec;
+        });
+        if (expired) return expired;
       }
       await new Promise((r) => setTimeout(r, pollMs));
     }

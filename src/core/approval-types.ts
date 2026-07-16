@@ -30,6 +30,11 @@ export const approvalRequestSchema = z.object({
   riskLevel: approvalRiskSchema.default("medium"),
   // V0 default is 'agent' so existing approvals.json files round-trip cleanly.
   source: approvalSourceSchema.default("agent"),
+  // The flow step this gate belongs to (null for run-level gates like the
+  // completion sign-off). Distinct from stageId, which is the coarser run phase
+  // used for policy matching - two steps can share a stageId. The change-request
+  // round cap counts per stepId so distinct gates don't share a counter.
+  stepId: z.string().nullable().default(null),
   // True when both an agent emitted HUMAN_APPROVAL and the project policy
   // also required approval at this stage. Logged for transparency; the
   // approval itself is still a single record.

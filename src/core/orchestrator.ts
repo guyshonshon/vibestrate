@@ -2819,6 +2819,7 @@ export class Orchestrator {
         state,
         fromStatus: state.status,
         stageId: this.flowStatusForStep(step),
+        stepId: step.id,
         roleId: step.resolvedRoleId!,
         roleArtifact: result,
         approvalService: input.approvalService,
@@ -2848,14 +2849,13 @@ export class Orchestrator {
         throw new __ApprovalRejectedSignal();
       }
       if (gate.changesGuidance != null) {
-        // Round = number of change-requests recorded at this stage so far (the
-        // just-made one included). Derived from the persisted approvals, so the
-        // cap holds across a resume, not just in memory. A human drives each
-        // round, but the cap stops an accidental request-changes <-> re-ask
-        // cycle from running unbounded.
-        const stageId = this.flowStatusForStep(step);
+        // Round = number of change-requests recorded at THIS step so far (the
+        // just-made one included). Keyed on stepId (not the coarser stageId, which
+        // distinct steps can share), derived from the persisted approvals so the
+        // cap holds across a resume. A human drives each round, but the cap stops
+        // an accidental request-changes <-> re-ask cycle from running unbounded.
         const round = (await input.approvalService.readAll()).filter(
-          (a) => a.stageId === stageId && a.status === "changes_requested",
+          (a) => a.stepId === step.id && a.status === "changes_requested",
         ).length;
         if (round > maxChangeRounds) {
           // The gate resumed the run to its stage status; move it to blocked
@@ -4770,6 +4770,7 @@ export class Orchestrator {
             // (planning/architecting/executing/validating/reviewing/fixing/
             // verifying); match on the step's phase, not its id.
             stageId: this.flowStatusForStep(step),
+            stepId: step.id,
             roleId: step.resolvedRoleId,
             roleArtifact: result,
             approvalService: input.approvalService,
@@ -4801,12 +4802,10 @@ export class Orchestrator {
           if (gate.changesGuidance != null) {
             // Re-run this step FORWARD with the guidance (do not advance
             // stepIndex, do not mark it passed). Round = persisted change-request
-            // count at this stage (the just-made one included); over the cap ->
-            // block honestly.
+            // count at THIS step (the just-made one included), keyed on stepId so
+            // distinct gates don't share a counter; over the cap -> block honestly.
             const round = (await input.approvalService.readAll()).filter(
-              (a) =>
-                a.stageId === this.flowStatusForStep(step) &&
-                a.status === "changes_requested",
+              (a) => a.stepId === step.id && a.status === "changes_requested",
             ).length;
             if (round > maxChangeRounds) {
               // Move the run itself to blocked (the gate resumed it to its stage
@@ -5474,6 +5473,7 @@ export class Orchestrator {
     state: RunState;
     fromStatus: RunStatus;
     stageId: string;
+    stepId?: string | null;
     roleId: string;
     reason: string | null;
     prompt: string | null;
@@ -5494,6 +5494,7 @@ export class Orchestrator {
 
     const req = await input.approvalService.create({
       stageId: input.stageId,
+      stepId: input.stepId ?? null,
       roleId: input.roleId,
       reason: input.reason,
       prompt: input.prompt,
@@ -5644,6 +5645,7 @@ export class Orchestrator {
     state: RunState;
     fromStatus: RunStatus;
     stageId: string;
+    stepId?: string | null;
     roleId: string;
     roleArtifact: RoleRunResult | null;
     approvalService: ApprovalService;
@@ -5688,6 +5690,7 @@ export class Orchestrator {
       state: input.state,
       fromStatus: input.fromStatus,
       stageId: input.stageId,
+      stepId: input.stepId ?? null,
       roleId: input.roleId,
       reason,
       prompt: input.roleArtifact?.promptArtifactPath ?? null,

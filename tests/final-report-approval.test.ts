@@ -79,6 +79,7 @@ describe("final report - approval section", () => {
         requestedAction: "continue past architecting",
         riskLevel: "medium",
         source: "agent",
+        stepId: null,
         alsoRequiredByPolicy: false,
         userMessage: null,
         resolvedAt: "2026-01-01T00:00:30.000Z",

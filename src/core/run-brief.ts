@@ -58,18 +58,24 @@ export function initRunBrief(input: {
   };
 }
 
-/** Record a completed step's outcome (its output head + any decision marker). */
+/** Record a completed step's outcome (its output head + any decision marker).
+ *  Upserts by stepId - the latest outcome wins - so a re-run of the same step
+ *  (a human "request changes" guided re-run, or a review-fix loop iteration)
+ *  refreshes its entry instead of appending a duplicate to the story-so-far. */
 export function appendStepOutcome(
   state: RunBriefState,
   input: { stepId: string; label: string; kind: string; output: string; decision?: string | null },
 ): void {
-  state.steps.push({
+  const entry = {
     stepId: input.stepId,
     label: input.label,
     kind: input.kind,
     summary: oneLine(input.output),
     decision: input.decision ?? null,
-  });
+  };
+  const existing = state.steps.findIndex((s) => s.stepId === input.stepId);
+  if (existing >= 0) state.steps[existing] = entry;
+  else state.steps.push(entry);
 }
 
 /** Update the run-level facts the brief carries (validation + changed files). */
