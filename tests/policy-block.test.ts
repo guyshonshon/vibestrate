@@ -3,7 +3,7 @@ import {
   projectPolicySchema,
   type ProjectPolicy,
 } from "../src/project/config-schema.js";
-import { evaluateBlockPolicies } from "../src/orchestrator/policy-block.js";
+import { evaluateBlockPolicies } from "../src/supervisor/policy-block.js";
 
 function policy(over: Partial<ProjectPolicy> = {}): ProjectPolicy {
   return {

@@ -28,8 +28,8 @@ import {
   installCrewPreset,
   listCrewPresets,
 } from "../../setup/config-update-service.js";
-import { CREW_PRESETS, type PresetTier } from "../../crews/crew-presets.js";
-import { profileUsage, rolesUsingProfile } from "../../profiles/profile-usage.js";
+import { CREW_PRESETS, type PresetTier } from "../../agents/crew-presets.js";
+import { profileUsage, rolesUsingProfile } from "../../agents/profile-usage.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 import { z } from "zod";
 

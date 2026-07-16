@@ -7,7 +7,7 @@ import {
   projectRolesDir,
 } from "../utils/paths.js";
 import { projectConfigSchema, type ProjectConfig } from "../project/config-schema.js";
-import { builtinRoleIds } from "../roles/role-schema.js";
+import { builtinRoleIds } from "../agents/role-schema.js";
 import type { ProviderConfig } from "../providers/provider-schema.js";
 import { capabilitiesForProvider } from "../providers/provider-catalog.js";
 import {
@@ -15,7 +15,7 @@ import {
   CREW_PRESETS,
   type PresetTier,
   type ProviderInfo,
-} from "../crews/crew-presets.js";
+} from "../agents/crew-presets.js";
 
 export type ParsedValue = string | number | boolean | unknown[] | Record<string, unknown>;
 

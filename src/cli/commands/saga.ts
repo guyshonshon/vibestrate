@@ -13,7 +13,7 @@ import {
   requestPause,
   requestResume,
 } from "../../core/pause-service.js";
-import { getTaskRunStatus, NotSupervisedError } from "../../feature/saga-status.js";
+import { getTaskRunStatus, NotSupervisedError } from "../../core/saga/saga-status.js";
 
 async function svc() {
   const detected = await detectProject(process.cwd());

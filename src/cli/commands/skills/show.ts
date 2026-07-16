@@ -2,7 +2,7 @@ import { detectProject } from "../../../project/project-detector.js";
 import {
   discoverSkills,
   findSkillByName,
-} from "../../../skills/skill-discovery.js";
+} from "../../../agents/skill-discovery.js";
 import { readText } from "../../../utils/fs.js";
 import { color, header, indent, symbol } from "../../ui/format.js";
 

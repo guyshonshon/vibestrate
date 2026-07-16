@@ -6,7 +6,7 @@ import {
   buildStepPacket,
   readFreshFileReads,
   type StepPacketItem,
-} from "../src/feature/packet.js";
+} from "../src/core/saga/packet.js";
 
 const AWS_KEY = "AKIAIOSFODNN7EXAMPLE";
 

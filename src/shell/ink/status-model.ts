@@ -1,7 +1,7 @@
 // Pure derivation of the status-bar fields from the shell's data sources.
 // Import-free except for the (pure) terminal-status list, so it runs under
 // the node-only Vitest environment.
-import { TERMINAL_STATUSES } from "../../workflow/workflow-types.js";
+import { TERMINAL_STATUSES } from "../../core/workflow/workflow-types.js";
 import type { SafetyMode, SessionState } from "./ui-state.js";
 import type { SpendCapState } from "../../core/spend-cap-service.js";
 

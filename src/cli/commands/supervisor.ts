@@ -1,13 +1,13 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
 import { loadConfig } from "../../project/config-loader.js";
-import { buildPersonaCatalog } from "../../orchestrator/personas.js";
-import { listSupervisorArchetypes } from "../../orchestrator/supervisor-archetypes.js";
+import { buildPersonaCatalog } from "../../supervisor/personas.js";
+import { listSupervisorArchetypes } from "../../supervisor/supervisor-archetypes.js";
 import {
   adoptArchetype,
   setDefaultPersona,
   removePersona,
-} from "../../orchestrator/persona-service.js";
+} from "../../supervisor/persona-service.js";
 import type { ProjectConfig } from "../../project/config-schema.js";
 import { color, symbol } from "../ui/format.js";
 

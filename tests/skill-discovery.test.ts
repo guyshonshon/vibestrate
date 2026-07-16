@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
-import { discoverSkills } from "../src/skills/skill-discovery.js";
+import { discoverSkills } from "../src/agents/skill-discovery.js";
 
 async function tempProject(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-skill-disc-"));

@@ -1,12 +1,12 @@
 import React from "react";
 import { Box, Text, useInput } from "ink";
-import type { DiscoveredSkill } from "../../../skills/skill-discovery.js";
-import type { SkillAssignmentSummary } from "../../../skills/skill-assignment-service.js";
+import type { DiscoveredSkill } from "../../../agents/skill-discovery.js";
+import type { SkillAssignmentSummary } from "../../../agents/skill-assignment-service.js";
 import {
   assignSkillToRole,
   unassignSkillFromRole,
-} from "../../../skills/skill-assignment-service.js";
-import { builtinRoleIds } from "../../../roles/role-schema.js";
+} from "../../../agents/skill-assignment-service.js";
+import { builtinRoleIds } from "../../../agents/role-schema.js";
 import { clip } from "../theme.js";
 import { SelectionMark } from "../components/visuals.js";
 

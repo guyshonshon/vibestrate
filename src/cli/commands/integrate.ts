@@ -7,17 +7,17 @@ import {
   IntegrationError,
   type BranchTarget,
   type MergeReadyRun,
-} from "../../integration/integration-service.js";
+} from "../../git/integration-service.js";
 import { color, header, indent, isInteractiveTTY, symbol } from "../ui/format.js";
 import { startSpinner } from "../ui/spinner.js";
 import {
   adviseMergeReadyRuns,
   type MergeAdvice,
-} from "../../integration/merge-advisor.js";
+} from "../../git/merge-advisor.js";
 import {
   analyzeMergeDeeper,
   MergeAnalyzeError,
-} from "../../integration/merge-analyze.js";
+} from "../../git/merge-analyze.js";
 
 async function ctx() {
   const detected = await detectProject(process.cwd());
@@ -313,7 +313,7 @@ async function cmdFinish(
   }
   try {
     const { finishIntegration } = await import(
-      "../../integration/integration-service.js"
+      "../../git/integration-service.js"
     );
     const r = await finishIntegration({
       projectRoot: root,

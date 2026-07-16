@@ -6,7 +6,7 @@ import {
   buildRunTraceOtlp,
   exportRunToOtlp,
   type OtlpFetch,
-} from "../src/telemetry/otel-exporter.js";
+} from "../src/core/otel-exporter.js";
 import { MetricsStore } from "../src/core/metrics-store.js";
 import { makeEmptyMetrics, type RuntimeMetrics } from "../src/core/runtime-metrics.js";
 

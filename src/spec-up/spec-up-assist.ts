@@ -16,7 +16,7 @@ import { redactSecretsInText } from "../core/diff-service.js";
 import {
   runAssist,
   type AssistProviderRunner,
-} from "../assist/assist-runner.js";
+} from "../core/assist/assist-runner.js";
 import { readSpecUpQuestions, type ServedSpecUpQuestion, readAccumulatedAnswers } from "./spec-up-chain.js";
 import { assertSafeRunId } from "../server/security.js";
 import { VibestrateError } from "../utils/errors.js";

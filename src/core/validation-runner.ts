@@ -1,5 +1,5 @@
 import path from "node:path";
-import { runShellCommand } from "../execution/command-runner.js";
+import { runShellCommand } from "./execution/command-runner.js";
 import { writeText } from "../utils/fs.js";
 import { slugify } from "../utils/slug.js";
 import type { ArtifactStore } from "./artifact-store.js";

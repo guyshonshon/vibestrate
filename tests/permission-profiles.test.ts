@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   builtinPermissionProfiles,
   resolveProfile,
-} from "../src/permissions/permission-profiles.js";
-import { assertExecutableContext } from "../src/permissions/access-policy.js";
+} from "../src/safety/permission-profiles.js";
+import { assertExecutableContext } from "../src/safety/access-policy.js";
 import { PolicyError } from "../src/utils/errors.js";
 
 describe("permission profiles", () => {

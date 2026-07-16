@@ -6,7 +6,7 @@ import {
   deleteProfile,
   setProfileFields,
 } from "../../../setup/config-update-service.js";
-import { rolesUsingProfile } from "../../../profiles/profile-usage.js";
+import { rolesUsingProfile } from "../../../agents/profile-usage.js";
 import { color, header, indent, symbol } from "../../ui/format.js";
 
 type FieldOpts = {

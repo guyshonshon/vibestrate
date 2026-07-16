@@ -9,7 +9,7 @@ import {
   buildDockerRunArgs,
   dockerAvailable,
   makeDockerBackend,
-} from "../src/execution/docker-backend.js";
+} from "../src/core/execution/docker-backend.js";
 import { VibestrateError } from "../src/utils/errors.js";
 
 // ── P3 container backend ─────────────────────────────────────────────────────

@@ -7,7 +7,7 @@ import {
   buildPresetCrew,
   planPreset,
   type ProviderInfo,
-} from "../src/crews/crew-presets.js";
+} from "../src/agents/crew-presets.js";
 
 const claude: ProviderInfo = {
   id: "claude",

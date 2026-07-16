@@ -8,13 +8,13 @@ import { buildConfigView } from "../../setup/config-view.js";
 import { configLeafKeys } from "../../project/config-introspection.js";
 import { ConfigError } from "../../utils/errors.js";
 import { projectConfigPath } from "../../utils/paths.js";
-import { buildPersonaCatalog } from "../../orchestrator/personas.js";
-import { listSupervisorArchetypes } from "../../orchestrator/supervisor-archetypes.js";
+import { buildPersonaCatalog } from "../../supervisor/personas.js";
+import { listSupervisorArchetypes } from "../../supervisor/supervisor-archetypes.js";
 import {
   adoptArchetype,
   setDefaultPersona,
   removePersona,
-} from "../../orchestrator/persona-service.js";
+} from "../../supervisor/persona-service.js";
 
 export type ConfigRoutesDeps = {
   projectRoot: string;

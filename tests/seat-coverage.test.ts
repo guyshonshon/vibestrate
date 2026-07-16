@@ -4,7 +4,7 @@ import {
   type FlowCoverage,
 } from "../src/flows/runtime/seat-coverage.js";
 import type { FlowDefinition } from "../src/flows/schemas/flow-schema.js";
-import type { CrewConfig } from "../src/crews/crew-schema.js";
+import type { CrewConfig } from "../src/agents/crew-schema.js";
 
 // Minimal fixtures: the helper only reads flow.seats / flow.steps[].seat and
 // crew.roles[].seats, so typed literals (cast) are enough.

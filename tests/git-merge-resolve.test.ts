@@ -12,7 +12,7 @@ import {
   readMergeRecord,
   MergeError,
 } from "../src/git/merge-service.js";
-import type { AssistProviderRunner } from "../src/assist/assist-runner.js";
+import type { AssistProviderRunner } from "../src/core/assist/assist-runner.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({ exitCode: 127, stdout: "", stderr: "" });

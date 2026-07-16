@@ -1,5 +1,5 @@
-import type { LoadedSkill } from "../skills/skill-schema.js";
-import type { PermissionProfile } from "../permissions/permission-schema.js";
+import type { LoadedSkill } from "../agents/skill-schema.js";
+import type { PermissionProfile } from "../safety/permission-schema.js";
 import type { ValidationResults } from "./validation-runner.js";
 
 export type PriorArtifact = {

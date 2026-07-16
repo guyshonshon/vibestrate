@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
 import { runConsult } from "../src/consult/consult.js";
-import type { AssistProviderRunner } from "../src/assist/assist-runner.js";
+import type { AssistProviderRunner } from "../src/core/assist/assist-runner.js";
 import type { ProviderRunInput } from "../src/providers/provider-types.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 

@@ -12,7 +12,7 @@ import {
 import {
   getBuiltinRoleIds,
   readDefaultPrompt,
-} from "../roles/default-roles.js";
+} from "../agents/default-roles.js";
 import { defaultProjectName } from "./project-detector.js";
 import type { SetupPlan } from "../setup/setup-service.js";
 

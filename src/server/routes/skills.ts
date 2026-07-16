@@ -3,12 +3,12 @@ import type { FastifyInstance } from "fastify";
 import {
   discoverSkills,
   findSkillById,
-} from "../../skills/skill-discovery.js";
+} from "../../agents/skill-discovery.js";
 import {
   assignSkillToRole,
   listRoleSkillAssignments,
   unassignSkillFromRole,
-} from "../../skills/skill-assignment-service.js";
+} from "../../agents/skill-assignment-service.js";
 import { HttpError } from "../security.js";
 
 const assignBody = z.object({ roleId: z.string().min(1) });
@@ -44,7 +44,7 @@ export async function registerSkillsRoutes(
     const parsed = skillFetchBody.safeParse(req.body);
     if (!parsed.success) throw new HttpError(400, parsed.error.message);
     const { installSkillFromUrl, assessSkill } = await import(
-      "../../skills/skill-fetch.js"
+      "../../agents/skill-fetch.js"
     );
     const r = await installSkillFromUrl({
       projectRoot,

@@ -3,8 +3,8 @@ import {
   PONYTAIL_POSTURE,
   isCodeWritingStep,
   renderPonytailBlock,
-} from "../src/orchestrator/ponytail-posture.js";
-import { composeReviewerStepNotes } from "../src/orchestrator/review-lenses.js";
+} from "../src/supervisor/ponytail-posture.js";
+import { composeReviewerStepNotes } from "../src/supervisor/review-lenses.js";
 import { defaultFlow } from "../src/flows/catalog/builtin-flows.js";
 
 // The default flow's real steps, so the test asserts against the shipped seats.

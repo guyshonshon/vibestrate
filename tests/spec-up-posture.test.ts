@@ -4,7 +4,7 @@ import {
   isSpecUpFlow,
   renderSpecUpPostureBlock,
 } from "../src/spec-up/spec-up-posture.js";
-import { BUILTIN_PERSONAS } from "../src/orchestrator/personas.js";
+import { BUILTIN_PERSONAS } from "../src/supervisor/personas.js";
 
 describe("spec-up-posture - isSpecUpFlow", () => {
   it("is true for the three spec-up phase flow ids", () => {

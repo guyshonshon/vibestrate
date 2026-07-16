@@ -1,15 +1,15 @@
 import type { ProjectConfig } from "../../project/config-schema.js";
-import type { CrewConfig } from "../../crews/crew-schema.js";
+import type { CrewConfig } from "../../agents/crew-schema.js";
 import { nowIso } from "../../utils/time.js";
-import { REVIEW_LENS_FRAGMENTS, type ReviewLens } from "../../orchestrator/review-lenses.js";
+import { REVIEW_LENS_FRAGMENTS, type ReviewLens } from "../../supervisor/review-lenses.js";
 import {
   getCrew,
   getCrewRole,
   getProfile,
   roleLabel,
   rolesFillingSeat,
-} from "../../crews/crew-registry.js";
-import { resolveProfile } from "../../permissions/permission-profiles.js";
+} from "../../agents/crew-registry.js";
+import { resolveProfile } from "../../safety/permission-profiles.js";
 import {
   findParamEnvCollisions,
   paramEnvVarName,

@@ -38,7 +38,7 @@ import {
   runAssist,
   type AssistProviderRunner,
   type AdHocProvider,
-} from "../assist/assist-runner.js";
+} from "../core/assist/assist-runner.js";
 
 const SAFE_BRANCH_RE = /^[a-zA-Z0-9][a-zA-Z0-9._/-]{0,99}$/;
 const AUDIT_BUCKET = "git-merge";

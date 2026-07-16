@@ -1,4 +1,4 @@
-import { cn } from "../../components/design/cn.js";
+import { cn } from "../design/cn.js";
 
 /**
  * The consult "AI thinking" orb. A layered, morphing sphere driven entirely by

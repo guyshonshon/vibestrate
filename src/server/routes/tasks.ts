@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { deriveMicroStepsForTask } from "../../roadmap/microstep-derivation.js";
-import { getTaskRunStatus, NotSupervisedError } from "../../feature/saga-status.js";
+import { getTaskRunStatus, NotSupervisedError } from "../../core/saga/saga-status.js";
 import { HttpError } from "../security.js";
 import { safeIdSchema } from "../../roadmap/roadmap-types.js";
 import { RunQueue } from "../../scheduler/run-queue.js";
@@ -361,7 +361,7 @@ export async function registerTasksRoutes(
       const parsed = enhanceBody.safeParse(req.body ?? {});
       if (!parsed.success) throw new HttpError(400, parsed.error.message);
       const { proposeChecklist, enhanceChecklist } = await import(
-        "../../assist/enhance.js"
+        "../../core/assist/enhance.js"
       );
       const opts = {
         profileId: parsed.data.profileId ?? null,
@@ -396,7 +396,7 @@ export async function registerTasksRoutes(
       assertSafeId(req.params.taskId);
       const parsed = planQuestionsBody.safeParse(req.body ?? {});
       if (!parsed.success) throw new HttpError(400, parsed.error.message);
-      const { proposeChecklistQuestions } = await import("../../assist/enhance.js");
+      const { proposeChecklistQuestions } = await import("../../core/assist/enhance.js");
       try {
         const proposal = await proposeChecklistQuestions(
           deps.projectRoot,

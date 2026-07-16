@@ -10,9 +10,9 @@ import {
   classifyTaskRisk,
   listPersonaIds,
   BUILTIN_PERSONAS,
-} from "../src/orchestrator/personas.js";
-import { chooseRunFlow } from "../src/orchestrator/select-workflow.js";
-import { resolveRunPosture } from "../src/orchestrator/posture-apply.js";
+} from "../src/supervisor/personas.js";
+import { chooseRunFlow } from "../src/supervisor/select-workflow.js";
+import { resolveRunPosture } from "../src/supervisor/posture-apply.js";
 import { deriveRunAssurance } from "../src/safety/run-assurance.js";
 import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
 import { securityReviewFlow, reviewPanelFlow, defaultFlow } from "../src/flows/catalog/builtin-flows.js";

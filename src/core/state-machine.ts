@@ -6,8 +6,8 @@ import { writeJson, readJson } from "../utils/json.js";
 import { pathExists } from "../utils/fs.js";
 import { nowIso } from "../utils/time.js";
 import { defaultDisplayName } from "../utils/slug.js";
-import type { RunStatus } from "../workflow/workflow-types.js";
-import { TERMINAL_STATUSES } from "../workflow/workflow-types.js";
+import type { RunStatus } from "./workflow/workflow-types.js";
+import { TERMINAL_STATUSES } from "./workflow/workflow-types.js";
 import { flowRunParticipantStateSchema } from "../flows/runtime/flow-participant-ledger.js";
 import { runBudgetSchema } from "../roadmap/roadmap-types.js";
 

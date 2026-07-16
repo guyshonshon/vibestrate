@@ -10,7 +10,7 @@ import {
   integrate,
   listMergeReadyRuns,
   IntegrationError,
-} from "../src/integration/integration-service.js";
+} from "../src/git/integration-service.js";
 import { RunStateStore, createInitialState } from "../src/core/state-machine.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 

@@ -3,7 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
 import { runValidationCommands } from "../../src/core/validation-runner.js";
-import { writeMcpConfigFile } from "../../src/mcp/mcp-config-writer.js";
+import { writeMcpConfigFile } from "../../src/providers/mcp/mcp-config-writer.js";
 import { TerminalService } from "../../src/terminal/terminal-service.js";
 import { ArtifactStore } from "../../src/core/artifact-store.js";
 import {

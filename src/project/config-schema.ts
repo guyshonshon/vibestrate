@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { POLICY_LIMITS } from "../policies/policy-types.js";
 import { SUPERVISED_DEFAULT_MAX_STEPS } from "../roadmap/roadmap-types.js";
-import { crewsConfigSchema } from "../crews/crew-schema.js";
-import { profilesConfigSchema } from "../profiles/profile-schema.js";
-import { permissionProfilesSchema } from "../permissions/permission-schema.js";
+import { crewsConfigSchema } from "../agents/crew-schema.js";
+import { profilesConfigSchema } from "../agents/profile-schema.js";
+import { permissionProfilesSchema } from "../safety/permission-schema.js";
 import { providersConfigSchema } from "../providers/provider-schema.js";
-import { workflowConfigSchema } from "../workflow/workflow-schema.js";
-import { executionConfigSchema } from "../execution/execution-backend-schema.js";
+import { workflowConfigSchema } from "../core/workflow/workflow-schema.js";
+import { executionConfigSchema } from "../core/execution/execution-backend-schema.js";
 
 export const projectMetaSchema = z.object({
   name: z.string().min(1),

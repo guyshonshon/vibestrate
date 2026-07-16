@@ -7,7 +7,7 @@ import {
   resolvePromptsDir,
   readDefaultPrompt,
   getBuiltinRoleIds,
-} from "../src/roles/default-roles.js";
+} from "../src/agents/default-roles.js";
 
 const repoRoot = path.resolve(fileURLToPath(import.meta.url), "..", "..");
 
@@ -19,10 +19,10 @@ afterEach(async () => {
 describe("default-prompts resolution", () => {
   it("finds the prompts from the bundled dist layout (the case that broke vibe init)", async () => {
     // Simulate an installed/bundled package: <pkg>/dist/index.js looking for
-    // prompts that live at <pkg>/src/roles/default-prompts.
+    // prompts that live at <pkg>/src/agents/default-prompts.
     const pkg = await fs.mkdtemp(path.join(os.tmpdir(), "vibe-prompts-"));
     tmpDirs.push(pkg);
-    const prompts = path.join(pkg, "src", "roles", "default-prompts");
+    const prompts = path.join(pkg, "src", "agents", "default-prompts");
     await fs.mkdir(prompts, { recursive: true });
     await fs.mkdir(path.join(pkg, "dist"), { recursive: true });
     await fs.writeFile(path.join(prompts, "planner.md"), "# planner");
@@ -40,7 +40,7 @@ describe("default-prompts resolution", () => {
   });
 
   it("ships a prompt for every builtin role (guards a moved/renamed dir)", async () => {
-    const dir = path.join(repoRoot, "src", "roles", "default-prompts");
+    const dir = path.join(repoRoot, "src", "agents", "default-prompts");
     for (const roleId of getBuiltinRoleIds()) {
       const stat = await fs.stat(path.join(dir, `${roleId}.md`));
       expect(stat.isFile()).toBe(true);
@@ -56,6 +56,6 @@ describe("default-prompts resolution", () => {
     const pkg = JSON.parse(await fs.readFile(path.join(repoRoot, "package.json"), "utf8")) as {
       files: string[];
     };
-    expect(pkg.files).toContain("src/roles/default-prompts");
+    expect(pkg.files).toContain("src/agents/default-prompts");
   });
 });

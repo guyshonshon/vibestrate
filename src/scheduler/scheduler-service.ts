@@ -6,7 +6,7 @@ import { RoadmapService } from "../roadmap/roadmap-service.js";
 import {
   killProcessTree,
   detachedSpawnOptions,
-} from "../platform/process-control.js";
+} from "../utils/process-control.js";
 import { RunQueue } from "./run-queue.js";
 import { readLiveTaskLockHolder } from "../core/run-lock.js";
 import { ConflictsStore, detectConflicts } from "./conflict-detector.js";

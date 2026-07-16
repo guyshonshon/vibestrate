@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { runArgvCommand } from "../src/execution/command-runner.js";
+import { runArgvCommand } from "../src/core/execution/command-runner.js";
 
 // Regression for the nested-claude session collision: a spawned child must not
 // inherit the host Claude Code identity (CLAUDE_CODE_* / CLAUDECODE), or a nested

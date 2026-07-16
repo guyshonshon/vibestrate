@@ -2,11 +2,11 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import {
   discoverSkills,
   type DiscoveredSkill,
-} from "../../../skills/skill-discovery.js";
+} from "../../../agents/skill-discovery.js";
 import {
   listRoleSkillAssignments,
   type SkillAssignmentSummary,
-} from "../../../skills/skill-assignment-service.js";
+} from "../../../agents/skill-assignment-service.js";
 
 export function useSkills(projectRoot: string, refreshMs = 3000) {
   const [skills, setSkills] = useState<DiscoveredSkill[]>([]);

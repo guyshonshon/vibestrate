@@ -9,8 +9,8 @@ import {
   proposeChecklist,
   enhanceChecklist,
   proposeChecklistQuestions,
-} from "../src/assist/enhance.js";
-import { AssistError, type AssistProviderRunner } from "../src/assist/assist-runner.js";
+} from "../src/core/assist/enhance.js";
+import { AssistError, type AssistProviderRunner } from "../src/core/assist/assist-runner.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({

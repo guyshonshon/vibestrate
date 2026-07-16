@@ -3,7 +3,7 @@ import type {
   TerminalProcess,
   DriverSpawnOpts,
 } from "./terminal-types.js";
-import { isWindows, type Platform } from "../platform/platform.js";
+import { isWindows, type Platform } from "../utils/platform.js";
 
 /**
  * Factory for the production driver. Dynamically imports `node-pty` so a

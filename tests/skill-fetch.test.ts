@@ -6,10 +6,10 @@ import { execa } from "execa";
 import {
   installSkillFromUrl,
   assessSkill,
-} from "../src/skills/skill-fetch.js";
+} from "../src/agents/skill-fetch.js";
 import { applySetup } from "../src/setup/setup-service.js";
 import type { FetchImpl } from "../src/flows/runtime/flow-portability.js";
-import type { AssistProviderRunner } from "../src/assist/assist-runner.js";
+import type { AssistProviderRunner } from "../src/core/assist/assist-runner.js";
 
 function okFetch(body: string): FetchImpl {
   return async () => ({

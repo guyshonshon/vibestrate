@@ -9,7 +9,7 @@ import { assembleConsultContext } from "../src/consult/consult-context.js";
 import { runConsult, ConsultError } from "../src/consult/consult.js";
 import { readActionLog } from "../src/safety/action-broker.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
-import type { AssistProviderRunner } from "../src/assist/assist-runner.js";
+import type { AssistProviderRunner } from "../src/core/assist/assist-runner.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({ exitCode: 127, stdout: "", stderr: "" });
 

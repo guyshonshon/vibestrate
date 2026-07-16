@@ -8,7 +8,7 @@ import {
   renderInvariantsSection,
   MAX_INVARIANTS,
   MAX_INVARIANT_CHARS,
-} from "../src/feature/supervisor.js";
+} from "../src/core/saga/saga-supervisor.js";
 
 describe("supervisor decision parse", () => {
   it("reads a strict DECISION line (PROCEED / ENHANCE / ESCALATE)", () => {

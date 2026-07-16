@@ -40,7 +40,7 @@ import { randomUUID } from "node:crypto";
 import { isProcessAlive } from "../scheduler/scheduler-lock.js";
 import { runStatePath } from "../utils/paths.js";
 import { isTerminal } from "./state-machine.js";
-import type { RunStatus } from "../workflow/workflow-types.js";
+import type { RunStatus } from "./workflow/workflow-types.js";
 
 export const LOCKS_DIRNAME = "locks";
 

@@ -6,9 +6,9 @@ import {
   installCrewPreset,
   listCrewPresets,
 } from "../../setup/config-update-service.js";
-import { roleLabel } from "../../crews/crew-registry.js";
-import { CREW_PRESETS, type PresetTier } from "../../crews/crew-presets.js";
-import type { CrewConfig } from "../../crews/crew-schema.js";
+import { roleLabel } from "../../agents/crew-registry.js";
+import { CREW_PRESETS, type PresetTier } from "../../agents/crew-presets.js";
+import type { CrewConfig } from "../../agents/crew-schema.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 
 type CrewRole = CrewConfig["roles"][string];

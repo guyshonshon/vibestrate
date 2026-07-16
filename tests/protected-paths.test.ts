@@ -3,7 +3,7 @@ import {
   isProtectedDiff,
   protectedPathMatch,
   BUILTIN_PROTECTED_GLOBS,
-} from "../src/orchestrator/protected-paths.js";
+} from "../src/supervisor/protected-paths.js";
 import { classifyChangedFilesForValidation } from "../src/core/validation-scope.js";
 
 describe("protected-paths - built-in floor", () => {

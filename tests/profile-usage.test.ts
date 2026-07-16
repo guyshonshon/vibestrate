@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { profileUsage, rolesUsingProfile } from "../src/profiles/profile-usage.js";
+import { profileUsage, rolesUsingProfile } from "../src/agents/profile-usage.js";
 import type { ProjectConfig } from "../src/project/config-schema.js";
 
 // Minimal config: profileUsage only reads crews[].roles[].profile.

@@ -7,7 +7,7 @@ import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
 import { Orchestrator } from "../src/core/orchestrator.js";
 import { loadConfig } from "../src/project/config-loader.js";
-import { chooseRunFlow } from "../src/orchestrator/select-workflow.js";
+import { chooseRunFlow } from "../src/supervisor/select-workflow.js";
 import { runEventsPath } from "../src/utils/paths.js";
 import type { VibestrateEvent } from "../src/core/event-log.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";

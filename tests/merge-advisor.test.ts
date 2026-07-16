@@ -7,7 +7,7 @@ import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
 import { RunStateStore, createInitialState } from "../src/core/state-machine.js";
 import { runAssurancePath } from "../src/utils/paths.js";
-import { integrate } from "../src/integration/integration-service.js";
+import { integrate } from "../src/git/integration-service.js";
 import {
   computeMergeAdvice,
   collectBranchTopology,
@@ -15,7 +15,7 @@ import {
   DEFAULT_ADVISOR_THRESHOLDS,
   type MergeAdviceInput,
   type AssuranceProjection,
-} from "../src/integration/merge-advisor.js";
+} from "../src/git/merge-advisor.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({

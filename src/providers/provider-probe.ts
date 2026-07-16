@@ -11,7 +11,7 @@
 
 import YAML from "yaml";
 import { execa } from "execa";
-import { runArgvCommand } from "../execution/command-runner.js";
+import { runArgvCommand } from "../core/execution/command-runner.js";
 import { loadConfig } from "../project/config-loader.js";
 import { providerCatalogOverlayPath } from "../utils/paths.js";
 import { writeText } from "../utils/fs.js";

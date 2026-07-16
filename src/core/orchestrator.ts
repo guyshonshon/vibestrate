@@ -38,12 +38,12 @@ import { renderFinalReport } from "./final-report.js";
 import { runPreflightChecks, type PolicyWarning } from "./policy-engine.js";
 import type { ProjectConfig, PermissionMode } from "../project/config-schema.js";
 import { loadRolePrompt } from "../project/config-loader.js";
-import { getCrew, getCrewRole, roleLabel } from "../crews/crew-registry.js";
-import { resolveProfile } from "../permissions/permission-profiles.js";
-import { assertExecutableContext, resolveCwd } from "../permissions/access-policy.js";
-import { loadSkills } from "../skills/skill-loader.js";
-import { resolveMcpServers } from "../mcp/mcp-resolve.js";
-import { writeMcpConfigFile } from "../mcp/mcp-config-writer.js";
+import { getCrew, getCrewRole, roleLabel } from "../agents/crew-registry.js";
+import { resolveProfile } from "../safety/permission-profiles.js";
+import { assertExecutableContext, resolveCwd } from "../safety/access-policy.js";
+import { loadSkills } from "../agents/skill-loader.js";
+import { resolveMcpServers } from "../providers/mcp/mcp-resolve.js";
+import { writeMcpConfigFile } from "../providers/mcp/mcp-config-writer.js";
 import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
 import {
   classifyProviderFailure,
@@ -119,9 +119,9 @@ import {
   appendStreamLine,
   ensureStreamsDir,
 } from "./provider-stream-store.js";
-import { localWorktreeBackend } from "../execution/local-worktree-backend.js";
-import { makeDockerBackend } from "../execution/docker-backend.js";
-import type { ExecutionBackend, ExecStrategy, IsolationMode } from "../execution/execution-backend-schema.js";
+import { localWorktreeBackend } from "./execution/local-worktree-backend.js";
+import { makeDockerBackend } from "./execution/docker-backend.js";
+import type { ExecutionBackend, ExecStrategy, IsolationMode } from "./execution/execution-backend-schema.js";
 import {
   isGitAvailable,
   stageAndCommitAll,
@@ -141,7 +141,7 @@ import {
   renderItemSummaryArtifact,
   compactImplementationSummary,
   type ChecklistItemOutcome,
-} from "../pickup/item-summary.js";
+} from "./item-summary.js";
 import { GitError, VibestrateError, describeError } from "../utils/errors.js";
 import { nowIso, durationMs } from "../utils/time.js";
 import { makeUniqueRunId } from "../utils/run-id.js";
@@ -154,26 +154,26 @@ import type {
 } from "../providers/provider-types.js";
 import { MetricsStore } from "./metrics-store.js";
 import { makeEmptyMetrics, roleMetricsSchema, type RoleMetrics } from "./runtime-metrics.js";
-import { computeRunSpendUsd, checkSagaStopConditions } from "../feature/budget.js";
+import { computeRunSpendUsd, checkSagaStopConditions } from "./saga/budget.js";
 import { extractTurnInternals } from "./turn-internals.js";
 import { getDiffSnapshot, getWorktreeDiffText, redactSecretsInText } from "./diff-service.js";
-import { buildStepPacket, readFreshFileReads } from "../feature/packet.js";
+import { buildStepPacket, readFreshFileReads } from "./saga/packet.js";
 import {
   buildSupervisorPrompt,
   parseSupervisorDecision,
   parseNewInvariants,
-} from "../feature/supervisor.js";
+} from "./saga/saga-supervisor.js";
 import {
   buildEnhancePrompt,
   parseStepDiff,
   classifyAuthority,
   applyStepDiff,
   type EnhanceStep,
-} from "../feature/enhance.js";
+} from "./saga/enhance.js";
 import type { Provenance } from "../roadmap/roadmap-types.js";
-import { evaluateBlockPolicies } from "../orchestrator/policy-block.js";
+import { evaluateBlockPolicies } from "../supervisor/policy-block.js";
 import { classifyChangedFilesForValidation } from "./validation-scope.js";
-import { protectedPathMatch } from "../orchestrator/protected-paths.js";
+import { protectedPathMatch } from "../supervisor/protected-paths.js";
 import {
   evaluateReviewDescent,
   type ReviewDescentDecision,
@@ -198,7 +198,7 @@ import {
   draftProviderFailed,
 } from "../notifications/notification-router.js";
 import type { NotificationDraft } from "../notifications/notification-router.js";
-import type { RunStatus } from "../workflow/workflow-types.js";
+import type { RunStatus } from "./workflow/workflow-types.js";
 import { ReviewSuggestionService } from "../reviews/review-suggestion-service.js";
 import type { SuggestionSource } from "../reviews/review-suggestion-types.js";
 import { applyPauseIfRequested } from "./pause-service.js";
@@ -213,7 +213,7 @@ import {
 import {
   reconstructDoneOutcomes,
   checklistIdsChanged,
-} from "../pickup/resume-checklist.js";
+} from "./resume-checklist.js";
 import { readdir } from "node:fs/promises";
 import {
   isGraphFlow,
@@ -223,18 +223,18 @@ import {
   type ResolvedFlowStep,
 } from "../flows/schemas/flow-schema.js";
 import { defaultFlow } from "../flows/catalog/builtin-flows.js";
-import type { WorkflowSelection } from "../orchestrator/select-workflow.js";
-import { resolvePersona } from "../orchestrator/personas.js";
+import type { WorkflowSelection } from "../supervisor/select-workflow.js";
+import { resolvePersona } from "../supervisor/personas.js";
 import {
   renderPersonaReviewLensEmphasis,
   isReviewerStep,
   composeReviewerStepNotes,
-} from "../orchestrator/review-lenses.js";
-import { renderPolicyAdviseBlock } from "../orchestrator/policy-advise.js";
+} from "../supervisor/review-lenses.js";
+import { renderPolicyAdviseBlock } from "../supervisor/policy-advise.js";
 import {
   isCodeWritingStep,
   renderPonytailBlock,
-} from "../orchestrator/ponytail-posture.js";
+} from "../supervisor/ponytail-posture.js";
 import {
   isSpecUpFlow,
   renderSpecUpPostureBlock,
@@ -380,7 +380,7 @@ export type OrchestratorInput = {
    *  each step starts a fresh model context. Set by the saga launch path. */
   sagaMode?: boolean;
   /** Per-saga budget envelope (Conductor): bounds the saga's TOTAL
-   *  cost/length, enforced BETWEEN steps (see src/feature/budget.ts). Null
+   *  cost/length, enforced BETWEEN steps (see src/core/saga/budget.ts). Null
    *  fields mean no limit on that axis. The launch path sets it from
    *  `task.sagaBudget`; defaults to no limits. */
   sagaBudget?: { maxSpendUsd: number | null; maxSteps: number | null };
@@ -5717,7 +5717,7 @@ export class Orchestrator {
    * model turn (no write grant - all context is in the prompt) that judges
    * whether the saga should PROCEED to the next step or ESCALATE (halt), and
    * records any new cross-cutting INVARIANT into the durable ledger. Pure logic
-   * lives in src/feature/supervisor.ts; this method only wires the provider call
+   * lives in src/core/saga/saga-supervisor.ts; this method only wires the provider call
    * + persistence. It NEVER assigns the run-scoped `reviewDecision` (the caller
    * owns the ESCALATE halt). Every failure mode - unresolved provider/role,
    * provider error, unparseable output - folds to PROCEED + a logged event: the

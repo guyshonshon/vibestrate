@@ -10,9 +10,9 @@ import {
   resolveRestorePreview,
   RunLaunchError,
 } from "../../core/run-launcher.js";
-import { chooseRunFlow, type WorkflowSelection } from "../../orchestrator/select-workflow.js";
-import { SPEC_UP_TARGET_FLOW } from "../../orchestrator/flow-sizing.js";
-import { resolvePersona } from "../../orchestrator/personas.js";
+import { chooseRunFlow, type WorkflowSelection } from "../../supervisor/select-workflow.js";
+import { SPEC_UP_TARGET_FLOW } from "../../supervisor/flow-sizing.js";
+import { resolvePersona } from "../../supervisor/personas.js";
 import {
   color,
   header,

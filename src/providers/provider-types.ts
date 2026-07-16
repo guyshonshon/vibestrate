@@ -1,5 +1,5 @@
 import type { ResolvedCatalog, SandboxMode } from "./provider-apply.js";
-import type { ExecStrategy } from "../execution/execution-backend-schema.js";
+import type { ExecStrategy } from "../core/execution/execution-backend-schema.js";
 
 export type ProviderRunResult = {
   providerId: string;
@@ -120,7 +120,7 @@ export type ProviderRunInput = {
   /** Provider-native session turn request for a Flow participant. */
   session?: ProviderSessionRequest;
   /**
-   * Absolute path to a materialized `mcp.json` (see `src/mcp/mcp-config-writer`).
+   * Absolute path to a materialized `mcp.json` (see `src/providers/mcp/mcp-config-writer`).
    * When set, providers wire it through to the underlying CLI:
    *  - `claude-code` adds `--mcp-config <path>` automatically,
    *  - every provider also exports `VIBESTRATE_MCP_CONFIG=<path>` in the

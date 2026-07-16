@@ -7,9 +7,9 @@
 // CLI (parity).
 
 import type { ProjectConfig } from "../../project/config-schema.js";
-import type { CrewConfig } from "../../crews/crew-schema.js";
+import type { CrewConfig } from "../../agents/crew-schema.js";
 import type { FlowDefinition } from "../schemas/flow-schema.js";
-import { getCrew, rolesFillingSeat } from "../../crews/crew-registry.js";
+import { getCrew, rolesFillingSeat } from "../../agents/crew-registry.js";
 
 export type SeatCoverageStatus = "filled" | "gap" | "ambiguous";
 

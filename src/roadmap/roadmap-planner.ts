@@ -9,8 +9,8 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs/promises";
 import { loadConfig } from "../project/config-loader.js";
 import { runProvider } from "../providers/provider-runner.js";
-import { getCrew, rolesFillingSeat } from "../crews/crew-registry.js";
-import { resolvePromptsDir } from "../roles/default-roles.js";
+import { getCrew, rolesFillingSeat } from "../agents/crew-registry.js";
+import { resolvePromptsDir } from "../agents/default-roles.js";
 import { ProposalService } from "./proposal-service.js";
 import { VibestrateError } from "../utils/errors.js";
 

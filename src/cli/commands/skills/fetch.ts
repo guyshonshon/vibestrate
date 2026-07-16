@@ -2,7 +2,7 @@ import { detectProject } from "../../../project/project-detector.js";
 import {
   installSkillFromUrl,
   assessSkill,
-} from "../../../skills/skill-fetch.js";
+} from "../../../agents/skill-fetch.js";
 import { color, indent, symbol } from "../../ui/format.js";
 
 export async function runSkillsFetch(

@@ -8,12 +8,12 @@ import { loadConfig } from "../src/project/config-loader.js";
 import {
   SUPERVISOR_ARCHETYPES,
   listSupervisorArchetypes,
-} from "../src/orchestrator/supervisor-archetypes.js";
+} from "../src/supervisor/supervisor-archetypes.js";
 import {
   adoptArchetype,
   setDefaultPersona,
   removePersona,
-} from "../src/orchestrator/persona-service.js";
+} from "../src/supervisor/persona-service.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { workflowConfigSchema } from "../src/workflow/workflow-schema.js";
-import { defaultWorkflowStages } from "../src/workflow/default-workflow.js";
+import { workflowConfigSchema } from "../src/core/workflow/workflow-schema.js";
+import { defaultWorkflowStages } from "../src/core/workflow/default-workflow.js";
 import { projectConfigSchema } from "../src/project/config-schema.js";
 
 describe("workflow schema", () => {

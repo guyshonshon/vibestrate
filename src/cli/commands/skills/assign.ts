@@ -3,7 +3,7 @@ import { configExists } from "../../../project/config-loader.js";
 import {
   assignSkillToRole,
   unassignSkillFromRole,
-} from "../../../skills/skill-assignment-service.js";
+} from "../../../agents/skill-assignment-service.js";
 import { color, indent, symbol } from "../../ui/format.js";
 import { isVibestrateError } from "../../../utils/errors.js";
 

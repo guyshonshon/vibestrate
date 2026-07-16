@@ -3,7 +3,7 @@ import {
   POLICY_ADVISE_INJECTION_CAP,
   selectAdvisePolicies,
   renderPolicyAdviseBlock,
-} from "../src/orchestrator/policy-advise.js";
+} from "../src/supervisor/policy-advise.js";
 import {
   projectPolicySchema,
   projectConfigBaseSchema,

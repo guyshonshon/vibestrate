@@ -5,7 +5,7 @@ import {
   applyStepDiff,
   buildEnhancePrompt,
   type EnhanceStep,
-} from "../src/feature/enhance.js";
+} from "../src/core/saga/enhance.js";
 
 const step = (
   id: string,

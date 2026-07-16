@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   derivePostureApplication,
   resolveRunPosture,
-} from "../src/orchestrator/posture-apply.js";
+} from "../src/supervisor/posture-apply.js";
 
 const cfg = (autoApplySandbox: boolean, autoApplyApproval: boolean) => ({
   autoApplySandbox,

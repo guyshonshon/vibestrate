@@ -8,7 +8,7 @@ import {
   selectWorkflow,
   chooseRunFlow,
   type AvailableFlow,
-} from "../src/orchestrator/select-workflow.js";
+} from "../src/supervisor/select-workflow.js";
 import {
   defaultFlow,
   qualityArbitrationFlow,
@@ -16,7 +16,7 @@ import {
 } from "../src/flows/catalog/builtin-flows.js";
 import { flowDefinitionSchema } from "../src/flows/schemas/flow-schema.js";
 import type { ProjectConfig } from "../src/project/config-schema.js";
-import type { AssistProviderRunner } from "../src/assist/assist-runner.js";
+import type { AssistProviderRunner } from "../src/core/assist/assist-runner.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({ exitCode: 127, stdout: "", stderr: "" });

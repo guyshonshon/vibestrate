@@ -9,15 +9,15 @@ import {
   IntegrationError,
   type BranchTarget,
   type MergeReadyRun,
-} from "../../integration/integration-service.js";
+} from "../../git/integration-service.js";
 import {
   adviseMergeReadyRuns,
   mergeReadyOverview,
-} from "../../integration/merge-advisor.js";
+} from "../../git/merge-advisor.js";
 import {
   analyzeMergeDeeper,
   MergeAnalyzeError,
-} from "../../integration/merge-analyze.js";
+} from "../../git/merge-analyze.js";
 
 export type IntegrationRoutesDeps = { projectRoot: string };
 

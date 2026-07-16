@@ -359,7 +359,7 @@ async function cmdEnhance(
   try {
     const { root } = await svc();
     if (opts.apply) {
-      const { enhanceChecklist } = await import("../../assist/enhance.js");
+      const { enhanceChecklist } = await import("../../core/assist/enhance.js");
       const { added, proposal } = await enhanceChecklist(root, taskId, {
         profileId: opts.profile ?? null,
       });
@@ -373,7 +373,7 @@ async function cmdEnhance(
       printChecklist(added);
       return 0;
     }
-    const { proposeChecklist } = await import("../../assist/enhance.js");
+    const { proposeChecklist } = await import("../../core/assist/enhance.js");
     const proposal = await proposeChecklist(root, taskId, {
       profileId: opts.profile ?? null,
     });

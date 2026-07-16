@@ -13,7 +13,7 @@ import {
 } from "../src/policies/policy-assist.js";
 import { listPolicies } from "../src/project/project-policy-service.js";
 import { projectConfigPath, runDir } from "../src/utils/paths.js";
-import type { AssistProviderRunner } from "../src/assist/assist-runner.js";
+import type { AssistProviderRunner } from "../src/core/assist/assist-runner.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 // Security-focused tests for the supervisor-assisted Policies surface. The

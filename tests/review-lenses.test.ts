@@ -4,8 +4,8 @@ import {
   renderPersonaReviewLensEmphasis,
   isReviewerStep,
   composeReviewerStepNotes,
-} from "../src/orchestrator/review-lenses.js";
-import { BUILTIN_PERSONAS } from "../src/orchestrator/personas.js";
+} from "../src/supervisor/review-lenses.js";
+import { BUILTIN_PERSONAS } from "../src/supervisor/personas.js";
 
 describe("review-lenses - closed-vocabulary fragment rendering", () => {
   it("maps known lenses to fixed fragments, preserving declaration order, deduped", () => {

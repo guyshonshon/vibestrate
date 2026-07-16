@@ -11,8 +11,8 @@ import {
 } from "./state-machine.js";
 import { isTerminal } from "./state-machine.js";
 import { nowIso } from "../utils/time.js";
-import { PAUSABLE_STATUSES, TERMINAL_STATUSES } from "../workflow/workflow-types.js";
-import type { RunStatus } from "../workflow/workflow-types.js";
+import { PAUSABLE_STATUSES, TERMINAL_STATUSES } from "./workflow/workflow-types.js";
+import type { RunStatus } from "./workflow/workflow-types.js";
 
 const DEFAULT_POLL_MS = 1500;
 

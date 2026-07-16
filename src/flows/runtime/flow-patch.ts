@@ -20,7 +20,7 @@ import {
   flowSeatSchema,
   type FlowDefinition,
 } from "../schemas/flow-schema.js";
-import { skillReferenceSchema } from "../../skills/skill-schema.js";
+import { skillReferenceSchema } from "../../agents/skill-schema.js";
 import {
   findFlowById,
   type DiscoveredFlow,

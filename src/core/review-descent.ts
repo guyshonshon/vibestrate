@@ -19,7 +19,7 @@ import {
   isProtectedDiff,
   type ProtectedPathsConfig,
   type ProtectedPathMatch,
-} from "../orchestrator/protected-paths.js";
+} from "../supervisor/protected-paths.js";
 
 /** Strict prose-only set. A subset of the validation-scoping inert allowlist on purpose. */
 const STRICT_PROSE_EXTENSIONS: ReadonlySet<string> = new Set([

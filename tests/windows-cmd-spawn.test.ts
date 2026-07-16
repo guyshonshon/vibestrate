@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import os from "node:os";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { runArgvCommand } from "../src/execution/command-runner.js";
+import { runArgvCommand } from "../src/core/execution/command-runner.js";
 
 // Windows-only proof: every npm-installed provider CLI (claude.cmd, codex.cmd,
 // gemini.cmd, ...) is a `.cmd` shim on Windows. The orchestrator spawns providers

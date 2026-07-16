@@ -18,7 +18,7 @@ export function buildTelemetryCommand(): Command {
       const projectRoot = await root();
       const { MetricsStore } = await import("../../core/metrics-store.js");
       const { RunStateStore } = await import("../../core/state-machine.js");
-      const { buildRunTraceOtlp } = await import("../../telemetry/otel-exporter.js");
+      const { buildRunTraceOtlp } = await import("../../core/otel-exporter.js");
       const metrics = await new MetricsStore(projectRoot, runId).read();
       if (!metrics) {
         console.error(`${symbol.fail()} No metrics for run "${runId}".`);
@@ -37,7 +37,7 @@ export function buildTelemetryCommand(): Command {
     .option("--auth <envRef>", "env reference for a bearer token, e.g. env:LANGFUSE_TOKEN")
     .action(async (runId: string, opts: { endpoint: string; auth?: string }) => {
       const projectRoot = await root();
-      const { exportRunToOtlp } = await import("../../telemetry/otel-exporter.js");
+      const { exportRunToOtlp } = await import("../../core/otel-exporter.js");
       const r = await exportRunToOtlp({
         projectRoot,
         runId,

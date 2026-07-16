@@ -11,7 +11,7 @@
 import { z } from "zod";
 import { VibestrateError } from "../utils/errors.js";
 import { loadConfig, type LoadedConfig } from "../project/config-loader.js";
-import { runAssist, type AssistProviderRunner } from "../assist/assist-runner.js";
+import { runAssist, type AssistProviderRunner } from "../core/assist/assist-runner.js";
 import { assembleConsultContext } from "./consult-context.js";
 import type { ConsultSections } from "./consult-sections.js";
 import { saveManualProposal } from "../project/manual-proposals.js";

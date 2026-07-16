@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   killProcessTree,
   detachedSpawnOptions,
-} from "../src/platform/process-control.js";
+} from "../src/utils/process-control.js";
 
 describe("killProcessTree", () => {
   it("signals the process group with a negative pid on POSIX", () => {

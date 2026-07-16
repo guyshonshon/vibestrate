@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isWindows } from "../src/platform/platform.js";
+import { isWindows } from "../src/utils/platform.js";
 
 describe("isWindows", () => {
   it("is true on win32", () => {

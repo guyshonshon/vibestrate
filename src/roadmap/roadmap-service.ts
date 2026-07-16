@@ -6,7 +6,7 @@ import { runStatePath } from "../utils/paths.js";
 import { RunStateStore, isTerminal } from "../core/state-machine.js";
 import { RunQueue } from "../scheduler/run-queue.js";
 import { RoadmapStore } from "./roadmap-store.js";
-import { appendInvariants } from "../feature/supervisor.js";
+import { appendInvariants } from "../core/saga/saga-supervisor.js";
 import { buildDependencyGraph, findFirstCycle } from "./dependency-graph.js";
 import {
   type ChecklistItem,

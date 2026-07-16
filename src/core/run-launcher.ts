@@ -13,10 +13,10 @@ import {
   findFlowById,
 } from "../flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../flows/runtime/flow-resolver.js";
-import { chooseRunFlow, type WorkflowSelection } from "../orchestrator/select-workflow.js";
-import { resolveRunPosture } from "../orchestrator/posture-apply.js";
-import { SPEC_UP_TARGET_FLOW } from "../orchestrator/flow-sizing.js";
-import { resolvePersona } from "../orchestrator/personas.js";
+import { chooseRunFlow, type WorkflowSelection } from "../supervisor/select-workflow.js";
+import { resolveRunPosture } from "../supervisor/posture-apply.js";
+import { SPEC_UP_TARGET_FLOW } from "../supervisor/flow-sizing.js";
+import { resolvePersona } from "../supervisor/personas.js";
 import { permissionModeSchema } from "../project/config-schema.js";
 import type { ResolvedFlowSnapshot } from "../flows/schemas/flow-schema.js";
 import { contextSourceSchema } from "./context-source-schema.js";

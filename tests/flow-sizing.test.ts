@@ -4,8 +4,8 @@ import {
   classifyPlanWorthy,
   SIZER_TARGET_FLOW,
   SPEC_UP_TARGET_FLOW,
-} from "../src/orchestrator/flow-sizing.js";
-import { chooseRunFlow } from "../src/orchestrator/select-workflow.js";
+} from "../src/supervisor/flow-sizing.js";
+import { chooseRunFlow } from "../src/supervisor/select-workflow.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import { applySetup } from "../src/setup/setup-service.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";

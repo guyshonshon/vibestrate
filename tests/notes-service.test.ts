@@ -6,7 +6,7 @@ import {
   addNote,
   listNotes,
   resolveNote,
-} from "../src/notes/notes-service.js";
+} from "../src/core/notes-service.js";
 
 async function tempProject(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-notes-"));

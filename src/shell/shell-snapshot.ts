@@ -26,7 +26,7 @@ import {
   isTerminal,
   type RunState,
 } from "../core/state-machine.js";
-import type { RunStatus } from "../workflow/workflow-types.js";
+import type { RunStatus } from "../core/workflow/workflow-types.js";
 import {
   queueFileSchema,
   schedulerStateSchema,

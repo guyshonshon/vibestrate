@@ -1,4 +1,4 @@
-import { runArgvCommand } from "../execution/command-runner.js";
+import { runArgvCommand } from "../core/execution/command-runner.js";
 import { ProviderError } from "../utils/errors.js";
 import type { ProviderRunInput, ProviderRunResult } from "./provider-types.js";
 import {

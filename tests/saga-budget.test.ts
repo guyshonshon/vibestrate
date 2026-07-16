@@ -15,7 +15,7 @@ import { makeEmptyMetrics, type RoleMetrics } from "../src/core/runtime-metrics.
 import {
   computeRunSpendUsd,
   checkSagaStopConditions,
-} from "../src/feature/budget.js";
+} from "../src/core/saga/budget.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({

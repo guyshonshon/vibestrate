@@ -6,9 +6,9 @@ import {
   resolveMcpServers,
   readSkillMcpServers,
   buildMcpConfigFile,
-} from "../src/mcp/mcp-resolve.js";
-import { writeMcpConfigFile } from "../src/mcp/mcp-config-writer.js";
-import { mcpServerSchema } from "../src/mcp/mcp-schema.js";
+} from "../src/providers/mcp/mcp-resolve.js";
+import { writeMcpConfigFile } from "../src/providers/mcp/mcp-config-writer.js";
+import { mcpServerSchema } from "../src/providers/mcp/mcp-schema.js";
 
 describe("mcpServerSchema", () => {
   it("accepts a plain argv command + args + env", () => {

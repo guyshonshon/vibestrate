@@ -16,8 +16,8 @@ import {
   type ProjectType,
 } from "../project/project-detector.js";
 import { findGitRoot, getCurrentBranch } from "../git/git.js";
-import { discoverSkills } from "../skills/skill-discovery.js";
-import { runStateSchema, type RunState } from "../core/state-machine.js";
+import { discoverSkills } from "../agents/skill-discovery.js";
+import { runStateSchema, type RunState } from "./state-machine.js";
 import { readDirSafe, pathExists, readText } from "../utils/fs.js";
 import { runStatePath } from "../utils/paths.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";

@@ -11,7 +11,7 @@ import {
   extractJson,
   AssistError,
   type AssistProviderRunner,
-} from "../src/assist/assist-runner.js";
+} from "../src/core/assist/assist-runner.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import { readActionLog } from "../src/safety/action-broker.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";

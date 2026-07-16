@@ -4,7 +4,7 @@ import {
   listNotes,
   noteScopeSchema,
   resolveNote,
-} from "../../notes/notes-service.js";
+} from "../../core/notes-service.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 import { z } from "zod";
 

@@ -1,6 +1,6 @@
 import { detectProject } from "../../../project/project-detector.js";
-import { discoverSkills } from "../../../skills/skill-discovery.js";
-import { listRoleSkillAssignments } from "../../../skills/skill-assignment-service.js";
+import { discoverSkills } from "../../../agents/skill-discovery.js";
+import { listRoleSkillAssignments } from "../../../agents/skill-assignment-service.js";
 import { color, header, indent, symbol } from "../../ui/format.js";
 
 export async function runSkillsList(opts: { json?: boolean }): Promise<number> {

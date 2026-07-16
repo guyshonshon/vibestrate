@@ -4,7 +4,7 @@ import { validateConfigPath } from "../src/project/config-introspection.js";
 import {
   executionConfigSchema,
   isolationModeSchema,
-} from "../src/execution/execution-backend-schema.js";
+} from "../src/core/execution/execution-backend-schema.js";
 
 const minimal = {
   project: { name: "x" },

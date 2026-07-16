@@ -5,7 +5,7 @@ import {
   updateRunBriefFacts,
   renderRunBrief,
 } from "../src/core/run-brief.js";
-import type { WorkflowSelection } from "../src/orchestrator/select-workflow.js";
+import type { WorkflowSelection } from "../src/supervisor/select-workflow.js";
 
 const selection: WorkflowSelection = {
   flowId: "quality-arbitration",

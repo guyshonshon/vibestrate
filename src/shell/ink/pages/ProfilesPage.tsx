@@ -6,7 +6,7 @@ import {
   deleteProfile,
   setProfileFields,
 } from "../../../setup/config-update-service.js";
-import { profileUsage } from "../../../profiles/profile-usage.js";
+import { profileUsage } from "../../../agents/profile-usage.js";
 import { capabilitiesForProvider } from "../../../providers/provider-catalog.js";
 import {
   BUILTIN_CATALOG,

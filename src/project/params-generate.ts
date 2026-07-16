@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { runAssist } from "../assist/assist-runner.js";
+import { runAssist } from "../core/assist/assist-runner.js";
 import { substituteParams } from "../flows/runtime/prompt-params.js";
 import { resolveParamsForFlow, type ProjectParams } from "./project-params.js";
 import type { FlowParam } from "../flows/schemas/flow-schema.js";

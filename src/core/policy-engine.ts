@@ -1,7 +1,7 @@
 import path from "node:path";
 import { PolicyError } from "../utils/errors.js";
 import { pathExists } from "../utils/fs.js";
-import { resolveProfile } from "../permissions/permission-profiles.js";
+import { resolveProfile } from "../safety/permission-profiles.js";
 import type { ProjectConfig } from "../project/config-schema.js";
 
 export type PolicyWarning = {

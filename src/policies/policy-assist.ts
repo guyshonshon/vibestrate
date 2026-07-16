@@ -23,7 +23,7 @@
 //      through `redactSecretsInText` and truncated before they leave the process.
 
 import { z } from "zod";
-import { runAssist, type AssistProviderRunner } from "../assist/assist-runner.js";
+import { runAssist, type AssistProviderRunner } from "../core/assist/assist-runner.js";
 import { redactSecretsInText, getWorktreeDiffText } from "../core/diff-service.js";
 import {
   evaluatePatchAgainstPolicies,

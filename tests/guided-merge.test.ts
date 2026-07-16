@@ -7,7 +7,7 @@ import {
   integrate,
   finishIntegration,
   readIntegrationRecord,
-} from "../src/integration/integration-service.js";
+} from "../src/git/integration-service.js";
 import { applySetup } from "../src/setup/setup-service.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
@@ -344,7 +344,7 @@ describe("finishIntegration (P7b guided merge)", () => {
     const files = grep.stdout.split("\n").filter(Boolean).sort();
     expect(files).toEqual([
       "src/cli/commands/integrate.ts",
-      "src/integration/integration-service.ts",
+      "src/git/integration-service.ts",
       "src/server/routes/integration.ts",
       "src/ui/components/git/MergeView.tsx", // T13 merge window confirm-modal button
       "src/ui/app/routes/RunsPage.tsx", // the confirm-modal button

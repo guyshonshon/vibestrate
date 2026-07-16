@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { approvalRiskSchema } from "../../core/approval-types.js";
-import { skillReferenceSchema } from "../../skills/skill-schema.js";
-import { reviewLensSchema } from "../../orchestrator/review-lenses.js";
+import { skillReferenceSchema } from "../../agents/skill-schema.js";
+import { reviewLensSchema } from "../../supervisor/review-lenses.js";
 
 const FLOW_TOKEN_RE = /^[a-z][a-z0-9-]*$/;
 const FLOW_AGENT_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;

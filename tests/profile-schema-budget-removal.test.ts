@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   profileConfigSchema,
   profilesConfigSchema,
-} from "../src/profiles/profile-schema.js";
+} from "../src/agents/profile-schema.js";
 
 // The per-profile `budget` field was removed: it was never read at runtime, so
 // it changed nothing. These lock in (a) that old configs carrying it still load

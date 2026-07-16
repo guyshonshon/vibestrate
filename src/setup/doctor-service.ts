@@ -11,20 +11,20 @@ import {
 import { isGitAvailable, findGitRoot } from "../git/git.js";
 import { configExists, loadConfig } from "../project/config-loader.js";
 import { detectFullProject } from "../project/project-detector.js";
-import { isWindows } from "../platform/platform.js";
+import { isWindows } from "../utils/platform.js";
 import {
   detectAllProviders,
   installHintForCommand,
   pickRecommendedProvider,
   type DetectedProvider,
 } from "../providers/provider-detection.js";
-import { resolveProfile } from "../permissions/permission-profiles.js";
-import { readDefaultPrompt } from "../roles/default-roles.js";
+import { resolveProfile } from "../safety/permission-profiles.js";
+import { readDefaultPrompt } from "../agents/default-roles.js";
 import {
   builtinRoleIds,
   type BuiltinRoleId,
-} from "../roles/role-schema.js";
-import { discoverSkills } from "../skills/skill-discovery.js";
+} from "../agents/role-schema.js";
+import { discoverSkills } from "../agents/skill-discovery.js";
 import {
   ensureProvider,
   pointAllProfilesAtProvider,

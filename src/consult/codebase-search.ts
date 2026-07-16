@@ -3,7 +3,7 @@ import {
   runAssist,
   resolveAssistTarget,
   type AssistProviderRunner,
-} from "../assist/assist-runner.js";
+} from "../core/assist/assist-runner.js";
 import { capabilitiesForProvider } from "../providers/provider-catalog.js";
 import { loadConfig } from "../project/config-loader.js";
 import { listCodebaseFiles } from "../core/codebase-search-service.js";

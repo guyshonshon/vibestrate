@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
-import { runArgvCommand } from "../src/execution/command-runner.js";
+import { runArgvCommand } from "../src/core/execution/command-runner.js";
 
 describe("runArgvCommand wall-clock timeout (Slice 4)", () => {
   it("tree-kills a turn that overruns timeoutMs and marks the result", async () => {

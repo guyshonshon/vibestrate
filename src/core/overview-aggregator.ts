@@ -3,7 +3,7 @@
 // can unit-test the math without spinning up the server.
 
 import type { RunState } from "./state-machine.js";
-import type { RunStatus } from "../workflow/workflow-types.js";
+import type { RunStatus } from "./workflow/workflow-types.js";
 import type { RoleMetrics, RuntimeMetrics } from "./runtime-metrics.js";
 
 export type OverviewRange = "24h" | "7d" | "30d" | "90d";

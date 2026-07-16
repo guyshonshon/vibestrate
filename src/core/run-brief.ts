@@ -9,7 +9,7 @@
 // idea as the per-item ledger in pickup/item-summary.ts. See
 // docs/design/responsible-orchestrator.md.
 
-import type { WorkflowSelection } from "../orchestrator/select-workflow.js";
+import type { WorkflowSelection } from "../supervisor/select-workflow.js";
 
 export type RunBriefStepOutcome = {
   stepId: string;

@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import { applySetup } from "../src/setup/setup-service.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
-import { getCrew } from "../src/crews/crew-registry.js";
+import { getCrew } from "../src/agents/crew-registry.js";
 import { pickupReviewFlow } from "../src/flows/catalog/builtin-flows.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 

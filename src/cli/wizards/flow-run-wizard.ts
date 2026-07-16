@@ -9,7 +9,7 @@ import type {
   FlowStep,
 } from "../../flows/schemas/flow-schema.js";
 import type { ProjectConfig } from "../../project/config-schema.js";
-import { getCrew, rolesFillingSeat } from "../../crews/crew-registry.js";
+import { getCrew, rolesFillingSeat } from "../../agents/crew-registry.js";
 import { formatArgv } from "../../scheduler/rerun-args.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 
