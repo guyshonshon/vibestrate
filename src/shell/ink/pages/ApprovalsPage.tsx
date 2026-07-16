@@ -1,9 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import type { ApprovalRow } from "../hooks/useApprovals.js";
 import { clip, timeAgo } from "../theme.js";
 import { SelectionMark } from "../components/visuals.js";
-import { approveApproval, rejectApproval } from "../inbox/inbox-actions.js";
+import {
+  approveApproval,
+  rejectApproval,
+  requestChangesApproval,
+} from "../inbox/inbox-actions.js";
 
 type Props = {
   projectRoot: string;
@@ -26,10 +30,40 @@ export function ApprovalsPage({
 }: Props) {
   const idx = Math.max(0, Math.min(items.length - 1, selectedIndex));
   const selected = items[idx] ?? null;
+  const [composing, setComposing] = useState(false);
+  const [guidance, setGuidance] = useState("");
 
   useInput(
     (input, key) => {
       if (!active) return;
+      // Compose mode: capture free-form change guidance; Enter submits, Esc cancels.
+      if (composing) {
+        if (key.escape) {
+          setComposing(false);
+          setGuidance("");
+          return;
+        }
+        if (key.return) {
+          const g = guidance;
+          setComposing(false);
+          setGuidance("");
+          if (selected) {
+            void requestChangesApproval(projectRoot, selected.runId, selected.id, g).then(
+              async (r) => {
+                onToast(r.ok ? "ok" : "err", r.message);
+                await refresh();
+              },
+            );
+          }
+          return;
+        }
+        if (key.backspace || key.delete) {
+          setGuidance((g) => g.slice(0, -1));
+          return;
+        }
+        if (input) setGuidance((g) => g + input);
+        return;
+      }
       if (key.upArrow || input === "k") {
         setSelectedIndex(Math.max(0, idx - 1));
         return;
@@ -54,6 +88,16 @@ export function ApprovalsPage({
             await refresh();
           },
         );
+        return;
+      }
+      if ((input === "c" || input === "C") && selected) {
+        // Request-changes only applies to an agent-requested gate.
+        if (selected.source === "policy") {
+          onToast("err", "Request-changes is only for agent-requested gates.");
+          return;
+        }
+        setGuidance("");
+        setComposing(true);
       }
     },
     { isActive: active },
@@ -131,12 +175,31 @@ export function ApprovalsPage({
                   ))}
               </Box>
             ) : null}
-            <Box marginTop={1}>
-              <Text dimColor>
-                press <Text color="cyan">a</Text> approve ·{" "}
-                <Text color="cyan">r</Text> reject
-              </Text>
-            </Box>
+            {composing ? (
+              <Box marginTop={1} flexDirection="column">
+                <Text dimColor>
+                  guidance for the re-run (Enter to send · Esc to cancel)
+                </Text>
+                <Text>
+                  <Text color="cyan">&gt; </Text>
+                  {guidance}
+                  <Text color="cyan">▏</Text>
+                </Text>
+              </Box>
+            ) : (
+              <Box marginTop={1}>
+                <Text dimColor>
+                  press <Text color="cyan">a</Text> approve ·{" "}
+                  <Text color="cyan">r</Text> reject
+                  {selected.source !== "policy" ? (
+                    <Text>
+                      {" · "}
+                      <Text color="cyan">c</Text> request changes
+                    </Text>
+                  ) : null}
+                </Text>
+              </Box>
+            )}
           </Box>
         ) : null}
       </Box>

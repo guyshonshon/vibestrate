@@ -1448,6 +1448,17 @@ export const api = {
     );
     return r.approval;
   },
+  async requestChangesApproval(input: {
+    runId: string;
+    approvalId: string;
+    guidance: string;
+  }): Promise<ApprovalRequest> {
+    const r = await jsonPost<{ approval: ApprovalRequest }>(
+      `/api/runs/${input.runId}/approvals/${input.approvalId}/request-changes`,
+      { guidance: input.guidance },
+    );
+    return r.approval;
+  },
   async assignSkill(input: {
     skillId: string;
     roleId: string;

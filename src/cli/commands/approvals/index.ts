@@ -50,5 +50,18 @@ export function buildApprovalsCommand(): Command {
       },
     );
 
+  cmd
+    .command("request-changes <runId> <approvalId>")
+    .description(
+      "Return an agent-requested gate with guidance; the stage re-runs with it.",
+    )
+    .requiredOption("--guidance <text>", "what the agent should change")
+    .action(
+      async (runId: string, approvalId: string, opts: { guidance?: string }) => {
+        const code = await runApprovalsDecide("request-changes", runId, approvalId, opts);
+        process.exit(code);
+      },
+    );
+
   return cmd;
 }

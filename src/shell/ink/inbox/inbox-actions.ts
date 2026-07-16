@@ -43,6 +43,35 @@ export async function rejectApproval(
   }
 }
 
+export async function requestChangesApproval(
+  projectRoot: string,
+  runId: string,
+  approvalId: string,
+  guidance: string,
+): Promise<InboxResult> {
+  try {
+    const svc = new ApprovalService(projectRoot, runId);
+    const before = await svc.get(approvalId);
+    // Only an agent-requested gate has a turn to re-run; fail closed on a policy gate.
+    if (before?.source === "policy") {
+      return {
+        ok: false,
+        message: "Request-changes is only for agent-requested gates.",
+      };
+    }
+    if (!guidance.trim()) {
+      return { ok: false, message: "Guidance is required." };
+    }
+    await svc.requestChanges({ approvalId, guidance });
+    return { ok: true, message: `Returned ${approvalId} for changes.` };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 export async function approveSuggestion(
   projectRoot: string,
   runId: string,
