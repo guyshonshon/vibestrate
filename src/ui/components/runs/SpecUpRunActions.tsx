@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight, ClipboardList, GitBranch } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { RunState } from "../../lib/types.js";
+import { Button } from "../design/Button.js";
 
 // ── In-run Spec-up chain actions ───────────────────────────────────────────────
 // The spec-up chain advances by human steps. The intake run's gap-questions are
@@ -90,80 +91,39 @@ export function SpecUpRunActions({
     : "The roadmap is ready as a proposal. Turn it into dependency-ordered board cards you can review and accept.";
 
   return (
-    <section
-      style={{
-        border: "1px solid var(--s-line)",
-        borderRadius: 14,
-        background: "var(--s-slab)",
-        padding: "16px 18px",
-        display: "flex",
-        alignItems: "center",
-        gap: 16,
-      }}
-    >
-      <span
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "var(--s-soft)",
-          color: "var(--s-soft-ink)",
-          flexShrink: 0,
-        }}
-      >
-        {isSpecUp ? <GitBranch size={18} /> : <ClipboardList size={18} />}
+    <section className="flex items-center gap-4 rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-violet-soft/12 text-violet-soft">
+        {isSpecUp ? (
+          <GitBranch className="h-[18px] w-[18px]" strokeWidth={1.9} aria-hidden />
+        ) : (
+          <ClipboardList className="h-[18px] w-[18px]" strokeWidth={1.9} aria-hidden />
+        )}
       </span>
-      <div style={{ flex: 1, minWidth: 0, color: "var(--s-ink)" }}>
-        <div style={{ fontSize: 14.5, fontWeight: 700 }}>{title}</div>
-        <div style={{ fontSize: 12.5, color: "var(--s-ink-dim)", marginTop: 2, lineHeight: 1.45 }}>
-          {body}
-        </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[14px] font-bold text-chalk-100">{title}</div>
+        <div className="mt-0.5 text-[12.5px] leading-relaxed text-chalk-300">{body}</div>
         {error ? (
-          <div style={{ fontSize: 12, color: "var(--s-warn-ink)", marginTop: 6 }}>{error}</div>
+          <div className="mt-1.5 text-[12px] text-amber-soft">{error}</div>
         ) : null}
       </div>
-      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
+      <div className="flex shrink-0 items-center gap-2">
         {isSpecUp ? (
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => void approveRoadmap()}
             disabled={busy}
-            style={{
-              padding: "9px 13px",
-              borderRadius: 9,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: busy ? "default" : "pointer",
-              border: "1px solid var(--s-line)",
-              background: "var(--s-slab-2)",
-              color: busy ? "var(--s-ink-faint)" : "var(--s-ink)",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-            }}
+            iconLeft={<ClipboardList className="h-3.5 w-3.5" strokeWidth={1.9} />}
           >
-            <ClipboardList size={14} />
             Generate roadmap
-          </button>
+          </Button>
         ) : null}
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={() => void (isSpecUp ? buildNow() : createCards())}
           disabled={busy}
-          style={{
-            padding: "9px 14px",
-            borderRadius: 9,
-            fontSize: 13.5,
-            fontWeight: 600,
-            cursor: busy ? "default" : "pointer",
-            border: "1px solid var(--s-accent)",
-            background: busy ? "var(--s-slab-2)" : "var(--s-accent)",
-            color: busy ? "var(--s-ink-faint)" : "var(--s-on-accent)",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-          }}
+          iconRight={<ArrowRight className="h-4 w-4" strokeWidth={1.9} />}
         >
           {busy
             ? isSpecUp
@@ -172,8 +132,7 @@ export function SpecUpRunActions({
             : isSpecUp
               ? "Approve & build"
               : "Create board cards"}
-          <ArrowRight size={15} />
-        </button>
+        </Button>
       </div>
     </section>
   );

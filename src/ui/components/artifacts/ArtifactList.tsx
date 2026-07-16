@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
 import type { ArtifactEntry } from "../../lib/types.js";
@@ -93,26 +94,28 @@ export function ArtifactList({
   }, [items, showInternals]);
 
   if (error)
-    return <div className="text-[12px] text-vibestrate-fail">{error}</div>;
+    return (
+      <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[12px] text-rose-300">
+        {error}
+      </div>
+    );
 
   if (items.length === 0) {
     return (
-      <div className="text-[12px] text-vibestrate-fg-muted">
-        No artifacts yet.
-      </div>
+      <div className="text-[12px] text-chalk-400">No artifacts yet.</div>
     );
   }
 
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
-          artifacts
+        <span className="text-[11.5px] font-semibold text-chalk-300">
+          Artifacts
         </span>
         <button
           type="button"
           onClick={() => setShowInternals((v) => !v)}
-          className="text-[11px] text-vibestrate-fg-muted hover:text-vibestrate-fg"
+          className="text-[11px] font-medium text-chalk-400 transition hover:text-chalk-100"
           title="Prompts, context packets, diff snapshots, validation output files - the run's plumbing"
         >
           {showInternals
@@ -137,11 +140,13 @@ export function ArtifactList({
                   return next;
                 })
               }
-              className="vibestrate-mono mb-0.5 flex w-full items-center gap-1 text-[10.5px] text-vibestrate-fg-muted hover:text-vibestrate-fg"
+              className="mono mb-0.5 flex w-full items-center gap-1 text-[10.5px] text-chalk-400 transition hover:text-chalk-100"
             >
-              <span className="inline-block w-2 text-center">
-                {isCollapsed ? "›" : "⌄"}
-              </span>
+              {isCollapsed ? (
+                <ChevronRight className="h-3 w-3" strokeWidth={2} aria-hidden />
+              ) : (
+                <ChevronDown className="h-3 w-3" strokeWidth={2} aria-hidden />
+              )}
               {group === "run" ? "run" : `step · ${group}`}
               <span className="opacity-60">({entries.length})</span>
             </button>
@@ -151,14 +156,14 @@ export function ArtifactList({
                 <li key={entry.path}>
                   <button
                     onClick={() => onSelect(entry.path)}
-                    className={`flex w-full items-center gap-2 rounded px-2 py-1 text-left hover:bg-vibestrate-panel-2 ${
-                      selectedPath === entry.path ? "bg-vibestrate-panel-2" : ""
+                    className={`flex w-full items-center gap-2 rounded-[10px] px-2 py-1 text-left transition hover:bg-coal-500 ${
+                      selectedPath === entry.path ? "bg-coal-500" : ""
                     }`}
                   >
-                    <span className="vibestrate-mono flex-1 truncate text-[12px] text-vibestrate-fg">
+                    <span className="mono flex-1 truncate text-[12px] text-chalk-100">
                       {entry.path.replace(/^flows\/[^/]+\//, "")}
                     </span>
-                    <span className="vibestrate-mono text-[11px] text-vibestrate-fg-muted">
+                    <span className="mono text-[11px] text-chalk-400">
                       {entry.size}b
                     </span>
                   </button>

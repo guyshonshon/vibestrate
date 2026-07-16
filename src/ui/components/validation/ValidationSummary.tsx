@@ -65,19 +65,19 @@ export function ValidationSummary({ runId }: { runId: string }) {
 
   if (error)
     return (
-      <div className="rounded border border-vibestrate-border bg-vibestrate-panel p-3 text-[12px] text-vibestrate-fail">
+      <div className="rounded-[14px] border border-rose-400/30 bg-rose-500/10 p-3 text-[12px] text-rose-300">
         {error}
       </div>
     );
 
   return (
-    <div className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
+    <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-3">
       <div className="flex items-center justify-between">
-        <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
-          validation
+        <div className="text-[11.5px] font-semibold text-chalk-300">
+          Validation
         </div>
         {data ? (
-          <span className="vibestrate-mono text-[11px] text-vibestrate-fg-dim">
+          <span className="mono text-[11px] text-chalk-300">
             {data.summary.passed}/{data.summary.total} passed
             {(data.summary.environment ?? 0) > 0
               ? ` · ${data.summary.environment} env-unavailable`
@@ -86,11 +86,11 @@ export function ValidationSummary({ runId }: { runId: string }) {
         ) : null}
       </div>
       {!data ? (
-        <div className="mt-2 text-[12px] text-vibestrate-fg-muted">
+        <div className="mt-2 text-[12px] text-chalk-400">
           Validation has not run yet.
         </div>
       ) : data.commands.length === 0 ? (
-        <div className="mt-2 text-[12px] text-vibestrate-fg-muted">
+        <div className="mt-2 text-[12px] text-chalk-400">
           {data.note ?? "No validation commands configured."}
         </div>
       ) : (

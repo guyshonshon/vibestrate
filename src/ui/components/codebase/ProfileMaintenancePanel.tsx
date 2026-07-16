@@ -7,6 +7,10 @@ import type {
   ValidationProfileSummary,
   ValidationProfileUsageEntry,
 } from "../../lib/types.js";
+import { Button } from "../design/Button.js";
+
+const FIELD =
+  "mono rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2 py-1 text-[11px] text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50";
 
 /**
  * Lightweight maintenance panel for validation profiles. Reads:
@@ -185,12 +189,12 @@ export function ProfileMaintenancePanel() {
   }
 
   return (
-    <div className="space-y-4 p-4 text-[12px]">
+    <div className="space-y-4 text-[12px]">
       <header>
-        <h2 className="text-[13px] font-medium text-vibestrate-fg">
+        <h2 className="text-[18px] font-bold text-violet-vivid">
           Validation profiles
         </h2>
-        <p className="mt-0.5 text-[10.5px] text-vibestrate-fg-muted">
+        <p className="mt-1 text-[11px] text-chalk-300">
           Migrations update future suggestion / bundle assignments only.
           Historical validation results keep the profile metadata they ran
           with.
@@ -198,21 +202,19 @@ export function ProfileMaintenancePanel() {
       </header>
 
       {error ? (
-        <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-vibestrate-fail">
+        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-rose-300">
           {error}
         </div>
       ) : null}
       {info ? (
-        <div className="rounded border border-vibestrate-success/40 bg-vibestrate-success/10 px-2 py-1 text-vibestrate-success">
+        <div className="rounded-[10px] border border-emerald/30 bg-emerald/10 px-3 py-1.5 text-emerald">
           {info}
         </div>
       ) : null}
 
       <section>
-        <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
-          Profiles
-        </h3>
-        <ul className="mt-1 space-y-1">
+        <h3 className="text-[12px] font-semibold text-chalk-300">Profiles</h3>
+        <ul className="mt-2 space-y-1">
           {profiles.map((p) => {
             // Profile list only carries default / named; usage telemetry
             // uses the same two values, so coerce safely.
@@ -223,39 +225,41 @@ export function ProfileMaintenancePanel() {
             return (
               <li
                 key={`${p.source}:${p.profileName}`}
-                className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5"
+                className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2"
               >
                 <div className="flex items-baseline gap-2">
-                  <span className="font-medium">{p.profileName}</span>
-                  <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
+                  <span className="font-medium text-chalk-100">
+                    {p.profileName}
+                  </span>
+                  <span className="mono text-[10px] text-chalk-400">
                     {p.source}
                   </span>
                   {p.hasCommands ? (
-                    <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
+                    <span className="mono text-[10px] text-chalk-400">
                       {p.commands.length} command{p.commands.length === 1 ? "" : "s"}
                     </span>
                   ) : (
-                    <span className="vibestrate-mono text-[10px] text-vibestrate-warn">
+                    <span className="mono text-[10px] text-amber-soft">
                       empty
                     </span>
                   )}
                   {u ? (
-                    <span className="vibestrate-mono ml-auto text-[10px] text-vibestrate-fg-muted">
+                    <span className="mono ml-auto text-[10px] text-chalk-400">
                       {u.totalUses} use{u.totalUses === 1 ? "" : "s"} ·{" "}
                       last {u.lastUsedAt ?? "-"}
                     </span>
                   ) : (
-                    <span className="vibestrate-mono ml-auto text-[10px] text-vibestrate-fg-muted">
+                    <span className="mono ml-auto text-[10px] text-chalk-400">
                       never used
                     </span>
                   )}
                 </div>
                 {p.description ? (
-                  <p className="text-[10.5px] text-vibestrate-fg-dim">
+                  <p className="text-[10.5px] text-chalk-300">
                     {p.description}
                   </p>
                 ) : null}
-                <p className="vibestrate-mono mt-0.5 truncate text-[10px] text-vibestrate-fg-muted">
+                <p className="mono mt-0.5 truncate text-[10px] text-chalk-400">
                   {p.commands.length === 0
                     ? "(no commands)"
                     : `→ ${p.commands.join("  ·  ")}`}
@@ -266,15 +270,15 @@ export function ProfileMaintenancePanel() {
         </ul>
       </section>
 
-      <section className="rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2">
-        <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
+      <section className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
+        <h3 className="text-[12px] font-semibold text-chalk-300">
           Migrate profile references
         </h3>
-        <p className="text-[10.5px] text-vibestrate-fg-muted">
+        <p className="mt-0.5 text-[10.5px] text-chalk-300">
           Preview first. Apply requires confirmation.
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1 text-[10.5px]">
+          <label className="flex items-center gap-1 text-[10.5px] text-chalk-300">
             from
             <input
               type="text"
@@ -284,10 +288,10 @@ export function ProfileMaintenancePanel() {
                 setPreview(null);
               }}
               placeholder="quikc"
-              className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[11px]"
+              className={FIELD}
             />
           </label>
-          <label className="flex items-center gap-1 text-[10.5px]">
+          <label className="flex items-center gap-1 text-[10.5px] text-chalk-300">
             to
             <input
               type="text"
@@ -298,10 +302,10 @@ export function ProfileMaintenancePanel() {
               }}
               placeholder="quick"
               disabled={clear}
-              className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[11px] disabled:opacity-50"
+              className={`${FIELD} disabled:opacity-50`}
             />
           </label>
-          <label className="flex items-center gap-1 text-[10.5px]">
+          <label className="flex items-center gap-1 text-[10.5px] text-chalk-300">
             <input
               type="checkbox"
               checked={clear}
@@ -312,47 +316,47 @@ export function ProfileMaintenancePanel() {
             />
             Clear to default
           </label>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => void doPreview()}
             disabled={busy}
-            className="rounded border border-vibestrate-border px-2 py-0.5 text-[11px] text-vibestrate-fg-dim hover:bg-vibestrate-panel"
           >
             Preview changes
-          </button>
+          </Button>
           {preview &&
           (preview.affectedSuggestions.length > 0 ||
             preview.affectedBundles.length > 0) ? (
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => void doApply()}
               disabled={busy}
-              className="rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-2 py-0.5 text-[11px] text-vibestrate-fg hover:bg-vibestrate-accent-soft/50"
             >
               Apply migration
-            </button>
+            </Button>
           ) : null}
         </div>
         {preview ? (
-          <div className="mt-2 rounded border border-vibestrate-border bg-vibestrate-panel px-2 py-1.5">
-            <div className="vibestrate-mono text-[10.5px] text-vibestrate-fg-dim">
+          <div className="mt-2 rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-3 py-2">
+            <div className="mono text-[10.5px] text-chalk-300">
               {preview.fromProfile} →{" "}
               {preview.toProfile ?? "default (clear)"} · scanned{" "}
               {preview.scannedRuns} run(s)
             </div>
-            <div className="vibestrate-mono mt-1 text-[10.5px]">
+            <div className="mono mt-1 text-[10.5px] text-chalk-300">
               suggestions: {preview.affectedSuggestions.length} · bundles:{" "}
               {preview.affectedBundles.length} · malformed:{" "}
               {preview.malformedFiles.length}
             </div>
             {preview.affectedSuggestions.length === 0 &&
             preview.affectedBundles.length === 0 ? (
-              <p className="text-vibestrate-fg-muted">
+              <p className="text-chalk-400">
                 Nothing to migrate - no records reference “
                 {preview.fromProfile}” in the scanned runs.
               </p>
             ) : (
-              <ul className="vibestrate-mono mt-1 max-h-32 overflow-y-auto text-[10px] text-vibestrate-fg-dim">
+              <ul className="mono mt-1 max-h-32 overflow-y-auto text-[10px] text-chalk-300">
                 {[
                   ...preview.affectedSuggestions.map(
                     (r) => `suggestion ${r.runId}/${r.id}`,
@@ -371,17 +375,20 @@ export function ProfileMaintenancePanel() {
         ) : null}
       </section>
 
-      <section className="rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2">
-        <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
+      <section className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
+        <h3 className="text-[12px] font-semibold text-chalk-300">
           Rename profile
         </h3>
-        <p className="text-[10.5px] text-vibestrate-fg-muted">
-          Renames a profile key in <code>commands.validationProfiles</code> and
-          migrates every matching suggestion/bundle reference atomically.
+        <p className="mt-0.5 text-[10.5px] text-chalk-300">
+          Renames a profile key in{" "}
+          <code className="mono rounded-[6px] bg-coal-500 px-1 py-0.5 text-chalk-200">
+            commands.validationProfiles
+          </code>{" "}
+          and migrates every matching suggestion/bundle reference atomically.
           Preview first; apply requires confirmation.
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1 text-[10.5px]">
+          <label className="flex items-center gap-1 text-[10.5px] text-chalk-300">
             from
             <input
               type="text"
@@ -391,10 +398,10 @@ export function ProfileMaintenancePanel() {
                 setRenamePreview(null);
               }}
               placeholder="quikc"
-              className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[11px]"
+              className={FIELD}
             />
           </label>
-          <label className="flex items-center gap-1 text-[10.5px]">
+          <label className="flex items-center gap-1 text-[10.5px] text-chalk-300">
             to
             <input
               type="text"
@@ -404,48 +411,48 @@ export function ProfileMaintenancePanel() {
                 setRenamePreview(null);
               }}
               placeholder="quick"
-              className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[11px]"
+              className={FIELD}
             />
           </label>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => void doRenamePreview()}
             disabled={busy}
-            className="rounded border border-vibestrate-border px-2 py-0.5 text-[11px] text-vibestrate-fg-dim hover:bg-vibestrate-panel"
           >
             Preview rename
-          </button>
+          </Button>
           {renamePreview ? (
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => void doRenameApply()}
               disabled={busy}
-              className="rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-2 py-0.5 text-[11px] text-vibestrate-fg hover:bg-vibestrate-accent-soft/50"
             >
               Apply rename
-            </button>
+            </Button>
           ) : null}
         </div>
         {renamePreview ? (
-          <div className="mt-2 rounded border border-vibestrate-border bg-vibestrate-panel px-2 py-1.5">
-            <div className="vibestrate-mono text-[10.5px] text-vibestrate-fg-dim">
+          <div className="mt-2 rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-3 py-2">
+            <div className="mono text-[10.5px] text-chalk-300">
               {renamePreview.fromProfile} → {renamePreview.toProfile} · scanned{" "}
               {renamePreview.scannedRuns} run(s)
             </div>
-            <div className="vibestrate-mono mt-1 text-[10.5px]">
+            <div className="mono mt-1 text-[10.5px] text-chalk-300">
               preserves {renamePreview.preservedCommandCount} command
               {renamePreview.preservedCommandCount === 1 ? "" : "s"}
               {renamePreview.preservedDescription
                 ? ` · description "${renamePreview.preservedDescription}"`
                 : ""}
             </div>
-            <div className="vibestrate-mono mt-1 text-[10.5px]">
+            <div className="mono mt-1 text-[10.5px] text-chalk-300">
               references: {renamePreview.affectedSuggestions.length} suggestion(s),{" "}
               {renamePreview.affectedBundles.length} bundle(s),{" "}
               {renamePreview.malformedFiles.length} malformed
             </div>
             {renamePreview.warnings.length > 0 ? (
-              <ul className="mt-1 text-[10.5px] text-vibestrate-warn">
+              <ul className="mt-1 text-[10.5px] text-amber-soft">
                 {renamePreview.warnings.map((w) => (
                   <li key={w}>! {w}</li>
                 ))}
@@ -456,27 +463,30 @@ export function ProfileMaintenancePanel() {
       </section>
 
       <section>
-        <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
+        <h3 className="text-[12px] font-semibold text-chalk-300">
           Migration history
         </h3>
-        <p className="text-[10.5px] text-vibestrate-fg-muted">
+        <p className="mt-0.5 text-[10.5px] text-chalk-300">
           Every rename/migrate/clear writes a single audit JSON under{" "}
-          <code>.vibestrate/validation-profile-migrations/</code>.
+          <code className="mono rounded-[6px] bg-coal-500 px-1 py-0.5 text-chalk-200">
+            .vibestrate/validation-profile-migrations/
+          </code>
+          .
         </p>
         {history.length === 0 ? (
-          <p className="mt-1 text-[10.5px] text-vibestrate-fg-muted">
+          <p className="mt-1 text-[10.5px] text-chalk-400">
             No migrations recorded yet.
           </p>
         ) : (
-          <ul className="vibestrate-mono mt-1 max-h-48 space-y-1 overflow-y-auto text-[10.5px]">
+          <ul className="mono mt-2 max-h-48 space-y-1 overflow-y-auto text-[10.5px]">
             {history.map((m) => {
               const kind = m.kind ?? "migrate_references";
               const tagClass =
                 kind === "rename_profile"
-                  ? "text-vibestrate-accent"
+                  ? "text-violet-soft"
                   : kind === "clear_references"
-                    ? "text-vibestrate-warn"
-                    : "text-vibestrate-fg-muted";
+                    ? "text-amber-soft"
+                    : "text-chalk-400";
               const target = m.toProfile ?? "default";
               const total =
                 m.affectedSuggestions.length + m.affectedBundles.length;
@@ -484,23 +494,23 @@ export function ProfileMaintenancePanel() {
               return (
                 <li
                   key={m.id}
-                  className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1"
+                  className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2"
                 >
                   <div className="flex flex-wrap items-baseline gap-2">
                     <span className={tagClass}>
                       {kind.replace("_", " ")}
                     </span>
-                    <span className="text-vibestrate-fg">
+                    <span className="text-chalk-100">
                       {m.fromProfile} → {target}
                     </span>
-                    <span className="text-vibestrate-fg-muted">
+                    <span className="text-chalk-400">
                       {total} reference{total === 1 ? "" : "s"}
                     </span>
-                    <span className="ml-auto text-[10px] text-vibestrate-fg-muted">
+                    <span className="ml-auto text-[10px] text-chalk-400">
                       {stamp}
                     </span>
                   </div>
-                  <div className="text-[10px] text-vibestrate-fg-muted">
+                  <div className="text-[10px] text-chalk-400">
                     {m.id}
                     {m.renamedProfile &&
                     typeof m.preservedCommandCount === "number"

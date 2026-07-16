@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Keyboard, X } from "lucide-react";
+import { KBD } from "./design/Chip.js";
 
 /**
  * Global help overlay. Opens on:
@@ -53,28 +54,30 @@ export function HelpOverlay() {
         // Close on backdrop click - but not on inner panel clicks.
         if (e.target === e.currentTarget) setOpen(false);
       }}
-      className="fixed inset-0 z-[100] flex items-start justify-center bg-vibestrate-canvas/80 backdrop-blur-sm px-4 py-12 sm:py-20"
+      className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 px-4 py-12 backdrop-blur-sm sm:py-20"
     >
-      <div className="relative w-full max-w-2xl rounded-md border border-vibestrate-border bg-vibestrate-panel shadow-2xl">
-        <header className="flex items-center gap-2 border-b border-vibestrate-border px-4 py-3">
+      <div className="relative w-full max-w-2xl overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-700 shadow-2xl shadow-black/50">
+        <header className="flex items-center gap-2.5 border-b border-[color:var(--line)] px-4 py-3">
           <Keyboard
-            className="h-4 w-4 text-vibestrate-accent"
-            strokeWidth={1.5}
+            className="h-4 w-4 text-violet-soft"
+            strokeWidth={1.9}
             aria-hidden
           />
-          <h2 className="text-[14px] font-medium text-vibestrate-fg">
-            Keyboard shortcuts
-          </h2>
-          <span className="vibestrate-mono ml-2 text-[10.5px] text-vibestrate-fg-muted">
-            press ? to toggle · Esc to close
-          </span>
+          <div className="min-w-0">
+            <h2 className="text-[13px] font-semibold text-chalk-100">
+              Keyboard shortcuts
+            </h2>
+            <div className="text-[10.5px] font-medium text-violet-soft">
+              press ? to toggle · Esc to close
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Close help"
-            className="ml-auto rounded p-1 text-vibestrate-fg-dim hover:bg-vibestrate-panel-2 hover:text-vibestrate-fg"
+            className="ml-auto grid h-7 w-7 place-items-center rounded-[9px] text-chalk-400 transition hover:bg-coal-500 hover:text-chalk-100"
           >
-            <X className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+            <X className="h-4 w-4" strokeWidth={1.8} aria-hidden />
           </button>
         </header>
         <div className="max-h-[70vh] overflow-y-auto p-4">
@@ -83,7 +86,7 @@ export function HelpOverlay() {
               <section key={g.title} aria-labelledby={`hg-${g.title}`}>
                 <h3
                   id={`hg-${g.title}`}
-                  className="mb-1 text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted"
+                  className="mb-1.5 text-[12px] font-semibold text-violet-vivid"
                 >
                   {g.title}
                 </h3>
@@ -93,18 +96,16 @@ export function HelpOverlay() {
                       key={it.what}
                       className="flex items-baseline justify-between gap-2 text-[12px]"
                     >
-                      <dt className="text-vibestrate-fg-dim">{it.what}</dt>
+                      <dt className="text-chalk-300">{it.what}</dt>
                       <dd>
                         {it.keys.map((k, i) => (
                           <span key={`${it.what}-${i}`}>
                             {i > 0 ? (
-                              <span className="vibestrate-mono mx-1 text-vibestrate-fg-muted">
+                              <span className="mono mx-1 text-chalk-400">
                                 {it.combinator ?? "·"}
                               </span>
                             ) : null}
-                            <kbd className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-[11px] text-vibestrate-fg">
-                              {k}
-                            </kbd>
+                            <KBD>{k}</KBD>
                           </span>
                         ))}
                       </dd>
@@ -114,10 +115,10 @@ export function HelpOverlay() {
               </section>
             ))}
           </div>
-          <p className="mt-4 text-[11px] text-vibestrate-fg-muted">
+          <p className="mt-4 text-[11px] text-chalk-400">
             Layout state (sidebar width, panel order + collapsed state,
             section order, composer config) persists per-browser via{" "}
-            <code className="vibestrate-mono rounded bg-vibestrate-panel-2 px-1">
+            <code className="mono rounded-[6px] bg-coal-500 px-1 py-0.5 text-chalk-300">
               localStorage
             </code>
             .

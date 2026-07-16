@@ -139,10 +139,8 @@ export function DiffViewer({
       <pre className="mono whitespace-pre p-3 text-[12.5px] leading-[1.55]">
         {lines.map((line, i) => {
           let cls = "text-chalk-300";
-          if (line.kind === "add")
-            cls = "text-vibestrate-diff-add-fg bg-vibestrate-diff-add/40";
-          else if (line.kind === "del")
-            cls = "text-vibestrate-diff-del-fg bg-vibestrate-diff-del/40";
+          if (line.kind === "add") cls = "text-emerald bg-emerald/10";
+          else if (line.kind === "del") cls = "text-rose-300 bg-rose-500/10";
           else if (line.kind === "hunk") cls = "text-violet-soft";
           else if (line.kind === "header") cls = "text-chalk-400";
           return (

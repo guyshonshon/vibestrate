@@ -36,14 +36,19 @@ export function ArtifactViewer({ runId, path, onOpenReference }: Props) {
 
   if (!path) {
     return (
-      <div className="text-[12px] text-vibestrate-fg-muted">
+      <div className="text-[12px] text-chalk-400">
         Select an artifact to read it.
       </div>
     );
   }
-  if (error) return <div className="text-[12px] text-vibestrate-fail">{error}</div>;
+  if (error)
+    return (
+      <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[12px] text-rose-300">
+        {error}
+      </div>
+    );
   if (content === null)
-    return <div className="text-[12px] text-vibestrate-fg-muted">Loading…</div>;
+    return <div className="text-[12px] text-chalk-400">Loading…</div>;
 
   // Pretty-print JSON for readability while keeping the original text in the
   // raw `content` state. The reference parser runs against the prettified
@@ -60,11 +65,11 @@ export function ArtifactViewer({ runId, path, onOpenReference }: Props) {
   }
 
   return (
-    <div className="overflow-auto rounded border border-vibestrate-border bg-vibestrate-canvas">
-      <header className="border-b border-vibestrate-border bg-vibestrate-panel px-3 py-1.5">
-        <span className="vibestrate-mono text-[11.5px] text-vibestrate-fg-dim">{path}</span>
+    <div className="overflow-auto rounded-[16px] border border-[color:var(--line)] bg-coal-600">
+      <header className="border-b border-[color:var(--line-soft)] bg-coal-500/60 px-3 py-1.5">
+        <span className="mono text-[11.5px] text-chalk-300">{path}</span>
       </header>
-      <pre className="vibestrate-mono whitespace-pre-wrap p-3 text-[12.5px] leading-[1.55] text-vibestrate-fg">
+      <pre className="mono whitespace-pre-wrap p-3 text-[12.5px] leading-[1.55] text-chalk-300">
         <CodeReferenceText
           text={body}
           runId={runId}

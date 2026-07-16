@@ -90,13 +90,13 @@ export function NotificationBell({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="relative w-8 h-8 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex items-center justify-center text-fog-300 hover:text-fog-100"
+        className="relative flex h-8 w-8 items-center justify-center rounded-[10px] border border-[color:var(--line)] bg-coal-500 text-chalk-300 hover:bg-coal-400 hover:text-chalk-100"
         title="Notifications"
         aria-label={`Notifications (${unread} unread)`}
       >
-        <Bell className="h-4 w-4" strokeWidth={1.6} />
+        <Bell className="h-4 w-4" strokeWidth={1.9} />
         {unread > 0 ? (
-          <span className="absolute -top-1 -right-1 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-violet-soft px-1 text-[9.5px] font-semibold leading-none text-ink-0 mono">
+          <span className="mono absolute -top-1 -right-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-violet-soft px-1 text-[9.5px] font-semibold leading-none text-coal-900">
             {unread > 99 ? "99+" : unread}
           </span>
         ) : null}

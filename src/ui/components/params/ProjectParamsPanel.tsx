@@ -3,6 +3,12 @@ import { Database, Sparkles, Trash2, Save, KeyRound } from "lucide-react";
 import { api, type ProjectParamsView } from "../../lib/api.js";
 import type { DiscoveredFlow, FlowParam } from "../../lib/types.js";
 import { Select } from "../design/Select.js";
+import { Button } from "../design/Button.js";
+
+const INPUT =
+  "rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50";
+const TAG =
+  "mono rounded-[6px] bg-coal-500 px-1.5 py-0.5 text-[10px] text-chalk-300";
 
 /**
  * Project parameters (durable param memory). The explicit editor for the typed
@@ -134,34 +140,37 @@ export function ProjectParamsPanel() {
 
   return (
     <section className="px-4 py-4">
-      <header className="flex items-center gap-2 text-[13px] font-medium text-vibestrate-fg">
+      <header className="flex items-center gap-2 text-[13px] font-semibold text-chalk-100">
         <Database className="h-3.5 w-3.5" strokeWidth={1.6} />
         Project parameters
-        <span className="text-[11px] font-normal text-vibestrate-fg-muted">
+        <span className="text-[11px] font-normal text-chalk-400">
           · durable param memory (filled once, reused across runs)
         </span>
       </header>
 
       {error ? (
-        <div className="mt-2 border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[11.5px] text-vibestrate-fail">
+        <div className="mt-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
           {error}
         </div>
       ) : null}
       {notice ? (
-        <div className="mt-2 border border-vibestrate-success/40 bg-vibestrate-success/10 px-2 py-1 text-[11.5px] text-vibestrate-success">
+        <div className="mt-2 rounded-[10px] border border-emerald/30 bg-emerald/10 px-3 py-1.5 text-[11.5px] text-emerald">
           {notice}
         </div>
       ) : null}
 
       {flows.length === 0 ? (
-        <div className="mt-3 text-[11.5px] text-vibestrate-fg-dim">
-          No flow declares parameters yet. A flow's <span className="vibestrate-mono">params:</span> block
-          defines what the profile can store.
+        <div className="mt-3 rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-4 py-3 text-[12.5px] text-chalk-300">
+          No flow declares parameters yet. A flow's{" "}
+          <span className="mono rounded-[6px] bg-coal-500 px-1 py-0.5 text-chalk-300">
+            params:
+          </span>{" "}
+          block defines what the profile can store.
         </div>
       ) : (
-        <div className="slab mt-3 p-3">
+        <div className="mt-3 rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
           <div className="flex items-center gap-2">
-            <label className="text-[11.5px] text-vibestrate-fg-dim">Flow</label>
+            <label className="text-[12px] text-chalk-300">Flow</label>
             <Select
               value={flowId}
               ariaLabel="Flow whose parameters to edit"
@@ -177,23 +186,21 @@ export function ProjectParamsPanel() {
               const editVal = edits[name];
               return (
                 <div key={name} className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5 text-[12px] text-vibestrate-fg">
+                  <div className="flex items-center gap-1.5 text-[12px] text-chalk-100">
                     <span className="font-medium">{name}</span>
-                    <span className="vibestrate-mono border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-dim">
-                      {def.type}
-                    </span>
+                    <span className={TAG}>{def.type}</span>
                     {def.shared ? (
-                      <span className="border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-dim" title="Project-global: shared across flows">
+                      <span className={TAG} title="Project-global: shared across flows">
                         shared
                       </span>
                     ) : null}
                     {def.secret ? (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-300" title="Stored as an env var reference, never the raw secret">
+                      <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-soft" title="Stored as an env var reference, never the raw secret">
                         <KeyRound className="h-2.5 w-2.5" strokeWidth={1.6} /> secret
                       </span>
                     ) : null}
                     {def.description ? (
-                      <span className="text-[11px] text-vibestrate-fg-dim">· {def.description}</span>
+                      <span className="text-[11px] text-chalk-400">· {def.description}</span>
                     ) : null}
                   </div>
                   <div className="flex items-center gap-2">
@@ -227,7 +234,7 @@ export function ProjectParamsPanel() {
                               : "value"
                         }
                         onChange={(e) => setEdits((c) => ({ ...c, [name]: e.target.value }))}
-                        className="flex-1 border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px] text-vibestrate-fg"
+                        className={`${INPUT} flex-1`}
                       />
                     )}
                     {def.generate && !def.secret ? (
@@ -236,17 +243,17 @@ export function ProjectParamsPanel() {
                         disabled={generating === name || busy}
                         onClick={() => generate(name)}
                         title={def.generate.instruction}
-                        className="inline-flex items-center gap-1 border border-violet-400/40 px-2 py-1 text-[11px] text-violet-200 hover:bg-violet-400/10 disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[12.5px] font-semibold text-violet-soft transition hover:bg-violet-soft/10 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        <Sparkles className="h-3 w-3" strokeWidth={1.6} />
+                        <Sparkles className="h-3.5 w-3.5" strokeWidth={1.7} />
                         {generating === name ? "…" : "Generate"}
                       </button>
                     ) : null}
                   </div>
                   {stored ? (
-                    <div className="text-[10.5px] text-vibestrate-fg-muted">
-                      stored: {stored.secret ? <span className="vibestrate-mono">{stored.value || "env ref"}</span> : <span className="vibestrate-mono">{stored.value}</span>}{" "}
-                      <span className="text-vibestrate-fg-dim">({stored.setBy})</span>
+                    <div className="text-[10.5px] text-chalk-400">
+                      stored: {stored.secret ? <span className="mono">{stored.value || "env ref"}</span> : <span className="mono">{stored.value}</span>}{" "}
+                      <span className="text-chalk-300">({stored.setBy})</span>
                     </div>
                   ) : null}
                 </div>
@@ -255,15 +262,16 @@ export function ProjectParamsPanel() {
           </div>
 
           <div className="mt-3 flex items-center gap-2">
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              size="sm"
               disabled={busy}
               onClick={save}
-              className="inline-flex items-center gap-1.5 border border-vibestrate-accent/40 bg-vibestrate-accent/10 px-3 py-1 text-[12px] text-vibestrate-accent hover:bg-vibestrate-accent/20 disabled:opacity-50"
+              iconLeft={<Save className="h-3.5 w-3.5" strokeWidth={1.7} />}
             >
-              <Save className="h-3.5 w-3.5" strokeWidth={1.6} /> Save
-            </button>
-            <span className="text-[10.5px] text-vibestrate-fg-dim">
+              Save
+            </Button>
+            <span className="text-[10.5px] text-chalk-400">
               Editing here overwrites a stored value (supersedes). Secrets store an env var NAME only.
             </span>
           </div>
@@ -272,27 +280,27 @@ export function ProjectParamsPanel() {
 
       {storedEntries.length > 0 ? (
         <div className="mt-4">
-          <div className="text-[11px] uppercase tracking-[0.12em] text-vibestrate-fg-dim">
+          <div className="text-[12px] font-semibold text-chalk-300">
             All stored values ({storedEntries.length})
           </div>
           <ul className="mt-1.5 flex flex-col gap-1">
             {storedEntries.map(([key, entry]) => (
               <li
                 key={key}
-                className="flex items-center gap-2 border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[11.5px]"
+                className="flex items-center gap-2 rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-3 py-1.5 text-[11.5px]"
               >
-                <span className="vibestrate-mono text-vibestrate-fg">{key}</span>
-                <span className="text-vibestrate-fg-muted">=</span>
-                <span className="vibestrate-mono truncate text-vibestrate-fg-dim">
+                <span className="mono text-chalk-100">{key}</span>
+                <span className="text-chalk-400">=</span>
+                <span className="mono truncate text-chalk-300">
                   {entry.secret ? `[secret -> ${entry.value}]` : entry.value}
                 </span>
-                <span className="ml-auto text-[10px] text-vibestrate-fg-muted">{entry.setBy}</span>
+                <span className="ml-auto text-[10px] text-chalk-400">{entry.setBy}</span>
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => unset(key)}
                   title="Remove this stored value"
-                  className="text-vibestrate-fg-muted hover:text-vibestrate-fail disabled:opacity-50"
+                  className="text-chalk-400 transition hover:text-rose-300 disabled:opacity-50"
                 >
                   <Trash2 className="h-3 w-3" strokeWidth={1.6} />
                 </button>

@@ -11,27 +11,27 @@ export function ValidationCommandResult({ item }: { item: Item }) {
   const tone =
     item.status === "passed"
       ? {
-          box: "border-vibestrate-success/30 bg-vibestrate-success/5",
-          text: "text-vibestrate-success",
+          box: "border-emerald/30 bg-emerald/10",
+          text: "text-emerald",
           label: "PASS",
         }
       : item.status === "environment"
         ? {
-            box: "border-amber-400/30 bg-amber-500/5",
-            text: "text-amber-300",
+            box: "border-amber-soft/40 bg-amber-soft/10",
+            text: "text-amber-soft",
             label: "ENV",
           }
         : {
-            box: "border-vibestrate-fail/30 bg-vibestrate-fail/5",
-            text: "text-vibestrate-fail",
+            box: "border-rose-400/30 bg-rose-500/10",
+            text: "text-rose-300",
             label: "FAIL",
           };
   return (
     <div
-      className={`flex items-center gap-3 rounded border px-2.5 py-1.5 ${tone.box}`}
+      className={`flex items-center gap-3 rounded-[10px] border px-2.5 py-1.5 ${tone.box}`}
     >
       <span
-        className={`vibestrate-mono text-[11px] ${tone.text}`}
+        className={`mono text-[11px] font-semibold ${tone.text}`}
         title={
           item.status === "environment"
             ? "Toolchain missing in the worktree - the command could not run; nothing was validated and nothing failed."
@@ -40,10 +40,10 @@ export function ValidationCommandResult({ item }: { item: Item }) {
       >
         {tone.label}
       </span>
-      <span className="vibestrate-mono flex-1 truncate text-[12px] text-vibestrate-fg">
+      <span className="mono flex-1 truncate text-[12px] text-chalk-100">
         {item.command}
       </span>
-      <span className="vibestrate-mono text-[11px] text-vibestrate-fg-muted">
+      <span className="mono text-[11px] text-chalk-400">
         exit {item.exitCode} · {item.durationMs}ms
       </span>
     </div>

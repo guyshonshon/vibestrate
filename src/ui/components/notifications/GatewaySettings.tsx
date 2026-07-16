@@ -7,6 +7,9 @@ import {
   Send,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { Button } from "../design/Button.js";
+import { Chip } from "../design/Chip.js";
+import type { ChipTone } from "../design/Chip.js";
 import type {
   GatewayConfigView,
   GatewayView,
@@ -121,36 +124,44 @@ export function GatewaySettings({ initialPermission }: Props) {
 
   if (busy && !settings) {
     return (
-      <div className="px-4 py-6 text-[12px] text-vibestrate-fg-muted">Loading…</div>
+      <div className="px-4 py-6 text-[12px] text-chalk-400">Loading…</div>
     );
   }
   if (error && !settings) {
-    return <div className="px-4 py-6 text-[12px] text-vibestrate-fail">{error}</div>;
+    return <div className="px-4 py-6 text-[12px] text-rose-300">{error}</div>;
   }
   if (!settings) return null;
+
+  const permTone: ChipTone =
+    permission === "granted"
+      ? "emerald"
+      : permission === "denied"
+        ? "rose"
+        : "neutral";
 
   return (
     <div className="flex flex-col gap-6 px-4 py-4">
       {error ? (
-        <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-3 py-2 text-[12px] text-vibestrate-fail">
+        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300">
           {error}
         </div>
       ) : null}
 
-      <section className="rounded border border-vibestrate-border">
-        <header className="flex items-center gap-2 border-b border-vibestrate-border px-3 py-2">
-          <Bell className="h-3.5 w-3.5 text-vibestrate-accent" strokeWidth={1.5} />
-          <span className="text-[13px] font-medium text-vibestrate-fg">
+      <section className="rounded-[16px] border border-[color:var(--line)] bg-coal-600">
+        <header className="flex items-center gap-2 border-b border-[color:var(--line)] px-3 py-2">
+          <Bell className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
+          <span className="text-[13px] font-medium text-chalk-100">
             Notification routing
           </span>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => void refresh()}
-            className="ml-auto rounded border border-vibestrate-border p-1 text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
             title="Refresh"
+            className="ml-auto"
           >
-            <RefreshCw className="h-3 w-3" strokeWidth={1.5} />
-          </button>
+            <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.9} />
+          </Button>
         </header>
         <div className="grid grid-cols-1 gap-2 p-3 md:grid-cols-2">
           <Toggle
@@ -217,28 +228,28 @@ export function GatewaySettings({ initialPermission }: Props) {
         </div>
       </section>
 
-      <section className="rounded border border-vibestrate-border">
-        <header className="flex items-center gap-2 border-b border-vibestrate-border px-3 py-2">
-          <Bell className="h-3.5 w-3.5 text-vibestrate-accent" strokeWidth={1.5} />
-          <span className="text-[13px] font-medium text-vibestrate-fg">
+      <section className="rounded-[16px] border border-[color:var(--line)] bg-coal-600">
+        <header className="flex items-center gap-2 border-b border-[color:var(--line)] px-3 py-2">
+          <Bell className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
+          <span className="text-[13px] font-medium text-chalk-100">
             Browser notifications
           </span>
         </header>
         <div className="flex items-center gap-3 p-3">
-          <span className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[11px] text-vibestrate-fg-dim">
+          <Chip contained tone={permTone}>
             {permission}
-          </span>
+          </Chip>
           {permission === "default" ? (
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => void requestBrowserPermission()}
-              className="inline-flex items-center gap-1.5 rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-2.5 py-1 text-[12px] text-vibestrate-fg hover:bg-vibestrate-accent-soft/50"
+              iconLeft={<Bell className="h-3.5 w-3.5" strokeWidth={1.9} />}
             >
-              <Bell className="h-3.5 w-3.5" strokeWidth={1.5} />
               Allow browser notifications
-            </button>
+            </Button>
           ) : null}
-          <span className="text-[11.5px] text-vibestrate-fg-muted">
+          <span className="text-[11.5px] text-chalk-300">
             {permission === "granted"
               ? "Attention/critical alerts will surface as system notifications."
               : permission === "denied"
@@ -250,18 +261,19 @@ export function GatewaySettings({ initialPermission }: Props) {
         </div>
       </section>
 
-      <section className="rounded border border-vibestrate-border">
-        <header className="flex items-center gap-2 border-b border-vibestrate-border px-3 py-2">
-          <Bell className="h-3.5 w-3.5 text-vibestrate-accent" strokeWidth={1.5} />
-          <span className="text-[13px] font-medium text-vibestrate-fg">
+      <section className="rounded-[16px] border border-[color:var(--line)] bg-coal-600">
+        <header className="flex items-center gap-2 border-b border-[color:var(--line)] px-3 py-2">
+          <Bell className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
+          <span className="text-[13px] font-medium text-chalk-100">
             Notification gateways
           </span>
         </header>
-        <div className="divide-y divide-vibestrate-border">
+        <div className="divide-y divide-[color:var(--line)]">
           {gateways.length === 0 ? (
-            <div className="px-3 py-4 text-[12px] text-vibestrate-fg-muted">
+            <div className="px-3 py-4 text-[12px] text-chalk-300">
               No gateways configured. Run{" "}
-              <span className="vibestrate-mono">vibe gateways list</span> for help.
+              <span className="mono text-chalk-100">vibe gateways list</span> for
+              help.
             </div>
           ) : (
             gateways.map((g) => {
@@ -272,40 +284,41 @@ export function GatewaySettings({ initialPermission }: Props) {
               return (
                 <div key={g.id} className="px-3 py-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-[12.5px] font-medium text-vibestrate-fg">
+                    <span className="text-[12.5px] font-medium text-chalk-100">
                       {g.displayName}
                     </span>
-                    <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
+                    <Chip contained tone="neutral">
                       {g.type}
-                    </span>
-                    <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
+                    </Chip>
+                    <Chip contained tone="neutral">
                       {g.channel}
-                    </span>
+                    </Chip>
                     {g.config.enabled ? (
-                      <span className="vibestrate-mono rounded border border-vibestrate-success/40 px-1 text-[10px] text-vibestrate-success">
+                      <Chip contained tone="emerald">
                         enabled
-                      </span>
+                      </Chip>
                     ) : (
-                      <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
+                      <Chip contained tone="neutral">
                         disabled
-                      </span>
+                      </Chip>
                     )}
                     {g.valid ? (
                       <CheckCircle2
-                        className="h-3.5 w-3.5 text-vibestrate-success"
-                        strokeWidth={1.5}
+                        className="h-3.5 w-3.5 text-emerald"
+                        strokeWidth={1.9}
                         aria-label="config valid"
                       />
                     ) : (
                       <AlertTriangle
-                        className="h-3.5 w-3.5 text-vibestrate-warn"
-                        strokeWidth={1.5}
+                        className="h-3.5 w-3.5 text-amber-soft"
+                        strokeWidth={1.9}
                         aria-label="config invalid"
                       />
                     )}
                     {g.supportsTest ? (
-                      <button
-                        type="button"
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         disabled={!g.valid}
                         onClick={() => void testGateway(g.id)}
                         title={
@@ -313,15 +326,15 @@ export function GatewaySettings({ initialPermission }: Props) {
                             ? "Send a probe through this gateway"
                             : "Configure the gateway first to enable testing"
                         }
-                        className="ml-auto inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[11px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        iconLeft={<Send className="h-3 w-3" strokeWidth={1.9} />}
+                        className="ml-auto"
                       >
-                        <Send className="h-3 w-3" strokeWidth={1.5} />
                         Test
-                      </button>
+                      </Button>
                     ) : null}
                   </div>
                   {g.validationReason ? (
-                    <div className="mt-1 text-[11.5px] text-vibestrate-warn">
+                    <div className="mt-1 text-[11.5px] text-amber-soft">
                       {g.validationReason}
                     </div>
                   ) : null}
@@ -343,16 +356,16 @@ export function GatewaySettings({ initialPermission }: Props) {
                     />
                   </div>
                   {g.missingEnvVars.length > 0 ? (
-                    <div className="mt-1 vibestrate-mono text-[10.5px] text-vibestrate-warn">
+                    <div className="mono mt-1 text-[10.5px] text-amber-soft">
                       missing: {g.missingEnvVars.join(", ")}
                     </div>
                   ) : null}
                   {test ? (
                     <div
-                      className={`mt-1.5 rounded border px-2 py-1 text-[11px] ${
+                      className={`mt-1.5 rounded-[10px] border px-2 py-1 text-[11px] ${
                         test.ok
-                          ? "border-vibestrate-success/40 bg-vibestrate-success/10 text-vibestrate-success"
-                          : "border-vibestrate-fail/40 bg-vibestrate-fail/10 text-vibestrate-fail"
+                          ? "border-emerald/30 bg-emerald/10 text-emerald"
+                          : "border-rose-400/30 bg-rose-500/10 text-rose-300"
                       }`}
                     >
                       {test.message}
@@ -363,11 +376,11 @@ export function GatewaySettings({ initialPermission }: Props) {
             })
           )}
         </div>
-        <p className="border-t border-vibestrate-border px-3 py-2 text-[10.5px] text-vibestrate-fg-muted">
+        <p className="border-t border-[color:var(--line)] px-3 py-2 text-[10.5px] text-chalk-400">
           Secrets stay on your machine. The dashboard never receives token or
           URL values - only whether they are set. Configure with{" "}
-          <span className="vibestrate-mono">env:VAR_NAME</span> via the CLI or{" "}
-          <span className="vibestrate-mono">.vibestrate/notifications/gateways.json</span>.
+          <span className="mono text-chalk-300">env:VAR_NAME</span> via the CLI or{" "}
+          <span className="mono text-chalk-300">.vibestrate/notifications/gateways.json</span>.
         </p>
       </section>
     </div>
@@ -384,7 +397,7 @@ function Toggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1.5 text-[12px] text-vibestrate-fg">
+    <label className="flex cursor-pointer items-center gap-2 rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-2.5 py-1.5 text-[12px] text-chalk-100">
       <input
         type="checkbox"
         checked={value}
@@ -408,18 +421,16 @@ function FieldRow({
   if (hide) return null;
   const color =
     info.status === "ok"
-      ? "text-vibestrate-success"
+      ? "text-emerald"
       : info.status === "missing"
-        ? "text-vibestrate-warn"
+        ? "text-amber-soft"
         : info.status === "literal"
-          ? "text-vibestrate-fg-dim"
-          : "text-vibestrate-fg-muted";
+          ? "text-chalk-300"
+          : "text-chalk-400";
   return (
-    <div className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1">
-      <div className="text-[10px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
-        {label}
-      </div>
-      <div className={`vibestrate-mono mt-0.5 truncate text-[11px] ${color}`}>
+    <div className="rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-2 py-1">
+      <div className="text-[10px] font-semibold text-chalk-400">{label}</div>
+      <div className={`mono mt-0.5 truncate text-[11px] ${color}`}>
         {info.label}
       </div>
     </div>

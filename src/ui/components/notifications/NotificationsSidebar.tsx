@@ -20,6 +20,7 @@ import type {
   NotificationCategory,
   NotificationRecord,
 } from "../../lib/types.js";
+import { Button } from "../design/Button.js";
 import { Chip } from "../design/Chip.js";
 import { cn } from "../design/cn.js";
 
@@ -76,19 +77,19 @@ const TONE_BG: Record<
   { soft: string; ring: string; text: string }
 > = {
   amber: {
-    soft: "bg-amber-500/10",
-    ring: "ring-amber-400/30",
-    text: "text-amber-300",
+    soft: "bg-amber-soft/10",
+    ring: "ring-amber-soft/30",
+    text: "text-amber-soft",
   },
   sky: {
-    soft: "bg-sky-500/10",
-    ring: "ring-sky-400/30",
+    soft: "bg-sky-glow/10",
+    ring: "ring-sky-glow/30",
     text: "text-sky-glow",
   },
   emerald: {
-    soft: "bg-emerald-500/10",
-    ring: "ring-emerald-400/30",
-    text: "text-emerald-300",
+    soft: "bg-emerald/10",
+    ring: "ring-emerald/30",
+    text: "text-emerald",
   },
   rose: {
     soft: "bg-rose-500/10",
@@ -405,43 +406,40 @@ export function NotificationsSidebar({
           open ? "translate-x-0" : "translate-x-full",
         )}
       >
-        <div className="h-full flex flex-col bg-ink-100 border-l border-white/[0.08]">
+        <div className="flex h-full flex-col border-l border-[color:var(--line)] bg-coal-800">
           {/* ── Header ─ */}
-          <div className="px-5 pt-5 pb-3 border-b border-white/[0.06] shrink-0">
+          <div className="shrink-0 border-b border-[color:var(--line)] px-5 pb-3 pt-5">
             <div className="flex items-start justify-between">
               <div>
-                <div className="eyebrow mb-1.5">
-                  Inbox · {items.length} total
-                </div>
-                <h2 className="text-display text-[26px] leading-tight">
+                <h2 className="text-[22px] font-extrabold leading-tight tracking-[-0.02em] text-chalk-100">
                   {unread > 0 ? (
                     <>
-                      <em className="text-display italic text-violet-soft">
-                        {unread}
-                      </em>{" "}
-                      new
+                      <span className="text-violet-soft">{unread}</span> new
                     </>
                   ) : (
                     "All caught up"
                   )}
                 </h2>
+                <div className="mt-1 text-[11.5px] text-chalk-400">
+                  {items.length} total
+                </div>
               </div>
               <div className="flex items-center gap-1">
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => void handleMarkAll()}
                   disabled={unread === 0 || busyAll}
-                  className="text-[11.5px] text-fog-300 hover:text-fog-100 disabled:opacity-40 disabled:hover:text-fog-300 px-2 py-1 whitespace-nowrap"
                 >
                   Mark all read
-                </button>
+                </Button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-8 h-8 hover:bg-white/[0.06] text-fog-300 hover:text-fog-100 flex items-center justify-center"
+                  className="flex h-8 w-8 items-center justify-center rounded-[10px] text-chalk-300 hover:bg-coal-500 hover:text-chalk-100"
                   aria-label="Close"
                 >
-                  <X className="h-3.5 w-3.5" strokeWidth={1.7} />
+                  <X className="h-3.5 w-3.5" strokeWidth={1.9} />
                 </button>
               </div>
             </div>
@@ -456,17 +454,17 @@ export function NotificationsSidebar({
                     type="button"
                     onClick={() => setFilter(f.id)}
                     className={cn(
-                      "h-7 px-2.5 text-[12px] font-medium flex items-center gap-1.5 transition",
+                      "flex h-7 items-center gap-1.5 rounded-[10px] px-2.5 text-[12px] font-medium transition",
                       active
-                        ? "bg-white/[0.07] text-fog-100 border border-white/[0.1]"
-                        : "text-fog-300 hover:text-fog-100 border border-transparent",
+                        ? "border border-[color:var(--line-strong)] bg-coal-500 text-chalk-100"
+                        : "border border-transparent text-chalk-300 hover:bg-coal-600 hover:text-chalk-100",
                     )}
                   >
                     {f.label}
                     <span
                       className={cn(
                         "mono text-[10px] tabular-nums",
-                        active ? "text-fog-300" : "text-fog-500",
+                        active ? "text-chalk-300" : "text-chalk-400",
                       )}
                     >
                       {count}
@@ -480,7 +478,7 @@ export function NotificationsSidebar({
           {/* ── Body ─ */}
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5">
             {error ? (
-              <div className="mx-2 mb-2 border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[11.5px] text-rose-300">
+              <div className="mx-2 mb-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
                 {error}
               </div>
             ) : null}
@@ -529,29 +527,29 @@ export function NotificationsSidebar({
           </div>
 
           {/* ── Footer ─ */}
-          <div className="px-5 py-3 border-t border-white/[0.06] shrink-0 flex items-center justify-between text-[11.5px]">
-            <span className="text-fog-300 flex items-center gap-1.5">
+          <div className="flex shrink-0 items-center justify-between border-t border-[color:var(--line)] px-5 py-3">
+            <span className="inline-flex items-center gap-1.5 rounded-[8px] bg-coal-600 px-2 py-1 text-[11.5px] text-chalk-300">
               <span
                 className={cn(
-                  "pulse-dot",
-                  sseConnected ? "text-emerald-400" : "text-fog-500",
+                  "h-1.5 w-1.5 rounded-full",
+                  sseConnected ? "bg-emerald" : "bg-chalk-400",
                 )}
-              />{" "}
+              />
               {sseConnected
                 ? "Live stream connected"
                 : "Live stream connecting…"}
             </span>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 onClose();
                 onOpenSettings();
               }}
-              className="text-fog-300 hover:text-fog-100 flex items-center gap-1"
+              iconLeft={<SettingsIcon className="h-3 w-3" strokeWidth={1.9} />}
             >
-              <SettingsIcon className="h-3 w-3" strokeWidth={1.7} />{" "}
               Notification settings
-            </button>
+            </Button>
           </div>
         </div>
       </aside>
@@ -582,10 +580,10 @@ function BucketGroup({
 } & ItemHandlers) {
   return (
     <section>
-      <div className="px-2 mb-2 flex items-center gap-3">
-        <span className="eyebrow">{title}</span>
-        <span className="h-px flex-1 bg-white/[0.05]" />
-        <span className="mono text-[10.5px] text-fog-500">{items.length}</span>
+      <div className="mb-2 flex items-center gap-3 px-2">
+        <span className="text-[12px] font-semibold text-chalk-300">{title}</span>
+        <span className="h-px flex-1 bg-[color:var(--line-soft)]" />
+        <span className="mono text-[10.5px] text-chalk-400">{items.length}</span>
       </div>
       <div className="space-y-2">
         {items.map((n) => (
@@ -627,33 +625,34 @@ function NotificationItem({
     actions.push({
       key: "approve",
       node: (
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="sm"
           disabled={isBusy}
           onClick={(e) => {
             e.stopPropagation();
             onApprove(n);
           }}
-          className="h-7 px-2.5 bg-violet-deep text-white text-[11.5px] font-medium flex items-center gap-1.5 whitespace-nowrap hover:bg-violet-mid disabled:opacity-50"
+          iconLeft={<Check className="h-3 w-3" strokeWidth={1.9} />}
         >
-          <Check className="h-3 w-3" strokeWidth={1.7} /> Approve
-        </button>
+          Approve
+        </Button>
       ),
     });
     actions.push({
       key: "reject",
       node: (
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           disabled={isBusy}
           onClick={(e) => {
             e.stopPropagation();
             onReject(n);
           }}
-          className="h-7 px-2.5 bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-fog-100 text-[11.5px] font-medium flex items-center gap-1.5 whitespace-nowrap disabled:opacity-50"
         >
           Reject
-        </button>
+        </Button>
       ),
     });
   }
@@ -662,17 +661,18 @@ function NotificationItem({
     actions.push({
       key: "retry",
       node: (
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="sm"
           disabled={isBusy}
           onClick={(e) => {
             e.stopPropagation();
             onRetry(n);
           }}
-          className="h-7 px-2.5 bg-transparent hover:bg-white/[0.04] border border-white/10 text-fog-200 text-[11.5px] font-medium flex items-center gap-1.5 whitespace-nowrap disabled:opacity-50"
+          iconLeft={<Play className="h-3 w-3" strokeWidth={1.9} />}
         >
-          <Play className="h-3 w-3" strokeWidth={1.7} /> Retry
-        </button>
+          Retry
+        </Button>
       ),
     });
   }
@@ -681,16 +681,17 @@ function NotificationItem({
     actions.push({
       key: "preview",
       node: (
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="sm"
           onClick={(e) => {
             e.stopPropagation();
             onOpen(n);
           }}
-          className="h-7 px-2.5 bg-transparent hover:bg-white/[0.04] border border-white/10 text-fog-200 text-[11.5px] font-medium flex items-center gap-1.5 whitespace-nowrap"
+          iconLeft={<Eye className="h-3 w-3" strokeWidth={1.9} />}
         >
-          <Eye className="h-3 w-3" strokeWidth={1.7} /> Preview
-        </button>
+          Preview
+        </Button>
       ),
     });
   }
@@ -699,17 +700,17 @@ function NotificationItem({
     actions.push({
       key: "open",
       node: (
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="sm"
           onClick={(e) => {
             e.stopPropagation();
             onOpen(n);
           }}
-          className="h-7 px-2.5 bg-transparent hover:bg-white/[0.04] border border-white/10 text-fog-200 text-[11.5px] font-medium flex items-center gap-1.5 whitespace-nowrap"
+          iconRight={<ArrowUpRight className="h-3 w-3" strokeWidth={1.9} />}
         >
-          {n.actionLabel ?? "Open"}{" "}
-          <ArrowUpRight className="h-3 w-3" strokeWidth={1.7} />
-        </button>
+          {n.actionLabel ?? "Open"}
+        </Button>
       ),
     });
   }
@@ -722,49 +723,49 @@ function NotificationItem({
         if (!read) onMarkRead(n);
       }}
       className={cn(
-        "group relative border px-3.5 py-3 transition cursor-pointer",
+        "group relative cursor-pointer rounded-[14px] border px-3.5 py-3 transition",
         isUrgent
-          ? "border-amber-400/25 bg-amber-500/[0.05]"
+          ? "border-amber-soft/30 bg-amber-soft/10"
           : read
-            ? "border-white/[0.07] bg-white/[0.025] hover:bg-white/[0.04]"
-            : "border-white/[0.11] bg-white/[0.045] hover:bg-white/[0.06]",
+            ? "border-[color:var(--line)] bg-coal-600 hover:bg-coal-500"
+            : "border-[color:var(--line-strong)] bg-coal-500 hover:bg-coal-400",
       )}
     >
       {!read ? (
-        <span className="absolute left-[-1px] top-3 bottom-3 w-[2px] rounded-r-full bg-violet-soft" />
+        <span className="absolute bottom-3 left-[-1px] top-3 w-[2px] rounded-r-full bg-violet-soft" />
       ) : null}
       <div className="flex items-start gap-3">
         <span
           className={cn(
-            "w-8 h-8 ring-1 flex items-center justify-center shrink-0 mt-0.5",
+            "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ring-1",
             tone.soft,
             tone.ring,
             tone.text,
           )}
         >
-          <Icon className="h-3.5 w-3.5" strokeWidth={1.7} />
+          <Icon className="h-3.5 w-3.5" strokeWidth={1.9} />
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
             <h3
               className={cn(
-                "text-[13.5px] font-medium leading-snug truncate",
-                read ? "text-fog-200" : "text-fog-100",
+                "truncate text-[13.5px] font-medium leading-snug",
+                read ? "text-chalk-300" : "text-chalk-100",
               )}
             >
               {n.title}
             </h3>
-            <span className="mono text-[10.5px] text-fog-500 shrink-0 ml-auto whitespace-nowrap">
+            <span className="mono ml-auto shrink-0 whitespace-nowrap text-[10.5px] text-chalk-400">
               {relShort(n.createdAt)}
             </span>
           </div>
           {n.message ? (
-            <p className="text-[12px] text-fog-300 leading-snug mt-1">
+            <p className="mt-1 text-[12px] leading-snug text-chalk-300">
               {n.message}
             </p>
           ) : null}
           {hasMeta ? (
-            <div className="flex items-center gap-2 mt-2 text-[10.5px] text-fog-500 flex-wrap">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[10.5px] text-chalk-400">
               {n.runId ? <span className="mono">{n.runId}</span> : null}
               {n.taskId && !n.runId ? (
                 <span className="mono">{n.taskId}</span>
@@ -795,7 +796,7 @@ function NotificationItem({
                   e.stopPropagation();
                   onDismiss(n);
                 }}
-                className="ml-auto text-[10.5px] text-fog-500 hover:text-fog-300 px-1.5 py-1"
+                className="ml-auto px-1.5 py-1 text-[10.5px] text-chalk-400 hover:text-chalk-300"
               >
                 Dismiss
               </button>
@@ -811,7 +812,7 @@ function NotificationItem({
                   e.stopPropagation();
                   onDismiss(n);
                 }}
-                className="text-[10.5px] text-fog-500 hover:text-fog-300 px-1.5 py-1"
+                className="px-1.5 py-1 text-[10.5px] text-chalk-400 hover:text-chalk-300"
               >
                 Dismiss
               </button>
@@ -850,14 +851,12 @@ function readRisk(n: NotificationRecord): "low" | "medium" | "high" | null {
 
 function EmptyState({ filter }: { filter: FilterId }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-16 px-6">
-      <div className="w-12 h-12 bg-violet-soft/10 ring-1 ring-violet-soft/25 text-violet-soft flex items-center justify-center mb-3">
-        <Check className="h-4 w-4" strokeWidth={1.7} />
+    <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-[12px] bg-violet-soft/10 text-violet-soft ring-1 ring-violet-soft/25">
+        <Check className="h-4 w-4" strokeWidth={1.9} />
       </div>
-      <div className="text-display text-[22px] leading-tight">
-        Nothing here.
-      </div>
-      <div className="text-[12.5px] text-fog-300 mt-1.5 max-w-[260px]">
+      <div className="text-[16px] font-bold text-chalk-100">Nothing here.</div>
+      <div className="mt-1.5 max-w-[260px] text-[12.5px] text-chalk-300">
         {filter === "all"
           ? "Your inbox is empty. New events from your crew will land here in real time."
           : 'No items match this filter. Try "All" to see everything.'}

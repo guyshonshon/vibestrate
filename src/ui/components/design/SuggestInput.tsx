@@ -46,7 +46,7 @@ export function SuggestInput({
             onChange("");
           }}
           title="back to the list"
-          className="shrink-0 rounded px-1.5 py-1 text-[11px] text-fog-500 hover:text-fog-200"
+          className="shrink-0 rounded-[8px] px-1.5 py-1 text-[11px] text-chalk-400 transition hover:text-chalk-100"
         >
           list
         </button>
