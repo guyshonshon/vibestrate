@@ -1,6 +1,8 @@
 import type { ProjectConfig, PermissionMode } from "../../project/config-schema.js";
-import type { RunState } from "../state-machine.js";
+import type { RunState, RunStateStore } from "../state-machine.js";
 import type { PolicyWarning } from "../policy-engine.js";
+import type { ArtifactStore } from "../artifact-store.js";
+import type { EventLog } from "../event-log.js";
 import type { RichProviderRunResult } from "../../providers/provider-runner.js";
 import type { ProviderSessionRequest } from "../../providers/provider-types.js";
 import type { ResolvedFlowSnapshot } from "../../flows/schemas/flow-schema.js";
@@ -142,6 +144,19 @@ export type OrchestratorInput = {
   /** CLI/process lifecycle signal. Aborting it kills the active provider
    * invocation and records the run as aborted instead of leaving orphan CLIs. */
   abortSignal?: AbortSignal;
+};
+
+/** The per-run context threaded through the flow runners and role turns: the
+ *  run's identity, worktree, stores, and progress reporter. Built once in
+ *  Orchestrator.run() and passed unchanged to every stage. */
+export type RunContext = {
+  runId: string;
+  worktreePath: string | null;
+  branchName: string | null;
+  artifactStore: ArtifactStore;
+  eventLog: EventLog;
+  stateStore: RunStateStore;
+  onProgress: (message: string) => void;
 };
 
 export type OrchestratorOutput = {

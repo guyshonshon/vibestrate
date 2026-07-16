@@ -164,14 +164,8 @@ import {
   type ReviewSkipEvidence,
 } from "./merge-readiness.js";
 import { ApprovalService } from "./approval-service.js";
-import {
-  detectApprovalRequest,
-  type ApprovalRisk,
-  type ApprovalSource,
-} from "./approval-types.js";
 import { NotificationService } from "../notifications/notification-service.js";
 import {
-  draftApprovalRequested,
   draftRunCompleted,
   draftValidationFailed,
   draftSpendCapHit,
@@ -179,7 +173,6 @@ import {
   draftProviderFailed,
 } from "../notifications/notification-router.js";
 import type { NotificationDraft } from "../notifications/notification-router.js";
-import type { RunStatus } from "./workflow/workflow-types.js";
 import { applyPauseIfRequested } from "./pause-service.js";
 import { isTerminal, runStateSchema } from "./state-machine.js";
 import { writeJson, readJson } from "../utils/json.js";
@@ -250,7 +243,14 @@ import {
   type OrchestratorOutput,
   type RoleRunResult,
   type FlowRoleTurn,
+  type RunContext,
 } from "./run-engine/types.js";
+import {
+  awaitApprovalRequest,
+  maybeAwaitApproval,
+  pauseForApproval,
+  type ApprovalGateDeps,
+} from "./run-engine/approval-gate.js";
 import {
   __ApprovalRejectedSignal,
   __RunAbortedSignal,
@@ -330,6 +330,11 @@ export class Orchestrator {
   /** Action Broker for this run; set in run(). Every real effect (provider
    *  spawn) is decided + recorded through it. Null only before run() is called. */
   private broker: ActionBroker | null = null;
+  /** Fire-and-forget notification dispatcher for this run; set in run() once
+   *  the NotificationService exists, so private stages (approval gates, budget
+   *  stops, provider failures) can fire notifications without every call site
+   *  threading the closure through. Null only before run() is called. */
+  private notify: ((draft: NotificationDraft) => void) | null = null;
   /** One-time guard so the spend warning fires once per run, not every turn. */
   private spendWarned = false;
   // Count/time budget ceilings: agent turns started in this run, and the
@@ -621,9 +626,7 @@ export class Orchestrator {
       // never bubbles errors. Failed delivery is recorded as a receipt.
       void notifications.notify(draft).catch(() => {});
     };
-    // Stash for private methods (maybeAwaitApproval, etc.) so they can fire
-    // notifications without the call sites threading the closure through.
-    (this as unknown as { _notify?: typeof notify })._notify = notify;
+    this.notify = notify;
     await artifactStore.init();
     await metricsStore.write(
       makeEmptyMetrics({
@@ -1332,15 +1335,7 @@ export class Orchestrator {
     arbitrationLedger: FlowArbitrationLedger;
     arbitrationStore: FlowArbitrationStore;
     runBriefState: RunBriefState;
-    ctx: {
-      runId: string;
-      worktreePath: string | null;
-      branchName: string | null;
-      artifactStore: ArtifactStore;
-      eventLog: EventLog;
-      stateStore: RunStateStore;
-      onProgress: (message: string) => void;
-    };
+    ctx: RunContext;
   }): Promise<{
     state: RunState;
     lastValidation: ValidationResults | null;
@@ -1687,7 +1682,7 @@ export class Orchestrator {
         "flows/run-brief.md",
         renderRunBrief(input.runBriefState),
       );
-      const gate = await this.maybeAwaitApproval({
+      const gate = await maybeAwaitApproval(this.approvalGateDeps(), {
         state,
         fromStatus: state.status,
         stageId: flowStatusForStep(step),
@@ -1897,7 +1892,7 @@ export class Orchestrator {
         if (!step.approval) {
           throw new Error(`Flow approval gate "${step.id}" has no metadata.`);
         }
-        const gate = await this.awaitApprovalRequest({
+        const gate = await awaitApprovalRequest(this.approvalGateDeps(), {
           state,
           fromStatus: state.status,
           stageId: step.id,
@@ -2147,15 +2142,7 @@ export class Orchestrator {
     notify: (draft: NotificationDraft) => void;
     policyWarnings: PolicyWarning[];
     policyStagesAlreadyForced: Set<string>;
-    ctx: {
-      runId: string;
-      worktreePath: string | null;
-      branchName: string | null;
-      artifactStore: ArtifactStore;
-      eventLog: EventLog;
-      stateStore: RunStateStore;
-      onProgress: (message: string) => void;
-    };
+    ctx: RunContext;
   }): Promise<OrchestratorOutput> {
     let state = input.state;
     // Widened initializers (`as`): these are reassigned inside the per-step
@@ -3408,7 +3395,7 @@ export class Orchestrator {
             if (!step.approval) {
               throw new Error(`Flow approval gate "${step.id}" has no metadata.`);
             }
-            const gate = await this.awaitApprovalRequest({
+            const gate = await awaitApprovalRequest(this.approvalGateDeps(), {
               state,
               fromStatus: state.status,
               stageId: step.id,
@@ -3658,7 +3645,7 @@ export class Orchestrator {
           }
           await input.artifactStore.write("flows/run-brief.md", renderRunBrief(runBriefState));
 
-          const gate = await this.maybeAwaitApproval({
+          const gate = await maybeAwaitApproval(this.approvalGateDeps(), {
             state,
             fromStatus: state.status,
             // Policy approvals are configured per run phase
@@ -3950,7 +3937,7 @@ export class Orchestrator {
       if (completeDecision.effect === "require_approval" && mergeReady) {
         const reason =
           "reason" in completeDecision ? completeDecision.reason : "policy";
-        const held = await this.awaitApprovalRequest({
+        const held = await awaitApprovalRequest(this.approvalGateDeps(), {
           state,
           fromStatus: state.status,
           stageId: "run.complete",
@@ -4230,247 +4217,17 @@ export class Orchestrator {
     };
   }
 
-  private async awaitApprovalRequest(input: {
-    state: RunState;
-    fromStatus: RunStatus;
-    stageId: string;
-    stepId?: string | null;
-    roleId: string;
-    reason: string | null;
-    prompt: string | null;
-    sourceArtifactPath: string | null;
-    requestedAction: string | null;
-    riskLevel: ApprovalRisk;
-    source: ApprovalSource;
-    alsoRequiredByPolicy?: boolean;
-    userMessage?: string | null;
-    progressMessage: string;
-    requestedMessage: string;
-    resumedMessage: string;
-    approvalService: ApprovalService;
-    stateStore: RunStateStore;
-    eventLog: EventLog;
-  }): Promise<{ state: RunState; rejected: boolean; changesGuidance: string | null }> {
-    this.onProgress(input.progressMessage);
-
-    const req = await input.approvalService.create({
-      stageId: input.stageId,
-      stepId: input.stepId ?? null,
-      roleId: input.roleId,
-      reason: input.reason,
-      prompt: input.prompt,
-      sourceArtifactPath: input.sourceArtifactPath,
-      requestedAction: input.requestedAction,
-      riskLevel: input.riskLevel,
-      source: input.source,
-      alsoRequiredByPolicy: input.alsoRequiredByPolicy,
-      userMessage: input.userMessage,
-    });
-
-    let pendingState: RunState = applyTransition(
-      input.state,
-      "waiting_for_approval",
-    );
-    pendingState = {
-      ...pendingState,
-      pendingApprovalId: req.id,
-      approvalRequestedFromStatus: input.fromStatus,
+  /** Live snapshot of the orchestrator fields the approval gate
+   *  (run-engine/approval-gate.ts) reads. Built fresh per call so `notify`
+   *  (wired in run()) is current at gate time. */
+  private approvalGateDeps(): ApprovalGateDeps {
+    return {
+      projectRoot: this.projectRoot,
+      policies: this.config.policies,
+      unattended: this.unattended,
+      onProgress: this.onProgress,
+      notify: this.notify,
     };
-    await input.stateStore.write(pendingState);
-    const _notify = (
-      this as unknown as { _notify?: (d: NotificationDraft) => void }
-    )._notify;
-    if (_notify) {
-      _notify(
-        draftApprovalRequested({
-          runId: input.state.runId,
-          approvalId: req.id,
-          roleId: input.roleId,
-          stageId: input.stageId,
-          reason: input.reason,
-        }),
-      );
-    }
-    await input.eventLog.append({
-      type: "approval.requested",
-      message: input.requestedMessage,
-      data: {
-        approvalId: req.id,
-        roleId: input.roleId,
-        stageId: input.stageId,
-        reason: input.reason,
-        requestedAction: input.requestedAction,
-        riskLevel: input.riskLevel,
-        source: input.source,
-        alsoRequiredByPolicy: input.alsoRequiredByPolicy ?? false,
-      },
-    });
-
-    // Unattended runs must not hang at a gate: no human is watching, so an
-    // unanswered approval would wedge a scheduler worker forever. Bound the wait
-    // so it `expires` -> the run goes `blocked` honestly. Attended runs keep the
-    // indefinite wait (a human is there). This NEVER approves; it only stops the
-    // hang. `forbidAutoMerge`/`forbidAutoPush` and every gate are untouched.
-    const resolved = await input.approvalService.waitForResolution(req.id, {
-      pollMs: 1500,
-      ...(this.unattended
-        ? {
-            timeoutMs: Math.max(
-              1,
-              this.config.policies.unattendedApprovalTimeoutMs,
-            ),
-          }
-        : {}),
-    });
-
-    if (resolved.status === "approved") {
-      let next: RunState = applyTransition(pendingState, input.fromStatus);
-      next = {
-        ...next,
-        pendingApprovalId: null,
-        approvalRequestedFromStatus: null,
-      };
-      await input.stateStore.write(next);
-      await input.eventLog.append({
-        type: "approval.approved",
-        message: `Approval ${req.id} approved by ${resolved.resolvedBy ?? "local-user"}.`,
-        data: {
-          approvalId: req.id,
-          decisionNote: resolved.decisionNote ?? null,
-        },
-      });
-      await input.eventLog.append({
-        type: "run.resumed",
-        message: input.resumedMessage,
-        data: { stageId: input.stageId },
-      });
-      return { state: next, rejected: false, changesGuidance: null };
-    }
-
-    if (resolved.status === "changes_requested") {
-      // Resume FORWARD (like approved): the caller re-runs this stage's next
-      // turn with the guidance injected. It never re-runs the already-committed
-      // turn, so no worktree double-apply. Guidance is redacted before it enters
-      // the event log or any prompt.
-      let next: RunState = applyTransition(pendingState, input.fromStatus);
-      next = {
-        ...next,
-        pendingApprovalId: null,
-        approvalRequestedFromStatus: null,
-      };
-      await input.stateStore.write(next);
-      const safeGuidance = resolved.guidance
-        ? redactSecretsInText(resolved.guidance).redacted
-        : null;
-      await input.eventLog.append({
-        type: "approval.changes_requested",
-        message: `Approval ${req.id} returned to ${input.roleId} with change guidance.`,
-        data: { approvalId: req.id, guidance: safeGuidance },
-      });
-      return { state: next, rejected: false, changesGuidance: safeGuidance };
-    }
-
-    let blockedState: RunState = applyTransition(pendingState, "blocked");
-    blockedState = {
-      ...blockedState,
-      pendingApprovalId: null,
-      approvalRequestedFromStatus: null,
-    };
-    await input.stateStore.write(blockedState);
-    await input.eventLog.append({
-      type:
-        resolved.status === "rejected"
-          ? "approval.rejected"
-          : "approval.expired",
-      message:
-        resolved.status === "rejected"
-          ? `Approval ${req.id} rejected by ${resolved.resolvedBy ?? "local-user"}.`
-          : `Approval ${req.id} expired without a decision.`,
-      data: {
-        approvalId: req.id,
-        decisionNote: resolved.decisionNote ?? null,
-      },
-    });
-    return { state: blockedState, rejected: true, changesGuidance: null };
-  }
-
-  /**
-   * If `roleArtifact.output` contains `HUMAN_APPROVAL: REQUIRED`, transition
-   * the run to `waiting_for_approval`, persist a pending approval request, and
-   * poll until the user resolves it via CLI/API. Returns the new state and
-   * whether the run was rejected (caller must transition to `blocked`).
-   *
-   * If no approval signal is present, returns the input state unchanged.
-   */
-  private async maybeAwaitApproval(input: {
-    state: RunState;
-    fromStatus: RunStatus;
-    stageId: string;
-    stepId?: string | null;
-    roleId: string;
-    roleArtifact: RoleRunResult | null;
-    approvalService: ApprovalService;
-    stateStore: RunStateStore;
-    eventLog: EventLog;
-    /** Tracks which policy stages have already triggered approval this run (mutated). */
-    policyStagesAlreadyForced: Set<string>;
-  }): Promise<{ state: RunState; rejected: boolean; changesGuidance: string | null }> {
-    const detection = input.roleArtifact
-      ? detectApprovalRequest(input.roleArtifact.output)
-      : null;
-    const policyStages = this.config.policies.requireApprovalAtStages;
-    const policyForcedThisStage =
-      policyStages.includes(input.stageId as (typeof policyStages)[number]) &&
-      !input.policyStagesAlreadyForced.has(input.stageId);
-
-    const roleRequested = !!detection?.required;
-    if (!roleRequested && !policyForcedThisStage) {
-      return { state: input.state, rejected: false, changesGuidance: null };
-    }
-
-    // Build approval payload. Prefer agent-provided metadata when present,
-    // fall back to policy defaults otherwise. If both apply, we record one
-    // approval with source="agent" and alsoRequiredByPolicy=true.
-    const fallbackReason = `Project policy requires approval before continuing past the ${input.stageId} stage.`;
-    const fallbackRequestedAction = `Approve continuing after ${input.stageId}.`;
-    const reason = detection?.reason ?? (policyForcedThisStage ? fallbackReason : null);
-    const requestedAction =
-      detection?.requestedAction ??
-      (policyForcedThisStage
-        ? fallbackRequestedAction
-        : `Continue past the ${input.stageId} stage.`);
-    const riskLevel = detection?.riskLevel ?? "medium";
-    const source: "agent" | "policy" = roleRequested ? "agent" : "policy";
-    const alsoRequiredByPolicy = roleRequested && policyForcedThisStage;
-
-    if (policyForcedThisStage) {
-      input.policyStagesAlreadyForced.add(input.stageId);
-    }
-
-    return this.awaitApprovalRequest({
-      state: input.state,
-      fromStatus: input.fromStatus,
-      stageId: input.stageId,
-      stepId: input.stepId ?? null,
-      roleId: input.roleId,
-      reason,
-      prompt: input.roleArtifact?.promptArtifactPath ?? null,
-      sourceArtifactPath: input.roleArtifact?.outputArtifactPath ?? null,
-      requestedAction,
-      riskLevel,
-      source,
-      alsoRequiredByPolicy,
-      progressMessage: roleRequested
-        ? `Pausing for human approval (${input.roleId} requested it)...`
-        : `Pausing for human approval (project policy requires approval at ${input.stageId})...`,
-      requestedMessage: roleRequested
-        ? `Approval requested by ${input.roleId} at stage ${input.stageId}.`
-        : `Approval required by project policy at stage ${input.stageId}.`,
-      resumedMessage: `Run resumed at stage ${input.stageId}.`,
-      approvalService: input.approvalService,
-      stateStore: input.stateStore,
-      eventLog: input.eventLog,
-    });
   }
 
   /**
@@ -4948,15 +4705,7 @@ export class Orchestrator {
     metricsStore: MetricsStore;
     reviewDecisionForStage?: string | null;
     verificationDecisionForStage?: string | null;
-    ctx: {
-      runId: string;
-      worktreePath: string | null;
-      branchName: string | null;
-      artifactStore: ArtifactStore;
-      eventLog: EventLog;
-      stateStore: RunStateStore;
-      onProgress: (message: string) => void;
-    };
+    ctx: RunContext;
   }): Promise<RoleRunResult> {
     const { roleId, ctx } = input;
     // Budget gates: before spending on this turn, check the count/time ceilings
@@ -5536,7 +5285,7 @@ export class Orchestrator {
       // continues, but surface it as a notification tied to this phase so it's
       // not silent.
       if (providerResult.exitCode !== 0) {
-        (this as unknown as { _notify?: (d: NotificationDraft) => void })._notify?.(
+        this.notify?.(
           draftProviderFailed({
             runId: ctx.runId,
             providerId: effectiveProviderId,
@@ -5558,7 +5307,7 @@ export class Orchestrator {
       });
       // Surface the failed invocation as a notification tied to this phase, so a
       // rejected flag / missing CLI is visible, not just an event-log line.
-      (this as unknown as { _notify?: (d: NotificationDraft) => void })._notify?.(
+      this.notify?.(
         draftProviderFailed({
           runId: ctx.runId,
           providerId: effectiveProviderId,
@@ -5677,7 +5426,7 @@ export class Orchestrator {
             `Post-turn diff gate requires approval for ${roleId} but run state is unavailable.`,
           );
         }
-        const res = await this.awaitApprovalRequest({
+        const res = await awaitApprovalRequest(this.approvalGateDeps(), {
           state: cur,
           fromStatus: cur.status,
           stageId: input.stageId,
@@ -5883,53 +5632,6 @@ export class Orchestrator {
   }
 
   /**
-   * Enforce the daily spend cap before an agent turn. Warns once at the
-   * threshold; at the cap, stops the run. NOTE: in the new Profile model the
-   * `reduce-effort` / `downgrade-model` cap actions are not yet implemented -
-   * mid-run Profile downgrade (switching every seated step to
-   * `budget.fallbackProfile`) is a TODO. Until then every cap action stops the
-   * run honestly rather than silently continuing at full cost. No cap
-   * configured ⇒ no-op.
-   */
-  /**
-   * Pause the run for a human at a limit, reusing the standard approval
-   * flow. Returns true if approved (continue), false if rejected (stop/give up).
-   * For ATTENDED runs only - the caller must already have checked `!unattended`.
-   */
-  private async pauseForApproval(input: {
-    ctx: { eventLog: EventLog; runId: string; stateStore: RunStateStore };
-    stageId: string;
-    reason: string;
-    requestedAction: string;
-    requestedMessage: string;
-    resumedMessage: string;
-  }): Promise<boolean> {
-    const cur = await input.ctx.stateStore.read();
-    if (!cur) return false; // no state to pause on -> treat as reject (stop).
-    const res = await this.awaitApprovalRequest({
-      state: cur,
-      fromStatus: cur.status,
-      stageId: input.stageId,
-      roleId: "budget",
-      reason: input.reason,
-      prompt: null,
-      sourceArtifactPath: null,
-      requestedAction: input.requestedAction,
-      riskLevel: "medium",
-      source: "policy",
-      progressMessage: `Pausing: ${input.reason}`,
-      requestedMessage: input.requestedMessage,
-      resumedMessage: input.resumedMessage,
-      approvalService: new ApprovalService(this.projectRoot, input.ctx.runId),
-      stateStore: input.ctx.stateStore,
-      eventLog: input.ctx.eventLog,
-    });
-    // Budget pause is a policy gate with no turn to re-run: "request changes"
-    // fails CLOSED (does not resume), same as a reject.
-    return !res.rejected && res.changesGuidance == null;
-  }
-
-  /**
    * Count/time budget ceilings (unattended-resilience). Checked before every
    * agent turn. Unlike the dollar cap, these bind WITHOUT measured cost - the
    * reliable backstop for unattended runs where CLI token cost is unmeasured.
@@ -5996,7 +5698,7 @@ export class Orchestrator {
     // onLimit: pause (attended) - ask a human to continue or stop. --unattended
     // forces stop (an unattended run can't be resumed, so it must not hang).
     if (budget.onLimit === "pause" && !this.unattended) {
-      const approved = await this.pauseForApproval({
+      const approved = await pauseForApproval(this.approvalGateDeps(), {
         ctx,
         stageId: "budget-limit",
         reason: `Budget ceiling reached: ${detail}`,
@@ -6022,8 +5724,7 @@ export class Orchestrator {
       message: msg,
       data: { kind: hit.kind, value: hit.value, limit: hit.limit, unit: hit.unit, onLimit: "stop" },
     });
-    const notify = (this as unknown as { _notify?: (d: NotificationDraft) => void })._notify;
-    notify?.(draftBudgetLimit({ runId: ctx.runId, taskId: this.taskId, detail }));
+    this.notify?.(draftBudgetLimit({ runId: ctx.runId, taskId: this.taskId, detail }));
     throw new __BudgetLimitSignal(msg);
   }
 
@@ -6159,7 +5860,7 @@ export class Orchestrator {
         // onExhausted: pause (attended) - wait for a human to approve a fresh
         // round of retries, or reject (give up). --unattended forces fail.
         if (r.onExhausted === "pause" && !this.unattended) {
-          const approved = await this.pauseForApproval({
+          const approved = await pauseForApproval(this.approvalGateDeps(), {
             ctx: input.ctx,
             stageId: input.stageId,
             reason: `Provider ${cls} unrecovered at ${input.stageId} after ${spec.maxRetries} retries`,
@@ -6387,8 +6088,7 @@ export class Orchestrator {
       data: { action: "stop", dailySpendUsd, cap },
     });
     // Notify on cap-hit so it reaches the user's local gateways (in-app/CLI).
-    const notify = (this as unknown as { _notify?: (d: NotificationDraft) => void })._notify;
-    notify?.(
+    this.notify?.(
       draftSpendCapHit({
         runId: ctx.runId,
         taskId: this.taskId,
