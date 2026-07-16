@@ -27,24 +27,24 @@ import { usePublishViewContext } from "../../lib/view-context.js";
 // neutrals only - no second hue, no glow tints (flat solid surfaces). Explicit
 // rgba violet (NOT color-mix, which fails to paint in some browsers).
 
-const V = "#8b7cff"; // brand violet, solid
-const VB = "#a99bff"; // bright violet, accents/text on dark
+const V = "var(--color-violet-soft)"; // brand violet accent
+const VB = "var(--color-violet-vivid)"; // brighter violet, accents/text
 
-// Borderless tonal system. Separation is carried by TONE STEPS, never by borders,
-// so the `.deep-scene` near-invisible --s-line can't flatten it. Violet is an
-// accent only (active marker, answered check, selected option, Submit). Ladder:
-// page -> container ("ground") -> card -> recessed well; questions are split by a
-// crisp divider rather than relying on the gap alone.
-const PAGE = "#07090e"; // section canvas; the rail floats directly on it
-const GROUND = "#0e1119"; // the content container - "it is a container"
-const CARD = "#1b212d"; // open question card, a clear step above the ground
-const CARD_DONE = "#221f31"; // answered question, same step with a faint violet lean
-const WELL = "#080b10"; // recessed field: text input, unselected option
-const SEL = "rgba(139, 124, 255, 0.22)"; // selected option fill
-const SEL_INK = "#d8ccff"; // text on a selected option
-const RAIL_ON = "#171c24"; // active menu field (calm, neutral - no violet wash)
-const DIVIDER = "rgba(255,255,255,0.08)"; // the rule between questions
-const HAIR = "rgba(255,255,255,0.07)"; // quiet rule for header / footer separators
+// Tonal ladder, now on theme tokens so it flips in light mode (was a dark-only
+// hardcoded-hex ladder that rendered as a dark island on the light canvas).
+// Separation is carried by TONE STEPS; violet is the accent only (active marker,
+// answered check, selected option, Submit). Ladder: page -> container ("ground")
+// -> card -> recessed well; questions split by a crisp divider.
+const PAGE = "var(--color-coal-800)"; // section canvas
+const GROUND = "var(--color-coal-700)"; // the content container
+const CARD = "var(--color-coal-600)"; // open question card, a step above the ground
+const CARD_DONE = "var(--color-coal-500)"; // answered question: elevated step (the violet check carries the done cue)
+const WELL = "var(--color-coal-800)"; // recessed field: text input, unselected option
+const SEL = "var(--color-violet-soft)"; // selected option: solid violet (contrast-safe with coal-900 ink in both themes)
+const SEL_INK = "var(--color-coal-900)"; // text on a selected option (flips with the theme)
+const RAIL_ON = "var(--color-coal-600)"; // active menu field
+const DIVIDER = "var(--line)"; // the rule between questions
+const HAIR = "var(--line-soft)"; // quiet rule for header / footer separators
 
 const CATEGORY_ORDER: SpecUpQuestionCategory[] = [
   "scope",
@@ -223,7 +223,7 @@ export function RunGapQuestions({
     return (
       <section style={page}>
         <h2 style={{ fontSize: 22, fontWeight: 500, margin: "0 0 8px" }}>Coverage complete</h2>
-        <p style={{ fontSize: 15, color: "var(--s-ink-dim)", lineHeight: 1.6, margin: "0 0 22px" }}>
+        <p style={{ fontSize: 15, color: "var(--color-chalk-300)", lineHeight: 1.6, margin: "0 0 22px" }}>
           The CTO has what it needs from your answers (round {round}). Build the spec, architecture, and risks.
         </p>
         {error ? <div style={errorLine}>{error}</div> : null}
@@ -244,13 +244,13 @@ export function RunGapQuestions({
         const current = g.category === activeCat;
         return (
           <button key={g.category} onClick={() => setActive(g.category)} style={menuRow(current)}>
-            <span style={{ width: 16, display: "flex", justifyContent: "center", flexShrink: 0, color: done ? VB : current ? V : "var(--s-ink-faint)" }}>
-              {done ? <Check size={15} /> : <span style={{ width: 6, height: 6, borderRadius: 999, background: current ? V : "rgba(255,255,255,0.18)" }} />}
+            <span style={{ width: 16, display: "flex", justifyContent: "center", flexShrink: 0, color: done ? VB : current ? V : "var(--color-chalk-400)" }}>
+              {done ? <Check size={15} /> : <span style={{ width: 6, height: 6, borderRadius: 999, background: current ? V : "var(--color-chalk-400)" }} />}
             </span>
-            <span style={{ flex: 1, fontSize: 14, fontWeight: current ? 500 : 400, color: current ? "#e7e9f0" : "var(--s-ink-dim)" }}>
+            <span style={{ flex: 1, fontSize: 14, fontWeight: current ? 500 : 400, color: current ? "var(--color-chalk-100)" : "var(--color-chalk-300)" }}>
               {CATEGORY_LABEL[g.category]}
             </span>
-            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 12.5, color: done || current ? VB : "var(--s-ink-faint)" }}>
+            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 12.5, color: done || current ? VB : "var(--color-chalk-400)" }}>
               {ans}/{g.items.length}
             </span>
           </button>
@@ -266,13 +266,13 @@ export function RunGapQuestions({
         <ActiveIcon size={24} style={{ color: VB, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 19, fontWeight: 500, letterSpacing: "-0.01em", lineHeight: 1.2 }}>{CATEGORY_LABEL[activeGroup.category]}</div>
-          <div style={{ fontSize: 13.5, color: "var(--s-ink-dim)", marginTop: 2 }}>{CATEGORY_BLURB[activeGroup.category]}</div>
+          <div style={{ fontSize: 13.5, color: "var(--color-chalk-300)", marginTop: 2 }}>{CATEGORY_BLURB[activeGroup.category]}</div>
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 15, color: VB }}>
             {answeredOf(activeGroup.items)}/{activeGroup.items.length}
           </div>
-          <div style={{ fontSize: 11.5, color: "var(--s-ink-faint)" }}>answered</div>
+          <div style={{ fontSize: 11.5, color: "var(--color-chalk-400)" }}>answered</div>
         </div>
       </div>
 
@@ -320,10 +320,10 @@ export function RunGapQuestions({
 
   const footer = (
     <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 20, paddingTop: 18, borderTop: `1px solid ${HAIR}` }}>
-      <span style={{ flex: 1, fontSize: 13.5, color: "var(--s-ink-dim)", lineHeight: 1.5 }}>
+      <span style={{ flex: 1, fontSize: 13.5, color: "var(--color-chalk-300)", lineHeight: 1.5 }}>
         Answer what you can - we ask follow-ups only where it's still open.
       </span>
-      {error ? <span style={{ color: "var(--s-warn-ink)", fontSize: 13 }}>{error}</span> : null}
+      {error ? <span style={{ color: "var(--color-amber-soft)", fontSize: 13 }}>{error}</span> : null}
       <button onClick={() => void submit(true)} disabled={busy} style={ghostBtn}>
         Proceed to spec
       </button>
@@ -338,7 +338,7 @@ export function RunGapQuestions({
       {single ? (
         <div>
           <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 3 }}>Scope the work</div>
-          <div style={{ fontSize: 13, color: "var(--s-ink-faint)", marginBottom: 14 }}>Round {round}. Answer what you can.</div>
+          <div style={{ fontSize: 13, color: "var(--color-chalk-400)", marginBottom: 14 }}>Round {round}. Answer what you can.</div>
           <div style={ground}>
             {content}
             {footer}
@@ -349,14 +349,14 @@ export function RunGapQuestions({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 16, fontWeight: 500 }}>Scope the work</div>
             <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 13, color: "var(--s-ink-faint)" }}>
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 13, color: "var(--color-chalk-400)" }}>
                 round {round} &middot; {coveredAreas}/{byCategory.length} areas
               </span>
               <div style={{ display: "flex", gap: 4 }}>
                 {byCategory.map((g) => {
                   const done = answeredOf(g.items) === g.items.length;
                   const cur = g.category === activeCat;
-                  return <div key={g.category} style={{ width: 22, height: 5, borderRadius: 3, background: done ? V : cur ? VB : "rgba(255,255,255,0.12)" }} />;
+                  return <div key={g.category} style={{ width: 22, height: 5, borderRadius: 3, background: done ? V : cur ? VB : "var(--line-strong)" }} />;
                 })}
               </div>
             </div>
@@ -437,33 +437,33 @@ function QuestionCard({
         <div style={adviseRow}>
           <PenLine size={17} style={{ color: VB, flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14.5, color: "var(--s-ink)" }}>
+            <div style={{ fontSize: 14.5, color: "var(--color-chalk-100)" }}>
               <span style={{ fontSize: 12, color: VB, fontWeight: 500 }}>Suggested</span> &nbsp;{suggestion.value}
             </div>
-            {suggestion.why ? <div style={{ fontSize: 13, color: "var(--s-ink-faint)", marginTop: 2 }}>{suggestion.why}</div> : null}
+            {suggestion.why ? <div style={{ fontSize: 13, color: "var(--color-chalk-400)", marginTop: 2 }}>{suggestion.why}</div> : null}
           </div>
           <button onClick={onUseSuggestion} style={useBtn}>Use</button>
-          <button onClick={onDismissSuggestion} style={{ ...action, color: "var(--s-ink-faint)" }}>Dismiss</button>
+          <button onClick={onDismissSuggestion} style={{ ...action, color: "var(--color-chalk-400)" }}>Dismiss</button>
         </div>
       ) : null}
 
       {simplify ? (
         <div style={simplifyBox}>
           {simplify.loading ? (
-            <span style={{ color: "var(--s-ink-faint)" }}>Explaining...</span>
+            <span style={{ color: "var(--color-chalk-400)" }}>Explaining...</span>
           ) : (
             <>
               <div>{simplify.text}</div>
-              {simplify.affects ? <div style={{ marginTop: 8, color: "var(--s-ink-dim)" }}><b style={{ fontWeight: 500 }}>What it affects:</b> {simplify.affects}</div> : null}
-              {simplify.analogy ? <div style={{ marginTop: 8, color: "var(--s-ink-dim)" }}><b style={{ fontWeight: 500 }}>Analogy:</b> {simplify.analogy}</div> : null}
+              {simplify.affects ? <div style={{ marginTop: 8, color: "var(--color-chalk-300)" }}><b style={{ fontWeight: 500 }}>What it affects:</b> {simplify.affects}</div> : null}
+              {simplify.analogy ? <div style={{ marginTop: 8, color: "var(--color-chalk-300)" }}><b style={{ fontWeight: 500 }}>Analogy:</b> {simplify.analogy}</div> : null}
               {!simplify.analogy ? <button onClick={() => onSimplify(true)} style={{ ...action, marginTop: 10, color: VB }}>Explain for a non-developer</button> : null}
             </>
           )}
         </div>
       ) : (
         <div style={{ display: "flex", gap: 11, fontSize: 14, lineHeight: 1.6, marginTop: 14, paddingTop: 13, borderTop: `1px solid ${HAIR}` }}>
-          <span style={{ color: "var(--s-ink-faint)", flexShrink: 0 }}>Why it matters</span>
-          <span style={{ color: "var(--s-ink-dim)" }}>{q.why}</span>
+          <span style={{ color: "var(--color-chalk-400)", flexShrink: 0 }}>Why it matters</span>
+          <span style={{ color: "var(--color-chalk-300)" }}>{q.why}</span>
         </div>
       )}
     </div>
@@ -475,7 +475,7 @@ const page: React.CSSProperties = {
   borderRadius: 18,
   background: PAGE,
   padding: "20px 22px",
-  color: "var(--s-ink)",
+  color: "var(--color-chalk-100)",
 };
 const ground: React.CSSProperties = {
   background: GROUND,
@@ -520,21 +520,21 @@ const simplifyBox: React.CSSProperties = {
   padding: "13px 15px",
   borderRadius: 10,
   background: WELL,
-  color: "var(--s-ink)",
+  color: "var(--color-chalk-100)",
   fontSize: 14,
   lineHeight: 1.6,
 };
 const textInput: React.CSSProperties = {
   width: "100%",
   background: WELL,
-  color: "var(--s-slab-ink)",
+  color: "var(--color-chalk-100)",
   border: "none",
   borderRadius: 10,
   padding: "12px 15px",
   fontSize: 15,
   outline: "none",
 };
-const errorLine: React.CSSProperties = { color: "var(--s-warn-ink)", fontSize: 13.5, marginBottom: 14 };
+const errorLine: React.CSSProperties = { color: "var(--color-amber-soft)", fontSize: 13.5, marginBottom: 14 };
 const action: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -543,7 +543,7 @@ const action: React.CSSProperties = {
   border: "none",
   cursor: "pointer",
   fontSize: 13.5,
-  color: "var(--s-ink-dim)",
+  color: "var(--color-chalk-300)",
   padding: 0,
 };
 const ghostInline: React.CSSProperties = {
@@ -555,7 +555,7 @@ const ghostInline: React.CSSProperties = {
   borderRadius: 10,
   cursor: "pointer",
   fontSize: 13.5,
-  color: "var(--s-ink-dim)",
+  color: "var(--color-chalk-300)",
   padding: "9px 15px",
 };
 const navBtn: React.CSSProperties = {
@@ -566,7 +566,7 @@ const navBtn: React.CSSProperties = {
   border: "none",
   cursor: "pointer",
   fontSize: 15,
-  color: "var(--s-ink-dim)",
+  color: "var(--color-chalk-300)",
   padding: 0,
 };
 const clearBtn: React.CSSProperties = {
@@ -578,13 +578,13 @@ const clearBtn: React.CSSProperties = {
   borderRadius: 10,
   cursor: "pointer",
   fontSize: 13,
-  color: "var(--s-ink-faint)",
+  color: "var(--color-chalk-400)",
   padding: "9px 13px",
 };
 const useBtn: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 500,
-  color: "#0c0d12",
+  color: "var(--color-coal-900)",
   background: V,
   border: "none",
   borderRadius: 10,
@@ -599,7 +599,7 @@ const ghostBtn: React.CSSProperties = {
   cursor: "pointer",
   border: "none",
   background: CARD,
-  color: "var(--s-ink)",
+  color: "var(--color-chalk-100)",
   whiteSpace: "nowrap",
 };
 function optionBtn(selected: boolean, recommended: boolean): React.CSSProperties {
@@ -614,7 +614,7 @@ function optionBtn(selected: boolean, recommended: boolean): React.CSSProperties
     fontWeight: selected ? 500 : 400,
     border: "none",
     background: selected ? SEL : recommended ? "rgba(139,124,255,0.12)" : WELL,
-    color: selected ? SEL_INK : recommended ? VB : "var(--s-ink)",
+    color: selected ? SEL_INK : recommended ? VB : "var(--color-chalk-100)",
   };
 }
 function primaryBtn(enabled: boolean, compact = false): React.CSSProperties {
@@ -627,7 +627,7 @@ function primaryBtn(enabled: boolean, compact = false): React.CSSProperties {
     cursor: enabled ? "pointer" : "default",
     border: "none",
     background: enabled ? V : CARD,
-    color: enabled ? "#14101f" : "var(--s-ink-faint)",
+    color: enabled ? "var(--color-coal-900)" : "var(--color-chalk-400)",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
