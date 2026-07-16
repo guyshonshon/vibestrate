@@ -1,5 +1,4 @@
 import path from "node:path";
-import { randomUUID } from "node:crypto";
 import { ArtifactStore } from "./artifact-store.js";
 import { EventLog } from "./event-log.js";
 import {
@@ -43,16 +42,8 @@ import { assertExecutableContext, resolveCwd } from "../safety/access-policy.js"
 import { loadSkills } from "../agents/skill-loader.js";
 import { resolveMcpServers } from "../providers/mcp/mcp-resolve.js";
 import { writeMcpConfigFile } from "../providers/mcp/mcp-config-writer.js";
-import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
-import {
-  classifyProviderFailure,
-  computeBackoffMs,
-  deriveAutoFallbackProfile,
-  failureExcerpt,
-  parseRetryAfterMs,
-  sessionRequestForRetry,
-  type ProviderFailureClass,
-} from "./provider-resilience.js";
+import type { RichProviderRunResult } from "../providers/provider-runner.js";
+import type { ProviderFailureClass } from "./provider-resilience.js";
 import { resolveCatalog } from "../providers/provider-catalog-overlay.js";
 import { capabilitiesForProvider } from "../providers/provider-catalog.js";
 import type { ResolvedCatalog, SandboxMode } from "../providers/provider-apply.js";
@@ -100,11 +91,6 @@ import {
 import { applyProposedPatchThroughGateway } from "../safety/apply-gateway.js";
 import { selectOutputAdapter } from "../providers/adapters/select.js";
 import { estimateTokensFromText, resolveCost } from "./pricing.js";
-import {
-  computeDailySpendUsd,
-  computeDailyUsage,
-  evaluateSpendCap,
-} from "./spend-cap-service.js";
 import { providerCapabilities } from "../providers/provider-capabilities.js";
 import {
   appendStreamLine,
@@ -140,23 +126,11 @@ import { makeUniqueRunId } from "../utils/run-id.js";
 // getting `makeRunId` from here; the implementation now lives in run-id.ts.
 export { makeRunId } from "../utils/run-id.js";
 import { MetricsStore } from "./metrics-store.js";
-import { makeEmptyMetrics, roleMetricsSchema, type RoleMetrics } from "./runtime-metrics.js";
+import { makeEmptyMetrics, type RoleMetrics } from "./runtime-metrics.js";
 import { computeRunSpendUsd, checkSagaStopConditions } from "./saga/budget.js";
 import { extractTurnInternals } from "./turn-internals.js";
 import { getDiffSnapshot, getWorktreeDiffText, redactSecretsInText } from "./diff-service.js";
 import { buildStepPacket, readFreshFileReads } from "./saga/packet.js";
-import {
-  buildSupervisorPrompt,
-  parseSupervisorDecision,
-  parseNewInvariants,
-} from "./saga/saga-supervisor.js";
-import {
-  buildEnhancePrompt,
-  parseStepDiff,
-  classifyAuthority,
-  applyStepDiff,
-  type EnhanceStep,
-} from "./saga/enhance.js";
 import type { Provenance } from "../roadmap/roadmap-types.js";
 import { evaluateBlockPolicies } from "../supervisor/policy-block.js";
 import {
@@ -168,8 +142,6 @@ import { NotificationService } from "../notifications/notification-service.js";
 import {
   draftRunCompleted,
   draftValidationFailed,
-  draftSpendCapHit,
-  draftBudgetLimit,
   draftProviderFailed,
 } from "../notifications/notification-router.js";
 import type { NotificationDraft } from "../notifications/notification-router.js";
@@ -248,7 +220,6 @@ import {
 import {
   awaitApprovalRequest,
   maybeAwaitApproval,
-  pauseForApproval,
   type ApprovalGateDeps,
 } from "./run-engine/approval-gate.js";
 import {
@@ -291,6 +262,17 @@ import {
   ingestSuggestionsFromArtifact,
   writeFlowFinalReport,
 } from "./run-engine/report.js";
+import { BudgetGovernor } from "./run-engine/budget-governor.js";
+import {
+  lowestEffort,
+  runProviderResilient,
+  type ResilientProviderDeps,
+} from "./run-engine/resilient-provider.js";
+import {
+  runSagaSupervisorTurn,
+  runSagaEnhanceTurn,
+  type SagaTurnDeps,
+} from "./run-engine/saga-turns.js";
 
 // Re-exported so existing importers (server routes, CLI, workflow runner) keep
 // resolving these from here; the definitions live under run-engine/.
@@ -335,23 +317,10 @@ export class Orchestrator {
    *  stops, provider failures) can fire notifications without every call site
    *  threading the closure through. Null only before run() is called. */
   private notify: ((draft: NotificationDraft) => void) | null = null;
-  /** One-time guard so the spend warning fires once per run, not every turn. */
-  private spendWarned = false;
-  // Count/time budget ceilings: agent turns started in this run, and the
-  // run's wall-clock anchor (set lazily on the first turn).
-  private turnsStarted = 0;
-  private runStartMs: number | null = null;
-  // Spend-cap action override: set once when the daily $ cap is hit with a
-  // continue-action, then applied to every subsequent turn (downgrade -> switch
-  // to the cheaper fallback Profile; reduce-effort -> minimum effort). The hard
-  // count/time ceilings remain the ultimate stop.
-  private budgetOverride:
-    | { kind: "downgrade"; profileId: string }
-    | { kind: "reduce-effort" }
-    | null = null;
-  // onLimit: pause - once a human approves continuing past a ceiling, don't
-  // re-pause every turn for the rest of the run.
-  private budgetCeilingAcknowledged = false;
+  /** Per-run budget enforcement (count/time ceilings + daily spend cap) and
+   *  the mutable counters/override it owns. Built in the constructor so the
+   *  counters live exactly as long as this run. */
+  private readonly budgetGovernor: BudgetGovernor;
   private readonly readOnly: boolean;
   private readonly unattended: boolean;
   private readonly runtimeSkills: string[];
@@ -491,6 +460,16 @@ export class Orchestrator {
     this.specUpRound = input.specUpRound ?? null;
     this.specUpRootRunId = input.specUpRootRunId ?? null;
     this.personaId = input.personaId ?? input.selection?.personaId ?? null;
+    // The approval-gate/notify deps are closures because the notification
+    // dispatcher only exists once run() wires it.
+    this.budgetGovernor = new BudgetGovernor({
+      projectRoot: this.projectRoot,
+      config: this.config,
+      taskId: this.taskId,
+      unattended: this.unattended,
+      approvalGateDeps: () => this.approvalGateDeps(),
+      notify: (draft) => this.notify?.(draft),
+    });
   }
 
   /** Resolve the `default` flow against this run's config. Used when a run
@@ -2026,7 +2005,7 @@ export class Orchestrator {
         // Reserve frontier budget once before fanning out (each turn also
         // re-checks). For CLI providers token spend is often unmeasured, so the
         // cap there is wall-clock/turn-count bounded - the event says so.
-        await this.enforceSpendCap(input.ctx);
+        await this.budgetGovernor.enforceSpendCap(input.ctx);
         await input.eventLog.append({
           type: "flow.frontier.scheduled",
           message: `Fan-out: ${wave.length} read-only steps running concurrently (${wave
@@ -3116,7 +3095,7 @@ export class Orchestrator {
                 // fail-closes correctness). This is the ONLY place a saga
                 // touches `reviewDecision`, and only on the ESCALATE halt.
                 if (this.sagaSupervisor.enabled && this.taskId) {
-                  const verdict = await this.runSagaSupervisorTurn({
+                  const verdict = await runSagaSupervisorTurn(this.sagaTurnDeps(), {
                     completedItem,
                     itemIndex,
                     checklistItems,
@@ -3162,7 +3141,7 @@ export class Orchestrator {
                   // escalates - a clean halt keeping the committed work, exactly
                   // like a supervisor ESCALATE.
                   if (verdict === "ENHANCE") {
-                    const outcome = await this.runSagaEnhanceTurn({
+                    const outcome = await runSagaEnhanceTurn(this.sagaTurnDeps(), {
                       completedItem,
                       itemIndex,
                       checklistItems,
@@ -4230,447 +4209,37 @@ export class Orchestrator {
     };
   }
 
-  /**
-   * The between-steps SUPERVISOR turn. Runs a cheap, READ-ONLY
-   * model turn (no write grant - all context is in the prompt) that judges
-   * whether the saga should PROCEED to the next step or ESCALATE (halt), and
-   * records any new cross-cutting INVARIANT into the durable ledger. Pure logic
-   * lives in src/core/saga/saga-supervisor.ts; this method only wires the provider call
-   * + persistence. It NEVER assigns the run-scoped `reviewDecision` (the caller
-   * owns the ESCALATE halt). Every failure mode - unresolved provider/role,
-   * provider error, unparseable output - folds to PROCEED + a logged event: the
-   * supervisor is advisory ON TOP of the per-item review, which already
-   * fail-closes correctness, so a supervisor hiccup must not halt a good saga.
-   */
-  private async runSagaSupervisorTurn(args: {
-    completedItem: { id: string; text: string };
-    itemIndex: number;
-    checklistItems: { id: string; text: string }[];
-    input: {
-      worktreePath: string | null;
-      eventLog: EventLog;
-      runId: string;
-      metricsStore: MetricsStore;
+  /** Deps for the extracted provider-resilience loop (run-engine/resilient-provider.ts);
+   *  the approval-gate closure keeps the onExhausted pause reading live state. */
+  private resilienceDeps(): ResilientProviderDeps {
+    return {
+      config: this.config,
+      unattended: this.unattended,
+      approvalGateDeps: () => this.approvalGateDeps(),
     };
-  }): Promise<"PROCEED" | "ENHANCE" | "ESCALATE"> {
-    const { completedItem, itemIndex, checklistItems, input } = args;
-    const taskId = this.taskId!;
-    const roadmap = new RoadmapService(this.projectRoot);
-
-    // Gate on the daily spend cap BEFORE spending on this turn, exactly like a
-    // real role turn (runRole). A blown cap throws __SpendCapStopSignal; the
-    // call-site re-throws THAT (so the run halts stopped-by-cap, not a silent
-    // supervisor skip) while folding ordinary supervisor failures to PROCEED.
-    // warn/downgrade/reduce-effort side-effects mirror runRole.
-    await this.enforceSpendCap({ eventLog: input.eventLog, runId: input.runId });
-
-    // Resolve the supervisor's provider + cheap-profile knobs: the configured
-    // `profile` wins, else the supervisor role's own profile.
-    let profileName = this.sagaSupervisor.profile;
-    if (!profileName) {
-      try {
-        const { crew } = getCrew(this.config, this.activeCrewId);
-        profileName = getCrewRole(crew, this.sagaSupervisor.roleId).profile;
-      } catch {
-        profileName = null;
-      }
-    }
-    const profileCfg = profileName ? this.config.profiles[profileName] : undefined;
-    const providerId =
-      profileCfg?.provider ?? Object.values(this.config.profiles)[0]?.provider;
-    if (!providerId || !this.config.providers[providerId]) {
-      await input.eventLog.append({
-        type: "supervised.supervisor",
-        message: `Saga supervisor skipped after step ${itemIndex + 1}: no resolvable provider.`,
-        data: { index: itemIndex, decision: null, skipped: "no-provider" },
-      });
-      return "PROCEED";
-    }
-
-    // Fresh task read: latest invariants ledger + the just-stamped outcome.
-    const task = await roadmap.getTask(taskId).catch(() => null);
-    const invariants = task?.supervised.invariants ?? [];
-    const outcomeSummary =
-      task?.checklist.find((c) => c.id === completedItem.id)?.outcomeSummary ?? "";
-
-    // Accumulated committed work (fork-point diff) for goal-alignment judgment.
-    let diffSoFar = "";
-    if (input.worktreePath) {
-      const baseBranch = await getCurrentBranch(this.projectRoot).catch(() => null);
-      diffSoFar = await getWorktreeDiffText({
-        worktreePath: input.worktreePath,
-        baseBranch,
-      }).catch(() => "");
-    }
-
-    const prompt = buildSupervisorPrompt({
-      goal: this.task,
-      lastStep: { text: completedItem.text, outcomeSummary },
-      diffSoFar,
-      remainingSteps: checklistItems.slice(itemIndex + 1).map((c) => c.text),
-      invariants,
-    });
-
-    // Apply the project's catalog overlay (custom model/effort) like a real turn.
-    if (!this.resolvedCatalog) {
-      this.resolvedCatalog = await resolveCatalog(this.projectRoot).catch(() => null);
-    }
-    let text = "";
-    try {
-      const result = await runProvider(this.config.providers, {
-        providerId,
-        prompt,
-        cwd: input.worktreePath ?? this.projectRoot,
-        model: profileCfg?.model ?? null,
-        effort: profileCfg?.power ?? null,
-        maxTokens: profileCfg?.maxTokens ?? null,
-        catalog: this.resolvedCatalog ?? undefined,
-        // allowWrite omitted -> no write grant: a read-only judgment turn.
-      });
-      text = result.exitCode === 0 ? result.normalized.responseText : "";
-      // Record the turn's cost as a RoleMetrics entry so it counts toward the
-      // per-saga budget (computeRunSpendUsd reads metrics.totalCostUsd) and the
-      // daily total - the supervisor is NOT free. roleMetricsSchema.parse fills
-      // every defaulted field so we only pass the cost-relevant ones.
-      const m = result.normalized.metrics;
-      let tokenUsage = m?.tokenUsage ?? null;
-      let tokensEstimated = false;
-      const hasRealTokens =
-        !!tokenUsage && ((tokenUsage.input ?? 0) + (tokenUsage.output ?? 0)) > 0;
-      if (!hasRealTokens) {
-        tokenUsage = {
-          input: estimateTokensFromText(prompt),
-          output: estimateTokensFromText(text),
-        };
-        tokensEstimated = true;
-      }
-      const { costUsd, estimated } = resolveCost({
-        reportedCostUsd: m?.totalCostUsd ?? null,
-        model: m?.model ?? null,
-        tokenUsage,
-      });
-      await input.metricsStore
-        .appendRoleMetrics(
-          roleMetricsSchema.parse({
-            roleId: "saga-supervisor",
-            stageId: "saga-supervisor",
-            providerId,
-            providerType: this.config.providers[providerId]?.type ?? "cli",
-            command: result.command,
-            cwd: result.cwd,
-            startedAt: result.startedAt,
-            endedAt: result.endedAt,
-            durationMs: result.durationMs,
-            exitCode: result.exitCode,
-            model: m?.model ?? null,
-            totalCostUsd: costUsd,
-            costEstimated: estimated,
-            tokenUsage,
-            tokensEstimated,
-          }),
-        )
-        .catch(() => {});
-    } catch (err) {
-      await input.eventLog.append({
-        type: "supervised.supervisor",
-        message: `Saga supervisor errored after step ${itemIndex + 1}; proceeding. ${
-          err instanceof Error ? err.message : ""
-        }`.trim(),
-        data: { index: itemIndex, decision: null, skipped: "error" },
-      });
-      return "PROCEED";
-    }
-
-    const parsed = parseSupervisorDecision(text);
-    // The 3-way decision drives control flow (ENHANCE no longer folds).
-    // An unparseable turn still folds to PROCEED (advisory guard).
-    const verdict = parsed.decision ?? "PROCEED";
-    const newInvariants = parseNewInvariants(text);
-    if (newInvariants.length > 0) {
-      await roadmap.appendSagaInvariants(taskId, newInvariants).catch(() => {});
-    }
-    await input.eventLog.append({
-      type: "supervised.supervisor",
-      message: `Saga supervisor after step ${itemIndex + 1}/${checklistItems.length}: ${
-        parsed.decision ?? "PROCEED (unparsed)"
-      }${
-        newInvariants.length
-          ? ` (+${newInvariants.length} invariant${newInvariants.length > 1 ? "s" : ""})`
-          : ""
-      }.`,
-      data: {
-        index: itemIndex,
-        decision: parsed.decision,
-        effective: verdict,
-        newInvariants,
-        unparsed: parsed.decision === null,
-      },
-    });
-    return verdict;
   }
 
-  // The conductor's ENHANCE pass. A plan-only model turn: it re-grounds
-  // the PENDING steps against the code as-built and emits a step-diff. On `auto`
-  // (refine/reorder/remove of existing ids) it mutates `checklistItems` in place
-  // (tail only, `> itemIndex`, so the band's absolute-index addressing survives)
-  // and persists the revised pending plan to the saga-scoped overlay atomically.
-  // On `escalate` (a structural change it may not make autonomously) it returns
-  // "escalate" and the band halts cleanly. Spend-accounted as a `saga-enhance`
-  // role; any failure/empty diff is a "noop" (advisory, never corrupts the plan).
-  private async runSagaEnhanceTurn(args: {
-    completedItem: { id: string; text: string };
-    itemIndex: number;
-    checklistItems: EnhanceStep[];
-    input: {
-      worktreePath: string | null;
-      eventLog: EventLog;
-      runId: string;
-      metricsStore: MetricsStore;
-    };
-  }): Promise<"applied" | "escalate" | "noop"> {
-    const { completedItem, itemIndex, checklistItems, input } = args;
-    const taskId = this.taskId!;
-    const roadmap = new RoadmapService(this.projectRoot);
-
-    await this.enforceSpendCap({ eventLog: input.eventLog, runId: input.runId });
-
-    // Reuse the supervisor's cheap provider/profile resolution.
-    let profileName = this.sagaSupervisor.profile;
-    if (!profileName) {
-      try {
-        const { crew } = getCrew(this.config, this.activeCrewId);
-        profileName = getCrewRole(crew, this.sagaSupervisor.roleId).profile;
-      } catch {
-        profileName = null;
-      }
-    }
-    const profileCfg = profileName ? this.config.profiles[profileName] : undefined;
-    const providerId =
-      profileCfg?.provider ?? Object.values(this.config.profiles)[0]?.provider;
-    if (!providerId || !this.config.providers[providerId]) {
-      await input.eventLog.append({
-        type: "supervised.enhance",
-        message: `Saga enhance skipped after step ${itemIndex + 1}: no resolvable provider.`,
-        data: { index: itemIndex, authority: null, skipped: "no-provider" },
-      });
-      return "noop";
-    }
-
-    // The PENDING tail is everything after the just-finished step.
-    const pending = checklistItems.slice(itemIndex + 1);
-    if (pending.length === 0) return "noop"; // nothing left to re-ground
-
-    const task = await roadmap.getTask(taskId).catch(() => null);
-    const invariants = task?.supervised.invariants ?? [];
-    const doneOutcomes = checklistItems.slice(0, itemIndex + 1).map((c) => ({
-      text: c.text,
-      summary:
-        task?.checklist.find((t) => t.id === c.id)?.outcomeSummary ?? "",
-    }));
-
-    let diffSoFar = "";
-    let freshRead = "";
-    if (input.worktreePath) {
-      const baseBranch = await getCurrentBranch(this.projectRoot).catch(() => null);
-      diffSoFar = await getWorktreeDiffText({
-        worktreePath: input.worktreePath,
-        baseBranch,
-      }).catch(() => "");
-      const hints = [...new Set(pending.flatMap((s) => s.fileHints))];
-      if (hints.length > 0) {
-        const reads = await readFreshFileReads({
-          worktreePath: input.worktreePath,
-          fileHints: hints,
-        }).catch(() => []);
-        freshRead = reads
-          .map((r) => `--- ${r.path} ---\n${r.content ?? ""}`)
-          .join("\n\n");
-      }
-    }
-
-    const prompt = buildEnhancePrompt({
+  /** Deps for the extracted saga supervisor/enhance turns (run-engine/saga-turns.ts).
+   *  Assembled fresh per call so live fields (task text, active crew) are current.
+   *  Call sites gate on `this.taskId` before a saga turn, so the assertion holds. */
+  private sagaTurnDeps(): SagaTurnDeps {
+    return {
+      projectRoot: this.projectRoot,
+      config: this.config,
       goal: this.task,
-      doneOutcomes,
-      pending,
-      diff: diffSoFar,
-      freshRead,
-      invariants,
-      mode: "conductor",
-    });
-
-    if (!this.resolvedCatalog) {
-      this.resolvedCatalog = await resolveCatalog(this.projectRoot).catch(() => null);
-    }
-    let text = "";
-    try {
-      const result = await runProvider(this.config.providers, {
-        providerId,
-        prompt,
-        cwd: input.worktreePath ?? this.projectRoot,
-        model: profileCfg?.model ?? null,
-        effort: profileCfg?.power ?? null,
-        maxTokens: profileCfg?.maxTokens ?? null,
-        catalog: this.resolvedCatalog ?? undefined,
-        // allowWrite omitted -> a read-only, plan-only turn.
-      });
-      text = result.exitCode === 0 ? result.normalized.responseText : "";
-      const m = result.normalized.metrics;
-      let tokenUsage = m?.tokenUsage ?? null;
-      let tokensEstimated = false;
-      const hasRealTokens =
-        !!tokenUsage && ((tokenUsage.input ?? 0) + (tokenUsage.output ?? 0)) > 0;
-      if (!hasRealTokens) {
-        tokenUsage = {
-          input: estimateTokensFromText(prompt),
-          output: estimateTokensFromText(text),
-        };
-        tokensEstimated = true;
-      }
-      const { costUsd, estimated } = resolveCost({
-        reportedCostUsd: m?.totalCostUsd ?? null,
-        model: m?.model ?? null,
-        tokenUsage,
-      });
-      await input.metricsStore
-        .appendRoleMetrics(
-          roleMetricsSchema.parse({
-            roleId: "saga-enhance",
-            stageId: "saga-enhance",
-            providerId,
-            providerType: this.config.providers[providerId]?.type ?? "cli",
-            command: result.command,
-            cwd: result.cwd,
-            startedAt: result.startedAt,
-            endedAt: result.endedAt,
-            durationMs: result.durationMs,
-            exitCode: result.exitCode,
-            model: m?.model ?? null,
-            totalCostUsd: costUsd,
-            costEstimated: estimated,
-            tokenUsage,
-            tokensEstimated,
-          }),
-        )
-        .catch(() => {});
-    } catch (err) {
-      await input.eventLog.append({
-        type: "supervised.enhance",
-        message: `Saga enhance errored after step ${itemIndex + 1}; proceeding. ${
-          err instanceof Error ? err.message : ""
-        }`.trim(),
-        data: { index: itemIndex, authority: null, skipped: "error" },
-      });
-      return "noop";
-    }
-
-    const { diff } = parseStepDiff(text);
-    const empty =
-      !diff ||
-      (diff.refine.length === 0 &&
-        diff.remove.length === 0 &&
-        diff.add.length === 0 &&
-        (diff.reorder === null || diff.reorder.length === 0));
-    if (!diff || empty) {
-      await input.eventLog.append({
-        type: "supervised.enhance",
-        message: `Saga enhance after step ${itemIndex + 1}: no change (plan already grounded).`,
-        data: { index: itemIndex, authority: "auto", applied: null, noop: true },
-      });
-      return "noop";
-    }
-
-    const authority = classifyAuthority(diff, pending, "conductor");
-    if (authority === "escalate") {
-      await input.eventLog.append({
-        type: "supervised.enhance",
-        message: `Saga enhance after step ${itemIndex + 1}: escalating to the owner (structural change).`,
-        data: {
-          index: itemIndex,
-          authority: "escalate",
-          adds: diff.add.length,
-          removes: diff.remove.length,
-        },
-      });
-      return "escalate";
-    }
-
-    // auto: apply to the pending tail. REDACT the model-authored fields FIRST -
-    // they get persisted (overlay + reconciled checklist) and re-injected into
-    // later packets, so they follow the same redaction rule as every other
-    // model-prose path (commit summaries, the supervisor ledger).
-    const revisedTail: EnhanceStep[] = applyStepDiff(pending, diff).map((s) => ({
-      ...s,
-      text: redactSecretsInText(s.text).redacted,
-      objective: redactSecretsInText(s.objective).redacted,
-      acceptanceCheck: redactSecretsInText(s.acceptanceCheck).redacted,
-      fileHints: s.fileHints.map((h) => redactSecretsInText(h).redacted),
-    }));
-    // A diff that removes every remaining pending step = "drop all remaining
-    // work" - a structural decision (and emptying the tail would break the
-    // band's `itemIndex` re-entry). Escalate rather than auto-apply.
-    if (revisedTail.length === 0) {
-      await input.eventLog.append({
-        type: "supervised.enhance",
-        message: `Saga enhance after step ${itemIndex + 1}: escalating - the diff would drop all remaining steps.`,
-        data: { index: itemIndex, authority: "escalate", emptiedTail: true },
-      });
-      return "escalate";
-    }
-    // Mutate the in-memory pending tail IN PLACE (preserve itemIndex + the done
-    // prefix so the band's absolute-index addressing stays valid).
-    checklistItems.splice(
-      itemIndex + 1,
-      checklistItems.length - (itemIndex + 1),
-      ...revisedTail,
-    );
-    // Persist the revised plan to the saga-scoped overlay (one atomic write;
-    // never touches task.checklist). Skip when the task read came back null - a
-    // null read would write an empty, corrupt overlay that strands a resume.
-    if (task) {
-      const canonicalById = new Map(task.checklist.map((c) => [c.id, c]));
-      const overlayPending = revisedTail
-        .map((s) => {
-          const base = canonicalById.get(s.id);
-          if (!base) return null;
-          return {
-            ...base,
-            text: s.text,
-            objective: s.objective,
-            acceptanceCheck: s.acceptanceCheck,
-            fileHints: s.fileHints,
-          };
-        })
-        .filter((c): c is NonNullable<typeof c> => c !== null);
-      await roadmap
-        .setSagaPendingRevision(taskId, {
-          revisedAtStepIndex: itemIndex,
-          pending: overlayPending,
-        })
-        .catch(async (err: unknown) => {
-          await input.eventLog.append({
-            type: "supervised.enhance",
-            message: `Saga enhance: could not persist the revised plan; the run continues but a resume would fall back to the original plan. ${
-              err instanceof Error ? err.message : ""
-            }`.trim(),
-            data: { index: itemIndex, authority: "auto", persistFailed: true },
-          });
-        });
-    }
-
-    await input.eventLog.append({
-      type: "supervised.enhance",
-      message: `Saga enhance after step ${itemIndex + 1}: re-grounded the pending plan (${diff.refine.length} refined, ${diff.remove.length} removed${diff.reorder ? ", resequenced" : ""}).`,
-      data: {
-        index: itemIndex,
-        authority: "auto",
-        applied: {
-          refine: diff.refine.length,
-          remove: diff.remove.length,
-          reorder: diff.reorder ? diff.reorder.length : 0,
-        },
+      taskId: this.taskId!,
+      activeCrewId: this.activeCrewId,
+      sagaSupervisor: this.sagaSupervisor,
+      enforceSpendCap: (ctx) => this.budgetGovernor.enforceSpendCap(ctx),
+      // Resolve-and-cache on the orchestrator: the same catalog cache real
+      // turns use, retried on the next turn if resolution failed (null).
+      ensureResolvedCatalog: async () => {
+        if (!this.resolvedCatalog) {
+          this.resolvedCatalog = await resolveCatalog(this.projectRoot).catch(() => null);
+        }
+        return this.resolvedCatalog;
       },
-    });
-    return "applied";
+    };
   }
 
   private async runRole(input: {
@@ -4711,8 +4280,8 @@ export class Orchestrator {
     // Budget gates: before spending on this turn, check the count/time ceilings
     // (which bind without measured cost) and the daily USD cap. Both run before
     // provider resolution.
-    await this.enforceBudgetCeilings(ctx);
-    await this.enforceSpendCap(ctx);
+    await this.budgetGovernor.enforceBudgetCeilings(ctx);
+    await this.budgetGovernor.enforceSpendCap(ctx);
     // Resolve the Role from the Crew the run's flow snapshot was built against.
     const { crew } = getCrew(this.config, this.activeCrewId);
     const agent = getCrewRole(crew, roleId);
@@ -4742,8 +4311,8 @@ export class Orchestrator {
     // Budget downgrade: when the daily $ cap forced a downgrade, this turn
     // runs on the cheaper fallback Profile instead of its resolved one.
     const downgradeProfileId =
-      this.budgetOverride?.kind === "downgrade"
-        ? this.budgetOverride.profileId
+      this.budgetGovernor.budgetOverride?.kind === "downgrade"
+        ? this.budgetGovernor.budgetOverride.profileId
         : null;
     const effectiveProviderId = downgradeProfileId
       ? this.config.profiles[downgradeProfileId]?.provider
@@ -5131,7 +4700,7 @@ export class Orchestrator {
             ? "workspace-write"
             : "read-only"
           : null;
-      providerResult = await this.runProviderResilient({
+      providerResult = await runProviderResilient(this.resilienceDeps(), {
         args: {
           providerId: effectiveProviderId,
           prompt,
@@ -5151,8 +4720,10 @@ export class Orchestrator {
           model: runtimeProfile?.model ?? undefined,
           // reduce-effort: drop to the provider's minimum effort if it has one.
           effort:
-            this.budgetOverride?.kind === "reduce-effort"
-              ? this.lowestEffort(effectiveProviderId) ?? runtimeProfile?.power ?? undefined
+            this.budgetGovernor.budgetOverride?.kind === "reduce-effort"
+              ? lowestEffort(this.config.providers, this.resolvedCatalog, effectiveProviderId) ??
+                runtimeProfile?.power ??
+                undefined
               : runtimeProfile?.power ?? undefined,
           maxTokens: runtimeProfile?.maxTokens ?? undefined,
           // Tool denylist (profile `disallowedTools`) - e.g. ["Task"] on a strict
@@ -5629,488 +5200,5 @@ export class Orchestrator {
   private defaultPromptName(index: number, roleId: string): string {
     const padded = index.toString().padStart(2, "0");
     return `${padded}-${roleId}-prompt.md`;
-  }
-
-  /**
-   * Count/time budget ceilings (unattended-resilience). Checked before every
-   * agent turn. Unlike the dollar cap, these bind WITHOUT measured cost - the
-   * reliable backstop for unattended runs where CLI token cost is unmeasured.
-   * `onLimit: stop` blocks the run honestly (a __BudgetLimitSignal → "blocked").
-   * All ceilings null ⇒ no-op. Under a parallel fan-out the per-run turn count
-   * can overshoot by up to (wave width - 1); it still binds (stops at/just past
-   * the limit), which is the point.
-   */
-  private async enforceBudgetCeilings(ctx: {
-    eventLog: EventLog;
-    runId: string;
-    stateStore: RunStateStore;
-  }): Promise<void> {
-    const budget = this.config.budget;
-    if (!budget) return;
-    // A human already approved continuing past a ceiling this run - don't re-check.
-    if (this.budgetCeilingAcknowledged) {
-      this.turnsStarted += 1;
-      return;
-    }
-    const {
-      maxTurnsPerRun,
-      maxWallClockMinPerRun,
-      maxTurnsPerDay,
-      maxWallClockMinPerDay,
-    } = budget;
-    const anySet =
-      maxTurnsPerRun != null ||
-      maxWallClockMinPerRun != null ||
-      maxTurnsPerDay != null ||
-      maxWallClockMinPerDay != null;
-    if (!anySet) return;
-
-    if (this.runStartMs === null) this.runStartMs = Date.now();
-    // Count this turn as started up front (synchronous; safe under fan-out).
-    this.turnsStarted += 1;
-    const now = Date.now();
-    const runWallMs = now - this.runStartMs;
-
-    let daily = { turns: 0, wallClockMs: 0 };
-    if (maxTurnsPerDay != null || maxWallClockMinPerDay != null) {
-      daily = await computeDailyUsage(this.projectRoot, ctx.runId, now).catch(
-        () => ({ turns: 0, wallClockMs: 0 }),
-      );
-    }
-    const dailyTurns = daily.turns + this.turnsStarted;
-    const dailyWallMs = daily.wallClockMs + runWallMs;
-    const mins = (ms: number) => Math.round(ms / 60000);
-
-    const hit =
-      maxTurnsPerRun != null && this.turnsStarted > maxTurnsPerRun
-        ? { kind: "per-run turns", value: this.turnsStarted, limit: maxTurnsPerRun, unit: "turns" }
-        : maxWallClockMinPerRun != null && runWallMs > maxWallClockMinPerRun * 60000
-          ? { kind: "per-run wall-clock", value: mins(runWallMs), limit: maxWallClockMinPerRun, unit: "min" }
-          : maxTurnsPerDay != null && dailyTurns > maxTurnsPerDay
-            ? { kind: "daily turns", value: dailyTurns, limit: maxTurnsPerDay, unit: "turns" }
-            : maxWallClockMinPerDay != null && dailyWallMs > maxWallClockMinPerDay * 60000
-              ? { kind: "daily wall-clock", value: mins(dailyWallMs), limit: maxWallClockMinPerDay, unit: "min" }
-              : null;
-    if (!hit) return;
-
-    const detail = `${hit.kind} ${hit.value}/${hit.limit} ${hit.unit}`;
-
-    // onLimit: pause (attended) - ask a human to continue or stop. --unattended
-    // forces stop (an unattended run can't be resumed, so it must not hang).
-    if (budget.onLimit === "pause" && !this.unattended) {
-      const approved = await pauseForApproval(this.approvalGateDeps(), {
-        ctx,
-        stageId: "budget-limit",
-        reason: `Budget ceiling reached: ${detail}`,
-        requestedAction: "budget.limit",
-        requestedMessage: `Budget ceiling reached (${detail}). Approve to continue this run past its budget, or reject to stop.`,
-        resumedMessage: `Approved continuing past the budget ceiling (${detail}).`,
-      });
-      if (approved) {
-        this.budgetCeilingAcknowledged = true;
-        await ctx.eventLog.append({
-          type: "budget.limit",
-          message: `Budget ceiling ${detail} reached; a human approved continuing.`,
-          data: { kind: hit.kind, value: hit.value, limit: hit.limit, unit: hit.unit, onLimit: "pause", resolved: "approved" },
-        });
-        return;
-      }
-      // rejected -> fall through to stop.
-    }
-
-    const msg = `Budget ceiling reached: ${detail}. Run stopped (budget.onLimit=stop).`;
-    await ctx.eventLog.append({
-      type: "budget.limit",
-      message: msg,
-      data: { kind: hit.kind, value: hit.value, limit: hit.limit, unit: hit.unit, onLimit: "stop" },
-    });
-    this.notify?.(draftBudgetLimit({ runId: ctx.runId, taskId: this.taskId, detail }));
-    throw new __BudgetLimitSignal(msg);
-  }
-
-  /**
-   * Provider resilience (unattended-resilience). Wraps a single provider
-   * invocation: a recoverable failure - rate limit (429/quota) or transient blip
-   * (5xx, "server temporarily unavailable", overloaded, timeout) - is retried
-   * with backoff (rate-limit honors a parsed Retry-After) before the turn's
-   * outcome is final, so an overnight run rides it out. Hard failures and
-   * exhausted retries surface the original outcome to runRole's existing handling
-   * (a non-zero result flows to assessTurnResult; a thrown error rethrows). The
-   * backoff sleep is interruptible - an abort during a wait stops immediately.
-   * Failed rate-limit/transient attempts typically incur no token cost, so the
-   * single role-metric for the final attempt is honest enough.
-   */
-  private async runProviderResilient(input: {
-    args: Parameters<typeof runProvider>[1];
-    ctx: { eventLog: EventLog; runId: string; stateStore: RunStateStore };
-    stageId: string;
-    abortSignal: AbortSignal;
-  }): Promise<RichProviderRunResult> {
-    const r = this.config.resilience;
-    const providers = this.config.providers;
-    if (!r || !r.enabled) return runProvider(providers, input.args);
-
-    let usageWaits = 0; // reset-waits used for a usage-limit, separate budget.
-    // A retried `open` session must not re-send an id a prior
-    // attempt already opened (claude: "Session ID <U> is already in use."). Track
-    // whether an open was ever issued across the WHOLE loop - NOT keyed off
-    // `attempt`, which resets to 0 on the onExhausted=pause human-approval round
-    // (below), yet the id was opened on the first attempt. Re-mint a fresh open
-    // id thereafter; an "opened" turn re-sends full context, so a fresh id is
-    // identical in effect. (The resilience FALLBACK path drops the session
-    // entirely; the graph/fan-out retry path carries no session - this loop is
-    // the only place a fixed open id is replayed.)
-    let openIssued = false;
-    for (let attempt = 1; ; attempt += 1) {
-      const session = sessionRequestForRetry(input.args.session, openIssued, randomUUID);
-      const args =
-        session === input.args.session ? input.args : { ...input.args, session };
-      if (args.session?.action === "open") openIssued = true;
-      let result: RichProviderRunResult | null = null;
-      let lastError: unknown = null;
-      let failureText: string;
-      try {
-        result = await runProvider(providers, args);
-        if (result.exitCode === 0) return result; // success
-        failureText = `${result.stderr ?? ""}\n${result.stdout ?? ""}`;
-      } catch (err) {
-        if (err instanceof __RunAbortedSignal || input.abortSignal.aborted) {
-          throw err;
-        }
-        lastError = err;
-        failureText = err instanceof Error ? err.message : String(err);
-      }
-      const cls = classifyProviderFailure(failureText, r);
-      // Give up WITH the diagnosis: the classified class + a short redacted
-      // excerpt ride on the result (or the thrown error), so the step record
-      // and Run Assurance can say "rate-limit: This model is being rate
-      // limited..." instead of laundering it into "provider exited 1".
-      const excerpt = failureExcerpt(failureText);
-      const giveUp = (): RichProviderRunResult => {
-        if (result) return { ...result, failure: { class: cls, excerpt } };
-        const err = lastError ?? new Error(failureText);
-        if (err instanceof Error) {
-          (err as Error & { failureClass?: ProviderFailureClass }).failureClass = cls;
-        }
-        throw err;
-      };
-      if (cls === "hard") return giveUp();
-
-      // Usage limit / quota: a windowed quota that resets (often hours out),
-      // handled separately from the seconds-scale rate-limit/transient backoff.
-      if (cls === "usage-limit") {
-        const ul = r.usageLimit;
-        if (ul.action === "wait" && usageWaits < ul.maxWaits) {
-          usageWaits += 1;
-          const hint = parseRetryAfterMs(failureText);
-          const waitMs = Math.min(ul.maxWaitMin * 60_000, hint ?? 5 * 60_000);
-          await input.ctx.eventLog.append({
-            type: "provider.usage_limit",
-            message: `Usage limit at ${input.stageId}; waiting ${Math.round(waitMs / 60000)}m for reset (wait ${usageWaits}/${ul.maxWaits}).`,
-            data: { stepId: input.stageId, action: "wait", waitMs, wait: usageWaits, maxWaits: ul.maxWaits },
-          });
-          await this.interruptibleSleep(waitMs, input.abortSignal);
-          continue; // retry the same provider after the reset window
-        }
-        // Give-up point (action=stop, action=fallback, or waits exhausted):
-        // try to reseat the turn before failing. The EXPLICIT fallbackProfile
-        // only applies when the user opted into fallback semantics; the
-        // auto-derived one (resilience.autoFallback, trust-scoped) applies at
-        // every give-up - "stop" means "don't wait hours", not "don't use a
-        // provider the run already trusts".
-        const explicitFb =
-          ul.action === "fallback" || (ul.action === "wait" && usageWaits >= ul.maxWaits)
-            ? (ul.fallbackProfile ?? r.rateLimit.fallbackProfile)
-            : null;
-        if (explicitFb || r.autoFallback !== "off") {
-          const fb = await this.tryProviderFallback({
-            baseArgs: input.args,
-            fallbackProfile: explicitFb,
-            cls,
-            ctx: input.ctx,
-            stageId: input.stageId,
-            abortSignal: input.abortSignal,
-          });
-          if (fb) return fb;
-        }
-        await input.ctx.eventLog.append({
-          type: "provider.usage_limit",
-          message: `Usage limit at ${input.stageId}; giving up (action=${ul.action}): ${excerpt}`,
-          data: { stepId: input.stageId, action: ul.action, resolved: "give-up", detail: excerpt },
-        });
-        return giveUp();
-      }
-
-      const spec = cls === "rate-limit" ? r.rateLimit : r.transient;
-      if (attempt > spec.maxRetries) {
-        // Retries exhausted: try an alternate Profile once (explicitly
-        // configured, else auto-derived per resilience.autoFallback - a model
-        // that may not be limited/down), then give up with the original outcome.
-        if (spec.fallbackProfile || r.autoFallback !== "off") {
-          const fb = await this.tryProviderFallback({
-            baseArgs: input.args,
-            fallbackProfile: spec.fallbackProfile,
-            cls,
-            ctx: input.ctx,
-            stageId: input.stageId,
-            abortSignal: input.abortSignal,
-          });
-          if (fb) return fb;
-        }
-        // onExhausted: pause (attended) - wait for a human to approve a fresh
-        // round of retries, or reject (give up). --unattended forces fail.
-        if (r.onExhausted === "pause" && !this.unattended) {
-          const approved = await pauseForApproval(this.approvalGateDeps(), {
-            ctx: input.ctx,
-            stageId: input.stageId,
-            reason: `Provider ${cls} unrecovered at ${input.stageId} after ${spec.maxRetries} retries`,
-            requestedAction: "provider.exhausted",
-            requestedMessage: `Provider ${cls} hasn't recovered at ${input.stageId} after ${spec.maxRetries} retries. Approve to retry again, or reject to fail.`,
-            resumedMessage: `Retrying ${input.stageId} after approval.`,
-          });
-          if (approved) {
-            attempt = 0; // fresh retry budget after the human waited/fixed it
-            continue;
-          }
-        }
-        // The terminal moment used to be silent - the single worst gap when a
-        // run died overnight. Now it's on the record (and in the supervisor's
-        // engagement feed) before the failure surfaces to the step.
-        await input.ctx.eventLog.append({
-          type: "provider.retries_exhausted",
-          message: `Provider ${cls} at ${input.stageId} unrecovered after ${spec.maxRetries} retries; giving up: ${excerpt}`,
-          data: { stepId: input.stageId, class: cls, retries: spec.maxRetries, detail: excerpt },
-        });
-        return giveUp();
-      }
-
-      const delayMs = computeBackoffMs(cls, attempt, spec, failureText);
-      await input.ctx.eventLog.append({
-        type: "flow.step.retried",
-        message: `Provider ${cls} at ${input.stageId} (attempt ${attempt}/${spec.maxRetries + 1}); retrying in ${Math.round(delayMs / 1000)}s.`,
-        data: {
-          stepId: input.stageId,
-          attempt,
-          maxAttempts: spec.maxRetries + 1,
-          class: cls,
-          delayMs,
-        },
-      });
-      await this.interruptibleSleep(delayMs, input.abortSignal);
-    }
-  }
-
-  /**
-   * Resilience fallback: after retries for a recoverable class are
-   * exhausted, run the turn once on an alternate Profile (a different model that
-   * may not be limited/down). The profile is the explicitly configured
-   * fallbackProfile when set; otherwise one is auto-derived per
-   * resilience.autoFallback - trust-scoped to profiles already seated in this
-   * run's flow by default ("crew"), so no provider outside the run's trust set
-   * ever sees its context. Returns the result only on a clean success;
-   * otherwise null (the caller gives up with the original outcome). The fallback
-   * is a DIFFERENT provider, so any session is dropped and it is not itself
-   * retried. Every outcome - swap, no-candidate, failed attempt - is recorded
-   * as a `provider.fallback` event so the seat change is never silent. The
-   * turn's resolved allowWrite/permissions ride along unchanged from baseArgs
-   * (write capability is per-turn, never per-profile).
-   */
-  private async tryProviderFallback(input: {
-    baseArgs: Parameters<typeof runProvider>[1];
-    fallbackProfile: string | null;
-    cls: string;
-    ctx: { eventLog: EventLog; runId: string; stateStore: RunStateStore };
-    stageId: string;
-    abortSignal: AbortSignal;
-  }): Promise<RichProviderRunResult | null> {
-    let fbId = input.fallbackProfile;
-    let auto = false;
-    const scope = this.config.resilience?.autoFallback ?? "crew";
-    if (!fbId && scope !== "off") {
-      // The run's trust set: profiles actually seated in this run's flow steps.
-      let seated: string[] = [];
-      try {
-        const state = await input.ctx.stateStore.read();
-        seated = (state?.flow?.steps ?? [])
-          .map((s) => s.profileId)
-          .filter((p): p is string => !!p);
-      } catch {
-        // best-effort; an unreadable state just narrows the candidate set
-      }
-      fbId = deriveAutoFallbackProfile({
-        failingProviderId: input.baseArgs.providerId,
-        seatedProfileIds: seated,
-        profiles: this.config.profiles,
-        configuredProviderIds: new Set(Object.keys(this.config.providers)),
-        scope,
-      });
-      auto = fbId !== null;
-    }
-    if (!fbId) {
-      await input.ctx.eventLog.append({
-        type: "provider.fallback",
-        message: `No fallback for ${input.stageId} (${input.cls}): none configured and no alternate-provider profile in scope "${scope}".`,
-        data: { stepId: input.stageId, class: input.cls, fallbackProfile: null, ok: false },
-      });
-      return null;
-    }
-    const profile = this.config.profiles[fbId];
-    if (!profile || !this.config.providers[profile.provider]) {
-      await input.ctx.eventLog.append({
-        type: "provider.fallback",
-        message: `No usable fallback profile "${fbId}" for ${input.stageId} (${input.cls}); giving up.`,
-        data: { stepId: input.stageId, class: input.cls, fallbackProfile: fbId, ok: false },
-      });
-      return null;
-    }
-    const fbArgs: Parameters<typeof runProvider>[1] = {
-      ...input.baseArgs,
-      providerId: profile.provider,
-      model: profile.model ?? undefined,
-      effort: profile.power ?? undefined,
-      maxTokens: profile.maxTokens ?? undefined,
-      timeoutMs: profile.timeoutMs ?? undefined,
-      session: undefined,
-    };
-    await input.ctx.eventLog.append({
-      type: "provider.fallback",
-      message: `${auto ? `Auto-falling back (scope ${scope})` : "Falling back"} to profile "${fbId}" (provider ${profile.provider}) at ${input.stageId} after ${input.cls}.`,
-      data: { stepId: input.stageId, class: input.cls, fallbackProfile: fbId, provider: profile.provider, ok: true, auto },
-    });
-    try {
-      const result = await runProvider(this.config.providers, fbArgs);
-      if (result.exitCode === 0) return result;
-      await input.ctx.eventLog.append({
-        type: "provider.fallback",
-        message: `Fallback profile "${fbId}" also failed at ${input.stageId} (exited ${result.exitCode}); giving up with the original outcome.`,
-        data: { stepId: input.stageId, class: input.cls, fallbackProfile: fbId, ok: false, failed: true },
-      });
-      return null;
-    } catch (err) {
-      if (err instanceof __RunAbortedSignal || input.abortSignal.aborted) throw err;
-      await input.ctx.eventLog.append({
-        type: "provider.fallback",
-        message: `Fallback profile "${fbId}" errored at ${input.stageId} (${describeError(err)}); giving up with the original outcome.`,
-        data: { stepId: input.stageId, class: input.cls, fallbackProfile: fbId, ok: false, failed: true },
-      });
-      return null;
-    }
-  }
-
-  /** A timeout that rejects (with __RunAbortedSignal) the instant the signal
-   *  aborts, so a backoff wait never delays a user abort. */
-  private interruptibleSleep(ms: number, signal: AbortSignal): Promise<void> {
-    if (ms <= 0) return Promise.resolve();
-    return new Promise<void>((resolve, reject) => {
-      if (signal.aborted) {
-        reject(new __RunAbortedSignal());
-        return;
-      }
-      const onAbort = () => {
-        clearTimeout(timer);
-        reject(new __RunAbortedSignal());
-      };
-      const timer = setTimeout(() => {
-        signal.removeEventListener("abort", onAbort);
-        resolve();
-      }, ms);
-      signal.addEventListener("abort", onAbort, { once: true });
-    });
-  }
-
-  private async enforceSpendCap(ctx: { eventLog: EventLog; runId: string }): Promise<void> {
-    const budget = this.config.budget;
-    const cap = budget?.spendCapDailyUsd;
-    if (!budget || cap === null || cap === undefined || cap <= 0) return;
-
-    const dailySpendUsd = await computeDailySpendUsd(this.projectRoot).catch(
-      () => 0,
-    );
-    const evaluation = evaluateSpendCap(budget, dailySpendUsd);
-
-    if (evaluation.state === "warn" && !this.spendWarned) {
-      this.spendWarned = true;
-      await ctx.eventLog.append({
-        type: "spend.warning",
-        message: `Daily spend ~$${dailySpendUsd.toFixed(2)} crossed ${Math.round(
-          (budget.warnThresholdPct ?? 0.8) * 100,
-        )}% of the $${cap}/day cap.`,
-        data: { dailySpendUsd, cap },
-      });
-    }
-    if (evaluation.state !== "exceeded") return;
-
-    const at = `Daily spend ~$${dailySpendUsd.toFixed(2)} reached the $${cap}/day cap`;
-
-    // Already applied a continue-action this run? Keep going - the hard
-    // count/time ceilings are the ultimate stop, so we don't re-decide or
-    // re-notify every turn once downgraded.
-    if (this.budgetOverride) return;
-
-    // downgrade-model: run the rest of the run on the cheaper fallback Profile.
-    if (budget.capAction === "downgrade-model") {
-      const fb = budget.fallbackProfile;
-      const fbProfile = fb ? this.config.profiles[fb] : undefined;
-      if (fb && fbProfile && this.config.providers[fbProfile.provider]) {
-        this.budgetOverride = { kind: "downgrade", profileId: fb };
-        await ctx.eventLog.append({
-          type: "spend.action",
-          message: `${at}. Downgrading the rest of the run to profile "${fb}" (provider ${fbProfile.provider}).`,
-          data: { action: "downgrade-model", fallbackProfile: fb, dailySpendUsd, cap },
-        });
-        return;
-      }
-      await ctx.eventLog.append({
-        type: "policy.warning",
-        message: `${at}; capAction="downgrade-model" but budget.fallbackProfile is unset/invalid - stopping instead.`,
-        data: { kind: "spend-cap-downgrade-no-fallback", fallbackProfile: fb ?? null },
-      });
-      // fall through to stop.
-    }
-
-    // reduce-effort: continue at the provider's minimum effort for the rest of
-    // the run (best-effort - a no-op for providers with no effort control, but
-    // the run still continues rather than stopping).
-    if (budget.capAction === "reduce-effort") {
-      this.budgetOverride = { kind: "reduce-effort" };
-      await ctx.eventLog.append({
-        type: "spend.action",
-        message: `${at}. Reducing effort to the minimum for the rest of the run.`,
-        data: { action: "reduce-effort", dailySpendUsd, cap },
-      });
-      return;
-    }
-
-    // stop (the default, or downgrade-model with no usable fallback).
-    await ctx.eventLog.append({
-      type: "spend.capped",
-      message: `${at}. Stopping per budget policy (capAction=${budget.capAction}).`,
-      data: { action: "stop", dailySpendUsd, cap },
-    });
-    // Notify on cap-hit so it reaches the user's local gateways (in-app/CLI).
-    this.notify?.(
-      draftSpendCapHit({
-        runId: ctx.runId,
-        taskId: this.taskId,
-        dailySpendUsd,
-        capUsd: cap,
-      }),
-    );
-    throw new __SpendCapStopSignal(
-      `${at}. Run stopped by the daily spend cap (capAction=${budget.capAction}).`,
-    );
-  }
-
-  /** The provider's lowest effort/power level (for reduce-effort), or undefined
-   *  when the provider exposes no effort control. */
-  private lowestEffort(providerId: string): string | undefined {
-    const provCfg = this.config.providers[providerId];
-    if (!provCfg || !this.resolvedCatalog) return undefined;
-    const levels = capabilitiesForProvider(
-      providerId,
-      provCfg,
-      this.resolvedCatalog,
-    ).powerLevels;
-    return levels.length > 0 ? levels[0] : undefined;
   }
 }
