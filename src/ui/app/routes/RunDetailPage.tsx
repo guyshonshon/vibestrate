@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   api,
   ApiError,
@@ -6,6 +6,8 @@ import {
   type RestorePreview,
 } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
+import { PageShell } from "../../components/layout/PageShell.js";
+import { ErrorView } from "../../lib/error-view.js";
 import { navigate, type ReplayFocus } from "../App.js";
 import type {
   VibestrateEvent,
@@ -71,7 +73,12 @@ export function RunDetailPage({
   const [diff, setDiff] = useState<
     { insertions: number; deletions: number; files: number } | null
   >(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  // A dashboard-spawned run is opened before its detached process writes
+  // state.json, so an early 404 means "still starting". But a genuinely missing
+  // run 404s forever - past this grace window we stop masking it as loading and
+  // surface the not-found error (otherwise a deleted/bad runId spins forever).
+  const openedAtRef = useRef<number>(Date.now());
   const [paused, setPaused] = useState(false);
   const [rerunOpen, setRerunOpen] = useState(false);
   // Pre-seeded rewind stage for "Re-run with fixes" (null = start from scratch).
@@ -151,13 +158,12 @@ export function RunDetailPage({
           });
         }
       } catch (err) {
-        // A dashboard-spawned run is navigated to BEFORE its detached process
-        // writes state.json - a 404 here just means "still starting", so keep
-        // polling quietly instead of flashing an error.
         const starting =
-          err instanceof ApiError && err.status === 404 && !loadedOnce;
-        if (!cancelled && !starting)
-          setError(err instanceof Error ? err.message : String(err));
+          err instanceof ApiError &&
+          err.status === 404 &&
+          !loadedOnce &&
+          Date.now() - openedAtRef.current < 8000;
+        if (!cancelled && !starting) setError(err);
       }
     };
     void load();
@@ -176,9 +182,22 @@ export function RunDetailPage({
 
   if (error)
     return (
-      <div className="deep-scene mx-auto max-w-[1520px] px-8 pt-6 text-rose-300">
-        {error}
-      </div>
+      <PageShell>
+        <div className="mx-auto max-w-[560px] pt-10">
+          <ErrorView
+            err={error}
+            actions={[
+              { label: "Back to runs", onClick: () => navigate({ kind: "runs" }) },
+              { label: "New run", onClick: () => navigate({ kind: "compose" }) },
+              {
+                label: "Mission control",
+                variant: "ghost",
+                onClick: () => navigate({ kind: "mission" }),
+              },
+            ]}
+          />
+        </div>
+      </PageShell>
     );
   if (!run)
     return (

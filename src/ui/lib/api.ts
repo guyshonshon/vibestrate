@@ -96,47 +96,73 @@ import type {
 } from "./types.js";
 
 export class ApiError extends Error {
-  constructor(public readonly status: number, message: string) {
+  /** Server-classified fields from the JSON error body (formatError, via
+   *  setErrorHandler in src/server/server.ts): a stable kind slug, a headline,
+   *  and a suggested next step. Optional - non-JSON / top-level errors carry
+   *  only status. Consumed by lib/error-view describeError() so the dashboard
+   *  renders the SAME copy the CLI shows. */
+  readonly kind?: string;
+  readonly title?: string;
+  readonly hint?: string;
+  constructor(
+    public readonly status: number,
+    message: string,
+    fields?: { kind?: string; title?: string; hint?: string },
+  ) {
     super(message);
+    this.kind = fields?.kind;
+    this.title = fields?.title;
+    this.hint = fields?.hint;
   }
 }
 
 async function jsonGet<T>(path: string): Promise<T> {
   const res = await fetch(path);
   if (!res.ok) {
-    throw new ApiError(res.status, await readErrorMessage(res));
+    throw await apiError(res);
   }
   return (await res.json()) as T;
 }
 
-async function readErrorMessage(res: Response): Promise<string> {
-  // Server routes now return `{ error, kind, title, hint }` (see
-  // setErrorHandler in src/server/server.ts). Prefer `title - hint`
-  // when present so the user sees a sentence they can act on instead
-  // of a raw exception message. Falls back to `error`, then to body
-  // text, then to the status line.
+// Parse a failed Response into an ApiError, RETAINING the server's structured
+// { kind, title, hint } (setErrorHandler in src/server/server.ts sends them) so
+// the UI can render a headline + a fix + kind-aware recovery instead of a
+// flattened string. `message` stays the one-line human string for Error.message
+// / logs. Falls back to `error`, then body text, then the status line.
+async function apiError(res: Response): Promise<ApiError> {
+  let message = "";
+  let fields: { kind?: string; title?: string; hint?: string } | undefined;
   try {
     const body = (await res.clone().json()) as {
       error?: string;
+      kind?: string;
       title?: string;
       hint?: string;
     };
-    if (typeof body.title === "string" && body.title.length > 0) {
-      return body.hint ? `${body.title} - ${body.hint}` : body.title;
-    }
-    if (typeof body.error === "string" && body.error.length > 0) {
-      return body.error;
-    }
+    const s = (v: unknown) =>
+      typeof v === "string" && v.length > 0 ? v : undefined;
+    const title = s(body.title);
+    const hint = s(body.hint);
+    const kind = s(body.kind);
+    if (title || hint || kind) fields = { kind, title, hint };
+    message = title
+      ? hint
+        ? `${title} - ${hint}`
+        : title
+      : s(body.error) ?? "";
   } catch {
-    /* fall through */
+    /* fall through to text */
   }
-  try {
-    const text = await res.text();
-    if (text.trim().length > 0) return text.trim();
-  } catch {
-    /* fall through */
+  if (!message) {
+    try {
+      const text = await res.text();
+      if (text.trim().length > 0) message = text.trim();
+    } catch {
+      /* fall through */
+    }
   }
-  return `${res.status} ${res.statusText}`;
+  if (!message) message = `${res.status} ${res.statusText}`;
+  return new ApiError(res.status, message, fields);
 }
 
 async function jsonPost<T>(
@@ -151,7 +177,7 @@ async function jsonPost<T>(
     signal,
   });
   if (!res.ok) {
-    throw new ApiError(res.status, await readErrorMessage(res));
+    throw await apiError(res);
   }
   return (await res.json()) as T;
 }
@@ -163,7 +189,7 @@ async function jsonPatch<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new ApiError(res.status, await readErrorMessage(res));
+    throw await apiError(res);
   }
   return (await res.json()) as T;
 }
@@ -175,7 +201,7 @@ async function jsonPut<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new ApiError(res.status, await readErrorMessage(res));
+    throw await apiError(res);
   }
   return (await res.json()) as T;
 }
@@ -183,7 +209,7 @@ async function jsonPut<T>(path: string, body: unknown): Promise<T> {
 async function jsonDelete<T>(path: string): Promise<T> {
   const res = await fetch(path, { method: "DELETE" });
   if (!res.ok) {
-    throw new ApiError(res.status, await readErrorMessage(res));
+    throw await apiError(res);
   }
   return (await res.json()) as T;
 }

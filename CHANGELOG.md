@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.72.0
+
+- **Errors are a fork now, not a dead end.** A missing run, a failed fetch, or a
+  forbidden action renders through one designed error surface - a clear headline,
+  what to do about it, and buttons that actually move you forward (Back to runs,
+  New run, Retry) - instead of a line of red text. The copy is the server's own
+  classification (the same a 404 shows on the CLI), so "not found" reads "it may
+  have been deleted, cancelled, or never existed" with real recovery links.
+  First casualty: opening a run that no longer exists used to spin on
+  "Starting run…" forever - now it tells you it's gone and points you home.
+
 ## 0.71.2
 
 - **The sub-surfaces caught up to the design system.** Popups, form fields, and
