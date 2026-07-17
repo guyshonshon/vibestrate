@@ -117,6 +117,13 @@ export async function runWelcomeCommand(opts: WelcomeCommandOptions): Promise<nu
 
     const startIndex = WELCOME_STEP_ORDER.indexOf(resumeAt);
     for (const stepId of WELCOME_STEP_ORDER.slice(startIndex)) {
+      // A failed step is left unrecorded so `vibe welcome` resumes at exactly
+      // that step, but the walkthrough still walks past it into later steps
+      // in the same run. If one of those later steps already has a recorded
+      // result from an earlier pass, re-running it would re-prompt for (or
+      // re-install) work the state already says is settled - skip it instead.
+      if (state.steps[stepId]) continue;
+
       const { title, concept } = STEP_CONTENT[stepId];
       console.log(color.bold(title));
       console.log(indent(concept));
@@ -147,7 +154,7 @@ export async function runWelcomeCommand(opts: WelcomeCommandOptions): Promise<nu
       }
 
       const stepCode = await runStep(stepId, projectRoot);
-      if (stepSucceeded(stepCode)) {
+      if (stepCode === 0) {
         state = await recordWelcomeStep(projectRoot, state, stepId, "done");
       } else {
         // Do not record this as done and do not abort the walkthrough - the
@@ -164,7 +171,18 @@ export async function runWelcomeCommand(opts: WelcomeCommandOptions): Promise<nu
       console.log("");
     }
 
-    console.log(`${symbol.ok()} Walkthrough complete.`);
+    const pending = firstIncompleteStep(state);
+    if (pending === null) {
+      console.log(`${symbol.ok()} Walkthrough complete.`);
+    } else {
+      // The loop above walks past a failed step instead of stopping there, so
+      // it can reach the end with a step still unrecorded. Say so - printing
+      // an unconditional "complete" here would contradict the "didn't finish"
+      // notice already shown for that step earlier in this same run.
+      console.log(
+        `${symbol.warn()} Walkthrough finished, but ${color.bold(STEP_CONTENT[pending].title)} still needs a pass - run ${color.bold("vibe welcome")} again.`,
+      );
+    }
     console.log("");
     printClosingPanel();
     return 0;
@@ -176,20 +194,10 @@ export async function runWelcomeCommand(opts: WelcomeCommandOptions): Promise<nu
   }
 }
 
-/** Whether a step's exit code should be persisted as "done". A non-zero code
- *  means the step's own wizard already reported its failure, and recording
- *  it as done anyway would let a stale "done" survive until --reset wipes
- *  all progress. Exported so tests can apply it to a real (non-mocked)
- *  step code instead of duplicating this branch. */
-export function stepSucceeded(code: number): boolean {
-  return code === 0;
-}
-
-/** Runs one walkthrough step and returns its exit code (0 = succeeded).
- *  Exported so the "a failed step is not recorded as done" contract can be
- *  tested directly against the real `runProviderSetup` failure path, without
- *  driving the whole interactive command loop. */
-export async function runStep(stepId: WelcomeStepId, projectRoot: string): Promise<number> {
+/** Runs one walkthrough step and returns its exit code (0 = succeeded). The
+ *  caller records "done" only on a zero code, so a step's own failure never
+ *  gets persisted as success. */
+async function runStep(stepId: WelcomeStepId, projectRoot: string): Promise<number> {
   switch (stepId) {
     case "providers":
       // Reuses the same interactive provider setup as `vibe provider setup` -
