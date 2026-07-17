@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
+import { ErrorView } from "../../lib/error-view.js";
 import type {
   PolicyStoreSnapshot,
   SafetyPoliciesConfig,
@@ -28,31 +29,41 @@ export function PoliciesPanel() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<TabId>("policies");
 
+  // The one path both the initial mount and manual retry share, so a retry
+  // after a failed load re-runs exactly what mount would have done.
   const loadPolicies = useCallback(async () => {
-    const r = await api.listProjectPolicies();
-    setPolicies(r.policies);
+    try {
+      const r = await api.listProjectPolicies();
+      setPolicies(r.policies);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([
-      api.listProjectPolicies().then((r) => r.policies).catch(() => [] as ProjectPolicy[]),
-      api.getPolicies().catch(() => null),
-      api.getSafetyConfig().catch(() => null),
-    ])
-      .then(([p, s, sf]) => {
-        if (cancelled) return;
-        setPolicies(p);
-        setSnap(s);
-        setSafety(sf);
+    void loadPolicies();
+    // The safety-gate config and the read-only engine snapshot are secondary
+    // enrichments the Policies tab can still render without (their sections
+    // just show a loading state) - a failed fetch degrades quietly instead of
+    // blocking the primary policies list above.
+    api
+      .getPolicies()
+      .then((s) => {
+        if (!cancelled) setSnap(s);
       })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      });
+      .catch(() => undefined);
+    api
+      .getSafetyConfig()
+      .then((sf) => {
+        if (!cancelled) setSafety(sf);
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadPolicies]);
 
   async function toggleSafety(
     key: keyof Omit<SafetyPoliciesConfig, "requireApprovalAtStages">,
@@ -102,9 +113,7 @@ export function PoliciesPanel() {
       </div>
 
       {error ? (
-        <div className="mt-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-300">
-          {error}
-        </div>
+        <ErrorView className="mt-4" compact err={error} onRetry={() => void loadPolicies()} />
       ) : null}
 
       <div className="mt-5 inline-flex items-center gap-1 rounded-[12px] border border-[color:var(--line)] bg-coal-700 p-1">

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { ErrorView } from "../../lib/error-view.js";
 import { filterRuns } from "../../lib/run-outcome.js";
 import { relTime } from "../design/format.js";
 import { RunStatusBadge } from "./RunStatusBadge.js";
@@ -19,13 +20,13 @@ export function RunSwitcher({
   onSelect: (runId: string) => void;
 }) {
   const [runs, setRuns] = useState<RunState[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-    void api
+  const loadRuns = useCallback(() => {
+    return api
       .listRuns()
       .then((list) => {
         // Most-recently-updated first.
@@ -35,9 +36,17 @@ export function RunSwitcher({
               new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
           ),
         );
+        setError(null);
       })
-      .catch(() => {});
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : String(err));
+      });
   }, []);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    void loadRuns();
+  }, [loadRuns]);
 
   const filtered = useMemo(
     () => filterRuns(runs, query).slice(0, 40),
@@ -93,7 +102,11 @@ export function RunSwitcher({
           <span className="mono text-[11px] text-chalk-400">esc</span>
         </div>
         <div className="max-h-[46vh] overflow-y-auto py-1">
-          {filtered.length === 0 ? (
+          {error ? (
+            <div className="px-4 py-3">
+              <ErrorView compact err={error} onRetry={() => void loadRuns()} />
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="px-4 py-6 text-center text-[12.5px] text-chalk-300">
               {runs.length === 0 ? "No runs yet." : "No runs match."}
             </div>

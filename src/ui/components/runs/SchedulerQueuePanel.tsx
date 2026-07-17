@@ -3,6 +3,7 @@ import { AlertTriangle, LayoutGrid, Play } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { navigate } from "../../app/App.js";
 import { Button } from "../design/Button.js";
+import { ErrorView } from "../../lib/error-view.js";
 import type {
   ConflictWarning,
   QueueEntry,
@@ -25,9 +26,14 @@ export function SchedulerQueuePanel({
   const [state, setState] = useState<SchedulerState | null>(null);
   const [conflicts, setConflicts] = useState<ConflictWarning[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  // Bumping this re-runs the effect below, which is how manual Retry
+  // re-triggers a load function defined inside the effect's closure.
+  const [retryTick, setRetryTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    let loadedOnce = false;
     const load = async () => {
       try {
         const [q, c, t] = await Promise.all([
@@ -40,8 +46,17 @@ export function SchedulerQueuePanel({
         setState(q.state);
         setConflicts(c);
         setTasks(t);
-      } catch {
-        // Transient (server restart / poll race) - keep the last good view.
+        setError(null);
+        loadedOnce = true;
+      } catch (err) {
+        if (cancelled) return;
+        // A poll failure after at least one good load (server restart / poll
+        // race) keeps the last good view - only a failure before anything has
+        // ever loaded is worth showing, since there's no "last good" to fall
+        // back on and the idle empty state would otherwise lie.
+        if (!loadedOnce) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
       }
     };
     void load();
@@ -50,7 +65,7 @@ export function SchedulerQueuePanel({
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, []);
+  }, [retryTick]);
 
   const titleFor = (id: string) => tasks.find((t) => t.id === id)?.title ?? id;
   const running = state?.runningTaskIds ?? [];
@@ -94,7 +109,15 @@ export function SchedulerQueuePanel({
         ) : null}
       </div>
 
-      {idle ? (
+      {error ? (
+        <div className="mt-3">
+          <ErrorView
+            compact
+            err={error}
+            onRetry={() => setRetryTick((t) => t + 1)}
+          />
+        </div>
+      ) : idle ? (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <p className="text-[12px] text-chalk-400">
             Nothing running or queued. Once the board has work, start the loop
