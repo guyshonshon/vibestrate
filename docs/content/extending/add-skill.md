@@ -1,15 +1,15 @@
 ---
 title: Add a skill
-description: Write a markdown file, save it under .vibestrate/skills/, and attach it to an agent or run.
+description: Write a markdown file, save it under .vibestrate/skills/, and attach it to a role or run.
 section: extending
 slug: extending/add-skill
 ---
 
-A skill is just a markdown file you write to teach your agents your project's conventions. There's no scaffold to run and no metadata form to fill in. You write the file, save it under `.vibestrate/skills/`, and Vibestrate's discovery picks it up on its own.
+A skill is just a markdown file you write to teach your agents your project's conventions. There's no scaffold to run and no metadata form to fill in. You write the file, save it under `.vibestrate/skills/`, and Vibestrate's discovery picks it up on its own. There are two shapes: a flat file (this page's default) and a directory form for a skill that also needs an MCP server - see [Pointing a skill at an MCP server](#optional-pointing-a-skill-at-an-mcp-server) below.
 
 Here are the steps, in order.
 
-<div class="docs-flow"><div><b>Create</b><span>Make .vibestrate/skills/&lt;id&gt;.md.</span></div><div><b>Write</b><span>Plain markdown, your conventions.</span></div><div><b>Check</b><span>vibe skills list and show.</span></div><div><b>Attach</b><span>To an agent or a single run.</span></div></div>
+<div class="docs-flow"><div><b>Create</b><span>Make .vibestrate/skills/&lt;id&gt;.md.</span></div><div><b>Write</b><span>Plain markdown, your conventions.</span></div><div><b>Check</b><span>vibe skills list and show.</span></div><div><b>Attach</b><span>To a role or a single run.</span></div></div>
 
 ## 1. Create the file
 
@@ -47,12 +47,15 @@ vibe skills show <id>
 
 ## 4. Attach it
 
-A skill does nothing until you attach it to something. You can attach it to an agent in `project.yml`, so that agent always gets it:
+A skill does nothing until you attach it to something. You can attach it to a role in `project.yml`, so that role always gets it. Roles live under `crews.<crewId>.roles`, not a top-level `agents:` key:
 
 ```yaml
-agents:
-  planner:
-    skills: [auth-conventions]
+crews:
+  default:
+    roles:
+      planner:
+        skills: [auth-conventions]
+        # ...plus the role's other required fields: seats, profile, prompt, permissions
 ```
 
 Or attach it to a single run, just for that one task:
@@ -82,14 +85,21 @@ A good skill is precise about where it applies and what to do. A few habits that
 
 ## Optional: pointing a skill at an MCP server
 
-A skill can also declare an MCP server (an outside tool an agent connects to) that its agents should reach. You do that with frontmatter, the small block of settings fenced by `---` lines at the top of the file:
+A skill can also declare an MCP server (an outside tool an agent connects to) that its agents should reach. The flat `.md` file this page starts with can't carry one - it has no directory of its own to hold a config file next to. For an MCP server, use the **directory form** instead: a folder named for the skill id, holding `SKILL.md` (or `skill.md`) plus a sibling `.mcp.json`.
+
+```text
+.vibestrate/skills/
+  postgres/
+    SKILL.md
+    .mcp.json
+```
+
+`SKILL.md` is the same plain markdown as a flat skill, with optional `name` / `description` frontmatter:
 
 ```markdown
 ---
-mcpServers:
-  postgres:
-    command: pg-mcp
-    args: [--read-only]
+name: postgres
+description: Read-only Postgres access for query inspection.
 ---
 
 # Postgres MCP
@@ -97,7 +107,20 @@ mcpServers:
 This skill grants agents read-only Postgres access for query inspection.
 ```
 
-This frontmatter is optional, and most skills don't need it.
+`.mcp.json` declares the server itself - `command`, optional `args`, optional `env`. Only the stdio transport is supported (no network surface), and `command` is a plain argv[0], never passed through a shell:
+
+```json
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "pg-mcp",
+      "args": ["--read-only"]
+    }
+  }
+}
+```
+
+This is optional, and most skills don't need it. A flat `.md` skill's `mcpServers` are always empty - there's no directory to hold the `.mcp.json` next to it.
 
 ## Going deeper
 
