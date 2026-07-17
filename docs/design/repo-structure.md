@@ -211,8 +211,13 @@ order.
 
 ## Open decisions
 
-- Tracking `scripts/` in git (currently ignored yet load-bearing for
-  `docs:generate`). Owner call; surfaced, not changed.
+- Tracking `scripts/` in git: DECIDED 2026-07-17. The six load-bearing files
+  (generate-docs-metadata.ts, prepublish-trim.mjs, release.sh, verify-pack.sh,
+  update-deps.sh, demo-simulation.ts) are tracked via `/scripts/*` plus
+  explicit `!` negations, so a fresh clone can run `docs:generate`, `demo`,
+  `release`, `update-deps`, and `prepublishOnly`. One-off probe/eval scripts
+  stay ignored by default; new scratch files in `scripts/` are ignored unless
+  deliberately un-ignored.
 
 ## Review trail
 

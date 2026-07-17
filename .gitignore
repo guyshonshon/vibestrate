@@ -48,6 +48,14 @@ TODO-V3.md
 # Archived/completed TODO history + raw brainstorm notes (kept local only).
 docs/archive/
 
-# Local-only dev/release tooling (not part of the public repo).
-/scripts/
+# Release/docs tooling is tracked: a fresh clone must be able to run
+# docs:generate, demo, release, update-deps, and prepublishOnly. Anything
+# else dropped into scripts/ is local scratch and stays ignored by default.
+/scripts/*
+!/scripts/generate-docs-metadata.ts
+!/scripts/prepublish-trim.mjs
+!/scripts/release.sh
+!/scripts/verify-pack.sh
+!/scripts/update-deps.sh
+!/scripts/demo-simulation.ts
 .playwright-mcp/

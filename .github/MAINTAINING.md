@@ -11,38 +11,30 @@ On a clean `main`:
 pnpm release patch    # or minor | major
 ```
 
-`scripts/release.sh` is a **local maintainer-only tool** (it lives outside the
-public repo - `/scripts` is gitignored). It enforces the guardrails (on `main`,
-clean tree, in sync with origin), runs the full gate (typecheck → build → test →
-audit), then `npm version` (commits + tags `vX.Y.Z`) and publishes to npm.
+`scripts/release.sh` enforces the guardrails (on `main`, clean tree, in sync
+with origin), runs the full gate (typecheck → build → test → audit → packed
+artifact verify), then `npm version` (commits + tags `vX.Y.Z`) and pushes main
+plus the tag. It does **not** publish - publish manually right after (below).
 Releasing is done from a maintainer's machine; there is no CI publish workflow.
 
 The version lives in `package.json` only and flows into `vibestrate --version` and
 the generated docs reference - no other place to bump.
 
-### One-time setup so CI can publish without a token
+### Optional: CI publishing later
 
-npm **trusted publishing** (OIDC) lets the workflow publish with no stored
+No publish workflow exists today (`.github/workflows/` has CI only). If you
+ever add one, npm **trusted publishing** (OIDC) lets it publish with no stored
 secret:
 
 1. Publish once manually (below) so the package exists.
 2. npmjs.com → `vibestrate` → Settings → **Trusted Publisher** → GitHub Actions
    → repo `guyshonshon/vibestrate`, workflow `release.yml`.
-3. After that, `pnpm release` is fully hands-off.
+3. Gate it behind approval via repo **Settings → Environments → release →
+   Required reviewers** so a tag push pauses for your click.
 
-Fallback if you'd rather not use CI / OIDC: an automation token secret
-`NPM_TOKEN` on the repo is already wired into the workflow.
+## Publish manually
 
-### Gate the release behind your approval
-
-`release.yml` runs in the `release` environment. To require your click before
-any publish: repo **Settings → Environments → release → Required reviewers** →
-add yourself. Then even a tag push pauses for approval.
-
-## Publish manually (no CI)
-
-GitHub Actions is currently billing-blocked (private repo). Until that's sorted
-- or any time you prefer - publish straight from your machine:
+Publish straight from your machine:
 
 ```bash
 npm publish --provenance --access public --otp=<your-2fa-code>
