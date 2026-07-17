@@ -19,6 +19,8 @@ The default port is `4317`. Pass `--port` to change it.
 
 It opens your browser by default. `--no-open` keeps it headless.
 
+First visit, a short guided tour points out Runs, Flows, Board, Consult, and New run. Skip it any time, or take it again later from the help overlay (press `?`).
+
 You can also start a run with the dashboard already attached:
 
 ```bash

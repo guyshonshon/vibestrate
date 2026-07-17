@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Keyboard, X } from "lucide-react";
 import { KBD } from "./design/Chip.js";
+import { TourRelaunchRow } from "./onboarding/TourOverlay.js";
 
 /**
  * Global help overlay. Opens on:
@@ -80,6 +81,7 @@ export function HelpOverlay() {
             <X className="h-4 w-4" strokeWidth={1.8} aria-hidden />
           </button>
         </header>
+        <TourRelaunchRow onLaunch={() => setOpen(false)} />
         <div className="max-h-[70vh] overflow-y-auto p-4">
           <div className="grid gap-4 sm:grid-cols-2">
             {GROUPS.map((g) => (

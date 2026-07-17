@@ -170,6 +170,7 @@ export function Sidebar({
 
         <button
           type="button"
+          data-tour="nav-runs"
           onClick={() => setRunsOpen((v) => !v)}
           className={cn(
             "flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-left text-[14px]",
@@ -199,6 +200,7 @@ export function Sidebar({
           label="Flows"
           selected={currentNav === "flows" || currentNav === "flow"}
           onClick={onShowFlows}
+          tourId="nav-flows"
         />
         <NavItem
           icon={<EntityIcon entity="crew" size={18} />}
@@ -217,6 +219,7 @@ export function Sidebar({
           label="Board"
           selected={currentNav === "board"}
           onClick={onShowBoard}
+          tourId="nav-board"
         />
         <NavItem
           icon={<Gauge className="h-[18px] w-[18px]" />}
@@ -298,6 +301,7 @@ export function Sidebar({
       {/* New run (verbatim from Mission Control) - stays bottom-most. */}
       <button
         type="button"
+        data-tour="nav-new-run"
         onClick={onShowCompose}
         className="mt-2.5 flex items-center justify-center gap-2 rounded-[12px] bg-violet-soft px-3 py-2.5 text-[13.5px] font-bold text-coal-900 transition hover:bg-violet-soft/90"
       >
@@ -313,16 +317,19 @@ function NavItem({
   trailing,
   selected,
   onClick,
+  tourId,
 }: {
   icon: ReactNode;
   label: string;
   trailing?: ReactNode;
   selected?: boolean;
   onClick?: () => void;
+  tourId?: string;
 }) {
   return (
     <button
       type="button"
+      data-tour={tourId}
       onClick={onClick}
       className={cn(
         "flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-left text-[14px] font-medium",

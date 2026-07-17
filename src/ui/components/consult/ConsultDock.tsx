@@ -276,6 +276,7 @@ export function ConsultDock() {
       ) : (
         <button
           type="button"
+          data-tour="consult-orb"
           onClick={() => setOpen(true)}
           className="group flex items-center gap-0 rounded-full border border-violet-soft/30 bg-coal-600 p-1.5 shadow-xl shadow-black/40 transition-all hover:border-violet-soft/50"
           aria-label="Open consult"
