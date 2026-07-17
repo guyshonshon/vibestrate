@@ -103,7 +103,7 @@ vibe config set merge.advisor.suggestIntegrationBranchWhen.filesTouched 40
 # also: .protectedPaths (true/false), .behindMain <commits>
 ```
 
-For a deeper look, run `vibe integrate analyze <runId>` (or click the **Analyze deeper** button on the Merge page). This optional read-only pass has a local provider read the run's diff against main and report semantic risk that a textual merge check can't see: concurrency, error handling, missing tests. It is advisory prose, never a merge verdict, and it never changes the deterministic recommendation. Before the provider sees it, the diff is byte-capped and redacted (secret-like files suppressed, secret-shaped tokens removed), and the result is cached under the run.
+For a deeper look, run `vibe integrate analyze <runId>` (or click the **Analyze deeper** button on the Source page's Merge tab). This optional read-only pass has a local provider read the run's diff against main and report semantic risk that a textual merge check can't see: concurrency, error handling, missing tests. It is advisory prose, never a merge verdict, and it never changes the deterministic recommendation. Before the provider sees it, the diff is byte-capped and redacted (secret-like files suppressed, secret-shaped tokens removed), and the result is cached under the run.
 
 Then you decide. The branch is yours to take in one of three directions:
 
