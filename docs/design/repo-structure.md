@@ -1,6 +1,15 @@
 # Repo structure: consolidation + big-file split program
 
-Status: revised-after-review (2026-07-16); Waves A + B executed (2026-07-16).
+Status: revised-after-review (2026-07-16); Waves A + B executed (2026-07-16);
+Wave C executed (2026-07-17).
+Wave C outcome: api.ts 2,759 -> 102-line barrel over 25 lib/api/ slices
+(239/239 methods byte-identical, composition-guard test added); six pages
+extracted into components/<domain>/ (FlowBuilder 2,497->976, TaskDetail
+1,871->454, Crew 1,727->394, Metrics 1,487->177, ProvidersView 1,472->426,
+Board 1,443->608); duplicated Toast/toneForId/FormField/IconBtn/formatters
+hoisted to design/; reviews seams extracted (checkPatchSafety -> safety/,
+patch-apply.ts, smart-apply.ts). Rendered click-through of all six pages
+verified, both themes, zero console errors.
 Wave B outcome: orchestrator.ts 7,876 -> ~5,200 lines, 12 modules under
 core/run-engine/ (types, signals, helpers, flow-run-state, flow-outputs,
 resume-seeder, validation, report, approval-gate, budget-governor,
