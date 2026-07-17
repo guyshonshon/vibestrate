@@ -38,14 +38,16 @@ This codebase uses Lucia for sessions. When touching auth:
 
 ## Hand it to an agent
 
-Name the skills you want in `project.yml`, per agent:
+Name the skills you want in `project.yml`, per role. Roles live under `crews.<crewId>.roles`, not a top-level `agents:` key:
 
 ```yaml
-agents:
-  planner:
-    skills: [auth-conventions, error-handling]
-  executor:
-    skills: [auth-conventions]
+crews:
+  default:
+    roles:
+      planner:
+        skills: [auth-conventions, error-handling]
+      executor:
+        skills: [auth-conventions]
 ```
 
 Or attach one for a single run with `--skills`:

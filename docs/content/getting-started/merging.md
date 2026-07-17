@@ -21,18 +21,18 @@ Vibestrate is built on **Git**, the standard tool for tracking versions of code.
 
 </div>
 
-So a run never touches your files. It works in its own worktree, on a branch named `vibestrate/<runId>-<slug>`, and waits for you.
+So a run never touches your files. It works in its own worktree, on a branch named `vibestrate/<runId>` (run ids are docker-style handles like `bold-lovelace`), and waits for you.
 
 ## Look at what changed
 
 From the run's worktree, see every line it touched:
 
 ```bash
-cd ../.vibestrate-worktrees/<runId>-<slug>
+cd ../.vibestrate-worktrees/<runId>
 git diff main
 ```
 
-Or open the **Git** tab in [Mission Control](/docs/cli/dashboard), which shows the same diff file by file.
+Or open the **Source** page in [Mission Control](/docs/cli/dashboard), on its **Changes** tab, which shows the same diff file by file.
 
 ## Ask the merge advisor
 
@@ -42,7 +42,7 @@ You don't have to judge the risk alone. The advisor is read-only and lays out th
 vibe integrate advise <runId>
 ```
 
-It reports risk flags first (did your checks actually run? does the change touch protected files?), then a dry-run conflict report and a recommendation: finish now, stage on an integration branch, or resolve conflicts first. Nothing is merged and no branch is touched. The same view is the dashboard's **Merge** page. For a deeper, semantic read, `vibe integrate analyze <runId>` has a local model look for risks a textual check can't see, like concurrency, error handling, or missing tests. It is advisory only.
+It reports risk flags first (did your checks actually run? does the change touch protected files?), then a dry-run conflict report and a recommendation: finish now, stage on an integration branch, or resolve conflicts first. Nothing is merged and no branch is touched. The same view is the Source page's **Merge** tab. For a deeper, semantic read, `vibe integrate analyze <runId>` has a local model look for risks a textual check can't see, like concurrency, error handling, or missing tests. It is advisory only.
 
 ## Take the change
 
@@ -50,12 +50,12 @@ The branch is yours. Three ways to keep it:
 
 ```bash
 # Open a pull request for review (best on a shared project)
-cd ../.vibestrate-worktrees/<runId>-<slug>
+cd ../.vibestrate-worktrees/<runId>
 gh pr create
 
 # Or merge it into main locally
 git checkout main
-git merge --ff-only vibestrate/<runId>-<slug>
+git merge --ff-only vibestrate/<runId>
 ```
 
 Or `git push` the branch to share it as is. To throw the change away, just ignore the branch. Nothing ever reached `main`.

@@ -12,7 +12,7 @@ Vibestrate runs natively on macOS, Linux, and Windows. The full core loop works 
 - **Node.js 18.17 or newer.** Check with `node --version`.
 - **git 2.5 or newer.** Vibestrate creates and tears down worktrees, which need a modern git.
 - **pnpm or npm**, to install the package.
-- **At least one coding-agent CLI** on your PATH: Claude Code, Codex, Aider, Ollama, or OpenCode. You can add one later. `vibe doctor` tells you what is missing.
+- **At least one coding-agent CLI** on your PATH: Claude Code, Codex, Gemini, Aider, Ollama, OpenCode, or another supported provider. You can add one later. `vibe doctor` tells you what is missing.
 
 ## Install
 
@@ -58,15 +58,15 @@ Doctor checks everything needed before your first run: git state, project config
 
 ```text
 .vibestrate/
-  project.yml      providers, agents, commands, policies
+  project.yml      providers, profiles, crews (roles), commands, policies
   rules.md         project instructions agents read on every turn
-  agents/          per-role prompt templates you can edit
+  roles/           per-role prompt templates you can edit
   skills/          markdown attachments that add domain context
   flows/           your project's run Flows (empty until you add one)
   runs/            run state, artifacts, metrics, events
 ```
 
-Commit `project.yml`, `rules.md`, `agents/`, `skills/`, and `flows/`. Leave `runs/` untracked. Vibestrate adds it to your `.gitignore` automatically.
+Commit `project.yml`, `rules.md`, `roles/`, `skills/`, and `flows/`. Leave `runs/` untracked. Vibestrate adds it to your `.gitignore` automatically.
 
 ## Next
 

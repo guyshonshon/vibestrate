@@ -5,7 +5,7 @@ section: getting-started
 slug: getting-started/windows
 ---
 
-Vibestrate runs natively on Windows. The full core loop works on a plain Windows machine in PowerShell or cmd: you install the CLI, configure providers, run agent orchestrations, review diffs, and merge - all without WSL. A `windows-latest` GitHub Actions job runs the whole suite (typecheck, build, and test) on every push and pull request as a separate pipeline, plus on demand, so the support is verified, not aspirational. It is decoupled from the required build gate on purpose: a push is never blocked by, and the build never depends on, the slower Windows runner - the Windows pipeline just runs in parallel and reports its own status.
+Vibestrate runs natively on Windows. The full core loop works on a plain Windows machine in PowerShell or cmd: you install the CLI, configure providers, run agent orchestrations, review diffs, and merge - all without WSL.
 
 Install is the same as on macOS and Linux: a global npm install of the CLI.
 
@@ -39,6 +39,8 @@ The Docker execution backend is an opt-in isolation sandbox, exactly the role it
 On Windows, Docker would run Linux containers through WSL2. Docker isolation on Windows is not wired up yet: the backend mounts the run's worktree at its real host path so the diff gate and path guard line up, and a Windows host path is not a valid Linux container path. Making it work needs a host-to-container path-mapping pass, which is future work. Until then, run natively on Windows - that is the shipped, supported way to use the product. See [Container isolation](/docs/concepts/sandbox) for how the Docker backend works in general.
 
 ## Running the test suite on Windows (contributors)
+
+A `windows-latest` GitHub Actions job runs the whole suite (typecheck, build, and test) on every push and pull request as a separate pipeline, plus on demand, so the support is verified, not aspirational. It is decoupled from the required build gate on purpose: a push is never blocked by, and the build never depends on, the slower Windows runner - the Windows pipeline just runs in parallel and reports its own status.
 
 If you are working on Vibestrate itself and run the test suite on Windows, set git's line-ending rewrite off in the repository:
 

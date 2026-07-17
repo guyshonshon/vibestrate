@@ -81,7 +81,7 @@ This is where you save money. Give the builder seat your best model at max effor
 A **Provider** is the real coding-agent tool a Profile runs on. These are the CLIs already on your machine - Vibestrate ships no model of its own; it drives the ones you already have:
 
 <div class="docs-chips">
-<span>Claude Code</span><span>Codex</span><span>Aider</span><span>Ollama</span>
+<span>Claude Code</span><span>Codex</span><span>Gemini</span><span>Aider</span><span>Ollama</span>
 </div>
 
 So the full chain reads: a **Seat** in the Flow is filled by a **Role** in your Crew, running at a **Profile** (model plus effort), on a **Provider** (the real tool). Every layer has one job, and you can swap any one without disturbing the others.

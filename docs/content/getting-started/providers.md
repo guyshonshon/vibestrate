@@ -5,10 +5,10 @@ section: getting-started
 slug: getting-started/providers
 ---
 
-A *provider* is the AI tool that actually does the work. It can be a coding assistant already installed on your machine - Claude Code, Codex, Aider, Ollama, OpenCode - or a model Vibestrate reaches over the internet. Setting one up is two steps: tell Vibestrate it's there, then confirm it answers.
+A *provider* is the AI tool that actually does the work. It can be a coding assistant already installed on your machine - Claude Code, Codex, Gemini, Aider, Ollama, OpenCode, and others - or a model Vibestrate reaches over the internet. Setting one up is two steps: tell Vibestrate it's there, then confirm it answers.
 
 <div class="docs-chips">
-<span>Claude Code</span><span>Codex</span><span>Aider</span><span>Ollama</span><span>OpenCode</span>
+<span>Claude Code</span><span>Codex</span><span>Gemini</span><span>Aider</span><span>Ollama</span><span>OpenCode</span>
 </div>
 
 ## See what you have
@@ -50,22 +50,25 @@ Point every step at one provider:
 vibe provider set claude
 ```
 
-Or override it for a single run:
+There is no `--provider` flag on `vibe run` - a run picks its providers through [Profiles](/docs/concepts/profile), not by naming a provider directly. Override it for a single run by pointing at a Profile that names the provider you want:
 
 ```bash
-vibe run "..." --provider codex
+vibe run "..." --profile codex-default
 ```
 
-You can also assign a provider per role in `project.yml`, so different steps use different tools:
+You can also assign a provider per role in `project.yml`, so different steps use different tools. Roles live under `crews.<crewId>.roles`, each pointing at a Profile, and a Profile names the provider:
 
 ```yaml
-agents:
-  planner:
-    provider: claude
-  executor:
-    provider: codex
-  reviewer:
-    provider: claude
+profiles:
+  claude-default: { provider: claude }
+  codex-default:  { provider: codex }
+
+crews:
+  default:
+    roles:
+      planner:  { seats: [planner],  profile: claude-default, prompt: .vibestrate/roles/planner.md,  permissions: read_only }
+      executor: { seats: [executor], profile: codex-default,  prompt: .vibestrate/roles/executor.md, permissions: code_write }
+      reviewer: { seats: [reviewer], profile: claude-default, prompt: .vibestrate/roles/reviewer.md, permissions: read_only }
 ```
 
 To pick by how much horsepower a task needs, give your crew roles different [Profiles](/docs/concepts/profile) - a Profile pins the provider, model, and effort, so a quick role can run on a cheap model and a hard one on your best.
@@ -102,9 +105,9 @@ providers:
 
 `vibe provider setup` offers **Cloud API** and **Local model server** choices that prompt for these fields and check them before saving. A bad value is refused, never quietly accepted.
 
-Prefer not to use the terminal? Mission Control's **Providers** page does all of this - install hints, setup, testing, and setting a default - from the dashboard.
+Prefer not to use the terminal? Mission Control's Crew page has a **Providers** tab that does all of this - install hints, setup, testing, and setting a default - from the dashboard.
 
 ## Going deeper
 
 - [Providers reference](/docs/reference/providers) - the current list, notes on each one, and the install hint.
-- The dashboard **Providers** page also adds providers from scratch (cloud API, local server, custom CLI) and runs a safe connectivity probe that checks a cloud key without spending anything.
+- The dashboard's Providers tab also adds providers from scratch (cloud API, local server, custom CLI) and runs a safe connectivity probe that checks a cloud key without spending anything.

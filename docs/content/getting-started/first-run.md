@@ -48,22 +48,24 @@ The terminal prints each step as it happens: a header, a short status, and any o
 When the run finishes, you'll see something like:
 
 ```text
-Run abc123 → merge_ready
-  worktree: ../.vibestrate-worktrees/abc123-add-structured-logging-to-the-settings-save-handler
-  branch:   vibestrate/abc123-add-structured-logging-to-the-settings-save-handler
-  artifacts: .vibestrate/runs/abc123/
+Run bold-lovelace → merge_ready
+  worktree: ../.vibestrate-worktrees/bold-lovelace
+  branch:   vibestrate/bold-lovelace
+  artifacts: .vibestrate/runs/bold-lovelace/
 ```
+
+Run ids are docker-style `<adjective>-<noun>` handles like `bold-lovelace` - no slug is ever appended to the worktree or branch name.
 
 ## Look at what it changed
 
 To see every change before you accept anything:
 
 ```bash
-cd ../.vibestrate-worktrees/abc123-add-structured-logging-to-the-settings-save-handler
+cd ../.vibestrate-worktrees/bold-lovelace
 git diff main
 ```
 
-Or open the **Git** tab in the dashboard, which shows the same changes inline, file by file.
+Or open the **Source** page in the dashboard, on its **Changes** tab, which shows the same changes inline, file by file.
 
 ## Use it, or don't
 
@@ -82,8 +84,8 @@ The branch is yours to:
 
 ## When it doesn't finish clean
 
-- **`blocked`** - the reviewer or verifier flagged something that needs a human decision. Read the notes in `.vibestrate/runs/<runId>/review.md` and `verification.md`.
-- **`failed`** - something broke partway through. Check `.vibestrate/runs/<runId>/events.jsonl` and the provider stream log.
+- **`blocked`** - the reviewer or verifier flagged something that needs a human decision. Read `.vibestrate/runs/<runId>/artifacts/flows/review/output.md` (or `artifacts/flows/verify/output.md` if verification is what blocked). `events.ndjson` carries the matching `review.decision` or `verification.decision` event with the actual verdict.
+- **`failed`** - something broke partway through. Check `.vibestrate/runs/<runId>/events.ndjson` for the last event before the failure, and the step's own output under `artifacts/flows/<step-id>/output.md`.
 
 See [Debug a failed run](/docs/workflows/debug-failed) for the step-by-step playbook.
 
