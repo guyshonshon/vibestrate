@@ -1,9 +1,9 @@
-# Manual smoke tests (0.7.74 - 0.7.85)
+# Manual smoke tests
 
-Quick, follow-along checks for the things shipped this batch that couldn't be
-verified in a headless harness (real provider runs, live terminal animation,
-dashboard surfaces). Each test is self-contained: **Goal -> Steps -> Expect ->
-Reset**. Run them from the project root of a real Vibestrate project.
+Quick, follow-along checks for the things that can't be fully verified in the
+headless test suite (real provider runs, live terminal animation, dashboard
+surfaces). Each test is self-contained: **Goal -> Steps -> Expect -> Reset**.
+Run them from the project root of a real Vibestrate project.
 
 Tips:
 - `vibe status` lists your runs and their **run ids** (you'll paste these into
@@ -12,17 +12,17 @@ Tips:
   step - run it when done so nothing lingers.
 - `vibe config get <key>` shows a setting; `vibe config set <key> <value>` changes it.
 
-## Status (last run 2026-06-22)
+## Status (last run 2026-07-17, v0.73.0)
 
 | # | Test | Result |
 |---|------|--------|
-| 1 | Provider-native sandbox (codex) | PASS (2026-06-14) - run sandboxed + OS blocked an out-of-workspace write |
-| 2 | Harden read-only seats | not run (skipped; headless-verified at 0.7.75) |
-| 3 | Consult spinner | PASS (2026-06-14) |
-| 4 | Dashboard surfaces | PARTIAL (2026-06-22) - components present + wired; the conditional chips need live run state (provider-gated), not visually re-verified this pass |
-| 5 | Snapshot retention + consult tip | PARTIAL (2026-06-22) - feature wired (CLI/UI/consult); step-1 doc expectation corrected; 3-run prune E2E needs a provider |
-| 6 | `vibe guide` + apply | PASS (2026-06-22) - surface present; apply path validated end-to-end |
-| 7 | Stale assurance re-derives | PASS (2026-06-22) - re-derived a coherent verdict on an old run, no crash |
+| 1 | Provider-native sandbox (codex) | PASS (2026-06-14) - run sandboxed + OS blocked an out-of-workspace write; needs real codex, not re-run since |
+| 2 | Harden read-only seats | not run (claude-enforcement half needs a live claude run; headless-verified in the suite) |
+| 3 | Consult spinner | PASS (2026-07-17) - TTY tick and piped degrade both verified end-to-end with a fake provider |
+| 4 | Dashboard surfaces | PARTIAL (2026-07-17) - components verified wired against current code; the conditional chips still need live isolated-run state for a visual pass |
+| 5 | Snapshot retention + consult tip | PASS (2026-07-17) - full prune-by-N E2E with fake-provider runs; housekeeping tip and `config get` default readback verified |
+| 6 | `vibe guide` + apply | PASS (2026-07-17) - consult-generated proposal applied end-to-end to VIBESTRATE.md |
+| 7 | Stale assurance re-derives | PASS (2026-07-17) - coherent verdict with a fresh, corrupted, and deleted assurance cache |
 
 ---
 
@@ -148,7 +148,10 @@ vibe consult "what's the riskiest open item in this project?"
 
 **Reset:** none.
 
-> **Result (2026-06-14): PASS.** Spinner shows live feedback, no freeze.
+> **Result (2026-07-17): PASS.** Verified headlessly with a fake provider: the
+> TTY spinner ticks (`Consulting 1s`, `2s`, ...) and the piped form degrades to
+> a single `Consulting...` line. Note the tick label appears from 1s in - a
+> sub-second consult finishes before it shows, which is correct.
 
 ---
 
@@ -168,20 +171,20 @@ vibe consult "what's the riskiest open item in this project?"
 4. In the **Supervisor** panel near the top, if the run's flow was selected/sized,
    click the small **why** toggle - it expands the full reasoning (all reasons,
    risks, posture).
-5. Open the **Merge** page. If you have a merge-ready run whose isolation was
-   `partial`, it shows an `isolation_incomplete` **caution** (yellow, not a
-   blocker).
+5. Open the **Source** page and switch to the **Merge** tab. If you have a
+   merge-ready run whose isolation was `partial`, it shows an
+   `isolation_incomplete` **caution** (yellow, not a blocker).
 
 **Expect:** each element renders without errors; nothing crashes the page.
 
 **Reset:** stop `vibe ui` (Ctrl+C).
 
-> **Result (2026-06-22): PARTIAL.** All three components are present and wired in
-> the build (SupervisorPanel `why` toggle 0.7.78, isolation badge 0.7.76, merge
-> caution). But each is a *conditional* chip that only appears with specific live
-> run state - the isolation badge needs a sandboxed run (test 1), the merge
-> caution needs a partial-isolation merge-ready run - so visual confirmation is
-> provider-gated and was NOT re-done this pass (same category as tests 1/3).
+> **Result (2026-07-17): PARTIAL.** All three components re-verified as present
+> and wired against the current code (SupervisorPanel `why` toggle, isolation
+> chip in run detail, merge caution in the Source page's Merge tab). Each is a
+> *conditional* chip that only appears with specific live run state - the
+> isolation badge needs a sandboxed run (test 1), the merge caution needs a
+> partial-isolation merge-ready run - so the visual pass stays provider-gated.
 > User-run when you next have an isolated run open.
 
 ---
@@ -201,7 +204,8 @@ about growth.
    vibe config set git.snapshotRetentionRuns 2
    ```
 3. Do **3+** quick runs (any tiny task), so there are more than 2 runs' snapshots.
-4. After the next run starts, check that old snapshot refs got pruned:
+4. Pruning fires at the **start of the following run** (not the run that creates
+   the extra snapshot), so kick off one more tiny run, then check:
    ```
    git for-each-ref refs/vibestrate/snapshots | wc -l    # only the ~2 most recent runs remain
    ```
@@ -218,14 +222,11 @@ about growth.
 vibe config set git.snapshotRetentionRuns 0
 ```
 
-> **Result (2026-06-22): PARTIAL.** The feature is shipped and wired across
-> surfaces (CLI `vibe runs prune`, dashboard `PruneSnapshotsButton`, consult
-> housekeeping tip in `consult-sections.ts`). Step 1 originally returned "Path
-> not found" because `config get` didn't resolve schema defaults; that was fixed
-> (`config get` now reports the effective default), so `git.snapshotRetentionRuns`
-> reads back as `0`. The full 3-run prune-by-N end-to-end needs a real provider,
-> so it remains user-run. (Note: no dedicated unit test for the retention
-> selection was found - a small coverage gap, flagged as a follow-up.)
+> **Result (2026-07-17): PASS.** Full end-to-end with fake-provider runs:
+> `config get git.snapshotRetentionRuns` reads back the default `0`; with
+> retention 2, four tiny runs confirmed the oldest snapshot ref is pruned at the
+> start of the next run; the consult Housekeeping tip fired once snapshot
+> history crossed the 25-run threshold and matched the expected text.
 
 ---
 
@@ -257,13 +258,12 @@ works; apply appends to VIBESTRATE.md (review the diff before committing).
 
 **Reset:** `git checkout VIBESTRATE.md` if you don't want to keep the applied text.
 
-> **Result (2026-06-22): PASS.** `vibe guide` exposes show/init/proposals/apply/
-> reject; `guide show` works. The guarded apply path was validated end-to-end
-> (seed an open proposal → `vibe guide apply <id>` appended its text to
-> VIBESTRATE.md via the Action Broker writer → proposal status flipped to
-> `applied`). Minor: `vibe vibestrate` now degrades to the root help screen
-> rather than erroring as an unknown command - cosmetic, no leftover functional
-> command.
+> **Result (2026-07-17): PASS.** `vibe guide` exposes show/init/proposals/apply/
+> reject. Verified end-to-end with a fake provider: consult generated a real
+> proposal, `vibe guide apply <id>` created/appended VIBESTRATE.md with the
+> proposed text, and the proposal dropped off the open list. Minor (unchanged):
+> `vibe vibestrate` degrades to the root help screen rather than erroring as an
+> unknown command - cosmetic.
 
 ---
 
@@ -280,10 +280,9 @@ works; apply appends to VIBESTRATE.md (review the diff before committing).
 **Expect:** a verdict prints (it re-derives from evidence if the cached artifact
 is stale or missing). No crash, no "undefined" errors.
 
-> **Result (2026-06-22): PASS.** Ran `vibe assurance` against an old completed
-> run (`20260609-...-make-a-tests-txt-file-...`): it re-derived a coherent
-> verdict ("blocked", `validation: failed (0/3)`, `caps: validation_failed`),
-> no crash, no "undefined".
+> **Result (2026-07-17): PASS.** Re-derived a coherent verdict against a normal
+> cached `assurance.json`, then again after corrupting it, then after deleting
+> it - no crash, no "undefined" in any of the three.
 
 **Reset:** none.
 
