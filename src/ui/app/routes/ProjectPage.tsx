@@ -9,6 +9,7 @@ import {
   GitCommit,
   Layers,
   ListChecks,
+  Plus,
   ShieldAlert,
   Wrench,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import { PageShell, PageHeader, Section } from "../../components/layout/PageShel
 import { HeroCard, type HeroTone } from "../../components/design/HeroCard.js";
 import { StatTile, type StatTileTone } from "../../components/design/StatTile.js";
 import { Button } from "../../components/design/Button.js";
+import { navigate } from "../App.js";
 
 type Props = {
   onSelectRun: (runId: string) => void;
@@ -292,11 +294,20 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
         <Section title={`Providers (${meta.providers.length})`}>
           <Panel>
             {meta.providers.length === 0 ? (
-              <Empty>
-                No providers configured. Add one with{" "}
-                <span className="mono text-chalk-100">vibe provider add</span> to
-                let runs call a model.
-              </Empty>
+              <div className="flex flex-col items-start gap-2.5">
+                <p className="text-[12px] text-chalk-300">
+                  No providers configured yet - runs need at least one to call a
+                  model.
+                </p>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                  onClick={() => navigate({ kind: "providers" })}
+                >
+                  Add provider
+                </Button>
+              </div>
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {meta.providers.map((p) => (

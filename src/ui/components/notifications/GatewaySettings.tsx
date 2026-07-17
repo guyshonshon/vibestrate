@@ -147,7 +147,10 @@ export function GatewaySettings({ initialPermission }: Props) {
         </div>
       ) : null}
 
-      <section className="rounded-[16px] border border-[color:var(--line)] bg-coal-600">
+      <section
+        id="notification-routing"
+        className="rounded-[16px] border border-[color:var(--line)] bg-coal-600"
+      >
         <header className="flex items-center gap-2 border-b border-[color:var(--line)] px-3 py-2">
           <Bell className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
           <span className="text-[13px] font-medium text-chalk-100">
@@ -270,10 +273,29 @@ export function GatewaySettings({ initialPermission }: Props) {
         </header>
         <div className="divide-y divide-[color:var(--line)]">
           {gateways.length === 0 ? (
-            <div className="px-3 py-4 text-[12px] text-chalk-300">
-              No gateways configured. Run{" "}
-              <span className="mono text-chalk-100">vibe gateways list</span> for
-              help.
+            // Defensive only: the built-in registry always ships in-app + cli,
+            // so this list is never actually empty today. If it ever were, the
+            // real fix lives above (this component's own routing toggles), not
+            // on the Config page - gateway delivery config lives in
+            // .vibestrate/notifications/gateways.json, a separate store from
+            // project.yml, so Config has no matching fields to link to.
+            <div className="flex flex-col items-start gap-2.5 px-3 py-4">
+              <p className="text-[12px] text-chalk-300">
+                No gateways configured. Turn on CLI or in-app delivery above to
+                start routing notifications.
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                iconLeft={<Bell className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                onClick={() =>
+                  document
+                    .getElementById("notification-routing")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+              >
+                Configure delivery
+              </Button>
             </div>
           ) : (
             gateways.map((g) => {

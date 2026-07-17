@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Play } from "lucide-react";
+import { AlertTriangle, LayoutGrid, Play } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { navigate } from "../../app/App.js";
+import { Button } from "../design/Button.js";
 import type {
   ConflictWarning,
   QueueEntry,
@@ -93,9 +95,19 @@ export function SchedulerQueuePanel({
       </div>
 
       {idle ? (
-        <div className="mt-3 text-[12px] text-chalk-400">
-          Nothing running or queued. Add a task from the board, then start the
-          loop with <code className="mono text-chalk-300">vibe queue run</code>.
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[12px] text-chalk-400">
+            Nothing running or queued. Once the board has work, start the loop
+            with <code className="mono text-chalk-300">vibe queue run</code>.
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            iconLeft={<LayoutGrid className="h-3.5 w-3.5" strokeWidth={1.9} />}
+            onClick={() => navigate({ kind: "board" })}
+          >
+            Open the board
+          </Button>
         </div>
       ) : (
         <div className="mt-4 grid grid-cols-12 gap-4">

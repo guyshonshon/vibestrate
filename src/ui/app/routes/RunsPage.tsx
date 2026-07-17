@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { GitMerge, History } from "lucide-react";
+import { GitMerge, History, Plus } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { ErrorView } from "../../lib/error-view.js";
 import type { RunState } from "../../lib/types.js";
@@ -13,7 +13,9 @@ import {
 import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
 import { SchedulerQueuePanel } from "../../components/runs/SchedulerQueuePanel.js";
 import { PruneSnapshotsButton } from "../../components/runs/PruneSnapshotsButton.js";
+import { Button } from "../../components/design/Button.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { navigate } from "../App.js";
 
 /**
  * Overflow view of every run on disk. Mission Control caps Recent Runs
@@ -90,17 +92,26 @@ export function RunsPage({
 
       <div className="mt-5 overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600">
         {filtered.length === 0 ? (
-          <div className="px-6 py-10 text-center text-[12.5px] text-chalk-300">
-            {runs.length === 0 ? (
-              <>
-                No runs yet. Try{" "}
-                <span className="mono text-chalk-100">vibe run "your task"</span>{" "}
-                from this project.
-              </>
-            ) : (
-              <>No runs match this filter.</>
-            )}
-          </div>
+          runs.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+              <p className="text-[13px] text-chalk-300">No runs yet.</p>
+              <Button
+                variant="primary"
+                size="sm"
+                iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                onClick={() => navigate({ kind: "compose" })}
+              >
+                New run
+              </Button>
+              <p className="mono text-[11px] text-chalk-400">
+                or from this project: vibe run "your task"
+              </p>
+            </div>
+          ) : (
+            <div className="px-6 py-10 text-center text-[12.5px] text-chalk-300">
+              No runs match this filter.
+            </div>
+          )
         ) : (
           <table className="w-full">
             <thead>
