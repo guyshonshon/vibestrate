@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.72.6",
+  "version": "0.73.0",
   "commands": [
     {
       "name": "init",
@@ -55,6 +55,26 @@
       "usage": "[options]",
       "arguments": [],
       "options": [],
+      "subcommands": []
+    },
+    {
+      "name": "welcome",
+      "path": [
+        "vibe",
+        "welcome"
+      ],
+      "description": "Guided, resumable walkthrough: providers -> crew -> flows -> your first run.",
+      "usage": "[options]",
+      "arguments": [],
+      "options": [
+        {
+          "flags": "--reset",
+          "description": "start the walkthrough over, clearing saved progress",
+          "required": false,
+          "optional": false,
+          "negated": false
+        }
+      ],
       "subcommands": []
     },
     {

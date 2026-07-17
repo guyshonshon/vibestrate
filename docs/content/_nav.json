@@ -70,6 +70,10 @@
       "label": "Getting started",
       "items": [
         {
+          "slug": "getting-started/welcome",
+          "label": "The guided walkthrough"
+        },
+        {
           "slug": "getting-started/first-run",
           "label": "Your first run"
         },
