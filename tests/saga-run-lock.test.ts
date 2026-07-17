@@ -257,6 +257,11 @@ describe("acquireTaskLock / releaseTaskLock (M5)", () => {
     const racers = Array.from({ length: N }, (_, i) =>
       acquireTaskLock(dir, "task-stale-race", `reclaimer-${i}`),
     );
+    // Attach the settle handlers NOW, before the poll loop below. A straggler
+    // that misses the reclaim hook (it reads the winner's fresh LIVE lock and is
+    // refused at once) rejects DURING the poll loop; without a handler already
+    // attached that is an unhandled rejection and fails the suite's exit code.
+    const settled = Promise.allSettled(racers);
 
     // Wait until the winner has reclaimed + recreated a fresh LIVE lock (the
     // holder is no longer "ghost-run"), then release the parked losers - so a
@@ -274,7 +279,7 @@ describe("acquireTaskLock / releaseTaskLock (M5)", () => {
     }
     openLosers();
 
-    const results = await Promise.allSettled(racers);
+    const results = await settled;
     const winners = results.filter((r) => r.status === "fulfilled");
     const refused = results.filter(
       (r) => r.status === "rejected" && r.reason instanceof TaskLockedError,
