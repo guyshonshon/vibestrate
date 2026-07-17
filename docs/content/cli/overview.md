@@ -19,11 +19,11 @@ vibe <area> <verb>         → run a subcommand under an area (provider list, co
 
 Top-level commands are things you do directly to a run or a project:
 
-`init`, `run`, `status`, `abort`, `pause`, `resume`, `doctor`, `ui`, `replay`, `shell`.
+`init`, `setup`, `welcome`, `run`, `status`, `abort`, `pause`, `resume`, `doctor`, `ui`, `replay`, `shell`, `path`, `rename`, `logs`, `assurance`, `audit`, `ledger`, `consult`.
 
 Area groups bundle related sub-actions together:
 
-`provider`, `config`, `skills`, `flows`, `approvals`, `tasks`, `queue`, `notifications`, `gateways`, `editor`, `suggestions`, `bundles`, `validation`, `terminal`, `policies`, `roadmap`, `logs`.
+`provider`, `config`, `skills`, `flows`, `supervisor`, `profile`, `params`, `crew`, `approvals`, `roadmap`, `spec-up`, `tasks`, `integrate`, `queue`, `telemetry`, `workspace`, `notifications`, `gateways`, `editor`, `suggestions`, `bundles`, `validation`, `terminal`, `policies`, `guide`, `learn`, `budget`, `runs`.
 
 ## Conventions
 
@@ -70,7 +70,7 @@ vibe provider list                         # show the configured providers
 vibe provider remove <id>                  # remove one (refuses if a role uses it)
 ```
 
-Everything here is also doable from the dashboard's **Providers** page: detect, set up, edit `command`/`args`/`input`, test, set default, and remove. Neither surface is more capable than the other.
+Everything here is also doable from the dashboard's Crew page, on its **Providers** tab: detect, set up, edit `command`/`args`/`input`, test, set default, and remove. Neither surface is more capable than the other.
 
 ## Working with config
 
@@ -85,7 +85,7 @@ vibe config set commands.validate '["pnpm typecheck","pnpm test"]'
 vibe config validate                       # check against the Zod schema
 ```
 
-`config view` is the readable surface. It groups the resolved config (providers, profiles, crew, git, workflow, validation, budget, policies, scheduler, and more) and, for each group, points at where it's editable: a dashboard page (Providers / Profiles / Crew / Settings) or the `vibe config set` path. Use `config show` when you want the raw YAML. The same grouped view is the dashboard's **Config** page (under **More**) and the in-shell **Config** page.
+`config view` is the readable surface. It groups the resolved config (providers, profiles, crew, git, workflow, validation, budget, policies, scheduler, and more) and, for each group, points at where it's editable: a dashboard page (the Crew page's Providers tab / Profiles / Crew / Settings) or the `vibe config set` path. Use `config show` when you want the raw YAML. The same grouped view is the dashboard's **Config** page (under **More**) and the in-shell **Config** page.
 
 `config set` accepts JSON for non-scalar values, and a plain string otherwise.
 

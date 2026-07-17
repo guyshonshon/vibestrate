@@ -29,19 +29,21 @@ vibe run "Add audit logging" --ui
 
 ## The pages
 
-Mission Control is organized into these pages.
+Mission Control's left sidebar is the app shell. It lists:
 
-- **Board** - the active runs, with phase rails, current agent, and live status.
-- **Tasks** - your backlog: queued, running, completed, failed, aborted.
-- **Crew** - the workflow **roles** (planner, architect, executor, fixer, reviewer, verifier). Set the **provider** each role runs on inline, from your configured providers only. A role is a seat in the workflow; a provider is the CLI it runs on, and one provider can power many roles. You add and configure providers on the **Providers** page.
+- **Dashboard** - the home overview.
+- **Runs** - Active, Merge-ready, and Failed run lists, with the scheduler queue (what's queued, what's running, policy, concurrency) folded into the top of the list.
 - **Flows** - the resolved list of built-in and project Flows, plus the steps each one defines.
-- **Providers** - the CLIs your roles run on: what's installed, what's configured, and a test for each one.
-- **Supervisors** - the read-only catalog of supervisor personas (the orchestrator's judgment posture): what each one aims the reviewers at, the flow it favors for risky work, the safety posture it suggests, and which is the project default. Mirrors `vibe supervisor list`.
-- **Approvals** - pending decisions that a policy gate is holding.
-- **Git** - an inline diff viewer for the active run's worktree, with file-by-file navigation.
-- **Merge** - the merge window. It lists every merge-ready run with its check lanes and branch drift. For each run it gives deterministic merge advice (risk flags, a dry-run conflict report, a recommendation) before the explicit integrate and finish actions. The advice is read-only; nothing merges without you.
-- **Suggestions** - review findings grouped into bundles you can apply, validate, and revert.
-- **Notifications** - local notifications, with gateway controls.
+- **Crew** - the workflow **roles** (planner, architect, executor, fixer, reviewer, verifier), plus a **Providers** tab (relocated here from the old standalone Providers page): what's installed, what's configured, and a test for each one. A role is a seat in the workflow; a provider is the CLI it runs on, and one provider can power many roles.
+- **Source** - the single git surface, with **Changes** / **Tree** / **Merge** tabs (this is where the old separate Git and Merge pages live now). Changes is an inline diff viewer for the project's working tree and per-run worktrees, file by file. Tree is the commit graph with a merge planner (see [Merge from the git tree](/docs/workflows/git-tree-merge)). Merge lists every merge-ready run with its check lanes and branch drift, and gives deterministic advice (risk flags, a dry-run conflict report, a recommendation) before the explicit integrate and finish actions - still read-only, nothing merges without you.
+- **Board** - the task kanban (roadmap -> tasks -> runs), plus a **Ledger** tab: the read-only continuity ledger (`vibe ledger`) of what shipped, what's still open, and the decisions on record.
+- **Metrics** - token, cost, and run-outcome roll-ups across the project.
+- **Profiles** - the provider + model + effort presets your roles run on.
+- **Codebase** - the read-only project/git file tree, search, and history.
+
+Under **More**: **Supervisors** - the read-only catalog of supervisor personas (the orchestrator's judgment posture): what each one aims the reviewers at, the flow it favors for risky work, the safety posture it suggests, and which is the project default. Mirrors `vibe supervisor list`. Also **Policies**, **Proposals**, **Project**, **Config**, **Branding canvas**, and **All projects** (the multi-project workspace switcher).
+
+Approvals and Suggestions no longer have their own pages - they're inspector tabs on each run's detail view (see "Watching a run" below). Notifications live in the bell icon in the sidebar's utility row, not a page.
 
 ## Jumping between runs
 

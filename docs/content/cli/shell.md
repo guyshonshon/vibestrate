@@ -19,7 +19,7 @@ The panel fills the terminal and is split into three bordered regions, top to bo
 
 1. **Header.** The brand, a "where am I" line (project · branch · activity · approvals · budget), the numbered tab menu, and the current page's subtitle.
 2. **Context and prompt.** The mode · crew · flow line and the command prompt. Its border brightens to cyan while the prompt has focus. It sits above the body on purpose: when the autocomplete list opens, it shrinks the body below it, never the prompt, so the line you are typing on never moves.
-3. **Body.** The active page on the left, and on the right a **COMMANDS** panel listing what you can do on this page, plus the global keys. On Runs: `p` pause · `r` resume · `a` abort · `R` re-run. On Roadmap: `e` edit · `n` new · `d` delete · `Q` queue. On Queue: `s` start · `p` pause/resume · `t` cycle policy · `x` remove. When a prompt command produces output, it takes that pane instead. The body clips to the fixed canvas rather than scrolling the terminal.
+3. **Body.** The active page on the left, and on the right a **COMMANDS** panel listing what you can do on this page, plus the global keys. On Runs: `p` pause · `r` resume · `a` abort · `R` re-run - the scheduler queue strip at the top of Runs (what's queued, what's running, folded in from the old standalone Queue page) is read-only here; drive it from the `:` command palette or `vibe queue`. On Roadmap: `e` edit · `n` new · `d` delete · `Q` queue. When a prompt command produces output, it takes that pane instead. The body clips to the fixed canvas rather than scrolling the terminal.
 
 ## The status bar
 
@@ -93,7 +93,7 @@ The pages are the same ones published at the docs site, bundled with the CLI.
 
 These are single-key, and work when the prompt is not focused.
 
-- **`1`–`9`, `0`** switch tabs (Dashboard, Roadmap, Queue, Runs, Approvals, Suggestions, Notifs, Crew, Skills, Doctor).
+- **`1`–`9`, `0`** switch tabs (Dashboard, Flow, Crew, Profiles, Runs, Approvals, Suggestions, Skills, Roadmap, Doctor).
 - **`:`** opens the command palette (fuzzy search every action).
 - **`Esc`** goes back to the previous page.
 - **`d`** opens the in-terminal docs browser.
