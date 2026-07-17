@@ -9,7 +9,7 @@ Every time Vibestrate works on a task, it does that work in a separate copy of y
 
 That separate copy is a git **worktree**. Git can keep a second working folder of the same project, on its own branch, sitting right next to your main one. Picture it like a contractor building your new kitchen in a workshop down the street: same blueprints, but the mess stays out of your house until you choose to bring the finished work home.
 
-The copy is created when the run starts, lives under `../.vibestrate-worktrees/` by default, and gets its own branch named `<git.branchPrefix><runId>-<slug>`.
+The copy is created when the run starts, lives under `../.vibestrate-worktrees/` by default, and gets its own branch named `<git.branchPrefix><runId>` - the run id itself, no slug appended.
 
 ## Why this keeps you safe
 
@@ -22,8 +22,8 @@ It also means nothing is lost when a run goes wrong. If a run ends `blocked`, `f
 ```text
 your-project/                  ← your real files
 ../.vibestrate-worktrees/
-  abc123-add-audit-logging/    ← run abc123's copy
-  def456-fix-token-leak/       ← run def456's copy
+  bold-lovelace/                ← one run's copy
+  quiet-turing/                 ← another run's copy
 ```
 
 You can move them in `project.yml`. Keep the location outside your project, never inside it, or it will shadow your real files:
@@ -56,8 +56,8 @@ To clean one up:
 
 ```bash
 cd your-project
-git worktree remove ../.vibestrate-worktrees/<runId>-<slug>
-git branch -D vibestrate/<runId>-<slug>
+git worktree remove ../.vibestrate-worktrees/<runId>
+git branch -D vibestrate/<runId>
 ```
 
 One thing to avoid: don't run `git checkout main` inside a copy. Each copy is tied to its own branch, and switching branches there undoes the separation that keeps things safe.

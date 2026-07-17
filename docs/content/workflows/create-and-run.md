@@ -45,10 +45,10 @@ A Flow is the routine of steps Vibestrate works through. If the work warrants th
 vibe run "..." --flow quality-arbitration
 ```
 
-Override the AI provider for just this run:
+Override which Profile (and so which provider) runs the work for just this run:
 
 ```bash
-vibe run "..." --provider claude
+vibe run "..." --profile claude-sonnet-deep
 ```
 
 ## 3. Watch, or walk away
@@ -82,7 +82,7 @@ vibe status                  # what landed
 vibe replay <runId>          # full read-only inspector
 ```
 
-Or open the dashboard's **Git** tab to read the diff inline.
+Or open the dashboard's **Source** page, on its **Changes** tab, to read the diff inline.
 
 ## 5. Merge it yourself
 
@@ -94,7 +94,7 @@ Before you decide, you can ask the merge advisor:
 vibe integrate advise <runId>
 ```
 
-It is read-only and deterministic. It gives you risk flags first (did any check actually run? does the change touch protected files?), then the dry-run conflict report, the branch topology, and a recommendation: finish now, stage on an integration branch, or resolve conflicts first. Nothing is merged, no branch is touched. Add `--json` to emit the full advice for scripts. The same window lives on the dashboard's **Merge** page.
+It is read-only and deterministic. It gives you risk flags first (did any check actually run? does the change touch protected files?), then the dry-run conflict report, the branch topology, and a recommendation: finish now, stage on an integration branch, or resolve conflicts first. Nothing is merged, no branch is touched. Add `--json` to emit the full advice for scripts. The same window lives on the dashboard's Source page, on its **Merge** tab.
 
 When the advisor suggests staging is configurable. It is suggestion-only and never blocks:
 
@@ -123,7 +123,7 @@ Drop the run and keep the worktree for inspection.
 To get a human review or just share the branch:
 
 ```bash
-cd ../.vibestrate-worktrees/<runId>-<slug>
+cd ../.vibestrate-worktrees/<runId>
 gh pr create                  # if you want review by a human
 git push                       # if you just want to share the branch
 ```
@@ -132,7 +132,7 @@ To merge it locally instead:
 
 ```bash
 git checkout main
-git merge --ff-only vibestrate/<runId>-<slug>
+git merge --ff-only vibestrate/<runId>
 ```
 
 Or to abandon it:

@@ -41,14 +41,16 @@ Drop a skill in either of two folders:
 
 ## Attaching a skill to an agent
 
-Name the skills each agent should get in `project.yml`:
+Name the skills each role should get in `project.yml`. Roles live under `crews.<crewId>.roles`, not a top-level `agents:` key:
 
 ```yaml
-agents:
-  planner:
-    skills: [payments, error-handling]
-  executor:
-    skills: [payments]
+crews:
+  default:
+    roles:
+      planner:
+        skills: [payments, error-handling]
+      executor:
+        skills: [payments]
 ```
 
 Or attach them just for one run, merged into every agent for that run:

@@ -58,8 +58,8 @@ This marks the run as `aborted`. The worktree, which is the isolated copy of you
 
 ```bash
 cd your-project
-git worktree remove ../.vibestrate-worktrees/<runId>-<slug>
-git branch -D vibestrate/<runId>-<slug>
+git worktree remove ../.vibestrate-worktrees/<runId>
+git branch -D vibestrate/<runId>
 ```
 
 ## Policy-gated pauses are different
