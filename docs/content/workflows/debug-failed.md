@@ -29,9 +29,9 @@ Read-only means you can look but not change anything. The status line tells you 
 
 A `failed` status means a stage raised an error it couldn't recover from. Three things to look at, in order:
 
-1. **`events.jsonl`** - the last event before the failure shows which transition triggered the error.
-2. **The provider stream log** at `.vibestrate/runs/<runId>/outputs/<stage>.log` - this is the log of the AI's responses for that stage. It usually contains the model's last response and any tool-use error.
-3. **The validation output** at `.vibestrate/runs/<runId>/validation.json` - if the failure happened during validation, the exit codes and stderr are here.
+1. **`events.ndjson`** - the last event before the failure shows which transition triggered the error.
+2. **The step's output** at `.vibestrate/runs/<runId>/artifacts/flows/<step-id>/output.md` - this is the AI's response for that step (`<step-id>` is `plan`, `implement`, `review`, and so on, per the flow). It usually contains the model's last response and any tool-use error.
+3. **The validation output** at `.vibestrate/runs/<runId>/artifacts/flows/<step-id>/validation-results.json` - if the failure happened during validation, the exit codes are here; stdout/stderr for each command sit alongside it under `validation/`.
 
 Common causes:
 
@@ -55,8 +55,10 @@ A skill is a reusable instruction the agent can pull in. Check `vibe skills list
 
 `blocked` is not a crash. It's the system telling you a decision is needed. Start by reading:
 
-1. **`review.md`** - the reviewer's findings, plus the `BLOCKED` rationale that explains why it stopped.
-2. **`verification.md`** - if the verifier was the one that blocked, this has the summary.
+1. **`artifacts/flows/review/output.md`** - the reviewer's findings, plus the rationale behind its decision.
+2. **`artifacts/flows/verify/output.md`** - if the verifier was the one that blocked, this has its summary instead.
+
+Either way, `events.ndjson` carries the matching `review.decision` or `verification.decision` event with the actual verdict.
 
 Then act on what you find. The right answer is rarely "rerun and hope." Usually it's one of these:
 
@@ -81,7 +83,8 @@ Split the work into two smaller tasks.
 Each `vibe run` is a fresh run with a fresh runId. Past runs stay on disk at `.vibestrate/runs/`, so you can compare what the planner produced this time against last time:
 
 ```bash
-diff .vibestrate/runs/<oldRunId>/plan.md .vibestrate/runs/<newRunId>/plan.md
+diff .vibestrate/runs/<oldRunId>/artifacts/flows/plan/output.md \
+     .vibestrate/runs/<newRunId>/artifacts/flows/plan/output.md
 ```
 
 ## Rewind instead of restarting
@@ -128,7 +131,7 @@ It prints the plan and asks before deleting (skip the prompt with `-y`). Only re
 
 ## When to file a bug
 
-If the same task fails in the same place across multiple providers, and the failure isn't traceable to your config or your task description, that's worth a bug report. Include the `runId`, the `events.jsonl` excerpt around the failure, and the provider stream log.
+If the same task fails in the same place across multiple providers, and the failure isn't traceable to your config or your task description, that's worth a bug report. Include the `runId`, the `events.ndjson` excerpt around the failure, and the failing step's `output.md`.
 
 ## Related
 

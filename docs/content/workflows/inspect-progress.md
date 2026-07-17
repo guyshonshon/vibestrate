@@ -49,37 +49,44 @@ Around the timeline you also get:
 - **Changed files** - the files the run has touched so far. Click a file to see its diff or its full contents inline, read from the run's worktree (the isolated copy of your project the run works in).
 - **Live execution** - a raw console over every recorded provider stream.
 
-The **Git** tab gives you the live diff against `main` as the run works, so you can see exactly what is changing.
+Opening **Source** for the run gives you the live diff against `main` as it works, so you can see exactly what is changing.
 
 ## The files on disk
 
 Everything is recorded at `.vibestrate/runs/<runId>/`:
 
 ```text
-.vibestrate/runs/abc123/
-  state.json                 current status, transitions
-  events.jsonl               every transition event, append-only
-  metrics.json               tokens, durations, costs (where reported)
-  plan.md                    planner's output
-  architecture.md            architect's output
-  execution.log              executor's stream
-  validation.json            commands run + exit codes + output
-  review.md                  reviewer's findings + decision
-  verification.md            verifier's summary + decision
-  prompts/                   raw prompts sent to each provider
-  outputs/                   raw responses received
+.vibestrate/runs/bold-lovelace/
+  state.json                       current status, transitions
+  events.ndjson                    every event, append-only
+  actions.ndjson                   every brokered action (writes, commands) + its verdict
+  runtime-metrics.json             tokens, durations, costs (where reported)
+  flow.json                        the resolved flow snapshot for this run
+  participants.json                which role/profile filled each seat
+  artifacts/
+    flows/
+      <step-id>/
+        prompt.md                  the prompt sent to the provider for that step
+        output.md                  the provider's response
+        validation-results.json    commands run + exit codes, if the step validates
+        validation/
+          <n>-<command>.stdout.txt per-command stdout
+          <n>-<command>.stderr.txt per-command stderr
 ```
+
+Run ids are docker-style pairs like `bold-lovelace`, not sequential numbers;
+runs are listed in the order you started them, not by id.
 
 <div class="docs-callout">
 
-**`events.jsonl` is the source of truth.** Every state transition is one JSON line, and the file is append-only, so lines are only added, never changed. It is the record to trust when you want to know exactly what happened.
+**`events.ndjson` is the source of truth.** Every event is one JSON line, and the file is append-only, so lines are only added, never changed. It is the record to trust when you want to know exactly what happened.
 
 </div>
 
 Use it to dig into a run after the fact:
 
 ```bash
-cat .vibestrate/runs/abc123/events.jsonl | jq -c 'select(.type == "status-change")'
+cat .vibestrate/runs/bold-lovelace/events.ndjson | jq -c 'select(.type == "state.changed")'
 ```
 
 ## Read past runs
