@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.0.0
+
+- **Vibestrate 1.0.** A CTO for your AI coding: you hand it a task in plain
+  language, it breaks the work down, hands each part to the right AI, and
+  supervises the whole thing to a diff you review before anything ships.
+  Everything a run does is local, worktree-bounded, and reversible - no
+  auto-push, no auto-merge, no cloud, no model APIs unless you ask. This release
+  is the point where a first-time user can arrive and find their footing.
+- **Onboarding, end to end.** A new `vibe welcome` walks you through providers,
+  crew, flows, and your first run - skippable and resumable, remembering where
+  you left off, and honest when a step does not finish. The dashboard greets a
+  first-time visitor with a short guided tour of the surfaces that matter (runs,
+  flows, board, consult, new run), dismissible and re-launchable from help.
+- **Every failure has a way forward.** The error-state migration is complete: no
+  screen dead-ends on a line of red text or a spinner that never resolves. A
+  failed fetch is a visible, recoverable state with Retry; empty states offer
+  the action instead of pointing at a command; and a lazy chunk that fails to
+  load lands in an error boundary with a reload, not a blank page.
+- **Docs that match the code.** The handwritten docs were swept for factual
+  drift and corrected against the current source - real commands, real config
+  keys, real run artifacts - so the getting-started path and the concept pages
+  describe the tool as it actually behaves.
+
 ## 0.73.0
 
 - **The error-state migration is finished - failure is always visible, always
