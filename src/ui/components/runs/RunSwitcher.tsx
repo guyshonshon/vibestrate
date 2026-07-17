@@ -20,7 +20,7 @@ export function RunSwitcher({
   onSelect: (runId: string) => void;
 }) {
   const [runs, setRuns] = useState<RunState[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -39,7 +39,7 @@ export function RunSwitcher({
         setError(null);
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(err);
       });
   }, []);
 

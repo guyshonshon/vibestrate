@@ -91,7 +91,7 @@ export function RunsPage({
       <IntegrationPanel />
 
       <div className="mt-5 overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600">
-        {filtered.length === 0 ? (
+        {filtered.length === 0 && !error ? (
           runs.length === 0 ? (
             <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
               <p className="text-[13px] text-chalk-300">No runs yet.</p>

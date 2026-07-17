@@ -147,10 +147,7 @@ export function GatewaySettings({ initialPermission }: Props) {
         </div>
       ) : null}
 
-      <section
-        id="notification-routing"
-        className="rounded-[16px] border border-[color:var(--line)] bg-coal-600"
-      >
+      <section className="rounded-[16px] border border-[color:var(--line)] bg-coal-600">
         <header className="flex items-center gap-2 border-b border-[color:var(--line)] px-3 py-2">
           <Bell className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
           <span className="text-[13px] font-medium text-chalk-100">
@@ -272,131 +269,104 @@ export function GatewaySettings({ initialPermission }: Props) {
           </span>
         </header>
         <div className="divide-y divide-[color:var(--line)]">
-          {gateways.length === 0 ? (
-            // Defensive only: the built-in registry always ships in-app + cli,
-            // so this list is never actually empty today. If it ever were, the
-            // real fix lives above (this component's own routing toggles), not
-            // on the Config page - gateway delivery config lives in
-            // .vibestrate/notifications/gateways.json, a separate store from
-            // project.yml, so Config has no matching fields to link to.
-            <div className="flex flex-col items-start gap-2.5 px-3 py-4">
-              <p className="text-[12px] text-chalk-300">
-                No gateways configured. Turn on CLI or in-app delivery above to
-                start routing notifications.
-              </p>
-              <Button
-                variant="secondary"
-                size="sm"
-                iconLeft={<Bell className="h-3.5 w-3.5" strokeWidth={1.9} />}
-                onClick={() =>
-                  document
-                    .getElementById("notification-routing")
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                }
-              >
-                Configure delivery
-              </Button>
-            </div>
-          ) : (
-            gateways.map((g) => {
-              const url = describeField("url", g.config);
-              const token = describeField("token", g.config);
-              const target = describeField("target", g.config);
-              const test = testStatus[g.id];
-              return (
-                <div key={g.id} className="px-3 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[12.5px] font-medium text-chalk-100">
-                      {g.displayName}
-                    </span>
-                    <Chip contained tone="neutral">
-                      {g.type}
+          {gateways.map((g) => {
+            const url = describeField("url", g.config);
+            const token = describeField("token", g.config);
+            const target = describeField("target", g.config);
+            const test = testStatus[g.id];
+            return (
+              <div key={g.id} className="px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[12.5px] font-medium text-chalk-100">
+                    {g.displayName}
+                  </span>
+                  <Chip contained tone="neutral">
+                    {g.type}
+                  </Chip>
+                  <Chip contained tone="neutral">
+                    {g.channel}
+                  </Chip>
+                  {g.config.enabled ? (
+                    <Chip contained tone="emerald">
+                      enabled
                     </Chip>
+                  ) : (
                     <Chip contained tone="neutral">
-                      {g.channel}
+                      disabled
                     </Chip>
-                    {g.config.enabled ? (
-                      <Chip contained tone="emerald">
-                        enabled
-                      </Chip>
-                    ) : (
-                      <Chip contained tone="neutral">
-                        disabled
-                      </Chip>
-                    )}
-                    {g.valid ? (
-                      <CheckCircle2
-                        className="h-3.5 w-3.5 text-emerald"
-                        strokeWidth={1.9}
-                        aria-label="config valid"
-                      />
-                    ) : (
-                      <AlertTriangle
-                        className="h-3.5 w-3.5 text-amber-soft"
-                        strokeWidth={1.9}
-                        aria-label="config invalid"
-                      />
-                    )}
-                    {g.supportsTest ? (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={!g.valid}
-                        onClick={() => void testGateway(g.id)}
-                        title={
-                          g.valid
-                            ? "Send a probe through this gateway"
-                            : "Configure the gateway first to enable testing"
-                        }
-                        iconLeft={<Send className="h-3 w-3" strokeWidth={1.9} />}
-                        className="ml-auto"
-                      >
-                        Test
-                      </Button>
-                    ) : null}
-                  </div>
-                  {g.validationReason ? (
-                    <div className="mt-1 text-[11.5px] text-amber-soft">
-                      {g.validationReason}
-                    </div>
-                  ) : null}
-                  <div className="mt-1.5 grid grid-cols-3 gap-1.5 text-[11px]">
-                    <FieldRow
-                      label="url"
-                      info={url}
-                      hide={g.config.url === null}
+                  )}
+                  {g.valid ? (
+                    <CheckCircle2
+                      className="h-3.5 w-3.5 text-emerald"
+                      strokeWidth={1.9}
+                      aria-label="config valid"
                     />
-                    <FieldRow
-                      label="token"
-                      info={token}
-                      hide={g.config.token === null}
+                  ) : (
+                    <AlertTriangle
+                      className="h-3.5 w-3.5 text-amber-soft"
+                      strokeWidth={1.9}
+                      aria-label="config invalid"
                     />
-                    <FieldRow
-                      label="target"
-                      info={target}
-                      hide={g.config.target === null}
-                    />
-                  </div>
-                  {g.missingEnvVars.length > 0 ? (
-                    <div className="mono mt-1 text-[10.5px] text-amber-soft">
-                      missing: {g.missingEnvVars.join(", ")}
-                    </div>
-                  ) : null}
-                  {test ? (
-                    <div
-                      className={`mt-1.5 rounded-[10px] border px-2 py-1 text-[11px] ${
-                        test.ok
-                          ? "border-emerald/30 bg-emerald/10 text-emerald"
-                          : "border-rose-400/30 bg-rose-500/10 text-rose-300"
-                      }`}
+                  )}
+                  {g.supportsTest ? (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={!g.valid}
+                      onClick={() => void testGateway(g.id)}
+                      title={
+                        g.valid
+                          ? "Send a probe through this gateway"
+                          : "Configure the gateway first to enable testing"
+                      }
+                      iconLeft={<Send className="h-3 w-3" strokeWidth={1.9} />}
+                      className="ml-auto"
                     >
-                      {test.message}
-                    </div>
+                      Test
+                    </Button>
                   ) : null}
                 </div>
-              );
-            })
-          )}
+                {g.validationReason ? (
+                  <div className="mt-1 text-[11.5px] text-amber-soft">
+                    {g.validationReason}
+                  </div>
+                ) : null}
+                <div className="mt-1.5 grid grid-cols-3 gap-1.5 text-[11px]">
+                  <FieldRow
+                    label="url"
+                    info={url}
+                    hide={g.config.url === null}
+                  />
+                  <FieldRow
+                    label="token"
+                    info={token}
+                    hide={g.config.token === null}
+                  />
+                  <FieldRow
+                    label="target"
+                    info={target}
+                    hide={g.config.target === null}
+                  />
+                </div>
+                {g.missingEnvVars.length > 0 ? (
+                  <div className="mono mt-1 text-[10.5px] text-amber-soft">
+                    missing: {g.missingEnvVars.join(", ")}
+                  </div>
+                ) : null}
+                {test ? (
+                  <div
+                    className={`mt-1.5 rounded-[10px] border px-2 py-1 text-[11px] ${
+                      test.ok
+                        ? "border-emerald/30 bg-emerald/10 text-emerald"
+                        : "border-rose-400/30 bg-rose-500/10 text-rose-300"
+                    }`}
+                  >
+                    {test.message}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
         <p className="border-t border-[color:var(--line)] px-3 py-2 text-[10.5px] text-chalk-400">
           Secrets stay on your machine. The dashboard never receives token or

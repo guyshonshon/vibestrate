@@ -133,25 +133,27 @@ export function PoliciesPanel() {
         ))}
       </div>
 
-      <div className="mt-4">
-        {tab === "policies" ? (
-          policies == null ? (
+      {error ? null : (
+        <div className="mt-4">
+          {tab === "policies" ? (
+            policies == null ? (
+              <Loading />
+            ) : (
+              <ProjectPoliciesSection policies={policies} onChanged={() => void loadPolicies()} />
+            )
+          ) : tab === "safety" ? (
+            safety == null ? (
+              <Loading />
+            ) : (
+              <AdvancedSafetySection safety={safety} onToggle={(k, v) => void toggleSafety(k, v)} />
+            )
+          ) : snap == null ? (
             <Loading />
           ) : (
-            <ProjectPoliciesSection policies={policies} onChanged={() => void loadPolicies()} />
-          )
-        ) : tab === "safety" ? (
-          safety == null ? (
-            <Loading />
-          ) : (
-            <AdvancedSafetySection safety={safety} onToggle={(k, v) => void toggleSafety(k, v)} />
-          )
-        ) : snap == null ? (
-          <Loading />
-        ) : (
-          <EngineToolsPanel snap={snap} />
-        )}
-      </div>
+            <EngineToolsPanel snap={snap} />
+          )}
+        </div>
+      )}
     </div>
   );
 }

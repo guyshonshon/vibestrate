@@ -26,7 +26,7 @@ export function SchedulerQueuePanel({
   const [state, setState] = useState<SchedulerState | null>(null);
   const [conflicts, setConflicts] = useState<ConflictWarning[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   // Bumping this re-runs the effect below, which is how manual Retry
   // re-triggers a load function defined inside the effect's closure.
   const [retryTick, setRetryTick] = useState(0);
@@ -55,7 +55,7 @@ export function SchedulerQueuePanel({
         // ever loaded is worth showing, since there's no "last good" to fall
         // back on and the idle empty state would otherwise lie.
         if (!loadedOnce) {
-          setError(err instanceof Error ? err.message : String(err));
+          setError(err);
         }
       }
     };
