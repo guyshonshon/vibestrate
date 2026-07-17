@@ -26,7 +26,7 @@ Each step opens with a short explanation, then asks: continue, skip, or quit. No
 
 ## It remembers where you left off
 
-Quit partway through and `vibe welcome` picks up at the first step you haven't finished next time. Progress is saved to `.vibestrate/welcome-state.json` - a small, disposable file scoped to the tour itself. It never affects your actual provider, crew, or flow configuration, which stays in `project.yml` as usual.
+Quit partway through and `vibe welcome` picks up at the first step you haven't finished next time. Progress is saved to `.vibestrate/welcome-state.json` - a small, disposable file that only tracks which steps you've been through. Deleting it, or running `--reset`, never touches your actual provider, crew, or flow configuration - those changes (if you made any while walking through providers or crew) live in `project.yml` as usual, and stay put.
 
 To start over from the beginning:
 

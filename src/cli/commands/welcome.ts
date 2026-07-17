@@ -64,32 +64,37 @@ export async function runWelcomeCommand(opts: WelcomeCommandOptions): Promise<nu
     return 0;
   }
 
-  const detected = await detectProject(process.cwd());
-  if (!(await configExists(detected.projectRoot))) {
-    console.log(header("Welcome to Vibestrate"));
-    console.log("");
-    console.log("This project isn't initialized yet - welcome walks through setup right after.");
-    const goInit = await confirm({ message: "Run `vibe init` now?", default: true });
-    if (!goInit) {
-      console.log(
-        `${symbol.arrow()} Run ${color.bold("vibe init")}, then ${color.bold("vibe welcome")} to pick up the tour.`,
-      );
-      return 0;
-    }
-    const initCode = await runInitCommand({});
-    if (initCode !== 0) return initCode;
-    console.log("");
-  }
-
-  // Re-detect: init may have created the git repo / project root just now.
-  const projectRoot = (await detectProject(process.cwd())).projectRoot;
-
   try {
+    const detected = await detectProject(process.cwd());
+
+    // Handle --reset against whatever project root we can already see, before
+    // the init offer below - otherwise declining init returns early and
+    // --reset silently does nothing (welcome-state.json lives under
+    // .vibestrate/, independent of whether project.yml exists yet).
     if (opts.reset) {
-      await resetWelcomeState(projectRoot);
+      await resetWelcomeState(detected.projectRoot);
       console.log(`${symbol.ok()} Welcome progress reset.`);
       console.log("");
     }
+
+    if (!(await configExists(detected.projectRoot))) {
+      console.log(header("Welcome to Vibestrate"));
+      console.log("");
+      console.log("This project isn't initialized yet - welcome walks through setup right after.");
+      const goInit = await confirm({ message: "Run `vibe init` now?", default: true });
+      if (!goInit) {
+        console.log(
+          `${symbol.arrow()} Run ${color.bold("vibe init")}, then ${color.bold("vibe welcome")} to pick up the tour.`,
+        );
+        return 0;
+      }
+      const initCode = await runInitCommand({});
+      if (initCode !== 0) return initCode;
+      console.log("");
+    }
+
+    // Re-detect: init may have created the git repo / project root just now.
+    const projectRoot = (await detectProject(process.cwd())).projectRoot;
 
     let state = await loadWelcomeState(projectRoot);
     const resumeAt = firstIncompleteStep(state);
@@ -141,8 +146,21 @@ export async function runWelcomeCommand(opts: WelcomeCommandOptions): Promise<nu
         continue;
       }
 
-      await runStep(stepId, projectRoot);
-      state = await recordWelcomeStep(projectRoot, state, stepId, "done");
+      const stepCode = await runStep(stepId, projectRoot);
+      if (stepSucceeded(stepCode)) {
+        state = await recordWelcomeStep(projectRoot, state, stepId, "done");
+      } else {
+        // Do not record this as done and do not abort the walkthrough - the
+        // step's own wizard already reported its failure. Leaving it
+        // unrecorded keeps `vibe welcome` resumable at exactly this step,
+        // instead of persisting a false "done" that only --reset (wiping all
+        // progress) could undo.
+        console.log(
+          indent(
+            color.dim(`${title} didn't finish - run \`vibe welcome\` again to pick it back up.`),
+          ),
+        );
+      }
       console.log("");
     }
 
@@ -158,22 +176,35 @@ export async function runWelcomeCommand(opts: WelcomeCommandOptions): Promise<nu
   }
 }
 
-async function runStep(stepId: WelcomeStepId, projectRoot: string): Promise<void> {
+/** Whether a step's exit code should be persisted as "done". A non-zero code
+ *  means the step's own wizard already reported its failure, and recording
+ *  it as done anyway would let a stale "done" survive until --reset wipes
+ *  all progress. Exported so tests can apply it to a real (non-mocked)
+ *  step code instead of duplicating this branch. */
+export function stepSucceeded(code: number): boolean {
+  return code === 0;
+}
+
+/** Runs one walkthrough step and returns its exit code (0 = succeeded).
+ *  Exported so the "a failed step is not recorded as done" contract can be
+ *  tested directly against the real `runProviderSetup` failure path, without
+ *  driving the whole interactive command loop. */
+export async function runStep(stepId: WelcomeStepId, projectRoot: string): Promise<number> {
   switch (stepId) {
     case "providers":
       // Reuses the same interactive provider setup as `vibe provider setup` -
-      // welcome frames it, it doesn't reimplement it.
-      await runProviderSetup();
-      return;
+      // welcome frames it, it doesn't reimplement it. Its exit code decides
+      // whether this step gets recorded as done (see the call site).
+      return runProviderSetup();
     case "crew":
       await runCrewStep(projectRoot);
-      return;
+      return 0;
     case "flows":
       printFlowsIntro();
-      return;
+      return 0;
     case "first-run":
       printFirstRunIntro();
-      return;
+      return 0;
   }
 }
 
