@@ -15,6 +15,7 @@ import { runAbortCommand } from "./commands/abort.js";
 import { runRunsPrune } from "./commands/runs-prune.js";
 import { runDoctorCommand } from "./commands/doctor.js";
 import { runSetupCommand } from "./commands/setup.js";
+import { runWelcomeCommand } from "./commands/welcome.js";
 import { runUiCommand } from "./commands/ui.js";
 import { buildProviderCommand } from "./commands/provider/index.js";
 import { buildConfigCommand } from "./commands/config/index.js";
@@ -149,6 +150,17 @@ export function buildVibestrateProgram(): Command {
     .description("Flowd wizard for provider, validation commands, and run defaults.")
     .action(async () => {
       const code = await runSetupCommand();
+      process.exit(code);
+    });
+
+  program
+    .command("welcome")
+    .description(
+      "Guided, resumable walkthrough: providers -> crew -> flows -> your first run.",
+    )
+    .option("--reset", "start the walkthrough over, clearing saved progress")
+    .action(async (opts: { reset?: boolean }) => {
+      const code = await runWelcomeCommand({ reset: opts.reset });
       process.exit(code);
     });
 

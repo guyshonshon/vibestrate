@@ -232,6 +232,13 @@ export function manualProposalsDir(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), "manual-proposals");
 }
 
+/** `.vibestrate/welcome-state.json` - progress through `vibe welcome`'s
+ *  guided walkthrough (which steps are done/skipped), so re-running the
+ *  command resumes instead of restarting. */
+export function welcomeStatePath(projectRoot: string): string {
+  return path.join(vibestrateRoot(projectRoot), "welcome-state.json");
+}
+
 export function isPathInside(parent: string, candidate: string): boolean {
   const rel = path.relative(parent, candidate);
   if (!rel) return true;
