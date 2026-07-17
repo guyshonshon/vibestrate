@@ -1,4 +1,4 @@
-import { MetricsStore } from "../../core/metrics-store.js";
+import { MetricsStore } from "../../core/metrics/metrics-store.js";
 import { RunStateStore } from "../../core/state-machine.js";
 import { ReviewSuggestionService } from "../../reviews/review-suggestion-service.js";
 import { SuggestionBundleService } from "../../reviews/suggestion-bundle-service.js";

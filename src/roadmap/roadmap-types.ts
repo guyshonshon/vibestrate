@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { contextSourceSchema } from "../core/context-source-schema.js";
+import { contextSourceSchema } from "../core/context/context-source-schema.js";
 
 // ─── ids ──────────────────────────────────────────────────────────────────────
 

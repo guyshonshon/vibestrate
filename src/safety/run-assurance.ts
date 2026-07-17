@@ -18,7 +18,7 @@ import {
 } from "../utils/paths.js";
 import { readActionLog, type ActionRecord } from "./action-broker.js";
 import { runStateSchema } from "../core/state-machine.js";
-import { MetricsStore } from "../core/metrics-store.js";
+import { MetricsStore } from "../core/metrics/metrics-store.js";
 import { loadConfig } from "../project/config-loader.js";
 import { nowIso } from "../utils/time.js";
 import {

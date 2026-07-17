@@ -6,9 +6,9 @@ import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
 import { Orchestrator, type ResumeStage } from "../src/core/orchestrator.js";
-import { resolveResumeFrom } from "../src/core/run-launcher.js";
-import { MetricsStore } from "../src/core/metrics-store.js";
-import { readPhaseSnapshots } from "../src/core/phase-snapshots.js";
+import { resolveResumeFrom } from "../src/core/run/run-launcher.js";
+import { MetricsStore } from "../src/core/metrics/metrics-store.js";
+import { readPhaseSnapshots } from "../src/core/run/phase-snapshots.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 

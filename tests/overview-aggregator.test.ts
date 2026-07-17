@@ -6,9 +6,9 @@ import {
   spendByRole,
   activityHeatmap,
   leaderboard,
-} from "../src/core/overview-aggregator.js";
+} from "../src/core/metrics/overview-aggregator.js";
 import type { RunState } from "../src/core/state-machine.js";
-import type { RuntimeMetrics } from "../src/core/runtime-metrics.js";
+import type { RuntimeMetrics } from "../src/core/metrics/runtime-metrics.js";
 
 const FIXED_NOW = new Date("2026-05-25T18:00:00Z").getTime();
 

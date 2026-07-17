@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
 import { cmdStatus, cmdPause, cmdResume } from "../src/cli/commands/saga.js";
 import { getTaskRunStatus, NotSupervisedError } from "../src/core/saga/saga-status.js";
-import { acquireTaskLock, taskLockPath } from "../src/core/run-lock.js";
+import { acquireTaskLock, taskLockPath } from "../src/core/run/run-lock.js";
 import {
   RunStateStore,
   createInitialState,

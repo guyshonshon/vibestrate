@@ -5,7 +5,7 @@ import {
   renderCurrentItemBrief,
   compactImplementationSummary,
   type ChecklistItemOutcome,
-} from "../src/core/item-summary.js";
+} from "../src/core/run/item-summary.js";
 
 function outcome(
   i: number,

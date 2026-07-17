@@ -4,8 +4,8 @@ import {
   PauseError,
   requestPause,
   requestResume,
-} from "../../core/pause-service.js";
-import { EventLog } from "../../core/event-log.js";
+} from "../../core/run/pause-service.js";
+import { EventLog } from "../../core/stores/event-log.js";
 import { RunStateStore } from "../../core/state-machine.js";
 import { color } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";

@@ -5,7 +5,7 @@ import {
   consultSectionsEmpty,
   buildHousekeepingTips,
 } from "../src/consult/consult-sections.js";
-import { deriveLedgerState, type LedgerEntry } from "../src/core/project-ledger.js";
+import { deriveLedgerState, type LedgerEntry } from "../src/core/context/project-ledger.js";
 
 const e = (over: Partial<LedgerEntry>): LedgerEntry => ({
   schemaVersion: 1,

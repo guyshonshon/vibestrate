@@ -6,7 +6,7 @@ import { execa } from "execa";
 import { startServer, type StartedServer } from "../src/server/server.js";
 import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
-import { ArtifactStore } from "../src/core/artifact-store.js";
+import { ArtifactStore } from "../src/core/stores/artifact-store.js";
 import { FLOW_QUESTIONS_CONTRACT } from "../src/flows/schemas/flow-output-contracts.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 

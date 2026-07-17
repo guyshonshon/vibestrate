@@ -1,6 +1,6 @@
 import path from "node:path";
-import { ArtifactStore } from "./artifact-store.js";
-import { EventLog } from "./event-log.js";
+import { ArtifactStore } from "./stores/artifact-store.js";
+import { EventLog } from "./stores/event-log.js";
 import {
   RunStateStore,
   applyTransition,
@@ -13,26 +13,26 @@ import {
   effectiveReviewDecision,
   effectiveVerificationDecision,
   detectNeedsTesting,
-} from "./review-parser.js";
-import type { ValidationResults } from "./validation-runner.js";
-import { buildRolePrompt, type PriorArtifact } from "./prompt-builder.js";
+} from "./run/review-parser.js";
+import type { ValidationResults } from "./validation/validation-runner.js";
+import { buildRolePrompt, type PriorArtifact } from "./context/prompt-builder.js";
 import {
   initRunBrief,
   appendStepOutcome,
   updateRunBriefFacts,
   renderRunBrief,
   type RunBriefState,
-} from "./run-brief.js";
+} from "./run/run-brief.js";
 import {
   listAnnotations,
   renderAnnotationsForPrompt,
-} from "./annotations-service.js";
+} from "./codebase/annotations-service.js";
 import {
   listControls,
   markPendingConsumed,
   pendingControls,
   renderControlNotes,
-} from "./run-control.js";
+} from "./stores/run-control.js";
 import { runPreflightChecks, type PolicyWarning } from "./policy-engine.js";
 import type { ProjectConfig, PermissionMode } from "../project/config-schema.js";
 import { loadRolePrompt } from "../project/config-loader.js";
@@ -58,13 +58,13 @@ import {
   recordRunStartInLedger,
   LedgerStore,
   renderLedgerForPrompt,
-} from "./project-ledger.js";
+} from "./context/project-ledger.js";
 import {
   findLedgerFlags,
   freshFlagMatches,
   buildFlagEntries,
   renderFlagsForPrompt,
-} from "./ledger-match.js";
+} from "./context/ledger-match.js";
 import { loadCodebaseMap, writeCodebaseMap, renderCodebaseMapForPrompt } from "../project/codebase-map.js";
 import {
   resolveFlowParams,
@@ -78,11 +78,11 @@ import {
   renderMethodologyForPrompt,
   resolveMethodology,
   KNOWN_METHODOLOGY_IDS,
-} from "./known-methodologies.js";
+} from "./context/known-methodologies.js";
 import {
   pruneOldSnapshots,
   sweepOrphanedSnapshotRefs,
-} from "./phase-snapshots.js";
+} from "./run/phase-snapshots.js";
 import {
   snapshotWorktree,
   restoreWorktree,
@@ -90,12 +90,12 @@ import {
 } from "../safety/diff-gate.js";
 import { applyProposedPatchThroughGateway } from "../safety/apply-gateway.js";
 import { selectOutputAdapter } from "../providers/adapters/select.js";
-import { estimateTokensFromText, resolveCost } from "./pricing.js";
+import { estimateTokensFromText, resolveCost } from "./metrics/pricing.js";
 import { providerCapabilities } from "../providers/provider-capabilities.js";
 import {
   appendStreamLine,
   ensureStreamsDir,
-} from "./provider-stream-store.js";
+} from "./stores/provider-stream-store.js";
 import { localWorktreeBackend } from "./execution/local-worktree-backend.js";
 import { makeDockerBackend } from "./execution/docker-backend.js";
 import type { ExecutionBackend, ExecStrategy, IsolationMode } from "./execution/execution-backend-schema.js";
@@ -110,25 +110,25 @@ import { creditTrailers } from "../git/commit-credit.js";
 import { linkWorktreeEnvironment } from "../git/worktree-env.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
 import { renderTaskGrounding } from "../roadmap/task-grounding.js";
-import { materializeContextSources } from "./context-sources.js";
-import type { ContextSource } from "./context-source-schema.js";
+import { materializeContextSources } from "./context/context-sources.js";
+import type { ContextSource } from "./context/context-source-schema.js";
 import {
   renderCurrentItemBrief,
   buildPriorItemsContext,
   renderItemSummaryArtifact,
   compactImplementationSummary,
   type ChecklistItemOutcome,
-} from "./item-summary.js";
+} from "./run/item-summary.js";
 import { GitError, VibestrateError, describeError } from "../utils/errors.js";
 import { nowIso, durationMs } from "../utils/time.js";
 import { makeUniqueRunId } from "../utils/run-id.js";
 // Re-exported so existing importers (server routes, workflow runner) keep
 // getting `makeRunId` from here; the implementation now lives in run-id.ts.
 export { makeRunId } from "../utils/run-id.js";
-import { MetricsStore } from "./metrics-store.js";
-import { makeEmptyMetrics, type RoleMetrics } from "./runtime-metrics.js";
+import { MetricsStore } from "./metrics/metrics-store.js";
+import { makeEmptyMetrics, type RoleMetrics } from "./metrics/runtime-metrics.js";
 import { computeRunSpendUsd, checkSagaStopConditions } from "./saga/budget.js";
-import { extractTurnInternals } from "./turn-internals.js";
+import { extractTurnInternals } from "./run/turn-internals.js";
 import { getDiffSnapshot, getWorktreeDiffText, redactSecretsInText } from "./diff-service.js";
 import { buildStepPacket, readFreshFileReads } from "./saga/packet.js";
 import type { Provenance } from "../roadmap/roadmap-types.js";
@@ -136,8 +136,8 @@ import { evaluateBlockPolicies } from "../supervisor/policy-block.js";
 import {
   computeMergeReady,
   type ReviewSkipEvidence,
-} from "./merge-readiness.js";
-import { ApprovalService } from "./approval-service.js";
+} from "./run/merge-readiness.js";
+import { ApprovalService } from "./run/approval-service.js";
 import { NotificationService } from "../notifications/notification-service.js";
 import {
   draftRunCompleted,
@@ -145,7 +145,7 @@ import {
   draftProviderFailed,
 } from "../notifications/notification-router.js";
 import type { NotificationDraft } from "../notifications/notification-router.js";
-import { applyPauseIfRequested } from "./pause-service.js";
+import { applyPauseIfRequested } from "./run/pause-service.js";
 import { isTerminal, runStateSchema } from "./state-machine.js";
 import { writeJson, readJson } from "../utils/json.js";
 import {
@@ -157,7 +157,7 @@ import {
 import {
   reconstructDoneOutcomes,
   checklistIdsChanged,
-} from "./resume-checklist.js";
+} from "./run/resume-checklist.js";
 import { readdir } from "node:fs/promises";
 import {
   isGraphFlow,

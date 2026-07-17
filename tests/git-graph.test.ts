@@ -6,7 +6,7 @@ import { execa } from "execa";
 import {
   getCommitDetail,
   getGitGraph,
-} from "../src/core/git-history-service.js";
+} from "../src/core/codebase/git-history-service.js";
 
 const dirs: string[] = [];
 afterEach(async () => {

@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
-import { ApprovalService } from "../src/core/approval-service.js";
-import { detectApprovalRequest } from "../src/core/approval-types.js";
+import { ApprovalService } from "../src/core/run/approval-service.js";
+import { detectApprovalRequest } from "../src/core/run/approval-types.js";
 
 async function tempProject(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-approval-"));

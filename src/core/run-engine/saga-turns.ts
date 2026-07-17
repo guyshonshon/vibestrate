@@ -16,10 +16,10 @@ import {
   type EnhanceStep,
 } from "../saga/enhance.js";
 import { runProvider } from "../../providers/provider-runner.js";
-import { estimateTokensFromText, resolveCost } from "../pricing.js";
-import { roleMetricsSchema } from "../runtime-metrics.js";
-import type { MetricsStore } from "../metrics-store.js";
-import type { EventLog } from "../event-log.js";
+import { estimateTokensFromText, resolveCost } from "../metrics/pricing.js";
+import { roleMetricsSchema } from "../metrics/runtime-metrics.js";
+import type { MetricsStore } from "../metrics/metrics-store.js";
+import type { EventLog } from "../stores/event-log.js";
 import type { ProjectConfig } from "../../project/config-schema.js";
 import type { ResolvedCatalog } from "../../providers/provider-apply.js";
 

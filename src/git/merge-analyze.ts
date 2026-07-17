@@ -27,7 +27,7 @@ import { runStatePath } from "../utils/paths.js";
 import { runStateSchema } from "../core/state-machine.js";
 import { refExists } from "./git.js";
 import { runAssist, type AssistProviderRunner } from "../core/assist/assist-runner.js";
-import { ArtifactStore } from "../core/artifact-store.js";
+import { ArtifactStore } from "../core/stores/artifact-store.js";
 import { isSecretLikePath, redactSecretsInText } from "../core/diff-service.js";
 import { listMergeReadyRuns } from "./integration-service.js";
 

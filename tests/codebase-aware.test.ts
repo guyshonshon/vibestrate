@@ -8,21 +8,21 @@ import {
   PathGuardError,
   resolveSafePath,
 } from "../src/core/path-guard.js";
-import { buildFileTree } from "../src/core/file-tree-service.js";
+import { buildFileTree } from "../src/core/codebase/file-tree-service.js";
 import {
   FileViewError,
   viewFile,
-} from "../src/core/file-view-service.js";
+} from "../src/core/codebase/file-view-service.js";
 import {
   annotateExistence,
   parseCodeReferences,
-} from "../src/core/code-reference-service.js";
+} from "../src/core/codebase/code-reference-service.js";
 import {
   getGitHistory,
   getGitStatus,
-} from "../src/core/git-history-service.js";
-import { getRoleWork } from "../src/core/agent-work-attribution-service.js";
-import { MetricsStore } from "../src/core/metrics-store.js";
+} from "../src/core/codebase/git-history-service.js";
+import { getRoleWork } from "../src/core/metrics/agent-work-attribution-service.js";
+import { MetricsStore } from "../src/core/metrics/metrics-store.js";
 import { runStateSchema } from "../src/core/state-machine.js";
 import { writeJson } from "../src/utils/json.js";
 import { runStatePath, runDir } from "../src/utils/paths.js";

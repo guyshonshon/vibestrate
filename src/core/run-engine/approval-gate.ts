@@ -1,15 +1,15 @@
-import { ApprovalService } from "../approval-service.js";
+import { ApprovalService } from "../run/approval-service.js";
 import {
   applyTransition,
   type RunState,
   type RunStateStore,
 } from "../state-machine.js";
-import type { EventLog } from "../event-log.js";
+import type { EventLog } from "../stores/event-log.js";
 import {
   detectApprovalRequest,
   type ApprovalRisk,
   type ApprovalSource,
-} from "../approval-types.js";
+} from "../run/approval-types.js";
 import {
   draftApprovalRequested,
   type NotificationDraft,

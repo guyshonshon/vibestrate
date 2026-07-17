@@ -5,8 +5,8 @@ import {
   freshFlagMatches,
   buildFlagEntries,
   renderFlagsForPrompt,
-} from "../src/core/ledger-match.js";
-import { deriveLedgerState, type LedgerEntry } from "../src/core/project-ledger.js";
+} from "../src/core/context/ledger-match.js";
+import { deriveLedgerState, type LedgerEntry } from "../src/core/context/project-ledger.js";
 
 const entry = (over: Partial<LedgerEntry>): LedgerEntry => ({
   schemaVersion: 1,

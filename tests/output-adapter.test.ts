@@ -4,7 +4,7 @@ import {
   textOutputAdapter,
   type ProviderOutputAdapter,
 } from "../src/providers/output-adapter.js";
-import { detectApprovalRequest } from "../src/core/approval-types.js";
+import { detectApprovalRequest } from "../src/core/run/approval-types.js";
 
 describe("text output adapter (default)", () => {
   it("passes stdout through as the response text with no metrics", () => {

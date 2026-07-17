@@ -11,8 +11,8 @@ import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
 import { pickupFlow } from "../src/flows/catalog/builtin-flows.js";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
 import { RunStateStore } from "../src/core/state-machine.js";
-import { EventLog } from "../src/core/event-log.js";
-import { requestResume, canRequestResume } from "../src/core/pause-service.js";
+import { EventLog } from "../src/core/stores/event-log.js";
+import { requestResume, canRequestResume } from "../src/core/run/pause-service.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({

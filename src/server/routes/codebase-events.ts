@@ -3,7 +3,7 @@ import {
   FileTreeWatcher,
   GitStatusWatcher,
   type CodebaseWatchEvent,
-} from "../../core/codebase-watch-service.js";
+} from "../../core/codebase/codebase-watch-service.js";
 import { runStatePath } from "../../utils/paths.js";
 import { pathExists } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";

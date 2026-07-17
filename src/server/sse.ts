@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { promises as fsp } from "node:fs";
 import { runEventsPath } from "../utils/paths.js";
-import { streamFilePath } from "../core/provider-stream-store.js";
+import { streamFilePath } from "../core/stores/provider-stream-store.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 export type SseClient = {

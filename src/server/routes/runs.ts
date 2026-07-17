@@ -12,46 +12,46 @@ import {
 import { runStateSchema } from "../../core/state-machine.js";
 import { applyTransition, isTerminal, RunStateStore, renameRun } from "../../core/state-machine.js";
 import { runAwaitsInput } from "../../spec-up/spec-up-chain.js";
-import { EventLog, type VibestrateEvent } from "../../core/event-log.js";
+import { EventLog, type VibestrateEvent } from "../../core/stores/event-log.js";
 import {
   PauseError,
   requestPause,
   requestResume,
-} from "../../core/pause-service.js";
+} from "../../core/run/pause-service.js";
 import { writeJson, readJson } from "../../utils/json.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 import { streamRunEvents, streamProviderOutput } from "../sse.js";
 import {
   listStreams,
   readStream,
-} from "../../core/provider-stream-store.js";
+} from "../../core/stores/provider-stream-store.js";
 import { streamAggregateRunEvents } from "../sse-aggregate.js";
 import {
   buildRunReplay,
   RunReplayError,
-} from "../../core/run-replay-service.js";
+} from "../../core/run/run-replay-service.js";
 import { deriveRerunArgs, formatArgv } from "../../scheduler/rerun-args.js";
 import {
   readRunAssurance,
   buildAndWriteRunAssurance,
 } from "../../safety/run-assurance.js";
-import { buildRunAudit } from "../../core/run-audit.js";
-import { deriveEngagement } from "../../core/run-engagement.js";
+import { buildRunAudit } from "../../core/run/run-audit.js";
+import { deriveEngagement } from "../../core/run/run-engagement.js";
 import { readdir } from "node:fs/promises";
-import type { RunSpec } from "../../core/run-launcher.js";
-import { contextSourceSchema } from "../../core/context-source-schema.js";
-import { resolveRestorePreview, RunLaunchError } from "../../core/run-launcher.js";
+import type { RunSpec } from "../../core/run/run-launcher.js";
+import { contextSourceSchema } from "../../core/context/context-source-schema.js";
+import { resolveRestorePreview, RunLaunchError } from "../../core/run/run-launcher.js";
 import {
   planSnapshotPrune,
   executeSnapshotPrune,
-} from "../../core/phase-snapshots.js";
+} from "../../core/run/phase-snapshots.js";
 import { makeUniqueRunId } from "../../utils/run-id.js";
 import { startDetachedRun } from "../../core/detached-run.js";
 import {
   appendControl,
   listControls,
   pendingControls,
-} from "../../core/run-control.js";
+} from "../../core/stores/run-control.js";
 
 export type RunRoutesDeps = {
   projectRoot: string;

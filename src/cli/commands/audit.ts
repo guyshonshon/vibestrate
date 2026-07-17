@@ -7,7 +7,7 @@ import {
   type AuditAttemptOutcome,
   type AuditStep,
   type RunAudit,
-} from "../../core/run-audit.js";
+} from "../../core/run/run-audit.js";
 import { readJson } from "../../utils/json.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import { collectPerItemVerdicts, type PerItemVerdict } from "../../flows/runtime/per-item-verdicts.js";

@@ -4,7 +4,7 @@ import {
   effectiveVerificationDecision,
   parseReviewDecision,
   parseVerificationDecision,
-} from "../src/core/review-parser.js";
+} from "../src/core/run/review-parser.js";
 
 describe("review parser", () => {
   it("parses APPROVED", () => {

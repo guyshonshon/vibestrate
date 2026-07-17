@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
-import { deriveRunAudit, buildRunAudit } from "../src/core/run-audit.js";
-import type { VibestrateEvent } from "../src/core/event-log.js";
+import { deriveRunAudit, buildRunAudit } from "../src/core/run/run-audit.js";
+import type { VibestrateEvent } from "../src/core/stores/event-log.js";
 import { runStateSchema } from "../src/core/state-machine.js";
-import { runtimeMetricsSchema } from "../src/core/runtime-metrics.js";
+import { runtimeMetricsSchema } from "../src/core/metrics/runtime-metrics.js";
 import { ensureDir } from "../src/utils/fs.js";
 import { runDir, runStatePath, runEventsPath } from "../src/utils/paths.js";
 import { writeJson } from "../src/utils/json.js";
-import { MetricsStore } from "../src/core/metrics-store.js";
+import { MetricsStore } from "../src/core/metrics/metrics-store.js";
 
 const ts = "2026-06-06T00:00:00.000Z";
 

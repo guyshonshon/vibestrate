@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { evaluateReviewDescent } from "../src/core/review-descent.js";
+import { evaluateReviewDescent } from "../src/core/run/review-descent.js";
 import {
   computeMergeReady,
   isReviewSatisfied,
   type MergeReadinessInput,
-} from "../src/core/merge-readiness.js";
+} from "../src/core/run/merge-readiness.js";
 import { deriveRunAssurance } from "../src/safety/run-assurance.js";
 import { expressFlow } from "../src/flows/catalog/builtin-flows.js";
 import { flowDefinitionSchema } from "../src/flows/schemas/flow-schema.js";

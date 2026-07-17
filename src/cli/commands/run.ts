@@ -9,7 +9,7 @@ import {
   resolveResumeFrom,
   resolveRestorePreview,
   RunLaunchError,
-} from "../../core/run-launcher.js";
+} from "../../core/run/run-launcher.js";
 import { chooseRunFlow, type WorkflowSelection } from "../../supervisor/select-workflow.js";
 import { SPEC_UP_TARGET_FLOW } from "../../supervisor/flow-sizing.js";
 import { resolvePersona } from "../../supervisor/personas.js";
@@ -27,7 +27,7 @@ import {
   releaseTaskLock,
   TaskLockedError,
   type TaskLockHandle,
-} from "../../core/run-lock.js";
+} from "../../core/run/run-lock.js";
 import { startServer, DEFAULT_VIBESTRATE_PORT } from "../../server/server.js";
 import { setCliWriter } from "../../notifications/gateways/cli-gateway.js";
 import {
@@ -151,7 +151,7 @@ export type RunCommandOptions = {
    *  When set with a linked task, the task's `sagaBudget` is passed through. */
   sagaMode?: boolean;
   /** Context sources injected into every agent prompt. */
-  contextSources?: import("../../core/context-source-schema.js").ContextSource[];
+  contextSources?: import("../../core/context/context-source-schema.js").ContextSource[];
 };
 
 export async function runRunCommand(

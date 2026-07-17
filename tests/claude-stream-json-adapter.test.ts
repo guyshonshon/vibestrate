@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { claudeStreamJsonAdapter } from "../src/providers/adapters/claude-stream-json.js";
 import { OutputAdapterError } from "../src/providers/output-adapter.js";
-import { detectApprovalRequest } from "../src/core/approval-types.js";
+import { detectApprovalRequest } from "../src/core/run/approval-types.js";
 
 // Fixtures captured from real `claude` 2.1.x (`-p --output-format stream-json
 // --verbose [--include-partial-messages]`), trimmed to the relevant events.

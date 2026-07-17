@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
-import { materializeContextSources } from "../src/core/context-sources.js";
+import { materializeContextSources } from "../src/core/context/context-sources.js";
 import type { FetchImpl } from "../src/flows/runtime/flow-portability.js";
 
 function okFetch(body: string): FetchImpl {

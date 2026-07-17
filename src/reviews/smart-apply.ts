@@ -18,8 +18,8 @@ import {
   resolveValidationProfile,
   ValidationProfileError,
   type ValidationProfileSource,
-} from "../core/validation-profile-service.js";
-import { recordValidationProfileUsage } from "../core/validation-profile-usage-service.js";
+} from "../core/validation/validation-profile-service.js";
+import { recordValidationProfileUsage } from "../core/validation/validation-profile-usage-service.js";
 import {
   bundlePatchesDir,
   suggestionPatchesDir,
@@ -36,7 +36,7 @@ import {
 import type { ReviewSuggestion } from "./review-suggestion-types.js";
 import type { ReviewSuggestionService } from "./review-suggestion-service.js";
 import type { SuggestionBundleStore } from "./suggestion-bundle-store.js";
-import type { EventLog } from "../core/event-log.js";
+import type { EventLog } from "../core/stores/event-log.js";
 import type { BundlePreflightResult } from "./suggestion-bundle-service.js";
 import type { draftBundleEvent } from "../notifications/notification-router.js";
 

@@ -3,7 +3,7 @@ import { pathExists } from "../../utils/fs.js";
 import { readJson, writeJson } from "../../utils/json.js";
 import { runFlowArbitrationPath } from "../../utils/paths.js";
 import { nowIso } from "../../utils/time.js";
-import type { ValidationResults } from "../../core/validation-runner.js";
+import type { ValidationResults } from "../../core/validation/validation-runner.js";
 import type {
   ResolvedFlowSnapshot,
   ResolvedFlowStep,

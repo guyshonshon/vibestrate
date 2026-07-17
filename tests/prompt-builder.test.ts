@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildRolePrompt } from "../src/core/prompt-builder.js";
+import { buildRolePrompt } from "../src/core/context/prompt-builder.js";
 import type { PermissionProfile } from "../src/safety/permission-schema.js";
 
 const writeProfile: PermissionProfile = {

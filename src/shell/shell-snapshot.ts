@@ -20,7 +20,7 @@ import { parseReviewOutput } from "../flows/runtime/review-findings.js";
 import {
   deriveStartupProgress,
   type StartupProgress,
-} from "../core/run-startup.js";
+} from "../core/run/run-startup.js";
 import {
   runStateSchema,
   isTerminal,

@@ -6,15 +6,15 @@ import {
 } from "../../providers/provider-detection.js";
 import { loadConfig } from "../../project/config-loader.js";
 import type { LoadedConfig } from "../../project/config-loader.js";
-import { MetricsStore } from "../../core/metrics-store.js";
+import { MetricsStore } from "../../core/metrics/metrics-store.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import {
   buildProvidersOverview,
   buildMetricsOverview,
   type OverviewRange,
   type ProviderLookup,
-} from "../../core/overview-aggregator.js";
-import type { RuntimeMetrics } from "../../core/runtime-metrics.js";
+} from "../../core/metrics/overview-aggregator.js";
+import type { RuntimeMetrics } from "../../core/metrics/runtime-metrics.js";
 import { projectRunsDir, runStatePath } from "../../utils/paths.js";
 import { readDirSafe, pathExists } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";

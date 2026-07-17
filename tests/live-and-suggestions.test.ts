@@ -8,7 +8,7 @@ import {
   openInEditor,
   substitute,
   validateEditorConfig,
-} from "../src/core/editor-service.js";
+} from "../src/core/codebase/editor-service.js";
 import {
   buildProjectRoots,
   resolveSafePath,
@@ -23,7 +23,7 @@ import {
   SuggestionServiceError,
 } from "../src/reviews/review-suggestion-service.js";
 import { checkPatchSafety } from "../src/safety/patch-safety.js";
-import { renderFinalReport } from "../src/core/final-report.js";
+import { renderFinalReport } from "../src/core/run/final-report.js";
 import { runStateSchema } from "../src/core/state-machine.js";
 import { writeJson } from "../src/utils/json.js";
 import { runStatePath, runDir } from "../src/utils/paths.js";

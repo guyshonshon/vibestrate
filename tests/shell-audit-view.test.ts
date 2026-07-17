@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import React from "react";
 import { render } from "ink-testing-library";
 import { AuditView } from "../src/shell/ink/pages/RunsPage.js";
-import type { RunAudit, AuditStep } from "../src/core/run-audit.js";
+import type { RunAudit, AuditStep } from "../src/core/run/run-audit.js";
 
 function step(
   over: Partial<AuditStep> & { id: string; label: string },

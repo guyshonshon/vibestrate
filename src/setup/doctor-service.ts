@@ -541,7 +541,7 @@ export async function runDoctor(input: {
       });
     }
 
-    const audit = await import("../core/validation-profile-audit-service.js")
+    const audit = await import("../core/validation/validation-profile-audit-service.js")
       .then((m) =>
         m.auditValidationProfileReferences(projectRoot, loaded.config),
       )
@@ -563,7 +563,7 @@ export async function runDoctor(input: {
         loaded.config.commands.validationProfiles ?? {},
       );
       const { suggestProfileName } = await import(
-        "../core/validation-profile-migration-service.js"
+        "../core/validation/validation-profile-migration-service.js"
       );
       if (audit.staleSuggestionReferences.length > 0) {
         const head = audit.staleSuggestionReferences.slice(0, 5);

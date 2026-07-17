@@ -6,7 +6,7 @@ import {
   listStreams,
   readStream,
   streamFilePath,
-} from "../../core/provider-stream-store.js";
+} from "../../core/stores/provider-stream-store.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 
 async function cmdLogs(

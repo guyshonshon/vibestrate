@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { loadConfig } from "../../project/config-loader.js";
 import { setConfigValue } from "../../setup/config-update-service.js";
-import { computeDailySpendUsd } from "../../core/spend-cap-service.js";
+import { computeDailySpendUsd } from "../../core/metrics/spend-cap-service.js";
 import { color, symbol } from "../ui/format.js";
 
 const ACTIONS = ["stop", "downgrade-model", "reduce-effort"] as const;

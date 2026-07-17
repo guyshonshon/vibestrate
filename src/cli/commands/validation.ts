@@ -5,7 +5,7 @@ import {
   listValidationProfiles,
   resolveValidationProfile,
   ValidationProfileError,
-} from "../../core/validation-profile-service.js";
+} from "../../core/validation/validation-profile-service.js";
 import {
   applyMigration,
   listMigrations,
@@ -13,22 +13,22 @@ import {
   ValidationProfileMigrationError,
   type MigrationPreview,
   type MigrationScope,
-} from "../../core/validation-profile-migration-service.js";
+} from "../../core/validation/validation-profile-migration-service.js";
 import {
   applyRename,
   previewRename,
   ValidationProfileRenameError,
   type RenamePreview,
-} from "../../core/validation-profile-rename-service.js";
-import { readUsageReport } from "../../core/validation-profile-usage-service.js";
+} from "../../core/validation/validation-profile-rename-service.js";
+import { readUsageReport } from "../../core/validation/validation-profile-usage-service.js";
 import {
   auditValidationProfileReferences,
   ValidationProfileAuditError,
   type AuditScope,
   type ProfileAuditResult,
   type StaleProfileReference,
-} from "../../core/validation-profile-audit-service.js";
-import { suggestProfileName } from "../../core/validation-profile-migration-service.js";
+} from "../../core/validation/validation-profile-audit-service.js";
+import { suggestProfileName } from "../../core/validation/validation-profile-migration-service.js";
 
 export function buildValidationCommand(): Command {
   const cmd = new Command("validation").description(

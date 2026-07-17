@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { StateTransitionError } from "../utils/errors.js";
-import { contextSourceSchema } from "./context-source-schema.js";
+import { contextSourceSchema } from "./context/context-source-schema.js";
 import { runStatePath } from "../utils/paths.js";
 import { writeJson, readJson } from "../utils/json.js";
 import { pathExists } from "../utils/fs.js";

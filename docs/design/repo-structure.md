@@ -1,7 +1,13 @@
 # Repo structure: consolidation + big-file split program
 
-Status: revised-after-review (2026-07-16); Waves A + B executed (2026-07-16);
-Wave C executed (2026-07-17).
+Status: COMPLETE - all four waves executed (A+B 2026-07-16, C+D 2026-07-17).
+Wave D outcome: core/'s 65 flat files -> 11 root hubs + 6 evidence-based
+clusters (run/ 18, context/ 8, codebase/ 8, metrics/ 7, validation/ 7,
+stores/ 6). state-machine.ts deliberately stays at root: it is the run
+domain's shared type vocabulary (97 importers) - moving it would have been
+95 rewrites for taxonomy purity. Every stay-root file has a stated reason
+(cross-cutting primitive or fixed coupling). 467 specifiers rewritten via
+the codemod, extended to cover inline import("...").Type nodes.
 Wave C outcome: api.ts 2,759 -> 102-line barrel over 25 lib/api/ slices
 (239/239 methods byte-identical, composition-guard test added); six pages
 extracted into components/<domain>/ (FlowBuilder 2,497->976, TaskDetail

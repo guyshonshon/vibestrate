@@ -17,7 +17,7 @@ import {
   planSnapshotPrune,
   executeSnapshotPrune,
   countSnapshotRuns,
-} from "../src/core/phase-snapshots.js";
+} from "../src/core/run/phase-snapshots.js";
 
 async function git(cwd: string, args: string[]) {
   await execa("git", args, { cwd });

@@ -6,12 +6,12 @@ import {
   renderProjectStateDigest,
   writeProjectStateDigest,
   projectStatePath,
-} from "../src/core/project-state-digest.js";
+} from "../src/core/context/project-state-digest.js";
 import {
   LedgerStore,
   deriveLedgerState,
   type LedgerEntry,
-} from "../src/core/project-ledger.js";
+} from "../src/core/context/project-ledger.js";
 
 const ts = "2026-06-16T00:00:00.000Z";
 
@@ -115,7 +115,7 @@ describe("writeProjectStateDigest (atomic, redacting, regenerable)", () => {
   it("recordRunInLedger regenerates STATE.md at the run boundary", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-state-"));
     try {
-      const { recordRunInLedger } = await import("../src/core/project-ledger.js");
+      const { recordRunInLedger } = await import("../src/core/context/project-ledger.js");
       await recordRunInLedger(dir, "run-1", ts, {
         status: "merge_ready",
         displayName: "bold-lovelace",

@@ -12,7 +12,7 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { execa } from "execa";
 import { detectFullProject } from "./project-detector.js";
-import { listCodebaseFiles, searchCodebaseContent } from "../core/codebase-search-service.js";
+import { listCodebaseFiles, searchCodebaseContent } from "../core/codebase/codebase-search-service.js";
 import { writeTextAtomic, ensureDir, pathExists } from "../utils/fs.js";
 import { redactSecretsInText } from "../core/diff-service.js";
 import { vibestrateRoot } from "../utils/paths.js";

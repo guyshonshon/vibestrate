@@ -73,7 +73,7 @@ import { useSnapshot } from "./hooks/useSnapshot.js";
 import { useDailySpend } from "./hooks/useDailySpend.js";
 import { useGitContext } from "./hooks/useGitContext.js";
 import { useFlows } from "./hooks/useFlows.js";
-import { evaluateSpendCap } from "../../core/spend-cap-service.js";
+import { evaluateSpendCap } from "../../core/metrics/spend-cap-service.js";
 import { pauseRun, resumeRun, abortRun } from "../shell-actions.js";
 import { pauseScheduler, resumeScheduler } from "./queue/queue-actions.js";
 import type { PaletteCommand } from "./palette.js";

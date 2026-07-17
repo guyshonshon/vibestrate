@@ -3,7 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
 import { execa } from "execa";
-import { getBranchesOverview } from "../src/core/git-history-service.js";
+import { getBranchesOverview } from "../src/core/codebase/git-history-service.js";
 
 const dirs: string[] = [];
 afterEach(async () => {

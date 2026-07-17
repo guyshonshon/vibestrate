@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
-import { ApprovalService } from "../src/core/approval-service.js";
+import { ApprovalService } from "../src/core/run/approval-service.js";
 
 async function makeRun(): Promise<{ dir: string; svc: ApprovalService }> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-appr-conc-"));

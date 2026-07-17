@@ -7,7 +7,7 @@ import {
   planSnapshotPrune,
   executeSnapshotPrune,
   type SnapshotPruneScope,
-} from "../../core/phase-snapshots.js";
+} from "../../core/run/phase-snapshots.js";
 import { color, indent, symbol, isInteractiveTTY } from "../ui/format.js";
 
 export type RunsPruneOptions = {

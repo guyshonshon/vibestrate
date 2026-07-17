@@ -12,7 +12,7 @@ import { CARD_PROPS, FOCAL_CARD_PROPS, clip, eventTypeColor, runStatusToken, tim
 import { SelectionMark, StatusPill } from "../components/visuals.js";
 import { useTerminalWidth } from "../hooks/useTerminalWidth.js";
 import { useRunAudit } from "../hooks/useRunAudit.js";
-import type { RunAudit, AuditStep } from "../../../core/run-audit.js";
+import type { RunAudit, AuditStep } from "../../../core/run/run-audit.js";
 
 type Props = {
   snapshot: ShellSnapshot;

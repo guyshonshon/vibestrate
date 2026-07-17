@@ -11,7 +11,7 @@ import {
   renderLedgerBrief,
   renderLedgerForPrompt,
   type LedgerEntry,
-} from "../src/core/project-ledger.js";
+} from "../src/core/context/project-ledger.js";
 
 const entry = (over: Partial<LedgerEntry>): LedgerEntry => ({
   schemaVersion: 1,

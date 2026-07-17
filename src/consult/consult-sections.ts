@@ -1,4 +1,4 @@
-import type { LedgerState } from "../core/project-ledger.js";
+import type { LedgerState } from "../core/context/project-ledger.js";
 
 // ── Deterministic consult sections ───────────────────────────────────────────
 //

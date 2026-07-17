@@ -1,12 +1,12 @@
 import type { ProjectConfig, PermissionMode } from "../../project/config-schema.js";
 import type { RunState, RunStateStore } from "../state-machine.js";
 import type { PolicyWarning } from "../policy-engine.js";
-import type { ArtifactStore } from "../artifact-store.js";
-import type { EventLog } from "../event-log.js";
+import type { ArtifactStore } from "../stores/artifact-store.js";
+import type { EventLog } from "../stores/event-log.js";
 import type { RichProviderRunResult } from "../../providers/provider-runner.js";
 import type { ProviderSessionRequest } from "../../providers/provider-types.js";
 import type { ResolvedFlowSnapshot } from "../../flows/schemas/flow-schema.js";
-import type { ContextSource } from "../context-source-schema.js";
+import type { ContextSource } from "../context/context-source-schema.js";
 import type { WorkflowSelection } from "../../supervisor/select-workflow.js";
 import type { IsolationMode } from "../execution/execution-backend-schema.js";
 import type { PreparedFlowParticipantTurn } from "../../flows/runtime/flow-participant-ledger.js";

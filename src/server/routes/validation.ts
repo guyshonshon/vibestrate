@@ -1,19 +1,19 @@
 import type { FastifyInstance } from "fastify";
 import { loadConfig } from "../../project/config-loader.js";
-import { listValidationProfiles } from "../../core/validation-profile-service.js";
+import { listValidationProfiles } from "../../core/validation/validation-profile-service.js";
 import {
   applyMigration,
   listMigrations,
   previewMigration,
   ValidationProfileMigrationError,
   type MigrationScope,
-} from "../../core/validation-profile-migration-service.js";
+} from "../../core/validation/validation-profile-migration-service.js";
 import {
   applyRename,
   previewRename,
   ValidationProfileRenameError,
-} from "../../core/validation-profile-rename-service.js";
-import { readUsageReport } from "../../core/validation-profile-usage-service.js";
+} from "../../core/validation/validation-profile-rename-service.js";
+import { readUsageReport } from "../../core/validation/validation-profile-usage-service.js";
 import { HttpError, assertSafeRunId } from "../security.js";
 
 export type ValidationRoutesDeps = { projectRoot: string };

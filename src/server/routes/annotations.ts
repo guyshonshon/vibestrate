@@ -6,7 +6,7 @@ import {
   deleteAnnotation,
   listAnnotations,
   updateAnnotation,
-} from "../../core/annotations-service.js";
+} from "../../core/codebase/annotations-service.js";
 import { HttpError } from "../security.js";
 
 export type AnnotationsRoutesDeps = { projectRoot: string };

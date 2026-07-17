@@ -6,9 +6,9 @@ import {
   buildRunTraceOtlp,
   exportRunToOtlp,
   type OtlpFetch,
-} from "../src/core/otel-exporter.js";
-import { MetricsStore } from "../src/core/metrics-store.js";
-import { makeEmptyMetrics, type RuntimeMetrics } from "../src/core/runtime-metrics.js";
+} from "../src/core/metrics/otel-exporter.js";
+import { MetricsStore } from "../src/core/metrics/metrics-store.js";
+import { makeEmptyMetrics, type RuntimeMetrics } from "../src/core/metrics/runtime-metrics.js";
 
 function metricsFixture(): RuntimeMetrics {
   const base = makeEmptyMetrics({

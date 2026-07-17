@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import {
   computeDailySpendUsd,
   evaluateSpendCap,
-} from "../src/core/spend-cap-service.js";
+} from "../src/core/metrics/spend-cap-service.js";
 import type { BudgetConfig } from "../src/project/config-schema.js";
 
 function budget(over: Partial<BudgetConfig>): BudgetConfig {

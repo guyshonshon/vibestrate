@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { deriveStartupProgress } from "../src/core/run-startup.js";
+import { deriveStartupProgress } from "../src/core/run/run-startup.js";
 
 const ev = (stage: string, status: string, detail?: string) => ({
   type: "run.startup",

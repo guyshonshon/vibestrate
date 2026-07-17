@@ -1,8 +1,8 @@
 import path from "node:path";
-import type { ArtifactStore } from "../artifact-store.js";
-import type { EventLog } from "../event-log.js";
-import type { ValidationResults } from "../validation-runner.js";
-import type { PriorArtifact } from "../prompt-builder.js";
+import type { ArtifactStore } from "../stores/artifact-store.js";
+import type { EventLog } from "../stores/event-log.js";
+import type { ValidationResults } from "../validation/validation-runner.js";
+import type { PriorArtifact } from "../context/prompt-builder.js";
 import type { ProviderFailureClass } from "../provider-resilience.js";
 import { getDiffSnapshot } from "../diff-service.js";
 import { nowIso } from "../../utils/time.js";

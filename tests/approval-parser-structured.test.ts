@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { detectApprovalRequest } from "../src/core/approval-types.js";
+import { detectApprovalRequest } from "../src/core/run/approval-types.js";
 
 describe("detectApprovalRequest - structured fields", () => {
   it("required=false when no marker is present", () => {

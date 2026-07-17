@@ -1,6 +1,6 @@
 import type { PermissionMode } from "../../project/config-schema.js";
 import type { ActionEvaluator } from "../../safety/action-broker.js";
-import type { ApprovalRequest } from "../approval-types.js";
+import type { ApprovalRequest } from "../run/approval-types.js";
 import type { FlowFinding } from "../../flows/schemas/flow-output-contracts.js";
 
 /**

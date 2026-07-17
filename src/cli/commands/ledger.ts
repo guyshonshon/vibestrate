@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
-import { LedgerStore, renderLedgerBrief } from "../../core/project-ledger.js";
+import { LedgerStore, renderLedgerBrief } from "../../core/context/project-ledger.js";
 import { color } from "../ui/format.js";
 
 /**

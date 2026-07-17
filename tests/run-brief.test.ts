@@ -4,7 +4,7 @@ import {
   appendStepOutcome,
   updateRunBriefFacts,
   renderRunBrief,
-} from "../src/core/run-brief.js";
+} from "../src/core/run/run-brief.js";
 import type { WorkflowSelection } from "../src/supervisor/select-workflow.js";
 
 const selection: WorkflowSelection = {

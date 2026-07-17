@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
-import { ArtifactStore } from "../src/core/artifact-store.js";
+import { ArtifactStore } from "../src/core/stores/artifact-store.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 // ── P1 Spec-up realignment: the keystone ───────────────────────────────────────
@@ -32,7 +32,7 @@ vi.mock("../src/core/detached-run.js", () => ({
 const { approveSpecUpAndBuild, SpecUpChainError } = await import(
   "../src/spec-up/spec-up-chain.js"
 );
-const { runFromSpec } = await import("../src/core/run-launcher.js");
+const { runFromSpec } = await import("../src/core/run/run-launcher.js");
 
 const noProvider: ProviderDetectionRunner = async () => ({
   exitCode: 127,

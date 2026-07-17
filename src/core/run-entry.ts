@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { runFromSpec, runSpecSchema } from "./run-launcher.js";
+import { runFromSpec, runSpecSchema } from "./run/run-launcher.js";
 
 /**
  * Headless run entry. The dashboard server spawns THIS (a core module) - not

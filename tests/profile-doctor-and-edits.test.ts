@@ -6,7 +6,7 @@ import { execa } from "execa";
 import {
   auditValidationProfileReferences,
   ValidationProfileAuditError,
-} from "../src/core/validation-profile-audit-service.js";
+} from "../src/core/validation/validation-profile-audit-service.js";
 import { runDoctor } from "../src/setup/doctor-service.js";
 import { applyDoctorFixes } from "../src/setup/doctor-service.js";
 import { ReviewSuggestionService } from "../src/reviews/review-suggestion-service.js";

@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { detectEditors, isSafeCommandName, openInEditor, validateEditorConfig } from "../../core/editor-service.js";
+import { detectEditors, isSafeCommandName, openInEditor, validateEditorConfig } from "../../core/codebase/editor-service.js";
 import { loadConfig } from "../../project/config-loader.js";
 import { setConfigValue } from "../../setup/config-update-service.js";
 import { buildProjectRoots, resolveSafePath } from "../../core/path-guard.js";

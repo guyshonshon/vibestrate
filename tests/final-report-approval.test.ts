@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { renderFinalReport } from "../src/core/final-report.js";
-import { makeEmptyMetrics } from "../src/core/runtime-metrics.js";
-import type { ApprovalRequest } from "../src/core/approval-types.js";
+import { renderFinalReport } from "../src/core/run/final-report.js";
+import { makeEmptyMetrics } from "../src/core/metrics/runtime-metrics.js";
+import type { ApprovalRequest } from "../src/core/run/approval-types.js";
 
 const baseState = {
   runId: "r1",

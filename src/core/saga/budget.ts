@@ -12,7 +12,7 @@
 // in src/core/spend-cap-service.ts), which is checked pre-turn. Do not treat
 // `maxSpendUsd` as a hard per-step limit.
 
-import type { MetricsStore } from "../metrics-store.js";
+import type { MetricsStore } from "../metrics/metrics-store.js";
 
 /**
  * The run's total USD spend so far - the sum of per-role costs, surfaced as

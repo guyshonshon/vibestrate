@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { writeJson } from "../utils/json.js";
-import type { RunSpec } from "./run-launcher.js";
+import type { RunSpec } from "./run/run-launcher.js";
 
 /**
  * Resolve the bundled core run entry (`dist/run-entry.js`). The dashboard and

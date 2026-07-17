@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractTurnInternals } from "../src/core/turn-internals.js";
+import { extractTurnInternals } from "../src/core/run/turn-internals.js";
 
 // Real claude stream-json shapes (captured from `claude --output-format
 // stream-json`, v2.x): system init, assistant messages with content[] blocks

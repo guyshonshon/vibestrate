@@ -5,14 +5,14 @@ import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
 import { runRunCommand } from "./run.js";
-import { readLiveTaskLockHolder } from "../../core/run-lock.js";
+import { readLiveTaskLockHolder } from "../../core/run/run-lock.js";
 import { RunStateStore } from "../../core/state-machine.js";
-import { EventLog } from "../../core/event-log.js";
+import { EventLog } from "../../core/stores/event-log.js";
 import {
   PauseError,
   requestPause,
   requestResume,
-} from "../../core/pause-service.js";
+} from "../../core/run/pause-service.js";
 import { getTaskRunStatus, NotSupervisedError } from "../../core/saga/saga-status.js";
 
 async function svc() {

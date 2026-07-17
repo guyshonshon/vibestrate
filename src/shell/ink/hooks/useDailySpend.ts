@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { computeDailySpendUsd } from "../../../core/spend-cap-service.js";
+import { computeDailySpendUsd } from "../../../core/metrics/spend-cap-service.js";
 
 type Options = {
   projectRoot: string;

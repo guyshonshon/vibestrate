@@ -6,10 +6,10 @@ import {
   PathGuardError,
   resolveSafePath,
 } from "../../core/path-guard.js";
-import { getProjectMetadata } from "../../core/project-context-service.js";
-import { buildFileTree } from "../../core/file-tree-service.js";
-import { FileViewError, viewFile } from "../../core/file-view-service.js";
-import { searchCodebaseContent } from "../../core/codebase-search-service.js";
+import { getProjectMetadata } from "../../core/context/project-context-service.js";
+import { buildFileTree } from "../../core/codebase/file-tree-service.js";
+import { FileViewError, viewFile } from "../../core/codebase/file-view-service.js";
+import { searchCodebaseContent } from "../../core/codebase/codebase-search-service.js";
 import {
   supervisorFileSearch,
   CodebaseSearchError,
@@ -70,7 +70,7 @@ export async function registerProjectRoutes(
   // brief - read-only.
   app.get("/api/ledger", async () => {
     const { LedgerStore, renderLedgerBrief } = await import(
-      "../../core/project-ledger.js"
+      "../../core/context/project-ledger.js"
     );
     const state = await new LedgerStore(projectRoot).state();
     return { state, brief: renderLedgerBrief(state) };

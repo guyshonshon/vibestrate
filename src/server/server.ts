@@ -48,7 +48,7 @@ import {
   isLoopbackHost,
   timingSafeEqualStr,
 } from "./security.js";
-import { recordIssue } from "../core/issues-store.js";
+import { recordIssue } from "../core/stores/issues-store.js";
 import { formatError, toIssueInput } from "../core/error-format.js";
 
 export const DEFAULT_VIBESTRATE_PORT = 4317;

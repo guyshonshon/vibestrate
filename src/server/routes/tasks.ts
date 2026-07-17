@@ -539,7 +539,7 @@ export async function registerTasksRoutes(
           const { RunStateStore, applyTransition } = await import(
             "../../core/state-machine.js"
           );
-          const { EventLog } = await import("../../core/event-log.js");
+          const { EventLog } = await import("../../core/stores/event-log.js");
           const { pathExists } = await import("../../utils/fs.js");
           const stateFile = runStatePath(deps.projectRoot, task.currentRunId);
           if (await pathExists(stateFile)) {

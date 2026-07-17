@@ -9,12 +9,12 @@ import {
   TaskLockedError,
   taskLockPath,
   __setReclaimRaceHookForTests,
-} from "../src/core/run-lock.js";
+} from "../src/core/run/run-lock.js";
 import { runStatePath, runDir } from "../src/utils/paths.js";
 import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
-import { runFromSpec } from "../src/core/run-launcher.js";
+import { runFromSpec } from "../src/core/run/run-launcher.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({

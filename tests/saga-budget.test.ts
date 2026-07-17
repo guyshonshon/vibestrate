@@ -10,8 +10,8 @@ import { loadConfig } from "../src/project/config-loader.js";
 import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
 import { pickupReviewFlow } from "../src/flows/catalog/builtin-flows.js";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
-import { MetricsStore } from "../src/core/metrics-store.js";
-import { makeEmptyMetrics, type RoleMetrics } from "../src/core/runtime-metrics.js";
+import { MetricsStore } from "../src/core/metrics/metrics-store.js";
+import { makeEmptyMetrics, type RoleMetrics } from "../src/core/metrics/runtime-metrics.js";
 import {
   computeRunSpendUsd,
   checkSagaStopConditions,

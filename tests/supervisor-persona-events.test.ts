@@ -9,7 +9,7 @@ import { Orchestrator } from "../src/core/orchestrator.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import { chooseRunFlow } from "../src/supervisor/select-workflow.js";
 import { runEventsPath } from "../src/utils/paths.js";
-import type { VibestrateEvent } from "../src/core/event-log.js";
+import type { VibestrateEvent } from "../src/core/stores/event-log.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 // The seam under test: the orchestrator turns the recorded flow SELECTION into the

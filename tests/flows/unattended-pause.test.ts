@@ -3,7 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
 import { execa } from "execa";
-import { ApprovalService } from "../../src/core/approval-service.js";
+import { ApprovalService } from "../../src/core/run/approval-service.js";
 import { Orchestrator } from "../../src/core/orchestrator.js";
 import { resolveFlow } from "../../src/flows/runtime/flow-resolver.js";
 import { flowDefinitionSchema } from "../../src/flows/schemas/flow-schema.js";

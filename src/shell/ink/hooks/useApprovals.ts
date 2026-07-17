@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ApprovalService } from "../../../core/approval-service.js";
-import type { ApprovalRequest } from "../../../core/approval-types.js";
+import { ApprovalService } from "../../../core/run/approval-service.js";
+import type { ApprovalRequest } from "../../../core/run/approval-types.js";
 import type { ShellSnapshot } from "../../shell-snapshot.js";
 
 export type ApprovalRow = ApprovalRequest & { runId: string };

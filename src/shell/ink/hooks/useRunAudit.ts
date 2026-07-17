@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { buildRunAudit, type RunAudit } from "../../../core/run-audit.js";
+import { buildRunAudit, type RunAudit } from "../../../core/run/run-audit.js";
 
 /**
  * Lazily derive a single run's audit tree for the TUI audit tab. Unlike the

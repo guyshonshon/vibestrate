@@ -1,12 +1,12 @@
 import path from "node:path";
-import type { ArtifactStore } from "../artifact-store.js";
+import type { ArtifactStore } from "../stores/artifact-store.js";
 import type { RunState } from "../state-machine.js";
-import type { ValidationResults } from "../validation-runner.js";
+import type { ValidationResults } from "../validation/validation-runner.js";
 import type { PolicyWarning } from "../policy-engine.js";
-import type { MetricsStore } from "../metrics-store.js";
-import type { ApprovalService } from "../approval-service.js";
-import type { ChecklistItemOutcome } from "../item-summary.js";
-import { renderFinalReport } from "../final-report.js";
+import type { MetricsStore } from "../metrics/metrics-store.js";
+import type { ApprovalService } from "../run/approval-service.js";
+import type { ChecklistItemOutcome } from "../run/item-summary.js";
+import { renderFinalReport } from "../run/final-report.js";
 import { ReviewSuggestionService } from "../../reviews/review-suggestion-service.js";
 import type { SuggestionSource } from "../../reviews/review-suggestion-types.js";
 import type { NotificationDraft } from "../../notifications/notification-router.js";
@@ -79,8 +79,8 @@ export async function writeFinalReport(input: {
   validation: ValidationResults | null;
   policyWarnings: PolicyWarning[];
   reviewLoops: number;
-  metrics: import("../runtime-metrics.js").RuntimeMetrics | null;
-  approvals: import("../approval-types.js").ApprovalRequest[];
+  metrics: import("../metrics/runtime-metrics.js").RuntimeMetrics | null;
+  approvals: import("../run/approval-types.js").ApprovalRequest[];
   artifacts: {
     plan?: string;
     architecture?: string;

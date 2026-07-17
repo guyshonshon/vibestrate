@@ -6,11 +6,11 @@ import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
 import { Orchestrator, type ResumeStage } from "../src/core/orchestrator.js";
-import { resolveResumeFrom, RunLaunchError } from "../src/core/run-launcher.js";
+import { resolveResumeFrom, RunLaunchError } from "../src/core/run/run-launcher.js";
 import { findFlowById } from "../src/flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
-import { ArtifactStore } from "../src/core/artifact-store.js";
-import { MetricsStore } from "../src/core/metrics-store.js";
+import { ArtifactStore } from "../src/core/stores/artifact-store.js";
+import { MetricsStore } from "../src/core/metrics/metrics-store.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 

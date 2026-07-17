@@ -11,7 +11,7 @@ import { runStateSchema, type RunState } from "../src/core/state-machine.js";
 import {
   runtimeMetricsSchema,
   type RoleMetrics,
-} from "../src/core/runtime-metrics.js";
+} from "../src/core/metrics/runtime-metrics.js";
 
 const FIXED_NOW = new Date("2026-05-25T18:00:00Z").getTime();
 

@@ -1,5 +1,5 @@
 import { detectProject } from "../../../project/project-detector.js";
-import { ApprovalService } from "../../../core/approval-service.js";
+import { ApprovalService } from "../../../core/run/approval-service.js";
 import { color, header, indent, symbol } from "../../ui/format.js";
 
 export async function runApprovalsShow(

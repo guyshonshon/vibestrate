@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { deriveEngagement } from "../src/core/run-engagement.js";
-import type { VibestrateEvent } from "../src/core/event-log.js";
+import { deriveEngagement } from "../src/core/run/run-engagement.js";
+import type { VibestrateEvent } from "../src/core/stores/event-log.js";
 
 const ts = "2026-06-08T00:00:00.000Z";
 

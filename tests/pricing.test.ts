@@ -4,7 +4,7 @@ import {
   estimateTokensFromText,
   priceForModel,
   resolveCost,
-} from "../src/core/pricing.js";
+} from "../src/core/metrics/pricing.js";
 
 describe("pricing table", () => {
   it("matches model ids by prefix (incl. version suffixes)", () => {

@@ -9,7 +9,7 @@ import {
   listAnnotations,
   renderAnnotationsForPrompt,
   updateAnnotation,
-} from "../src/core/annotations-service.js";
+} from "../src/core/codebase/annotations-service.js";
 
 let root: string;
 

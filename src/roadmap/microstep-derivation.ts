@@ -1,8 +1,8 @@
 import path from "node:path";
 import { pathExists, readText } from "../utils/fs.js";
 import { runEventsPath, runDir } from "../utils/paths.js";
-import { MetricsStore } from "../core/metrics-store.js";
-import { ApprovalService } from "../core/approval-service.js";
+import { MetricsStore } from "../core/metrics/metrics-store.js";
+import { ApprovalService } from "../core/run/approval-service.js";
 import type { MicroStep, MicroStepStage, MicroStepStatus } from "./roadmap-types.js";
 
 type Event = {

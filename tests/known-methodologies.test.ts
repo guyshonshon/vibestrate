@@ -4,7 +4,7 @@ import {
   renderMethodologyForPrompt,
   KNOWN_METHODOLOGY_IDS,
   KNOWN_METHODOLOGIES,
-} from "../src/core/known-methodologies.js";
+} from "../src/core/context/known-methodologies.js";
 
 describe("resolveMethodology", () => {
   it("resolves the known ids, case- and whitespace-insensitively", () => {

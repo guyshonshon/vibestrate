@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { getRoleWork } from "../../core/agent-work-attribution-service.js";
+import { getRoleWork } from "../../core/metrics/agent-work-attribution-service.js";
 import { runStatePath } from "../../utils/paths.js";
 import { pathExists } from "../../utils/fs.js";
 import { assertSafeRunId, HttpError } from "../security.js";

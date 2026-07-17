@@ -602,7 +602,7 @@ export class RoadmapService {
   /** Replace a task's context sources. */
   async setContextSources(
     taskId: string,
-    sources: import("../core/context-source-schema.js").ContextSource[],
+    sources: import("../core/context/context-source-schema.js").ContextSource[],
   ): Promise<Task> {
     const t = await this.store.getTask(taskId);
     if (!t) throw new RoadmapServiceError(`Task "${taskId}" not found.`);

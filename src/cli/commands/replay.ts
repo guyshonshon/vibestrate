@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
-import { buildRunReplay, RunReplayError } from "../../core/run-replay-service.js";
+import { buildRunReplay, RunReplayError } from "../../core/run/run-replay-service.js";
 import { color, header, indent } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
 

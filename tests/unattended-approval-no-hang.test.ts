@@ -8,7 +8,7 @@ import { setConfigValue } from "../src/setup/config-update-service.js";
 import { Orchestrator } from "../src/core/orchestrator.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import { runStateSchema } from "../src/core/state-machine.js";
-import { ApprovalService } from "../src/core/approval-service.js";
+import { ApprovalService } from "../src/core/run/approval-service.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 // An UNATTENDED run that hits an approval gate must STOP honestly (gate expires ->

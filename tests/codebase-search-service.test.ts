@@ -6,7 +6,7 @@ import { execa } from "execa";
 import {
   searchCodebaseContent,
   listCodebaseFiles,
-} from "../src/core/codebase-search-service.js";
+} from "../src/core/codebase/codebase-search-service.js";
 
 const dirs: string[] = [];
 afterEach(async () => {

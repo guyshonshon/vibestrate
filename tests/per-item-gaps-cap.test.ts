@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { checklistItemGapsCap } from "../src/safety/run-assurance.js";
-import { computeMergeReady, type MergeReadinessInput } from "../src/core/merge-readiness.js";
+import { computeMergeReady, type MergeReadinessInput } from "../src/core/run/merge-readiness.js";
 
 describe("checklist per-item gaps cap", () => {
   it("caps merge-readiness when any item has a changes_requested verdict", () => {

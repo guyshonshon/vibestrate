@@ -2,7 +2,7 @@
 // returns the standard {ok, message} shape so the page can render
 // a toast without try/catch.
 
-import { ApprovalService } from "../../../core/approval-service.js";
+import { ApprovalService } from "../../../core/run/approval-service.js";
 import { ReviewSuggestionService } from "../../../reviews/review-suggestion-service.js";
 
 export type InboxResult =

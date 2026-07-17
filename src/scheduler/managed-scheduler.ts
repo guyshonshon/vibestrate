@@ -23,7 +23,7 @@ import {
   readLock,
 } from "./scheduler-lock.js";
 import os from "node:os";
-import { recordIssue } from "../core/issues-store.js";
+import { recordIssue } from "../core/stores/issues-store.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 

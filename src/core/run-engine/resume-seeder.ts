@@ -1,6 +1,6 @@
 import path from "node:path";
-import { ArtifactStore } from "../artifact-store.js";
-import type { EventLog } from "../event-log.js";
+import { ArtifactStore } from "../stores/artifact-store.js";
+import type { EventLog } from "../stores/event-log.js";
 import type { RunState, RunStateStore } from "../state-machine.js";
 import {
   capturePhaseSnapshot,
@@ -10,7 +10,7 @@ import {
   checkRestoreTarget,
   type SnapshotStage,
   type DownstreamResumeStage,
-} from "../phase-snapshots.js";
+} from "../run/phase-snapshots.js";
 import { nowIso } from "../../utils/time.js";
 import type {
   ResolvedFlowSnapshot,

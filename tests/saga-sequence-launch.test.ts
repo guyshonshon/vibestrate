@@ -8,7 +8,7 @@ import { setConfigValue } from "../src/setup/config-update-service.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
 import { cmdSequence } from "../src/cli/commands/saga.js";
-import { acquireTaskLock, releaseTaskLock } from "../src/core/run-lock.js";
+import { acquireTaskLock, releaseTaskLock } from "../src/core/run/run-lock.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({

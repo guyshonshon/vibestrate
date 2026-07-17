@@ -4,7 +4,7 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
-import { ArtifactStore } from "../src/core/artifact-store.js";
+import { ArtifactStore } from "../src/core/stores/artifact-store.js";
 import { FLOW_QUESTIONS_CONTRACT } from "../src/flows/schemas/flow-output-contracts.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 

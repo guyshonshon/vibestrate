@@ -3,7 +3,7 @@ import {
   listIssues,
   recordIssue,
   resolveIssue,
-} from "../../core/issues-store.js";
+} from "../../core/stores/issues-store.js";
 import { HttpError } from "../security.js";
 
 export type IssuesRoutesDeps = { projectRoot: string };

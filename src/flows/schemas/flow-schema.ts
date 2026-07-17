@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { approvalRiskSchema } from "../../core/approval-types.js";
+import { approvalRiskSchema } from "../../core/run/approval-types.js";
 import { skillReferenceSchema } from "../../agents/skill-schema.js";
 import { reviewLensSchema } from "../../supervisor/review-lenses.js";
 

@@ -10,13 +10,13 @@ import {
   EditorOpenError,
   openInEditor,
   validateEditorConfig,
-} from "../../core/editor-service.js";
+} from "../../core/codebase/editor-service.js";
 import { runStatePath } from "../../utils/paths.js";
 import { pathExists } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import { assertSafeRunId, HttpError } from "../security.js";
-import { EventLog } from "../../core/event-log.js";
+import { EventLog } from "../../core/stores/event-log.js";
 
 export type EditorRoutesDeps = { projectRoot: string };
 

@@ -6,7 +6,7 @@ import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
 import { Orchestrator } from "../src/core/orchestrator.js";
-import { ArtifactStore } from "../src/core/artifact-store.js";
+import { ArtifactStore } from "../src/core/stores/artifact-store.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
 import { flowDefinitionSchema, isGraphFlow } from "../src/flows/schemas/flow-schema.js";

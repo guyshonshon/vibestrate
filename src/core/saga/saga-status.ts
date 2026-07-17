@@ -6,7 +6,7 @@
 // progress, the halt record, and the non-folding invariants ledger.
 
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
-import { readLiveTaskLockHolder } from "../run-lock.js";
+import { readLiveTaskLockHolder } from "../run/run-lock.js";
 import type { ChecklistItem, SupervisedHalt, SupervisedState } from "../../roadmap/roadmap-types.js";
 
 export type SagaStepStatus = {

@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import {
   annotateExistence,
   parseCodeReferences,
-} from "../../core/code-reference-service.js";
+} from "../../core/codebase/code-reference-service.js";
 import { runStatePath } from "../../utils/paths.js";
 import { pathExists } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";

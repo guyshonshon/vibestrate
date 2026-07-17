@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
-import { resolveResumeFrom, RunLaunchError } from "../src/core/run-launcher.js";
+import { resolveResumeFrom, RunLaunchError } from "../src/core/run/run-launcher.js";
 
 /** A temp project with a source run that has the start artifact. */
 async function mkProjectWithSourceRun(runId: string): Promise<string> {

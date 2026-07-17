@@ -24,7 +24,7 @@ import {
   recordExit,
   recordSpawn,
 } from "./scheduler-log.js";
-import { recordIssue } from "../core/issues-store.js";
+import { recordIssue } from "../core/stores/issues-store.js";
 
 export type EnsureRunningResult = {
   /** What we did. */

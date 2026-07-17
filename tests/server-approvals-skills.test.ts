@@ -9,7 +9,7 @@ import {
 } from "../src/server/server.js";
 import { applySetup } from "../src/setup/setup-service.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
-import { ApprovalService } from "../src/core/approval-service.js";
+import { ApprovalService } from "../src/core/run/approval-service.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({
   exitCode: 127,

@@ -1,4 +1,4 @@
-import type { TokenUsage, PerModelCost } from "../core/runtime-metrics.js";
+import type { TokenUsage, PerModelCost } from "../core/metrics/runtime-metrics.js";
 
 export type ClaudeCodeRunMetrics = {
   sessionId: string | null;

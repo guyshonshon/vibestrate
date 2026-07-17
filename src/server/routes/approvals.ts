@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
-import { ApprovalService } from "../../core/approval-service.js";
-import { EventLog } from "../../core/event-log.js";
+import { ApprovalService } from "../../core/run/approval-service.js";
+import { EventLog } from "../../core/stores/event-log.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 
 const decideBody = z.object({ note: z.string().optional() });

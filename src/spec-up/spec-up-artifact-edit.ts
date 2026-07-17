@@ -20,7 +20,7 @@
 // guard is the human-edit half of that same no-secrets posture.
 
 import { createHash } from "node:crypto";
-import { ArtifactStore } from "../core/artifact-store.js";
+import { ArtifactStore } from "../core/stores/artifact-store.js";
 import {
   createActionBroker,
   gateAction,

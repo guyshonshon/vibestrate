@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { loadConfig } from "../../project/config-loader.js";
 import { setConfigValue } from "../../setup/config-update-service.js";
-import { computeDailySpendUsd } from "../../core/spend-cap-service.js";
+import { computeDailySpendUsd } from "../../core/metrics/spend-cap-service.js";
 import { HttpError } from "../security.js";
 
 export type BudgetRoutesDeps = { projectRoot: string };

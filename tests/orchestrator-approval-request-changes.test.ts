@@ -7,7 +7,7 @@ import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
 import { Orchestrator } from "../src/core/orchestrator.js";
 import { loadConfig } from "../src/project/config-loader.js";
-import { ApprovalService } from "../src/core/approval-service.js";
+import { ApprovalService } from "../src/core/run/approval-service.js";
 import { runStateSchema } from "../src/core/state-machine.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 

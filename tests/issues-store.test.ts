@@ -6,7 +6,7 @@ import {
   listIssues,
   recordIssue,
   resolveIssue,
-} from "../src/core/issues-store.js";
+} from "../src/core/stores/issues-store.js";
 
 async function tempProject(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-issues-"));

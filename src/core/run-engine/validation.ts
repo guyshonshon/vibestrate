@@ -1,17 +1,17 @@
 import path from "node:path";
-import type { ArtifactStore } from "../artifact-store.js";
-import type { EventLog } from "../event-log.js";
+import type { ArtifactStore } from "../stores/artifact-store.js";
+import type { EventLog } from "../stores/event-log.js";
 import type { RunState, RunStateStore } from "../state-machine.js";
 import {
   runValidationCommands,
   type ValidationResults,
-} from "../validation-runner.js";
+} from "../validation/validation-runner.js";
 import { getDiffSnapshot } from "../diff-service.js";
-import { classifyChangedFilesForValidation } from "../validation-scope.js";
+import { classifyChangedFilesForValidation } from "../validation/validation-scope.js";
 import {
   evaluateReviewDescent,
   type ReviewDescentDecision,
-} from "../review-descent.js";
+} from "../run/review-descent.js";
 import { protectedPathMatch } from "../../supervisor/protected-paths.js";
 import type { ActionBroker } from "../../safety/action-broker.js";
 import type { ProjectConfig } from "../../project/config-schema.js";

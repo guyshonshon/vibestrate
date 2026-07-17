@@ -6,7 +6,7 @@ import {
   getGitGraph,
   getGitHistory,
   getGitStatus,
-} from "../../core/git-history-service.js";
+} from "../../core/codebase/git-history-service.js";
 import {
   predictMerge,
   applyMerge,

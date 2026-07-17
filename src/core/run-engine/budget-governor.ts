@@ -1,11 +1,11 @@
-import type { EventLog } from "../event-log.js";
+import type { EventLog } from "../stores/event-log.js";
 import type { RunStateStore } from "../state-machine.js";
 import type { ProjectConfig } from "../../project/config-schema.js";
 import {
   computeDailySpendUsd,
   computeDailyUsage,
   evaluateSpendCap,
-} from "../spend-cap-service.js";
+} from "../metrics/spend-cap-service.js";
 import {
   draftBudgetLimit,
   draftSpendCapHit,

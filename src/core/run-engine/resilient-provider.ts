@@ -14,7 +14,7 @@ import {
 } from "../provider-resilience.js";
 import { capabilitiesForProvider } from "../../providers/provider-catalog.js";
 import type { ResolvedCatalog } from "../../providers/provider-apply.js";
-import type { EventLog } from "../event-log.js";
+import type { EventLog } from "../stores/event-log.js";
 import type { RunStateStore } from "../state-machine.js";
 import type { ProjectConfig } from "../../project/config-schema.js";
 import { describeError } from "../../utils/errors.js";

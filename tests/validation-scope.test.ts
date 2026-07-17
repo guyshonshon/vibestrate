@@ -6,13 +6,13 @@ import { execa } from "execa";
 import {
   classifyChangedFilesForValidation,
   isInertPath,
-} from "../src/core/validation-scope.js";
+} from "../src/core/validation/validation-scope.js";
 import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
 import { Orchestrator } from "../src/core/orchestrator.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import { runEventsPath } from "../src/utils/paths.js";
-import type { VibestrateEvent } from "../src/core/event-log.js";
+import type { VibestrateEvent } from "../src/core/stores/event-log.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 // Proportional validation scoping, slice 1 (proportional-orchestration.md / B3).

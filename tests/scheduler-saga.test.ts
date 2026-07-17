@@ -8,7 +8,7 @@ import {
   runSchedulerLoop,
   schedulerRunArgs,
 } from "../src/scheduler/scheduler-service.js";
-import { acquireTaskLock } from "../src/core/run-lock.js";
+import { acquireTaskLock } from "../src/core/run/run-lock.js";
 import { nowIso } from "../src/utils/time.js";
 
 describe("scheduler saga launch", () => {

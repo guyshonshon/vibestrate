@@ -3,7 +3,7 @@
 // the node-only Vitest environment.
 import { TERMINAL_STATUSES } from "../../core/workflow/workflow-types.js";
 import type { SafetyMode, SessionState } from "./ui-state.js";
-import type { SpendCapState } from "../../core/spend-cap-service.js";
+import type { SpendCapState } from "../../core/metrics/spend-cap-service.js";
 
 export type StatusRun = {
   status: string;

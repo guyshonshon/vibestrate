@@ -4,7 +4,7 @@ import {
   protectedPathMatch,
   BUILTIN_PROTECTED_GLOBS,
 } from "../src/supervisor/protected-paths.js";
-import { classifyChangedFilesForValidation } from "../src/core/validation-scope.js";
+import { classifyChangedFilesForValidation } from "../src/core/validation/validation-scope.js";
 
 describe("protected-paths - built-in floor", () => {
   it.each([

@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
-import { MetricsStore } from "../src/core/metrics-store.js";
-import { makeEmptyMetrics } from "../src/core/runtime-metrics.js";
+import { MetricsStore } from "../src/core/metrics/metrics-store.js";
+import { makeEmptyMetrics } from "../src/core/metrics/runtime-metrics.js";
 
 async function tempProject(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-metrics-"));

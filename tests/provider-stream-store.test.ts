@@ -8,7 +8,7 @@ import {
   listStreams,
   readStream,
   streamFilePath,
-} from "../src/core/provider-stream-store.js";
+} from "../src/core/stores/provider-stream-store.js";
 
 let root = "";
 

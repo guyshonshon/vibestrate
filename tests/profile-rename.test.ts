@@ -7,9 +7,9 @@ import {
   applyRename,
   previewRename,
   ValidationProfileRenameError,
-} from "../src/core/validation-profile-rename-service.js";
-import * as migrationService from "../src/core/validation-profile-migration-service.js";
-import { listMigrations } from "../src/core/validation-profile-migration-service.js";
+} from "../src/core/validation/validation-profile-rename-service.js";
+import * as migrationService from "../src/core/validation/validation-profile-migration-service.js";
+import { listMigrations } from "../src/core/validation/validation-profile-migration-service.js";
 import { ReviewSuggestionService } from "../src/reviews/review-suggestion-service.js";
 import { SuggestionBundleService } from "../src/reviews/suggestion-bundle-service.js";
 import { runStateSchema } from "../src/core/state-machine.js";

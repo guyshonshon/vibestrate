@@ -12,7 +12,7 @@ import { runStateSchema } from "../src/core/state-machine.js";
 import { writeJson } from "../src/utils/json.js";
 import { runStatePath, runDir } from "../src/utils/paths.js";
 import { ensureDir } from "../src/utils/fs.js";
-import { renderFinalReport } from "../src/core/final-report.js";
+import { renderFinalReport } from "../src/core/run/final-report.js";
 
 async function tempDir(prefix: string): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), prefix));

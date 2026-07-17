@@ -11,7 +11,7 @@ import {
   listValidationProfiles,
   resolveValidationProfile,
   ValidationProfileError,
-} from "../src/core/validation-profile-service.js";
+} from "../src/core/validation/validation-profile-service.js";
 import {
   parseSuggestionBlocks,
   makeSuggestionRecord,

@@ -18,16 +18,30 @@ Read first: `src/cli/index.ts`, `src/server/server.ts`.
 
 ## `src/core/`
 
-The run engine and the surrounding plumbing.
+The run engine and the surrounding plumbing. At the root live the hub
+modules everything shares: `orchestrator.ts` (drives a run through its flow
+steps), `state-machine.ts` (run statuses + transition allowlist),
+`diff-service.ts` (diffs + secret detection/redaction), `path-guard.ts`
+(refuses reads/writes outside known-safe roots), `guarded-fetch.ts`,
+`error-format.ts`, `run-entry.ts` (the headless build entry), and
+`detached-run.ts`.
 
-- `orchestrator.ts` - drives a run through its flow steps.
-- `state-machine.ts` - the run status enum + transition allowlist.
-- `path-guard.ts` - refuses reads/writes outside known-safe roots.
-- `validation-runner.ts` - runs `commands.validate`.
-- `artifact-store.ts` - reads and writes per-run artifacts.
-- `prompt-builder.ts` - assembles the prompt for an agent invocation.
-- `approval-service.ts` - manages `waiting_for_approval` and decisions.
-- `pause-service.ts` - durable pause flag.
+The domain clusters:
+
+- `run-engine/` - the orchestrator's extracted machinery: flow state,
+  outputs, resume seeding, validation, reporting, the approval gate, the
+  budget governor, provider resilience, saga turns.
+- `run/` - run lifecycle and gates: launcher, lock, pause, approvals,
+  phase snapshots, merge readiness, audits, replay, briefs.
+- `stores/` - append-only per-run persistence: artifacts, events, issues,
+  provider streams, notes, control directives.
+- `metrics/` - the metrics stack: schemas, pricing, the store, spend caps,
+  the OTLP exporter, dashboard roll-ups.
+- `validation/` - validation execution + validation-profile management.
+- `context/` - what feeds the agents: prompt builder, context sources, the
+  project ledger and its digest, known methodologies.
+- `codebase/` - read-only project/git inspection for the dashboard:
+  search, watch, file tree/view, history, annotations.
 - `assist/` - the one-shot, read-only, broker-gated provider call returning schema-validated JSON; the primitive consult and spec-up build on.
 - `saga/` - the multi-step saga run: the between-steps supervisor turn, invariants ledger, and budget.
 - `execution/` - pluggable run execution backends (local worktree, Docker).

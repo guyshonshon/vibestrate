@@ -1,6 +1,6 @@
 import { detectProject } from "../../../project/project-detector.js";
-import { ApprovalService } from "../../../core/approval-service.js";
-import { EventLog } from "../../../core/event-log.js";
+import { ApprovalService } from "../../../core/run/approval-service.js";
+import { EventLog } from "../../../core/stores/event-log.js";
 import { color, indent, symbol } from "../../ui/format.js";
 
 type DecideKind = "approve" | "reject" | "request-changes";

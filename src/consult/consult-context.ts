@@ -7,16 +7,16 @@
 // bounded, secret-redacted, and non-fatal: a missing/failed source becomes a note
 // and is skipped, never an error. See docs/design/responsible-orchestrator.md.
 
-import { getProjectMetadata } from "../core/project-context-service.js";
+import { getProjectMetadata } from "../core/context/project-context-service.js";
 import { loadProjectManual } from "../project/project-manual.js";
 import { loadCodebaseMap, renderCodebaseMapForPrompt } from "../project/codebase-map.js";
 import { loadConfig, type LoadedConfig } from "../project/config-loader.js";
-import { listAnnotations, renderAnnotationsForPrompt } from "../core/annotations-service.js";
-import { materializeContextSources } from "../core/context-sources.js";
+import { listAnnotations, renderAnnotationsForPrompt } from "../core/codebase/annotations-service.js";
+import { materializeContextSources } from "../core/context/context-sources.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
 import type { RunState } from "../core/state-machine.js";
-import { LedgerStore } from "../core/project-ledger.js";
-import { countSnapshotRuns } from "../core/phase-snapshots.js";
+import { LedgerStore } from "../core/context/project-ledger.js";
+import { countSnapshotRuns } from "../core/run/phase-snapshots.js";
 import {
   computeConsultSections,
   renderConsultSections,

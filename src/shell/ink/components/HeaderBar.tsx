@@ -6,7 +6,7 @@ import { pageLabel, type PageId } from "../ui-state.js";
 import { PAGE_META } from "../page-meta.js";
 import { ACCENT, ACCENT_BRIGHT, PINK } from "../theme.js";
 import type { StatusModel } from "../status-model.js";
-import type { SpendCapState } from "../../../core/spend-cap-service.js";
+import type { SpendCapState } from "../../../core/metrics/spend-cap-service.js";
 
 // Spend chip color tracks the cap state: unobtrusive under budget, yellow at
 // the warn threshold, red once exceeded - same yellow/red the run-status

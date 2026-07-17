@@ -17,11 +17,11 @@
 
 import path from "node:path";
 import { z } from "zod";
-import { ArtifactStore } from "../core/artifact-store.js";
+import { ArtifactStore } from "../core/stores/artifact-store.js";
 import { startDetachedRun } from "../core/detached-run.js";
 import { discoverFlows, findFlowById } from "../flows/catalog/flow-discovery.js";
 import { makeUniqueRunId } from "../utils/run-id.js";
-import type { RunSpec } from "../core/run-launcher.js";
+import type { RunSpec } from "../core/run/run-launcher.js";
 import {
   flowQuestionsOutputSchema,
   type FlowSpecUpQuestion,

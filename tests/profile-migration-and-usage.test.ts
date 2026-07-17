@@ -10,11 +10,11 @@ import {
   profileEditDistance,
   suggestProfileName,
   ValidationProfileMigrationError,
-} from "../src/core/validation-profile-migration-service.js";
+} from "../src/core/validation/validation-profile-migration-service.js";
 import {
   readUsageReport,
   recordValidationProfileUsage,
-} from "../src/core/validation-profile-usage-service.js";
+} from "../src/core/validation/validation-profile-usage-service.js";
 import { ReviewSuggestionService } from "../src/reviews/review-suggestion-service.js";
 import { SuggestionBundleService } from "../src/reviews/suggestion-bundle-service.js";
 import { runDoctor } from "../src/setup/doctor-service.js";

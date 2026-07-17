@@ -8,8 +8,8 @@ import {
   specUpIntakeFlow,
   specUpRoadmapFlow,
 } from "../src/flows/catalog/builtin-flows.js";
-import { runSpecSchema } from "../src/core/run-launcher.js";
-import { ArtifactStore } from "../src/core/artifact-store.js";
+import { runSpecSchema } from "../src/core/run/run-launcher.js";
+import { ArtifactStore } from "../src/core/stores/artifact-store.js";
 import { FLOW_QUESTIONS_CONTRACT } from "../src/flows/schemas/flow-output-contracts.js";
 import {
   readSpecUpQuestions,

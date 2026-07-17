@@ -9,7 +9,7 @@ import {
   RunLaunchError,
   runFromSpec,
   runSpecSchema,
-} from "../src/core/run-launcher.js";
+} from "../src/core/run/run-launcher.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({

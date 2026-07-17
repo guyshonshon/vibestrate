@@ -3,7 +3,7 @@ import {
   reconstructDoneOutcomes,
   checklistIdsChanged,
   type ResumeChecklistItem,
-} from "../src/core/resume-checklist.js";
+} from "../src/core/run/resume-checklist.js";
 
 const item = (
   id: string,

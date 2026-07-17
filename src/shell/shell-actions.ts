@@ -3,8 +3,8 @@
 // use, so the orchestrator picks them up via its normal polling.
 
 import { RunStateStore } from "../core/state-machine.js";
-import { EventLog } from "../core/event-log.js";
-import { requestPause, requestResume } from "../core/pause-service.js";
+import { EventLog } from "../core/stores/event-log.js";
+import { requestPause, requestResume } from "../core/run/pause-service.js";
 import {
   applyTransition,
   isTerminal,

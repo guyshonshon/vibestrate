@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import { execa } from "execa";
 import { resolveApplicablePatch } from "../git/patch-eol.js";
 import { nowIso } from "../utils/time.js";
-import { ApprovalService } from "../core/approval-service.js";
-import { EventLog } from "../core/event-log.js";
+import { ApprovalService } from "../core/run/approval-service.js";
+import { EventLog } from "../core/stores/event-log.js";
 import { ReviewSuggestionStore } from "./review-suggestion-store.js";
 import {
   makeSuggestionRecord,
@@ -31,8 +31,8 @@ import { draftSuggestionValidation } from "../notifications/notification-router.
 import {
   resolveValidationProfile,
   ValidationProfileError,
-} from "../core/validation-profile-service.js";
-import { recordValidationProfileUsage } from "../core/validation-profile-usage-service.js";
+} from "../core/validation/validation-profile-service.js";
+import { recordValidationProfileUsage } from "../core/validation/validation-profile-usage-service.js";
 import { applyPolicyGate } from "../policies/policy-service.js";
 import {
   createActionBroker,

@@ -18,11 +18,11 @@ import {
 import {
   buildMetricsOverview,
   type OverviewRange,
-} from "../core/overview-aggregator.js";
+} from "../core/metrics/overview-aggregator.js";
 
-export type { OverviewRange } from "../core/overview-aggregator.js";
-import type { RuntimeMetrics } from "../core/runtime-metrics.js";
-import { MetricsStore } from "../core/metrics-store.js";
+export type { OverviewRange } from "../core/metrics/overview-aggregator.js";
+import type { RuntimeMetrics } from "../core/metrics/runtime-metrics.js";
+import { MetricsStore } from "../core/metrics/metrics-store.js";
 import { projectRunsDir, runStatePath, vibestrateRoot } from "../utils/paths.js";
 import { readDirSafe, pathExists } from "../utils/fs.js";
 import { readJson } from "../utils/json.js";

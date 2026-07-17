@@ -7,13 +7,13 @@ import {
   applyTransition,
   createInitialState,
 } from "../src/core/state-machine.js";
-import { EventLog } from "../src/core/event-log.js";
+import { EventLog } from "../src/core/stores/event-log.js";
 import {
   applyPauseIfRequested,
   PauseError,
   requestPause,
   requestResume,
-} from "../src/core/pause-service.js";
+} from "../src/core/run/pause-service.js";
 
 async function makeProject(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-pause-"));

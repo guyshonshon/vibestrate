@@ -7,7 +7,7 @@ import {
   isTerminal,
   runStateSchema,
 } from "../../core/state-machine.js";
-import { EventLog } from "../../core/event-log.js";
+import { EventLog } from "../../core/stores/event-log.js";
 import { isVibestrateError } from "../../utils/errors.js";
 
 export async function runAbortCommand(runId: string): Promise<number> {

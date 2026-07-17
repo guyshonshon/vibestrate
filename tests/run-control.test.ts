@@ -3,7 +3,7 @@ import {
   pendingControls,
   renderControlNotes,
   type RunControlDirective,
-} from "../src/core/run-control.js";
+} from "../src/core/stores/run-control.js";
 
 function mk(
   id: string,

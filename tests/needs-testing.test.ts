@@ -3,7 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
 import { execa } from "execa";
-import { detectNeedsTesting } from "../src/core/review-parser.js";
+import { detectNeedsTesting } from "../src/core/run/review-parser.js";
 import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
 import { Orchestrator } from "../src/core/orchestrator.js";

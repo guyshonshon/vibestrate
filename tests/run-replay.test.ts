@@ -6,7 +6,7 @@ import { execa } from "execa";
 import {
   buildRunReplay,
   RunReplayError,
-} from "../src/core/run-replay-service.js";
+} from "../src/core/run/run-replay-service.js";
 import { startServer, type StartedServer } from "../src/server/server.js";
 
 type RunFixture = { project: string; runId: string };

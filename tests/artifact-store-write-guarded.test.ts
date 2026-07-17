@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { ArtifactStore } from "../src/core/artifact-store.js";
+import { ArtifactStore } from "../src/core/stores/artifact-store.js";
 
 async function tempStore() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-aw-"));

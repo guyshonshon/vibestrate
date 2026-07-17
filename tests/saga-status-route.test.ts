@@ -6,7 +6,7 @@ import { execa } from "execa";
 import { startServer, type StartedServer } from "../src/server/server.js";
 import { applySetup } from "../src/setup/setup-service.js";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
-import { acquireTaskLock } from "../src/core/run-lock.js";
+import { acquireTaskLock } from "../src/core/run/run-lock.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({

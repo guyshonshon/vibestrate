@@ -8,7 +8,7 @@ import {
   detachedSpawnOptions,
 } from "../utils/process-control.js";
 import { RunQueue } from "./run-queue.js";
-import { readLiveTaskLockHolder } from "../core/run-lock.js";
+import { readLiveTaskLockHolder } from "../core/run/run-lock.js";
 import { ConflictsStore, detectConflicts } from "./conflict-detector.js";
 import type { SchedulerConfig } from "../project/config-schema.js";
 import type { Task } from "../roadmap/roadmap-types.js";
