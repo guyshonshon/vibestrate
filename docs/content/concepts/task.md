@@ -120,10 +120,10 @@ vibe tasks pickup <taskId> --step   # pause between items for review
 
 ### Per-item review: the `pickup-review` flow
 
-For higher-stakes checklists, use `pickup-review` instead of the default `pickup`:
+For higher-stakes checklists, use `pickup-review` instead of the default `pickup`. `vibe tasks pickup` always runs the built-in `pickup` flow - it has no `--flow` option - so run the underlying `vibe run` directly to pick a different flow:
 
 ```bash
-vibe tasks pickup <taskId> --flow pickup-review
+vibe run "<task title>" --task <taskId> --flow pickup-review --checklist continuous
 ```
 
 `pickup-review` adds a review panel and an arbiter inside the per-item band - after the implementer writes each item, the panel reviews that item's diff, and a bounded per-item fix loop runs before the item commits. This means each item is reviewed in isolation, with full context of only that item's change.

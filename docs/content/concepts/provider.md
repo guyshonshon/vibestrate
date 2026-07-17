@@ -17,7 +17,7 @@ Think of Vibestrate as the manager and the provider as the worker it hands tasks
 
 The built-in providers Vibestrate already knows how to drive:
 
-<div class="docs-chips"><span>claude</span><span>codex</span><span>ollama</span><span>opencode</span><span>aider</span></div>
+<div class="docs-chips"><span>claude</span><span>codex</span><span>gemini</span><span>opencode</span><span>aider</span><span>ollama</span><span>qwen</span><span>crush</span><span>goose</span><span>cursor</span><span>amp</span></div>
 
 Providers are declared under `providers:` in `project.yml`. You declare each one either as a `cli` invocation (a command, its args, and how the prompt is fed in) or as a `claude-code` integration, which Vibestrate understands more deeply. Each provider advertises what it can do - reuse a session, report token usage, or hand back a session id - and Vibestrate drives them all through one uniform interface.
 
@@ -37,24 +37,30 @@ Every built-in provider lands in one of three states on your machine. The first 
 
 <div class="docs-outcomes"><div class="docs-outcome ok"><b>ready</b><span>preset-ready: installed and Vibestrate already knows the flags, so it works out of the box (this is claude)</span></div><div class="docs-outcome warn"><b>detected, needs setup</b><span>installed but Vibestrate won't guess the flags; run vibe provider setup once to pick them</span></div><div class="docs-outcome stop"><b>missing</b><span>the CLI isn't installed, so there's nothing to drive until you install it</span></div></div>
 
-The common case is `claude`, which works out of the box:
+Five providers are preset-ready out of the box - Vibestrate already knows their flags:
 
 | Id | Status | Notes |
 |---|---|---|
 | `claude` | Preset-ready | Default args: `-p` with prompt on stdin. Vibestrate configures Claude Code automatically, and a `claude-code` provider streams by default (`--output-format stream-json --verbose --include-partial-messages`) so the live transcript shows the model working token by token. Set `settings.outputFormat` (or a raw `--output-format` in `args`) to take manual control. |
+| `codex` | Preset-ready | Preset: `codex exec` with the prompt on stdin. Log in with `codex login` if prompted. |
+| `gemini` | Preset-ready | Preset: prompt piped to `gemini` on stdin. Sign in by running `gemini` once, or set `GEMINI_API_KEY`. |
+| `aider` | Preset-ready | Preset: `aider --no-auto-commits --yes --message` (one-shot, no auto-commits). Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`. |
+| `ollama` | Preset-ready | Preset: `ollama run qwen3.5` with the prompt on stdin. Pull the model first (`ollama pull qwen3.5`), or edit the args for another local model. |
 
 One thing to know about what the model sees during a run: by default, your own Claude Code environment applies. Your global `CLAUDE.md`, hooks, and memory load exactly as they would in your terminal. That's deliberate - the model you tuned is the model that works your runs. If you want hermetic turns instead (only the prompt Vibestrate compiled, plus the skills and MCP servers it attaches explicitly), set `settings.safeMode: true` on the provider. It adds `--safe-mode`, which disables personal customizations while auth and permissions keep working.
 
 Hooks are the customization most likely to surprise you. A personal `UserPromptSubmit` "supervisor" hook fires inside *every* run turn, injecting into prompts and skewing reviewer verdicts. So `vibe doctor` flags when your `~/.claude` or project `.claude` hooks will load inside runs and a claude provider isn't using `safeMode`. It reports only the hook event names and the settings file, never the hook commands. What you do about it is your call: keep the hooks (your environment is legitimate context) or set `safeMode` to isolate them.
 
-The other providers are detected but need a one-time setup:
+The rest are detected but need a one-time setup - Vibestrate won't guess flags that aren't stable across versions:
 
 | Id | Status | Notes |
 |---|---|---|
-| `codex` | Detected, needs setup | Starter preset uses `codex exec` (prompt on stdin). Run `vibe provider setup`. |
-| `ollama` | Detected, needs setup | Starter preset runs `ollama run qwen3.5`. You probably want to edit the model. |
-| `opencode` | Detected, needs setup | No verified preset shipped. |
-| `aider` | Detected, needs setup | No verified preset shipped. |
+| `opencode` | Detected, needs setup | Preset: `opencode run` with the prompt as an argument. Log in with `opencode auth login`. |
+| `qwen` | Detected, needs setup | Preset: prompt piped to `qwen` on stdin. Authenticate by running `qwen` once. |
+| `crush` | Detected, needs setup | Preset: `crush run` with the prompt as an argument. Set your model provider's API key. |
+| `goose` | Detected, needs setup | Preset: `goose run -t` with the prompt as an argument. Log in with `goose configure`. |
+| `cursor` | Detected, needs setup | Command is `cursor-agent`. Preset: `-p` with the prompt as an argument. Log in with `cursor-agent login`. |
+| `amp` | Detected, needs setup | Preset: `-x` with the prompt as an argument. Log in with `amp login`. |
 
 The canonical, generated list lives in the [providers reference](/docs/reference/providers).
 
@@ -62,9 +68,9 @@ The canonical, generated list lives in the [providers reference](/docs/reference
 
 Coding-agent CLIs disagree on flags - `--prompt` here, `-p` there, `exec` for some, stdin for others. When a vendor's flag set is stable enough that Vibestrate can drive it without surprises, that provider is marked **preset-ready**. Otherwise Vibestrate detects it but won't guess the flags; `vibe provider setup` walks you through the choices.
 
-If a preset is wrong for your installed version (say, a flag the CLI removed), you can correct `command`/`args`/`input` directly - with `vibe provider setup`, by hand-editing `.vibestrate/project.yml`, or in the dashboard's **Providers** page, which has an inline editor with a Save & test loop and a Remove action. The CLI and the dashboard can do exactly the same things.
+If a preset is wrong for your installed version (say, a flag the CLI removed), you can correct `command`/`args`/`input` directly - with `vibe provider setup`, by hand-editing `.vibestrate/project.yml`, or on the Crew page's **Providers** tab, which has an inline editor with a Save & test loop and a Remove action. The CLI and the dashboard can do exactly the same things.
 
-On the Providers page you can also drag the CLI rows by their handle to reorder them, and lock a row to pin it out of the shuffle. This is a personal view preference kept in your browser - purely how the list is arranged for you. It never changes project config or how a run picks a provider (a run binds providers through its [Profiles](./profile.md), not list position).
+On the Providers tab you can also drag the CLI rows by their handle to reorder them, and lock a row to pin it out of the shuffle. This is a personal view preference kept in your browser - purely how the list is arranged for you. It never changes project config or how a run picks a provider (a run binds providers through its [Profiles](./profile.md), not list position).
 
 For anything the form doesn't surface, the editor has an **Advanced - raw YAML** mode (the toggle on the YAML block). It opens the provider's full `project.yml` block for direct editing - environment variables (`env`), claude-code `settings`, `extraArgs`, custom headers - seeded from the real saved config and validated on save. So fixing or setting up a provider is always fully doable in the dashboard; you never have to drop to `vibe provider setup`. (Authentication is the one exception by design: when a provider isn't logged in, the UI shows the login command for you to run in your own terminal - Vibestrate never logs you in.)
 
@@ -160,7 +166,7 @@ vibe provider catalog          # human view (built-in + overlay, with sources)
 vibe provider catalog --json   # machine-readable
 ```
 
-Same view in the UI (parity): the dashboard **Providers** page has a "Capability catalog" panel, and the shell **Profiles** page flags when an overlay is active plus each provider's source.
+Same view in the UI (parity): the dashboard Crew page's **Providers** tab has a "Capability catalog" panel, and the shell **Profiles** page flags when an overlay is active plus each provider's source.
 
 ### Auto-filling from `--help`
 
@@ -173,7 +179,7 @@ vibe provider refresh --dry-run   # show what it would add, write nothing
 vibe provider refresh --force     # also replace built-in / existing overlay entries
 ```
 
-It's **local only** - it runs each provider's own `--help` (no network, no API keys) - and **gap-fills**: it never overrides a built-in spec or a hand-authored overlay entry unless `--force`. Parsing help text is heuristic, so it writes findings for you to confirm (the catalog view marks them `overlay`). Same action in the UI: the "Refresh from providers" button on the Providers page, or `r` on the shell Profiles page. (Probing cloud `/models` endpoints is intentionally not included - that would mean egress with your key.)
+It's **local only** - it runs each provider's own `--help` (no network, no API keys) - and **gap-fills**: it never overrides a built-in spec or a hand-authored overlay entry unless `--force`. Parsing help text is heuristic, so it writes findings for you to confirm (the catalog view marks them `overlay`). Same action in the UI: the "Refresh from providers" button on the Providers tab, or `r` on the shell Profiles page. (Probing cloud `/models` endpoints is intentionally not included - that would mean egress with your key.)
 
 ## Common mistakes
 

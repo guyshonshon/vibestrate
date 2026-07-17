@@ -46,19 +46,37 @@ Loop limits and other run-shaping knobs.
 
 </div>
 
-The table below is the full top-level map, with the concept page that explains each one:
+The table below is the full top-level map - all 27 sections - with the concept page that explains each one where one exists:
 
 | Section | What it holds | Concept |
 |---|---|---|
+| `project` | Project name and type, set at `vibe init`. | - |
+| `git` | Where worktrees live, run-branch naming/prefix, auto-merge/push toggles, snapshot retention. | [Worktree](/docs/concepts/worktree) |
+| `workflow` | Loop limits and other run-shaping knobs (review-loop cap, human-merge requirement). | [Workflow](/docs/concepts/workflow) |
+| `execution` | The execution backend a run uses: `local-worktree` or the opt-in Docker sandbox. | [Container isolation](/docs/concepts/sandbox) |
 | `providers` | The local CLIs (and HTTP models) Vibestrate can drive. | [Provider](/docs/concepts/provider) |
 | `profiles` | Reusable presets of a provider + model + effort. | [Profile](/docs/concepts/profile) |
 | `crews` (and the Roles inside them) | Your teams of AI workers and what each one does. | [Crew](/docs/concepts/crew) / [Role](/docs/concepts/role) |
-| `defaultCrew` / `defaultFlow` | Which crew and flow a run uses when you don't pick one. | [Flow](/docs/concepts/flow) |
-| `commands.validate` | The typecheck / test / build / lint commands Vibestrate trusts as ground truth. | [Workflow](/docs/concepts/workflow) |
-| `commands.scopeValidationByChange` | When true (default), a run whose entire diff is only docs/text/asset files skips the `validate` commands (no point running the test suite for a `.md` edit). Any code/config/unknown file makes it validate as usual. Set false to always validate. | [Workflow](/docs/concepts/workflow) |
-| `policies` | Code-enforced rules that deny or pause specific actions. | [Safety](/docs/concepts/safety) |
-| `git` | Where worktrees live and how run branches are named. | [Worktree](/docs/concepts/worktree) |
-| `workflow` | Loop limits and other run-shaping knobs. | [Workflow](/docs/concepts/workflow) |
+| `defaultCrew` | Crew a run uses when it doesn't pick one. | [Crew](/docs/concepts/crew) |
+| `defaultFlow` | Flow a run uses when it doesn't pass `--flow`; `null` = auto-select per task. | [Flow](/docs/concepts/flow) |
+| `personas` | Project-defined supervisor personas (judgment postures) on top of the built-in default. | [Supervisor](/docs/concepts/supervisor) |
+| `defaultPersona` | The orchestrator's default judgment posture; a built-in id or a key in `personas`. | [Supervisor](/docs/concepts/supervisor) |
+| `projectPolicies` | Owner-authored tiered rules (`advise` / `block`) the reviewer and merge gate enforce. | [Policies](/docs/concepts/policies) |
+| `flowSizing` | Routes obviously-trivial tasks to a lighter, diff-floored flow. | [Flow](/docs/concepts/flow) |
+| `adaptiveSpecUp` | Routes plan-worthy greenfield/system briefs into the read-only Spec-up chain before executing. | [Spec-up](/docs/concepts/spec-up) |
+| `ponytail` | Injects the "smallest solution that works" minimalism posture into code-writing agents. | [Ponytail](/docs/concepts/ponytail) |
+| `budget` | Daily spend cap and what happens when a run hits it. | - |
+| `supervised` | Defaults for supervised tasks: max steps/spend, the between-steps supervisor turn. | [Supervised tasks](/docs/concepts/supervised-tasks) |
+| `resilience` | Auto-retry policy (with backoff and optional fallback profile) for recoverable provider failures. | - |
+| `session` | Cap on consecutive provider-session reuses before a fresh session opens. | - |
+| `commands` | The typecheck / test / build / lint commands Vibestrate trusts as ground truth, and whether docs-only diffs skip them. | [Workflow](/docs/concepts/workflow) |
+| `permissions` | Named permission profiles (`read_only`, `code_write`, ...) Roles reference. | [Safety](/docs/concepts/safety) |
+| `policies` | Code-enforced, fail-closed safety toggles: auto-merge, auto-push, secrets access, required approval stages. | [Safety](/docs/concepts/safety) |
+| `posture` | Opt-in switches that let a run's *suggested* posture (sandbox, approval) actually take effect. | [Safety](/docs/concepts/safety) |
+| `scheduler` | Concurrency limits, conflict policy, and queue ordering for the run scheduler. | - |
+| `editor` | Optional local editor handoff from the dashboard (disabled by default). | - |
+| `commits` | Co-author attribution on commits Vibestrate authors or assists. | - |
+| `merge` | Thresholds that flip the merge advisor's recommendation to stage on an integration branch. | [Worktree](/docs/concepts/worktree) |
 
 The full, field-by-field schema is generated from the source, so it never drifts. You'll find it in the [project.yml reference](/docs/reference/config).
 
@@ -67,7 +85,7 @@ The full, field-by-field schema is generated from the source, so it never drifts
 The rest of `.vibestrate/` holds files you edit directly:
 
 - `rules.md` - your **project instructions**: advisory guidance read on every agent turn. It's advisory, not enforced. The enforced rules are [policies](/docs/concepts/safety).
-- `agents/` (or `roles/`) - the prompt templates for each Role, yours to edit.
+- `roles/` - the prompt templates for each Role, yours to edit.
 - `skills/` - markdown [skills](/docs/concepts/skill) that load as extra context.
 - `flows/` - your project's own [Flow](/docs/concepts/flow) definitions.
 - `policies/` - the policy files the safety engine compiles.
