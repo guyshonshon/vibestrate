@@ -106,6 +106,9 @@ export function RunDetailPage({
   );
   const [selection, setSelection] = useState<WorkflowSelectionView | null>(null);
   const [checklistVerdicts, setChecklistVerdicts] = useState<PerItemVerdict[]>([]);
+  // Bumping this re-runs the load effect below, which is how manual Retry
+  // re-triggers a load function defined inside the effect's closure.
+  const [retryTick, setRetryTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -172,7 +175,7 @@ export function RunDetailPage({
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [runId]);
+  }, [runId, retryTick]);
 
   const pending = useMemo(
     () => approvals.find((a) => a.status === "pending") ?? null,
@@ -189,6 +192,7 @@ export function RunDetailPage({
           { label: "New run", onClick: () => navigate({ kind: "compose" }) },
           { label: "Mission control", onClick: () => navigate({ kind: "mission" }) },
         ]}
+        onRetry={() => setRetryTick((t) => t + 1)}
       />
     );
   if (!run)

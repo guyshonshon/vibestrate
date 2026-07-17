@@ -189,7 +189,7 @@ export function CrewPage({
               onChange={onSwitchTab}
             />
           </PageHeader>
-          {error ? <ErrorView err={error} compact /> : null}
+          {error ? <ErrorView err={error} compact onRetry={() => void load()} /> : null}
           <CrewHub
             crews={crews}
             defaultCrew={defaultCrew}
@@ -221,7 +221,7 @@ export function CrewPage({
               </Button>
             }
           />
-          {error ? <ErrorView err={error} compact /> : null}
+          {error ? <ErrorView err={error} compact onRetry={() => void load()} /> : null}
           <ErrorState
             title="Crew not found"
             hint={`No crew named ${crewId}. Pick one from the list, or install a preset to get a roster.`}
@@ -260,7 +260,7 @@ export function CrewPage({
             }
           />
 
-          {error ? <ErrorView err={error} compact /> : null}
+          {error ? <ErrorView err={error} compact onRetry={() => void load()} /> : null}
 
           <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-stretch">
             <div className="min-w-0 xl:flex-1">

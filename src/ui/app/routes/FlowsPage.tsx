@@ -457,6 +457,9 @@ function HubSection({
   const [loading, setLoading] = useState(false);
   const [hubError, setHubError] = useState<string | null>(null);
   const [installing, setInstalling] = useState<string | null>(null);
+  // Bumping this re-runs the debounced search effect below, which is how
+  // manual Retry re-triggers a fetch defined inside the effect's closure.
+  const [retryTick, setRetryTick] = useState(0);
 
   // ── Publish form state ────────────────────────────────────────────────────
   const [publishOpen, setPublishOpen] = useState(false);
@@ -494,7 +497,7 @@ function HubSection({
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [open, query]);
+  }, [open, query, retryTick]);
 
   async function install(row: HubFlowRow, overwrite = false): Promise<void> {
     const name = row.label || row.name || row.ref;
@@ -611,6 +614,7 @@ function HubSection({
             compact
             err={hubError}
             override={{ title: "Couldn't load the hub" }}
+            onRetry={() => setRetryTick((t) => t + 1)}
           />
         ) : loading && rows === null ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

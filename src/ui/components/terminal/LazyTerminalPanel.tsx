@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { ErrorBoundary } from "../layout/ErrorBoundary.js";
 
 /**
  * Lazy wrapper around TerminalPanel.
@@ -18,14 +19,20 @@ const TerminalPanelLazy = lazy(() =>
 
 export function LazyTerminalPanel({ runId }: { runId: string }) {
   return (
-    <Suspense
-      fallback={
-        <div className="text-vibestrate-fg-muted text-[11.5px]">
-          Loading terminal…
-        </div>
-      }
-    >
-      <TerminalPanelLazy runId={runId} />
-    </Suspense>
+    // A rejected dynamic import (stale deploy, offline) would otherwise
+    // crash to the app-level boundary far above this tab. React caches a
+    // rejected lazy() import, so this boundary's "Try again" can't recover
+    // the chunk by itself - its Reload path is what actually fixes it.
+    <ErrorBoundary resetKey={runId}>
+      <Suspense
+        fallback={
+          <div className="text-vibestrate-fg-muted text-[11.5px]">
+            Loading terminal…
+          </div>
+        }
+      >
+        <TerminalPanelLazy runId={runId} />
+      </Suspense>
+    </ErrorBoundary>
   );
 }

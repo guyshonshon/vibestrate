@@ -275,7 +275,7 @@ export function ProvidersView() {
         </p>
       </div>
 
-      {error ? <ErrorView err={error} compact /> : null}
+      {error ? <ErrorView err={error} compact onRetry={() => void load()} /> : null}
 
       {!rows ? (
         <Section>
