@@ -56,9 +56,10 @@ To check it worked, run `git rev-parse --is-inside-work-tree`. It should return 
 Install at least one coding-agent CLI:
 
 ```bash
-# Claude Code: see https://docs.anthropic.com/claude/docs/claude-code
-# Codex:       npm install -g @openai/codex
-# Aider:       pipx install aider-chat
+# Claude Code: npm install -g @anthropic-ai/claude-code, then run `claude` once to sign in
+# Codex:       npm install -g @openai/codex, then run `codex login`
+# Gemini:      npm install -g @google/gemini-cli, then run `gemini` once to authenticate
+# Aider:       python -m pip install aider-install && aider-install
 # Ollama:      curl -fsSL https://ollama.com/install.sh | sh
 ```
 
@@ -98,7 +99,7 @@ Walk through the setup wizard again to confirm the flags:
 vibe provider setup    # walk the wizard again to confirm flags
 ```
 
-If the flags are right but the output format changed, file an issue with the provider's version (`<cli> --version`) and a sample of the captured output, which you'll find under `.vibestrate/runs/<runId>/outputs/`.
+If the flags are right but the output format changed, file an issue with the provider's version (`<cli> --version`) and a sample of the captured output, which you'll find under `.vibestrate/runs/<runId>/artifacts/flows/<step-id>/output.md`.
 
 ## Runs that won't start or stall
 
@@ -203,7 +204,7 @@ Hard-reload the page (Cmd-Shift-R / Ctrl-Shift-R). Then confirm `vibe ui` is run
 <div class="docs-cards">
 
 **Worktree didn't get cleaned up after an abort**
-`vibe abort <runId>` succeeded, but `../.vibestrate-worktrees/<runId>-<slug>` is still on disk. This is by design: worktrees are preserved across `aborted`, `blocked`, and `failed` so you can inspect or copy out partial work.
+`vibe abort <runId>` succeeded, but `../.vibestrate-worktrees/<runId>` is still on disk. This is by design: worktrees are preserved across `aborted`, `blocked`, and `failed` so you can inspect or copy out partial work.
 
 </div>
 
@@ -213,8 +214,8 @@ When you're done with it, remove the worktree and its branch yourself:
 
 ```bash
 cd your-project
-git worktree remove ../.vibestrate-worktrees/<runId>-<slug>
-git branch -D vibestrate/<runId>-<slug>
+git worktree remove ../.vibestrate-worktrees/<runId>
+git branch -D vibestrate/<runId>
 ```
 
 To check it worked, confirm the directory is gone.

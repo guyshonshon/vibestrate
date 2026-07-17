@@ -52,7 +52,7 @@ Vibestrate makes a safe copy, plans the change, writes it, runs your tests, revi
 It works with the coding tools you already have:
 
 <div class="docs-chips">
-<span>Claude Code</span><span>Codex</span><span>Aider</span><span>Ollama</span><span>OpenCode</span>
+<span>Claude Code</span><span>Codex</span><span>Gemini</span><span>Aider</span><span>Ollama</span><span>OpenCode</span>
 </div>
 
 ## Where to start
