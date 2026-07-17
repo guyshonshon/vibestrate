@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.73.0
+
+- **The error-state migration is finished - failure is always visible, always
+  recoverable.** The last empty states that pointed you at a CLI command now
+  carry the action itself: the runs list offers New run, the project page's
+  provider section jumps to Add provider, and the scheduler queue opens the
+  board. The silent failures went too - a dead server can no longer masquerade
+  as "No runs yet" in the run switcher or as an empty policies list; both now
+  show the designed error card with Retry, and a genuine empty stays honest.
+  Retry also reached the surfaces that were missing it (crew, providers, the
+  flows hub, run detail), and the lazy-loaded terminal and replay panels now
+  fail into an error boundary with a reload path instead of a blank pane.
+
 ## 0.72.2
 
 - **The error surface reached across the app.** A dozen more places that used to
