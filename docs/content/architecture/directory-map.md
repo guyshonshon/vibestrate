@@ -63,6 +63,7 @@ The Flow system.
 - `catalog/builtin-flows.ts` - the built-in flow catalog.
 - `catalog/flow-discovery.ts` - project Flow discovery.
 - `runtime/` - the participant ledger, arbitration, context builder.
+- `hub/` - the Flows Hub client (`vibe flows hub publish`) and its pre-publish secret/leak guards.
 
 Read first: `src/flows/catalog/builtin-flows.ts`.
 
@@ -87,6 +88,7 @@ Local provider integration. A provider is the agent backend, such as a generic C
 - `provider-runner.ts` - the uniform invocation interface.
 - `claude-code-provider.ts` - the deeper Claude Code integration.
 - `presets/` - verified flag sets for `presetReady` providers.
+- `adapters/` - per-provider output adapters (`claude-stream-json.ts` parses Claude's `--output-format stream-json` events; `select.ts` picks the right adapter for a provider config).
 - `mcp/` - MCP server config resolution and the materialized `mcp.json` writer.
 
 Read first: `src/providers/provider-detection.ts`.

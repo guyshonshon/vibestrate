@@ -11,7 +11,7 @@ you can see and reverse. It is the interactive, any-node-to-any-node evolution o
 the [merge advisor](/docs/getting-started/merging): the same safety model, but
 you drive it from a graph instead of a list.
 
-Open it from the dashboard nav (**Diffs**). Nothing on this page touches a real
+Open it from the **Source** page's **Tree** tab. Nothing on this page touches a real
 branch until you click Apply.
 
 ## See the shape of your history

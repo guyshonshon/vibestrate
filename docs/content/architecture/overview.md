@@ -32,11 +32,11 @@ Here is how the pieces stack up, from the command you type down to the model on 
   ┌──────────┐         ┌────────────┐            ┌─────────────────┐
   │  Agents  │         │ Validation │            │ Mission Control │
   │ (src/agents)       │ (src/core/ │            │ (src/server +   │
-  │          │         │  validation-           │  src/ui)        │
-  │ planner, │         │  runner)   │            │                 │
-  │ executor,│         │            │            │ Fastify server  │
-  │ reviewer,│         │ runs your  │            │ + React UI      │
-  │ ...      │         │ commands   │            │                 │
+  │          │         │  validation/)          │  src/ui)        │
+  │ planner, │         │            │            │                 │
+  │ executor,│         │ runs your  │            │ Fastify server  │
+  │ reviewer,│         │ commands   │            │ + React UI      │
+  │ ...      │         │            │            │                 │
   └────┬─────┘         └────────────┘            └─────────────────┘
        │
        ▼
@@ -45,8 +45,8 @@ Here is how the pieces stack up, from the command you type down to the model on 
   │ (src/providers)  │
   │                  │
   │ claude, codex,   │
-  │ aider, ollama,   │
-  │ opencode         │
+  │ gemini, aider,   │
+  │ ollama + 6 more  │
   └────┬─────────────┘
        │
        ▼
@@ -56,7 +56,7 @@ Here is how the pieces stack up, from the command you type down to the model on 
   └──────────────────┘
 ```
 
-The `vibe` CLI is the commander program in `src/cli`, and it hands work to the Orchestrator in `src/core/orchestrator.ts`. The orchestrator runs the show, and below it sit three siblings. Agents live in `src/agents`: the planner, executor, reviewer, and the rest. Validation lives in `src/core/validation-runner` and runs your commands. Mission Control is a Fastify server plus a React UI, split across `src/server` and `src/ui`. Agents reach down through the Providers in `src/providers` (claude, codex, aider, ollama, opencode), which call a local CLI binary on your machine.
+The `vibe` CLI is the commander program in `src/cli`, and it hands work to the Orchestrator in `src/core/orchestrator.ts`. The orchestrator runs the show, and below it sit three siblings. Agents live in `src/agents`: the planner, executor, reviewer, and the rest. Validation lives in `src/core/validation/` and runs your commands. Mission Control is a Fastify server plus a React UI, split across `src/server` and `src/ui`. Agents reach down through the Providers in `src/providers` (11 built in, including claude, codex, gemini, aider, ollama), which call a local CLI binary on your machine.
 
 ## What the orchestrator owns
 
