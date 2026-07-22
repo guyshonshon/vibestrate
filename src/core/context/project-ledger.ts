@@ -1,9 +1,16 @@
 import { z } from "zod";
 import { appendFile } from "node:fs/promises";
 import { pathExists, readText, ensureDir } from "../../utils/fs.js";
-import { projectLedgerPath, vibestrateRoot } from "../../utils/paths.js";
+import { readJson } from "../../utils/json.js";
+import {
+  projectLedgerPath,
+  runFlowArbitrationPath,
+  vibestrateRoot,
+} from "../../utils/paths.js";
 import { withFileMutex } from "../../utils/file-mutex.js";
 import { writeCodebaseMap } from "../../project/codebase-map.js";
+import { flowArbitrationLedgerSchema } from "../../flows/runtime/flow-arbitration.js";
+import type { FlowDecisionSummaryOutput } from "../../flows/schemas/flow-output-contracts.js";
 
 // ── Project continuity ledger ─────────────────────────────────────────────────
 //
@@ -366,6 +373,109 @@ export async function recordRunInLedger(
     blockedStage: input.blockedStage,
   });
   await appendAndRefresh(projectRoot, store, entries, now, { refreshCodebaseMap: true });
+  return entries;
+}
+
+/**
+ * Pure: promote a run's arbitration DECISION SUMMARY into durable cross-run
+ * state. The review->fix arbitration computes `recommendation` + `residualRisks`
+ * + `requiredHumanActions` every run and writes them to `arbitration.json`, but
+ * nothing carried them past the run - so a later planner saw "X shipped" with no
+ * "what was decided / what risk is carried forward". This bridges that gap:
+ *  - the recommendation becomes a `decision` (the previously phantom kind - it
+ *    was rendered but never produced),
+ *  - each residual risk / required human action becomes an OPEN `residual`.
+ * The existing `renderLedgerForPrompt` already injects these into every planner
+ * turn, so no new injection path is needed.
+ *
+ * Only merge_ready runs promote (a blocked run already emits a resume-hint
+ * residual via `buildRunLedgerEntries`). Idempotent by `decision:<runId>`.
+ * Bounded by `maxCarry` so one run can't flood the ledger.
+ */
+export function buildRunDecisionLedgerEntries(input: {
+  runId: string;
+  status: string;
+  displayName: string | null;
+  task: string;
+  decision: FlowDecisionSummaryOutput | null;
+  now: string;
+  existing: LedgerEntry[];
+  /** Max residual-risk and required-action entries promoted per run (each). */
+  maxCarry?: number;
+}): LedgerEntry[] {
+  if (input.status !== "merge_ready" || !input.decision) return [];
+  const decisionId = `decision:${input.runId}`;
+  if (input.existing.some((e) => e.id === decisionId)) return []; // idempotent
+  const d = input.decision;
+  const title = (input.displayName || input.task).slice(0, 300);
+  const cap = input.maxCarry ?? 10;
+  const entries: LedgerEntry[] = [
+    baseEntry({
+      id: decisionId,
+      kind: "decision",
+      title: `Decided (${d.recommendation}): ${title}`.slice(0, 300),
+      detail: d.summary.slice(0, 4000),
+      // A recorded decision is settled; render it regardless (decisions are
+      // never filtered by status in deriveLedgerState).
+      status: "shipped",
+      sourceRunId: input.runId,
+      createdAt: input.now,
+    }),
+  ];
+  const carry = (prefix: string, items: string[], label = ""): void => {
+    for (const [i, raw] of items.slice(0, cap).entries()) {
+      const t = raw.trim();
+      if (!t) continue;
+      entries.push(
+        baseEntry({
+          id: `residual:${input.runId}:${prefix}:${i}`,
+          kind: "residual",
+          title: `${label}${t}`.slice(0, 300),
+          // Keep the full text in detail only when the title had to truncate.
+          detail: `${label}${t}`.length > 300 ? t.slice(0, 4000) : null,
+          status: "open",
+          sourceRunId: input.runId,
+          createdAt: input.now,
+        }),
+      );
+    }
+  };
+  carry("risk", d.residualRisks);
+  carry("action", d.requiredHumanActions, "Human action: ");
+  return entries;
+}
+
+/** Disk write-back: promote a completed run's arbitration decision-summary into
+ *  the durable ledger. Reads runs/<id>/arbitration.json (best-effort: a missing
+ *  or torn record yields no entries, never throws into the run) and appends via
+ *  the same idempotent path as the other ledger writers. */
+export async function recordRunDecisionsInLedger(
+  projectRoot: string,
+  runId: string,
+  now: string,
+  input: { status: string; displayName: string | null; task: string },
+): Promise<LedgerEntry[]> {
+  let decision: FlowDecisionSummaryOutput | null = null;
+  try {
+    const p = runFlowArbitrationPath(projectRoot, runId);
+    if (await pathExists(p)) {
+      const ledger = flowArbitrationLedgerSchema.parse(await readJson<unknown>(p));
+      decision = ledger.decision?.output ?? null;
+    }
+  } catch {
+    // arbitration.json is advisory and may be half-written - no promotion is fine.
+  }
+  const store = new LedgerStore(projectRoot);
+  const entries = buildRunDecisionLedgerEntries({
+    runId,
+    status: input.status,
+    displayName: input.displayName,
+    task: input.task,
+    decision,
+    now,
+    existing: await store.read(),
+  });
+  await appendAndRefresh(projectRoot, store, entries, now);
   return entries;
 }
 

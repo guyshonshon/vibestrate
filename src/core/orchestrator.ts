@@ -55,6 +55,7 @@ import {
 import { buildAndWriteRunAssurance } from "../safety/run-assurance.js";
 import {
   recordRunInLedger,
+  recordRunDecisionsInLedger,
   recordRunStartInLedger,
   LedgerStore,
   renderLedgerForPrompt,
@@ -4171,6 +4172,22 @@ export class Orchestrator {
       });
     } catch {
       // ledger is advisory; swallow.
+    }
+
+    // ── Decision promotion (handoff continuity) ────────────
+    // Promote this run's arbitration decision-summary (recommendation + residual
+    // risks + required human actions) into the durable ledger, so the NEXT run's
+    // planner inherits "what was decided" and "what's carried forward" via the
+    // continuity ledger it already reads - not just "what shipped". Best-effort;
+    // advisory, so a hiccup never masks the run's real outcome.
+    try {
+      await recordRunDecisionsInLedger(this.projectRoot, input.runId, nowIso(), {
+        status: state.status,
+        displayName: state.displayName,
+        task: state.task,
+      });
+    } catch {
+      // decision promotion is advisory; swallow.
     }
 
     const finalReportPath = await writeFlowFinalReport({

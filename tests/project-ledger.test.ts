@@ -6,12 +6,21 @@ import {
   LedgerStore,
   deriveLedgerState,
   buildRunLedgerEntries,
+  buildRunDecisionLedgerEntries,
   buildRunStartLedgerEntries,
   recordRunInLedger,
+  recordRunDecisionsInLedger,
   renderLedgerBrief,
   renderLedgerForPrompt,
   type LedgerEntry,
 } from "../src/core/context/project-ledger.js";
+import {
+  flowDecisionSummaryOutputSchema,
+  FLOW_DECISION_SUMMARY_CONTRACT,
+  type FlowDecisionSummaryOutput,
+} from "../src/flows/schemas/flow-output-contracts.js";
+import { runFlowArbitrationPath } from "../src/utils/paths.js";
+import { flowArbitrationLedgerSchema } from "../src/flows/runtime/flow-arbitration.js";
 
 const entry = (over: Partial<LedgerEntry>): LedgerEntry => ({
   schemaVersion: 1,
@@ -126,6 +135,148 @@ describe("buildRunLedgerEntries (Slice 3 - terminal captures)", () => {
     expect(
       buildRunLedgerEntries({ ...base, runId: "r2", status: "merge_ready", existing: shipped }),
     ).toEqual([]);
+  });
+});
+
+describe("buildRunDecisionLedgerEntries (handoff - promote arbitration decisions)", () => {
+  const base = { runId: "r1", displayName: "bold-lovelace", task: "do the thing", now: NOW };
+  // Built through the real schema so the fixture fails loudly if the shape drifts.
+  const decision = (over: Partial<FlowDecisionSummaryOutput> = {}): FlowDecisionSummaryOutput =>
+    flowDecisionSummaryOutputSchema.parse({
+      contract: FLOW_DECISION_SUMMARY_CONTRACT,
+      stepId: "review",
+      recommendation: "merge-ready",
+      summary: "Chose approach A over B; B risked N+1 queries under load.",
+      validation: { status: "passed", evidence: [] },
+      agreementFindingIds: [],
+      disagreementFindingIds: [],
+      residualRisks: [],
+      requiredHumanActions: [],
+      ...over,
+    });
+
+  it("promotes the recommendation as a `decision` (the previously phantom kind)", () => {
+    const out = buildRunDecisionLedgerEntries({ ...base, status: "merge_ready", decision: decision(), existing: [] });
+    expect(out).toHaveLength(1);
+    expect(out[0]!.kind).toBe("decision");
+    expect(out[0]!.id).toBe("decision:r1");
+    expect(out[0]!.title).toContain("merge-ready");
+    expect(out[0]!.detail).toContain("approach A over B");
+    // A decision renders regardless of status (deriveLedgerState never filters it).
+    expect(deriveLedgerState(out).decisions.map((e) => e.id)).toEqual(["decision:r1"]);
+  });
+
+  it("promotes residual risks and required human actions as OPEN residuals", () => {
+    const out = buildRunDecisionLedgerEntries({
+      ...base,
+      status: "merge_ready",
+      decision: decision({
+        residualRisks: ["Cache invalidation on tag rename is untested"],
+        requiredHumanActions: ["Rotate the staging DB credential before merge"],
+      }),
+      existing: [],
+    });
+    const residuals = out.filter((e) => e.kind === "residual");
+    expect(residuals.map((e) => e.id)).toEqual(["residual:r1:risk:0", "residual:r1:action:0"]);
+    expect(residuals.every((e) => e.status === "open")).toBe(true);
+    expect(residuals[1]!.title).toBe("Human action: Rotate the staging DB credential before merge");
+    // They surface as OPEN follow-ups a later planner reads.
+    expect(deriveLedgerState(out).residuals).toHaveLength(2);
+  });
+
+  it("only merge_ready promotes; a null decision or non-terminal status yields nothing", () => {
+    expect(buildRunDecisionLedgerEntries({ ...base, status: "merge_ready", decision: null, existing: [] })).toEqual([]);
+    expect(buildRunDecisionLedgerEntries({ ...base, status: "blocked", decision: decision(), existing: [] })).toEqual([]);
+  });
+
+  it("is idempotent by decision:<runId>", () => {
+    const first = buildRunDecisionLedgerEntries({ ...base, status: "merge_ready", decision: decision(), existing: [] });
+    expect(
+      buildRunDecisionLedgerEntries({ ...base, status: "merge_ready", decision: decision(), existing: first }),
+    ).toEqual([]);
+  });
+
+  it("bounds how many risks/actions one run can promote (maxCarry)", () => {
+    const many = Array.from({ length: 25 }, (_, i) => `risk ${i}`);
+    const out = buildRunDecisionLedgerEntries({
+      ...base,
+      status: "merge_ready",
+      decision: decision({ residualRisks: many }),
+      existing: [],
+      maxCarry: 3,
+    });
+    expect(out.filter((e) => e.kind === "residual")).toHaveLength(3);
+  });
+});
+
+describe("recordRunDecisionsInLedger (disk path - arbitration.json -> ledger)", () => {
+  let dir: string;
+  const runId = "noble-darwin";
+  beforeEach(async () => {
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibe-handoff-"));
+  });
+  afterEach(async () => {
+    await fs.rm(dir, { recursive: true, force: true });
+  });
+
+  const writeArbitration = async () => {
+    const p = runFlowArbitrationPath(dir, runId);
+    await fs.mkdir(path.dirname(p), { recursive: true });
+    const ledger = flowArbitrationLedgerSchema.parse({
+      schemaVersion: 1,
+      runId,
+      flowId: "review-fix",
+      flowVersion: 1,
+      createdAt: NOW,
+      updatedAt: NOW,
+      decision: {
+        output: {
+          contract: FLOW_DECISION_SUMMARY_CONTRACT,
+          stepId: "review",
+          recommendation: "merge-ready",
+          summary: "Chose worktree isolation over in-place edits.",
+          validation: { status: "passed", evidence: [] },
+          agreementFindingIds: [],
+          disagreementFindingIds: [],
+          residualRisks: ["Concurrent runs on the same branch untested"],
+          requiredHumanActions: ["Confirm the staging deploy before prod merge"],
+        },
+        sourceStepId: "review",
+        sourceArtifactPath: "artifacts/flows/review/output.md",
+      },
+    });
+    await fs.writeFile(p, JSON.stringify(ledger), "utf8");
+  };
+
+  const record = () =>
+    recordRunDecisionsInLedger(dir, runId, NOW, {
+      status: "merge_ready",
+      displayName: "isolate-worktree",
+      task: "isolate edits",
+    });
+
+  it("promotes arbitration decision + residuals into ledger.ndjson, idempotently", async () => {
+    await writeArbitration();
+    const written = await record();
+    expect(written.map((e) => e.kind)).toEqual(["decision", "residual", "residual"]);
+
+    // Read back through the store - proves it actually hit disk.
+    const state = await new LedgerStore(dir).state();
+    expect(state.decisions.map((e) => e.id)).toEqual(["decision:noble-darwin"]);
+    // deriveLedgerState renders residuals newest-first, so compare as a set.
+    expect(new Set(state.residuals.map((e) => e.title))).toEqual(
+      new Set([
+        "Concurrent runs on the same branch untested",
+        "Human action: Confirm the staging deploy before prod merge",
+      ]),
+    );
+
+    // A retried finalize adds nothing (idempotent by decision:<runId>).
+    expect(await record()).toEqual([]);
+  });
+
+  it("no arbitration.json on disk -> no throw, no entries", async () => {
+    expect(await record()).toEqual([]);
   });
 });
 
