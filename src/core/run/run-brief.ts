@@ -29,6 +29,11 @@ export type RunBriefState = {
   validation: { total: number; passed: number; failed: number } | null;
   filesChanged: number | null;
   risks: string[];
+  /** Handoff rationale carried from the source run on a resume - the decision
+   *  summary + open risks a downstream-resumed run (review/fix/verify, which
+   *  never gets a planner turn and so never sees the continuity ledger) would
+   *  otherwise silently lose. Lines are pre-bounded by the builder. */
+  carried: { sourceRunId: string; fromStage: string; lines: string[] } | null;
 };
 
 const DEFAULT_BRIEF_BUDGET_CHARS = 2_000;
@@ -55,7 +60,17 @@ export function initRunBrief(input: {
     validation: null,
     filesChanged: null,
     risks: sel?.risks ? [...sel.risks] : [],
+    carried: null,
   };
+}
+
+/** Attach the resume handoff (source run's rationale) to the brief. Lines must
+ *  arrive pre-bounded (the resume-handoff builder clips and caps them). */
+export function setCarriedHandoff(
+  state: RunBriefState,
+  carried: { sourceRunId: string; fromStage: string; lines: string[] },
+): void {
+  state.carried = carried.lines.length > 0 ? carried : null;
 }
 
 /** Record a completed step's outcome (its output head + any decision marker).
@@ -97,7 +112,9 @@ export function renderRunBrief(
   state: RunBriefState,
   budgetChars: number = DEFAULT_BRIEF_BUDGET_CHARS,
 ): string {
-  if (state.steps.length === 0) return "";
+  // A resumed run may have rationale to carry before any live step completes -
+  // that's exactly the moment the handoff matters most (the first resumed turn).
+  if (state.steps.length === 0 && !state.carried) return "";
 
   const full = (s: RunBriefStepOutcome): string => {
     const dec = s.decision ? ` [${s.decision}]` : "";
@@ -129,8 +146,26 @@ export function renderRunBrief(
   if (state.filesChanged !== null) facts.push(`Files changed: ${state.filesChanged}`);
   if (state.risks.length) facts.push(`Open risks: ${state.risks.map((r) => oneLine(r, 120)).join("; ")}`);
 
+  // Carried handoff renders FIRST (right after the head): it's the rationale a
+  // cold resumed agent needs before reading anything else. Pre-bounded lines;
+  // never folded (the fold only compresses live step outcomes).
+  const carriedBlock: string[] = state.carried
+    ? [
+        "",
+        `## Carried from run ${state.carried.sourceRunId} (resumed at ${state.carried.fromStage})`,
+        "Settled rationale from the source run. Respect it; don't relitigate.",
+        ...state.carried.lines.map((l) => `- ${oneLine(l, 240)}`),
+      ]
+    : [];
+
   const assemble = () =>
-    [...head, "", "## Steps so far", renderSteps(), ...(facts.length ? ["", "## Status", ...facts] : []), ""].join("\n");
+    [
+      ...head,
+      ...carriedBlock,
+      ...(state.steps.length ? ["", "## Steps so far", renderSteps()] : []),
+      ...(facts.length ? ["", "## Status", ...facts] : []),
+      "",
+    ].join("\n");
 
   for (let i = 0; i < state.steps.length && assemble().length > budgetChars; i++) {
     modes[i] = "terse";

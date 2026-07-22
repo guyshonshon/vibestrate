@@ -4,6 +4,7 @@ import {
   appendStepOutcome,
   updateRunBriefFacts,
   renderRunBrief,
+  setCarriedHandoff,
 } from "../src/core/run/run-brief.js";
 import type { WorkflowSelection } from "../src/supervisor/select-workflow.js";
 
@@ -64,5 +65,44 @@ describe("run brief", () => {
     const brief = renderRunBrief(s);
     expect(brief).toContain("1/2 passed, 1 failed");
     expect(brief).toContain("Files changed: 4");
+  });
+
+  it("a carried handoff renders even before any step completes (first resumed turn)", () => {
+    const s = initRunBrief({ task: "t", selection: null });
+    setCarriedHandoff(s, {
+      sourceRunId: "noble-darwin",
+      fromStage: "reviewing",
+      lines: ["Decision (merge-ready): chose worktree isolation", "Risk: concurrency untested"],
+    });
+    const brief = renderRunBrief(s);
+    expect(brief).toContain("## Carried from run noble-darwin (resumed at reviewing)");
+    expect(brief).toContain("- Decision (merge-ready): chose worktree isolation");
+    expect(brief).toContain("- Risk: concurrency untested");
+    expect(brief).not.toContain("## Steps so far"); // no live steps yet
+  });
+
+  it("empty carried lines keep the brief empty (no header-only section)", () => {
+    const s = initRunBrief({ task: "t", selection: null });
+    setCarriedHandoff(s, { sourceRunId: "x", fromStage: "fixing", lines: [] });
+    expect(renderRunBrief(s)).toBe("");
+  });
+
+  it("carried renders before steps and survives the budget fold", () => {
+    const s = initRunBrief({ task: "t", selection: null });
+    setCarriedHandoff(s, {
+      sourceRunId: "src-run",
+      fromStage: "fixing",
+      lines: ["Decision (changes-requested): tighten input validation"],
+    });
+    for (let i = 0; i < 8; i++) {
+      appendStepOutcome(s, { stepId: `s${i}`, label: `Step ${i}`, kind: "agent-turn", output: "y".repeat(300) });
+    }
+    const brief = renderRunBrief(s, 600);
+    const carriedAt = brief.indexOf("## Carried from run src-run");
+    const stepsAt = brief.indexOf("## Steps so far");
+    expect(carriedAt).toBeGreaterThan(-1);
+    expect(stepsAt).toBeGreaterThan(carriedAt);
+    // The fold compresses step outcomes, never the carried rationale.
+    expect(brief).toContain("tighten input validation");
   });
 });

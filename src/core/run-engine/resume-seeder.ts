@@ -24,6 +24,12 @@ import {
   type RoleRunResult,
 } from "./types.js";
 import { patchFlowStep } from "./flow-run-state.js";
+import {
+  appendStepOutcome,
+  setCarriedHandoff,
+  type RunBriefState,
+} from "../run/run-brief.js";
+import { readCarriedHandoffLines } from "../run/resume-handoff.js";
 
 /** Capture a per-phase worktree snapshot after a code-producing step, so a
  *  later run can rewind to review/verify/fix with this code. Best-effort. */
@@ -93,6 +99,11 @@ export async function seedResumedSteps(input: {
   targetStore: ArtifactStore;
   stateStore: RunStateStore;
   eventLog: EventLog;
+  /** The run brief to seed with the source run's story + carried rationale.
+   *  Required so no call site can silently produce a blank-brief resume - a
+   *  downstream resume has no planner turn, making the brief the ONLY channel
+   *  that carries "what was decided / what's open" into the resumed stages. */
+  runBriefState: RunBriefState;
 }): Promise<{
   state: RunState;
   resumeStartIndex: number;
@@ -174,6 +185,15 @@ export async function seedResumedSteps(input: {
       });
       if (!seeded) continue; // missing non-essential output - skip
       input.outputs.set(token, seeded);
+      // Story-so-far: a resumed run's brief starts empty, so the resumed
+      // stages would see no through-line. Upserts by stepId, so a step with
+      // several outputs keeps one entry (the last token wins - fine for a head).
+      appendStepOutcome(input.runBriefState, {
+        stepId: upstream.id,
+        label: `${upstream.label} (seeded from ${resumeFrom.sourceRunId})`,
+        kind: upstream.kind,
+        output: seeded.content,
+      });
       if (token === "plan" || token === "plan-handoff")
         planArtifact = seededFlowResult(upstream, seeded, input.projectRoot);
       if (token === "execution" || token === "execution-handoff")
@@ -195,6 +215,30 @@ export async function seedResumedSteps(input: {
         resumedFrom: resumeFrom.fromStage,
       },
     });
+  }
+
+  // Carried rationale: the source run's decision summary + the ledger's open
+  // decisions/residuals, delivered via the brief to every non-clean-room turn.
+  // Best-effort - a torn source never blocks the resume itself.
+  try {
+    const lines = await readCarriedHandoffLines(
+      input.projectRoot,
+      resumeFrom.sourceRunId,
+    );
+    setCarriedHandoff(input.runBriefState, {
+      sourceRunId: resumeFrom.sourceRunId,
+      fromStage: resumeFrom.fromStage,
+      lines,
+    });
+    if (lines.length > 0) {
+      await input.eventLog.append({
+        type: "run.rewound.carried",
+        message: `Carried ${lines.length} rationale line(s) from run ${resumeFrom.sourceRunId} into the run brief.`,
+        data: { sourceRunId: resumeFrom.sourceRunId, lines: lines.length },
+      });
+    }
+  } catch {
+    // rationale carry is advisory; the resume proceeds without it.
   }
 
   await input.eventLog.append({

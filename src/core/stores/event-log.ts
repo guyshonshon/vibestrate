@@ -9,6 +9,7 @@ export type VibestrateEventType =
   | "methodology.unknown"
   | "run.rewound"
   | "run.rewound.restored"
+  | "run.rewound.carried"
   | "run.snapshot.captured"
   | "run.snapshot.pruned"
   | "state.changed"

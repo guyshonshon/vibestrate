@@ -2438,6 +2438,7 @@ export class Orchestrator {
             targetStore: input.artifactStore,
             stateStore: input.stateStore,
             eventLog: input.eventLog,
+            runBriefState,
           });
           state = seeded.state;
           if (seeded.planArtifact) planArtifact = seeded.planArtifact;
@@ -2495,6 +2496,7 @@ export class Orchestrator {
           targetStore: input.artifactStore,
           stateStore: input.stateStore,
           eventLog: input.eventLog,
+          runBriefState,
         });
         state = seeded.state;
         stepIndex = seeded.resumeStartIndex;
