@@ -10,7 +10,11 @@ import {
 import { withFileMutex } from "../../utils/file-mutex.js";
 import { writeCodebaseMap } from "../../project/codebase-map.js";
 import { flowArbitrationLedgerSchema } from "../../flows/runtime/flow-arbitration.js";
-import type { FlowDecisionSummaryOutput } from "../../flows/schemas/flow-output-contracts.js";
+import {
+  flowEvidenceRefSchema,
+  type FlowDecisionSummaryOutput,
+  type FlowEvidenceRef,
+} from "../../flows/schemas/flow-output-contracts.js";
 
 // ── Project continuity ledger ─────────────────────────────────────────────────
 //
@@ -59,6 +63,11 @@ export const ledgerEntrySchema = z
     relatesTo: z.string().nullable().default(null),
     createdAt: z.string(),
     tags: z.array(z.string().min(1).max(40)).default([]),
+    /** Structured refs backing this entry (file/artifact/diff/validation/event)
+     *  - reuses the FlowFinding evidence shape so a carried-forward decision or
+     *  residual is auditable, not a bare claim. Backwards-compatible default:
+     *  pre-evidence lines parse as []. Bounded so one entry can't bloat. */
+    evidence: z.array(flowEvidenceRefSchema).max(8).default([]),
   })
   .strict();
 export type LedgerEntry = z.infer<typeof ledgerEntrySchema>;
@@ -167,6 +176,7 @@ function baseEntry(over: Partial<LedgerEntry> & Pick<LedgerEntry, "id" | "kind" 
     relation: null,
     relatesTo: null,
     tags: [],
+    evidence: [],
     ...over,
   };
 }
@@ -398,6 +408,9 @@ export function buildRunDecisionLedgerEntries(input: {
   displayName: string | null;
   task: string;
   decision: FlowDecisionSummaryOutput | null;
+  /** The arbitration record's source artifact (the decision-summary output) -
+   *  becomes the decision entry's primary evidence ref when present. */
+  decisionArtifactPath?: string | null;
   now: string;
   existing: LedgerEntry[];
   /** Max residual-risk and required-action entries promoted per run (each). */
@@ -409,6 +422,14 @@ export function buildRunDecisionLedgerEntries(input: {
   const d = input.decision;
   const title = (input.displayName || input.task).slice(0, 300);
   const cap = input.maxCarry ?? 10;
+  // Evidence: the decision-summary artifact itself, then the validation refs it
+  // cited. Schema-bounded to 8; clip ref length defensively (schema max 400).
+  const evidence: FlowEvidenceRef[] = [
+    ...(input.decisionArtifactPath
+      ? [{ kind: "artifact" as const, ref: input.decisionArtifactPath.slice(0, 400) }]
+      : []),
+    ...d.validation.evidence,
+  ].slice(0, 8);
   const entries: LedgerEntry[] = [
     baseEntry({
       id: decisionId,
@@ -420,6 +441,7 @@ export function buildRunDecisionLedgerEntries(input: {
       status: "shipped",
       sourceRunId: input.runId,
       createdAt: input.now,
+      evidence,
     }),
   ];
   const carry = (prefix: string, items: string[], label = ""): void => {
@@ -456,11 +478,13 @@ export async function recordRunDecisionsInLedger(
   input: { status: string; displayName: string | null; task: string },
 ): Promise<LedgerEntry[]> {
   let decision: FlowDecisionSummaryOutput | null = null;
+  let decisionArtifactPath: string | null = null;
   try {
     const p = runFlowArbitrationPath(projectRoot, runId);
     if (await pathExists(p)) {
       const ledger = flowArbitrationLedgerSchema.parse(await readJson<unknown>(p));
       decision = ledger.decision?.output ?? null;
+      decisionArtifactPath = ledger.decision?.sourceArtifactPath ?? null;
     }
   } catch {
     // arbitration.json is advisory and may be half-written - no promotion is fine.
@@ -472,6 +496,7 @@ export async function recordRunDecisionsInLedger(
     displayName: input.displayName,
     task: input.task,
     decision,
+    decisionArtifactPath,
     now,
     existing: await store.read(),
   });
@@ -503,13 +528,24 @@ export function renderLedgerBrief(
     if (!Number.isFinite(created) || nowMs - created <= staleMs) return "";
     return ` (unconfirmed - ${Math.floor((nowMs - created) / 86_400_000)}d old)`;
   };
+  // Evidence hint: at most 2 refs, each clipped - enough to locate the backing
+  // artifact/file without bloating the prompt path.
+  const evidenceSuffix = (e: LedgerEntry): string => {
+    if (!e.evidence.length) return "";
+    const shown = e.evidence
+      .slice(0, 2)
+      .map((r) => `${r.kind}:${r.ref.length > 80 ? `${r.ref.slice(0, 79)}…` : r.ref}`)
+      .join(", ");
+    const more = e.evidence.length > 2 ? ` +${e.evidence.length - 2}` : "";
+    return ` [evidence: ${shown}${more}]`;
+  };
   const lines: string[] = [];
   const section = (heading: string, entries: LedgerEntry[], markStale = false) => {
     if (entries.length === 0) return;
     lines.push(`## ${heading}`);
     for (const e of entries.slice(0, limit)) {
       const stale = markStale ? staleSuffix(e) : "";
-      lines.push(`- ${e.title}${stale}${e.detail ? ` - ${clip(e.detail)}` : ""}`);
+      lines.push(`- ${e.title}${stale}${e.detail ? ` - ${clip(e.detail)}` : ""}${evidenceSuffix(e)}`);
     }
     if (entries.length > limit) lines.push(`- ...and ${entries.length - limit} more`);
     lines.push("");

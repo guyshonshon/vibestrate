@@ -29,6 +29,7 @@ function entry(over: Partial<LedgerEntry>): LedgerEntry {
     relatesTo: null,
     createdAt: ts,
     tags: [],
+    evidence: [],
     ...over,
   };
 }

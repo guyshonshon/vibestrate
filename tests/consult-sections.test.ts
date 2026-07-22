@@ -20,6 +20,7 @@ const e = (over: Partial<LedgerEntry>): LedgerEntry => ({
   relatesTo: null,
   createdAt: "2026-06-12T00:00:00.000Z",
   tags: [],
+  evidence: [],
   ...over,
 });
 

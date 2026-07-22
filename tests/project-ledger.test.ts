@@ -35,6 +35,7 @@ const entry = (over: Partial<LedgerEntry>): LedgerEntry => ({
   relatesTo: null,
   createdAt: "2026-06-12T00:00:00.000Z",
   tags: [],
+  evidence: [],
   ...over,
 });
 
@@ -206,6 +207,46 @@ describe("buildRunDecisionLedgerEntries (handoff - promote arbitration decisions
       maxCarry: 3,
     });
     expect(out.filter((e) => e.kind === "residual")).toHaveLength(3);
+  });
+
+  it("carries evidence: the decision artifact ref first, then validation refs, capped at 8", () => {
+    const valEvidence = Array.from({ length: 10 }, (_, i) => ({
+      kind: "validation" as const,
+      ref: `val-${i}`,
+    }));
+    const out = buildRunDecisionLedgerEntries({
+      ...base,
+      status: "merge_ready",
+      decision: decision({ validation: { status: "passed", evidence: valEvidence } }),
+      decisionArtifactPath: "artifacts/flows/review/output.md",
+      existing: [],
+    });
+    const ev = out[0]!.evidence;
+    expect(ev).toHaveLength(8); // schema bound
+    expect(ev[0]).toEqual({ kind: "artifact", ref: "artifacts/flows/review/output.md" });
+    expect(ev[1]).toEqual({ kind: "validation", ref: "val-0" });
+    // Round-trips through the entry schema (max(8) would reject an overflow).
+    expect(() => deriveLedgerState(out)).not.toThrow();
+  });
+
+  it("renders a bounded evidence hint in the brief", () => {
+    const out = buildRunDecisionLedgerEntries({
+      ...base,
+      status: "merge_ready",
+      decision: decision({
+        validation: {
+          status: "passed",
+          evidence: [
+            { kind: "file", ref: "src/a.ts:12" },
+            { kind: "diff", ref: "flows/impl/diff-snapshot.json" },
+          ],
+        },
+      }),
+      decisionArtifactPath: "artifacts/flows/review/output.md",
+      existing: [],
+    });
+    const brief = renderLedgerBrief(deriveLedgerState(out));
+    expect(brief).toContain("[evidence: artifact:artifacts/flows/review/output.md, file:src/a.ts:12 +1]");
   });
 });
 

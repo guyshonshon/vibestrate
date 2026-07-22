@@ -185,6 +185,8 @@ export function buildFlagEntries(input: {
       relatesTo: m.target.id,
       createdAt: input.now,
       tags: ["needs-investigation"],
+      // The link itself is the evidence (relatesTo); no artifact refs to carry.
+      evidence: [],
     };
   });
 }
