@@ -38,7 +38,9 @@
         "worktreeDir": "../.vibestrate-worktrees",
         "requireCleanMain": false,
         "allowAutoMerge": false,
-        "allowAutoPush": false
+        "allowAutoPush": false,
+        "linkEnvironment": "auto",
+        "snapshotRetentionRuns": 0
       },
       "itemType": null,
       "children": [
@@ -167,7 +169,14 @@
       "type": "object",
       "required": false,
       "default": {
-        "backend": "local-worktree"
+        "backend": "local-worktree",
+        "isolation": "off",
+        "container": {
+          "image": "node:22-bookworm-slim",
+          "onUnavailable": "fail",
+          "readonlyRoot": true,
+          "pidsLimit": 512
+        }
       },
       "itemType": null,
       "children": [
@@ -204,7 +213,12 @@
           "fullKey": "execution.container",
           "type": "object",
           "required": false,
-          "default": {},
+          "default": {
+            "image": "node:22-bookworm-slim",
+            "onUnavailable": "fail",
+            "readonlyRoot": true,
+            "pidsLimit": 512
+          },
           "itemType": null,
           "children": [
             {
@@ -253,7 +267,7 @@
     {
       "key": "providers",
       "fullKey": "providers",
-      "type": "record<string, unknown>",
+      "type": "record<string, object | object | object | object>",
       "required": true,
       "itemType": null
     },
@@ -311,13 +325,13 @@
     {
       "key": "projectPolicies",
       "fullKey": "projectPolicies",
-      "type": "array<unknown>",
+      "type": "array<object>",
       "required": false,
       "default": [],
       "itemType": {
         "key": "[item]",
         "fullKey": "[item]",
-        "type": "unknown",
+        "type": "object",
         "required": true
       },
       "description": "Project-scoped tiered rules (advise = reviewer-injected; block = deterministic merge-cap). Default none."
@@ -366,7 +380,12 @@
       "default": {
         "spendCapDailyUsd": null,
         "capAction": "stop",
-        "warnThresholdPct": 0.8
+        "warnThresholdPct": 0.8,
+        "maxTurnsPerRun": null,
+        "maxWallClockMinPerRun": null,
+        "maxTurnsPerDay": null,
+        "maxWallClockMinPerDay": null,
+        "onLimit": "stop"
       },
       "itemType": null,
       "children": [
@@ -466,7 +485,15 @@
       "fullKey": "supervised",
       "type": "object",
       "required": false,
-      "default": {},
+      "default": {
+        "maxSpendUsd": null,
+        "maxSteps": 20,
+        "supervisor": {
+          "enabled": true,
+          "profile": null,
+          "roleId": "reviewer"
+        }
+      },
       "itemType": null,
       "children": [
         {
@@ -492,7 +519,11 @@
           "fullKey": "supervised.supervisor",
           "type": "object",
           "required": false,
-          "default": {},
+          "default": {
+            "enabled": true,
+            "profile": null,
+            "roleId": "reviewer"
+          },
           "itemType": null,
           "children": [
             {
@@ -531,7 +562,33 @@
       "fullKey": "resilience",
       "type": "object",
       "required": false,
-      "default": {},
+      "default": {
+        "enabled": true,
+        "onExhausted": "fail",
+        "autoFallback": "crew",
+        "rateLimit": {
+          "maxRetries": 5,
+          "baseDelayMs": 2000,
+          "maxDelayMs": 120000,
+          "patterns": [],
+          "fallbackProfile": null,
+          "respectRetryAfter": true
+        },
+        "transient": {
+          "maxRetries": 4,
+          "baseDelayMs": 1000,
+          "maxDelayMs": 60000,
+          "patterns": [],
+          "fallbackProfile": null
+        },
+        "usageLimit": {
+          "action": "stop",
+          "maxWaitMin": 60,
+          "maxWaits": 2,
+          "fallbackProfile": null,
+          "patterns": []
+        }
+      },
       "itemType": null,
       "children": [
         {
@@ -579,8 +636,9 @@
             "maxRetries": 5,
             "baseDelayMs": 2000,
             "maxDelayMs": 120000,
-            "respectRetryAfter": true,
-            "patterns": []
+            "patterns": [],
+            "fallbackProfile": null,
+            "respectRetryAfter": true
           },
           "itemType": null,
           "children": [
@@ -651,7 +709,8 @@
             "maxRetries": 4,
             "baseDelayMs": 1000,
             "maxDelayMs": 60000,
-            "patterns": []
+            "patterns": [],
+            "fallbackProfile": null
           },
           "itemType": null,
           "children": [
@@ -709,7 +768,13 @@
           "fullKey": "resilience.usageLimit",
           "type": "object",
           "required": false,
-          "default": {},
+          "default": {
+            "action": "stop",
+            "maxWaitMin": 60,
+            "maxWaits": 2,
+            "fallbackProfile": null,
+            "patterns": []
+          },
           "itemType": null,
           "children": [
             {
@@ -776,7 +841,9 @@
       "fullKey": "session",
       "type": "object",
       "required": false,
-      "default": {},
+      "default": {
+        "maxReuseTurns": 0
+      },
       "itemType": null,
       "children": [
         {
@@ -796,7 +863,9 @@
       "type": "object",
       "required": false,
       "default": {
-        "validate": []
+        "validate": [],
+        "scopeValidationByChange": true,
+        "validationProfiles": {}
       },
       "itemType": null,
       "children": [
@@ -859,13 +928,20 @@
       "type": "object",
       "required": false,
       "default": {
+        "defaultPermissionMode": "auto",
         "forbidMainBranchWrites": true,
         "forbidSecretsAccess": true,
         "forbidAutoPush": true,
         "forbidAutoMerge": true,
         "preserveArtifacts": true,
         "requireApprovalAtStages": [],
-        "allowInteractiveTerminal": false
+        "allowInteractiveTerminal": false,
+        "strictApplyOnly": false,
+        "hardenReadOnlySeats": false,
+        "unattendedApprovalTimeoutMs": 0,
+        "approvalMaxChangeRounds": 3,
+        "protectedPaths": [],
+        "unprotectedPaths": []
       },
       "itemType": null,
       "children": [
@@ -1233,7 +1309,15 @@
       "fullKey": "merge",
       "type": "object",
       "required": false,
-      "default": {},
+      "default": {
+        "advisor": {
+          "suggestIntegrationBranchWhen": {
+            "filesTouched": 25,
+            "protectedPaths": true,
+            "behindMain": 50
+          }
+        }
+      },
       "itemType": null,
       "children": [
         {
@@ -1241,7 +1325,13 @@
           "fullKey": "merge.advisor",
           "type": "object",
           "required": false,
-          "default": {},
+          "default": {
+            "suggestIntegrationBranchWhen": {
+              "filesTouched": 25,
+              "protectedPaths": true,
+              "behindMain": 50
+            }
+          },
           "itemType": null,
           "children": [
             {
