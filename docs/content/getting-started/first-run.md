@@ -69,11 +69,7 @@ Or open the **Source** page in the dashboard, on its **Changes** tab, which show
 
 ## Use it, or don't
 
-<div class="docs-callout">
-
-**Vibestrate never merges anything for you.** The finished change sits on its own branch, ready for you to take or leave. That part is always your call.
-
-</div>
+**Vibestrate never merges anything for you** (see [the safety guarantees](/docs/concepts/safety)). The finished change sits on its own branch, ready for you to take or leave.
 
 The branch is yours to:
 

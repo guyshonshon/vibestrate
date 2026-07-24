@@ -96,6 +96,8 @@ What's **honest** about this: the modes gate the run-level effects Vibestrate ow
 
 The mode is the **soft policy**; the container backend is the **hard wall**. They layer: read-only mode + `execution.backend: docker` gives you "no writes" enforced by both the orchestrator and the container.
 
+No permission mode pushes your branch or merges it anywhere - not even `auto`. A run always stops at `merge_ready` and hands you the diff; taking it further is a decision you make, never one Vibestrate makes for you.
+
 ## Run assurance
 
 When a run reaches a terminal state, Vibestrate derives a single honest verdict from the evidence above - the broker log plus the run's review and verification decisions - and writes it to `.vibestrate/runs/<runId>/assurance.json`:

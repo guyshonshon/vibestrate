@@ -33,23 +33,12 @@ lock, clean-halt).
 
 ## Authoring a supervised task
 
-Create the task as supervised, then add and refine its steps:
+Create the task as supervised, then add each step with its objective, acceptance
+check, and file hints. The same authoring is available in Mission Control: a
+supervised task renders as a container card on the Board, and the task detail
+view lets you add, edit, and reorder steps.
 
-```bash
-vibe tasks add "Migrate settings handler to the new schema" --supervised
-vibe tasks checklist add <id> "Update the settings model" \
-  --objective "Replace SettingsV1 with SettingsV2 in src/models/settings.ts" \
-  --acceptance "TS compiles with zero errors on the model file" \
-  --files "src/models/settings.ts"
-vibe tasks checklist add <id> "Update the settings routes"
-vibe tasks checklist move <id> "<step-id>" <position>
-```
-
-The same authoring is available in Mission Control: a supervised task renders as a
-container card on the Board, and the task detail view lets you add, edit, and
-reorder steps.
-
-Full command reference: [vibe tasks](/docs/cli/supervised-tasks).
+Commands and a worked example: [vibe tasks](/docs/cli/supervised-tasks).
 
 ## What is available now
 

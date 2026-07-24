@@ -5,7 +5,7 @@ section: extending
 slug: extending/add-flow
 ---
 
-A Flow is the ordered list of steps Vibestrate works through to finish a task, and you write one in YAML. Drop the file under `.vibestrate/flows/<id>/flow.yml` and Vibestrate finds it on its own. It checks the file against the schema when it loads, so a broken Flow fails loudly at the start instead of quietly partway through a run.
+A custom [Flow](/docs/concepts/flow) is written in YAML. Drop the file under `.vibestrate/flows/<id>/flow.yml` and Vibestrate finds it on its own. It checks the file against the schema when it loads, so a broken Flow fails loudly at the start instead of quietly partway through a run.
 
 ## Steps
 

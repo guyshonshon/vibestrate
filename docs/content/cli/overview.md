@@ -112,7 +112,7 @@ vibe skills assign <agent> <skill>         # attach a skill to an agent
 
 ## Working with Flows
 
-A Flow is the list of steps Vibestrate works through to finish a task:
+Commands for a [Flow](/docs/concepts/flow), the list of steps a task works through:
 
 ```bash
 vibe flows list                           # built-in + project Flows

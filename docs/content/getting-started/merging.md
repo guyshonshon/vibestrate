@@ -62,7 +62,7 @@ Or `git push` the branch to share it as is. To throw the change away, just ignor
 
 ## Why is merging always manual?
 
-Two rules are on by default and not negotiable: Vibestrate never auto-merges, and it never auto-pushes. A run stops at `merge_ready` and hands you the diff. Folding it into `main` is always a decision you make.
+A run stops at `merge_ready` and hands you the diff - see [the safety guarantees](/docs/concepts/safety) for the rule. Folding it into `main` is always a decision you make.
 
 Merging is the point of commitment - it joins your shared history and can ship from there. You can revert a bad merge, but only after the wrong code was already trusted and built on. A model that cannot fully vouch for its own work is the wrong thing to make that call on your behalf.
 

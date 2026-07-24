@@ -33,7 +33,7 @@ Want the dashboard open alongside the terminal? Add `--ui`:
 vibe run "..." --ui
 ```
 
-A Flow is the routine of steps Vibestrate works through. If the work warrants the extra rigor, pick a heavier one:
+Need more rigor than the default [Flow](/docs/concepts/flow)? Pick a heavier one:
 
 ```bash
 vibe run "..." --flow quality-arbitration
@@ -80,7 +80,7 @@ Or open the dashboard's **Source** page, on its **Changes** tab, to read the dif
 
 ## 5. Merge it yourself
 
-Vibestrate does not push and does not merge. The run leaves the diff on its branch in the worktree, and the final call is yours.
+Vibestrate does not push or merge (see [the safety guarantees](/docs/concepts/safety)). The run leaves the diff on its branch in the worktree, and the final call is yours.
 
 Before you decide, you can ask the merge advisor:
 
