@@ -21,9 +21,7 @@ Top-level commands are things you do directly to a run or a project:
 
 `init`, `setup`, `welcome`, `run`, `status`, `abort`, `pause`, `resume`, `doctor`, `ui`, `replay`, `shell`, `path`, `rename`, `logs`, `assurance`, `audit`, `ledger`, `consult`.
 
-Area groups bundle related sub-actions together:
-
-`provider`, `config`, `skills`, `flows`, `supervisor`, `profile`, `params`, `crew`, `approvals`, `roadmap`, `spec-up`, `tasks`, `integrate`, `queue`, `telemetry`, `workspace`, `notifications`, `gateways`, `editor`, `suggestions`, `bundles`, `validation`, `terminal`, `policies`, `guide`, `learn`, `budget`, `runs`.
+Area groups bundle related sub-actions together - `provider`, `config`, `skills`, `flows`, `params`, `approvals`, and more than a dozen others. This page covers the ones you'll reach for most; the [CLI commands reference](/docs/reference/cli) lists every area.
 
 ## Conventions
 

@@ -12,8 +12,6 @@ can do too.
 
 ## Base URL and versioning
 
-There are two ways to reach the same handlers: one the bundled UI uses, and one to pin in your own scripts.
-
 - **Unversioned:** `/api/...` - what the bundled dashboard calls.
 - **Versioned:** `/api/v1/...` - the canonical contract for external callers.
 
@@ -24,8 +22,6 @@ window. `/api/v1/health` and `/api/v1/flows` behave identically to their
 unversioned forms.
 
 ## Binding and origin
-
-By default the server listens only on your own machine, and it is picky about who is allowed to call it.
 
 The server binds loopback (`127.0.0.1`) by default and refuses cross-origin
 requests from anything but `localhost` / `127.0.0.1` / the configured host (a
@@ -40,8 +36,6 @@ scripts) omit that header and are unaffected - but a destructive endpoint like
 snapshot prune still requires an explicit body, never acting on an empty one.
 
 ## Authentication
-
-Auth stays out of your way when you run locally, and switches on the moment you set a token.
 
 Auth is **off by default** on a loopback bind (single-user, local-first). It
 turns on when a token is present:
