@@ -87,6 +87,34 @@ describe("run brief", () => {
     expect(renderRunBrief(s)).toBe("");
   });
 
+  it("caps the carried block within the budget (F1): drops overflow with a marker, keeps the decision", () => {
+    const s = initRunBrief({ task: "t", selection: null });
+    const lines = Array.from({ length: 40 }, (_, i) =>
+      i === 0 ? "Decision (merge-ready): keep the invariant" : `Risk ${i}: ${"y".repeat(200)}`,
+    );
+    setCarriedHandoff(s, { sourceRunId: "loud-run", fromStage: "reviewing", lines });
+    const budget = 1000;
+    const brief = renderRunBrief(s, budget);
+    // Held within budget + small header allowance (mirrors the step-fold test).
+    expect(brief.length).toBeLessThan(budget + 400);
+    // The decision line always survives; the rest fold under a marker.
+    expect(brief).toContain("Decision (merge-ready): keep the invariant");
+    expect(brief).toMatch(/…and \d+ more \(see run loud-run\)/);
+  });
+
+  it("keeps at least the decision line even when it alone exceeds the cap", () => {
+    const s = initRunBrief({ task: "t", selection: null });
+    setCarriedHandoff(s, {
+      sourceRunId: "r",
+      fromStage: "fixing",
+      lines: [`Decision (merge-ready): ${"z".repeat(400)}`, "Risk: dropped"],
+    });
+    const brief = renderRunBrief(s, 200); // cap = 100, below the single line
+    expect(brief).toContain("## Carried from run r");
+    expect(brief).toMatch(/Decision \(merge-ready\): z+…/); // clipped by oneLine(240), still present
+    expect(brief).toContain("…and 1 more");
+  });
+
   it("carried renders before steps and survives the budget fold", () => {
     const s = initRunBrief({ task: "t", selection: null });
     setCarriedHandoff(s, {

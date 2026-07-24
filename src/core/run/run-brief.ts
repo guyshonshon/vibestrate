@@ -38,6 +38,11 @@ export type RunBriefState = {
 
 const DEFAULT_BRIEF_BUDGET_CHARS = 2_000;
 const STEP_SUMMARY_CHARS = 220;
+/** The carried handoff is the most important content on a resumed run, so it
+ *  gets a generous share of the budget - but a SHARE, not a blank cheque: a
+ *  noisy source can't push the brief past `budgetChars`. Overflow lines drop
+ *  with a "…and N more" marker; the first line (the decision) is always kept. */
+const CARRIED_BUDGET_FRACTION = 0.5;
 
 function oneLine(text: string, max = STEP_SUMMARY_CHARS): string {
   const flat = text.replace(/\s+/g, " ").trim();
@@ -102,11 +107,43 @@ export function updateRunBriefFacts(
   if (facts.filesChanged !== undefined) state.filesChanged = facts.filesChanged;
 }
 
+/** Render the carried-handoff section within `capChars`. Lines are added until
+ *  the cap would be exceeded, then the rest drop under a "…and N more" marker.
+ *  The first line (the decision) is always kept even if it alone exceeds the
+ *  cap, so a handoff never degrades to a header with no rationale. Returns []
+ *  when there's nothing to carry. */
+function renderCarriedBlock(
+  carried: RunBriefState["carried"],
+  capChars: number,
+): string[] {
+  if (!carried || carried.lines.length === 0) return [];
+  const header = [
+    "",
+    `## Carried from run ${carried.sourceRunId} (resumed at ${carried.fromStage})`,
+    "Settled rationale from the source run. Respect it; don't relitigate.",
+  ];
+  const body: string[] = [];
+  let used = header.join("\n").length;
+  let shown = 0;
+  for (const l of carried.lines) {
+    const rendered = `- ${oneLine(l, 240)}`;
+    // Always keep the first line; stop once another would exceed the cap.
+    if (shown > 0 && used + rendered.length + 1 > capChars) break;
+    body.push(rendered);
+    used += rendered.length + 1;
+    shown += 1;
+  }
+  const dropped = carried.lines.length - shown;
+  if (dropped > 0) body.push(`- …and ${dropped} more (see run ${carried.sourceRunId})`);
+  return [...header, ...body];
+}
+
 /**
  * Render the brief as a bounded markdown block. Returns "" before any step has
  * completed (so the first role shows no brief section). When the full form would
  * exceed `budgetChars`, the oldest step outcomes fold to one line (label +
- * decision), newest keep their summary - mirroring the pickup item ledger.
+ * decision), newest keep their summary - mirroring the pickup item ledger. The
+ * carried-handoff section is separately capped (see renderCarriedBlock).
  */
 export function renderRunBrief(
   state: RunBriefState,
@@ -147,16 +184,13 @@ export function renderRunBrief(
   if (state.risks.length) facts.push(`Open risks: ${state.risks.map((r) => oneLine(r, 120)).join("; ")}`);
 
   // Carried handoff renders FIRST (right after the head): it's the rationale a
-  // cold resumed agent needs before reading anything else. Pre-bounded lines;
-  // never folded (the fold only compresses live step outcomes).
-  const carriedBlock: string[] = state.carried
-    ? [
-        "",
-        `## Carried from run ${state.carried.sourceRunId} (resumed at ${state.carried.fromStage})`,
-        "Settled rationale from the source run. Respect it; don't relitigate.",
-        ...state.carried.lines.map((l) => `- ${oneLine(l, 240)}`),
-      ]
-    : [];
+  // cold resumed agent needs before reading anything else. Capped at a share of
+  // the budget (F1) so a noisy source can't blow the brief past budgetChars -
+  // overflow drops with a marker, but the first (decision) line always stays.
+  const carriedBlock = renderCarriedBlock(
+    state.carried,
+    Math.floor(budgetChars * CARRIED_BUDGET_FRACTION),
+  );
 
   const assemble = () =>
     [
