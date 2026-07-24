@@ -3,12 +3,13 @@
 // Turns a run's ContextSource[] into prompt artifacts, safely:
 //   - file: resolved through the path guard (no traversal / symlink escape),
 //           secret-shaped *paths* refused, secret-shaped *content* redacted,
-//           size-bounded.
+//           binary/unsupported formats refused, size-bounded.
 //   - url:  opt-in only; SSRF-guarded + bounded fetch; content redacted.
 // Every failure is non-fatal - it becomes a `note` and the source is skipped,
 // so a bad attachment never blocks a run.
 
 import fs from "node:fs/promises";
+import path from "node:path";
 import { resolveSafePath, buildProjectRoots, PathGuardError } from "../path-guard.js";
 import { isSecretLikePath, redactSecretsInText } from "../diff-service.js";
 import { fetchGuardedText } from "../guarded-fetch.js";
@@ -17,6 +18,119 @@ import type { ContextSource } from "./context-source-schema.js";
 import type { PriorArtifact } from "./prompt-builder.js";
 
 const DEFAULT_MAX_BYTES = 512 * 1024;
+
+// Extensions we know are unreadable as plain text. Reading these with
+// fs.readFile(..., "utf8") does not error - it silently decodes the binary
+// bytes to replacement-character garbage, which then gets injected into every
+// agent's prompt as if it were readable content. Refuse them at entry instead
+// of feeding the model nonsense. (Not shared with INERT_EXTENSIONS in
+// validation-scope.ts or STRICT_PROSE_EXTENSIONS in review-descent.ts - those
+// classify diff-review relevance, not text-readability; their allow/deny
+// shape and membership don't match this list's intent.)
+const UNSUPPORTED_BINARY_EXTENSIONS: ReadonlySet<string> = new Set([
+  // documents (need a real parser we don't have yet - see
+  // context-source-schema.ts's note on pdf being reserved for a follow-up)
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".ppt",
+  ".pptx",
+  ".odt",
+  ".ods",
+  ".odp",
+  // images
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".bmp",
+  ".ico",
+  ".avif",
+  ".tiff",
+  ".heic",
+  // archives
+  ".zip",
+  ".tar",
+  ".gz",
+  ".tgz",
+  ".bz2",
+  ".7z",
+  ".rar",
+  // audio/video
+  ".mp3",
+  ".mp4",
+  ".mov",
+  ".wav",
+  ".avi",
+  ".mkv",
+  ".flac",
+  ".ogg",
+  // fonts
+  ".woff",
+  ".woff2",
+  ".ttf",
+  ".otf",
+  ".eot",
+  // misc binary
+  ".exe",
+  ".dll",
+  ".so",
+  ".dylib",
+  ".wasm",
+  ".sqlite",
+  ".db",
+]);
+
+/** How many leading bytes to sniff for files whose extension isn't a known-binary one. */
+const SNIFF_BYTES = 4096;
+/** Above this fraction of control bytes in the sniff window, refuse the file. */
+const SNIFF_CONTROL_BYTE_THRESHOLD = 0.3;
+
+function isUnsupportedBinaryExtension(ref: string): boolean {
+  return UNSUPPORTED_BINARY_EXTENSIONS.has(path.extname(ref).toLowerCase());
+}
+
+/**
+ * Cheap binary sniff for files without a telltale extension. Two checks over
+ * the leading window, either of which is a refusal:
+ *   1. Strict UTF-8 decode fails. This is the actual mechanism of the bug:
+ *      `fs.readFile(..., "utf8")` never throws on invalid bytes, it silently
+ *      replaces them with U+FFFD garbage. Decoding with `fatal: true` catches
+ *      exactly the inputs that would otherwise decode to garbage - real UTF-8
+ *      text (including multibyte emoji/CJK sequences) always decodes cleanly,
+ *      so this has no false-positive risk on legitimate text.
+ *   2. A NUL byte, or a high proportion of C0 control bytes, is present. NUL
+ *      is technically valid inside a UTF-8 stream but is a reliable binary
+ *      signal in practice (no real prose/code/config file contains one), and
+ *      catches degenerate cases like a lone control byte that happens to
+ *      still be valid UTF-8.
+ */
+function looksBinary(buf: Buffer): boolean {
+  const len = Math.min(buf.length, SNIFF_BYTES);
+  if (len === 0) return false;
+  const window = buf.subarray(0, len);
+
+  try {
+    // A fresh decoder per call (no shared state across sources) with
+    // `stream: true` so a multibyte character legitimately straddling the
+    // SNIFF_BYTES cutoff isn't misread as an invalid trailing sequence.
+    new TextDecoder("utf-8", { fatal: true }).decode(window, { stream: true });
+  } catch {
+    return true;
+  }
+
+  let controlBytes = 0;
+  for (let i = 0; i < len; i++) {
+    const byte = window[i]!;
+    if (byte === 0) return true;
+    const isControl = byte < 0x20 && byte !== 0x09 && byte !== 0x0a && byte !== 0x0d;
+    if (isControl || byte === 0x7f) controlBytes++;
+  }
+  return controlBytes / len > SNIFF_CONTROL_BYTE_THRESHOLD;
+}
 
 export type MaterializeContextInput = {
   sources: readonly ContextSource[];
@@ -60,11 +174,29 @@ export async function materializeContextSources(
           notes.push(`Refused context file "${source.ref}" - looks secret-like.`);
           continue;
         }
-        const raw = await fs.readFile(resolved.absolutePath, "utf8").catch(() => null);
-        if (raw === null) {
+        if (isUnsupportedBinaryExtension(resolved.relativePath)) {
+          const ext = path.extname(resolved.relativePath).toLowerCase();
+          notes.push(
+            `Refused context file "${source.ref}": "${ext}" is a binary/document format that is ` +
+              `not supported yet. Only plain-text formats can be used as context today - convert or ` +
+              `extract the text content first (e.g. export to .txt/.md) and reference that instead.`,
+          );
+          continue;
+        }
+        const rawBuffer = await fs.readFile(resolved.absolutePath).catch(() => null);
+        if (rawBuffer === null) {
           notes.push(`Context file "${source.ref}" not found or unreadable - skipped.`);
           continue;
         }
+        if (looksBinary(rawBuffer)) {
+          notes.push(
+            `Refused context file "${source.ref}": file content looks binary (not readable text). ` +
+              `Only plain-text formats can be used as context today - convert or extract the text ` +
+              `content first and reference that instead.`,
+          );
+          continue;
+        }
+        const raw = rawBuffer.toString("utf8");
         const { redacted, count } = redactSecretsInText(raw);
         const { text, truncated } = clamp(redacted, maxBytes);
         artifacts.push({

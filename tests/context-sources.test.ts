@@ -87,6 +87,91 @@ describe("materializeContextSources - files", () => {
     expect(r.artifacts).toHaveLength(0);
     expect(r.notes[0]).toMatch(/not found|unreadable/);
   });
+
+  it("refuses a .pdf context source by extension - content never reaches the prompt", async () => {
+    // Not a real PDF, just binary-ish bytes; the extension denylist should
+    // refuse it before any content-based sniff even runs.
+    await fs.writeFile(path.join(dir, "spec.pdf"), Buffer.from([0x25, 0x50, 0x44, 0x46, 0x00, 0x01, 0x02]));
+    const r = await materializeContextSources({
+      sources: [{ kind: "file", ref: "spec.pdf" }],
+      projectRoot: dir,
+      worktreePath: null,
+      allowUrlFetch: false,
+    });
+    expect(r.artifacts).toHaveLength(0);
+    expect(r.notes[0]).toMatch(/Refused context file "spec\.pdf"/);
+    expect(r.notes[0]).toMatch(/\.pdf/);
+    expect(r.notes[0]).toMatch(/not supported/);
+  });
+
+  it("refuses a binary file with a NUL byte even without a binary extension", async () => {
+    await fs.writeFile(
+      path.join(dir, "weird.txt"),
+      Buffer.from([0x68, 0x69, 0x00, 0x01, 0x02, 0x03, 0xff, 0xfe]),
+    );
+    const r = await materializeContextSources({
+      sources: [{ kind: "file", ref: "weird.txt" }],
+      projectRoot: dir,
+      worktreePath: null,
+      allowUrlFetch: false,
+    });
+    expect(r.artifacts).toHaveLength(0);
+    expect(r.notes[0]).toMatch(/Refused context file "weird\.txt"/);
+    expect(r.notes[0]).toMatch(/binary/);
+  });
+
+  it("still reads legitimate UTF-8 text with emoji and CJK", async () => {
+    await fs.writeFile(
+      path.join(dir, "i18n.md"),
+      "Status update: shipped the widget! \u{1F389}\u{1F680}\nChinese: 你好世界\nJapanese: こんにちは",
+    );
+    const r = await materializeContextSources({
+      sources: [{ kind: "file", ref: "i18n.md" }],
+      projectRoot: dir,
+      worktreePath: null,
+      allowUrlFetch: false,
+    });
+    expect(r.artifacts).toHaveLength(1);
+    expect(r.notes).toEqual([]);
+    expect(r.artifacts[0]!.content).toContain("shipped the widget");
+    expect(r.artifacts[0]!.content).toContain("你好世界");
+  });
+
+  it("still reads a .json and a minified .js file unchanged", async () => {
+    await fs.writeFile(path.join(dir, "data.json"), JSON.stringify({ a: 1, b: [1, 2, 3] }));
+    await fs.writeFile(path.join(dir, "bundle.min.js"), "!function(){var a=1,b=2;console.log(a+b)}();");
+    const r = await materializeContextSources({
+      sources: [
+        { kind: "file", ref: "data.json" },
+        { kind: "file", ref: "bundle.min.js" },
+      ],
+      projectRoot: dir,
+      worktreePath: null,
+      allowUrlFetch: false,
+    });
+    expect(r.notes).toEqual([]);
+    expect(r.artifacts).toHaveLength(2);
+    expect(r.artifacts[0]!.content).toContain('"a":1');
+    expect(r.artifacts[1]!.content).toContain("console.log(a+b)");
+  });
+
+  it("refusing one binary source does not block other valid sources in the same run", async () => {
+    await fs.writeFile(path.join(dir, "good.md"), "# Real notes\nThis is readable.");
+    await fs.writeFile(path.join(dir, "bad.pdf"), Buffer.from([0x25, 0x50, 0x44, 0x46, 0x00]));
+    const r = await materializeContextSources({
+      sources: [
+        { kind: "file", ref: "bad.pdf" },
+        { kind: "file", ref: "good.md" },
+      ],
+      projectRoot: dir,
+      worktreePath: null,
+      allowUrlFetch: false,
+    });
+    expect(r.artifacts).toHaveLength(1);
+    expect(r.artifacts[0]!.content).toContain("This is readable.");
+    expect(r.notes).toHaveLength(1);
+    expect(r.notes[0]).toMatch(/bad\.pdf/);
+  });
 });
 
 describe("materializeContextSources - urls", () => {
