@@ -65,7 +65,8 @@ export type AssistRequest<T> = {
   instruction: string;
   /** Zod schema the parsed JSON must satisfy. Input is `unknown` (we `safeParse`
    *  raw model output), so schemas that use `.default()` fit cleanly. */
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>;
+  // v4 dropped the ZodTypeDef generic - ZodType is now <Output, Input>.
+  schema: z.ZodType<T, unknown>;
   /** Human-readable shape embedded in the prompt (a JSON sketch). */
   schemaHint: string;
   /** Explicit profile id; else resolved from the crew's read-only planner. */

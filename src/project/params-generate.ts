@@ -25,7 +25,8 @@ export class ParamGenerateError extends Error {
 /** Build the type-appropriate output schema + a human JSON sketch for the model.
  *  Everything comes back as `{ value }`; we stringify it for the form/profile. */
 function outputSchemaFor(def: FlowParam): {
-  schema: z.ZodType<{ value: string | number | boolean }, z.ZodTypeDef, unknown>;
+  // v4 dropped the ZodTypeDef generic - ZodType is now <Output, Input>.
+  schema: z.ZodType<{ value: string | number | boolean }, unknown>;
   hint: string;
 } {
   switch (def.type) {
