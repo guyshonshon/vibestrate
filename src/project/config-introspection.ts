@@ -23,6 +23,14 @@ export type ConfigField = {
   description?: string;
 };
 
+/** zod v4 types recursive `_def` positions (e.g. `_def.innerType`) against the
+ *  core `$ZodType` interface, which every classic `z.*` schema satisfies at
+ *  runtime but isn't nominally assignable to the classic `ZodTypeAny` this
+ *  walker is written against. Narrow back after each `instanceof` check. */
+function asZodType(schema: unknown): ZodTypeAny {
+  return schema as ZodTypeAny;
+}
+
 /** The `.describe(...)` text for a field, wherever it sits in the wrapper chain
  *  (`z.x().default(d).describe(t)` puts it outermost; `z.x().describe(t).default(d)`
  *  inside the ZodDefault). Walk the inner types so either ordering works. */
@@ -32,7 +40,7 @@ function getDescription(schema: ZodTypeAny): string | undefined {
     if (typeof s.description === "string" && s.description.length > 0) {
       return s.description;
     }
-    s = (s as { _def?: { innerType?: ZodTypeAny } })._def?.innerType;
+    s = asZodType((s as { _def?: { innerType?: unknown } })._def?.innerType);
   }
   return undefined;
 }
@@ -42,23 +50,27 @@ function describeZod(schema: ZodTypeAny): {
   notes?: string[];
   extra?: Partial<ConfigField>;
 } {
-  if (schema instanceof z.ZodOptional) return describeZod(schema._def.innerType);
-  if (schema instanceof z.ZodDefault) return describeZod(schema._def.innerType);
+  if (schema instanceof z.ZodOptional) return describeZod(asZodType(schema._def.innerType));
+  if (schema instanceof z.ZodDefault) return describeZod(asZodType(schema._def.innerType));
+  if (schema instanceof z.ZodPrefault) return describeZod(asZodType(schema._def.innerType));
   if (schema instanceof z.ZodNullable) {
-    const inner = describeZod(schema._def.innerType);
+    const inner = describeZod(asZodType(schema._def.innerType));
     return { ...inner, type: `${inner.type} | null` };
   }
   if (schema instanceof z.ZodString) return { type: "string" };
   if (schema instanceof z.ZodNumber) return { type: "number" };
   if (schema instanceof z.ZodBoolean) return { type: "boolean" };
   if (schema instanceof z.ZodEnum) {
-    return { type: "enum", extra: { enum: [...schema._def.values] } };
+    return { type: "enum", extra: { enum: schema.options.map(String) } };
   }
   if (schema instanceof z.ZodLiteral) {
-    return { type: `literal(${JSON.stringify(schema._def.value)})` };
+    // v4 literals can hold multiple values (`z.literal([a, b])`); join them -
+    // our config schema only ever uses single-value literals in practice.
+    const values = [...schema.values];
+    return { type: `literal(${values.map((v) => JSON.stringify(v)).join(" | ")})` };
   }
   if (schema instanceof z.ZodArray) {
-    const item = describeZod(schema._def.type);
+    const item = describeZod(asZodType(schema._def.element));
     return {
       type: `array<${item.type}>`,
       extra: {
@@ -73,13 +85,13 @@ function describeZod(schema: ZodTypeAny): {
     };
   }
   if (schema instanceof z.ZodRecord) {
-    const value = describeZod(schema._def.valueType);
+    const value = describeZod(asZodType(schema._def.valueType));
     return { type: `record<string, ${value.type}>` };
   }
   if (schema instanceof z.ZodObject) return { type: "object" };
   if (schema instanceof z.ZodUnion || schema instanceof z.ZodDiscriminatedUnion) {
-    const opts = schema._def.options as ZodTypeAny[];
-    return { type: opts.map((o) => describeZod(o).type).join(" | ") };
+    const opts = schema._def.options as unknown[];
+    return { type: opts.map((o) => describeZod(asZodType(o)).type).join(" | ") };
   }
   return {
     type: "unknown",
@@ -93,19 +105,30 @@ function isOptional(schema: ZodTypeAny): boolean {
 
 function getDefault(schema: ZodTypeAny): unknown {
   if (schema instanceof z.ZodDefault) {
-    const def = schema._def.defaultValue;
+    // v4 resolves the default eagerly (it's a getter on `_def`, called once
+    // here); a v3-style function default would already be unwrapped by zod
+    // itself, but keep the guard since it's a harmless no-op either way.
+    const def: unknown = schema._def.defaultValue;
     return typeof def === "function" ? def() : def;
   }
+  if (schema instanceof z.ZodPrefault) {
+    // A prefault's `_def.defaultValue` is the raw SEED (e.g. `{}`), not the
+    // resolved value - it only becomes the real default once run through the
+    // inner schema (that's the whole point of prefault). `.parse(undefined)`
+    // replays exactly that path, so nested per-field defaults fill in.
+    return schema.parse(undefined);
+  }
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable) {
-    return getDefault(schema._def.innerType);
+    return getDefault(asZodType(schema._def.innerType));
   }
   return undefined;
 }
 
 function unwrapToCore(schema: ZodTypeAny): ZodTypeAny {
-  if (schema instanceof z.ZodOptional) return unwrapToCore(schema._def.innerType);
-  if (schema instanceof z.ZodDefault) return unwrapToCore(schema._def.innerType);
-  if (schema instanceof z.ZodNullable) return unwrapToCore(schema._def.innerType);
+  if (schema instanceof z.ZodOptional) return unwrapToCore(asZodType(schema._def.innerType));
+  if (schema instanceof z.ZodDefault) return unwrapToCore(asZodType(schema._def.innerType));
+  if (schema instanceof z.ZodPrefault) return unwrapToCore(asZodType(schema._def.innerType));
+  if (schema instanceof z.ZodNullable) return unwrapToCore(asZodType(schema._def.innerType));
   return schema;
 }
 
@@ -115,9 +138,11 @@ export function walkObjectSchema(
 ): ConfigField[] {
   const shape = schema.shape;
   const fields: ConfigField[] = [];
-  for (const [key, raw] of Object.entries(shape)) {
+  for (const [key, rawField] of Object.entries(shape)) {
+    const raw = asZodType(rawField);
     const fullKey = parentKey ? `${parentKey}.${key}` : key;
-    const optional = isOptional(raw) || raw instanceof z.ZodDefault;
+    const optional =
+      isOptional(raw) || raw instanceof z.ZodDefault || raw instanceof z.ZodPrefault;
     const defValue = getDefault(raw);
     const core = unwrapToCore(raw);
     const desc = describeZod(raw);
