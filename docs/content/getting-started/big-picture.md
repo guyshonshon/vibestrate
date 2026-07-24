@@ -1,21 +1,15 @@
 ---
 title: The big picture
-description: Vibestrate is a CTO for your AI coding - a crew of different models that check each other while you stay in control. Task, Flow, and Crew, explained once.
+description: Vibestrate is the missing piece of vibe-coding - a crew of different models that check each other while you stay in control. Task, Flow, and Crew, explained once.
 section: getting-started
 slug: getting-started/big-picture
 ---
 
 Spend three minutes here before any commands. This is the one short read that makes everything click.
 
-Vibestrate is a CTO for your AI coding. You hand it a job, it follows a set routine to get it done, and that routine is carried out by a team of AI workers you put together. Job, routine, team. The rest is just the real names for those three things.
+Vibestrate is the missing piece of vibe-coding. Hand it a job, it follows a set routine to get it done, and that routine is carried out by a team of AI workers you put together. Job, routine, team. The rest is just the real names for those three things. Different models check each other along the way instead of one model rubber-stamping itself - see [why a human stays in the loop](/docs/getting-started/why-a-human).
 
-<div class="docs-callout">
-
-**The disagreement is the feature.** A chat assistant agrees with you and hands back whatever you asked for. Vibestrate runs *several models* on one job and makes them check each other - one builds, a different one reviews it cold. They read the problem from different angles, and that friction catches what a single yes-man would wave through.
-
-</div>
-
-You stay in control the whole way. Each Task works in an isolated copy of your project, runs your checks, and stops at a clear outcome. It never pushes or merges for you. You look, you decide.
+You stay in control the whole way. Each Task works in an isolated copy of your project, runs your checks, and stops at a clear outcome. It never pushes or merges for you - see [the safety guarantees](/docs/concepts/safety).
 
 ## Task - the job you want done
 
@@ -55,20 +49,7 @@ A **Crew** is the team you assemble to fill those seats. Each member is a **Role
 
 When a Task starts, Vibestrate matches the Flow's seats to your Crew's roles. If a Flow needs a seat nobody can fill, it stops and tells you in plain words. If two people could both take a seat, it asks you to pick. No silent guessing.
 
-So the three big words fit together like this:
-
-<div class="docs-cards">
-
-**Task - the job**
-What you ask for, in plain language. The only thing you have to provide.
-
-**Flow - the routine**
-The fixed set of steps the job runs through. It reserves Seats, but names no models.
-
-**Crew - the team**
-The AI workers (Roles) you put in those seats. Different models, checking each other.
-
-</div>
+So the three big words fit together like this: Task is the job, Flow is the routine it runs through, Crew is the team that runs it.
 
 ## Profile - how strong (and pricey) each worker runs
 
@@ -78,17 +59,13 @@ This is where you save money. Give the builder seat your best model at max effor
 
 ## Provider - the actual tool behind each worker
 
-A **Provider** is the real coding-agent tool a Profile runs on. These are the CLIs already on your machine - Vibestrate ships no model of its own; it drives the ones you already have:
-
-<div class="docs-chips">
-<span>Claude Code</span><span>Codex</span><span>Gemini</span><span>Aider</span><span>Ollama</span>
-</div>
+A **Provider** is the real coding-agent tool a Profile runs on. These are the CLIs already on your machine - Vibestrate ships no model of its own; it drives the ones you already have, including Claude Code, Codex, Gemini, Aider, and Ollama.
 
 So the full chain reads: a **Seat** in the Flow is filled by a **Role** in your Crew, running at a **Profile** (model plus effort), on a **Provider** (the real tool). Every layer has one job, and you can swap any one without disturbing the others.
 
 ## You don't have to set any of this up
 
-The defaults already work. Fresh out of `vibe init` you get a default Crew with all the usual roles, a sensible default Profile, and the built-in default Flow. You can run your first Task without configuring a single seat. Each Task does its work in an isolated copy of your project (a [worktree](/docs/concepts/worktree)) and never pushes or merges for you. It stops at one of three outcomes and leaves the call to you:
+The defaults already work. Fresh out of `vibe init` you get a default Crew with all the usual roles, a sensible default Profile, and the built-in default Flow. You can run your first Task without configuring a single seat. Each Task does its work in an isolated copy of your project (a [worktree](/docs/concepts/worktree)) and stops at one of three outcomes:
 
 <div class="docs-outcomes">
 <div class="docs-outcome ok"><b>ready to merge</b><span>The change is ready for you to keep.</span></div>

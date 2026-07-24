@@ -10,13 +10,9 @@
 
 <br />
 
-<sub><b>your AI CTO for swappable coding crews and shared flows</b></sub>
-
-<br />
-
 One chat with one model is great for sketches.
 Real work - refactors, migrations, whole features - wants a supervised flow you can stay inside.
-Vibestrate gives AI coding an open-source CTO layer: choose or share a flow, fill the crew with Claude Code, Codex, Gemini, Aider, OpenCode, or local models, approve the risky gates yourself, and keep the run ledger on your machine. If one model becomes unavailable, unreliable, or overpriced, swap the crew without changing the flow.
+Vibestrate is an open-source, supervised flow for AI coding: choose or share a flow, fill the crew with Claude Code, Codex, Gemini, Aider, OpenCode, or local models, approve the risky gates yourself, and keep the run ledger on your machine. If one model becomes unavailable, unreliable, or overpriced, swap the crew without changing the flow.
 
 <br />
 

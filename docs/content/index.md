@@ -1,31 +1,17 @@
 ---
 title: Vibestrate docs
-description: Vibestrate is a CTO for your AI coding - it breaks a task down, runs it across several models, supervises the work, and leaves the decision to you.
+description: Vibestrate is the missing piece of vibe-coding - it breaks a task down, runs it across several models, and supervises the work while you make the final call.
 section: start
 slug: index
 ---
 
-Vibestrate gives you a CTO for your AI coding. You hand it a task, even one you could not write yourself - a security fix, a piece of WebGL you have never touched - and it breaks the work down, hands each part to the right AI, and supervises the whole thing the way a senior engineer would.
+Vibestrate is the missing piece of vibe-coding. Hand it a task, even one you could not write yourself - a security fix, a piece of WebGL you have never touched. It breaks the work down, runs it across several models, and supervises the whole thing.
 
-Because AI can write that code. AI also gets it wrong.
-
-<div class="docs-callout">
-
-**It is not a yes-man.** A chat assistant agrees with you and hands back whatever you asked for. Vibestrate questions its own work. It plans, reviews the result with a fresh set of eyes, and tells you what it actually thinks - the risks, the trade-offs, the parts worth a second look.
-
-</div>
+Because AI can write that code. AI also gets it wrong, and it tends to agree with whatever you said - see [why a human stays in the loop](/docs/getting-started/why-a-human).
 
 ## The crew is the point
 
 Vibestrate's real edge is running several AIs, of different models, on one task. One plans. Another builds. A different one reviews the change cold. Each model reads the problem from its own angle, and the disagreement between them is a feature, not a bug. Together they produce something better than any single model working alone.
-
-<div class="docs-flow">
-<div><b>Plan</b><span>A strong model breaks the task into a real plan.</span></div>
-<div><b>Build</b><span>Another writes the code, in a safe copy of your project.</span></div>
-<div><b>Review</b><span>A different model reads the change with fresh eyes.</span></div>
-<div><b>Verify</b><span>A final pass checks the result against your tests.</span></div>
-<div><b>You decide</b><span>Keep it, send it back, or throw it away.</span></div>
-</div>
 
 You choose who does what, or let Vibestrate pick a sensible crew for you.
 
@@ -39,7 +25,7 @@ It never gets ahead of you. Every task runs in a separate, throwaway copy of you
 <div class="docs-outcome stop"><b>failed</b><span>Something went wrong mid-run.</span></div>
 </div>
 
-It never pushes your code and never merges for you. That part is always yours.
+It never pushes your code and never merges for you - see [the safety guarantees](/docs/concepts/safety).
 
 ## Run one in a sentence
 
@@ -49,11 +35,7 @@ vibe run "Add audit logging to the settings flow"
 
 Vibestrate makes a safe copy, plans the change, writes it, runs your tests, reviews it, double-checks the result, and hands it back for your call. That is the whole loop. Everything else in these docs is detail on top of it.
 
-It works with the coding tools you already have:
-
-<div class="docs-chips">
-<span>Claude Code</span><span>Codex</span><span>Gemini</span><span>Aider</span><span>Ollama</span><span>OpenCode</span>
-</div>
+It works with the coding tools you already have: Claude Code, Codex, Gemini, Aider, Ollama, and OpenCode.
 
 ## Where to start
 
@@ -89,19 +71,5 @@ Add skills, add models, or write your own Flow.
 **Yours, on your machine.** No cloud account, no server in the middle. The only network calls are the ones your coding tools already make.
 
 **Fully on the record.** Every run is saved under `.vibestrate/runs/<runId>/`. Read it back, replay it, or audit it.
-
-**Always your call.** Nothing is pushed or merged behind your back.
-
-</div>
-
-## What it is not
-
-<div class="docs-cards">
-
-**Not a chat window.** Vibestrate runs and supervises the work. You watch and decide.
-
-**Not a paid online service.** There is no cloud version to sign up for.
-
-**Not an AI model of its own.** It brings no model. It directs the ones you choose to run.
 
 </div>
