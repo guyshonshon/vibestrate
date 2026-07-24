@@ -70,7 +70,10 @@ Open a run to supervise it live. You get these panels.
 A few things stay out of the dashboard on purpose.
 
 - It does not execute arbitrary shell commands you type. The optional terminal panel is enrolled per project and binds to a known run's worktree.
-- It does not push or merge. Those stay CLI-only and explicit.
+- It never pushes. There is no push path in the dashboard at all.
+- It never merges on its own. The Source page can apply a merge, but only when
+  you ask for that exact merge: the request carries an explicit confirmation and
+  is refused without it, and every merge has an undo.
 - It does not access your `.env` or any secret-shape file. The path guard refuses those paths no matter where the request comes from.
 
 ## Stopping it
