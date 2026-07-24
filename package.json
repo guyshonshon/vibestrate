@@ -81,7 +81,7 @@
     "@xterm/xterm": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "commander": "^12.1.0",
+    "commander": "^15.0.0",
     "execa": "^10.0.0",
     "fastify": "^5.10.0",
     "highlight.js": "^11.11.1",
