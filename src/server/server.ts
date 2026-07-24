@@ -423,11 +423,13 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
       // Hashed `/assets/*` files are immutable and safe to cache for a
       // year; HTML must always revalidate so a redeploy doesn't leave
       // stale chunk references behind in browser cache.
-      setHeaders: (res, filePath) => {
+      // @fastify/static v10 passes a FastifyReply here (v9 passed the raw
+      // ServerResponse), so set cache headers via reply.header, not setHeader.
+      setHeaders: (reply, filePath) => {
         if (/\/assets\//.test(filePath)) {
-          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          reply.header("Cache-Control", "public, max-age=31536000, immutable");
         } else if (/\.html?$/.test(filePath)) {
-          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+          reply.header("Cache-Control", "no-cache, no-store, must-revalidate");
         }
       },
     });
