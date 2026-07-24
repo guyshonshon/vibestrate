@@ -29,7 +29,7 @@
     "docs/content"
   ],
   "engines": {
-    "node": ">=18.17"
+    "node": ">=22"
   },
   "packageManager": "pnpm@10.26.0",
   "scripts": {
@@ -82,7 +82,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "commander": "^12.1.0",
-    "execa": "^9.6.1",
+    "execa": "^10.0.0",
     "fastify": "^5.10.0",
     "highlight.js": "^11.11.1",
     "ink": "^7.1.1",

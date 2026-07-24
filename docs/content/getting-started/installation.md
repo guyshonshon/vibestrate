@@ -9,7 +9,7 @@ Vibestrate runs natively on macOS, Linux, and Windows. The full core loop works 
 
 ## Requirements
 
-- **Node.js 18.17 or newer.** Check with `node --version`.
+- **Node.js 22 or newer.** Check with `node --version`.
 - **git 2.5 or newer.** Vibestrate creates and tears down worktrees, which need a modern git.
 - **pnpm or npm**, to install the package.
 - **At least one coding-agent CLI** on your PATH: Claude Code, Codex, Gemini, Aider, Ollama, OpenCode, or another supported provider. You can add one later. `vibe doctor` tells you what is missing.

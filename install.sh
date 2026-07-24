@@ -12,14 +12,14 @@ set -eu
 
 PKG="vibestrate"
 VERSION="${VIBESTRATE_VERSION:-latest}"
-MIN_NODE_MAJOR=18
+MIN_NODE_MAJOR=22
 
 red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
 cyan() { printf '\033[36m%s\033[0m\n' "$*"; }
 
 if ! command -v node >/dev/null 2>&1; then
   red "Node.js is required but was not found."
-  red "Install Node >= 18.17 from https://nodejs.org and re-run this installer."
+  red "Install Node >= 22 from https://nodejs.org and re-run this installer."
   exit 1
 fi
 

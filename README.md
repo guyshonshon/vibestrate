@@ -24,7 +24,7 @@ Vibestrate gives AI coding an open-source CTO layer: choose or share a flow, fil
 [![npm](https://img.shields.io/npm/v/vibestrate?style=flat-square&labelColor=0e1118&color=8b7cff)](https://www.npmjs.com/package/vibestrate)
 [![Downloads](https://img.shields.io/npm/dm/vibestrate?style=flat-square&labelColor=0e1118&color=8b7cff&label=downloads)](https://www.npmjs.com/package/vibestrate)
 [![Stars](https://img.shields.io/github/stars/guyshonshon/vibestrate?style=flat-square&labelColor=0e1118&color=8b7cff)](https://github.com/guyshonshon/vibestrate/stargazers)
-[![Node](https://img.shields.io/badge/Node-%E2%89%A5%2018.17-8b7cff?style=flat-square&labelColor=0e1118)](https://nodejs.org)
+[![Node](https://img.shields.io/badge/Node-%E2%89%A5%2022-8b7cff?style=flat-square&labelColor=0e1118)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-7cc5ff?style=flat-square&labelColor=0e1118)](https://www.typescriptlang.org)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-4ade80?style=flat-square&labelColor=0e1118)](#-contributing)
 
