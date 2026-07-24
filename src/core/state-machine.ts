@@ -225,7 +225,8 @@ export const runStateSchema = z.object({
   // Per-saga budget envelope (the Conductor): bounds the saga's TOTAL
   // cost/length, enforced BETWEEN steps. Null fields mean no limit on that axis.
   // Defaulted (no limits) for non-saga and older runs.
-  sagaBudget: runBudgetSchema.default({}),
+  // .prefault(): {} needs runBudgetSchema's own field defaults to fill in.
+  sagaBudget: runBudgetSchema.prefault({}),
   // Live per-item progress for the dashboard/report. null unless the run is
   // iterating a checklist segment. The authoritative per-item status + commit
   // sha live on the task's own checklist (written back as each item finishes).

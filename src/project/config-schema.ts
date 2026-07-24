@@ -157,7 +157,10 @@ export const mergeConfigSchema = z.object({
         behindMain: 50,
       }),
     })
-    .default({}),
+    // zod v4: .default() no longer reparses its value through the schema, so
+    // an empty object wouldn't pick up suggestIntegrationBranchWhen's own
+    // nested default. .prefault() keeps the old cascade-through-schema behavior.
+    .prefault({}),
 });
 export type MergeConfig = z.infer<typeof mergeConfigSchema>;
 
@@ -281,7 +284,9 @@ export const budgetConfigSchema = z
      *  A run launched with `--unattended` forces `stop` regardless. */
     onLimit: z.enum(["stop", "pause"]).default("stop").describe("When a ceiling is hit: stop or pause (attended); unattended forces stop (default stop)."),
   })
-  .default({ spendCapDailyUsd: null, capAction: "stop", warnThresholdPct: 0.8 });
+  // .prefault(): the literal below is partial (relies on maxTurnsPerRun etc's
+  // own nested defaults), which v4's short-circuiting .default() no longer fills in.
+  .prefault({ spendCapDailyUsd: null, capAction: "stop", warnThresholdPct: 0.8 });
 
 export type BudgetConfig = z.infer<typeof budgetConfigSchema>;
 
@@ -311,7 +316,8 @@ export const supervisorConfigSchema = z
     roleId: z.string().min(1).default("reviewer").describe("Crew role the supervisor turn runs as (read-only judgment)."),
   })
   .strict()
-  .default({});
+  // .prefault(): {} needs the object's own field defaults to fill in on parse.
+  .prefault({});
 export type SupervisorConfig = z.infer<typeof supervisorConfigSchema>;
 
 export const supervisedConfigSchema = z
@@ -321,7 +327,7 @@ export const supervisedConfigSchema = z
     supervisor: supervisorConfigSchema,
   })
   .strict()
-  .default({});
+  .prefault({});
 export type SupervisedConfig = z.infer<typeof supervisedConfigSchema>;
 
 // Provider resilience (unattended-resilience). Recoverable provider failures
@@ -360,10 +366,12 @@ export const resilienceConfigSchema = z
      *  provider.fallback event records it) and never changes the turn's write
      *  permissions (allowWrite is resolved per-turn, not per-profile). */
     autoFallback: z.enum(["off", "crew", "any"]).default("crew").describe("Auto-derive a fallback profile on exhaustion: off, crew, or any (default crew)."),
+    // .prefault(): these literals omit fallbackProfile (relies on its own
+    // nested `.nullable().default(null)`), which v4's .default() no longer fills in.
     rateLimit: resilienceClassSchema
       .extend({ respectRetryAfter: z.boolean().default(true).describe("Honor the provider's Retry-After hint on rate limits (default on).") })
-      .default({ maxRetries: 5, baseDelayMs: 2000, maxDelayMs: 120000, respectRetryAfter: true, patterns: [] }),
-    transient: resilienceClassSchema.default({
+      .prefault({ maxRetries: 5, baseDelayMs: 2000, maxDelayMs: 120000, respectRetryAfter: true, patterns: [] }),
+    transient: resilienceClassSchema.prefault({
       maxRetries: 4,
       baseDelayMs: 1000,
       maxDelayMs: 60000,
@@ -387,10 +395,10 @@ export const resilienceConfigSchema = z
         patterns: z.array(z.string().min(1).max(400)).max(40).default([]).describe("Extra usage-limit error regexes merged with the built-ins (default none)."),
       })
       .strict()
-      .default({}),
+      .prefault({}),
   })
   .strict()
-  .default({});
+  .prefault({});
 export type ResilienceConfig = z.infer<typeof resilienceConfigSchema>;
 
 // Provider-session lifetime. vibestrate already rebuilds bounded per-turn
@@ -405,7 +413,7 @@ export const sessionConfigSchema = z
     maxReuseTurns: z.number().int().min(0).max(1000).default(0).describe("Max consecutive provider-session reuses before reopening; 0 = unlimited (default 0)."),
   })
   .strict()
-  .default({});
+  .prefault({});
 export type SessionConfig = z.infer<typeof sessionConfigSchema>;
 
 // ─── Supervisor personas (orchestrator-personas.md) ──────────────────────────
@@ -580,7 +588,9 @@ export type PostureConfig = z.infer<typeof postureConfigSchema>;
 
 export const projectConfigBaseSchema = z.object({
   project: projectMetaSchema,
-  git: gitConfigSchema.default({
+  // .prefault(): partial literal, relies on linkEnvironment/snapshotRetentionRuns'
+  // own nested defaults - v4's .default() no longer fills those in.
+  git: gitConfigSchema.prefault({
     mainBranch: "main",
     branchPrefix: "vibestrate/",
     worktreeDir: "../.vibestrate-worktrees",
@@ -594,7 +604,7 @@ export const projectConfigBaseSchema = z.object({
     maxReviewLoops: null,
     requireHumanMerge: true,
   }),
-  execution: executionConfigSchema.default({ backend: "local-worktree" }),
+  execution: executionConfigSchema.prefault({ backend: "local-worktree" }),
   // ─── Providers / Profiles / Crews ────────────────────────────────────
   // providers = raw local tools.
   // profiles  = reusable runtime setups (provider + model/power).
@@ -658,13 +668,13 @@ export const projectConfigBaseSchema = z.object({
   supervised: supervisedConfigSchema,
   resilience: resilienceConfigSchema,
   session: sessionConfigSchema,
-  commands: commandsConfigSchema.default({ validate: [] }),
+  commands: commandsConfigSchema.prefault({ validate: [] }),
   permissions: z
     .object({
       profiles: permissionProfilesSchema.default({}),
     })
     .default({ profiles: {} }),
-  policies: policiesConfigSchema.default({
+  policies: policiesConfigSchema.prefault({
     forbidMainBranchWrites: true,
     forbidSecretsAccess: true,
     forbidAutoPush: true,
@@ -694,7 +704,7 @@ export const projectConfigBaseSchema = z.object({
     coAuthorName: "Vibestrate",
     coAuthorEmail: "noreply@vibestrate.com",
   }),
-  merge: mergeConfigSchema.default({}),
+  merge: mergeConfigSchema.prefault({}),
 });
 
 /**

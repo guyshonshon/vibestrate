@@ -238,7 +238,8 @@ export type SupervisedRun = z.infer<typeof supervisedRunSchema>;
 // Today: the run budget (was `task.sagaBudget`). Future: per-task supervisor /
 // enhance on-off toggles.
 export const runOptionsSchema = z.object({
-  budget: runBudgetSchema.default({}),
+  // .prefault(): {} needs runBudgetSchema's own field defaults to fill in.
+  budget: runBudgetSchema.prefault({}),
 });
 export type RunOptions = z.infer<typeof runOptionsSchema>;
 
@@ -298,10 +299,11 @@ export const taskSchema = z.object({
   // conventions don't fold away) + the Enhance pending-plan overlay.
   // Always present + defaulted (a plain task stays `state:"idle"`). Durable
   // across resume; redacted + bounded on write.
-  supervised: supervisedRunSchema.default({}),
+  // .prefault(): both rely on their own field defaults to fill in from {}.
+  supervised: supervisedRunSchema.prefault({}),
   // Per-task run options / advanced knobs (was `sagaBudget`): the run budget
   // override of the config.supervised defaults.
-  runOptions: runOptionsSchema.default({}),
+  runOptions: runOptionsSchema.prefault({}),
   // Non-blocking advisory: a run finished but a human should eyeball something
   // the model can't perceive (visual/UX/3D). Set from a HUMAN_REVIEW: ADVISORY
   // marker; cleared by a human verdict (pass → done, fail → reopen).

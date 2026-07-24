@@ -56,7 +56,9 @@ export type ContainerConfig = z.infer<typeof containerConfigSchema>;
 export const executionConfigSchema = z.object({
   backend: executionBackendIdSchema.default("local-worktree").describe("Where runs execute (default local-worktree)."),
   isolation: isolationModeSchema.default("off").describe("OS sandbox posture: off or sandboxed (default off)."),
-  container: containerConfigSchema.default({}).describe("Container backend settings (used when backend=docker)."),
+  // .prefault(): {} needs image/onUnavailable/readonlyRoot/pidsLimit's own
+  // nested defaults to fill in, which v4's short-circuiting .default() skips.
+  container: containerConfigSchema.prefault({}).describe("Container backend settings (used when backend=docker)."),
 });
 
 export type ExecutionConfig = z.infer<typeof executionConfigSchema>;
