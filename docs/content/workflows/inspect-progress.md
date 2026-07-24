@@ -5,26 +5,7 @@ section: workflows
 slug: workflows/inspect-progress
 ---
 
-When Vibestrate is doing work for you, you can watch it as it goes. There are three places to look.
-
-<div class="docs-callout">
-
-**Pick the surface that fits the moment.** The terminal for a quick glance while it runs, the dashboard for the full live picture, and the files on disk for the complete record you can read back at any time.
-
-</div>
-
-<div class="docs-cards">
-
-**The terminal**
-A per-stage header right where you started the run. Status, the agent at work, and the check output streaming to your screen.
-
-**The dashboard**
-Mission Control, a web view next to the run. A live timeline of every step, plus metrics, changed files, and the running diff.
-
-**The files on disk**
-Everything written under `.vibestrate/runs/<runId>/`. The full, append-only record of the run, there to read back whenever you want.
-
-</div>
+When Vibestrate is doing work for you, you can watch it as it goes. There are three places to look: the terminal for a quick glance while it runs, the dashboard for the full live picture, and the files on disk for the complete record you can read back at any time.
 
 ## The terminal
 

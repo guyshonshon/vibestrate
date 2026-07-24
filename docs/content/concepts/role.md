@@ -7,12 +7,6 @@ slug: concepts/role
 
 A **Role** is one worker in your Crew, and it says how that worker behaves and which kinds of step it can take on.
 
-<div class="docs-callout">
-
-**A Role is a job description, not a person.** It says what this worker does and which tasks it can pick up, without naming who fills it. It points at a **[[profile]]** (which decides the model) and lists the **[[seat]]s** (the kinds of step) it can fill in a [[flow]].
-
-</div>
-
 Think of a Role like a job description on a team. The description says what this person does and which tasks they are allowed to pick up. It doesn't name the actual person. A Role works the same way: it points at a **[[profile]]** (which decides the model), and lists the **[[seat]]s** (the kinds of step) it can fill in a [[flow]].
 
 ## What a Role carries
@@ -49,12 +43,7 @@ One Profile can back many Roles, and one Provider can back many Profiles.
 
 ## Permissions
 
-A Role's `permissions` profile gates Vibestrate's own action broker:
-
-<div class="docs-outcomes">
-<div class="docs-outcome ok"><b>read_only</b><span>The Role can read and reason, but never writes files. Reviewers and verifiers use this.</span></div>
-<div class="docs-outcome warn"><b>code_write</b><span>The Role may edit files in the worktree. Executors use this.</span></div>
-</div>
+A Role's `permissions` profile gates Vibestrate's own action broker: `read_only` can read and reason but never writes files (reviewers and verifiers use this), while `code_write` may edit files in the worktree (executors use this).
 
 For the agent to actually write, the underlying CLI must also allow it. On a `claude-code` [[provider]], Vibestrate works this out for you: a `code_write` seat's turn gets `--permission-mode acceptEdits` so the headless CLI can apply edits, while read-only seats (and read-only or strict-apply-only runs) get no write grant. See [[provider]].
 

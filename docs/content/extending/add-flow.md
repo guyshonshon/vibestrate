@@ -11,13 +11,6 @@ A Flow is the ordered list of steps Vibestrate works through to finish a task, a
 
 Four moves take a Flow from an empty folder to a finished run.
 
-<div class="docs-flow">
-<div><b>Make a folder</b><span>One directory under .vibestrate/flows/ with your Flow id.</span></div>
-<div><b>Write flow.yml</b><span>Declare the seats and the ordered steps in YAML.</span></div>
-<div><b>List and show</b><span>Vibestrate picks it up and validates it on load.</span></div>
-<div><b>Run a task</b><span>Point a run at the Flow with --flow.</span></div>
-</div>
-
 1. Create the directory: `.vibestrate/flows/spike-and-decide/`.
 2. Add `flow.yml`:
 
@@ -114,7 +107,7 @@ vibe run "..." --flow spike-and-decide --flow-skip plan
 
 ## Clean-room steps
 
-Set `cleanRoom: true` on a step and that seat stops receiving the run narrative from the steps before it. The run narrative is the run brief, the "story so far", plus the project ledger. With it hidden, a reviewer or verifier judges the work without leaning on how the earlier steps framed things. The step still gets the ground truth: your attached context sources (the specs), your pinned annotations, and the inputs the step declares.
+Set `cleanRoom: true` on a step and that seat stops receiving the run narrative from the steps before it. The run narrative is the run brief, the "story so far", plus the project ledger. With it hidden, a reviewer or verifier judges the work without leaning on how the earlier steps framed things. The step still gets the ground truth: your attached context sources (the specs), your pinned annotations, and the inputs the step declares. Clean-room hides only the run narrative, never the spec: in testing, hiding the spec from a reviewer made it miss requirement violations it couldn't see, while hiding just the run brief cost nothing. It is off by default, so existing steps don't change.
 
 ```yaml
 - id: review
@@ -125,12 +118,6 @@ Set `cleanRoom: true` on a step and that seat stops receiving the run narrative 
   cleanRoom: true     # ...without the producer's narrative of how it got there
 ```
 
-<div class="docs-callout">
-
-**Drop the chatter, keep the truth.** Clean-room hides only the run narrative, never the spec. In testing, hiding the spec from a reviewer made it miss requirement violations it couldn't see, while hiding just the run brief cost nothing. It is off by default, so existing steps don't change.
-
-</div>
-
 ## Common mistakes
 
 - **One Role filling both builder and challenger.** It'll agree with itself. Use two Seats filled by two different Roles.
@@ -140,12 +127,6 @@ Set `cleanRoom: true` on a step and that seat stops receiving the run narrative 
 ## Share a Flow (import and export)
 
 Flows travel well because they name Seats, not your local Roles or Providers. One project's Flow drops into another and resolves against that project's Crew.
-
-<div class="docs-callout">
-
-**Sharing is just export and import.** Export writes a Flow to a file you can commit or send. Import reads one back, and every import is checked against the schema on load, so a broken or unsafe Flow is refused at the door rather than mid-run.
-
-</div>
 
 ```bash
 # export a Flow to a file you can commit or send

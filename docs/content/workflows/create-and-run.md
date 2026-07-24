@@ -11,12 +11,6 @@ This guide takes you from "I have a thing to do" all the way to a change you can
 
 Write the task description the way you'd brief a careful colleague. Name the file, name the convention, name the constraint. The more exact you are, the better the result.
 
-<div class="docs-callout">
-
-**Be exact.** Name the file, the helper, and the rule the change must honor.
-
-</div>
-
 A good brief:
 
 > Add audit logging to the settings save handler at `src/server/routes/settings.ts`. Use the existing `auditLogger` from `src/lib/audit.ts`. Log the user id and the *keys* changed - never the values.
@@ -105,20 +99,7 @@ vibe config set merge.advisor.suggestIntegrationBranchWhen.filesTouched 40
 
 For a deeper look, run `vibe integrate analyze <runId>` (or click the **Analyze deeper** button on the Source page's Merge tab). This optional read-only pass has a local provider read the run's diff against main and report semantic risk that a textual merge check can't see: concurrency, error handling, missing tests. It is advisory prose, never a merge verdict, and it never changes the deterministic recommendation. Before the provider sees it, the diff is byte-capped and redacted (secret-like files suppressed, secret-shaped tokens removed), and the result is cached under the run.
 
-Then you decide. The branch is yours to take in one of three directions:
-
-<div class="docs-cards">
-
-**Share or review**
-Open a PR for a human, or push the branch as is.
-
-**Merge locally**
-Fast-forward the change onto main yourself.
-
-**Abandon**
-Drop the run and keep the worktree for inspection.
-
-</div>
+Then you decide. The branch is yours to take in one of three directions: share or review it, merge it locally, or abandon it.
 
 To get a human review or just share the branch:
 

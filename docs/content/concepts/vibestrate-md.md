@@ -5,13 +5,7 @@ section: concepts
 slug: concepts/vibestrate-md
 ---
 
-`VIBESTRATE.md` is a committed file at your project root that tells the orchestrator what this project is and how you like it run. It reads the file before every task, so you never re-explain your project.
-
-<div class="docs-callout">
-
-**The operating manual, not a hard rule.** VIBESTRATE.md is durable, project-aware guidance the orchestrator leans on. It is advisory: it shapes how a run is planned, but it can never override a code-enforced [policy](/docs/concepts/safety).
-
-</div>
+`VIBESTRATE.md` is a committed file at your project root that tells the orchestrator what this project is and how you like it run. It reads the file before every task, so you never re-explain your project. It is durable, project-aware guidance the orchestrator leans on - advisory, not a hard rule: it shapes how a run is planned, but it can never override a code-enforced [policy](/docs/concepts/safety).
 
 ## What goes in it
 

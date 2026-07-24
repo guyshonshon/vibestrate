@@ -5,19 +5,9 @@ section: extending
 slug: extending/add-provider
 ---
 
-A **provider** is the local command-line tool that actually runs an AI model on your machine. Vibestrate's built-in detector already knows about these eleven:
+A **provider** is the local command-line tool that actually runs an AI model on your machine. Vibestrate's built-in detector already knows about these eleven: Claude Code, Codex, Gemini, OpenCode, Aider, Ollama, Qwen Code, Crush, Goose, Cursor, and Amp.
 
-<div class="docs-chips"><span>Claude Code</span><span>Codex</span><span>Gemini</span><span>OpenCode</span><span>Aider</span><span>Ollama</span><span>Qwen Code</span><span>Crush</span><span>Goose</span><span>Cursor</span><span>Amp</span></div>
-
-If you want to use a CLI it doesn't know about, or you want to change the flags it passes to one it does know, you declare your own under `providers:` in `project.yml`.
-
-<div class="docs-callout">
-
-**Any local CLI works.** If a command takes a prompt and returns a change, Vibestrate can drive it. There is no plugin to write and no SDK to learn. You point at the binary, say how the prompt gets in, and that is the whole contract.
-
-</div>
-
-This guide walks through that, start to finish.
+If you want to use a CLI it doesn't know about, or you want to change the flags it passes to one it does know, you declare your own under `providers:` in `project.yml`. Any local CLI works: if a command takes a prompt and returns a change, Vibestrate can drive it. There is no plugin to write and no SDK to learn - you point at the binary, say how the prompt gets in, and that is the whole contract. This guide walks through that, start to finish.
 
 ## Declare a custom CLI provider
 

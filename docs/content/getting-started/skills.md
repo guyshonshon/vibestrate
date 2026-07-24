@@ -9,20 +9,12 @@ A **skill** is a short note, written in plain markdown, that gets added to an ag
 
 Think of it as the briefing you'd give a new contractor on their first day. Instead of repeating "we do it this way here" every single time, you write it down once and hand it over.
 
-<div class="docs-callout">
-
-**Write it once, every relevant agent reads it.** A skill is stable context that lives in your repo. Attach it to an agent and it lands in that agent's instructions before the run starts, so you stop re-typing the same rules into task after task.
-
-</div>
-
 ## Write one
 
 A skill is just a markdown file. Drop it in one of two folders:
 
 - `.vibestrate/skills/` - travels with your project, so anyone who clones the repo gets it too. Use this one by default.
 - `.claude/skills/` - picked up automatically if you already use Claude Code's skills locally.
-
-<div class="docs-chips"><span>.vibestrate/skills/</span><span>.claude/skills/</span></div>
 
 The file name (without the `.md`) becomes the skill's name, so `auth-conventions.md` is the skill `auth-conventions`. Inside, just write plain prose. Agents read it the same way a person would:
 

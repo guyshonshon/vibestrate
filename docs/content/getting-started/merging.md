@@ -60,12 +60,6 @@ git merge --ff-only vibestrate/<runId>
 
 Or `git push` the branch to share it as is. To throw the change away, just ignore the branch. Nothing ever reached `main`.
 
-<div class="docs-callout tip">
-
-**New to this?** Open a pull request (`gh pr create`) instead of merging locally. It gives you, or a teammate, a clean place to read the change one more time before it lands, and it is how teams normally take changes on a shared project.
-
-</div>
-
 ## Why is merging always manual?
 
 Two rules are on by default and not negotiable: Vibestrate never auto-merges, and it never auto-pushes. A run stops at `merge_ready` and hands you the diff. Folding it into `main` is always a decision you make.

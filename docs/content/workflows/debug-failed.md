@@ -7,13 +7,7 @@ slug: workflows/debug-failed
 
 When a task doesn't finish cleanly, this guide helps you find out why and decide what to do about it.
 
-A run can stop short for two different reasons. They feel similar, but they call for different responses, so the first job is to tell them apart.
-
-<div class="docs-callout">
-
-**`failed` is a crash. `blocked` is a decision.** `failed` means something broke during a stage and couldn't recover. `blocked` means the reviewer or verifier looked at the work and said "do not continue." One needs a fix; the other needs a call from you.
-
-</div>
+A run can stop short for two different reasons. They feel similar, but they call for different responses: `failed` is a crash, `blocked` is a decision. One needs a fix; the other needs a call from you.
 
 ## Start with `replay`
 

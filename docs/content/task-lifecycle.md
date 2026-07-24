@@ -11,14 +11,6 @@ Every task moves through a fixed sequence of statuses, and Vibestrate won't let 
 
 When nothing goes wrong, a task walks through every status once and finishes ready to merge.
 
-<div class="docs-flow">
-<div><b>Plan</b><span>created, planning, planned.</span></div>
-<div><b>Architect</b><span>architecting, architected.</span></div>
-<div><b>Execute</b><span>executing.</span></div>
-<div><b>Check</b><span>validating, reviewing, verifying.</span></div>
-<div><b>Done</b><span>merge_ready.</span></div>
-</div>
-
 The full status sequence, in order:
 
 ```text
@@ -68,16 +60,7 @@ You can stop a running task and start it again later, and it picks up from where
 
 ## Where a task can come to rest
 
-Four statuses are terminal. Once a run reaches one, it cannot transition out:
-
-<div class="docs-outcomes">
-<div class="docs-outcome ok"><b>merge_ready</b><span>Verifier passed. The diff is ready to ship.</span></div>
-<div class="docs-outcome warn"><b>blocked</b><span>Reviewer or verifier said the run should not continue.</span></div>
-<div class="docs-outcome stop"><b>failed</b><span>Unrecoverable error during a stage.</span></div>
-<div class="docs-outcome stop"><b>aborted</b><span>User explicitly aborted. Worktree is preserved.</span></div>
-</div>
-
-What to read, and what each offers:
+Four statuses are terminal. Once a run reaches one, it cannot transition out. What to read, and what each offers:
 
 - **`merge_ready`** - Verifier passed. The diff is ready to ship.
 - **`blocked`** - Reviewer or verifier said the run should not continue. Read `review.md` and `verification.md`. On the dashboard, a run blocked by review offers **See review** (the reviewer's decision + findings, parsed from the review artifact) and **Re-run with fixes** (forks a new run that reuses this run's plan + architecture and re-implements); the shell run view lists the finding headlines under the `review` line.

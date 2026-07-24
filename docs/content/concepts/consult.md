@@ -5,13 +5,7 @@ section: concepts
 slug: concepts/consult
 ---
 
-**Consult** is the senior voice you can pull aside mid-build. Ask the orchestrator a question and get an answer grounded only in your project's real context. It is read-only: it recommends, it never acts.
-
-<div class="docs-callout">
-
-**An advisor, not an actor.** Consult reads your project, weighs the trade-offs, and tells you what it would do, then stops. It starts no runs, writes no files, and changes nothing. The decision stays yours.
-
-</div>
+**Consult** is the senior voice you can pull aside mid-build. Ask the orchestrator a question and get an answer grounded only in your project's real context. It is read-only: it recommends, it never acts. It reads your project, weighs the trade-offs, and tells you what it would do, then stops - the decision stays yours.
 
 ## Ask it anything
 

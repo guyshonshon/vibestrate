@@ -7,11 +7,7 @@ slug: concepts/crew
 
 A **Crew** is your set of AI workers. Each Flow lists the *kinds* of worker it needs - a builder, a reviewer, and so on. Your Crew is who actually shows up to fill those spots.
 
-<div class="docs-callout">
-
-**Different AIs, one task.** A Crew lets you put a different model in each seat, so the one that builds the change is not the one that reviews it. They read the problem from their own angle and check each other's work, instead of a single model rubber-stamping its own. The disagreement is the point.
-
-</div>
+A Crew lets you put a different model in each seat, so the one that builds the change is not the one that reviews it - they read the problem from their own angle and check each other's work, instead of a single model rubber-stamping its own. The disagreement is the point.
 
 Think of a Flow as a recipe that says "you need a chef and a taster". The Crew is the people you hire for those jobs, and you decide whether the chef is a fast cook or a careful one. The same recipe works no matter who you hire, which is why a Flow someone else wrote still runs with your own people.
 

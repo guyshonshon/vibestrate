@@ -9,12 +9,6 @@ Some Flows need a few answers before they can do their job, like a project name,
 
 The [Flow](./flow.md) says what it needs (typed values like `projectName` or `framework`), you fill them in a single time, and the values are saved in `.vibestrate/project-params.json` (gitignored) and reused from then on.
 
-<div class="docs-flow">
-<div><b>Declare</b><span>A Flow lists the typed params it needs, like name, niche, brand color.</span></div>
-<div><b>Fill once</b><span>You answer them a single time, in the form or with vibe params set.</span></div>
-<div><b>Every run reuses</b><span>Later runs read the stored values, so no prompts and no flags.</span></div>
-</div>
-
 ## Fill once, then run
 
 ```
@@ -29,11 +23,7 @@ vibe params list
 
 In the dashboard, the **Project parameters** panel on the Settings page does the same, and the Composer's parameter form prefills from the stored values.
 
-Each declared param has a type, and the form type-checks every value against it:
-
-<div class="docs-chips">
-<span>string</span><span>number</span><span>boolean</span><span>enum</span><span>path</span>
-</div>
+Each declared param has a type, and the form type-checks every value against it: `string`, `number`, `boolean`, `enum`, or `path`.
 
 ## How a value is chosen
 
@@ -53,12 +43,6 @@ explicit --param / body.params   >   VIBESTRATE_PARAM_<NAME> env
 Param names aren't unique across Flows, so by default a stored value is keyed per Flow (`<flowId>.<param>`). Two Flows that both call something `name` never cross-contaminate. Mark a param `shared: true` to store it under a project-global key (the bare name) that any Flow declaring a `shared` param of that name reuses. That's the "fill `niche` once, every Flow sees it" case.
 
 ## Secrets
-
-<div class="docs-callout">
-
-**The raw secret never lands in the store.** A `secret: true` param keeps a reference to an environment variable name, not the value. Vibestrate reads the real secret from your environment at run time, so nothing sensitive sits in `project-params.json`.
-
-</div>
 
 A `secret: true` param **never** stores the raw secret. You give it an environment variable **name**, and the store keeps an `env:NAME` reference:
 

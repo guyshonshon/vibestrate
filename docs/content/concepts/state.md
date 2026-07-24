@@ -11,19 +11,11 @@ Think of it like a package you've shipped. At any point it's in one definite pla
 
 That saved value lives in `.vibestrate/runs/<runId>/state.json`. The `status` comes from a fixed set of values, and Vibestrate validates it before writing it down.
 
-<div class="docs-callout">
-
-**One value, on disk, validated.** A status is a fact about the run, not a hopeful label. It lives in `state.json`, it survives a restart, and Vibestrate refuses to write a value that isn't in the fixed set.
-
-</div>
-
 ## The moves are enforced
 
 What makes the status trustworthy is that Vibestrate controls how a run gets from one status to the next. Every allowed move is written into an explicit list, the `ALLOWED_TRANSITIONS` allowlist. If something tries a move that isn't on the list, Vibestrate raises a `StateTransitionError` and stops, instead of letting the bad move happen quietly.
 
 The four terminal states - `merge_ready`, `blocked`, `failed`, and `aborted` - have no way back out. Once a run reaches one of them, it stays there.
-
-<div class="docs-outcomes"><div class="docs-outcome ok"><b>merge_ready</b><span>Verifier passed. Diff is ready for the user to merge.</span></div><div class="docs-outcome warn"><b>blocked</b><span>Reviewer or verifier flagged the run unsafe to continue.</span></div><div class="docs-outcome stop"><b>failed</b><span>Unrecoverable error during a stage.</span></div><div class="docs-outcome stop"><b>aborted</b><span>User aborted explicitly. Worktree is preserved.</span></div></div>
 
 ## Why it matters
 
@@ -58,8 +50,6 @@ A run can be paused for one of two reasons.
 
 - **Policy-gated:** the project says "always pause at the boundary into `executing`." When the orchestrator reaches that boundary, status becomes `waiting_for_approval` and the run sits until a human runs `vibe approvals decide`.
 - **User-requested:** at any point you run `vibe pause <runId>`, status becomes `paused` between stage boundaries, and `pausedAtStatus` remembers where to resume.
-
-<div class="docs-flow"><div><b>waiting_for_approval</b><span>Policy gate. Run sits until vibe approvals decide.</span></div><div><b>paused</b><span>You ran vibe pause. pausedAtStatus holds the resume point.</span></div></div>
 
 Both kinds survive a restart. The pause flag is saved to disk, so killing and restarting Vibestrate does not lose the pause.
 

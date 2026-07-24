@@ -7,11 +7,7 @@ slug: concepts/sandbox
 
 By default a run executes on your machine, bounded by a git worktree and the [post-turn diff gate](concepts/safety). For an unattended run, or a task you don't fully trust, you can move the agent off your host entirely: set `execution.backend: docker` and each provider turn runs inside a **disposable Docker container**. The blast radius becomes the container, and it's the same wall no matter which provider runs - which a provider's own sandbox can't do (that only confines its own process).
 
-<div class="docs-callout warn">
-
-**Opt-in, off by default.** The container backend is a deliberate choice for an unattended or lower-trust run, not a tax on every run. With `execution.backend: local-worktree` (the default) nothing changes. Turn it on with `vibe config set execution.backend docker` or the dashboard config editor.
-
-</div>
+The container backend is a deliberate choice for an unattended or lower-trust run, not a tax on every run - `execution.backend: local-worktree` stays the default and nothing changes until you opt in. Turn it on with `vibe config set execution.backend docker` or the dashboard config editor.
 
 ## You are not starting a VM per run
 

@@ -31,18 +31,6 @@ Here is what each stage does and who does it:
 | fixing | fixer | patched diff + finding responses |
 | verifying | verifier | PASSED / FAILED / NEEDS_HUMAN + decision summary |
 
-Read end to end, the common spine of a run looks like this:
-
-<div class="docs-flow">
-<div><b>Plan</b><span>The planner turns the task into a structured plan.</span></div>
-<div><b>Architect</b><span>The architect maps modules, interfaces, and data flow.</span></div>
-<div><b>Execute</b><span>The executor writes the file edits in the worktree.</span></div>
-<div><b>Validate</b><span>Your commands run: typecheck, test, build, lint.</span></div>
-<div><b>Review</b><span>The reviewer reads the change cold and gives a verdict.</span></div>
-<div><b>Fix</b><span>The fixer patches findings, then review re-checks.</span></div>
-<div><b>Verify</b><span>The verifier signs off or calls a human.</span></div>
-</div>
-
 The fix loop is bounded by the flow's own loop budget (the built-in flows allow 3 rounds). You can set `workflow.maxReviewLoops` as an optional **global ceiling** that lowers every flow to at most that many rounds - omitted by default, so each flow keeps its own budget. If review keeps requesting changes past the budget, the run goes to `blocked` and calls you over.
 
 ## Validation is the tie-breaker
@@ -82,12 +70,6 @@ A compact **run brief** is the story so far: the chosen flow and why, each step'
 **Handoff contracts** are the more precise version: a step passes its output as named JSON instead of free-form prose, so the next role, the run brief, and the dashboard can read specific fields rather than scraping text. They are **opt-in by output token** - a step only emits one when it declares the matching token, and a mismatch never fails the run (it keeps the raw text and records a parse event). The review side has `findings`, `finding-responses`, `finding-resolutions`, and `decision-summary`; the builder side has `plan-handoff`, `architecture-handoff`, and `execution-handoff`. The built-in `panel-review` flow is the first to use the builder-side contracts; the default flow stays free-form, so nothing changes for it.
 
 ## Context on long runs
-
-<div class="docs-callout">
-
-**The prompt does not balloon.** A run can take many turns, but each turn's context is rebuilt fresh, not carried as one ever-growing chat.
-
-</div>
 
 Each turn's context is rebuilt from the artifacts (the run brief plus the named prior outputs), so there is no single ever-growing chat to carry along.
 

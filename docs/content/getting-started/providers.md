@@ -7,10 +7,6 @@ slug: getting-started/providers
 
 A *provider* is the AI tool that actually does the work. It can be a coding assistant already installed on your machine - Claude Code, Codex, Gemini, Aider, Ollama, OpenCode, and others - or a model Vibestrate reaches over the internet. Setting one up is two steps: tell Vibestrate it's there, then confirm it answers.
 
-<div class="docs-chips">
-<span>Claude Code</span><span>Codex</span><span>Gemini</span><span>Aider</span><span>Ollama</span><span>OpenCode</span>
-</div>
-
 ## See what you have
 
 ```bash

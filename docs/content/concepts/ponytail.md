@@ -5,13 +5,7 @@ section: concepts
 slug: concepts/ponytail
 ---
 
-Left alone, a coding agent tends to over-build: a helper class where a function would do, a dependency where the standard library was fine, fifty lines where one was enough. **Ponytail** is the posture that pushes back. It injects a "lazy senior dev" ruleset into the agents that write code, so their default is the smallest change that actually works.
-
-<div class="docs-callout">
-
-**On by default.** Ponytail is the built-in backbone behavior for code-writing agents - you don't turn it on. Turn it off with `vibe config set ponytail false` (or the dashboard config editor) if you'd rather they not self-restrain.
-
-</div>
+Left alone, a coding agent tends to over-build: a helper class where a function would do, a dependency where the standard library was fine, fifty lines where one was enough. **Ponytail** is the posture that pushes back. It injects a "lazy senior dev" ruleset into the agents that write code, so their default is the smallest change that actually works. It is on by default - the built-in backbone behavior for code-writing agents, not something you turn on - and you turn it off with `vibe config set ponytail false` (or the dashboard config editor) if you'd rather they not self-restrain.
 
 ## What it makes an agent do
 
@@ -44,9 +38,7 @@ Minimal does not mean careless. The hard rules survive the posture: understand t
 
 ## Only the code-writers see it
 
-Ponytail is aimed narrowly at the seats that produce a diff - the **implementer** and **fixer** (model turns at the executing stage that edit the worktree). The agents that judge or plan the work never see it:
-
-<div class="docs-chips"><span>implementer: ponytail on</span><span>fixer: ponytail on</span><span>planner / architect: no</span><span>reviewer / arbiter: no</span><span>verifier: no</span></div>
+Ponytail is aimed narrowly at the seats that produce a diff - the **implementer** and **fixer** (model turns at the executing stage that edit the worktree). The agents that judge or plan the work never see it: planner, architect, reviewer, arbiter, and verifier all run without it.
 
 That split is deliberate. It mirrors how [reviewLenses](concepts/supervisor) aim the reviewers and the Spec-up posture aims the planners: each role gets the guidance for *its* job. A reviewer judging whether the change is right must not also be told to make it smaller - that's the writer's job, and the reviewer stays an independent check.
 

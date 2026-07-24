@@ -15,12 +15,10 @@ It's a guided tour through the same setup you'd otherwise do by hand: pick a pro
 
 ## What it walks through
 
-<div class="docs-flow">
-<div><b>Providers</b><span>Pick the AI model behind the work - reuses `vibe provider setup`.</span></div>
-<div><b>Crew</b><span>Optionally install a ready-made crew (fast / thorough) or skip and configure your own later.</span></div>
-<div><b>Flows</b><span>See the flow Vibestrate runs by default, and how to browse more from the flows hub.</span></div>
-<div><b>Your first run</b><span>A worked example of `vibe run "..."` to try next.</span></div>
-</div>
+- **Providers** - pick the AI model behind the work; reuses `vibe provider setup`.
+- **Crew** - optionally install a ready-made crew (fast or thorough), or skip and configure your own later.
+- **Flows** - see the flow Vibestrate runs by default, and how to browse more from the flows hub.
+- **Your first run** - a worked example of `vibe run "..."` to try next.
 
 Each step opens with a short explanation, then asks: continue, skip, or quit. Nothing is forced - skip anything you already know.
 

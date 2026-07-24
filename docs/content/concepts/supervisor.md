@@ -9,12 +9,6 @@ A **supervisor** (its config calls it a **persona**) is the attitude Vibestrate 
 
 Think of a building inspector. They don't pour the concrete or hang the drywall. They decide how hard to look, send the risky parts back for a second opinion, and write down every call they make so you can trust the sign-off. The supervisor plays that role for a run.
 
-<div class="docs-callout">
-
-**It is not a rubber stamp.** This is what makes the AI's work trustworthy instead of a yes-man. The supervisor questions the result, tightens scrutiny on the risky changes, tells you honestly whether the review was truly independent, and records every decision it makes so you can check its reasoning later.
-
-</div>
-
 ## What it decides
 
 <div class="docs-cards">
@@ -39,12 +33,7 @@ Project rules - "use a hyphen, not an em-dash", "no eyebrow labels" - now live a
 
 </div>
 
-These two labels tell you how much the sign-off is worth at a glance:
-
-<div class="docs-outcomes">
-<div class="docs-outcome warn"><b>single-profile</b><span>The author reviewed its own work. Treat with caution.</span></div>
-<div class="docs-outcome ok"><b>cross-model</b><span>A different AI reviewed it. Genuinely independent.</span></div>
-</div>
+These two labels (`single-profile`, `cross-model`) tell you how much the sign-off is worth at a glance.
 
 ## Picking who reviews
 
@@ -71,12 +60,5 @@ Pick the supervisor for a run with the composer's Supervisor selector or `vibe r
 
 ## Going deeper
 
-<div class="docs-cards">
-
-**[Flow](/docs/concepts/flow)**
-What an upgrade actually changes.
-
-**[Profile](/docs/concepts/profile)**
-What `reviewerProfile` points at.
-
-</div>
+- [Flow](/docs/concepts/flow) - what an upgrade actually changes.
+- [Profile](/docs/concepts/profile) - what `reviewerProfile` points at.
