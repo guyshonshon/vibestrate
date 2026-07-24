@@ -11,8 +11,39 @@ import { loadConfig, type LoadedConfig } from "../../project/config-loader.js";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { AssistError, runAssist, type AssistProviderRunner } from "./assist-runner.js";
 import type { ChecklistItem, Task } from "../../roadmap/roadmap-types.js";
+import { loadCodebaseMap, renderCodebaseMapForPrompt } from "../../project/codebase-map.js";
+import { redactSecretsInText } from "../diff-service.js";
 
 const MAX_ITEMS = 12;
+
+// Enhance/plan-question prompts are one-shot, read-only assist calls, not a
+// full agent turn - keep the map block small relative to the task text
+// (planner turns get the larger DEFAULT_PROMPT_MAX_BYTES projection).
+const CODEBASE_MAP_MAX_BYTES = 3000;
+
+/**
+ * Best-effort codebase grounding for the enhance / plan-question prompts:
+ * reuses the SAME curated, bounded prompt projection the orchestrator feeds
+ * the planner's first turn (never the raw map). Fail-open by design - a
+ * missing, stale, or corrupt map degrades silently to "" (today's behavior).
+ * This is an enrichment (so the model can reference real files instead of
+ * inventing paths), not a guard, so it must never block checklist or
+ * question generation.
+ */
+async function loadCodebaseMapBlock(projectRoot: string): Promise<string> {
+  try {
+    const cm = await loadCodebaseMap(projectRoot);
+    if (!cm.present || !cm.map) return "";
+    // The map is already redacted at write time; redact again defensively
+    // (matches the orchestrator's planner-injection path) so this channel
+    // never widens what a prompt can see beyond that read path.
+    return redactSecretsInText(
+      renderCodebaseMapForPrompt(cm.map, { stale: cm.stale, maxBytes: CODEBASE_MAP_MAX_BYTES }),
+    ).redacted;
+  } catch {
+    return "";
+  }
+}
 
 const checklistProposalSchema = z.object({
   items: z.array(z.string().min(1)).min(1).max(40),
@@ -100,6 +131,7 @@ export async function proposeChecklist(
   }
 
   const existing = task.checklist.map((c) => c.text);
+  const codebaseMap = await loadCodebaseMapBlock(projectRoot);
   const instruction = [
     "Break the following task into an ordered checklist of concrete, verifiable steps.",
     "Each step should be a single actionable item, short and specific (a few words to one sentence).",
@@ -115,6 +147,9 @@ export async function proposeChecklist(
       ? `The owner answered these clarifying questions - use the answers to shape the steps:\n${opts.answers
           .map((a) => `Q: ${a.question}\nA: ${a.answer}`)
           .join("\n\n")}`
+      : "",
+    codebaseMap
+      ? `Real codebase context (auto-derived - reference existing files/scripts/routes where it fits, verify before relying on anything stale):\n${codebaseMap}`
       : "",
   ]
     .filter(Boolean)
@@ -167,6 +202,7 @@ export async function proposeChecklistQuestions(
   }
 
   const existing = task.checklist.map((c) => c.text);
+  const codebaseMap = await loadCodebaseMapBlock(projectRoot);
   const instruction = [
     "You will break the following task into an ordered checklist of steps - but FIRST ask the owner a few short clarifying questions whose answers would materially change how you break it down.",
     "Ask ONLY what you genuinely need to plan well - between 0 and 5 questions. If the task is already clear, return an empty list.",
@@ -177,6 +213,9 @@ export async function proposeChecklistQuestions(
     task.acceptanceCriteria ? `Acceptance criteria: ${task.acceptanceCriteria}` : "",
     existing.length
       ? `It already has these steps:\n${existing.map((t) => `- ${t}`).join("\n")}`
+      : "",
+    codebaseMap
+      ? `Real codebase context (auto-derived - use it to ask about genuine ambiguity against the real code, not to invent structure):\n${codebaseMap}`
       : "",
   ]
     .filter(Boolean)

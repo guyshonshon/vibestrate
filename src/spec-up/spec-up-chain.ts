@@ -29,6 +29,7 @@ import {
 import { assertSafeRunId } from "../server/security.js";
 import { ProposalService } from "../roadmap/proposal-service.js";
 import { VibestrateError } from "../utils/errors.js";
+import { loadCodebaseMap, renderCodebaseMapForPrompt } from "../project/codebase-map.js";
 
 export class SpecUpChainError extends VibestrateError {
   constructor(message: string, cause?: unknown) {
@@ -358,6 +359,51 @@ export async function readAccumulatedAnswers(
     : "";
 }
 
+/** Run-relative artifact path the curated codebase-map projection is staged at
+ *  before the spec-up run launches, so it can ride as a `file` contextSource. */
+const CODEBASE_MAP_CONTEXT_PATH = "spec-up-codebase-map.md";
+// The spec-up flow's scope/spec/architecture/risks steps run as separate turns
+// (architecture on the "architect" seat, never the planner) - the orchestrator's
+// planner-only-first-turn injection wouldn't reach them. A run-level
+// contextSource IS visible to every step's turn, so that's the channel used here
+// instead. Larger than enhance's inline budget since this rides as its own
+// attached file rather than being spliced into a turn's instruction text.
+const SPEC_UP_CODEBASE_MAP_MAX_BYTES = 6000;
+
+/**
+ * Best-effort codebase grounding for the spec-up link where the spec and
+ * architecture are actually drafted: stage the SAME curated, bounded
+ * projection the planner's first turn gets (never the raw map - it is already
+ * redaction-safe at write time, and materializeContextSources redacts again on
+ * read) as a run-level `file` contextSource. Returns null on anything short of
+ * success - missing/stale/corrupt map, or a write failure - so the caller can
+ * omit it entirely. Fail-open by design: this is an enrichment, not a guard,
+ * and must never block or alter the spec-up launch.
+ */
+async function stageCodebaseMapContext(
+  projectRoot: string,
+  runId: string,
+): Promise<{ kind: "file"; ref: string; label: string } | null> {
+  try {
+    const cm = await loadCodebaseMap(projectRoot);
+    if (!cm.present || !cm.map) return null;
+    const rendered = renderCodebaseMapForPrompt(cm.map, {
+      stale: cm.stale,
+      maxBytes: SPEC_UP_CODEBASE_MAP_MAX_BYTES,
+    });
+    if (!rendered.trim()) return null;
+    const store = new ArtifactStore(projectRoot, runId);
+    const abs = await store.write(CODEBASE_MAP_CONTEXT_PATH, rendered);
+    return {
+      kind: "file",
+      ref: path.relative(projectRoot, abs),
+      label: "Codebase map (auto-derived)",
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Terminal handoff: launch the `spec-up` flow seeded with the accumulated answers
  * (the union of every round) as a `file` contextSource, carrying the chosen build
@@ -381,6 +427,7 @@ async function finalizeSpecUpSpec(input: {
   const absAnswers = rootStore.resolveArtifactPath(ANSWERS_PATH);
   const ref = path.relative(projectRoot, absAnswers);
   const runId = makeUniqueRunId(projectRoot);
+  const codebaseMapSource = await stageCodebaseMapContext(projectRoot, runId);
   const spec: RunSpec = {
     projectRoot,
     task: input.task || "Spec up this work (brief carried from intake).",
@@ -393,7 +440,10 @@ async function finalizeSpecUpSpec(input: {
     // specUpPosture - the spec-up link RunSpec otherwise carries no persona.
     persona: input.persona,
     flow: { id: "spec-up", brief: null },
-    contextSources: [{ kind: "file", ref, label: "Spec-up: intake answers" }],
+    contextSources: [
+      { kind: "file", ref, label: "Spec-up: intake answers" },
+      ...(codebaseMapSource ? [codebaseMapSource] : []),
+    ],
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });
   return { runId, pid };
