@@ -22,6 +22,10 @@
   drift and corrected against the current source - real commands, real config
   keys, real run artifacts - so the getting-started path and the concept pages
   describe the tool as it actually behaves.
+- **A current, audited dependency stack on Node 22+.** Every dependency was
+  brought current for the cut - including the execa 10, commander 15, and zod 4
+  majors - with `pnpm audit` fully clean. Node 18 and 20 reached end of life,
+  so Vibestrate now requires Node 22 or newer.
 
 ## 0.73.0
 
