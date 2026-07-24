@@ -30,6 +30,7 @@ import { assertSafeRunId } from "../server/security.js";
 import { ProposalService } from "../roadmap/proposal-service.js";
 import { VibestrateError } from "../utils/errors.js";
 import { loadCodebaseMap, renderCodebaseMapForPrompt } from "../project/codebase-map.js";
+import { CODEBASE_MAP_CONTEXT_SOURCE_LABEL } from "../core/context/context-source-schema.js";
 
 export class SpecUpChainError extends VibestrateError {
   constructor(message: string, cause?: unknown) {
@@ -364,10 +365,16 @@ export async function readAccumulatedAnswers(
 const CODEBASE_MAP_CONTEXT_PATH = "spec-up-codebase-map.md";
 // The spec-up flow's scope/spec/architecture/risks steps run as separate turns
 // (architecture on the "architect" seat, never the planner) - the orchestrator's
-// planner-only-first-turn injection wouldn't reach them. A run-level
+// planner-only-first-turn injection wouldn't reach them all. A run-level
 // contextSource IS visible to every step's turn, so that's the channel used here
 // instead. Larger than enhance's inline budget since this rides as its own
 // attached file rather than being spliced into a turn's instruction text.
+// The `scope` step DOES sit on the planner seat, so without help it would get
+// this same projection twice (once here, once from the orchestrator's planner
+// injection); the orchestrator suppresses its own injection whenever a source
+// labeled CODEBASE_MAP_CONTEXT_SOURCE_LABEL is already materialized for the
+// run (see hasStagedCodebaseMapContext in orchestrator.ts), so this stays
+// single-delivery without this module needing to know about seats.
 const SPEC_UP_CODEBASE_MAP_MAX_BYTES = 6000;
 
 /**
@@ -397,7 +404,7 @@ async function stageCodebaseMapContext(
     return {
       kind: "file",
       ref: path.relative(projectRoot, abs),
-      label: "Codebase map (auto-derived)",
+      label: CODEBASE_MAP_CONTEXT_SOURCE_LABEL,
     };
   } catch {
     return null;

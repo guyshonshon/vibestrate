@@ -111,8 +111,11 @@ import { creditTrailers } from "../git/commit-credit.js";
 import { linkWorktreeEnvironment } from "../git/worktree-env.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
 import { renderTaskGrounding } from "../roadmap/task-grounding.js";
-import { materializeContextSources } from "./context/context-sources.js";
-import type { ContextSource } from "./context/context-source-schema.js";
+import { materializeContextSources, materializedContextLabel } from "./context/context-sources.js";
+import {
+  CODEBASE_MAP_CONTEXT_SOURCE_LABEL,
+  type ContextSource,
+} from "./context/context-source-schema.js";
 import {
   renderCurrentItemBrief,
   buildPriorItemsContext,
@@ -334,6 +337,13 @@ export class Orchestrator {
   private readonly contextSources: ContextSource[];
   /** Materialized once at run start; merged into every role's prior artifacts. */
   private materializedContext: PriorArtifact[] = [];
+  /** True when a run-level context source already carries the codebase map
+   *  (spec-up's stageCodebaseMapContext, visible to every role via
+   *  materializedContext). Suppresses the planner-only codebaseMapBlock
+   *  injection below so a spec-up scope/spec/architecture turn doesn't receive
+   *  the same map projection twice. Plain runs never stage this source, so
+   *  their planner injection is unaffected. */
+  private hasStagedCodebaseMapContext = false;
   /** Pre-rendered + redacted continuity-ledger block, loaded once at run
    *  start and injected into the PLANNER turn (the planning context) so a fresh
    *  run picks up where the project stands. "" when the ledger is empty. */
@@ -1074,6 +1084,10 @@ export class Orchestrator {
         allowPrivateHosts: false,
       });
       this.materializedContext = ctxResult.artifacts;
+      const codebaseMapArtifactLabel = materializedContextLabel(CODEBASE_MAP_CONTEXT_SOURCE_LABEL);
+      this.hasStagedCodebaseMapContext = ctxResult.artifacts.some(
+        (a) => a.label === codebaseMapArtifactLabel,
+      );
       await artifactStore.writeJson("context/sources.json", {
         sources: this.contextSources,
         materialized: ctxResult.artifacts.map((a) => a.label),
@@ -4448,9 +4462,14 @@ export class Orchestrator {
     // The codebase map rides the same channel: planner-only judges reason
     // from the live repo, not a summary, so broadcasting the map to every
     // turn would just be token waste on top of what the provider CLI already
-    // reads natively from the worktree.
+    // reads natively from the worktree. Skipped when a run-level context
+    // source already staged the map (spec-up) - that source lands in
+    // priorArtifacts for every role, so injecting it here too would hand the
+    // planner-seat turn the same projection twice.
     const projectMemory =
-      injectContinuity && this.codebaseMapBlock ? this.codebaseMapBlock : "";
+      injectContinuity && this.codebaseMapBlock && !this.hasStagedCodebaseMapContext
+        ? this.codebaseMapBlock
+        : "";
     if (projectLedger || continuityFlags || methodologyGuidance || projectMemory)
       this.ledgerInjected = true;
     // Clean-room seat (context-scaling.md rung 2): drop the producer's run-derived

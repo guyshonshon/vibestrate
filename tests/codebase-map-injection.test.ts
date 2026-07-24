@@ -10,6 +10,7 @@ import { loadConfig } from "../src/project/config-loader.js";
 import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
 import { flowDefinitionSchema } from "../src/flows/schemas/flow-schema.js";
 import { writeCodebaseMap } from "../src/project/codebase-map.js";
+import { CODEBASE_MAP_CONTEXT_SOURCE_LABEL } from "../src/core/context/context-source-schema.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({
@@ -93,7 +94,11 @@ async function setupProject(): Promise<string> {
   return dir;
 }
 
-async function runSingleStep(dir: string, cleanRoom: boolean) {
+async function runSingleStep(
+  dir: string,
+  cleanRoom: boolean,
+  contextSources: { kind: "file"; ref: string; label: string }[] = [],
+) {
   const loaded = await loadConfig(dir);
   const resolved = resolveFlow({
     flow: singlePlannerStepFlow(cleanRoom),
@@ -109,7 +114,7 @@ async function runSingleStep(dir: string, cleanRoom: boolean) {
     isGitRepo: true,
     taskId: null,
     flow: resolved,
-    contextSources: [],
+    contextSources,
     onProgress: () => {},
   });
   const out = await orch.run();
@@ -127,5 +132,28 @@ describe("codebase map rides the continuity channel", () => {
     const dir = await setupProject();
     const prompt = await runSingleStep(dir, true);
     expect(prompt).not.toContain("Codebase map (auto-derived)");
+  }, 30_000);
+
+  it("a run-level context source already carrying the map suppresses the planner-only injection (no double delivery)", async () => {
+    // spec-up's scope step sits on the planner seat AND stages the map as a
+    // run-level contextSource (spec-up-chain.ts's stageCodebaseMapContext) -
+    // without the orchestrator's suppression, this planner turn would get the
+    // map twice: once from the staged source (every role), once from the
+    // planner-only continuity injection.
+    const dir = await setupProject();
+    // Deliberately no "Codebase map (auto-derived)" text in the BODY - only the
+    // materialized artifact's own "## Context - <label>" header should carry
+    // that phrase, so counting occurrences in the prompt below isn't thrown
+    // off by the staged file's content also happening to repeat it.
+    const stagedPath = path.join(dir, "staged-codebase-map.md");
+    await fs.writeFile(stagedPath, "# Stack\n\n- Name: demo\n");
+    const prompt = await runSingleStep(dir, false, [
+      { kind: "file", ref: "staged-codebase-map.md", label: CODEBASE_MAP_CONTEXT_SOURCE_LABEL },
+    ]);
+    const occurrences = prompt.split("Codebase map (auto-derived)").length - 1;
+    expect(occurrences).toBe(1);
+    // And it's the STAGED source that made it through, not the orchestrator's
+    // own planner-only projection.
+    expect(prompt).toContain(`## Context - ${CODEBASE_MAP_CONTEXT_SOURCE_LABEL}`);
   }, 30_000);
 });

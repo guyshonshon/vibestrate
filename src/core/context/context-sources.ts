@@ -132,6 +132,15 @@ function looksBinary(buf: Buffer): boolean {
   return controlBytes / len > SNIFF_CONTROL_BYTE_THRESHOLD;
 }
 
+/** The `PriorArtifact.label` a materialized context source lands under -
+ *  every source gets the "Context - " prefix below, so callers matching a
+ *  materialized artifact against a known source label (e.g. the orchestrator
+ *  detecting a staged codebase map, see CODEBASE_MAP_CONTEXT_SOURCE_LABEL)
+ *  must go through this helper rather than comparing the raw label. */
+export function materializedContextLabel(sourceLabel: string): string {
+  return `Context - ${sourceLabel}`;
+}
+
 export type MaterializeContextInput = {
   sources: readonly ContextSource[];
   projectRoot: string;
@@ -200,7 +209,7 @@ export async function materializeContextSources(
         const { redacted, count } = redactSecretsInText(raw);
         const { text, truncated } = clamp(redacted, maxBytes);
         artifacts.push({
-          label: `Context - ${label}`,
+          label: materializedContextLabel(label),
           content:
             `Source: file ${resolved.relativePath}` +
             (count > 0 ? ` (${count} secret token(s) redacted)` : "") +
@@ -235,7 +244,7 @@ export async function materializeContextSources(
     const { redacted, count } = redactSecretsInText(got.text);
     const { text, truncated } = clamp(redacted, maxBytes);
     artifacts.push({
-      label: `Context - ${label}`,
+      label: materializedContextLabel(label),
       content:
         `Source: url ${source.ref}` +
         (count > 0 ? ` (${count} secret token(s) redacted)` : "") +

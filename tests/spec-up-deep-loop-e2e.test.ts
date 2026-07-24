@@ -200,4 +200,42 @@ describe("spec-up finalize: codebase-map grounding", () => {
       },
     ]);
   });
+
+  it("a hollow but schema-valid codebase-map.json degrades silently (stageCodebaseMapContext's fail-open catch)", async () => {
+    // Passes loadCodebaseMap's shape check (schemaVersion === 1, so present:
+    // true) but has none of the fields renderCodebaseMapForPrompt reads off
+    // `map.project` - it throws mid-render. This is the only way to actually
+    // reach stageCodebaseMapContext's own catch, as opposed to
+    // loadCodebaseMap's separate, earlier tolerance for unparsable JSON.
+    await fs.mkdir(path.join(dir, ".vibestrate"), { recursive: true });
+    await fs.writeFile(
+      path.join(dir, ".vibestrate", "codebase-map.json"),
+      JSON.stringify({ schemaVersion: 1 }),
+    );
+    await stageRound("hollow-round-4", {
+      round: 4,
+      rootRunId: "hollow-root",
+      targetFlowId: "express",
+      questions: [q("scale", "constraints")],
+    });
+    const rootStore = new ArtifactStore(dir, "hollow-root");
+    await rootStore.init();
+    await rootStore.write("spec-up-answers.md", "# answers\n## Round 1\nB2C\n");
+
+    const r = await submitSpecUpAnswers({
+      projectRoot: dir,
+      sourceRunId: "hollow-round-4",
+      answers: [{ id: "scale", answer: "small" }],
+    });
+    expect(r.action).toBe("finalize");
+
+    const spec = captured.specs.at(-1);
+    expect(spec.contextSources).toEqual([
+      {
+        kind: "file",
+        ref: path.join(".vibestrate", "runs", "hollow-root", "artifacts", "spec-up-answers.md"),
+        label: "Spec-up: intake answers",
+      },
+    ]);
+  });
 });

@@ -13,6 +13,15 @@ import { z } from "zod";
 export const contextSourceKindSchema = z.enum(["file", "url"]);
 export type ContextSourceKind = z.infer<typeof contextSourceKindSchema>;
 
+// Shared label for the auto-staged codebase-map context source (spec-up's
+// scope/spec/architecture/risks steps run off the planner seat, so the
+// orchestrator's planner-only-first-turn injection can't reach them - see
+// spec-up-chain.ts's stageCodebaseMapContext). The orchestrator matches on
+// this exact label to suppress its own planner injection when a run already
+// carries this staged source, so the planner turn doesn't receive the same
+// projection twice.
+export const CODEBASE_MAP_CONTEXT_SOURCE_LABEL = "Codebase map (auto-derived)";
+
 export const contextSourceSchema = z
   .object({
     kind: contextSourceKindSchema,

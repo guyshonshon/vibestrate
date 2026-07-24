@@ -212,10 +212,28 @@ describe("enhance", () => {
       expect(prompt).not.toContain("Real codebase context");
     });
 
-    it("a corrupt codebase-map.json degrades silently instead of throwing", async () => {
+    it("syntactically invalid codebase-map.json degrades silently instead of throwing", async () => {
+      // This exercises loadCodebaseMap's OWN tolerance (unparsable JSON ->
+      // "absent"), not the enhance-side fail-open catch below - loadCodebaseMap
+      // never reaches the render step, so it never throws in the first place.
       await writeCodebaseMap(projectRoot, new Date().toISOString());
       const mapPath = path.join(projectRoot, ".vibestrate", "codebase-map.json");
       await fs.writeFile(mapPath, "{ not valid json");
+      const task = await svc.addTask({ title: "Add auth" });
+      const prompt = await capturePrompt((runner) =>
+        proposeChecklist(projectRoot, task.id, { runner }),
+      );
+      expect(prompt).not.toContain("Codebase map");
+    });
+
+    it("a hollow but schema-valid codebase-map.json exercises the enhance-side fail-open catch", async () => {
+      // Passes loadCodebaseMap's shape check (schemaVersion === 1) so
+      // loadCodebaseMap reports present: true, THEN renderCodebaseMapForPrompt
+      // throws reading map.project off the missing `project` field - this is
+      // the only way to actually reach loadCodebaseMapBlock's own catch.
+      const mapPath = path.join(projectRoot, ".vibestrate", "codebase-map.json");
+      await fs.mkdir(path.dirname(mapPath), { recursive: true });
+      await fs.writeFile(mapPath, JSON.stringify({ schemaVersion: 1 }));
       const task = await svc.addTask({ title: "Add auth" });
       const prompt = await capturePrompt((runner) =>
         proposeChecklist(projectRoot, task.id, { runner }),
