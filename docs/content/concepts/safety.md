@@ -7,7 +7,7 @@ slug: concepts/safety
 
 Nothing a run *does* to your machine happens without passing one checkpoint, and that checkpoint writes down what it decided and what actually happened.
 
-Think of a single doorway with a guard. Every time a run wants to do something real to your computer - start an AI provider, run a command, change a file, finish the run - it has to pass through that one doorway. The guard checks each request against your rules, decides yes or no, and logs the decision and the outcome. There is no back door.
+Think of a single doorway with a guard. Every time a run wants to do something real to your computer - start an AI provider, run a command, change a file, finish the run - it has to pass through that one doorway. The guard checks each request against your rules, decides yes or no, and logs the decision and the outcome.
 
 In Vibestrate that doorway is the **Action Broker**. Every side-effecting operation a run performs - spawning a provider, running a validation command, applying or reverting a patch, writing a config file, opening a terminal, completing a run - crosses it.
 
@@ -71,20 +71,7 @@ In plain words: the first action `deny`s any `npm install` / `pip install` comma
 
 An action with no `match` applies to **every** request of the listed `on:` kinds. Effects default to `deny`. Policies can only *refuse or hold* an effect - they never permit something the built-in safety checks already refused.
 
-## Why it matters
-
-<div class="docs-cards">
-
-**One path.**
-Because every effect is constructed through the same broker, the same policy set reaches every effect site - there is no surface that quietly skips the boundary.
-
-**Evidence, not vibes.**
-The `actions.ndjson` log is the audit trail the Run Assurance artifact and replay read from. Decisions and outcomes are recorded, including refused attempts.
-
-**Fail-closed.**
-A denied effect stops. A malformed policy *file* is skipped (it can't wedge every run), but a matching `deny` is always honored.
-
-</div>
+Because every effect is constructed through the same broker, the same policy set reaches every effect site - there is no surface that quietly skips the boundary, and the `actions.ndjson` log is the audit trail the Run Assurance artifact and replay read from, including refused attempts. A malformed policy *file* is skipped (it can't wedge every run), but a matching `deny` is always honored.
 
 See what's loaded with `vibe policies list` / `vibe policies doctor`, the `GET /api/policies` endpoint, or the Policies panel in the dashboard.
 
@@ -142,8 +129,6 @@ If a run used a **best-effort step** (a `continueOnError` reviewer, say) and tha
 ## Defense in depth
 
 Three gates sit on the path between an agent and your files, each independently honored:
-
-<div class="docs-flow"><div><b>Post-turn diff gate</b><span>Every write-capable turn is snapshotted before it runs. Afterward its diff is checked against secret/path safety and file.patch policies. A denied or unsafe diff is rolled back to the snapshot and the run is blocked.</span></div><div><b>Strict apply-only mode</b><span>policies.strictApplyOnly: write roles run read-only and propose a unified diff that Vibestrate applies through the broker gateway. Nothing reaches disk without crossing the gate; a refused patch blocks the run.</span></div><div><b>Provider-native OS sandbox</b><span>execution.isolation, off by default: an optional fourth layer adding OS prevention on top of the diff gate's detection.</span></div><div><b>Run assurance</b><span>The terminal verdict above summarizes what actually happened, from the evidence log.</span></div></div>
 
 - **Post-turn diff gate** - every write-capable turn is snapshotted before it runs. Afterward its diff is checked against secret/path safety and `file.patch` policies. A denied or unsafe diff is rolled back to the snapshot and the run is blocked.
 - **Strict apply-only mode** (`policies.strictApplyOnly`) - for the highest assurance, write roles run read-only and instead *propose* a unified diff that Vibestrate applies through the broker gateway. Nothing reaches disk without crossing the gate; a refused patch blocks the run.

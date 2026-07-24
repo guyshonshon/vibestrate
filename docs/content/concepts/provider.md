@@ -7,17 +7,7 @@ slug: concepts/provider
 
 A provider is the AI model you're using, wrapped so Vibestrate can talk to it. Claude Code, Codex, Ollama - Vibestrate doesn't care which, as long as it's installed on your machine.
 
-Think of Vibestrate as the manager and the provider as the worker it hands tasks to. Vibestrate writes the prompt; the provider runs the model and hands back the response (and, for providers that edit files, the file changes too).
-
-<div class="docs-callout">
-
-**A provider just takes a prompt and returns a change.** That's the whole contract. Vibestrate compiles the prompt and routes the result; the provider runs the model and (for file-editing providers) hands back the edits. Everything model-specific stays on the provider's side of that line.
-
-</div>
-
-The built-in providers Vibestrate already knows how to drive:
-
-<div class="docs-chips"><span>claude</span><span>codex</span><span>gemini</span><span>opencode</span><span>aider</span><span>ollama</span><span>qwen</span><span>crush</span><span>goose</span><span>cursor</span><span>amp</span></div>
+Think of Vibestrate as the manager and the provider as the worker it hands tasks to. Vibestrate writes the prompt; the provider runs the model and hands back the response (and, for providers that edit files, the file changes too). That's the whole contract - everything model-specific stays on the provider's side of that line.
 
 Providers are declared under `providers:` in `project.yml`. You declare each one either as a `cli` invocation (a command, its args, and how the prompt is fed in) or as a `claude-code` integration, which Vibestrate understands more deeply. Each provider advertises what it can do - reuse a session, report token usage, or hand back a session id - and Vibestrate drives them all through one uniform interface.
 

@@ -1,51 +1,21 @@
 ---
 title: Why a human stays in the loop
-description: AI is fast, but it guesses and it agrees with you. Vibestrate is built so the work is proven before a person makes the final call.
+description: AI is fast, but it guesses and it agrees with you. Vibestrate proves the work before a person makes the final call.
 section: getting-started
 slug: getting-started/why-a-human
 ---
 
-AI can write code you could not write yourself - a security fix, a piece of WebGL you have never touched, a database migration. That is the promise. The catch is that the same AI also makes things up, and it tends to agree with whatever you said. Trusting it blind is how bad code ships.
-
-Vibestrate is the layer that makes AI output safe to use. It does the work, then proves the work is good, and leaves the last decision to you.
+AI can write code you could not write yourself - a security fix, a piece of WebGL you have never touched, a database migration. The catch: the same AI also makes things up, and it tends to agree with whatever you said. Trusting it blind is how bad code ships.
 
 <div class="docs-callout">
 
-**The honest problem.** An AI model is a confident guesser. It will invent a function that does not exist, miss an edge case, or "fix" a bug by hiding it, and then tell you it is done, because agreeing is what a chat assistant is built to do. None of that is malice. It is just what a model is.
+**The honest problem.** An AI model is a confident guesser. It will invent a function that does not exist, miss an edge case, or hide a bug instead of fixing it, then tell you it is done - because agreeing is what a chat assistant is built to do. None of that is malice. It is just what a model is.
 
 </div>
 
-## What Vibestrate does about it
+Vibestrate is built to catch that instead of trusting it. Every run plans, builds, then a different model reviews and verifies the change with fresh eyes - a model reviewing its own work can only lower confidence, a second model can catch what the first missed. It also runs your real tests and validation commands against the result, so "it looks done" is not enough. And it never gets ahead of you: a run works in a throwaway copy of your project and stops at `merge_ready` instead of pushing or merging on your behalf - see [the safety guarantees](/docs/concepts/safety). You read the diff, or let the [merge advisor](/docs/getting-started/merging) flag the risks, and you decide.
 
-<div class="docs-cards">
-
-**It checks its own work.** Every run plans, builds, then reviews and verifies the change, often with a [supervisor](/docs/concepts/supervisor) that decides how hard to look and a different model reading the result with fresh eyes. A model reviewing its own code can only lower confidence. A second, different model can actually catch what the first one missed.
-
-**It proves it, with your checks.** Vibestrate runs your real tests and validation commands against the change. "It looks done" is not enough. It has to pass the bar you already set.
-
-**It never gets ahead of you.** A run works in a throwaway copy of your project and stops at a clear outcome. It never pushes your code and never merges the change. Keeping it is something you do on purpose.
-
-**You can just ask.** [Consult](/docs/concepts/consult) is a read-only advisor that knows your project. Ask it whether a change is risky, why a run blocked, or what is left, and it answers from evidence, with its confidence and its blind spots stated plainly.
-
-</div>
-
-## Why it never auto-merges
-
-Merging is the moment a change becomes real. It joins your shared history, other people pull it, and it can ship to production from there. You can always revert a bad merge, but by then the wrong code was already trusted, already built on, maybe already out the door. The revert is cleanup after the fact. Merging is the point of commitment, and a model that cannot fully vouch for its own work is the wrong thing to make that commitment on your behalf.
-
-So Vibestrate stops at `merge_ready` and hands you the diff. You read it, or let the [merge advisor](/docs/getting-started/merging) flag the risks for you, and you decide. Slower than full-auto, by design: nothing lands that you did not choose to land.
-
-## You do not have to be an expert
-
-You do not need to know the security rule, the WebGL API, or the migration gotcha. The AI brings that. What you need is a way to trust the result without auditing every line yourself, and that is the whole job Vibestrate does:
-
-<div class="docs-flow">
-<div><b>It does the work</b><span>Across models that each see the problem differently.</span></div>
-<div><b>It proves it</b><span>Your tests run, a second model reviews, risks are surfaced.</span></div>
-<div><b>You decide</b><span>With the evidence in front of you, in plain terms.</span></div>
-</div>
-
-You stay the person in charge. You just stop having to do every part of the work yourself.
+You do not need to know the security rule, the WebGL API, or the migration gotcha yourself - the AI brings that. What Vibestrate gives you is a way to trust the result without auditing every line: work done across models that see the problem differently, proven against your checks, handed back with the evidence and the decision. If you want to ask about a run instead of reading it cold, [Consult](/docs/concepts/consult) is a read-only advisor that knows your project and answers from evidence.
 
 ## Keep going
 

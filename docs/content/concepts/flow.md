@@ -33,15 +33,7 @@ Vibestrate ships a handful of built-in Flows. You can install more from the shar
 
 ## Why a Flow never names your AI
 
-This is the part that makes a Flow shareable. A Flow describes the *steps*, and the *kind* of worker each step needs - "this one needs a builder", "this one needs a reviewer". It never says *which* AI model does the work.
-
-<div class="docs-callout">
-
-**The routine is shared, the workers are yours.** A Flow names the steps and the kind of worker each one needs, never the model. That is why you can lift someone else's Flow off the hub and run it with your own models and budget.
-
-</div>
-
-Your [Crew](/docs/concepts/crew) decides that. So you can take a Flow someone else wrote, off the hub, and run it with your own models and your own budget. The routine is shared; the workers are yours.
+This is the part that makes a Flow shareable. A Flow describes the *steps*, and the *kind* of worker each step needs - "this one needs a builder", "this one needs a reviewer". It never says *which* AI model does the work; your [Crew](/docs/concepts/crew) decides that. So you can take a Flow someone else wrote, off the hub, and run it with your own models and your own budget. The routine is shared; the workers are yours.
 
 ## When it's worth writing your own
 

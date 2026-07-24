@@ -35,26 +35,7 @@ A Role points at one by its id, like `profile: claude-max`. Two Roles can share 
 
 ## What a Profile sets
 
-A Profile picks the **Provider**, the **model**, the **effort** level (the `power` field), an optional per-turn output cap (`maxTokens`), and a **timeout**.
-
-<div class="docs-cards">
-
-**Provider**
-Where the work runs. The rest of the knobs are validated against what this provider supports.
-
-**`model`**
-The provider's model id, like `sonnet` or `opus`.
-
-**`power`**
-The effort level, applied through the provider's own flag or field.
-
-**`maxTokens`**
-A per-turn output cap, when the provider supports one.
-
-**Timeout**
-A per-turn wall-clock limit (`timeoutMs`).
-
-</div>
+A Profile picks the **Provider** (where the work runs, and what the rest of the knobs are validated against), the **model** (the provider's model id, like `sonnet` or `opus`), the **effort** level (the `power` field, applied through the provider's own flag or field), an optional per-turn output cap (**`maxTokens`**), and a per-turn wall-clock **timeout** (`timeoutMs`). See the schema table under Advanced below for the exact fields.
 
 These settings really take effect, on both CLI and HTTP providers. For a CLI provider they become a real flag when one exists (`claude --effort <level> --model <id>`, codex `--model <id> -c model_reasoning_effort=<level>`). For an HTTP-API provider they go into the request body (OpenAI effort becomes `reasoning_effort: <level>`). So a Profile changes what is actually spawned or sent, not just what gets written down.
 
