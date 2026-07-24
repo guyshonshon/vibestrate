@@ -65,7 +65,7 @@ Short, plain definitions for the words Vibestrate's docs use.
 
 **Task.** A description of what you want done, submitted to Vibestrate. It kicks off a run. See [Task](/docs/concepts/task).
 
-**Assist.** A single, **read-only** ask with a structured answer: Vibestrate puts one question to a provider and gets back validated JSON - no worktree, no fix loop, no run lifecycle. The spawn still goes through the [Action Broker](#) like any other effect, so it's allowed and logged (evidence in `.vibestrate/runs/assist/`). It's the building block for **Enhance** (and later overview/suggest).
+**Assist.** A single, **read-only** ask with a structured answer: Vibestrate puts one question to a provider and gets back validated JSON - no worktree, no fix loop, no run lifecycle. It's logged like any other effect, with evidence under `.vibestrate/runs/assist/`. It's the building block for **Enhance** (and later overview/suggest).
 
 **Enhance.** An [Assist](#) that *breaks* a task/card into an ordered **Checklist** - e.g. "Add a health endpoint" → `1. define the route`, `2. return json`, `3. add a test`. It only **proposes**; you accept. The model never writes to the board on its own. Run it with `vibe tasks enhance <id>` (add `--apply` to append) or the "Enhance" button on a task. Different from macro **Proposals**, which create *separate* cards.
 
