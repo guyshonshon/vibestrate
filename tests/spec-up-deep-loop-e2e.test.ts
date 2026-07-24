@@ -6,6 +6,7 @@ import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
 import { ArtifactStore } from "../src/core/stores/artifact-store.js";
 import { FLOW_QUESTIONS_CONTRACT } from "../src/flows/schemas/flow-output-contracts.js";
+import { writeCodebaseMap } from "../src/project/codebase-map.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 // ── Deep-questioning loop, end to end ────────────────────────────────────────
@@ -124,5 +125,79 @@ describe("deep-questioning loop e2e", () => {
     const spec = captured.specs.at(-1);
     expect(spec.flow.id).toBe("spec-up");
     expect(spec.specUpTargetFlowId).toBe("default");
+  });
+});
+
+describe("spec-up finalize: codebase-map grounding", () => {
+  // The finalize branch launches the "spec-up" flow (scope/spec/architecture/
+  // risks) - the one link where a spec and architecture actually get drafted.
+  // The architecture step runs on the "architect" seat, so it never reaches
+  // the orchestrator's planner-only-first-turn injection; grounding rides here
+  // instead, as a run-level file contextSource visible to every step.
+  it("a present codebase map is staged and attached as a contextSource", async () => {
+    await writeCodebaseMap(dir, new Date().toISOString());
+    await stageRound("cm-round-4", {
+      round: 4,
+      rootRunId: "cm-root",
+      targetFlowId: "express",
+      questions: [q("scale", "constraints")],
+    });
+    const rootStore = new ArtifactStore(dir, "cm-root");
+    await rootStore.init();
+    await rootStore.write("spec-up-answers.md", "# answers\n## Round 1\nB2C\n");
+
+    const r = await submitSpecUpAnswers({
+      projectRoot: dir,
+      sourceRunId: "cm-round-4",
+      answers: [{ id: "scale", answer: "small" }],
+    });
+    expect(r.action).toBe("finalize");
+
+    const spec = captured.specs.at(-1);
+    expect(spec.flow.id).toBe("spec-up");
+    const mapSource = spec.contextSources.find(
+      (s: { label?: string }) => s.label === "Codebase map (auto-derived)",
+    );
+    expect(mapSource).toBeDefined();
+    expect(mapSource.kind).toBe("file");
+
+    // The staged file itself carries the curated projection, not a raw dump.
+    const staged = await fs.readFile(path.join(dir, mapSource.ref), "utf8");
+    expect(staged).toContain("Codebase map (auto-derived)");
+
+    // The intake-answers source is still present and untouched.
+    const answersSource = spec.contextSources.find(
+      (s: { label?: string }) => s.label === "Spec-up: intake answers",
+    );
+    expect(answersSource).toBeDefined();
+  });
+
+  it("no codebase map present -> contextSources are byte-identical to before (no throw)", async () => {
+    // No writeCodebaseMap call: loadCodebaseMap reports absent.
+    await stageRound("nomap-round-4", {
+      round: 4,
+      rootRunId: "nomap-root",
+      targetFlowId: "express",
+      questions: [q("scale", "constraints")],
+    });
+    const rootStore = new ArtifactStore(dir, "nomap-root");
+    await rootStore.init();
+    await rootStore.write("spec-up-answers.md", "# answers\n## Round 1\nB2C\n");
+
+    const r = await submitSpecUpAnswers({
+      projectRoot: dir,
+      sourceRunId: "nomap-round-4",
+      answers: [{ id: "scale", answer: "small" }],
+    });
+    expect(r.action).toBe("finalize");
+
+    const spec = captured.specs.at(-1);
+    expect(spec.contextSources).toEqual([
+      {
+        kind: "file",
+        ref: path.join(".vibestrate", "runs", "nomap-root", "artifacts", "spec-up-answers.md"),
+        label: "Spec-up: intake answers",
+      },
+    ]);
   });
 });

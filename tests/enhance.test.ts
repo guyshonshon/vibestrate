@@ -12,6 +12,7 @@ import {
 } from "../src/core/assist/enhance.js";
 import { AssistError, type AssistProviderRunner } from "../src/core/assist/assist-runner.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
+import { writeCodebaseMap } from "../src/project/codebase-map.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({
   exitCode: 127,
@@ -139,5 +140,87 @@ describe("enhance", () => {
     // the answer text reached the model instruction
     expect(seenInstruction).toContain("OAuth");
     expect(seenInstruction).toContain("Which auth provider?");
+  });
+
+  describe("codebase-map grounding", () => {
+    // Distinguish the fixture: `applySetup` writes a "demo" package.json (see
+    // makeProject); the codebase map's rendered "## Commands" section lists its
+    // scripts. Assert on the auto-derived heading, not a script name, so this
+    // stays robust to what `applySetup` happens to scaffold.
+    async function capturePrompt(
+      fn: (runner: AssistProviderRunner) => Promise<unknown>,
+    ): Promise<string> {
+      let seenPrompt = "";
+      const runner: AssistProviderRunner = async (_providers, input) => {
+        seenPrompt = input.prompt;
+        return {
+          exitCode: 0,
+          normalized: { responseText: '{"items":["step"],"questions":[]}', metrics: null },
+        };
+      };
+      await fn(runner);
+      return seenPrompt;
+    }
+
+    it("proposeChecklist: a present codebase map reaches the instruction", async () => {
+      await writeCodebaseMap(projectRoot, new Date().toISOString());
+      const task = await svc.addTask({ title: "Add auth" });
+      const prompt = await capturePrompt((runner) =>
+        proposeChecklist(projectRoot, task.id, { runner }),
+      );
+      expect(prompt).toContain("Codebase map (auto-derived)");
+      expect(prompt).toContain("Real codebase context");
+    });
+
+    it("proposeChecklist: no map present -> instruction is byte-identical to pre-grounding shape", async () => {
+      // No writeCodebaseMap call: loadCodebaseMap reports absent.
+      const task = await svc.addTask({ title: "Add auth" });
+      const prompt = await capturePrompt((runner) =>
+        proposeChecklist(projectRoot, task.id, { runner }),
+      );
+      expect(prompt).not.toContain("Codebase map");
+      expect(prompt).not.toContain("Real codebase context");
+      // `.filter(Boolean)` in proposeChecklist drops the blank-line separator
+      // entries, so the joined instruction has no blank line here - matching
+      // that (rather than assuming one) keeps this test honest about the
+      // actual production shape instead of an idealized one.
+      const expectedTask = [
+        "Break the following task into an ordered checklist of concrete, verifiable steps.",
+        "Each step should be a single actionable item, short and specific (a few words to one sentence).",
+        "Aim for 3–8 steps. Do not include meta-steps like \"start\" or \"done\". Order them so each builds on the previous.",
+        "Task title: Add auth",
+      ].join("\n");
+      expect(prompt).toContain(expectedTask);
+    });
+
+    it("proposeChecklistQuestions: a present codebase map reaches the instruction", async () => {
+      await writeCodebaseMap(projectRoot, new Date().toISOString());
+      const task = await svc.addTask({ title: "Add auth" });
+      const prompt = await capturePrompt((runner) =>
+        proposeChecklistQuestions(projectRoot, task.id, { runner }),
+      );
+      expect(prompt).toContain("Codebase map (auto-derived)");
+      expect(prompt).toContain("Real codebase context");
+    });
+
+    it("proposeChecklistQuestions: no map present -> no codebase section, nothing throws", async () => {
+      const task = await svc.addTask({ title: "Add auth" });
+      const prompt = await capturePrompt((runner) =>
+        proposeChecklistQuestions(projectRoot, task.id, { runner }),
+      );
+      expect(prompt).not.toContain("Codebase map");
+      expect(prompt).not.toContain("Real codebase context");
+    });
+
+    it("a corrupt codebase-map.json degrades silently instead of throwing", async () => {
+      await writeCodebaseMap(projectRoot, new Date().toISOString());
+      const mapPath = path.join(projectRoot, ".vibestrate", "codebase-map.json");
+      await fs.writeFile(mapPath, "{ not valid json");
+      const task = await svc.addTask({ title: "Add auth" });
+      const prompt = await capturePrompt((runner) =>
+        proposeChecklist(projectRoot, task.id, { runner }),
+      );
+      expect(prompt).not.toContain("Codebase map");
+    });
   });
 });
