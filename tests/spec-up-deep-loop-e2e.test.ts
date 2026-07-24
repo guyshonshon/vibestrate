@@ -7,6 +7,7 @@ import { applySetup } from "../src/setup/setup-service.js";
 import { ArtifactStore } from "../src/core/stores/artifact-store.js";
 import { FLOW_QUESTIONS_CONTRACT } from "../src/flows/schemas/flow-output-contracts.js";
 import { writeCodebaseMap } from "../src/project/codebase-map.js";
+import { materializeContextSources } from "../src/core/context/context-sources.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 // ── Deep-questioning loop, end to end ────────────────────────────────────────
@@ -170,6 +171,62 @@ describe("spec-up finalize: codebase-map grounding", () => {
       (s: { label?: string }) => s.label === "Spec-up: intake answers",
     );
     expect(answersSource).toBeDefined();
+  });
+
+  it("the staged codebase map actually MATERIALIZES, not just attaches to the RunSpec", async () => {
+    // The test above only proves the contextSource is ATTACHED - it never runs
+    // the real materializer, so it would stay green even if
+    // materializeContextSources started refusing the staged file (the exact
+    // seam ee865212's binary-refusal logic lives on, and the exact gap a
+    // cross-change interaction could hide behind). Drive the real function
+    // over the RunSpec's contextSources and assert the map actually comes out
+    // the other side.
+    await writeCodebaseMap(dir, new Date().toISOString());
+    await stageRound("materialize-round-4", {
+      round: 4,
+      rootRunId: "materialize-root",
+      targetFlowId: "express",
+      questions: [q("scale", "constraints")],
+    });
+    const rootStore = new ArtifactStore(dir, "materialize-root");
+    await rootStore.init();
+    await rootStore.write("spec-up-answers.md", "# answers\n## Round 1\nB2C\n");
+
+    const r = await submitSpecUpAnswers({
+      projectRoot: dir,
+      sourceRunId: "materialize-round-4",
+      answers: [{ id: "scale", answer: "small" }],
+    });
+    expect(r.action).toBe("finalize");
+    const spec = captured.specs.at(-1);
+
+    const result = await materializeContextSources({
+      sources: spec.contextSources,
+      projectRoot: dir,
+      worktreePath: null,
+      allowUrlFetch: true,
+      allowPrivateHosts: false,
+    });
+
+    // No refusal note against the staged map (or anything else staged here) -
+    // ee865212's binary-refusal path must not trip on the curated, plain-text
+    // projection stageCodebaseMapContext writes.
+    expect(result.notes).toEqual([]);
+
+    const mapArtifact = result.artifacts.find((a) =>
+      a.label.includes("Codebase map (auto-derived)"),
+    );
+    expect(mapArtifact).toBeDefined();
+    // The map's actual content reached the materialized result, not just a
+    // label/placeholder.
+    expect(mapArtifact!.content).toContain("Codebase map (auto-derived)");
+    expect(mapArtifact!.content).toContain("## Stack");
+
+    const answersArtifact = result.artifacts.find((a) =>
+      a.label.includes("Spec-up: intake answers"),
+    );
+    expect(answersArtifact).toBeDefined();
+    expect(answersArtifact!.content).toContain("B2C");
   });
 
   it("no codebase map present -> contextSources are byte-identical to before (no throw)", async () => {
