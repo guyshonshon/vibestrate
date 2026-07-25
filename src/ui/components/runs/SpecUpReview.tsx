@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, FileText, Pencil } from "lucide-react";
 import { api } from "../../lib/api.js";
-import { Button } from "../design/Button.js";
 
 // ── In-run Spec-up draft review + edit ─────────────────────────────────────────
 // On a `spec-up` run, surface the four CTO drafts (scope / spec / architecture /
@@ -86,10 +85,17 @@ export function SpecUpReview({ runId, flowId }: { runId: string; flowId: string 
   }
 
   return (
-    <section className="overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-600">
-      <div className="flex items-center gap-2 px-4 py-3">
-        <FileText size={15} className="text-violet-soft" />
-        <span className="text-[13.5px] font-bold text-chalk-100">
+    <section
+      style={{
+        border: "1px solid var(--s-line)",
+        borderRadius: 14,
+        background: "var(--s-slab)",
+        overflow: "hidden",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px" }}>
+        <FileText size={15} style={{ color: "var(--s-accent-bright)" }} />
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--s-ink)" }}>
           Spec-up draft - review + edit before approving
         </span>
       </div>
@@ -97,12 +103,9 @@ export function SpecUpReview({ runId, flowId }: { runId: string; flowId: string 
         const isOpen = open.has(d.key);
         const isEditing = editingKey === d.key;
         return (
-          <div key={d.key} className="border-t border-[color:var(--line)]">
-            <div className="flex items-center gap-2 pl-2 pr-3 py-1">
-              <Button
-                variant="ghost"
-                size="md"
-                className="flex-1 !justify-start"
+          <div key={d.key} style={{ borderTop: "1px solid var(--s-line)" }}>
+            <div style={{ display: "flex", alignItems: "center", padding: "10px 16px", gap: 8 }}>
+              <button
                 onClick={() =>
                   setOpen((prev) => {
                     const next = new Set(prev);
@@ -111,58 +114,130 @@ export function SpecUpReview({ runId, flowId }: { runId: string; flowId: string 
                     return next;
                   })
                 }
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  cursor: "pointer",
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--s-ink)",
+                  textAlign: "left",
+                }}
               >
                 <ChevronRight
                   size={14}
-                  className={`shrink-0 text-chalk-400 transition-transform duration-150 ${
-                    isOpen ? "rotate-90" : ""
-                  }`}
+                  style={{
+                    color: "var(--s-ink-faint)",
+                    transform: isOpen ? "rotate(90deg)" : "none",
+                    transition: "transform 120ms",
+                  }}
                 />
-                <span className="text-[13px] font-semibold">{d.label}</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{d.label}</span>
                 {d.frozen ? (
-                  <span className="text-[11px] text-chalk-400">approved (frozen)</span>
+                  <span style={{ fontSize: 11, color: "var(--s-ink-faint)" }}>
+                    approved (frozen)
+                  </span>
                 ) : null}
-              </Button>
+              </button>
               {!d.frozen && !isEditing ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  iconLeft={<Pencil size={12} />}
+                <button
                   onClick={() => startEdit(d)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    fontSize: 12,
+                    color: "var(--s-ink-dim)",
+                    background: "transparent",
+                    border: "1px solid var(--s-line)",
+                    borderRadius: 7,
+                    padding: "3px 9px",
+                    cursor: "pointer",
+                  }}
                 >
-                  Edit
-                </Button>
+                  <Pencil size={12} /> Edit
+                </button>
               ) : null}
             </div>
             {isOpen && isEditing ? (
-              <div className="px-[18px] pb-3.5 pl-[38px]">
+              <div style={{ padding: "0 18px 14px 38px" }}>
                 <textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   spellCheck={false}
-                  className="min-h-[220px] w-full resize-y rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 p-2.5 font-mono text-[12.5px] leading-[1.55] text-chalk-100 focus:border-violet-soft/50 focus:outline-none"
+                  style={{
+                    width: "100%",
+                    minHeight: 220,
+                    resize: "vertical",
+                    fontSize: 12.5,
+                    lineHeight: 1.55,
+                    fontFamily: "var(--s-mono, monospace)",
+                    color: "var(--s-ink)",
+                    background: "var(--s-bg, #0b0b0f)",
+                    border: "1px solid var(--s-line)",
+                    borderRadius: 8,
+                    padding: 10,
+                  }}
                 />
-                {err ? <div className="mt-2 text-[12px] text-rose-300">{err}</div> : null}
-                <div className="mt-2.5 flex gap-2">
-                  <Button variant="primary" size="sm" disabled={saving} onClick={() => void save(d)}>
-                    {saving ? "Saving…" : "Save"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                {err ? (
+                  <div style={{ marginTop: 8, fontSize: 12, color: "var(--s-danger, #f08a8a)" }}>
+                    {err}
+                  </div>
+                ) : null}
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <button
+                    onClick={() => void save(d)}
                     disabled={saving}
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      color: "var(--s-bg, #0b0b0f)",
+                      background: "var(--s-accent-bright)",
+                      border: "none",
+                      borderRadius: 7,
+                      padding: "6px 14px",
+                      cursor: saving ? "default" : "pointer",
+                      opacity: saving ? 0.6 : 1,
+                    }}
+                  >
+                    {saving ? "Saving…" : "Save"}
+                  </button>
+                  <button
                     onClick={() => {
                       setEditingKey(null);
                       setDraft("");
                       setErr(null);
                     }}
+                    disabled={saving}
+                    style={{
+                      fontSize: 12.5,
+                      color: "var(--s-ink-dim)",
+                      background: "transparent",
+                      border: "1px solid var(--s-line)",
+                      borderRadius: 7,
+                      padding: "6px 14px",
+                      cursor: "pointer",
+                    }}
                   >
                     Cancel
-                  </Button>
+                  </button>
                 </div>
               </div>
             ) : isOpen ? (
-              <div className="max-h-[460px] overflow-auto px-[18px] pb-4 pl-[38px] text-[13px] leading-[1.6] text-chalk-300 whitespace-pre-wrap break-words">
+              <div
+                style={{
+                  padding: "0 18px 16px 38px",
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  color: "var(--s-ink-dim)",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  maxHeight: 460,
+                  overflow: "auto",
+                }}
+              >
                 {d.content.trim()}
               </div>
             ) : null}
