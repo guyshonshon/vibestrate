@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   ExternalLink,
+  FolderPlus,
   Play,
   Power,
   RefreshCw,
@@ -16,6 +17,7 @@ import {
 } from "../../lib/api.js";
 import type { RunStatus } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
+import { FormField } from "../../components/design/FormField.js";
 import { HeroCard, type HeroMetric, type HeroTone } from "../../components/design/HeroCard.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { ErrorView } from "../../lib/error-view.js";
@@ -37,6 +39,7 @@ export function WorkspacePage() {
   const [loading, setLoading] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [closeTarget, setCloseTarget] = useState<WorkspaceProjectSummary | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   const reload = () => setReloadKey((k) => k + 1);
 
@@ -90,6 +93,14 @@ export function WorkspacePage() {
                 </button>
               ))}
             </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setAddOpen(true)}
+              iconLeft={<FolderPlus className="h-3.5 w-3.5" strokeWidth={1.9} />}
+            >
+              Register a project
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -167,9 +178,16 @@ export function WorkspacePage() {
           />
         ))}
         {overview && overview.projects.length === 0 ? (
-          <div className="col-span-full rounded-[18px] border border-[color:var(--line)] bg-coal-600 py-10 text-center text-[12.5px] text-chalk-300">
-            No projects registered yet. Run <span className="mono text-chalk-100">vibe ui</span> in a
-            project, or <span className="mono text-chalk-100">vibe workspace add</span>.
+          <div className="col-span-full flex flex-col items-center gap-3 rounded-[18px] border border-[color:var(--line)] bg-coal-600 py-10 text-center text-[12.5px] text-chalk-300">
+            <p>No projects registered yet.</p>
+            <Button
+              variant="primary"
+              size="sm"
+              iconLeft={<FolderPlus className="h-3.5 w-3.5" strokeWidth={1.9} />}
+              onClick={() => setAddOpen(true)}
+            >
+              Register a project
+            </Button>
           </div>
         ) : null}
       </section>
@@ -180,6 +198,16 @@ export function WorkspacePage() {
           onCancel={() => setCloseTarget(null)}
           onClosed={() => {
             setCloseTarget(null);
+            reload();
+          }}
+        />
+      ) : null}
+
+      {addOpen ? (
+        <AddProjectDialog
+          onCancel={() => setAddOpen(false)}
+          onAdded={() => {
+            setAddOpen(false);
             reload();
           }}
         />
@@ -349,6 +377,96 @@ function ProjectCard({
         )}
       </div>
     </HeroCard>
+  );
+}
+
+/** Register a project directory in the workspace - the in-UI equivalent of
+ *  `vibe workspace add <path>`. Only stores the path + a label; never reads
+ *  project contents. */
+function AddProjectDialog({
+  onCancel,
+  onAdded,
+}: {
+  onCancel: () => void;
+  onAdded: () => void;
+}) {
+  const [root, setRoot] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!root.trim()) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await api.addWorkspaceProject(root.trim());
+      onAdded();
+    } catch (e2) {
+      setErr(e2 instanceof Error ? e2.message : String(e2));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      onClick={onCancel}
+    >
+      <form
+        onSubmit={(e) => void submit(e)}
+        className="w-full max-w-[460px] rounded-[18px] border border-[color:var(--line)] bg-coal-700 p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between">
+          <h3 className="flex items-center gap-2 text-[15px] font-semibold text-chalk-100">
+            <FolderPlus className="h-4 w-4 text-violet-soft" strokeWidth={1.9} />
+            Register a project
+          </h3>
+          <button type="button" onClick={onCancel} className="text-chalk-400 hover:text-chalk-100">
+            <X className="h-4 w-4" strokeWidth={1.9} />
+          </button>
+        </div>
+
+        <p className="mt-2 text-[12.5px] text-chalk-300">
+          Add an absolute path to a project directory on this machine. Registering
+          only stores the path and a label - it never reads the project's files.
+        </p>
+
+        <div className="mt-3">
+          <FormField label="Project path">
+            <input
+              autoFocus
+              value={root}
+              onChange={(e) => setRoot(e.target.value)}
+              placeholder="/Users/you/code/my-project"
+              className="w-full rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[12.5px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+            />
+          </FormField>
+        </div>
+
+        {err ? (
+          <div className="mt-3 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-[12px] text-rose-300">
+            {err}
+          </div>
+        ) : null}
+
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            disabled={busy || !root.trim()}
+            iconLeft={<FolderPlus className="h-3.5 w-3.5" strokeWidth={1.7} />}
+          >
+            {busy ? "Registering…" : "Register"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }
 

@@ -22,6 +22,14 @@ export const workspaceApi = {
   }> {
     return jsonGet("/api/workspace");
   },
+  /** Register a project directory in the user-level registry, the dashboard
+   *  equivalent of `vibe workspace add <path>`. */
+  async addWorkspaceProject(root: string): Promise<{
+    entry: { root: string; label: string; addedAt: string; lastOpenedAt: string };
+    initialized: boolean;
+  }> {
+    return jsonPost("/api/workspace/add", { root });
+  },
   /** Ensure a project's own dashboard is live (starting it if dormant) and
    *  return its URL so the caller can open a new tab. */
   async openWorkspaceProject(project: string): Promise<EnsureServerResult> {

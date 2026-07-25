@@ -17,6 +17,8 @@ import {
   resolveTargetProject,
   WorkspaceSafetyError,
 } from "../../workspace/workspace-safety.js";
+import { pathExists } from "../../utils/fs.js";
+import { vibestrateRoot } from "../../utils/paths.js";
 import { HttpError } from "../security.js";
 
 export type WorkspaceRoutesDeps = { projectRoot: string };
@@ -83,6 +85,22 @@ export async function registerWorkspaceRoutes(
         live: p.root === current ? true : (runtimes[p.root]?.running ?? false),
       })),
     };
+  });
+
+  // Register a project directory in the user-level registry - the dashboard
+  // equivalent of `vibe workspace add <path>`. Metadata only (root + label);
+  // never reads project contents. The path is whatever the user typed, so it
+  // gets the same existence check the CLI does before it's trusted.
+  app.post<{ Body: unknown }>("/api/workspace/add", async (req) => {
+    const body = z.object({ root: z.string().min(1) }).safeParse(req.body);
+    if (!body.success) throw new HttpError(400, body.error.message);
+    const root = path.resolve(body.data.root.trim());
+    if (!(await pathExists(root))) {
+      throw new HttpError(400, `Path does not exist: ${root}`);
+    }
+    const entry = await new WorkspaceStore().register({ root });
+    const initialized = await pathExists(vibestrateRoot(entry.root));
+    return { entry, initialized };
   });
 
   // Cross-project "All projects" overview. Reads each registered project's runs
