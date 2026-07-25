@@ -102,20 +102,23 @@ export function ArtifactList({
 
   if (items.length === 0) {
     return (
-      <div className="text-[12px] text-chalk-400">No artifacts yet.</div>
+      <div className="text-[12px] text-chalk-400">
+        No artifacts yet. Files the run writes - outputs, diffs, reports -
+        will appear here as steps run.
+      </div>
     );
   }
 
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-[11.5px] font-semibold text-chalk-300">
+        <span className="text-[11.5px] font-semibold text-chalk-100">
           Artifacts
         </span>
         <button
           type="button"
           onClick={() => setShowInternals((v) => !v)}
-          className="text-[11px] font-medium text-chalk-400 transition hover:text-chalk-100"
+          className="text-[11px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
           title="Prompts, context packets, diff snapshots, validation output files - the run's plumbing"
         >
           {showInternals
@@ -140,21 +143,28 @@ export function ArtifactList({
                   return next;
                 })
               }
-              className="mono mb-0.5 flex w-full items-center gap-1 text-[10.5px] text-chalk-400 transition hover:text-chalk-100"
+              className="mb-0.5 flex w-full items-center gap-1 rounded-[8px] px-1 py-0.5 text-[10.5px] text-chalk-300 transition hover:bg-coal-500/60 hover:text-chalk-100"
             >
               {isCollapsed ? (
-                <ChevronRight className="h-3 w-3" strokeWidth={2} aria-hidden />
+                <ChevronRight className="h-3 w-3 text-chalk-400" strokeWidth={2} aria-hidden />
               ) : (
-                <ChevronDown className="h-3 w-3" strokeWidth={2} aria-hidden />
+                <ChevronDown className="h-3 w-3 text-chalk-400" strokeWidth={2} aria-hidden />
               )}
-              {group === "run" ? "run" : `step · ${group}`}
-              <span className="opacity-60">({entries.length})</span>
+              {group === "run" ? (
+                "run"
+              ) : (
+                <>
+                  step <span className="mono">{group}</span>
+                </>
+              )}
+              <span className="text-chalk-400">({entries.length})</span>
             </button>
             {isCollapsed ? null : (
             <ol className="space-y-px">
               {entries.map((entry) => (
                 <li key={entry.path}>
                   <button
+                    type="button"
                     onClick={() => onSelect(entry.path)}
                     className={`flex w-full items-center gap-2 rounded-[10px] px-2 py-1 text-left transition hover:bg-coal-500 ${
                       selectedPath === entry.path ? "bg-coal-500" : ""
@@ -163,7 +173,7 @@ export function ArtifactList({
                     <span className="mono flex-1 truncate text-[12px] text-chalk-100">
                       {entry.path.replace(/^flows\/[^/]+\//, "")}
                     </span>
-                    <span className="mono text-[11px] text-chalk-400">
+                    <span className="mono num-tabular text-[11px] text-chalk-400">
                       {entry.size}b
                     </span>
                   </button>

@@ -1,5 +1,7 @@
 import { Check, Coins, Cpu, FileDiff, Hash, Timer, X } from "lucide-react";
 import type { RoleMetrics, RuntimeMetrics } from "../../lib/types.js";
+import { StatTile } from "../design/StatTile.js";
+import { Chip } from "../design/Chip.js";
 
 /**
  * Per-step inspector - one card per agent invocation from the run's runtime
@@ -36,116 +38,116 @@ function StepCard({ index, a }: { index: number; a: RoleMetrics }) {
   return (
     <li className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-3.5 py-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="mono w-5 shrink-0 text-right text-[11px] text-chalk-400">{index}</span>
+        <span className="mono num-tabular w-5 shrink-0 text-right text-[11px] text-chalk-400">
+          {index}
+        </span>
         <Cpu className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.9} />
         <span className="text-[13.5px] font-medium text-chalk-100">{a.roleId}</span>
         <span className="mono text-[11px] text-chalk-400">{a.stageId}</span>
-        <span className="mono rounded-[8px] bg-coal-500 px-1.5 py-0.5 text-[10.5px] text-chalk-300">
+        <Chip contained tone="neutral" className="mono">
           {a.providerId}
-          {a.model ? ` · ${a.model}` : ""}
-        </span>
-        <span className="ml-auto inline-flex items-center gap-1 text-[11.5px] font-medium">
+          {a.model ? `/${a.model}` : ""}
+        </Chip>
+        <Chip
+          contained
+          tone={running ? "sky" : ok ? "emerald" : "rose"}
+          className="ml-auto"
+        >
           {running ? (
-            <span className="text-sky-glow">running…</span>
+            "running"
           ) : ok ? (
-            <span className="inline-flex items-center gap-1 text-emerald-400">
-              <Check className="h-3.5 w-3.5" strokeWidth={1.9} /> ok
-            </span>
+            <>
+              <Check className="h-3 w-3" strokeWidth={1.9} /> ok
+            </>
           ) : (
-            <span className="inline-flex items-center gap-1 text-rose-300">
-              <X className="h-3.5 w-3.5" strokeWidth={1.9} /> exit {a.exitCode}
-            </span>
+            <>
+              <X className="h-3 w-3" strokeWidth={1.9} /> exit {a.exitCode}
+            </>
           )}
-        </span>
+        </Chip>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 pl-[28px] text-[11.5px] text-chalk-400">
-        <Stat icon={<Timer className="h-3 w-3" />} title="Wall-clock time">
-          {fmtDuration(a.durationMs)}
-        </Stat>
+      <div className="mt-2 flex flex-wrap items-stretch gap-1.5 pl-[28px]">
+        <div title="Wall-clock time">
+          <StatTile
+            icon={<Timer className="h-3 w-3" />}
+            label="duration"
+            value={fmtDuration(a.durationMs)}
+          />
+        </div>
         {tokensIn !== null || tokensOut !== null ? (
-          <Stat
-            icon={<Hash className="h-3 w-3" />}
+          <div
             title={
               a.tokensEstimated
                 ? "Tokens (input → output) - estimated from text"
                 : "Tokens (input → output)"
             }
           >
-            {a.tokensEstimated ? "~" : ""}
-            {fmtNum(tokensIn)} → {fmtNum(tokensOut)} tok
-          </Stat>
+            <StatTile
+              icon={<Hash className="h-3 w-3" />}
+              label="tokens"
+              value={`${a.tokensEstimated ? "~" : ""}${fmtNum(tokensIn)} → ${fmtNum(tokensOut)}`}
+            />
+          </div>
         ) : null}
         {a.totalCostUsd !== null ? (
-          <Stat
-            icon={<Coins className="h-3 w-3" />}
+          <div
             title={
               a.costEstimated
                 ? "Estimated cost (tokens × local list price)"
                 : "Cost reported by the CLI"
             }
           >
-            {a.costEstimated ? "~" : ""}${a.totalCostUsd.toFixed(4)}
-            {a.costEstimated ? " est" : ""}
-          </Stat>
+            <StatTile
+              icon={<Coins className="h-3 w-3" />}
+              label="cost"
+              value={`${a.costEstimated ? "~" : ""}$${a.totalCostUsd.toFixed(4)}${a.costEstimated ? " est" : ""}`}
+            />
+          </div>
         ) : null}
         {a.toolCallCount !== null ? (
-          <Stat icon={<Cpu className="h-3 w-3" />} title="Tool calls">
-            {a.toolCallCount} tool calls
-          </Stat>
+          <div title="Tool calls">
+            <StatTile icon={<Cpu className="h-3 w-3" />} label="tool calls" value={a.toolCallCount} />
+          </div>
         ) : null}
         {a.filesChangedAfter !== null ? (
-          <Stat icon={<FileDiff className="h-3 w-3" />} title="Worktree files changed after this step">
-            {a.filesChangedAfter} files{" "}
-            <span className="text-emerald-400">+{a.diffInsertionsAfter ?? 0}</span>{" "}
-            <span className="text-rose-300">−{a.diffDeletionsAfter ?? 0}</span>
-          </Stat>
+          <div title="Worktree files changed after this step">
+            <StatTile
+              icon={<FileDiff className="h-3 w-3" />}
+              label="files changed"
+              value={
+                <>
+                  {a.filesChangedAfter}{" "}
+                  <span className="text-emerald-400">+{a.diffInsertionsAfter ?? 0}</span>{" "}
+                  <span className="text-rose-300">−{a.diffDeletionsAfter ?? 0}</span>
+                </>
+              }
+            />
+          </div>
         ) : null}
       </div>
 
       {decision || (a.validationSummary && a.validationSummary.total > 0) || a.skillsAttached.length > 0 ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-[28px]">
           {decision ? (
-            <span className="rounded-[8px] bg-coal-500 px-1.5 py-0.5 text-[10.5px] text-chalk-300">
-              decision: <span className="text-chalk-100">{decision}</span>
-            </span>
+            <Chip contained tone="neutral">
+              <span className="text-chalk-400">decision:</span>
+              <span className="text-chalk-100">{decision}</span>
+            </Chip>
           ) : null}
           {a.validationSummary && a.validationSummary.total > 0 ? (
-            <span
-              className={`rounded-[8px] px-1.5 py-0.5 text-[10.5px] ${
-                a.validationSummary.failed > 0
-                  ? "bg-rose-500/10 text-rose-300"
-                  : "bg-emerald-500/15 text-emerald-400"
-              }`}
-            >
+            <Chip contained tone={a.validationSummary.failed > 0 ? "rose" : "emerald"}>
               validation {a.validationSummary.passed}/{a.validationSummary.total}
-            </span>
+            </Chip>
           ) : null}
           {a.skillsAttached.map((s) => (
-            <span key={s} className="rounded-[8px] bg-coal-500 px-1.5 py-0.5 text-[10.5px] text-chalk-400">
+            <Chip key={s} contained tone="neutral">
               {s}
-            </span>
+            </Chip>
           ))}
         </div>
       ) : null}
     </li>
-  );
-}
-
-function Stat({
-  icon,
-  title,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1 whitespace-nowrap" title={title}>
-      <span className="text-chalk-400">{icon}</span>
-      <span className="mono">{children}</span>
-    </span>
   );
 }
 
