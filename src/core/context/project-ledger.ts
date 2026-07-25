@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
 import { appendFile } from "node:fs/promises";
 import { pathExists, readText, ensureDir } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";
@@ -71,6 +72,63 @@ export const ledgerEntrySchema = z
   })
   .strict();
 export type LedgerEntry = z.infer<typeof ledgerEntrySchema>;
+
+/** Reserved tag marking an entry as hand-added (`vibe ledger add` or the
+ *  dashboard's "Add entry" form), never produced by a run. Read together with
+ *  `sourceRunId === null` (see `isManualLedgerEntry`) rather than alone, so a
+ *  future machine writer that happens to omit `sourceRunId` isn't misread as
+ *  manual by the tag by itself. */
+export const MANUAL_ENTRY_TAG = "manual";
+
+/** True for a hand-added entry. Every run-derived entry today sets
+ *  `sourceRunId` (see the `buildRun*LedgerEntries` writers below), so this is
+ *  a real signal, not a guess - used by the brief/prompt renderer and the
+ *  dashboard so a human note is never presented as run-derived evidence. */
+export function isManualLedgerEntry(entry: LedgerEntry): boolean {
+  return entry.sourceRunId === null && entry.tags.includes(MANUAL_ENTRY_TAG);
+}
+
+/** `flag` is excluded: its only purpose is `relatesTo` a target entry, and a
+ *  hand entry has no prior entry to legitimately cite (see the input schema
+ *  below) - a flag with no target is meaningless. */
+export const manualLedgerEntryKindSchema = z.enum([
+  "shipped",
+  "intent",
+  "decision",
+  "mention",
+  "residual",
+]);
+
+/** `superseded` is excluded: nothing has been written yet that could
+ *  supersede a brand-new entry, so it is never a valid status at creation. */
+export const manualLedgerEntryStatusSchema = z.enum(["open", "shipped", "abandoned"]);
+
+/**
+ * What a human can supply when hand-adding a ledger entry - deliberately
+ * narrower than `ledgerEntrySchema`. `.strict()` so an unexpected field
+ * (notably `id`/`createdAt`/`schemaVersion` - always server-generated - or
+ * `evidence`/`sourceRunId`/`supersedes`/`relatesTo`, which a hand entry has no
+ * run or prior entry to legitimately cite) is a hard validation error, never
+ * silently dropped or coerced.
+ */
+export const manualLedgerEntryInputSchema = z
+  .object({
+    kind: manualLedgerEntryKindSchema,
+    title: z.string().min(1).max(300),
+    detail: z.string().max(4000).nullable().optional(),
+    status: manualLedgerEntryStatusSchema.optional(),
+    tags: z.array(z.string().min(1).max(40)).max(20).optional(),
+  })
+  .strict();
+export type ManualLedgerEntryInput = z.infer<typeof manualLedgerEntryInputSchema>;
+
+/** `shipped`/`decision` describe a settled outcome (`deriveLedgerState` never
+ *  gates their bucket on status), so they default to "shipped". The open-work
+ *  kinds default to "open" - a fresh follow-up/intent/mention starts
+ *  unresolved. */
+function defaultManualStatus(kind: ManualLedgerEntryInput["kind"]): LedgerEntryStatus {
+  return kind === "shipped" || kind === "decision" ? "shipped" : "open";
+}
 
 /** The folded, live state of the project (pure derivation over the append log).
  *  An entry is live unless a later entry supersedes it (by id) or its own status
@@ -504,6 +562,37 @@ export async function recordRunDecisionsInLedger(
   return entries;
 }
 
+/** Disk write-back: append a hand-added entry (CLI `vibe ledger add` or the
+ *  dashboard's "Add entry" form) - the manual counterpart to the run-derived
+ *  writers above, going through the same `LedgerStore.append()` (mutex +
+ *  storage-schema validated) so there is one write funnel, not two.
+ *  Fail-closed: `input` is validated against `manualLedgerEntryInputSchema`,
+ *  which throws on anything malformed or out of scope rather than coercing
+ *  it. The id/createdAt are always SERVER-generated here; the schema doesn't
+ *  even accept those fields from a caller, so there is nothing to trust or
+ *  distrust from the client. Tags always carry `MANUAL_ENTRY_TAG` so the
+ *  entry stays honestly distinguishable from a run-derived one. */
+export async function appendManualLedgerEntry(
+  projectRoot: string,
+  input: unknown,
+  now: string,
+): Promise<LedgerEntry> {
+  const parsed = manualLedgerEntryInputSchema.parse(input);
+  const tags = Array.from(new Set([...(parsed.tags ?? []), MANUAL_ENTRY_TAG]));
+  const entry = baseEntry({
+    id: `manual:${randomUUID()}`,
+    kind: parsed.kind,
+    title: parsed.title,
+    detail: parsed.detail ?? null,
+    status: parsed.status ?? defaultManualStatus(parsed.kind),
+    tags,
+    createdAt: now,
+  });
+  const store = new LedgerStore(projectRoot);
+  await appendAndRefresh(projectRoot, store, [entry], now);
+  return entry;
+}
+
 /** A deterministic, human-readable session-pickup brief assembled from the
  *  ledger state (the answer to "we stopped here, you've done xyz").
  *  Pure - same state => same brief. */
@@ -539,13 +628,17 @@ export function renderLedgerBrief(
     const more = e.evidence.length > 2 ? ` +${e.evidence.length - 2}` : "";
     return ` [evidence: ${shown}${more}]`;
   };
+  // A hand-added entry is a human's claim, not a run's verified output - flag
+  // it inline so a planner reading the brief never mistakes it for evidence.
+  const manualSuffix = (e: LedgerEntry): string =>
+    isManualLedgerEntry(e) ? " (added by hand)" : "";
   const lines: string[] = [];
   const section = (heading: string, entries: LedgerEntry[], markStale = false) => {
     if (entries.length === 0) return;
     lines.push(`## ${heading}`);
     for (const e of entries.slice(0, limit)) {
       const stale = markStale ? staleSuffix(e) : "";
-      lines.push(`- ${e.title}${stale}${e.detail ? ` - ${clip(e.detail)}` : ""}${evidenceSuffix(e)}`);
+      lines.push(`- ${e.title}${stale}${manualSuffix(e)}${e.detail ? ` - ${clip(e.detail)}` : ""}${evidenceSuffix(e)}`);
     }
     if (entries.length > limit) lines.push(`- ...and ${entries.length - limit} more`);
     lines.push("");

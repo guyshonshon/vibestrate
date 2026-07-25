@@ -76,6 +76,33 @@ export async function registerProjectRoutes(
     return { state, brief: renderLedgerBrief(state) };
   });
 
+  // Hand-add a ledger entry (the dashboard/CLI "Add entry" path). Narrower
+  // than the storage schema by construction: appendManualLedgerEntry
+  // validates against manualLedgerEntryInputSchema, which never accepts
+  // id/createdAt/schemaVersion (server-generated) or evidence/sourceRunId/
+  // supersedes/relatesTo (a hand entry has no run or prior entry to cite) -
+  // an unexpected field is a 400, not a silent drop. Same write funnel the
+  // CLI's `vibe ledger add` goes through (LedgerStore.append(), mutex-
+  // protected against a concurrently-finishing run).
+  app.post<{ Body: unknown }>("/api/ledger", async (req) => {
+    const { appendManualLedgerEntry } = await import(
+      "../../core/context/project-ledger.js"
+    );
+    try {
+      const entry = await appendManualLedgerEntry(
+        projectRoot,
+        req.body,
+        new Date().toISOString(),
+      );
+      return { ok: true, entry };
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        throw new HttpError(400, err.issues[0]?.message ?? "Invalid ledger entry.");
+      }
+      throw new HttpError(400, err instanceof Error ? err.message : String(err));
+    }
+  });
+
   // ─── Profiles: reusable runtime setups (provider + model/power) ──────────
   app.get("/api/profiles", async () => {
     if (!(await configExists(projectRoot))) return { profiles: [] };

@@ -12,6 +12,8 @@ import {
   recordRunDecisionsInLedger,
   renderLedgerBrief,
   renderLedgerForPrompt,
+  appendManualLedgerEntry,
+  isManualLedgerEntry,
   type LedgerEntry,
 } from "../src/core/context/project-ledger.js";
 import {
@@ -534,6 +536,119 @@ describe("LedgerStore + recordRunInLedger (disk)", () => {
     const state = await new LedgerStore(root).state();
     expect(state.shipped).toHaveLength(1);
     expect(state.shipped[0]!.title).toBe("Add the thing");
+  });
+});
+
+describe("appendManualLedgerEntry (hand-added entries)", () => {
+  let root: string;
+  beforeEach(async () => {
+    root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-ledger-manual-"));
+  });
+  afterEach(async () => {
+    await fs.rm(root, { recursive: true, force: true });
+  });
+
+  it("generates id/createdAt server-side - a client-supplied id/createdAt/schemaVersion is rejected, never used", async () => {
+    // The input schema doesn't even have these keys - .strict() rejects them
+    // outright rather than silently dropping or trusting them.
+    await expect(
+      appendManualLedgerEntry(
+        root,
+        { kind: "intent", title: "sneak an id in", id: "attacker-chosen" },
+        NOW,
+      ),
+    ).rejects.toThrow();
+    await expect(
+      appendManualLedgerEntry(
+        root,
+        { kind: "intent", title: "sneak createdAt in", createdAt: "1999-01-01T00:00:00.000Z" },
+        NOW,
+      ),
+    ).rejects.toThrow();
+
+    // A clean call gets a real, server-generated id/createdAt.
+    const entry = await appendManualLedgerEntry(root, { kind: "intent", title: "real one" }, NOW);
+    expect(entry.id).not.toBe("attacker-chosen");
+    expect(entry.id.startsWith("manual:")).toBe(true);
+    expect(entry.createdAt).toBe(NOW);
+    expect(entry.schemaVersion).toBe(1);
+  });
+
+  it("rejects an oversized title (>300) and oversized detail (>4000); the bound itself is accepted", async () => {
+    await expect(
+      appendManualLedgerEntry(root, { kind: "intent", title: "x".repeat(301) }, NOW),
+    ).rejects.toThrow();
+    await expect(
+      appendManualLedgerEntry(
+        root,
+        { kind: "intent", title: "ok", detail: "x".repeat(4001) },
+        NOW,
+      ),
+    ).rejects.toThrow();
+    const entry = await appendManualLedgerEntry(
+      root,
+      { kind: "intent", title: "x".repeat(300), detail: "y".repeat(4000) },
+      NOW,
+    );
+    expect(entry.title).toHaveLength(300);
+    expect(entry.detail).toHaveLength(4000);
+  });
+
+  it("a valid entry round-trips through read()", async () => {
+    const written = await appendManualLedgerEntry(
+      root,
+      { kind: "residual", title: "circle back on X", detail: "context", tags: ["ops"] },
+      NOW,
+    );
+    const read = await new LedgerStore(root).read();
+    expect(read).toHaveLength(1);
+    expect(read[0]).toEqual(written);
+    expect(read[0]!.tags).toEqual(expect.arrayContaining(["ops", "manual"]));
+  });
+
+  it("is honestly distinguishable from a run-derived entry - by isManualLedgerEntry and in the rendered brief", async () => {
+    const manual = await appendManualLedgerEntry(root, { kind: "intent", title: "hand note" }, NOW);
+    const [runDerived] = buildRunLedgerEntries({
+      runId: "r1",
+      status: "merge_ready",
+      displayName: "shipped it",
+      task: "ship it",
+      now: NOW,
+      existing: [],
+    });
+    expect(isManualLedgerEntry(manual)).toBe(true);
+    expect(isManualLedgerEntry(runDerived!)).toBe(false);
+    const brief = renderLedgerBrief(deriveLedgerState([manual, runDerived!]));
+    expect(brief).toMatch(/hand note \(added by hand\)/);
+    expect(brief).not.toMatch(/shipped it \(added by hand\)/);
+  });
+
+  it("rejects fields a hand entry has no run/prior entry to cite (evidence, sourceRunId, supersedes, relatesTo)", async () => {
+    for (const bad of [
+      { evidence: [{ kind: "file", ref: "a.ts" }] },
+      { sourceRunId: "r1" },
+      { supersedes: "intent:r1" },
+      { relatesTo: "shipped:r1" },
+    ]) {
+      await expect(
+        appendManualLedgerEntry(root, { kind: "intent", title: "t", ...bad }, NOW),
+      ).rejects.toThrow();
+    }
+  });
+
+  it("defaults status per kind: shipped/decision -> shipped, other kinds -> open", async () => {
+    const shipped = await appendManualLedgerEntry(root, { kind: "shipped", title: "s" }, NOW);
+    const decision = await appendManualLedgerEntry(root, { kind: "decision", title: "d" }, NOW);
+    const intent = await appendManualLedgerEntry(root, { kind: "intent", title: "i" }, NOW);
+    expect(shipped.status).toBe("shipped");
+    expect(decision.status).toBe("shipped");
+    expect(intent.status).toBe("open");
+  });
+
+  it("excludes 'flag' (no relatesTo target a hand entry could point at)", async () => {
+    await expect(
+      appendManualLedgerEntry(root, { kind: "flag", title: "t" }, NOW),
+    ).rejects.toThrow();
   });
 });
 
