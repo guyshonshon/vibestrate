@@ -71,8 +71,7 @@ export function AssistPopover({
     <>
       <div className="fixed inset-0 z-20" onClick={onClose} aria-hidden />
       <div
-        className="fade-up absolute right-0 top-[54px] z-30 w-[340px] rounded-[14px] border border-[color:var(--line-strong)] p-3 shadow-2xl backdrop-blur-xl"
-        style={{ background: "color-mix(in srgb, var(--popover) 94%, transparent)" }}
+        className="fade-up absolute right-0 top-[54px] z-30 w-[340px] rounded-[14px] border border-[color:var(--line-strong)] bg-coal-700 p-3 shadow-2xl"
         role="dialog"
         aria-label="Supervisor assist"
       >
@@ -94,8 +93,11 @@ export function AssistPopover({
 
         {recent.length > 0 ? (
           <div className="mb-2.5">
-            <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-violet-vivid">
-              Pick up where you left off
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className="text-[12px] font-semibold text-chalk-300">
+                Pick up where you left off
+              </span>
+              <span className="h-px flex-1 bg-[color:var(--line-soft)]" />
             </div>
             <div className="flex flex-col gap-1">
               {recent.map((r) => (
@@ -126,8 +128,9 @@ export function AssistPopover({
 
         {todos.length > 0 ? (
           <div>
-            <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-violet-vivid">
-              On your list
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className="text-[12px] font-semibold text-chalk-300">On your list</span>
+              <span className="h-px flex-1 bg-[color:var(--line-soft)]" />
             </div>
             <div className="flex flex-col gap-1">
               {todos.map((t) => (
