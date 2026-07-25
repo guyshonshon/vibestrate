@@ -92,6 +92,10 @@
   --font-jakarta:
     "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
   --color-coal-900: #121213;
+  /* Deeper than coal-900 - the near-black scene ground (.deep-scene /
+   * .board-scene pull slabs down to this so they recede into the page
+   * instead of floating as a mid grey-blue). */
+  --color-coal-950: #080b11;
   --color-coal-800: #171719;
   --color-coal-700: #1c1c1e;
   --color-coal-650: #1e1e20;
@@ -238,6 +242,9 @@
 
   /* Mission Control surfaces - coal (deep -> light), neutral grey (no violet tint) */
   --color-coal-900: #f4f4f5;
+  /* Deepest coal step is paper-white in light, same as coal-600 - there is no
+   * "darker than white" surface on a light ground. */
+  --color-coal-950: #ffffff;
   --color-coal-800: #ededee;
   --color-coal-700: #e7e7e9;
   --color-coal-650: #f3f3f4;
@@ -336,7 +343,7 @@
 }
 :root.light .board-scene,
 :root.light .deep-scene {
-  --s-slab: #ffffff;
+  --s-slab: var(--color-coal-950);
   --s-line: rgba(20, 18, 30, 0.1);
 }
 
@@ -854,7 +861,7 @@ button:active,
  * pages without it keep the default. `.board-scene` is the original alias. */
 .board-scene,
 .deep-scene {
-  --s-slab: #080b11;
+  --s-slab: var(--color-coal-950);
   --s-line: rgba(255, 255, 255, 0.08);
 }
 
