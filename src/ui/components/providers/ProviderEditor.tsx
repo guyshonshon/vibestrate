@@ -9,6 +9,7 @@ import {
   type EditorProviderConfig,
 } from "../../lib/provider-yaml.js";
 import { Button } from "../design/Button.js";
+import { Chip } from "../design/Chip.js";
 import { FormField } from "../design/FormField.js";
 import { cn } from "../design/cn.js";
 
@@ -356,17 +357,18 @@ export function ProviderEditor({
             <h2 className="mt-0.5 text-[19px] font-extrabold tracking-[-0.02em] text-chalk-100">
               {headerTitle}
             </h2>
-            <div className="mono mt-1 flex flex-wrap items-center gap-2 text-[11px] text-chalk-400">
-              {!isNew ? <span>{p!.id}</span> : null}
-              {!isNew ? <span className="text-chalk-400">·</span> : null}
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              {!isNew ? (
+                <span className="mono text-[11px] text-chalk-400">{p!.id}</span>
+              ) : null}
               {kind === "cli" ? (
-                <span className={p?.available ? "text-emerald-400" : "text-amber-soft"}>
+                <Chip tone={p?.available ? "emerald" : "amber"} contained>
                   {p?.available ? "CLI detected" : "CLI not detected"}
-                </span>
+                </Chip>
               ) : kind === "http-api" ? (
-                <span className="text-amber-soft">external · egress over https</span>
+                <Chip tone="amber" contained>external · egress over https</Chip>
               ) : (
-                <span className="text-emerald-400">local only · no egress</span>
+                <Chip tone="emerald" contained>local only · no egress</Chip>
               )}
             </div>
           </div>
@@ -653,7 +655,7 @@ export function TestResultRow({
 }) {
   if (result.ok) {
     return (
-      <div className="mt-3 flex items-center gap-1.5 rounded-[12px] border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-200">
+      <div className="mt-3 flex items-center gap-1.5 rounded-[12px] border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-400">
         <Check size={13} className="shrink-0" />
         Responded with the magic token in {result.durationMs}ms.
       </div>
@@ -662,7 +664,7 @@ export function TestResultRow({
   if (result.needsLogin) {
     const cmd = result.loginCommand ?? loginCommand;
     return (
-      <div className="mt-3 rounded-[12px] border border-amber-soft/30 bg-amber-500/10 px-3 py-2.5 text-[12px] text-amber-200">
+      <div className="mt-3 rounded-[12px] border border-amber-soft/30 bg-amber-500/10 px-3 py-2.5 text-[12px] text-amber-soft">
         <div className="font-medium">Not logged in - authenticate to continue.</div>
         {cmd ? (
           <div className="mt-1.5">
@@ -671,7 +673,7 @@ export function TestResultRow({
               in your own terminal
             </span>{" "}
             (Vibestrate won't do it for you):
-            <pre className="mono mt-1 overflow-x-auto rounded-[10px] bg-coal-800 px-2 py-1 text-[12px] text-amber-100">
+            <pre className="mono mt-1 overflow-x-auto rounded-[10px] bg-coal-800 px-2 py-1 text-[12px] text-amber-soft">
               {cmd}
             </pre>
           </div>
@@ -682,7 +684,7 @@ export function TestResultRow({
     );
   }
   return (
-    <div className="mt-3 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-200">
+    <div className="mt-3 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300">
       <div className="flex items-center gap-1.5">
         <X size={12} className="shrink-0" /> Test failed (exit {result.exitCode}) -
         check the config, then test again.
