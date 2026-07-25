@@ -5875,7 +5875,7 @@
         "ledger"
       ],
       "description": "Show the project continuity brief (what shipped, what's open).",
-      "usage": "[options]",
+      "usage": "[options] [command]",
       "arguments": [],
       "options": [
         {
@@ -5893,7 +5893,64 @@
           "negated": false
         }
       ],
-      "subcommands": []
+      "subcommands": [
+        {
+          "name": "add",
+          "path": [
+            "vibe",
+            "ledger",
+            "add"
+          ],
+          "description": "Hand-add a ledger entry - the same write path the dashboard's \"Add entry\" form uses.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--kind <kind>",
+              "description": "shipped | intent | decision | mention | residual",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--title <text>",
+              "description": "entry title (max 300 chars)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--detail <text>",
+              "description": "optional longer detail (max 4000 chars)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--tags <list>",
+              "description": "comma-separated tags",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--status <status>",
+              "description": "open | shipped | abandoned",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit the created entry as JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        }
+      ]
     },
     {
       "name": "consult",
