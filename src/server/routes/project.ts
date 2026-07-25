@@ -99,7 +99,10 @@ export async function registerProjectRoutes(
       if (err instanceof z.ZodError) {
         throw new HttpError(400, err.issues[0]?.message ?? "Invalid ledger entry.");
       }
-      throw new HttpError(400, err instanceof Error ? err.message : String(err));
+      // Past the input parse, the only remaining failures are filesystem ones
+      // (ENOSPC, EACCES, a stuck lock). Those are ours, not the caller's -
+      // reporting them as 400 would tell an owner to fix a form that was fine.
+      throw new HttpError(500, err instanceof Error ? err.message : String(err));
     }
   });
 
