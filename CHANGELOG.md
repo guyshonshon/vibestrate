@@ -18,6 +18,14 @@
   failed fetch is a visible, recoverable state with Retry; empty states offer
   the action instead of pointing at a command; and a lazy chunk that fails to
   load lands in an error boundary with a reload, not a blank page.
+- **The run screen has its Terminal and Replay tabs back.** The Mission Control
+  redesign dropped two inspector tabs that the rest of the product kept
+  advertising: the per-run interactive shell that `policies.allowInteractiveTerminal`
+  turns on, and the scrubbable replay timeline `vibe replay` points you to. Both
+  are wired into the run inspector again, so the terminal policy and the CLI's
+  own hint lead somewhere real. The deep links that had been quietly landing on
+  the wrong panel resolve too - `?tab=replay` from the runs list, and `?tab=diff`
+  from Mission Control's run diff, which the Artifacts tab now owns.
 - **Docs that match the code.** The handwritten docs were swept for factual
   drift and corrected against the current source - real commands, real config
   keys, real run artifacts - so the getting-started path and the concept pages

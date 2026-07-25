@@ -1,7 +1,14 @@
-import { Bolt, Check, Folder, ListTree, Network } from "lucide-react";
+import { Bolt, Check, Folder, History, ListTree, Network, SquareTerminal } from "lucide-react";
 import { cn } from "../../design/cn.js";
 
-export type InspectorV3Tab = "tree" | "steps" | "events" | "artifacts" | "validation";
+export type InspectorV3Tab =
+  | "tree"
+  | "steps"
+  | "events"
+  | "artifacts"
+  | "validation"
+  | "terminal"
+  | "replay";
 
 export function InspectorTabsV3({
   current,
@@ -16,6 +23,8 @@ export function InspectorTabsV3({
     { id: "events", label: "Events", icon: <Bolt className="h-3.5 w-3.5" strokeWidth={1.9} /> },
     { id: "artifacts", label: "Artifacts", icon: <Folder className="h-3.5 w-3.5" strokeWidth={1.9} /> },
     { id: "validation", label: "Validation", icon: <Check className="h-3.5 w-3.5" strokeWidth={1.9} /> },
+    { id: "terminal", label: "Terminal", icon: <SquareTerminal className="h-3.5 w-3.5" strokeWidth={1.9} /> },
+    { id: "replay", label: "Replay", icon: <History className="h-3.5 w-3.5" strokeWidth={1.9} /> },
   ];
   return (
     <div className="flex items-center gap-1 rounded-[12px] border border-[color:var(--line)] bg-coal-800 p-1">
