@@ -796,7 +796,7 @@ function NotificationItem({
                   e.stopPropagation();
                   onDismiss(n);
                 }}
-                className="ml-auto px-1.5 py-1 text-[10.5px] text-chalk-400 hover:text-chalk-300"
+                className="ml-auto px-1.5 py-1 text-[10.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
               >
                 Dismiss
               </button>
@@ -812,7 +812,7 @@ function NotificationItem({
                   e.stopPropagation();
                   onDismiss(n);
                 }}
-                className="px-1.5 py-1 text-[10.5px] text-chalk-400 hover:text-chalk-300"
+                className="px-1.5 py-1 text-[10.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
               >
                 Dismiss
               </button>
