@@ -29,7 +29,7 @@ export function ProfileSelect({
 
   return (
     <div className="flex flex-col gap-1 text-[10.5px]">
-      <label className="flex items-center gap-1.5 text-vibestrate-fg">
+      <label className="flex items-center gap-1.5 text-chalk-100">
         <span>{label}</span>
         <Select
           value={selected}
@@ -50,9 +50,9 @@ export function ProfileSelect({
         />
       </label>
       {error ? (
-        <span className="text-vibestrate-fail">{error}</span>
+        <span className="text-rose-300">{error}</span>
       ) : found ? (
-        <span className="vibestrate-mono truncate text-vibestrate-fg-muted">
+        <span className="truncate font-mono text-[12.5px] text-chalk-400">
           {found.commands.length === 0
             ? "(no commands - validation will report no_commands_configured)"
             : `→ ${found.commands.join("  ·  ")}`}

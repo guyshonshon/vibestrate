@@ -26,7 +26,7 @@ export function LazyTerminalPanel({ runId }: { runId: string }) {
     <ErrorBoundary resetKey={runId}>
       <Suspense
         fallback={
-          <div className="text-vibestrate-fg-muted text-[11.5px]">
+          <div className="text-[11.5px] text-chalk-400">
             Loading terminal…
           </div>
         }

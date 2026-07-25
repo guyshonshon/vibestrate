@@ -27,7 +27,7 @@ export function LazyReplayPanel({
     <ErrorBoundary resetKey={runId}>
       <Suspense
         fallback={
-          <div className="text-vibestrate-fg-muted text-[11.5px]">Loading replay…</div>
+          <div className="text-[11.5px] text-chalk-400">Loading replay…</div>
         }
       >
         <ReplayPanelLazy runId={runId} focus={focus ?? null} />
