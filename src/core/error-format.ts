@@ -121,7 +121,7 @@ export function formatError(err: unknown): FormattedError {
         statusCode === 404
           ? "The resource no longer exists. It may have been deleted, cancelled, or never existed."
           : statusCode >= 500
-            ? "vibestrate logged this into .vibestrate/issues.ndjson - check the Issues panel for context."
+            ? "vibestrate logged this into .vibestrate/issues.ndjson for debugging. Retry - if it keeps failing, check the server logs."
             : undefined,
     };
   }

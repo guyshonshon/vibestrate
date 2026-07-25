@@ -727,7 +727,8 @@ function ValidationBlock({ result }: { result: SuggestionValidationResult }) {
   if (result.status === "no_commands_configured") {
     return (
       <div className="mt-1.5 rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-2 py-1 text-[11px] text-amber-soft">
-        No `commands.validate` configured. Run{" "}
+        No `commands.validate` configured. It's a shell command, so it's set
+        from the CLI only, never the browser:{" "}
         <span className="font-mono text-[12.5px]">
           vibe config set commands.validate '["pnpm test"]'
         </span>

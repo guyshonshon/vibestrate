@@ -35,7 +35,7 @@ function defaultHint(status: number): string | undefined {
   if (status === 400 || status === 422)
     return "The request was rejected. Fix the input and try again - the change was not partially applied.";
   if (status >= 500)
-    return "The server hit an error. vibestrate logged it to .vibestrate/issues.ndjson - check the Issues panel, then retry.";
+    return "The server hit an error. vibestrate logged it to .vibestrate/issues.ndjson for debugging. Retry - if it keeps failing, check the server logs.";
   return undefined;
 }
 
