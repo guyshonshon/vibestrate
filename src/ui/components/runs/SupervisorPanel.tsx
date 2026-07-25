@@ -128,7 +128,7 @@ export function SupervisorPanel({
           <ShieldCheck className="h-4 w-4" strokeWidth={1.9} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-chalk-400">
+          <div className="text-[12px] font-semibold text-violet-soft">
             Supervisor
           </div>
           <div className="flex items-baseline gap-2">

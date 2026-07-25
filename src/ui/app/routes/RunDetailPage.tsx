@@ -1096,7 +1096,7 @@ function LaneCell({
 }) {
   return (
     <div className="rounded-[12px] bg-coal-500/50 px-3 py-2">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-chalk-400">
+      <div className="text-[12px] font-semibold text-violet-soft">
         {label}
       </div>
       <div className={`mt-0.5 text-[12.5px] font-semibold ${tone}`}>{value}</div>
@@ -1135,7 +1135,7 @@ function WorkspacePanel({
           <FolderTree className="h-4 w-4" strokeWidth={1.9} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-chalk-400">
+          <div className="text-[12px] font-semibold text-violet-soft">
             Workspace
           </div>
           <div className="truncate text-[12.5px] font-semibold text-chalk-100">
@@ -1196,7 +1196,7 @@ function AssuranceBadge({
           <Icon className="h-4 w-4" strokeWidth={1.9} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-chalk-400">
+          <div className="text-[12px] font-semibold text-violet-soft">
             Run assurance
           </div>
           <div className={`text-[15px] font-semibold ${vm.tone}`}>{a.verdict.replace(/_/g, " ")}</div>
@@ -1270,7 +1270,7 @@ function AssuranceBadge({
         <div className="mt-2 space-y-1.5">
           {a.blockers.map((b, i) => (
             <div key={i} className="rounded-[12px] border border-rose-400/25 bg-rose-500/[0.06] px-3 py-2">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-300">
+              <div className="text-[12px] font-semibold text-rose-300">
                 Cause{b.stepId ? ` · ${b.stepId}` : ""}{b.class ? ` · ${b.class}` : ""}
               </div>
               <div className="mt-0.5 text-[11.5px] text-chalk-300">{b.detail}</div>
