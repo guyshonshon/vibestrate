@@ -14,6 +14,8 @@ import { useEffect, useRef, useState } from "react";
 import { ResponsiveGridLayout, type Layout, type LayoutItem } from "react-grid-layout";
 import { GripVertical, EyeOff, Rows3, RotateCcw, Plus, SlidersHorizontal, Check } from "lucide-react";
 import { usePersistedState } from "../../lib/usePersistedState.js";
+import { Button } from "../design/Button.js";
+import { IconBtn } from "../design/IconBtn.js";
 import {
   resolveDashboardLayout,
   normalizeStoredLayout,
@@ -223,9 +225,12 @@ export function PanelBoard({
               <div key={p.id} className="widget-frame">
                 {editMode ? (
                   <div className="widget-chrome" role="toolbar" aria-label={`${p.title} controls`}>
+                    {/* Stays a raw <button>: react-grid-layout's dragConfig.handle
+                        (below) selects on this exact class, and IconBtn has no
+                        className passthrough to carry it. */}
                     <button
                       type="button"
-                      className="widget-chrome-btn widget-drag-handle is-drag"
+                      className="widget-drag-handle inline-flex h-6 w-6 cursor-grab items-center justify-center rounded-[8px] text-chalk-400 transition hover:bg-coal-500 hover:text-chalk-100 active:cursor-grabbing"
                       aria-label={`Drag ${p.title}`}
                       title="Drag"
                     >
@@ -233,24 +238,21 @@ export function PanelBoard({
                     </button>
                     <span className="widget-chrome-title">{p.title}</span>
                     <span className="flex items-center gap-1">
-                      <button
-                        type="button"
+                      <IconBtn
+                        variant="plain"
+                        title={`Swap ${p.title} width and height`}
                         onClick={() => rotate(p.id)}
-                        className="widget-chrome-btn"
-                        aria-label={`Swap ${p.title} width and height`}
-                        title="Swap width / height"
                       >
                         <Rows3 className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
+                      </IconBtn>
+                      <IconBtn
+                        variant="outline"
+                        danger
+                        title={`Hide ${p.title}`}
                         onClick={() => hide(p.id)}
-                        className="widget-chrome-btn is-hide"
-                        aria-label={`Hide ${p.title}`}
-                        title="Hide"
                       >
                         <EyeOff className="h-3.5 w-3.5" />
-                      </button>
+                      </IconBtn>
                     </span>
                   </div>
                 ) : null}
@@ -279,14 +281,14 @@ function BoardEditChrome({
 }) {
   if (!editMode) {
     return (
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => onToggle(true)}
-        className="inline-flex h-7 items-center gap-1.5 rounded-[10px] px-2 text-[11px] font-medium text-chalk-400 transition-colors hover:bg-coal-600 hover:text-chalk-100"
-        aria-label="Edit layout"
+        iconLeft={<SlidersHorizontal className="h-3.5 w-3.5" />}
       >
-        <SlidersHorizontal className="h-3.5 w-3.5" /> Edit layout
-      </button>
+        Edit layout
+      </Button>
     );
   }
   return (
@@ -296,6 +298,10 @@ function BoardEditChrome({
       className="inline-flex h-7 items-center gap-0.5 rounded-[10px] bg-violet-soft/[0.06] p-0.5 ring-1 ring-violet-soft/30"
     >
       <AddPanelPicker hiddenList={hiddenList} onAdd={onShow} />
+      {/* Reset/Done stay hand-styled: they nest inside this h-7 p-0.5 pill, so
+          the h-6 they need is shorter than design/Button's smallest size
+          (sm = h-7), and Done's violet ghost tint has no matching Button
+          variant (same gap as the intent-tinted-ghost recipe elsewhere). */}
       <button
         type="button"
         onClick={onReset}
