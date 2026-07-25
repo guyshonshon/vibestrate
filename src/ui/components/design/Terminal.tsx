@@ -126,17 +126,24 @@ export function LiveTerminal({
           </span>
           <span className="text-[11px] font-semibold text-chalk-300 ml-2">{title}</span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[11.5px] font-medium text-chalk-400">
-            {paused ? "Paused" : "Streaming"}
-          </span>
+        {/* One contained control, not a loose dot beside a loose word: the
+            state reads as a single object with its own surface. */}
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-[11.5px] font-semibold",
+            paused
+              ? "bg-amber-soft/15 text-amber-soft"
+              : "bg-emerald-500/15 text-emerald-400",
+          )}
+        >
           <span
             className={cn(
-              "inline-block w-1.5 h-1.5 rounded-full",
-              paused ? "bg-amber-300" : "bg-emerald-400",
+              "inline-block h-1.5 w-1.5 rounded-full",
+              paused ? "bg-amber-soft" : "bg-emerald-400",
             )}
           />
-        </div>
+          {paused ? "Paused" : "Streaming"}
+        </span>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-[3px]">
         {buf.map((l, i) => (
