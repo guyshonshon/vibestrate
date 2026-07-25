@@ -56,6 +56,16 @@ const BANNED: Array<{ name: string; re: RegExp; why: string }> = [
     re: /animate-pulse/,
     why: "The one banned animation - no pulsing or breathing. Use a static skeleton or the Loader2 spinner idiom.",
   },
+  {
+    name: "white-alpha hairline or fill",
+    re: /(?:border|bg|ring|divide)-white\//,
+    why: "White-alpha does not invert for the light theme - it is why un-migrated surfaces looked wrong there. Use border-[color:var(--line)] for hairlines, or a real token at alpha (e.g. bg-chalk-400/[0.08]) for a fill.",
+  },
+  {
+    name: "keyword rounding",
+    re: /\brounded-(?:sm|md|lg|xl|2xl|3xl)(?=["'\s}])/,
+    why: "The system uses an explicit bracket scale so radii cannot drift: rounded-[6px]/[8px]/[10px]/[12px]/[14px]/[18px]. rounded-full stays legal for dots and avatars.",
+  },
 ];
 
 describe("UI design drift", () => {
