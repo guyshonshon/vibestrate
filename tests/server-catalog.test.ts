@@ -8,6 +8,7 @@ import { applySetup } from "../src/setup/setup-service.js";
 import { addProvider } from "../src/setup/provider-setup-service.js";
 import type { ProviderCapabilities } from "../src/providers/provider-catalog.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
+import { writeFakeNodeCli } from "./fake-executable.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({
   exitCode: 127,
@@ -95,12 +96,11 @@ describe("POST /api/providers/catalog/refresh", () => {
   it("probes a CLI provider's --help and writes the overlay (parity with the CLI)", async () => {
     const project = await makeProject();
     // An executable fake CLI that prints help with a --effort flag.
-    const fakeCli = path.join(project, "fakecli.js");
-    await fs.writeFile(
-      fakeCli,
-      "#!/usr/bin/env node\nprocess.stdout.write('Options:\\n  --model <id>\\n  --effort <eco|turbo>\\n');\n",
+    const fakeCli = await writeFakeNodeCli(
+      project,
+      "fakecli",
+      "process.stdout.write('Options:\\n  --model <id>\\n  --effort <eco|turbo>\\n');\n",
     );
-    await fs.chmod(fakeCli, 0o755);
     await addProvider(project, {
       id: "mycli",
       config: { type: "cli", command: fakeCli, input: "stdin" } as never,

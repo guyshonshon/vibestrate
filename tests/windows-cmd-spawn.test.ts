@@ -6,8 +6,8 @@ import { runArgvCommand } from "../src/core/execution/command-runner.js";
 
 // Windows-only proof: every npm-installed provider CLI (claude.cmd, codex.cmd,
 // gemini.cmd, ...) is a `.cmd` shim on Windows. The orchestrator spawns providers
-// via runArgvCommand -> execa, which bundles cross-spawn for PATHEXT/.cmd
-// resolution. This proves that path empirically on the windows-latest CI; it is
+// via runArgvCommand -> execa, which resolves PATHEXT/.cmd itself (node's spawn
+// does not). This proves that path empirically on the windows-latest CI; it is
 // skipped elsewhere (macOS/Linux have no .cmd semantics). The load-bearing case
 // is #2: a BARE command name resolving to its .cmd on PATH.
 describe.skipIf(process.platform !== "win32")(
