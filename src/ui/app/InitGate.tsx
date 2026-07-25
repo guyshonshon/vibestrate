@@ -34,7 +34,7 @@ export function InitGate() {
   // doesn't flash a spinner on the common (already-initialized) path.
   if (!checked) {
     return (
-      <div className="relative min-h-screen w-full overflow-hidden bg-ink-0">
+      <div className="relative min-h-screen w-full overflow-hidden bg-coal-800">
         <div className="vibestrate-backdrop" />
       </div>
     );

@@ -78,12 +78,13 @@ function Brandmark() {
   return (
     <div className="flex flex-col items-center">
       <img src="./logo-icon.png" alt="" className="h-11 w-11 rounded-[22%]" decoding="async" />
-      <img
-        src="./logo-wordmark.png"
-        alt="Vibestrate"
-        className="mt-4 h-[26px] w-auto opacity-95"
-        decoding="async"
-      />
+      {/* The wordmark is set as text, not logo-wordmark.png: that asset is a
+          single white-glyph image with no dark variant, so on the light theme it
+          rendered near-invisible on the pale canvas. Text takes chalk-100, which
+          flips with the theme, and matches the sidebar's own lockup. */}
+      <span className="mt-4 text-[26px] font-extrabold tracking-[-0.01em] text-chalk-100">
+        vibestrate
+      </span>
     </div>
   );
 }
