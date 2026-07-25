@@ -163,7 +163,7 @@ export function Sidebar({
       <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
         <NavItem
           icon={<LayoutGrid className="h-[18px] w-[18px]" />}
-          label="Dashboard"
+          label="Mission control"
           selected={currentNav === "home"}
           onClick={onShowHome}
         />

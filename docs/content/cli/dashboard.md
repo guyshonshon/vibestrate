@@ -31,7 +31,7 @@ vibe run "Add audit logging" --ui
 
 Mission Control's left sidebar is the app shell. It lists:
 
-- **Dashboard** - the home overview.
+- **Mission control** - the home overview.
 - **Runs** - Active, Merge-ready, and Failed run lists, with the scheduler queue (what's queued, what's running, policy, concurrency) folded into the top of the list.
 - **Flows** - the resolved list of built-in and project Flows, plus the steps each one defines.
 - **Crew** - the workflow **roles** (planner, architect, executor, fixer, reviewer, verifier), plus a **Providers** tab (relocated here from the old standalone Providers page): what's installed, what's configured, and a test for each one. A role is a seat in the workflow; a provider is the CLI it runs on, and one provider can power many roles.
