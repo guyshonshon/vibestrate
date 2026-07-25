@@ -18,6 +18,20 @@
   failed fetch is a visible, recoverable state with Retry; empty states offer
   the action instead of pointing at a command; and a lazy chunk that fails to
   load lands in an error boundary with a reload, not a blank page.
+- **One design system, everywhere.** The last screens still wearing an older
+  generation were rebuilt on the current one, starting with the setup screen a
+  first-time user meets before anything else. Two panels had been rendering
+  against colour variables nothing in the app defined, so they drew in no colour
+  at all. Flow cards had forked into three near-copies and are now one. The
+  keyboard-shortcuts overlay described a shell that had been retired, along with
+  shortcuts that were never wired up, and now documents what the app actually
+  does.
+- **No more browser popups.** Every confirmation and prompt is an in-app dialog
+  in the product's own surface, rather than the browser's grey system box. They
+  fail closed: only an explicit confirm proceeds, and cancel, Escape, clicking
+  away, or navigating mid-question all decline. Four of these gates turned out to
+  be skippable under the old code, so a destructive action could run without ever
+  asking.
 - **Nothing sends you to a text editor.** Every screen that used to name a file
   path or a terminal command now offers the action itself. The continuity ledger
   takes entries by hand, from the Board or from `vibe ledger add`, and marks them
@@ -26,6 +40,14 @@
   queue without leaving the dashboard. Where a command genuinely has to stay on
   the CLI - shell values, policy files, provider logins - the screen now says why
   instead of just telling you to go elsewhere.
+- **The run screen has its Terminal and Replay tabs back.** The Mission Control
+  redesign dropped two inspector tabs that the rest of the product kept
+  advertising: the per-run interactive shell that `policies.allowInteractiveTerminal`
+  turns on, and the scrubbable replay timeline `vibe replay` points you to. Both
+  are wired into the run inspector again, so the terminal policy and the CLI's
+  own hint lead somewhere real. The deep links that had been quietly landing on
+  the wrong panel resolve too - `?tab=replay` from the runs list, and `?tab=diff`
+  from Mission Control's run diff, which the Artifacts tab now owns.
 - **Docs that match the code.** The handwritten docs were swept for factual
   drift and corrected against the current source - real commands, real config
   keys, real run artifacts - so the getting-started path and the concept pages

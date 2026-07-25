@@ -23,6 +23,7 @@ import {
   SuggestionServiceError,
 } from "../src/reviews/review-suggestion-service.js";
 import { checkPatchSafety } from "../src/safety/patch-safety.js";
+import { writeFakeNodeCli } from "./fake-executable.js";
 import { renderFinalReport } from "../src/core/run/final-report.js";
 import { runStateSchema } from "../src/core/state-machine.js";
 import { writeJson } from "../src/utils/json.js";
@@ -99,26 +100,17 @@ describe("editor-service", () => {
     const project = await tempDir("vibestrate-live-edit-");
     await fs.writeFile(path.join(project, "x.ts"), "console.log(1)\n");
     const captureFile = path.join(project, "captured.json");
-    // Build a tiny shell script that records argv to JSON, then exits ok.
+    // A fake editor that records the argv it was handed, under a name that
+    // matches the safe-command regex so it is reachable as a bare command.
     const fakeBinDir = path.join(project, "bin");
-    await fs.mkdir(fakeBinDir, { recursive: true });
-    const fakeScript = path.join(fakeBinDir, "fake-editor.js");
-    await fs.writeFile(
-      fakeScript,
-      `#!/usr/bin/env node
-const fs = require("node:fs");
+    await writeFakeNodeCli(
+      fakeBinDir,
+      "fake-editor",
+      `const fs = require("node:fs");
 fs.writeFileSync(${JSON.stringify(captureFile)}, JSON.stringify(process.argv.slice(2)));
 process.exit(0);
 `,
     );
-    await fs.chmod(fakeScript, 0o755);
-    // Wrap our fake binary in a name that matches the safe-command regex.
-    const fakeBin = path.join(fakeBinDir, "fake-editor");
-    await fs.writeFile(
-      fakeBin,
-      `#!/usr/bin/env bash\nexec "${process.execPath}" "${fakeScript}" "$@"\n`,
-    );
-    await fs.chmod(fakeBin, 0o755);
 
     // Path guard resolution against the project root.
     const resolved = await resolveSafePath(

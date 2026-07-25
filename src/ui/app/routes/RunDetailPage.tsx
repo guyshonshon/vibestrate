@@ -36,6 +36,8 @@ import {
   InspectorTabsV3,
   type InspectorV3Tab,
 } from "../../components/runs/v3/InspectorTabs.js";
+import { LazyTerminalPanel } from "../../components/terminal/LazyTerminalPanel.js";
+import { LazyReplayPanel } from "../../components/replay/LazyReplayPanel.js";
 import { LiveOutputPanel } from "../../components/runs/LiveOutputPanel.js";
 import { StepsInspector } from "../../components/runs/StepsInspector.js";
 import { EventStream } from "../../components/workflow/EventStream.js";
@@ -61,6 +63,21 @@ import type { InspectorTabId } from "../../components/layout/inspector-tabs.js";
 
 const POLL_MS = 2000;
 
+// Deep links (?tab=...) speak the full InspectorTabId vocabulary, which is
+// wider than the v3 inspector's own tab set - ids whose panels the v3 redesign
+// retired (logs, notes, skills, ...) have no home here and fall back to Steps.
+const V3_TAB_FOR_DEEP_LINK: Partial<Record<InspectorTabId, InspectorV3Tab>> = {
+  artifact: "artifacts",
+  // The v3 Artifacts tab absorbed the old standalone diff view, so `?tab=diff`
+  // (Mission Control's "show run diff", and the documented deep link) resolves
+  // there - with no artifact selected it opens on the changed-files list.
+  diff: "artifacts",
+  validation: "validation",
+  events: "events",
+  terminal: "terminal",
+  replay: "replay",
+};
+
 export function RunDetailPage({
   runId,
   initialTab,
@@ -70,7 +87,6 @@ export function RunDetailPage({
   initialTab?: InspectorTabId | null;
   replayFocus?: ReplayFocus | null;
 }) {
-  void replayFocus;
   const { confirm } = useConfirm();
   const [run, setRun] = useState<RunState | null>(null);
   const [metrics, setMetrics] = useState<RuntimeMetrics | null>(null);
@@ -89,15 +105,19 @@ export function RunDetailPage({
   // Pre-seeded rewind stage for "Re-run with fixes" (null = start from scratch).
   const [rerunStart, setRerunStart] = useState<"executing" | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [tab, setTab] = useState<InspectorV3Tab>(() =>
-    initialTab === "artifact"
-      ? "artifacts"
-      : initialTab === "validation"
-        ? "validation"
-        : initialTab === "events"
-          ? "events"
-          : "steps",
+  const [tab, setTab] = useState<InspectorV3Tab>(
+    () => (initialTab ? V3_TAB_FOR_DEEP_LINK[initialTab] : null) ?? "steps",
   );
+  // A cross-link can re-route to the run page we're already on with a new
+  // ?tab=... value. The page keys on runId alone, so it does NOT remount and
+  // the initializer above never re-runs - without this the deep link silently
+  // does nothing. Tab changes made here are not pushed back to the URL, so
+  // this only fires when the route itself moves.
+  useEffect(() => {
+    if (!initialTab) return;
+    const mapped = V3_TAB_FOR_DEEP_LINK[initialTab];
+    if (mapped) setTab(mapped);
+  }, [initialTab]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileViewMode, setFileViewMode] = useState<"diff" | "file">("diff");
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
@@ -554,6 +574,10 @@ export function RunDetailPage({
                 )}
               </div>
             </div>
+          ) : tab === "terminal" ? (
+            <LazyTerminalPanel runId={runId} />
+          ) : tab === "replay" ? (
+            <LazyReplayPanel runId={runId} focus={replayFocus ?? null} />
           ) : (
             <ValidationSummary runId={runId} />
           )}
