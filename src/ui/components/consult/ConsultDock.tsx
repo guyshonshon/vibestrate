@@ -4,6 +4,7 @@ import { api, type ProviderRow } from "../../lib/api.js";
 import type { ConsultResult, ProviderCatalog } from "../../lib/types.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
 import { getViewContext } from "../../lib/view-context.js";
+import { navigate } from "../../app/App.js";
 import { Button } from "../design/Button.js";
 import { Select } from "../design/Select.js";
 import { ConsultOrb } from "./ConsultOrb.js";
@@ -178,11 +179,21 @@ export function ConsultDock() {
                 <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-2.5 text-[12.5px] leading-relaxed text-rose-300 whitespace-pre-wrap">
                   {error}
                 </div>
-                <p className="text-[11px] text-chalk-300">
-                  Tip: model and effort options are per-provider suggestions, not probed from your
-                  install - if your CLI rejects one, pick the provider default or run{" "}
-                  <span className="mono text-violet-soft">vibe provider test</span>.
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] text-chalk-300">
+                    Tip: model and effort options are per-provider suggestions, not probed
+                    from your install - if your CLI rejects one, pick the provider default or
+                    test the connection.
+                  </p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => navigate({ kind: "providers" })}
+                  >
+                    Open Providers
+                  </Button>
+                </div>
               </div>
             ) : result ? (
               <ConsultAnswerView
