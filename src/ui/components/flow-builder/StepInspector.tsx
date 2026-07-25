@@ -421,6 +421,7 @@ export function StepInspector({
   // The project's discovered skills (for the per-step skills picker). Fetched
   // once; failures degrade to "only the already-selected ids are shown".
   const [availableSkills, setAvailableSkills] = useState<string[]>([]);
+  const [skillsReload, setSkillsReload] = useState(0);
   useEffect(() => {
     let alive = true;
     void api
@@ -432,7 +433,25 @@ export function StepInspector({
     return () => {
       alive = false;
     };
-  }, []);
+  }, [skillsReload]);
+  const [skillUrl, setSkillUrl] = useState("");
+  const [skillBusy, setSkillBusy] = useState(false);
+  const [skillError, setSkillError] = useState<string | null>(null);
+  async function handleFetchSkill(e: React.FormEvent): Promise<void> {
+    e.preventDefault();
+    if (!skillUrl.trim()) return;
+    setSkillBusy(true);
+    setSkillError(null);
+    try {
+      await api.fetchSkillFromUrl({ url: skillUrl.trim() });
+      setSkillUrl("");
+      setSkillsReload((n) => n + 1);
+    } catch (err) {
+      setSkillError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSkillBusy(false);
+    }
+  }
   if (!step) return null;
 
   // Effective values fold the draft over the saved step so the inputs
@@ -566,9 +585,33 @@ export function StepInspector({
             };
             if (all.length === 0) {
               return (
-                <div className="text-[11px] text-chalk-400">
-                  No skills found in this project (.vibestrate/skills or
-                  .claude/skills).
+                <div className="flex flex-col gap-2">
+                  <div className="text-[11px] text-chalk-400">
+                    No skills found in this project (.vibestrate/skills or
+                    .claude/skills). Fetch one from a URL:
+                  </div>
+                  <form
+                    onSubmit={(e) => void handleFetchSkill(e)}
+                    className="flex items-center gap-1.5"
+                  >
+                    <input
+                      value={skillUrl}
+                      onChange={(e) => setSkillUrl(e.target.value)}
+                      placeholder="https://…/skill.md"
+                      disabled={skillBusy}
+                      className="w-full min-w-0 flex-1 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-1.5 text-[11.5px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none disabled:opacity-50"
+                    />
+                    <button
+                      type="submit"
+                      disabled={skillBusy || !skillUrl.trim()}
+                      className="shrink-0 rounded-[10px] bg-coal-500 px-2.5 py-1.5 text-[11.5px] font-semibold text-chalk-100 transition hover:bg-coal-400 disabled:opacity-50"
+                    >
+                      {skillBusy ? "Fetching…" : "Fetch"}
+                    </button>
+                  </form>
+                  {skillError ? (
+                    <div className="text-[10.5px] text-rose-300">{skillError}</div>
+                  ) : null}
                 </div>
               );
             }
