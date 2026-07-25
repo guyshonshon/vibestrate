@@ -458,7 +458,7 @@ function RunCard({
         </div>
       ) : (
         <div className="mt-2.5 flex items-center gap-2 text-[11.5px] text-chalk-400">
-          <span className="rounded-md bg-coal-500 px-2 py-0.5 font-medium" style={{ color: TONE_COLOR[meta.tone] }}>
+          <span className="rounded-[6px] bg-coal-500 px-2 py-0.5 font-medium" style={{ color: TONE_COLOR[meta.tone] }}>
             {meta.label}
           </span>
           {run.branchName ? (

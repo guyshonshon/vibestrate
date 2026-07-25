@@ -101,7 +101,7 @@ export function ToneDot({ tone = "violet" }: { tone?: ChipTone }) {
 
 export function KBD({ children }: { children: ReactNode }) {
   return (
-    <kbd className="mono inline-flex items-center justify-center rounded-md border border-[color:var(--line)] bg-coal-500 px-1.5 py-[1px] text-[10.5px] text-chalk-300 leading-none h-[18px] min-w-[18px]">
+    <kbd className="mono inline-flex items-center justify-center rounded-[6px] border border-[color:var(--line)] bg-coal-500 px-1.5 py-[1px] text-[10.5px] text-chalk-300 leading-none h-[18px] min-w-[18px]">
       {children}
     </kbd>
   );

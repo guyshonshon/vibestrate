@@ -106,7 +106,7 @@ export function MiniBars({
       {values.map((v, i) => (
         <span
           key={i}
-          className={cn("w-[6px] rounded-sm", cls[tone])}
+          className={cn("w-[6px] rounded-[6px]", cls[tone])}
           style={{
             height: `${(v / max) * (height - 4) + 4}px`,
             opacity: 0.55 + (i / values.length) * 0.45,

@@ -134,7 +134,7 @@ export function ActivityList({ events, max = 6 }: { events: VibestrateEvent[]; m
       {evs.map((e, i) => (
         <div key={i} className="flex items-center gap-3 rounded-[12px] bg-coal-500/40 px-3.5 py-2.5">
           <span className="shrink-0 font-mono text-[10.5px] text-chalk-400">{clock(e.timestamp)}</span>
-          <span className="shrink-0 rounded-md bg-coal-500 px-1.5 py-px font-mono text-[10.5px] font-medium text-chalk-400">
+          <span className="shrink-0 rounded-[6px] bg-coal-500 px-1.5 py-px font-mono text-[10.5px] font-medium text-chalk-400">
             {e.type}
           </span>
           <span className="min-w-0 flex-1 truncate text-[12.5px] text-chalk-300">{e.message}</span>

@@ -368,7 +368,7 @@ function SubItem({
     >
       <span>{label}</span>
       {badge ? (
-        <span className={cn("rounded-md px-1.5 py-px text-[11px] font-bold", badgeTone[badge.tone])}>
+        <span className={cn("rounded-[6px] px-1.5 py-px text-[11px] font-bold", badgeTone[badge.tone])}>
           {badge.n}
         </span>
       ) : null}

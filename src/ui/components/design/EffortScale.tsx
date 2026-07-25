@@ -26,7 +26,7 @@ export function EffortScale({
 
   const pill = (level: string, ultra = false) =>
     cn(
-      "flex-1 rounded-md px-1.5 py-1 text-[11px] leading-none transition-colors text-center",
+      "flex-1 rounded-[8px] px-1.5 py-1 text-[11px] leading-none transition-colors text-center",
       value === level
         ? "bg-violet-soft text-coal-900"
         : ultra
@@ -37,7 +37,7 @@ export function EffortScale({
 
   return (
     <div>
-      <div className="flex items-center justify-between px-0.5 text-[9.5px] uppercase tracking-[0.16em] text-chalk-400">
+      <div className="flex items-center justify-between px-0.5 text-[9.5px] font-medium text-violet-soft">
         <span>Faster</span>
         <span>Smarter</span>
       </div>

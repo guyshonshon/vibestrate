@@ -43,7 +43,7 @@ function Legend({ swatch, label }: { swatch: string; label: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-chalk-300">
       <span
-        className="h-2.5 w-2.5 rounded-sm"
+        className="h-2.5 w-2.5 rounded-[6px]"
         style={{ background: swatch }}
       />{" "}
       {label}

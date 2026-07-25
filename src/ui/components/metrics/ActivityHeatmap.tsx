@@ -52,7 +52,7 @@ export function ActivityHeatmapPanel({
             {[0.06, 0.18, 0.34, 0.5, 0.7, 0.9].map((o, i) => (
               <span
                 key={i}
-                className="h-3.5 w-3.5 rounded-sm"
+                className="h-3.5 w-3.5 rounded-[6px]"
                 style={{ background: `${CSS.violet}`, opacity: o }}
               />
             ))}
@@ -93,7 +93,7 @@ export function ActivityHeatmapPanel({
                       return (
                         <span
                           key={h}
-                          className="aspect-square cursor-default rounded-sm border border-[color:var(--line-soft)] transition-transform hover:scale-110"
+                          className="aspect-square cursor-default rounded-[6px] border border-[color:var(--line-soft)] transition-transform hover:scale-110"
                           style={{ background: CSS.violet, opacity: op }}
                           onMouseEnter={(e) => {
                             const cr = ref.current?.getBoundingClientRect();
