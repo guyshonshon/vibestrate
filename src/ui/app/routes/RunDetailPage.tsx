@@ -7,6 +7,7 @@ import {
 } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { LoadingState } from "../../components/design/ErrorState.js";
+import { PageShell } from "../../components/layout/PageShell.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { navigate, type ReplayFocus } from "../App.js";
 import type {
@@ -247,7 +248,7 @@ export function RunDetailPage({
     ((specUpQuestions.length ?? 0) > 0 || (specUpMeta?.coverageComplete ?? false));
   if (awaitingSpecUpAnswers) {
     return (
-      <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-12 flex flex-col gap-5">
+      <PageShell className="deep-scene relative z-10 mx-auto max-w-[1520px] flex flex-col gap-5">
         <RunHeaderV3
           run={run}
           onBack={() => navigate({ kind: "mission" })}
@@ -266,12 +267,12 @@ export function RunDetailPage({
           coverageComplete={specUpMeta?.coverageComplete ?? false}
           onSubmitted={(nextRunId) => navigate({ kind: "run", runId: nextRunId })}
         />
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-12 flex flex-col gap-5">
+    <PageShell className="deep-scene relative z-10 mx-auto max-w-[1520px] flex flex-col gap-5">
       <RunHeaderV3
         run={run}
         onBack={() => navigate({ kind: "mission" })}
@@ -548,7 +549,7 @@ export function RunDetailPage({
           )}
         </div>
       </section>
-    </div>
+    </PageShell>
   );
 }
 
