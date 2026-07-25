@@ -37,9 +37,14 @@ export function useToast(dismissAfterMs = 3200): {
   return { toast, showToast, setToast };
 }
 
-// The default container: a floating chip pinned to the bottom-right corner.
+// The default container: a floating chip pinned to the bottom-right corner,
+// held clear of the consult dock. The dock (ConsultDock, `fixed bottom-5
+// right-5 z-40`) is mounted on every route but /consult and reaches 82px in
+// from the right edge, so a chip at `right-4` rendered *underneath* it - the
+// app's success/failure feedback, hidden by permanent chrome. `right-24`
+// clears the dock; do not pull it back to the corner without moving the dock.
 const FLOATING_FRAME =
-  "fixed bottom-4 right-4 z-30 flex items-center gap-2 rounded-[12px] border px-3.5 py-2 text-[12.5px] shadow-2xl";
+  "fixed bottom-4 right-24 z-30 flex items-center gap-2 rounded-[12px] border px-3.5 py-2 text-[12.5px] shadow-2xl";
 
 // Floating chips sit on the page and take the brighter text (-200); inline
 // strips sit inside a header/section and take the softer text (-300) plus
