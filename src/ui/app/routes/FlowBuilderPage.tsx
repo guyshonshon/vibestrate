@@ -32,6 +32,7 @@ import { Select } from "../../components/design/Select.js";
 import { StepKindLegend } from "../../components/design/StepKindLegend.js";
 import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
+import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { Breadcrumbs } from "../../components/layout/Breadcrumbs.js";
 import { extractFlowFromYaml, renderFlowYaml } from "../../lib/flow-yaml.js";
@@ -139,7 +140,30 @@ export function FlowBuilderPage({
   const applyingHist = useRef(false);
   const [histVer, setHistVer] = useState(0);
   // Themed confirm dialog for the destructive / discard actions.
-  const [confirm, setConfirm] = useState<"delete" | "restore" | null>(null);
+  // Consent for the destructive/discard actions goes through the shared
+  // dialog (design/ConfirmDialog) rather than a second copy of the same
+  // component living in this file.
+  const { confirm } = useConfirm();
+
+  const askDelete = async (): Promise<void> => {
+    const ok = await confirm({
+      title: "Delete this flow?",
+      message: `Delete the project flow "${selected?.label ?? ""}"? This removes .vibestrate/flows/${selected?.id ?? ""}/ and can't be undone.`,
+      confirmLabel: "Delete flow",
+      danger: true,
+    });
+    if (ok) await handleDelete();
+  };
+
+  const askRestore = async (): Promise<void> => {
+    const ok = await confirm({
+      title: "Restore the saved flow?",
+      message:
+        "Discard all unsaved edits and restore this flow to its last saved state. You can still undo the restore afterwards.",
+      confirmLabel: "Restore",
+    });
+    if (ok) restore();
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -594,7 +618,7 @@ export function FlowBuilderPage({
                   variant="ghost"
                   size="sm"
                   disabled={!dirty}
-                  onClick={() => setConfirm("restore")}
+                  onClick={() => void askRestore()}
                   title="Discard all unsaved edits and restore the saved flow"
                   iconLeft={<RotateCcw className="h-3.5 w-3.5" strokeWidth={1.8} />}
                 >
@@ -630,7 +654,7 @@ export function FlowBuilderPage({
                 size="sm"
                 disabled={deleting}
                 iconLeft={<Trash2 className="h-3 w-3" strokeWidth={1.7} />}
-                onClick={() => setConfirm("delete")}
+                onClick={() => void askDelete()}
                 title="Delete this project flow"
                 className="!text-rose-300/90 hover:!text-rose-200"
               >
@@ -908,78 +932,7 @@ export function FlowBuilderPage({
         />
       ) : null}
 
-      {confirm === "delete" ? (
-        <ConfirmDialog
-          title="Delete this flow?"
-          message={`Delete the project flow "${selected?.label ?? ""}"? This removes .vibestrate/flows/${selected?.id ?? ""}/ and can't be undone.`}
-          confirmLabel="Delete flow"
-          danger
-          onConfirm={() => {
-            setConfirm(null);
-            void handleDelete();
-          }}
-          onCancel={() => setConfirm(null)}
-        />
-      ) : confirm === "restore" ? (
-        <ConfirmDialog
-          title="Restore the saved flow?"
-          message="Discard all unsaved edits and restore this flow to its last saved state. You can still undo the restore afterwards."
-          confirmLabel="Restore"
-          onConfirm={() => {
-            setConfirm(null);
-            restore();
-          }}
-          onCancel={() => setConfirm(null)}
-        />
-      ) : null}
     </PageShell>
   );
 }
 
-// A small themed confirm dialog - the in-app replacement for window.confirm,
-// used to gate the destructive (Delete) and discard (Restore) actions.
-// Portaled to <body> so its fixed overlay is relative to the viewport, not the
-// transformed `.fade-up` page root (which would push it off-screen).
-function ConfirmDialog({
-  title,
-  message,
-  confirmLabel,
-  danger,
-  onConfirm,
-  onCancel,
-}: {
-  title: string;
-  message: string;
-  confirmLabel: string;
-  danger?: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4"
-      onClick={onCancel}
-    >
-      <div
-        className="w-full max-w-[420px] rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-[15px] font-bold text-chalk-100">{title}</h2>
-        <p className="mt-2 text-[12.5px] leading-[1.55] text-chalk-300">{message}</p>
-        <div className="mt-4 flex items-center justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button
-            variant={danger ? "danger" : "primary"}
-            size="sm"
-            onClick={onConfirm}
-          >
-            {confirmLabel}
-          </Button>
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
-}
