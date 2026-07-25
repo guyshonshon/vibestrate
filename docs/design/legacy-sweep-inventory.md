@@ -23,6 +23,78 @@ this page, is what keeps them from coming back.
 | Grey `·` meta lines | 8 | **4, all verified legitimate** |
 | Forked flow cards | 3 | **1 shared `design/FlowCard`** |
 
+## Every file changed (87 in src/ui, +2,779 / -2,287)
+
+Generated from `git diff --name-status main..design/legacy-sweep`.
+
+**Pages (14)** - `MissionControlPage`, `RunDetailPage`, `RunComposePage`, `RunsPage`,
+`FlowsPage`, `FlowBuilderPage`, `BoardPage`, `ProposalsPage`, `ProfilesPage`,
+`ProjectPage`, `WorkspacePage`, `InitScreen`, `InitGate`, `App`.
+
+**Design layer** - `FlowCard` (new; retired 3 forks), `ConfirmDialog` +
+`confirm-controller` (new), `Chip`, `EffortScale`, `ErrorState`, `HeroCard`,
+`Sparkline`, `Terminal`, `useToast`. `Brand` deleted (dead).
+
+**Runs** - `LiveTimeline`, `LiveOutputPanel`, `RunGapQuestions`,
+`SuggestionsPanel`, `ReviewPassPanel`, `ReviewFindingsPanel`, `RunTree`,
+`SpecUpReview`, `StepsInspector`, `SupervisorPanel`, `SchedulerQueuePanel`,
+`RunHeaderV3`, `InspectorTabs`.
+
+**Layout/shell** - `AppShell`, `Sidebar`, `PanelBoard`, `Breadcrumbs`,
+`CliHintOverlay`, `HelpOverlay` (content rewritten).
+
+**Git** - `MergeView`, `MergePlannerPanel`, `ConflictResolver`, `DiffViewer`,
+`ChangedFilesList`.
+
+**Tasks/board** - `ChecklistSection`, `DependenciesSection`, `FilesSection`,
+`StepDetailDrawer`, `TaskGitActivity`, `BoardColumn`, `MicroStepPipeline`.
+
+**Metrics** - `ActivityHeatmap`, `BudgetControl`, `LeaderboardTable`, `RunsPanel`.
+
+**Control (kiosk route)** - `RunControlPage`, `viz`.
+
+**Other** - `ArtifactList`, `FileTreeView`, `FileViewer`,
+`ProfileMaintenancePanel`, `ConsultDock`, `RoleCard`, `MissionComposer`,
+`AssistPopover`, `TourOverlay`, `LedgerView`, `ProjectParamsPanel`,
+`ReplayPanel`, `StepInspector`, `TerminalPanel`, `FlowGraph`. `WorkflowTimeline`
+and `ActiveRoleCard` deleted (dead - no consumers anywhere in src/tests/scripts/docs).
+
+Plus `index.css`, `main.tsx`, and 6 `lib/` files.
+
+## Browser-native dialogs: all 21 replaced
+
+`window.confirm`/`window.prompt` rendered in the browser's chrome, could not be
+styled, and every one gated a destructive action. Replaced by
+`design/ConfirmDialog`, whose settlement rules live in `confirm-controller.ts`
+(pure, unit-tested) and FAIL CLOSED: `true` only via an explicit accept; cancel,
+Escape, backdrop, teardown and being superseded all decline; calling outside the
+provider throws rather than defaulting.
+
+Two real bugs surfaced during the migration:
+
+1. **Four consent gates failed OPEN.** `typeof window !== "undefined" &&
+   !window.confirm(...)` skips its `return` when `window` is undefined, and
+   `typeof window === "undefined" || window.confirm(...)` yields `true` - both
+   let the destructive action run unconfirmed. Guards removed; the new dialog has
+   no `window` dependency.
+2. **The replacement was not actually modal.** `window.confirm` blocked the event
+   loop, so the app's global hotkeys could not fire; the in-app dialog does not
+   block, and those handlers assumed it did. `?` opened help over a live gate,
+   `g h` navigated away mid-await, and Cmd-K opened the run switcher *under* the
+   scrim and stole focus into an invisible input. Keys are now swallowed at
+   capture while a gate is pending (scoped so the prompt field keeps its own),
+   and the dialog sits at `z-[110]`, above `HelpOverlay`'s `z-[100]`.
+
+## Verification
+
+`tests/ui-design-drift.test.ts` fails the build on any retired pattern
+reappearing. `tests/ui-confirm-controller.test.ts` pins the fail-closed consent
+rules. Both mutation-checked in each direction.
+
+DOM-level behaviour of the dialog (Escape, backdrop, focus, z-order) is **not**
+covered by a test - this repo has no jsdom and none was added for it. Verified by
+reading and by an adversarial review that checked z-order in a real browser.
+
 ## The three systemic findings, and what they turned out to be
 
 1. **An orphaned token system was live.** `RunTree.tsx` and `SpecUpReview.tsx`
