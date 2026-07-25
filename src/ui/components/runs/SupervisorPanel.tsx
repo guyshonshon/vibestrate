@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, ShieldCheck } from "lucide-react";
 import { Chip } from "../design/Chip.js";
+import { StatTile } from "../design/StatTile.js";
 import { relTime } from "../design/format.js";
 import type {
   EngagementEntry,
@@ -230,21 +231,30 @@ export function SupervisorPanel({
       ) : null}
 
       {decision ? (
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[12px] bg-coal-500/40 px-3 py-2 text-[12px]">
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-[12px] bg-coal-500/40 px-3 py-2">
           <Chip tone={decision.recommendation === "merge-ready" ? "emerald" : "amber"}>
             arbitration: {decision.recommendation ?? "needs-human"}
           </Chip>
-          <span className="mono text-[10.5px] text-chalk-400">
-            {findings.length} finding{findings.length === 1 ? "" : "s"}
-            {findings.length > 0
-              ? ` (${sevCount("high")}H/${sevCount("medium")}M/${sevCount("low")}L)`
-              : ""}
-            {(decision.disagreementFindingIds?.length ?? 0) > 0
-              ? ` · ${decision.disagreementFindingIds!.length} disagreement(s)`
-              : ""}
-          </span>
+          <StatTile
+            value={findings.length}
+            label={findings.length === 1 ? "finding" : "findings"}
+          />
+          {findings.length > 0 ? (
+            <StatTile
+              value={`${sevCount("high")}H/${sevCount("medium")}M/${sevCount("low")}L`}
+              label="severity"
+              tone={sevCount("high") > 0 ? "rose" : "default"}
+            />
+          ) : null}
+          {(decision.disagreementFindingIds?.length ?? 0) > 0 ? (
+            <StatTile
+              value={decision.disagreementFindingIds!.length}
+              label="disagreements"
+              tone="amber"
+            />
+          ) : null}
           {decision.requiredHumanActions?.length ? (
-            <span className="text-amber-soft">
+            <span className="text-[12px] text-amber-soft">
               needs you: {decision.requiredHumanActions.join("; ")}
             </span>
           ) : null}

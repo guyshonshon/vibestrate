@@ -166,7 +166,7 @@ export function RunControlPage({ runId }: { runId: string }) {
         </div>
 
         <div className={`mt-4 ${card}`}>
-          <h2 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-violet-vivid">Activity</h2>
+          <h2 className={`mb-3 ${lbl}`}>Activity</h2>
           <ActivityList events={events} max={10} />
         </div>
       </div>

@@ -99,7 +99,7 @@ function SummaryRow({
         {entity ? <EntityIcon entity={entity} size={15} /> : icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-violet-vivid">
+        <span className="block text-[10px] font-semibold text-violet-vivid">
           {label}
         </span>
         <span className="block truncate text-[13px] font-semibold text-chalk-100">{value}</span>
@@ -276,7 +276,7 @@ function LaunchPanel({
       <div className="flex items-start gap-3">
         <ConsultOrb size={38} state={terminal ? "idle" : "thinking"} />
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-violet-vivid">
+          <div className="text-[10px] font-semibold text-violet-vivid">
             {terminal ? `Run ${status.replace(/_/g, " ")}` : "Launching run"}
           </div>
           <div className="text-[15px] font-bold text-chalk-100">{statusMessage(status)}</div>
@@ -645,7 +645,7 @@ export function MissionComposer() {
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-coal-800 text-chalk-300">
                       <EntityIcon entity="persona" size={15} />
                     </span>
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-violet-vivid">
+                    <span className="text-[10px] font-semibold text-violet-vivid">
                       Supervisor
                     </span>
                   </div>

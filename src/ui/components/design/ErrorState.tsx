@@ -68,7 +68,7 @@ export function ErrorState({
   compact = false,
   className,
 }: {
-  /** Small rose eyebrow above the headline (e.g. "Error 404"). Full mode only. */
+  /** Small rose label above the headline (e.g. "Error 404"). Full mode only. */
   kicker?: ReactNode;
   title: ReactNode;
   /** Technical message (path, status line) - mono + muted, only when it adds info. */
@@ -119,7 +119,7 @@ export function ErrorState({
     >
       <div className="w-full max-w-[460px]">
         {kicker ? (
-          <div className="text-[12.5px] font-semibold uppercase tracking-[0.1em] text-rose-300">
+          <div className="text-[12.5px] font-semibold text-rose-300">
             {kicker}
           </div>
         ) : null}
