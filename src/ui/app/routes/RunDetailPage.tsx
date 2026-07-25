@@ -53,6 +53,8 @@ import {
 } from "../../lib/run-outcome.js";
 import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
 import { Select } from "../../components/design/Select.js";
+import { StatTile } from "../../components/design/StatTile.js";
+import { SegmentedControl } from "../../components/design/SegmentedControl.js";
 import type { InspectorTabId } from "../../components/layout/inspector-tabs.js";
 
 const POLL_MS = 2000;
@@ -512,18 +514,14 @@ export function RunDetailPage({
                      * a generated file is viewable HERE, in the worktree it
                      * actually lives in, without leaving the run screen. */}
                     {selectedFile ? (
-                      <div className="inline-flex rounded-[10px] border border-[color:var(--line)] p-0.5 text-[11.5px]">
-                        {(["diff", "file"] as const).map((m) => (
-                          <button
-                            key={m}
-                            type="button"
-                            onClick={() => setFileViewMode(m)}
-                            className={cnFileTab(fileViewMode === m)}
-                          >
-                            {m === "diff" ? "Diff" : "File"}
-                          </button>
-                        ))}
-                      </div>
+                      <SegmentedControl
+                        value={fileViewMode}
+                        onChange={(v) => setFileViewMode(v)}
+                        options={[
+                          { value: "diff", label: "Diff" },
+                          { value: "file", label: "File" },
+                        ]}
+                      />
                     ) : null}
                     {fileViewMode === "file" && selectedFile ? (
                       <WorktreeFileView runId={runId} filePath={selectedFile} />
@@ -552,12 +550,6 @@ export function RunDetailPage({
       </section>
     </div>
   );
-}
-
-function cnFileTab(active: boolean): string {
-  return active
-    ? "rounded-[8px] bg-coal-500 px-2 py-0.5 text-chalk-100"
-    : "rounded-[8px] px-2 py-0.5 text-chalk-300 hover:text-chalk-100";
 }
 
 function ActiveRolePanel({
@@ -608,8 +600,8 @@ function ActiveRolePanel({
         </div>
         <RunStatusBadge status={run.status} compact />
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[color:var(--line-soft)] pt-3 text-[12px]">
-        <Stat
+      <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[color:var(--line-soft)] pt-3">
+        <StatTile
           label={tokensEstimated ? "Tokens (est)" : "Tokens"}
           value={
             totalTokens > 0
@@ -617,7 +609,7 @@ function ActiveRolePanel({
               : "-"
           }
         />
-        <Stat
+        <StatTile
           label={costEstimated ? "Cost (est)" : "Cost"}
           value={
             totalCost !== null
@@ -625,24 +617,15 @@ function ActiveRolePanel({
               : "-"
           }
         />
-        <Stat
+        <StatTile
           label="Tool calls"
           value={totalToolCalls > 0 ? String(totalToolCalls) : "-"}
         />
-        <Stat
+        <StatTile
           label="Provider calls"
           value={String(metrics?.totalProviderCalls ?? 0)}
         />
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-[10.5px] text-chalk-400">{label}</div>
-      <div className="mono num-tabular text-[15px] text-chalk-100">{value}</div>
     </div>
   );
 }
@@ -1120,24 +1103,6 @@ function LaneCell({
   );
 }
 
-/** Inline label + value pair for the assurance meta strip (supervisor, isolation). */
-function MetaPair({
-  label,
-  value,
-  title,
-}: {
-  label: string;
-  value: string;
-  title?: string;
-}) {
-  return (
-    <span className="flex items-baseline gap-1.5" title={title}>
-      <span className="text-chalk-400">{label}</span>
-      <span className="font-medium text-chalk-300">{value}</span>
-    </span>
-  );
-}
-
 /** Why the orchestrator chose this Flow (only for selected runs). */
 
 /** Where the run's work lives. Answers "how do I get into that git
@@ -1211,8 +1176,6 @@ function AssuranceBadge({
   const a = assurance;
   const vm = VERDICT_META[a.verdict];
   const Icon = vm.icon;
-  const actionCls =
-    "h-7 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-700 px-2.5 text-[11.5px] font-semibold text-chalk-100 transition hover:bg-coal-600";
   const hasMeta =
     (a.coverage?.toleratedStepFailures ?? 0) > 0 ||
     !!a.supervisor?.persona ||
@@ -1240,19 +1203,19 @@ function AssuranceBadge({
         {onViewReview || onViewValidation ? (
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
             {onViewReview ? (
-              <button type="button" onClick={onViewReview} className={actionCls}>
+              <Button variant="secondary" size="sm" onClick={onViewReview}>
                 View review
-              </button>
+              </Button>
             ) : null}
             {onViewReview && onRerunWithFixes ? (
-              <button type="button" onClick={onRerunWithFixes} className={actionCls}>
+              <Button variant="secondary" size="sm" onClick={onRerunWithFixes}>
                 Re-run with fixes
-              </button>
+              </Button>
             ) : null}
             {onViewValidation ? (
-              <button type="button" onClick={onViewValidation} className={actionCls}>
+              <Button variant="secondary" size="sm" onClick={onViewValidation}>
                 View validation
-              </button>
+              </Button>
             ) : null}
           </div>
         ) : null}
@@ -1271,26 +1234,32 @@ function AssuranceBadge({
       </div>
 
       {hasMeta ? (
-        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5 rounded-[12px] bg-coal-500/40 px-3 py-2 text-[11px]">
+        <div className="mt-2 flex flex-wrap gap-2">
           {(a.coverage?.toleratedStepFailures ?? 0) > 0 ? (
-            <MetaPair
-              label="Coverage"
-              value={`${a.coverage.toleratedStepFailures} tolerated failure${a.coverage.toleratedStepFailures === 1 ? "" : "s"}`}
-            />
+            <div
+              title={`${a.coverage.toleratedStepFailures} tolerated failure${a.coverage.toleratedStepFailures === 1 ? "" : "s"}`}
+            >
+              <StatTile
+                label="Coverage"
+                value={`${a.coverage.toleratedStepFailures} tolerated failure${a.coverage.toleratedStepFailures === 1 ? "" : "s"}`}
+              />
+            </div>
           ) : null}
           {a.supervisor?.persona ? (
-            <MetaPair
-              label="Supervisor"
-              value={`${a.supervisor.persona} (${a.supervisor.independence})`}
-              title="The supervisor's review independence is honest, not a confidence source - single-profile is a same-model self-check that can only lower confidence."
-            />
+            <div title="The supervisor's review independence is honest, not a confidence source - single-profile is a same-model self-check that can only lower confidence.">
+              <StatTile
+                label="Supervisor"
+                value={`${a.supervisor.persona} (${a.supervisor.independence})`}
+              />
+            </div>
           ) : null}
           {a.isolation && a.isolation.posture !== "none" ? (
-            <MetaPair
-              label="Isolation"
-              value={`${a.isolation.posture}${isoBits.length ? ` · ${isoBits.join(" · ")}` : ""}`}
-              title="How confined the run's agents actually were, derived from per-turn provider evidence (not config). Informational - it never affects the verdict; the default is the worktree + diff gate."
-            />
+            <div title="How confined the run's agents actually were, derived from per-turn provider evidence (not config). Informational - it never affects the verdict; the default is the worktree + diff gate.">
+              <StatTile
+                label="Isolation"
+                value={`${a.isolation.posture}${isoBits.length ? ` · ${isoBits.join(" · ")}` : ""}`}
+              />
+            </div>
           ) : null}
         </div>
       ) : null}
