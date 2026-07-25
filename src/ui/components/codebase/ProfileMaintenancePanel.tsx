@@ -8,6 +8,7 @@ import type {
   ValidationProfileUsageEntry,
 } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
+import { useConfirm } from "../design/ConfirmDialog.js";
 
 const FIELD =
   "mono rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2 py-1 text-[11px] text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50";
@@ -28,6 +29,7 @@ export function ProfileMaintenancePanel() {
   const [history, setHistory] = useState<ProfileMigrationAudit[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { confirm } = useConfirm();
 
   // Reference-migration form state
   const [fromProfile, setFromProfile] = useState("");
@@ -122,17 +124,16 @@ export function ProfileMaintenancePanel() {
     const total =
       renamePreview.affectedSuggestions.length +
       renamePreview.affectedBundles.length;
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(
-        `Rename profile "${renamePreview.fromProfile}" → "${renamePreview.toProfile}" in project.yml AND migrate ${total} reference(s)?\n\n` +
-          `This rewrites .vibestrate/project.yml. The profile's ${renamePreview.preservedCommandCount} command(s)` +
-          (renamePreview.preservedDescription
-            ? ` and description "${renamePreview.preservedDescription}"`
-            : "") +
-          ` will be preserved. Historical validation results will NOT be rewritten.`,
-      )
-    ) {
+    const ok = await confirm({
+      title: `Rename profile "${renamePreview.fromProfile}" → "${renamePreview.toProfile}" in project.yml AND migrate ${total} reference(s)?`,
+      message:
+        `This rewrites .vibestrate/project.yml. The profile's ${renamePreview.preservedCommandCount} command(s)` +
+        (renamePreview.preservedDescription
+          ? ` and description "${renamePreview.preservedDescription}"`
+          : "") +
+        ` will be preserved. Historical validation results will NOT be rewritten.`,
+    });
+    if (!ok) {
       return;
     }
     setBusy(true);
@@ -159,13 +160,12 @@ export function ProfileMaintenancePanel() {
     const target = preview.toProfile ?? "default (clear)";
     const total =
       preview.affectedSuggestions.length + preview.affectedBundles.length;
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(
-        `Migrate ${total} record(s) from "${preview.fromProfile}" → "${target}"?\n\n` +
-          `Historical validation results are NOT rewritten. This only updates suggestion and bundle profile assignments for future validation runs.`,
-      )
-    ) {
+    const ok = await confirm({
+      title: `Migrate ${total} record(s) from "${preview.fromProfile}" → "${target}"?`,
+      message:
+        `Historical validation results are NOT rewritten. This only updates suggestion and bundle profile assignments for future validation runs.`,
+    });
+    if (!ok) {
       return;
     }
     setBusy(true);

@@ -6,6 +6,7 @@ import { Button } from "../../components/design/Button.js";
 import { SuggestInput } from "../../components/design/SuggestInput.js";
 import { EffortScale } from "../../components/design/EffortScale.js";
 import { StatTile } from "../../components/design/StatTile.js";
+import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
 import { cn } from "../../components/design/cn.js";
 import {
@@ -408,6 +409,7 @@ function ProfileCard({
   const dirty = JSON.stringify(draft) !== JSON.stringify(toDraft(profile));
   const usedBy = profile.usedBy ?? [];
   const caps = catalog[draft.provider] ?? EMPTY_CAPS;
+  const { confirm, promptText } = useConfirm();
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -434,7 +436,12 @@ function ProfileCard({
   }
 
   async function duplicate() {
-    const newId = window.prompt(`Duplicate "${profile.id}" as:`, `${profile.id}-copy`);
+    const newId = await promptText({
+      title: `Duplicate "${profile.id}" as:`,
+      initial: `${profile.id}-copy`,
+      confirmLabel: "Duplicate",
+      required: true,
+    });
     if (!newId) return;
     try {
       await api.duplicateProfile(profile.id, { newId: newId.trim() });
@@ -447,12 +454,21 @@ function ProfileCard({
 
   async function remove() {
     const inUse = usedBy.length > 0;
-    const msg = inUse
-      ? `"${profile.id}" is used by ${usedBy.length} role(s) (${usedBy
-          .map((u) => `${u.crewId}/${u.roleId}`)
-          .join(", ")}). Delete anyway? Those roles will need a new profile.`
-      : `Delete profile "${profile.id}"?`;
-    if (!window.confirm(msg)) return;
+    const ok = inUse
+      ? await confirm({
+          title: `"${profile.id}" is used by ${usedBy.length} role(s) (${usedBy
+            .map((u) => `${u.crewId}/${u.roleId}`)
+            .join(", ")}). Delete anyway?`,
+          message: "Those roles will need a new profile.",
+          confirmLabel: "Delete",
+          danger: true,
+        })
+      : await confirm({
+          title: `Delete profile "${profile.id}"?`,
+          confirmLabel: "Delete",
+          danger: true,
+        });
+    if (!ok) return;
     try {
       await api.deleteProfile(profile.id, { force: inUse });
       onFlash({ kind: "ok", text: `Deleted ${profile.id}.` });

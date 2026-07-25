@@ -9,6 +9,7 @@ import type {
 } from "../../lib/types.js";
 import { serializeRoute, type ReplayFocus } from "../../app/App.js";
 import { Button } from "../design/Button.js";
+import { useConfirm } from "../design/ConfirmDialog.js";
 import { filterReplayEvents } from "./replay-filter.js";
 
 /**
@@ -693,6 +694,7 @@ function CopyPermalinkButton({
   eventIndex: number;
 }) {
   const [copied, setCopied] = useState(false);
+  const { promptText } = useConfirm();
   async function copy() {
     // Serialize through the same helper the router uses, so the URL we
     // emit always round-trips back to this exact event selection.
@@ -709,10 +711,14 @@ function CopyPermalinkButton({
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
       // Older browsers / restricted contexts (file://, missing user
-      // gesture) can refuse the Clipboard API. Fall back to opening the
-      // URL in the location bar so the user can copy it manually - no
-      // silent failure.
-      window.prompt("Copy this link:", url);
+      // gesture) can refuse the Clipboard API. Fall back to a dialog with
+      // the link preselected in a text field so the user can still copy it
+      // by hand - no silent failure.
+      await promptText({
+        title: "Copy this link:",
+        initial: url,
+        confirmLabel: "Done",
+      });
     }
   }
   return (
