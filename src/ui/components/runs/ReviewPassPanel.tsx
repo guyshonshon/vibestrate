@@ -22,6 +22,7 @@ import { IconBtn } from "../design/IconBtn.js";
 import { Chip, type ChipTone } from "../design/Chip.js";
 import { ProfileSelect } from "./ProfileSelect.js";
 import { streamRunEvents } from "../../lib/events.js";
+import { useConfirm } from "../design/ConfirmDialog.js";
 
 type Props = {
   runId: string;
@@ -45,6 +46,7 @@ const INTENT_BTN =
  * apply / validate / revert.
  */
 export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
+  const { confirm } = useConfirm();
   const [bundles, setBundles] = useState<SuggestionBundle[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -162,11 +164,12 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
       profileOverride: null,
     };
     if (opts.autoRevertFailing) {
-      const ok =
-        typeof window === "undefined" ||
-        window.confirm(
-          `Smart apply "${b.title}": if a step's validation fails, Vibestrate will revert ONLY that step in the worktree. Earlier steps stay applied. Continue?`,
-        );
+      const ok = await confirm({
+        title: "Continue?",
+        message: `Smart apply "${b.title}": if a step's validation fails, Vibestrate will revert ONLY that step in the worktree. Earlier steps stay applied.`,
+        confirmLabel: "Smart apply",
+        danger: true,
+      });
       if (!ok) return;
     }
     setBusy(b.id);
@@ -251,10 +254,12 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
   }
   async function revert(b: SuggestionBundle) {
     if (
-      typeof window !== "undefined" &&
-      !window.confirm(
-        `Revert review pass "${b.title}" - this runs git apply -R against the worktree only. Continue?`,
-      )
+      !(await confirm({
+        title: "Continue?",
+        message: `Revert review pass "${b.title}" - this runs git apply -R against the worktree only.`,
+        confirmLabel: "Revert",
+        danger: true,
+      }))
     ) {
       return;
     }

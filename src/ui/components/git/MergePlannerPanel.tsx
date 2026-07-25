@@ -28,6 +28,7 @@ import type {
 import { Button } from "../design/Button.js";
 import { Select } from "../design/Select.js";
 import { cn } from "../design/cn.js";
+import { useConfirm } from "../design/ConfirmDialog.js";
 import { ConflictResolver } from "./ConflictResolver.js";
 import { buildIndex, isAncestor } from "./graph-math.js";
 
@@ -56,6 +57,7 @@ export function MergePlannerPanel({
   onTargetChange,
   onMergeApplied,
 }: Props) {
+  const { confirm } = useConfirm();
   const [prediction, setPrediction] = useState<GitMergePrediction | null>(null);
   const [predicting, setPredicting] = useState(false);
   const [guided, setGuided] = useState(false);
@@ -146,7 +148,15 @@ export function MergePlannerPanel({
 
   async function applyMerge() {
     if (!source || !target) return;
-    if (!window.confirm(`Merge "${source}" into "${target}"? This will modify the target branch.`)) return;
+    if (
+      !(await confirm({
+        title: `Merge "${source}" into "${target}"?`,
+        message: "This will modify the target branch.",
+        confirmLabel: "Merge",
+        danger: true,
+      }))
+    )
+      return;
     setApplying(true);
     setError(null);
     try {
@@ -163,7 +173,15 @@ export function MergePlannerPanel({
 
   async function undoMerge() {
     if (!target) return;
-    if (!window.confirm(`Undo the last merge on "${target}"? This resets the branch to its pre-merge state.`)) return;
+    if (
+      !(await confirm({
+        title: `Undo the last merge on "${target}"?`,
+        message: "This resets the branch to its pre-merge state.",
+        confirmLabel: "Undo merge",
+        danger: true,
+      }))
+    )
+      return;
     setUndoing(true);
     setError(null);
     setUndoResult(null);

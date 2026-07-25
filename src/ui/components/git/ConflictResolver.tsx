@@ -25,6 +25,7 @@ import type {
 } from "../../lib/types.js";
 import { cn } from "../design/cn.js";
 import { Button } from "../design/Button.js";
+import { useConfirm } from "../design/ConfirmDialog.js";
 
 type Props = {
   source: string;
@@ -42,6 +43,7 @@ type FileState = {
 };
 
 export function ConflictResolver({ source, target, conflictedFiles, autoPropose, onApplied }: Props) {
+  const { confirm } = useConfirm();
   const [proposal, setProposal] = useState<GitResolutionProposal | null>(null);
   const [fileStates, setFileStates] = useState<FileState[]>([]);
   const [proposing, setProposing] = useState(false);
@@ -93,7 +95,15 @@ export function ConflictResolver({ source, target, conflictedFiles, autoPropose,
   }
 
   async function applyResolved() {
-    if (!window.confirm(`Apply resolved merge of "${source}" into "${target}"? This will modify the target branch.`)) return;
+    if (
+      !(await confirm({
+        title: `Apply resolved merge of "${source}" into "${target}"?`,
+        message: "This will modify the target branch.",
+        confirmLabel: "Apply",
+        danger: true,
+      }))
+    )
+      return;
     setApplying(true);
     setError(null);
     try {

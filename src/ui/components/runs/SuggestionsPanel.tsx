@@ -28,6 +28,7 @@ import { Button } from "../design/Button.js";
 import { IconBtn } from "../design/IconBtn.js";
 import { Chip, type ChipTone } from "../design/Chip.js";
 import { FormField } from "../design/FormField.js";
+import { useConfirm } from "../design/ConfirmDialog.js";
 
 // Canonical input recipe (primitives-contract §6).
 const INPUT =
@@ -56,6 +57,7 @@ type Props = {
 };
 
 export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
+  const { confirm, promptText } = useConfirm();
   const [items, setItems] = useState<ReviewSuggestion[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -153,11 +155,12 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
     profileName?: string | null,
   ) {
     if (mode === "validate-revert") {
-      const ok =
-        typeof window === "undefined" ||
-        window.confirm(
-          `If validation fails, Vibestrate will revert the patch for "${s.title}" in the run worktree (git apply -R, never push or merge). Continue?`,
-        );
+      const ok = await confirm({
+        title: "Continue?",
+        message: `If validation fails, Vibestrate will revert the patch for "${s.title}" in the run worktree (git apply -R, never push or merge).`,
+        confirmLabel: "Apply",
+        danger: true,
+      });
       if (!ok) return;
     }
     setBusy(s.id);
@@ -216,10 +219,12 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
   }
   async function revert(s: ReviewSuggestion) {
     if (
-      typeof window !== "undefined" &&
-      !window.confirm(
-        `Revert suggestion "${s.title}" in the worktree? This runs git apply -R; the project root is never touched.`,
-      )
+      !(await confirm({
+        title: `Revert suggestion "${s.title}" in the worktree?`,
+        message: "This runs git apply -R; the project root is never touched.",
+        confirmLabel: "Revert",
+        danger: true,
+      }))
     ) {
       return;
     }
@@ -277,10 +282,10 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
 
   async function createReviewPassFromSelection() {
     if (selectedIds.length === 0) return;
-    const title = window.prompt(
-      `Title for the review pass (${selectedIds.length} suggestion${selectedIds.length === 1 ? "" : "s"}):`,
-      "Review pass",
-    );
+    const title = await promptText({
+      title: `Title for the review pass (${selectedIds.length} suggestion${selectedIds.length === 1 ? "" : "s"}):`,
+      initial: "Review pass",
+    });
     if (!title) return;
     setBusy("create-bundle");
     try {

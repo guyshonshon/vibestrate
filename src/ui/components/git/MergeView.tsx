@@ -16,6 +16,7 @@ import { Button } from "../design/Button.js";
 import { StatTile } from "../design/StatTile.js";
 import { Section } from "../layout/PageShell.js";
 import { cn } from "../design/cn.js";
+import { useConfirm } from "../design/ConfirmDialog.js";
 
 type Props = {
   /** null = hub list of merge-ready runs; set = the merge window for one run. */
@@ -266,6 +267,7 @@ function MergeWindow({
   onBack: () => void;
   onOpenRun: (runId: string) => void;
 }) {
+  const { confirm } = useConfirm();
   const [advice, setAdvice] = useState<MergeAdviceDto | null>(null);
   const [notReady, setNotReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -313,6 +315,29 @@ function MergeWindow({
     } finally {
       setBusy(null);
     }
+  }
+
+  // Extracted so the confirm await happens before act() runs, rather than
+  // inline in the button's onClick - useConfirm's confirm() is async, and
+  // act() itself must stay the fire-and-forget entry point the rest of this
+  // component uses.
+  async function confirmFinish() {
+    if (!finishable) return;
+    const ok = await confirm({
+      title: `Merge "${finishable}" into main now?`,
+      message:
+        "This runs a LOCAL git merge of the reviewed integration branch into main. Nothing is pushed. Refused if the tree is dirty, the integration is partial, or a policy objects.",
+      confirmLabel: "Merge",
+      danger: true,
+    });
+    if (!ok) return;
+    void act("finish", async () => {
+      const r = await api.finishIntegration(finishable);
+      setMsg(
+        `Merged ${r.integrationBranch} into ${r.intoBranch} @ ${r.mergedSha.slice(0, 10)} (local only - not pushed).`,
+      );
+      setFinishable(null);
+    });
   }
 
   const warnings = advice?.flags.filter((f) => f.severity === "warning") ?? [];
@@ -515,24 +540,9 @@ function MergeWindow({
                 <Button
                   size="sm"
                   disabled={busy !== null}
-                  onClick={() => {
-                    // Explicit, spelled-out confirm: this is the only place
-                    // the product touches main - locally, never pushed (P7b).
-                    if (
-                      !window.confirm(
-                        `Merge "${finishable}" into main now?\n\nThis runs a LOCAL git merge of the reviewed integration branch into main. Nothing is pushed. Refused if the tree is dirty, the integration is partial, or a policy objects.`,
-                      )
-                    ) {
-                      return;
-                    }
-                    void act("finish", async () => {
-                      const r = await api.finishIntegration(finishable);
-                      setMsg(
-                        `Merged ${r.integrationBranch} into ${r.intoBranch} @ ${r.mergedSha.slice(0, 10)} (local only - not pushed).`,
-                      );
-                      setFinishable(null);
-                    });
-                  }}
+                  // Explicit, spelled-out confirm: this is the only place the
+                  // product touches main - locally, never pushed.
+                  onClick={() => void confirmFinish()}
                   className="border border-violet-soft/40 bg-violet-soft/15 text-violet-soft hover:bg-violet-soft/25"
                 >
                   {busy === "finish" ? "Merging…" : "Complete merge to main"}
