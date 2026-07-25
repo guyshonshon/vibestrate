@@ -174,7 +174,12 @@ function Dialog({
       >
         <h2 className="text-[15px] font-bold text-chalk-100">{opts.title}</h2>
         {opts.message ? (
-          <div className="mt-2 text-[12.5px] leading-[1.55] text-chalk-300">
+          // whitespace-pre-line so a message carried over from a native
+          // dialog keeps its paragraph breaks: these strings were written for
+          // window.confirm, where "\n\n" separates the question from its
+          // consequences. In a plain div that collapses to a space and the
+          // warning reads as one run-on sentence.
+          <div className="mt-2 whitespace-pre-line text-[12.5px] leading-[1.55] text-chalk-300">
             {opts.message}
           </div>
         ) : null}
