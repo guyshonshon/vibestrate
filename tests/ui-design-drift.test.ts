@@ -1,0 +1,81 @@
+import { describe, it, expect } from "vitest";
+import { readFile, readdir } from "node:fs/promises";
+import path from "node:path";
+
+/**
+ * Design-law guardrail.
+ *
+ * `docs/design/primitives-contract.md` names a hard-no list, and a legacy sweep
+ * cleared it out of `src/ui`. Prose does not keep it cleared - every one of
+ * these came back at least once while the sweep was still running, reintroduced
+ * by hand in a file nobody thought to re-check. This test is the thing that
+ * fails the build instead, named after the invariant it defends.
+ *
+ * Adding a pattern here is only legitimate once the count is already zero.
+ * A category that still has known survivors belongs in the inventory doc
+ * (docs/design/legacy-sweep-inventory.md), not here - a failing guardrail
+ * teaches people to skip it.
+ */
+
+const UI_ROOT = path.join(process.cwd(), "src", "ui");
+
+async function tsxFiles(dir: string): Promise<string[]> {
+  const out: string[] = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...(await tsxFiles(full)));
+    else if (entry.name.endsWith(".tsx")) out.push(full);
+  }
+  return out;
+}
+
+/** Every banned pattern, with the reason a reader needs to fix it properly. */
+const BANNED: Array<{ name: string; re: RegExp; why: string }> = [
+  {
+    name: "retired token generation",
+    re: /\b(?:text|bg|border)-(?:fog|ink)-\d|vibestrate-(?:fg|fail|mono)/,
+    why: "fog-*/ink-*/vibestrate-* are the pre-coal/chalk generation. Use coal-*/chalk-*/violet-* (see src/ui/index.css).",
+  },
+  {
+    name: "undefined chalk-500",
+    re: /chalk-500/,
+    why: "Only chalk-100/200/300/400 are defined; chalk-500 silently renders as inherited colour.",
+  },
+  {
+    name: "orphaned --s-* scene variable",
+    re: /var\(--s-(?:ink|accent|danger|ok|soft|warn|glass|fg-muted|mono)/,
+    why: "These resolve only under [data-scene], which nothing sets - they render as no colour at all.",
+  },
+  {
+    name: "var(--popover)",
+    re: /var\(--popover\)/,
+    why: "Not a token in this system. Popover surfaces use bg-coal-700.",
+  },
+  {
+    name: "animate-pulse",
+    re: /animate-pulse/,
+    why: "The one banned animation - no pulsing or breathing. Use a static skeleton or the Loader2 spinner idiom.",
+  },
+];
+
+describe("UI design drift", () => {
+  it("keeps the contract's hard-no list out of src/ui", async () => {
+    const files = await tsxFiles(UI_ROOT);
+    expect(files.length).toBeGreaterThan(100); // guard against a silently empty walk
+
+    const offences: string[] = [];
+    for (const file of files) {
+      const text = await readFile(file, "utf8");
+      text.split("\n").forEach((line, i) => {
+        for (const { name, re, why } of BANNED) {
+          if (re.test(line)) {
+            offences.push(
+              `${path.relative(process.cwd(), file)}:${i + 1} [${name}] ${why}\n    ${line.trim().slice(0, 120)}`,
+            );
+          }
+        }
+      });
+    }
+    expect(offences.join("\n")).toBe("");
+  });
+});
