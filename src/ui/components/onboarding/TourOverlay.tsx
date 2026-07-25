@@ -220,9 +220,24 @@ export function TourOverlay() {
         style={{ top: cardTop, left: cardLeft, width: CARD_WIDTH }}
         className="fixed rounded-[16px] border border-[color:var(--line)] bg-coal-700 p-4 shadow-2xl shadow-black/50"
       >
-        <div className="flex items-start justify-between gap-2">
-          <div className="mono text-[11px] font-bold text-violet-soft">
-            {stepIndex + 1} of {STEPS.length}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            {/* Segmented rail mirrors mission/runPhase's PhaseRail idiom (filled
+                to current position) rather than inventing a new progress shape. */}
+            <div className="flex items-center gap-1" aria-hidden>
+              {STEPS.map((s, i) => (
+                <span
+                  key={s.id}
+                  className="h-1 flex-1 rounded-full"
+                  style={{
+                    background: i <= stepIndex ? "var(--color-violet-soft)" : "var(--color-coal-400)",
+                  }}
+                />
+              ))}
+            </div>
+            <div className="mt-1.5 text-[12.5px] font-semibold text-chalk-300">
+              <span className="text-violet-soft">{stepIndex + 1}</span> of {STEPS.length}
+            </div>
           </div>
           <button
             type="button"

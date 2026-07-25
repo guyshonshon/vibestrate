@@ -12,7 +12,7 @@ const TAG: Record<string, string> = {
   sky: "text-sky-glow",
   emerald: "text-emerald-300",
   amber: "text-amber-300",
-  fog: "text-fog-400",
+  fog: "text-chalk-400",
   rose: "text-rose-300",
 };
 
@@ -27,12 +27,12 @@ function LineRow({ line, dim = false }: { line: TerminalLine; dim?: boolean }) {
       <span
         className={cn(
           "uppercase tracking-[0.1em] w-[76px] shrink-0 text-[10px] pt-[2px]",
-          TAG[line.color ?? "fog"] ?? "text-fog-400",
+          TAG[line.color ?? "fog"] ?? "text-chalk-400",
         )}
       >
         {line.tag}
       </span>
-      <span className="text-fog-200/90 break-words min-w-0 flex-1">
+      <span className="text-chalk-300/90 break-words min-w-0 flex-1">
         {line.text}
       </span>
     </div>
@@ -83,7 +83,7 @@ export function MiniTerminal({
       <div className="absolute inset-x-0 top-0 h-px bg-violet-soft/25" />
       <div className="space-y-[3px]">
         {buf.length === 0 ? (
-          <div className="mono text-[11px] text-fog-500">
+          <div className="mono text-[11px] text-chalk-400">
             no recent events
           </div>
         ) : (
@@ -124,11 +124,11 @@ export function LiveTerminal({
             <span className="w-2 h-2 rounded-full bg-amber-300/70" />
             <span className="w-2 h-2 rounded-full bg-emerald-400/70" />
           </span>
-          <span className="mono text-[11px] text-fog-400 ml-2">{title}</span>
+          <span className="mono text-[11px] text-chalk-400 ml-2">{title}</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="mono text-[10.5px] text-fog-500 uppercase tracking-[0.14em]">
-            {paused ? "paused" : "streaming"}
+          <span className="text-[11.5px] font-medium text-chalk-400">
+            {paused ? "Paused" : "Streaming"}
           </span>
           <span
             className={cn(
@@ -142,9 +142,9 @@ export function LiveTerminal({
         {buf.map((l, i) => (
           <LineRow key={`${i}-${l.text}`} line={l} />
         ))}
-        <div className="flex items-center gap-2 mono text-[12px] text-fog-400 pt-1">
+        <div className="flex items-center gap-2 mono text-[12px] text-chalk-400 pt-1">
           <span className="text-violet-soft">›</span>
-          <span className="text-fog-300">waiting for next tool call</span>
+          <span className="text-chalk-300">waiting for next tool call</span>
           <span className="caret" />
         </div>
         <div ref={endRef} />
