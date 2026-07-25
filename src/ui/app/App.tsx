@@ -380,7 +380,7 @@ export function App() {
       ) : route.kind === "settings" ? (
         <Suspense
           fallback={
-            <div className="px-4 py-6 text-[11.5px] text-vibestrate-fg-muted">
+            <div className="px-4 py-6 text-[11.5px] text-chalk-300">
               Loading settings…
             </div>
           }
