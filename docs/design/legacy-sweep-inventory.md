@@ -23,7 +23,7 @@ this page, is what keeps them from coming back.
 | Grey `·` meta lines | 8 | **4, all verified legitimate** |
 | Forked flow cards | 3 | **1 shared `design/FlowCard`** |
 
-## Every file changed (87 in src/ui, +2,779 / -2,287)
+## Every file changed (86 in src/ui, +2,801 / -2,253)
 
 Generated from `git diff --name-status main..design/legacy-sweep`.
 
@@ -38,7 +38,7 @@ Generated from `git diff --name-status main..design/legacy-sweep`.
 **Runs** - `LiveTimeline`, `LiveOutputPanel`, `RunGapQuestions`,
 `SuggestionsPanel`, `ReviewPassPanel`, `ReviewFindingsPanel`, `RunTree`,
 `SpecUpReview`, `StepsInspector`, `SupervisorPanel`, `SchedulerQueuePanel`,
-`RunHeaderV3`, `InspectorTabs`.
+`RunHeaderV3`.
 
 **Layout/shell** - `AppShell`, `Sidebar`, `PanelBoard`, `Breadcrumbs`,
 `CliHintOverlay`, `HelpOverlay` (content rewritten).
