@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { ListTodo, RotateCcw, X } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { ConsultOrb } from "../consult/ConsultOrb.js";
+import { IconBtn } from "../design/IconBtn.js";
 import type { RoadmapItem, RunState, TaskSuggestion } from "../../lib/types.js";
 
 const FINISHED = new Set(["merge_ready", "failed", "aborted"]);
@@ -81,14 +82,9 @@ export function AssistPopover({
             <div className="text-[13px] font-bold text-chalk-100">Need a starting point?</div>
             <div className="text-[11px] text-chalk-400">Here&apos;s what I&apos;d pick up.</div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="grid h-6 w-6 place-items-center rounded-md text-chalk-400 transition hover:bg-coal-500 hover:text-chalk-100"
-          >
+          <IconBtn variant="plain" title="Close" onClick={onClose}>
             <X className="h-3.5 w-3.5" />
-          </button>
+          </IconBtn>
         </div>
 
         {recent.length > 0 ? (
@@ -99,6 +95,10 @@ export function AssistPopover({
               </span>
               <span className="h-px flex-1 bg-[color:var(--line-soft)]" />
             </div>
+            {/* Rows stay raw <button>s: two-line title+hint content in a
+                variable-height card, which design/Button (fixed h-7/h-9/h-11,
+                centered content) can't render - this is the row/chip recipe
+                (contract §5), not a button. */}
             <div className="flex flex-col gap-1">
               {recent.map((r) => (
                 <button
