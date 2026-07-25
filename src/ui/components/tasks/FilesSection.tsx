@@ -104,7 +104,9 @@ function FileLink({
   redacted,
 }: {
   path: string;
-  status?: string;
+  /** Narrowed to the git status union rather than a bare string so the tone
+   *  lookup below is exhaustive - a new status has to be given a colour. */
+  status?: ChangedFile["status"];
   redacted?: boolean;
 }) {
   return (
