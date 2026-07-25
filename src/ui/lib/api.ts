@@ -54,6 +54,7 @@ export type {
   ProviderRow,
   LedgerEntryDto,
   LedgerStateDto,
+  ManualLedgerEntryInput,
   CodebaseAnnotation,
   FlowStepKind,
   FlowApprovalRiskLevel,

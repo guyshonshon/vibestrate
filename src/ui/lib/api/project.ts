@@ -7,6 +7,8 @@ import type {
 } from "../types.js";
 import type {
   LedgerStateDto,
+  LedgerEntryDto,
+  ManualLedgerEntryInput,
 } from "./types.js";
 
 export const projectApi = {
@@ -82,5 +84,14 @@ export const projectApi = {
   /** The project continuity ledger - folded state + a plain-text brief. */
   async getLedger(): Promise<{ state: LedgerStateDto; brief: string }> {
     return jsonGet("/api/ledger");
+  },
+  /** Hand-add a ledger entry - the dashboard "Add entry" form's write path
+   *  (same service `vibe ledger add` uses). Returns the server-created entry. */
+  async addLedgerEntry(input: ManualLedgerEntryInput): Promise<LedgerEntryDto> {
+    const r = await jsonPost<{ ok: true; entry: LedgerEntryDto }>(
+      "/api/ledger",
+      input,
+    );
+    return r.entry;
   },
 };

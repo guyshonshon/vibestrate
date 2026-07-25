@@ -277,6 +277,20 @@ export type LedgerStateDto = {
   flags: LedgerEntryDto[];
 };
 
+/** Fields a human can supply when hand-adding a ledger entry (POST
+ *  /api/ledger). Mirrors manualLedgerEntryInputSchema server-side: no
+ *  id/createdAt/schemaVersion/evidence/sourceRunId/supersedes/relatesTo - the
+ *  server always generates or omits those, a hand entry has no run or prior
+ *  entry to cite. `flag` and `superseded` are excluded for the same reason
+ *  the server schema excludes them. */
+export type ManualLedgerEntryInput = {
+  kind: "shipped" | "intent" | "decision" | "mention" | "residual";
+  title: string;
+  detail?: string | null;
+  status?: "open" | "shipped" | "abandoned";
+  tags?: string[];
+};
+
 export type CodebaseAnnotation = {
   id: string;
   path: string;
