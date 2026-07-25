@@ -471,8 +471,8 @@ export function RunDetailPage({
       />
 
       <section data-screen-label="05 Inspector">
-        <div className="mb-2.5 flex items-baseline justify-between">
-          <span className="mono text-[11px] text-chalk-400">Inspect</span>
+        <div className="mb-2.5 flex items-center justify-between">
+          <h2 className="text-[18px] font-bold text-violet-vivid">Inspect</h2>
           <InspectorTabsV3 current={tab} setCurrent={setTab} />
         </div>
         <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-3.5">
@@ -580,9 +580,9 @@ function ActiveRolePanel({
   const stepsDone = agents.filter((a) => a.endedAt).length;
   return (
     <div>
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <span className="mono text-[11px] text-chalk-400">Live metrics</span>
-        <span className="mono text-[11px] text-chalk-400 whitespace-nowrap">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-[18px] font-bold text-violet-vivid">Live metrics</h2>
+        <span className="text-[12px] font-medium text-chalk-300 whitespace-nowrap">
           {stepsDone} step{stepsDone === 1 ? "" : "s"} done
         </span>
       </div>
@@ -839,7 +839,7 @@ function RerunDialog({
       >
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="mono text-[11px] text-chalk-400">Re-run with changes</div>
+            <div className="text-[12px] font-semibold text-violet-soft">Re-run with changes</div>
             <h2 className="mt-0.5 text-[18px] font-semibold text-chalk-100">
               {startFrom === "scratch"
                 ? "New run from this task"
@@ -864,7 +864,7 @@ function RerunDialog({
                 : "Forks a fresh run that restores this run's code snapshot into a new worktree and resumes from there. The preview below shows exactly what the restore writes. The original run is untouched."}
         </p>
         <div className="mt-3">
-          <div className="mono mb-1 text-[11px] text-chalk-400">Start from</div>
+          <div className="mb-1 text-[12px] font-semibold text-violet-soft">Start from</div>
           {(() => {
             // Per-stage availability mirrors the old native `disabled` options:
             // unavailable stages stay visible (labelled "unavailable") but can't
@@ -925,7 +925,7 @@ function RerunDialog({
           ) : null}
           {isDownstreamStage(startFrom) ? (
             <div className="mt-2 rounded-[12px] border border-[color:var(--line)] bg-coal-800 p-2.5">
-              <div className="mono mb-1 text-[11px] text-chalk-400">
+              <div className="mb-1 text-[12px] font-semibold text-violet-soft">
                 Restore preview (dry run)
               </div>
               {previewState === "loading" ? (
@@ -979,7 +979,7 @@ function RerunDialog({
           ) : null}
         </div>
         <div className="mt-3">
-          <div className="mono mb-1 text-[11px] text-chalk-400">Task</div>
+          <div className="mb-1 text-[12px] font-semibold text-violet-soft">Task</div>
           <textarea
             value={task}
             onChange={(e) => setTask(e.target.value)}

@@ -79,12 +79,12 @@ export function MiniTerminal({
 }) {
   const buf = useStream(lines, 1100, 6, paused);
   return (
-    <div className="relative rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2.5 overflow-hidden">
+    <div className="relative rounded-[14px] border border-[color:var(--line)] bg-black/40 px-3 py-2.5 overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-px bg-violet-soft/25" />
       <div className="space-y-[3px]">
         {buf.length === 0 ? (
-          <div className="mono text-[11px] text-chalk-400">
-            no recent events
+          <div className="text-[11px] font-medium text-chalk-300">
+            No recent events
           </div>
         ) : (
           buf.map((l, i) => (
@@ -115,16 +115,16 @@ export function LiveTerminal({
     endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [buf.length]);
   return (
-    <div className="relative flex flex-col rounded-xl border border-white/[0.08] bg-black/55 overflow-hidden min-h-0 h-full">
+    <div className="relative flex flex-col rounded-[18px] border border-[color:var(--line)] bg-black/55 overflow-hidden min-h-0 h-full">
       <div className="absolute inset-x-0 top-0 h-px bg-violet-soft/25" />
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06] bg-black/30">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[color:var(--line-soft)] bg-black/30">
         <div className="flex items-center gap-2">
           <span className="flex gap-1.5">
             <span className="w-2 h-2 rounded-full bg-rose-400/70" />
             <span className="w-2 h-2 rounded-full bg-amber-300/70" />
             <span className="w-2 h-2 rounded-full bg-emerald-400/70" />
           </span>
-          <span className="mono text-[11px] text-chalk-400 ml-2">{title}</span>
+          <span className="text-[11px] font-semibold text-chalk-300 ml-2">{title}</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[11.5px] font-medium text-chalk-400">

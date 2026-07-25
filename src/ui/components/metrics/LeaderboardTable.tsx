@@ -57,7 +57,7 @@ export function LeaderboardTable({ overview }: { overview: MetricsOverview | nul
                       <div className="truncate text-[12.5px] text-chalk-100">
                         {row.label}
                       </div>
-                      <div className="mono text-[10.5px] text-chalk-400">
+                      <div className="text-[10.5px] text-chalk-300">
                         {row.vendor ?? "-"}
                       </div>
                     </div>

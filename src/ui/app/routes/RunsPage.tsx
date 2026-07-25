@@ -103,8 +103,8 @@ export function RunsPage({
               >
                 New run
               </Button>
-              <p className="mono text-[11px] text-chalk-400">
-                or from this project: vibe run "your task"
+              <p className="text-[11px] text-chalk-400">
+                or from this project: <span className="mono">vibe run "your task"</span>
               </p>
             </div>
           ) : (
@@ -115,7 +115,7 @@ export function RunsPage({
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="text-left text-[10px] uppercase tracking-[0.1em] text-chalk-400">
+              <tr className="text-left text-[11px] font-semibold text-chalk-300">
                 <th className="px-4 py-2.5 font-semibold">Task</th>
                 <th className="px-3 py-2.5 font-semibold">Status</th>
                 <th className="px-3 py-2.5 font-semibold">Review</th>
