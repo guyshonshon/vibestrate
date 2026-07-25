@@ -16,6 +16,7 @@ import { FlowCard, FlowCardMenu, type FlowCardStat } from "../../components/desi
 import { StepKindLegend } from "../../components/design/StepKindLegend.js";
 import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
+import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 
 type Props = {
   /** Open a flow in the Flow Builder (customize slots/steps, then run). */
@@ -214,12 +215,8 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   const effectiveDefault = defaultFlowId ?? "default";
 
   return (
-    <div className="font-jakarta px-10 py-7 fade-up">
-      <header className="mb-6">
-        <h1 className="text-[24px] font-extrabold tracking-[-0.02em] text-chalk-100">
-          Flows
-        </h1>
-      </header>
+    <PageShell className="fade-up">
+      <PageHeader title="Flows" />
 
       {/* Contained header: title context + the page's primary actions live in a
           single framed block instead of floating loose on the canvas. */}
@@ -256,7 +253,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
             {creating ? "Creating…" : "New flow"}
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             iconLeft={<Upload size={13} />}
             onClick={() => setImportOpen((v) => !v)}
@@ -417,7 +414,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
         prefix="glyph"
         className="fixed bottom-4 right-4 z-30 border px-3.5 py-2 text-[12.5px] shadow-2xl"
       />
-    </div>
+    </PageShell>
   );
 }
 

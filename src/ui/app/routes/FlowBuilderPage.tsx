@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import {
   Book,
   Bug,
-  ChevronLeft,
   Code,
   Copy,
   Eye,
@@ -33,6 +32,8 @@ import { Select } from "../../components/design/Select.js";
 import { StepKindLegend } from "../../components/design/StepKindLegend.js";
 import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
+import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { Breadcrumbs } from "../../components/layout/Breadcrumbs.js";
 import { extractFlowFromYaml, renderFlowYaml } from "../../lib/flow-yaml.js";
 import { DryRunModal } from "../../components/flow-builder/DryRunModal.js";
 import { StepInspector, StepRow } from "../../components/flow-builder/StepInspector.js";
@@ -511,26 +512,34 @@ export function FlowBuilderPage({
   }
 
   return (
-    <div className="font-jakarta px-10 py-7 fade-up">
-      <header className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-[12.5px] text-chalk-300 hover:text-chalk-100"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.7} /> Flows
-        </button>
-        <span className="text-chalk-400">/</span>
-        <span className="text-[12.5px] text-chalk-300 truncate max-w-[200px]">
-          {selected?.label ?? "Editor"}
-        </span>
-      </header>
+    <PageShell className="fade-up">
+      <Breadcrumbs
+        className="mb-3"
+        items={[
+          { label: "Flows", onClick: onBack },
+          { label: selected?.label ?? "Editor", muted: true },
+        ]}
+      />
+      <PageHeader
+        title={
+          selected ? (
+            <span className="flex items-baseline gap-2.5">
+              {selected.label}
+              <span className="mono text-[12px] font-medium text-chalk-400">
+                {selected.id}
+              </span>
+            </span>
+          ) : (
+            "Flow Builder"
+          )
+        }
+      />
 
       {/* Contained flow header: the picker, the flow's facts as stat tiles, the
           read-only state, and a carded action toolbar - one framed block, so no
           fact reads as a grey meta line and no action is stranded at the far
           right of the page. */}
-      <section className="mt-5 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+      <section className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
         <div className="flex flex-wrap items-center gap-3">
           <Select
             value={selected?.id ?? ""}
@@ -923,7 +932,7 @@ export function FlowBuilderPage({
           onCancel={() => setConfirm(null)}
         />
       ) : null}
-    </div>
+    </PageShell>
   );
 }
 
@@ -958,7 +967,7 @@ function ConfirmDialog({
         <h2 className="text-[15px] font-bold text-chalk-100">{title}</h2>
         <p className="mt-2 text-[12.5px] leading-[1.55] text-chalk-300">{message}</p>
         <div className="mt-4 flex items-center justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={onCancel}>
+          <Button variant="ghost" size="sm" onClick={onCancel}>
             Cancel
           </Button>
           <Button
