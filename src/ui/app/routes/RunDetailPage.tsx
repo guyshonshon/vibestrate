@@ -680,18 +680,14 @@ function RunOutcomeBanner({
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {outcome.actions.map((a, i) => (
-              <button
+              <Button
                 key={a}
-                type="button"
+                size="sm"
+                variant={i === 0 ? "primary" : "secondary"}
                 onClick={() => run_(a)}
-                className={
-                  i === 0
-                    ? "h-8 rounded-[10px] bg-violet-soft px-3 text-[12.5px] font-semibold text-coal-900 transition hover:bg-violet-soft/90"
-                    : "h-8 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-600 px-3 text-[12.5px] font-semibold text-chalk-300 transition hover:bg-coal-500 hover:text-chalk-100"
-                }
               >
                 {label[a]}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -846,13 +842,9 @@ function RerunDialog({
                 : "Rewind & continue"}
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-[10px] border border-[color:var(--line-strong)] bg-coal-600 px-2 py-1 text-[12px] text-chalk-300 transition hover:text-chalk-100"
-          >
+          <Button size="sm" variant="secondary" onClick={onClose}>
             Close
-          </button>
+          </Button>
         </div>
         <p className="mt-2 text-[11.5px] text-chalk-300">
           {startFrom === "scratch"
@@ -1142,14 +1134,15 @@ function WorkspacePanel({
             {branchName ? <span className="mono">{branchName}</span> : "git worktree"}
           </div>
         </div>
-        <button
-          type="button"
+        <Button
+          size="sm"
+          variant="secondary"
+          className="shrink-0"
           onClick={copy}
-          className="h-7 shrink-0 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-500 px-2.5 text-[11.5px] font-semibold text-chalk-100 transition hover:bg-coal-400"
           title="Copy a cd command for this run's git worktree"
         >
-          {copied ? "copied" : "copy cd"}
-        </button>
+          {copied ? "Copied" : "Copy cd"}
+        </Button>
       </div>
       <div className="mt-2.5 rounded-[12px] bg-coal-500/40 px-3 py-2">
         <div className="mono truncate text-[12px] text-chalk-300" title={worktreePath}>
