@@ -8,6 +8,36 @@ leftovers**, the rest already match.
 Severity: **BLOCKER** = the contract's named hard-no list. **DRIFT** = legal but
 visibly off the Mission Control idiom.
 
+## Status (re-verified 2026-07-25 against the working tree)
+
+Roughly a third of the inventory is closed. Verified by grep, not by memory:
+
+**Closed**
+
+| What | Evidence |
+|---|---|
+| Banned legacy tokens (`vibestrate-fg`, `-fail`, `-mono`) | 0 occurrences in `src/ui` |
+| `text-chalk-500` (an undefined token) | 0 occurrences |
+| `animate-pulse` (the one banned animation) | 0 occurrences |
+| `fog-*` generation | only `InitScreen.tsx` left |
+| `ErrorBoundary` | rebuilt on `design/ErrorState`, 0 bare buttons |
+| `TerminalPanel`, `DryRunModal`, `ProfileSelect` | 0 bare `<button>` |
+| Page shell | `RunComposePage`, `ProjectPage`, `ProposalsPage`, `BoardPage` on `PageShell` |
+| Forked flow cards | one `design/FlowCard` serves catalog + both composers |
+| Tour counter / terminal label | off the tiny-uppercase-mono silhouette |
+
+**Still open** (the real remaining backlog)
+
+| What | Where | Size |
+|---|---|---|
+| Not on `PageShell` | `RunDetailPage` (1,351 lines), `FlowsPage`, `FlowBuilderPage` | RunDetail is a redesign, not a sweep |
+| Wholesale legacy generation | `InitScreen.tsx` - and it is the product's first screen | medium |
+| Orphaned `--s-*` token system | `RunTree.tsx`, `SpecUpReview.tsx`, defs in `index.css` | medium |
+| Bare `<button>` clusters | `RunGapQuestions` (14), `SuggestionsPanel` (10), `PanelBoard` (8), `SpecUpReview` (4), `ReviewPassPanel` (3), `AssistPopover` (3) | large |
+| Grey `·` meta lines | 12 sites | small |
+| Re-derived primitives | `SegmentedControl` (6x), `MetricCard`, `StatTile`, `Chip`, `Select` | medium |
+| Stale *content*, not styling | `HelpOverlay` still documents the retired panel-board shell | small |
+
 ## The three systemic findings
 
 1. **An orphaned token system is live.** `RunTree.tsx` and `SpecUpReview.tsx` are
@@ -33,7 +63,7 @@ visibly off the Mission Control idiom.
 | Page | Shell | Severity | What |
 |---|---|---|---|
 | `RunDetailPage.tsx` | NO | **BLOCKER** | Bespoke `deep-scene` canvas + `RunHeaderV3` from a pre-PageShell generation, on the busiest page in the app (1,351 lines). Not the sanctioned `bare` exception (that is the `control` route). `deep-scene` hardcodes `--s-slab: #080b11` - a raw hex, not a token. |
-| `RunComposePage.tsx` | NO | **BLOCKER** | Hand-rolled canvas; defines a local `Section` that shadows the canonical one; `:404,:506` render `${steps} steps · ${seats} seats` in `text-chalk-400` - verbatim the contract's own banned meta-line example. `variant="outline"` buttons on panels (`:472,:630`). |
+| `RunComposePage.tsx` | **now yes** | ~~BLOCKER~~ FIXED | Hand-rolled canvas; defines a local `Section` that shadows the canonical one; `:404,:506` render `${steps} steps · ${seats} seats` in `text-chalk-400` - verbatim the contract's own banned meta-line example. `variant="outline"` buttons on panels (`:472,:630`). |
 | `FlowsPage.tsx` | NO | **BLOCKER** | Hand-rolled `px-10 py-7` + raw `<h1>` (`:219-224`). The `FlowCard` anatomy itself (`:944-1008`) is fully compliant. `outline` Import button (`:260`). |
 | `FlowBuilderPage.tsx` | NO | **BLOCKER** | Hand-rolled canvas + bare breadcrumb header, no 24px `PageHeader` (`:514`). `outline` Cancel inside a dialog panel (`:961`). |
 | `InitScreen.tsx` | n/a | **BLOCKER** | Wholesale legacy - a different token generation entirely (`fog-*`, `ink-*`, `border-white/10`, `rounded-md`). Says so in its own comment. It is the product's first screen. |
@@ -59,7 +89,7 @@ Clean and already migrated: `MissionControlPage`, `RunsPage`, `MetricsPage`,
 | `runs/RunTree.tsx` | **BLOCKER** | Orphaned `--s-*` system, inline styles only, zero reuse of `Chip`/`StatTile`/`RunStatusBadge`. |
 | `runs/SpecUpReview.tsx` | **BLOCKER** | Same orphaned `--s-*`; hardcoded `#f08a8a` fallback; bare Edit/Save/Cancel buttons. |
 | `runs/RunGapQuestions.tsx` | **BLOCKER** | A fully parallel hand-rolled design system: 8 re-derived button variants, a re-derived segmented control, inline `style={}` throughout, type sizes off the dense scale. |
-| `layout/ErrorBoundary.tsx` | **BLOCKER** | Predates the system; never migrated onto `design/ErrorState`, which shipped to replace exactly this. Two bare action buttons, off-palette rose shades. |
+| `layout/ErrorBoundary.tsx` | ~~BLOCKER~~ FIXED | Predates the system; never migrated onto `design/ErrorState`, which shipped to replace exactly this. Two bare action buttons, off-palette rose shades. |
 
 ### Re-derived primitives (the contract says do not re-derive)
 
@@ -76,12 +106,12 @@ Clean and already migrated: `MissionControlPage`, `RunsPage`, `MetricsPage`,
 
 | Component | Severity | What |
 |---|---|---|
-| `layout/PanelBoard.tsx:203` | **BLOCKER** | `animate-pulse` on a skeleton - the one banned animation. Plus legacy keyword rounding through the toolbar/dropdown (`:285-363`) and `var(--popover)` instead of `bg-coal-700`. |
+| `layout/PanelBoard.tsx:285-363` | **BLOCKER** (pulse fixed; rounding/tokens open) | `animate-pulse` on a skeleton - the one banned animation. Plus legacy keyword rounding through the toolbar/dropdown (`:285-363`) and `var(--popover)` instead of `bg-coal-700`. |
 | `mission/AssistPopover.tsx:97,129` | **BLOCKER** | The retired eyebrow-kicker silhouette rebuilt with new tokens; one-off `color-mix`/`backdrop-blur-xl` surface. |
-| `flow-builder/DryRunModal.tsx:40-46` | **BLOCKER** | Hand-rolled Close duplicating `Button` secondary; `/80` scrim vs the `/70` siblings. |
-| `runs/ProfileSelect.tsx:32,53,55` | **BLOCKER** | `vibestrate-fg`, `vibestrate-fail`, `vibestrate-mono`. |
-| `replay/LazyReplayPanel.tsx:30` | **BLOCKER** | `text-vibestrate-fg-muted` on the Replay tab's loading state. |
-| `terminal/LazyTerminalPanel.tsx:29` | **BLOCKER** | Same, on the Terminal tab's loading state. |
+| `flow-builder/DryRunModal.tsx` | ~~BLOCKER~~ FIXED | Hand-rolled Close duplicating `Button` secondary; `/80` scrim vs the `/70` siblings. |
+| `runs/ProfileSelect.tsx` | ~~BLOCKER~~ FIXED | `vibestrate-fg`, `vibestrate-fail`, `vibestrate-mono`. |
+| `replay/LazyReplayPanel.tsx` | ~~BLOCKER~~ FIXED | `text-vibestrate-fg-muted` on the Replay tab's loading state. |
+| `terminal/LazyTerminalPanel.tsx` | ~~BLOCKER~~ FIXED | Same, on the Terminal tab's loading state. |
 | `tasks/StepDetailDrawer.tsx:205`, `tasks/ChecklistSection.tsx:694,769,778`, `tasks/ContextSourcesSection.tsx:75`, `layout/Breadcrumbs.tsx:61` | BUG | `text-chalk-500`, an undefined token. |
 | `layout/GlobalErrorOverlay.tsx:54-61` | DRIFT | Bare `×` glyph instead of the lucide `X` icon-button recipe. |
 | `providers/ProviderEditor.tsx:359-371` | DRIFT | Grey `·`-separated meta line; off-palette status shades (`:656-694`). |
