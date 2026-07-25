@@ -18,6 +18,14 @@
   failed fetch is a visible, recoverable state with Retry; empty states offer
   the action instead of pointing at a command; and a lazy chunk that fails to
   load lands in an error boundary with a reload, not a blank page.
+- **Nothing sends you to a text editor.** Every screen that used to name a file
+  path or a terminal command now offers the action itself. The continuity ledger
+  takes entries by hand, from the Board or from `vibe ledger add`, and marks them
+  as yours so a later run never reads your note as its own work. You can register
+  another project, initialise one, install a skill from a URL, and start the
+  queue without leaving the dashboard. Where a command genuinely has to stay on
+  the CLI - shell values, policy files, provider logins - the screen now says why
+  instead of just telling you to go elsewhere.
 - **Docs that match the code.** The handwritten docs were swept for factual
   drift and corrected against the current source - real commands, real config
   keys, real run artifacts - so the getting-started path and the concept pages
