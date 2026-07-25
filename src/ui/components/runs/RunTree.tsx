@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { ChevronRight, Cpu, GitBranch, Wrench, Bot, ShieldQuestion } from "lucide-react";
 import type { RunAudit, AuditStep, EngagementEntry, PerItemVerdict } from "../../lib/types.js";
+import { Chip, ToneDot, type ChipTone } from "../design/Chip.js";
+import { StatTile } from "../design/StatTile.js";
 
 // ── Live run node-tree ───────────────────────────────────────────────────────
 // The supervisor + agents, as a tree, refreshed on the run-detail poll. The flow
@@ -58,31 +60,32 @@ function statusKind(status: string): StatusKind {
   return "pending";
 }
 
-function statusInk(kind: StatusKind): string {
-  return kind === "done"
-    ? "var(--s-ok-ink)"
-    : kind === "running"
-      ? "var(--s-soft-ink)"
-      : kind === "bad"
-        ? "var(--s-warn-ink)"
-        : "var(--s-ink-faint)";
-}
+// Same 4-bucket semantics the tree always had: "bad" covers both hard
+// failures and recoverable stops (blocked/changes-requested) and reads as
+// attention (amber), not danger (rose) - failed steps still surface their own
+// detail in engagement/attempts. Kept as-is; this migration fixes the token
+// resolution, not the color semantics.
+const KIND_TONE: Record<StatusKind, ChipTone> = {
+  done: "emerald",
+  running: "violet",
+  bad: "amber",
+  pending: "neutral",
+};
 
-function statusFill(kind: StatusKind): string {
-  return kind === "done"
-    ? "var(--s-ok)"
-    : kind === "running"
-      ? "var(--s-soft)"
-      : kind === "bad"
-        ? "rgba(245, 158, 11, 0.16)"
-        : "var(--s-slab-2)";
-}
+const DOT_TONE: Record<StatusKind, string> = {
+  done: "bg-emerald-400/25 border-emerald-400",
+  running: "bg-violet-soft/25 border-violet-soft",
+  bad: "bg-amber-soft/25 border-amber-soft",
+  pending: "bg-coal-400 border-chalk-400",
+};
 
-const toneInk: Record<EngagementEntry["tone"], string> = {
-  ok: "var(--s-ok-ink)",
-  warn: "var(--s-warn-ink)",
-  bad: "var(--s-warn-ink)",
-  info: "var(--s-ink-dim)",
+// "bad" reuses the warn/amber ink, matching the original two-tone scheme
+// (ok vs. not-ok) rather than introducing a third color for engagement rows.
+const TONE_TEXT: Record<EngagementEntry["tone"], string> = {
+  ok: "text-emerald-400",
+  warn: "text-amber-soft",
+  bad: "text-amber-soft",
+  info: "text-chalk-300",
 };
 
 /** Longest-path depth from `needs` edges, so the DAG reads as an indented tree. */
@@ -105,22 +108,14 @@ function depthMap(steps: AuditStep[]): Map<string, number> {
 
 function TelemetryCell({ value, unit }: { value: string | null; unit: string }) {
   return (
-    <div
-      style={{
-        minWidth: 58,
-        textAlign: "right",
-        fontVariantNumeric: "tabular-nums",
-        color: value ? "var(--s-ink-dim)" : "var(--s-ink-faint)",
-        fontSize: 11.5,
-      }}
-    >
+    <div className="min-w-[58px] text-right text-[11.5px] num-tabular">
       {value ? (
         <>
-          <span style={{ color: "var(--s-ink)", fontWeight: 600 }}>{value}</span>
-          <span style={{ marginLeft: 3, opacity: 0.7 }}>{unit}</span>
+          <span className="font-semibold text-chalk-100">{value}</span>
+          <span className="ml-[3px] text-chalk-400">{unit}</span>
         </>
       ) : (
-        <span style={{ opacity: 0.5 }}>-</span>
+        <span className="text-chalk-400/60">-</span>
       )}
     </div>
   );
@@ -148,67 +143,37 @@ function StepRow({
     step.internalsOpaque ||
     engagement.length > 0;
   return (
-    <div style={{ borderTop: "1px solid var(--s-line)" }}>
+    <div className="border-t border-[color:var(--line)]">
       <div
         onClick={hasDetail ? onToggle : undefined}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 10px",
-          paddingLeft: 10 + depth * 18,
-          cursor: hasDetail ? "pointer" : "default",
-        }}
+        className={`flex items-center gap-2 py-2 pr-2.5 ${hasDetail ? "cursor-pointer" : ""}`}
+        style={{ paddingLeft: 10 + depth * 18 }}
       >
-        {/* tree guide + status pip */}
+        {/* tree guide + status pip - static ring on "running", no pulse animation */}
         <span
           aria-hidden
-          style={{
-            width: 9,
-            height: 9,
-            borderRadius: 9,
-            flexShrink: 0,
-            background: statusFill(kind),
-            border: `1.5px solid ${statusInk(kind)}`,
-            boxShadow: kind === "running" ? `0 0 0 3px var(--s-soft)` : "none",
-          }}
+          className={`h-[9px] w-[9px] shrink-0 rounded-full border-[1.5px] ${DOT_TONE[kind]} ${
+            kind === "running" ? "ring-[3px] ring-violet-soft/25" : ""
+          }`}
         />
         <ChevronRight
           size={13}
-          style={{
-            color: "var(--s-ink-faint)",
-            transform: expanded ? "rotate(90deg)" : "none",
-            transition: "transform 120ms",
-            opacity: hasDetail ? 1 : 0,
-            flexShrink: 0,
-          }}
+          className={`shrink-0 text-chalk-400 transition-transform duration-150 ${
+            expanded ? "rotate-90" : ""
+          } ${hasDetail ? "opacity-100" : "opacity-0"}`}
         />
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--s-ink)" }}>
-              {step.label}
-            </span>
-            {step.seat ? (
-              <span style={{ fontSize: 11.5, color: "var(--s-ink-faint)" }}>{step.seat}</span>
-            ) : null}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2">
+            <span className="text-[13px] font-semibold text-chalk-100">{step.label}</span>
+            {step.seat ? <span className="text-[11.5px] text-chalk-400">{step.seat}</span> : null}
             {step.decision ? (
-              <span
-                style={{
-                  fontSize: 10.5,
-                  padding: "1px 6px",
-                  borderRadius: 5,
-                  color: statusInk(kind),
-                  background: statusFill(kind),
-                }}
-              >
+              <Chip contained tone={KIND_TONE[kind]}>
                 {step.decision}
-              </span>
+              </Chip>
             ) : null}
-            {step.fellBack ? (
-              <span style={{ fontSize: 10.5, color: "var(--s-warn-ink)" }}>fell back</span>
-            ) : null}
+            {step.fellBack ? <span className="text-[10.5px] text-amber-soft">fell back</span> : null}
           </div>
-          <div style={{ fontSize: 11, color: "var(--s-ink-faint)", marginTop: 1 }}>
+          <div className="mt-px text-[11px] text-chalk-400">
             {step.roleLabel ?? step.roleId ?? step.kind}
             {step.model ? ` · ${step.model}` : ""}
             {step.retries > 0 ? ` · ${step.retries} retr${step.retries === 1 ? "y" : "ies"}` : ""}
@@ -222,26 +187,11 @@ function StepRow({
 
       {expanded && hasDetail ? (
         <div
-          style={{
-            paddingLeft: 10 + depth * 18 + 26,
-            paddingRight: 12,
-            paddingBottom: 10,
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-          }}
+          className="flex flex-col gap-2 pb-2.5 pr-3"
+          style={{ paddingLeft: 10 + depth * 18 + 26 }}
         >
           {step.internalsOpaque ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                fontSize: 11.5,
-                color: "var(--s-ink-faint)",
-                fontStyle: "italic",
-              }}
-            >
+            <div className="flex items-center gap-1.5 text-[11.5px] italic text-chalk-400">
               <ShieldQuestion size={13} /> provider streamed no internals - what the agent
               did inside this turn is opaque.
             </div>
@@ -249,21 +199,12 @@ function StepRow({
           {step.tools.length > 0 ? (
             <div>
               <Leaf icon={<Wrench size={12} />} label="Tools" />
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 5 }}>
+              <div className="mt-[5px] flex flex-wrap gap-1.5">
                 {step.tools.map((t) => (
-                  <span
-                    key={t.name}
-                    style={{
-                      fontSize: 11,
-                      padding: "2px 7px",
-                      borderRadius: 5,
-                      background: "var(--s-slab-2)",
-                      color: "var(--s-ink-dim)",
-                    }}
-                  >
+                  <Chip key={t.name} contained tone="neutral">
                     {t.name}
-                    <span style={{ color: "var(--s-ink-faint)", marginLeft: 4 }}>x{t.count}</span>
-                  </span>
+                    <span className="ml-1 text-chalk-400">x{t.count}</span>
+                  </Chip>
                 ))}
               </div>
             </div>
@@ -271,13 +212,11 @@ function StepRow({
           {step.subAgents.length > 0 ? (
             <div>
               <Leaf icon={<Bot size={12} />} label="Sub-agents" />
-              <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 5 }}>
+              <div className="mt-[5px] flex flex-col gap-[3px]">
                 {step.subAgents.map((a, i) => (
-                  <div key={`${a.name}-${i}`} style={{ fontSize: 11.5, color: "var(--s-ink-dim)" }}>
-                    <span style={{ color: "var(--s-ink)", fontWeight: 600 }}>{a.name}</span>
-                    {a.description ? (
-                      <span style={{ color: "var(--s-ink-faint)" }}> - {a.description}</span>
-                    ) : null}
+                  <div key={`${a.name}-${i}`} className="text-[11.5px] text-chalk-300">
+                    <span className="font-semibold text-chalk-100">{a.name}</span>
+                    {a.description ? <span className="text-chalk-400"> - {a.description}</span> : null}
                   </div>
                 ))}
               </div>
@@ -286,12 +225,9 @@ function StepRow({
           {step.attempts.length > 1 ? (
             <div>
               <Leaf icon={<GitBranch size={12} />} label="Attempts" />
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 5 }}>
+              <div className="mt-[5px] flex flex-wrap gap-1.5">
                 {step.attempts.map((at) => (
-                  <span
-                    key={at.index}
-                    style={{ fontSize: 11, color: "var(--s-ink-faint)" }}
-                  >
+                  <span key={at.index} className="text-[11px] text-chalk-400">
                     {at.index + 1}. {at.outcome}
                     {at.detail ? ` (${at.detail})` : ""}
                   </span>
@@ -300,11 +236,11 @@ function StepRow({
             </div>
           ) : null}
           {engagement.length > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <div className="flex flex-col gap-[3px]">
               {engagement.map((e) => (
-                <div key={e.seq} style={{ fontSize: 11.5, color: toneInk[e.tone] }}>
-                  <span style={{ fontWeight: 600 }}>{e.title}</span>
-                  {e.detail ? <span style={{ color: "var(--s-ink-faint)" }}> - {e.detail}</span> : null}
+                <div key={e.seq} className={`text-[11.5px] ${TONE_TEXT[e.tone]}`}>
+                  <span className="font-semibold">{e.title}</span>
+                  {e.detail ? <span className="text-chalk-400"> - {e.detail}</span> : null}
                 </div>
               ))}
             </div>
@@ -317,23 +253,17 @@ function StepRow({
 
 function Leaf({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--s-ink-faint)" }}>
-      <span style={{ color: "var(--s-ink-dim)" }}>{icon}</span>
+    <div className="flex items-center gap-[5px] text-[11px] text-chalk-400">
+      <span className="text-chalk-300">{icon}</span>
       {label}
     </div>
   );
 }
 
-const VERDICT_INK: Record<PerItemVerdict["verdict"], string> = {
-  approved: "var(--s-ok-ink)",
-  changes_requested: "var(--s-warn-ink)",
-  none: "var(--s-ink-faint)",
-};
-
-const VERDICT_FILL: Record<PerItemVerdict["verdict"], string> = {
-  approved: "var(--s-ok)",
-  changes_requested: "rgba(245, 158, 11, 0.13)",
-  none: "var(--s-slab-2)",
+const VERDICT_TONE: Record<PerItemVerdict["verdict"], ChipTone> = {
+  approved: "emerald",
+  changes_requested: "amber",
+  none: "neutral",
 };
 
 const VERDICT_LABEL: Record<PerItemVerdict["verdict"], string> = {
@@ -345,65 +275,20 @@ const VERDICT_LABEL: Record<PerItemVerdict["verdict"], string> = {
 function ChecklistVerdictsPanel({ verdicts }: { verdicts: PerItemVerdict[] }) {
   if (verdicts.length === 0) return null;
   return (
-    <div
-      style={{
-        marginTop: 10,
-        borderTop: "1px solid var(--s-line)",
-        paddingTop: 8,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 10.5,
-          fontWeight: 700,
-          color: "var(--s-ink-faint)",
-          letterSpacing: 0.3,
-          marginBottom: 6,
-        }}
-      >
+    <div className="mt-2.5 border-t border-[color:var(--line)] pt-2">
+      <div className="mb-1.5 text-[10.5px] font-bold tracking-[0.3px] text-chalk-400">
         Per-item review verdicts
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div className="flex flex-col gap-1">
         {verdicts.map((v) => (
-          <div
-            key={v.itemIndex}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 11.5,
-            }}
-          >
-            {/* static status dot - no pulse, no animation */}
-            <span
-              aria-hidden
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: 7,
-                flexShrink: 0,
-                background: VERDICT_FILL[v.verdict],
-                border: `1.5px solid ${VERDICT_INK[v.verdict]}`,
-              }}
-            />
-            <span style={{ color: "var(--s-ink-dim)", minWidth: 60 }}>
-              Item {v.itemIndex + 1}
-            </span>
-            {/* flat tinted text label - no pill rounding */}
-            <span
-              style={{
-                fontSize: 10.5,
-                padding: "1px 5px",
-                borderRadius: 3,
-                color: VERDICT_INK[v.verdict],
-                background: VERDICT_FILL[v.verdict],
-                fontWeight: 600,
-              }}
-            >
+          <div key={v.itemIndex} className="flex items-center gap-2 text-[11.5px]">
+            <ToneDot tone={VERDICT_TONE[v.verdict]} />
+            <span className="min-w-[60px] text-chalk-300">Item {v.itemIndex + 1}</span>
+            <Chip contained tone={VERDICT_TONE[v.verdict]}>
               {VERDICT_LABEL[v.verdict]}
-            </span>
+            </Chip>
             {v.fixIterations > 0 ? (
-              <span style={{ fontSize: 10.5, color: "var(--s-fg-muted)" }}>
+              <span className="text-[10.5px] text-chalk-400">
                 {v.fixIterations} fix {v.fixIterations === 1 ? "iteration" : "iterations"}
               </span>
             ) : null}
@@ -444,7 +329,7 @@ export function RunTree({
 
   if (!audit) {
     return (
-      <div style={{ padding: 24, textAlign: "center", color: "var(--s-ink-faint)", fontSize: 13 }}>
+      <div className="p-6 text-center text-[13px] text-chalk-400">
         No activity tree yet. It appears once the run starts writing its events.
       </div>
     );
@@ -458,54 +343,42 @@ export function RunTree({
   if (other.length > 0) grouped.push({ stage: "other", steps: other });
 
   const rootKind = statusKind(audit.status);
+  const statCost = fmtCost(audit.totals.costUsd);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="flex flex-col gap-3">
       {/* Supervisor (flow root) */}
-      <div
-        style={{
-          border: `1px solid var(--s-line)`,
-          borderRadius: 12,
-          padding: "12px 14px",
-          background: "var(--s-slab)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Cpu size={16} style={{ color: "var(--s-accent-bright)" }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--s-ink)" }}>
+      <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3.5 py-3">
+        <div className="flex items-center gap-2.5">
+          <Cpu size={16} className="text-violet-soft" />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-2 text-[13.5px] font-bold text-chalk-100">
               {audit.flow?.label ?? "Supervisor"}
-              <span style={{ marginLeft: 8, fontSize: 11.5, color: statusInk(rootKind) }}>
-                {audit.status}
-              </span>
-            </div>
-            <div style={{ fontSize: 11.5, color: "var(--s-ink-faint)", marginTop: 1 }}>
-              {audit.totals.turns} turn{audit.totals.turns === 1 ? "" : "s"}
-              {audit.totals.retries > 0 ? ` · ${audit.totals.retries} retries` : ""}
-              {audit.totals.fallbacks > 0 ? ` · ${audit.totals.fallbacks} fallbacks` : ""}
-              {fmtCost(audit.totals.costUsd) ? ` · ${fmtCost(audit.totals.costUsd)}` : ""}
+              <Chip tone={KIND_TONE[rootKind]}>{audit.status}</Chip>
             </div>
           </div>
           {audit.assuranceVerdict ? (
-            <span
-              style={{
-                fontSize: 11,
-                padding: "2px 8px",
-                borderRadius: 6,
-                color: statusInk(statusKind(audit.assuranceVerdict)),
-                background: statusFill(statusKind(audit.assuranceVerdict)),
-              }}
-            >
+            <Chip contained tone={KIND_TONE[statusKind(audit.assuranceVerdict)]}>
               {audit.assuranceVerdict}
-            </span>
+            </Chip>
           ) : null}
         </div>
+        <div className="mt-2.5 flex flex-wrap items-stretch gap-1">
+          <StatTile value={audit.totals.turns} label={audit.totals.turns === 1 ? "turn" : "turns"} />
+          {audit.totals.retries > 0 ? (
+            <StatTile value={audit.totals.retries} label="retries" tone="amber" />
+          ) : null}
+          {audit.totals.fallbacks > 0 ? (
+            <StatTile value={audit.totals.fallbacks} label="fallbacks" tone="amber" />
+          ) : null}
+          {statCost ? <StatTile value={statCost} label="cost" /> : null}
+        </div>
         {supervisorLane.length > 0 ? (
-          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 3 }}>
+          <div className="mt-2.5 flex flex-col gap-[3px]">
             {supervisorLane.slice(0, 6).map((e) => (
-              <div key={e.seq} style={{ fontSize: 11.5, color: toneInk[e.tone] }}>
-                <span style={{ fontWeight: 600 }}>{e.title}</span>
-                {e.detail ? <span style={{ color: "var(--s-ink-faint)" }}> - {e.detail}</span> : null}
+              <div key={e.seq} className={`text-[11.5px] ${TONE_TEXT[e.tone]}`}>
+                <span className="font-semibold">{e.title}</span>
+                {e.detail ? <span className="text-chalk-400"> - {e.detail}</span> : null}
               </div>
             ))}
           </div>
@@ -519,26 +392,13 @@ export function RunTree({
         return (
           <div
             key={g.stage}
-            style={{
-              border: "1px solid var(--s-line)",
-              borderRadius: 12,
-              overflow: "hidden",
-              background: "var(--s-slab)",
-            }}
+            className="overflow-hidden rounded-[12px] border border-[color:var(--line)] bg-coal-600"
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "8px 12px",
-                background: "var(--s-glass-2)",
-              }}
-            >
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--s-ink-dim)", letterSpacing: 0.2 }}>
+            <div className="flex items-center justify-between bg-coal-500 px-3 py-2">
+              <span className="text-[11.5px] font-bold tracking-[0.2px] text-chalk-300">
                 {STAGE_LABEL[g.stage] ?? g.stage}
               </span>
-              <span style={{ fontSize: 11, color: "var(--s-ink-faint)", fontVariantNumeric: "tabular-nums" }}>
+              <span className="text-[11px] num-tabular text-chalk-400">
                 {done}/{g.steps.length}
               </span>
             </div>
