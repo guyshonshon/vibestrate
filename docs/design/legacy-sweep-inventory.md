@@ -1,138 +1,100 @@
-# Legacy-design sweep: affected pages and components
+# Legacy-design sweep: pages and components affected
 
-Audited 2026-07-24 against [`primitives-contract.md`](./primitives-contract.md),
-with Mission Control as the reference idiom. Four independent source audits plus
-a rendered pass in the browser. `src/ui` is 174 `.tsx` files; **~30 carry real
-leftovers**, the rest already match.
+Complete audit of `src/ui` (174 `.tsx` files) against
+[`primitives-contract.md`](./primitives-contract.md), with Mission Control as
+the reference idiom. Started 2026-07-24, closed 2026-07-25.
 
-Severity: **BLOCKER** = the contract's named hard-no list. **DRIFT** = legal but
-visibly off the Mission Control idiom.
+The hard-no categories are now enforced by `tests/ui-design-drift.test.ts`, so
+this document records *what was found and what was decided* - the build, not
+this page, is what keeps them from coming back.
 
-## Status (re-verified 2026-07-25 against the working tree)
+## Where it landed
 
-Roughly a third of the inventory is closed. Verified by grep, not by memory:
-
-**Closed**
-
-| What | Evidence |
-|---|---|
-| Banned legacy tokens (`vibestrate-fg`, `-fail`, `-mono`) | 0 occurrences in `src/ui` |
-| `text-chalk-500` (an undefined token) | 0 occurrences |
-| `animate-pulse` (the one banned animation) | 0 occurrences |
-| `fog-*` generation | only `InitScreen.tsx` left |
-| `ErrorBoundary` | rebuilt on `design/ErrorState`, 0 bare buttons |
-| `TerminalPanel`, `DryRunModal`, `ProfileSelect` | 0 bare `<button>` |
-| Page shell | `RunComposePage`, `ProjectPage`, `ProposalsPage`, `BoardPage` on `PageShell` |
-| Forked flow cards | one `design/FlowCard` serves catalog + both composers |
-| Tour counter / terminal label | off the tiny-uppercase-mono silhouette |
-
-**Still open** (the real remaining backlog)
-
-| What | Where | Size |
+| Category | Before | After |
 |---|---|---|
-| Not on `PageShell` | `RunDetailPage` (1,351 lines), `FlowsPage`, `FlowBuilderPage` | RunDetail is a redesign, not a sweep |
-| Wholesale legacy generation | `InitScreen.tsx` - and it is the product's first screen | medium |
-| Orphaned `--s-*` token system | `RunTree.tsx`, `SpecUpReview.tsx`, defs in `index.css` | medium |
-| Bare `<button>` clusters | `RunGapQuestions` (14), `SuggestionsPanel` (10), `PanelBoard` (8), `SpecUpReview` (4), `ReviewPassPanel` (3), `AssistPopover` (3) | large |
-| Grey `·` meta lines | 12 sites | small |
-| Re-derived primitives | `SegmentedControl` (6x), `MetricCard`, `StatTile`, `Chip`, `Select` | medium |
-| Stale *content*, not styling | `HelpOverlay` still documents the retired panel-board shell | small |
+| Retired token generation (`vibestrate-*`, `fog-*`, `ink-*`) | widespread | **0** |
+| `text-chalk-500` (never a defined token) | 6 | **0** |
+| Orphaned `--s-*` scene vars (resolved to *no colour*) | 2 files | **0** |
+| `var(--popover)` | 1 | **0** |
+| `animate-pulse` (the one banned animation) | 1 | **0** |
+| White-alpha hairlines/fills (do not invert in light theme) | 5 | **0** |
+| Keyword rounding (`rounded-md/lg/sm/xl`) | 11 | **0** |
+| Eyebrow kickers | 12 | **3, all verified legitimate** |
+| Grey `·` meta lines | 8 | **4, all verified legitimate** |
+| Forked flow cards | 3 | **1 shared `design/FlowCard`** |
 
-## The three systemic findings
+## The three systemic findings, and what they turned out to be
 
-1. **An orphaned token system is live.** `RunTree.tsx` and `SpecUpReview.tsx` are
-   styled entirely against `--s-*` custom properties. Those are defined only
-   under `[data-scene]`, and **no component in the app ever sets `data-scene`**
-   (verified by grep). `.deep-scene`/`.board-scene` define only `--s-slab` and
-   `--s-line`. So `--s-ink`, `--s-ink-dim`, `--s-accent`, `--s-danger` resolve to
-   **nothing** at render time. Where they are defined at all, they alias the
-   banned generation directly: `index.css:380` is `--s-ink: var(--color-fog-100)`.
-   `SpecUpReview.tsx:185` already hardcodes `#f08a8a` as a fallback for the
-   undefined `--s-danger`.
-2. **Five pages never migrated to the page shell.** `PageShell`/`PageHeader`/
-   `Section` is the canonical canvas (§0a). `RunDetailPage`, `RunComposePage`,
-   `FlowsPage`, `FlowBuilderPage` hand-roll `px-10 py-7` canvases with raw
-   `<h1>`s; `PoliciesPanel` hand-rolls the same inside a thin route wrapper.
-   `FlowsPage` is the file the contract itself cites as the canonical `FlowCard`
-   home - the law and its own reference implementation disagree.
-3. **`text-chalk-500` is not a defined token.** Only `chalk-100/200/300/400`
-   exist. 6 sites silently render as inherited colour.
+1. **An orphaned token system was live.** `RunTree.tsx` and `SpecUpReview.tsx`
+   were styled against `--s-*` custom properties defined only under
+   `[data-scene]` - which **nothing in the app ever set**. `--s-ink`,
+   `--s-accent`, `--s-danger` and friends resolved to nothing at render time.
+   `SpecUpReview.tsx` had already hardcoded `#f08a8a` as a fallback for the
+   undefined `--s-danger`, which was the tell. Both files are now on real
+   tokens. `--s-slab`/`--s-line` survive: they are genuinely defined in both
+   themes and drive `.deep-scene`.
+2. **Five pages never migrated to the page shell.** `RunComposePage`,
+   `FlowsPage`, `FlowBuilderPage` and `RunDetailPage` hand-rolled `px-10 py-7`
+   canvases with raw `<h1>`s. All are now on `PageShell`/`PageHeader`.
+3. **`InitScreen` was a different generation entirely** - `fog-*`/`ink-*`,
+   `border-white/10`, `rounded-md` - and it is the first screen a new user ever
+   sees. Rebuilt on the current system.
 
 ## Pages
 
-| Page | Shell | Severity | What |
-|---|---|---|---|
-| `RunDetailPage.tsx` | NO | **BLOCKER** | Bespoke `deep-scene` canvas + `RunHeaderV3` from a pre-PageShell generation, on the busiest page in the app (1,351 lines). Not the sanctioned `bare` exception (that is the `control` route). `deep-scene` hardcodes `--s-slab: #080b11` - a raw hex, not a token. |
-| `RunComposePage.tsx` | **now yes** | ~~BLOCKER~~ FIXED | Hand-rolled canvas; defines a local `Section` that shadows the canonical one; `:404,:506` render `${steps} steps · ${seats} seats` in `text-chalk-400` - verbatim the contract's own banned meta-line example. `variant="outline"` buttons on panels (`:472,:630`). |
-| `FlowsPage.tsx` | NO | **BLOCKER** | Hand-rolled `px-10 py-7` + raw `<h1>` (`:219-224`). The `FlowCard` anatomy itself (`:944-1008`) is fully compliant. `outline` Import button (`:260`). |
-| `FlowBuilderPage.tsx` | NO | **BLOCKER** | Hand-rolled canvas + bare breadcrumb header, no 24px `PageHeader` (`:514`). `outline` Cancel inside a dialog panel (`:961`). |
-| `InitScreen.tsx` | n/a | **BLOCKER** | Wholesale legacy - a different token generation entirely (`fog-*`, `ink-*`, `border-white/10`, `rounded-md`). Says so in its own comment. It is the product's first screen. |
-| `ProjectPage.tsx` | yes | DRIFT | Uncontained header with a `rounded-full` "live" pill stranded far-right; `flex-1`-stretched full-width stat strip (tiles are content-width); airy single-value cards; green-dominant vs MC violet. Empty states name CLI commands with no in-app action (`:273-278,:381-384`) - breaks the UI/CLI parity rule. |
-| `ProposalsPage.tsx` | yes | DRIFT | List row joins origin/status/date with a raw `·` in `text-chalk-400` (`:171-179`). |
-| `BoardPage.tsx` | yes | DRIFT | Custom violet pill-shaped bare `<button>` (`:367-376`) - a composed chip, low severity. |
-| `App.tsx` | n/a | **BLOCKER** | `text-vibestrate-fg-muted` on the Settings suspense fallback (`:383`). **FIXED** this pass. |
-
-Clean and already migrated: `MissionControlPage`, `RunsPage`, `MetricsPage`,
-`ProfilesPage`, `CrewPage`, `ConfigPage`, `ConsultPage`, `SourcePage`,
-`SupervisorsPage`, `TaskDetailPage`, `WorkspacePage`, `SettingsPage`,
-`CodebasePage`, `CanvasPage`.
+| Page | Outcome |
+|---|---|
+| `RunDetailPage.tsx` | On `PageShell`. Had **two competing heroes** (the header had been rebuilt as a `HeroCard` while `RunStatusSection` below already was one, printing title and status twice). Header is now a compact trail; the hero leads the page. Local `Stat`/`MetaPair` retired for `StatTile`; `cnFileTab` for `SegmentedControl`. |
+| `FlowsPage.tsx`, `FlowBuilderPage.tsx` | Migrated to `PageShell`/`PageHeader`; `Breadcrumbs` replaces a hand-rolled back link; `outline` buttons corrected. |
+| `RunComposePage.tsx` | On `PageShell`; the banned `8 steps · 6 seats` meta line replaced by `StatTile`s. |
+| `InitScreen.tsx` | Rebuilt on coal/chalk + bracket rounding + `design/Button`. Wordmark set as text - `logo-wordmark.png` is a white-glyph asset with no dark variant and was near-invisible in light theme. |
+| `MissionControlPage`, `ProposalsPage`, `BoardPage`, `RunsPage`, `WorkspacePage` | Spot fixes only (rounding, a grey meta line, an eyebrow). |
+| All other routes | Already compliant. |
 
 ## Components
 
-### Un-migrated, pervasive (rewrite targets)
-
-| Component | Severity | What |
-|---|---|---|
-| `runs/ReviewPassPanel.tsx` | **BLOCKER** | 80+ old-token hits; every action (Preflight/Approve/Reject/Apply/Validate/Revert) is a bare hand-rolled `<button>`; `BundleStatusBadge` re-derives `Chip`. |
-| `runs/SuggestionsPanel.tsx` | **BLOCKER** | 90+ old-token hits; bare `<input>`/`<textarea>` instead of `FormField`; `ApplyMenu` is a hand-rolled dropdown with a raw `▾` glyph. |
-| `terminal/TerminalPanel.tsx` | **BLOCKER** | 18 old-token hits across nearly every branch; bare `rounded` (4px) instead of the bracket scale; two hand-rolled action buttons. |
-| `runs/RunTree.tsx` | **BLOCKER** | Orphaned `--s-*` system, inline styles only, zero reuse of `Chip`/`StatTile`/`RunStatusBadge`. |
-| `runs/SpecUpReview.tsx` | **BLOCKER** | Same orphaned `--s-*`; hardcoded `#f08a8a` fallback; bare Edit/Save/Cancel buttons. |
-| `runs/RunGapQuestions.tsx` | **BLOCKER** | A fully parallel hand-rolled design system: 8 re-derived button variants, a re-derived segmented control, inline `style={}` throughout, type sizes off the dense scale. |
-| `layout/ErrorBoundary.tsx` | ~~BLOCKER~~ FIXED | Predates the system; never migrated onto `design/ErrorState`, which shipped to replace exactly this. Two bare action buttons, off-palette rose shades. |
-
-### Re-derived primitives (the contract says do not re-derive)
-
-| Component | Duplicates |
+| Component | Outcome |
 |---|---|
-| `metrics/BudgetControl.tsx:265-284` | `StatTile` sm recipe, by hand |
-| `codebase/FileViewer.tsx:246-266` | `Button` subtle recipe, verbatim |
-| `runs/LiveOutputPanel.tsx:221-254` | `SegmentedControl` |
-| `runs/ReviewFindingsPanel.tsx:110-118` | `Chip` contained variant |
-| `diff/DiffViewer.tsx:88-136` | `Button` ghost, four times inline |
-| `crew/RoleCard.tsx:349-371` | a native `<select>` beside two correct `design/Select` uses in the same file |
+| `runs/RunGapQuestions.tsx` | A parallel hand-rolled design system: 14 bare buttons -> 12 `design/Button` + 2 sanctioned intent-tinted; re-derived segmented control -> `SegmentedControl`; inline styles and a `<style>` media block removed. |
+| `runs/SuggestionsPanel.tsx` | Already migrated; `ApplyMenu` rebuilt on the `FlowCardMenu` idiom - which surfaced a real bug: the menu had **no click-outside handler** and stayed open. |
+| `runs/RunTree.tsx`, `runs/SpecUpReview.tsx` | Off the orphaned `--s-*` system onto real tokens; `Chip`/`StatTile`/`ToneDot` reused. |
+| `layout/ErrorBoundary.tsx` | Rebuilt on `design/ErrorState`. |
+| `layout/PanelBoard.tsx` | Section label was `mono text-[11px] text-chalk-400`; now a 20px extrabold heading. Buttons routed through design components. |
+| `design/Terminal.tsx` | Token migration finished; stream state folded from a loose dot + word into one contained control. |
+| `design/FlowCard.tsx` | **New.** One card for the catalog and both composers; three forks retired. |
+| `mission/AssistPopover.tsx`, `flow-builder/DryRunModal.tsx`, `runs/ProfileSelect.tsx`, `layout/GlobalErrorOverlay.tsx` | Spot fixes. |
+| `metrics/BudgetControl`, `codebase/FileViewer`, `runs/LiveOutputPanel`, `runs/ReviewFindingsPanel`, `diff/DiffViewer`, `crew/RoleCard` | Re-derived primitives replaced with `StatTile` / `Button` / `SegmentedControl` / `Chip` / `Select`. |
+| `HelpOverlay.tsx` | Content, not styling: it documented the **retired panel-board shell** and shortcuts with no handlers (digit keys, a slash-command block, drag-to-resize, right-click menus). Rewritten against verified source. |
 
-### Spot fixes
+## Deliberately left alone
 
-| Component | Severity | What |
-|---|---|---|
-| `layout/PanelBoard.tsx:285-363` | **BLOCKER** (pulse fixed; rounding/tokens open) | `animate-pulse` on a skeleton - the one banned animation. Plus legacy keyword rounding through the toolbar/dropdown (`:285-363`) and `var(--popover)` instead of `bg-coal-700`. |
-| `mission/AssistPopover.tsx:97,129` | **BLOCKER** | The retired eyebrow-kicker silhouette rebuilt with new tokens; one-off `color-mix`/`backdrop-blur-xl` surface. |
-| `flow-builder/DryRunModal.tsx` | ~~BLOCKER~~ FIXED | Hand-rolled Close duplicating `Button` secondary; `/80` scrim vs the `/70` siblings. |
-| `runs/ProfileSelect.tsx` | ~~BLOCKER~~ FIXED | `vibestrate-fg`, `vibestrate-fail`, `vibestrate-mono`. |
-| `replay/LazyReplayPanel.tsx` | ~~BLOCKER~~ FIXED | `text-vibestrate-fg-muted` on the Replay tab's loading state. |
-| `terminal/LazyTerminalPanel.tsx` | ~~BLOCKER~~ FIXED | Same, on the Terminal tab's loading state. |
-| `tasks/StepDetailDrawer.tsx:205`, `tasks/ChecklistSection.tsx:694,769,778`, `tasks/ContextSourcesSection.tsx:75`, `layout/Breadcrumbs.tsx:61` | BUG | `text-chalk-500`, an undefined token. |
-| `layout/GlobalErrorOverlay.tsx:54-61` | DRIFT | Bare `×` glyph instead of the lucide `X` icon-button recipe. |
-| `providers/ProviderEditor.tsx:359-371` | DRIFT | Grey `·`-separated meta line; off-palette status shades (`:656-694`). |
-| `notifications/NotificationsSidebar.tsx:793-818` | DRIFT | "Dismiss" in `text-chalk-400` reads disabled. |
-| `codebase/ProfileMaintenancePanel.tsx`, `params/ProjectParamsPanel.tsx` | DRIFT | Hand-rolled inline field labels instead of `FormField`/accent colour; bare `emerald` instead of `emerald-400`. |
-| `codebase/CodebaseMapPanel.tsx:149-156` | DRIFT | Hand-rolled dismiss instead of `IconBtn` (IconBtn has no rose-tint variant today - a real gap). |
+These trip a naive grep but are correct. Recorded so the next sweep does not
+"fix" them:
 
-### Content leftover, not styling
+- **Intent-tinted bare `<button>`s** (`INTENT_BTN`). The contract sanctions
+  these at §90-92. `design/Button` has no affirm/emerald or warn/amber variant,
+  and `design/cn.ts` is a plain join with **no `twMerge`** - forcing them onto
+  `Button` leaves two competing classes whose winner depends on CSS output
+  order. A bare-button *count* is not evidence of a violation.
+- **Uppercase inside a tinted tag** - `SEV_TAG` (`ReviewFindingsPanel`),
+  `CLS_TAG` (`SupervisorPanel`), and `Terminal`'s `LineRow` gutter (simulated
+  terminal output). These are tags, not eyebrow kickers.
+- **`·` as a list bullet or icon placeholder** (`ConsultAnswerView`,
+  `MergeView:407`) - not a joined-facts meta line.
+- **`mono` on identifiers** - run ids, commit shas, file paths, branch names,
+  step kinds. Mono is wrong only when it labels or heads a region. Likewise
+  `mono num-tabular` on plain numbers is an established convention across the
+  app; converting it would be inconsistency, not a fix.
+- **Dynamic `style={{}}`** - computed tree indentation, tour-card position,
+  progress width. Geometry that cannot be a static class.
+- **`MergeView.tsx:99` (`TopologyLine`)** - a genuine `·` facts line, kept
+  deliberately: a prior commit split it from `TopologyTiles` (the `StatTile`
+  version) specifically to keep the dense hub row compact.
 
-`HelpOverlay.tsx` renders correctly but still documents the **retired
-panel-board shell**: "Backlog panel / Ready panel / Queue panel / Approvals
-panel / Suggestions panel / Notifications panel", plus drag-to-resize and
-collapse-panel interactions. Queue folded into Runs; Approvals and Suggestions
-became run-detail inspector tabs; Notifications is the sidebar bell. This is the
-first surface a new user opens (`?`).
+## Known remaining
 
-## Confirmed clean
-
-All of `metrics/` (the best-migrated directory), most of `policies/`,
-`providers/` (catalog + view), `artifacts/`, `ledger/`, `diff/` (bar the toolbar),
-`approvals/`, `crew/` (bar one select), all of `tasks/` bar the chalk-500 sites,
-`layout/AppShell|PageShell|Sidebar|Breadcrumbs`, and the overlays
-`TourOverlay`, `ConsultDock`, `CliHintOverlay`, `NotificationBell`,
-`NotificationsSidebar`, `InstallWizard`, `RunSwitcher`, `StepDetailDrawer`.
+- The panels *inside* the run dashboard (Live metrics, Changed files, the CLI
+  output panel) had their headings and chrome corrected, but their internals
+  are a lighter touch than a full rebuild.
+- `SectionEyebrow.tsx` and the `.eyebrow` class still exist for un-migrated
+  consumers; each page retires its own as it migrates.
