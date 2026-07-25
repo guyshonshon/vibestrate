@@ -3,6 +3,7 @@ import { AlertTriangle, LayoutGrid, Play } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { navigate } from "../../app/App.js";
 import { Button } from "../design/Button.js";
+import { StatTile } from "../design/StatTile.js";
 import { ErrorView } from "../../lib/error-view.js";
 import type {
   ConflictWarning,
@@ -109,10 +110,8 @@ export function SchedulerQueuePanel({
           ) : null}
           {idle ? null : (
             <>
-              <span className="text-chalk-400">·</span>
-              <span className="text-chalk-400">
-                {running.length} running · {queue.length} queued
-              </span>
+              <StatTile value={running.length} label="running" />
+              <StatTile value={queue.length} label="queued" />
             </>
           )}
         </div>

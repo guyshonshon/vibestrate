@@ -22,7 +22,7 @@ const INPUT =
 function proposalOrigin(id: string): { label: string; tone: string } {
   return id.startsWith("spec-up-")
     ? { label: "From Spec-up", tone: "text-violet-soft" }
-    : { label: "Ad-hoc plan", tone: "text-chalk-400" };
+    : { label: "Ad-hoc plan", tone: "text-sky-glow" };
 }
 
 export function ProposalsPage({
@@ -168,10 +168,10 @@ export function ProposalsPage({
                       <div className="mono truncate text-[12.5px] text-chalk-100">
                         {p.id}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[11px] text-chalk-400">
+                      <div className="flex items-center gap-1.5 text-[11px]">
                         <span className={origin.tone}>{origin.label}</span>
-                        <span>·</span>
-                        <span>
+                        <span className="text-chalk-400">·</span>
+                        <span className={p.accepted ? "text-emerald" : "text-chalk-300"}>
                           {p.accepted
                             ? `accepted ${p.acceptedAt ? new Date(p.acceptedAt).toLocaleString() : ""}`
                             : `draft · modified ${new Date(p.modifiedAt).toLocaleString()}`}

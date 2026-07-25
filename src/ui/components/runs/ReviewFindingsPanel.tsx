@@ -6,11 +6,12 @@ import {
   type ParsedReviewOutput,
 } from "../../../flows/runtime/review-findings.js";
 import { Scale, X } from "lucide-react";
+import { Chip, type ChipTone } from "../design/Chip.js";
 
-const DECISION_TONE: Record<string, string> = {
-  APPROVED: "border-emerald-400/30 bg-emerald-500/10 text-emerald-400",
-  CHANGES_REQUESTED: "border-amber-soft/30 bg-amber-soft/10 text-amber-soft",
-  BLOCKED: "border-rose-400/30 bg-rose-500/10 text-rose-300",
+const DECISION_TONE: Record<string, ChipTone> = {
+  APPROVED: "emerald",
+  CHANGES_REQUESTED: "amber",
+  BLOCKED: "rose",
 };
 
 /** Flat tinted fill for a finding's severity tag (not a pill). */
@@ -108,13 +109,9 @@ export function ReviewFindingsPanel({
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-[15px] font-semibold text-chalk-100">Review findings</h2>
             {parsed?.decision ? (
-              <span
-                className={`rounded-[8px] border px-2 py-0.5 text-[11px] font-medium ${
-                  DECISION_TONE[parsed.decision] ?? DECISION_TONE.BLOCKED
-                }`}
-              >
+              <Chip tone={DECISION_TONE[parsed.decision] ?? "rose"} contained>
                 {parsed.decision.replace(/_/g, " ")}
-              </span>
+              </Chip>
             ) : null}
             <span className="flex-1" />
             {onRerunWithFixes ? (

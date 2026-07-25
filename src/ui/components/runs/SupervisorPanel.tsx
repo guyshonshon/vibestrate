@@ -182,15 +182,15 @@ export function SupervisorPanel({
       {whyOpen && selection && hasWhy ? (
         <div className="mt-2 rounded-[14px] border border-violet-soft/25 bg-violet-soft/[0.05] px-3 py-2 text-[11.5px]">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-chalk-300">
-            <span className="mono text-[11px] text-chalk-400">Flow &amp; why</span>
+            <span className="mono text-[11px] font-semibold text-violet-soft">Flow &amp; why</span>
             <span className="mono text-chalk-300">{selection.flowId}</span>
             {selection.crewId ? (
-              <span className="mono text-[10.5px] text-chalk-400">crew: {selection.crewId}</span>
+              <span className="mono text-[10.5px] text-chalk-300">crew: {selection.crewId}</span>
             ) : null}
             <span className="text-chalk-400">·</span>
-            <span className="text-chalk-400">{selection.source}</span>
+            <span className="text-chalk-300">{selection.source}</span>
             <span className="text-chalk-400">·</span>
-            <span className="text-chalk-400">{selection.confidence} confidence</span>
+            <span className="text-chalk-300">{selection.confidence} confidence</span>
             {selection.posture !== "normal" ? (
               <Chip tone="amber">{selection.posture}</Chip>
             ) : null}

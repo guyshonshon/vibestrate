@@ -246,8 +246,9 @@ export function FileViewer({
 function CopyButton({ text, title }: { text: string; title: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
+      size="sm"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text);
@@ -257,11 +258,10 @@ function CopyButton({ text, title }: { text: string; title: string }) {
           // ignore
         }
       }}
-      className="inline-flex items-center gap-1.5 rounded-[10px] bg-coal-500 px-2.5 py-1.5 text-[12px] font-semibold text-chalk-100 transition hover:bg-coal-400"
+      iconLeft={<Copy className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />}
       title={title}
     >
-      <Copy className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
       {copied ? "Copied" : "Copy path"}
-    </button>
+    </Button>
   );
 }

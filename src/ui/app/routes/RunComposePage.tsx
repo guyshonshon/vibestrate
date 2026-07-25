@@ -448,13 +448,13 @@ export function RunComposePage() {
                         <span className="flex flex-wrap items-center gap-1.5 text-[11.5px]">
                           <span className="font-semibold text-chalk-100">{name}</span>
                           {def.required ? <span className="text-violet-soft">*</span> : null}
-                          {def.shared ? <span className="text-chalk-400" title="Project-global">· shared</span> : null}
+                          {def.shared ? <span className="text-sky-glow" title="Project-global">· shared</span> : null}
                           {pf && !def.secret ? (
                             <span className="text-emerald-400/90" title={`From the project profile (${pf.setBy})`}>
                               · {pf.setBy === "generated" ? "generated" : "saved"}
                             </span>
                           ) : null}
-                          {def.description ? <span className="text-chalk-400">· {def.description}</span> : null}
+                          {def.description ? <span className="text-chalk-300">· {def.description}</span> : null}
                         </span>
                         <div className="flex items-center gap-1.5">
                           {def.type === "boolean" ? (
@@ -686,7 +686,7 @@ export function RunComposePage() {
               <Button variant="secondary" size="sm" disabled={!askQ.trim() || askBusy} onClick={ask}>
                 {askBusy ? "Asking…" : "Ask"}
               </Button>
-              <span className="mono text-[10.5px] text-chalk-400">read-only · ⌘↵</span>
+              <span className="mono text-[10.5px] text-chalk-300">read-only · ⌘↵</span>
             </div>
             {askErr ? <p className="mt-2 text-[11.5px] text-rose-300">{askErr}</p> : null}
             {askResult ? (

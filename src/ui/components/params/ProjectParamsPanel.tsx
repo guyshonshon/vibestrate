@@ -200,7 +200,7 @@ export function ProjectParamsPanel() {
                       </span>
                     ) : null}
                     {def.description ? (
-                      <span className="text-[11px] text-chalk-400">· {def.description}</span>
+                      <span className="text-[11px] text-chalk-300">· {def.description}</span>
                     ) : null}
                   </div>
                   <div className="flex items-center gap-2">

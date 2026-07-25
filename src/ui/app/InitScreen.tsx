@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { ArrowRight, Check } from "lucide-react";
+import type { ReactNode } from "react";
+import { ArrowRight, Check, Loader2, Minus } from "lucide-react";
 import { api } from "../lib/api.js";
+import { Button } from "../components/design/Button.js";
 import { cn } from "../components/design/cn.js";
 
 type Status = {
@@ -13,10 +15,9 @@ type Status = {
 type InitResult = Awaited<ReturnType<typeof api.initProject>>;
 
 /**
- * First-run onboarding - the product's first impression, built to the
- * vibestrate-marketing brief: hard-edged slabs, hairline borders, the near-black
- * ground, the real wordmark asset, and violet only as the single active signal
- * (the CTA). No glass, glow, blooms, or font-rendered wordmark.
+ * First-run onboarding - the product's first impression, built on the same
+ * card/token system as the rest of the dashboard (the Mission Control idiom)
+ * so this gate reads as the same product as what it leads into.
  */
 export function InitScreen({
   status,
@@ -45,7 +46,7 @@ export function InitScreen({
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-ink-0 px-6 text-fog-100">
+    <div className="flex min-h-screen w-full items-center justify-center bg-coal-800 px-6 font-jakarta text-chalk-100">
       <div className="w-full max-w-[460px] fade-up">
         <Brandmark />
         {status.isGitRepo ? (
@@ -87,46 +88,46 @@ function Brandmark() {
   );
 }
 
-function Heading({ children }: { children: React.ReactNode }) {
+function Heading({ children }: { children: ReactNode }) {
   return (
-    <h1 className="text-display mt-10 text-center text-[26px] leading-[1.12]">
+    <h1 className="mt-10 text-center text-[26px] font-extrabold leading-[1.15] tracking-[-0.02em] text-chalk-100">
       {children}
     </h1>
   );
 }
 
-function Lead({ children }: { children: React.ReactNode }) {
+function Lead({ children }: { children: ReactNode }) {
   return (
-    <p className="mx-auto mt-3 max-w-[40ch] text-center text-[14.5px] leading-relaxed text-fog-300">
+    <p className="mx-auto mt-3 max-w-[40ch] text-center text-[14.5px] leading-relaxed text-chalk-300">
       {children}
     </p>
   );
 }
 
-/** The single active-signal CTA: a solid violet slab, hard edges, no glow. */
-function VioletCta({
+/** The single active-signal CTA: full-width primary button, busy state swaps the arrow for a spinner. */
+function Cta({
   children,
   disabled,
+  busy,
   onClick,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   disabled?: boolean;
+  busy?: boolean;
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="primary"
+      size="lg"
+      className="w-full"
       disabled={disabled}
       onClick={onClick}
-      className={cn(
-        "inline-flex h-11 w-full items-center justify-center gap-2 rounded-md",
-        "bg-violet-deep text-[14px] font-medium text-white",
-        "border border-violet-soft/30 transition-[filter] hover:brightness-110",
-        "disabled:opacity-60 disabled:pointer-events-none",
-      )}
+      iconLeft={busy ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} /> : undefined}
+      iconRight={!busy ? <ArrowRight size={16} /> : undefined}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -149,20 +150,18 @@ function ReadyCard({
       </Lead>
 
       <div className="mt-8">
-        <VioletCta disabled={working} onClick={onInitialize}>
+        <Cta busy={working} disabled={working} onClick={onInitialize}>
           {working ? "Setting up your project" : "Initialize project"}
-          {!working ? <ArrowRight size={16} /> : null}
-        </VioletCta>
-        {working ? <div className="meter mt-3" /> : null}
+        </Cta>
       </div>
 
-      <p className="mt-4 text-center text-[12.5px] leading-relaxed text-fog-500">
-        Creates a local <span className="mono text-fog-400">.vibestrate/</span> with
+      <p className="mt-4 text-center text-[12.5px] leading-relaxed text-chalk-400">
+        Creates a local <span className="mono text-chalk-300">.vibestrate/</span> with
         your config, crew, roles, and flows.
       </p>
 
       {error ? (
-        <p className="mt-6 rounded-md border border-rose-400/30 bg-rose-500/5 px-4 py-3 text-[13px] text-rose-300">
+        <p className="mt-6 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-[13px] text-rose-300">
           {error}
         </p>
       ) : null}
@@ -190,19 +189,19 @@ function DoneCard({
       </Lead>
 
       {result.detections.length > 0 ? (
-        <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-white/10 bg-white/8">
+        <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-[color:var(--line)]">
           {result.detections.map((d) => (
             <div
               key={d.id}
               className={cn(
-                "flex items-center gap-2 bg-ink-100 px-3 py-2.5 text-[13px]",
-                d.available ? "text-fog-100" : "text-fog-500",
+                "flex items-center gap-2 bg-coal-600 px-3 py-2.5 text-[13px]",
+                d.available ? "text-chalk-100" : "text-chalk-400",
               )}
             >
               {d.available ? (
                 <Check size={14} className="shrink-0 text-emerald-400" strokeWidth={2.25} />
               ) : (
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-fog-500" />
+                <Minus size={14} className="shrink-0 text-chalk-400" strokeWidth={2.25} />
               )}
               <span className="truncate">{d.label}</span>
             </div>
@@ -211,10 +210,7 @@ function DoneCard({
       ) : null}
 
       <div className="mt-8">
-        <VioletCta onClick={onEntered}>
-          Enter Vibestrate
-          <ArrowRight size={16} />
-        </VioletCta>
+        <Cta onClick={onEntered}>Enter Vibestrate</Cta>
       </div>
     </>
   );
@@ -238,23 +234,22 @@ function NeedsGitCard({
         Vibestrate runs every task in an isolated git worktree, so this folder needs
         to be a repository before setup.
       </Lead>
-      <div className="mt-8 rounded-md border border-white/10 bg-ink-100 px-4 py-4">
-        <div className="mono truncate text-[12.5px] text-fog-300">{status.projectRoot}</div>
-        <p className="mt-3 text-[13.5px] leading-relaxed text-fog-400">
+      <div className="mt-8 rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4 py-4">
+        <div className="mono truncate text-[12.5px] text-chalk-300">{status.projectRoot}</div>
+        <p className="mt-3 text-[13.5px] leading-relaxed text-chalk-300">
           Vibestrate can create the repository for you: it writes a starter{" "}
-          <span className="mono text-fog-300">.gitignore</span> and makes an
+          <span className="mono text-chalk-200">.gitignore</span> and makes an
           initial commit only when no secret-like files (such as{" "}
-          <span className="mono text-fog-300">.env</span>) would be swept in -
+          <span className="mono text-chalk-200">.env</span>) would be swept in -
           otherwise it initializes without committing and tells you why.
         </p>
         <div className="mt-4">
-          <VioletCta disabled={working} onClick={onGitInit}>
+          <Cta busy={working} disabled={working} onClick={onGitInit}>
             {working ? "Initializing repository" : "Initialize git + set up project"}
-            {!working ? <ArrowRight size={16} /> : null}
-          </VioletCta>
+          </Cta>
         </div>
         {error ? (
-          <p className="mt-4 rounded-md border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+          <p className="mt-4 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
             {error}
           </p>
         ) : null}

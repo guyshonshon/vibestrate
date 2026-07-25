@@ -346,29 +346,21 @@ function SkillsRow({
         )}
         {available.length > 0 && (role.skills.length > 0 || adding) ? (
           adding ? (
-            <select
-              autoFocus
-              defaultValue=""
+            <Select
+              value=""
+              ariaLabel="Attach a skill"
+              placeholder="+ skill…"
               disabled={saving}
-              onChange={(e) => {
-                if (e.target.value) {
-                  onPatch(
-                    { skills: [...role.skills, e.target.value] },
-                    `Attached skill ${e.target.value}.`,
-                  );
-                }
+              className="min-w-[120px]"
+              onChange={(v) => {
+                onPatch(
+                  { skills: [...role.skills, v] },
+                  `Attached skill ${v}.`,
+                );
                 setAdding(false);
               }}
-              onBlur={() => setAdding(false)}
-              className="rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-1.5 py-0.5 text-[11px] text-chalk-100 outline-none focus:border-violet-soft/50"
-            >
-              <option value="">+ skill…</option>
-              {available.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
+              options={available.map((n) => ({ value: n, label: n }))}
+            />
           ) : (
             <button
               type="button"

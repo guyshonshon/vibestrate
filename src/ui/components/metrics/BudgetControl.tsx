@@ -3,6 +3,7 @@ import { Pencil } from "lucide-react";
 import { api, type BudgetSettings } from "../../lib/api.js";
 import { Button } from "../design/Button.js";
 import { Select } from "../design/Select.js";
+import { StatTile } from "../design/StatTile.js";
 import { cn } from "../design/cn.js";
 import { Section } from "../layout/PageShell.js";
 import { CARD, CSS } from "./panelChrome.js";
@@ -176,16 +177,14 @@ function BudgetSummary({
   meterTone: string;
   onSetCap: () => void;
 }) {
-  const facts: { label: string; value: string; muted: boolean }[] = [
+  const facts: { label: string; value: string }[] = [
     {
       label: "at cap",
       value: cap ? CAP_ACTION_LABEL[budget.capAction] : "-",
-      muted: !cap,
     },
     {
       label: "turns/run",
       value: budget.maxTurnsPerRun != null ? String(budget.maxTurnsPerRun) : "off",
-      muted: budget.maxTurnsPerRun == null,
     },
     {
       label: "min/run",
@@ -193,12 +192,10 @@ function BudgetSummary({
         budget.maxWallClockMinPerRun != null
           ? String(budget.maxWallClockMinPerRun)
           : "off",
-      muted: budget.maxWallClockMinPerRun == null,
     },
     {
       label: "turns/day",
       value: budget.maxTurnsPerDay != null ? String(budget.maxTurnsPerDay) : "off",
-      muted: budget.maxTurnsPerDay == null,
     },
     {
       label: "min/day",
@@ -206,12 +203,10 @@ function BudgetSummary({
         budget.maxWallClockMinPerDay != null
           ? String(budget.maxWallClockMinPerDay)
           : "off",
-      muted: budget.maxWallClockMinPerDay == null,
     },
     {
       label: "on hit",
       value: budget.onLimit ?? "stop",
-      muted: false,
     },
   ];
 
@@ -264,22 +259,7 @@ function BudgetSummary({
 
       <div className="flex flex-wrap gap-2 border-t border-[color:var(--line-soft)] pt-4">
         {facts.map((f) => (
-          <div
-            key={f.label}
-            className="flex min-w-[68px] flex-col gap-0.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5"
-          >
-            <span
-              className={cn(
-                "num-tabular text-[13px] font-bold leading-none",
-                f.muted ? "text-chalk-400" : "text-chalk-100",
-              )}
-            >
-              {f.value}
-            </span>
-            <span className="text-[10.5px] font-medium text-violet-soft">
-              {f.label}
-            </span>
-          </div>
+          <StatTile key={f.label} value={f.value} label={f.label} />
         ))}
       </div>
     </div>

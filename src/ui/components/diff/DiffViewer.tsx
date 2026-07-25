@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Copy, ExternalLink, FolderOpen, GitBranch } from "lucide-react";
 import { ApiError, api } from "../../lib/api.js";
 import type { FileDiff } from "../../lib/types.js";
+import { Button } from "../design/Button.js";
 import { SecretDiffWarning } from "./SecretDiffWarning.js";
 
 type Line = { kind: "context" | "add" | "del" | "hunk" | "header"; text: string };
@@ -85,40 +86,41 @@ export function DiffViewer({
         <span className="mono truncate">{diff.path}</span>
         <div className="ml-auto flex items-center gap-1">
           {onOpenInProject ? (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => onOpenInProject(diff.path)}
-              className="inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11px] font-semibold text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
+              iconLeft={<FolderOpen className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />}
               title="Open this file in the project codebase view"
             >
-              <FolderOpen className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
               project
-            </button>
+            </Button>
           ) : null}
           {onOpenInWorktree ? (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => onOpenInWorktree(diff.path)}
-              className="inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11px] font-semibold text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
+              iconLeft={<GitBranch className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />}
               title="Open this file in the run's worktree"
             >
-              <GitBranch className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
               worktree
-            </button>
+            </Button>
           ) : null}
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               void navigator.clipboard.writeText(diff.path).catch(() => {});
             }}
-            className="inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11px] font-semibold text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
+            iconLeft={<Copy className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />}
             title="Copy path"
           >
-            <Copy className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
             copy
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               void api
                 .openInEditor({ path: diff.path, runId })
@@ -128,12 +130,11 @@ export function DiffViewer({
                   }
                 });
             }}
-            className="inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11px] font-semibold text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
+            iconLeft={<ExternalLink className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />}
             title="Open in editor (if configured)"
           >
-            <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
             editor
-          </button>
+          </Button>
         </div>
       </header>
       <pre className="mono whitespace-pre p-3 text-[12.5px] leading-[1.55]">

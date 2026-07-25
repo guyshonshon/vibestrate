@@ -4,6 +4,7 @@ import { api } from "../../lib/api.js";
 import { ApiError } from "../../lib/api.js";
 import type { RunStatus } from "../../lib/types.js";
 import { Select } from "../design/Select.js";
+import { SegmentedControl } from "../design/SegmentedControl.js";
 
 type Line = {
   stream: "stdout" | "stderr";
@@ -236,22 +237,14 @@ export function LiveOutputPanel({
           </button>
         ) : null}
         {hasKinds ? (
-          <span className="flex items-center gap-1 rounded-[10px] bg-coal-800 p-0.5">
-            {(["transcript", "raw"] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setView(v)}
-                className={`mono rounded-[8px] px-2 py-0.5 text-[11px] font-medium transition ${
-                  view === v
-                    ? "bg-coal-500 text-chalk-100"
-                    : "text-chalk-400 hover:text-chalk-100"
-                }`}
-              >
-                {v}
-              </button>
-            ))}
-          </span>
+          <SegmentedControl
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "transcript", label: "transcript" },
+              { value: "raw", label: "raw" },
+            ]}
+          />
         ) : null}
         <span className="mono ml-auto text-[11px] text-chalk-400">
           {lines.length} chunk{lines.length === 1 ? "" : "s"} ·{" "}
