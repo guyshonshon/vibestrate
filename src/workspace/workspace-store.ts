@@ -12,6 +12,7 @@ import { realpathSync } from "node:fs";
 import { rename, rm } from "node:fs/promises";
 import { z } from "zod";
 import { readText, writeText, pathExists, ensureDir } from "../utils/fs.js";
+import { withFileMutex } from "../utils/file-mutex.js";
 import { nowIso } from "../utils/time.js";
 
 /**
@@ -68,15 +69,77 @@ function emptyFile(): WorkspaceFile {
   return { version: 1, projects: [] };
 }
 
+/** The registry file exists but can't be understood. Carried as a typed error
+ *  so callers branch on the kind rather than matching a message. */
+export class WorkspaceRegistryCorruptError extends Error {
+  constructor(
+    readonly filePath: string,
+    readonly reason: string,
+  ) {
+    super(`Workspace registry at ${filePath} is unreadable (${reason}).`);
+    this.name = "WorkspaceRegistryCorruptError";
+  }
+}
+
 export class WorkspaceStore {
   constructor(private readonly filePath: string = defaultWorkspaceFile()) {}
 
+  /**
+   * Read the registry. A missing file is an empty registry; an existing file
+   * that doesn't parse raises `WorkspaceRegistryCorruptError` rather than
+   * quietly reading as empty.
+   *
+   * That distinction matters because `register` writes back whatever `read`
+   * returned: reading a corrupt file as empty would erase every other
+   * registered project on the next write, with no error and no copy kept.
+   * Callers decide what to do - `list` degrades to no projects (read-only, so
+   * nothing is lost), `register` quarantines the bad file first.
+   */
   async read(): Promise<WorkspaceFile> {
     if (!(await pathExists(this.filePath))) return emptyFile();
+    let json: unknown;
     try {
-      const parsed = workspaceFileSchema.safeParse(JSON.parse(await readText(this.filePath)));
-      return parsed.success ? parsed.data : emptyFile();
-    } catch {
+      json = JSON.parse(await readText(this.filePath));
+    } catch (err) {
+      throw new WorkspaceRegistryCorruptError(
+        this.filePath,
+        `not valid JSON: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    const parsed = workspaceFileSchema.safeParse(json);
+    if (!parsed.success) {
+      throw new WorkspaceRegistryCorruptError(
+        this.filePath,
+        parsed.error.issues[0]?.message ?? "unexpected shape",
+      );
+    }
+    return parsed.data;
+  }
+
+  /**
+   * Move an unreadable registry aside instead of overwriting it, so a corrupt
+   * file never costs the owner their project list - it stays on disk next to
+   * the new one and can be salvaged by hand. Returns the archived path.
+   */
+  private async quarantine(reason: string): Promise<string> {
+    const dest = `${this.filePath}.corrupt-${nowIso().replace(/[:.]/g, "-")}`;
+    await rename(this.filePath, dest);
+    console.warn(
+      `[vibestrate] workspace registry at ${this.filePath} was unreadable (${reason}); ` +
+        `moved it to ${dest} and started a fresh one. Your other registered ` +
+        `projects are still in that file if you want them back.`,
+    );
+    return dest;
+  }
+
+  /** `read`, but a corrupt file is quarantined and treated as a fresh start.
+   *  Only for the write paths, which must make progress. */
+  private async readForWrite(): Promise<WorkspaceFile> {
+    try {
+      return await this.read();
+    } catch (err) {
+      if (!(err instanceof WorkspaceRegistryCorruptError)) throw err;
+      await this.quarantine(err.reason);
       return emptyFile();
     }
   }
@@ -84,8 +147,10 @@ export class WorkspaceStore {
   private async write(file: WorkspaceFile): Promise<void> {
     // Atomic write: serialize to a unique temp file, then rename over the
     // target. rename(2) is atomic on the same filesystem, so a concurrent
-    // reader never sees a half-written registry and two near-simultaneous
-    // writers can't interleave a partial file (last rename wins cleanly).
+    // reader never sees a half-written registry. Note this protects file
+    // INTEGRITY only, not the read-modify-write above it: two writers racing
+    // would each rename a whole file and the loser's registration would
+    // vanish. `register`/`remove` take a mutex for that reason.
     const body = `${JSON.stringify(workspaceFileSchema.parse(file), null, 2)}\n`;
     const tmp = `${this.filePath}.tmp-${process.pid}-${nowIso().replace(/[:.]/g, "-")}`;
     await ensureDir(path.dirname(this.filePath));
@@ -99,53 +164,75 @@ export class WorkspaceStore {
     }
   }
 
-  /** Known projects, most-recently-opened first. */
+  /** Known projects, most-recently-opened first. A corrupt registry reads as
+   *  no projects rather than throwing - this is the read path, so degrading
+   *  costs nothing, and the next write quarantines the file with a warning. */
   async list(): Promise<WorkspaceProject[]> {
-    const { projects } = await this.read();
+    let projects: WorkspaceProject[];
+    try {
+      ({ projects } = await this.read());
+    } catch (err) {
+      if (!(err instanceof WorkspaceRegistryCorruptError)) throw err;
+      return [];
+    }
     return [...projects].sort((a, b) => b.lastOpenedAt.localeCompare(a.lastOpenedAt));
   }
 
   /**
-   * Add or refresh a project. Dedups by normalized root; updates lastOpenedAt
-   * and (when given) lastPort. Returns the stored entry.
+   * Add or refresh a project. Dedups by normalized root; updates lastOpenedAt.
+   * Returns the stored entry.
+   *
+   * The read-modify-write runs under a cross-process mutex: every `vibe ui`
+   * self-registers on startup and the dashboard can register over HTTP, so
+   * two writers racing without it would each rewrite the whole file and one
+   * registration would silently disappear.
    */
   async register(input: {
     root: string;
     label?: string;
   }): Promise<WorkspaceProject> {
     const root = canonicalRoot(input.root);
-    const file = await this.read();
-    const ts = nowIso();
-    const existing = file.projects.find((p) => p.root === root);
-    let entry: WorkspaceProject;
-    if (existing) {
-      entry = {
-        ...existing,
-        label: input.label ?? existing.label,
-        lastOpenedAt: ts,
-      };
-      file.projects = file.projects.map((p) => (p.root === root ? entry : p));
-    } else {
-      entry = {
-        root,
-        label: input.label ?? (path.basename(root) || root),
-        addedAt: ts,
-        lastOpenedAt: ts,
-      };
-      file.projects.push(entry);
-    }
-    await this.write(file);
-    return entry;
+    return withFileMutex(`${this.filePath}.lock`, async () => {
+      const file = await this.readForWrite();
+      const ts = nowIso();
+      const existing = file.projects.find((p) => p.root === root);
+      let entry: WorkspaceProject;
+      if (existing) {
+        entry = {
+          ...existing,
+          label: input.label ?? existing.label,
+          lastOpenedAt: ts,
+        };
+        file.projects = file.projects.map((p) => (p.root === root ? entry : p));
+      } else {
+        entry = {
+          root,
+          // Clamped to the schema's own cap: a directory name longer than that
+          // would otherwise fail validation inside write(), turning a legal
+          // path into an opaque server error.
+          label: (input.label ?? (path.basename(root) || root)).slice(0, 120),
+          addedAt: ts,
+          lastOpenedAt: ts,
+        };
+        file.projects.push(entry);
+      }
+      await this.write(file);
+      return entry;
+    });
   }
 
-  /** Remove a project from the registry (does NOT touch the project on disk). */
+  /** Remove a project from the registry (does NOT touch the project on disk).
+   *  Same mutex as `register` - it is the other half of the same
+   *  read-modify-write. */
   async remove(root: string): Promise<boolean> {
     const norm = canonicalRoot(root);
-    const file = await this.read();
-    const before = file.projects.length;
-    file.projects = file.projects.filter((p) => p.root !== norm);
-    if (file.projects.length === before) return false;
-    await this.write(file);
-    return true;
+    return withFileMutex(`${this.filePath}.lock`, async () => {
+      const file = await this.readForWrite();
+      const before = file.projects.length;
+      file.projects = file.projects.filter((p) => p.root !== norm);
+      if (file.projects.length === before) return false;
+      await this.write(file);
+      return true;
+    });
   }
 }

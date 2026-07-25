@@ -1,4 +1,5 @@
 import path from "node:path";
+import { stat } from "node:fs/promises";
 import { exec } from "node:child_process";
 import { Command } from "commander";
 import {
@@ -77,8 +78,16 @@ async function cmdList(opts: { json?: boolean }): Promise<number> {
 
 async function cmdAdd(target: string | undefined): Promise<number> {
   const root = path.resolve(target ?? process.cwd());
-  if (!(await pathExists(root))) {
+  // Must be a directory, not merely present - a regular file would otherwise
+  // register as a permanent entry that can never resolve to a project. Kept in
+  // step with POST /api/workspace/add, which enforces the same rule.
+  const st = await stat(root).catch(() => null);
+  if (!st) {
     console.error(`${symbol.fail()} Path does not exist: ${root}`);
+    return 1;
+  }
+  if (!st.isDirectory()) {
+    console.error(`${symbol.fail()} Not a directory: ${root}`);
     return 1;
   }
   const entry = await new WorkspaceStore().register({ root });

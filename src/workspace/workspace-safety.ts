@@ -1,4 +1,4 @@
-// ── Workspace safety guard (Multi-project slice f) ──────────────────────────
+// ── Workspace safety guard ──────────────────────────────────────────────────
 //
 // One fail-closed gate that EVERY cross-project action (launch, abort, enqueue)
 // must pass before it can touch another project root. The threat it closes: a
@@ -10,9 +10,14 @@
 //   3. an initialized Vibestrate project (`.vibestrate/project.yml` exists).
 // Anything else is refused with a clear error rather than silently acted on.
 //
-// This is the (f) "per-root safety review for a shared server": the dashboard
-// stays single-served, but the few endpoints that reach other roots all funnel
-// through here, so the review surface is exactly one module.
+// Registry membership (2) is NOT an owner-only fact: `POST /api/workspace/add`
+// registers a directory over HTTP, mirroring `vibe workspace add`. So (2) means
+// "someone with access to this machine vouched for it", not "typed at a
+// terminal" - which is why (3) is the check that actually constrains what can
+// be launched, and why it must stay.
+//
+// The dashboard stays single-served, but the few endpoints that reach other
+// roots all funnel through here, so the review surface is exactly one module.
 
 import path from "node:path";
 import { pathExists } from "../utils/fs.js";

@@ -58,11 +58,34 @@ describe("WorkspaceStore", () => {
     expect(list[0]!.root).toBe(path.resolve("/tmp/new"));
   });
 
-  it("tolerates a corrupt registry file (returns empty, then repairs)", async () => {
+  it("tolerates a corrupt registry file (reads empty, then starts fresh)", async () => {
     const { store, file } = await freshStore();
     await fs.writeFile(file, "{ not json");
     expect(await store.list()).toEqual([]);
     await store.register({ root: "/tmp/ok" });
     expect(await store.list()).toHaveLength(1);
+  });
+
+  it("archives a corrupt registry instead of overwriting it, so entries survive", async () => {
+    const { store, file } = await freshStore();
+    await store.register({ root: "/tmp/keep-me" });
+    const good = await fs.readFile(file, "utf8");
+
+    // Truncate the file the way an interrupted write or a hand-edit would.
+    await fs.writeFile(file, '{"version":1,"projects":[{"root"');
+    await store.register({ root: "/tmp/new-one" });
+
+    // The fresh registry holds only the new entry...
+    const list = await store.list();
+    expect(list.map((p) => p.root)).toEqual([path.resolve("/tmp/new-one")]);
+
+    // ...but the previous registrations were NOT destroyed: the unreadable file
+    // is kept beside it, so "/tmp/keep-me" is still recoverable by hand.
+    const dir = path.dirname(file);
+    const archived = (await fs.readdir(dir)).filter((f) =>
+      f.startsWith(`${path.basename(file)}.corrupt-`),
+    );
+    expect(archived).toHaveLength(1);
+    expect(good).toContain("keep-me");
   });
 });

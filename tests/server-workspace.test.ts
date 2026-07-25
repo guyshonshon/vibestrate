@@ -129,3 +129,91 @@ describe("POST /api/workspace/open (navigator)", () => {
     expect(body.port).toBe(Number(servedPort));
   });
 });
+
+describe("POST /api/workspace/add", () => {
+  it("registers a directory, but registering alone never makes it launchable", async () => {
+    const regDir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-add-"));
+    const regFile = path.join(regDir, "workspace.json");
+    prevEnv = process.env.VIBESTRATE_WORKSPACE_FILE;
+    process.env.VIBESTRATE_WORKSPACE_FILE = regFile;
+
+    const served = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-adds-"));
+    await fs.mkdir(path.join(served, ".vibestrate"), { recursive: true });
+    await fs.writeFile(path.join(served, ".vibestrate", "project.yml"), "version: 1\n");
+    server = await startServer({ projectRoot: served, port: 0, host: "127.0.0.1" });
+
+    // An ordinary directory with no .vibestrate/ - registers fine.
+    const plain = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-addp-"));
+    const added = await fetch(`${server.url}/api/workspace/add`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ root: plain }),
+    });
+    expect(added.status).toBe(200);
+    const addedBody = await added.json();
+    expect(addedBody.entry.root).toBe(canonicalRoot(plain));
+    expect(addedBody.initialized).toBe(false);
+
+    // The seam this route moved: HTTP can now extend the registry, so assert
+    // that membership alone does NOT satisfy the cross-root launch gate - the
+    // project.yml check is what actually constrains what can be spawned.
+    const opened = await fetch(`${server.url}/api/workspace/open`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ project: plain }),
+    });
+    expect(opened.status).toBe(400);
+  });
+
+  it("refuses a path that is not a directory, and one that does not exist", async () => {
+    const regDir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-addn-"));
+    prevEnv = process.env.VIBESTRATE_WORKSPACE_FILE;
+    process.env.VIBESTRATE_WORKSPACE_FILE = path.join(regDir, "workspace.json");
+
+    const served = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-addns-"));
+    server = await startServer({ projectRoot: served, port: 0, host: "127.0.0.1" });
+
+    const file = path.join(regDir, "not-a-dir.txt");
+    await fs.writeFile(file, "x");
+    const asFile = await fetch(`${server.url}/api/workspace/add`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ root: file }),
+    });
+    expect(asFile.status).toBe(400);
+
+    const missing = await fetch(`${server.url}/api/workspace/add`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ root: path.join(regDir, "nope") }),
+    });
+    expect(missing.status).toBe(400);
+  });
+});
+
+describe("WorkspaceStore corruption safety", () => {
+  it("never overwrites a corrupt registry in place - it archives it first", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-corrupt-"));
+    const regFile = path.join(dir, "workspace.json");
+    const store = new WorkspaceStore(regFile);
+
+    const keep = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-keep-"));
+    await store.register({ root: keep, label: "keep" });
+    expect((await store.list()).length).toBe(1);
+
+    // Truncated/hand-mangled file. read() must surface it as a typed error
+    // rather than an empty registry, because register() writes back whatever
+    // read() returned - degrading silently would delete every other project.
+    const corrupt = '{"version":1,"projects":[{"root"';
+    await fs.writeFile(regFile, corrupt);
+    await expect(store.read()).rejects.toThrow(/unreadable/);
+
+    // A write still makes progress, but the unreadable bytes are preserved on
+    // disk under a .corrupt-* sibling - never destroyed.
+    const other = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-other-"));
+    await store.register({ root: other, label: "other" });
+    const archived = (await fs.readdir(dir)).filter((f) => f.includes(".corrupt-"));
+    expect(archived).toHaveLength(1);
+    expect(await fs.readFile(path.join(dir, archived[0]!), "utf8")).toBe(corrupt);
+  });
+});

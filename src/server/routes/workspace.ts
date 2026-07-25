@@ -1,4 +1,5 @@
 import path from "node:path";
+import { stat } from "node:fs/promises";
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import { WorkspaceStore, canonicalRoot } from "../../workspace/workspace-store.js";
@@ -89,15 +90,24 @@ export async function registerWorkspaceRoutes(
 
   // Register a project directory in the user-level registry - the dashboard
   // equivalent of `vibe workspace add <path>`. Metadata only (root + label);
-  // never reads project contents. The path is whatever the user typed, so it
-  // gets the same existence check the CLI does before it's trusted.
+  // never reads project contents.
+  //
+  // Registering does NOT make a project launchable: `/api/workspace/open` still
+  // runs the workspace-safety gate, which requires an initialized
+  // `.vibestrate/project.yml`. Registry membership is a necessary condition
+  // there, not a sufficient one (see workspace-safety.ts).
   app.post<{ Body: unknown }>("/api/workspace/add", async (req) => {
-    const body = z.object({ root: z.string().min(1) }).safeParse(req.body);
+    const body = z
+      .object({ root: z.string().min(1).max(4096) })
+      .safeParse(req.body);
     if (!body.success) throw new HttpError(400, body.error.message);
     const root = path.resolve(body.data.root.trim());
-    if (!(await pathExists(root))) {
-      throw new HttpError(400, `Path does not exist: ${root}`);
-    }
+    // Must be a directory, not merely present: `pathExists` is fs.access, so a
+    // regular file or a device node would otherwise register as a permanent
+    // project entry that can never resolve to anything.
+    const st = await stat(root).catch(() => null);
+    if (!st) throw new HttpError(400, `Path does not exist: ${root}`);
+    if (!st.isDirectory()) throw new HttpError(400, `Not a directory: ${root}`);
     const entry = await new WorkspaceStore().register({ root });
     const initialized = await pathExists(vibestrateRoot(entry.root));
     return { entry, initialized };
