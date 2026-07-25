@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Check,
@@ -553,11 +553,10 @@ function Row({
     <li className="rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-2.5 py-2">
       <div className="flex flex-wrap items-center gap-2">
         {selectMode ? (
-          <button
-            type="button"
+          <IconBtn
+            variant="plain"
+            title={selected ? "Deselect" : "Select"}
             onClick={onToggleSelect}
-            className="rounded-[8px] p-0.5 text-chalk-300 hover:bg-coal-500"
-            aria-label={selected ? "Deselect" : "Select"}
           >
             {selected ? (
               <CheckSquare
@@ -567,7 +566,7 @@ function Row({
             ) : (
               <Square className="h-3.5 w-3.5" strokeWidth={1.5} />
             )}
-          </button>
+          </IconBtn>
         ) : null}
         <StatusBadge status={s.status} />
         <span className="rounded-[6px] border border-[color:var(--line)] px-1 font-mono text-[10px] text-chalk-400">
@@ -796,6 +795,37 @@ function messageFor(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+type ApplyMenuItem = {
+  label: string;
+  description: string;
+  mode: "plain" | "validate" | "validate-revert";
+  /** Amber instead of the default muted description - flags the
+   * destructive (auto-revert) path the same way the confirm() dialog
+   * in `apply()` does. */
+  warn?: boolean;
+};
+
+const APPLY_MENU_ITEMS: ApplyMenuItem[] = [
+  { label: "Apply", description: "Just apply the patch.", mode: "plain" },
+  {
+    label: "Apply & validate",
+    description: "After apply, run commands.validate against the worktree.",
+    mode: "validate",
+  },
+  {
+    label: "Apply, validate, revert if validation fails",
+    description:
+      "If validation fails, Vibestrate will attempt to revert the patch in the run worktree (git apply -R, never push or merge).",
+    mode: "validate-revert",
+    warn: true,
+  },
+];
+
+// Split button (default action + overflow toggle) built on the same
+// ref-tracked, click-outside-to-close popover shell as
+// `design/FlowCard`'s `FlowCardMenu` - the one dropdown/menu idiom in the
+// app, kept in step with it even though the trigger here has a default
+// action baked in rather than being icon-only.
 function ApplyMenu({
   busy,
   onApply,
@@ -804,12 +834,27 @@ function ApplyMenu({
   onApply: (mode: "plain" | "validate" | "validate-revert") => void;
 }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  function choose(mode: "plain" | "validate" | "validate-revert") {
+    setOpen(false);
+    onApply(mode);
+  }
+
   return (
-    <div className="relative">
+    <div ref={ref} className="relative">
       <div className="inline-flex divide-x divide-violet-soft/40 overflow-hidden rounded-[10px] border border-violet-soft/40 bg-violet-soft/15">
         <button
           type="button"
-          onClick={() => onApply("plain")}
+          onClick={() => choose("plain")}
           disabled={busy}
           className="inline-flex items-center gap-1 px-1.5 py-0.5 text-violet-soft hover:bg-violet-soft/25 disabled:opacity-50"
         >
@@ -831,53 +876,28 @@ function ApplyMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-10 mt-1 w-72 rounded-[14px] border border-[color:var(--line)] bg-coal-600 shadow-lg"
+          className="absolute right-0 z-30 mt-1 w-72 overflow-hidden rounded-[12px] border border-[color:var(--line)] bg-coal-800 py-1 shadow-2xl"
         >
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              onApply("plain");
-            }}
-            className="block w-full px-3 py-1.5 text-left text-[11.5px] hover:bg-coal-500"
-          >
-            <div className="text-chalk-100">Apply</div>
-            <div className="text-[10.5px] text-chalk-400">
-              Just apply the patch.
-            </div>
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              onApply("validate");
-            }}
-            className="block w-full px-3 py-1.5 text-left text-[11.5px] hover:bg-coal-500"
-          >
-            <div className="text-chalk-100">Apply &amp; validate</div>
-            <div className="text-[10.5px] text-chalk-400">
-              After apply, run commands.validate against the worktree.
-            </div>
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              onApply("validate-revert");
-            }}
-            className="block w-full border-t border-[color:var(--line)] px-3 py-1.5 text-left text-[11.5px] hover:bg-coal-500"
-          >
-            <div className="text-chalk-100">
-              Apply, validate, revert if validation fails
-            </div>
-            <div className="text-[10.5px] text-amber-soft">
-              If validation fails, Vibestrate will attempt to revert the patch in the
-              run worktree (git apply -R, never push or merge).
-            </div>
-          </button>
+          {APPLY_MENU_ITEMS.map((item, i) => (
+            <button
+              key={item.mode}
+              type="button"
+              role="menuitem"
+              onClick={() => choose(item.mode)}
+              className={`block w-full px-3 py-1.5 text-left text-[11.5px] transition hover:bg-coal-500 ${
+                // A border sets the destructive revert option apart from the
+                // two non-destructive ones above it.
+                i > 0 && item.warn ? "border-t border-[color:var(--line)]" : ""
+              }`}
+            >
+              <div className="font-medium text-chalk-100">{item.label}</div>
+              <div
+                className={`text-[10.5px] ${item.warn ? "text-amber-soft" : "text-chalk-400"}`}
+              >
+                {item.description}
+              </div>
+            </button>
+          ))}
         </div>
       ) : null}
     </div>
