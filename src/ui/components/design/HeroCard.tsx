@@ -51,6 +51,7 @@ export function HeroCard({
   overline,
   status,
   statusSub,
+  breadcrumb,
   title,
   sub,
   actions,
@@ -67,6 +68,9 @@ export function HeroCard({
   status: ReactNode;
   /** Muted line under the status word (e.g. "live now"). */
   statusSub?: ReactNode;
+  /** Optional nav trail above the title (e.g. a `Breadcrumbs` back-link +
+   *  id), for the rare hero that doubles as a page's top chrome. */
+  breadcrumb?: ReactNode;
   /** Headline of the main column - a state headline, or an entity name. */
   title: ReactNode;
   sub?: ReactNode;
@@ -129,6 +133,7 @@ export function HeroCard({
             )}
           >
             <div className="min-w-0">
+              {breadcrumb ? <div className="mb-1">{breadcrumb}</div> : null}
               <h3
                 className={cn(
                   "line-clamp-2 break-words font-bold tracking-[-0.01em] text-chalk-100",

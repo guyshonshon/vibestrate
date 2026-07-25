@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Diff, GitBranch, Pencil, RotateCcw } from "lucide-react";
-import { RunStatusBadge } from "../RunStatusBadge.js";
+import { Diff, GitBranch, Pencil, RotateCcw } from "lucide-react";
+import { HeroCard, type HeroTone } from "../../design/HeroCard.js";
+import { Button } from "../../design/Button.js";
+import { IconBtn } from "../../design/IconBtn.js";
+import { Breadcrumbs } from "../../layout/Breadcrumbs.js";
 import { shortRunId } from "../../design/format.js";
 import type { RunState, RunStatus } from "../../../lib/types.js";
 import { isSpecUpRun } from "../../../lib/run-outcome.js";
@@ -41,27 +44,28 @@ function EditableRunName({
             setEditing(false);
           }
         }}
-        className="max-w-[320px] rounded-[8px] border border-[color:var(--line-strong)] bg-coal-800 px-1.5 py-0.5 text-[12.5px] text-chalk-100 focus:border-violet-soft/50 focus:outline-none"
+        className="max-w-[320px] rounded-[8px] border border-[color:var(--line-strong)] bg-coal-800 px-1.5 py-0.5 text-[13.5px] font-bold text-chalk-100 focus:border-violet-soft/50 focus:outline-none"
       />
     );
   }
   return (
+    // No explicit size/weight here - it inherits HeroCard's h3 title
+    // treatment (bold, text-chalk-100) since this renders inside that slot.
     <span className="flex min-w-0 items-center gap-1.5">
-      <span className="max-w-[320px] truncate text-[12.5px] font-medium text-chalk-100" title={run.task}>
+      <span className="max-w-[320px] truncate" title={run.task}>
         {label}
       </span>
       {onRename ? (
-        <button
-          type="button"
+        <IconBtn
+          variant="plain"
+          title="Rename this run"
           onClick={() => {
             setDraft(label);
             setEditing(true);
           }}
-          title="Rename this run"
-          className="shrink-0 text-chalk-400 hover:text-chalk-100"
         >
           <Pencil className="h-3 w-3" strokeWidth={1.9} />
-        </button>
+        </IconBtn>
       ) : null}
     </span>
   );
@@ -74,9 +78,35 @@ const TERMINAL = new Set<RunStatus>([
   "blocked",
 ]);
 
-const chromeButton =
-  "flex h-8 items-center gap-2 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-600 px-2.5 text-[12px] text-chalk-300 transition hover:bg-coal-500 hover:text-chalk-100 whitespace-nowrap";
+// Mirrors RunStatusBadge's status grouping (kept local since that mapping
+// isn't exported): HeroCard's tonal column stands in for the status chip on
+// this card, so the two must agree on which runs read as live / attention /
+// done.
+const HERO_TONE: Record<RunStatus, HeroTone> = {
+  created: "default",
+  planning: "violet",
+  planned: "violet",
+  architecting: "violet",
+  architected: "violet",
+  executing: "violet",
+  validating: "sky",
+  reviewing: "sky",
+  verifying: "sky",
+  fixing: "amber",
+  waiting_for_approval: "amber",
+  paused: "amber",
+  blocked: "amber",
+  merge_ready: "emerald",
+  failed: "rose",
+  aborted: "default",
+};
 
+/**
+ * The run page's top chrome: composes the canonical HeroCard (primitives
+ * contract - extend, never fork) instead of hand-rolling a second card
+ * anatomy. HeroCard's `breadcrumb` slot carries the back-nav trail; the
+ * tonal status column replaces the old standalone status chip.
+ */
 export function RunHeaderV3({
   run,
   onBack,
@@ -94,56 +124,63 @@ export function RunHeaderV3({
 }) {
   const specUp = isSpecUpRun(run);
   return (
-    <header
-      className="flex flex-wrap items-center justify-between gap-3"
-      data-screen-label="00 Run header"
-    >
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-[12.5px] text-chalk-300 transition hover:text-chalk-100 whitespace-nowrap"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.9} />
-          Mission
-        </button>
-        <span className="text-chalk-400">/</span>
-        <EditableRunName run={run} onRename={onRename} />
-        <span className="mono text-[11px] text-chalk-400 whitespace-nowrap" title={run.runId}>
-          {shortRunId(run.runId)}
-        </span>
-        <span className="text-chalk-400">/</span>
-        {specUp ? (
-          <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-violet-soft">
-            <span className="h-1.5 w-1.5 rounded-full bg-violet-soft" />
-            Spec-up
-          </span>
-        ) : (
-          <RunStatusBadge status={run.status} />
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        {run.branchName ? (
-          <button type="button" onClick={onOpenGit} title={run.branchName} className={chromeButton}>
-            <GitBranch className="h-3.5 w-3.5 shrink-0 text-chalk-400" strokeWidth={1.9} />
-            <span className="mono max-w-[260px] truncate text-[11.5px]">{run.branchName}</span>
-          </button>
-        ) : null}
-        <button type="button" onClick={onOpenDiff} className={chromeButton}>
-          <Diff className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} /> View diff
-        </button>
-        {onRerun && TERMINAL.has(run.status) ? (
-          <button
-            type="button"
-            onClick={onRerun}
-            title="Re-run this task with adjusted settings (write access, provider)"
-            className="flex h-8 items-center gap-2 rounded-[10px] border border-violet-soft/40 bg-violet-soft/10 px-2.5 text-[12px] text-chalk-100 transition hover:bg-violet-soft/20 whitespace-nowrap"
-          >
-            <RotateCcw className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
-            Re-run with changes
-          </button>
-        ) : null}
-      </div>
-    </header>
+    <div data-screen-label="00 Run header">
+      <HeroCard
+        size="md"
+        tone={specUp ? "violet" : HERO_TONE[run.status]}
+        breadcrumb={
+          <Breadcrumbs
+            items={[
+              { label: "Mission", onClick: onBack },
+              {
+                label: <span title={run.runId}>{shortRunId(run.runId)}</span>,
+                muted: true,
+              },
+            ]}
+          />
+        }
+        status={specUp ? "Spec-up" : run.status.replace(/_/g, " ")}
+        title={<EditableRunName run={run} onRename={onRename} />}
+        actions={
+          <>
+            {run.branchName ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onOpenGit}
+                title={run.branchName}
+                iconLeft={
+                  <GitBranch className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />
+                }
+              >
+                <span className="mono max-w-[260px] truncate">{run.branchName}</span>
+              </Button>
+            ) : null}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onOpenDiff}
+              iconLeft={<Diff className="h-3.5 w-3.5 text-chalk-400" strokeWidth={1.9} />}
+            >
+              View diff
+            </Button>
+            {onRerun && TERMINAL.has(run.status) ? (
+              // Intent-tinted ghost (primitives-contract §4/RunActions.tsx) -
+              // Button has no violet-intent variant, so this stays a bare
+              // button carrying the tint directly.
+              <button
+                type="button"
+                onClick={onRerun}
+                title="Re-run this task with adjusted settings (write access, provider)"
+                className="flex h-7 items-center gap-1.5 rounded-[10px] border border-violet-soft/40 bg-violet-soft/10 px-2.5 text-[12px] font-semibold text-chalk-100 transition hover:bg-violet-soft/20 whitespace-nowrap"
+              >
+                <RotateCcw className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} />
+                Re-run with changes
+              </button>
+            ) : null}
+          </>
+        }
+      />
+    </div>
   );
 }
