@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
+  ArrowUpRight,
   Check,
   X,
 } from "lucide-react";
@@ -10,6 +11,7 @@ import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import { navigate } from "../App.js";
 import { MissionComposer } from "../../components/mission/MissionComposer.js";
 import { RunActions } from "../../components/mission/RunActions.js";
+import { Chip } from "../../components/design/Chip.js";
 import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { ErrorView } from "../../lib/error-view.js";
@@ -338,20 +340,40 @@ export function MissionControlPage({ onSelectRun }: Props) {
         {approvals.length > 0 ? (
           <section className="mb-4 rounded-[22px] border border-amber-soft/25 bg-coal-600 p-6">
             <h2 className="mb-3 text-[18px] font-bold text-violet-vivid">Waiting on you</h2>
-            <div className="flex flex-col gap-2.5">
+            {/* Grid, not a full-width stacked list - a single short reason in a
+             * page-width row left a dead gap before Approve/Reject at the far
+             * edge. Two columns keep each card dense and cap the reason's
+             * reading width without a fixed max-w. */}
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               {approvals.map((a) => (
                 <div
                   key={`${a.runId}:${a.id}`}
-                  className="flex items-center gap-3 rounded-[14px] bg-coal-500/60 px-4 py-3"
+                  className="rounded-[14px] bg-coal-500/60 px-4 py-3"
                 >
-                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: TONE_COLOR.amber }} />
-                  <span className="min-w-0 flex-1 truncate text-[13.5px]">{a.reason ?? a.requestedAction ?? "Approval requested"}</span>
-                  <button onClick={() => decide(a, true)} className="flex items-center gap-1 rounded-[9px] bg-emerald-500/15 px-3 py-1.5 text-[12.5px] font-semibold text-emerald-400 hover:bg-emerald-500/25">
-                    <Check className="h-3.5 w-3.5" /> Approve
-                  </button>
-                  <button onClick={() => decide(a, false)} className="flex items-center gap-1 rounded-[9px] bg-rose-500/15 px-3 py-1.5 text-[12.5px] font-semibold text-rose-300 hover:bg-rose-500/25">
-                    <X className="h-3.5 w-3.5" /> Reject
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Chip tone="amber" contained>waiting</Chip>
+                    <span className="min-w-0 truncate text-[12px] font-medium text-chalk-400">
+                      {a.roleId} · {a.stageId.replace(/_/g, " ")}
+                    </span>
+                    <span className="ml-auto shrink-0 text-[11px] text-chalk-400">{relTime(a.createdAt)}</span>
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-[13.5px] text-chalk-100">
+                    {a.reason ?? a.requestedAction ?? "Approval requested"}
+                  </p>
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      onClick={() => navigate({ kind: "run", runId: a.runId, tab: "approvals" })}
+                      className="flex items-center gap-1.5 rounded-[10px] bg-coal-500 px-3 py-1.5 text-[12.5px] font-semibold text-chalk-100 hover:bg-coal-400"
+                    >
+                      Details <ArrowUpRight className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => decide(a, true)} className="flex items-center gap-1 rounded-[10px] bg-emerald-500/15 px-3 py-1.5 text-[12.5px] font-semibold text-emerald-400 transition hover:bg-emerald-500/25">
+                      <Check className="h-3.5 w-3.5" /> Approve
+                    </button>
+                    <button onClick={() => decide(a, false)} className="flex items-center gap-1 rounded-[10px] bg-rose-500/15 px-3 py-1.5 text-[12.5px] font-semibold text-rose-300 transition hover:bg-rose-500/25">
+                      <X className="h-3.5 w-3.5" /> Reject
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
