@@ -18,6 +18,7 @@ import { api } from "../../lib/api.js";
 import { navigate } from "../App.js";
 import { cn } from "../../components/design/cn.js";
 import { Button } from "../../components/design/Button.js";
+import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { StatTile } from "../../components/design/StatTile.js";
 import { EntityIcon, FlowIcon, type EntityKind } from "../../components/design/EntityIcon.js";
 import { FlowBars } from "../../components/design/FlowBars.js";
@@ -32,11 +33,13 @@ import type {
 } from "../../lib/types.js";
 
 /**
- * Run composition as a full-page task command center (#/compose). This is the
- * page-scale sibling of Mission Control's `MissionComposer`, so it shares that
- * canonical idiom 1:1 (coal/chalk/violet-soft, `PickCard` flow/crew tiles with
- * the `FlowBars` step-meter, `EntityIcon` identity glyphs, recessed `Section`
- * wells) and adds the richer surface a dedicated page affords: a live `vibe run`
+ * Run composition as a full-page task command center (#/compose). Renders on
+ * the shared `PageShell` + `PageHeader` canvas (primitives-contract §0a) so it
+ * matches Mission Control's page-level chrome, and is the page-scale sibling of
+ * Mission Control's `MissionComposer`, sharing that canonical idiom 1:1
+ * (coal/chalk/violet-soft, `PickCard` flow/crew tiles with the `FlowBars`
+ * step-meter, `EntityIcon` identity glyphs, `ComposerSection` labeled groups)
+ * and adding the richer surface a dedicated page affords: a live `vibe run`
  * command mirror (CLI = TUI = UI), the selected flow's declared inputs, an
  * inline "ask the supervisor" rail, a metrics quick-look, and recent runs.
  */
@@ -289,12 +292,8 @@ export function RunComposePage() {
         : "Start run";
 
   return (
-    <div className="font-jakarta px-10 py-7 fade-up">
-      <header className="mb-6">
-        <h1 className="text-[24px] font-extrabold tracking-[-0.02em] text-chalk-100">
-          New run
-        </h1>
-      </header>
+    <PageShell className="fade-up">
+      <PageHeader title="New run" />
 
       {/* Contained header: the page's intent + the live command mirror (CLI =
           TUI = UI) in one framed block, not loose grey text on the canvas. */}
@@ -373,7 +372,7 @@ export function RunComposePage() {
             </div>
 
             {/* Flow */}
-            <Section title="Flow" entity="flow">
+            <ComposerSection title="Flow" entity="flow">
               {flows.length === 0 ? (
                 <p className="px-1 py-1 text-[12.5px] text-chalk-400">No flows discovered.</p>
               ) : (
@@ -401,7 +400,12 @@ export function RunComposePage() {
                         onClick={() => setFlowId(on ? "" : f.id)}
                         title={f.definition.label}
                         isDefault={f.id === defaultFlow}
-                        meta={`${steps.length} steps · ${seats} seats`}
+                        stats={
+                          <>
+                            <StatTile value={steps.length} label={steps.length === 1 ? "step" : "steps"} />
+                            <StatTile value={seats} label={seats === 1 ? "seat" : "seats"} />
+                          </>
+                        }
                       >
                         <FlowBars steps={steps} on={on} />
                       </PickCard>
@@ -423,12 +427,12 @@ export function RunComposePage() {
                   </div>
                 </details>
               ) : null}
-            </Section>
+            </ComposerSection>
 
             {/* Flow inputs - the selected flow's declared params. Required ones
                 must be filled before the run starts (they ARE part of the task). */}
             {flowParams && Object.keys(flowParams).length > 0 ? (
-              <Section title="Inputs">
+              <ComposerSection title="Inputs">
                 <div className="grid grid-cols-1 gap-x-6 gap-y-3.5 sm:grid-cols-2">
                   {Object.entries(flowParams).map(([name, def]) => {
                     const pf = paramPrefill[name];
@@ -469,7 +473,7 @@ export function RunComposePage() {
                           )}
                           {def.generate && !def.secret ? (
                             <Button
-                              variant="outline"
+                              variant="secondary"
                               size="sm"
                               disabled={generating === name}
                               onClick={() => generateParam(name)}
@@ -485,12 +489,12 @@ export function RunComposePage() {
                     );
                   })}
                 </div>
-              </Section>
+              </ComposerSection>
             ) : null}
 
             {/* Crew - card-based selection, same idiom as Flow */}
             {crews.length > 0 ? (
-              <Section title="Crew" entity="crew">
+              <ComposerSection title="Crew" entity="crew">
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2.5">
                   {crews.map((c) => {
                     const on = c.id === crewId;
@@ -503,7 +507,8 @@ export function RunComposePage() {
                         onClick={() => setCrewId(c.id)}
                         title={c.label}
                         isDefault={c.id === meta?.defaultCrew}
-                        meta={`${c.roles.length} roles · ${profiles.slice(0, 3).join(", ")}`}
+                        stats={<StatTile value={c.roles.length} label={c.roles.length === 1 ? "role" : "roles"} />}
+                        meta={profiles.slice(0, 3).join(", ")}
                       >
                         <div className="my-2 flex flex-wrap gap-1">
                           {c.roles.slice(0, 4).map((r) => (
@@ -522,11 +527,11 @@ export function RunComposePage() {
                     );
                   })}
                 </div>
-              </Section>
+              </ComposerSection>
             ) : null}
 
             {/* Configuration */}
-            <Section title="Configuration">
+            <ComposerSection title="Configuration">
               <div className="flex flex-col gap-4">
                 <div>
                   <div className="mb-2 text-[11.5px] font-semibold text-chalk-300">Permission</div>
@@ -613,7 +618,7 @@ export function RunComposePage() {
                   </div>
                 ) : null}
               </div>
-            </Section>
+            </ComposerSection>
 
             {/* Start */}
             <div className="flex flex-wrap items-center gap-3 border-t border-[color:var(--line)] pt-5">
@@ -627,7 +632,7 @@ export function RunComposePage() {
                 {startLabel}
               </Button>
               <Button
-                variant="outline"
+                variant="secondary"
                 size="lg"
                 disabled={!canPlan}
                 onClick={() => plan()}
@@ -756,14 +761,16 @@ export function RunComposePage() {
           ) : null}
         </aside>
       </div>
-    </div>
+    </PageShell>
   );
 }
 
-// A labeled config block: a violet section title over a coal-600 framed card,
-// matching MissionComposer's `Section` so the page-scale composer reads the same
-// as the dashboard one.
-function Section({
+// A labeled sub-group inside the composition card: a small violet inline label
+// (not the page-level `Section` from layout/PageShell - this is a sub-heading
+// one altitude below that, matching MissionComposer's identically-shaped local
+// `Section` verbatim so the page-scale composer reads the same as the dashboard
+// one). Named distinctly here so it never shadows the canonical export.
+function ComposerSection({
   title,
   entity,
   children,
@@ -785,7 +792,9 @@ function Section({
 
 // A selectable flow/crew tile - the canonical composer pick card (EntityIcon +
 // bold name + optional meter/role chips), ported from MissionComposer so the
-// two composers can't drift.
+// two composers can't drift. Facts (step/seat/role counts) render as content-width
+// `StatTile`s via `stats`, never a grey `·`-joined meta line (primitives-contract
+// §11); `meta` is reserved for a plain caption that isn't itself a fact.
 function PickCard({
   on,
   onClick,
@@ -793,6 +802,7 @@ function PickCard({
   entity,
   isDefault,
   children,
+  stats,
   meta,
 }: {
   on: boolean;
@@ -801,6 +811,7 @@ function PickCard({
   entity?: EntityKind;
   isDefault?: boolean;
   children?: ReactNode;
+  stats?: ReactNode;
   meta?: string;
 }) {
   return (
@@ -822,7 +833,8 @@ function PickCard({
         {isDefault ? <span className="ml-auto shrink-0 text-[10px] font-bold text-chalk-400">default</span> : null}
       </div>
       {children}
-      {meta ? <div className="text-[11px] text-chalk-400">{meta}</div> : null}
+      {stats ? <div className="mt-1.5 flex flex-wrap items-stretch gap-1">{stats}</div> : null}
+      {meta ? <div className="mt-1 text-[11px] text-chalk-400">{meta}</div> : null}
     </button>
   );
 }
