@@ -30,6 +30,21 @@ export function SchedulerQueuePanel({
   // Bumping this re-runs the effect below, which is how manual Retry
   // re-triggers a load function defined inside the effect's closure.
   const [retryTick, setRetryTick] = useState(0);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+
+  async function handleStart() {
+    setStarting(true);
+    setStartError(null);
+    try {
+      await api.startScheduler();
+      setRetryTick((t) => t + 1);
+    } catch (err) {
+      setStartError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setStarting(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -118,19 +133,38 @@ export function SchedulerQueuePanel({
           />
         </div>
       ) : idle ? (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[12px] text-chalk-400">
-            Nothing running or queued. Once the board has work, start the loop
-            with <code className="mono text-chalk-300">vibe queue run</code>.
-          </p>
-          <Button
-            variant="secondary"
-            size="sm"
-            iconLeft={<LayoutGrid className="h-3.5 w-3.5" strokeWidth={1.9} />}
-            onClick={() => navigate({ kind: "board" })}
-          >
-            Open the board
-          </Button>
+        <div className="mt-3 flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[12px] text-chalk-400">
+              Nothing running or queued. Once the board has work, start the
+              loop to pick it up automatically.
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={starting || state?.paused}
+                title={state?.paused ? "Scheduler is paused - resume it first" : "Start the scheduler loop"}
+                iconLeft={<Play className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                onClick={() => void handleStart()}
+              >
+                {starting ? "Starting…" : "Start the queue"}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                iconLeft={<LayoutGrid className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                onClick={() => navigate({ kind: "board" })}
+              >
+                Open the board
+              </Button>
+            </div>
+          </div>
+          {startError ? (
+            <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-[11.5px] text-rose-300">
+              {startError}
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className="mt-4 grid grid-cols-12 gap-4">
