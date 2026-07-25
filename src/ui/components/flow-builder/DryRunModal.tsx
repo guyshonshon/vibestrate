@@ -2,8 +2,9 @@
 // (seats, enabled steps, gates) - no run starts. The page owns the resolve
 // call and its busy/error state; this only renders it.
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { cn } from "../design/cn.js";
+import { Button } from "../design/Button.js";
 import { FlowGraph, isGraphSteps } from "../workflow/FlowGraph.js";
 import type { ResolvedFlowSnapshot } from "../../lib/types.js";
 import { PromptComposition } from "./StepInspector.js";
@@ -25,7 +26,7 @@ export function DryRunModal({
   const [expanded, setExpanded] = useState<string | null>(null);
   return (
     <div
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/80 px-4 py-10"
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-10"
       onClick={onClose}
     >
       <div
@@ -37,13 +38,15 @@ export function DryRunModal({
             <div className="text-[12px] font-semibold text-violet-vivid">Dry-run · resolved, not started</div>
             <h2 className="text-[18px] font-bold text-chalk-100 mt-0.5">{snapshot?.label ?? "Resolving…"}</h2>
           </div>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={onClose}
-            className="rounded-[10px] border border-[color:var(--line-strong)] px-2 py-1 text-[12px] text-chalk-300 hover:text-chalk-100 transition"
+            aria-label="Close"
+            iconLeft={<X size={13} />}
           >
             Close
-          </button>
+          </Button>
         </div>
 
         {busy ? (
