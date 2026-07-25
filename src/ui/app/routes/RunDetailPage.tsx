@@ -6,6 +6,7 @@ import {
   type RestorePreview,
 } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
+import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { LoadingState } from "../../components/design/ErrorState.js";
 import { PageShell } from "../../components/layout/PageShell.js";
 import { ErrorView } from "../../lib/error-view.js";
@@ -70,6 +71,7 @@ export function RunDetailPage({
   replayFocus?: ReplayFocus | null;
 }) {
   void replayFocus;
+  const { confirm } = useConfirm();
   const [run, setRun] = useState<RunState | null>(null);
   const [metrics, setMetrics] = useState<RuntimeMetrics | null>(null);
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
@@ -220,7 +222,14 @@ export function RunDetailPage({
     }
   };
   const handleAbort = async () => {
-    if (!window.confirm(`Abort ${runId}? This will stop the active agent.`))
+    if (
+      !(await confirm({
+        title: `Abort ${runId}?`,
+        message: "This will stop the active agent.",
+        confirmLabel: "Abort",
+        danger: true,
+      }))
+    )
       return;
     try {
       await api.abortRun(runId);

@@ -16,6 +16,7 @@ import { FlowCard, FlowCardMenu, type FlowCardStat } from "../../components/desi
 import { StepKindLegend } from "../../components/design/StepKindLegend.js";
 import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
+import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 
 type Props = {
@@ -63,6 +64,7 @@ function blankFlow(id: string) {
  * the browser never shells out. Groundwork for the Flows Hub (#3).
  */
 export function FlowsPage({ onOpenInFlow }: Props) {
+  const { confirm } = useConfirm();
   const [flows, setFlows] = useState<DiscoveredFlow[] | null>(null);
   const [invalid, setInvalid] = useState<{ path: string; message: string }[]>([]);
   const [defaultFlowId, setDefaultFlowId] = useState<string | null>(null);
@@ -129,7 +131,14 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   }
 
   async function remove(flowId: string) {
-    if (!window.confirm(`Delete the project flow "${flowId}"? This removes .vibestrate/flows/${flowId}/.`)) {
+    if (
+      !(await confirm({
+        title: `Delete the project flow "${flowId}"?`,
+        message: `This removes .vibestrate/flows/${flowId}/.`,
+        confirmLabel: "Delete",
+        danger: true,
+      }))
+    ) {
       return;
     }
     setBusy({ id: flowId, action: "delete" });
@@ -446,6 +455,7 @@ function HubSection({
   onInstalled: (flowId: string) => void;
   onError: (text: string) => void;
 }) {
+  const { confirm } = useConfirm();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<HubFlowRow[] | null>(null);
@@ -498,9 +508,11 @@ function HubSection({
     const name = row.label || row.name || row.ref;
     if (
       !overwrite &&
-      !window.confirm(
-        `Install "${name}" (${row.ref}) from the hub?\n\nA hub flow is executable configuration - it will drive agents and propose commands in this project. Review it before running.`,
-      )
+      !(await confirm({
+        title: `Install "${name}" (${row.ref}) from the hub?`,
+        message:
+          "A hub flow is executable configuration - it will drive agents and propose commands in this project. Review it before running.",
+      }))
     ) {
       return;
     }
@@ -512,9 +524,23 @@ function HubSection({
       const msg = err instanceof Error ? err.message : String(err);
       if (!overwrite && /exist|overwrite|conflict/i.test(msg)) {
         if (
-          window.confirm(
-            `A flow with this id already exists locally.\n\n${msg}\n\nOverwrite it with the hub version?`,
-          )
+          await confirm({
+            title: "Overwrite it with the hub version?",
+            // The dialog's message renders as plain text (no white-space:
+            // pre-line), so the original two-paragraph wording needs an
+            // explicit break rather than a literal "\n\n" to still read as
+            // two lines instead of collapsing into one run-on sentence.
+            message: (
+              <>
+                A flow with this id already exists locally.
+                <br />
+                <br />
+                {msg}
+              </>
+            ),
+            confirmLabel: "Overwrite",
+            danger: true,
+          })
         ) {
           await install(row, true);
           return;

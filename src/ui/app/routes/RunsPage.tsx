@@ -14,6 +14,7 @@ import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
 import { SchedulerQueuePanel } from "../../components/runs/SchedulerQueuePanel.js";
 import { PruneSnapshotsButton } from "../../components/runs/PruneSnapshotsButton.js";
 import { Button } from "../../components/design/Button.js";
+import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { navigate } from "../App.js";
 
@@ -211,6 +212,7 @@ type PreviewRow = { branch: string; runId?: string; clean: boolean; conflictedFi
  * never push. Only shown when there are merge-ready runs.
  */
 function IntegrationPanel() {
+  const { confirm } = useConfirm();
   const [ready, setReady] = useState<MergeReady[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<{ baseBranch: string; allClean: boolean; results: PreviewRow[] } | null>(null);
@@ -357,13 +359,16 @@ function IntegrationPanel() {
           <button
             type="button"
             disabled={busy !== null}
-            onClick={() => {
+            onClick={async () => {
               // Explicit, spelled-out confirm: this is the only place the
               // product touches main - locally, never pushed (P7b).
               if (
-                !window.confirm(
-                  `Merge "${finishable}" into main now?\n\nThis runs a LOCAL git merge of the reviewed integration branch into main. Nothing is pushed. Refused if the tree is dirty, the integration is partial, or a policy objects.`,
-                )
+                !(await confirm({
+                  title: `Merge "${finishable}" into main now?`,
+                  message:
+                    "This runs a LOCAL git merge of the reviewed integration branch into main. Nothing is pushed. Refused if the tree is dirty, the integration is partial, or a policy objects.",
+                  confirmLabel: "Merge",
+                }))
               ) {
                 return;
               }

@@ -32,6 +32,7 @@ import type {
 } from "../../lib/types.js";
 import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
+import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
 import { MetricCard } from "../../components/design/MetricCard.js";
@@ -69,6 +70,7 @@ export function BoardPage({
   onOpenTask: (taskId: string) => void;
   onOpenRun: (runId: string) => void;
 }) {
+  const { confirm } = useConfirm();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [items, setItems] = useState<RoadmapItem[]>([]);
   const [suggestions, setSuggestions] = useState<TaskSuggestion[]>([]);
@@ -211,9 +213,13 @@ export function BoardPage({
       const task = tasks.find((t) => t.id === taskId);
       if (!task) return;
       if (
-        !window.confirm(
-          `Remove task "${task.title}"?\n\nThis permanently deletes the card and its comments. Its runs, transcripts, and git worktree (if any) are left in place. It refuses if a run is still live.`,
-        )
+        !(await confirm({
+          title: `Remove task "${task.title}"?`,
+          message:
+            "This permanently deletes the card and its comments. Its runs, transcripts, and git worktree (if any) are left in place. It refuses if a run is still live.",
+          confirmLabel: "Remove",
+          danger: true,
+        }))
       ) {
         return;
       }
