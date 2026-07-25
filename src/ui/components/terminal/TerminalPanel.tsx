@@ -9,6 +9,7 @@ import type {
   TerminalSession,
 } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
+import { navigate } from "../../app/App.js";
 
 /**
  * Per-run terminal panel. Renders an xterm.js view of a PTY spawned in the
@@ -219,17 +220,23 @@ export function TerminalPanel({ runId }: { runId: string }) {
             {availability.reason ?? "Terminal feature unavailable."}
           </p>
           {!availability.policyEnabled ? (
-            <p className="text-chalk-400">
-              Set{" "}
-              <code className="rounded-[6px] bg-coal-800 px-1 font-mono text-[12.5px]">
-                policies.allowInteractiveTerminal: true
-              </code>{" "}
-              in{" "}
-              <code className="rounded-[6px] bg-coal-800 px-1 font-mono text-[12.5px]">
-                .vibestrate/project.yml
-              </code>{" "}
-              to enable. vibestrate never opens a shell unless this is explicitly on.
-            </p>
+            <div className="flex flex-col items-start gap-2">
+              <p className="text-chalk-400">
+                Off by default - vibestrate never opens a shell unless this is
+                explicitly turned on. Enable{" "}
+                <code className="rounded-[6px] bg-coal-800 px-1 font-mono text-[12.5px]">
+                  Interactive terminal
+                </code>{" "}
+                under Execution in Policies.
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate({ kind: "policies" })}
+              >
+                Open Policies
+              </Button>
+            </div>
           ) : !availability.driverAvailable ? (
             <p className="text-chalk-400">
               The optional{" "}
