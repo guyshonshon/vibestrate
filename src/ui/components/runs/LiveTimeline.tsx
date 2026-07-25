@@ -9,22 +9,24 @@ import {
   type SeatCardState,
 } from "../../lib/seat-board.js";
 import { fmtElapsed } from "../design/format.js";
+import { Button } from "../design/Button.js";
+import { Chip, ToneDot, type ChipTone } from "../design/Chip.js";
 import { LiveOutputPanel } from "./LiveOutputPanel.js";
 
-// ── Live timeline (P8b) ──────────────────────────────────────────────────────
+// ── Live timeline ────────────────────────────────────────────────────────────
 // THE run surface: one row per flow step - status, who's seated, ticking
 // elapsed, and a live tail of what the model is doing right now. Expanding a
 // row shows the seat's prompt, full live transcript, and response inline.
 // Replaces the run graph + seat board pair (the same steps used to render
 // four different ways on this page).
 
-const DOT_TONE: Record<SeatCardState, string> = {
-  waiting: "bg-chalk-400/60",
-  working: "bg-violet-soft",
-  done: "bg-emerald-400",
-  failed: "bg-rose-400",
-  blocked: "bg-rose-400",
-  skipped: "bg-chalk-400/35",
+const CARD_TONE: Record<SeatCardState, ChipTone> = {
+  waiting: "neutral",
+  working: "violet",
+  done: "emerald",
+  failed: "rose",
+  blocked: "rose",
+  skipped: "neutral",
 };
 
 const STATE_LABEL: Record<SeatCardState, string> = {
@@ -228,49 +230,42 @@ function TimelineRow({
         ) : (
           <ChevronRight className="h-3.5 w-3.5 shrink-0 text-chalk-400" strokeWidth={1.9} />
         )}
-        <span
-          className={`h-2 w-2 shrink-0 rounded-full ${DOT_TONE[card.state]}`}
-        />
+        <ToneDot tone={CARD_TONE[card.state]} />
         <span className="min-w-0 flex items-baseline gap-2">
           <span
             className={`truncate text-[12.5px] font-medium ${
-              card.state === "skipped" ? "text-chalk-400" : "text-chalk-100"
+              card.state === "skipped" ? "text-chalk-300" : "text-chalk-100"
             }`}
           >
             {card.label}
           </span>
           {parallelWithPrev ? (
-            <span className="mono shrink-0 text-[10px] text-chalk-400">
+            <Chip contained tone="neutral" className="shrink-0">
               parallel
-            </span>
+            </Chip>
           ) : null}
           <span className="truncate text-[11px] text-chalk-400">
             {card.roleLabel ?? card.seat ?? card.kind}
             {card.profileId ? ` · ${card.profileId}` : ""}
           </span>
         </span>
-        <span className="ml-auto flex shrink-0 items-baseline gap-3 mono text-[11px] num-tabular">
+        <span className="ml-auto flex shrink-0 items-baseline gap-3 text-[11px] num-tabular">
           {card.tokens ? (
-            <span className="text-chalk-400">{fmtTokens(card.tokens)} tok</span>
+            <span>
+              <span className="font-semibold text-chalk-100">
+                {fmtTokens(card.tokens)}
+              </span>
+              <span className="ml-[3px] text-chalk-400">tok</span>
+            </span>
           ) : null}
           {elapsed ? (
             <span className={working ? "text-violet-soft" : "text-chalk-300"}>
               {elapsed}
             </span>
           ) : null}
-          <span
-            className={
-              card.state === "failed" || card.state === "blocked"
-                ? "text-rose-300"
-                : card.state === "done"
-                  ? "text-emerald-400"
-                  : working
-                    ? "text-violet-soft"
-                    : "text-chalk-400"
-            }
-          >
+          <Chip contained tone={CARD_TONE[card.state]}>
             {STATE_LABEL[card.state]}
-          </span>
+          </Chip>
         </span>
       </button>
       {tail ? (
@@ -354,9 +349,14 @@ function SeatDetail({
       {pinned || card.error ? (
         <div className="flex flex-wrap items-center gap-2 text-[11px]">
           {pinned ? (
-            <span className="text-chalk-400">
-              pinned - click the row to follow the run again
-            </span>
+            <>
+              <Chip contained tone="violet">
+                pinned
+              </Chip>
+              <span className="text-chalk-400">
+                click the row to follow the run again
+              </span>
+            </>
           ) : null}
           {card.error ? (
             <span className="text-rose-300">{card.error}</span>
@@ -366,18 +366,20 @@ function SeatDetail({
 
       {card.promptArtifactPath ? (
         <div className="mt-2">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setPromptOpen((v) => !v)}
-            className="flex items-center gap-1 text-[11.5px] text-chalk-400 transition hover:text-chalk-100"
+            iconLeft={
+              promptOpen ? (
+                <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.9} />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.9} />
+              )
+            }
           >
-            {promptOpen ? (
-              <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.9} />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.9} />
-            )}
             prompt this seat received
-          </button>
+          </Button>
           {promptOpen ? (
             <pre className="mt-1 max-h-[240px] overflow-auto whitespace-pre-wrap rounded-[12px] border border-[color:var(--line)] bg-coal-900 p-2.5 text-[11px] leading-relaxed text-chalk-300">
               {prompt ?? "Loading prompt…"}
