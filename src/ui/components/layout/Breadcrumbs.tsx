@@ -58,7 +58,7 @@ export function Breadcrumbs({
             )}
             {last ? null : (
               <ChevronRight
-                className="h-3 w-3 shrink-0 text-chalk-500"
+                className="h-3 w-3 shrink-0 text-chalk-400"
                 strokeWidth={2}
                 aria-hidden
               />

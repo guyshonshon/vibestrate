@@ -691,7 +691,7 @@ function ChecklistRow({
         onMouseDown={() => setGrabbed(true)}
         onMouseUp={() => setGrabbed(false)}
         className={cn(
-          "shrink-0 cursor-grab text-chalk-500 opacity-0 transition hover:text-chalk-200 active:cursor-grabbing group-hover:opacity-100",
+          "shrink-0 cursor-grab text-chalk-400 opacity-0 transition hover:text-chalk-200 active:cursor-grabbing group-hover:opacity-100",
           hasDetail && "mt-0.5",
         )}
       >
@@ -766,7 +766,7 @@ function ChecklistRow({
         disabled={anyBusy}
         title="Remove step"
         className={cn(
-          "shrink-0 text-chalk-500 opacity-0 transition hover:text-rose-300 disabled:opacity-50 group-hover:opacity-100",
+          "shrink-0 text-chalk-400 opacity-0 transition hover:text-rose-300 disabled:opacity-50 group-hover:opacity-100",
           hasDetail && "mt-0.5",
         )}
       >
@@ -775,7 +775,7 @@ function ChecklistRow({
       {/* Prominent "configure this step" affordance. */}
       <ChevronRight
         className={cn(
-          "h-4 w-4 shrink-0 text-chalk-500 transition group-hover:text-violet-soft",
+          "h-4 w-4 shrink-0 text-chalk-400 transition group-hover:text-violet-soft",
           hasDetail && "mt-0.5",
         )}
         strokeWidth={2}

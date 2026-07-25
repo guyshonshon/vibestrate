@@ -72,7 +72,7 @@ export function ContextSourcesSection({
                 }
                 disabled={busy}
                 title="Remove reference"
-                className="shrink-0 text-chalk-500 transition hover:text-rose-300 disabled:opacity-50"
+                className="shrink-0 text-chalk-400 transition hover:text-rose-300 disabled:opacity-50"
               >
                 <X className="h-3 w-3" strokeWidth={2} />
               </button>

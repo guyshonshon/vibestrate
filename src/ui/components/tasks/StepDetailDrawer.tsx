@@ -202,7 +202,7 @@ export function StepDetailDrawer({
                 {item.provenance === "conductor" ? (
                   <span className="text-violet-soft">conductor</span>
                 ) : null}
-                <span className="text-chalk-500">· configure this step</span>
+                <span className="text-chalk-400">· configure this step</span>
               </div>
               <h1 className="text-[22px] font-extrabold leading-tight tracking-[-0.02em] text-chalk-100">
                 {item.text}
