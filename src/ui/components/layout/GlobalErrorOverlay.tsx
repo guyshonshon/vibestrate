@@ -2,6 +2,7 @@
 // event-handler throws, and unhandled promise rejections - as a dismissible
 // toast stack, so a failure shows in the UI instead of only the F12 console.
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 
 type Toast = { id: number; msg: string };
 
@@ -47,7 +48,7 @@ export function GlobalErrorOverlay() {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className="flex items-start gap-2 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[11.5px] text-rose-300 shadow-xl"
+          className="flex items-start gap-2 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[11.5px] text-rose-300 shadow-xl"
         >
           <span className="mt-px shrink-0 text-rose-400">!</span>
           <span className="min-w-0 flex-1 break-words">{t.msg}</span>
@@ -55,9 +56,9 @@ export function GlobalErrorOverlay() {
             type="button"
             aria-label="Dismiss"
             onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
-            className="shrink-0 text-rose-300/70 hover:text-rose-300"
+            className="grid h-6 w-6 shrink-0 place-items-center rounded-[9px] text-rose-300/70 transition hover:bg-rose-500/10 hover:text-rose-300"
           >
-            ×
+            <X className="h-3.5 w-3.5" strokeWidth={1.9} />
           </button>
         </div>
       ))}
