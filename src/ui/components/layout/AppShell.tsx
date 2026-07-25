@@ -38,6 +38,7 @@ type AppShellProps = {
   onShowSource: () => void;
   onShowConsult: () => void;
   onOpenNotification: (n: NotificationRecord) => void;
+  onOpenSwitcher: () => void;
 };
 
 /**
@@ -71,6 +72,7 @@ export function AppShell({
   onShowCodebase,
   onShowSource,
   onOpenNotification,
+  onOpenSwitcher,
 }: AppShellProps) {
   if (bare) {
     return (
@@ -106,6 +108,7 @@ export function AppShell({
           onShowSettings={onShowSettings}
           onShowPolicies={onShowPolicies}
           onOpenNotification={onOpenNotification}
+          onOpenSwitcher={onOpenSwitcher}
         />
         <main className="relative z-10 flex-1 overflow-y-auto">{children}</main>
       </div>

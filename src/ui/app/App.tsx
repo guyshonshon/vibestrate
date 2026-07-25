@@ -328,6 +328,7 @@ export function App() {
         navigate({ kind: "source", tab: "changes", runId: null })
       }
       onOpenNotification={(n) => navigate(notificationRoute(n))}
+      onOpenSwitcher={() => setSwitcherOpen(true)}
     >
       <ErrorBoundary resetKey={pageKey}>
       {route.kind === "mission" ? (

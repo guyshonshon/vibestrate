@@ -47,6 +47,7 @@ type Props = {
   onShowSettings: () => void;
   onShowPolicies: () => void;
   onOpenNotification: (n: NotificationRecord) => void;
+  onOpenSwitcher: () => void;
 };
 
 const ACTIVE_STATUSES: ReadonlySet<RunStatus> = new Set<RunStatus>([
@@ -92,6 +93,7 @@ export function Sidebar({
   onShowSettings,
   onShowPolicies,
   onOpenNotification,
+  onOpenSwitcher,
 }: Props) {
   const [counts, setCounts] = useState({ active: 0, mergeReady: 0, failed: 0 });
   const [runsOpen, setRunsOpen] = useState(true);
@@ -275,7 +277,7 @@ export function Sidebar({
       <div className="mt-3 flex items-center gap-1.5">
         <button
           type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent("vibestrate:help-overlay"))}
+          onClick={onOpenSwitcher}
           className="flex h-8 flex-1 items-center gap-2 rounded-[10px] border border-[color:var(--line)] bg-coal-700 px-2.5 text-[12px] text-chalk-300 transition hover:bg-coal-600"
           title="Jump to… (⌘K)"
           aria-label="Jump to"
