@@ -5,6 +5,10 @@ import { ApiError } from "../../lib/api.js";
 import type { RunStatus } from "../../lib/types.js";
 import { Select } from "../design/Select.js";
 import { SegmentedControl } from "../design/SegmentedControl.js";
+import { Button } from "../design/Button.js";
+import { Chip } from "../design/Chip.js";
+import { StatTile } from "../design/StatTile.js";
+import { cn } from "../design/cn.js";
 
 type Line = {
   stream: "stdout" | "stderr";
@@ -31,6 +35,13 @@ const TERMINAL_STATUSES = new Set<RunStatus>([
   "aborted",
   "blocked",
 ]);
+
+// Intent-tinted ghost recipe (primitives-contract §4/§90-92) - the "follow
+// latest" toggle needs an affirm (emerald) tint when active that `design/Button`
+// has no variant for, so it stays a bare button on this base rather than
+// fighting cn.ts's un-merged classnames for a size override.
+const FOLLOW_BTN =
+  "inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11px] font-semibold transition";
 
 /**
  * Live tail of the provider CLI's stdout/stderr for each agent
@@ -192,66 +203,80 @@ export function LiveOutputPanel({
       aria-label="Active provider CLI"
       className="overflow-hidden rounded-[14px] border border-[color:var(--line)] bg-coal-600"
     >
-      <header className="flex flex-wrap items-center gap-2 border-b border-[color:var(--line-soft)] px-3 py-2 text-[11.5px]">
-        <TerminalSquare
-          className="h-3.5 w-3.5 text-violet-soft"
-          strokeWidth={1.9}
-          aria-hidden
-        />
-        <span className="mono text-[11px] text-chalk-400">active CLI</span>
-        <span className="mono rounded-[8px] border border-[color:var(--line)] bg-coal-500 px-1.5 py-0.5 text-[10.5px] text-chalk-400">
-          read-only attach
-        </span>
-        {streams.length > 0 ? (
-          <Select
-            value={active ?? ""}
-            ariaLabel="Pick provider stream"
-            className="min-w-[150px]"
-            onChange={(v) => {
-              setActive(v || null);
-              setFollowLatest(false);
-            }}
-            options={streams.map((s) => ({
-              value: s.promptName,
-              label: s.promptName,
-              hint: `${s.bytes.toLocaleString()} B`,
-            }))}
+      <header className="border-b border-[color:var(--line-soft)] px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <TerminalSquare
+            className="h-3.5 w-3.5 text-violet-soft"
+            strokeWidth={1.9}
+            aria-hidden
           />
-        ) : null}
-        {streams.length > 1 ? (
-          <button
-            type="button"
-            onClick={() => {
-              setFollowLatest(true);
-              setActive(streams[0]?.promptName ?? null);
-            }}
-            className={`mono inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11px] font-medium transition ${
-              followLatest
-                ? "bg-emerald-500/15 text-emerald-400"
-                : "text-chalk-400 hover:bg-coal-500 hover:text-chalk-100"
-            }`}
-            title="Follow the newest provider CLI stream"
-          >
-            <Radio className="h-3.5 w-3.5" strokeWidth={1.9} />
-            follow latest
-          </button>
-        ) : null}
-        {hasKinds ? (
-          <SegmentedControl
-            value={view}
-            onChange={setView}
-            options={[
-              { value: "transcript", label: "transcript" },
-              { value: "raw", label: "raw" },
-            ]}
+          <span className="text-[11.5px] font-semibold text-violet-soft">
+            active CLI
+          </span>
+          <Chip contained tone="neutral">
+            read-only attach
+          </Chip>
+          {streams.length > 0 ? (
+            <Select
+              value={active ?? ""}
+              ariaLabel="Pick provider stream"
+              className="min-w-[150px]"
+              onChange={(v) => {
+                setActive(v || null);
+                setFollowLatest(false);
+              }}
+              options={streams.map((s) => ({
+                value: s.promptName,
+                label: s.promptName,
+                hint: `${s.bytes.toLocaleString()} B`,
+              }))}
+            />
+          ) : null}
+          {streams.length > 1 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setFollowLatest(true);
+                setActive(streams[0]?.promptName ?? null);
+              }}
+              className={cn(
+                FOLLOW_BTN,
+                followLatest
+                  ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25"
+                  : "text-chalk-300 hover:bg-coal-500 hover:text-chalk-100",
+              )}
+              title="Follow the newest provider CLI stream"
+            >
+              <Radio className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
+              follow latest
+            </button>
+          ) : null}
+          {hasKinds ? (
+            <SegmentedControl
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "transcript", label: "transcript" },
+                { value: "raw", label: "raw" },
+              ]}
+            />
+          ) : null}
+        </div>
+        <div className="mt-1.5 flex flex-wrap items-stretch gap-1">
+          <StatTile
+            size="sm"
+            value={lines.length}
+            label={lines.length === 1 ? "chunk" : "chunks"}
           />
-        ) : null}
-        <span className="mono ml-auto text-[11px] text-chalk-400">
-          {lines.length} chunk{lines.length === 1 ? "" : "s"} ·{" "}
-          {totalChars.toLocaleString()} char
-          {totalChars === 1 ? "" : "s"}
-          {lastAt ? ` · last ${formatCliTime(lastAt)}` : ""}
-        </span>
+          <StatTile
+            size="sm"
+            value={totalChars.toLocaleString()}
+            label={totalChars === 1 ? "char" : "chars"}
+          />
+          {lastAt ? (
+            <StatTile size="sm" value={formatCliTime(lastAt)} label="last seen" />
+          ) : null}
+        </div>
       </header>
       {routeMissing ? (
         <p className="border-t border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[11.5px] text-rose-300">
@@ -278,22 +303,22 @@ export function LiveOutputPanel({
         </div>
       ) : (
         <div className="bg-coal-900">
-          <div className="flex items-center gap-2 border-t border-[color:var(--line-soft)] px-3 py-1.5 text-[11px] text-chalk-400">
-            <span className="mono truncate text-chalk-300">
+          <div className="flex items-center gap-2 border-t border-[color:var(--line-soft)] px-3 py-1.5">
+            <span className="mono truncate text-[11px] text-chalk-300">
               {activeStream?.promptName ?? active}
             </span>
             {hasKinds && view === "transcript" ? (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setShowThinking((v) => !v)}
-                className="mono rounded-[8px] bg-coal-500 px-2 py-0.5 text-[11px] font-medium text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
               >
                 {showThinking ? "hide thinking" : "show thinking"}
-              </button>
+              </Button>
             ) : null}
-            <span className="mono ml-auto shrink-0 text-chalk-400">
+            <Chip contained tone="neutral" className="ml-auto shrink-0">
               {hasKinds && view === "transcript" ? "transcript" : "stdout/stderr"}
-            </span>
+            </Chip>
           </div>
           {hasKinds && view === "transcript" ? (
             <TranscriptView lines={lines} showThinking={showThinking} />
@@ -356,26 +381,17 @@ function TranscriptView({
     <div className="max-h-[420px] min-h-[220px] overflow-auto border-t border-[color:var(--line-soft)] px-3 py-2">
       {blocks.map((b, i) =>
         b.kind === "tool" || b.kind === "subagent" ? (
-          <div
-            key={i}
-            className="mono my-0.5 flex items-center gap-1.5 text-[11px] text-chalk-400"
-          >
-            <span
-              className={`rounded-[6px] px-1.5 py-px text-[10px] font-medium ${
-                b.kind === "subagent"
-                  ? "bg-violet-soft/10 text-violet-soft"
-                  : "bg-coal-500 text-chalk-300"
-              }`}
-            >
+          <div key={i} className="my-0.5 flex items-center gap-1.5 text-[11px]">
+            <Chip contained tone={b.kind === "subagent" ? "violet" : "neutral"}>
               {b.kind === "subagent" ? "agent" : "tool"}
-            </span>
-            <span className="truncate">{b.text}</span>
+            </Chip>
+            <span className="mono truncate text-chalk-300">{b.text}</span>
           </div>
         ) : b.kind === "thinking" ? (
           showThinking ? (
             <pre
               key={i}
-              className="mono my-1 whitespace-pre-wrap border-l-2 border-[color:var(--line)] pl-2 text-[11px] italic leading-relaxed text-chalk-400"
+              className="mono my-1 whitespace-pre-wrap border-l-2 border-[color:var(--line)] pl-2 text-[11px] italic leading-relaxed text-chalk-300"
             >
               {b.text}
             </pre>
@@ -390,7 +406,7 @@ function TranscriptView({
         ),
       )}
       {!showThinking && thinkingChars > 0 ? (
-        <p className="mono mt-1 text-[11px] text-chalk-400">
+        <p className="mt-1 text-[11px] text-chalk-400">
           {thinkingChars.toLocaleString()} chars of thinking hidden - use
           "show thinking" above.
         </p>
