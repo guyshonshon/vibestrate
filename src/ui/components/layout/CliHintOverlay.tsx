@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Terminal, X, Copy, Check } from "lucide-react";
 import type { Route } from "../../app/route.js";
 import { hintForRoute, type CliHint } from "../../lib/cli-hints.js";
+import { Button } from "../design/Button.js";
+import { IconBtn } from "../design/IconBtn.js";
 
 type Props = {
   route: Route;
@@ -127,14 +129,9 @@ export function CliHintOverlay({ route }: Props) {
                 {hint.blurb}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="p-0.5 text-chalk-400 hover:text-chalk-100"
-              aria-label="Close"
-            >
+            <IconBtn variant="plain" title="Close" onClick={() => setOpen(false)}>
               <X className="h-3.5 w-3.5" strokeWidth={1.8} />
-            </button>
+            </IconBtn>
           </div>
           <ul className="max-h-[40vh] space-y-1.5 overflow-y-auto px-3.5 py-2.5">
             {hint.commands.map((c) => (
@@ -143,10 +140,14 @@ export function CliHintOverlay({ route }: Props) {
                   <code className="flex-1 truncate rounded-[8px] border border-[color:var(--line-soft)] bg-coal-800 px-2 py-1 font-mono text-[11px] text-chalk-100">
                     {c.cmd}
                   </code>
+                  {/* Bare, not IconBtn: needs the row-hover reveal
+                      (opacity-0 group-hover:opacity-100) that IconBtn's
+                      fixed class set doesn't expose - otherwise matches its
+                      "plain" variant exactly. */}
                   <button
                     type="button"
                     onClick={() => copy(c.cmd)}
-                    className="p-0.5 text-chalk-400 opacity-0 transition group-hover:opacity-100 hover:text-chalk-100"
+                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-[8px] text-chalk-400 opacity-0 transition group-hover:opacity-100 hover:bg-coal-500 hover:text-chalk-100"
                     aria-label={`Copy: ${c.cmd}`}
                     title="Copy"
                   >
@@ -177,14 +178,10 @@ export function CliHintOverlay({ route }: Props) {
               </ul>
             </div>
           ) : null}
-          <div className="border-t border-[color:var(--line)] px-3.5 py-1.5 text-right">
-            <button
-              type="button"
-              onClick={() => setHiddenPersisted(true)}
-              className="text-[10.5px] text-chalk-400 hover:text-chalk-200"
-            >
+          <div className="border-t border-[color:var(--line)] px-2 py-1 text-right">
+            <Button variant="ghost" size="sm" onClick={() => setHiddenPersisted(true)}>
               Hide launcher
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}

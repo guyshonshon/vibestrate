@@ -6,6 +6,7 @@ import {
   Folder,
   Lock,
 } from "lucide-react";
+import { Chip } from "../design/Chip.js";
 import type { FileTreeEntry, FileTreeResult } from "../../lib/types.js";
 
 type Props = {
@@ -90,7 +91,7 @@ function Node({
             onSelectFile(entry.path);
           }
         }}
-        className={`flex w-full items-center gap-1.5 truncate py-0.5 pr-2 text-left transition hover:bg-coal-500 ${
+        className={`flex w-full items-center gap-1.5 truncate rounded-[8px] py-0.5 pr-2 text-left transition hover:bg-coal-500 ${
           selected ? "bg-violet-soft/12 text-chalk-100" : "text-chalk-300"
         }`}
         title={entry.path}
@@ -110,11 +111,11 @@ function Node({
           }`}
           strokeWidth={1.9}
         />
-        <span className="truncate">{label}</span>
+        <span className="mono truncate">{label}</span>
         {entry.isSecretLike ? (
-          <span className="ml-auto text-[10px] font-semibold text-amber-soft">
+          <Chip tone="amber" contained className="ml-auto shrink-0">
             redacted
-          </span>
+          </Chip>
         ) : null}
       </button>
       {isDir && expanded && entry.children

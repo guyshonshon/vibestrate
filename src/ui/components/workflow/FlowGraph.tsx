@@ -12,6 +12,8 @@ import {
   layersOf,
   zonedLayersOf,
 } from "../../../flows/runtime/flow-graph-layout.js";
+import { Chip, type ChipTone } from "../design/Chip.js";
+import { STEP_GROUP_TONE, stepKindGroup } from "../design/stepKind.js";
 
 export { isGraphSteps, layersOf, zonedLayersOf };
 
@@ -40,6 +42,17 @@ const STATUS_DOT: Record<FlowGraphStepStatus, string> = {
   failed: "bg-rose-400",
   skipped: "bg-chalk-400",
   pending: "bg-chalk-400/50",
+};
+
+// Chip tone per status, paired 1:1 with STATUS_DOT above so the leading dot
+// and the status word always agree on colour.
+const STATUS_TONE: Record<FlowGraphStepStatus, ChipTone> = {
+  passed: "emerald",
+  running: "violet",
+  blocked: "amber",
+  failed: "rose",
+  skipped: "neutral",
+  pending: "neutral",
 };
 
 function LayerStack({ layers }: { layers: FlowGraphStep[][] }) {
@@ -88,7 +101,7 @@ export function FlowGraph({
 }) {
   return (
     <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
-      <div className="mb-3 text-[12.5px] font-semibold text-chalk-300">{title}</div>
+      <div className="mb-3 text-[12.5px] font-semibold text-violet-vivid">{title}</div>
       {checklistSegment ? (
         <div className="flex flex-col items-stretch gap-1">
           {zonedLayersOf(steps, checklistSegment).map((zone, zi) => (
@@ -127,20 +140,17 @@ function Node({ step }: { step: FlowGraphStep }) {
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
         <span className="truncate text-[12px] text-chalk-100">{step.label}</span>
       </div>
-      <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-chalk-400">
-        <span className="font-mono">{step.kind}</span>
+      {/* Kind/status are Chips, not a grey "·"-joined meta line (the
+          primitives contract's named anti-pattern) - kind picks up the same
+          build/review/check/gate tone as the flow builder legend, status
+          matches the leading dot's colour. The seat stays a plain mono
+          identifier since it names an entity, not a state. */}
+      <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+        <Chip tone={STEP_GROUP_TONE[stepKindGroup(step.kind)]}>{step.kind}</Chip>
         {step.seat ? (
-          <>
-            <span>·</span>
-            <span className="font-mono">{step.seat}</span>
-          </>
+          <span className="font-mono text-[10.5px] text-chalk-400">@{step.seat}</span>
         ) : null}
-        {status ? (
-          <>
-            <span>·</span>
-            <span>{status}</span>
-          </>
-        ) : null}
+        {status ? <Chip tone={STATUS_TONE[status]}>{status}</Chip> : null}
       </div>
       {step.instructions ? (
         <div
