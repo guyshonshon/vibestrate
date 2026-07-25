@@ -7,7 +7,14 @@
 // `resetKey` lets the boundary recover on navigation: when the page identity
 // changes, a stuck error clears so the new view gets a fresh attempt - without
 // remounting children on every render (which would drop page state).
+//
+// This is the app's last-resort crash net, so its render path must not itself
+// be able to throw: it uses the design/ErrorState `compact` surface directly
+// (a pure presentational component with no data fetching, hooks, or context)
+// rather than the higher-level ErrorView/describeError helpers, which pull in
+// the API client module for classification this boundary doesn't need.
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { ErrorState } from "../design/ErrorState.js";
 
 type Props = { children: ReactNode; resetKey?: string };
 type State = { error: Error | null; info: ErrorInfo | null };
@@ -36,46 +43,39 @@ export class ErrorBoundary extends Component<Props, State> {
   override render(): ReactNode {
     const { error, info } = this.state;
     if (!error) return this.props.children;
+    const hasDebugInfo = !!(error.stack || info?.componentStack);
     return (
-      <div className="m-6 rounded-xl border border-rose-500/30 bg-rose-500/[0.06] p-5 text-rose-100">
-        <div className="text-sm font-semibold">
-          Something broke while rendering this view.
-        </div>
-        <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words text-[11.5px] text-rose-200/90">
-          {error.message}
-        </pre>
-        {error.stack ? (
-          <details className="mt-2 text-[10.5px] text-rose-200/60">
-            <summary className="cursor-pointer select-none">stack trace</summary>
-            <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-words">
-              {error.stack}
-            </pre>
-          </details>
+      <div className="m-6">
+        <ErrorState
+          compact
+          title="Something broke while rendering this view."
+          detail={error.message}
+          hint="Try again, or reload the page if the problem persists."
+          actions={[
+            { label: "Try again", onClick: this.reset },
+            { label: "Reload", variant: "secondary", onClick: () => window.location.reload() },
+          ]}
+        />
+        {hasDebugInfo ? (
+          <div className="mt-3 rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-4 py-3.5">
+            {error.stack ? (
+              <details className="text-[10.5px] text-chalk-400">
+                <summary className="cursor-pointer select-none">stack trace</summary>
+                <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-words">
+                  {error.stack}
+                </pre>
+              </details>
+            ) : null}
+            {info?.componentStack ? (
+              <details className="mt-2 text-[10.5px] text-chalk-400">
+                <summary className="cursor-pointer select-none">component stack</summary>
+                <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-words">
+                  {info.componentStack}
+                </pre>
+              </details>
+            ) : null}
+          </div>
         ) : null}
-        {info?.componentStack ? (
-          <details className="mt-2 text-[10.5px] text-rose-200/60">
-            <summary className="cursor-pointer select-none">component stack</summary>
-            <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-words">
-              {info.componentStack}
-            </pre>
-          </details>
-        ) : null}
-        <div className="mt-3 flex gap-2">
-          <button
-            type="button"
-            onClick={this.reset}
-            className="rounded border border-rose-400/40 px-2.5 py-1 text-[11px] hover:bg-rose-400/10"
-          >
-            Try again
-          </button>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="rounded border border-rose-400/40 px-2.5 py-1 text-[11px] hover:bg-rose-400/10"
-          >
-            Reload
-          </button>
-        </div>
       </div>
     );
   }
