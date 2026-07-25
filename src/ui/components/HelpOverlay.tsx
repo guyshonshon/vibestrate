@@ -6,9 +6,8 @@ import { TourRelaunchRow } from "./onboarding/TourOverlay.js";
 /**
  * Global help overlay. Opens on:
  *   - `?` keystroke (outside an input)
- *   - the custom `vibestrate:help-overlay` event dispatched by the TopBar
- *     and other shortcut handlers
- *   - the `?` button surfaces sprinkled around the chrome
+ *   - the custom `vibestrate:help-overlay` event, dispatched by the
+ *     sidebar's utility row and other shortcut surfaces
  *
  * Closes on Esc, outside click, or the X button. Self-contained, no
  * route, no portal - renders a fixed full-viewport scrim.
@@ -117,14 +116,6 @@ export function HelpOverlay() {
               </section>
             ))}
           </div>
-          <p className="mt-4 text-[11px] text-chalk-400">
-            Layout state (sidebar width, panel order + collapsed state,
-            section order, composer config) persists per-browser via{" "}
-            <code className="mono rounded-[6px] bg-coal-500 px-1 py-0.5 text-chalk-300">
-              localStorage
-            </code>
-            .
-          </p>
         </div>
       </div>
     </div>
@@ -141,62 +132,39 @@ type HelpGroup = { title: string; items: HelpItem[] };
 
 const GROUPS: HelpGroup[] = [
   {
-    title: "Composer",
+    title: "Navigate",
     items: [
-      { what: "Focus composer", keys: ["⌘K"], combinator: "or" },
-      { what: "Focus composer (alt)", keys: ["/"] },
-      { what: "Submit prompt", keys: ["↵"] },
-      { what: "Newline", keys: ["⇧↵"] },
-    ],
-  },
-  {
-    title: "Navigation",
-    items: [
-      { what: "Backlog panel", keys: ["1"] },
-      { what: "Ready panel", keys: ["2"] },
-      { what: "Queue panel", keys: ["3"] },
-      { what: "Approvals panel", keys: ["4"] },
-      { what: "Suggestions panel", keys: ["5"] },
-      { what: "Notifications panel", keys: ["6"] },
+      { what: "Jump to a run", keys: ["⌘K"] },
+      { what: "Jump to a run (alt)", keys: ["g", "r"], combinator: "then" },
+      { what: "Mission control", keys: ["g", "h"], combinator: "then" },
+      { what: "Flows", keys: ["g", "f"], combinator: "then" },
+      { what: "Crew", keys: ["g", "a"], combinator: "then" },
+      { what: "Metrics", keys: ["g", "m"], combinator: "then" },
+      { what: "Notifications", keys: ["g", "n"], combinator: "then" },
       { what: "Toggle this help", keys: ["?"] },
+      { what: "Close panel or dialog", keys: ["Esc"] },
     ],
   },
   {
-    title: "Slash commands",
+    title: "Run switcher",
     items: [
-      { what: "Spawn run", keys: ["/run <prompt>"] },
-      { what: "Create task", keys: ["/task <title>"] },
-      { what: "Queue task", keys: ["/queue <id>"] },
-      { what: "Open board", keys: ["/board"] },
-      { what: "Open all runs", keys: ["/runs"] },
-      { what: "Open settings", keys: ["/settings"] },
+      { what: "Move selection", keys: ["↑", "↓"], combinator: "/" },
+      { what: "Open selected run", keys: ["↵"] },
+      { what: "Close", keys: ["Esc"] },
     ],
   },
   {
-    title: "Layout",
+    title: "Prompts",
     items: [
-      { what: "Resize sidebar", keys: ["drag right edge"] },
-      { what: "Reset sidebar width", keys: ["dbl-click edge"] },
-      { what: "Reorder panel / section", keys: ["drag header"] },
-      { what: "Collapse panel", keys: ["click chevron"] },
-      { what: "Right-click for actions + CLI", keys: ["right-click"] },
+      { what: "Submit prompt", keys: ["⌘↵"] },
+      { what: "Newline", keys: ["↵"] },
     ],
   },
   {
-    title: "Run actions (panel cards)",
+    title: "Replay (run inspector)",
     items: [
-      { what: "Open run", keys: ["click card"] },
-      { what: "Re-run (in detail view)", keys: ["R"] },
-      { what: "Pause / Resume / Abort", keys: ["right-click"] },
-      { what: "Copy CLI command", keys: ["right-click"] },
-    ],
-  },
-  {
-    title: "Back / navigation",
-    items: [
-      { what: "Back (browser history)", keys: ["header ← button"] },
-      { what: "Notifications", keys: ["header bell"] },
-      { what: "Settings", keys: ["header gear"] },
+      { what: "Step through events", keys: ["↑/k", "↓/j"], combinator: "·" },
+      { what: "Jump to start / end", keys: ["Home", "End"], combinator: "/" },
     ],
   },
 ];
