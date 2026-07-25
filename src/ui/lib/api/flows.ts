@@ -23,6 +23,18 @@ export const flowsApi = {
   }> {
     return jsonGet("/api/skills");
   },
+  /** Fetch a skill from a URL into .vibestrate/skills/ (SSRF-guarded; no
+   *  private hosts; secrets redacted). The in-UI equivalent of hand-adding a
+   *  skill file. */
+  async fetchSkillFromUrl(input: {
+    url: string;
+    name?: string;
+    overwrite?: boolean;
+  }): Promise<{
+    skill: { ok: true; name: string; relPath: string; redactedSecrets: number };
+  }> {
+    return jsonPost("/api/skills/fetch", input);
+  },
   async listFlows(): Promise<{
     flows: DiscoveredFlow[];
     invalid: { path: string; message: string }[];

@@ -32,6 +32,11 @@ type Props = {
 export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
   const [meta, setMeta] = useState<ProjectMetadata | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [initBusy, setInitBusy] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
+  const [skillUrl, setSkillUrl] = useState("");
+  const [skillBusy, setSkillBusy] = useState(false);
+  const [skillError, setSkillError] = useState<string | null>(null);
   const freshness = useCodebaseEvents("/api/project/events/stream");
 
   async function load() {
@@ -39,6 +44,38 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
       setMeta(await api.getProjectMetadata());
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  // Same call InitScreen makes on first run - this just re-offers it here for
+  // the rare case .vibestrate/ goes missing after the dashboard is already open
+  // (InitScreen only gates the very first load).
+  async function handleInit() {
+    setInitBusy(true);
+    setInitError(null);
+    try {
+      await api.initProject();
+      await load();
+    } catch (err) {
+      setInitError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setInitBusy(false);
+    }
+  }
+
+  async function handleFetchSkill(e: React.FormEvent) {
+    e.preventDefault();
+    if (!skillUrl.trim()) return;
+    setSkillBusy(true);
+    setSkillError(null);
+    try {
+      await api.fetchSkillFromUrl({ url: skillUrl.trim() });
+      setSkillUrl("");
+      await load();
+    } catch (err) {
+      setSkillError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSkillBusy(false);
     }
   }
 
@@ -169,7 +206,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           tone={heroTone}
           overline="Project"
           status={heroStatus}
-          statusSub={initialised ? ".vibestrate ready" : "run vibe init"}
+          statusSub={initialised ? ".vibestrate ready" : "not set up yet"}
           title={
             initialised
               ? "This project is wired up"
@@ -183,11 +220,24 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
               </>
             ) : (
               <>
-                Initialise the workspace so runs can record state. Run{" "}
-                <span className="mono text-chalk-100">vibe init</span> in the
-                project root.
+                Initialise the workspace so runs can record state.
+                {initError ? (
+                  <span className="mt-1 block text-rose-300">{initError}</span>
+                ) : null}
               </>
             )
+          }
+          actions={
+            !initialised ? (
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={initBusy}
+                onClick={() => void handleInit()}
+              >
+                {initBusy ? "Initializing…" : "Initialize project"}
+              </Button>
+            ) : undefined
           }
           metrics={[
             { value: meta.providers.length, label: "providers" },
@@ -270,11 +320,12 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           <Panel>
             {meta.validationCommands.length === 0 ? (
               <Empty>
-                No validation commands yet. Set them with{" "}
+                No validation commands yet. They run as shell commands, so
+                they're set from the CLI only, never the browser:{" "}
                 <span className="mono text-chalk-100">
                   vibe config set commands.validate
-                </span>{" "}
-                so runs can self-check.
+                </span>
+                .
               </Empty>
             ) : (
               <ul className="flex flex-col gap-1.5">
@@ -377,11 +428,37 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
         <Section title={`Skills (${meta.skills.length})`}>
           <Panel>
             {meta.skills.length === 0 ? (
-              <Empty>
-                No skills discovered. Add a skill under{" "}
-                <span className="mono text-chalk-100">.vibestrate/skills</span> to
-                extend what roles can do.
-              </Empty>
+              <div className="flex flex-col gap-2.5">
+                <Empty>
+                  No skills discovered yet. Fetch one from a URL to extend what
+                  roles can do.
+                </Empty>
+                <form
+                  onSubmit={(e) => void handleFetchSkill(e)}
+                  className="flex items-center gap-1.5"
+                >
+                  <input
+                    value={skillUrl}
+                    onChange={(e) => setSkillUrl(e.target.value)}
+                    placeholder="https://…/skill.md"
+                    disabled={skillBusy}
+                    className="w-full min-w-0 flex-1 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-1.5 text-[12px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none disabled:opacity-50"
+                  />
+                  <Button
+                    type="submit"
+                    variant="secondary"
+                    size="sm"
+                    disabled={skillBusy || !skillUrl.trim()}
+                  >
+                    {skillBusy ? "Fetching…" : "Fetch skill"}
+                  </Button>
+                </form>
+                {skillError ? (
+                  <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-[11.5px] text-rose-300">
+                    {skillError}
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <ul className="flex max-h-56 flex-col gap-1 overflow-y-auto">
                 {meta.skills.map((s) => (
