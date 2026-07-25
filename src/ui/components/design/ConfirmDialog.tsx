@@ -136,16 +136,33 @@ function Dialog({
     // A prompt focuses its field; a confirm focuses the dialog itself rather
     // than the confirm button. These gate destructive actions, so landing
     // focus on the destructive control would let a stray Enter fire it.
-    if (isPrompt) inputRef.current?.focus();
-    else cardRef.current?.focus();
+    if (isPrompt) {
+      inputRef.current?.focus();
+      // window.prompt preselected its value; the clipboard fallback relies on
+      // that to let the user copy without hand-selecting.
+      inputRef.current?.select();
+    } else cardRef.current?.focus();
   }, [isPrompt]);
 
   useEffect(() => {
+    // `window.confirm` blocked the event loop, so the app's global hotkeys
+    // could not fire while it was open. This dialog does not block, and those
+    // handlers were written against the old semantics: `?` opens help over the
+    // top, `g h` navigates away and unmounts the caller mid-await, and Cmd-K
+    // opens the run switcher, which paints UNDER this scrim and then steals
+    // focus into an invisible input. Swallow keys at capture so a pending
+    // consent gate is genuinely modal, not just modal-looking.
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
         onCancel();
+        return;
       }
+      // The prompt's own field keeps its keys - React 19 attaches the portal's
+      // listeners on document.body, so blocking unconditionally here would also
+      // kill Enter-to-submit and every keystroke in the input.
+      if (e.target === inputRef.current) return;
+      e.stopPropagation();
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
@@ -157,10 +174,13 @@ function Dialog({
     onAccept(draft);
   };
 
+  // Portaled to <body> so the fixed overlay is positioned against the viewport
+  // rather than a transformed ancestor: pages using the `.fade-up` transform
+  // create a containing block that would otherwise push it off-screen.
   return createPortal(
     <div
       role="presentation"
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4"
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 px-4"
       onClick={onCancel}
     >
       <div

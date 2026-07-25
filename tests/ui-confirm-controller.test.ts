@@ -73,3 +73,24 @@ describe("confirm controller fail-closed rules", () => {
     expect(seen).toEqual(["confirm", null, "prompt", null]);
   });
 });
+
+describe("controller teardown is terminal", () => {
+  it("refuses a request opened after dispose instead of stranding it", () => {
+    const c = createConfirmController();
+    c.dispose();
+    let got: unknown = "unsettled";
+    // The view is gone, so nothing could ever answer this. It must decline
+    // immediately rather than hand back a promise that never settles.
+    c.open("confirm", { title: "Undo merge?" }, (v) => (got = v));
+    expect(got).toBe(false);
+    expect(c.current()).toBeNull();
+  });
+
+  it("refuses a post-dispose prompt as null", () => {
+    const c = createConfirmController();
+    c.dispose();
+    let got: unknown = "unsettled";
+    c.open("prompt", { title: "Rename to:" }, (v) => (got = v));
+    expect(got).toBeNull();
+  });
+});

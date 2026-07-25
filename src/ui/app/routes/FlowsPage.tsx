@@ -526,18 +526,7 @@ function HubSection({
         if (
           await confirm({
             title: "Overwrite it with the hub version?",
-            // The dialog's message renders as plain text (no white-space:
-            // pre-line), so the original two-paragraph wording needs an
-            // explicit break rather than a literal "\n\n" to still read as
-            // two lines instead of collapsing into one run-on sentence.
-            message: (
-              <>
-                A flow with this id already exists locally.
-                <br />
-                <br />
-                {msg}
-              </>
-            ),
+            message: `A flow with this id already exists locally.\n\n${msg}`,
             confirmLabel: "Overwrite",
             danger: true,
           })

@@ -156,7 +156,7 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
   ) {
     if (mode === "validate-revert") {
       const ok = await confirm({
-        title: "Continue?",
+        title: `Apply "${s.title}" with auto-revert?`,
         message: `If validation fails, Vibestrate will revert the patch for "${s.title}" in the run worktree (git apply -R, never push or merge).`,
         confirmLabel: "Apply",
         danger: true,

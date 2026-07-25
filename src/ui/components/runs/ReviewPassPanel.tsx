@@ -165,7 +165,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
     };
     if (opts.autoRevertFailing) {
       const ok = await confirm({
-        title: "Continue?",
+        title: `Smart apply "${b.title}"?`,
         message: `Smart apply "${b.title}": if a step's validation fails, Vibestrate will revert ONLY that step in the worktree. Earlier steps stay applied.`,
         confirmLabel: "Smart apply",
         danger: true,
@@ -255,8 +255,8 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
   async function revert(b: SuggestionBundle) {
     if (
       !(await confirm({
-        title: "Continue?",
-        message: `Revert review pass "${b.title}" - this runs git apply -R against the worktree only.`,
+        title: `Revert review pass "${b.title}"?`,
+        message: "This runs git apply -R against the worktree only.",
         confirmLabel: "Revert",
         danger: true,
       }))

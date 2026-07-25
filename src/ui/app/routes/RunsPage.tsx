@@ -361,13 +361,14 @@ function IntegrationPanel() {
             disabled={busy !== null}
             onClick={async () => {
               // Explicit, spelled-out confirm: this is the only place the
-              // product touches main - locally, never pushed (P7b).
+              // product touches main - locally, never pushed.
               if (
                 !(await confirm({
                   title: `Merge "${finishable}" into main now?`,
                   message:
                     "This runs a LOCAL git merge of the reviewed integration branch into main. Nothing is pushed. Refused if the tree is dirty, the integration is partial, or a policy objects.",
                   confirmLabel: "Merge",
+                  danger: true,
                 }))
               ) {
                 return;

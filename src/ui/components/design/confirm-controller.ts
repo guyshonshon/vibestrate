@@ -43,6 +43,9 @@ export function createConfirmController(
   onChange: (next: { kind: PendingKind; opts: unknown } | null) => void = () => {},
 ): ConfirmController {
   let entry: Entry | null = null;
+  // Once disposed the view is gone, so a later request could never be answered.
+  // Refuse it immediately rather than hand back a promise nothing will settle.
+  let disposed = false;
 
   const clear = (): Entry | null => {
     const prev = entry;
@@ -52,6 +55,10 @@ export function createConfirmController(
 
   return {
     open(kind, opts, settle) {
+      if (disposed) {
+        refuse({ kind, opts, settle });
+        return;
+      }
       // Superseding must decline the outgoing request rather than drop it,
       // or its caller waits on a promise that never settles.
       const prev = clear();
@@ -61,16 +68,18 @@ export function createConfirmController(
     },
     accept(value) {
       const prev = clear();
+      // Settle before notifying the view: if the re-render throws, the caller
+      // has already been answered rather than left waiting behind a dead dialog.
+      if (prev) prev.settle(prev.kind === "confirm" ? true : value);
       onChange(null);
-      if (!prev) return;
-      prev.settle(prev.kind === "confirm" ? true : value);
     },
     decline() {
       const prev = clear();
-      onChange(null);
       if (prev) refuse(prev);
+      onChange(null);
     },
     dispose() {
+      disposed = true;
       const prev = clear();
       if (prev) refuse(prev);
     },
