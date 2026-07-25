@@ -5,6 +5,7 @@ import { navigate } from "../../app/App.js";
 import type { ApprovalRequest, RunState, RunStatus, VibestrateEvent } from "../../lib/types.js";
 import { ActivityList, DiffBar, RadialStat, StageTimeline, StatusLabel } from "./viz.js";
 import { statusMessage } from "../mission/runPhase.js";
+import { Button } from "../design/Button.js";
 
 const ACTIVE: RunStatus[] = [
   "planning",
@@ -92,6 +93,10 @@ export function RunControlPage({ runId }: { runId: string }) {
   const pending = approvals[0];
   const loops = run.maxReviewLoops > 0 ? run.reviewLoopCount / run.maxReviewLoops : 0;
 
+  // Approve/Reject/Abort/Review-diff carry a status intent (affirm/destructive/
+  // violet) that `design/Button` has no variant for, so they stay bare
+  // intent-tinted ghosts (primitives-contract §4). Pause/Resume is a plain
+  // neutral action, so it renders through `Button` instead.
   const controls = pending ? (
     <>
       <button onClick={() => decide(pending, true)} className="flex items-center gap-1.5 rounded-[12px] bg-emerald-500/15 px-4 py-2.5 text-[13px] font-bold text-emerald-400 hover:bg-emerald-500/25">
@@ -103,10 +108,14 @@ export function RunControlPage({ runId }: { runId: string }) {
     </>
   ) : isActive ? (
     <>
-      <button onClick={() => act(run.pauseRequested ? "resume" : "pause")} className="flex items-center gap-1.5 rounded-[12px] bg-coal-500 px-4 py-2.5 text-[13px] font-semibold text-chalk-100 hover:bg-coal-400">
-        {run.pauseRequested ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+      <Button
+        variant="secondary"
+        size="lg"
+        onClick={() => act(run.pauseRequested ? "resume" : "pause")}
+        iconLeft={run.pauseRequested ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+      >
         {run.pauseRequested ? "Resume" : "Pause"}
-      </button>
+      </Button>
       <button onClick={() => act("abort")} className="flex items-center gap-1.5 rounded-[12px] px-4 py-2.5 text-[13px] font-semibold text-rose-300 hover:bg-rose-500/10">
         <Square className="h-4 w-4" /> Abort
       </button>
@@ -121,9 +130,14 @@ export function RunControlPage({ runId }: { runId: string }) {
     <div className="font-jakarta min-h-screen bg-coal-900 text-chalk-100">
       <div className="mx-auto max-w-[1080px] px-10 py-7">
         <div className="mb-5 flex items-center justify-between">
-          <button onClick={() => navigate({ kind: "mission" })} className="flex items-center gap-2 text-[13px] font-semibold text-chalk-400 hover:text-chalk-100">
-            <ArrowLeft className="h-4 w-4" /> Mission control
-          </button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate({ kind: "mission" })}
+            iconLeft={<ArrowLeft className="h-3.5 w-3.5" />}
+          >
+            Mission control
+          </Button>
           <button onClick={() => navigate({ kind: "run", runId })} className="flex items-center gap-1 text-[12.5px] font-semibold text-violet-soft hover:text-violet-soft/80">
             Full inspector <ArrowUpRight className="h-3.5 w-3.5" />
           </button>
@@ -133,7 +147,6 @@ export function RunControlPage({ runId }: { runId: string }) {
           <div className="mb-4 rounded-[12px] border border-violet-soft/30 bg-violet-soft/10 px-4 py-2.5 text-[13px] text-chalk-100">{toast}</div>
         ) : null}
 
-        {/* hero band (v2) */}
         <div className={card}>
           <div className="flex items-start justify-between gap-5">
             <div className="min-w-0">

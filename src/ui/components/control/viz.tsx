@@ -1,5 +1,6 @@
 import { Activity, AlertTriangle, Check, GitMerge, X } from "lucide-react";
 import type { RunStatus, VibestrateEvent } from "../../lib/types.js";
+import { Chip } from "../design/Chip.js";
 
 /**
  * Shared visual components for the control surface. No status dot-pills (the
@@ -33,7 +34,10 @@ export function StatusLabel({ status }: { status: RunStatus }) {
       : status === "failed"
         ? { Icon: AlertTriangle, c: "var(--fail)", t: "Failed" }
         : status === "aborted"
-          ? { Icon: X, c: "var(--color-chalk-400)", t: "Aborted" }
+          ? // This is the run's headline status word (rendered bold, above the
+            // title), not a caption - chalk-400 would read as a disabled state
+            // rather than a deliberate neutral tone for "stopped, not failed".
+            { Icon: X, c: "var(--color-chalk-300)", t: "Aborted" }
           : { Icon: Activity, c: "var(--color-violet-vivid)", t: status.replace(/_/g, " ") };
   const Icon = m.Icon;
   return (
@@ -121,7 +125,9 @@ export function RadialStat({ value, center, label }: { value: number; center: st
         </svg>
         <div className="absolute inset-x-0 bottom-1 text-center text-[16px] font-extrabold text-chalk-100">{center}</div>
       </div>
-      <div className="text-[12.5px] text-chalk-400">{label}</div>
+      {/* Names what the number means (StatTile's unit-label convention), so
+       * it carries violet rather than the muted chalk-400 caption tone. */}
+      <div className="text-[12.5px] font-medium text-violet-soft">{label}</div>
     </div>
   );
 }
@@ -134,9 +140,13 @@ export function ActivityList({ events, max = 6 }: { events: VibestrateEvent[]; m
       {evs.map((e, i) => (
         <div key={i} className="flex items-center gap-3 rounded-[12px] bg-coal-500/40 px-3.5 py-2.5">
           <span className="shrink-0 font-mono text-[10.5px] text-chalk-400">{clock(e.timestamp)}</span>
-          <span className="shrink-0 rounded-[6px] bg-coal-500 px-1.5 py-px font-mono text-[10.5px] font-medium text-chalk-400">
+          {/* Event type is a kind word, not free text - the contained Chip
+           * recipe (primitives-contract §3/§10) replaces the hand-rolled
+           * bg-coal-500 pill; mono stays since the type is a literal
+           * identifier (e.g. "tool_call"). */}
+          <Chip tone="neutral" contained className="mono shrink-0">
             {e.type}
-          </span>
+          </Chip>
           <span className="min-w-0 flex-1 truncate text-[12.5px] text-chalk-300">{e.message}</span>
         </div>
       ))}
