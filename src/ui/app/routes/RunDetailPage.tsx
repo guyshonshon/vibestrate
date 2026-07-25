@@ -311,7 +311,18 @@ export function RunDetailPage({
         />
       ) : null}
 
-      {/* 1 - THE SUPERVISOR frames everything below: who judges, what it
+      {/* 1 - THE BRIEF is the page's hero: it answers "what is this run and
+       * where is it" before anything else, so it leads. */}
+      <RunStatusSection
+        run={run}
+        diff={diff}
+        skillsCount={skillsCount}
+        paused={paused || run.status === "paused"}
+        onPauseToggle={() => void handlePauseToggle()}
+        onAbort={() => void handleAbort()}
+      />
+
+      {/* 2 - THE SUPERVISOR frames everything below: who judges, what it
        * decided about this task, its live decision feed, and any approval
        * it is waiting on. */}
       <SupervisorPanel
@@ -334,16 +345,6 @@ export function RunDetailPage({
           </div>
         ) : null}
       </SupervisorPanel>
-
-      {/* 2 - THE BRIEF: what you asked for, its live state, and the flow map. */}
-      <RunStatusSection
-        run={run}
-        diff={diff}
-        skillsCount={skillsCount}
-        paused={paused || run.status === "paused"}
-        onPauseToggle={() => void handlePauseToggle()}
-        onAbort={() => void handleAbort()}
-      />
 
       {/* Terminal verdict: ONE block. Assurance is the evidence-backed
        * verdict; the outcome banner only fills the gap before assurance is

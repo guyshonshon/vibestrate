@@ -102,10 +102,13 @@ const HERO_TONE: Record<RunStatus, HeroTone> = {
 };
 
 /**
- * The run page's top chrome: composes the canonical HeroCard (primitives
- * contract - extend, never fork) instead of hand-rolling a second card
- * anatomy. HeroCard's `breadcrumb` slot carries the back-nav trail; the
- * tonal status column replaces the old standalone status chip.
+ * The run page's top chrome: breadcrumb trail, editable name, and the run's
+ * chrome actions.
+ *
+ * Deliberately NOT a HeroCard. `RunStatusSection` directly below is the page's
+ * hero and already carries the run's title, tonal status and metrics; making
+ * this one a hero too printed both twice, stacked. One hero per page - this is
+ * the trail above it that answers "where am I".
  */
 export function RunHeaderV3({
   run,
@@ -124,26 +127,25 @@ export function RunHeaderV3({
 }) {
   const specUp = isSpecUpRun(run);
   return (
-    <div data-screen-label="00 Run header">
-      <HeroCard
-        size="md"
-        tone={specUp ? "violet" : HERO_TONE[run.status]}
-        breadcrumb={
-          <Breadcrumbs
-            items={[
-              { label: "Mission", onClick: onBack },
-              {
-                label: <span title={run.runId}>{shortRunId(run.runId)}</span>,
-                muted: true,
-              },
-            ]}
-          />
-        }
-        status={specUp ? "Spec-up" : run.status.replace(/_/g, " ")}
-        title={<EditableRunName run={run} onRename={onRename} />}
-        actions={
-          <>
-            {run.branchName ? (
+    <header
+      className="flex flex-wrap items-center justify-between gap-3"
+      data-screen-label="00 Run header"
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <Breadcrumbs
+          items={[
+            { label: "Mission", onClick: onBack },
+            {
+              label: <span title={run.runId}>{shortRunId(run.runId)}</span>,
+              muted: true,
+            },
+          ]}
+        />
+        <EditableRunName run={run} onRename={onRename} />
+      </div>
+      <div className="flex items-center gap-2">
+        <>
+          {run.branchName ? (
               <Button
                 variant="secondary"
                 size="sm"
@@ -178,9 +180,8 @@ export function RunHeaderV3({
                 Re-run with changes
               </button>
             ) : null}
-          </>
-        }
-      />
-    </div>
+        </>
+      </div>
+    </header>
   );
 }

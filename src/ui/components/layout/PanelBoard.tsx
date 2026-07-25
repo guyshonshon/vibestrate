@@ -182,7 +182,13 @@ export function PanelBoard({
   return (
     <section data-screen-label="Run dashboard">
       <div className="mb-2 flex items-center justify-between">
-        {label ? <span className="mono text-[11px] text-chalk-400">{label}</span> : <span />}
+        {label ? (
+          <h2 className="text-[20px] font-extrabold tracking-[-0.02em] text-chalk-100">
+            {label}
+          </h2>
+        ) : (
+          <span />
+        )}
         <div className="flex items-center gap-2">
           {editMode && !atBase ? (
             <span className="text-[11px] text-chalk-400">Widen the window to rearrange</span>

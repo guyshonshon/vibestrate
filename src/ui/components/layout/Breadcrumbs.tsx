@@ -26,7 +26,7 @@ export function Breadcrumbs({
     <nav
       aria-label="Breadcrumb"
       className={cn(
-        "flex min-w-0 items-center gap-1 text-[11.5px] font-medium",
+        "flex min-w-0 items-center gap-1.5 text-[12.5px] font-medium",
         className,
       )}
     >
@@ -46,10 +46,14 @@ export function Breadcrumbs({
         return (
           <Fragment key={i}>
             {c.onClick && !last ? (
+              // A crumb that navigates has to read as a link before you hover
+              // it: chalk-300 (not the faint chalk-400 of the inert trail),
+              // with an underline appearing on hover/focus so the affordance
+              // is obvious rather than a colour shift you only find by accident.
               <button
                 type="button"
                 onClick={c.onClick}
-                className="min-w-0 max-w-[220px] truncate text-chalk-400 transition hover:text-violet-soft"
+                className="min-w-0 max-w-[220px] cursor-pointer truncate rounded-[4px] text-chalk-300 underline-offset-[3px] transition hover:text-violet-soft hover:underline focus-visible:text-violet-soft focus-visible:underline focus-visible:outline-none"
               >
                 {c.label}
               </button>
