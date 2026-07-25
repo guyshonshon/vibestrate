@@ -134,7 +134,12 @@ export function DependenciesSection({
                         <span className="flex-1 truncate text-[12px] text-chalk-100">
                           {b.title}
                         </span>
-                        <span className="font-mono text-[10.5px] text-chalk-400">
+                        <span
+                          className={cn(
+                            "text-[10.5px] font-medium",
+                            open ? "text-amber-soft" : "text-emerald-400",
+                          )}
+                        >
                           {b.status}
                         </span>
                       </button>
@@ -155,7 +160,7 @@ export function DependenciesSection({
                   <li key={id} className="flex items-center gap-1">
                     <span className="flex min-w-0 flex-1 items-center gap-2 rounded-[10px] border border-rose-400/30 bg-rose-500/[0.07] px-2.5 py-1.5 text-[12px] text-rose-300">
                       <span className="flex-1 truncate font-mono">{id}</span>
-                      <span className="font-mono text-[10.5px]">missing</span>
+                      <span className="text-[10.5px]">missing</span>
                     </span>
                     <button
                       title="Remove this blocker"
@@ -191,7 +196,12 @@ export function DependenciesSection({
                       <span className="flex-1 truncate text-[12px] text-chalk-100">
                         {u.title}
                       </span>
-                      <span className="font-mono text-[10.5px] text-chalk-400">
+                      <span
+                        className={cn(
+                          "text-[10.5px] font-medium",
+                          isDone(u.status) ? "text-emerald-400" : "text-amber-soft",
+                        )}
+                      >
                         {u.status}
                       </span>
                     </button>

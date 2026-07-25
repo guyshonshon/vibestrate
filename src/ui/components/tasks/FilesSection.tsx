@@ -7,6 +7,17 @@ import { cn } from "../design/cn.js";
 import { Section } from "../layout/PageShell.js";
 import { CARD } from "./sectionChrome.js";
 
+// Same tones as diff/ChangedFilesList's STATUS_COLORS, so a file's git status
+// reads the same wherever it appears.
+const STATUS_TONE: Record<ChangedFile["status"], string> = {
+  added: "text-emerald-400",
+  modified: "text-violet-soft",
+  deleted: "text-rose-300",
+  renamed: "text-amber-soft",
+  untracked: "text-chalk-300",
+  unknown: "text-chalk-400",
+};
+
 export function FilesSection({ task }: { task: Task }) {
   const [runFiles, setRunFiles] = useState<ChangedFile[]>([]);
 
@@ -125,7 +136,7 @@ function FileLink({
       )}
       <span className="truncate font-mono">{path}</span>
       {status ? (
-        <span className="ml-auto font-mono text-[10px] text-chalk-400">
+        <span className={cn("ml-auto text-[10px] font-medium", STATUS_TONE[status])}>
           {status}
         </span>
       ) : null}

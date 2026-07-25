@@ -60,7 +60,7 @@ export function MicroStepPipeline({
                       {STAGE_LABEL[step.stage]}
                     </span>
                   </span>
-                  <span className="font-mono text-[10px] text-chalk-400">{step.status}</span>
+                  <span className={cn("text-[10px] font-medium", text)}>{step.status}</span>
                 </button>
               </li>
             );

@@ -728,12 +728,12 @@ function ChecklistRow({
             {item.text}
           </span>
           {runState ? (
-            <span className={cn("shrink-0 font-mono text-[10px]", runState.tone)}>
+            <span className={cn("shrink-0 text-[10px] font-medium", runState.tone)}>
               {runState.label}
             </span>
           ) : null}
           {item.promotedTaskId ? (
-            <span className="shrink-0 font-mono text-[10px] text-chalk-400">
+            <span className="shrink-0 text-[10px] font-medium text-chalk-300">
               detached
             </span>
           ) : null}

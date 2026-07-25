@@ -195,7 +195,7 @@ export function StepDetailDrawer({
           />
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <div className="mb-1.5 flex items-center gap-2 font-mono text-[11px] font-medium">
+              <div className="mb-1.5 flex items-center gap-2 text-[11px] font-medium">
                 <span className={statusTextTone(item.status)}>
                   {item.status.replace(/_/g, " ")}
                 </span>

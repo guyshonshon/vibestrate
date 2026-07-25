@@ -113,7 +113,7 @@ export function TaskGitActivity({
                           </span>
                         </>
                       ) : (
-                        <span className="font-mono text-[10px] text-chalk-400">
+                        <span className="text-[10px] text-chalk-400">
                           (worktree unavailable)
                         </span>
                       )}
@@ -137,8 +137,9 @@ export function TaskGitActivity({
                       </button>
                     </div>
                     {status?.headHash && status.headSubject ? (
-                      <div className="mt-1 truncate font-mono text-[10.5px] text-chalk-400">
-                        {status.headHash} - {status.headSubject}
+                      <div className="mt-1 truncate text-[10.5px] text-chalk-400">
+                        <span className="font-mono">{status.headHash}</span> -{" "}
+                        {status.headSubject}
                       </div>
                     ) : null}
                   </li>
