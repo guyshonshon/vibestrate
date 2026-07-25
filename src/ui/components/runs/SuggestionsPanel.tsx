@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Check,
   CheckCircle2,
+  ChevronDown,
   History,
   Lightbulb,
   Plus,
@@ -23,6 +24,22 @@ import { ReviewPassPanel } from "./ReviewPassPanel.js";
 import { ProfileSelect } from "./ProfileSelect.js";
 import { streamRunEvents } from "../../lib/events.js";
 import { navigate } from "../../app/App.js";
+import { Button } from "../design/Button.js";
+import { IconBtn } from "../design/IconBtn.js";
+import { Chip, type ChipTone } from "../design/Chip.js";
+import { FormField } from "../design/FormField.js";
+
+// Canonical input recipe (primitives-contract §6).
+const INPUT =
+  "w-full rounded-[14px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2.5 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none";
+
+// Intent-tinted ghost recipe (primitives-contract §4), the same shape used
+// for the Approve/Reject decision pair on Mission Control
+// (MissionControlPage.tsx:349-351) - a dense, borderless tint rather than the
+// framed `design/Button`, since Button has no per-status (affirm/warn/fail)
+// color variant.
+const INTENT_BTN =
+  "inline-flex items-center gap-1 rounded-[10px] px-1.5 py-0.5 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
 type Props = {
   runId: string;
@@ -285,9 +302,9 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
   return (
     <div className="space-y-3 text-[12px]">
       <header className="flex items-center gap-2">
-        <Lightbulb className="h-3.5 w-3.5 text-vibestrate-accent" strokeWidth={1.5} />
-        <span className="text-[12px] font-medium text-vibestrate-fg">Suggestions</span>
-        <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
+        <Lightbulb className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.5} />
+        <span className="text-[12px] font-medium text-chalk-100">Suggestions</span>
+        <span className="font-mono text-[10.5px] text-chalk-400">
           {items.length}
         </span>
         <button
@@ -296,10 +313,10 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
             setSelectMode((v) => !v);
             setSelected(new Set());
           }}
-          className={`ml-auto inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] ${
+          className={`ml-auto ${INTENT_BTN} ${
             selectMode
-              ? "border-vibestrate-accent/50 bg-vibestrate-accent-soft/30 text-vibestrate-fg"
-              : "border-vibestrate-border text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
+              ? "bg-violet-soft/15 text-violet-soft hover:bg-violet-soft/25"
+              : "text-chalk-300 hover:bg-coal-500 hover:text-chalk-100"
           }`}
           title={
             selectMode
@@ -314,43 +331,39 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
           )}
           {selectMode ? `${selectedIds.length} selected` : "Select"}
         </button>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="rounded border border-vibestrate-border p-1 text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
-          title="Refresh"
-        >
+        <IconBtn variant="plain" title="Refresh" onClick={() => void load()}>
           <RefreshCw className="h-3 w-3" strokeWidth={1.5} />
-        </button>
-        <button
-          type="button"
+        </IconBtn>
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => setCreating((v) => !v)}
-          className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[11px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
+          iconLeft={<Plus className="h-3 w-3" strokeWidth={1.5} />}
         >
-          <Plus className="h-3 w-3" strokeWidth={1.5} />
           New
-        </button>
+        </Button>
       </header>
 
       {selectMode && selectedIds.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-1.5 rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/20 px-2 py-1.5 text-[11px]">
-          <span className="text-vibestrate-fg">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-[10px] border border-violet-soft/30 bg-violet-soft/10 px-2 py-1.5 text-[11px]">
+          <span className="text-chalk-100">
             Group {selectedIds.length} suggestion
             {selectedIds.length === 1 ? "" : "s"} into a review pass.
           </span>
-          <button
-            type="button"
-            onClick={() => void createReviewPassFromSelection()}
+          <Button
+            variant="primary"
+            size="sm"
+            className="ml-auto"
             disabled={busy !== null}
-            className="ml-auto rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-2 py-0.5 text-[11px] text-vibestrate-fg hover:bg-vibestrate-accent-soft/50 disabled:opacity-50"
+            onClick={() => void createReviewPassFromSelection()}
           >
             New review pass…
-          </button>
+          </Button>
         </div>
       ) : null}
 
       {error ? (
-        <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[11.5px] text-vibestrate-fail">
+        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2 py-1 text-[11.5px] text-rose-300">
           {error}
         </div>
       ) : null}
@@ -358,83 +371,102 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
       {creating ? (
         <form
           onSubmit={submitDraft}
-          className="space-y-1.5 rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2 text-[11.5px]"
+          className="space-y-2 rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-3 text-[11.5px]"
         >
-          <input
-            value={draft.title}
-            onChange={(e) =>
-              setDraft((d) => ({ ...d, title: e.target.value }))
-            }
-            placeholder="Title (required)"
-            className="w-full rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-1"
-          />
+          <FormField label="Title">
+            <input
+              value={draft.title}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, title: e.target.value }))
+              }
+              placeholder="Title (required)"
+              className={INPUT}
+            />
+          </FormField>
           <div className="flex gap-1.5">
-            <input
-              value={draft.file}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, file: e.target.value }))
-              }
-              placeholder="src/foo.ts"
-              className="flex-1 rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-1"
-            />
-            <input
-              value={draft.lineStart}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, lineStart: e.target.value }))
-              }
-              placeholder="line start"
-              className="w-24 rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-1"
-            />
-            <input
-              value={draft.lineEnd}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, lineEnd: e.target.value }))
-              }
-              placeholder="line end"
-              className="w-24 rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-1"
-            />
+            <div className="flex-1">
+              <FormField label="File">
+                <input
+                  value={draft.file}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, file: e.target.value }))
+                  }
+                  placeholder="src/foo.ts"
+                  className={INPUT}
+                />
+              </FormField>
+            </div>
+            <div className="w-24">
+              <FormField label="Line start">
+                <input
+                  value={draft.lineStart}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, lineStart: e.target.value }))
+                  }
+                  placeholder="line start"
+                  className={INPUT}
+                />
+              </FormField>
+            </div>
+            <div className="w-24">
+              <FormField label="Line end">
+                <input
+                  value={draft.lineEnd}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, lineEnd: e.target.value }))
+                  }
+                  placeholder="line end"
+                  className={INPUT}
+                />
+              </FormField>
+            </div>
           </div>
-          <textarea
-            value={draft.body}
-            onChange={(e) =>
-              setDraft((d) => ({ ...d, body: e.target.value }))
-            }
-            placeholder="Describe what should change…"
-            rows={3}
-            className="w-full rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-1"
-          />
-          <textarea
-            value={draft.proposedPatch}
-            onChange={(e) =>
-              setDraft((d) => ({ ...d, proposedPatch: e.target.value }))
-            }
-            placeholder="Optional unified diff (will require approval before apply)"
-            rows={4}
-            className="vibestrate-mono w-full rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-1 text-[11px]"
-          />
+          <FormField label="Description">
+            <textarea
+              value={draft.body}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, body: e.target.value }))
+              }
+              placeholder="Describe what should change…"
+              rows={3}
+              className={`resize-none ${INPUT}`}
+            />
+          </FormField>
+          <FormField label="Proposed patch">
+            <textarea
+              value={draft.proposedPatch}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, proposedPatch: e.target.value }))
+              }
+              placeholder="Optional unified diff (will require approval before apply)"
+              rows={4}
+              className={`resize-none font-mono text-[11px] ${INPUT}`}
+            />
+          </FormField>
           <div className="flex gap-1.5">
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              size="sm"
               disabled={busy !== null}
-              className="rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-2 py-0.5 text-[11px] text-vibestrate-fg hover:bg-vibestrate-accent-soft/50 disabled:opacity-50"
             >
               Save
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setCreating(false)}
-              className="rounded border border-vibestrate-border px-2 py-0.5 text-[11px] text-vibestrate-fg-dim"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       ) : null}
 
       {items.length === 0 ? (
-        <div className="rounded border border-dashed border-vibestrate-border px-3 py-4 text-center text-[11.5px] text-vibestrate-fg-muted">
-          No suggestions yet. Reviewer/verifier `VIBESTRATE_SUGGESTION` blocks land
-          here, plus anything you create manually.
+        <div className="rounded-[14px] border border-dashed border-[color:var(--line)] px-3 py-4 text-center text-[11.5px] text-chalk-400">
+          No suggestions yet. Reviewer/verifier `VIBESTRATE_SUGGESTION` blocks
+          land here, plus anything you create manually.
         </div>
       ) : (
         <ul className="space-y-1.5">
@@ -518,18 +550,18 @@ function Row({
     s.status === "validation_failed";
 
   return (
-    <li className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-2">
+    <li className="rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-2.5 py-2">
       <div className="flex flex-wrap items-center gap-2">
         {selectMode ? (
           <button
             type="button"
             onClick={onToggleSelect}
-            className="rounded p-0.5 text-vibestrate-fg-dim hover:bg-vibestrate-panel"
+            className="rounded-[8px] p-0.5 text-chalk-300 hover:bg-coal-500"
             aria-label={selected ? "Deselect" : "Select"}
           >
             {selected ? (
               <CheckSquare
-                className="h-3.5 w-3.5 text-vibestrate-accent"
+                className="h-3.5 w-3.5 text-violet-soft"
                 strokeWidth={1.5}
               />
             ) : (
@@ -538,20 +570,20 @@ function Row({
           </button>
         ) : null}
         <StatusBadge status={s.status} />
-        <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
+        <span className="rounded-[6px] border border-[color:var(--line)] px-1 font-mono text-[10px] text-chalk-400">
           {s.source}
         </span>
         {s.bundleId ? (
           <span
-            className="vibestrate-mono rounded border border-vibestrate-accent/40 px-1 text-[10px] text-vibestrate-accent"
+            className="rounded-[6px] border border-violet-soft/40 px-1 font-mono text-[10px] text-violet-soft"
             title={`Part of review pass ${s.bundleId}`}
           >
             review pass
           </span>
         ) : null}
-        <span className="font-medium text-vibestrate-fg">{s.title}</span>
+        <span className="font-medium text-chalk-100">{s.title}</span>
         {s.file ? (
-          <span className="vibestrate-mono ml-auto truncate text-[10.5px] text-vibestrate-fg-muted">
+          <span className="ml-auto truncate font-mono text-[10.5px] text-chalk-400">
             {s.file}
             {s.lineStart ? `:${s.lineStart}` : ""}
             {s.lineEnd ? `-${s.lineEnd}` : ""}
@@ -559,22 +591,22 @@ function Row({
         ) : null}
       </div>
       {s.body ? (
-        <p className="mt-1 whitespace-pre-wrap text-[11.5px] text-vibestrate-fg-dim">
+        <p className="mt-1 whitespace-pre-wrap text-[11.5px] text-chalk-300">
           {s.body}
         </p>
       ) : null}
       {s.proposedPatch ? (
         <details className="mt-1.5">
-          <summary className="cursor-pointer text-[10.5px] text-vibestrate-fg-muted">
+          <summary className="cursor-pointer text-[10.5px] text-chalk-400">
             proposed patch ({s.proposedPatch.split("\n").length} lines)
           </summary>
-          <pre className="vibestrate-mono mt-1 max-h-48 overflow-auto rounded border border-vibestrate-border bg-vibestrate-panel px-2 py-1.5 text-[10.5px] text-vibestrate-fg">
+          <pre className="mt-1 max-h-48 overflow-auto rounded-[10px] border border-[color:var(--line)] bg-coal-800 px-2 py-1.5 font-mono text-[10.5px] text-chalk-100">
             {s.proposedPatch}
           </pre>
         </details>
       ) : null}
       {s.errorMessage ? (
-        <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-vibestrate-fail">
+        <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-rose-300">
           <AlertTriangle className="h-3 w-3" strokeWidth={1.5} />
           {s.errorMessage}
         </div>
@@ -599,7 +631,7 @@ function Row({
                 : null
             }
           />
-          <p className="text-[10px] text-vibestrate-fg-muted">
+          <p className="text-[10px] text-chalk-400">
             Editing only changes future validation runs. It does not re-run
             validation.
           </p>
@@ -608,7 +640,7 @@ function Row({
       <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
         {readOnly ? (
           <span
-            className="inline-flex items-center gap-1 rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-1.5 py-0.5 text-[10.5px] text-vibestrate-warn"
+            className="inline-flex items-center gap-1 rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-1.5 py-0.5 text-[10.5px] text-amber-soft"
             title="This run is read-only. Apply / Validate / Revert are disabled. Start a non-read-only run on the same task to act on this suggestion."
           >
             read-only run - actions disabled
@@ -621,7 +653,7 @@ function Row({
                   type="button"
                   onClick={onApprove}
                   disabled={busy}
-                  className="inline-flex items-center gap-1 rounded border border-vibestrate-success/40 bg-vibestrate-success/10 px-1.5 py-0.5 text-vibestrate-success hover:bg-vibestrate-success/15 disabled:opacity-50"
+                  className={`${INTENT_BTN} bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25`}
                 >
                   <Check className="h-3 w-3" strokeWidth={1.5} />
                   Approve
@@ -630,7 +662,7 @@ function Row({
                   type="button"
                   onClick={onReject}
                   disabled={busy}
-                  className="inline-flex items-center gap-1 rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-1.5 py-0.5 text-vibestrate-warn hover:bg-vibestrate-warn/15 disabled:opacity-50"
+                  className={`${INTENT_BTN} bg-rose-500/15 text-rose-300 hover:bg-rose-500/25`}
                 >
                   <X className="h-3 w-3" strokeWidth={1.5} />
                   Reject
@@ -645,22 +677,22 @@ function Row({
             ) : null}
             {isApplied ? (
               <>
-                <button
-                  type="button"
-                  onClick={() => onValidate(profile)}
+                <Button
+                  variant="secondary"
+                  size="sm"
                   disabled={busy}
-                  className="inline-flex items-center gap-1 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-vibestrate-fg-dim hover:bg-vibestrate-panel disabled:opacity-50"
+                  onClick={() => onValidate(profile)}
                   title="Run commands.validate inside the run worktree"
+                  iconLeft={<Wrench className="h-3 w-3" strokeWidth={1.5} />}
                 >
-                  <Wrench className="h-3 w-3" strokeWidth={1.5} />
                   Validate
-                </button>
+                </Button>
                 <button
                   type="button"
                   onClick={onRevert}
                   disabled={busy}
-                  className="inline-flex items-center gap-1 rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-1.5 py-0.5 text-vibestrate-warn hover:bg-vibestrate-warn/15 disabled:opacity-50"
                   title="Revert this suggestion's patch via git apply -R"
+                  className={`${INTENT_BTN} bg-amber-soft/15 text-amber-soft hover:bg-amber-soft/25`}
                 >
                   <RotateCcw className="h-3 w-3" strokeWidth={1.5} />
                   Revert
@@ -669,8 +701,11 @@ function Row({
             ) : null}
           </>
         )}
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
+          className="ml-auto"
+          title="Jump to this suggestion in the read-only Replay timeline"
           onClick={() =>
             navigate({
               kind: "run",
@@ -679,12 +714,10 @@ function Row({
               replayFocus: { kind: "match", match: { kind: "suggestion", id: s.id } },
             })
           }
-          className="ml-auto inline-flex items-center gap-1 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-vibestrate-fg-dim hover:bg-vibestrate-panel"
-          title="Jump to this suggestion in the read-only Replay timeline"
+          iconLeft={<History className="h-3 w-3" strokeWidth={1.5} />}
         >
-          <History className="h-3 w-3" strokeWidth={1.5} />
           Replay
-        </button>
+        </Button>
       </div>
     </li>
   );
@@ -693,19 +726,22 @@ function Row({
 function ValidationBlock({ result }: { result: SuggestionValidationResult }) {
   if (result.status === "no_commands_configured") {
     return (
-      <div className="mt-1.5 rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-2 py-1 text-[11px] text-vibestrate-warn">
+      <div className="mt-1.5 rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-2 py-1 text-[11px] text-amber-soft">
         No `commands.validate` configured. Run{" "}
-        <span className="vibestrate-mono">vibe config set commands.validate '["pnpm test"]'</span>.
+        <span className="font-mono text-[12.5px]">
+          vibe config set commands.validate '["pnpm test"]'
+        </span>
+        .
       </div>
     );
   }
   const ok = result.status === "passed";
   return (
     <div
-      className={`mt-1.5 rounded border px-2 py-1 text-[11px] ${
+      className={`mt-1.5 rounded-[10px] border px-2 py-1 text-[11px] ${
         ok
-          ? "border-vibestrate-success/40 bg-vibestrate-success/10 text-vibestrate-success"
-          : "border-vibestrate-fail/40 bg-vibestrate-fail/10 text-vibestrate-fail"
+          ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-400"
+          : "border-rose-400/40 bg-rose-500/10 text-rose-300"
       }`}
     >
       <div>
@@ -717,7 +753,7 @@ function ValidationBlock({ result }: { result: SuggestionValidationResult }) {
           {result.commands
             .filter((c) => c.status === "failed")
             .map((c, i) => (
-              <li key={i} className="vibestrate-mono text-[10.5px]">
+              <li key={i} className="font-mono text-[10.5px]">
                 {c.command} → exit {c.exitCode}
               </li>
             ))}
@@ -727,26 +763,30 @@ function ValidationBlock({ result }: { result: SuggestionValidationResult }) {
   );
 }
 
+// Mirrors the original cascading-ternary bucket order exactly (success ->
+// fail -> neutral -> default violet) so unhandled statuses keep the same
+// fallback tone as before this migration.
+const SUGGESTION_STATUS_TONE: Record<SuggestionStatus, ChipTone> = {
+  applied: "emerald",
+  approved: "emerald",
+  validation_passed: "emerald",
+  rejected: "rose",
+  failed: "rose",
+  validation_failed: "rose",
+  revert_failed: "rose",
+  resolved: "neutral",
+  reverted: "neutral",
+  open: "violet",
+  applying: "violet",
+  reverted_after_validation_failed: "violet",
+  validation_failed_revert_failed: "violet",
+};
+
 function StatusBadge({ status }: { status: SuggestionStatus }) {
-  const tone =
-    status === "applied" ||
-    status === "approved" ||
-    status === "validation_passed"
-      ? "border-vibestrate-success/40 text-vibestrate-success"
-      : status === "rejected" ||
-          status === "failed" ||
-          status === "validation_failed" ||
-          status === "revert_failed"
-        ? "border-vibestrate-fail/40 text-vibestrate-fail"
-        : status === "resolved" || status === "reverted"
-          ? "border-vibestrate-border text-vibestrate-fg-muted"
-          : "border-vibestrate-accent/40 text-vibestrate-accent";
   return (
-    <span
-      className={`vibestrate-mono inline-flex items-center rounded border px-1 text-[10px] ${tone}`}
-    >
+    <Chip contained tone={SUGGESTION_STATUS_TONE[status] ?? "neutral"}>
       {status}
-    </span>
+    </Chip>
   );
 }
 
@@ -765,12 +805,12 @@ function ApplyMenu({
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
-      <div className="inline-flex divide-x divide-vibestrate-accent/40 overflow-hidden rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30">
+      <div className="inline-flex divide-x divide-violet-soft/40 overflow-hidden rounded-[10px] border border-violet-soft/40 bg-violet-soft/15">
         <button
           type="button"
           onClick={() => onApply("plain")}
           disabled={busy}
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 text-vibestrate-fg hover:bg-vibestrate-accent-soft/50 disabled:opacity-50"
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 text-violet-soft hover:bg-violet-soft/25 disabled:opacity-50"
         >
           <CheckCircle2 className="h-3 w-3" strokeWidth={1.5} />
           Apply patch
@@ -782,15 +822,15 @@ function ApplyMenu({
           aria-haspopup="menu"
           aria-expanded={open}
           aria-label="More apply options"
-          className="inline-flex items-center px-1 py-0.5 text-vibestrate-fg hover:bg-vibestrate-accent-soft/50 disabled:opacity-50"
+          className="inline-flex items-center px-1 py-0.5 text-violet-soft hover:bg-violet-soft/25 disabled:opacity-50"
         >
-          ▾
+          <ChevronDown className="h-3 w-3" strokeWidth={1.5} />
         </button>
       </div>
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-10 mt-1 w-72 rounded border border-vibestrate-border bg-vibestrate-panel shadow-lg"
+          className="absolute right-0 z-10 mt-1 w-72 rounded-[14px] border border-[color:var(--line)] bg-coal-600 shadow-lg"
         >
           <button
             type="button"
@@ -799,10 +839,10 @@ function ApplyMenu({
               setOpen(false);
               onApply("plain");
             }}
-            className="block w-full px-3 py-1.5 text-left text-[11.5px] hover:bg-vibestrate-panel-2"
+            className="block w-full px-3 py-1.5 text-left text-[11.5px] hover:bg-coal-500"
           >
-            <div className="text-vibestrate-fg">Apply</div>
-            <div className="text-[10.5px] text-vibestrate-fg-muted">
+            <div className="text-chalk-100">Apply</div>
+            <div className="text-[10.5px] text-chalk-400">
               Just apply the patch.
             </div>
           </button>
@@ -813,10 +853,10 @@ function ApplyMenu({
               setOpen(false);
               onApply("validate");
             }}
-            className="block w-full px-3 py-1.5 text-left text-[11.5px] hover:bg-vibestrate-panel-2"
+            className="block w-full px-3 py-1.5 text-left text-[11.5px] hover:bg-coal-500"
           >
-            <div className="text-vibestrate-fg">Apply &amp; validate</div>
-            <div className="text-[10.5px] text-vibestrate-fg-muted">
+            <div className="text-chalk-100">Apply &amp; validate</div>
+            <div className="text-[10.5px] text-chalk-400">
               After apply, run commands.validate against the worktree.
             </div>
           </button>
@@ -827,12 +867,12 @@ function ApplyMenu({
               setOpen(false);
               onApply("validate-revert");
             }}
-            className="block w-full border-t border-vibestrate-border px-3 py-1.5 text-left text-[11.5px] hover:bg-vibestrate-panel-2"
+            className="block w-full border-t border-[color:var(--line)] px-3 py-1.5 text-left text-[11.5px] hover:bg-coal-500"
           >
-            <div className="text-vibestrate-fg">
+            <div className="text-chalk-100">
               Apply, validate, revert if validation fails
             </div>
-            <div className="text-[10.5px] text-vibestrate-warn">
+            <div className="text-[10.5px] text-amber-soft">
               If validation fails, Vibestrate will attempt to revert the patch in the
               run worktree (git apply -R, never push or merge).
             </div>
