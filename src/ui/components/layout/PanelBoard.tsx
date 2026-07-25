@@ -200,7 +200,7 @@ export function PanelBoard({
             {visible.slice(0, 4).map((p) => (
               <div
                 key={p.id}
-                className="h-32 animate-pulse rounded-xl border border-[color:var(--line)] bg-[color:var(--card)]"
+                className="h-32 rounded-[18px] border border-[color:var(--line)] bg-[color:var(--card)]"
               />
             ))}
           </div>
@@ -282,7 +282,7 @@ function BoardEditChrome({
       <button
         type="button"
         onClick={() => onToggle(true)}
-        className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium text-chalk-400 transition-colors hover:bg-coal-600 hover:text-chalk-100"
+        className="inline-flex h-7 items-center gap-1.5 rounded-[10px] px-2 text-[11px] font-medium text-chalk-400 transition-colors hover:bg-coal-600 hover:text-chalk-100"
         aria-label="Edit layout"
       >
         <SlidersHorizontal className="h-3.5 w-3.5" /> Edit layout
@@ -293,13 +293,13 @@ function BoardEditChrome({
     <div
       role="toolbar"
       aria-label="Layout editor"
-      className="inline-flex h-7 items-center gap-0.5 rounded-lg bg-violet-soft/[0.06] p-0.5 ring-1 ring-violet-soft/30"
+      className="inline-flex h-7 items-center gap-0.5 rounded-[10px] bg-violet-soft/[0.06] p-0.5 ring-1 ring-violet-soft/30"
     >
       <AddPanelPicker hiddenList={hiddenList} onAdd={onShow} />
       <button
         type="button"
         onClick={onReset}
-        className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] text-chalk-400 transition-colors hover:bg-coal-600 hover:text-chalk-100"
+        className="inline-flex h-6 items-center gap-1 rounded-[9px] px-2 text-[11px] text-chalk-400 transition-colors hover:bg-coal-600 hover:text-chalk-100"
       >
         <RotateCcw className="h-3 w-3" /> Reset
       </button>
@@ -307,7 +307,7 @@ function BoardEditChrome({
       <button
         type="button"
         onClick={() => onToggle(false)}
-        className="inline-flex h-6 items-center gap-1 rounded-md bg-violet-soft/15 px-2 text-[11px] font-medium text-violet-soft transition-colors hover:bg-violet-soft/25"
+        className="inline-flex h-6 items-center gap-1 rounded-[9px] bg-violet-soft/15 px-2 text-[11px] font-medium text-violet-soft transition-colors hover:bg-violet-soft/25"
       >
         <Check className="h-3 w-3" /> Done
       </button>
@@ -339,14 +339,14 @@ function AddPanelPicker({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
-        className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] text-chalk-400 transition-colors hover:bg-coal-600 hover:text-chalk-100 disabled:opacity-40 disabled:hover:bg-transparent"
+        className="inline-flex h-6 items-center gap-1 rounded-[9px] px-2 text-[11px] text-chalk-400 transition-colors hover:bg-coal-600 hover:text-chalk-100 disabled:opacity-40 disabled:hover:bg-transparent"
       >
         <Plus className="h-3 w-3" /> {disabled ? "No hidden panels" : "Add panel"}
       </button>
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-full z-30 mt-1.5 min-w-[200px] rounded-xl border border-[color:var(--line)] bg-[color:var(--popover)] p-1 shadow-xl"
+          className="absolute right-0 top-full z-30 mt-1.5 min-w-[200px] rounded-[12px] border border-[color:var(--line)] bg-coal-700 p-1 shadow-xl"
         >
           <div className="mono px-2.5 py-1.5 text-[11px] text-chalk-400">
             Hidden panels
@@ -360,7 +360,7 @@ function AddPanelPicker({
                 onAdd(p.id);
                 setOpen(false);
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[11.5px] text-chalk-300 hover:bg-coal-600"
+              className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-[11.5px] text-chalk-300 hover:bg-coal-600"
             >
               <Plus className="h-3 w-3 text-chalk-400" />
               {p.title}
