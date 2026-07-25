@@ -2,14 +2,17 @@ import { useEffect, useState } from "react";
 import { Lock } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { ChangedFile, DiffSnapshot } from "../../lib/types.js";
+import { StatTile } from "../design/StatTile.js";
 
+// Tone per git status word. FilesSection.tsx mirrors this six-way mapping
+// for the same statuses - keep new statuses colored in both places.
 const STATUS_COLORS: Record<ChangedFile["status"], string> = {
   added: "text-emerald-400",
   modified: "text-violet-soft",
   deleted: "text-rose-300",
   renamed: "text-amber-soft",
   untracked: "text-chalk-300",
-  unknown: "text-chalk-400",
+  unknown: "text-chalk-300",
 };
 
 const STATUS_GLYPH: Record<ChangedFile["status"], string> = {
@@ -57,32 +60,41 @@ export function ChangedFilesList({
 
   return (
     <div>
-      <div className="flex items-center justify-between text-[12.5px] font-semibold text-chalk-100">
-        <span>Changed files</span>
-        {snapshot ? (
-          <span className="mono text-[11.5px] text-chalk-300">
-            {snapshot.totals.files}{" "}
-            <span className="text-emerald-400">+{snapshot.totals.insertions}</span>{" "}
-            <span className="text-rose-300">-{snapshot.totals.deletions}</span>
-            {snapshot.totals.redactedFiles > 0 ? (
-              <span className="text-amber-soft">
-                {" "}
-                {snapshot.totals.redactedFiles} redacted
-              </span>
-            ) : null}
-          </span>
-        ) : null}
-      </div>
+      <span className="text-[12.5px] font-semibold text-chalk-100">
+        Changed files
+      </span>
+      {snapshot ? (
+        <div className="mt-2 flex flex-wrap items-stretch gap-1">
+          <StatTile value={snapshot.totals.files} label="files" />
+          <StatTile
+            value={`+${snapshot.totals.insertions}`}
+            label="added"
+            tone="emerald"
+          />
+          <StatTile
+            value={`-${snapshot.totals.deletions}`}
+            label="removed"
+            tone="rose"
+          />
+          {snapshot.totals.redactedFiles > 0 ? (
+            <StatTile
+              value={snapshot.totals.redactedFiles}
+              label="redacted"
+              tone="amber"
+            />
+          ) : null}
+        </div>
+      ) : null}
       {error ? (
         <div className="mt-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[12px] text-rose-300">
           {error}
         </div>
       ) : snapshot === null ? (
-        <div className="mt-2 text-[12px] text-chalk-400">
+        <div className="mt-2 text-[12px] text-chalk-300">
           Worktree not available yet.
         </div>
       ) : snapshot.files.length === 0 ? (
-        <div className="mt-2 text-[12px] text-chalk-400">
+        <div className="mt-2 text-[12px] text-chalk-300">
           No changes detected.
         </div>
       ) : (
@@ -110,7 +122,7 @@ export function ChangedFilesList({
                     aria-hidden
                   />
                 ) : null}
-                <span className="mono text-[11px] text-chalk-300">
+                <span className="mono num-tabular text-[11px] text-chalk-300">
                   <span className="text-emerald-400">+{f.insertions}</span>{" "}
                   <span className="text-rose-300">-{f.deletions}</span>
                 </span>
