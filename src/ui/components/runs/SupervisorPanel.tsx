@@ -216,7 +216,7 @@ export function SupervisorPanel({
           ) : null}
           {selection.risks.length > 0 ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              <span className="text-[10.5px] text-chalk-400">risks:</span>
+              <span className="text-[11.5px] font-semibold text-amber-soft">Risks</span>
               {selection.risks.map((r, i) => (
                 <Chip key={i} tone="amber">
                   {r}

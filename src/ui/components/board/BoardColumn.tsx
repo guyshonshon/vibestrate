@@ -20,11 +20,11 @@ export type ColumnDef = {
 // column carries a colour identity (tinted header band + count) so the eye lands
 // on the right lane fast.
 export const COLUMNS: ColumnDef[] = [
-  { id: "planned",       label: "Planned",       tone: { dot: "bg-chalk-400",   text: "text-chalk-300",   band: "bg-[color:var(--line-soft)]" } },
+  { id: "planned",       label: "Planned",       tone: { dot: "bg-chalk-400",   text: "text-chalk-300",   band: "bg-chalk-400/[0.08]" } },
   { id: "in_progress",   label: "In progress",   tone: { dot: "bg-emerald-400", text: "text-emerald-400", band: "bg-emerald-400/[0.08]" } },
   { id: "needs_testing", label: "Needs testing", tone: { dot: "bg-amber-soft",  text: "text-amber-soft",  band: "bg-amber-soft/[0.08]" } },
   { id: "completed",     label: "Completed",      tone: { dot: "bg-sky-glow",    text: "text-sky-glow",    band: "bg-sky-glow/[0.08]" } },
-  { id: "archived",      label: "Archived",       tone: { dot: "bg-chalk-400",   text: "text-chalk-400",   band: "bg-[color:var(--line-soft)]" } },
+  { id: "archived",      label: "Archived",       tone: { dot: "bg-chalk-400",   text: "text-chalk-400",   band: "bg-chalk-400/[0.05]" } },
 ];
 
 export function BoardColumn({
