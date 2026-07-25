@@ -15,7 +15,7 @@ const STATUS_TONE: Record<ChangedFile["status"], string> = {
   deleted: "text-rose-300",
   renamed: "text-amber-soft",
   untracked: "text-chalk-300",
-  unknown: "text-chalk-400",
+  unknown: "text-chalk-300",
 };
 
 export function FilesSection({ task }: { task: Task }) {
