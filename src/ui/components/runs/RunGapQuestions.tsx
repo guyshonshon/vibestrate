@@ -18,33 +18,24 @@ import {
 import { api } from "../../lib/api.js";
 import type { SpecUpQuestion, SpecUpQuestionCategory } from "../../lib/types.js";
 import { usePublishViewContext } from "../../lib/view-context.js";
+import { Button } from "../design/Button.js";
+import { SegmentedControl } from "../design/SegmentedControl.js";
+import { Chip } from "../design/Chip.js";
+import { StatTile } from "../design/StatTile.js";
+import { cn } from "../design/cn.js";
 
 // ── In-run gap-questions screen (Spec-up) - modern, card-based, layered ────────
-// Bold left menu of areas (the current one a solid violet block); the current
-// area's questions are contained CARDS on a layered surface (panel -> card ->
-// inset). One area at a time, jumpable, Submit + Proceed always reachable.
-// Suggest is ADVISORY (recommends, never pre-selects). Palette is violet +
-// neutrals only - no second hue, no glow tints (flat solid surfaces). Explicit
-// rgba violet (NOT color-mix, which fails to paint in some browsers).
+// Bold left menu of areas (the current one highlighted); the current area's
+// questions are contained cards on a layered surface (ground -> card -> well).
+// One area at a time, jumpable, Submit + Proceed always reachable. Suggest is
+// ADVISORY (recommends, never pre-selects) - a suggestion only ever shows in
+// its own row with Use/Dismiss, never pre-fills the answer.
 
-const V = "var(--color-violet-soft)"; // brand violet accent
-const VB = "var(--color-violet-vivid)"; // brighter violet, accents/text
-
-// Tonal ladder, now on theme tokens so it flips in light mode (was a dark-only
-// hardcoded-hex ladder that rendered as a dark island on the light canvas).
-// Separation is carried by TONE STEPS; violet is the accent only (active marker,
-// answered check, selected option, Submit). Ladder: page -> container ("ground")
-// -> card -> recessed well; questions split by a crisp divider.
-const PAGE = "var(--color-coal-800)"; // section canvas
-const GROUND = "var(--color-coal-700)"; // the content container
-const CARD = "var(--color-coal-600)"; // open question card, a step above the ground
-const CARD_DONE = "var(--color-coal-500)"; // answered question: elevated step (the violet check carries the done cue)
-const WELL = "var(--color-coal-800)"; // recessed field: text input, unselected option
-const SEL = "var(--color-violet-soft)"; // selected option: solid violet (contrast-safe with coal-900 ink in both themes)
-const SEL_INK = "var(--color-coal-900)"; // text on a selected option (flips with the theme)
-const RAIL_ON = "var(--color-coal-600)"; // active menu field
-const DIVIDER = "var(--line)"; // the rule between questions
-const HAIR = "var(--line-soft)"; // quiet rule for header / footer separators
+// Intent-tinted ghost recipe (primitives-contract §4, verbatim from
+// RunActions.tsx:61-62) - the violet accent action a plain `design/Button`
+// can't express, since Button's variants carry no per-intent tint.
+const INTENT_BTN =
+  "inline-flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[12.5px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
 const CATEGORY_ORDER: SpecUpQuestionCategory[] = [
   "scope",
@@ -221,15 +212,26 @@ export function RunGapQuestions({
 
   if (questions.length === 0 && coverageComplete) {
     return (
-      <section style={page}>
-        <h2 style={{ fontSize: 22, fontWeight: 500, margin: "0 0 8px" }}>Coverage complete</h2>
-        <p style={{ fontSize: 15, color: "var(--color-chalk-300)", lineHeight: 1.6, margin: "0 0 22px" }}>
+      <section className="rounded-[18px] bg-coal-800 p-5 text-chalk-100">
+        <h2 className="mb-2 text-[16px] font-bold">Coverage complete</h2>
+        <p className="mb-5 text-[13.5px] leading-relaxed text-chalk-300">
           The CTO has what it needs from your answers (round {round}). Build the spec, architecture, and risks.
         </p>
-        {error ? <div style={errorLine}>{error}</div> : null}
-        <button onClick={() => void finalizeNoAnswers()} disabled={busy} style={primaryBtn(true)}>
-          {busy ? "Building..." : "Build the spec"} <ArrowRight size={18} />
-        </button>
+        {error ? (
+          <div className="mb-4 w-full rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+            {error}
+          </div>
+        ) : null}
+        <Button
+          variant="primary"
+          size="lg"
+          disabled={busy}
+          onClick={() => void finalizeNoAnswers()}
+          iconRight={<ArrowRight className="h-4 w-4" strokeWidth={1.9} />}
+          className="w-full"
+        >
+          {busy ? "Building..." : "Build the spec"}
+        </Button>
       </section>
     );
   }
@@ -237,23 +239,50 @@ export function RunGapQuestions({
   const single = byCategory.length <= 1;
 
   const menu = (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+    <div className="flex flex-col gap-0.5">
       {byCategory.map((g) => {
         const ans = answeredOf(g.items);
         const done = ans === g.items.length;
         const current = g.category === activeCat;
         return (
-          <button key={g.category} onClick={() => setActive(g.category)} style={menuRow(current)}>
-            <span style={{ width: 16, display: "flex", justifyContent: "center", flexShrink: 0, color: done ? VB : current ? V : "var(--color-chalk-400)" }}>
-              {done ? <Check size={15} /> : <span style={{ width: 6, height: 6, borderRadius: 999, background: current ? V : "var(--color-chalk-400)" }} />}
+          <Button
+            key={g.category}
+            variant={current ? "secondary" : "ghost"}
+            size="md"
+            className="w-full"
+            onClick={() => setActive(g.category)}
+          >
+            <span className="flex w-full items-center gap-2.5">
+              <span
+                className={cn(
+                  "flex w-4 shrink-0 justify-center",
+                  done ? "text-violet-vivid" : current ? "text-violet-soft" : "text-chalk-300",
+                )}
+              >
+                {done ? (
+                  <Check className="h-[15px] w-[15px]" strokeWidth={1.9} />
+                ) : (
+                  <span className={cn("h-1.5 w-1.5 rounded-full", current ? "bg-violet-soft" : "bg-chalk-400")} />
+                )}
+              </span>
+              <span
+                className={cn(
+                  "flex-1 text-left text-[13px]",
+                  current ? "font-semibold text-chalk-100" : "font-medium text-chalk-300",
+                )}
+              >
+                {CATEGORY_LABEL[g.category]}
+              </span>
+              <span
+                className={cn(
+                  "font-mono text-[11.5px]",
+                  done || current ? "text-violet-vivid" : "text-chalk-300",
+                )}
+              >
+                {ans}/{g.items.length}
+              </span>
             </span>
-            <span style={{ flex: 1, fontSize: 14, fontWeight: current ? 500 : 400, color: current ? "var(--color-chalk-100)" : "var(--color-chalk-300)" }}>
-              {CATEGORY_LABEL[g.category]}
-            </span>
-            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 12.5, color: done || current ? VB : "var(--color-chalk-400)" }}>
-              {ans}/{g.items.length}
-            </span>
-          </button>
+          </Button>
         );
       })}
     </div>
@@ -262,24 +291,25 @@ export function RunGapQuestions({
   const ActiveIcon = activeGroup ? CATEGORY_ICON[activeGroup.category] : Shapes;
   const content = activeGroup ? (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 13, paddingBottom: 14, marginBottom: 14, borderBottom: `1px solid ${HAIR}` }}>
-        <ActiveIcon size={24} style={{ color: VB, flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 19, fontWeight: 500, letterSpacing: "-0.01em", lineHeight: 1.2 }}>{CATEGORY_LABEL[activeGroup.category]}</div>
-          <div style={{ fontSize: 13.5, color: "var(--color-chalk-300)", marginTop: 2 }}>{CATEGORY_BLURB[activeGroup.category]}</div>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 15, color: VB }}>
-            {answeredOf(activeGroup.items)}/{activeGroup.items.length}
+      <div className="mb-3.5 flex items-center gap-3 border-b border-[color:var(--line-soft)] pb-3.5">
+        <ActiveIcon className="h-6 w-6 shrink-0 text-violet-vivid" strokeWidth={1.9} />
+        <div className="min-w-0 flex-1">
+          <div className="text-[16px] font-bold leading-tight tracking-[-0.01em] text-chalk-100">
+            {CATEGORY_LABEL[activeGroup.category]}
           </div>
-          <div style={{ fontSize: 11.5, color: "var(--color-chalk-400)" }}>answered</div>
+          <div className="mt-0.5 text-[13px] text-chalk-300">{CATEGORY_BLURB[activeGroup.category]}</div>
         </div>
+        <StatTile
+          value={`${answeredOf(activeGroup.items)}/${activeGroup.items.length}`}
+          label="answered"
+          tone="violet"
+        />
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column" }}>
+      <div className="flex flex-col">
         {activeGroup.items.map((q, i) => (
           <div key={q.id}>
-            {i > 0 ? <div style={qDivider} /> : null}
+            {i > 0 ? <div className="my-2 h-px bg-[color:var(--line)]" /> : null}
             <QuestionCard
               q={q}
               value={answers[q.id] ?? ""}
@@ -296,22 +326,38 @@ export function RunGapQuestions({
         ))}
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20 }}>
+      <div className="mt-5 flex items-center justify-between">
         {activeIdx > 0 ? (
-          <button onClick={() => setActive(byCategory[activeIdx - 1]!.category)} style={navBtn}>
-            <ArrowLeft size={17} /> {CATEGORY_LABEL[byCategory[activeIdx - 1]!.category]}
-          </button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActive(byCategory[activeIdx - 1]!.category)}
+            iconLeft={<ArrowLeft className="h-4 w-4" strokeWidth={1.9} />}
+          >
+            {CATEGORY_LABEL[byCategory[activeIdx - 1]!.category]}
+          </Button>
         ) : (
           <span />
         )}
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <button onClick={() => void doSuggestAll()} disabled={suggestingAll} style={ghostInline}>
-            <PenLine size={15} /> {suggestingAll ? "Drafting..." : "Suggest all here"}
-          </button>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={suggestingAll}
+            onClick={() => void doSuggestAll()}
+            iconLeft={<PenLine className="h-3.5 w-3.5" strokeWidth={1.9} />}
+          >
+            {suggestingAll ? "Drafting..." : "Suggest all here"}
+          </Button>
           {activeIdx < byCategory.length - 1 ? (
-            <button onClick={() => setActive(byCategory[activeIdx + 1]!.category)} style={primaryBtn(true, true)}>
-              {CATEGORY_LABEL[byCategory[activeIdx + 1]!.category]} <ArrowRight size={17} />
-            </button>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => setActive(byCategory[activeIdx + 1]!.category)}
+              iconRight={<ArrowRight className="h-4 w-4" strokeWidth={1.9} />}
+            >
+              {CATEGORY_LABEL[byCategory[activeIdx + 1]!.category]}
+            </Button>
           ) : null}
         </div>
       </div>
@@ -319,58 +365,76 @@ export function RunGapQuestions({
   ) : null;
 
   const footer = (
-    <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 20, paddingTop: 18, borderTop: `1px solid ${HAIR}` }}>
-      <span style={{ flex: 1, fontSize: 13.5, color: "var(--color-chalk-300)", lineHeight: 1.5 }}>
+    <div className="mt-5 flex items-center gap-4 border-t border-[color:var(--line-soft)] pt-4">
+      <span className="flex-1 text-[13px] leading-relaxed text-chalk-300">
         Answer what you can - we ask follow-ups only where it's still open.
       </span>
-      {error ? <span style={{ color: "var(--color-amber-soft)", fontSize: 13 }}>{error}</span> : null}
-      <button onClick={() => void submit(true)} disabled={busy} style={ghostBtn}>
+      {error ? <span className="text-[13px] text-amber-soft">{error}</span> : null}
+      <Button variant="secondary" size="md" disabled={busy} onClick={() => void submit(true)}>
         Proceed to spec
-      </button>
-      <button onClick={() => void submit(false)} disabled={busy || answeredCount === 0} style={primaryBtn(answeredCount > 0, true)}>
-        {busy ? "Working..." : "Submit answers"} <ArrowRight size={17} />
-      </button>
+      </Button>
+      <Button
+        variant="primary"
+        size="md"
+        disabled={busy || answeredCount === 0}
+        onClick={() => void submit(false)}
+        iconRight={<ArrowRight className="h-4 w-4" strokeWidth={1.9} />}
+      >
+        {busy ? "Working..." : "Submit answers"}
+      </Button>
     </div>
   );
 
   return (
-    <section style={page}>
+    <section className="rounded-[18px] bg-coal-800 p-5 text-chalk-100">
       {single ? (
         <div>
-          <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 3 }}>Scope the work</div>
-          <div style={{ fontSize: 13, color: "var(--color-chalk-400)", marginBottom: 14 }}>Round {round}. Answer what you can.</div>
-          <div style={ground}>
+          <div className="mb-1 text-[16px] font-bold">Scope the work</div>
+          <div className="mb-3.5 text-[13px] text-chalk-300">Round {round}. Answer what you can.</div>
+          <div className="rounded-[14px] bg-coal-700 p-4">
             {content}
             {footer}
           </div>
         </div>
       ) : (
         <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ fontSize: 16, fontWeight: 500 }}>Scope the work</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 13, color: "var(--color-chalk-400)" }}>
-                round {round} &middot; {coveredAreas}/{byCategory.length} areas
-              </span>
-              <div style={{ display: "flex", gap: 4 }}>
+          <div className="mb-4 flex items-center justify-between">
+            <div className="text-[16px] font-bold">Scope the work</div>
+            <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-stretch gap-1.5">
+                <StatTile value={round} label="round" />
+                <StatTile
+                  value={`${coveredAreas}/${byCategory.length}`}
+                  label="areas"
+                  tone={coveredAreas === byCategory.length ? "emerald" : "default"}
+                />
+              </div>
+              <div className="flex gap-1">
                 {byCategory.map((g) => {
                   const done = answeredOf(g.items) === g.items.length;
                   const cur = g.category === activeCat;
-                  return <div key={g.category} style={{ width: 22, height: 5, borderRadius: 3, background: done ? V : cur ? VB : "var(--line-strong)" }} />;
+                  return (
+                    <div
+                      key={g.category}
+                      className={cn(
+                        "h-[5px] w-[22px] rounded-full",
+                        done ? "bg-violet-soft" : cur ? "bg-violet-vivid" : "bg-[color:var(--line-strong)]",
+                      )}
+                    />
+                  );
                 })}
               </div>
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "196px 1fr", gap: 16 }} className="run-gap-grid">
-            <aside style={{ alignSelf: "start" }}>{menu}</aside>
-            <div style={ground}>
+          <div className="grid grid-cols-1 gap-4 min-[861px]:grid-cols-[196px_1fr]">
+            <aside className="self-start">{menu}</aside>
+            <div className="rounded-[14px] bg-coal-700 p-4">
               {content}
               {footer}
             </div>
           </div>
         </>
       )}
-      <style>{`@media (max-width: 860px){ .run-gap-grid{ grid-template-columns: 1fr !important; } }`}</style>
     </section>
   );
 }
@@ -401,237 +465,120 @@ function QuestionCard({
   const answered = value.trim().length > 0;
   const isChoice = q.kind === "choice" && q.options.length > 0;
   return (
-    <div style={card(answered)}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, marginBottom: 15 }}>
-        <span style={{ fontSize: 17.5, fontWeight: 500, lineHeight: 1.4 }}>{q.question}</span>
+    <div className={cn("rounded-[11px] p-4", answered ? "bg-coal-500" : "bg-transparent")}>
+      <div className="mb-4 flex items-start justify-between gap-3.5">
+        <span className="text-[14px] font-semibold leading-snug text-chalk-100">{q.question}</span>
         {answered ? (
-          <span style={{ fontSize: 13, color: VB, display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", paddingTop: 4 }}>
-            <Check size={15} /> answered
-          </span>
+          <Chip tone="violet" className="shrink-0 pt-1">
+            <Check className="h-3.5 w-3.5" strokeWidth={1.9} />
+            answered
+          </Chip>
         ) : (
-          <div style={{ display: "flex", gap: 14, paddingTop: 4, whiteSpace: "nowrap" }}>
-            <button onClick={() => onSimplify(false)} style={action}><HelpCircle size={15} /> Simplify</button>
-            <button onClick={() => onSuggest()} style={{ ...action, color: VB }}><PenLine size={15} /> Suggest</button>
+          <div className="flex shrink-0 gap-3.5 whitespace-nowrap pt-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onSimplify(false)}
+              iconLeft={<HelpCircle className="h-3.5 w-3.5" strokeWidth={1.9} />}
+            >
+              Simplify
+            </Button>
+            {/* Violet accent marks this as the AI-assist action - Button has no
+                per-intent tint, so this stays the documented intent-tinted
+                ghost recipe instead of `design/Button` (primitives-contract §4). */}
+            <button
+              type="button"
+              onClick={() => onSuggest()}
+              className={cn(INTENT_BTN, "text-violet-soft hover:bg-violet-soft/10")}
+            >
+              <PenLine className="h-3.5 w-3.5" strokeWidth={1.9} />
+              Suggest
+            </button>
           </div>
         )}
       </div>
 
       {isChoice ? (
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          {q.options.map((opt) => {
-            const sel = value === opt;
-            const rec = !answered && suggestion?.value === opt;
-            return (
-              <button key={opt} onClick={() => onAnswer(opt)} style={optionBtn(sel, rec)}>
-                {sel ? <Check size={16} /> : null} {opt}
-              </button>
-            );
-          })}
-          {answered ? <button onClick={onClear} style={clearBtn}><X size={15} /> clear</button> : null}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <SegmentedControl
+            options={q.options.map((opt) => ({ value: opt, label: opt }))}
+            value={value}
+            onChange={onAnswer}
+            className="flex-wrap"
+          />
+          {answered ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClear}
+              iconLeft={<X className="h-3.5 w-3.5" strokeWidth={1.9} />}
+            >
+              clear
+            </Button>
+          ) : null}
         </div>
       ) : (
-        <input value={value} onChange={(e) => onAnswer(e.target.value)} placeholder="Type your answer" style={textInput} />
+        <input
+          value={value}
+          onChange={(e) => onAnswer(e.target.value)}
+          placeholder="Type your answer"
+          className="w-full rounded-[14px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2.5 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+        />
       )}
 
       {!answered && suggestion ? (
-        <div style={adviseRow}>
-          <PenLine size={17} style={{ color: VB, flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14.5, color: "var(--color-chalk-100)" }}>
-              <span style={{ fontSize: 12, color: VB, fontWeight: 500 }}>Suggested</span> &nbsp;{suggestion.value}
+        <div className="mt-3.5 flex items-center gap-3 rounded-[10px] bg-coal-800 px-3.5 py-3">
+          <PenLine className="h-4 w-4 shrink-0 text-violet-vivid" strokeWidth={1.9} />
+          <div className="min-w-0 flex-1">
+            <div className="text-[13.5px] text-chalk-100">
+              <Chip tone="violet">Suggested</Chip> {suggestion.value}
             </div>
-            {suggestion.why ? <div style={{ fontSize: 13, color: "var(--color-chalk-400)", marginTop: 2 }}>{suggestion.why}</div> : null}
+            {suggestion.why ? <div className="mt-0.5 text-[12.5px] text-chalk-300">{suggestion.why}</div> : null}
           </div>
-          <button onClick={onUseSuggestion} style={useBtn}>Use</button>
-          <button onClick={onDismissSuggestion} style={{ ...action, color: "var(--color-chalk-400)" }}>Dismiss</button>
+          <Button variant="primary" size="sm" onClick={onUseSuggestion}>
+            Use
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onDismissSuggestion}>
+            Dismiss
+          </Button>
         </div>
       ) : null}
 
       {simplify ? (
-        <div style={simplifyBox}>
+        <div className="mt-3.5 rounded-[10px] bg-coal-800 px-3.5 py-3.5 text-[13px] leading-relaxed text-chalk-100">
           {simplify.loading ? (
-            <span style={{ color: "var(--color-chalk-400)" }}>Explaining...</span>
+            <span className="text-chalk-300">Explaining...</span>
           ) : (
             <>
               <div>{simplify.text}</div>
-              {simplify.affects ? <div style={{ marginTop: 8, color: "var(--color-chalk-300)" }}><b style={{ fontWeight: 500 }}>What it affects:</b> {simplify.affects}</div> : null}
-              {simplify.analogy ? <div style={{ marginTop: 8, color: "var(--color-chalk-300)" }}><b style={{ fontWeight: 500 }}>Analogy:</b> {simplify.analogy}</div> : null}
-              {!simplify.analogy ? <button onClick={() => onSimplify(true)} style={{ ...action, marginTop: 10, color: VB }}>Explain for a non-developer</button> : null}
+              {simplify.affects ? (
+                <div className="mt-2 text-chalk-300">
+                  <b className="font-semibold">What it affects:</b> {simplify.affects}
+                </div>
+              ) : null}
+              {simplify.analogy ? (
+                <div className="mt-2 text-chalk-300">
+                  <b className="font-semibold">Analogy:</b> {simplify.analogy}
+                </div>
+              ) : null}
+              {!simplify.analogy ? (
+                <button
+                  type="button"
+                  onClick={() => onSimplify(true)}
+                  className={cn(INTENT_BTN, "mt-2.5 text-violet-soft hover:bg-violet-soft/10")}
+                >
+                  Explain for a non-developer
+                </button>
+              ) : null}
             </>
           )}
         </div>
       ) : (
-        <div style={{ display: "flex", gap: 11, fontSize: 14, lineHeight: 1.6, marginTop: 14, paddingTop: 13, borderTop: `1px solid ${HAIR}` }}>
-          <span style={{ color: "var(--color-chalk-400)", flexShrink: 0 }}>Why it matters</span>
-          <span style={{ color: "var(--color-chalk-300)" }}>{q.why}</span>
+        <div className="mt-3.5 flex gap-2.5 border-t border-[color:var(--line-soft)] pt-3 text-[13px] leading-relaxed">
+          <span className="shrink-0 text-[12px] font-semibold text-violet-soft">Why it matters</span>
+          <span className="text-chalk-300">{q.why}</span>
         </div>
       )}
     </div>
   );
-}
-
-// ── styles - borderless tonal (page -> ground -> card -> well); violet as accent ──
-const page: React.CSSProperties = {
-  borderRadius: 18,
-  background: PAGE,
-  padding: "20px 22px",
-  color: "var(--color-chalk-100)",
-};
-const ground: React.CSSProperties = {
-  background: GROUND,
-  borderRadius: 14,
-  padding: "16px 18px",
-  minWidth: 0,
-};
-function card(answered: boolean): React.CSSProperties {
-  // Open questions are flat rows on the ground so the divider is the sole
-  // separator (a filled card + a divider read redundant). Answered questions
-  // keep a subtle violet-tinted block as their done-state cue.
-  return answered
-    ? { background: CARD_DONE, borderRadius: 11, padding: "15px 16px" }
-    : { background: "transparent", padding: "15px 16px" };
-}
-const qDivider: React.CSSProperties = { height: 1, background: DIVIDER, margin: "8px 0" };
-function menuRow(current: boolean): React.CSSProperties {
-  return {
-    display: "flex",
-    alignItems: "center",
-    gap: 11,
-    width: "100%",
-    textAlign: "left",
-    cursor: "pointer",
-    padding: "10px 12px",
-    borderRadius: 10,
-    background: current ? RAIL_ON : "transparent",
-    border: "none",
-  };
-}
-const adviseRow: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 12,
-  marginTop: 14,
-  background: WELL,
-  borderRadius: 10,
-  padding: "12px 15px",
-};
-const simplifyBox: React.CSSProperties = {
-  marginTop: 14,
-  padding: "13px 15px",
-  borderRadius: 10,
-  background: WELL,
-  color: "var(--color-chalk-100)",
-  fontSize: 14,
-  lineHeight: 1.6,
-};
-const textInput: React.CSSProperties = {
-  width: "100%",
-  background: WELL,
-  color: "var(--color-chalk-100)",
-  border: "none",
-  borderRadius: 10,
-  padding: "12px 15px",
-  fontSize: 15,
-  outline: "none",
-};
-const errorLine: React.CSSProperties = { color: "var(--color-amber-soft)", fontSize: 13.5, marginBottom: 14 };
-const action: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 5,
-  background: "transparent",
-  border: "none",
-  cursor: "pointer",
-  fontSize: 13.5,
-  color: "var(--color-chalk-300)",
-  padding: 0,
-};
-const ghostInline: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 7,
-  background: CARD,
-  border: "none",
-  borderRadius: 10,
-  cursor: "pointer",
-  fontSize: 13.5,
-  color: "var(--color-chalk-300)",
-  padding: "9px 15px",
-};
-const navBtn: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 7,
-  background: "transparent",
-  border: "none",
-  cursor: "pointer",
-  fontSize: 15,
-  color: "var(--color-chalk-300)",
-  padding: 0,
-};
-const clearBtn: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-  background: WELL,
-  border: "none",
-  borderRadius: 10,
-  cursor: "pointer",
-  fontSize: 13,
-  color: "var(--color-chalk-400)",
-  padding: "9px 13px",
-};
-const useBtn: React.CSSProperties = {
-  fontSize: 14,
-  fontWeight: 500,
-  color: "var(--color-coal-900)",
-  background: V,
-  border: "none",
-  borderRadius: 10,
-  padding: "9px 18px",
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-};
-const ghostBtn: React.CSSProperties = {
-  padding: "11px 18px",
-  borderRadius: 10,
-  fontSize: 14,
-  cursor: "pointer",
-  border: "none",
-  background: CARD,
-  color: "var(--color-chalk-100)",
-  whiteSpace: "nowrap",
-};
-function optionBtn(selected: boolean, recommended: boolean): React.CSSProperties {
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "11px 17px",
-    borderRadius: 10,
-    fontSize: 14.5,
-    cursor: "pointer",
-    fontWeight: selected ? 500 : 400,
-    border: "none",
-    background: selected ? SEL : recommended ? "rgba(139,124,255,0.12)" : WELL,
-    color: selected ? SEL_INK : recommended ? VB : "var(--color-chalk-100)",
-  };
-}
-function primaryBtn(enabled: boolean, compact = false): React.CSSProperties {
-  return {
-    width: compact ? undefined : "100%",
-    padding: compact ? "12px 24px" : "14px 20px",
-    borderRadius: 12,
-    fontSize: 15,
-    fontWeight: 500,
-    cursor: enabled ? "pointer" : "default",
-    border: "none",
-    background: enabled ? V : CARD,
-    color: enabled ? "var(--color-coal-900)" : "var(--color-chalk-400)",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    whiteSpace: "nowrap",
-  };
 }
