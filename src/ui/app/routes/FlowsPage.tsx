@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
   Download,
-  MoreHorizontal,
   Plus,
   Search,
   Upload,
@@ -12,9 +11,8 @@ import { api } from "../../lib/api.js";
 import { ErrorView } from "../../lib/error-view.js";
 import type { DiscoveredFlow, HubFlowRow, HubPublishResult } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
-import { EntityIcon } from "../../components/design/EntityIcon.js";
 import { FlowBars } from "../../components/design/FlowBars.js";
-import { StatTile } from "../../components/design/StatTile.js";
+import { FlowCard, FlowCardMenu, type FlowCardStat } from "../../components/design/FlowCard.js";
 import { StepKindLegend } from "../../components/design/StepKindLegend.js";
 import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
@@ -641,7 +639,7 @@ function HubSection({
               // Installs rides in the header next to the name (download icon +
               // count) so the compact card keeps steps + version + the badge on
               // one inline row.
-              const stats: FlowStat[] = [
+              const stats: FlowCardStat[] = [
                 ...(typeof row.steps === "number"
                   ? [{ value: row.steps, label: row.steps === 1 ? "step" : "steps" }]
                   : []),
@@ -666,7 +664,6 @@ function HubSection({
                       ) : null}
                     </div>
                   }
-                  steps={meterSteps}
                   description={row.description}
                   stats={stats}
                   statusBadge={risk ? <DiagnosisBadge label={risk} /> : null}
@@ -680,7 +677,9 @@ function HubSection({
                       {installing === row.ref ? "Installing…" : "Install"}
                     </Button>
                   }
-                />
+                >
+                  <FlowBars steps={meterSteps} />
+                </FlowCard>
               );
             })}
           </div>
@@ -887,26 +886,26 @@ function LocalFlowCard({
   const steps = flow.definition.steps ?? [];
   const seats = Object.keys(flow.definition.seats ?? {}).length;
   const gates = steps.filter((s) => s.kind === "approval-gate" || !!s.approval).length;
-  const stats: FlowStat[] = [
+  const stats: FlowCardStat[] = [
     { value: steps.length, label: steps.length === 1 ? "step" : "steps" },
     { value: seats, label: seats === 1 ? "seat" : "seats" },
     ...(gates > 0 ? [{ value: gates, label: gates === 1 ? "gate" : "gates" }] : []),
     ...(flow.version != null ? [{ value: `v${flow.version}`, label: "version" }] : []),
   ];
-  // The universal FlowCard renders the chrome; this composes it with the
-  // local catalog's actions (Edit/Open + the management overflow menu) and the
-  // emerald default mark. The hub uses the same FlowCard so the two can't drift.
+  // The shared FlowCard (components/design/FlowCard.js) renders the chrome;
+  // this composes it with the local catalog's actions (Edit/Open + the
+  // management overflow menu) and the emerald default mark. The hub uses the
+  // same FlowCard (in HubSection above) so the two can't drift.
   return (
     <FlowCard
       title={flow.label}
-      onTitleClick={onOpen}
+      onClick={onOpen}
       selected={isSelected}
       badge={
         isSelected ? (
           <span className="shrink-0 text-[10px] font-bold text-emerald-400">default</span>
         ) : null
       }
-      steps={steps}
       description={flow.definition.description}
       stats={stats}
       footer={
@@ -927,90 +926,12 @@ function LocalFlowCard({
           </div>
         </>
       }
-    />
-  );
-}
-
-type FlowStat = { value: string | number; label: string; icon?: React.ReactNode };
-
-/**
- * The universal flow card. One component renders a flow the same everywhere -
- * the local catalog and the hub - so the two never drift: flow icon + name +
- * an optional trailing badge, the FlowBars step-meter, a clamped description,
- * a row of framed stat tiles, an optional extra line, and a bordered footer
- * for the card's actions. Callers supply their own stats + footer; the chrome
- * is fixed here.
- */
-function FlowCard({
-  title,
-  onTitleClick,
-  badge,
-  steps,
-  description,
-  stats,
-  statusBadge,
-  footer,
-  selected,
-}: {
-  title: string;
-  onTitleClick?: () => void;
-  badge?: React.ReactNode;
-  steps: Array<{ kind?: string }>;
-  description?: string | null;
-  stats: FlowStat[];
-  /** Optional chip rendered as one more card in the stat-tile row (e.g. the
-   *  hub's diagnosis verdict). */
-  statusBadge?: React.ReactNode;
-  footer: React.ReactNode;
-  selected?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col rounded-[14px] border bg-coal-600 p-3.5",
-        selected ? "border-emerald-500/40" : "border-[color:var(--line)]",
-      )}
     >
-      <div className="flex items-center gap-2">
-        <EntityIcon entity="flow" size={16} className="shrink-0 text-violet-soft" />
-        {onTitleClick ? (
-          <button
-            type="button"
-            onClick={onTitleClick}
-            className="min-w-0 flex-1 truncate bg-transparent p-0 text-left text-[13.5px] font-bold text-chalk-100 transition hover:text-violet-soft"
-          >
-            {title}
-          </button>
-        ) : (
-          <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-chalk-100">
-            {title}
-          </span>
-        )}
-        {badge}
-      </div>
       <FlowBars steps={steps} />
-      {description ? (
-        <p className="line-clamp-2 text-[12px] leading-snug text-chalk-300">{description}</p>
-      ) : null}
-      {stats.length > 0 || statusBadge ? (
-        <div className="mt-3 flex flex-wrap items-stretch gap-1">
-          {stats.map((s, i) => (
-            <StatTile key={i} value={s.value} label={s.label} icon={s.icon} />
-          ))}
-          {statusBadge}
-        </div>
-      ) : null}
-      <div className="mt-3.5 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
-        {footer}
-      </div>
-    </div>
+    </FlowCard>
   );
 }
 
-/** A single framed stat - a small inset card with a bold value over its unit,
- *  the unit carrying violet so a card's facts read as data, not faint grey
- *  text. Hugs its content (no stretch) so the row stays tight, not two
- *  half-card slabs. */
 /** The hub's diagnosis verdict as a badge that sits in the stat-tile row -
  *  positive verdicts (accepted/passed/clean) read emerald, everything else
  *  amber. Long verdict strings truncate with a tooltip so the row stays tidy. */
@@ -1031,61 +952,3 @@ function DiagnosisBadge({ label }: { label: string }) {
   );
 }
 
-type MenuItem = { label: string; onClick: () => void; danger?: boolean };
-
-/** Overflow menu for a card's secondary actions - a single contained icon
- *  button that opens a coal popover. Keeps the resting card to one primary
- *  button instead of a wrapping row of bare text links. */
-function FlowCardMenu({ items, busy }: { items: Array<MenuItem | null>; busy: boolean }) {
-  const real = items.filter((x): x is MenuItem => x !== null);
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [open]);
-  if (real.length === 0) return null;
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        aria-label="More actions"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        disabled={busy}
-        onClick={() => setOpen((v) => !v)}
-        className="flex h-7 w-7 items-center justify-center rounded-[10px] border border-[color:var(--line-strong)] bg-coal-600 text-chalk-300 transition hover:bg-coal-500 hover:text-chalk-100 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <MoreHorizontal className="h-4 w-4" strokeWidth={1.9} />
-      </button>
-      {open ? (
-        <div
-          role="menu"
-          className="absolute right-0 z-30 mt-1 min-w-[148px] overflow-hidden rounded-[12px] border border-[color:var(--line)] bg-coal-800 py-1 shadow-2xl"
-        >
-          {real.map((it) => (
-            <button
-              key={it.label}
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                it.onClick();
-              }}
-              className={cn(
-                "block w-full px-3 py-1.5 text-left text-[12.5px] font-medium transition hover:bg-coal-500",
-                it.danger ? "text-rose-300 hover:text-rose-300" : "text-chalk-300 hover:text-chalk-100",
-              )}
-            >
-              {it.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}

@@ -22,6 +22,7 @@ import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { StatTile } from "../../components/design/StatTile.js";
 import { EntityIcon, FlowIcon, type EntityKind } from "../../components/design/EntityIcon.js";
 import { FlowBars } from "../../components/design/FlowBars.js";
+import { FlowCard } from "../../components/design/FlowCard.js";
 import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
 import type {
   ConsultResult,
@@ -37,11 +38,11 @@ import type {
  * the shared `PageShell` + `PageHeader` canvas (primitives-contract §0a) so it
  * matches Mission Control's page-level chrome, and is the page-scale sibling of
  * Mission Control's `MissionComposer`, sharing that canonical idiom 1:1
- * (coal/chalk/violet-soft, `PickCard` flow/crew tiles with the `FlowBars`
- * step-meter, `EntityIcon` identity glyphs, `ComposerSection` labeled groups)
- * and adding the richer surface a dedicated page affords: a live `vibe run`
- * command mirror (CLI = TUI = UI), the selected flow's declared inputs, an
- * inline "ask the supervisor" rail, a metrics quick-look, and recent runs.
+ * (coal/chalk/violet-soft, the shared `design/FlowCard` for flow/crew tiles,
+ * `EntityIcon` identity glyphs, `ComposerSection` labeled groups) and adding
+ * the richer surface a dedicated page affords: a live `vibe run` command
+ * mirror (CLI = TUI = UI), the selected flow's declared inputs, an inline
+ * "ask the supervisor" rail, a metrics quick-look, and recent runs.
  */
 export function RunComposePage() {
   const [meta, setMeta] = useState<ProjectMetadata | null>(null);
@@ -377,38 +378,40 @@ export function RunComposePage() {
                 <p className="px-1 py-1 text-[12.5px] text-chalk-400">No flows discovered.</p>
               ) : (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2.5">
-                  <PickCard
-                    on={!flowId}
+                  <FlowCard
+                    selected={!flowId}
                     entity="flow"
                     onClick={() => setFlowId("")}
                     title="Auto"
-                    meta="orchestrator picks"
+                    caption="orchestrator picks"
                   >
                     <div className="my-2.5 flex h-6 items-center text-chalk-400">
                       <FlowIcon size={22} />
                     </div>
-                  </PickCard>
+                  </FlowCard>
                   {flows.map((f) => {
                     const steps = f.definition.steps ?? [];
                     const seats = Object.keys(f.definition.seats ?? {}).length;
                     const on = f.id === flowId;
                     return (
-                      <PickCard
+                      <FlowCard
                         key={f.id}
-                        on={on}
+                        selected={on}
                         entity="flow"
                         onClick={() => setFlowId(on ? "" : f.id)}
                         title={f.definition.label}
-                        isDefault={f.id === defaultFlow}
-                        stats={
-                          <>
-                            <StatTile value={steps.length} label={steps.length === 1 ? "step" : "steps"} />
-                            <StatTile value={seats} label={seats === 1 ? "seat" : "seats"} />
-                          </>
+                        badge={
+                          f.id === defaultFlow ? (
+                            <span className="ml-auto shrink-0 text-[10px] font-bold text-chalk-400">default</span>
+                          ) : null
                         }
+                        stats={[
+                          { value: steps.length, label: steps.length === 1 ? "step" : "steps" },
+                          { value: seats, label: seats === 1 ? "seat" : "seats" },
+                        ]}
                       >
                         <FlowBars steps={steps} on={on} />
-                      </PickCard>
+                      </FlowCard>
                     );
                   })}
                 </div>
@@ -500,15 +503,19 @@ export function RunComposePage() {
                     const on = c.id === crewId;
                     const profiles = [...new Set(c.roles.map((r) => r.profile))];
                     return (
-                      <PickCard
+                      <FlowCard
                         key={c.id}
-                        on={on}
+                        selected={on}
                         entity="crew"
                         onClick={() => setCrewId(c.id)}
                         title={c.label}
-                        isDefault={c.id === meta?.defaultCrew}
-                        stats={<StatTile value={c.roles.length} label={c.roles.length === 1 ? "role" : "roles"} />}
-                        meta={profiles.slice(0, 3).join(", ")}
+                        badge={
+                          c.id === meta?.defaultCrew ? (
+                            <span className="ml-auto shrink-0 text-[10px] font-bold text-chalk-400">default</span>
+                          ) : null
+                        }
+                        stats={[{ value: c.roles.length, label: c.roles.length === 1 ? "role" : "roles" }]}
+                        caption={profiles.slice(0, 3).join(", ")}
                       >
                         <div className="my-2 flex flex-wrap gap-1">
                           {c.roles.slice(0, 4).map((r) => (
@@ -523,7 +530,7 @@ export function RunComposePage() {
                             <span className="text-[10px] text-chalk-400">+{c.roles.length - 4}</span>
                           ) : null}
                         </div>
-                      </PickCard>
+                      </FlowCard>
                     );
                   })}
                 </div>
@@ -787,55 +794,6 @@ function ComposerSection({
       </div>
       {children}
     </section>
-  );
-}
-
-// A selectable flow/crew tile - the canonical composer pick card (EntityIcon +
-// bold name + optional meter/role chips), ported from MissionComposer so the
-// two composers can't drift. Facts (step/seat/role counts) render as content-width
-// `StatTile`s via `stats`, never a grey `·`-joined meta line (primitives-contract
-// §11); `meta` is reserved for a plain caption that isn't itself a fact.
-function PickCard({
-  on,
-  onClick,
-  title,
-  entity,
-  isDefault,
-  children,
-  stats,
-  meta,
-}: {
-  on: boolean;
-  onClick: () => void;
-  title: string;
-  entity?: EntityKind;
-  isDefault?: boolean;
-  children?: ReactNode;
-  stats?: ReactNode;
-  meta?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "w-full rounded-[14px] border p-3 text-left transition",
-        on
-          ? "border-violet-soft/70 bg-coal-400"
-          : "border-[color:var(--line)] bg-coal-500 hover:border-[color:var(--line-strong)] hover:bg-coal-400",
-      )}
-    >
-      <div className="flex items-center gap-1.5">
-        {entity ? (
-          <EntityIcon entity={entity} size={16} className={cn("shrink-0", on ? "text-violet-soft" : "text-chalk-400")} />
-        ) : null}
-        <span className="truncate text-[13.5px] font-bold text-chalk-100">{title}</span>
-        {isDefault ? <span className="ml-auto shrink-0 text-[10px] font-bold text-chalk-400">default</span> : null}
-      </div>
-      {children}
-      {stats ? <div className="mt-1.5 flex flex-wrap items-stretch gap-1">{stats}</div> : null}
-      {meta ? <div className="mt-1 text-[11px] text-chalk-400">{meta}</div> : null}
-    </button>
   );
 }
 

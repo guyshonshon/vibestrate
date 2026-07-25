@@ -4,6 +4,7 @@ import { api } from "../../lib/api.js";
 import { navigate } from "../../app/App.js";
 import { EntityIcon, FlowIcon, type EntityKind } from "../design/EntityIcon.js";
 import { FlowBars } from "../design/FlowBars.js";
+import { FlowCard } from "../design/FlowCard.js";
 import { ConsultOrb } from "../consult/ConsultOrb.js";
 import { AssistPopover } from "./AssistPopover.js";
 import { RunActions } from "./RunActions.js";
@@ -17,48 +18,6 @@ import type {
 } from "../../lib/types.js";
 
 type FlowParamDef = { required?: boolean; label?: string; default?: unknown; secret?: boolean };
-
-function PickCard({
-  on,
-  onClick,
-  title,
-  entity,
-  isDefault,
-  children,
-  meta,
-}: {
-  on: boolean;
-  onClick: () => void;
-  title: string;
-  entity?: EntityKind;
-  isDefault?: boolean;
-  children?: ReactNode;
-  meta?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full rounded-[14px] border p-3 text-left transition ${
-        on
-          ? "border-violet-soft/70 bg-coal-500"
-          : "border-[color:var(--line)] bg-coal-600 hover:border-[color:var(--line-strong)]"
-      }`}
-    >
-      <div className="flex items-center gap-1.5">
-        {entity ? (
-          <EntityIcon entity={entity} size={16} className={`shrink-0 ${on ? "text-violet-soft" : "text-chalk-400"}`} />
-        ) : null}
-        <span className="truncate text-[13.5px] font-bold text-chalk-100">{title}</span>
-        {isDefault ? (
-          <span className="ml-auto shrink-0 text-[10px] font-bold text-chalk-400">default</span>
-        ) : null}
-      </div>
-      {children}
-      {meta ? <div className="text-[11px] text-chalk-400">{meta}</div> : null}
-    </button>
-  );
-}
 
 // A labeled config block: optional entity icon + title over a recessed well, so
 // each section (Flow, Crew, Run options) reads as its own framed container.
@@ -540,27 +499,34 @@ export function MissionComposer() {
 
           <Section title="Flow" entity="flow">
             <div className="grid grid-cols-[repeat(auto-fill,minmax(148px,1fr))] gap-2.5">
-              <PickCard on={!flowId} entity="flow" onClick={() => setFlowId("")} title="Auto" meta="orchestrator picks">
+              <FlowCard selected={!flowId} entity="flow" onClick={() => setFlowId("")} title="Auto" caption="orchestrator picks">
                 <div className="my-2.5 flex h-6 items-center text-chalk-400">
                   <FlowIcon size={22} />
                 </div>
-              </PickCard>
+              </FlowCard>
               {flows.map((f) => {
                 const stepDefs = f.definition.steps ?? [];
                 const seats = Object.keys(f.definition.seats ?? {}).length;
                 const on = f.id === flowId;
                 return (
-                  <PickCard
+                  <FlowCard
                     key={f.id}
-                    on={on}
+                    selected={on}
                     entity="flow"
                     onClick={() => setFlowId(on ? "" : f.id)}
                     title={f.definition.label}
-                    isDefault={f.id === defaultFlow}
-                    meta={`${stepDefs.length} steps · ${seats} seats`}
+                    badge={
+                      f.id === defaultFlow ? (
+                        <span className="ml-auto shrink-0 text-[10px] font-bold text-chalk-400">default</span>
+                      ) : null
+                    }
+                    stats={[
+                      { value: stepDefs.length, label: stepDefs.length === 1 ? "step" : "steps" },
+                      { value: seats, label: seats === 1 ? "seat" : "seats" },
+                    ]}
                   >
                     <FlowBars steps={stepDefs} on={on} />
-                  </PickCard>
+                  </FlowCard>
                 );
               })}
             </div>
@@ -569,20 +535,24 @@ export function MissionComposer() {
           {crews.length > 0 ? (
             <Section title="Crew" entity="crew">
               <div className="grid grid-cols-[repeat(auto-fill,minmax(148px,1fr))] gap-2.5">
-                <PickCard on={!crewId} entity="crew" onClick={() => setCrewId("")} title="Default" meta="project crew">
+                <FlowCard selected={!crewId} entity="crew" onClick={() => setCrewId("")} title="Default" caption="project crew">
                   <div className="my-2.5 h-[18px]" />
-                </PickCard>
+                </FlowCard>
                 {crews.map((c) => {
                   const on = c.id === crewId;
                   return (
-                    <PickCard
+                    <FlowCard
                       key={c.id}
-                      on={on}
+                      selected={on}
                       entity="crew"
                       onClick={() => setCrewId(c.id)}
                       title={c.label}
-                      isDefault={c.id === meta?.defaultCrew}
-                      meta={`${c.roles.length} roles`}
+                      badge={
+                        c.id === meta?.defaultCrew ? (
+                          <span className="ml-auto shrink-0 text-[10px] font-bold text-chalk-400">default</span>
+                        ) : null
+                      }
+                      stats={[{ value: c.roles.length, label: c.roles.length === 1 ? "role" : "roles" }]}
                     >
                       <div className="my-2 flex flex-wrap gap-1">
                         {c.roles.slice(0, 4).map((r) => (
@@ -595,7 +565,7 @@ export function MissionComposer() {
                         ))}
                         {c.roles.length > 4 ? <span className="text-[10px] text-chalk-400">+{c.roles.length - 4}</span> : null}
                       </div>
-                    </PickCard>
+                    </FlowCard>
                   );
                 })}
               </div>
