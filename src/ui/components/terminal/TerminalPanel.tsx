@@ -8,6 +8,7 @@ import type {
   TerminalAvailability,
   TerminalSession,
 } from "../../lib/types.js";
+import { Button } from "../design/Button.js";
 
 /**
  * Per-run terminal panel. Renders an xterm.js view of a PTY spawned in the
@@ -186,14 +187,14 @@ export function TerminalPanel({ runId }: { runId: string }) {
 
   if (error)
     return (
-      <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-vibestrate-fail text-[11.5px]">
+      <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2 py-1 text-[11.5px] text-rose-300">
         {error}
       </div>
     );
 
   if (!availability)
     return (
-      <div className="text-vibestrate-fg-muted text-[11.5px]">
+      <div className="text-[11.5px] text-chalk-400">
         Checking terminal availability…
       </div>
     );
@@ -203,41 +204,41 @@ export function TerminalPanel({ runId }: { runId: string }) {
     return (
       <div
         role="note"
-        className="flex items-start gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2/40 p-3 text-[11.5px]"
+        className="flex items-start gap-2 rounded-[16px] border border-[color:var(--line)] bg-coal-600/40 p-3 text-[11.5px]"
       >
         <Lock
-          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-vibestrate-fg-muted"
+          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-chalk-400"
           strokeWidth={1.5}
           aria-hidden
         />
         <div className="space-y-1">
-          <p className="text-vibestrate-fg">
+          <p className="text-chalk-100">
             Interactive terminal is off for this project
           </p>
-          <p className="text-vibestrate-fg-muted">
+          <p className="text-chalk-400">
             {availability.reason ?? "Terminal feature unavailable."}
           </p>
           {!availability.policyEnabled ? (
-            <p className="text-vibestrate-fg-muted">
+            <p className="text-chalk-400">
               Set{" "}
-              <code className="vibestrate-mono rounded bg-vibestrate-panel px-1">
+              <code className="rounded-[6px] bg-coal-800 px-1 font-mono text-[12.5px]">
                 policies.allowInteractiveTerminal: true
               </code>{" "}
               in{" "}
-              <code className="vibestrate-mono rounded bg-vibestrate-panel px-1">
+              <code className="rounded-[6px] bg-coal-800 px-1 font-mono text-[12.5px]">
                 .vibestrate/project.yml
               </code>{" "}
               to enable. vibestrate never opens a shell unless this is explicitly on.
             </p>
           ) : !availability.driverAvailable ? (
-            <p className="text-vibestrate-fg-muted">
+            <p className="text-chalk-400">
               The optional{" "}
-              <code className="vibestrate-mono rounded bg-vibestrate-panel px-1">
+              <code className="rounded-[6px] bg-coal-800 px-1 font-mono text-[12.5px]">
                 node-pty
               </code>{" "}
               native module isn't installed in this environment, so PTYs can't
               be spawned. Install it (or skip the terminal feature) and restart{" "}
-              <code className="vibestrate-mono rounded bg-vibestrate-panel px-1">
+              <code className="rounded-[6px] bg-coal-800 px-1 font-mono text-[12.5px]">
                 vibe ui
               </code>
               .
@@ -251,41 +252,40 @@ export function TerminalPanel({ runId }: { runId: string }) {
   if (!session) {
     return (
       <div className="space-y-2 text-[11.5px]">
-        <p className="text-vibestrate-fg-muted">
+        <p className="text-chalk-400">
           Open an interactive shell inside this run's worktree. The session
           runs locally on your machine, scoped to the worktree directory.
           Closing the panel or this run kills the shell. No transcript is
           recorded.
         </p>
-        <button
-          type="button"
-          onClick={() => void startSession()}
+        <Button
+          variant="primary"
+          size="sm"
           disabled={creating}
-          className="rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-2 py-1 text-vibestrate-fg hover:bg-vibestrate-accent-soft/50 disabled:opacity-60"
+          onClick={() => void startSession()}
         >
           {creating ? "Opening…" : "Open terminal in this worktree"}
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <div className="flex items-center justify-between text-[11px] text-vibestrate-fg-muted">
-        <span className="vibestrate-mono truncate">
+      <div className="flex items-center justify-between text-[11px] text-chalk-400">
+        <span className="truncate font-mono text-[12.5px]">
           {session.shell} · {session.cwd}
         </span>
-        <button
-          type="button"
-          onClick={() => void closeSession()}
-          className="rounded border border-vibestrate-border px-2 py-0.5 text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
-        >
+        <Button variant="secondary" size="sm" onClick={() => void closeSession()}>
           Close
-        </button>
+        </Button>
       </div>
       <div
         ref={hostRef}
-        className="flex-1 overflow-hidden rounded border border-vibestrate-border bg-[#0b0e13]"
+        // bg-[#0b0e13] intentionally matches the xterm `theme.background`
+        // above (same terminal colour scheme, not app chrome) so there is no
+        // colour flash around the canvas while xterm mounts.
+        className="flex-1 overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-[#0b0e13]"
         style={{ minHeight: 240 }}
       />
     </div>
