@@ -195,7 +195,7 @@ export async function resolveSafePath(
     for (;;) {
       const realProbe = await fs.realpath(probe).catch(() => null);
       if (realProbe) {
-        if (!isPathInside(realRoot, realProbe) && realProbe !== realRoot) {
+        if (realProbe !== realRoot && !isPathInside(realRoot, realProbe)) {
           throw new PathGuardError(
             400,
             "Path resolves through a symlink that escapes the allowed root.",
@@ -203,6 +203,11 @@ export async function resolveSafePath(
         }
         break;
       }
+      // Stop at the root. The resolved path was already proven to be inside it
+      // textually, so a root whose own directories do not exist yet (a worktree
+      // before it is created) is not an escape - climbing past it would find
+      // some existing ancestor outside the root and reject a legitimate path.
+      if (probe === chosen.root.absolutePath) break;
       const parent = path.dirname(probe);
       if (parent === probe) break;
       probe = parent;

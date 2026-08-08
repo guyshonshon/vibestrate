@@ -4,7 +4,8 @@
  *
  * The dev build emits `.map` files (useful locally), but they're dead
  * weight in the published npm tarball - users never step into Vibestrate's
- * compiled output. Removing them takes the package from ~4 MB to ~1.5 MB.
+ * compiled output. Removing them takes the unpacked package from ~21 MB to
+ * ~6.5 MB, most of which is the Mission Control bundle.
  *
  * Runtime assets (the Mission Control UI bundle, fonts, logos) are left
  * untouched. Runs from `prepublishOnly` after `pnpm build`.

@@ -57,7 +57,7 @@ echo "→ Test…";       pnpm test
 echo "→ Audit (prod)…"; pnpm audit --prod
 # Verify the PUBLISHED artifact, not just the source tree: pack → clean-room
 # install → bin smoke. Catches a bad `files` whitelist or a missing runtime dep
-# before we tag (T5).
+# before we tag. CI runs this too, so the two gates cannot drift apart.
 echo "→ Verify packed artifact…"; bash scripts/verify-pack.sh
 
 # ── Bump + tag ────────────────────────────────────────────────────────

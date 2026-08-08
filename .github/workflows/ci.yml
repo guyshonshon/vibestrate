@@ -55,3 +55,10 @@ jobs:
       # Fix a transitive pin with pnpm.overrides - Dependabot cannot.
       - name: Audit (prod)
         run: pnpm audit --prod
+
+      # The last step release.sh runs that CI did not, which is exactly the
+      # divergence the header above warns about. Packs the tarball, installs it
+      # in a clean room and smokes the bin, so a bad `files` list or a runtime
+      # dep left in devDependencies fails here rather than at publish time.
+      - name: Verify packed artifact
+        run: bash scripts/verify-pack.sh
