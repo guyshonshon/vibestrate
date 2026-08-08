@@ -52,10 +52,29 @@ describe("default-prompts resolution", () => {
     expect(md.trim().length).toBeGreaterThan(0);
   });
 
-  it("package.json ships the prompts directory", async () => {
+  /**
+   * The prompts have to REACH the published package - that is the invariant,
+   * not the path they take. They used to ship as `src/agents/default-prompts`,
+   * which put a source path inside a package that ships no source; the build
+   * now copies them into `dist/`, which `files` already covers.
+   *
+   * Asserting the copy step rather than a `files` entry is what keeps this
+   * honest: dropping `onSuccess` from tsup.config.ts would otherwise publish a
+   * package whose every run fails to find a role prompt.
+   */
+  it("the build copies the prompts somewhere the package actually ships", async () => {
     const pkg = JSON.parse(await fs.readFile(path.join(repoRoot, "package.json"), "utf8")) as {
       files: string[];
     };
-    expect(pkg.files).toContain("src/agents/default-prompts");
+    const tsup = await fs.readFile(path.join(repoRoot, "tsup.config.ts"), "utf8");
+    expect(tsup, "the build must copy the prompts into dist/").toMatch(
+      /dist\/default-prompts/,
+    );
+    expect(pkg.files, "dist/ must be published for the copy to reach anyone").toContain(
+      "dist",
+    );
+    // And the source they are copied FROM still has to exist.
+    const src = path.join(repoRoot, "src", "agents", "default-prompts");
+    await expect(fs.stat(src)).resolves.toBeTruthy();
   });
 });

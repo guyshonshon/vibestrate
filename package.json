@@ -20,8 +20,6 @@
   },
   "files": [
     "dist",
-    "src/agents/default-prompts",
-    "src/ui/lib/types.ts",
     "README.md",
     ".github/SECURITY.md",
     "LICENSE",

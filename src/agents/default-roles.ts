@@ -8,8 +8,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 
 /** Relative locations of the prompts dir under a package root, newest first. */
 const REL_CANDIDATES = [
-  ["src", "agents", "default-prompts"], // source / shipped layout
-  ["dist", "default-prompts"], // (future) copied-into-dist layout
+  ["dist", "default-prompts"], // installed package: copied here by the build
+  ["src", "agents", "default-prompts"], // dev checkout, running under tsx
 ];
 
 /**

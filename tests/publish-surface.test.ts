@@ -35,6 +35,16 @@ describe("what the registry would receive", () => {
     expect(present, "an install-time script executes on every consumer").toEqual([]);
   });
 
+  /**
+   * A published CLI has no business shipping a `src/` path. It used to: the
+   * role prompts and a stray `ui/lib/types.ts` sat under `src/` inside a
+   * package containing no source, so `node_modules/vibestrate/src/...` looked
+   * like a packaging accident and invited imports that were never supported.
+   */
+  it("ships no source path", () => {
+    expect(pkg.files.filter((f) => f.startsWith("src/"))).toEqual([]);
+  });
+
   it("ships no secret-shaped path", () => {
     const bad = /(^|\/)\.env|\.pem$|\.key$|id_rsa|(^|\/)\.npmrc|secret|credential/i;
     expect(pkg.files.filter((f) => bad.test(f))).toEqual([]);
