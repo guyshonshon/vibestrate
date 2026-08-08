@@ -40,6 +40,42 @@ export function Deck({
 }
 
 /**
+ * A vertical run of panels inside one Cell.
+ *
+ * This exists because of a real limit in the Deck, worth stating so the next
+ * page does not rediscover it: a grid ROW is as tall as its tallest cell, and
+ * the following row cannot backfill the leftover space under a shorter one. On
+ * Policies that meant a 346px list beside an 801px toggle panel left a 455px
+ * void, and pushed the next region 471px down the page to below both.
+ *
+ * So the rule is: a Deck row must not mix cells of very unequal height. When it
+ * would, the page becomes COLUMNS OF STACKS instead - one row, each Cell
+ * holding a Stack that packs its own panels. Column heights then differ only at
+ * the very bottom, which is the one place a difference costs nothing.
+ */
+export function Stack({
+  gap = "normal",
+  className,
+  children,
+}: {
+  gap?: "normal" | "tight";
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col",
+        gap === "tight" ? "gap-3" : "gap-4",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
  * Why a `full` cell is allowed to span the page. The union is closed on
  * purpose: full-width is a licence a region has to justify, not a default it
  * falls into. Adding a member is a design decision, which is the point.

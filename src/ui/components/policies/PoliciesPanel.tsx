@@ -10,7 +10,7 @@ import { AdvancedSafetySection } from "./AdvancedSafetySection.js";
 import { ProjectPoliciesSection } from "./ProjectPoliciesSection.js";
 import { EngineToolsPanel } from "./EngineToolsPanel.js";
 import { PageShell } from "../layout/PageShell.js";
-import { Deck, Cell } from "../layout/Deck.js";
+import { Deck, Cell, Stack } from "../layout/Deck.js";
 import { PageHero } from "../layout/PageHero.js";
 
 /**
@@ -131,12 +131,19 @@ export function PoliciesPanel() {
 
         {error ? null : (
           <>
+            {/* Columns of stacks, not a row of cells: the toggle panel is ~800px
+             * tall against a ~350px policy list, and a grid row is as tall as
+             * its tallest cell with no backfill - so as sibling cells they left
+             * a 455px void and pushed the engine panel 471px down the page. */}
             <Cell size="wide">
-              {policies == null ? (
-                <Loading />
-              ) : (
-                <ProjectPoliciesSection policies={policies} onChanged={() => void loadPolicies()} />
-              )}
+              <Stack>
+                {policies == null ? (
+                  <Loading />
+                ) : (
+                  <ProjectPoliciesSection policies={policies} onChanged={() => void loadPolicies()} />
+                )}
+                {snap == null ? <Loading /> : <EngineToolsPanel snap={snap} />}
+              </Stack>
             </Cell>
 
             <Cell size="card">
@@ -145,10 +152,6 @@ export function PoliciesPanel() {
               ) : (
                 <AdvancedSafetySection safety={safety} onToggle={(k, v) => void toggleSafety(k, v)} />
               )}
-            </Cell>
-
-            <Cell size="wide">
-              {snap == null ? <Loading /> : <EngineToolsPanel snap={snap} />}
             </Cell>
           </>
         )}
