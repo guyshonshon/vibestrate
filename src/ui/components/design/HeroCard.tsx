@@ -12,7 +12,7 @@ import { cn } from "./cn.js";
  * - `lg` - a page-level overview panel (the task hero, the Diffs inspector).
  * - `md` - the delightful board item: a grid card (crew hub, future catalogs).
  *
- * Live reference: the /canvas route ("Hero card" section). See
+ * See
  * docs/design/primitives-contract.md.
  */
 

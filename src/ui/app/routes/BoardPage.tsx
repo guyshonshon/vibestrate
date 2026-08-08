@@ -1,7 +1,7 @@
 // The task board - a coarse human kanban (roadmap -> tasks -> runs). On the
 // Mission Control canvas (PageShell `fill`) with a left meta-rail: the metric
 // stack + roadmap filter live in the rail, the kanban fills the rest. See
-// docs/design/primitives-contract.md ("Page canvas") + the live /canvas route.
+// docs/design/primitives-contract.md ("Page canvas").
 // Cards are click-to-open + inline-renamable; drag is a narrow "dismiss"
 // gesture only (see components/board/dnd.ts for the honest-drop rules).
 

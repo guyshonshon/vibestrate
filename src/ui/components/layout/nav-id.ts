@@ -28,5 +28,4 @@ export type NavId =
   | "supervisors"
   | "profiles"
   | "config"
-  | "canvas"
   | "consult";

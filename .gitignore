@@ -59,3 +59,6 @@ docs/archive/
 !/scripts/update-deps.sh
 !/scripts/demo-simulation.ts
 .playwright-mcp/
+
+# Branding canvas: a local-only styleguide surface, not part of the product.
+src/ui/app/routes/CanvasPage.tsx
