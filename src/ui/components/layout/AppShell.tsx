@@ -1,3 +1,4 @@
+import type { RunFilter } from "../../lib/run-filter.js";
 import { useEffect, useState, type ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Sidebar } from "./Sidebar.js";
@@ -24,7 +25,7 @@ type AppShellProps = {
   onShowCrew: () => void;
   onShowSupervisors: () => void;
   onShowProfiles: () => void;
-  onShowRunsList: () => void;
+  onShowRunsList: (status?: RunFilter) => void;
   onShowBoard: () => void;
   onShowQueue: () => void;
   onShowWorkspace: () => void;

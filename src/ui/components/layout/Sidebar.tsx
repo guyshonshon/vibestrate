@@ -1,3 +1,4 @@
+import { countByFilter, type RunFilter } from "../../lib/run-filter.js";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ChevronDown,
@@ -35,7 +36,7 @@ type Props = {
   onShowSupervisors: () => void;
   onShowProfiles: () => void;
   onShowBoard: () => void;
-  onShowRunsList: () => void;
+  onShowRunsList: (status?: RunFilter) => void;
   onShowWorkspace: () => void;
   onShowProposals: () => void;
   onShowProject: () => void;
@@ -48,19 +49,6 @@ type Props = {
   onOpenSwitcher: () => void;
 };
 
-const ACTIVE_STATUSES: ReadonlySet<RunStatus> = new Set<RunStatus>([
-  "planning",
-  "planned",
-  "architecting",
-  "architected",
-  "executing",
-  "validating",
-  "reviewing",
-  "fixing",
-  "verifying",
-  "waiting_for_approval",
-  "paused",
-]);
 
 /**
  * The single app-wide shell navigation. Mission Control is the source of truth
@@ -103,9 +91,9 @@ export function Sidebar({
         const runs = await api.listRuns();
         if (cancelled) return;
         setCounts({
-          active: runs.filter((r) => ACTIVE_STATUSES.has(r.status)).length,
-          mergeReady: runs.filter((r) => r.status === "merge_ready").length,
-          failed: runs.filter((r) => r.status === "failed").length,
+          active: countByFilter(runs, "active"),
+          mergeReady: countByFilter(runs, "merge-ready"),
+          failed: countByFilter(runs, "failed"),
         });
       } catch {
         /* server may still be warming up */
@@ -187,9 +175,9 @@ export function Sidebar({
         </button>
         {runsOpen ? (
           <div className="mb-1 ml-[22px] flex flex-col gap-0.5 border-l-[1.5px] border-[color:var(--line-strong)] pl-2.5">
-            <SubItem label="Active" badge={{ n: counts.active, tone: "violet" }} onClick={onShowRunsList} />
-            <SubItem label="Merge-ready" badge={{ n: counts.mergeReady, tone: "emerald" }} onClick={onShowRunsList} />
-            <SubItem label="Failed" badge={{ n: counts.failed, tone: "amber" }} onClick={onShowRunsList} />
+            <SubItem label="Active" badge={{ n: counts.active, tone: "violet" }} onClick={() => onShowRunsList("active")} />
+            <SubItem label="Merge-ready" badge={{ n: counts.mergeReady, tone: "emerald" }} onClick={() => onShowRunsList("merge-ready")} />
+            <SubItem label="Failed" badge={{ n: counts.failed, tone: "amber" }} onClick={() => onShowRunsList("failed")} />
           </div>
         ) : null}
 

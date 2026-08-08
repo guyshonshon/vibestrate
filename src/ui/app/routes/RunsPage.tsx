@@ -1,3 +1,4 @@
+import { matchesRunFilter, RUN_FILTER_LABEL, type RunFilter } from "../../lib/run-filter.js";
 import { useCallback, useEffect, useState } from "react";
 import { GitMerge, History, Plus } from "lucide-react";
 import { api } from "../../lib/api.js";
@@ -26,10 +27,15 @@ export function RunsPage({
   onSelect,
   onOpenReplay,
   onOpenTask,
+  status,
+  onClearStatus,
 }: {
   onSelect: (runId: string) => void;
   onOpenReplay?: (runId: string) => void;
   onOpenTask?: (taskId: string) => void;
+  /** Set from the sidebar's Active / Merge-ready / Failed entries. */
+  status?: RunFilter;
+  onClearStatus?: () => void;
 }) {
   const [runs, setRuns] = useState<RunState[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -51,27 +57,35 @@ export function RunsPage({
     return () => window.clearInterval(interval);
   }, [load]);
 
+  // Status first, then the text query, so the sidebar's count and this list are
+  // reading the same predicate (lib/run-filter.ts) rather than two copies of it.
+  const byStatus = status ? runs.filter((r) => matchesRunFilter(r, status)) : runs;
   const filtered = query
-    ? runs.filter(
+    ? byStatus.filter(
         (r) =>
           r.task.toLowerCase().includes(query.toLowerCase()) ||
           r.runId.toLowerCase().includes(query.toLowerCase()),
       )
-    : runs;
+    : byStatus;
 
   return (
     <PageShell>
       <PageHeader
         title={
           <span className="flex items-baseline gap-2.5">
-            All runs
-            <span className="mono num-tabular text-[14px] font-semibold text-chalk-400">
-              {runs.length}
+            {status ? `${RUN_FILTER_LABEL[status]} runs` : "All runs"}
+            <span className="mono num-tabular text-[14px] font-semibold text-chalk-300">
+              {byStatus.length}
             </span>
           </span>
         }
         actions={
           <>
+            {status && onClearStatus ? (
+              <Button variant="secondary" size="sm" onClick={onClearStatus}>
+                Show all {runs.length}
+              </Button>
+            ) : null}
             <PruneSnapshotsButton />
             <input
               value={query}
@@ -109,8 +123,17 @@ export function RunsPage({
               </p>
             </div>
           ) : (
-            <div className="px-6 py-10 text-center text-[12.5px] text-chalk-300">
-              No runs match this filter.
+            <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
+              <p className="text-[13px] text-chalk-300">
+                {status
+                  ? `No ${RUN_FILTER_LABEL[status].toLowerCase()} runs${query ? " match this search" : ""}.`
+                  : "No runs match this search."}
+              </p>
+              {status && onClearStatus ? (
+                <Button variant="secondary" size="sm" onClick={onClearStatus}>
+                  Show all {runs.length} runs
+                </Button>
+              ) : null}
             </div>
           )
         ) : (

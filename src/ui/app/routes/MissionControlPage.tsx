@@ -1,3 +1,4 @@
+import { isActiveStatus, type RunFilter } from "../../lib/run-filter.js";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -34,27 +35,13 @@ type Props = {
   onSelectRun: (runId: string) => void;
   onShowRoadmap: () => void;
   onShowQueue: () => void;
-  onShowRunsList: () => void;
+  onShowRunsList: (status?: RunFilter) => void;
   onShowSettings: () => void;
   onOpenTask: (taskId: string) => void;
   onShowRunDiff?: (runId: string) => void;
 };
 
-const ACTIVE_STATUSES: RunStatus[] = [
-  "planning",
-  "planned",
-  "architecting",
-  "architected",
-  "executing",
-  "validating",
-  "reviewing",
-  "fixing",
-  "verifying",
-  "waiting_for_approval",
-  "paused",
-];
-
-const isActive = (s: RunStatus): boolean => ACTIVE_STATUSES.includes(s);
+const isActive = isActiveStatus;
 
 const TONE_COLOR: Record<string, string> = {
   violet: "#a78bfa",

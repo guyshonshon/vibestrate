@@ -307,7 +307,7 @@ export function App() {
       onShowCrew={() => navigate({ kind: "crew", crewId: null })}
       onShowSupervisors={() => navigate({ kind: "supervisors" })}
       onShowProfiles={() => navigate({ kind: "profiles" })}
-      onShowRunsList={() => navigate({ kind: "runs" })}
+      onShowRunsList={(status) => navigate({ kind: "runs", status })}
       onShowBoard={() => navigate({ kind: "board" })}
       onShowQueue={() => navigate({ kind: "runs" })}
       onShowWorkspace={() => navigate({ kind: "workspace" })}
@@ -332,7 +332,7 @@ export function App() {
           onSelectRun={(runId) => navigate({ kind: "run", runId })}
           onShowRoadmap={() => navigate({ kind: "board" })}
           onShowQueue={() => navigate({ kind: "runs" })}
-          onShowRunsList={() => navigate({ kind: "runs" })}
+          onShowRunsList={(status) => navigate({ kind: "runs", status })}
           onShowSettings={() => navigate({ kind: "settings" })}
           onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
           onShowRunDiff={(runId) =>
@@ -345,6 +345,8 @@ export function App() {
         <RunComposePage />
       ) : route.kind === "runs" ? (
         <RunsPage
+          status={route.status}
+          onClearStatus={() => navigate({ kind: "runs" })}
           onSelect={(runId) => navigate({ kind: "run", runId })}
           onOpenReplay={(runId) =>
             navigate({ kind: "run", runId, tab: "replay" })

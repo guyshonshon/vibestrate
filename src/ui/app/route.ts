@@ -1,3 +1,4 @@
+import { isRunFilter, type RunFilter } from "../lib/run-filter.js";
 // Pure URL <-> Route helpers. This file deliberately holds zero React /
 // browser-only imports so it can be unit-tested under the node-only Vitest
 // environment.
@@ -22,7 +23,7 @@ export type ReplayFocus =
 export type Route =
   | { kind: "mission" }
   | { kind: "compose" }
-  | { kind: "runs" }
+  | { kind: "runs"; status?: RunFilter }
   | {
       kind: "run";
       runId: string;
@@ -232,7 +233,10 @@ export function parseHashRoute(hash: string): Route {
   if (parts[0] === "proposals" && parts[1])
     return { kind: "proposal", proposalId: parts.slice(1).join("/") };
   if (parts[0] === "proposals") return { kind: "proposals" };
-  if (parts[0] === "runs") return { kind: "runs" };
+  if (parts[0] === "runs") {
+    const status = query.get("status");
+    return isRunFilter(status) ? { kind: "runs", status } : { kind: "runs" };
+  }
   // Default landing is now Mission Control.
   return { kind: "mission" };
 }
@@ -245,7 +249,7 @@ export function serializeRoute(route: Route): string {
     case "compose":
       return "#/compose";
     case "runs":
-      return "#/runs";
+      return route.status ? `#/runs?status=${route.status}` : "#/runs";
     case "run": {
       const q = new URLSearchParams();
       if (route.tab) q.set("tab", route.tab);
