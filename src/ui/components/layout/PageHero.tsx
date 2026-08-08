@@ -118,10 +118,11 @@ export function PageHero({
                 key={m.label}
                 className="min-w-0 flex-1 border-l border-[color:var(--line-soft)] px-5 py-4 first:border-l-0"
               >
-                {/* Deliberately NOT `t-num`: the state column owns that size,
-                 * and a metric matching it flattens the hierarchy. `cn()` is
-                 * clsx without twMerge, so `t-num text-[30px]` would not have
-                 * won - the ladder class would silently keep 34px. */}
+                {/* Deliberately not a ladder class: the state column owns that
+                 * size, and a metric matching it flattens the hierarchy. The
+                 * size is written out because a ladder class cannot be
+                 * overridden by an inline one - see the drift guard's
+                 * "type-ladder class fighting an inline size". */}
                 <span
                   className={cn(
                     "num-tabular block text-[30px] font-extrabold leading-none tracking-[-0.03em]",

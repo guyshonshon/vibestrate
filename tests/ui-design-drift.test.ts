@@ -66,7 +66,27 @@ const BANNED: Array<{ name: string; re: RegExp; why: string }> = [
     re: /\brounded-(?:sm|md|lg|xl|2xl|3xl)(?=["'\s}])/,
     why: "The system uses an explicit bracket scale so radii cannot drift: rounded-[6px]/[8px]/[10px]/[12px]/[14px]/[18px]. rounded-full stays legal for dots and avatars.",
   },
+  {
+    name: "type-ladder class fighting an inline size",
+    re: /\bt-(?:page|num|section|card|body|label|meta)\b[^"'`]*\btext-\[[0-9.]+px\]|\btext-\[[0-9.]+px\][^"'`]*\bt-(?:page|num|section|card|body|label|meta)\b/,
+    why: "cn() is clsx, not tailwind-merge, so both classes ship and the plain .t-* rule wins - the inline size is dead and the element renders at the ladder's size. PageHero carried five of these and measured small for exactly that reason. Use the ladder class alone, or write the size and drop the t-*.",
+  },
 ];
+
+/**
+ * Route pages that are allowed not to compose a `Deck`, and why. Everything
+ * else must: the width law (primitives-contract §0b) is what stops a card from
+ * inheriting the monitor, and a new page that skips it is the drift this
+ * catches. Shrinking this list is progress; growing it needs a real reason
+ * written next to the name.
+ */
+const DECKLESS_PAGES: Record<string, string> = {
+  "BoardPage.tsx": "fill archetype - the kanban owns the viewport and scrolls its own columns",
+  "CodebasePage.tsx": "fill archetype - a two-pane search tool that owns its own height",
+  "SourcePage.tsx": "fill archetype - a wrapper that swaps three full-height git views",
+  "PoliciesPage.tsx": "9-line route wrapper; the Deck is in PoliciesPanel, which it renders",
+  "CanvasPage.tsx": "gitignored local-only styleguide, not part of the product",
+};
 
 describe("UI design drift", () => {
   it("keeps the contract's hard-no list out of src/ui", async () => {
@@ -85,6 +105,24 @@ describe("UI design drift", () => {
           }
         }
       });
+    }
+    expect(offences.join("\n")).toBe("");
+  });
+
+  it("keeps every route page on the Deck", async () => {
+    const routes = path.join(UI_ROOT, "app", "routes");
+    const files = (await readdir(routes)).filter((f) => f.endsWith(".tsx"));
+    expect(files.length).toBeGreaterThan(15); // guard against a silently empty walk
+
+    const offences: string[] = [];
+    for (const name of files) {
+      if (name in DECKLESS_PAGES) continue;
+      const text = await readFile(path.join(routes, name), "utf8");
+      if (!text.includes("layout/Deck")) {
+        offences.push(
+          `src/ui/app/routes/${name} lays itself out without a Deck. Compose layout/Deck + Cell (primitives-contract 0b), or add it to DECKLESS_PAGES with the reason.`,
+        );
+      }
     }
     expect(offences.join("\n")).toBe("");
   });

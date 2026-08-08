@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.74.0
+
+- **Pages have a header now, and a shape.** Every screen leads with a real page
+  hero - a tonal state column that says whether the page needs attention, the
+  title and its actions on one row, a metric strip, and a line saying what the
+  current state means. Before this a page opened with a small title over a grey
+  paragraph on bare canvas, which is what "there's no real header area" meant.
+- **Nothing stretches to the monitor any more.** Page regions are cells in a
+  twelve-column grid that resolves against the content width, not the viewport,
+  so a card holding four facts is card-sized instead of 1610px wide. Things that
+  belong side by side sit side by side: Project's eight panels, Config's
+  seventeen setting groups, Settings, Metrics, New run and the run inspector all
+  became columns instead of a single stretched stack.
+- **The dead space is gone.** A grid row is as tall as its tallest cell and the
+  next row cannot backfill under a shorter one, which is why panels used to
+  strand a few hundred pixels of nothing beside them and push everything below
+  past both. Pages that mix tall and short panels now pack columns of stacks -
+  measured, not eyeballed: Project's two columns land within 165px of each
+  other over 1568, Config's within 38px over 4000.
+- **A profile that cannot work says so.** A profile pointing at a model its
+  provider does not have (a `codex` profile on a Claude model) used to render as
+  if it were fine and fail only when a run started. The model now shows amber
+  with the reason on the card. It warns rather than blocks - the model list is a
+  suggestion, not an allowlist, so a genuinely new model still goes through.
+- **Profile cards are the same size.** A long model id overflowed the fact row
+  and wrapped one tile onto its own line, making otherwise identical cards
+  different heights; facts with no value no longer take a tile at all.
+- **The layout law is written down and enforced.** The width law, the height
+  law, and the page hero are sections of the design contract rather than a
+  comment in one file, and two build guards defend them: a route page that lays
+  itself out without the grid fails, and so does a type-ladder class fighting an
+  inline size - a silent collision that had left five sizes in the page hero
+  dead, which is why it still measured small after being made bigger.
+
 ## 0.73.2
 
 - **The road to 1.0.** A CTO for your AI coding: you hand it a task in plain
