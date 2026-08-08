@@ -397,6 +397,17 @@ export function hintForRoute(route: Route): CliHint {
           "If a test says a provider isn't logged in, run its login command in your own terminal (e.g. `codex login`, `gemini`, `goose configure`).",
         ],
       };
+    case "dashboard":
+      return {
+        title: "Dashboard",
+        blurb:
+          "What is happening right now - runs in flight, what is merge-ready, and what finished. The panels are movable and the arrangement is remembered per browser. Starting work lives on Mission control.",
+        commands: [
+          { cmd: "vibe runs", note: "the same list on the CLI" },
+          { cmd: "vibe status", note: "the current project's run state" },
+        ],
+        tips: [],
+      };
     case "supervisors-new":
       return {
         title: "Add a supervisor",

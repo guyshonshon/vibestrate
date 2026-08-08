@@ -25,6 +25,7 @@ import { ProfilesPage } from "./routes/ProfilesPage.js";
 import { ConsultPage } from "./routes/ConsultPage.js";
 import { SupervisorsPage } from "./routes/SupervisorsPage.js";
 import { SupervisorNewPage } from "./routes/SupervisorNewPage.js";
+import { DashboardPage } from "./routes/DashboardPage.js";
 import { PoliciesPage } from "./routes/PoliciesPage.js";
 import { ConfigPage } from "./routes/ConfigPage.js";
 import { RunSwitcher } from "../components/runs/RunSwitcher.js";
@@ -267,7 +268,9 @@ export function App() {
       bare={route.kind === "control"}
       currentRunId={route.kind === "run" ? route.runId : null}
       currentNav={
-        route.kind === "board" ||
+        route.kind === "dashboard"
+          ? "dashboard"
+          : route.kind === "board" ||
         route.kind === "task" ||
         route.kind === "ledger"
           ? "board"
@@ -316,6 +319,7 @@ export function App() {
       onShowCrew={() => navigate({ kind: "crew", crewId: null })}
       onShowSupervisors={() => navigate({ kind: "supervisors" })}
       onShowProfiles={() => navigate({ kind: "profiles" })}
+      onShowDashboard={() => navigate({ kind: "dashboard" })}
       onShowRunsList={(status) => navigate({ kind: "runs", status })}
       onShowBoard={() => navigate({ kind: "board" })}
       onShowQueue={() => navigate({ kind: "runs" })}
@@ -336,7 +340,9 @@ export function App() {
       onOpenSwitcher={() => setSwitcherOpen(true)}
     >
       <ErrorBoundary resetKey={pageKey}>
-      {route.kind === "mission" ? (
+      {route.kind === "dashboard" ? (
+        <DashboardPage onCompose={() => navigate({ kind: "compose" })} />
+      ) : route.kind === "mission" ? (
         <MissionControlPage
           onSelectRun={(runId) => navigate({ kind: "run", runId })}
           onShowRoadmap={() => navigate({ kind: "board" })}
@@ -344,6 +350,7 @@ export function App() {
           onShowRunsList={(status) => navigate({ kind: "runs", status })}
           onShowSettings={() => navigate({ kind: "settings" })}
           onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
+          onShowDashboard={() => navigate({ kind: "dashboard" })}
           onShowRunDiff={(runId) =>
             navigate({ kind: "run", runId, tab: "diff" })
           }

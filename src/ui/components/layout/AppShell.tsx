@@ -19,6 +19,7 @@ type AppShellProps = {
   currentNav: NavId;
   onSelectRun: (runId: string) => void;
   onShowHome: () => void;
+  onShowDashboard: () => void;
   onShowCompose: () => void;
   onShowFlows: () => void;
   onShowMetrics: () => void;
@@ -54,6 +55,7 @@ export function AppShell({
   bare = false,
   currentNav,
   onShowHome,
+  onShowDashboard,
   onShowCompose,
   onShowFlows,
   onShowMetrics,
@@ -89,6 +91,7 @@ export function AppShell({
         <Sidebar
           currentNav={currentNav}
           onShowHome={onShowHome}
+          onShowDashboard={onShowDashboard}
           onShowCompose={onShowCompose}
           onShowFlows={onShowFlows}
           onShowMetrics={onShowMetrics}

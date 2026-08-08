@@ -1,3 +1,4 @@
+import { Button } from "../../components/design/Button.js";
 import { isActiveStatus, type RunFilter } from "../../lib/run-filter.js";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -39,6 +40,7 @@ type Props = {
   onShowSettings: () => void;
   onOpenTask: (taskId: string) => void;
   onShowRunDiff?: (runId: string) => void;
+  onShowDashboard: () => void;
 };
 
 const isActive = isActiveStatus;
@@ -66,11 +68,11 @@ const STATUS_META: Partial<Record<RunStatus, { tone: string; label: string }>> =
   paused: { tone: "chalk", label: "paused" },
 };
 
-function statusMeta(s: RunStatus): { tone: string; label: string } {
+export function statusMeta(s: RunStatus): { tone: string; label: string } {
   return STATUS_META[s] ?? { tone: "violet", label: s.replace(/_/g, " ") };
 }
 
-function relTime(iso: string): string {
+export function relTime(iso: string): string {
   const d = Date.parse(iso);
   if (!Number.isFinite(d)) return "";
   const s = (Date.now() - d) / 1000;
@@ -83,7 +85,7 @@ function relTime(iso: string): string {
 }
 
 
-export function MissionControlPage({ onSelectRun }: Props) {
+export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
   const [runs, setRuns] = useState<RunState[]>([]);
   const [diffByRun, setDiffByRun] = useState<
     Record<string, { insertions: number; deletions: number }>
@@ -224,91 +226,16 @@ export function MissionControlPage({ onSelectRun }: Props) {
     }
   };
 
-  // Monitoring widgets, rendered through the movable/resizable/hideable board
-  // (PanelBoard, shared with the run dashboard). The composer + approvals stay
-  // fixed above the board - they're actions, not rearrangeable widgets.
-  const panels: RegisteredPanel[] = [
-    {
-      id: "overview",
-      title: "Overview",
-      defaultLayout: { id: "overview", x: 0, y: 0, w: 12, h: 3 },
-      minW: 4,
-      minH: 2,
-      render: () => (
-        <div className="grid h-full grid-cols-3 gap-4">
-          <StatCard label="Active runs" value={activeRuns.length} hint="in flight" tone="violet" />
-          <StatCard label="Merge-ready" value={mergeReady} hint="ready to ship" tone="emerald" />
-          <StatCard
-            label="Runs this week"
-            value={week.total}
-            hint="last 7 days"
-            tone="violet"
-            spark={week.counts}
-          />
-        </div>
-      ),
-    },
-    {
-      id: "active",
-      title: "Active runs",
-      defaultLayout: { id: "active", x: 0, y: 3, w: 8, h: 6 },
-      minW: 4,
-      minH: 3,
-      render: () => (
-        <div className="flex h-full flex-col">
-          <h2 className="mb-3 text-[18px] font-bold text-violet-vivid">Active</h2>
-          {activeRuns.length === 0 ? (
-            <div className="rounded-[22px] border border-[color:var(--line)] bg-coal-600 px-6 py-10 text-center text-[13.5px] text-chalk-400">
-              No runs in flight. Launch one with <span className="font-semibold text-chalk-100">New run</span>.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-              {activeRuns.map((r) => (
-                <RunCard
-                  key={r.runId}
-                  run={r}
-                  diff={diffByRun[r.runId]}
-                  onOpen={() => navigate({ kind: "control", runId: r.runId })}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      id: "recent",
-      title: "Recent runs",
-      defaultLayout: { id: "recent", x: 8, y: 3, w: 4, h: 6 },
-      minW: 3,
-      minH: 3,
-      render: () => (
-        <div className="flex h-full flex-col">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-[18px] font-bold text-violet-vivid">Recent</h2>
-            <button onClick={() => navigate({ kind: "runs" })} className="flex items-center gap-1 text-[12.5px] font-semibold text-violet-soft hover:text-violet-soft/80">
-              All runs <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          {completed.length === 0 ? (
-            <div className="rounded-[22px] border border-[color:var(--line)] bg-coal-600 px-6 py-8 text-center text-[13.5px] text-chalk-400">
-              Nothing finished yet.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3">
-              {completed.map((r) => (
-                <RunCard key={r.runId} run={r} onOpen={() => navigate({ kind: "control", runId: r.runId })} />
-              ))}
-            </div>
-          )}
-        </div>
-      ),
-    },
-  ];
-
   return (
     <PageShell>
-        <PageHeader title="Mission control" />
+        <PageHeader
+          title="Mission control"
+          actions={
+            <Button variant="secondary" size="sm" onClick={onShowDashboard}>
+              Open dashboard
+            </Button>
+          }
+        />
         <div className="mb-4">
           <MissionComposer />
         </div>
@@ -388,17 +315,11 @@ export function MissionControlPage({ onSelectRun }: Props) {
           </section>
         ) : null}
 
-        <PanelBoard
-          storageKey="mission-control-board"
-          variant="bare"
-          label="Dashboard layout"
-          panels={panels}
-        />
     </PageShell>
   );
 }
 
-function StatCard({
+export function StatCard({
   label,
   value,
   hint,
@@ -429,7 +350,7 @@ function StatCard({
   );
 }
 
-function RunCard({
+export function RunCard({
   run,
   diff,
   onOpen,

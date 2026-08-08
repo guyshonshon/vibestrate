@@ -25,6 +25,7 @@ export type Route =
   | { kind: "compose" }
   | { kind: "runs"; status?: RunFilter }
   | { kind: "supervisors-new" }
+  | { kind: "dashboard" }
   | {
       kind: "run";
       runId: string;
@@ -153,6 +154,7 @@ export function parseHashRoute(hash: string): Route {
   const parts = (pathPart ?? "").split("/").filter(Boolean);
   const query = new URLSearchParams(queryPart ?? "");
   if (parts[0] === "mission") return { kind: "mission" };
+  if (parts[0] === "dashboard") return { kind: "dashboard" };
   if (parts[0] === "compose") return { kind: "compose" };
   if (parts[0] === "runs" && parts[1]) {
     const tabRaw = query.get("tab");
@@ -252,6 +254,8 @@ export function serializeRoute(route: Route): string {
       return "#/compose";
     case "supervisors-new":
       return "#/supervisors/new";
+    case "dashboard":
+      return "#/dashboard";
     case "runs":
       return route.status ? `#/runs?status=${route.status}` : "#/runs";
     case "run": {

@@ -30,6 +30,7 @@ import type { NavId } from "./nav-id.js";
 type Props = {
   currentNav: NavId;
   onShowHome: () => void;
+  onShowDashboard: () => void;
   onShowCompose: () => void;
   onShowFlows: () => void;
   onShowMetrics: () => void;
@@ -62,6 +63,7 @@ type Props = {
 export function Sidebar({
   currentNav,
   onShowHome,
+  onShowDashboard,
   onShowCompose,
   onShowFlows,
   onShowMetrics,
@@ -156,6 +158,12 @@ export function Sidebar({
           label="Mission control"
           selected={currentNav === "home"}
           onClick={onShowHome}
+        />
+        <NavItem
+          icon={<Gauge className="h-[18px] w-[18px]" />}
+          label="Dashboard"
+          selected={currentNav === "dashboard"}
+          onClick={onShowDashboard}
         />
 
         <button

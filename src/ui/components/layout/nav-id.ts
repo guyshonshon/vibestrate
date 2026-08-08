@@ -5,6 +5,7 @@
  * just for the type.
  */
 export type NavId =
+  | "dashboard"
   | "home"
   | "runs"
   | "board"
