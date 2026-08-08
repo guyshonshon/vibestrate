@@ -60,6 +60,13 @@ export const DEFAULT_VIBESTRATE_PORT = 4317;
  *  window. */
 export const API_VERSION_PREFIX = "/api/v1";
 
+/** Does a registered route pattern live in the API namespace? Takes a route
+ *  pattern (`/api/runs/:id`), never a raw request URL - see the bearer gate in
+ *  `startServer` for why the distinction is load-bearing. */
+function isApiRoute(routePattern: string): boolean {
+  return routePattern === "/api" || routePattern.startsWith("/api/");
+}
+
 /**
  * Strip a leading `/api/v1` so a versioned client and the bundled UI hit the
  * same handlers. Runs in Fastify's `rewriteUrl` (before routing), so handlers
@@ -246,14 +253,25 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
 
   // Optional bearer-token gate. Off by default (loopback, no token) so the
   // local-first single-user flow stays friction-free. When a token is
-  // configured, every `/api/*` request must present it (constant-time
-  // compared). Static UI assets and the favicon stay open - they carry no
-  // secrets and the UI needs them before it can attach a token. The url here
-  // is already de-versioned (rewriteUrl ran before routing), so `/api/v1/*`
-  // is covered by the same `/api/` check.
+  // configured, every API request must present it (constant-time compared).
+  // Static UI assets and the favicon stay open - they carry no secrets and the
+  // UI needs them before it can attach a token.
+  //
+  // Scope is decided from the route the router RESOLVED, never from the raw
+  // request URL. The router percent-decodes path segments and accepts an
+  // absolute-form request target, so `/%61pi/health` and
+  // `http://host/api/health` both reach the `/api/health` handler while
+  // neither string starts with "/api/" - a raw-string prefix test waves those
+  // straight past the gate. Keying on the registered route pattern also means
+  // a newly added `/api/...` route is gated automatically, and `/api/v1/...`
+  // is covered because rewriteUrl de-versions it before routing.
   if (apiToken) {
     app.addHook("onRequest", async (req, reply) => {
-      if (!req.url.startsWith("/api/")) return;
+      const routeUrl = req.routeOptions.url;
+      // An unrouted request carries no route pattern, so we cannot prove it is
+      // outside API scope - refuse it rather than guess.
+      const apiScoped = typeof routeUrl === "string" ? isApiRoute(routeUrl) : true;
+      if (!apiScoped) return;
       const presented = bearerToken(req.headers["authorization"]);
       if (!presented || !timingSafeEqualStr(presented, apiToken)) {
         await reply
@@ -412,6 +430,15 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   await registerCodebaseMapRoutes(app, { projectRoot: opts.projectRoot });
   const { registerProvidersRoutes } = await import("./routes/providers.js");
   await registerProvidersRoutes(app, { projectRoot: opts.projectRoot });
+
+  // Terminal catch-all for the API namespace. Without it an unmatched
+  // `/api/...` path falls through to the static handler's `/*` route, which
+  // sits outside the bearer gate - an unauthenticated caller could then map
+  // which endpoints exist by telling a 404 apart from a 401. The router
+  // prefers more specific patterns, so this never shadows a real route.
+  app.all("/api/*", async (_req, reply) =>
+    reply.code(404).send({ error: "Not found." }),
+  );
 
   const uiDir = await locateUiDir(opts.uiDir);
   let uiAvailable = false;

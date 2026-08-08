@@ -57,6 +57,21 @@
   drift and corrected against the current source - real commands, real config
   keys, real run artifacts - so the getting-started path and the concept pages
   describe the tool as it actually behaves.
+- **Security: the API token could be bypassed on a network-exposed bind.** If you
+  ever ran the dashboard non-loopback with `VIBESTRATE_API_TOKEN` set, update. The
+  auth gate decided whether a request was API-scoped by testing whether its raw
+  URL started with `/api/`, while the router resolved routes by its own
+  normalisation. Because the router percent-decodes path segments and the server
+  accepts absolute-form request targets, `/%61pi/...` and
+  `GET http://host/api/... HTTP/1.1` both reached the real handler with no token
+  at all - every API route was readable and writable unauthenticated, in exactly
+  the configuration where the token is the only control. The gate now derives
+  scope from the resolved route rather than the URL string, and fails closed when
+  the route cannot be determined, so a newly added API route is covered without
+  anyone remembering to cover it. Unmatched `/api` paths are now refused too,
+  rather than falling through to the static handler and letting a caller map the
+  API by telling 404 apart from 401. Loopback with no token configured is
+  unchanged.
 - **A current, audited dependency stack on Node 22+.** Every dependency was
   brought current for the cut - including the execa 10, commander 15, and zod 4
   majors - with `pnpm audit` fully clean. Node 18 and 20 reached end of life,
