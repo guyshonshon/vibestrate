@@ -1,4 +1,9 @@
-import { matchesRunFilter, RUN_FILTER_LABEL, type RunFilter } from "../../lib/run-filter.js";
+import {
+  countByFilter,
+  matchesRunFilter,
+  RUN_FILTER_LABEL,
+  type RunFilter,
+} from "../../lib/run-filter.js";
 import { useCallback, useEffect, useState } from "react";
 import { GitMerge, History, Plus } from "lucide-react";
 import { api } from "../../lib/api.js";
@@ -16,8 +21,17 @@ import { SchedulerQueuePanel } from "../../components/runs/SchedulerQueuePanel.j
 import { PruneSnapshotsButton } from "../../components/runs/PruneSnapshotsButton.js";
 import { Button } from "../../components/design/Button.js";
 import { useConfirm } from "../../components/design/ConfirmDialog.js";
-import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { PageShell } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
+import { PageHero, type HeroTone } from "../../components/layout/PageHero.js";
 import { navigate } from "../App.js";
+
+/** The hero's tonal column takes its wash from what the filter is showing. */
+const FILTER_TONE: Record<RunFilter, HeroTone> = {
+  active: "violet",
+  "merge-ready": "emerald",
+  failed: "rose",
+};
 
 /**
  * Overflow view of every run on disk. Mission Control caps Recent Runs
@@ -70,42 +84,87 @@ export function RunsPage({
 
   return (
     <PageShell>
-      <PageHeader
-        title={
-          <span className="flex items-baseline gap-2.5">
-            {status ? `${RUN_FILTER_LABEL[status]} runs` : "All runs"}
-            <span className="mono num-tabular text-[14px] font-semibold text-chalk-300">
-              {byStatus.length}
-            </span>
-          </span>
-        }
-        actions={
-          <>
-            {status && onClearStatus ? (
-              <Button variant="secondary" size="sm" onClick={onClearStatus}>
-                Show all {runs.length}
-              </Button>
-            ) : null}
-            <PruneSnapshotsButton />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter by task or id…"
-              className="h-8 w-[260px] rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-3 text-[12px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
-            />
-          </>
-        }
-      />
+      <Deck>
+        <Cell size="full" reason="masthead">
+          <PageHero
+            state={{
+              value: byStatus.length,
+              caption: status ? RUN_FILTER_LABEL[status] : "Runs",
+              note: status
+                ? `Filtered from ${runs.length} on disk.`
+                : "Every run this project has recorded.",
+              tone: status ? FILTER_TONE[status] : "violet",
+            }}
+            title={status ? `${RUN_FILTER_LABEL[status]} runs` : "All runs"}
+            purpose="Every run on disk, newest first. Mission control shows the last six; this is the whole record, with the queue and the merge-ready set alongside it."
+            actions={
+              <>
+                {status && onClearStatus ? (
+                  <Button variant="secondary" size="sm" onClick={onClearStatus}>
+                    Show all {runs.length}
+                  </Button>
+                ) : null}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                  onClick={() => navigate({ kind: "compose" })}
+                >
+                  New run
+                </Button>
+                <PruneSnapshotsButton />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Filter by task or id…"
+                  className="h-8 w-[240px] rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-3 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+                />
+              </>
+            }
+            metrics={[
+              { value: runs.length, label: "total" },
+              { value: countByFilter(runs, "active"), label: "active" },
+              {
+                value: countByFilter(runs, "merge-ready"),
+                label: "merge-ready",
+                tone: "good",
+              },
+              {
+                value: countByFilter(runs, "failed"),
+                label: "failed",
+                tone: countByFilter(runs, "failed") > 0 ? "bad" : "default",
+              },
+            ]}
+            footer={
+              query
+                ? `Showing ${filtered.length} of ${byStatus.length} matching "${query}".`
+                : "Open a run for its diff, review and terminal. Replay is read-only."
+            }
+          />
+        </Cell>
 
-      {error ? (
-        <ErrorView className="mt-4" compact err={error} onRetry={() => void load()} />
-      ) : null}
+        {error ? (
+          <Cell size="full" reason="masthead">
+            <ErrorView compact err={error} onRetry={() => void load()} />
+          </Cell>
+        ) : null}
 
-      {onOpenTask ? <SchedulerQueuePanel onOpenTask={onOpenTask} /> : null}
+        {/* Both panels self-hide when they have nothing to say, and an empty
+         * Cell leaves the grid - so this row disappears rather than becoming a
+         * blank band above the table.
+         *
+         * Integration takes the wide cell: it is the taller of the two by a
+         * long way (a row per merge-ready run, plus a branch field), and the
+         * height law says the tall one gets the space. */}
+        <Cell size="wide">
+          <IntegrationPanel />
+        </Cell>
+        <Cell size="card">
+          {onOpenTask ? <SchedulerQueuePanel onOpenTask={onOpenTask} /> : null}
+        </Cell>
 
-      <IntegrationPanel />
-
-      <div className="mt-5 overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600">
+        <Cell size="full" reason="wide-table">
+          <div className="overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600">
         {filtered.length === 0 && !error ? (
           runs.length === 0 ? (
             <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
@@ -221,7 +280,9 @@ export function RunsPage({
             </tbody>
           </table>
         )}
-      </div>
+          </div>
+        </Cell>
+      </Deck>
     </PageShell>
   );
 }
@@ -272,7 +333,6 @@ function IntegrationPanel() {
   if (loadError)
     return (
       <ErrorView
-        className="mt-5"
         compact
         err={loadError}
         onRetry={() => setRetryTick((t) => t + 1)}
@@ -299,7 +359,7 @@ function IntegrationPanel() {
   }
 
   return (
-    <section className="mt-5 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+    <section className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <GitMerge className="h-4 w-4 text-emerald-400" strokeWidth={1.9} />
@@ -320,7 +380,10 @@ function IntegrationPanel() {
         <span className="rounded-[6px] bg-coal-500 px-1.5 py-0.5">never push</span>
       </div>
 
-      <ul className="mt-3 space-y-1.5">
+      {/* Capped, not unbounded: with 17 merge-ready runs this list grew to
+       * 537px, pushing the run table below the fold and leaving a void beside
+       * the shorter panel next to it. The count is in the header either way. */}
+      <ul className="mt-3 max-h-[184px] space-y-1.5 overflow-y-auto pr-1">
         {ready.map((r) => {
           const p = preview?.results.find((x) => x.runId === r.runId);
           return (

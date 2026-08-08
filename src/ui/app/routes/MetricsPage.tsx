@@ -2,11 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { Download, Save } from "lucide-react";
 import { api, type MetricsOverview, type OverviewRange } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
-import {
-  PageShell,
-  PageHeader,
-  Section,
-} from "../../components/layout/PageShell.js";
+import { PageShell, Section } from "../../components/layout/PageShell.js";
+import { Deck, Cell, Stack } from "../../components/layout/Deck.js";
+import { PageHero } from "../../components/layout/PageHero.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { cn } from "../../components/design/cn.js";
 import { CARD } from "../../components/metrics/panelChrome.js";
@@ -73,105 +71,158 @@ export function MetricsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const totals = overview?.totals;
+  const successPct =
+    totals?.successRate !== null && totals?.successRate !== undefined
+      ? Math.round(totals.successRate * 100)
+      : null;
+
   return (
     <PageShell>
-      <PageHeader
-        title="Metrics"
-        actions={
-          <>
-            <div className="inline-flex items-center gap-1 rounded-[12px] border border-[color:var(--line-strong)] bg-coal-500 p-[3px]">
-              {RANGES.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRange(r)}
-                  className={cn(
-                    "rounded-[9px] px-3 py-1.5 text-[12px] font-semibold transition",
-                    range === r
-                      ? "bg-violet-soft text-coal-900"
-                      : "text-chalk-300 hover:text-chalk-100",
-                  )}
+      <Deck>
+        <Cell size="full" reason="masthead">
+          <PageHero
+            state={{
+              value: successPct === null ? "-" : `${successPct}%`,
+              caption: "Success rate",
+              note:
+                successPct === null
+                  ? "Not enough finished runs in this window."
+                  : "Merged, over every run that reached a verdict.",
+              tone:
+                successPct === null
+                  ? "neutral"
+                  : successPct >= 70
+                    ? "emerald"
+                    : successPct >= 40
+                      ? "amber"
+                      : "rose",
+            }}
+            title="Metrics"
+            purpose="What the orchestrator actually cost and returned over this window: spend by role, latency by phase, and which providers earned their runs."
+            actions={
+              <>
+                <div className="inline-flex items-center gap-1 rounded-[12px] border border-[color:var(--line-strong)] bg-coal-500 p-[3px]">
+                  {RANGES.map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRange(r)}
+                      className={cn(
+                        "rounded-[9px] px-3 py-1.5 text-[13px] font-semibold transition",
+                        range === r
+                          ? "bg-violet-soft text-coal-900"
+                          : "text-chalk-300 hover:text-chalk-100",
+                      )}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={exportCsv}
+                  disabled={!overview}
+                  iconLeft={<Download className="h-4 w-4" strokeWidth={1.9} />}
                 >
-                  {r}
-                </button>
-              ))}
+                  Export CSV
+                </Button>
+              </>
+            }
+            footer={`Window: last ${range}. Figures refresh every 8 seconds; export takes a snapshot of exactly what is on screen.`}
+          />
+        </Cell>
+
+        {error ? (
+          <Cell size="full" reason="masthead">
+            <ErrorView compact err={error} onRetry={() => void load()} />
+          </Cell>
+        ) : null}
+
+        {/* The KPI strip carries sparklines, which the hero's metric strip
+         * cannot - so it stays as its own register rather than being folded in
+         * and losing the trend. */}
+        <Cell size="full" reason="masthead">
+          <KpiStrip overview={overview} />
+        </Cell>
+
+        <Cell size="full" reason="nested-deck">
+          <Section flush title="Runs and outcomes">
+            <Deck>
+              <Cell size="wide" className={CARD}>
+                <RunsPanel overview={overview} />
+              </Cell>
+              <Cell size="card" className={CARD}>
+                <OutcomesDonut overview={overview} />
+              </Cell>
+            </Deck>
+          </Section>
+        </Cell>
+
+        <Cell size="full" reason="nested-deck">
+          <Section flush title="Spend and latency">
+            <Deck>
+              <Cell size="wide" className={CARD}>
+                <SpendByRolePanel overview={overview} />
+              </Cell>
+              {/* Columns of stacks: the spend chart is much taller than the
+               * latency panel, and the spend cap is the control that acts on
+               * what this section reports - so it rides underneath rather than
+               * leaving a void beside it. */}
+              <Cell size="card">
+                <Stack>
+                  <div className={CARD}>
+                    <LatencyByPhasePanel overview={overview} />
+                  </div>
+                  <BudgetControl />
+                </Stack>
+              </Cell>
+            </Deck>
+          </Section>
+        </Cell>
+
+        <Cell size="full" reason="timeline">
+          <Section flush title="Activity">
+            <div className={CARD}>
+              <ActivityHeatmapPanel overview={overview} />
             </div>
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={exportCsv}
-              disabled={!overview}
-              iconLeft={<Download className="h-4 w-4" strokeWidth={1.9} />}
-            >
-              Export CSV
-            </Button>
-          </>
-        }
-      />
+          </Section>
+        </Cell>
 
-      {error ? (
-        <ErrorView className="mb-4" compact err={error} onRetry={() => void load()} />
-      ) : null}
+        <Cell size="full" reason="nested-deck">
+          <Section flush title="Token ledger">
+            <Deck>
+              <Cell size="wide" className={CARD}>
+                <PerModelPanel overview={overview} />
+              </Cell>
+              <Cell size="card" className={CARD}>
+                <TokensByRolePanel overview={overview} />
+              </Cell>
+            </Deck>
+          </Section>
+        </Cell>
 
-      <KpiStrip overview={overview} />
-
-      <BudgetControl />
-
-      <Section title="Runs and outcomes">
-        <div className="grid grid-cols-12 gap-4">
-          <div className={cn(CARD, "col-span-12 xl:col-span-8")}>
-            <RunsPanel overview={overview} />
-          </div>
-          <div className={cn(CARD, "col-span-12 xl:col-span-4")}>
-            <OutcomesDonut overview={overview} />
-          </div>
-        </div>
-      </Section>
-
-      <Section title="Spend and latency">
-        <div className="grid grid-cols-12 gap-4">
-          <div className={cn(CARD, "col-span-12 lg:col-span-7")}>
-            <SpendByRolePanel overview={overview} />
-          </div>
-          <div className={cn(CARD, "col-span-12 lg:col-span-5")}>
-            <LatencyByPhasePanel overview={overview} />
-          </div>
-        </div>
-      </Section>
-
-      <Section title="Activity">
-        <div className={CARD}>
-          <ActivityHeatmapPanel overview={overview} />
-        </div>
-      </Section>
-
-      <Section title="Token ledger">
-        <div className="grid grid-cols-12 gap-4">
-          <div className={cn(CARD, "col-span-12 lg:col-span-7")}>
-            <PerModelPanel overview={overview} />
-          </div>
-          <div className={cn(CARD, "col-span-12 lg:col-span-5")}>
-            <TokensByRolePanel overview={overview} />
-          </div>
-        </div>
-      </Section>
-
-      <Section
-        title="Leaderboard"
-        action={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={exportCsv}
-            disabled={!overview}
-            iconLeft={<Save className="h-3.5 w-3.5" strokeWidth={1.9} />}
+        <Cell size="full" reason="wide-table">
+          <Section
+            flush
+            title="Leaderboard"
+            action={
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={exportCsv}
+                disabled={!overview}
+                iconLeft={<Save className="h-3.5 w-3.5" strokeWidth={1.9} />}
+              >
+                Export CSV
+              </Button>
+            }
           >
-            Export CSV
-          </Button>
-        }
-      >
-        <LeaderboardTable overview={overview} />
-      </Section>
+            <LeaderboardTable overview={overview} />
+          </Section>
+        </Cell>
+      </Deck>
     </PageShell>
   );
 }

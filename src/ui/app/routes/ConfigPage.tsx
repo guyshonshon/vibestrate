@@ -5,7 +5,9 @@ import type { ConfigFieldDto } from "../../lib/types.js";
 import { serializeRoute, type Route } from "../route.js";
 import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
-import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
+import { PageShell, Section } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
+import { PageHero } from "../../components/layout/PageHero.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { cn } from "../../components/design/cn.js";
 
@@ -94,53 +96,87 @@ export function ConfigPage() {
     return out;
   }, [fields]);
 
+  // Two columns of stacks, balanced by row count rather than group count: a
+  // 14-field group beside a 2-field one would leave the void the height law
+  // exists to prevent, and groups must not be split across columns.
+  const columns: (typeof groups)[] = [[], []];
+  const weights = [0, 0];
+  for (const g of groups) {
+    const i = weights[0]! <= weights[1]! ? 0 : 1;
+    columns[i]!.push(g);
+    weights[i]! += g.fields.length + 2; // +2 for the group heading's own height
+  }
+
   return (
     <PageShell>
-      <PageHeader
-        title="Project config"
-        actions={
-          <Button
-            variant="secondary"
-            size="sm"
-            iconLeft={<RefreshCw className="h-3.5 w-3.5" strokeWidth={1.9} />}
-            onClick={() => void load()}
-          >
-            Refresh
-          </Button>
-        }
-      >
-        <div className="mt-3 rounded-[16px] border border-[color:var(--line)] bg-coal-600 px-4 py-3">
-          <p className="max-w-[74ch] text-[13px] leading-[1.55] text-chalk-300">
-            Every setting in{" "}
-            {configPath ? (
-              <code className="mono text-violet-soft">{configPath}</code>
-            ) : (
-              "your project config"
-            )}
-            , editable in place. Each change is equivalent to{" "}
-            <code className="mono text-violet-soft">vibe config set</code>; the raw
-            YAML is <code className="mono text-violet-soft">vibe config show</code>.
-          </p>
-        </div>
-      </PageHeader>
+      <Deck>
+        <Cell size="full" reason="masthead">
+          <PageHero
+            state={{
+              value: fields ? fields.length : "-",
+              caption: "Settings",
+              note: "Every one of them editable here, in place.",
+              tone: "violet",
+            }}
+            title="Project config"
+            purpose="Everything your project config holds, grouped and editable in place. Each change is exactly what `vibe config set` would write - this page and the CLI edit the same file."
+            actions={
+              <Button
+                variant="secondary"
+                size="sm"
+                iconLeft={<RefreshCw className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                onClick={() => void load()}
+              >
+                Refresh
+              </Button>
+            }
+            metrics={[
+              { value: groups.length, label: "groups" },
+              { value: fields ? fields.length : "-", label: "settings" },
+            ]}
+            footer={
+              <>
+                <span className="min-w-0 truncate">
+                  {configPath ? (
+                    <code className="mono text-chalk-100">{configPath}</code>
+                  ) : (
+                    "Your project config"
+                  )}
+                </span>
+                <code className="mono shrink-0 rounded-[6px] bg-coal-500 px-1.5 py-0.5 text-chalk-300">
+                  vibe config show
+                </code>
+              </>
+            }
+          />
+        </Cell>
 
-      {error ? (
-        <ErrorView className="mb-4" compact err={error} onRetry={() => void load()} />
-      ) : null}
+        {error ? (
+          <Cell size="full" reason="masthead">
+            <ErrorView compact err={error} onRetry={() => void load()} />
+          </Cell>
+        ) : null}
 
-      {!fields ? (
-        <div className="text-[13px] text-chalk-300">Loading config…</div>
-      ) : (
-        groups.map(({ group, fields: groupFields }) => (
-          <Section key={group} title={groupLabel(group)}>
-            <div className="flex flex-col divide-y divide-[color:var(--line-soft)] overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600">
-              {groupFields.map((f) => (
-                <FieldRow key={f.fullKey} field={f} />
+        {!fields ? (
+          <Cell size="full" reason="masthead">
+            <div className="text-[13px] text-chalk-300">Loading config…</div>
+          </Cell>
+        ) : (
+          columns.map((column, i) => (
+            <Cell key={i} size="half" className="flex flex-col gap-4">
+              {column.map(({ group, fields: groupFields }) => (
+                <Section flush key={group} title={groupLabel(group)}>
+                  <div className="flex flex-col divide-y divide-[color:var(--line-soft)] overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600">
+                    {groupFields.map((f) => (
+                      <FieldRow key={f.fullKey} field={f} />
+                    ))}
+                  </div>
+                </Section>
               ))}
-            </div>
-          </Section>
-        ))
-      )}
+            </Cell>
+          ))
+        )}
+      </Deck>
     </PageShell>
   );
 }

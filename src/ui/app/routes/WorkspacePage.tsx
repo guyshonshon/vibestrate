@@ -19,7 +19,9 @@ import type { RunStatus } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
 import { FormField } from "../../components/design/FormField.js";
 import { HeroCard, type HeroMetric, type HeroTone } from "../../components/design/HeroCard.js";
-import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { PageShell } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
+import { PageHero } from "../../components/layout/PageHero.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { cn } from "../../components/design/cn.js";
 import { fmtTokensShort } from "../../components/design/format.js";
@@ -71,8 +73,20 @@ export function WorkspacePage() {
 
   return (
     <PageShell className="fade-up">
-      <PageHeader
+      <Deck>
+        <Cell size="full" reason="masthead">
+      <PageHero
+        state={{
+          value: totals?.projects ?? 0,
+          caption: (totals?.projects ?? 0) === 1 ? "Project" : "Projects",
+          note:
+            totals && totals.activeRuns > 0
+              ? `${totals.activeRuns} run${totals.activeRuns === 1 ? "" : "s"} live across them right now.`
+              : "Nothing running right now.",
+          tone: totals && totals.activeRuns > 0 ? "violet" : "neutral",
+        }}
         title="All projects"
+        purpose="A glance across every registered project - each runs on its own isolated dashboard and scheduler. Open any one in a new tab; dormant ones start on demand."
         actions={
           <>
             {/* Segmented range toggle - the Board's toolbar idiom. */}
@@ -116,25 +130,21 @@ export function WorkspacePage() {
             </Button>
           </>
         }
-      >
-        <div className="mt-4 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
-          <h2 className="text-[15px] font-bold text-chalk-100">
-            Every project, one view
-          </h2>
-          <p className="mt-1.5 max-w-[72ch] text-[13px] leading-[1.55] text-chalk-300">
-            A glance across every registered project - each runs on its own
-            isolated dashboard + scheduler. Open any one in a new tab; dormant
-            ones start on demand.
-          </p>
-        </div>
-      </PageHeader>
+        footer={`Window: last ${range}. Registering a project only records its path - nothing starts until you open it.`}
+      />
+        </Cell>
 
       {error ? (
-        <ErrorView className="mb-4" compact err={error} onRetry={reload} />
+        <Cell size="full" reason="masthead">
+          <ErrorView compact err={error} onRetry={reload} />
+        </Cell>
       ) : null}
 
-      {/* ── KPI strip ─ */}
-      <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      {/* The KPI strip keeps its own `sub` lines, which the hero's metric strip
+       * has no room for - so it stays a separate register rather than being
+       * folded in and losing half of what each number means. */}
+      <Cell size="full" reason="masthead">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Projects" value={(totals?.projects ?? 0).toLocaleString()} sub="registered" />
         <Kpi
           label="Active runs"
@@ -166,19 +176,20 @@ export function WorkspacePage() {
           tone="amber"
         />
       </section>
+      </Cell>
 
-      {/* ── Project cards ─ */}
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        {(overview?.projects ?? []).map((p) => (
+      {(overview?.projects ?? []).map((p) => (
+        <Cell key={p.root} size="card">
           <ProjectCard
-            key={p.root}
             project={p}
             range={range}
             onClose={() => setCloseTarget(p)}
           />
-        ))}
-        {overview && overview.projects.length === 0 ? (
-          <div className="col-span-full flex flex-col items-center gap-3 rounded-[18px] border border-[color:var(--line)] bg-coal-600 py-10 text-center text-[12.5px] text-chalk-300">
+        </Cell>
+      ))}
+      {overview && overview.projects.length === 0 ? (
+        <Cell size="full" reason="masthead">
+          <div className="flex flex-col items-center gap-3 rounded-[18px] border border-[color:var(--line)] bg-coal-600 py-10 text-center text-[13px] text-chalk-300">
             <p>No projects registered yet.</p>
             <Button
               variant="primary"
@@ -189,8 +200,9 @@ export function WorkspacePage() {
               Register a project
             </Button>
           </div>
-        ) : null}
-      </section>
+        </Cell>
+      ) : null}
+      </Deck>
 
       {closeTarget ? (
         <CloseDialog

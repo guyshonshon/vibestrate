@@ -15,7 +15,7 @@ export function KpiStrip({ overview }: { overview: MetricsOverview | null }) {
   const totals = overview?.totals;
   const sparks = overview?.kpiSparks;
   return (
-    <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
       <BigKpi
         label="Runs"
         icon={<Activity className="h-3.5 w-3.5" strokeWidth={2} />}

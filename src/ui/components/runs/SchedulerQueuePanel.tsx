@@ -90,7 +90,7 @@ export function SchedulerQueuePanel({
   const idle = running.length === 0 && queue.length === 0;
 
   return (
-    <section className="mt-5 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+    <section className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
           <span className="font-semibold text-chalk-100">Scheduler</span>

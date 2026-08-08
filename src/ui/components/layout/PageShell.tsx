@@ -77,16 +77,24 @@ export function PageHeader({
 export function Section({
   title,
   action,
+  flush,
   className,
   children,
 }: {
   title?: ReactNode;
   action?: ReactNode;
+  /**
+   * Drop the `mb-4` tail. Inside a `Deck` Cell the grid's own `gap-4` already
+   * separates regions, and keeping both doubles it - which reads as exactly the
+   * dead space the Deck exists to remove. `cn()` is clsx without twMerge, so a
+   * caller cannot simply pass `mb-0` and expect it to win.
+   */
+  flush?: boolean;
   className?: string;
   children: ReactNode;
 }) {
   return (
-    <section className={cn("mb-4", className)}>
+    <section className={cn(!flush && "mb-4", className)}>
       {title ? (
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-[18px] font-bold text-violet-vivid">{title}</h2>

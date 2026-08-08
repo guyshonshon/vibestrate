@@ -6,6 +6,8 @@ Mission Control and its satellites already ship. Every recipe below is lifted
 verbatim from a reference implementation; the line cite is where to copy it from.
 
 **Canonical reference files (the pattern library):**
+- `src/ui/components/layout/Deck.tsx` + `PageHero.tsx` (the layout law, §0b/§5b)
+- `src/ui/app/routes/SupervisorsPage.tsx` (a page built on both, end to end)
 - `src/ui/app/routes/MissionControlPage.tsx`
 - `src/ui/components/mission/MissionComposer.tsx`
 - `src/ui/components/mission/RunActions.tsx`
@@ -24,10 +26,11 @@ Mission Control is the source of truth, and its **left sidebar**
 (`layout/Sidebar`) is the single app-wide navigation chrome - every page renders
 inside it via `layout/AppShell`. There is no second shell: the horizontal top
 bar is retired. A page component renders **only its body** (header + content);
-it never draws its own nav/sidebar. Match Mission Control's header treatment:
-page title `text-[24px] font-extrabold tracking-[-0.02em]`, content padded
-`px-10 py-7`, no loose grey subtitle floating on the canvas (fold context into a
-contained, framed header block). `AppShell`'s `bare` mode is the only escape
+it never draws its own nav/sidebar. Content is padded `px-10 py-7`, and no loose
+grey subtitle floats on the canvas - context folds into a contained, framed
+header block, which is now a primitive (`layout/PageHero`, §5b). `PageHeader`'s
+24px title register stays correct for sub-surfaces and panels; a route page
+leads with the hero. `AppShell`'s `bare` mode is the only escape
 hatch, reserved for focused single-purpose surfaces (e.g. the single-run control
 view).
 
@@ -35,8 +38,10 @@ view).
 
 The page-level rhythm is a primitive, extracted verbatim from Mission Control.
 Compose `layout/PageShell` + `PageHeader` + `Section` instead of hand-rolling
-`<div class="px-10 py-7"><header class="mb-6">...`. The **live reference is the
-`/canvas` route** (sidebar -> More -> Branding canvas); read it in both themes.
+`<div class="px-10 py-7"><header class="mb-6">...`. The **live reference is
+`#/policies` and `#/supervisors`** - read them in both themes. (The `/canvas`
+styleguide route was a local-only developer surface and is no longer in the
+product; do not cite it.)
 
 - **`PageShell`** is the body canvas: `font-jakarta`, padding, scroll behaviour.
   Two archetypes share one canvas:
@@ -54,6 +59,45 @@ Compose `layout/PageShell` + `PageHeader` + `Section` instead of hand-rolling
 Grid rhythm: outer `gap-4`, card `gap-3`, tight `gap-2.5`. A `fill` page may pass
 `PageHeader className="mb-4"` to reclaim vertical room for the body.
 
+## 0b. The Deck - a width law and a height law
+
+`PageShell` says where the canvas starts. It does **not** say how wide a region
+may be, and for a long time nothing did: a page put a card in a `<div>` and the
+card inherited the monitor. At 1920 the content area is 1610px, so a card holding
+four stat tiles was 1610px wide to carry ~280px of content. That is the whole of
+the "everything is stretched and blank" complaint, and it is a layout bug, not a
+styling preference.
+
+**Every page region is a bounded cell in twelve columns.** Compose
+`layout/Deck` -> `Cell`, and never hand-roll a page-level `max-w-*`,
+`grid-cols-*`, or a bare full-width `<div>` wrapper.
+
+- **`Deck`** - the grid. There is deliberately **no `cols` prop**: twelve is the
+  law, not a call-site decision. It sets `container-type: inline-size`, so cells
+  resolve against the **content** width rather than the viewport - the same Deck
+  nested inside a panel still picks a sane rung.
+- **`Cell`** declares a **size, not a span**. `card` (the default unit), `wide`
+  (content with an irreducible minimum width - a unified diff, a wide table), or
+  `full`, which **requires a typed `reason`** from a closed union
+  (`masthead | wide-table | diff | terminal | timeline | nested-deck`).
+  Full-bleed is a licence a region has to justify; the type system asks the
+  question a review comment used to. Widening the union is a design decision.
+- The responsive ladder lives **inside** `Cell` (see `index.css`, `.deck`
+  rungs), so no page writes a breakpoint prefix and gets it subtly different
+  from its neighbour. Thresholds are derived - each is the content width at
+  which the next rung's card first reaches MIN_CARD (440px) - not chosen.
+
+**The height law.** A grid ROW is as tall as its tallest cell, and the next row
+cannot backfill the space under a shorter one. On Policies a 346px list beside an
+801px panel left a **455px void** and pushed the following region 471px down the
+page. So: **a Deck row must not mix cells of very unequal height.** When it
+would, the page becomes **columns of stacks** - one row, each `Cell` holding a
+`Stack` that packs its own panels. Column heights then differ only at the very
+bottom, the one place a difference costs nothing.
+
+Prefer side-by-side. Two related regions stacked full-width is the shape to
+avoid; if two things can sit in one row at equal height, they should.
+
 ## 1. Tokens - new only
 
 Use only the new token names. Never `vibestrate-*` / `fog-*` in new/edited code.
@@ -67,9 +111,36 @@ Use only the new token names. Never `vibestrate-*` / `fog-*` in new/edited code.
 
 ## 2. Type scale - dense
 
+Two registers, and the difference between them is *scale*, not noise.
+
+**Inside** a card, row, table or panel, density is the house style:
 `text-[10px]` / `text-[11.5px]` / `text-[12.5px]` / `text-[13px]` / `text-[13.5px]` / `text-[14px]`,
 weights `font-medium` / `font-semibold` / `font-bold`. Body shell uses
-`font-jakarta`. No oversized headings; density is the house style.
+`font-jakarta`. No oversized headings in here.
+
+**At page level** - the hero, its metric strip, section headings - use the named
+ladder in `index.css` rather than another ad-hoc `text-[Npx]`:
+
+| class | size | what it is |
+| --- | --- | --- |
+| `.t-page` | 36px / 800 | the page title |
+| `.t-num` | 34px / 800, tabular | a headline number |
+| `.t-section` | 20px / 700 | a section heading |
+| `.t-card` | 16px / 600 | a card title |
+| `.t-body` | 14px | prose |
+| `.t-label` | 13px / 600 | a label |
+| `.t-meta` | 12px | the floor - **nothing renders below 12px** |
+
+**A `.t-*` class cannot be overridden by a Tailwind size at the call site.**
+`cn()` is clsx, not tailwind-merge, so `class="t-page text-[36px]"` ships *both*
+and the plain `.t-page` rule wins - silently, at the ladder's size. An earlier
+`PageHero` carried five such overrides (`t-label text-[15px]`,
+`t-body text-[15px]`, `t-num text-[32px]`...), every one of them dead, which is
+why the hero still measured small after being "made bigger". Either use the
+ladder class alone, or write the size explicitly and drop the `t-*`. Never both.
+
+What the ladder replaces is a page whose largest text was 13px - which is what
+"too minimal and small text" meant.
 
 ## 3. Rounding
 
@@ -135,6 +206,31 @@ Anatomy (top to bottom), all inside the standard card shell:
 **Cards stay the same compact size across sections** (same grid column count).
 If content won't fit inline, move secondary metadata to the header or trim it -
 **never widen one section's cards** to make room.
+
+## 5b. The page hero - a real header, not a floating title
+
+A route page leads with `layout/PageHero` in a `Cell size="full"
+reason="masthead"`. It is `HeroCard`'s anatomy (§10) at page scale: the same
+washed tonal status column anchoring state as a structural surface region, then
+stacked registers in the main column. Before it, a page opened with a 24px title
+over a grey paragraph on bare canvas - the "there's no real header area"
+complaint.
+
+Four registers, each carrying something a page would otherwise scatter:
+
+- **state** (optional, 216px tonal column) - the one fact that says whether this
+  page needs attention: a value, a caption, an optional note. `tone` picks the
+  wash (`emerald | amber | violet | rose | neutral`).
+- **headline** - title, `purpose` prose, and the page's primary actions on the
+  same row. Actions live here, not stranded at the far edge of a bare canvas.
+- **metrics** - a divided strip running the hero's full width. This is
+  `HeroCard`'s own divided strip, **not** the `flex-1`-stretched stat-tile row
+  §11 rules out: that ban is about two tiles slabbed across half a card, where a
+  divided strip of four to six cells stays dense.
+- **footer** - what the current state actually means, in a sentence.
+
+Do not hand-roll a page header once this exists, and do not add a `PageHeader`
+above a hero - the hero *is* the header.
 
 ## 6. Inputs (verbatim)
 
@@ -205,6 +301,8 @@ is a contract violation, same tier as the anti-patterns below.
 - A grey `·`-separated meta line (`8 steps · 6 seats · v1`). Facts go in `StatTile`s.
 - `flex-1`-stretched stat tiles (two half-card slabs). Tiles are content-width.
 - Widening one section's cards to fit content. Keep cards the same compact size; move metadata to the header instead.
+- A page region that inherits the monitor's width: a card, panel or list dropped straight into `PageShell` instead of into a `Cell`, or a page-level `max-w-*` / `grid-cols-*` written at the call site. Width is the Deck's business (§0b).
+- A `Deck` row mixing a short cell with a tall one, leaving a void beside the short one and pushing the next row past both. Use columns of stacks (§0b).
 - A page action/toggle stranded at the far right of a wide header, or a transparent `outline` button that vanishes on a panel. Section actions sit by their title as a filled (`secondary`/`primary`) `<Button>`.
 - Hiding an important action (e.g. publish) behind a disclosure - keep it visible.
 - Sentence-splitting a **card** body (cards `line-clamp-2`). Per-sentence line breaks are for **page-header** blurbs only.
@@ -223,3 +321,18 @@ Every redesigned screen must render correctly in dark (`:root`) and light
 (`:root.light`) - the tokens flip; do not hardcode hex. Verify with
 `pnpm typecheck && pnpm build` and a both-theme screenshot in the preview before
 calling a page done.
+
+Layout is verified by **measuring, not looking**. The 455px void in §0b passed a
+screenshot review; it was found by reading `getBoundingClientRect()` off the
+rendered page. After converting a page, check in the browser that no Cell has a
+large gap under it and that no region is wider than its content needs:
+
+```js
+[...document.querySelectorAll('[data-cell]')].map(c => {
+  const r = c.getBoundingClientRect();
+  return [c.dataset.cell, Math.round(r.width), Math.round(r.height)];
+})
+```
+
+Two cells in one row with very different heights is the height law (§0b) being
+broken, and it is invisible in a screenshot of the top of the page.

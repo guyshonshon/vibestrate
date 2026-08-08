@@ -83,11 +83,13 @@ export function PageHero({
           )}
         >
           <span className={cn("t-num", STATE_FG[tone])}>{state.value}</span>
-          <span className={cn("t-label text-[15px] font-bold", STATE_FG[tone])}>
+          <span className={cn("text-[15px] font-bold", STATE_FG[tone])}>
             {state.caption}
           </span>
           {state.note ? (
-            <span className="mt-1.5 t-meta text-[13px] text-chalk-300">{state.note}</span>
+            <span className="mt-1.5 text-[13px] leading-[1.35] text-chalk-300">
+              {state.note}
+            </span>
           ) : null}
         </div>
       ) : null}
@@ -95,9 +97,9 @@ export function PageHero({
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start justify-between gap-6 px-6 pb-5 pt-6">
           <div className="min-w-0">
-            <h1 className="t-page text-[36px] text-chalk-100">{title}</h1>
+            <h1 className="t-page text-chalk-100">{title}</h1>
             {purpose ? (
-              <p className="mt-2.5 max-w-[64ch] t-body text-[15px] text-chalk-300">
+              <p className="mt-2.5 max-w-[64ch] text-[15px] leading-[1.5] text-chalk-300">
                 {purpose}
               </p>
             ) : null}
@@ -116,22 +118,28 @@ export function PageHero({
                 key={m.label}
                 className="min-w-0 flex-1 border-l border-[color:var(--line-soft)] px-5 py-4 first:border-l-0"
               >
+                {/* Deliberately NOT `t-num`: the state column owns that size,
+                 * and a metric matching it flattens the hierarchy. `cn()` is
+                 * clsx without twMerge, so `t-num text-[30px]` would not have
+                 * won - the ladder class would silently keep 34px. */}
                 <span
                   className={cn(
-                    "block t-num text-[32px]",
+                    "num-tabular block text-[30px] font-extrabold leading-none tracking-[-0.03em]",
                     METRIC_FG[m.tone ?? "default"],
                   )}
                 >
                   {m.value}
                 </span>
-                <span className="mt-1.5 block t-label text-violet-vivid">{m.label}</span>
+                <span className="mt-1.5 block text-[13px] font-semibold text-violet-vivid">
+                  {m.label}
+                </span>
               </div>
             ))}
           </div>
         ) : null}
 
         {footer ? (
-          <div className="flex items-center justify-between gap-4 border-t border-[color:var(--line)] bg-coal-500/45 px-6 py-3.5 t-label font-normal text-chalk-300">
+          <div className="flex items-center justify-between gap-4 border-t border-[color:var(--line)] bg-coal-500/45 px-6 py-3.5 text-[13px] text-chalk-300">
             {footer}
           </div>
         ) : null}

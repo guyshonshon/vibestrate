@@ -92,23 +92,33 @@ type CellProps = {
   className?: string;
   children: ReactNode;
 } & (
-  | { size?: "card" | "wide"; reason?: never }
+  | { size?: "card" | "wide" | "half"; reason?: never }
   | { size: "full"; reason: CellReason }
 );
 
 /**
  * A Deck child declares its SIZE, not its span - the rung ladder is the
- * primitive's business. `card` is the default unit; `wide` is for content with
- * an irreducible minimum width (a unified diff, a wide table); `full` requires
- * a typed `reason`, so the type system asks the question a review comment used
- * to.
+ * primitive's business.
+ *
+ *   card  the default unit; packs 2 -> 3 -> 4 -> 6 per row as the deck widens
+ *   wide  content with an irreducible minimum width (a diff, a wide table).
+ *         Always 12 minus a card, so a wide+card row fills exactly
+ *   half  an even split that STAYS even. For a page that is genuinely two
+ *         columns (columns of stacks), where reflowing to 3-up would tear the
+ *         two halves apart
+ *   full  requires a typed `reason`, so the type system asks the question a
+ *         review comment used to
  */
 export function Cell({ size = "card", reason, className, children }: CellProps) {
   return (
     <section
       data-cell={size}
       data-cell-reason={reason}
-      className={cn("min-w-0", className)}
+      // A Cell whose child self-hides (a panel that returns null when it has
+      // nothing to show) must leave the grid, not sit there as a zero-height row
+      // still paying two `gap-4`s. `display:none` removes it from the grid;
+      // `:empty` is exactly "the child rendered nothing".
+      className={cn("min-w-0 empty:hidden", className)}
     >
       {children}
     </section>

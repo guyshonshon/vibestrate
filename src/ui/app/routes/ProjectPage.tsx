@@ -19,7 +19,8 @@ import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
 import { FreshnessIndicator } from "../../components/codebase/FreshnessIndicator.js";
 import { useCodebaseEvents } from "../../lib/useCodebaseEvents.js";
 import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
-import { HeroCard, type HeroTone } from "../../components/design/HeroCard.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
+import { PageHero } from "../../components/layout/PageHero.js";
 import { StatTile, type StatTileTone } from "../../components/design/StatTile.js";
 import { Button } from "../../components/design/Button.js";
 import { navigate } from "../App.js";
@@ -169,106 +170,90 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
     meta.crews.find((c) => c.id === meta.defaultCrew) ?? meta.crews[0] ?? null;
   const roles = crew?.roles ?? [];
 
-  // Hero status column: initialised + a git repo reads emerald; a missing
-  // .vibestrate or non-repo needs attention.
   const initialised = meta.status.initialised;
-  const heroTone: HeroTone = !initialised
-    ? "amber"
-    : meta.git.isGitRepo
-      ? "emerald"
-      : "amber";
-  const heroStatus = !initialised
-    ? "not set up"
-    : meta.git.isGitRepo
-      ? "ready"
-      : "no repo";
 
   return (
     <PageShell>
-      <PageHeader
-        title={meta.projectName}
-        actions={<FreshnessIndicator freshness={freshness} onRefresh={load} />}
-      >
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <StatTile value={meta.projectTypeLabel} label="type" />
-          <StatTile value={meta.packageManager} label="package manager" />
-          <div className="flex items-center gap-1.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5">
-            <span className="mono max-w-[420px] truncate text-[11.5px] text-chalk-300">
-              {meta.projectRoot}
-            </span>
-            <CopyButton text={meta.projectRoot} title="Copy project root" />
-          </div>
-        </div>
-      </PageHeader>
-
-      <Section>
-        <HeroCard
-          tone={heroTone}
-          overline="Project"
-          status={heroStatus}
-          statusSub={initialised ? ".vibestrate ready" : "not set up yet"}
-          title={
-            initialised
-              ? "This project is wired up"
-              : ".vibestrate not initialised"
-          }
-          sub={
-            initialised ? (
+      <Deck>
+        <Cell size="full" reason="masthead">
+          {/* One header. This page used to stack a PageHeader on top of a
+           * HeroCard, so it announced itself twice before saying anything. */}
+          <PageHero
+            state={{
+              value: initialised ? "Ready" : "Not set up",
+              caption: initialised ? ".vibestrate" : "Needs init",
+              note: initialised
+                ? "Providers, crew, skills and policies below are live."
+                : "Initialise the workspace so runs can record state.",
+              tone: initialised ? "emerald" : "amber",
+            }}
+            title={meta.projectName}
+            purpose={
+              initialised
+                ? "Everything a run reads before it starts: the repo it works in, the providers and crew it can call, the validation it must pass, and the policies that judge it."
+                : "This directory has no .vibestrate workspace yet, so nothing can record state."
+            }
+            actions={
               <>
-                The workspace metadata below is live - providers, crew, skills,
-                and policies your runs use.
-              </>
-            ) : (
-              <>
-                Initialise the workspace so runs can record state.
-                {initError ? (
-                  <span className="mt-1 block text-rose-300">{initError}</span>
+                {!initialised ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={initBusy}
+                    onClick={() => void handleInit()}
+                  >
+                    {initBusy ? "Initializing…" : "Initialize project"}
+                  </Button>
                 ) : null}
+                <FreshnessIndicator freshness={freshness} onRefresh={load} />
               </>
-            )
-          }
-          actions={
-            !initialised ? (
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={initBusy}
-                onClick={() => void handleInit()}
-              >
-                {initBusy ? "Initializing…" : "Initialize project"}
-              </Button>
-            ) : undefined
-          }
-          metrics={[
-            { value: meta.providers.length, label: "providers" },
-            { value: meta.skills.length, label: "skills" },
-            { value: roles.length, label: "roles" },
-            {
-              value: meta.counts.pendingApprovals,
-              label: "approvals",
-              valueClass:
-                meta.counts.pendingApprovals > 0
-                  ? "text-amber-soft"
-                  : undefined,
-            },
-            {
-              value: meta.counts.runningTaskIds.length,
-              label: "running",
-            },
-          ]}
-        />
-      </Section>
+            }
+            metrics={[
+              { value: meta.providers.length, label: "providers" },
+              { value: meta.skills.length, label: "skills" },
+              { value: roles.length, label: "roles" },
+              {
+                value: meta.counts.pendingApprovals,
+                label: "approvals",
+                tone: meta.counts.pendingApprovals > 0 ? "warn" : "default",
+              },
+              { value: meta.counts.runningTaskIds.length, label: "running" },
+            ]}
+            footer={
+              <>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="mono min-w-0 truncate text-chalk-100">
+                    {meta.projectRoot}
+                  </span>
+                  <CopyButton text={meta.projectRoot} title="Copy project root" />
+                </span>
+                <span className="shrink-0">
+                  {meta.projectTypeLabel} project, managed with{" "}
+                  {meta.packageManager}
+                </span>
+              </>
+            }
+          />
+          {initError && !initialised ? (
+            <p className="mt-2 text-[13px] text-rose-300">{initError}</p>
+          ) : null}
+        </Cell>
 
-      <Section title="At a glance">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map((c) => (
-            <StatusCardView key={c.label} card={c} />
-          ))}
-        </div>
-      </Section>
+        <Cell size="full" reason="masthead">
+          <Section flush title="At a glance">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {cards.map((c) => (
+                <StatusCardView key={c.label} card={c} />
+              ))}
+            </div>
+          </Section>
+        </Cell>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Git">
+        {/* Columns of stacks. These eight sections have wildly different
+         * heights; as a plain 2-column grid every row was as tall as its
+         * taller half and the shorter one left a void. */}
+        <Cell size="half" className="flex flex-col gap-4">
+        <Section flush title="Git">
           <Panel>
             <KV label="Repo">
               <span
@@ -316,7 +301,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           </Panel>
         </Section>
 
-        <Section title="Validation commands">
+        <Section flush title="Validation commands">
           <Panel>
             {meta.validationCommands.length === 0 ? (
               <Empty>
@@ -342,7 +327,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           </Panel>
         </Section>
 
-        <Section title={`Providers (${meta.providers.length})`}>
+        <Section flush title={`Providers (${meta.providers.length})`}>
           <Panel>
             {meta.providers.length === 0 ? (
               <div className="flex flex-col items-start gap-2.5">
@@ -382,7 +367,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           </Panel>
         </Section>
 
-        <Section title={`Crew - ${crew?.label ?? "none"} (${roles.length})`}>
+        <Section flush title={`Crew - ${crew?.label ?? "none"} (${roles.length})`}>
           <Panel>
             {roles.length === 0 ? (
               <Empty>
@@ -425,7 +410,10 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           </Panel>
         </Section>
 
-        <Section title={`Skills (${meta.skills.length})`}>
+        </Cell>
+
+        <Cell size="half" className="flex flex-col gap-4">
+        <Section flush title={`Skills (${meta.skills.length})`}>
           <Panel>
             {meta.skills.length === 0 ? (
               <div className="flex flex-col gap-2.5">
@@ -483,7 +471,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           </Panel>
         </Section>
 
-        <Section title="Scheduler">
+        <Section flush title="Scheduler">
           <Panel>
             <KV label="Max concurrent runs">
               <span className="text-chalk-100">
@@ -523,7 +511,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           </Panel>
         </Section>
 
-        <Section title={`Recent runs (${meta.recentRuns.length})`}>
+        <Section flush title={`Recent runs (${meta.recentRuns.length})`}>
           <Panel>
             {meta.recentRuns.length === 0 ? (
               <Empty>
@@ -551,7 +539,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           </Panel>
         </Section>
 
-        <Section title="Policies">
+        <Section flush title="Policies">
           <Panel>
             <KV label="Forbid main-branch writes">
               <Toggle on={meta.policies.forbidMainBranchWrites} />
@@ -574,7 +562,8 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
             </KV>
           </Panel>
         </Section>
-      </div>
+        </Cell>
+      </Deck>
     </PageShell>
   );
 }

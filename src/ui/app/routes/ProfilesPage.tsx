@@ -7,7 +7,9 @@ import { SuggestInput } from "../../components/design/SuggestInput.js";
 import { EffortScale } from "../../components/design/EffortScale.js";
 import { StatTile } from "../../components/design/StatTile.js";
 import { useConfirm } from "../../components/design/ConfirmDialog.js";
-import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
+import { PageShell, Section } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
+import { PageHero } from "../../components/layout/PageHero.js";
 import { cn } from "../../components/design/cn.js";
 import {
   useToast,
@@ -139,47 +141,45 @@ export function ProfilesPage() {
 
   return (
     <PageShell className="fade-up">
-      <PageHeader
-        title="Profiles"
-        actions={
-          <Button
-            variant="primary"
-            size="sm"
-            iconLeft={<Plus size={13} />}
-            onClick={() => setCreating((v) => !v)}
-          >
-            New profile
-          </Button>
-        }
-      >
-        {/* Contained header: what a Profile is + the running count, framed
-            instead of a loose grey subtitle floating on the canvas. */}
-        <div className="mt-4 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
-          <div className="flex items-center gap-2">
-            <h2 className="text-[15px] font-bold text-chalk-100">Runtime presets</h2>
-            <span className="num-tabular text-[12px] text-chalk-400">
-              {profiles ? total : ""}
-            </span>
-          </div>
-          <p className="mt-1.5 max-w-[72ch] text-[13px] leading-[1.55] text-chalk-300">
-            A{" "}
-            <strong className="font-semibold text-chalk-100">Profile</strong> is a
-            reusable preset of how strong and expensive a run is - a provider plus
-            model and effort. Keep several per provider (say{" "}
-            <span className="font-semibold text-chalk-100">claude</span> and{" "}
-            <span className="font-semibold text-chalk-100">claude-cheap</span>);
-            Crew roles point at one.
-          </p>
-        </div>
-      </PageHeader>
+      <Deck>
+        <Cell size="full" reason="masthead">
+          <PageHero
+            state={{
+              value: profiles ? total : "-",
+              caption: total === 1 ? "Profile" : "Profiles",
+              note: `Across ${groupedProviders.length} provider${groupedProviders.length === 1 ? "" : "s"}. Crew roles point at one.`,
+              tone: "violet",
+            }}
+            title="Profiles"
+            purpose="A profile is a reusable preset of how strong and expensive a run is - a provider plus model and effort. Keep several per provider (say claude and claude-cheap) and let each crew role pick the one it deserves."
+            actions={
+              <Button
+                variant="primary"
+                size="sm"
+                iconLeft={<Plus size={13} />}
+                onClick={() => setCreating((v) => !v)}
+              >
+                New profile
+              </Button>
+            }
+            metrics={[
+              { value: profiles ? total : "-", label: "presets" },
+              { value: groupedProviders.length, label: "providers" },
+            ]}
+            footer="Changing a profile changes every role pointing at it, on the next run."
+          />
+        </Cell>
 
       {error ? (
-        <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
+        <Cell size="full" reason="masthead">
+        <div className="rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[13px] text-rose-300">
           {error} - reload the page, or check that the provider config is readable.
         </div>
+        </Cell>
       ) : null}
 
       {creating ? (
+        <Cell size="full" reason="masthead">
         <CreateProfile
           providers={providers}
           catalog={catalog}
@@ -191,11 +191,15 @@ export function ProfilesPage() {
           }}
           onFlash={flash}
         />
+        </Cell>
       ) : null}
 
       {!profiles ? (
+        <Cell size="full" reason="masthead">
         <div className="text-[13px] text-chalk-300">Loading profiles…</div>
+        </Cell>
       ) : profiles.length === 0 ? (
+        <Cell size="full" reason="masthead">
         <div className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 px-6 py-10 text-center">
           <p className="text-[14px] font-semibold text-chalk-100">No profiles yet.</p>
           <p className="mx-auto mt-1.5 max-w-[48ch] text-[12.5px] leading-[1.5] text-chalk-300">
@@ -213,14 +217,18 @@ export function ProfilesPage() {
             </Button>
           </div>
         </div>
+        </Cell>
       ) : (
-        <div>
-          {groupedProviders.map((prov) => {
-            const list = groups.get(prov)!;
-            const tone = providerTone(prov);
-            return (
+        groupedProviders.map((prov) => {
+          const list = groups.get(prov)!;
+          const tone = providerTone(prov);
+          return (
+            /* One provider per full-width row, its presets as cards inside a
+             * nested deck - so profiles pack 3-4 across instead of two, and a
+             * provider with one preset does not strand half a row. */
+            <Cell key={prov} size="full" reason="nested-deck">
               <Section
-                key={prov}
+                flush
                 title={
                   <span className="inline-flex items-center gap-2">
                     <Cpu className={cn("h-4 w-4", tone)} strokeWidth={1.9} aria-hidden />
@@ -231,23 +239,25 @@ export function ProfilesPage() {
                   </span>
                 }
               >
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <Deck>
                   {list.map((p) => (
-                    <ProfileCard
-                      key={p.id}
-                      profile={p}
-                      providers={providers}
-                      catalog={catalog}
-                      onSaved={() => void load()}
-                      onFlash={flash}
-                    />
+                    <Cell key={p.id} size="card">
+                      <ProfileCard
+                        profile={p}
+                        providers={providers}
+                        catalog={catalog}
+                        onSaved={() => void load()}
+                        onFlash={flash}
+                      />
+                    </Cell>
                   ))}
-                </div>
+                </Deck>
               </Section>
-            );
-          })}
-        </div>
+            </Cell>
+          );
+        })
       )}
+      </Deck>
 
       <ToastView
         toast={toast}

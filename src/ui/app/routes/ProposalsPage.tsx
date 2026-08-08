@@ -7,11 +7,14 @@ import type {
 } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip } from "../../components/design/Chip.js";
+import { StatTile } from "../../components/design/StatTile.js";
 import {
   PageShell,
   PageHeader,
   Section,
 } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
+import { PageHero } from "../../components/layout/PageHero.js";
 
 const INPUT =
   "w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-3 text-[13px] text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50 disabled:opacity-60";
@@ -78,116 +81,124 @@ export function ProposalsPage({
       </PageShell>
     );
 
+  const accepted = proposals.filter((p) => p.accepted).length;
+  const drafts = proposals.length - accepted;
+
   return (
     <PageShell>
-      <PageHeader
-        title={
-          <span className="flex items-baseline gap-2.5">
-            Roadmap proposals
-            <span className="mono num-tabular text-[14px] font-semibold text-chalk-400">
-              {proposals.length}
-            </span>
-          </span>
-        }
-      >
-        <p className="mt-2 max-w-[760px] rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-4 py-3 text-[12.5px] leading-relaxed text-chalk-300">
-          One inbox for every roadmap draft, whether the planner wrote it from a
-          broad goal here or it came out of a spec-up run. Review, dry-run, then
-          accept to create the roadmap items and tasks.
-        </p>
-      </PageHeader>
+      <Deck>
+        <Cell size="full" reason="masthead">
+          <PageHero
+            state={{
+              value: drafts,
+              caption: drafts === 1 ? "Draft" : "Drafts",
+              note: drafts
+                ? "Waiting on a review before they become roadmap items."
+                : "Nothing waiting on you.",
+              tone: drafts > 0 ? "amber" : "emerald",
+            }}
+            title="Roadmap proposals"
+            purpose="One inbox for every roadmap draft, whether the planner wrote it from a broad goal here or it came out of a spec-up run. Review, dry-run, then accept to create the roadmap items and tasks."
+            actions={
+              <div className="flex w-[440px] max-w-full items-center gap-2">
+                <input
+                  value={goal}
+                  onChange={(e) => setGoal(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void generate();
+                  }}
+                  disabled={generating}
+                  placeholder="Plan a roadmap for a broad goal…"
+                  className={`${INPUT} h-9`}
+                />
+                <Button
+                  variant="primary"
+                  onClick={() => void generate()}
+                  disabled={!goal.trim() || generating}
+                  iconLeft={<Compass className="h-3.5 w-3.5" strokeWidth={2} />}
+                >
+                  {generating ? "Planning…" : "Generate"}
+                </Button>
+              </div>
+            }
+            metrics={[
+              { value: proposals.length, label: "proposals" },
+              { value: drafts, label: "drafts", tone: drafts ? "warn" : "default" },
+              { value: accepted, label: "accepted", tone: "good" },
+            ]}
+            footer={
+              genError ? (
+                <span className="text-rose-300">{genError}</span>
+              ) : generating ? (
+                "Running the local planner agent - this can take a moment."
+              ) : (
+                <>
+                  <span>Generating runs the local planner agent, locally.</span>
+                  <code className="mono shrink-0 rounded-[6px] bg-coal-500 px-1.5 py-0.5 text-chalk-300">
+                    vibe roadmap plan "&lt;goal&gt;"
+                  </code>
+                </>
+              )
+            }
+          />
+        </Cell>
 
-      <Section title="New proposal">
-        <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-3">
-          <div className="flex items-center gap-2">
-            <input
-              value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void generate();
-              }}
-              disabled={generating}
-              placeholder="Plan a roadmap for a broad goal, e.g. Build the first public beta"
-              className={`${INPUT} h-9`}
-            />
-            <Button
-              variant="primary"
-              onClick={() => void generate()}
-              disabled={!goal.trim() || generating}
-              iconLeft={<Compass className="h-3.5 w-3.5" strokeWidth={2} />}
-            >
-              {generating ? "Planning…" : "Generate proposal"}
-            </Button>
-          </div>
-          {genError ? (
-            <div className="mt-2 text-[11.5px] text-rose-300">{genError}</div>
-          ) : null}
-          <div className="mt-2 text-[11px] text-chalk-400">
-            {generating ? (
-              "Running the local planner agent - this can take a moment."
-            ) : (
-              <>
-                Runs the local planner agent · CLI:{" "}
-                <code className="mono rounded-[6px] bg-coal-500 px-1 py-0.5 text-chalk-300">
-                  vibe roadmap plan "&lt;goal&gt;"
-                </code>
-              </>
-            )}
-          </div>
-        </div>
-      </Section>
-
-      <Section title="Drafts">
         {proposals.length === 0 ? (
-          <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 px-6 py-10 text-center text-[12.5px] text-chalk-300">
-            No proposals yet. Describe a goal above and generate your first one.
-          </div>
+          <Cell size="full" reason="masthead">
+            <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 px-6 py-10 text-center text-[13px] text-chalk-300">
+              No proposals yet. Describe a goal above and generate your first one.
+            </div>
+          </Cell>
         ) : (
-          <ol className="space-y-2">
-            {proposals.map((p) => {
-              const origin = proposalOrigin(p.id);
-              return (
-                <li key={p.id}>
-                  <button
-                    type="button"
-                    onClick={() => onOpenProposal(p.id)}
-                    className="flex w-full items-center gap-3 rounded-[12px] border border-[color:var(--line)] bg-coal-600 p-3 text-left transition hover:bg-coal-500"
-                  >
+          /* Cards, not a stack of one-line rows: a proposal carries an origin, a
+           * state and a timestamp, which is a card's worth of information, and
+           * the deck fits three or four of them per row instead of one. */
+          proposals.map((p) => {
+            const origin = proposalOrigin(p.id);
+            return (
+              <Cell key={p.id} size="card">
+                <button
+                  type="button"
+                  onClick={() => onOpenProposal(p.id)}
+                  className="flex h-full w-full flex-col gap-2.5 rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4 text-left transition hover:border-violet-soft/40 hover:bg-coal-500"
+                >
+                  <div className="flex items-center gap-2">
                     {p.accepted ? (
                       <CheckCircle2
-                        className="h-4 w-4 text-emerald"
+                        className="h-4 w-4 shrink-0 text-emerald"
                         strokeWidth={1.6}
                       />
                     ) : (
                       <FileText
-                        className="h-4 w-4 text-violet-soft"
+                        className="h-4 w-4 shrink-0 text-violet-soft"
                         strokeWidth={1.6}
                       />
                     )}
-                    <div className="min-w-0 flex-1">
-                      <div className="mono truncate text-[12.5px] text-chalk-100">
-                        {p.id}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[11px]">
-                        <span className={origin.tone}>{origin.label}</span>
-                        <span className="text-chalk-400">·</span>
-                        <span className={p.accepted ? "text-emerald" : "text-chalk-300"}>
-                          {p.accepted
-                            ? `accepted ${p.acceptedAt ? new Date(p.acceptedAt).toLocaleString() : ""}`
-                            : `draft · modified ${new Date(p.modifiedAt).toLocaleString()}`}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="mono text-[10.5px] text-chalk-400">
+                    <span className="mono min-w-0 flex-1 truncate text-[13px] text-chalk-100">
+                      {p.id}
+                    </span>
+                    <span className="mono shrink-0 text-[11px] text-chalk-400">
                       {p.byteSize}b
                     </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
+                  </div>
+                  <div className="flex flex-wrap items-stretch gap-1">
+                    <StatTile value={origin.label} label="origin" />
+                    <StatTile
+                      value={p.accepted ? "accepted" : "draft"}
+                      label="state"
+                    />
+                  </div>
+                  <span className="mt-auto border-t border-[color:var(--line-soft)] pt-2.5 text-[12px] text-chalk-300">
+                    {p.accepted
+                      ? `Accepted ${p.acceptedAt ? new Date(p.acceptedAt).toLocaleString() : ""}`
+                      : `Modified ${new Date(p.modifiedAt).toLocaleString()}`}
+                  </span>
+                </button>
+              </Cell>
+            );
+          })
         )}
-      </Section>
+      </Deck>
     </PageShell>
   );
 }
