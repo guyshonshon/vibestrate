@@ -5182,7 +5182,12 @@ export class Orchestrator {
       providerId: effectiveProviderId,
       providerType: providerCfg?.type ?? "cli",
       command: providerResult.command,
-      args: providerResult.args,
+      // For an `input: "arg"` provider the prompt IS an argv element, and six
+      // shipped presets are that shape. The prompt artifact three thousand lines
+      // up is deliberately scrubbed before it is persisted; this copy of the
+      // same string was not, so runtime-metrics.json and agent-metrics/*.json
+      // held it in the clear. Same treatment for the same value.
+      args: providerResult.args.map((a) => redactSecretsInText(a).redacted),
       cwd: providerResult.cwd,
       startedAt: providerResult.startedAt,
       endedAt: providerResult.endedAt,
