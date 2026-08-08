@@ -29,6 +29,12 @@ export async function writeTextAtomic(filePath: string, contents: string): Promi
   const tmp = `${filePath}.tmp.${process.pid}.${randomUUID()}`;
   await fs.writeFile(tmp, contents, "utf8");
   try {
+    // rename brings the temp file's own mode with it, so replacing a file the
+    // owner had tightened (a 0600 state.json) would silently widen it to the
+    // default 0644. Carry the existing mode across; a file that does not exist
+    // yet keeps the default.
+    const existing = await fs.stat(filePath).catch(() => null);
+    if (existing) await fs.chmod(tmp, existing.mode & 0o777);
     await fs.rename(tmp, filePath);
   } catch (err) {
     await fs.unlink(tmp).catch(() => undefined);

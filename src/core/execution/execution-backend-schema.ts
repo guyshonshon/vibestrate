@@ -6,7 +6,18 @@ import { z } from "zod";
 // isolation would validate, print nothing, and run on the host. Keeping the
 // enum honest is what makes that impossible: an unimplemented id now fails
 // schema validation at load.
-export const executionBackendIdSchema = z.enum(["local-worktree", "docker"]);
+const REMOVED_BACKENDS = new Set(["remote-sandbox", "cloud-runner"]);
+
+export const executionBackendIdSchema = z.enum(["local-worktree", "docker"], {
+  // A config carrying a removed id must fail, but it must not fail as a bare
+  // "invalid enum value" - that reads as a Vibestrate bug and gives the owner
+  // nothing to do. Mapping it to local-worktree instead would be worse: it is
+  // exactly the silent host-execution this removal exists to stop.
+  error: (issue) =>
+    typeof issue.input === "string" && REMOVED_BACKENDS.has(issue.input)
+      ? `execution.backend "${issue.input}" was removed: it was never implemented, so a run configured this way silently executed on the host instead of in a sandbox. Set execution.backend to "local-worktree" (the default) or "docker".`
+      : undefined,
+});
 
 export type ExecutionBackendId = z.infer<typeof executionBackendIdSchema>;
 

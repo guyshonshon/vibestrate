@@ -178,21 +178,49 @@ export async function resolveSafePath(
     // realpath fails on its missing target. Letting the second through declares
     // the path contained, and a writer that follows it then creates the target
     // wherever the link points - outside the root.
+    const realRoot = await fs
+      .realpath(chosen.root.absolutePath)
+      .catch(() => chosen.root.absolutePath);
     const leaf = await fs.lstat(chosen.abs).catch(() => null);
     if (leaf?.isSymbolicLink()) {
-      throw new PathGuardError(
-        400,
-        "Path resolves through a symlink that escapes the allowed root.",
-      );
+      // A dangling link is not automatically an escape. One pointing at a file
+      // inside the root that has not been generated yet - a build output, a
+      // placeholder - is an honest 404, and calling it an escape tells the owner
+      // their file left the project when it did not. Resolve the target the way
+      // the OS would and judge it on where it actually points.
+      const target = await fs.readlink(chosen.abs).catch(() => null);
+      const resolved =
+        target === null
+          ? null
+          : path.resolve(path.dirname(chosen.abs), target);
+      if (resolved === null || !isPathInside(realRoot, resolved)) {
+        throw new PathGuardError(
+          400,
+          "Path resolves through a symlink that escapes the allowed root.",
+        );
+      }
     }
     // A missing leaf is legitimate, but only if the directory it would be
     // created in is really inside the root. Walk up to the nearest ancestor that
     // exists, since a symlinked parent escapes just as well as a symlinked leaf.
-    const realRoot = await fs
-      .realpath(chosen.root.absolutePath)
-      .catch(() => chosen.root.absolutePath);
     let probe = path.dirname(chosen.abs);
     for (;;) {
+      // A directory link whose target is missing also fails realpath, so
+      // climbing past it without looking would leave the same hole the leaf
+      // check closes: the containment claim would be false even though nothing
+      // can be written through it today.
+      const probeLink = await fs.lstat(probe).catch(() => null);
+      if (probeLink?.isSymbolicLink()) {
+        const target = await fs.readlink(probe).catch(() => null);
+        const resolved =
+          target === null ? null : path.resolve(path.dirname(probe), target);
+        if (resolved === null || !isPathInside(realRoot, resolved)) {
+          throw new PathGuardError(
+            400,
+            "Path resolves through a symlink that escapes the allowed root.",
+          );
+        }
+      }
       const realProbe = await fs.realpath(probe).catch(() => null);
       if (realProbe) {
         if (realProbe !== realRoot && !isPathInside(realRoot, realProbe)) {

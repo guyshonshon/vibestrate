@@ -89,8 +89,10 @@ describe("Host header validation (DNS rebinding)", () => {
       `[::1]:${s.port}`,
       "[::1]",
       `[::ffff:127.0.0.1]:${s.port}`,
-      `app.localhost:${s.port}`,
       `LOCALHOST:${s.port}`,
+      // The rooted-FQDN form of the same name.
+      `localhost.:${s.port}`,
+      "127.0.0.1.",
     ];
     for (const h of allowed) {
       const res = await rawGet(s.port, "/api/health", h);
@@ -110,6 +112,11 @@ describe("Host header validation (DNS rebinding)", () => {
       `evil.com@127.0.0.1:${s.port}`,
       "127.0.0.1.attacker.example",
       "",
+      // RFC 6761 reserves *.localhost for loopback and browsers honour it, but
+      // the Origin allow-list only accepts bare `localhost` - so allowing this
+      // here would serve the dashboard shell and then 403 every API call it
+      // makes. The two checks have to agree, and the narrower one wins.
+      `app.localhost:${s.port}`,
     ];
     for (const h of refused) {
       const res = await rawGet(s.port, "/api/health", h);

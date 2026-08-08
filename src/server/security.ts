@@ -45,16 +45,19 @@ export function isAllowedRequestHost(hostname: string | undefined): boolean {
     hostname.startsWith("[") && hostname.endsWith("]")
       ? hostname.slice(1, -1)
       : hostname;
-  const normalized = bare.trim().toLowerCase();
+  // A trailing dot is the legal rooted-FQDN form of the same name, so
+  // `localhost.` must not be treated as a different host.
+  const normalized = bare.trim().toLowerCase().replace(/\.$/, "");
   if (isLoopbackHost(normalized)) return true;
   // The IPv4-mapped IPv6 loopback, in both the textual and the compressed form
-  // Node may hand back, plus RFC 6761's reserved `*.localhost` - `app.localhost`
-  // is a real local-dev convention and resolves to loopback by definition.
-  return (
-    normalized === "::ffff:127.0.0.1" ||
-    normalized === "::ffff:7f00:1" ||
-    normalized.endsWith(".localhost")
-  );
+  // Node may hand back.
+  //
+  // `*.localhost` is deliberately NOT allowed. RFC 6761 reserves it for
+  // loopback and browsers honour that, but the Origin allow-list above only
+  // accepts bare `localhost`, so permitting it here would load the dashboard
+  // shell and then 403 every API call it makes - a broken page instead of a
+  // clean refusal. The two checks have to agree, and the narrower one wins.
+  return normalized === "::ffff:127.0.0.1" || normalized === "::ffff:7f00:1";
 }
 
 /**

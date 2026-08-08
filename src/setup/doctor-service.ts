@@ -621,21 +621,32 @@ export async function runDoctor(input: {
     }
   }
 
-  // Auto-push / auto-merge are structural, not configurable: no `git push` and
-  // no merge-to-main runs without an explicit human action, so there is no knob
-  // to police here. Reported as facts so `vibe doctor` still states the posture.
+  // Auto-push is structural: there is no `git push` anywhere in src/git/, so
+  // nothing can turn it on. Auto-merge is enforced by requiring an explicit
+  // human confirmation at the one merge entry point. Both are also DECLARED in
+  // policies, which is what the supervisor is told and what the owner can flip -
+  // so report the declared value rather than asserting a constant. A doctor
+  // check that cannot fail is not a check.
   findings.push({
     id: "auto-push",
     severity: "ok",
     title: "Auto-push is disabled",
-    detail: "Vibestrate never pushes to a remote for you.",
+    detail: loaded.config.policies.forbidAutoPush
+      ? "Vibestrate never pushes for you, and policies.forbidAutoPush declares it."
+      : "Vibestrate never pushes for you, but policies.forbidAutoPush is off, so the supervisor is not told that.",
     fixable: false,
   });
   findings.push({
     id: "auto-merge",
-    severity: "ok",
-    title: "Auto-merge is disabled",
-    detail: "Merging to main always takes an explicit human confirmation.",
+    severity: loaded.config.policies.forbidAutoMerge ? "ok" : "warn",
+    title: loaded.config.policies.forbidAutoMerge
+      ? "Auto-merge is disabled"
+      : "policies.forbidAutoMerge is off",
+    detail:
+      "Merging to main always takes an explicit human confirmation regardless; this policy is what the supervisor and the merge gate are told.",
+    fixHint: loaded.config.policies.forbidAutoMerge
+      ? undefined
+      : "Run `vibe policies set forbidAutoMerge true` to declare the posture the code already enforces.",
     fixable: false,
   });
 
