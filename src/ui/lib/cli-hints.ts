@@ -397,6 +397,20 @@ export function hintForRoute(route: Route): CliHint {
           "If a test says a provider isn't logged in, run its login command in your own terminal (e.g. `codex login`, `gemini`, `goose configure`).",
         ],
       };
+    case "supervisors-new":
+      return {
+        title: "Add a supervisor",
+        blurb:
+          "Adopt a curated archetype, or author your own judgment posture. Either way it lands as a personas: entry in project.yml and judges nothing until you make it the default or pick it on a run.",
+        commands: [
+          { cmd: "vibe supervisor archetypes", note: "the curated catalog" },
+          { cmd: "vibe supervisor adopt <id>", note: "adopt an archetype into this project" },
+          { cmd: "vibe supervisor default <id>", note: "make it the project default" },
+        ],
+        tips: [
+          "A custom supervisor is validated against the persona schema on save - a malformed field is refused, never coerced.",
+        ],
+      };
     case "supervisors":
       return {
         title: "Supervisors",

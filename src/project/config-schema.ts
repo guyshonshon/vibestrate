@@ -424,7 +424,7 @@ export type SessionConfig = z.infer<typeof sessionConfigSchema>;
 // ("staff-engineer") so a project with no `personas:` block still resolves.
 export const BUILTIN_PERSONA_IDS = ["staff-engineer", "security"] as const;
 
-const personaNameSchema = z
+export const personaNameSchema = z
   .string()
   .min(1)
   .max(40)

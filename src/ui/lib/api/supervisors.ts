@@ -21,6 +21,15 @@ export const supervisorsApi = {
   async adoptArchetype(archetypeId: string): Promise<{ id: string }> {
     return jsonPost("/api/supervisors/adopt", { archetypeId });
   },
+  /** Author a project supervisor. The server validates the definition and refuses
+   *  reserved ids, built-in shadowing, and silent overwrites. */
+  async createPersona(
+    id: string,
+    persona: Record<string, unknown>,
+    overwrite = false,
+  ): Promise<{ id: string }> {
+    return jsonPost("/api/supervisors/personas", { id, persona, overwrite });
+  },
   /** Set the project's default supervisor. Parity with `vibe supervisor default`. */
   async setDefaultPersona(
     personaId: string,

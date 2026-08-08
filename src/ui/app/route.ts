@@ -24,6 +24,7 @@ export type Route =
   | { kind: "mission" }
   | { kind: "compose" }
   | { kind: "runs"; status?: RunFilter }
+  | { kind: "supervisors-new" }
   | {
       kind: "run";
       runId: string;
@@ -173,6 +174,7 @@ export function parseHashRoute(hash: string): Route {
   if (parts[0] === "queue") return { kind: "runs" };
   if (parts[0] === "workspace") return { kind: "workspace" };
   if (parts[0] === "settings") return { kind: "settings" };
+  if (parts[0] === "supervisors" && parts[1] === "new") return { kind: "supervisors-new" };
   if (parts[0] === "policies") return { kind: "policies" };
   if (parts[0] === "project") return { kind: "project" };
   if (parts[0] === "codebase") {
@@ -248,6 +250,8 @@ export function serializeRoute(route: Route): string {
       return "#/";
     case "compose":
       return "#/compose";
+    case "supervisors-new":
+      return "#/supervisors/new";
     case "runs":
       return route.status ? `#/runs?status=${route.status}` : "#/runs";
     case "run": {

@@ -15,7 +15,11 @@ import {
   setConfigValue,
 } from "../setup/config-update-service.js";
 import { loadConfig } from "../project/config-loader.js";
-import { BUILTIN_PERSONA_IDS } from "../project/config-schema.js";
+import {
+  BUILTIN_PERSONA_IDS,
+  personaConfigSchema,
+  personaNameSchema,
+} from "../project/config-schema.js";
 import { buildPersonaCatalog } from "./personas.js";
 import { SUPERVISOR_ARCHETYPES } from "./supervisor-archetypes.js";
 
@@ -102,4 +106,75 @@ export async function removePersona(
   doc.deleteIn(["personas", id]);
   await writeDocument(projectRoot, doc);
   return { removed: true };
+}
+
+/**
+ * Ids that must never become a `personas.<id>` key.
+ *
+ * `personaNameSchema` permits letters, digits, dashes and underscores, which
+ * means `__proto__`, `constructor` and `prototype` all satisfy it. Writing one
+ * of those would put a persona behind a key that a later truthy index lookup
+ * inherits from Object.prototype - the same hazard `adoptArchetype` guards with
+ * Object.hasOwn, reached from the other direction. The whole-config Zod
+ * re-validation does NOT reject prototype-named keys, so this list is the guard.
+ */
+const FORBIDDEN_PERSONA_IDS: ReadonlySet<string> = new Set([
+  "__proto__",
+  "constructor",
+  "prototype",
+]);
+
+/**
+ * Author a project persona from owner input.
+ *
+ * Unlike `adoptArchetype`, whose definition is server-owned and only referenced
+ * by id, every field here arrives from the caller - so it is validated against
+ * `personaConfigSchema` before it is written, and rejected rather than coerced.
+ * Refuses to shadow a built-in or silently overwrite an existing persona; the
+ * caller asks for an update explicitly.
+ */
+export async function createPersona(
+  projectRoot: string,
+  id: string,
+  config: unknown,
+  opts: { overwrite?: boolean } = {},
+): Promise<{ id: string }> {
+  const trimmed = id.trim();
+  if (FORBIDDEN_PERSONA_IDS.has(trimmed)) {
+    throw new ConfigError(`"${trimmed}" is a reserved name and cannot be a supervisor id.`);
+  }
+  const idCheck = personaNameSchema.safeParse(trimmed);
+  if (!idCheck.success) {
+    throw new ConfigError(
+      idCheck.error.issues[0]?.message ?? "Invalid supervisor id.",
+    );
+  }
+  if ((BUILTIN_PERSONA_IDS as readonly string[]).includes(trimmed)) {
+    throw new ConfigError(
+      `"${trimmed}" is a built-in supervisor. Pick a different id.`,
+    );
+  }
+  const parsed = personaConfigSchema.safeParse(config);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new ConfigError(
+      issue ? `${issue.path.join(".") || "config"}: ${issue.message}` : "Invalid supervisor.",
+    );
+  }
+  if (!opts.overwrite) {
+    // Read the document, the same way removePersona checks existence - it is the
+    // authoritative view of what is actually written, not the resolved config.
+    const { doc } = await readDocument(projectRoot);
+    if (doc.hasIn(["personas", trimmed])) {
+      throw new ConfigError(
+        `A supervisor called "${trimmed}" already exists. Rename it, or edit the existing one.`,
+      );
+    }
+  }
+  await setConfigValue(
+    projectRoot,
+    `personas.${trimmed}`,
+    JSON.stringify(parsed.data),
+  );
+  return { id: trimmed };
 }

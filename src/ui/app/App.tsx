@@ -23,6 +23,7 @@ import { CrewPage } from "./routes/CrewPage.js";
 import { ProfilesPage } from "./routes/ProfilesPage.js";
 import { ConsultPage } from "./routes/ConsultPage.js";
 import { SupervisorsPage } from "./routes/SupervisorsPage.js";
+import { SupervisorNewPage } from "./routes/SupervisorNewPage.js";
 import { PoliciesPage } from "./routes/PoliciesPage.js";
 import { ConfigPage } from "./routes/ConfigPage.js";
 import { RunSwitcher } from "../components/runs/RunSwitcher.js";
@@ -489,7 +490,9 @@ export function App() {
           }
         />
       ) : route.kind === "supervisors" ? (
-        <SupervisorsPage />
+        <SupervisorsPage onAddSupervisor={() => navigate({ kind: "supervisors-new" })} />
+      ) : route.kind === "supervisors-new" ? (
+        <SupervisorNewPage onDone={() => navigate({ kind: "supervisors" })} />
       ) : route.kind === "config" ? (
         <ConfigPage />
       ) : route.kind === "consult" ? (

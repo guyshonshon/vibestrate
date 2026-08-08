@@ -8,11 +8,9 @@ import type {
 import { Button } from "../../components/design/Button.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { StatTile } from "../../components/design/StatTile.js";
-import {
-  PageShell,
-  PageHeader,
-  Section,
-} from "../../components/layout/PageShell.js";
+import { PageShell } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
+import { PageHero } from "../../components/layout/PageHero.js";
 import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
 
@@ -25,7 +23,7 @@ import { useToast, ToastView } from "../../components/design/useToast.js";
  * Every write mirrors a `vibe supervisor` subcommand over the same service; the
  * client only ever sends an id (persona definitions are server-owned).
  */
-export function SupervisorsPage() {
+export function SupervisorsPage({ onAddSupervisor }: { onAddSupervisor: () => void }) {
   const [personas, setPersonas] = useState<PersonaSummary[]>([]);
   const [archetypes, setArchetypes] = useState<SupervisorArchetypeView[]>([]);
   const [defaultPersona, setDefaultPersona] = useState<string>("staff-engineer");
@@ -97,61 +95,77 @@ export function SupervisorsPage() {
     }
   }
 
+  const defaultLabel = personas.find((p) => p.id === defaultPersona)?.label ?? null;
+  const builtIns = personas.filter((p) => p.builtin).length;
+  const projectOwned = personas.length - builtIns;
+
   return (
     <PageShell>
-      <PageHeader
-        title={
-          <span className="flex items-center gap-2">
-            <ShieldCheck
-              className="h-6 w-6 text-violet-soft"
-              strokeWidth={1.9}
-              aria-hidden
-            />
-            Supervisors
-          </span>
-        }
-        actions={
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={busy}
-            onClick={() => void load()}
-            iconLeft={
-              <RefreshCw
-                className={cn("h-3.5 w-3.5", busy && "animate-spin")}
-                strokeWidth={1.9}
-              />
+      <Deck>
+        <Cell size="full" reason="masthead">
+          <PageHero
+            state={{
+              value: personas.length,
+              caption: personas.length === 1 ? "Supervisor" : "Supervisors",
+              note: defaultLabel
+                ? `${defaultLabel} judges every run unless one is picked per run.`
+                : "One judges every run unless you pick another per run.",
+              tone: "violet",
+            }}
+            title="Supervisors"
+            purpose="The orchestrator's judgment postures. A supervisor decides how hard to look at a run: which lenses the reviewers are aimed at, which flow risky work is upgraded to, and the safety posture it suggests."
+            actions={
+              <>
+                <Button variant="primary" size="sm" onClick={onAddSupervisor}>
+                  Add supervisor
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void load()}
+                  iconLeft={
+                    <RefreshCw
+                      className={cn("h-3.5 w-3.5", busy && "animate-spin")}
+                      strokeWidth={1.9}
+                    />
+                  }
+                >
+                  {busy ? "Refreshing…" : "Refresh"}
+                </Button>
+              </>
             }
-          >
-            {busy ? "Refreshing…" : "Refresh"}
-          </Button>
-        }
-      >
-        <p className="mt-3 max-w-[74ch] rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-4 py-3 text-[13px] leading-[1.55] text-chalk-300">
-          The orchestrator's judgment postures. A supervisor decides how hard to
-          look at a run - which lenses the independent reviewers are aimed at,
-          which flow risky work is upgraded to, and the safety posture it
-          suggests. Set the project default here or adopt a curated archetype;
-          pick one per run on the compose page. The same actions back{" "}
-          <span className="mono text-chalk-100">vibe supervisor</span>.
-        </p>
-      </PageHeader>
+            metrics={[
+              { value: personas.length, label: "available" },
+              { value: builtIns, label: "built-in" },
+              { value: projectOwned, label: "project" },
+              { value: archetypes.length, label: "archetypes" },
+            ]}
+            footer={
+              defaultLabel
+                ? `Default: ${defaultLabel}. Pick a different one per run on the compose page.`
+                : "No default set - the built-in staff engineer judges every run."
+            }
+          />
+        </Cell>
 
-      {error ? (
-        <ErrorView className="mb-4" compact err={error} onRetry={() => void load()} />
-      ) : null}
+        {error ? (
+          <Cell size="full" reason="masthead">
+            <ErrorView compact err={error} onRetry={() => void load()} />
+          </Cell>
+        ) : null}
 
-      {!loaded && !error ? (
-        <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4 py-6 text-[12.5px] text-chalk-300">
-          Loading supervisors…
-        </div>
-      ) : (
-        <>
-          <Section title="Active supervisors">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {personas.map((p) => (
+        {!loaded && !error ? (
+          <Cell size="full" reason="masthead">
+            <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4 py-6 text-[13px] text-chalk-300">
+              Loading supervisors…
+            </div>
+          </Cell>
+        ) : (
+          <>
+            {personas.map((p) => (
+              <Cell key={p.id} size="card">
                 <PersonaCard
-                  key={p.id}
                   persona={p}
                   isDefault={p.id === defaultPersona}
                   settingDefault={action === `default:${p.id}`}
@@ -159,19 +173,30 @@ export function SupervisorsPage() {
                   onSetDefault={() => void makeDefault(p.id)}
                   onRemove={() => void remove(p.id)}
                 />
-              ))}
-            </div>
-          </Section>
+              </Cell>
+            ))}
 
-          <ArchetypeGallery
-            archetypes={archetypes}
-            adoptingId={
-              action?.startsWith("adopt:") ? action.slice("adopt:".length) : null
-            }
-            onAdopt={(id) => void adopt(id)}
-          />
-        </>
-      )}
+            {/* The add affordance sits IN the collection, as the next card in the
+             * row, so adding reads as part of the set rather than an action
+             * stranded in the header. */}
+            <Cell size="card">
+              <button
+                type="button"
+                onClick={onAddSupervisor}
+                className="flex h-full min-h-[188px] w-full flex-col items-center justify-center gap-2 rounded-[18px] border border-dashed border-[color:var(--line-strong)] bg-transparent px-5 py-6 text-center transition hover:border-violet-soft/50 hover:bg-violet-soft/[0.06]"
+              >
+                <Plus className="h-5 w-5 text-violet-soft" strokeWidth={2} />
+                <span className="text-[16px] font-semibold text-chalk-100">
+                  Add supervisor
+                </span>
+                <span className="max-w-[34ch] text-[13px] leading-[1.45] text-chalk-300">
+                  Start from a curated archetype, or write your own judgment posture.
+                </span>
+              </button>
+            </Cell>
+          </>
+        )}
+      </Deck>
 
       <ToastView toast={toast} />
     </PageShell>
@@ -298,7 +323,8 @@ function ArchetypeGallery({
 }) {
   if (archetypes.length === 0) return null;
   return (
-    <Section title="Archetypes">
+    <div className="mb-4">
+      <h2 className="mb-3 text-[20px] font-bold text-violet-vivid">Archetypes</h2>
       <p className="mb-3 max-w-[74ch] text-[13px] leading-[1.55] text-chalk-300">
         Curated supervisors, ready to adopt. Adopting one writes a{" "}
         <span className="mono text-chalk-100">personas:</span> entry into{" "}
@@ -371,6 +397,6 @@ function ArchetypeGallery({
           );
         })}
       </div>
-    </Section>
+    </div>
   );
 }

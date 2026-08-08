@@ -12,6 +12,7 @@ import { buildPersonaCatalog } from "../../supervisor/personas.js";
 import { listSupervisorArchetypes } from "../../supervisor/supervisor-archetypes.js";
 import {
   adoptArchetype,
+  createPersona,
   setDefaultPersona,
   removePersona,
 } from "../../supervisor/persona-service.js";
@@ -30,6 +31,16 @@ const adoptArchetypeBody = z
   .strict();
 const setDefaultPersonaBody = z
   .object({ personaId: z.string().min(1).max(60) })
+  .strict();
+// The one supervisor body that carries a DEFINITION rather than an id, so the
+// persona object is deliberately passed through as unknown and validated by the
+// service against personaConfigSchema - one validator, not two that can drift.
+const createPersonaBody = z
+  .object({
+    id: z.string().min(1).max(60).regex(/^[a-zA-Z0-9_-]+$/),
+    persona: z.unknown(),
+    overwrite: z.boolean().optional(),
+  })
   .strict();
 
 /** Read a dotted path out of a loaded config object (no schema needed). */
@@ -230,6 +241,30 @@ export async function registerConfigRoutes(
     }
     try {
       return await adoptArchetype(projectRoot, parsed.data.archetypeId);
+    } catch (err) {
+      if (err instanceof ConfigError) throw new HttpError(400, err.message);
+      throw err;
+    }
+  });
+
+  // Author a project supervisor from owner input. Unlike adopt, every field here
+  // is caller-supplied, so the service validates against personaConfigSchema and
+  // refuses reserved ids, built-in shadowing, and silent overwrites.
+  app.post("/api/supervisors/personas", async (req) => {
+    const parsed = createPersonaBody.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(
+        400,
+        parsed.error.issues[0]?.message ?? "Invalid request body.",
+      );
+    }
+    try {
+      return await createPersona(
+        projectRoot,
+        parsed.data.id,
+        parsed.data.persona,
+        { overwrite: parsed.data.overwrite ?? false },
+      );
     } catch (err) {
       if (err instanceof ConfigError) throw new HttpError(400, err.message);
       throw err;
