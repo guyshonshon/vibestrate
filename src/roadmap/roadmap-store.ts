@@ -22,6 +22,19 @@ import {
 } from "./roadmap-types.js";
 import { migrateTaskShape } from "./migrate-task.js";
 
+/** The roadmap file exists but does not parse. Carries the path so the caller
+ *  can name it, and the reason so the quarantine message can quote it. */
+export class RoadmapCorruptError extends Error {
+  readonly code = "ROADMAP_CORRUPT";
+  constructor(
+    readonly filePath: string,
+    readonly reason: string,
+  ) {
+    super(`Roadmap file at ${filePath} is unreadable: ${reason}`);
+    this.name = "RoadmapCorruptError";
+  }
+}
+
 export class RoadmapStore {
   constructor(private readonly projectRoot: string) {}
 
@@ -38,6 +51,14 @@ export class RoadmapStore {
     }
   }
 
+  /**
+   * Throws on a corrupt file rather than reporting an empty roadmap. The old
+   * behaviour swallowed the parse failure and returned `{ items: [] }`, which
+   * the write path then wrote back - so a single hand-edit typo rendered the
+   * board empty with no warning and the next `vibe roadmap add` replaced every
+   * item with the new one. `.vibestrate/` is gitignored, so there was nothing to
+   * recover from. Write paths use `readRoadmapForWrite`, which quarantines.
+   */
   async readRoadmap(): Promise<RoadmapFile> {
     const file = roadmapFile(this.projectRoot);
     if (!(await pathExists(file))) return { items: [] };
@@ -45,7 +66,39 @@ export class RoadmapStore {
     if (!text.trim()) return { items: [] };
     try {
       return roadmapFileSchema.parse(JSON.parse(text));
-    } catch {
+    } catch (err) {
+      throw new RoadmapCorruptError(
+        file,
+        err instanceof Error ? err.message : "unexpected shape",
+      );
+    }
+  }
+
+  /**
+   * Move an unreadable roadmap aside instead of overwriting it, so a corrupt
+   * file never costs the owner their roadmap - it stays on disk next to the new
+   * one and can be salvaged by hand. Mirrors the workspace registry.
+   */
+  private async quarantineRoadmap(reason: string): Promise<string> {
+    const file = roadmapFile(this.projectRoot);
+    const dest = `${file}.corrupt-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+    await fs.rename(file, dest);
+    console.warn(
+      `[vibestrate] roadmap at ${file} was unreadable (${reason}); moved it to ` +
+        `${dest} and started a fresh one. Your items are still in that file if ` +
+        `you want them back.`,
+    );
+    return dest;
+  }
+
+  /** `readRoadmap`, but a corrupt file is quarantined and treated as a fresh
+   *  start. Only for the write paths, which must make progress. */
+  private async readRoadmapForWrite(): Promise<RoadmapFile> {
+    try {
+      return await this.readRoadmap();
+    } catch (err) {
+      if (!(err instanceof RoadmapCorruptError)) throw err;
+      await this.quarantineRoadmap(err.reason);
       return { items: [] };
     }
   }
@@ -70,7 +123,7 @@ export class RoadmapStore {
   }
 
   async upsertRoadmapItem(item: RoadmapItem): Promise<void> {
-    const file = await this.readRoadmap();
+    const file = await this.readRoadmapForWrite();
     const idx = file.items.findIndex((i) => i.id === item.id);
     if (idx >= 0) file.items[idx] = item;
     else file.items.push(item);
