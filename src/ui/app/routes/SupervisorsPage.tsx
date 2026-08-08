@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ShieldCheck, RefreshCw, Check, Trash2, Plus } from "lucide-react";
+import { RefreshCw, Check, Trash2, Plus } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type {
   PersonaSummary,
@@ -7,6 +7,7 @@ import type {
 } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
 import { ErrorView } from "../../lib/error-view.js";
+import { settle } from "../../lib/settled.js";
 import { StatTile } from "../../components/design/StatTile.js";
 import { PageShell } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
@@ -25,7 +26,8 @@ import { useToast, ToastView } from "../../components/design/useToast.js";
  */
 export function SupervisorsPage({ onAddSupervisor }: { onAddSupervisor: () => void }) {
   const [personas, setPersonas] = useState<PersonaSummary[]>([]);
-  const [archetypes, setArchetypes] = useState<SupervisorArchetypeView[]>([]);
+  // null = the fetch failed, which must not read as "there are none".
+  const [archetypes, setArchetypes] = useState<SupervisorArchetypeView[] | null>([]);
   const [defaultPersona, setDefaultPersona] = useState<string>("staff-engineer");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -37,13 +39,16 @@ export function SupervisorsPage({ onAddSupervisor }: { onAddSupervisor: () => vo
     setBusy(true);
     setError(null);
     try {
+      // The archetype count is allowed to fail without taking the page down,
+      // but a swallowed failure would render as "0 archetypes" - a claim that
+      // none exist, which is the opposite of what happened.
       const [cat, arch] = await Promise.all([
         api.listPersonas(),
-        api.getSupervisorArchetypes().catch(() => ({ archetypes: [] })),
+        settle(api.getSupervisorArchetypes()),
       ]);
       setPersonas(cat.personas);
       setDefaultPersona(cat.defaultPersona);
-      setArchetypes(arch.archetypes);
+      setArchetypes(arch.ok ? arch.value.archetypes : null);
       setLoaded(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -82,18 +87,6 @@ export function SupervisorsPage({ onAddSupervisor }: { onAddSupervisor: () => vo
     }
   }
 
-  async function adopt(id: string) {
-    setAction(`adopt:${id}`);
-    try {
-      await api.adoptArchetype(id);
-      flash({ kind: "ok", text: `Adopted "${id}" into your supervisors.` });
-      await load();
-    } catch (e) {
-      flash({ kind: "err", text: e instanceof Error ? e.message : String(e) });
-    } finally {
-      setAction(null);
-    }
-  }
 
   const defaultLabel = personas.find((p) => p.id === defaultPersona)?.label ?? null;
   const builtIns = personas.filter((p) => p.builtin).length;
@@ -139,7 +132,7 @@ export function SupervisorsPage({ onAddSupervisor }: { onAddSupervisor: () => vo
               { value: personas.length, label: "available" },
               { value: builtIns, label: "built-in" },
               { value: projectOwned, label: "project" },
-              { value: archetypes.length, label: "archetypes" },
+              { value: archetypes ? archetypes.length : "-", label: "archetypes" },
             ]}
             footer={
               defaultLabel
@@ -305,97 +298,6 @@ function PersonaCard({
             {removing ? "Removing…" : "Remove"}
           </Button>
         ) : null}
-      </div>
-    </div>
-  );
-}
-
-// ─── Archetype gallery (adopt a curated supervisor) ─────────────────────────
-
-function ArchetypeGallery({
-  archetypes,
-  adoptingId,
-  onAdopt,
-}: {
-  archetypes: SupervisorArchetypeView[];
-  adoptingId: string | null;
-  onAdopt: (id: string) => void;
-}) {
-  if (archetypes.length === 0) return null;
-  return (
-    <div className="mb-4">
-      <h2 className="mb-3 text-[20px] font-bold text-violet-vivid">Archetypes</h2>
-      <p className="mb-3 max-w-[74ch] text-[13px] leading-[1.55] text-chalk-300">
-        Curated supervisors, ready to adopt. Adopting one writes a{" "}
-        <span className="mono text-chalk-100">personas:</span> entry into{" "}
-        <span className="mono text-chalk-100">project.yml</span> - then set it as
-        your default above or pick it per run.
-      </p>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {archetypes.map((a) => {
-          const tiles: { value: string; label: string }[] = [
-            {
-              value: a.reviewLenses.join(", "),
-              label: a.reviewLenses.length === 1 ? "review lens" : "review lenses",
-            },
-            ...(a.prefersFlows.length
-              ? [{ value: a.prefersFlows.join(", "), label: "prefers flow" }]
-              : []),
-            ...(a.prefersPosture
-              ? [{ value: a.prefersPosture, label: "suggests posture" }]
-              : []),
-          ];
-          return (
-            <div
-              key={a.id}
-              className="flex flex-col rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4"
-            >
-              <div className="flex items-center gap-2">
-                <ShieldCheck
-                  className="h-4 w-4 shrink-0 text-violet-soft"
-                  strokeWidth={1.9}
-                  aria-hidden
-                />
-                <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-chalk-100">
-                  {a.label}
-                </span>
-                {a.adopted ? (
-                  <span className="shrink-0 text-[11px] font-semibold text-emerald-400">
-                    adopted
-                  </span>
-                ) : null}
-              </div>
-              {a.description ? (
-                <p className="mt-2 line-clamp-3 text-[12px] leading-snug text-chalk-300">
-                  {a.description}
-                </p>
-              ) : null}
-              <div className="mt-3 flex flex-wrap items-stretch gap-1">
-                {tiles.map((t, i) => (
-                  <StatTile key={i} value={t.value} label={t.label} />
-                ))}
-              </div>
-              <div className="mt-3.5 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
-                {a.adopted ? (
-                  <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-emerald-400">
-                    <Check className="h-3.5 w-3.5" strokeWidth={2.2} />
-                    In your supervisors
-                  </span>
-                ) : (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={adoptingId === a.id}
-                    iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={2} />}
-                    onClick={() => onAdopt(a.id)}
-                  >
-                    {adoptingId === a.id ? "Adopting…" : "Adopt"}
-                  </Button>
-                )}
-              </div>
-            </div>
-          );
-        })}
       </div>
     </div>
   );
