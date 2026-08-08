@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.76.0
+
+- **Aborting a run actually aborts it.** `vibe abort`, the dashboard's Abort
+  button, the TUI and task terminate all used to write "aborted" straight into
+  the run's state file. The run itself writes that same file at the end of every
+  turn, from its own in-memory copy - so an abort that landed at the wrong
+  moment was quietly overwritten, and the run carried on spending while you had
+  already been told it stopped. Abort is now a request the run watches for and
+  acts on itself, the way pause always has. It stops at its next checkpoint and
+  still writes its final report, assurance record and ledger entry, instead of
+  being cut off mid-sentence.
+- **The wording is honest about that.** `vibe abort` says "abort requested,
+  stopping at the next checkpoint" rather than claiming the run is already over.
+  A run whose process has died is still closed out immediately, because in that
+  case there is nobody left to do it.
+- **A corrupt roadmap no longer takes the whole Board down.** The previous
+  release made an unreadable roadmap.json report itself instead of silently
+  reading as empty, which was right - but the Board loaded the roadmap and the
+  tasks together, so one unreadable file replaced the entire page, tasks
+  included, every four seconds. The roadmap now degrades on its own and the
+  board keeps showing the work you can act on. `vibe roadmap update` and
+  `archive` also recover from a corrupt file now instead of refusing until you
+  repaired it by hand.
+- **Upgrading past a removed setting tells you what to do.** A project.yml still
+  carrying `execution.backend: remote-sandbox` now fails with the key, the
+  replacement and the reason, instead of a bare schema error that blocked every
+  command. It is deliberately not migrated silently - that would put back the
+  quiet host execution the removal exists to stop.
+
 ## 0.75.0
 
 A pre-1.0 audit pass. Thirteen review lenses over the whole repo, every finding
