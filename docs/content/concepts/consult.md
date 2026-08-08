@@ -1,7 +1,6 @@
 ---
 title: Consult
 description: A read-only advisor that knows your real project. Ask it anything - it recommends, it never acts.
-section: concepts
 slug: concepts/consult
 ---
 

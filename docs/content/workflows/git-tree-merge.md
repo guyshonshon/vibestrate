@@ -1,7 +1,6 @@
 ---
 title: Merge from the git tree
 description: Explore your branches as a graph, predict a merge before you apply it, let the supervisor resolve conflicts, and undo with one click.
-section: workflows
 slug: workflows/git-tree-merge
 ---
 

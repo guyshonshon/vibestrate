@@ -1,7 +1,6 @@
 ---
 title: Why a human stays in the loop
 description: AI is fast, but it guesses and it agrees with you. Vibestrate proves the work before a person makes the final call.
-section: getting-started
 slug: getting-started/why-a-human
 ---
 

@@ -1,7 +1,6 @@
 ---
 title: Worktree
 description: Every run does its work in a separate copy of your project, so your real files are never touched.
-section: concepts
 slug: concepts/worktree
 ---
 

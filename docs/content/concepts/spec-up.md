@@ -1,7 +1,6 @@
 ---
 title: Spec-up (plan as a CTO)
 description: Turn a vague brief into a scoped spec, an architecture, the risks, and a reviewable roadmap - before any code is written.
-section: concepts
 slug: concepts/spec-up
 ---
 

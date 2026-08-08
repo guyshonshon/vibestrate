@@ -102,6 +102,8 @@ export function ProfilesPage() {
 
   async function load() {
     try {
+      // Safe to degrade silently: metadata and the catalog only widen the
+      // provider/model dropdowns. The profiles themselves fail loudly below.
       const [profRes, meta, cat] = await Promise.all([
         api.getProfiles(),
         api.getProjectMetadata().catch(() => null),

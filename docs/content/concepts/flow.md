@@ -1,7 +1,6 @@
 ---
 title: Flow
 description: The steps Vibestrate works through to finish your task - plan, build, check, fix.
-section: concepts
 slug: concepts/flow
 ---
 

@@ -1,7 +1,6 @@
 ---
 title: Add a provider
 description: Tell Vibestrate how to run a local coding CLI it doesn't already know, or change the flags of one it does.
-section: extending
 slug: extending/add-provider
 ---
 

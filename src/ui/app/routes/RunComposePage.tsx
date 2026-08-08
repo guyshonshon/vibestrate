@@ -85,6 +85,10 @@ export function RunComposePage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      // Safe to degrade silently: every one of these only pre-fills the
+      // composer's optional choices (crew, flow list, persona, suggestions,
+      // today's spend). None of them is a fact about existing work, and the
+      // launch itself reports its own failure.
       const [m, f, p, s, b] = await Promise.all([
         api.getProjectMetadata().catch(() => null),
         api.listFlows().catch(() => ({ flows: [] as DiscoveredFlow[], defaultFlow: null })),
@@ -134,6 +138,9 @@ export function RunComposePage() {
         }
         if (Object.keys(seed).length > 0) setParamValues(seed);
       })
+      // Safe to degrade silently: this only seeds the flow's inputs from the
+      // stored project profile. Unseeded fields are empty and required ones
+      // still block launch, so nothing is presented as answered when it isn't.
       .catch(() => {});
     return () => {
       cancelled = true;

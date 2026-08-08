@@ -12,6 +12,7 @@ import { fmtElapsed } from "../design/format.js";
 import { Button } from "../design/Button.js";
 import { Chip, ToneDot, type ChipTone } from "../design/Chip.js";
 import { LiveOutputPanel } from "./LiveOutputPanel.js";
+import { ErrorView } from "../../lib/error-view.js";
 
 // ── Live timeline ────────────────────────────────────────────────────────────
 // THE run surface: one row per flow step - status, who's seated, ticking
@@ -308,6 +309,10 @@ function SeatDetail({
   const [promptOpen, setPromptOpen] = useState(false);
   const [prompt, setPrompt] = useState<string | null>(null);
   const [output, setOutput] = useState<string | null>(null);
+  // A failed read fell through to "No response artifact recorded" - which says
+  // the seat produced nothing, the opposite of what happened.
+  const [outputError, setOutputError] = useState<unknown>(null);
+  const [retryTick, setRetryTick] = useState(0);
 
   // The prompt artifact is written BEFORE the provider call, so it's
   // fetchable while the seat is still working. Lazy: only when expanded.
@@ -334,13 +339,18 @@ function SeatDetail({
     api
       .readArtifact(runId, card.outputArtifactPath)
       .then((t) => {
-        if (!cancelled) setOutput(t);
+        if (!cancelled) {
+          setOutput(t);
+          setOutputError(null);
+        }
       })
-      .catch(() => {});
+      .catch((e: unknown) => {
+        if (!cancelled) setOutputError(e);
+      });
     return () => {
       cancelled = true;
     };
-  }, [runId, card.state, card.outputArtifactPath]);
+  }, [runId, card.state, card.outputArtifactPath, retryTick]);
 
   return (
     <div className="rounded-[14px] border border-[color:var(--line)] bg-coal-800 p-3">
@@ -399,6 +409,16 @@ function SeatDetail({
           <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap rounded-[12px] border border-[color:var(--line)] bg-coal-900 p-2.5 text-[11.5px] leading-relaxed text-chalk-300">
             {output}
           </pre>
+        ) : outputError ? (
+          <ErrorView
+            compact
+            err={outputError}
+            onRetry={() => setRetryTick((t) => t + 1)}
+            override={{
+              title: "Couldn't read this seat's response",
+              hint: "The artifact exists but could not be read - the seat did not produce nothing.",
+            }}
+          />
         ) : (
           <p className="text-[11.5px] text-chalk-400">
             {card.state === "waiting"

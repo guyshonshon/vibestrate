@@ -1,7 +1,6 @@
 ---
 title: Seat
 description: The empty chair a Flow step needs filled - a label, not a name, which is what keeps Flows shareable.
-section: concepts
 slug: concepts/seat
 ---
 

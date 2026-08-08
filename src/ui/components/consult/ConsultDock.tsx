@@ -37,6 +37,9 @@ export function ConsultDock() {
   useEffect(() => {
     if (!open || providers.length > 0) return;
     let cancelled = false;
+    // Safe to degrade silently: these only populate the provider / model /
+    // effort selectors. With them empty the dock still asks on the crew's
+    // configured planner, and a failed ask surfaces its own error.
     Promise.all([
       api.listProviders().catch(() => ({ providers: [] as ProviderRow[] })),
       api.getProviderCatalog().catch(() => null),

@@ -1,7 +1,6 @@
 ---
 title: CLI overview
 description: The shape of the vibe command, how its subcommands group, and the conventions every command follows.
-section: cli
 slug: cli/overview
 ---
 

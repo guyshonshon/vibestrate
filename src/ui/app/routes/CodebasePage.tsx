@@ -74,7 +74,10 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
     };
   }, []);
 
-  // Load runs once for the worktree picker.
+  // Load runs once for the worktree picker. Safe to degrade silently: with an
+  // empty list the page stays on the project source, which is the default and
+  // the thing it is actually browsing - and the tree fetch reports its own
+  // failures.
   useEffect(() => {
     void api
       .listRuns()

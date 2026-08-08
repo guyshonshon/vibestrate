@@ -1,7 +1,6 @@
 ---
 title: Task lifecycle
 description: How a task moves through statuses, with the fix loop and the approval gates.
-section: lifecycle
 slug: task-lifecycle
 ---
 

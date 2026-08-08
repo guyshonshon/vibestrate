@@ -1,7 +1,6 @@
 ---
 title: Troubleshooting
 description: Concrete fixes for the issues people actually hit.
-section: ops
 slug: troubleshooting
 ---
 

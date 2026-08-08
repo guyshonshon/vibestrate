@@ -1,7 +1,6 @@
 ---
 title: Interactive shell
 description: The terminal panel vibe opens with no arguments, with a live status bar, tabbed pages, and an always-on command prompt.
-section: cli
 slug: cli/shell
 ---
 

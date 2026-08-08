@@ -1,7 +1,6 @@
 ---
 title: vibe tasks (supervised runs)
 description: Author and run supervised tasks - a task with ordered steps you define once and sequence later through the Conductor.
-section: cli
 slug: cli/supervised-tasks
 ---
 

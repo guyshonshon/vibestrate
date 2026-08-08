@@ -1,7 +1,6 @@
 ---
 title: HTTP API
 description: The local dashboard API, a versioned /api/v1 contract with optional bearer-token auth and the flow import, export, and create endpoints.
-section: architecture
 slug: architecture/http-api
 ---
 

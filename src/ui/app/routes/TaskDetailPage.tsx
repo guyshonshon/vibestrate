@@ -69,6 +69,9 @@ export function TaskDetailPage({
       const [r, list, rm] = await Promise.all([
         api.getTask(taskId),
         api.listTasks(),
+        // Safe to degrade silently: the roadmap only populates the optional
+        // "link to a roadmap item" picker. The task itself, which is what this
+        // page is about, comes from the two fetches above and fails loudly.
         api.listRoadmap().catch(() => [] as RoadmapItem[]),
       ]);
       setData(r);

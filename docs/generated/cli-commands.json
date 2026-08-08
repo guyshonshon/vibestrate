@@ -2865,6 +2865,13 @@
               "required": false,
               "optional": false,
               "negated": false
+            },
+            {
+              "flags": "--flow <id>",
+              "description": "checklist-aware flow to run (default \"pickup\"); e.g. pickup-review for a per-item review panel + arbiter.",
+              "required": true,
+              "optional": false,
+              "negated": false
             }
           ],
           "subcommands": []

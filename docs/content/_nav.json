@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "$comment": "This file is the only source of truth for how the docs are grouped, ordered and labelled in navigation. Page frontmatter carries no section - it would be a second, silently drifting copy, and the in-shell reader (src/shell/ink/docs-source.ts) never looks at it. Adding a page means adding it here; tests/docs-nav-consistency.test.ts fails if a page and this file disagree.",
   "sections": [
     {
       "id": "start",

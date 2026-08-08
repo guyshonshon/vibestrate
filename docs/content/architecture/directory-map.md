@@ -1,7 +1,6 @@
 ---
 title: Repository map
 description: A tour of the source tree, showing what lives where and where to start reading.
-section: architecture
 slug: architecture/directory-map
 ---
 

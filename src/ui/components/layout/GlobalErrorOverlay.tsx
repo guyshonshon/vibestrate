@@ -3,6 +3,7 @@
 // toast stack, so a failure shows in the UI instead of only the F12 console.
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { Z_LAYER } from "../../lib/z-layers.js";
 
 type Toast = { id: number; msg: string };
 
@@ -44,7 +45,10 @@ export function GlobalErrorOverlay() {
 
   if (toasts.length === 0) return null;
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex max-w-md flex-col gap-2">
+    <div
+      className="fixed bottom-4 right-4 flex max-w-md flex-col gap-2"
+      style={{ zIndex: Z_LAYER.globalError }}
+    >
       {toasts.map((t) => (
         <div
           key={t.id}

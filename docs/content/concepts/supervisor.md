@@ -1,7 +1,6 @@
 ---
 title: Supervisor
 description: The setting that decides how closely Vibestrate watches a run, and records every call it makes.
-section: concepts
 slug: concepts/supervisor
 ---
 

@@ -231,7 +231,7 @@ pnpm install && pnpm typecheck && pnpm test && pnpm build
 
 ## ◆ Versioning
 
-Vibestrate follows [SemVer](https://semver.org). We're pre-1.0 (`0.x`) - the surface is real and tested, but minor versions may still carry breaking changes. The version lives in [`package.json`](./package.json) only, and flows into `vibe --version` and the generated docs reference.
+Vibestrate follows [SemVer](https://semver.org). From `1.0.0` on the public surface is stable: the CLI commands and their flags, the config schema, and the versioned HTTP API (`/api/v1`). Breaking changes there require a major release; minors add capability without breaking what already works, and patches only fix. Internal modules under `src/` are not a public API and can change in any release. The version lives in [`package.json`](./package.json) only, and flows into `vibe --version` and the generated docs reference.
 
 ## ◆ License
 

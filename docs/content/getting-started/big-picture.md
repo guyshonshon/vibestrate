@@ -1,7 +1,6 @@
 ---
 title: The big picture
 description: Vibestrate is the missing piece of vibe-coding - a crew of different models that check each other while you stay in control. Task, Flow, and Crew, explained once.
-section: getting-started
 slug: getting-started/big-picture
 ---
 

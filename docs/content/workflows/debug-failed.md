@@ -1,7 +1,6 @@
 ---
 title: Debug a failed run
 description: How to figure out why a run ended in failed or blocked, and what to do next.
-section: workflows
 slug: workflows/debug-failed
 ---
 

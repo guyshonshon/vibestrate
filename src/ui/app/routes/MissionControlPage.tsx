@@ -15,6 +15,7 @@ import { Chip } from "../../components/design/Chip.js";
 import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { ErrorView } from "../../lib/error-view.js";
+import { settle } from "../../lib/settled.js";
 import { PhaseRail, statusMessage } from "../../components/mission/runPhase.js";
 import {
   Sparkline,
@@ -103,6 +104,11 @@ export function MissionControlPage({ onSelectRun }: Props) {
   const [approvals, setApprovals] = useState<ApprovalRow[]>([]);
   const { toast, showToast } = useToast(4000);
   const [error, setError] = useState<string | null>(null);
+  // "Waiting on you" renders nothing when the list is empty, which is exactly
+  // what a swallowed fetch produced: the dashboard said no run needed the user
+  // while one sat blocked on their approval. Kept as a value so the section can
+  // say it does not know.
+  const [approvalsError, setApprovalsError] = useState<unknown>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,37 +120,37 @@ export function MissionControlPage({ onSelectRun }: Props) {
         setError(null);
         const diffs: Record<string, { insertions: number; deletions: number }> = {};
         const apr: ApprovalRow[] = [];
+        let aprError: unknown = null;
         await Promise.all(
           r
             .filter((run) => isActive(run.status))
             .map(async (run) => {
-              await Promise.all([
-                api
-                  .getDiff(run.runId)
-                  .then((snap) => {
-                    if (snap) {
-                      diffs[run.runId] = {
-                        insertions: snap.totals.insertions,
-                        deletions: snap.totals.deletions,
-                      };
-                    }
-                  })
-                  .catch(() => undefined),
-                api
-                  .listApprovals(run.runId)
-                  .then((list) => {
-                    for (const a of list) {
-                      if (a.status === "pending") apr.push({ ...a, runId: run.runId });
-                    }
-                  })
-                  .catch(() => undefined),
+              const [snap, list] = await Promise.all([
+                settle(api.getDiff(run.runId)),
+                settle(api.listApprovals(run.runId)),
               ]);
+              // The diff here is a glanceable +/- badge on a run card, and the
+              // run page owns the honest version - safe to drop from the card.
+              if (snap.ok && snap.value) {
+                diffs[run.runId] = {
+                  insertions: snap.value.totals.insertions,
+                  deletions: snap.value.totals.deletions,
+                };
+              }
+              if (list.ok) {
+                for (const a of list.value) {
+                  if (a.status === "pending") apr.push({ ...a, runId: run.runId });
+                }
+              } else {
+                aprError ??= list.error;
+              }
             }),
         );
         if (cancelled) return;
         setDiffByRun(diffs);
         apr.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
         setApprovals(apr);
+        setApprovalsError(aprError);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       }
@@ -336,6 +342,21 @@ export function MissionControlPage({ onSelectRun }: Props) {
           prefix="none"
           className="mb-4 rounded-[12px] border px-4 py-2.5 text-[13px]"
         />
+
+        {approvalsError ? (
+          <ErrorView
+            className="mb-4"
+            compact
+            err={approvalsError}
+            onRetry={() =>
+              window.dispatchEvent(new Event("vibestrate:runs-refresh"))
+            }
+            override={{
+              title: "Couldn't check which runs are waiting on you",
+              hint: "A run may be blocked on your approval without appearing below. Retry, or open the run directly.",
+            }}
+          />
+        ) : null}
 
         {approvals.length > 0 ? (
           <section className="mb-4 rounded-[22px] border border-amber-soft/25 bg-coal-600 p-6">

@@ -223,6 +223,11 @@ function IntegrationPanel() {
   /** A clean, complete integration branch eligible for merge-to-main (P7b). */
   const [finishable, setFinishable] = useState<string | null>(null);
 
+  // The panel hides itself when nothing is merge-ready, so a swallowed fetch
+  // made the whole integration surface vanish and read as "nothing to merge".
+  const [loadError, setLoadError] = useState<unknown>(null);
+  const [retryTick, setRetryTick] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
     api
@@ -231,13 +236,29 @@ function IntegrationPanel() {
         if (cancelled) return;
         setReady(r);
         setSelected(new Set(r.map((x) => x.runId)));
+        setLoadError(null);
       })
-      .catch(() => {});
+      .catch((e: unknown) => {
+        if (!cancelled) setLoadError(e);
+      });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryTick]);
 
+  if (loadError)
+    return (
+      <ErrorView
+        className="mt-5"
+        compact
+        err={loadError}
+        onRetry={() => setRetryTick((t) => t + 1)}
+        override={{
+          title: "Couldn't check for merge-ready runs",
+          hint: "Runs may be finished and waiting to integrate. Retry before concluding there is nothing to merge.",
+        }}
+      />
+    );
   if (ready.length === 0) return null;
 
   const ids = () => [...selected];

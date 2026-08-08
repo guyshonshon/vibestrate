@@ -1,7 +1,6 @@
 ---
 title: Inspect a run in flight
 description: Where to watch a run as it happens, and where every detail is saved.
-section: workflows
 slug: workflows/inspect-progress
 ---
 

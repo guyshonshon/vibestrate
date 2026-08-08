@@ -99,6 +99,9 @@ export function BoardPage({
       const [t, r, sg] = await Promise.all([
         api.listTasks(),
         api.listRoadmap(),
+        // Safe to degrade silently: suggestions are an unsolicited nudge, and
+        // "the supervisor has nothing to suggest" is a state the board renders
+        // routinely. The board's real content is the two fetches above.
         api.suggestNext().catch(() => [] as TaskSuggestion[]),
       ]);
       setTasks(t);

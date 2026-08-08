@@ -34,6 +34,9 @@ export function ConsultPage({
 
   useEffect(() => {
     let cancelled = false;
+    // Safe to degrade silently: these only populate the provider / model /
+    // effort selectors. With them empty the consult still runs on the crew's
+    // configured planner, and a failed ask surfaces its own error.
     Promise.all([
       api.listProviders().catch(() => ({ providers: [] as ProviderRow[] })),
       api.getProviderCatalog().catch(() => null),

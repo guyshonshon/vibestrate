@@ -1,7 +1,6 @@
 ---
 title: Container isolation - run in a disposable Docker container
 description: Run each agent turn inside a throwaway Docker container so the blast radius is the container, not your machine - what it mounts, what it can't touch, and where it stops short.
-section: concepts
 slug: concepts/sandbox
 ---
 

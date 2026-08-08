@@ -1,7 +1,6 @@
 ---
 title: Mission Control
 description: The local dashboard for inspecting runs, approving gates, reading diffs, and steering the orchestrator.
-section: cli
 slug: cli/dashboard
 ---
 

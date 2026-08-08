@@ -1,7 +1,6 @@
 ---
 title: Glossary
 description: Plain-language definitions for the words you'll meet across these docs.
-section: ops
 slug: glossary
 ---
 

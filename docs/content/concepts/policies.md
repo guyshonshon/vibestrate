@@ -1,7 +1,6 @@
 ---
 title: Policies
 description: The project's one rule surface - tiered rules the active supervisor enforces, from soft advice to a hard merge block.
-section: concepts
 slug: concepts/policies
 ---
 

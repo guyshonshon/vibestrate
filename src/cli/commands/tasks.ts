@@ -7,6 +7,7 @@ import { writeTaskReport } from "../../roadmap/task-report.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 import { cmdSequence, cmdStatus, cmdPause, cmdResume } from "./saga.js";
 import { isVibestrateError } from "../../utils/errors.js";
+import { discoverFlows } from "../../flows/catalog/flow-discovery.js";
 import type {
   ChecklistItem,
   ChecklistItemStatus,
@@ -638,9 +639,40 @@ export async function cmdRun(taskId: string): Promise<number> {
   });
 }
 
+/** The pick-up flow used when `--flow` is absent. */
+const DEFAULT_PICKUP_FLOW = "pickup";
+
+/** Pick-up is only meaningful for a flow that declares a `checklistSegment` -
+ *  the band the runner repeats once per checklist item. A flow without one
+ *  would ignore `--checklist` and run the whole card as a single shot, so
+ *  resolve fails closed rather than handing an arbitrary id to the child run. */
+export async function resolvePickupFlow(
+  projectRoot: string,
+  flowId: string,
+): Promise<string | null> {
+  const flows = await discoverFlows(projectRoot);
+  const match = flows.find((flow) => flow.id === flowId) ?? null;
+  const eligible = flows
+    .filter((flow) => flow.definition.checklistSegment && !flow.definition.hidden)
+    .map((flow) => flow.id);
+  if (!match) {
+    console.error(
+      `${symbol.fail()} Flow "${flowId}" not found. Checklist-aware flows: ${eligible.join(", ")}.`,
+    );
+    return null;
+  }
+  if (!match.definition.checklistSegment) {
+    console.error(
+      `${symbol.fail()} Flow "${flowId}" is not checklist-aware (it declares no per-item segment), so it cannot drive a pick-up. Checklist-aware flows: ${eligible.join(", ")}.`,
+    );
+    return null;
+  }
+  return match.id;
+}
+
 async function cmdPickup(
   taskId: string,
-  opts: { step?: boolean },
+  opts: { step?: boolean; flow?: string },
 ): Promise<number> {
   const { svc: s, root } = await svc();
   const task = await s.getTask(taskId);
@@ -654,6 +686,10 @@ async function cmdPickup(
     );
     return 2;
   }
+  const flowId = opts.flow
+    ? await resolvePickupFlow(root, opts.flow)
+    : DEFAULT_PICKUP_FLOW;
+  if (!flowId) return 2;
   const { fileURLToPath } = await import("node:url");
   const fs = await import("node:fs");
   // Re-invoke the exact entrypoint this process was launched with - robust
@@ -673,12 +709,12 @@ async function cmdPickup(
   }
   const mode = opts.step ? "step" : "continuous";
   console.log(
-    `${symbol.arrow()} Picking up ${color.bold(task.title)} - ${task.checklist.length} item(s), ${mode} mode.`,
+    `${symbol.arrow()} Picking up ${color.bold(task.title)} - ${task.checklist.length} item(s), ${mode} mode, ${color.bold(flowId)} flow.`,
   );
   return new Promise<number>((resolve) => {
     const child = spawn(
       process.execPath,
-      [bin, "run", task.title, "--task", task.id, "--flow", "pickup", "--checklist", mode],
+      [bin, "run", task.title, "--task", task.id, "--flow", flowId, "--checklist", mode],
       { cwd: root, stdio: "inherit" },
     );
     child.on("exit", (code) => resolve(code ?? -1));
@@ -847,6 +883,10 @@ export function buildTasksCommand(): Command {
       "Execute the task's checklist item-by-item (pick-up flow). Continuous by default; --step pauses between items.",
     )
     .option("--step", "pause between items for review (step-by-step)")
+    .option(
+      "--flow <id>",
+      'checklist-aware flow to run (default "pickup"); e.g. pickup-review for a per-item review panel + arbiter.',
+    )
     .action(async (id: string, opts) => {
       const code = await cmdPickup(id, opts);
       process.exit(code);

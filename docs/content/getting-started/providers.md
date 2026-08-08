@@ -1,7 +1,6 @@
 ---
 title: Set up a provider
 description: Tell Vibestrate which AI coding tools you have, then check each one can do the work.
-section: getting-started
 slug: getting-started/providers
 ---
 

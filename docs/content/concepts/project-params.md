@@ -1,7 +1,6 @@
 ---
 title: Project parameters
 description: Fill your project's answers once, and every run reuses them.
-section: concepts
 slug: concepts/project-params
 ---
 

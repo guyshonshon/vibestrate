@@ -10,7 +10,7 @@ import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { LoadingState } from "../../components/design/ErrorState.js";
 import { PageShell } from "../../components/layout/PageShell.js";
 import { ErrorView } from "../../lib/error-view.js";
-import { settle, errorOf } from "../../lib/settled.js";
+import { settle, errorOf, valueOr } from "../../lib/settled.js";
 import { navigate, type ReplayFocus } from "../App.js";
 import type {
   VibestrateEvent,
@@ -104,6 +104,11 @@ export function RunDetailPage({
   const [panelErrors, setPanelErrors] = useState<{
     diff?: unknown;
     assurance?: unknown;
+    metrics?: unknown;
+    approvals?: unknown;
+    tree?: unknown;
+    supervisor?: unknown;
+    specUp?: unknown;
   }>({});
   // A dashboard-spawned run is opened before its detached process writes
   // state.json, so an early 404 means "still starting". But a genuinely missing
@@ -152,32 +157,48 @@ export function RunDetailPage({
       try {
         const [r, m, a, d, sel, eng, arb, aud, shp, cv] = await Promise.all([
           api.getRun(runId),
-          api.getMetrics(runId).catch(() => null),
-          api.listApprovals(runId).catch(() => [] as ApprovalRequest[]),
+          settle(api.getMetrics(runId)),
+          settle(api.listApprovals(runId)),
           settle(api.getDiff(runId)),
-          api.getRunSelection(runId).catch(() => null),
-          api.getRunEngagement(runId).catch(() => [] as EngagementEntry[]),
-          api.getRunArbitration(runId).catch(() => null),
-          api.getRunAudit(runId).catch(() => null),
-          api.getSpecUpQuestions(runId).catch(() => null),
-          api.getChecklistVerdicts(runId).catch(() => [] as PerItemVerdict[]),
+          settle(api.getRunSelection(runId)),
+          settle(api.getRunEngagement(runId)),
+          settle(api.getRunArbitration(runId)),
+          settle(api.getRunAudit(runId)),
+          settle(api.getSpecUpQuestions(runId)),
+          settle(api.getChecklistVerdicts(runId)),
         ]);
         if (cancelled) return;
         loadedOnce = true;
         setRun(r);
-        setMetrics(m);
-        setApprovals(a);
-        setSelection(sel);
-        setEngagement(eng);
-        setArbitration(arb);
-        setAudit(aud);
-        setChecklistVerdicts(cv);
-        setSpecUpQuestions(shp?.questions ?? null);
-        setSpecUpMeta(
-          shp && shp.questions != null
-            ? { round: shp.round ?? 1, coverageComplete: shp.coverageComplete ?? false }
-            : null,
-        );
+        if (m.ok) setMetrics(m.value);
+        setApprovals(valueOr(a, [] as ApprovalRequest[]));
+        if (sel.ok) setSelection(sel.value);
+        setEngagement(valueOr(eng, [] as EngagementEntry[]));
+        if (arb.ok) setArbitration(arb.value);
+        if (aud.ok) setAudit(aud.value);
+        setChecklistVerdicts(valueOr(cv, [] as PerItemVerdict[]));
+        if (shp.ok) {
+          setSpecUpQuestions(shp.value?.questions ?? null);
+          setSpecUpMeta(
+            shp.value && shp.value.questions != null
+              ? {
+                  round: shp.value.round ?? 1,
+                  coverageComplete: shp.value.coverageComplete ?? false,
+                }
+              : null,
+          );
+        }
+        setPanelErrors((p) => ({
+          ...p,
+          metrics: errorOf(m),
+          approvals: errorOf(a),
+          // The tree is assembled from three fetches; any one of them failing
+          // makes the rendered tree incomplete, so report the first failure
+          // rather than showing a partial tree as if it were the whole run.
+          tree: errorOf(aud) ?? errorOf(eng) ?? errorOf(cv),
+          supervisor: errorOf(sel) ?? errorOf(arb),
+          specUp: errorOf(shp),
+        }));
         setError(null);
         // Assurance only exists once a run is terminal.
         if (["merge_ready", "blocked", "failed", "aborted"].includes(r.status)) {
@@ -365,6 +386,21 @@ export function RunDetailPage({
         onAbort={() => void handleAbort()}
       />
 
+      {/* A spec-up intake run whose questions fail to load falls through to the
+       * ordinary run view, so the gap questions blocking the chain just are not
+       * there. Say so rather than presenting an unblocked-looking run. */}
+      {run.flow?.flowId === "spec-up-intake" && panelErrors.specUp ? (
+        <ErrorView
+          compact
+          err={panelErrors.specUp}
+          onRetry={() => setRetryTick((t) => t + 1)}
+          override={{
+            title: "Couldn't load this run's gap questions",
+            hint: "This spec-up run may be waiting on your answers. Retry - without them the chain cannot move forward.",
+          }}
+        />
+      ) : null}
+
       {/* A null diff renders as "no changes". When the fetch is what failed,
        * that is a lie about the one artifact a human is meant to review before
        * merging - so say so instead of showing a clean slate. */}
@@ -389,6 +425,34 @@ export function RunDetailPage({
         engagement={engagement}
         arbitration={arbitration}
       >
+        {panelErrors.supervisor ? (
+          <div className="mt-2">
+            <ErrorView
+              compact
+              err={panelErrors.supervisor}
+              onRetry={() => setRetryTick((t) => t + 1)}
+              override={{
+                title: "Couldn't load the supervisor's decisions",
+                hint: "The workflow selection or arbitration record is unavailable. This panel is incomplete, not empty.",
+              }}
+            />
+          </div>
+        ) : null}
+        {/* A swallowed approvals fetch hides the approval gate entirely, so the
+         * run looks merely slow while it is actually waiting on this human. */}
+        {panelErrors.approvals ? (
+          <div className="mt-2">
+            <ErrorView
+              compact
+              err={panelErrors.approvals}
+              onRetry={() => setRetryTick((t) => t + 1)}
+              override={{
+                title: "Couldn't load approval requests",
+                hint: "If this run is waiting on your approval, the request is not shown. Retry before assuming nothing needs you.",
+              }}
+            />
+          </div>
+        ) : null}
         {pending ? (
           <div className="mt-2">
             <ApprovalBanner
@@ -511,7 +575,22 @@ export function RunDetailPage({
             defaultLayout: { id: "metrics", x: 8, y: 0, w: 4, h: 5 },
             minW: 3,
             minH: 4,
-            render: () => <ActiveRolePanel run={run} metrics={metrics} />,
+            // Zeroed metrics are indistinguishable from "no work done yet", and
+            // cost is one of them - say the number is missing, not zero.
+            render: () =>
+              panelErrors.metrics ? (
+                <ErrorView
+                  compact
+                  err={panelErrors.metrics}
+                  onRetry={() => setRetryTick((t) => t + 1)}
+                  override={{
+                    title: "Couldn't load live metrics",
+                    hint: "Agent activity, provider calls and cost are unavailable, not zero.",
+                  }}
+                />
+              ) : (
+                <ActiveRolePanel run={run} metrics={metrics} />
+              ),
           },
           {
             id: "files",
@@ -557,9 +636,33 @@ export function RunDetailPage({
         </div>
         <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-3.5">
           {tab === "tree" ? (
-            <RunTree audit={audit} engagement={engagement} checklistVerdicts={checklistVerdicts} />
+            panelErrors.tree ? (
+              <ErrorView
+                compact
+                err={panelErrors.tree}
+                onRetry={() => setRetryTick((t) => t + 1)}
+                override={{
+                  title: "Couldn't load the run tree",
+                  hint: "The audit trail, engagement feed or checklist verdicts failed to load, so the tree would be missing nodes rather than empty.",
+                }}
+              />
+            ) : (
+              <RunTree audit={audit} engagement={engagement} checklistVerdicts={checklistVerdicts} />
+            )
           ) : tab === "steps" ? (
-            <StepsInspector metrics={metrics} />
+            panelErrors.metrics ? (
+              <ErrorView
+                compact
+                err={panelErrors.metrics}
+                onRetry={() => setRetryTick((t) => t + 1)}
+                override={{
+                  title: "Couldn't load step metrics",
+                  hint: "The per-step breakdown is unavailable, not empty.",
+                }}
+              />
+            ) : (
+              <StepsInspector metrics={metrics} />
+            )
           ) : tab === "events" ? (
             <EventStream runId={runId} />
           ) : tab === "artifacts" ? (
@@ -847,6 +950,9 @@ function RerunDialog({
     "idle" | "loading" | "none" | "ready" | "error"
   >("idle");
 
+  // Safe to degrade silently: this only populates the optional provider-override
+  // list. With it empty the dialog still offers "default", and the re-run goes
+  // to the project's configured provider - the same thing it would do untouched.
   useEffect(() => {
     void api
       .listProviders()

@@ -1,7 +1,6 @@
 ---
 title: Add a Flow
 description: Write your own run recipe with seats, steps, and an optional pause for your approval.
-section: extending
 slug: extending/add-flow
 ---
 

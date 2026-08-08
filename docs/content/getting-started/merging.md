@@ -1,7 +1,6 @@
 ---
 title: Keep a change (Git and merging)
 description: What Git is in one minute, and how to take a finished run from its safe copy into your real project.
-section: getting-started
 slug: getting-started/merging
 ---
 

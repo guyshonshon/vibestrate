@@ -1,7 +1,6 @@
 ---
 title: Pause, resume, abort
 description: How to safely stop a run, bring it back later, or end it for good.
-section: workflows
 slug: workflows/pause-resume
 ---
 

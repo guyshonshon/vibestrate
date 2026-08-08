@@ -61,6 +61,10 @@ export function CrewPage({
 
   async function load() {
     try {
+      // Safe to degrade silently: everything after getCrews only fills the
+      // pickers a crew is assembled FROM (profiles, flows, skills, provider
+      // labels). An empty picker shows the crew's existing values unchanged,
+      // and the crews themselves - this page's subject - fail loudly.
       const [crewsRes, profilesRes, flowsRes, skillsRes, meta, cat] = await Promise.all([
         api.getCrews(),
         api.getProfiles().catch(() => ({ profiles: [] as ProfileView[] })),

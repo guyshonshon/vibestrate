@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Compass, X } from "lucide-react";
 import { Button } from "../design/Button.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
+import { Z_LAYER } from "../../lib/z-layers.js";
 
 type TourStep = {
   id: string;
@@ -195,7 +196,8 @@ export function TourOverlay() {
       role="dialog"
       aria-modal="true"
       aria-label="Dashboard tour"
-      className="fixed inset-0 z-[100]"
+      className="fixed inset-0"
+      style={{ zIndex: Z_LAYER.coachMark }}
       onClick={() => close(true)}
     >
       {rect ? (

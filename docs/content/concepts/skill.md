@@ -1,7 +1,6 @@
 ---
 title: Skill
 description: A markdown file you write once that loads alongside an agent's prompt, so it always knows the things that should be true about your codebase.
-section: concepts
 slug: concepts/skill
 ---
 

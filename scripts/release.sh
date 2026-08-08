@@ -7,15 +7,17 @@
 #
 # What it does:
 #   1. Safety: must be on `main`, clean tree, in sync with origin.
-#   2. Gate: install (frozen) → typecheck → build → test → audit.
+#   2. Gate: install (frozen) → typecheck → build → test → audit → packed-artifact verify.
 #   3. Bump: `npm version <bump>` (updates package.json, commits, tags vX.Y.Z).
 #   4. Push: `git push --follow-tags origin main`.
 #
-# Pushing the tag triggers .github/workflows/release.yml, which republishes
-# the gate and publishes to npm via OIDC trusted publishing.
+# Pushing the tag does NOT publish. There is no release workflow in
+# .github/workflows/ (CI only), so the publish is a manual `npm publish` from
+# this machine - the script prints the exact command at the end.
 #
-# If GitHub Actions is unavailable (e.g. billing), publish locally instead -
-# the script prints the exact command at the end.
+# npm trusted publishing (OIDC) has to be configured against a package that
+# already exists on the registry, so a CI publish workflow can only be added
+# after the first manual publish. See .github/MAINTAINING.md.
 set -euo pipefail
 
 BUMP="${1:-patch}"

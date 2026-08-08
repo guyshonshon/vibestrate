@@ -1,7 +1,6 @@
 ---
 title: Installation
 description: Install Vibestrate and check your environment in two commands.
-section: getting-started
 slug: getting-started/installation
 ---
 

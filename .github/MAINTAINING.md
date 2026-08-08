@@ -32,6 +32,24 @@ secret:
 3. Gate it behind approval via repo **Settings → Environments → release →
    Required reviewers** so a tag push pauses for your click.
 
+## Tags and GitHub Releases
+
+**Tags start at `v1.0.0`.** Nothing before 1.0.0 was ever published to npm, so a
+backfilled tag would point at a commit that was never a released artifact.
+`CHANGELOG.md` carries the pre-1.0 history and stays the record for it; the
+stray early-development tag (`v0.1.1`) is not a release of record. Don't
+backfill - `git describe` is meaningful from 1.0.0 forward, not before.
+
+From 1.0.0 on, `scripts/release.sh` tags every release (`npm version` creates
+`vX.Y.Z`, the push carries it), and each tag gets a GitHub Release cut from it:
+
+```bash
+gh release create v1.2.3 --title v1.2.3 --notes "<the matching CHANGELOG.md section>"
+```
+
+The changelog section is the release notes - don't write a second, divergent
+summary.
+
 ## Publish manually
 
 Publish straight from your machine:

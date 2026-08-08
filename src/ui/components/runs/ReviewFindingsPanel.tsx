@@ -7,6 +7,7 @@ import {
 } from "../../../flows/runtime/review-findings.js";
 import { Scale, X } from "lucide-react";
 import { Chip, type ChipTone } from "../design/Chip.js";
+import { ErrorView } from "../../lib/error-view.js";
 
 const DECISION_TONE: Record<string, ChipTone> = {
   APPROVED: "emerald",
@@ -55,8 +56,11 @@ export function ReviewFindingsPanel({
 }) {
   const [raw, setRaw] = useState<string | null>(null);
   const [missing, setMissing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [showRaw, setShowRaw] = useState(false);
+  // Bumping this re-runs the load effect, which is how Retry re-triggers a load
+  // function defined inside the effect's closure.
+  const [retryTick, setRetryTick] = useState(0);
 
   // Key the effect on the resolved path, not the flow object - the page
   // re-fetches run state on a poll, and a fresh object identity must not
@@ -69,7 +73,10 @@ export function ReviewFindingsPanel({
       try {
         let path = flowPath;
         if (!path) {
-          const list = await api.listArtifacts(runId).catch(() => []);
+          // Deliberately not swallowed: a failed listing left `path` null, which
+          // this panel renders as "the review step may not have run" - the
+          // opposite conclusion from "we could not look".
+          const list = await api.listArtifacts(runId);
           path = findReviewArtifactPath(null, list);
         }
         if (!path) {
@@ -83,15 +90,14 @@ export function ReviewFindingsPanel({
           setError(null);
         }
       } catch (err) {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : String(err));
+        if (!cancelled) setError(err);
       }
     };
     void load();
     return () => {
       cancelled = true;
     };
-  }, [runId, flowPath]);
+  }, [runId, flowPath, retryTick]);
 
   const parsed: ParsedReviewOutput | null = useMemo(
     () => (raw === null ? null : parseReviewOutput(raw)),
@@ -134,7 +140,16 @@ export function ReviewFindingsPanel({
           </div>
 
           {error ? (
-            <p className="mt-2 text-[12.5px] text-rose-300">{error}</p>
+            <ErrorView
+              compact
+              className="mt-2"
+              err={error}
+              onRetry={() => setRetryTick((t) => t + 1)}
+              override={{
+                title: "Couldn't load the review findings",
+                hint: "The reviewer's verdict is unavailable, not absent. Retry before treating this run as unreviewed.",
+              }}
+            />
           ) : missing ? (
             <p className="mt-2 text-[12.5px] text-chalk-400">
               No review output artifact was found for this run - the review

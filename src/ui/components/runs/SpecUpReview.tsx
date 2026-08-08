@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, FileText, Pencil } from "lucide-react";
-import { api } from "../../lib/api.js";
+import { ApiError, api } from "../../lib/api.js";
 import { Button } from "../design/Button.js";
+import { ErrorView } from "../../lib/error-view.js";
+import { settle } from "../../lib/settled.js";
 
 // ── In-run Spec-up draft review + edit ─────────────────────────────────────────
 // On a `spec-up` run, surface the four CTO drafts (scope / spec / architecture /
@@ -20,9 +22,43 @@ const DRAFTS = [
 ] as const;
 
 type Loaded = { key: string; label: string; content: string; hash: string; frozen: boolean };
+type FailedSection = { key: string; label: string; error: unknown };
+
+/**
+ * Read the four sections independently so one bad section cannot hide the other
+ * three, and keep the failures: a dropped section would otherwise look exactly
+ * like a section the run has not written yet, and the user is about to approve
+ * this draft as if they had read all of it. A 404 IS "not produced yet".
+ */
+async function fetchSections(
+  runId: string,
+): Promise<{ docs: Loaded[]; failed: FailedSection[] }> {
+  const settled = await Promise.all(
+    DRAFTS.map(async (d) => ({ d, r: await settle(api.getSpecUpArtifact(runId, d.key)) })),
+  );
+  const docs: Loaded[] = [];
+  const failed: FailedSection[] = [];
+  for (const { d, r } of settled) {
+    if (!r.ok) {
+      if (!(r.error instanceof ApiError && r.error.status === 404))
+        failed.push({ key: d.key, label: d.label, error: r.error });
+      continue;
+    }
+    if (r.value.content.trim())
+      docs.push({
+        key: d.key,
+        label: d.label,
+        content: r.value.content,
+        hash: r.value.hash,
+        frozen: r.value.frozen,
+      });
+  }
+  return { docs, failed };
+}
 
 export function SpecUpReview({ runId, flowId }: { runId: string; flowId: string | undefined }) {
   const [docs, setDocs] = useState<Loaded[] | null>(null);
+  const [failed, setFailed] = useState<FailedSection[]>([]);
   const [open, setOpen] = useState<Set<string>>(new Set(["scope"]));
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -30,30 +66,20 @@ export function SpecUpReview({ runId, flowId }: { runId: string; flowId: string 
   const [err, setErr] = useState<string | null>(null);
 
   async function loadAll(): Promise<void> {
-    const results = await Promise.all(
-      DRAFTS.map(async (d): Promise<Loaded | null> => {
-        const r = await api.getSpecUpArtifact(runId, d.key).catch(() => null);
-        return r && r.content.trim()
-          ? { key: d.key, label: d.label, content: r.content, hash: r.hash, frozen: r.frozen }
-          : null;
-      }),
-    );
-    setDocs(results.filter((r): r is Loaded => r !== null));
+    const next = await fetchSections(runId);
+    setDocs(next.docs);
+    setFailed(next.failed);
   }
 
   useEffect(() => {
     if (flowId !== "spec-up") return;
     let live = true;
     void (async () => {
-      const results = await Promise.all(
-        DRAFTS.map(async (d): Promise<Loaded | null> => {
-          const r = await api.getSpecUpArtifact(runId, d.key).catch(() => null);
-          return r && r.content.trim()
-            ? { key: d.key, label: d.label, content: r.content, hash: r.hash, frozen: r.frozen }
-            : null;
-        }),
-      );
-      if (live) setDocs(results.filter((r): r is Loaded => r !== null));
+      const next = await fetchSections(runId);
+      if (live) {
+        setDocs(next.docs);
+        setFailed(next.failed);
+      }
     })();
     return () => {
       live = false;
@@ -61,7 +87,7 @@ export function SpecUpReview({ runId, flowId }: { runId: string; flowId: string 
   }, [runId, flowId]);
 
   if (flowId !== "spec-up") return null;
-  if (!docs || docs.length === 0) return null;
+  if (!docs || (docs.length === 0 && failed.length === 0)) return null;
 
   function startEdit(d: Loaded) {
     setEditingKey(d.key);
@@ -169,6 +195,19 @@ export function SpecUpReview({ runId, flowId }: { runId: string; flowId: string 
           </div>
         );
       })}
+      {failed.map((f) => (
+        <div key={f.key} className="border-t border-[color:var(--line)] px-[18px] py-3">
+          <ErrorView
+            compact
+            err={f.error}
+            onRetry={() => void loadAll()}
+            override={{
+              title: `Couldn't load the ${f.label.toLowerCase()} section`,
+              hint: "This section exists but could not be read, so the draft above is incomplete. Retry before approving.",
+            }}
+          />
+        </div>
+      ))}
     </section>
   );
 }

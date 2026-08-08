@@ -44,16 +44,18 @@ export function PoliciesPanel() {
   useEffect(() => {
     let cancelled = false;
     void loadPolicies();
-    // The safety-gate config and the read-only engine snapshot are secondary
-    // enrichments the Policies tab can still render without (their sections
-    // just show a loading state) - a failed fetch degrades quietly instead of
-    // blocking the primary policies list above.
+    // Safe to degrade silently: the safety-gate config and the read-only engine
+    // snapshot are secondary enrichments whose sections hold their loading
+    // state rather than claiming a policy is off, and the primary policies list
+    // above reports its own failures.
     api
       .getPolicies()
       .then((s) => {
         if (!cancelled) setSnap(s);
       })
       .catch(() => undefined);
+    // Safe to degrade silently: see above - the safety section stays unrendered
+    // rather than showing every gate as disabled.
     api
       .getSafetyConfig()
       .then((sf) => {

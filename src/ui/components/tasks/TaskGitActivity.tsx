@@ -1,10 +1,29 @@
 import { useEffect, useState } from "react";
 import { GitBranch, GitCommit } from "lucide-react";
-import { api } from "../../lib/api.js";
+import { ApiError, api } from "../../lib/api.js";
 import type { DiffSnapshot, GitStatus } from "../../lib/types.js";
 import { cn } from "../design/cn.js";
+import { describeError } from "../../lib/error-view.js";
+import { settle, errorOf } from "../../lib/settled.js";
 
 const CARD = "rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4";
+
+/** A 404 here is the answer, not a failure: the run's worktree was cleaned up. */
+function gone(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 404;
+}
+
+/** Inline rose marker for a per-row fetch that failed, hover for the reason. */
+function RowError({ err, label }: { err: unknown; label: string }) {
+  return (
+    <span
+      className="rounded-[7px] bg-rose-500/14 px-1.5 py-0.5 text-[10px] font-semibold text-rose-300"
+      title={describeError(err).title}
+    >
+      {label}
+    </span>
+  );
+}
 
 /**
  * Scoped git view for a task: one summary row per linked run, showing the run's
@@ -28,7 +47,11 @@ export function TaskGitActivity({
       {
         status: GitStatus | null;
         diff: DiffSnapshot | null;
-        error?: string;
+        // A run whose worktree was cleaned up 404s, and that is a real answer
+        // ("gone"). Any other failure is us not knowing - kept apart so the row
+        // never presents an unreadable worktree as a clean one with no diff.
+        statusError: unknown;
+        diffError: unknown;
       }
     >
   >({});
@@ -41,10 +64,15 @@ export function TaskGitActivity({
       await Promise.all(
         runIds.map(async (rid) => {
           const [status, diff] = await Promise.all([
-            api.getRunGitStatus(rid).catch(() => null),
-            api.getDiff(rid).catch(() => null),
+            settle(api.getRunGitStatus(rid)),
+            settle(api.getDiff(rid)),
           ]);
-          next[rid] = { status, diff };
+          next[rid] = {
+            status: status.ok ? status.value : null,
+            diff: diff.ok ? diff.value : null,
+            statusError: gone(errorOf(status)) ? null : errorOf(status),
+            diffError: gone(errorOf(diff)) ? null : errorOf(diff),
+          };
         }),
       );
       if (!cancelled) setRows(next);
@@ -112,12 +140,16 @@ export function TaskGitActivity({
                               : "clean"}
                           </span>
                         </>
+                      ) : row?.statusError ? (
+                        <RowError err={row.statusError} label="git status failed" />
                       ) : (
                         <span className="text-[10px] text-chalk-400">
                           (worktree unavailable)
                         </span>
                       )}
-                      {diff && diff.totals.files > 0 ? (
+                      {row?.diffError ? (
+                        <RowError err={row.diffError} label="diff failed" />
+                      ) : diff && diff.totals.files > 0 ? (
                         <span
                           className="inline-flex items-center gap-1 rounded-[7px] bg-coal-500 px-1.5 py-0.5 text-[10px]"
                           title={`${diff.totals.files} file(s) changed`}

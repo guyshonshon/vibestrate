@@ -6,6 +6,8 @@ import type { ApprovalRequest, RunState, RunStatus, VibestrateEvent } from "../.
 import { ActivityList, DiffBar, RadialStat, StageTimeline, StatusLabel } from "./viz.js";
 import { statusMessage } from "../mission/runPhase.js";
 import { Button } from "../design/Button.js";
+import { ErrorView } from "../../lib/error-view.js";
+import { settle, errorOf, valueOr } from "../../lib/settled.js";
 
 const ACTIVE: RunStatus[] = [
   "planning",
@@ -31,21 +33,42 @@ export function RunControlPage({ runId }: { runId: string }) {
   const [diff, setDiff] = useState<{ insertions: number; deletions: number; files: number } | null>(null);
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  // This is a kiosk: someone stands in front of it and decides whether to
+  // approve, abort or merge. Each sub-fetch is isolated so one failure does not
+  // blank the screen, but none of them may fail invisibly - a swallowed diff
+  // reads as "changed nothing", a swallowed approvals list hides the Approve /
+  // Reject buttons entirely, and a swallowed run left the page stuck on
+  // "Loading run…" forever. Keyed by panel so each renders its own recovery.
+  const [panelErrors, setPanelErrors] = useState<{
+    run?: unknown;
+    events?: unknown;
+    diff?: unknown;
+    approvals?: unknown;
+  }>({});
+  // Bumping this re-runs the load effect, which is how Retry re-triggers a load
+  // function defined inside the effect's closure.
+  const [retryTick, setRetryTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       const [r, ev, df, ap] = await Promise.all([
-        api.getRun(runId).catch(() => null),
-        api.listEvents(runId).then((e) => e.slice(-40)).catch(() => [] as VibestrateEvent[]),
-        api.getDiff(runId).then((s) => (s ? { ...s.totals } : null)).catch(() => null),
-        api.listApprovals(runId).then((l) => l.filter((a) => a.status === "pending")).catch(() => [] as ApprovalRequest[]),
+        settle(api.getRun(runId)),
+        settle(api.listEvents(runId).then((e) => e.slice(-40))),
+        settle(api.getDiff(runId).then((s) => (s ? { ...s.totals } : null))),
+        settle(api.listApprovals(runId).then((l) => l.filter((a) => a.status === "pending"))),
       ]);
       if (cancelled) return;
-      if (r) setRun(r);
-      setEvents(ev);
-      setDiff(df);
-      setApprovals(ap);
+      if (r.ok) setRun(r.value);
+      setEvents(valueOr(ev, [] as VibestrateEvent[]));
+      if (df.ok) setDiff(df.value);
+      setApprovals(valueOr(ap, [] as ApprovalRequest[]));
+      setPanelErrors({
+        run: errorOf(r),
+        events: errorOf(ev),
+        diff: errorOf(df),
+        approvals: errorOf(ap),
+      });
     };
     void load();
     const id = window.setInterval(() => void load(), 2000);
@@ -53,7 +76,7 @@ export function RunControlPage({ runId }: { runId: string }) {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [runId]);
+  }, [runId, retryTick]);
 
   useEffect(() => {
     if (!toast) return;
@@ -82,6 +105,21 @@ export function RunControlPage({ runId }: { runId: string }) {
   };
 
   if (!run) {
+    // Never sit on "Loading" once we know the fetch failed - the kiosk would
+    // otherwise spin forever on a deleted or unreachable run.
+    if (panelErrors.run)
+      return (
+        <div className="font-jakarta min-h-screen bg-coal-900 px-10 py-7 text-chalk-100">
+          <ErrorView
+            err={panelErrors.run}
+            actions={[
+              { label: "Mission control", onClick: () => navigate({ kind: "mission" }) },
+              { label: "All runs", onClick: () => navigate({ kind: "runs" }) },
+            ]}
+            onRetry={() => setRetryTick((t) => t + 1)}
+          />
+        </div>
+      );
     return (
       <div className="font-jakarta flex min-h-screen items-center justify-center bg-coal-800 text-chalk-400">
         Loading run…
@@ -147,6 +185,35 @@ export function RunControlPage({ runId }: { runId: string }) {
           <div className="mb-4 rounded-[12px] border border-violet-soft/30 bg-violet-soft/10 px-4 py-2.5 text-[13px] text-chalk-100">{toast}</div>
         ) : null}
 
+        {panelErrors.run ? (
+          // We still have the last good snapshot, so the page renders - but the
+          // status/timeline below is frozen at that snapshot, and on a kiosk a
+          // stale "executing" must not be mistaken for a live one.
+          <ErrorView
+            compact
+            className="mb-4"
+            err={panelErrors.run}
+            override={{
+              title: "Run status is stale",
+              hint: "The last refresh failed, so everything below is a snapshot. Retry to resume live updates.",
+            }}
+            onRetry={() => setRetryTick((t) => t + 1)}
+          />
+        ) : null}
+
+        {panelErrors.approvals ? (
+          <ErrorView
+            compact
+            className="mb-4"
+            err={panelErrors.approvals}
+            override={{
+              title: "Can't load pending approvals",
+              hint: "Approve / Reject are hidden until this loads. Retry, or decide from the full inspector.",
+            }}
+            onRetry={() => setRetryTick((t) => t + 1)}
+          />
+        ) : null}
+
         <div className={card}>
           <div className="flex items-start justify-between gap-5">
             <div className="min-w-0">
@@ -170,7 +237,21 @@ export function RunControlPage({ runId }: { runId: string }) {
           <div className={tile}>
             <div className={lbl}>Diff</div>
             <div className="mt-3">
-              <DiffBar diff={diff} />
+              {/* +0/-0 reads as "this run changed nothing". When the fetch is
+               * what failed, that is a lie about the artifact being reviewed. */}
+              {panelErrors.diff ? (
+                <ErrorView
+                  compact
+                  err={panelErrors.diff}
+                  onRetry={() => setRetryTick((t) => t + 1)}
+                  override={{
+                    title: "Couldn't load the diff",
+                    hint: "The change totals are unavailable, not zero.",
+                  }}
+                />
+              ) : (
+                <DiffBar diff={diff} />
+              )}
             </div>
           </div>
           <div className={`${tile} flex items-center`}>
@@ -180,7 +261,19 @@ export function RunControlPage({ runId }: { runId: string }) {
 
         <div className={`mt-4 ${card}`}>
           <h2 className={`mb-3 ${lbl}`}>Activity</h2>
-          <ActivityList events={events} max={10} />
+          {panelErrors.events ? (
+            <ErrorView
+              compact
+              err={panelErrors.events}
+              onRetry={() => setRetryTick((t) => t + 1)}
+              override={{
+                title: "Couldn't load recent activity",
+                hint: "The run may still be progressing - this feed is stale, not empty.",
+              }}
+            />
+          ) : (
+            <ActivityList events={events} max={10} />
+          )}
         </div>
       </div>
     </div>

@@ -1,7 +1,6 @@
 ---
 title: Safety - Action Broker & policies
 description: How Vibestrate routes every real effect through one checkpoint, writes down what it decided, and lets you deny or hold actions for approval.
-section: concepts
 slug: concepts/safety
 ---
 

@@ -1,7 +1,6 @@
 ---
 title: Configuration & settings
 description: Where Vibestrate keeps its settings, and how to view and edit each one in the UI or the CLI.
-section: concepts
 slug: concepts/configuration
 ---
 

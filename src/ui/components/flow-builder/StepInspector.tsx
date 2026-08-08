@@ -418,8 +418,7 @@ export function StepInspector({
   draft: StepDraft;
   onPatchDraft: (patch: StepDraft) => void;
 }) {
-  // The project's discovered skills (for the per-step skills picker). Fetched
-  // once; failures degrade to "only the already-selected ids are shown".
+  // The project's discovered skills (for the per-step skills picker).
   const [availableSkills, setAvailableSkills] = useState<string[]>([]);
   const [skillsReload, setSkillsReload] = useState(0);
   useEffect(() => {
@@ -429,6 +428,9 @@ export function StepInspector({
       .then((r) => {
         if (alive) setAvailableSkills(r.skills.map((s) => s.name));
       })
+      // Safe to degrade silently: this only widens the skills picker. The step
+      // keeps every id already selected, so nothing configured is shown as
+      // absent - only the not-yet-chosen options are missing.
       .catch(() => {});
     return () => {
       alive = false;

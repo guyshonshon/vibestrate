@@ -1,7 +1,6 @@
 ---
 title: The guided walkthrough
 description: A resumable, skippable tour through providers, crew, flows, and your first run.
-section: getting-started
 slug: getting-started/welcome
 ---
 

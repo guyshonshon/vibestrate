@@ -1,7 +1,6 @@
 ---
 title: Your first run
 description: Give Vibestrate one small task and watch it go from idea to a finished, ready-to-merge change.
-section: getting-started
 slug: getting-started/first-run
 ---
 

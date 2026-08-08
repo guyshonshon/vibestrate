@@ -347,6 +347,9 @@ export function MissionComposer() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      // Safe to degrade silently: these only pre-fill the composer's optional
+      // choices (crew, flow list, persona, suggestions). None is a fact about
+      // existing work, and the launch itself reports its own failure.
       const [m, f, p, s] = await Promise.all([
         api.getProjectMetadata().catch(() => null),
         api.listFlows().catch(() => ({ flows: [] as DiscoveredFlow[], defaultFlow: null })),

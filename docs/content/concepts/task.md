@@ -1,7 +1,6 @@
 ---
 title: Task
 description: The plain-language brief you hand Vibestrate. One sentence kicks off a full plan, build, review, verify run.
-section: concepts
 slug: concepts/task
 ---
 
@@ -116,11 +115,21 @@ vibe tasks pickup <taskId>          # continuous: items back-to-back
 vibe tasks pickup <taskId> --step   # pause between items for review
 ```
 
+`--flow <id>` picks a different checklist-aware flow (default `pickup`). Only
+flows that declare a per-item segment are accepted; anything else is rejected
+with the list of eligible flows.
+
 "Run checklist" on the task does the same. Under the hood this runs the built-in `pickup` [flow](/docs/concepts/flow): one holistic plan, then a micro-plan and implement band per item, then one holistic review. Each item commits on its own, stamped with the item id so it can be reverted alone. A compact summary of each finished item carries forward, so later items have context without re-reading every diff. Status and commit sha are written back as the run goes. Execution is linear and stops on the first failing item.
 
 ### Per-item review: the `pickup-review` flow
 
-For higher-stakes checklists, use `pickup-review` instead of the default `pickup`. `vibe tasks pickup` always runs the built-in `pickup` flow - it has no `--flow` option - so run the underlying `vibe run` directly to pick a different flow:
+For higher-stakes checklists, use `pickup-review` instead of the default `pickup`:
+
+```bash
+vibe tasks pickup <taskId> --flow pickup-review
+```
+
+The equivalent long form, if you want to set other run options at the same time:
 
 ```bash
 vibe run "<task title>" --task <taskId> --flow pickup-review --checklist continuous

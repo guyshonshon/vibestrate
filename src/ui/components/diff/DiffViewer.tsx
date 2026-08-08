@@ -111,6 +111,9 @@ export function DiffViewer({
             variant="ghost"
             size="sm"
             onClick={() => {
+              // Safe to degrade silently: a blocked clipboard leaves the path
+              // visible right here to select by hand. Nothing is misread as
+              // absent - this reads no data and asserts nothing.
               void navigator.clipboard.writeText(diff.path).catch(() => {});
             }}
             iconLeft={<Copy className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />}

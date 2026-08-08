@@ -1,19 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { buildSagaCommand } from "../src/cli/commands/saga.js";
+import { buildTasksCommand } from "../src/cli/commands/tasks.js";
 import {
   builtinFlows,
   findBuiltinFlow,
 } from "../src/flows/catalog/builtin-flows.js";
 import { flowDefinitionSchema } from "../src/flows/schemas/flow-schema.js";
 
-describe("vibe saga sequence wiring", () => {
-  it("registers the sequence subcommand", () => {
-    const names = buildSagaCommand().commands.map((c) => c.name());
+describe("saga sequencing wiring", () => {
+  it("registers the sequence subcommand under `vibe tasks`", () => {
+    const names = buildTasksCommand().commands.map((c) => c.name());
     expect(names).toEqual(expect.arrayContaining(["sequence"]));
   });
 
   it("sequence accepts --json", () => {
-    const sequence = buildSagaCommand().commands.find(
+    const sequence = buildTasksCommand().commands.find(
       (c) => c.name() === "sequence",
     );
     expect(sequence?.options.map((o) => o.long)).toEqual(

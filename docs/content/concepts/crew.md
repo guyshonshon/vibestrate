@@ -1,7 +1,6 @@
 ---
 title: Crew
 description: Your set of AI workers, and which AI model each one uses.
-section: concepts
 slug: concepts/crew
 ---
 

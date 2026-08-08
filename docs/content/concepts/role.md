@@ -1,7 +1,6 @@
 ---
 title: Role
 description: One worker in your Crew - the instructions it follows, the model it runs on, and the kinds of step it can handle.
-section: concepts
 slug: concepts/role
 ---
 

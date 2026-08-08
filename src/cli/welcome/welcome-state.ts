@@ -51,7 +51,7 @@ export async function loadWelcomeState(projectRoot: string): Promise<WelcomeStat
   }
 }
 
-export async function writeWelcomeState(projectRoot: string, state: WelcomeState): Promise<void> {
+async function writeWelcomeState(projectRoot: string, state: WelcomeState): Promise<void> {
   await writeTextAtomic(welcomeStatePath(projectRoot), `${JSON.stringify(state, null, 2)}\n`);
 }
 

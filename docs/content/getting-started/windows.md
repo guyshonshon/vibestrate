@@ -1,7 +1,6 @@
 ---
 title: Native Windows support
 description: Vibestrate runs the full core loop natively on Windows - install, providers, runs, diffs, and merge - with PowerShell or cmd and no WSL. The one exception is the in-app terminal tab.
-section: getting-started
 slug: getting-started/windows
 ---
 

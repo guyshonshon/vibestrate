@@ -1,7 +1,6 @@
 ---
 title: Supervised tasks (run modes)
 description: A task has steps and a run mode - plain (one pass) or supervised (the Conductor sequences each step with its own review). One card for a whole feature.
-section: concepts
 slug: concepts/supervised-tasks
 ---
 

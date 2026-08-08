@@ -1,7 +1,6 @@
 ---
 title: Profile
 description: A reusable preset that says how strong and expensive a Role runs - a Provider plus its model and effort.
-section: concepts
 slug: concepts/profile
 ---
 

@@ -6,6 +6,7 @@ import { Select } from "../design/Select.js";
 import { StatTile } from "../design/StatTile.js";
 import { cn } from "../design/cn.js";
 import { Section } from "../layout/PageShell.js";
+import { ErrorView } from "../../lib/error-view.js";
 import { CARD, CSS } from "./panelChrome.js";
 
 // Daily spend cap control. Self-contained: owns its budget fetch and form
@@ -50,6 +51,11 @@ export function BudgetControl() {
     setOnLimit(b.onLimit ?? "stop");
   };
 
+  // Without this the failure path parked on the loading skeleton forever, and
+  // the Edit affordance stayed hidden with no way to tell why.
+  const [loadError, setLoadError] = useState<unknown>(null);
+  const [retryTick, setRetryTick] = useState(0);
+
   useEffect(() => {
     void api
       .getBudget()
@@ -57,9 +63,10 @@ export function BudgetControl() {
         setBudget(r.budget);
         setToday(r.todaySpendUsd);
         hydrate(r.budget);
+        setLoadError(null);
       })
-      .catch(() => {});
-  }, []);
+      .catch((e: unknown) => setLoadError(e));
+  }, [retryTick]);
 
   const numOrNull = (s: string) => (s.trim() === "" ? null : Number(s));
 
@@ -151,6 +158,16 @@ export function BudgetControl() {
             pct={pct}
             meterTone={meterTone}
             onSetCap={startEdit}
+          />
+        ) : loadError ? (
+          <ErrorView
+            compact
+            err={loadError}
+            onRetry={() => setRetryTick((t) => t + 1)}
+            override={{
+              title: "Couldn't load the spend cap",
+              hint: "The cap and today's spend are unknown, not unset - runs still enforce whatever cap is configured.",
+            }}
           />
         ) : (
           <div className="h-24 animate-none rounded-[12px] bg-coal-500/30" />

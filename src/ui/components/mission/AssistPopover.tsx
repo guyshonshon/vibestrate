@@ -33,6 +33,9 @@ export function AssistPopover({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      // Safe to degrade silently: this popover only suggests prompt starters
+      // drawn from recent runs and the roadmap. Fewer suggestions is a normal
+      // state on a new project, and the composer works without any of them.
       const [r, rm] = await Promise.all([
         api.listRuns().catch(() => [] as RunState[]),
         api.listRoadmap().catch(() => [] as RoadmapItem[]),

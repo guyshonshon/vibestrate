@@ -1,7 +1,6 @@
 ---
 title: Vibestrate docs
 description: Vibestrate is the missing piece of vibe-coding - it breaks a task down, runs it across several models, and supervises the work while you make the final call.
-section: start
 slug: index
 ---
 

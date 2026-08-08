@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { Command } from "commander";
+import { Command, InvalidArgumentError } from "commander";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 // Single source of truth for the version: package.json. The bundler
@@ -56,6 +56,18 @@ import { buildLearnCommand } from "./commands/learn.js";
 import { buildReplayCommand } from "./commands/replay.js";
 import { buildPauseCommand, buildResumeCommand } from "./commands/pause.js";
 import { buildShellCommand } from "./commands/shell.js";
+
+/** Shared coercer for every `<port>` option. Rejects at the flag boundary so a
+ *  typo fails naming the flag, instead of flowing on as NaN and surfacing much
+ *  later as an opaque listen error. Commander prefixes the thrown message with
+ *  the option and the offending value. */
+function parsePortOption(value: string): number {
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new InvalidArgumentError("must be an integer between 1 and 65535.");
+  }
+  return port;
+}
 
 function collectStepProfile(value: string, previous: string[]): string[] {
   return [...previous, value];
@@ -207,7 +219,7 @@ export function buildVibestrateProgram(): Command {
     .command("run [task...]")
     .description("Run the default plan→architect→implement→review→verify workflow.")
     .option("--ui", "start the local supervisor dashboard alongside the run")
-    .option("--ui-port <port>", "port for the supervisor dashboard (default 4317)", (v) => parseInt(v, 10))
+    .option("--ui-port <port>", "port for the supervisor dashboard (default 4317)", parsePortOption)
     .option(
       "--task <taskId>",
       "link this run to a roadmap task; updates task status and runIds.",
@@ -482,7 +494,7 @@ export function buildVibestrateProgram(): Command {
   program
     .command("ui")
     .description("Start the local supervisor dashboard for this project.")
-    .option("--port <port>", "port to bind (default 4317)", (v) => parseInt(v, 10))
+    .option("--port <port>", "port to bind (default 4317)", parsePortOption)
     .option(
       "--host <host>",
       "bind host (default 127.0.0.1). A non-loopback host exposes the API on the network and requires VIBESTRATE_API_TOKEN.",

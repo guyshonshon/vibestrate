@@ -1,7 +1,6 @@
 ---
 title: Workflow
 description: The ordered sequence of stages a run moves through - plan, architect, execute, validate, review, fix, verify.
-section: concepts
 slug: concepts/workflow
 ---
 

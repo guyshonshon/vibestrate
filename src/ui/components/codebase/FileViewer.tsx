@@ -205,6 +205,9 @@ export function FileViewer({
                     const ref = `${view.path}:${l.number}${
                       runId ? `?runId=${runId}` : ""
                     }`;
+                    // Safe to degrade silently: a blocked clipboard leaves the
+                    // path and line number on screen to copy by hand, and this
+                    // reads no data so nothing can be misread as absent.
                     void navigator.clipboard.writeText(ref).catch(() => {});
                   }}
                 >

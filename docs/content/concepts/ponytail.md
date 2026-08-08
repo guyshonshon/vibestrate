@@ -1,7 +1,6 @@
 ---
 title: Ponytail - the minimalism posture
 description: Code-writing agents default to the smallest solution that works - question whether the task needs to exist, reach for the standard library, one line before fifty. On by default.
-section: concepts
 slug: concepts/ponytail
 ---
 

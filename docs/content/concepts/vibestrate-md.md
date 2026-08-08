@@ -1,7 +1,6 @@
 ---
 title: VIBESTRATE.md
 description: A committed manual at your project root that the orchestrator reads before every task, so you never re-explain your project.
-section: concepts
 slug: concepts/vibestrate-md
 ---
 

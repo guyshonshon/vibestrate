@@ -14,6 +14,9 @@ export function TaskRunMode({
   const [error, setError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<ProfileView[]>([]);
 
+  // Safe to degrade silently: the list only widens the optional
+  // profile-override dropdown. With it empty the task keeps whatever override
+  // it already has, and every write here reports its own error.
   useEffect(() => {
     api
       .getProfiles()

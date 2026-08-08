@@ -1,7 +1,6 @@
 ---
 title: Annotations
 description: Pin short notes to your files so the agents read them during a run, without ever touching your code.
-section: concepts
 slug: concepts/annotation
 ---
 

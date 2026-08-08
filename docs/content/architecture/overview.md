@@ -1,7 +1,6 @@
 ---
 title: Architecture overview
 description: How Vibestrate's pieces fit together, from the orchestrator down to the local CLI binary.
-section: architecture
 slug: architecture/overview
 ---
 

@@ -1,7 +1,6 @@
 ---
 title: Run state
 description: The status a run is in, what each one means, and the rules that keep moves between them honest.
-section: concepts
 slug: concepts/state
 ---
 

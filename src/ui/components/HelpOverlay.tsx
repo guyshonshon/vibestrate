@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Keyboard, X } from "lucide-react";
 import { KBD } from "./design/Chip.js";
 import { TourRelaunchRow } from "./onboarding/TourOverlay.js";
+import { Z_LAYER } from "../lib/z-layers.js";
 
 /**
  * Global help overlay. Opens on:
@@ -54,7 +55,8 @@ export function HelpOverlay() {
         // Close on backdrop click - but not on inner panel clicks.
         if (e.target === e.currentTarget) setOpen(false);
       }}
-      className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 px-4 py-12 backdrop-blur-sm sm:py-20"
+      style={{ zIndex: Z_LAYER.dialog }}
+      className="fixed inset-0 flex items-start justify-center bg-black/60 px-4 py-12 backdrop-blur-sm sm:py-20"
     >
       <div className="relative w-full max-w-2xl overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-700 shadow-2xl shadow-black/50">
         <header className="flex items-center gap-2.5 border-b border-[color:var(--line)] px-4 py-3">

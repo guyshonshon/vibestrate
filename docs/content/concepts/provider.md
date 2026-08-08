@@ -1,7 +1,6 @@
 ---
 title: Provider
 description: A local coding-agent CLI Vibestrate can drive. Vibestrate supplies the prompt; the provider supplies the model.
-section: concepts
 slug: concepts/provider
 ---
 

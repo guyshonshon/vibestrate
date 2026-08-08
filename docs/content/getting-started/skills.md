@@ -1,7 +1,6 @@
 ---
 title: Attach skills
 description: A short note you hand an agent so it knows your codebase's rules before it starts.
-section: getting-started
 slug: getting-started/skills
 ---
 

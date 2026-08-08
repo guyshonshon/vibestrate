@@ -1,7 +1,6 @@
 ---
 title: Create and run a task
 description: Go from a thing you need done to a finished change you can merge.
-section: workflows
 slug: workflows/create-and-run
 ---
 

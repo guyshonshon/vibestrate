@@ -1,7 +1,6 @@
 ---
 title: Add a skill
 description: Write a markdown file, save it under .vibestrate/skills/, and attach it to a role or run.
-section: extending
 slug: extending/add-skill
 ---
 

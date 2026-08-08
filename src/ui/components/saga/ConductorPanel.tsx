@@ -4,6 +4,8 @@ import type { TaskRunStatus, EngagementEntry } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
 import { StatTile } from "../design/StatTile.js";
 import { cn } from "../design/cn.js";
+import { ErrorView } from "../../lib/error-view.js";
+import { settle, errorOf } from "../../lib/settled.js";
 
 // The live Saga CONDUCTOR view. A self-contained MC-idiom card
 // that polls GET /api/sagas/:taskId/status (~2s) for a saga's lifecycle, step
@@ -48,6 +50,7 @@ function stepTone(status: string): string {
 export function ConductorPanel({ taskId }: { taskId: string }) {
   const [status, setStatus] = useState<TaskRunStatus | null>(null);
   const [engagement, setEngagement] = useState<EngagementEntry[]>([]);
+  const [engagementError, setEngagementError] = useState<unknown>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -57,11 +60,16 @@ export function ConductorPanel({ taskId }: { taskId: string }) {
       setStatus(res.status);
       setErr(null);
       if (res.status.liveRunId) {
-        const eng = await api.getRunEngagement(res.status.liveRunId).catch(() => []);
+        const eng = await settle(api.getRunEngagement(res.status.liveRunId));
         // Only the conductor's own moments (supervisor verdicts, clean halts).
-        setEngagement(eng.filter((e) => e.type.startsWith("supervised.")));
+        // Isolated from the status fetch above so a failure here leaves the
+        // controls usable, but not swallowed: an empty feed would claim the
+        // supervisor made no decisions.
+        setEngagement(eng.ok ? eng.value.filter((e) => e.type.startsWith("supervised.")) : []);
+        setEngagementError(errorOf(eng));
       } else {
         setEngagement([]);
+        setEngagementError(null);
       }
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -208,6 +216,19 @@ export function ConductorPanel({ taskId }: { taskId: string }) {
           </div>
         ))}
       </div>
+
+      {engagementError ? (
+        <ErrorView
+          className="mt-3"
+          compact
+          err={engagementError}
+          onRetry={() => void load()}
+          override={{
+            title: "Couldn't load the supervisor's decisions",
+            hint: "The conductor may have recorded verdicts that are not shown here.",
+          }}
+        />
+      ) : null}
 
       {engagement.length > 0 ? (
         <div className="mt-3">
