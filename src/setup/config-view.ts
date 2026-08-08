@@ -167,14 +167,6 @@ export function buildConfigView(config: ProjectConfig): ConfigView {
       { label: "branch prefix", value: config.git.branchPrefix },
       { label: "worktree dir", value: config.git.worktreeDir },
       boolRow("require clean main", config.git.requireCleanMain),
-      boolRow("allow auto-merge", config.git.allowAutoMerge, {
-        riskyWhenOn: true,
-        hint: "policies.forbidAutoMerge also gates this",
-      }),
-      boolRow("allow auto-push", config.git.allowAutoPush, {
-        riskyWhenOn: true,
-        hint: "policies.forbidAutoPush also gates this",
-      }),
     ],
   });
 

@@ -195,8 +195,6 @@ git:
   branchPrefix: vibestrate/
   worktreeDir: ../.vibestrate-worktrees
   requireCleanMain: false
-  allowAutoMerge: false
-  allowAutoPush: false
 
 workflow:
   id: default-plan-build-review

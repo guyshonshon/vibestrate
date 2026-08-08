@@ -621,39 +621,23 @@ export async function runDoctor(input: {
     }
   }
 
-  // Auto-push / auto-merge
-  if (loaded.config.git.allowAutoPush) {
-    findings.push({
-      id: "auto-push",
-      severity: "fail",
-      title: "git.allowAutoPush is true",
-      fixHint: "Run `vibe config set git.allowAutoPush false`. Vibestrate never pushes for you.",
-      fixable: false,
-    });
-  } else {
-    findings.push({
-      id: "auto-push",
-      severity: "ok",
-      title: "Auto-push is disabled",
-      fixable: false,
-    });
-  }
-  if (loaded.config.git.allowAutoMerge) {
-    findings.push({
-      id: "auto-merge",
-      severity: "fail",
-      title: "git.allowAutoMerge is true",
-      fixHint: "Run `vibe config set git.allowAutoMerge false`. Vibestrate never merges for you.",
-      fixable: false,
-    });
-  } else {
-    findings.push({
-      id: "auto-merge",
-      severity: "ok",
-      title: "Auto-merge is disabled",
-      fixable: false,
-    });
-  }
+  // Auto-push / auto-merge are structural, not configurable: no `git push` and
+  // no merge-to-main runs without an explicit human action, so there is no knob
+  // to police here. Reported as facts so `vibe doctor` still states the posture.
+  findings.push({
+    id: "auto-push",
+    severity: "ok",
+    title: "Auto-push is disabled",
+    detail: "Vibestrate never pushes to a remote for you.",
+    fixable: false,
+  });
+  findings.push({
+    id: "auto-merge",
+    severity: "ok",
+    title: "Auto-merge is disabled",
+    detail: "Merging to main always takes an explicit human confirmation.",
+    fixable: false,
+  });
 
   // Approval policy: surface configured stages so users can confirm they
   // match expectations. Schema validation already rejects unknown stages

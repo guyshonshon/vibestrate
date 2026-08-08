@@ -37,8 +37,6 @@
         "branchPrefix": "vibestrate/",
         "worktreeDir": "../.vibestrate-worktrees",
         "requireCleanMain": false,
-        "allowAutoMerge": false,
-        "allowAutoPush": false,
         "linkEnvironment": "auto",
         "snapshotRetentionRuns": 0
       },
@@ -79,24 +77,6 @@
           "default": false,
           "itemType": null,
           "description": "Require a clean main working tree before a run (default off)."
-        },
-        {
-          "key": "allowAutoMerge",
-          "fullKey": "git.allowAutoMerge",
-          "type": "boolean",
-          "required": false,
-          "default": false,
-          "itemType": null,
-          "description": "Permit automatic merges to main (default off)."
-        },
-        {
-          "key": "allowAutoPush",
-          "fullKey": "git.allowAutoPush",
-          "type": "boolean",
-          "required": false,
-          "default": false,
-          "itemType": null,
-          "description": "Permit automatic pushes to the remote (default off)."
         },
         {
           "key": "linkEnvironment",
@@ -188,9 +168,7 @@
           "default": "local-worktree",
           "enum": [
             "local-worktree",
-            "docker",
-            "remote-sandbox",
-            "cloud-runner"
+            "docker"
           ],
           "itemType": null,
           "description": "Where runs execute (default local-worktree)."

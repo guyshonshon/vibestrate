@@ -504,8 +504,11 @@ export class Orchestrator {
     });
   }
 
-  /** Pick the execution backend from config. Unknown/unimplemented backends fall
-   *  back to local-worktree (host) rather than silently pretending to sandbox. */
+  /** Pick the execution backend from config. This returns the host backend for
+   *  anything that is not `docker`, so an id with no backend behind it would run
+   *  on the host while the config claimed isolation. `executionBackendIdSchema`
+   *  is the guard: it only lists backends that exist, so an unimplemented id is
+   *  refused at config load rather than silently downgraded here. */
   private selectExecutionBackend(): ExecutionBackend {
     if ((this.config.execution?.backend ?? "local-worktree") === "docker") {
       const c = this.config.execution?.container;

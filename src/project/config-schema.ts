@@ -18,8 +18,6 @@ export const gitConfigSchema = z.object({
   branchPrefix: z.string().default("vibestrate/").describe("Prefix for run branches (default vibestrate/)."),
   worktreeDir: z.string().default("../.vibestrate-worktrees").describe("Where per-run git worktrees are created."),
   requireCleanMain: z.boolean().default(false).describe("Require a clean main working tree before a run (default off)."),
-  allowAutoMerge: z.boolean().default(false).describe("Permit automatic merges to main (default off)."),
-  allowAutoPush: z.boolean().default(false).describe("Permit automatic pushes to the remote (default off)."),
   /** Link the project's gitignored env dirs (node_modules, .venv, venv) into
    *  each new worktree so validation commands actually run there
    *  (lockfile-guarded for JS). "off" restores bare worktrees. */
@@ -595,8 +593,6 @@ export const projectConfigBaseSchema = z.object({
     branchPrefix: "vibestrate/",
     worktreeDir: "../.vibestrate-worktrees",
     requireCleanMain: false,
-    allowAutoMerge: false,
-    allowAutoPush: false,
   }),
   workflow: workflowConfigSchema.default({
     id: "default-plan-build-review",

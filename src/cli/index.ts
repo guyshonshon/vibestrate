@@ -142,7 +142,7 @@ export function buildVibestrateProgram(): Command {
     .description("Initialize Vibestrate in the current project (.vibestrate/ scaffold).")
     .option("-f, --force", "re-scaffold / overwrite existing config files to repair a broken project (runs are preserved)")
     .option("--yes", "non-interactive: use safe detected defaults, never wait for input")
-    .option("--interactive", "force the flowd wizard even when --yes would default to non-interactive")
+    .option("--interactive", "force the guided wizard even when --yes would default to non-interactive")
     .option(
       "--git-init",
       "if the directory isn't a git repo, create one (starter .gitignore; initial commit only when no secret-like files would be swept). Never implied by --yes.",

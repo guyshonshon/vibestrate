@@ -1,11 +1,12 @@
 import { z } from "zod";
 
-export const executionBackendIdSchema = z.enum([
-  "local-worktree",
-  "docker",
-  "remote-sandbox",
-  "cloud-runner",
-]);
+// Only backends that are actually implemented may appear here. An id with no
+// backend behind it does not fail closed - `selectExecutionBackend` returns the
+// host backend for anything it does not recognise, so a config asking for
+// isolation would validate, print nothing, and run on the host. Keeping the
+// enum honest is what makes that impossible: an unimplemented id now fails
+// schema validation at load.
+export const executionBackendIdSchema = z.enum(["local-worktree", "docker"]);
 
 export type ExecutionBackendId = z.infer<typeof executionBackendIdSchema>;
 

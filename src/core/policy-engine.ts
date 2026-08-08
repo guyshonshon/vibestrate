@@ -29,17 +29,6 @@ export async function runPreflightChecks(input: {
     );
   }
 
-  if (config.policies.forbidAutoPush && config.git.allowAutoPush) {
-    throw new PolicyError(
-      "Auto-push is enabled in git config but policies forbid it. Run `vibe config set git.allowAutoPush false`. Vibestrate never pushes for you.",
-    );
-  }
-  if (config.policies.forbidAutoMerge && config.git.allowAutoMerge) {
-    throw new PolicyError(
-      "Auto-merge is enabled in git config but policies forbid it. Run `vibe config set git.allowAutoMerge false`. Vibestrate never merges for you.",
-    );
-  }
-
   for (const [crewId, crew] of Object.entries(config.crews)) {
     for (const [roleId, role] of Object.entries(crew.roles)) {
       const profile = resolveProfile(config.permissions.profiles, role.permissions);
