@@ -14,6 +14,11 @@ import {
   supervisorFileSearch,
   CodebaseSearchError,
 } from "../../consult/codebase-search.js";
+import {
+  loadCatalogKnowledge,
+  judgeModel,
+  describeModelVerdict,
+} from "../../providers/provider-model-validation.js";
 import { runStatePath } from "../../utils/paths.js";
 import { pathExists } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";
@@ -111,17 +116,27 @@ export async function registerProjectRoutes(
     if (!(await configExists(projectRoot))) return { profiles: [] };
     const { config } = await loadConfig(projectRoot);
     const usage = profileUsage(config);
-    const profiles = Object.entries(config.profiles).map(([id, p]) => ({
-      id,
-      provider: p.provider,
-      providerConfigured: Boolean(config.providers[p.provider]),
-      label: p.label ?? id,
-      model: p.model,
-      power: p.power,
-      maxTokens: p.maxTokens,
-      timeoutMs: p.timeoutMs,
-      usedBy: usage.get(id) ?? [],
-    }));
+    // Judged here, not in the client: a model that was valid when the profile
+    // was written can stop existing when the provider ships a new build, and
+    // the only place that knows is the resolved catalog. Loaded once for the
+    // whole list rather than per profile.
+    const knowledge = await loadCatalogKnowledge(projectRoot);
+    const profiles = Object.entries(config.profiles).map(([id, p]) => {
+      const verdict = judgeModel(knowledge, p.provider, p.model);
+      return {
+        id,
+        provider: p.provider,
+        providerConfigured: Boolean(config.providers[p.provider]),
+        label: p.label ?? id,
+        model: p.model,
+        power: p.power,
+        maxTokens: p.maxTokens,
+        timeoutMs: p.timeoutMs,
+        usedBy: usage.get(id) ?? [],
+        modelStatus: verdict.code,
+        modelIssue: describeModelVerdict(verdict),
+      };
+    });
     return { profiles };
   });
 

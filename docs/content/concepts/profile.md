@@ -48,6 +48,31 @@ If a Profile sets an effort the provider won't honor (a level outside its real o
 
 <div class="docs-outcomes"><div class="docs-outcome ok"><b>effort honored</b><span>level the provider supports, applied as a real flag or request field</span></div><div class="docs-outcome warn"><b>effort_ignored</b><span>level outside the provider's real ones, or a provider with no effort knob: run warns instead of dropping it quietly</span></div></div>
 
+## The model has to be one the Provider actually has
+
+A Profile naming a model its Provider does not offer is a run that fails the
+moment it spawns, so Vibestrate checks the pair when it is written - and keeps
+checking it, because a model can stop existing without anyone touching the
+config.
+
+How hard it checks depends on where the model list came from:
+
+- **From the Provider itself** - Vibestrate probes each Provider's own bundled
+  catalog at the start of every run (an offline read, no network) and caches it.
+  A hand-written `providers-catalog.yml` counts too. When the list is this, the
+  editor is a picker, and saving a model outside it is **refused** with the
+  available ids.
+- **From the built-in list** - our curated fallback for a Provider that cannot
+  be probed. That list goes stale the day a Provider ships a model, so a value
+  outside it is **allowed** and reported as unverified rather than wrong.
+  Refusing here would block every new model on release day.
+
+<div class="docs-outcomes"><div class="docs-outcome ok"><b>model exists</b><span>in a list the Provider itself produced</span></div><div class="docs-outcome bad"><b>unknown model</b><span>absent from the Provider's own list: the write is refused, and an existing one is flagged on the Profiles page and the dashboard</span></div><div class="docs-outcome warn"><b>unverified</b><span>only a curated list to check against: allowed, and reported as unproven</span></div></div>
+
+A Profile that goes stale this way is surfaced, not silently carried: the
+Profiles page marks it and the dashboard shows a banner naming it, because the
+run that would fail has not started yet.
+
 ## There is no per-profile spend dial
 
 A Profile does not set a budget. An earlier version had a `budget` (low/medium/high) field on each Profile, but it was never read at runtime and changed nothing, so it was removed. A leftover `budget:` key in an old `project.yml` is silently ignored on load.
@@ -89,7 +114,7 @@ The schema fields:
 
 - **CLI:** `vibe profile list|add|set|duplicate|remove`; `vibe run "task" --profile claude-max` (run-wide), `--step-profile implement=claude-max` (one step).
 - **Shell:** the `[4] Profiles` page manages presets (e/E cycle effort, m/M model, n new, d duplicate, x delete), and the Crew page shows each role's model and effort.
-- **API:** `GET /api/profiles` (includes `usedBy` and `modelEnabled`), `POST /api/profiles`, `POST /api/profiles/:id/duplicate`, `PATCH /api/profiles/:id`, `DELETE /api/profiles/:id`; `GET /api/providers/catalog` feeds the model and effort options.
+- **API:** `GET /api/profiles` (includes `usedBy`, `modelEnabled`, and a `modelStatus`/`modelIssue` verdict per profile), `POST /api/profiles`, `POST /api/profiles/:id/duplicate`, `PATCH /api/profiles/:id`, `DELETE /api/profiles/:id`; `GET /api/providers/catalog` feeds the model and effort options, and its `sources` map says whether each Provider's list came from the Provider (`detected`/`overlay`) or from the built-in fallback.
 
 ## Going deeper
 

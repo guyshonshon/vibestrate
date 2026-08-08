@@ -14,9 +14,13 @@ import {
 } from "../../providers/provider-catalog.js";
 import {
   loadCatalogOverlay,
-  mergeCatalog,
+  resolveCatalog,
   providerOverlaySource,
 } from "../../providers/provider-catalog-overlay.js";
+import {
+  loadCatalogKnowledge,
+  type ModelListSource,
+} from "../../providers/provider-model-validation.js";
 import { refreshCatalog } from "../../providers/provider-probe.js";
 import { providerCatalogOverlayPath } from "../../utils/paths.js";
 import { pathExists } from "../../utils/fs.js";
@@ -36,26 +40,36 @@ export async function registerSetupRoutes(
   // actually-configured providers over it (api-aware) so a user's http-api
   // provider surfaces its real knobs (e.g. OpenAI effort) under its own id.
   app.get("/api/providers/catalog", async () => {
-    // Built-in specs + the project's `.vibestrate/providers-catalog.yml` overlay
-    // (empty when there's no file / no project), so user-declared knobs surface.
-    // Also returns the overlay status + per-provider source so a UI can show the
-    // same "where did this come from" view as `vibe provider catalog`.
+    // The RESOLVED catalog: built-in curated < auto-detected cache < overlay.
+    // `sources` says which of those a provider's list came from, so a surface
+    // can tell a list the provider itself produced from a curated guess - and
+    // judge a model against it accordingly.
+    // This used to merge the overlay over the built-ins and stop, so the model
+    // pickers never saw providers-detected.json - the one list the provider
+    // itself produced, refreshed at the start of every run. Codex would offer
+    // a curated guess while its real bundled catalog sat unread on disk.
     const overlay = await loadCatalogOverlay(projectRoot);
-    const resolved = mergeCatalog(overlay);
+    const resolved = await resolveCatalog(projectRoot);
+    const knowledge = await loadCatalogKnowledge(projectRoot);
     const overlayFile = providerCatalogOverlayPath(projectRoot);
     const overlayPresent = await pathExists(overlayFile);
 
     const catalog: Record<string, unknown> = {};
-    const sources: Record<string, "overlay" | "built-in"> = {};
+    const sources: Record<string, ModelListSource> = {};
     for (const id of Object.keys(PROVIDER_CATALOG)) {
       catalog[id] = providerCapabilities(id, resolved);
-      sources[id] = overlay.cli?.[id] ? "overlay" : "built-in";
+      sources[id] = knowledge.sourceOf(id);
     }
     if (await configExists(projectRoot)) {
       const { config } = await loadConfig(projectRoot);
       for (const [id, provider] of Object.entries(config.providers)) {
         catalog[id] = capabilitiesForProvider(id, provider, resolved);
-        sources[id] = providerOverlaySource(overlay, id, provider);
+        // An http provider's list is keyed by api family, not by id, so its
+        // provenance stays the overlay/built-in question.
+        sources[id] =
+          provider.type === "http-api" || provider.type === "localhost-proxy"
+            ? providerOverlaySource(overlay, id, provider)
+            : knowledge.sourceOf(id);
       }
     }
     return { catalog, overlay: { present: overlayPresent, path: overlayFile }, sources };

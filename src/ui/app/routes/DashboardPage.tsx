@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { AlertTriangle, ArrowRight } from "lucide-react";
 import { api } from "../../lib/api.js";
-import type { RunState } from "../../lib/types.js";
+import type { ProfileView, RunState } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
 import { PageShell } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
@@ -29,6 +29,10 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
     Record<string, { insertions: number; deletions: number }>
   >({});
   const [error, setError] = useState<unknown>(null);
+  // Profiles whose model their provider no longer has. Surfaced here because
+  // this is the page you glance at: the run that would have failed on one of
+  // these has not started yet, and this is the moment to catch it.
+  const [brokenProfiles, setBrokenProfiles] = useState<ProfileView[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,6 +42,17 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
         if (cancelled) return;
         setRuns(r);
         setError(null);
+        // Advisory: a failed profiles read must not blank the board.
+        try {
+          const profs = await api.getProfiles();
+          if (!cancelled) {
+            setBrokenProfiles(
+              profs.profiles.filter((p) => p.modelStatus === "unknown-model"),
+            );
+          }
+        } catch {
+          /* leave the previous verdict standing */
+        }
         const diffs: Record<string, { insertions: number; deletions: number }> = {};
         for (const run of r.filter((x) => isActiveStatus(x.status)).slice(0, 8)) {
           try {
@@ -186,6 +201,33 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
         {error ? (
           <Cell size="full" reason="masthead">
             <ErrorView compact err={error} />
+          </Cell>
+        ) : null}
+
+        {brokenProfiles.length > 0 ? (
+          <Cell size="full" reason="masthead">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[16px] border border-amber-soft/30 bg-amber-soft/[0.07] px-4 py-3">
+              <AlertTriangle
+                className="h-4 w-4 shrink-0 text-amber-soft"
+                strokeWidth={1.9}
+              />
+              <span className="text-[13px] font-semibold text-amber-soft">
+                {brokenProfiles.length === 1
+                  ? "A profile points at a model its provider does not have"
+                  : `${brokenProfiles.length} profiles point at models their providers do not have`}
+              </span>
+              <span className="min-w-0 flex-1 text-[13px] text-chalk-300">
+                {brokenProfiles.map((p) => p.id).join(", ")} - any run using{" "}
+                {brokenProfiles.length === 1 ? "it" : "them"} fails at launch.
+              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate({ kind: "profiles" })}
+              >
+                Fix in Profiles
+              </Button>
+            </div>
           </Cell>
         ) : null}
 

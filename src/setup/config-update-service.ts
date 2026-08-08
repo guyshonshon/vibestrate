@@ -10,6 +10,7 @@ import { projectConfigSchema, type ProjectConfig } from "../project/config-schem
 import { builtinRoleIds } from "../agents/role-schema.js";
 import type { ProviderConfig } from "../providers/provider-schema.js";
 import { capabilitiesForProvider } from "../providers/provider-catalog.js";
+import { assertModelExists } from "../providers/provider-model-validation.js";
 import {
   planPreset,
   CREW_PRESETS,
@@ -288,6 +289,13 @@ export async function createProfile(
   if (!doc.hasIn(["providers", provider])) {
     throw new Error(`Provider "${provider}" is not configured.`);
   }
+  // The provider being configured was the only thing ever checked here, which
+  // is how a codex profile pointing at a Claude model reached disk.
+  await assertModelExists(
+    projectRoot,
+    provider,
+    typeof fields.model === "string" ? fields.model : null,
+  );
   for (const [key, value] of Object.entries(fields)) {
     if (value !== undefined) doc.setIn(["profiles", profileId, key], value);
   }
@@ -319,6 +327,22 @@ export async function setProfileFields(
     !doc.hasIn(["providers", patch.provider])
   ) {
     throw new Error(`Provider "${patch.provider}" is not configured.`);
+  }
+  // A patch can move the provider, the model, or either one alone, so the pair
+  // has to be judged as it will END UP on disk - not as whatever this patch
+  // happens to carry.
+  const nextProvider =
+    typeof patch.provider === "string"
+      ? patch.provider
+      : (doc.getIn(["profiles", profileId, "provider"]) as unknown);
+  const nextModel =
+    "model" in patch ? patch.model : doc.getIn(["profiles", profileId, "model"]);
+  if (typeof nextProvider === "string" && nextProvider.length > 0) {
+    await assertModelExists(
+      projectRoot,
+      nextProvider,
+      typeof nextModel === "string" ? nextModel : null,
+    );
   }
   for (const [key, value] of Object.entries(patch)) {
     doc.setIn(["profiles", profileId, key], value);

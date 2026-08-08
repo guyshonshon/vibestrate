@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.74.1
+
+- **The model pickers were showing a guess.** Vibestrate probes each provider's
+  own bundled model catalog at the start of every run and caches it, but the
+  endpoint feeding the Profile editors merged the overlay over the built-in
+  curated list and stopped - it never read that cache. Codex was offering three
+  models, two of which it does not have, while the seven it really has sat
+  unread on disk. The editors now serve the resolved catalog: built-in <
+  detected < your overlay.
+- **A model has to be one the provider actually has.** Writing a profile whose
+  model its provider does not offer is refused, with the available ids in the
+  error - it used to reach `project.yml` and fail only when a run tried to spawn.
+  A patch is judged by the pair it would leave on disk, so changing only the
+  model still checks it against the provider already configured.
+- **It only fails closed where the evidence is real.** When the list came from
+  the provider itself, a model outside it is wrong and the write is refused.
+  When all we have is the curated fallback, the value is allowed and reported as
+  unverified - refusing an id we merely have no record of would block every new
+  model on release day.
+- **Drift is surfaced, not silently carried.** A model can stop existing without
+  anyone touching the config, when a provider ships a build that drops it. The
+  Profiles page marks the profile and says which provider has no such model, and
+  the dashboard shows a banner naming it - the run that would have failed has
+  not started yet.
+
 ## 0.74.0
 
 - **Pages have a header now, and a shape.** Every screen leads with a real page

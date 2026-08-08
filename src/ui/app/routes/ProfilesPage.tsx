@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { Copy, Cpu, Plus, Save, Trash2 } from "lucide-react";
 import { api } from "../../lib/api.js";
-import type { ProfileView, ProviderCatalog } from "../../lib/types.js";
+import type {
+  ProfileView,
+  ProviderCatalog,
+  ProviderCatalogResponse,
+} from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
 import { SuggestInput } from "../../components/design/SuggestInput.js";
 import { EffortScale } from "../../components/design/EffortScale.js";
@@ -49,6 +53,60 @@ function EffortField({
 }
 
 const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [] };
+
+type ModelListSources = ProviderCatalogResponse["sources"];
+
+/**
+ * The model field, and how hard it constrains you.
+ *
+ * When the provider itself produced the list - the run-start probe of its
+ * bundled catalog, or an overlay the user declared - this is a picker, because
+ * anything outside that list is a run that fails at launch and the server now
+ * refuses to write it. When all we have is our curated fallback the field stays
+ * free text: that list goes stale the day a provider ships a model, and
+ * refusing an id we merely have no record of would be worse than allowing it.
+ *
+ * A value already on disk is always offered even when it is not in the list, so
+ * opening the editor can never silently drop what is configured.
+ */
+function ModelField({
+  models,
+  derived,
+  value,
+  onChange,
+}: {
+  models: string[];
+  derived: boolean;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  if (!derived || models.length === 0) {
+    return (
+      <SuggestInput
+        value={value}
+        onChange={onChange}
+        suggestions={models}
+        placeholder="provider default"
+        className={INPUT_CLS}
+      />
+    );
+  }
+  const options = models.includes(value.trim()) || !value.trim() ? models : [value.trim(), ...models];
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={INPUT_CLS}
+    >
+      <option value="">provider default</option>
+      {options.map((m) => (
+        <option key={m} value={m}>
+          {m}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 // Per-provider accent, keyed by name hash - colour where it carries meaning
 // (provider identity), like the board's tinted column headers. Only the group
@@ -98,6 +156,11 @@ export function ProfilesPage() {
   const [profiles, setProfiles] = useState<ProfileView[] | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
   const [catalog, setCatalog] = useState<ProviderCatalog>({});
+  // Where each provider's model list came from. A list the provider itself
+  // produced is picked from; a curated guess stays free text, because refusing
+  // an id we merely have no record of would block every new model on release
+  // day.
+  const [sources, setSources] = useState<ModelListSources>({});
   const [error, setError] = useState<string | null>(null);
   const { toast, showToast: flash } = useToast();
   const [creating, setCreating] = useState(false);
@@ -115,6 +178,7 @@ export function ProfilesPage() {
       ]);
       setProfiles(profRes.profiles);
       setCatalog(cat.catalog);
+      setSources(cat.sources);
       const fromMeta = meta?.providers.map((p) => p.id) ?? [];
       const fromProfiles = profRes.profiles.map((p) => p.provider);
       setProviders([...new Set([...fromMeta, ...fromProfiles])].sort());
@@ -138,6 +202,10 @@ export function ProfilesPage() {
   }
   const groupedProviders = [...groups.keys()].sort();
   const total = profiles?.length ?? 0;
+  // A profile whose model its provider no longer has. This is drift, not a typo:
+  // it can appear without anyone touching the config, when a provider ships a
+  // build that drops a model.
+  const broken = (profiles ?? []).filter((p) => p.modelStatus === "unknown-model");
 
   return (
     <PageShell className="fade-up">
@@ -145,10 +213,20 @@ export function ProfilesPage() {
         <Cell size="full" reason="masthead">
           <PageHero
             state={{
-              value: profiles ? total : "-",
-              caption: total === 1 ? "Profile" : "Profiles",
-              note: `Across ${groupedProviders.length} provider${groupedProviders.length === 1 ? "" : "s"}. Crew roles point at one.`,
-              tone: "violet",
+              value: broken.length > 0 ? broken.length : profiles ? total : "-",
+              caption:
+                broken.length > 0
+                  ? broken.length === 1
+                    ? "Broken profile"
+                    : "Broken profiles"
+                  : total === 1
+                    ? "Profile"
+                    : "Profiles",
+              note:
+                broken.length > 0
+                  ? `${broken.map((p) => p.id).join(", ")} ${broken.length === 1 ? "points" : "point"} at a model the provider does not have. Runs using ${broken.length === 1 ? "it" : "them"} fail at launch.`
+                  : `Across ${groupedProviders.length} provider${groupedProviders.length === 1 ? "" : "s"}. Crew roles point at one.`,
+              tone: broken.length > 0 ? "amber" : "violet",
             }}
             title="Profiles"
             purpose="A profile is a reusable preset of how strong and expensive a run is - a provider plus model and effort. Keep several per provider (say claude and claude-cheap) and let each crew role pick the one it deserves."
@@ -165,6 +243,15 @@ export function ProfilesPage() {
             metrics={[
               { value: profiles ? total : "-", label: "presets" },
               { value: groupedProviders.length, label: "providers" },
+              ...(broken.length
+                ? [
+                    {
+                      value: broken.length,
+                      label: "unusable",
+                      tone: "warn" as const,
+                    },
+                  ]
+                : []),
             ]}
             footer="Changing a profile changes every role pointing at it, on the next run."
           />
@@ -183,6 +270,7 @@ export function ProfilesPage() {
         <CreateProfile
           providers={providers}
           catalog={catalog}
+          sources={sources}
           existingIds={new Set((profiles ?? []).map((p) => p.id))}
           onCancel={() => setCreating(false)}
           onCreated={() => {
@@ -246,6 +334,7 @@ export function ProfilesPage() {
                         profile={p}
                         providers={providers}
                         catalog={catalog}
+                        sources={sources}
                         onSaved={() => void load()}
                         onFlash={flash}
                       />
@@ -271,6 +360,7 @@ export function ProfilesPage() {
 function CreateProfile({
   providers,
   catalog,
+  sources,
   existingIds,
   onCancel,
   onCreated,
@@ -278,6 +368,7 @@ function CreateProfile({
 }: {
   providers: string[];
   catalog: ProviderCatalog;
+  sources: ModelListSources;
   existingIds: Set<string>;
   onCancel: () => void;
   onCreated: () => void;
@@ -294,6 +385,7 @@ function CreateProfile({
   });
   const [busy, setBusy] = useState(false);
   const caps = catalog[draft.provider] ?? EMPTY_CAPS;
+  const modelsDerived = sources[draft.provider] !== "built-in" && !!sources[draft.provider];
   const idTaken = existingIds.has(id.trim());
   const idValid = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(id.trim());
   const valid = idValid && !idTaken && !!draft.provider;
@@ -372,12 +464,11 @@ function CreateProfile({
         </FormField>
         <FormField label="Model">
           {caps.modelEnabled ? (
-            <SuggestInput
+            <ModelField
+              models={caps.models}
+              derived={modelsDerived}
               value={draft.model}
               onChange={(v) => set("model", v)}
-              suggestions={caps.models}
-              placeholder="provider default"
-              className={INPUT_CLS}
             />
           ) : (
             <span className="text-[11.5px] text-chalk-300">set in the provider config</span>
@@ -407,12 +498,14 @@ function ProfileCard({
   profile,
   providers,
   catalog,
+  sources,
   onSaved,
   onFlash,
 }: {
   profile: ProfileView;
   providers: string[];
   catalog: ProviderCatalog;
+  sources: ModelListSources;
   onSaved: () => void;
   onFlash: (t: Toast) => void;
 }) {
@@ -421,12 +514,12 @@ function ProfileCard({
   const dirty = JSON.stringify(draft) !== JSON.stringify(toDraft(profile));
   const usedBy = profile.usedBy ?? [];
   const caps = catalog[draft.provider] ?? EMPTY_CAPS;
-  // Only claim a model is unknown when we actually have a catalog to check it
-  // against - an empty list means "we could not enumerate", not "nothing valid".
-  const modelUnknown =
-    caps.models.length > 0 &&
-    draft.model.trim().length > 0 &&
-    !caps.models.includes(draft.model.trim());
+  const modelsDerived = sources[draft.provider] !== "built-in" && !!sources[draft.provider];
+  // The server judges the model against the resolved catalog and says which of
+  // "wrong" and "unproven" it is - the client re-deriving that would be a second
+  // opinion, and the two would drift.
+  const savedIssue = profile.modelIssue;
+  const savedBad = profile.modelStatus === "unknown-model";
   const { confirm, promptText } = useConfirm();
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
@@ -531,7 +624,7 @@ function ProfileCard({
         <StatTile
           value={draft.model.trim() || "default"}
           label="model"
-          tone={modelUnknown ? "amber" : "default"}
+          tone={savedBad ? "amber" : "default"}
         />
         <StatTile value={draft.power.trim() || "unset"} label="effort" />
         {draft.maxTokens.trim() ? (
@@ -542,15 +635,18 @@ function ProfileCard({
         ) : null}
       </div>
 
-      {/* The catalog is a suggestion list, not an allowlist - a provider will
-       * happily take a model id we have never seen, and blocking one would
-       * break the day a new model ships. But "codex" running "claude-haiku" is
-       * a run that fails at launch, so say so where it was authored. */}
-      {modelUnknown ? (
-        <p className="mt-2 text-[12px] leading-[1.45] text-amber-soft">
-          {draft.provider} has no model called{" "}
-          <span className="mono">{draft.model.trim()}</span>. A run on this
-          profile will fail unless the provider accepts it.
+      {/* A model can also stop existing AFTER it was set - the provider ships a
+       * build and drops it - so this is not only an authoring-time check. The
+       * sentence comes from the server so the dashboard, the API and the CLI
+       * all say the same thing. */}
+      {savedIssue ? (
+        <p
+          className={cn(
+            "mt-2 text-[12px] leading-[1.45]",
+            savedBad ? "text-amber-soft" : "text-chalk-300",
+          )}
+        >
+          {savedIssue}
         </p>
       ) : null}
 
@@ -579,12 +675,11 @@ function ProfileCard({
         </FormField>
         <FormField label="Model">
           {caps.modelEnabled ? (
-            <SuggestInput
+            <ModelField
+              models={caps.models}
+              derived={modelsDerived}
               value={draft.model}
               onChange={(v) => set("model", v)}
-              suggestions={caps.models}
-              placeholder="provider default"
-              className={INPUT_CLS}
             />
           ) : (
             <span className="text-[11.5px] text-chalk-300">set in the provider config</span>

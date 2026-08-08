@@ -441,6 +441,16 @@ export type ProfileView = {
   timeoutMs: number | null;
   /** Crew roles that point at this profile (empty = unused). */
   usedBy: { crewId: string; roleId: string }[];
+  /**
+   * Whether this profile's model actually exists for its provider, judged
+   * server-side against the resolved catalog (src/providers/provider-model-
+   * validation.ts). `unknown-model` means a list the provider itself produced
+   * does not contain it - that run fails at launch. `unverified` means we only
+   * had a curated list to check against, so it is unproven, not wrong.
+   */
+  modelStatus: "not-applicable" | "ok" | "unknown-model" | "unverified";
+  /** The sentence to show a human, or null when there is nothing wrong. */
+  modelIssue: string | null;
 };
 
 export type ProviderCapabilities = {
@@ -457,7 +467,10 @@ export type ProviderCatalog = Record<string, ProviderCapabilities>;
 export type ProviderCatalogResponse = {
   catalog: ProviderCatalog;
   overlay: { present: boolean; path: string };
-  sources: Record<string, "overlay" | "built-in">;
+  /** Where each provider's model list came from. `detected` is the run-start
+   *  probe of the provider's own bundled catalog; `overlay` is hand-authored.
+   *  Both are derived from the provider - `built-in` is our curated guess. */
+  sources: Record<string, "overlay" | "detected" | "built-in">;
 };
 
 // ─── Config view (readable, grouped projection of project.yml) ─────────────
