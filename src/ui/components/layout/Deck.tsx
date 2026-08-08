@@ -19,17 +19,26 @@ import { cn } from "../design/cn.js";
  */
 export function Deck({
   gap = "normal",
+  align = "start",
   className,
   children,
 }: {
   gap?: "normal" | "tight";
+  /**
+   * `start` (default) lets each cell be its own height - right when the row
+   * holds unrelated regions. `stretch` levels every card in a row to the
+   * tallest, which is what a COLLECTION of peer cards wants: a ragged row of
+   * near-identical cards reads as a rendering bug, not as information.
+   */
+  align?: "start" | "stretch";
   className?: string;
   children: ReactNode;
 }) {
   return (
     <div
       className={cn(
-        "deck grid grid-cols-12 items-start",
+        "deck grid grid-cols-12",
+        align === "stretch" ? "items-stretch" : "items-start",
         gap === "tight" ? "gap-3" : "gap-4",
         className,
       )}

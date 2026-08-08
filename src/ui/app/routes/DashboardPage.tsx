@@ -3,7 +3,9 @@ import { ArrowRight } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { RunState } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
-import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { PageShell } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
+import { PageHero } from "../../components/layout/PageHero.js";
 import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { navigate } from "../App.js";
@@ -150,25 +152,54 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
     },
   ];
 
+  const active = runs.filter((r) => isActiveStatus(r.status)).length;
+
   return (
     <PageShell>
-      <PageHeader
-        title="Dashboard"
-        actions={
-          <Button variant="primary" size="sm" onClick={onCompose}>
-            New run
-          </Button>
-        }
-      />
-      {error ? (
-        <ErrorView className="mb-4" compact err={error} />
-      ) : null}
-      <PanelBoard
-        storageKey="mission-control-board"
-        variant="bare"
-        label="Dashboard layout"
-        panels={panels}
-      />
+      <Deck>
+        <Cell size="full" reason="masthead">
+          <PageHero
+            state={{
+              value: active,
+              caption: active === 1 ? "Run active" : "Runs active",
+              note: active
+                ? "In flight, or stopped somewhere waiting on you."
+                : "Nothing in flight right now.",
+              tone: active > 0 ? "violet" : "neutral",
+            }}
+            title="Dashboard"
+            purpose="What the orchestrator is doing right now. Every panel here can be moved or hidden - the arrangement is yours and it persists."
+            actions={
+              <Button variant="primary" size="sm" onClick={onCompose}>
+                New run
+              </Button>
+            }
+            metrics={[
+              { value: runs.length, label: "runs on disk" },
+              { value: active, label: "active" },
+              { value: week.total, label: "this week" },
+            ]}
+            footer="Drag a panel by its title to rearrange the board."
+          />
+        </Cell>
+
+        {error ? (
+          <Cell size="full" reason="masthead">
+            <ErrorView compact err={error} />
+          </Cell>
+        ) : null}
+
+        {/* The board owns its own layout - panels are dragged and resized - so
+         * it is one Cell, not a set of them. */}
+        <Cell size="full" reason="nested-deck">
+          <PanelBoard
+            storageKey="mission-control-board"
+            variant="bare"
+            label="Dashboard layout"
+            panels={panels}
+          />
+        </Cell>
+      </Deck>
     </PageShell>
   );
 }

@@ -15,7 +15,9 @@ import { MissionComposer } from "../../components/mission/MissionComposer.js";
 import { RunActions } from "../../components/mission/RunActions.js";
 import { Chip } from "../../components/design/Chip.js";
 import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
-import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { PageShell } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
+import { PageHero } from "../../components/layout/PageHero.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { settle } from "../../lib/settled.js";
 import { PhaseRail, statusMessage } from "../../components/mission/runPhase.js";
@@ -228,63 +230,87 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
 
   return (
     <PageShell>
-        <PageHeader
-          title="Mission control"
-          actions={
-            <Button variant="secondary" size="sm" onClick={onShowDashboard}>
-              Open dashboard
-            </Button>
-          }
-        />
-        <div className="mb-4">
+      <Deck>
+        <Cell size="full" reason="masthead">
+          <PageHero
+            state={{
+              value: approvals.length > 0 ? approvals.length : "Clear",
+              caption:
+                approvals.length > 0
+                  ? approvals.length === 1
+                    ? "Waiting on you"
+                    : "Waiting on you"
+                  : "Nothing blocked",
+              note:
+                approvals.length > 0
+                  ? "A run has stopped and cannot move until you decide."
+                  : "No run is waiting on a decision. Describe the next one below.",
+              tone: approvals.length > 0 ? "amber" : "emerald",
+            }}
+            title="Mission control"
+            purpose="Where work starts. Describe a change, pick the flow and crew that should carry it, and answer anything a run stops to ask you."
+            actions={
+              <Button variant="secondary" size="sm" onClick={onShowDashboard}>
+                Open dashboard
+              </Button>
+            }
+            footer="The dashboard has the panels: recent runs, queue, spend and the rest."
+          />
+        </Cell>
+
+        <Cell size="full" reason="masthead">
           <MissionComposer />
-        </div>
+        </Cell>
 
         {error ? (
-          <ErrorView
-            className="mb-4"
-            compact
-            err={error}
-            onRetry={() =>
-              window.dispatchEvent(new Event("vibestrate:runs-refresh"))
-            }
-          />
+          <Cell size="full" reason="masthead">
+            <ErrorView
+              compact
+              err={error}
+              onRetry={() =>
+                window.dispatchEvent(new Event("vibestrate:runs-refresh"))
+              }
+            />
+          </Cell>
         ) : null}
-        <ToastView
-          toast={toast}
-          variant="inline"
-          prefix="none"
-          className="mb-4 rounded-[12px] border px-4 py-2.5 text-[13px]"
-        />
+
+        <Cell size="full" reason="masthead">
+          <ToastView
+            toast={toast}
+            variant="inline"
+            prefix="none"
+            className="rounded-[12px] border px-4 py-2.5 text-[13px]"
+          />
+        </Cell>
 
         {approvalsError ? (
-          <ErrorView
-            className="mb-4"
-            compact
-            err={approvalsError}
-            onRetry={() =>
-              window.dispatchEvent(new Event("vibestrate:runs-refresh"))
-            }
-            override={{
-              title: "Couldn't check which runs are waiting on you",
-              hint: "A run may be blocked on your approval without appearing below. Retry, or open the run directly.",
-            }}
-          />
+          <Cell size="full" reason="masthead">
+            <ErrorView
+              compact
+              err={approvalsError}
+              onRetry={() =>
+                window.dispatchEvent(new Event("vibestrate:runs-refresh"))
+              }
+              override={{
+                title: "Couldn't check which runs are waiting on you",
+                hint: "A run may be blocked on your approval without appearing below. Retry, or open the run directly.",
+              }}
+            />
+          </Cell>
         ) : null}
 
         {approvals.length > 0 ? (
-          <section className="mb-4 rounded-[22px] border border-amber-soft/25 bg-coal-600 p-6">
+          <Cell size="full" reason="nested-deck">
+          <section className="rounded-[22px] border border-amber-soft/25 bg-coal-600 p-6">
             <h2 className="mb-3 text-[18px] font-bold text-violet-vivid">Waiting on you</h2>
-            {/* Grid, not a full-width stacked list - a single short reason in a
-             * page-width row left a dead gap before Approve/Reject at the far
-             * edge. Two columns keep each card dense and cap the reason's
-             * reading width without a fixed max-w. */}
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            {/* A Deck, not a full-width stacked list - a single short reason in
+             * a page-width row left a dead gap before Approve/Reject at the far
+             * edge. Halves keep each card dense and cap the reason's reading
+             * width without a fixed max-w. */}
+            <Deck>
               {approvals.map((a) => (
-                <div
-                  key={`${a.runId}:${a.id}`}
-                  className="rounded-[14px] bg-coal-500/60 px-4 py-3"
-                >
+                <Cell key={`${a.runId}:${a.id}`} size="half">
+                <div className="rounded-[14px] bg-coal-500/60 px-4 py-3">
                   <div className="flex items-center gap-2">
                     <Chip tone="amber" contained>waiting</Chip>
                     <span className="min-w-0 truncate text-[12px] font-medium text-chalk-400">
@@ -310,11 +336,13 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
                     </button>
                   </div>
                 </div>
+                </Cell>
               ))}
-            </div>
+            </Deck>
           </section>
+          </Cell>
         ) : null}
-
+      </Deck>
     </PageShell>
   );
 }

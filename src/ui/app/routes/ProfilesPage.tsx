@@ -239,7 +239,7 @@ export function ProfilesPage() {
                   </span>
                 }
               >
-                <Deck>
+                <Deck align="stretch">
                   {list.map((p) => (
                     <Cell key={p.id} size="card">
                       <ProfileCard
@@ -421,6 +421,12 @@ function ProfileCard({
   const dirty = JSON.stringify(draft) !== JSON.stringify(toDraft(profile));
   const usedBy = profile.usedBy ?? [];
   const caps = catalog[draft.provider] ?? EMPTY_CAPS;
+  // Only claim a model is unknown when we actually have a catalog to check it
+  // against - an empty list means "we could not enumerate", not "nothing valid".
+  const modelUnknown =
+    caps.models.length > 0 &&
+    draft.model.trim().length > 0 &&
+    !caps.models.includes(draft.model.trim());
   const { confirm, promptText } = useConfirm();
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
@@ -494,7 +500,7 @@ function ProfileCard({
     usedBy.map((u) => `${u.crewId}/${u.roleId}`).join(", ") || "not used by any role";
 
   return (
-    <div className="flex flex-col rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+    <div className="flex h-full flex-col rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
       {/* Header row: the profile id + a used-by fact toned by whether any role
           points at it (emerald = in use, neutral = unused). */}
       <div className="flex items-center gap-2">
@@ -516,13 +522,37 @@ function ProfileCard({
 
       {/* Facts as content-width stat tiles - the profile's settled shape reads
           as data, not a grey dot-separated meta line (primitives-contract §5a). */}
+      {/* Only tiles that carry a value. A row of five with "-" in two of them
+       * overflowed the card and wrapped one tile onto its own line, which made
+       * otherwise identical cards different heights - and a "-" tile is not
+       * information anyway; the field below it is where you set one. */}
       <div className="mt-3 flex flex-wrap items-stretch gap-1">
         <StatTile value={draft.provider || "-"} label="provider" />
-        <StatTile value={draft.model.trim() || "default"} label="model" />
+        <StatTile
+          value={draft.model.trim() || "default"}
+          label="model"
+          tone={modelUnknown ? "amber" : "default"}
+        />
         <StatTile value={draft.power.trim() || "unset"} label="effort" />
-        <StatTile value={draft.maxTokens.trim() || "-"} label="max tokens" />
-        <StatTile value={draft.timeoutMs.trim() || "-"} label="timeout ms" />
+        {draft.maxTokens.trim() ? (
+          <StatTile value={draft.maxTokens.trim()} label="max tokens" />
+        ) : null}
+        {draft.timeoutMs.trim() ? (
+          <StatTile value={draft.timeoutMs.trim()} label="timeout ms" />
+        ) : null}
       </div>
+
+      {/* The catalog is a suggestion list, not an allowlist - a provider will
+       * happily take a model id we have never seen, and blocking one would
+       * break the day a new model ships. But "codex" running "claude-haiku" is
+       * a run that fails at launch, so say so where it was authored. */}
+      {modelUnknown ? (
+        <p className="mt-2 text-[12px] leading-[1.45] text-amber-soft">
+          {draft.provider} has no model called{" "}
+          <span className="mono">{draft.model.trim()}</span>. A run on this
+          profile will fail unless the provider accepts it.
+        </p>
+      ) : null}
 
       {/* Editable fields. */}
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
