@@ -10,6 +10,7 @@ import {
 import { createPortal } from "react-dom";
 import { Button } from "./Button.js";
 import { cn } from "./cn.js";
+import { Z_LAYER } from "../../lib/z-layers.js";
 import {
   createConfirmController,
   type ConfirmController,
@@ -180,7 +181,8 @@ function Dialog({
   return createPortal(
     <div
       role="presentation"
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 px-4"
+      className="fixed inset-0 flex items-center justify-center bg-black/70 px-4"
+      style={{ zIndex: Z_LAYER.confirmDialog }}
       onClick={onCancel}
     >
       <div

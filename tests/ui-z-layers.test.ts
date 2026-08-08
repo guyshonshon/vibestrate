@@ -1,10 +1,26 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Z_LAYER } from "../src/ui/lib/z-layers.js";
 
 const src = (rel: string) =>
   readFileSync(fileURLToPath(new URL(`../src/ui/${rel}`, import.meta.url)), "utf8");
+
+/** Every .tsx under src/ui, so a new overlay cannot slip in unchecked. */
+function uiFiles(): string[] {
+  const root = fileURLToPath(new URL("../src/ui", import.meta.url));
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${e.name}`;
+      if (e.isDirectory()) walk(full);
+      else if (e.name.endsWith(".tsx")) out.push(relative(root, full));
+    }
+  };
+  walk(root);
+  return out;
+}
 
 const OVERLAYS = [
   "components/onboarding/TourOverlay.tsx",
@@ -39,5 +55,22 @@ describe("overlay stacking scale", () => {
       expect(text, `${file} must read its level from Z_LAYER`).toMatch(/Z_LAYER\./);
       expect(text.match(/\bz-(?:\[\d+\]|\d+)(?![\w-])/g), `${file} hardcodes a z-index`).toBeNull();
     }
+  });
+
+  // The three named overlays were never the whole risk. Any literal at or above
+  // the coach-mark rung can tie with them, and a tie is broken by DOM order -
+  // which is precisely how an error ends up painted under the tour. Below that
+  // rung a literal cannot cover an error, so the lower call sites stay as
+  // documented migration targets rather than a failing build.
+  it("has no hardcoded z-index anywhere at or above the coach-mark rung", () => {
+    const offenders: string[] = [];
+    for (const file of uiFiles()) {
+      const text = src(file);
+      for (const m of text.matchAll(/\bz-(?:\[(\d+)\]|(\d+))(?![\w-])/g)) {
+        const value = Number(m[1] ?? m[2]);
+        if (value >= Z_LAYER.coachMark) offenders.push(`${file}: z-[${value}]`);
+      }
+    }
+    expect(offenders, "use Z_LAYER instead of a literal at the top rungs").toEqual([]);
   });
 });
