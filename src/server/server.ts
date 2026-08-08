@@ -45,6 +45,7 @@ import { registerCodebaseMapRoutes } from "./routes/codebase-map.js";
 import {
   HttpError,
   bearerToken,
+  isAllowedRequestHost,
   isLoopbackHost,
   timingSafeEqualStr,
 } from "./security.js";
@@ -215,7 +216,19 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   //      clients (curl, scripts, the CLI's own calls) omit it and stay allowed -
   //      they're local and not a CSRF vector.
   const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+  // Enforced only on a loopback bind: a non-loopback bind cannot know its own
+  // reachable hostname, and `startServer` already made a bearer token mandatory
+  // there.
+  const enforceRequestHost = isLoopbackHost(host);
   app.addHook("onRequest", async (req, reply) => {
+    // Runs before the Origin check: it is the cheapest fail-closed test, and it
+    // is the only one that catches a rebound GET, which carries no Origin at all.
+    if (enforceRequestHost && !isAllowedRequestHost(req.hostname)) {
+      await reply
+        .code(403)
+        .send({ error: "Request Host is not a local address for this server." });
+      return;
+    }
     const origin = req.headers["origin"];
     if (typeof origin === "string" && origin.length > 0) {
       let allowed = false;

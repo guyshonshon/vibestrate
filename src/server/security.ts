@@ -21,6 +21,43 @@ export function isLoopbackHost(host: string): boolean {
 }
 
 /**
+ * Is the `Host` a name this server actually answers to?
+ *
+ * This is the DNS-rebinding guard. An attacker page whose domain has been
+ * rebound to 127.0.0.1 reaches us on the real loopback socket, and because the
+ * browser considers the request same-origin it sends NO `Origin` header on a
+ * simple GET - so the origin allow-list never runs. `Host` still carries the
+ * attacker's own hostname, which makes it the only header that separates
+ * "the user's dashboard" from "some website that rebound its DNS".
+ *
+ * Only meaningful for a loopback bind. A non-loopback bind is reachable under a
+ * LAN address or DNS name we cannot enumerate here, and already requires a
+ * bearer token (`startServer` refuses to bind otherwise), so that token is the
+ * control there - not this.
+ */
+export function isAllowedRequestHost(hostname: string | undefined): boolean {
+  if (typeof hostname !== "string" || hostname.length === 0) return false;
+  // Refuse anything carrying userinfo, a path, or whitespace rather than trying
+  // to parse around it: `evil.com@127.0.0.1` must not read as loopback.
+  if (/[@/\\\s]/.test(hostname)) return false;
+  // Fastify strips the port but keeps the brackets on an IPv6 literal.
+  const bare =
+    hostname.startsWith("[") && hostname.endsWith("]")
+      ? hostname.slice(1, -1)
+      : hostname;
+  const normalized = bare.trim().toLowerCase();
+  if (isLoopbackHost(normalized)) return true;
+  // The IPv4-mapped IPv6 loopback, in both the textual and the compressed form
+  // Node may hand back, plus RFC 6761's reserved `*.localhost` - `app.localhost`
+  // is a real local-dev convention and resolves to loopback by definition.
+  return (
+    normalized === "::ffff:127.0.0.1" ||
+    normalized === "::ffff:7f00:1" ||
+    normalized.endsWith(".localhost")
+  );
+}
+
+/**
  * Constant-time string compare that never short-circuits on length. Returns
  * false for any mismatch (including length) without leaking timing about how
  * much of the token matched.
