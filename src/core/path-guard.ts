@@ -173,6 +173,40 @@ export async function resolveSafePath(
       if (err instanceof PathGuardError) throw err;
       throw new PathGuardError(400, "Refusing to resolve this path safely.");
     }
+    // ENOENT covers two very different cases: a genuinely missing entry, which
+    // callers turn into a 404, and a DANGLING symlink, where the link exists and
+    // realpath fails on its missing target. Letting the second through declares
+    // the path contained, and a writer that follows it then creates the target
+    // wherever the link points - outside the root.
+    const leaf = await fs.lstat(chosen.abs).catch(() => null);
+    if (leaf?.isSymbolicLink()) {
+      throw new PathGuardError(
+        400,
+        "Path resolves through a symlink that escapes the allowed root.",
+      );
+    }
+    // A missing leaf is legitimate, but only if the directory it would be
+    // created in is really inside the root. Walk up to the nearest ancestor that
+    // exists, since a symlinked parent escapes just as well as a symlinked leaf.
+    const realRoot = await fs
+      .realpath(chosen.root.absolutePath)
+      .catch(() => chosen.root.absolutePath);
+    let probe = path.dirname(chosen.abs);
+    for (;;) {
+      const realProbe = await fs.realpath(probe).catch(() => null);
+      if (realProbe) {
+        if (!isPathInside(realRoot, realProbe) && realProbe !== realRoot) {
+          throw new PathGuardError(
+            400,
+            "Path resolves through a symlink that escapes the allowed root.",
+          );
+        }
+        break;
+      }
+      const parent = path.dirname(probe);
+      if (parent === probe) break;
+      probe = parent;
+    }
   }
 
   const finalRel = path

@@ -71,6 +71,43 @@ describe("resolveSafePath - run worktree precedence (T1)", () => {
     );
   });
 
+  // A DANGLING symlink is the case that slipped through: the link exists, so the
+  // path is not "missing", but realpath throws ENOENT on its absent target - the
+  // same code an honestly-missing file produces. Treating both as missing
+  // declared the path contained, and the write-side callers
+  // (project-manual.ts, routes/project.ts) then create the target wherever the
+  // link points, outside the root.
+  it("refuses a dangling symlink that points outside the root", async () => {
+    const outside = path.join(os.tmpdir(), `pg-escape-${process.pid}.md`);
+    await fs.rm(outside, { force: true });
+    await fs.symlink(outside, path.join(wt, "planted.md"));
+    await expect(resolveSafePath("planted.md", runRoots(), opt)).rejects.toBeInstanceOf(
+      PathGuardError,
+    );
+    // The guard must refuse before anything creates the target.
+    await expect(fs.stat(outside)).rejects.toThrow();
+  });
+
+  it("refuses a missing file whose parent directory is a symlink out of the root", async () => {
+    const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), "pg-escape-dir-"));
+    try {
+      await fs.symlink(outsideDir, path.join(wt, "linked"));
+      await expect(
+        resolveSafePath("linked/new-file.md", runRoots(), opt),
+      ).rejects.toBeInstanceOf(PathGuardError);
+    } finally {
+      await fs.rm(outsideDir, { recursive: true, force: true });
+    }
+  });
+
+  it("still allows a missing file in a real subdirectory that does not exist yet", async () => {
+    // The control for the two above: walking up to the nearest existing ancestor
+    // must not turn an ordinary create-a-nested-file into a refusal.
+    const r = await resolveSafePath("docs/deep/new.md", runRoots(), opt);
+    expect(r.root.kind).toBe("worktree");
+    expect(r.relativePath).toBe("docs/deep/new.md");
+  });
+
   it("without preferExistingRoot the legacy project-first precedence holds", async () => {
     // Default roots are [project, worktree]; the first containing root wins.
     await fs.writeFile(path.join(proj, "README.md"), "project");
