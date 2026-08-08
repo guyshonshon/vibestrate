@@ -21,6 +21,7 @@ import {
   type Task,
 } from "./roadmap-types.js";
 import { migrateTaskShape } from "./migrate-task.js";
+import { withFileMutex } from "../utils/file-mutex.js";
 
 /** The roadmap file exists but does not parse. Carries the path so the caller
  *  can name it, and the reason so the quarantine message can quote it. */
@@ -103,6 +104,15 @@ export class RoadmapStore {
     }
   }
 
+  /** The read half of a read-modify-write, so an update or an archive hits the
+   *  quarantine path rather than the throwing one. Callers that only display an
+   *  item must use `getRoadmapItem`, which reports corruption honestly. */
+  async getRoadmapItemForWrite(id: string): Promise<RoadmapItem | null> {
+    safeIdSchema.parse(id);
+    const file = await this.readRoadmapForWrite();
+    return file.items.find((i) => i.id === id) ?? null;
+  }
+
   async writeRoadmap(file: RoadmapFile): Promise<void> {
     const validated = roadmapFileSchema.parse(file);
     await ensureDir(roadmapDir(this.projectRoot));
@@ -122,12 +132,19 @@ export class RoadmapStore {
     return file.items.find((i) => i.id === id) ?? null;
   }
 
+  /** Serialized: this is a read-modify-write of one shared file from processes
+   *  that do not know about each other (CLI, dashboard, TUI). Unlocked, two
+   *  concurrent adds lose one item, and two concurrent quarantines race on the
+   *  rename - one of them getting ENOENT. Every sibling store in this codebase
+   *  takes the same lock for the same reason. */
   async upsertRoadmapItem(item: RoadmapItem): Promise<void> {
-    const file = await this.readRoadmapForWrite();
-    const idx = file.items.findIndex((i) => i.id === item.id);
-    if (idx >= 0) file.items[idx] = item;
-    else file.items.push(item);
-    await this.writeRoadmap(file);
+    await withFileMutex(`${roadmapFile(this.projectRoot)}.lock`, async () => {
+      const file = await this.readRoadmapForWrite();
+      const idx = file.items.findIndex((i) => i.id === item.id);
+      if (idx >= 0) file.items[idx] = item;
+      else file.items.push(item);
+      await this.writeRoadmap(file);
+    });
   }
 
   // ─── tasks ────────────────────────────────────────────────────────────────

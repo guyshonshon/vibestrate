@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
+import { RoadmapCorruptError } from "../../roadmap/roadmap-store.js";
 import { HttpError } from "../security.js";
 import { safeIdSchema } from "../../roadmap/roadmap-types.js";
 
@@ -25,8 +26,22 @@ export async function registerRoadmapRoutes(
 
   app.get("/api/roadmap", async () => {
     await svc.init();
-    const items = await svc.listRoadmapItems();
-    return { items };
+    try {
+      const items = await svc.listRoadmapItems();
+      return { items };
+    } catch (err) {
+      // A corrupt roadmap is the owner's file being unreadable, not a server
+      // fault: a 500 here would also record an issue and read as "Vibestrate
+      // broke". 409 says the state on disk conflicts with the request and
+      // carries the path, so the dashboard can name the file to repair.
+      if (err instanceof RoadmapCorruptError) {
+        throw new HttpError(
+          409,
+          `${err.message}. Fix or delete that file - a write will move it aside as roadmap.json.corrupt-<timestamp> and start fresh.`,
+        );
+      }
+      throw err;
+    }
   });
 
   app.post<{ Body: unknown }>("/api/roadmap/items", async (req) => {

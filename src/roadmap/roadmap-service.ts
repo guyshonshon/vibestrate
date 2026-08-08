@@ -147,7 +147,10 @@ export class RoadmapService {
       Pick<RoadmapItem, "title" | "description" | "priority" | "status" | "notes">
     >,
   ): Promise<RoadmapItem> {
-    const existing = await this.store.getRoadmapItem(id);
+    // Write path, so it must use the quarantining read: a corrupt file has to
+    // leave `vibe roadmap update` and `archive` able to make progress, not dead
+    // until the owner hand-repairs the JSON.
+    const existing = await this.store.getRoadmapItemForWrite(id);
     if (!existing) {
       throw new RoadmapServiceError(`Roadmap item "${id}" not found.`);
     }

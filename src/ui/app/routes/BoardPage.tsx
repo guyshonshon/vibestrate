@@ -34,6 +34,7 @@ import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
 import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { Button } from "../../components/design/Button.js";
+import { ErrorState } from "../../components/design/ErrorState.js";
 import { Select } from "../../components/design/Select.js";
 import { MetricCard } from "../../components/design/MetricCard.js";
 import { SegmentedControl } from "../../components/design/SegmentedControl.js";
@@ -75,6 +76,9 @@ export function BoardPage({
   const [items, setItems] = useState<RoadmapItem[]>([]);
   const [suggestions, setSuggestions] = useState<TaskSuggestion[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // Scoped to the roadmap rail so an unreadable roadmap.json cannot blank the
+  // board; `error` stays reserved for a failure that really does mean no board.
+  const [roadmapError, setRoadmapError] = useState<string | null>(null);
   const { toast, showToast } = useToast(4000);
 
   const [showRoadmapForm, setShowRoadmapForm] = useState(false);
@@ -98,14 +102,25 @@ export function BoardPage({
     try {
       const [t, r, sg] = await Promise.all([
         api.listTasks(),
-        api.listRoadmap(),
+        // NOT silent, but not fatal either: an unreadable roadmap.json must not
+        // take the board down with it. The tasks live in separate files and load
+        // fine, so blanking the whole page over the rail - every 4s, on the poll
+        // - would hide work the owner can still act on. The message is surfaced
+        // in place of the rail instead.
+        api.listRoadmap().catch((err: unknown) => {
+          setRoadmapError(err instanceof Error ? err.message : String(err));
+          return null;
+        }),
         // Safe to degrade silently: suggestions are an unsolicited nudge, and
         // "the supervisor has nothing to suggest" is a state the board renders
         // routinely. The board's real content is the two fetches above.
         api.suggestNext().catch(() => [] as TaskSuggestion[]),
       ]);
       setTasks(t);
-      setItems(r);
+      if (r !== null) {
+        setItems(r);
+        setRoadmapError(null);
+      }
       setSuggestions(sg);
       setError(null);
     } catch (err) {
@@ -527,7 +542,17 @@ export function BoardPage({
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="mb-3 shrink-0 rounded-[14px] border border-[color:var(--line)] bg-coal-650 p-2.5">
-            {items.length > 0 ? (
+            {roadmapError ? (
+              <>
+                <ErrorState
+                  compact
+                  title="Roadmap unavailable"
+                  detail={roadmapError}
+                  hint="Your tasks are unaffected and still listed below. Repair or delete .vibestrate/roadmap/roadmap.json; the next roadmap write moves an unreadable one aside instead of overwriting it."
+                />
+                <div className="my-2.5 h-px bg-[color:var(--line-soft)]" />
+              </>
+            ) : items.length > 0 ? (
               <>
                 <RoadmapRail
                   items={items}
