@@ -1251,3 +1251,53 @@ button:active,
 @media (max-width: 540px) {
   .hubp-grid { grid-template-columns: 1fr 1fr; }
 }
+
+/* ── The Deck: the page grid ────────────────────────────────────────────────
+ * A cell declares a size; the rung is resolved here against the CONTENT width,
+ * so no call site writes a breakpoint prefix. The thresholds are the content
+ * widths at which the next rung's card first reaches MIN_CARD = 440px, the
+ * width where a standard card lays out without wrapping its own footer. They
+ * are derived, not chosen, which is why the arithmetic closes: at a 1610px
+ * content width a card is 526px and 3 x 526 + 2 x 16 = 1610 exactly.
+ *
+ * Invariant worth keeping true: no `card` cell renders below 440px or above
+ * 672px at any viewport between 1210px and 3440px.
+ */
+.deck { container-type: inline-size; }
+.deck > [data-cell] { grid-column: span 12 / span 12; }
+
+@container (min-width: 900px) {
+  .deck > [data-cell="card"] { grid-column: span 6 / span 6; }
+}
+@container (min-width: 1360px) {
+  .deck > [data-cell="card"] { grid-column: span 4 / span 4; }
+  .deck > [data-cell="wide"] { grid-column: span 8 / span 8; }
+}
+@container (min-width: 1810px) {
+  .deck > [data-cell="card"] { grid-column: span 3 / span 3; }
+  .deck > [data-cell="wide"] { grid-column: span 6 / span 6; }
+}
+@container (min-width: 2730px) {
+  .deck > [data-cell="card"] { grid-column: span 2 / span 2; }
+  .deck > [data-cell="wide"] { grid-column: span 4 / span 4; }
+}
+
+/* ── Type ladder ───────────────────────────────────────────────────────────
+ * Opt-in: these are additive utilities, and nothing restyles until a surface
+ * adopts them. The old dense scale stays valid on un-migrated pages so a page
+ * can move on its own without a global reflow.
+ *
+ * Density comes from the card, not the type. A card is 440-672px wide, so 14px
+ * body is a 60-70 character measure. Across the 1610px cards this replaces,
+ * 14px body would have been a ~215-character line, which is why the dense
+ * scale existed and why it is only affordable to grow the type once the width
+ * law lands. The two must migrate together, per surface.
+ */
+.t-page { font-size: 30px; line-height: 1.05; font-weight: 800; letter-spacing: -0.025em; }
+.t-num { font-size: 34px; line-height: 1; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.t-section { font-size: 20px; line-height: 1.2; font-weight: 700; }
+.t-card { font-size: 16px; line-height: 1.3; font-weight: 600; }
+.t-body { font-size: 14px; line-height: 1.5; }
+.t-label { font-size: 13px; line-height: 1.4; font-weight: 600; }
+/* The floor. Nothing renders below 12px. */
+.t-meta { font-size: 12px; line-height: 1.35; }
