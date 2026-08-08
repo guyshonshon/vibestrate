@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.75.0
+
+A pre-1.0 audit pass. Thirteen review lenses over the whole repo, every finding
+attacked by independent reviewers before it was believed, and the survivors
+fixed here. One high-severity defect, several real ones below it, and a
+dependency list that had drifted a long way from what the CLI actually needs.
+
+- **A website could read your dashboard, and no guard could see it.** Vibestrate
+  checked the `Origin` header, but a page that rebinds its DNS to 127.0.0.1
+  becomes same-origin in the browser's eyes, so a plain `GET` carries no
+  `Origin` at all - every read endpoint was reachable from any tab: run logs,
+  diffs, artifacts, codebase search, config. The request's own `Host` header is
+  the only thing that still names the attacker, and nothing was looking at it.
+  Now it is checked, on loopback binds, where that is the control. A LAN bind is
+  unaffected - it already requires a bearer token.
+- **Redaction was leaving the key behind.** The private-key pattern matched the
+  `-----BEGIN-----` line only, and replacing a match replaces just that line -
+  so the body survived into prompts, artifacts and the provider stream with a
+  `[REDACTED]` marker sitting on top of it, pointing at what it had missed. It
+  now takes the whole block, including one that got cut off mid-stream.
+- **`.envrc` and `prod.env` are secrets too.** The secret-file check only knew
+  the `.env*` spelling, so direnv files and the `name.env` convention were read,
+  diffed and displayed like ordinary source. That check is the only protection
+  on the file viewer and the diff view, neither of which redacts content.
+- **A dangling symlink is not a missing file.** The path guard skipped its
+  containment check whenever the target did not exist, which is exactly what a
+  symlink pointing nowhere looks like - so a write following it landed outside
+  the project. Both cases are now told apart, and a symlinked parent directory
+  is caught too.
+- **Two settings promised something the code never did.** `remote-sandbox` and
+  `cloud-runner` were accepted as execution backends and silently ran on your
+  host, while the docs promised the opposite: "it refuses rather than pretend".
+  They are gone, so asking for a backend that does not exist is now refused at
+  config load. `git.allowAutoMerge` and `git.allowAutoPush` are gone too - there
+  is no push code path to permit, and a setting reading "permit automatic
+  pushes" implied you could switch off a guarantee that is structural.
+- **A corrupt roadmap file no longer erases your roadmap.** It used to be read
+  as "no items", which the next add then wrote back over the real file. Now it
+  is moved aside intact and you are told where it went.
+- **`npm i -g vibestrate` was installing 15.4 MB it never used.** 44 declared
+  dependencies, 13 of which the CLI actually loads. The rest are bundled into
+  the dashboard at build time or were left over from a UI scaffold that was
+  never built on. CI now also verifies the packed tarball in a clean room, which
+  is the one release check it had been skipping.
+
 ## 0.74.1
 
 - **The model pickers were showing a guess.** Vibestrate probes each provider's
