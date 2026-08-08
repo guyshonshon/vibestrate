@@ -36,6 +36,23 @@ describe("isSecretLikePath", () => {
     expect(isSecretLikePath("src/index.ts")).toBe(false);
     expect(isSecretLikePath("README.md")).toBe(false);
   });
+
+  // The prefix-only pattern matched `.env*` and nothing else, so direnv's
+  // `.envrc` and the equally common `prod.env` suffix form were read, diffed and
+  // rendered like ordinary source. This flag is the only protection on the
+  // surfaces that do no content redaction (file-view-service, getFileDiff).
+  it("catches the suffix and direnv spellings, not just the dot-prefixed one", () => {
+    expect(isSecretLikePath(".envrc")).toBe(true);
+    expect(isSecretLikePath("prod.env")).toBe(true);
+    expect(isSecretLikePath("config/production.env")).toBe(true);
+    expect(isSecretLikePath(".env-prod")).toBe(true);
+  });
+
+  it("does not over-match ordinary files that merely contain 'env'", () => {
+    expect(isSecretLikePath("src/environment.ts")).toBe(false);
+    expect(isSecretLikePath("src/env.ts")).toBe(false);
+    expect(isSecretLikePath("env/config.json")).toBe(false);
+  });
 });
 
 describe("redactSecretsInText", () => {
@@ -115,6 +132,40 @@ describe("redactSecretsInText", () => {
     const ms = performance.now() - start;
     expect(ms).toBeLessThan(500); // was 28s with the old unbounded regex
     expect(r.count).toBe(0);
+  });
+});
+
+describe("redactSecretsInText - PEM private keys", () => {
+  const BODY = ["MIIEowIBAAKCAQEA3Tz2mr7SZiAMfQyuvBjM9O", "kI7bXkQVMHfhOxLKmJUvXhLQ=="];
+
+  // Matching only the BEGIN line replaced the header and left the key. The
+  // marker then sat directly on top of the base64 body, signposting the secret
+  // it had failed to remove.
+  it("removes the key body, not just the header", () => {
+    const key = `-----BEGIN RSA PRIVATE KEY-----\n${BODY.join("\n")}\n-----END RSA PRIVATE KEY-----`;
+    const r = redactSecretsInText(key);
+    for (const line of BODY) {
+      expect(r.redacted, `body line must not survive: ${line}`).not.toContain(line);
+    }
+    expect(r.redacted).not.toContain("-----END RSA PRIVATE KEY-----");
+    expect(r.redacted).toContain("[REDACTED:PEM private key block]");
+  });
+
+  it("removes the body of a block truncated before its END line", () => {
+    const truncated = `some context\n-----BEGIN PRIVATE KEY-----\n${BODY.join("\n")}\n`;
+    const r = redactSecretsInText(truncated);
+    for (const line of BODY) {
+      expect(r.redacted).not.toContain(line);
+    }
+    // Surrounding content is preserved; only the key is taken.
+    expect(r.redacted).toContain("some context");
+  });
+
+  it("stays linear on adversarial input", () => {
+    const started = Date.now();
+    redactSecretsInText(`-----BEGIN RSA PRIVATE KEY-----${"\nAAAA".repeat(20000)}`);
+    redactSecretsInText(`-----BEGIN RSA PRIVATE KEY-----\n${"A".repeat(200000)}`);
+    expect(Date.now() - started).toBeLessThan(2000);
   });
 });
 

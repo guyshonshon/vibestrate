@@ -41,7 +41,12 @@ export type FileDiff = {
 };
 
 const SECRET_FILE_PATTERNS: RegExp[] = [
-  /(^|\/)\.env(\..*)?$/i,
+  // Both env-file conventions, not just the dot-prefixed one: `.env`, `.env.local`,
+  // `.envrc` (direnv), `.env-prod`, and the equally common suffix form
+  // `prod.env` / `config/production.env`. A prefix-only match let every suffix
+  // spelling through, and this flag is the ONLY protection on the two surfaces
+  // that do no content redaction at all (file-view-service, getFileDiff).
+  /(^|\/)(\.env(rc.*|[.\-].*)?|[^/]*\.env)$/i,
   /(^|\/)secrets?\.(json|ya?ml|toml)$/i,
   /(^|\/)id_rsa(\.pub)?$/,
   /(^|\/)id_ed25519(\.pub)?$/,
@@ -82,9 +87,23 @@ const SECRET_CONTENT_PATTERNS: { name: string; re: RegExp }[] = [
   { name: "Stripe live secret key", re: /\b[rs]k_live_[A-Za-z0-9]{20,}\b/g },
   { name: "Google API key", re: /\bAIza[0-9A-Za-z\-_]{35}\b/g },
   { name: "Anthropic API key", re: /\bsk-ant-[A-Za-z0-9_-]{40,}\b/g },
+  // The whole block, not just its header. Matching only the BEGIN line meant
+  // redaction deleted the label and kept the key: the base64 body survived into
+  // prompts, artifacts and the provider stream, with a `[REDACTED:...]` marker
+  // sitting on top of it pointing straight at what it had failed to remove.
+  // Lazy up to a literal terminator, so there is no nested quantifier to back
+  // off against.
   {
     name: "PEM private key block",
-    re: /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/g,
+    re: /-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z0-9 ]+ )?PRIVATE KEY-----/g,
+  },
+  // A truncated diff or a killed stream can carry the header and body with no
+  // END line, and a patch may carry the header alone - which is still a refusal
+  // signal on its own, so the body repetition is optional. Each repetition must
+  // consume a newline first, so the inner run cannot overlap the outer one.
+  {
+    name: "PEM private key block",
+    re: /-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----(?:\r?\n[A-Za-z0-9+/=]+)*/g,
   },
 ];
 
