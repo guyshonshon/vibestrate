@@ -1,3 +1,4 @@
+import { ProjectSwitcher } from "./ProjectSwitcher.js";
 import { countByFilter, type RunFilter } from "../../lib/run-filter.js";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
@@ -144,6 +145,9 @@ export function Sidebar({
         </button>
         <ThemeToggle className="ml-auto h-8 w-8 rounded-[10px]" />
       </div>
+
+      {/* Which project this dashboard is serving, and the way to another one. */}
+      <ProjectSwitcher onShowWorkspace={onShowWorkspace} onShowSource={onShowSource} />
 
       {/* Scrollable nav body; New-run + utility row stay pinned below. */}
       <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
