@@ -1,12 +1,8 @@
 import { detectProject } from "../../project/project-detector.js";
 import { runStatePath } from "../../utils/paths.js";
 import { pathExists } from "../../utils/fs.js";
-import { readJson, writeJson } from "../../utils/json.js";
-import {
-  applyTransition,
-  isTerminal,
-  runStateSchema,
-} from "../../core/state-machine.js";
+import { RunStateStore } from "../../core/state-machine.js";
+import { requestAbort } from "../../core/run/abort-service.js";
 import { EventLog } from "../../core/stores/event-log.js";
 import { isVibestrateError } from "../../utils/errors.js";
 
@@ -24,40 +20,36 @@ export async function runAbortCommand(runId: string): Promise<number> {
     return 1;
   }
 
-  const raw = await readJson<unknown>(stateFile);
-  const parsed = runStateSchema.safeParse(raw);
-  if (!parsed.success) {
-    console.error(`vibe abort: state.json for ${runId} is invalid.`);
-    return 1;
-  }
-  const state = parsed.data;
-
-  if (isTerminal(state.status)) {
-    console.log(`Run ${runId} is already terminal: ${state.status}.`);
-    return 0;
-  }
-
   try {
-    const next = applyTransition(state, "aborted");
-    await writeJson(stateFile, next);
+    const store = new RunStateStore(detected.projectRoot, runId);
     const eventLog = new EventLog(detected.projectRoot, runId);
-    await eventLog.append({
-      type: "run.aborted",
-      message: `Run ${runId} aborted by user.`,
-    });
+    const res = await requestAbort(store, eventLog, { reason: "vibe abort" });
+    if (res.alreadyTerminal) {
+      console.log(`Run ${runId} is already terminal: ${res.run.status}.`);
+      return 0;
+    }
+    // The run stops at its next checkpoint, not the instant this returns. Saying
+    // "aborted" here is what made the old direct write feel reliable while it
+    // was being silently reverted.
+    console.log(
+      res.finalized
+        ? `Run ${runId} aborted (its process was no longer running).`
+        : `Run ${runId}: abort requested. It will stop at its next checkpoint and write its final report.`,
+    );
+    // Only worth printing once the run is actually over. A run still winding
+    // down owns its worktree, and removing it underneath would be the advice
+    // that breaks the run rather than cleans up after it.
+    if (res.finalized && res.run.worktreePath) {
+      console.log("");
+      console.log("Manual cleanup:");
+      console.log(`  git worktree remove ${res.run.worktreePath}`);
+      if (res.run.branchName) console.log(`  git branch -D ${res.run.branchName}`);
+    }
+    return 0;
   } catch (err) {
     console.error(
       `vibe abort: failed to abort: ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     return 1;
   }
-
-  console.log(`Run ${runId} marked as aborted.`);
-  if (state.worktreePath) {
-    console.log("");
-    console.log("Manual cleanup:");
-    console.log(`  git worktree remove ${state.worktreePath}`);
-    if (state.branchName) console.log(`  git branch -D ${state.branchName}`);
-  }
-  return 0;
 }

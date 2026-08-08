@@ -536,8 +536,9 @@ export async function registerTasksRoutes(
       if (task.currentRunId) {
         try {
           const { runStatePath } = await import("../../utils/paths.js");
-          const { RunStateStore, applyTransition } = await import(
-            "../../core/state-machine.js"
+          const { RunStateStore } = await import("../../core/state-machine.js");
+          const { requestAbort } = await import(
+            "../../core/run/abort-service.js"
           );
           const { EventLog } = await import("../../core/stores/event-log.js");
           const { pathExists } = await import("../../utils/fs.js");
@@ -548,20 +549,10 @@ export async function registerTasksRoutes(
               task.currentRunId,
             );
             const events = new EventLog(deps.projectRoot, task.currentRunId);
-            const cur = await store.read();
-            if (
-              cur &&
-              cur.status !== "merge_ready" &&
-              cur.status !== "failed" &&
-              cur.status !== "aborted"
-            ) {
-              const next = applyTransition(cur, "aborted");
-              await store.write(next);
-              await events.append({
-                type: "run.aborted",
-                message: `Run aborted via task /terminate on ${task.id}.`,
-                data: { taskId: task.id },
-              });
+            const res = await requestAbort(store, events, {
+              reason: `task /terminate on ${task.id}`,
+            });
+            if (!res.alreadyTerminal) {
               aborted = true;
             }
           }

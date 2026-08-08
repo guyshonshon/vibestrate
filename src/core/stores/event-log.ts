@@ -45,6 +45,7 @@ export type VibestrateEventType =
   | "approval.changes_requested"
   | "approval.expired"
   | "run.pause_requested"
+  | "run.abort_requested"
   | "run.paused"
   | "run.resume_requested"
   | "run.resumed"

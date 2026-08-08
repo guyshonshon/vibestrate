@@ -146,6 +146,20 @@ export const runStateSchema = z.object({
   // existing runs that predate pause/resume.
   pauseRequested: z.boolean().default(false),
   pausedAtStatus: runStatusSchema.nullable().default(null),
+  // ─── Abort ─────────────────────────────────────────────────────────────
+  // abortRequested is the same shape as pauseRequested, and for the same
+  // reason: the orchestrator owns the terminal transition. Four processes used
+  // to write `status: "aborted"` directly, which raced the orchestrator's own
+  // whole-object write - an abort landing mid-turn was silently overwritten
+  // while the user had already been told the run was aborted. Now they set this
+  // flag and the run ends itself through the normal abort path, which also
+  // writes the final report, assurance and ledger entry.
+  //
+  // ownerPid is the process running the run, recorded so a requester can tell a
+  // live orchestrator (which will honour the flag) from a crashed one (where
+  // nobody is left to, and the requester finalizes the run itself).
+  abortRequested: z.boolean().default(false),
+  ownerPid: z.number().int().positive().nullable().default(null),
   // ─── Per-run Crew + Profile selection + read-only ─────────────────────
   // Locked into the run at start so the audit trail is faithful even if
   // the originating task/config is later edited. The resolved per-step
@@ -451,6 +465,11 @@ export function createInitialState(input: {
     branchName: input.branchName,
     reviewLoopCount: 0,
     maxReviewLoops: input.maxReviewLoops,
+    abortRequested: false,
+    // Claimed by the orchestrator when it actually starts the run, not here:
+    // the process creating this record is often not the one that will execute
+    // it. Null means nobody is running it, so an abort closes it out directly.
+    ownerPid: null,
     startedAt: ts,
     updatedAt: ts,
     finalDecision: null,

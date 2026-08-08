@@ -3,6 +3,7 @@
 // use, so the orchestrator picks them up via its normal polling.
 
 import { RunStateStore } from "../core/state-machine.js";
+import { requestAbort } from "../core/run/abort-service.js";
 import { EventLog } from "../core/stores/event-log.js";
 import { requestPause, requestResume } from "../core/run/pause-service.js";
 import {
@@ -55,25 +56,24 @@ export async function abortRun(
     if (!(await pathExists(file))) {
       return { ok: false, message: `Run ${runId} not found.` };
     }
-    const raw = await readJson<unknown>(file);
-    const parsed = runStateSchema.safeParse(raw);
-    if (!parsed.success) {
-      return { ok: false, message: `state.json for ${runId} is invalid.` };
-    }
-    if (isTerminal(parsed.data.status)) {
+    const store = new RunStateStore(projectRoot, runId);
+    const events = new EventLog(projectRoot, runId);
+    const res = await requestAbort(store, events, { reason: "vibe shell" });
+    if (res.alreadyTerminal) {
       return {
         ok: false,
-        message: `Run ${runId} is already terminal (${parsed.data.status}).`,
+        message: `Run ${runId} is already terminal (${res.run.status}).`,
       };
     }
-    const next = applyTransition(parsed.data, "aborted");
-    await writeJson(file, next);
-    const events = new EventLog(projectRoot, runId);
-    await events.append({
-      type: "run.aborted",
-      message: `Run ${runId} aborted from vibe shell.`,
-    });
-    return { ok: true, message: `${runId} marked as aborted.` };
+    return {
+      ok: true,
+      // Say what actually happened. The run stops at its next checkpoint rather
+      // than the moment this returns, and claiming otherwise is the same lie the
+      // old direct write told.
+      message: res.finalized
+        ? `${runId} marked as aborted (its process was gone).`
+        : `${runId}: abort requested, stopping at the next checkpoint.`,
+    };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : String(err) };
   }

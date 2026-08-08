@@ -11,6 +11,7 @@ import {
 } from "../../utils/paths.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import { applyTransition, isTerminal, RunStateStore, renameRun } from "../../core/state-machine.js";
+import { requestAbort } from "../../core/run/abort-service.js";
 import { runAwaitsInput } from "../../spec-up/spec-up-chain.js";
 import { EventLog, type VibestrateEvent } from "../../core/stores/event-log.js";
 import {
@@ -656,23 +657,13 @@ export async function registerRunsRoutes(
       if (!(await pathExists(stateFile))) {
         throw new HttpError(404, `Run ${req.params.runId} not found.`);
       }
-      const raw = await readJson<unknown>(stateFile);
-      const parsed = runStateSchema.safeParse(raw);
-      if (!parsed.success) {
-        throw new HttpError(500, "Run state.json is invalid.");
-      }
-      const state = parsed.data;
-      if (isTerminal(state.status)) {
-        return { run: state, alreadyTerminal: true };
-      }
-      const next = applyTransition(state, "aborted");
-      await writeJson(stateFile, next);
+      // Raise the signal; the orchestrator ends the run itself. Writing a
+      // terminal status here raced its whole-object write, so an abort landing
+      // mid-turn was silently reverted after the dashboard had already reported
+      // success. `finalized` is true only for a run whose process is gone.
+      const store = new RunStateStore(projectRoot, req.params.runId);
       const log = new EventLog(projectRoot, req.params.runId);
-      await log.append({
-        type: "run.aborted",
-        message: `Run ${req.params.runId} aborted via dashboard.`,
-      });
-      return { run: next, alreadyTerminal: false };
+      return await requestAbort(store, log, { reason: "dashboard" });
     },
   );
 

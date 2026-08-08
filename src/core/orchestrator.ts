@@ -150,6 +150,7 @@ import {
 } from "../notifications/notification-router.js";
 import type { NotificationDraft } from "../notifications/notification-router.js";
 import { applyPauseIfRequested } from "./run/pause-service.js";
+import { isAbortRequested } from "./run/abort-service.js";
 import { isTerminal, runStateSchema } from "./state-machine.js";
 import { writeJson, readJson } from "../utils/json.js";
 import {
@@ -292,6 +293,9 @@ export class Orchestrator {
   private readonly config: ProjectConfig;
   /** Resolved capability catalog (built-in + project overlay), loaded once. */
   private resolvedCatalog: ResolvedCatalog | null = null;
+  /** Latched by the per-turn abort observer so the signal outlives the interval
+   *  that saw it. Checked at every point the run is about to continue. */
+  private abortRequestedSeen = false;
   /** Dedupe key set for the "effort won't take effect" warning (per provider+effort). */
   private readonly warnedEffort = new Set<string>();
   /** Dedupe key set for the "isolation requested but no provider sandbox" warning (per provider). */
@@ -504,6 +508,23 @@ export class Orchestrator {
     });
   }
 
+  /**
+   * Stop the run if an abort has been asked for. Checks the latch first (set by
+   * a turn's observer, and still true after that interval is cleared), then
+   * falls back to a fresh read for an abort that arrived while no observer was
+   * running at all. Throws the same signal a mid-turn abort throws, so there is
+   * exactly one abort path and it is the one that finalizes the run.
+   */
+  private async throwIfAbortRequested(ctx: {
+    stateStore: RunStateStore;
+  }): Promise<void> {
+    if (!this.abortRequestedSeen && !(await isAbortRequested(ctx.stateStore))) {
+      return;
+    }
+    this.abortRequestedSeen = true;
+    throw new __RunAbortedSignal();
+  }
+
   /** Pick the execution backend from config. This returns the host backend for
    *  anything that is not `docker`, so an id with no backend behind it would run
    *  on the host while the config claimed isolation. `executionBackendIdSchema`
@@ -647,6 +668,13 @@ export class Orchestrator {
     // guards, executor short-circuit) reads from state.readOnly.
     state = {
       ...state,
+      // Claim the run for THIS process. Ownership belongs to whoever will
+      // actually observe an abort, which is the orchestrator - not whoever
+      // created the state file. The CLI can create a run and hand it to a
+      // detached run-entry; the dashboard's long-lived server creates runs it
+      // never executes. A requester compares this pid against a live process to
+      // decide between raising the flag and closing the run out itself.
+      ownerPid: process.pid,
       taskId: this.taskId,
       crewId: flow.crewId,
       profileOverride: this.profileOverride,
@@ -4674,8 +4702,16 @@ export class Orchestrator {
       void (async () => {
         try {
           const cur = await ctx.stateStore.read();
-          if (cur && cur.status === "aborted" && !providerAbort.signal.aborted) {
-            providerAbort.abort();
+          // `status === "aborted"` keeps a run aborted by an older CLI, or one
+          // started before abortRequested existed, stoppable.
+          if (cur && (cur.abortRequested === true || cur.status === "aborted")) {
+            // Latch it on the orchestrator, not just on this turn's controller.
+            // The interval is cleared in the finally below, before the post-turn
+            // diff gate, artifact writes and approval gate run - and that gap is
+            // exactly where an abort used to be observed by nobody and then
+            // overwritten by the turn's own state write.
+            this.abortRequestedSeen = true;
+            if (!providerAbort.signal.aborted) providerAbort.abort();
           }
         } catch {
           /* ignore - state file may be mid-write */
@@ -4975,6 +5011,15 @@ export class Orchestrator {
       clearInterval(observer);
       this.abortSignal?.removeEventListener("abort", abortFromSignal);
     }
+
+    // The window the latch exists for. Everything below - the diff gate, the
+    // artifact writes, registerFlowRoleOutputs' git diff, the approval gate -
+    // runs with no observer, and ends in a whole-object state write that would
+    // put `executing` back over an abort that landed in the meantime. Throwing
+    // here takes the run down the same path a mid-turn abort does, which the
+    // catch in run() already finalizes properly (terminal transition, final
+    // report, assurance, ledger).
+    await this.throwIfAbortRequested(ctx);
 
     // ── Post-turn diff gate ──────────────────────────────────────────
     // The turn ran with write access; evaluate what it wrote. `accept` →

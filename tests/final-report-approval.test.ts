@@ -24,6 +24,8 @@ const baseState = {
   approvalRequestedFromStatus: null,
   taskId: null,
   pauseRequested: false,
+  abortRequested: false,
+  ownerPid: null,
   pausedAtStatus: null,
   effort: null,
   crewId: null,
