@@ -1,4 +1,5 @@
 import path from "node:path";
+import { mdCell } from "../../utils/markdown-cell.js";
 import type { ArtifactStore } from "../stores/artifact-store.js";
 import type { RunState } from "../state-machine.js";
 import type { ValidationResults } from "../validation/validation-runner.js";
@@ -46,7 +47,7 @@ export async function writeFlowFinalReport(input: {
       "| --- | --- | --- | --- | --- |",
       ...outcomes.map(
         (o) =>
-          `| ${o.index + 1} | ${o.text.replace(/\|/g, "\\|")} | ${o.status} | ${o.commitSha ? o.commitSha.slice(0, 8) : "-"} | ${o.filesTouched.length} |`,
+          `| ${o.index + 1} | ${mdCell(o.text)} | ${o.status} | ${o.commitSha ? o.commitSha.slice(0, 8) : "-"} | ${o.filesTouched.length} |`,
       ),
       "",
     ].join("\n");

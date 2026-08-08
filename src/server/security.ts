@@ -39,7 +39,11 @@ export function timingSafeEqualStr(a: string, b: string): boolean {
  *  header is absent or not a well-formed `Bearer <token>`. */
 export function bearerToken(authorization: string | undefined): string | null {
   if (typeof authorization !== "string") return null;
-  const m = /^Bearer[ \t]+(.+)$/i.exec(authorization.trim());
+  // Bounded before the regex, and `\S` after the separator so `[ \t]+` and the
+  // capture cannot both match the same run of whitespace - that ambiguity is
+  // what made a header of 50k spaces cost more than it should.
+  if (authorization.length > 8192) return null;
+  const m = /^Bearer[ \t]+(\S.*)$/i.exec(authorization.trim());
   return m ? m[1]!.trim() : null;
 }
 

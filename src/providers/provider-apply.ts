@@ -263,7 +263,11 @@ export function providerSandboxArgs(
   mode: SandboxMode | null,
 ): { args: string[]; applied: boolean } {
   if (!mode) return { args: [], applied: false };
-  const build = SANDBOX_SPECS[providerId];
-  if (!build) return { args: [], applied: false };
+  // Own-property only: a providerId of "constructor" or "__proto__" otherwise
+  // resolves through the prototype chain and gets CALLED on the next line.
+  const build = Object.hasOwn(SANDBOX_SPECS, providerId)
+    ? SANDBOX_SPECS[providerId]
+    : undefined;
+  if (typeof build !== "function") return { args: [], applied: false };
   return { args: build(mode), applied: true };
 }

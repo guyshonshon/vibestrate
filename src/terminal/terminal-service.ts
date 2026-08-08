@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { runStatePath } from "../utils/paths.js";
 import { runStateSchema } from "../core/state-machine.js";
@@ -315,7 +316,10 @@ export class TerminalService {
 
 function makeSessionId(runId: string): string {
   const stamp = Date.now().toString(36);
-  const rand = Math.random().toString(36).slice(2, 8);
+  // The session id IS the handle for attaching to a live shell over the
+  // WebSocket route, so it is a capability, not a label. `Math.random()` gave
+  // it ~31 guessable bits from a non-cryptographic PRNG.
+  const rand = randomBytes(9).toString("base64url");
   const safeRun = runId.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 32);
   return `tm-${safeRun}-${stamp}-${rand}`;
 }

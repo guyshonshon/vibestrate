@@ -140,7 +140,11 @@ function renderValidationYaml(commands: readonly string[]): string {
     return `commands:
   validate: []`;
   }
-  const list = commands.map((c) => `    - "${c.replace(/"/g, '\\"')}"`).join("\n");
+  // Backslash first: escaping only the quote turns `a\` into `a\"` and breaks
+  // the string it was meant to protect.
+  const list = commands
+    .map((c) => `    - "${c.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`)
+    .join("\n");
   return `commands:
   validate:
 ${list}`;

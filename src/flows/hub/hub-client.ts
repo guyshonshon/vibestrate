@@ -89,7 +89,11 @@ export type HubResult<T> =
   | { ok: false; reason: string };
 
 function trimSlash(u: string): string {
-  return u.replace(/\/+$/, "");
+  // Loop, not `/\/+$/`: the regex backtracks across a long run of trailing
+  // slashes for no benefit over a single scan.
+  let end = u.length;
+  while (end > 0 && u[end - 1] === "/") end -= 1;
+  return u.slice(0, end);
 }
 
 function sha256Hex(text: string): string {

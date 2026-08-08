@@ -1,4 +1,5 @@
 import type { RunState } from "../state-machine.js";
+import { mdCell } from "../../utils/markdown-cell.js";
 import type { ValidationResults } from "../validation/validation-runner.js";
 import type { PolicyWarning } from "../policy-engine.js";
 import type { RuntimeMetrics } from "../metrics/runtime-metrics.js";
@@ -101,7 +102,7 @@ function renderApprovalsSection(approvals: ApprovalRequest[]): string {
   const sep = `| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |`;
   const rows = approvals.map((a) => {
     const escape = (s: string | null | undefined) =>
-      s ? s.replace(/\|/g, "\\|") : "-";
+      mdCell(s);
     const sourceLabel =
       a.source === "policy"
         ? "policy"
@@ -161,8 +162,8 @@ function renderBundlesSection(items: SuggestionBundle[] | undefined): string {
         : "-";
       const reverted = b.revertedAt ?? "-";
       const titleCell = isSmartStatus(b.status)
-        ? `${b.title.replace(/\|/g, "\\|")} _(smart apply)_`
-        : b.title.replace(/\|/g, "\\|");
+        ? `${mdCell(b.title)} _(smart apply)_`
+        : mdCell(b.title);
       const profileCell = b.validationProfile ? `\`${b.validationProfile}\`` : "default";
       return `| ${b.status} | ${titleCell} | ${profileCell} | ${b.suggestionIds.length} | ${validation} | ${reverted} | ${b.approvalId ? `\`${b.approvalId}\`` : "-"} |`;
     })
@@ -198,7 +199,7 @@ function renderSuggestionsSection(items: ReviewSuggestion[] | undefined): string
       const target = s.file
         ? `${s.file}${s.lineStart ? `:${s.lineStart}${s.lineEnd ? `-${s.lineEnd}` : ""}` : ""}`
         : "-";
-      return `| ${s.status} | ${s.source} | \`${target}\` | ${s.title.replace(/\|/g, "\\|")} | ${s.approvalId ? `\`${s.approvalId}\`` : "-"} |`;
+      return `| ${s.status} | ${s.source} | \`${target}\` | ${mdCell(s.title)} | ${s.approvalId ? `\`${s.approvalId}\`` : "-"} |`;
     })
     .join("\n");
   return [summary, "", head, rows].join("\n");

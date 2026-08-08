@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { mdCell } from "../../utils/markdown-cell.js";
 import { pathExists } from "../../utils/fs.js";
 import { readJson, writeJson } from "../../utils/json.js";
 import { runFlowArbitrationPath } from "../../utils/paths.js";
@@ -595,7 +596,7 @@ function formatEvidenceRef(ref: FlowEvidenceRef): string {
 }
 
 function cell(value: string): string {
-  return value.replace(/\|/g, "\\|");
+  return mdCell(value);
 }
 
 function validateLedger(value: Omit<FlowArbitrationLedger, "updatedAt"> & {
