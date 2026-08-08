@@ -10,6 +10,7 @@ import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { LoadingState } from "../../components/design/ErrorState.js";
 import { PageShell } from "../../components/layout/PageShell.js";
 import { ErrorView } from "../../lib/error-view.js";
+import { settle, errorOf } from "../../lib/settled.js";
 import { navigate, type ReplayFocus } from "../App.js";
 import type {
   VibestrateEvent,
@@ -95,6 +96,15 @@ export function RunDetailPage({
     { insertions: number; deletions: number; files: number } | null
   >(null);
   const [error, setError] = useState<unknown>(null);
+  // A secondary fetch may fail without taking the page down, but it must not
+  // fail invisibly: the diff and the assurance verdict are exactly what a human
+  // reviews before merging, and an empty panel would read as "nothing to
+  // review" rather than "we could not load it". Keyed by panel so each renders
+  // its own recovery. See lib/settled.ts.
+  const [panelErrors, setPanelErrors] = useState<{
+    diff?: unknown;
+    assurance?: unknown;
+  }>({});
   // A dashboard-spawned run is opened before its detached process writes
   // state.json, so an early 404 means "still starting". But a genuinely missing
   // run 404s forever - past this grace window we stop masking it as loading and
@@ -144,7 +154,7 @@ export function RunDetailPage({
           api.getRun(runId),
           api.getMetrics(runId).catch(() => null),
           api.listApprovals(runId).catch(() => [] as ApprovalRequest[]),
-          api.getDiff(runId).catch(() => null),
+          settle(api.getDiff(runId)),
           api.getRunSelection(runId).catch(() => null),
           api.getRunEngagement(runId).catch(() => [] as EngagementEntry[]),
           api.getRunArbitration(runId).catch(() => null),
@@ -171,20 +181,24 @@ export function RunDetailPage({
         setError(null);
         // Assurance only exists once a run is terminal.
         if (["merge_ready", "blocked", "failed", "aborted"].includes(r.status)) {
-          api
-            .getRunAssurance(runId)
-            .then((as) => {
-              if (!cancelled) setAssurance(as);
-            })
-            .catch(() => {});
+          const as = await settle(api.getRunAssurance(runId));
+          if (!cancelled) {
+            if (as.ok) setAssurance(as.value);
+            setPanelErrors((p) => ({ ...p, assurance: errorOf(as) }));
+          }
         }
-        if (d) {
-          setDiff({
-            insertions: d.totals.insertions,
-            deletions: d.totals.deletions,
-            files: d.totals.files,
-          });
+        if (d.ok) {
+          setDiff(
+            d.value
+              ? {
+                  insertions: d.value.totals.insertions,
+                  deletions: d.value.totals.deletions,
+                  files: d.value.totals.files,
+                }
+              : null,
+          );
         }
+        setPanelErrors((p) => ({ ...p, diff: errorOf(d) }));
       } catch (err) {
         const starting =
           err instanceof ApiError &&
@@ -351,6 +365,21 @@ export function RunDetailPage({
         onAbort={() => void handleAbort()}
       />
 
+      {/* A null diff renders as "no changes". When the fetch is what failed,
+       * that is a lie about the one artifact a human is meant to review before
+       * merging - so say so instead of showing a clean slate. */}
+      {panelErrors.diff ? (
+        <ErrorView
+          compact
+          err={panelErrors.diff}
+          onRetry={() => setRetryTick((t) => t + 1)}
+          override={{
+            title: "Couldn't load this run's diff",
+            hint: "The change summary above is unavailable, not empty. Retry before concluding the run changed nothing.",
+          }}
+        />
+      ) : null}
+
       {/* 2 - THE SUPERVISOR frames everything below: who judges, what it
        * decided about this task, its live decision feed, and any approval
        * it is waiting on. */}
@@ -398,6 +427,28 @@ export function RunDetailPage({
               : undefined
           }
         />
+      ) : panelErrors.assurance ? (
+        // The verdict EXISTS but we could not load it. Falling through to the
+        // outcome banner alone would read as "assurance not written yet" - the
+        // weaker claim - so say plainly that the evidence-backed verdict is
+        // missing and offer the retry.
+        <div className="flex flex-col gap-2">
+          <ErrorView
+            compact
+            err={panelErrors.assurance}
+            onRetry={() => setRetryTick((t) => t + 1)}
+            override={{
+              title: "Couldn't load the assurance verdict",
+              hint: "The run's evidence-backed verdict is unavailable, so the summary below is the weaker outcome banner. Retry before treating this run as reviewed.",
+            }}
+          />
+          <RunOutcomeBanner
+            run={run}
+            onRerun={() => setRerunOpen(true)}
+            onOpenReview={() => setReviewOpen(true)}
+            onOpenTab={(t) => setTab(t)}
+          />
+        </div>
       ) : (
         <RunOutcomeBanner
           run={run}

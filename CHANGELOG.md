@@ -13,11 +13,16 @@
   you left off, and honest when a step does not finish. The dashboard greets a
   first-time visitor with a short guided tour of the surfaces that matter (runs,
   flows, board, consult, new run), dismissible and re-launchable from help.
-- **Every failure has a way forward.** The error-state migration is complete: no
-  screen dead-ends on a line of red text or a spinner that never resolves. A
-  failed fetch is a visible, recoverable state with Retry; empty states offer
-  the action instead of pointing at a command; and a lazy chunk that fails to
-  load lands in an error boundary with a reload, not a blank page.
+- **Every failure has a way forward.** No screen dead-ends on a line of red text
+  or a spinner that never resolves. A failed page load is a visible, recoverable
+  state with Retry; empty states offer the action instead of pointing at a
+  command; and a lazy chunk that fails to load lands in an error boundary with a
+  reload, not a blank page. On the run screen this now extends to the two panels
+  a human actually reviews before merging: a diff or an assurance verdict that
+  fails to load says so, rather than rendering as "this run changed nothing" or
+  quietly falling back to the weaker outcome banner. Other secondary panels
+  still degrade silently to their empty state - that work is tracked, not
+  claimed as finished.
 - **One design system, everywhere.** The last screens still wearing an older
   generation were rebuilt on the current one, starting with the setup screen a
   first-time user meets before anything else. Two panels had been rendering
