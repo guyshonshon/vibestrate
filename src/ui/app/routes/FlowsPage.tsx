@@ -17,7 +17,9 @@ import { StepKindLegend } from "../../components/design/StepKindLegend.js";
 import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
 import { useConfirm } from "../../components/design/ConfirmDialog.js";
-import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { PageShell } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
+import { PageHero } from "../../components/layout/PageHero.js";
 
 type Props = {
   /** Open a flow in the Flow Builder (customize slots/steps, then run). */
@@ -225,55 +227,57 @@ export function FlowsPage({ onOpenInFlow }: Props) {
 
   return (
     <PageShell className="fade-up">
-      <PageHeader title="Flows" />
-
-      {/* Contained header: title context + the page's primary actions live in a
-          single framed block instead of floating loose on the canvas. */}
-      <section className="mb-6 flex flex-wrap items-start gap-4 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-[15px] font-bold text-chalk-100">All flows</h2>
-            <span className="mono num-tabular text-[12px] text-chalk-400">
-              {flows ? defaultFlowCount + otherFlows.length : ""}
-            </span>
-          </div>
-          <div className="mt-1.5 max-w-[68ch] space-y-1 text-[13px] leading-[1.55] text-chalk-300">
-            <p>
-              A flow is the recipe your crew follows - ordered steps, the roles
-              that run them, approval gates.
-            </p>
-            <p>
-              The{" "}
-              <strong className="font-semibold text-chalk-100">Default flow</strong>{" "}
-              runs unless you pick another.
-            </p>
-          </div>
-          {/* What the per-card step-meter colours mean. */}
-          <StepKindLegend className="mt-3" />
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Button
-            variant="primary"
-            size="sm"
-            iconLeft={<Plus size={13} />}
-            disabled={creating}
-            onClick={() => void createBlank()}
-          >
-            {creating ? "Creating…" : "New flow"}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            iconLeft={<Upload size={13} />}
-            onClick={() => setImportOpen((v) => !v)}
-          >
-            Import
-          </Button>
-        </div>
-      </section>
+      <Deck>
+      <Cell size="full" reason="masthead">
+        <PageHero
+          state={{
+            value: flows ? defaultFlowCount + otherFlows.length : "-",
+            caption: "Flows",
+            note: effectiveDefault
+              ? `"${effectiveDefault}" runs unless a run picks another.`
+              : "One runs by default unless a run picks another.",
+            tone: "violet",
+          }}
+          title="Flows"
+          purpose="A flow is the recipe your crew follows - ordered steps, the roles that run them, and the approval gates between them. The default flow runs unless a run names a different one."
+          actions={
+            <>
+              <Button
+                variant="primary"
+                size="sm"
+                iconLeft={<Plus size={13} />}
+                disabled={creating}
+                onClick={() => void createBlank()}
+              >
+                {creating ? "Creating…" : "New flow"}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                iconLeft={<Upload size={13} />}
+                onClick={() => setImportOpen((v) => !v)}
+              >
+                Import
+              </Button>
+            </>
+          }
+          metrics={[
+            { value: flows ? defaultFlowCount + otherFlows.length : "-", label: "flows" },
+            {
+              value: (flows ?? []).filter((f) => f.source.kind === "project").length,
+              label: "project-owned",
+            },
+            ...(invalid.length
+              ? [{ value: invalid.length, label: "unloadable", tone: "warn" as const }]
+              : []),
+          ]}
+          footer={<StepKindLegend />}
+        />
+      </Cell>
 
       {importOpen ? (
-        <section className="mt-4 rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4 py-3.5">
+        <Cell size="full" reason="masthead">
+        <section className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4 py-3.5">
           <div className="flex items-center gap-3">
             <div className="text-[12px] font-semibold text-violet-vivid">Import a flow</div>
             <div className="ml-auto inline-flex rounded-[10px] border border-[color:var(--line)] p-0.5 text-[11.5px]">
@@ -343,14 +347,18 @@ export function FlowsPage({ onOpenInFlow }: Props) {
             URL fetches are size- and time-bounded.
           </p>
         </section>
+        </Cell>
       ) : null}
 
       {error ? (
-        <ErrorView className="mt-4" compact err={error} onRetry={() => void load()} />
+        <Cell size="full" reason="masthead">
+          <ErrorView compact err={error} onRetry={() => void load()} />
+        </Cell>
       ) : null}
 
       {invalid.length > 0 ? (
-        <div className="mt-4 rounded-[12px] border border-amber-soft/30 bg-amber-soft/10 px-3 py-2.5 text-[12.5px] text-amber-soft">
+        <Cell size="full" reason="masthead">
+        <div className="rounded-[12px] border border-amber-soft/30 bg-amber-soft/10 px-3 py-2.5 text-[12.5px] text-amber-soft">
           <div className="font-semibold">
             {invalid.length} project flow{invalid.length === 1 ? "" : "s"} couldn't
             be loaded and {invalid.length === 1 ? "was" : "were"} skipped:
@@ -364,14 +372,17 @@ export function FlowsPage({ onOpenInFlow }: Props) {
             ))}
           </ul>
         </div>
+        </Cell>
       ) : null}
 
-      <section className="mt-8">
-        {!flows ? (
+      {!flows ? (
+        <Cell size="full" reason="masthead">
           <div className="text-[13px] text-chalk-400">Loading flows…</div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        </Cell>
+      ) : (
+        <>
             {defaultFlow ? (
+              <Cell size="card">
               <LocalFlowCard
                 flow={defaultFlow}
                 variant={effectiveDefault === "default" ? "selected" : "violet"}
@@ -382,6 +393,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
                 onFork={() => void forkAndEdit("default")}
                 onDelete={null}
               />
+              </Cell>
             ) : null}
             {otherFlows.map((g, i) => {
               const isProject = g.source.kind === "project";
@@ -392,8 +404,8 @@ export function FlowsPage({ onOpenInFlow }: Props) {
                     ? "violet"
                     : "white";
               return (
+                <Cell key={g.id} size="card">
                 <LocalFlowCard
-                  key={g.id}
                   flow={g}
                   variant={variant}
                   busy={busy?.id === g.id ? busy.action : null}
@@ -403,12 +415,13 @@ export function FlowsPage({ onOpenInFlow }: Props) {
                   onFork={isProject ? null : () => void fork(g.id)}
                   onDelete={isProject ? () => void remove(g.id) : null}
                 />
+                </Cell>
               );
             })}
-          </div>
-        )}
-      </section>
+        </>
+      )}
 
+      <Cell size="full" reason="nested-deck">
       <HubSection
         projectFlows={(flows ?? []).filter((f) => f.source.kind === "project")}
         onInstalled={(flowId) => {
@@ -417,6 +430,8 @@ export function FlowsPage({ onOpenInFlow }: Props) {
         }}
         onError={(text) => setToast({ kind: "err", text })}
       />
+      </Cell>
+      </Deck>
 
       <ToastView
         toast={toast}

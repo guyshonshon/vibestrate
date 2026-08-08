@@ -9,8 +9,9 @@ import type {
   DiscoveredSkill,
 } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
-import { HeroCard, type HeroTone } from "../../components/design/HeroCard.js";
 import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
+import { PageHero, type HeroTone } from "../../components/layout/PageHero.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
 import { SegmentedControl } from "../../components/design/SegmentedControl.js";
 import { ErrorState } from "../../components/design/ErrorState.js";
@@ -171,39 +172,72 @@ export function CrewPage({
     <PageShell>
       {tab === "providers" ? (
         // ── Providers tab: the relocated provider-management surface ────────
-        <>
-          <PageHeader title="Crew">
-            <SegmentedControl
-              className="mt-4"
-              options={CREW_TABS}
-              value="providers"
-              onChange={onSwitchTab}
+        <Deck>
+          <Cell size="full" reason="masthead">
+            <PageHero
+              title="Crew"
+              purpose="The providers your roles can run on. A provider is a local CLI this machine can call; a profile pins one to a model and effort, and a role points at a profile."
+              actions={
+                <SegmentedControl
+                  options={CREW_TABS}
+                  value="providers"
+                  onChange={onSwitchTab}
+                />
+              }
             />
-          </PageHeader>
-          <ProvidersView />
-        </>
+          </Cell>
+          <Cell size="full" reason="nested-deck">
+            <ProvidersView />
+          </Cell>
+        </Deck>
       ) : hubView ? (
         // ── Stage 1: the crews hub - a list you select from + presets ───────
-        <>
-          <PageHeader title="Crew">
-            <SegmentedControl
-              className="mt-4"
-              options={CREW_TABS}
-              value="crews"
-              onChange={onSwitchTab}
+        <Deck>
+          <Cell size="full" reason="masthead">
+            <PageHero
+              state={{
+                value: crews?.length ?? "-",
+                caption: (crews?.length ?? 0) === 1 ? "Crew" : "Crews",
+                note: defaultCrew
+                  ? `"${defaultCrew}" is cast for every run unless one names another.`
+                  : "None set as default yet.",
+                tone: "violet",
+              }}
+              title="Crew"
+              purpose="A crew is the cast for a run: a set of roles, each on a profile, each claiming the seats a flow asks for. Open one to see its roster and where it has gaps."
+              actions={
+                <SegmentedControl
+                  options={CREW_TABS}
+                  value="crews"
+                  onChange={onSwitchTab}
+                />
+              }
+              metrics={[
+                { value: crews?.length ?? "-", label: "crews" },
+                { value: flows?.length ?? "-", label: "flows they can run" },
+              ]}
+              footer="Installing a preset writes a crew into your project config - nothing runs until you pick it."
             />
-          </PageHeader>
-          {error ? <ErrorView err={error} compact onRetry={() => void load()} /> : null}
-          <CrewHub
-            crews={crews}
-            defaultCrew={defaultCrew}
-            flows={flows}
-            settingDefault={settingDefault}
-            onOpen={onOpenCrew}
-            onSetDefault={(id) => void makeDefault(id)}
-          />
-          <CrewPresets onInstalled={() => void load()} flash={flash} />
-        </>
+          </Cell>
+          {error ? (
+            <Cell size="full" reason="masthead">
+              <ErrorView err={error} compact onRetry={() => void load()} />
+            </Cell>
+          ) : null}
+          <Cell size="full" reason="nested-deck">
+            <CrewHub
+              crews={crews}
+              defaultCrew={defaultCrew}
+              flows={flows}
+              settingDefault={settingDefault}
+              onOpen={onOpenCrew}
+              onSetDefault={(id) => void makeDefault(id)}
+            />
+          </Cell>
+          <Cell size="full" reason="nested-deck">
+            <CrewPresets onInstalled={() => void load()} flash={flash} />
+          </Cell>
+        </Deck>
       ) : !crews ? (
         <>
           <PageHeader title="Crew" />
@@ -235,160 +269,147 @@ export function CrewPage({
       ) : (
         // ── Stage 2: the selected crew's configuration page ─────────────────
         <>
-          <PageHeader
-            title={crew.label}
-            actions={
-              <>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  iconLeft={
-                    <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.9} />
-                  }
-                  onClick={onBackToCrews}
-                >
-                  All crews
-                </Button>
-                {crew.id !== defaultCrew ? (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    disabled={settingDefault}
-                    onClick={() => void makeDefault(crew.id)}
-                    iconLeft={<Check className="h-3.5 w-3.5" strokeWidth={2} />}
-                  >
-                    {settingDefault ? "Setting…" : "Set as default"}
-                  </Button>
+          {(() => {
+            const uncoveredCount = knownSeats.filter(
+              (s) => coverage.get(s)?.status === "uncovered",
+            ).length;
+            const ambiguousCount = knownSeats.filter(
+              (s) => coverage.get(s)?.status === "ambiguous",
+            ).length;
+            const isDefault = crew.id === defaultCrew;
+            const tone: HeroTone =
+              uncoveredCount > 0
+                ? "rose"
+                : ambiguousCount > 0
+                  ? "amber"
+                  : isDefault
+                    ? "emerald"
+                    : "violet";
+            return (
+              <Deck>
+                <Cell size="full" reason="masthead">
+                  <PageHero
+                    state={{
+                      value: uncoveredCount > 0 ? uncoveredCount : "Ready",
+                      caption:
+                        uncoveredCount > 0
+                          ? uncoveredCount === 1
+                            ? "Seat open"
+                            : "Seats open"
+                          : isDefault
+                            ? "Runs by default"
+                            : "To crew a run",
+                      note:
+                        uncoveredCount > 0
+                          ? "A run needing one of these seats has nobody to give it to."
+                          : ambiguousCount > 0
+                            ? `${ambiguousCount} seat${ambiguousCount === 1 ? " has" : "s have"} several takers - the first match wins.`
+                            : "Every seat a flow can ask for has a role behind it.",
+                      tone,
+                    }}
+                    title={crew.label}
+                    purpose="A crew is the cast for a run. Each role runs on a profile (the model and effort) and claims one or more seats. When a run starts, the flow's required seats are matched against these roles."
+                    actions={
+                      <>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          iconLeft={
+                            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.9} />
+                          }
+                          onClick={onBackToCrews}
+                        >
+                          All crews
+                        </Button>
+                        {!isDefault ? (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            disabled={settingDefault}
+                            onClick={() => void makeDefault(crew.id)}
+                            iconLeft={
+                              <Check className="h-3.5 w-3.5" strokeWidth={2} />
+                            }
+                          >
+                            {settingDefault ? "Setting…" : "Set as default"}
+                          </Button>
+                        ) : null}
+                      </>
+                    }
+                    metrics={[
+                      {
+                        value: crew.roles.length,
+                        label: crew.roles.length === 1 ? "role" : "roles",
+                      },
+                      {
+                        value: knownSeats.length,
+                        label: "seats",
+                      },
+                      uncoveredCount > 0
+                        ? { value: uncoveredCount, label: "uncovered", tone: "bad" }
+                        : { value: "all", label: "seats filled", tone: "good" },
+                      ...(crew.maxReviewLoops !== null
+                        ? [
+                            {
+                              value: crew.maxReviewLoops,
+                              label:
+                                crew.maxReviewLoops === 1
+                                  ? "review loop"
+                                  : "review loops",
+                            },
+                          ]
+                        : []),
+                    ]}
+                    footer={
+                      isDefault
+                        ? "Picked for every run unless a run names another crew."
+                        : "Pick this crew per run, or set it as the default."
+                    }
+                  />
+                </Cell>
+
+                {error ? (
+                  <Cell size="full" reason="masthead">
+                    <ErrorView err={error} compact onRetry={() => void load()} />
+                  </Cell>
                 ) : null}
-              </>
-            }
-          />
 
-          {error ? <ErrorView err={error} compact onRetry={() => void load()} /> : null}
+                <Cell size="full" reason="masthead">
+                  <SeatCoverage seats={knownSeats} coverage={coverage} crew={crew} />
+                </Cell>
 
-          <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-stretch">
-            <div className="min-w-0 xl:flex-1">
-            {/* The crew hero: roster state as the tonal anchor, the explainer
-                as the headline sub, facts as the divided metric strip. */}
-            {(() => {
-              const uncoveredCount = knownSeats.filter(
-                (s) => coverage.get(s)?.status === "uncovered",
-              ).length;
-              const ambiguousCount = knownSeats.filter(
-                (s) => coverage.get(s)?.status === "ambiguous",
-              ).length;
-              const isDefault = crew.id === defaultCrew;
-              const tone: HeroTone =
-                uncoveredCount > 0
-                  ? "rose"
-                  : ambiguousCount > 0
-                    ? "amber"
-                    : isDefault
-                      ? "emerald"
-                      : "violet";
-              const headline =
-                uncoveredCount > 0
-                  ? "Seats need filling"
-                  : ambiguousCount > 0
-                    ? "Some seats have several takers"
-                    : isDefault
-                      ? "This crew runs by default"
-                      : "Ready to crew a run";
-              return (
-                <HeroCard
-                  tone={tone}
-                  overline="Crew"
-                  status={
-                    uncoveredCount > 0 ? "gaps" : isDefault ? "default" : "ready"
-                  }
-                  statusSub={
-                    uncoveredCount > 0
-                      ? `${uncoveredCount} seat${uncoveredCount === 1 ? "" : "s"} open`
-                      : isDefault
-                        ? "picked for every run"
-                        : null
-                  }
-                  title={headline}
-                  sub={
-                    <>
-                      A crew is the cast for a run. Each{" "}
-                      <strong className="font-semibold text-chalk-100">role</strong>{" "}
-                      runs on a{" "}
-                      <strong className="font-semibold text-chalk-100">
-                        profile
-                      </strong>{" "}
-                      (the model + effort) and claims one or more{" "}
-                      <strong className="font-semibold text-chalk-100">seats</strong>
-                      . When a run starts, the flow's required seats are matched to
-                      these roles.
-                    </>
-                  }
-                  metrics={[
-                    {
-                      value: crew.roles.length,
-                      label: crew.roles.length === 1 ? "role" : "roles",
-                    },
-                    uncoveredCount > 0
-                      ? {
-                          value: uncoveredCount,
-                          label: "uncovered",
-                          valueClass: "text-rose-300",
-                        }
-                      : {
-                          value: "all",
-                          label: "seats filled",
-                          valueClass: "text-emerald-400",
-                        },
-                    ...(crew.maxReviewLoops !== null
-                      ? [
-                          {
-                            value: crew.maxReviewLoops,
-                            label:
-                              crew.maxReviewLoops === 1
-                                ? "review loop"
-                                : "review loops",
-                          },
-                        ]
-                      : []),
-                  ]}
-                  className="xl:h-full"
-                >
-                  {/* Spacer: at xl the hero stretches to the seat panel's
-                      height, so grow the gap and pin the metric strip to the
-                      bottom instead of leaving dead space mid-card. */}
-                  <div className="hidden grow xl:block" aria-hidden />
-                </HeroCard>
-              );
-            })()}
-            </div>
-            <SeatCoverage seats={knownSeats} coverage={coverage} crew={crew} />
-          </div>
-          <Section title="Roles">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {crew.roles.map((role) => (
-                <RoleCard
-                  key={role.id}
-                  crewId={crew.id}
-                  role={role}
-                  profiles={profiles}
-                  providers={providers}
-                  catalog={catalog}
-                  existingProfileIds={new Set(profiles.map((p) => p.id))}
-                  knownSeats={knownSeats}
-                  skills={skills}
-                  coverage={coverage}
-                  saving={savingRole === role.id}
-                  onPatch={(patch, okText) =>
-                    void patchRole(role.id, patch, okText)
-                  }
-                  onCreateProfile={(input) =>
-                    void createAndAssignProfile(role.id, input)
-                  }
-                  onFlash={flash}
-                />
-              ))}
-            </div>
-          </Section>
+                <Cell size="full" reason="nested-deck">
+                  <Section flush title="Roles">
+                    <Deck>
+                      {crew.roles.map((role) => (
+                        <Cell key={role.id} size="half">
+                          <RoleCard
+                            crewId={crew.id}
+                            role={role}
+                            profiles={profiles}
+                            providers={providers}
+                            catalog={catalog}
+                            existingProfileIds={new Set(profiles.map((p) => p.id))}
+                            knownSeats={knownSeats}
+                            skills={skills}
+                            coverage={coverage}
+                            saving={savingRole === role.id}
+                            onPatch={(patch, okText) =>
+                              void patchRole(role.id, patch, okText)
+                            }
+                            onCreateProfile={(input) =>
+                              void createAndAssignProfile(role.id, input)
+                            }
+                            onFlash={flash}
+                          />
+                        </Cell>
+                      ))}
+                    </Deck>
+                  </Section>
+                </Cell>
+              </Deck>
+            );
+          })()}
         </>
       )}
 

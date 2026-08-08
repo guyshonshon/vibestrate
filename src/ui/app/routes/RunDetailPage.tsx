@@ -9,6 +9,7 @@ import { Button } from "../../components/design/Button.js";
 import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { LoadingState } from "../../components/design/ErrorState.js";
 import { PageShell } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { settle, errorOf, valueOr } from "../../lib/settled.js";
 import { navigate, type ReplayFocus } from "../App.js";
@@ -666,15 +667,15 @@ export function RunDetailPage({
           ) : tab === "events" ? (
             <EventStream runId={runId} />
           ) : tab === "artifacts" ? (
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-12 lg:col-span-5">
+            <Deck>
+              <Cell size="card">
                 <ArtifactList
                   runId={runId}
                   selectedPath={selectedArtifact}
                   onSelect={setSelectedArtifact}
                 />
-              </div>
-              <div className="col-span-12 lg:col-span-7 min-h-[200px]">
+              </Cell>
+              <Cell size="wide" className="min-h-[200px]">
                 {selectedArtifact ? (
                   <ArtifactViewer
                     runId={runId}
@@ -726,8 +727,8 @@ export function RunDetailPage({
                     )}
                   </div>
                 )}
-              </div>
-            </div>
+              </Cell>
+            </Deck>
           ) : tab === "terminal" ? (
             <LazyTerminalPanel runId={runId} />
           ) : tab === "replay" ? (

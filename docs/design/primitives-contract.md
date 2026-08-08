@@ -301,7 +301,7 @@ is a contract violation, same tier as the anti-patterns below.
 - A grey `·`-separated meta line (`8 steps · 6 seats · v1`). Facts go in `StatTile`s.
 - `flex-1`-stretched stat tiles (two half-card slabs). Tiles are content-width.
 - Widening one section's cards to fit content. Keep cards the same compact size; move metadata to the header instead.
-- A page region that inherits the monitor's width: a card, panel or list dropped straight into `PageShell` instead of into a `Cell`, or a page-level `max-w-*` / `grid-cols-*` written at the call site. Width is the Deck's business (§0b).
+- A page region that inherits the monitor's width: a card, panel or list dropped straight into `PageShell` instead of into a `Cell`, or a page-level `max-w-*` / `grid-cols-*` written at the call site. Width is the Deck's business (§0b). One exemption, and it is not a precedent: a focused single-purpose view may centre itself in one reading column (`RunDetailPage`'s `mx-auto max-w-[1520px]`), because there is one subject on the page and no collection to pack. A page with regions to lay out uses the Deck.
 - A `Deck` row mixing a short cell with a tall one, leaving a void beside the short one and pushing the next row past both. Use columns of stacks (§0b).
 - A page action/toggle stranded at the far right of a wide header, or a transparent `outline` button that vanishes on a panel. Section actions sit by their title as a filled (`secondary`/`primary`) `<Button>`.
 - Hiding an important action (e.g. publish) behind a disclosure - keep it visible.

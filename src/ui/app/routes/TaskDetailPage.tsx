@@ -24,6 +24,7 @@ import { Button } from "../../components/design/Button.js";
 import { Chip } from "../../components/design/Chip.js";
 import { cn } from "../../components/design/cn.js";
 import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
 import { ConductorPanel } from "../../components/saga/ConductorPanel.js";
 
 // Priority / risk read as coloured attributes (not metrics): low is quiet,
@@ -217,9 +218,9 @@ export function TaskDetailPage({
         />
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+      <Deck>
         {/* ── Main column: what you work on ───────────────────────── */}
-        <div className="flex min-w-0 flex-col gap-4">
+        <Cell size="wide" className="flex flex-col gap-4">
           {task.needsTesting ? (
             <NeedsTestingBanner task={task} onResolved={load} />
           ) : null}
@@ -377,10 +378,10 @@ export function TaskDetailPage({
             ) : null}
           </div>
           </Section>
-        </div>
+        </Cell>
 
         {/* ── Sidebar: metadata + settings ────────────────────────── */}
-        <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-0">
+        <Cell size="card" className="flex flex-col gap-4">
           <Section title="Details">
             <div className={CARD}>
               <DetailRow label="Priority">
@@ -450,8 +451,8 @@ export function TaskDetailPage({
             onOpenTask={onOpenTask}
             onChanged={load}
           />
-        </div>
-      </div>
+        </Cell>
+      </Deck>
     </PageShell>
   );
 }
