@@ -28,6 +28,27 @@ const UI_ROOT = path.join(process.cwd(), "src", "ui");
 /** `.catch(() => null | undefined | {} | [] | false | 0 | "")`. */
 const SILENT_CATCH = /\.catch\(\(\)\s*=>\s*(?:\{\s*\}|null|undefined|\[\]|false|0|"")/;
 
+/**
+ * The form the first pattern missed, and it is the same bug wearing a body:
+ *
+ *   .catch(() => { if (alive) setDetail(null); })
+ *
+ * That is not an empty catch, so `SILENT_CATCH` never saw it - and it is worse
+ * than returning null, because it actively writes the empty value into the
+ * state the panel renders. It is how the git tree said "No file changes
+ * recorded." about a commit whose file list simply failed to load.
+ */
+const SILENT_CATCH_ASSIGNS = /\.catch\(\(\)\s*=>\s*\{$/;
+const EMPTY_ASSIGNMENT = /\bset[A-Z]\w*\(\s*(?:null|undefined|\[\]|""|\{\})\s*\)/;
+/**
+ * A catch that also RECORDS the failure is not silent, even though it clears
+ * the data alongside - `setPreview(null); setPreviewState("error")` is the
+ * correct shape. Only a body that empties the state and says nothing counts.
+ */
+const RECORDS_FAILURE = /"error"|'error'|`error`|[Ee]rror\b|catch\s*\(\s*\w/;
+/** How far into the catch body to look. */
+const BODY_SCAN = 5;
+
 /** The written justification a deliberate swallow must carry. */
 const JUSTIFICATION = "Safe to degrade silently";
 
@@ -74,7 +95,12 @@ describe("dashboard panels never present a failed fetch as an empty state", () =
       for (const file of await sourceFiles(root)) {
         const lines = (await readFile(file, "utf8")).split("\n");
         lines.forEach((line, i) => {
-          if (!SILENT_CATCH.test(line)) return;
+          const body = lines.slice(i + 1, i + 1 + BODY_SCAN);
+          const bodyWritesEmpty =
+            SILENT_CATCH_ASSIGNS.test(line.trim()) &&
+            body.some((l) => EMPTY_ASSIGNMENT.test(l)) &&
+            !body.some((l) => RECORDS_FAILURE.test(l));
+          if (!SILENT_CATCH.test(line) && !bodyWritesEmpty) return;
           const context = lines.slice(Math.max(0, i - LOOKBACK), i + 1).join("\n");
           if (!context.includes(JUSTIFICATION))
             offenders.push(

@@ -22,6 +22,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { settle } from "../../lib/settled.js";
+import { ErrorView } from "../../lib/error-view.js";
 import type {
   GitGraph,
   GitGraphCommit,
@@ -107,28 +109,30 @@ export function GitTreeView() {
   // Full detail (message body + per-file numstat) follows the selection.
   const [detail, setDetail] = useState<GitCommitDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  // A failed detail fetch used to land on the same `detail === null` the empty
+  // case uses, so the panel said "No file changes recorded." about a commit
+  // whose files it simply could not read. Keep the isolation, name the failure.
+  const [detailError, setDetailError] = useState<unknown>(null);
+  const [detailRetry, setDetailRetry] = useState(0);
   useEffect(() => {
     if (!selectedHash) {
       setDetail(null);
+      setDetailError(null);
       return;
     }
     let alive = true;
     setDetailLoading(true);
-    void api
-      .getProjectGitCommit(selectedHash)
-      .then((d) => {
-        if (alive) setDetail(d);
-      })
-      .catch(() => {
-        if (alive) setDetail(null);
-      })
-      .finally(() => {
-        if (alive) setDetailLoading(false);
-      });
+    void (async () => {
+      const r = await settle(api.getProjectGitCommit(selectedHash));
+      if (!alive) return;
+      setDetail(r.ok ? r.value : null);
+      setDetailError(r.ok ? null : r.error);
+      setDetailLoading(false);
+    })();
     return () => {
       alive = false;
     };
-  }, [selectedHash]);
+  }, [selectedHash, detailRetry]);
 
   // Where the selected commit landed on main - shared with the graph's
   // highlight so the inspector and the rail tell the same story.
@@ -273,6 +277,8 @@ export function GitTreeView() {
                   }
                   detail={detail?.hash === selectedCommit.hash ? detail : null}
                   detailLoading={detailLoading}
+                  detailError={detailError}
+                  onRetryDetail={() => setDetailRetry((n) => n + 1)}
                   onJump={setSelectedHash}
                 />
               ) : (
@@ -364,6 +370,8 @@ function CommitInspector({
   landedCommit,
   detail,
   detailLoading,
+  detailError,
+  onRetryDetail,
   onJump,
 }: {
   commit: GitGraphCommit;
@@ -373,6 +381,8 @@ function CommitInspector({
   landedCommit: GitGraphCommit | null;
   detail: GitCommitDetail | null;
   detailLoading: boolean;
+  detailError: unknown;
+  onRetryDetail: () => void;
   onJump: (hash: string) => void;
 }) {
   const onMainDirectly = landedAt === commit.hash;
@@ -544,6 +554,16 @@ function CommitInspector({
         </div>
         {detailLoading && !detail ? (
           <div className="text-[11.5px] text-chalk-300">Loading files…</div>
+        ) : detailError ? (
+          <ErrorView
+            compact
+            err={detailError}
+            onRetry={onRetryDetail}
+            override={{
+              title: "Couldn't read this commit's files",
+              hint: "This is not an empty commit - the file list failed to load. Retry before concluding it changed nothing.",
+            }}
+          />
         ) : !detail || detail.files.length === 0 ? (
           <div className="text-[11.5px] text-chalk-300">
             {isMerge

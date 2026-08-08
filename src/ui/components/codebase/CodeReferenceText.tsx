@@ -37,6 +37,9 @@ export function CodeReferenceText({
       .then((r) => {
         if (!cancelled) setRefs(r);
       })
+      // Safe to degrade silently, and this is the one case where it genuinely
+      // is: the text renders in full either way. Only the code links are lost,
+      // and no fact about the run is presented as absent.
       .catch(() => {
         if (!cancelled) setRefs([]);
       });
