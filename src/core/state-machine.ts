@@ -3,7 +3,7 @@ import { StateTransitionError } from "../utils/errors.js";
 import { contextSourceSchema } from "./context/context-source-schema.js";
 import { runStatePath } from "../utils/paths.js";
 import { writeJson, readJson } from "../utils/json.js";
-import { pathExists } from "../utils/fs.js";
+import { pathExists, writeTextAtomic } from "../utils/fs.js";
 import { nowIso } from "../utils/time.js";
 import { defaultDisplayName } from "../utils/slug.js";
 import type { RunStatus } from "./workflow/workflow-types.js";
@@ -498,9 +498,23 @@ export class RunStateStore {
     return runStateSchema.parse(raw);
   }
 
+  /**
+   * Atomic replace, not a truncating rewrite. state.json carries the whole flow
+   * ledger, so it is far past a single page, and four processes read it while
+   * the orchestrator writes it - the abort poller every 500ms, the pause poller,
+   * run-lock's staleness check, and the run listing. A plain writeFile leaves a
+   * window where every one of them parses a half-written file; they all swallow
+   * that error, so the run silently disappears from the dashboard instead.
+   * temp + rename means a reader sees the old state or the new one.
+   *
+   * This does NOT make concurrent writers safe. Abort, pause and rename each do
+   * their own read-modify-write from another process, and a lost update there
+   * is a separate fix - the abort signal wants to be a signal the orchestrator
+   * observes, not a status four writers race to set.
+   */
   async write(state: RunState): Promise<void> {
     const validated = runStateSchema.parse(state);
-    await writeJson(this.filePath, validated);
+    await writeTextAtomic(this.filePath, `${JSON.stringify(validated, null, 2)}\n`);
   }
 }
 

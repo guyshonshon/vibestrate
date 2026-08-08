@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 
 export async function ensureDir(dir: string): Promise<void> {
@@ -21,7 +22,11 @@ export async function writeText(filePath: string, contents: string): Promise<voi
  */
 export async function writeTextAtomic(filePath: string, contents: string): Promise<void> {
   await ensureDir(path.dirname(filePath));
-  const tmp = `${filePath}.tmp.${process.pid}`;
+  // The suffix must be unique per CALL, not per process. Two concurrent writes
+  // to the same file from one process - which the review-panel fan-out really
+  // does produce - would otherwise share a temp path, interleave into it, and
+  // rename the mixture over the target.
+  const tmp = `${filePath}.tmp.${process.pid}.${randomUUID()}`;
   await fs.writeFile(tmp, contents, "utf8");
   try {
     await fs.rename(tmp, filePath);
