@@ -3,6 +3,12 @@ import type { HeatmapCell, MetricsOverview } from "../../lib/api.js";
 import { fmtCost, fmtTokensShort } from "../design/format.js";
 import { EmptyState } from "./EmptyState.js";
 import { CSS } from "./panelChrome.js";
+import {
+  ChartTooltip,
+  TooltipTitle,
+  TooltipFigures,
+  TooltipDivider,
+} from "../design/ChartTooltip.js";
 
 type HeatHover = {
   day: string;
@@ -77,7 +83,7 @@ export function ActivityHeatmapPanel({
                 {Array.from({ length: 24 }, (_, h) => (
                   <span
                     key={h}
-                    className="mono text-center text-[9px] text-chalk-400"
+                    className="mono text-center text-[10px] text-chalk-400"
                   >
                     {h % 3 === 0 ? String(h).padStart(2, "0") : ""}
                   </span>
@@ -130,41 +136,37 @@ function HeatTooltip({ hover, width }: { hover: HeatHover; width: number }) {
   const left = Math.max(104, Math.min(hover.x, width - 104));
   const providers = cell.providers;
   return (
-    <div
-      className="pointer-events-none absolute z-10 w-max max-w-[240px] rounded-[12px] border border-[color:var(--line)] bg-[color:var(--card)] p-2.5 shadow-[0_6px_24px_rgba(0,0,0,0.35)]"
-      style={{
-        left,
-        top: hover.y - 8,
-        transform: "translate(-50%, -100%)",
-      }}
+    <ChartTooltip
+      style={{ left, top: hover.y - 8, transform: "translate(-50%, -100%)" }}
     >
-      <div className="mb-1 flex items-center justify-between gap-4">
-        <span className="text-[11px] font-semibold text-chalk-300">
-          {day} {String(hour).padStart(2, "0")}:00
-        </span>
-        <span className="num-tabular text-[11px] font-bold text-chalk-100">
-          {cell.count} {cell.count === 1 ? "run" : "runs"}
-        </span>
-      </div>
+      <TooltipTitle aside={`${cell.count} ${cell.count === 1 ? "run" : "runs"}`}>
+        {day} {String(hour).padStart(2, "0")}:00
+      </TooltipTitle>
       {providers.length === 0 ? (
-        <div className="text-[11px] text-chalk-400">
+        <div className="mt-1.5 text-[12px] text-chalk-400">
           {cell.count === 0 ? "No runs this hour." : "No metered provider data."}
         </div>
       ) : (
-        <div className="flex flex-col gap-1 border-t border-[color:var(--line-soft)] pt-1.5">
-          {providers.map((p) => (
-            <div
-              key={p.label}
-              className="flex items-center justify-between gap-3 text-[11px]"
-            >
-              <span className="truncate text-chalk-100">{p.label}</span>
-              <span className="num-tabular mono shrink-0 text-chalk-300">
-                {p.runs} · {fmtCost(p.costUsd)} · {fmtTokensShort(p.tokens)}
-              </span>
-            </div>
-          ))}
-        </div>
+        <>
+          <TooltipDivider />
+          <div className="flex flex-col gap-2">
+            {providers.map((p) => (
+              <div key={p.label}>
+                <span className="block truncate text-[12px] font-semibold text-chalk-100">
+                  {p.label}
+                </span>
+                <TooltipFigures
+                  figures={[
+                    { value: p.runs, label: "runs" },
+                    { value: fmtCost(p.costUsd), label: "spend" },
+                    { value: fmtTokensShort(p.tokens), label: "tokens" },
+                  ]}
+                />
+              </div>
+            ))}
+          </div>
+        </>
       )}
-    </div>
+    </ChartTooltip>
   );
 }

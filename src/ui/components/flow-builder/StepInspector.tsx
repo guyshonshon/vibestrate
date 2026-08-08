@@ -364,7 +364,7 @@ export function PromptComposition({
                   {l.label}
                 </span>
                 {l.runtime ? (
-                  <span className="rounded-[5px] bg-coal-500 px-1 py-px text-[9px] font-medium text-chalk-400">
+                  <span className="rounded-[5px] bg-coal-500 px-1 py-px text-[10px] font-medium text-chalk-400">
                     at run time
                   </span>
                 ) : null}

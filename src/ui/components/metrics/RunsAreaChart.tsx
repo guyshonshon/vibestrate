@@ -13,6 +13,12 @@ import {
 } from "@visx/tooltip";
 import { localPoint } from "@visx/event";
 import type { DailyOutcomeBucket } from "../../lib/api.js";
+import {
+  CHART_TOOLTIP_STYLE,
+  TooltipTitle,
+  TooltipHeadline,
+  TooltipRow,
+} from "../design/ChartTooltip.js";
 
 // Colours read from theme tokens so they flip under :root.light. The area is
 // single-hue violet (the total is the point); the outcome split lives in the
@@ -197,54 +203,20 @@ function Chart({
         <TooltipWithBounds
           left={tooltipLeft}
           top={tooltipTop}
-          style={{
-            ...tooltipDefaults,
-            background: "var(--card, #17171c)",
-            border: "1px solid var(--line, rgba(255,255,255,0.1))",
-            borderRadius: 12,
-            padding: "8px 10px",
-            color: "var(--color-chalk-100, #ececf0)",
-            boxShadow: "0 6px 24px rgba(0,0,0,0.35)",
-          }}
+          style={{ ...tooltipDefaults, ...CHART_TOOLTIP_STYLE }}
         >
-          <div className="mb-1.5 text-[11px] font-semibold text-chalk-300">
-            {tooltipData.label}
-          </div>
-          <div className="num-tabular mb-2 text-[16px] font-bold leading-none text-chalk-100">
+          <TooltipTitle>{tooltipData.label}</TooltipTitle>
+          <TooltipHeadline>
             {tooltipData.total} {tooltipData.total === 1 ? "run" : "runs"}
-          </div>
-          <div className="flex flex-col gap-1">
-            <TipRow color={C.emerald} label="Merged" value={tooltipData.merged} />
-            <TipRow color={C.amber} label="Changes" value={tooltipData.changes} />
-            <TipRow color={C.rose} label="Failed" value={tooltipData.failed} />
+          </TooltipHeadline>
+          <div className="mt-2 flex flex-col gap-1">
+            <TooltipRow swatch={C.emerald} label="Merged" value={tooltipData.merged} />
+            <TooltipRow swatch={C.amber} label="Changes" value={tooltipData.changes} />
+            <TooltipRow swatch={C.rose} label="Failed" value={tooltipData.failed} />
           </div>
         </TooltipWithBounds>
       ) : null}
     </>
-  );
-}
-
-function TipRow({
-  color,
-  label,
-  value,
-}: {
-  color: string;
-  label: string;
-  value: number;
-}) {
-  return (
-    <div className="flex items-center gap-2 text-[11.5px]">
-      <span
-        className="h-2 w-2 rounded-full"
-        style={{ background: color }}
-        aria-hidden
-      />
-      <span className="text-chalk-300">{label}</span>
-      <span className="num-tabular ml-auto font-semibold text-chalk-100">
-        {value}
-      </span>
-    </div>
   );
 }
 

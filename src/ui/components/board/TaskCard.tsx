@@ -442,7 +442,7 @@ function RoleStack({ roleIds }: { roleIds: string[] }) {
         return (
           <span
             key={id}
-            className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] leading-none text-white ring-2 ring-coal-600"
+            className="flex h-[18px] w-[18px] items-center justify-center rounded-full text-[10px] leading-none text-white ring-2 ring-coal-600"
             style={{ background: solid[tone] }}
             title={id}
           >

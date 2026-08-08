@@ -232,6 +232,25 @@ Four registers, each carrying something a page would otherwise scatter:
 Do not hand-roll a page header once this exists, and do not add a `PageHeader`
 above a hero - the hero *is* the header.
 
+## 5c. Chart tooltips - one hover surface
+
+A chart's hover surface is `design/ChartTooltip`. Positioning stays the chart's
+business (only it knows its geometry); the primitive owns the chrome and the
+registers: `TooltipTitle`, `TooltipHeadline`, `TooltipRow` (label left, value
+right, optional series swatch), `TooltipFigures` (a divided strip of labelled
+figures), `TooltipDivider`. visx callers that must position through inline
+styles use `CHART_TOOLTIP_STYLE`; hand-positioned callers use the component.
+
+Two rules it exists to hold:
+
+- **Nothing under 12px.** The dense scale (§2) permits 10-11.5px *inside* a card
+  or row, where the reader is settled. A tooltip is read once, at a glance, with
+  the cursor moving - it is the last surface that should shrink. Both previous
+  hand-rolled copies rendered at 11px.
+- **No `·` run-on line.** The heatmap tooltip read `11 · $0.00 · 42.9k`, which
+  makes the reader work out where one fact ends and the next begins. Same
+  density as `TooltipFigures`, minus the parsing.
+
 ## 6. Inputs (verbatim)
 
 `MissionComposer.tsx:541` / `:652`:
@@ -298,7 +317,7 @@ is a contract violation, same tier as the anti-patterns below.
 - Em dashes (use `-`). Emojis (never, anywhere - including UI copy).
 - Decorative "AI slop" backgrounds: grids, dot fields, noise, purple gradient mesh. The foundation's desaturated violet grain is the only background texture.
 - A second flow-card markup. There is one `FlowCard` (§5a); extend it, never fork.
-- A grey `·`-separated meta line (`8 steps · 6 seats · v1`). Facts go in `StatTile`s.
+- A grey `·`-separated meta line (`8 steps · 6 seats · v1`). Facts go in `StatTile`s, or - where a tile is too big, as inside a chart tooltip - in a divided strip of labelled figures (`TooltipFigures`, §5c). Every number keeps the word that says what it is.
 - `flex-1`-stretched stat tiles (two half-card slabs). Tiles are content-width.
 - Widening one section's cards to fit content. Keep cards the same compact size; move metadata to the header instead.
 - A page region that inherits the monitor's width: a card, panel or list dropped straight into `PageShell` instead of into a `Cell`, or a page-level `max-w-*` / `grid-cols-*` written at the call site. Width is the Deck's business (§0b). One exemption, and it is not a precedent: a focused single-purpose view may centre itself in one reading column (`RunDetailPage`'s `mx-auto max-w-[1520px]`), because there is one subject on the page and no collection to pack. A page with regions to lay out uses the Deck.
