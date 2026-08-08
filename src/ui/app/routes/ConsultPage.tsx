@@ -5,7 +5,9 @@ import type { ConsultResult, ProviderCatalog } from "../../lib/types.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
 import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
-import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { PageShell } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
+import { PageHero } from "../../components/layout/PageHero.js";
 import { ErrorView } from "../../lib/error-view.js";
 import {
   ConsultAnswerView,
@@ -104,8 +106,17 @@ export function ConsultPage({
 
   return (
     <PageShell>
-      <PageHeader
+      <Deck>
+      <Cell size="full" reason="masthead">
+      <PageHero
+        state={{
+          value: "Read-only",
+          caption: "Advises, never acts",
+          note: "Nothing it says changes a file, a config, or a run.",
+          tone: "emerald",
+        }}
         title="Ask the project orchestrator"
+        purpose="A project-aware advisor. It answers only from controlled context - your VIBESTRATE.md, config, recent runs and annotations - and is honest about what it could not verify."
         actions={
           taskId ? (
             <Button
@@ -117,16 +128,12 @@ export function ConsultPage({
             </Button>
           ) : undefined
         }
-      >
-        <p className="mt-2 max-w-[70ch] rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-4 py-3 text-[12.5px] leading-relaxed text-chalk-300">
-          A read-only, project-aware advisor. It answers only from controlled
-          context - your <span className="mono">VIBESTRATE.md</span>, config,
-          recent runs, and annotations - and is honest about what it could not
-          verify. It recommends; it never acts.
-        </p>
-      </PageHeader>
+        footer="Answers are grounded in this project only - it will say so when it had to guess."
+      />
+      </Cell>
 
-      <section className="mb-4 rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
+      <Cell size="full" reason="masthead">
+      <section className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
         <textarea
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
@@ -196,20 +203,24 @@ export function ConsultPage({
           </div>
         </div>
       </section>
+      </Cell>
 
       {error ? (
-        <ErrorView className="mt-4" compact err={error} onRetry={() => void ask()} />
+        <Cell size="full" reason="masthead">
+          <ErrorView compact err={error} onRetry={() => void ask()} />
+        </Cell>
       ) : null}
 
       {answer && result ? (
-        <section className="mt-5">
+        <Cell size="full" reason="nested-deck">
           <ConsultAnswerView
             result={result}
             proposalState={proposalState}
             onDecideProposal={(a) => void decideProposal(a)}
           />
-        </section>
+        </Cell>
       ) : null}
+      </Deck>
     </PageShell>
   );
 }

@@ -33,6 +33,7 @@ import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
 import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
 import { Breadcrumbs } from "../../components/layout/Breadcrumbs.js";
 import { extractFlowFromYaml, renderFlowYaml } from "../../lib/flow-yaml.js";
 import { DryRunModal } from "../../components/flow-builder/DryRunModal.js";
@@ -819,8 +820,8 @@ export function FlowBuilderPage({
       ) : null}
 
       {selected && !yamlMode ? (
-        <section className="mt-8 grid grid-cols-12 gap-5">
-          <div className="col-span-12 xl:col-span-7">
+        <Deck className="mt-8">
+          <Cell size="wide">
             <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-5 fade-up">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-[12px] bg-violet-soft/15 text-violet-soft ring-1 ring-violet-soft/20 flex items-center justify-center shrink-0">
@@ -888,9 +889,9 @@ export function FlowBuilderPage({
                 ) : null}
               </ol>
             </div>
-          </div>
+          </Cell>
 
-          <div className="col-span-12 xl:col-span-5 space-y-4">
+          <Cell size="card" className="space-y-4">
             <StepInspector
               step={activeStep}
               flow={selected}
@@ -914,8 +915,8 @@ export function FlowBuilderPage({
             />
             <PolicyCard />
             <PreviewCard steps={displayedSteps} />
-          </div>
-        </section>
+          </Cell>
+        </Deck>
       ) : null}
 
       {dryRun || dryRunBusy || dryRunErr ? (

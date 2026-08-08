@@ -18,7 +18,9 @@ import { api } from "../../lib/api.js";
 import { navigate } from "../App.js";
 import { cn } from "../../components/design/cn.js";
 import { Button } from "../../components/design/Button.js";
-import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { PageShell } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
+import { PageHero } from "../../components/layout/PageHero.js";
 import { StatTile } from "../../components/design/StatTile.js";
 import { EntityIcon, FlowIcon, type EntityKind } from "../../components/design/EntityIcon.js";
 import { FlowBars } from "../../components/design/FlowBars.js";
@@ -301,35 +303,37 @@ export function RunComposePage() {
 
   return (
     <PageShell className="fade-up">
-      <PageHeader title="New run" />
+      <Deck>
+      <Cell size="full" reason="masthead">
+        <PageHero
+          title="New run"
+          purpose="Describe the change or pick one up from your roadmap, choose the flow and crew, and start. The run plans, builds, reviews and verifies, then stops before anything ships."
+          footer={
+            <>
+              <span className="shrink-0">The same run from a terminal:</span>
+              {/* The live command mirror - UI, TUI and CLI compose the same
+               * run, so the page shows you exactly what it is about to do. */}
+              <button
+                type="button"
+                onClick={copyCmd}
+                title={`Copy - run this from the terminal or \`vibe shell\`:\n${runCmd}`}
+                className="group flex min-w-0 flex-1 items-center gap-2 rounded-[10px] border border-[color:var(--line)] bg-coal-800 px-3 py-1.5 text-left transition hover:border-violet-soft/40"
+              >
+                <Terminal className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.8} />
+                <span className="select-none text-chalk-400">$</span>
+                <code className="mono min-w-0 flex-1 truncate text-[12px] text-chalk-300">{runCmd}</code>
+                <span className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-chalk-400 group-hover:text-chalk-300">
+                  {cmdCopied ? <Check className="h-3 w-3" strokeWidth={2.2} /> : <Copy className="h-3 w-3" strokeWidth={1.8} />}
+                  {cmdCopied ? "copied" : "copy"}
+                </span>
+              </button>
+            </>
+          }
+        />
+      </Cell>
 
-      {/* Contained header: the page's intent + the live command mirror (CLI =
-          TUI = UI) in one framed block, not loose grey text on the canvas. */}
-      <section className="mb-6 flex flex-wrap items-start gap-4 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
-        <p className="min-w-0 flex-1 max-w-[72ch] text-[13px] leading-[1.55] text-chalk-300">
-          Describe the change or pick one up from your roadmap, choose the flow
-          and crew, and start. The run plans, builds, reviews, and verifies, then
-          stops before anything ships.
-        </p>
-        <button
-          type="button"
-          onClick={copyCmd}
-          title={`Copy - run this from the terminal or \`vibe shell\`:\n${runCmd}`}
-          className="group hidden w-[clamp(260px,30vw,460px)] shrink-0 items-center gap-2 rounded-[12px] border border-[color:var(--line)] bg-coal-800 px-3 py-2 text-left transition hover:border-violet-soft/40 md:flex"
-        >
-          <Terminal className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.8} />
-          <span className="select-none text-chalk-400">$</span>
-          <code className="mono min-w-0 flex-1 truncate text-[11.5px] text-chalk-300">{runCmd}</code>
-          <span className="flex shrink-0 items-center gap-1 text-[10.5px] font-medium text-chalk-400 group-hover:text-chalk-300">
-            {cmdCopied ? <Check className="h-3 w-3" strokeWidth={2.2} /> : <Copy className="h-3 w-3" strokeWidth={1.8} />}
-            {cmdCopied ? "copied" : "copy"}
-          </span>
-        </button>
-      </section>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* ── Composition ──────────────────────────────────────────────── */}
-        <div className="lg:col-span-8">
+        <Cell size="wide">
           <div className="flex flex-col gap-6 rounded-[22px] border border-[color:var(--line)] bg-coal-600 p-5 lg:p-6">
             {/* Task: brief + roadmap pickup, one unified source of intent */}
             <div>
@@ -671,10 +675,10 @@ export function RunComposePage() {
               </div>
             ) : null}
           </div>
-        </div>
+        </Cell>
 
         {/* ── Right rail: working context + utilities ──────────────────── */}
-        <aside className="flex flex-col gap-4 lg:col-span-4 lg:sticky lg:top-6 lg:self-start">
+        <Cell size="card" className="flex flex-col gap-4">
           <FlowSummary flow={selectedFlow} />
 
           {/* Ask the supervisor - inline, no navigation away */}
@@ -773,8 +777,8 @@ export function RunComposePage() {
               </ul>
             </RailCard>
           ) : null}
-        </aside>
-      </div>
+        </Cell>
+      </Deck>
     </PageShell>
   );
 }
