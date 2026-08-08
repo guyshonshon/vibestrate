@@ -1,3 +1,4 @@
+import { ServerOfflineScreen, useServerAlive } from "./ServerOfflineScreen.js";
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { AppShell } from "../components/layout/AppShell.js";
 import { RunControlPage } from "../components/control/RunControlPage.js";
@@ -87,6 +88,11 @@ function notificationRoute(n: NotificationRecord): Route {
 
 export function App() {
   const [route, setRoute] = useState<Route>(() => parseRoute());
+  // The dashboard is a client for a local process. With that process stopped
+  // every panel fails the same way at once, so this takes over the screen rather
+  // than letting a dozen identical network errors stand in for the one useful
+  // instruction. Hooks run before the early return so hook order stays stable.
+  const serverAlive = useServerAlive();
   const [switcherOpen, setSwitcherOpen] = useState(false);
 
   // The page identity (kind + the entity it shows). When this changes, the
@@ -253,6 +259,8 @@ export function App() {
     },
     [],
   );
+
+  if (!serverAlive) return <ServerOfflineScreen />;
 
   return (
     <AppShell
