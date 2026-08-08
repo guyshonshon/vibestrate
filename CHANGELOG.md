@@ -1,8 +1,8 @@
 # Changelog
 
-## 1.0.0
+## 0.73.2
 
-- **Vibestrate 1.0.** A CTO for your AI coding: you hand it a task in plain
+- **The road to 1.0.** A CTO for your AI coding: you hand it a task in plain
   language, it breaks the work down, hands each part to the right AI, and
   supervises the whole thing to a diff you review before anything ships.
   Everything a run does is local, worktree-bounded, and reversible - no
