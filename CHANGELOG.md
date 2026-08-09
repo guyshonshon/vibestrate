@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.76.1
+
+- **The dashboard can merge to main more than once.** Merging took a lock and
+  then failed to release it, every time. From the CLI that went unnoticed,
+  because the lock names the process that holds it and that process had already
+  exited. From `vibe ui` the named process is the server itself, still very much
+  alive, so every merge after the first was refused as "another merge is in
+  progress" until you deleted the lock directory by hand.
+- **A bundle can be reverted after smart apply undoes a failing step.** Smart
+  apply counted a step it had just auto-reverted as applied, so the bundle's
+  reverse patch described changes that were no longer in the worktree. Git
+  refused it, and the whole bundle became impossible to revert. Steps whose
+  revert failed still count, because those changes really are still there.
+- **Renaming a run no longer costs it its progress.** A run's state file is
+  written by the run itself and by whatever you do to it from outside, and
+  nothing was serializing the two. Rename read the file, the run wrote minutes
+  of progress, and rename put its stale copy back. Writers are now serialized
+  per run; anything acting from outside reads the freshest state at the moment
+  it writes. Reading was never affected.
+- **An abort issued at an awkward moment is no longer dropped.** The previous
+  release made abort a request the run watches for, but the watcher stops before
+  the post-turn review gate, and that gate can wait on you indefinitely. An
+  abort arriving in that window was overwritten by the run's own next write. The
+  request now survives it.
+
 ## 0.76.0
 
 - **Aborting a run actually aborts it.** `vibe abort`, the dashboard's Abort
