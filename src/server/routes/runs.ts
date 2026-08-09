@@ -10,7 +10,7 @@ import {
   runArtifactsDir,
 } from "../../utils/paths.js";
 import { runStateSchema } from "../../core/state-machine.js";
-import { applyTransition, isTerminal, RunStateStore, renameRun } from "../../core/state-machine.js";
+import { isTerminal, RunStateStore, renameRun } from "../../core/state-machine.js";
 import { requestAbort } from "../../core/run/abort-service.js";
 import { runAwaitsInput } from "../../spec-up/spec-up-chain.js";
 import { EventLog, type VibestrateEvent } from "../../core/stores/event-log.js";
@@ -19,7 +19,7 @@ import {
   requestPause,
   requestResume,
 } from "../../core/run/pause-service.js";
-import { writeJson, readJson } from "../../utils/json.js";
+import { readJson } from "../../utils/json.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 import { streamRunEvents, streamProviderOutput } from "../sse.js";
 import {

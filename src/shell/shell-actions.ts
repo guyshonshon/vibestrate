@@ -6,14 +6,8 @@ import { RunStateStore } from "../core/state-machine.js";
 import { requestAbort } from "../core/run/abort-service.js";
 import { EventLog } from "../core/stores/event-log.js";
 import { requestPause, requestResume } from "../core/run/pause-service.js";
-import {
-  applyTransition,
-  isTerminal,
-  runStateSchema,
-} from "../core/state-machine.js";
 import { pathExists } from "../utils/fs.js";
 import { runStatePath } from "../utils/paths.js";
-import { readJson, writeJson } from "../utils/json.js";
 
 export type ShellActionResult =
   | { ok: true; message: string }
