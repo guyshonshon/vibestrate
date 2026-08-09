@@ -7,7 +7,14 @@
 // DETERMINISTIC (no LLM): assembled from facts the orchestrator already has,
 // budget-bounded by folding the oldest step outcomes - the same forward-carry
 // idea as the per-item ledger in pickup/item-summary.ts.
+//
+// Its inputs are raw provider output, and its render goes to BOTH disk
+// (flows/run-brief.md) and every later turn's prompt - so redaction is this
+// module's own job, applied at the two internal funnels every field passes
+// (`oneLine` on ingress, `scrub` on the assembled block). Call sites pass raw
+// text on purpose; none of them has to remember.
 
+import { redactSecretsInText } from "../diff-service.js";
 import type { WorkflowSelection } from "../../supervisor/select-workflow.js";
 
 export type RunBriefStepOutcome = {
@@ -43,8 +50,18 @@ const STEP_SUMMARY_CHARS = 220;
  *  with a "…and N more" marker; the first line (the decision) is always kept. */
 const CARRIED_BUDGET_FRACTION = 0.5;
 
+/** Secret redaction for the brief. Owned HERE, not by the callers: the brief is
+ *  both persisted (flows/run-brief.md) and re-injected into every later turn's
+ *  prompt, so an unredacted field leaks twice, and its inputs are raw provider
+ *  output. Redaction is idempotent (a `[REDACTED:…]` marker matches no pattern),
+ *  so passing text through more than one funnel below is safe. */
+const scrub = (text: string): string => redactSecretsInText(text).redacted;
+
+/** Flatten + clip a string for the brief. Redacts BEFORE clipping: clipping
+ *  first can cut a token below the length its pattern needs, which would strand
+ *  the head of a live secret in the clear (see the boundary test). */
 function oneLine(text: string, max = STEP_SUMMARY_CHARS): string {
-  const flat = text.replace(/\s+/g, " ").trim();
+  const flat = scrub(text).replace(/\s+/g, " ").trim();
   return flat.length > max ? `${flat.slice(0, max).trimEnd()}…` : flat;
 }
 
@@ -191,14 +208,21 @@ export function renderRunBrief(
     Math.floor(budgetChars * CARRIED_BUDGET_FRACTION),
   );
 
+  // The block is scrubbed as a whole, INSIDE assemble, for two reasons: it
+  // catches the fields that never pass through oneLine (labels, kinds, ids,
+  // decision markers) and any field added later without a redaction call, and
+  // it keeps the budget fold honest - the loop below measures the text that is
+  // actually returned, not a pre-redaction length a marker could grow past.
   const assemble = () =>
-    [
-      ...head,
-      ...carriedBlock,
-      ...(state.steps.length ? ["", "## Steps so far", renderSteps()] : []),
-      ...(facts.length ? ["", "## Status", ...facts] : []),
-      "",
-    ].join("\n");
+    scrub(
+      [
+        ...head,
+        ...carriedBlock,
+        ...(state.steps.length ? ["", "## Steps so far", renderSteps()] : []),
+        ...(facts.length ? ["", "## Status", ...facts] : []),
+        "",
+      ].join("\n"),
+    );
 
   for (let i = 0; i < state.steps.length && assemble().length > budgetChars; i++) {
     modes[i] = "terse";

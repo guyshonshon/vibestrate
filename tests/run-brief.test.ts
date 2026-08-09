@@ -134,3 +134,76 @@ describe("run brief", () => {
     expect(brief).toContain("tighten input validation");
   });
 });
+
+// The brief is BOTH persisted (flows/run-brief.md) and re-injected into every
+// later turn's prompt, so an unredacted field leaks twice. Redaction is the
+// module's own job - no call site should have to remember it.
+describe("run brief redaction", () => {
+  const AWS = "AKIAIOSFODNN7EXAMPLE"; // AKIA + 16 uppercase alnum
+  const ANTHROPIC = `sk-ant-${"a".repeat(45)}`;
+
+  it("scrubs a token-shaped secret out of a step outcome", () => {
+    const s = initRunBrief({ task: "t", selection: null });
+    appendStepOutcome(s, {
+      stepId: "implement",
+      label: "Implement",
+      kind: "agent-turn",
+      output: `Wired the client. Token: ${AWS} is in the output.`,
+    });
+    const brief = renderRunBrief(s);
+    expect(brief).not.toContain(AWS);
+    expect(brief).toContain("[REDACTED:AWS access key id]");
+    expect(brief).toContain("Wired the client."); // context survives
+  });
+
+  it("scrubs the task, the selection risks and the carried handoff", () => {
+    const s = initRunBrief({
+      task: `Rotate ${AWS} everywhere`,
+      selection: { ...selection, risks: [`the live key ${ANTHROPIC} is committed`] },
+    });
+    setCarriedHandoff(s, {
+      sourceRunId: "src",
+      fromStage: "fixing",
+      lines: [`Decision: revoke ${AWS}`],
+    });
+    const brief = renderRunBrief(s);
+    expect(brief).not.toContain(AWS);
+    expect(brief).not.toContain(ANTHROPIC);
+    expect(brief).toContain("[REDACTED:");
+  });
+
+  it("scrubs before clipping, so a token at the summary boundary leaves no head", () => {
+    const s = initRunBrief({ task: "t", selection: null });
+    appendStepOutcome(s, {
+      stepId: "implement",
+      label: "Implement",
+      kind: "agent-turn",
+      // Straddles the 220-char summary clip: clipping first would cut the token
+      // below the length its pattern needs and strand the head in the clear.
+      output: `${"x".repeat(210)} ${AWS}`,
+    });
+    const brief = renderRunBrief(s);
+    expect(brief).not.toContain(AWS.slice(0, 8));
+  });
+
+  it("scrubs fields that never pass through the clip helper (step labels)", () => {
+    const s = initRunBrief({ task: "t", selection: null });
+    appendStepOutcome(s, {
+      // resume-seeder builds labels by interpolation; labels render raw.
+      stepId: "seeded",
+      label: `Plan (seeded from ${AWS})`,
+      kind: "agent-turn",
+      output: "ok",
+    });
+    const brief = renderRunBrief(s);
+    expect(brief).not.toContain(AWS);
+  });
+
+  it("is idempotent - re-rendering never double-wraps a marker", () => {
+    const s = initRunBrief({ task: "t", selection: null });
+    appendStepOutcome(s, { stepId: "a", label: "A", kind: "agent-turn", output: `key ${AWS}` });
+    const once = renderRunBrief(s);
+    expect(renderRunBrief(s)).toBe(once);
+    expect(once).not.toContain("[REDACTED:[REDACTED:");
+  });
+});
