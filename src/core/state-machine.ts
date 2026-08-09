@@ -2,8 +2,9 @@ import { z } from "zod";
 import { StateTransitionError } from "../utils/errors.js";
 import { contextSourceSchema } from "./context/context-source-schema.js";
 import { runStatePath } from "../utils/paths.js";
-import { writeJson, readJson } from "../utils/json.js";
+import { readJson } from "../utils/json.js";
 import { pathExists, writeTextAtomic } from "../utils/fs.js";
+import { withFileMutex } from "../utils/file-mutex.js";
 import { nowIso } from "../utils/time.js";
 import { defaultDisplayName } from "../utils/slug.js";
 import type { RunStatus } from "./workflow/workflow-types.js";
@@ -512,35 +513,133 @@ export class RunStateStore {
     return pathExists(this.filePath);
   }
 
+  /** Readers never take the lock. `persist` ends in a rename, so a reader sees
+   *  the whole old state or the whole new one, never a torn file. */
   async read(): Promise<RunState> {
     const raw = await readJson<unknown>(this.filePath);
     return runStateSchema.parse(raw);
   }
 
+  /** Serializes writers to this one run. Per-run, so runs never contend. */
+  get lockPath(): string {
+    return `${this.filePath}.lock`;
+  }
+
   /**
    * Atomic replace, not a truncating rewrite. state.json carries the whole flow
-   * ledger, so it is far past a single page, and four processes read it while
+   * ledger, so it is far past a single page, and several processes read it while
    * the orchestrator writes it - the abort poller every 500ms, the pause poller,
    * run-lock's staleness check, and the run listing. A plain writeFile leaves a
    * window where every one of them parses a half-written file; they all swallow
    * that error, so the run silently disappears from the dashboard instead.
-   * temp + rename means a reader sees the old state or the new one.
+   */
+  private async persist(state: RunState): Promise<void> {
+    await writeTextAtomic(this.filePath, `${JSON.stringify(state, null, 2)}\n`);
+  }
+
+  /**
+   * The run's own writer - the orchestrator, persisting the state it has held
+   * in memory across a turn.
    *
-   * This does NOT make concurrent writers safe. Abort, pause and rename each do
-   * their own read-modify-write from another process, and a lost update there
-   * is a separate fix - the abort signal wants to be a signal the orchestrator
-   * observes, not a status four writers race to set.
+   * Takes the lock so an external `mutate` cannot read, be overtaken by this
+   * write, and then put its stale copy back, discarding the flow ledger.
+   *
+   * DEGRADES rather than throws when the lock cannot be acquired. The
+   * orchestrator finalizes a run by writing from inside its catch block, with
+   * no `finally` behind it: a throw there skips the run.failed event, the
+   * metrics finalize and the final report, and leaves state.json reading
+   * "executing" with a dead ownerPid that nothing in the codebase reclaims. An
+   * unlocked write is exactly what this method did before, so degrading is
+   * never worse than the old behaviour - where refusing to write would be.
    */
   async write(state: RunState): Promise<void> {
     const validated = runStateSchema.parse(state);
-    await writeTextAtomic(this.filePath, `${JSON.stringify(validated, null, 2)}\n`);
+    let acquired = false;
+    try {
+      await withFileMutex(this.lockPath, async () => {
+        acquired = true;
+        await this.persist(await this.keepAbortRequested(validated));
+      });
+    } catch (err) {
+      // Acquired means the failure is the write itself - a real I/O error the
+      // caller has always been able to see. Only a failure to acquire degrades.
+      if (acquired) throw err;
+      process.emitWarning(
+        `Could not lock ${this.filePath} (${err instanceof Error ? err.message : String(err)}); writing unlocked so the run is not left unfinalized.`,
+        "VibestrateStateLockDegraded",
+      );
+      await this.persist(await this.keepAbortRequested(validated));
+    }
+  }
+
+  /**
+   * `abortRequested` is raised by whoever asks a run to stop and is never
+   * lowered anywhere in this codebase - `createInitialState` is the only place
+   * that writes false, at birth. So a whole-object write built from memory that
+   * predates the request must not carry the stale false back to disk.
+   *
+   * Without this an abort is dropped outright: the per-turn observer is cleared
+   * before the post-turn diff gate and the approval gate, and the approval gate
+   * can wait on a human indefinitely, so an abort arriving in that window is
+   * seen by nobody and then overwritten by the commit's own state write - after
+   * the user was told the run would stop.
+   */
+  private async keepAbortRequested(next: RunState): Promise<RunState> {
+    if (next.abortRequested) return next;
+    const onDisk = await this.read().catch(() => null);
+    if (onDisk?.abortRequested !== true) return next;
+    return { ...next, abortRequested: true };
+  }
+
+  /**
+   * The read-modify-write every OTHER process must use: `vibe pause`, the
+   * dashboard's rename, `vibe abort`. Reads the freshest state inside the lock
+   * and hands it to `fn`, so a decision can never be taken on a copy the
+   * orchestrator has already superseded. Return `next: null` to decide against
+   * writing at all; `result` is what the caller gets back.
+   *
+   * Unlike `write`, this FAILS CLOSED on a lock timeout. The caller is a CLI or
+   * HTTP request that can be retried, and a refusal it can see beats a silent
+   * lost update.
+   *
+   * `fn` must be pure: no I/O, and above all no other lock. Taking a second
+   * lock here (an event append, a roadmap or approval write) creates an AB-BA
+   * deadlock with routes that already hold that lock and then abort a run.
+   * Append events AFTER this returns.
+   *
+   * This makes each mutation atomic, not every sequence of them: a caller that
+   * writes twice can still be interleaved between the two.
+   */
+  async mutate<T>(
+    fn: (fresh: RunState) => { next: RunState | null; result: T },
+  ): Promise<T> {
+    // Before the lock, because acquiring it creates the run directory: a
+    // mutation aimed at a pruned run would otherwise resurrect an empty dir,
+    // and the orphan sweep reads those directories to decide what is still live.
+    if (!(await this.exists())) {
+      throw new RunNotFoundError(`Run ${this.runId} not found.`);
+    }
+    return withFileMutex(this.lockPath, async () => {
+      const fresh = await this.read();
+      const { next, result } = fn(fresh);
+      if (next) await this.persist(runStateSchema.parse(next));
+      return result;
+    });
   }
 }
 
-/** Set a run's friendly display name. Reads the freshest state immediately
- *  before writing so a concurrent orchestrator write isn't reverted - the
- *  display name is cosmetic, and terminal runs (the common rename target) have
- *  no concurrent writer. Throws if the run doesn't exist or the name is empty. */
+/** A mutation was aimed at a run that no longer exists on disk. */
+export class RunNotFoundError extends Error {
+  readonly code = "RUN_NOT_FOUND";
+  constructor(message: string) {
+    super(message);
+    this.name = "RunNotFoundError";
+  }
+}
+
+/** Set a run's friendly display name. Goes through `mutate` so renaming a live
+ *  run cannot put a minutes-old copy of the flow ledger back on disk. Throws if
+ *  the run doesn't exist or the name is empty. */
 export async function renameRun(
   projectRoot: string,
   runId: string,
@@ -552,9 +651,12 @@ export async function renameRun(
     throw new Error("A run display name must be 120 characters or fewer.");
   }
   const store = new RunStateStore(projectRoot, runId);
-  if (!(await store.exists())) throw new Error(`Run ${runId} not found.`);
-  const state = await store.read();
-  const next: RunState = { ...state, displayName: trimmed, updatedAt: nowIso() };
-  await store.write(next);
-  return next;
+  return store.mutate((fresh) => {
+    const next: RunState = {
+      ...fresh,
+      displayName: trimmed,
+      updatedAt: nowIso(),
+    };
+    return { next, result: next };
+  });
 }

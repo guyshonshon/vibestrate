@@ -59,31 +59,45 @@ export async function requestPause(
   store: RunStateStore,
   events: EventLog,
 ): Promise<RunState> {
-  const state = await store.read();
-  if (!canRequestPause(state)) {
-    if (state.status === "paused") {
-      throw new PauseError(409, "Run is already paused.");
-    }
-    if (isTerminal(state.status)) {
+  // The guard runs inside the lock with the rest of the decision: checking
+  // pausability against a copy the orchestrator has already moved past is how a
+  // terminal run ends up carrying a pause flag.
+  const { state, announce } = await store.mutate<{
+    state: RunState;
+    announce: RunStatus | null;
+  }>((fresh) => {
+    if (!canRequestPause(fresh)) {
+      if (fresh.status === "paused") {
+        throw new PauseError(409, "Run is already paused.");
+      }
+      if (isTerminal(fresh.status)) {
+        throw new PauseError(
+          409,
+          `Run is in terminal state "${fresh.status}"; pause has no effect.`,
+        );
+      }
       throw new PauseError(
         409,
-        `Run is in terminal state "${state.status}"; pause has no effect.`,
+        `Run cannot be paused from status "${fresh.status}".`,
       );
     }
-    throw new PauseError(409, `Run cannot be paused from status "${state.status}".`);
-  }
-  if (state.pauseRequested) {
-    // Idempotent: the flag is already set; just hand the state back.
-    return state;
-  }
-  const next: RunState = { ...state, pauseRequested: true, updatedAt: nowIso() };
-  await store.write(next);
-  await events.append({
-    type: "run.pause_requested",
-    message: `Pause requested for run ${state.runId} (will take effect at the next stage boundary).`,
-    data: { fromStatus: state.status },
+    if (fresh.pauseRequested) {
+      // Idempotent: the flag is already set; just hand the state back.
+      return { next: null, result: { state: fresh, announce: null } };
+    }
+    const next: RunState = { ...fresh, pauseRequested: true, updatedAt: nowIso() };
+    return { next, result: { state: next, announce: fresh.status as RunStatus } };
   });
-  return next;
+  // Outside the lock: the event log is a separate file, and a second lock taken
+  // inside a critical section is how an AB-BA deadlock gets built.
+  if (announce) {
+    await events.append({
+      type: "run.pause_requested",
+      message: `Pause requested for run ${state.runId} (will take effect at the next stage boundary).`,
+      data: { fromStatus: announce },
+    });
+  }
+  return state;
 }
 
 /**
@@ -96,32 +110,38 @@ export async function requestResume(
   store: RunStateStore,
   events: EventLog,
 ): Promise<RunState> {
-  const state = await store.read();
-  if (!canRequestResume(state)) {
-    if (isTerminal(state.status)) {
+  const { state, announce } = await store.mutate<{
+    state: RunState;
+    announce: RunStatus | null;
+  }>((fresh) => {
+    if (!canRequestResume(fresh)) {
+      if (isTerminal(fresh.status)) {
+        throw new PauseError(
+          409,
+          `Run is in terminal state "${fresh.status}"; resume has no effect.`,
+        );
+      }
       throw new PauseError(
         409,
-        `Run is in terminal state "${state.status}"; resume has no effect.`,
+        `Run is not paused and has no pending pause request; nothing to resume.`,
       );
     }
-    throw new PauseError(
-      409,
-      `Run is not paused and has no pending pause request; nothing to resume.`,
-    );
-  }
-  if (!state.pauseRequested && state.status === "paused") {
-    // Defensive: the run was paused but pauseRequested is already false
-    // (shouldn't happen via the normal CLI/route path but handle it).
-    return state;
-  }
-  const next: RunState = { ...state, pauseRequested: false, updatedAt: nowIso() };
-  await store.write(next);
-  await events.append({
-    type: "run.resume_requested",
-    message: `Resume requested for run ${state.runId}.`,
-    data: { currentStatus: state.status },
+    if (!fresh.pauseRequested && fresh.status === "paused") {
+      // Defensive: the run was paused but pauseRequested is already false
+      // (shouldn't happen via the normal CLI/route path but handle it).
+      return { next: null, result: { state: fresh, announce: null } };
+    }
+    const next: RunState = { ...fresh, pauseRequested: false, updatedAt: nowIso() };
+    return { next, result: { state: next, announce: fresh.status as RunStatus } };
   });
-  return next;
+  if (announce) {
+    await events.append({
+      type: "run.resume_requested",
+      message: `Resume requested for run ${state.runId}.`,
+      data: { currentStatus: announce },
+    });
+  }
+  return state;
 }
 
 /**

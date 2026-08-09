@@ -1,6 +1,7 @@
 import type { EventLog } from "../stores/event-log.js";
 import type { RunState, RunStateStore } from "../state-machine.js";
 import { applyTransition, isTerminal } from "../state-machine.js";
+import type { RunStatus } from "../workflow/workflow-types.js";
 import { nowIso } from "../../utils/time.js";
 
 export class AbortError extends Error {
@@ -55,37 +56,65 @@ export async function requestAbort(
   events: EventLog,
   opts: { reason: string } = { reason: "user request" },
 ): Promise<AbortRequestResult> {
-  const state = await store.read();
-  if (isTerminal(state.status)) {
-    return { run: state, alreadyTerminal: true, finalized: false };
-  }
-
-  if (ownerIsAlive(state)) {
-    if (state.abortRequested) {
-      // Idempotent: a second abort while the first is in flight is not an error.
-      return { run: state, alreadyTerminal: false, finalized: false };
+  // Every branch is chosen inside the lock, against state nothing can have
+  // superseded. Deciding outside it and writing inside means "not terminal yet"
+  // can become "terminal" in between, and the aborted transition then throws a
+  // raw state-machine error at a user who only asked a finished run to stop.
+  const outcome = await store.mutate<
+    AbortRequestResult & { announce: "requested" | "orphaned" | null; fromStatus: RunStatus }
+  >((fresh) => {
+    const fromStatus = fresh.status;
+    if (isTerminal(fresh.status)) {
+      return {
+        next: null,
+        result: { run: fresh, alreadyTerminal: true, finalized: false, announce: null, fromStatus },
+      };
     }
-    const next: RunState = { ...state, abortRequested: true, updatedAt: nowIso() };
-    await store.write(next);
+    if (ownerIsAlive(fresh)) {
+      if (fresh.abortRequested) {
+        // Idempotent: a second abort while the first is in flight is not an error.
+        return {
+          next: null,
+          result: { run: fresh, alreadyTerminal: false, finalized: false, announce: null, fromStatus },
+        };
+      }
+      const next: RunState = { ...fresh, abortRequested: true, updatedAt: nowIso() };
+      return {
+        next,
+        result: { run: next, alreadyTerminal: false, finalized: false, announce: "requested", fromStatus },
+      };
+    }
+    const next = applyTransition(
+      { ...fresh, abortRequested: true, updatedAt: nowIso() },
+      "aborted",
+    );
+    return {
+      next,
+      result: { run: next, alreadyTerminal: false, finalized: true, announce: "orphaned", fromStatus },
+    };
+  });
+
+  // Outside the lock on purpose: the event log is a separate file with its own
+  // append, and taking a second lock inside the critical section is how an
+  // AB-BA deadlock gets built.
+  if (outcome.announce === "requested") {
     await events.append({
       type: "run.abort_requested",
-      message: `Abort requested for run ${state.runId} (${opts.reason}); the run will stop at its next checkpoint.`,
-      data: { fromStatus: state.status },
+      message: `Abort requested for run ${outcome.run.runId} (${opts.reason}); the run will stop at its next checkpoint.`,
+      data: { fromStatus: outcome.fromStatus },
     });
-    return { run: next, alreadyTerminal: false, finalized: false };
+  } else if (outcome.announce === "orphaned") {
+    await events.append({
+      type: "run.aborted",
+      message: `Run ${outcome.run.runId} aborted (${opts.reason}); its process was no longer running, so it was closed out directly.`,
+      data: { fromStatus: outcome.fromStatus, ownerPid: outcome.run.ownerPid },
+    });
   }
-
-  const next = applyTransition(
-    { ...state, abortRequested: true, updatedAt: nowIso() },
-    "aborted",
-  );
-  await store.write(next);
-  await events.append({
-    type: "run.aborted",
-    message: `Run ${state.runId} aborted (${opts.reason}); its process was no longer running, so it was closed out directly.`,
-    data: { fromStatus: state.status, ownerPid: state.ownerPid },
-  });
-  return { run: next, alreadyTerminal: false, finalized: true };
+  return {
+    run: outcome.run,
+    alreadyTerminal: outcome.alreadyTerminal,
+    finalized: outcome.finalized,
+  };
 }
 
 /** The orchestrator's read side. True when someone has asked this run to stop. */
