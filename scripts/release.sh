@@ -74,4 +74,8 @@ cat <<EOF
 
   Publishing is manual (there is no CI publish workflow). From this machine:
       npm publish --provenance --access public --otp=<your-2fa-code>
+
+  --provenance is EXPERIMENTAL / WIP: npm mints an attestation only from a
+  supported CI with OIDC, so it can fail from a laptop. If it does, publish
+  without the flag and see .github/MAINTAINING.md.
 EOF

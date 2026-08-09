@@ -61,6 +61,13 @@ npm publish --provenance --access public --otp=<your-2fa-code>
 `prepublishOnly` builds and strips sourcemaps first, so the tarball stays lean
 (~1.7 MB, no `.map` files).
 
+**`--provenance` is EXPERIMENTAL / WIP.** npm mints an attestation only from a
+supported CI with OIDC, so the flag can fail from a laptop. It is kept here on
+purpose: the moment a publish workflow exists it starts working, and npm only
+lets trusted publishing be configured against a package already on the
+registry - so the first publish is the one that unblocks it. If it refuses,
+drop the flag for that publish and file it, don't quietly make it permanent.
+
 ## Update dependencies
 
 ```bash
