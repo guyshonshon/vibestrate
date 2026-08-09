@@ -93,7 +93,7 @@ export type MergeAdvice = {
   task: string;
   topology: BranchTopology;
   /** Cumulative dry-run result for this branch; null in cheap projections
-   *  that skip the preview (the dashboard hub list, slice 1b). */
+   *  that skip the preview, such as the dashboard hub list. */
   preview: BranchPreview | null;
   /** null = no assurance artifact exists (surfaced as `assurance_missing`). */
   assurance: AssuranceProjection | null;

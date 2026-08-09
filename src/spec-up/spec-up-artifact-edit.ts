@@ -1,7 +1,7 @@
 // Guarded spec-up artifact edit: let a human edit a spec-up run's scope / spec /
 // architecture / risks markdown BEFORE approving the build, so the edited spec is
 // what seeds the build. This is a browser->filesystem write, so every guard is
-// load-bearing (pre-act adversarial review, recorded on the feature branch):
+// load-bearing:
 //
 //  - the section is a CLOSED set; the path is SERVER-BUILT (`flows/<section>/output.md`),
 //    never client-supplied;

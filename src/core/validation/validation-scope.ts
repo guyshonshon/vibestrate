@@ -3,7 +3,7 @@
 // The orchestrator should not run a project's code checks (tests, typecheck,
 // lint) for a change that is only documentation/text/assets. This module makes
 // that call from the ACTUAL changed files (never the task text), with a
-// deliberately FAIL-SAFE design adopted from the adversarial review:
+// deliberately FAIL-SAFE design:
 //
 //   - We do NOT denylist "code" extensions. We ALLOWLIST a small set of
 //     provably-inert extensions. Anything not on the allowlist - source code,

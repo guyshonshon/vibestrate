@@ -6,7 +6,7 @@
 // The overlay is validated, then merged over BUILTIN_CATALOG (overlay wins,
 // per-field). It never relaxes the "real knobs only" rule: a knob still only
 // exists where it maps to a real, declared flag/field. Auto-population of this
-// file (probing CLIs / cloud `/models`) is a separate, opt-in step (see TODO C.2).
+// file (probing CLIs / cloud `/models`) is a separate, opt-in step.
 //
 // Precedence: overlay field > built-in field > nothing. An explicit `null`
 // (`model: null` / `effort: null`) deliberately CLEARS a built-in knob; omitting

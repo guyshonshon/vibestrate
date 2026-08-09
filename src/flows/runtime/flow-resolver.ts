@@ -309,7 +309,7 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
       // Precedence: explicit step override > explicit run-wide override >
       // persona reviewerProfile (review steps only) > the role's default.
       // Explicit user choices always beat persona configuration.
-      // Arbiter-shaped steps are NOT pinned (adversarial review): the seat
+      // Arbiter-shaped steps are NOT pinned: the seat
       // that weighs the reviewers and renders the binding verdict must keep
       // the crew author's chosen profile - pinning the verdict to a cheap
       // reviewer model would partly undo the very upgrade that picked the

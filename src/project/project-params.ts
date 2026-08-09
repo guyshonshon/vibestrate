@@ -367,8 +367,7 @@ export function resolveParamsForFlow(
  *   explicit (`--param` / `body.params`)  >  env `VIBESTRATE_PARAM_*`
  *      >  project profile  >  flow default  >  prompt / fail-fast
  *
- * Pure given `env` (defaults to `process.env`). Two correctness rules from the
- * adversarial review:
+ * Pure given `env` (defaults to `process.env`). Two correctness rules:
  *   - An explicit EMPTY value (`--param x=`) is treated as NOT provided, so the
  *     profile / env / default can still fill it (matches how `resolveFlowParams`
  *     treats an empty raw). Empty == absent throughout.

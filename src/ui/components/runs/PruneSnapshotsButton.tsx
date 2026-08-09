@@ -27,7 +27,7 @@ export function PruneSnapshotsButton() {
         setMsg(
           r.plan.totalRunsWithSnapshots === 0
             ? "No rewind snapshots to prune."
-            : "No orphaned snapshots — nothing to prune.",
+            : "No orphaned snapshots - nothing to prune.",
         );
       } else {
         setPhase("confirm");

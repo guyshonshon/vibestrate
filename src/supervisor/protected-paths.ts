@@ -6,7 +6,7 @@
 // must run a real review turn. Pure - no I/O, no model judgment; the
 // caller supplies the changed paths.
 //
-// Semantics (locked by the batch design + its adversarial review):
+// Semantics:
 //   - The BUILT-IN set below is the safety default. User config
 //     (`policies.protectedPaths`) is ADDITIVE - it can extend protection,
 //     never shrink it.

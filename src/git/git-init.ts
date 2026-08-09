@@ -1,4 +1,4 @@
-// ── Guarded git onboarding (run-experience batch P7a) ───────────────────────
+// ── Guarded git onboarding ───────────────────────────────────────────────────
 //
 // `vibe init` can offer to create the git repository it needs - but only on an
 // EXPLICIT yes (an interactive confirm, or the dedicated --git-init flag /

@@ -50,7 +50,7 @@ const SECRET_FILE_PATTERNS: RegExp[] = [
   /(^|\/)secrets?\.(json|ya?ml|toml)$/i,
   /(^|\/)id_rsa(\.pub)?$/,
   /(^|\/)id_ed25519(\.pub)?$/,
-  // Widened per the P7a adversarial review (the common first-commit misses).
+  // The key shapes a first commit most often sweeps in by accident.
   /(^|\/)id_dsa(\.pub)?$/,
   /(^|\/)id_ecdsa(\.pub)?$/,
   /(^|\/)credentials(\.(json|ya?ml|toml))?$/i,

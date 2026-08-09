@@ -73,8 +73,8 @@ export async function runProvider(
       input,
     );
     // stream-json (explicit OR the streaming default): the adapter extracts
-    // the response text + usage from the event stream. NON-FATAL by design
-    // (adversarial review): a binary that rejects the flags or prints plain
+    // the response text + usage from the event stream. NON-FATAL by design:
+    // a binary that rejects the flags or prints plain
     // text must not brick the run before the orchestrator's exit-code
     // handling can surface the real stderr.
     if (effectiveClaudeOutputFormat(provider) === "stream-json") {

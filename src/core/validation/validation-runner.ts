@@ -34,7 +34,7 @@ export type ValidationSummary = {
  *  observed shape from a worktree without node_modules is exit 1 with
  *  `sh: tsc: command not found` on stderr (the wrapper masks 127).
  *
- *  Line-ANCHORED on purpose (adversarial review): the phrase must BE the
+ *  Line-ANCHORED on purpose: the phrase must BE the
  *  shell's error line, not appear inside test output - vitest prints failure
  *  detail to stderr, and a real failing test that merely mentions "command
  *  not found" must stay a real failure. */

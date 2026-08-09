@@ -129,7 +129,7 @@ export async function registerSetupRoutes(
   // the onboarding screen renders. Idempotent-ish: re-running without force won't
   // clobber an existing config (init skips what's present).
   app.post<{ Body: { gitInit?: boolean } | null }>("/api/setup/init", async (req) => {
-    // P7a: create a git repo ONLY on the explicit flag - never inferred from
+    // Create a git repo ONLY on the explicit flag - never inferred from
     // the init request itself (creating repo history is never a side effect).
     // Idempotent for the web one-shot (review finding): if a previous attempt
     // created the repo but the scaffold failed, a retry must not 409 on the

@@ -13,7 +13,7 @@ export type InitCommandOptions = {
   force?: boolean;
   yes?: boolean;
   interactive?: boolean;
-  /** Explicit consent to create a git repo when none exists (P7a). A generic
+  /** Explicit consent to create a git repo when none exists. A generic
    *  --yes never implies this - creating repo history is never a side effect. */
   gitInit?: boolean;
 };

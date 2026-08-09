@@ -4,7 +4,7 @@
 // on stale detection - catastrophic for a write mutex, which peers contend for
 // briefly and must never kill mid-write.
 //
-// Correctness rests on three things (all hardened after an adversarial review):
+// Correctness rests on three things:
 //   1. ATOMIC, FULLY-POPULATED acquire: write the lock body to a unique temp,
 //      then `link()` it into place. `link` is an atomic exclusive-create (EEXIST
 //      if held) AND the target is born already containing the owner info - so

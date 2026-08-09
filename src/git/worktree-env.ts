@@ -47,7 +47,7 @@ async function filesIdentical(a: string, b: string): Promise<boolean> {
 
 /** A linked dir must be gitignored in the worktree - otherwise the run's
  *  `git add -A` commit would stage the SYMLINK as a tracked entry and an
- *  out-of-tree link could ride a merge into main (adversarial review).
+ *  out-of-tree link could ride a merge into main.
  *  Fail-closed: can't verify -> don't link. */
 const EXCLUDE_MARKER = "# vibestrate:worktree-env (managed)";
 
@@ -78,7 +78,7 @@ async function resolveExcludePath(worktreePath: string): Promise<string | null> 
  * never committed, never in a diff, shared by every worktree of the repo.
  *
  * This file is USER-OWNED shared state in the MAIN repo, so the update is
- * deliberately careful (adversarial review): per-dir (a pattern is written
+ * deliberately careful: per-dir (a pattern is written
  * only at the moment its link is actually created, never for candidates that
  * end up skipped), serialized by a lockfile (concurrent runs share one
  * exclude), deduplicated, and atomic (temp file + rename). Removal on
