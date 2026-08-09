@@ -1,3 +1,20 @@
+// ── Bounded read-only file preview ──────────────────────────────────────────
+// Turns an already-resolved safe path into a renderable view: a clamped window
+// of numbered lines plus the metadata around it (language guessed from the
+// extension, byte size, truncation flags).
+//
+// The refusals here are content-level and land before the bytes are decoded.
+// A secret-looking path is answered with a notice and no lines, so an env
+// file's contents do not reach the response - keep that check ahead of the
+// readFile call. An oversized file is refused on its stat size alone, and a
+// buffer that looks binary is refused after the read but before utf8 decoding.
+//
+// A missing path or a non-regular file throws FileViewError carrying an HTTP
+// status; the content-level refusals come back as an ordinary FileView with
+// empty `lines` and a `notice`, so one response shape covers both. The
+// requested range is clamped to the file, and the window is capped at
+// MAX_LINES_PER_RESPONSE regardless of the end that was asked for.
+
 import path from "node:path";
 import fs from "node:fs/promises";
 import type { ResolvedSafePath } from "../path-guard.js";

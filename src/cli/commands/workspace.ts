@@ -1,3 +1,12 @@
+// The `vibe workspace` command group: register project directories, then run
+// commands over them - opening or closing a project's dashboard and rolling up
+// stats among them. The commands here own argument handling, printed output
+// and exit codes; starting and stopping a project's dashboard goes through
+// workspace/workspace-runtime.ts.
+//
+// Opening a browser tab is best-effort and its failure is ignored - the URL is
+// printed before the attempt so it can still be copied by hand.
+
 import path from "node:path";
 import { stat } from "node:fs/promises";
 import { exec } from "node:child_process";

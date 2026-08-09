@@ -1,3 +1,13 @@
+// The persisted shape of a human-approval gate plus the text protocol an agent
+// uses to raise one.
+//
+// detectApprovalRequest matches anchored, case-sensitive full-line markers in
+// the text it is handed, including "HUMAN_APPROVAL: REQUIRED", so a gate is
+// raised by a deliberate emission rather than by prose that mentions the
+// marker mid-sentence. A missing or unrecognised risk value degrades to
+// "medium" instead of throwing: a half-formed marker still gates, it just
+// gates at the default risk.
+
 import { z } from "zod";
 
 export const approvalStatusSchema = z.enum([

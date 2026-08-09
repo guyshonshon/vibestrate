@@ -1,3 +1,12 @@
+// The roadmap-proposal HTTP surface, over ProposalService and the roadmap
+// planner. Proposal ids arrive as path segments, so they pass through
+// assertProposalId first - a strict charset plus an explicit ".." rejection.
+//
+// Accept is a single endpoint carrying both modes: a `dryRun: true` body
+// returns a hand-picked subset of the preview, anything else performs the
+// accept. A ProposalServiceError is translated to a 409 here; any other
+// thrown error becomes a 500.
+
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import {

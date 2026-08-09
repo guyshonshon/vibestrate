@@ -1,3 +1,24 @@
+// Renaming a validation profile: move its definition inside
+// commands.validationProfiles in project.yml, then retarget the stored
+// `validationProfile` references that still name the old profile, and record
+// both halves as one audit.
+//
+// Rename is stricter than a bare reference migration, because it is the half
+// that can destroy a profile definition. validateRenameInputs refuses several
+// shapes of bad input, including a reserved name on either side, a source
+// profile the config does not declare, and a target name that is already
+// taken, each carrying a status code on ValidationProfileRenameError. A rename
+// therefore refuses rather than overwriting an existing profile.
+//
+// The two halves are not one write. applyRename snapshots project.yml before
+// touching it and restores that exact text if anything after the config write
+// throws. The restore covers project.yml only - reference files that
+// applyMigration already rewrote stay rewritten - so a failure after the
+// reference rewrite can leave the config naming the old profile while stored
+// references name the new one. If the restore itself also fails, the caller
+// gets a 500 saying project.yml must be repaired by hand. previewRename writes
+// nothing.
+
 import path from "node:path";
 import { ensureDir, writeText } from "../../utils/fs.js";
 import {
@@ -168,7 +189,7 @@ export async function previewRename(input: {
 }
 
 /**
- * Apply a rename atomically. Strategy:
+ * Apply a rename. Strategy:
  *   1. Validate inputs against the live config (throws if anything is off).
  *   2. Snapshot project.yml so we can restore it on failure.
  *   3. Rewrite the profile key inside commands.validationProfiles and write

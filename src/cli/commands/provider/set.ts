@@ -1,3 +1,14 @@
+// `vibe provider set <id>` - point the project's default agent profiles at one
+// provider. Returns a process exit code.
+//
+// The path worth knowing about is an id that is not in the config yet: when
+// that provider is detected on PATH and there is a preset builder for it, the
+// command offers to add it. That branch returns as soon as the add succeeds -
+// it does not fall through to the setDefaultProvider call below. Adding
+// requires consent - either `--yes` or a confirmation on an interactive TTY -
+// so a non-interactive shell without `--yes` falls through to the
+// "not configured" error instead of writing config on its own.
+
 import { detectProject } from "../../../project/project-detector.js";
 import {
   listConfiguredProviders,

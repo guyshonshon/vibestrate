@@ -1,3 +1,15 @@
+/**
+ * Per-run notes, stored as a JSON array in `notes.json` inside the run's
+ * directory. A note is a human annotation pinned to something in the run: a
+ * scope plus a target (an artifact, a file, an event id, a stage) and a message.
+ * There is no delete - a note is marked resolved and stays in the file.
+ *
+ * Two shapes a reader should not assume away. Reads are tolerant: unparseable
+ * JSON, or a payload that fails the schema, yields an empty list instead of
+ * throwing, so a damaged file reads as "no notes" and the next add rewrites it
+ * from empty. And each mutation is an unlocked read-modify-write of the whole
+ * file, so two writers on the same run can drop one another's note.
+ */
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";

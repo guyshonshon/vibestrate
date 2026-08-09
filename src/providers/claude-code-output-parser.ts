@@ -1,3 +1,16 @@
+// Tolerant reader for the Claude Code CLI's stdout: lifts session id, model,
+// total and per-model cost, token usage and tool-call count out of whatever
+// shape a turn happened to print. The CLI's output is not a contract we
+// control, so every field is optional - a missing one degrades to null rather
+// than failing the turn, and many keys are accepted in both snake_case and
+// camelCase.
+//
+// parseClaudeCodeOutput tries, in source order: the whole stdout as one JSON
+// object; then the last line that self-identifies as a final/result event;
+// then the last line that yields any field at all. `parseAvailable` stays
+// false when nothing was found, which is what lets a caller tell "nothing
+// parsed" apart from "parsed a zero".
+
 import type { TokenUsage, PerModelCost } from "../core/metrics/runtime-metrics.js";
 
 export type ClaudeCodeRunMetrics = {

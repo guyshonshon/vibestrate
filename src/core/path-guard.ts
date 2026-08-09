@@ -1,3 +1,25 @@
+/**
+ * Path containment guard for user-supplied paths.
+ *
+ * Resolves a path (relative or absolute) against a caller-declared list of
+ * allowed roots and returns it only when containment holds - otherwise throws
+ * PathGuardError(400). Containment is judged twice: textually against the root,
+ * and again after symlink resolution against the root's own realpath, so a link
+ * pointing out of the root is rejected instead of followed.
+ *
+ * The subtle part is the ENOENT branch of that check. A missing entry is a
+ * legitimate absence the caller turns into a 404, but it is also what a dangling
+ * symlink looks like, and a writer that follows one creates the target wherever
+ * the link points. So on ENOENT the guard reads the link itself and then climbs
+ * to the nearest existing ancestor, checking each level, since a symlinked
+ * parent escapes just as well as a symlinked leaf. That climb stops at the
+ * declared root, so a root whose directories have not been created yet (a
+ * worktree before checkout) is not treated as an escape.
+ *
+ * The guard proves containment and nothing more: it never opens file contents,
+ * it leaves "missing vs present" to the caller, and `isSecretLike` on the result
+ * is a flag for the caller to act on rather than a refusal made here.
+ */
 import path from "node:path";
 import fs from "node:fs/promises";
 import { isPathInside } from "../utils/paths.js";

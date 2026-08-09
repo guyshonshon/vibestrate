@@ -1,3 +1,13 @@
+// Pre-run preflight gate: refuses a run whose configuration would let an agent
+// write outside an isolated git worktree, and returns everything else it finds
+// as warnings for the caller to surface.
+//
+// The two refusals are deliberate rather than advisory. A role whose permission
+// profile grants writes but whose cwd is not "worktree" would edit the project
+// checkout directly, and a non-git project has no worktree to isolate into - in
+// both cases a warning would arrive after the damage. Warnings carry a `code`
+// next to the message so a caller can branch on it without matching prose.
+
 import path from "node:path";
 import { PolicyError } from "../utils/errors.js";
 import { pathExists } from "../utils/fs.js";

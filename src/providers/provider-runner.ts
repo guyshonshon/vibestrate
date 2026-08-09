@@ -1,3 +1,20 @@
+// Turns a provider id plus one turn's input into a completed turn:
+// resolveProvider looks the id up in the configured providers, runProvider
+// dispatches on `provider.type` to that type's runner and returns a result
+// carrying a `normalized` turn (response text + metrics) beside the runner's
+// raw output.
+//
+// Failure shape: a provider that ran and exited non-zero is not raised here.
+// The dispatch branches hand back the runner's result, which carries exitCode
+// and stderr for the caller to act on.
+//
+// The claude-code stream-json path is deliberately fail-closed. A non-zero
+// exit, or stdout that starts like JSON but does not parse as an event
+// stream, normalizes to an EMPTY response rather than letting partial or
+// unparsed bytes travel on as if they were the model's answer. Plain text
+// from a binary that ignored the format flag is passed through as text, so a
+// provider that never learned the flag still produces a usable turn.
+
 import { ProviderError } from "../utils/errors.js";
 import type { ProviderConfig, ProvidersConfigMap } from "./provider-schema.js";
 import type { ProviderRunInput, ProviderRunResult } from "./provider-types.js";

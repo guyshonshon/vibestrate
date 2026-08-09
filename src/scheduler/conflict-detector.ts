@@ -1,3 +1,15 @@
+/**
+ * Scheduler conflict surface: the overlap check between a candidate task and
+ * the tasks already running, plus the on-disk ledger of the warnings that
+ * check produces.
+ *
+ * ConflictsStore reads degrade to an empty warning list when the file is
+ * missing, blank, or fails schema parse, so a damaged ledger reads as "no
+ * known conflicts" rather than stalling the scheduler; writes re-validate
+ * before touching disk. record() and clearForTask() are unlocked
+ * read-modify-write cycles, so two of them racing can drop a warning.
+ */
+
 import { randomUUID } from "node:crypto";
 import { ensureDir, pathExists, readText, writeText } from "../utils/fs.js";
 import { schedulerConflictsFile, schedulerDir } from "../utils/paths.js";

@@ -1,3 +1,16 @@
+// Per-run persistence for review suggestions: a single suggestions.json inside
+// the run's own directory. readAll and writeAll both run the file through
+// suggestionsFileSchema, so a record that does not match the type is not
+// returned from this store and is not written by it.
+//
+// Behaviours to know before changing this. readAll treats a missing, empty,
+// or unparseable file as "no suggestions" rather than throwing, so a corrupt
+// file degrades to an empty list instead of taking down whatever is reading it
+// - a caller that needs to distinguish "none yet" from "broken" cannot learn it
+// here. And upsert is a read-modify-write with no locking of its own, so two
+// concurrent upserts against the same run can drop one of the edits unless the
+// caller serializes them.
+
 import path from "node:path";
 import { ensureDir, pathExists, readText, writeText } from "../utils/fs.js";
 import { runDir } from "../utils/paths.js";

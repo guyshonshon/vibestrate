@@ -1,3 +1,22 @@
+// The scheduler's on-disk queue and state - JSON files under `.vibestrate/`,
+// parsed with the scheduler-types zod schemas on the happy path and
+// revalidated before every write, so a bad in-memory shape throws instead of
+// being persisted.
+//
+// Reads are deliberately fail-soft: a missing, empty, or unparseable queue
+// file reads as an empty queue, and a missing or unparseable state file falls
+// back to a literal written out here. Those fallbacks skip the schema, so a
+// changed schema default does not reach them.
+//
+// `enqueue` is idempotent per taskId - a task already queued is returned
+// unchanged rather than added twice or rejected. `pickNext` under "fifo" takes
+// the head of the stored entry order; under "priority" it sorts on the
+// PRIORITY_RANK map below and breaks ties on enqueuedAt.
+//
+// Nothing here takes a lock, and the mutators read-modify-write the whole
+// file, as do the plain writers, so serialization between concurrent writers
+// is not provided at this level.
+
 import { ensureDir, pathExists, readText, writeText } from "../utils/fs.js";
 import {
   schedulerDir,

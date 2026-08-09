@@ -1,3 +1,20 @@
+// Runs an already-resolved validation command list inside a run's git worktree
+// and persists a structured result under that run's directory. The caller is
+// expected to pass shell text it resolved from project config; this module does
+// not sanitize it, and spawns each entry with `shell: true` and `cwd` pinned to
+// the worktree - sequentially, so one command's output cannot interleave
+// another's. `reject: false` on that spawn is what turns a non-zero exit into a
+// recorded `status: "failed"` row, so the surrounding catch is the
+// spawn/timeout path, not the command-failed path.
+//
+// What this must keep doing:
+//   - Never report a success it did not observe. A missing worktree throws
+//     (SuggestionValidationError, 409) and an empty command list is persisted
+//     under its own `no_commands_configured` status rather than as "passed".
+//   - Never persist a whole stream. stdout/stderr are sliced to
+//     STREAM_HEAD_BYTES, including on the spawn-failure path, so a chatty test
+//     command cannot bloat the run directory.
+
 import path from "node:path";
 import { execa } from "execa";
 import { ensureDir, pathExists, writeText } from "../utils/fs.js";

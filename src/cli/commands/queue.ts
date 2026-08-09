@@ -1,3 +1,20 @@
+// `vibe queue` - the CLI face of the local task scheduler: subcommands that
+// read and mutate the queue and scheduler state, and one that hosts the
+// scheduler loop itself.
+//
+// `queue run` is the long-lived subcommand and the one with real lifecycle
+// rules:
+//   - It holds the project scheduler lock for the whole loop and releases it in
+//     a `finally`. A second `queue run` in the same project is refused rather
+//     than queued behind it, because two loops would double-pick the same task.
+//   - SIGINT/SIGTERM ask the loop to stop; a second interrupt force-exits, and
+//     a 10s timer force-exits if the wind-down stalls.
+//   - When VIBESTRATE_PARENT_PID holds a pid other than this process, the loop
+//     polls that pid once a second and stops itself as soon as the pid is not
+//     alive, so a scheduler whose spawner has exited does not keep starting
+//     runs unattended. The pid is not probed when the monitor is installed, so
+//     a stale value in the env winds the loop down on the first tick.
+
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
 import { loadConfig } from "../../project/config-loader.js";

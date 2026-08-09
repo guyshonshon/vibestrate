@@ -1,3 +1,14 @@
+// `vibe provider test [id]`: really invokes a configured provider CLI once with
+// a tiny prompt and checks stdout for the magic token, so a broken or logged-out
+// setup surfaces here instead of mid-run. Because the invocation is real and can
+// consume provider usage, the exact command is printed and confirmed first; the
+// prompt is skipped with --yes or when stdin is not a TTY.
+//
+// The exit codes are the script-facing contract: 0 passed (also when the user
+// declines the confirmation), 1 nothing could be tested (no config, unreadable
+// or empty provider list, ambiguous or unknown id), 2 the test ran and failed,
+// 3 the provider looks logged out.
+
 import { detectProject } from "../../../project/project-detector.js";
 import {
   listConfiguredProviders,

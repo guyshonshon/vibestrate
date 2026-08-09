@@ -1,3 +1,15 @@
+/**
+ * The flow slice of a run's persisted state: builds it from a resolved flow
+ * snapshot, applies immutable patches to one step or to the participant
+ * summary, and maps a flow step to the run status that should show while the
+ * step executes.
+ *
+ * The patch helpers throw instead of initialising `state.flow` themselves, so
+ * a step update arriving before the snapshot was recorded fails loudly rather
+ * than writing a half-built flow. `moveToFlowStepStatus` computes the target
+ * status but returns the state untouched for an approval gate, and when the
+ * run already carries that status, so a no-op does not rewrite the state.
+ */
 import {
   applyTransition,
   type RunState,

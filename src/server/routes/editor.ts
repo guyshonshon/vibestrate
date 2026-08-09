@@ -1,3 +1,20 @@
+/**
+ * HTTP surface for the editor handoff: what editors this machine can launch,
+ * and opening one at a path (optionally at a line and column).
+ *
+ * The open route is the guarded one. It refuses with 409 unless the project is
+ * initialised and editor handoff is enabled in config, and it resolves the
+ * requested path through the path guard rather than trusting the body. The
+ * run's worktree is added as an allowed root only when a runId was supplied
+ * and that run's recorded state parses with a worktreePath; the same resolved
+ * runId gates the audit entry, so a run whose state is unreadable gets neither
+ * the extra root nor an event.
+ *
+ * A path the guard rejects becomes an HTTP error, but an editor command that
+ * launches and exits non-zero does not: that returns ok:false with the command
+ * and a message, so a mis-set editor command reads as a result rather than a
+ * crash.
+ */
 import type { FastifyInstance } from "fastify";
 import { loadConfig } from "../../project/config-loader.js";
 import {

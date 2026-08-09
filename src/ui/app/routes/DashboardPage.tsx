@@ -13,15 +13,12 @@ import { isActiveStatus } from "../../lib/run-filter.js";
 import { RunCard, StatCard, relTime, statusMeta } from "./MissionControlPage.js";
 
 /**
- * The monitoring half of what used to be one page.
+ * The monitoring half of what used to be one page: a glance at what is running,
+ * without a compose form to scroll past. Starting work is not done here - the
+ * page takes an `onCompose` callback and renders a button that calls it.
  *
- * Mission Control mixed two jobs: starting work and watching it. The file said
- * so itself - the composer was pinned above a movable board because "they're
- * actions, not rearrangeable widgets", and that board's own label was already
- * "Dashboard layout". This is that board, given its own page, so a glance at
- * what is happening does not require scrolling past a compose form.
- *
- * The panels stay rearrangeable and their layout is still persisted per browser.
+ * The monitoring widgets render through PanelBoard under the storage key
+ * "mission-control-board".
  */
 export function DashboardPage({ onCompose }: { onCompose: () => void }) {
   const [runs, setRuns] = useState<RunState[]>([]);
@@ -85,9 +82,7 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
     .slice(0, 8);
   const week = weekOf(runs);
 
-  // Monitoring widgets, rendered through the movable/resizable/hideable board
-  // (PanelBoard, shared with the run dashboard). The composer + approvals stay
-  // fixed above the board - they're actions, not rearrangeable widgets.
+  // Monitoring widgets, rendered through PanelBoard below.
   const panels: RegisteredPanel[] = [
     {
       id: "overview",

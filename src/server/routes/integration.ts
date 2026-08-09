@@ -1,3 +1,13 @@
+// HTTP surface for the merge/integration flow, including listing merge-ready
+// runs, read-only projections and advice over them, and the gated writes that
+// build an integration branch or merge a finished one into main.
+//
+// The write paths carry the care. They translate IntegrationError into 409
+// rather than 500, so a service-level refusal reads as a refusal and not as a
+// server bug. `/finish` additionally fails closed when VIBESTRATE_API_TOKEN is
+// unset; the reasoning sits with that route below. Do not relax that gate to
+// make a dashboard button work without a token.
+
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import { HttpError, assertSafeRunId } from "../security.js";

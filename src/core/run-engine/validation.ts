@@ -1,3 +1,13 @@
+// The run's validation pass: run the project's configured validate commands in
+// the run worktree, then fold the linked roadmap card's machine-checkable
+// acceptance commands into the SAME results object and summary, so an unmet
+// acceptance command counts as a validation failure.
+//
+// Mind the ordering in runValidation: the change-scoped shortcut writes its own
+// results object and returns before mergeAcceptanceValidation is reached, so an
+// all-inert diff skips the acceptance commands too, not only the configured
+// ones. The rationale for each branch sits at the code below.
+
 import path from "node:path";
 import type { ArtifactStore } from "../stores/artifact-store.js";
 import type { EventLog } from "../stores/event-log.js";

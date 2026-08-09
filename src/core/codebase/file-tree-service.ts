@@ -1,3 +1,22 @@
+// Builds a BOUNDED directory listing for a project root or a run worktree:
+// per-entry metadata, no file contents. A plain recursive readdir is both too
+// slow and too indiscriminate to hand to a browser, so the walk is capped and
+// filtered:
+//
+//   - depth is clamped to 1..12 and the total entry count to 50..20000.
+//     Hitting the entry cap sets `truncated` on the result; a directory cut
+//     off by the depth limit is marked `truncated` on that node. Neither
+//     throws - a huge repo comes back as a partial tree.
+//   - names in DEFAULT_EXCLUDES are dropped; dotfiles and `.vibestrate/`
+//     appear only when includeHidden / includeVibestrate ask for them.
+//   - symlinks are listed from their own lstat and are not descended into, so
+//     the walk does not follow a link out of the root.
+//   - each entry is re-checked with isPathInside before it is counted, and a
+//     directory that fails to read is skipped rather than failing the walk.
+//
+// Entries carry `isSecretLike`, set from the entry's path, to flag a
+// .env-shaped file.
+
 import path from "node:path";
 import fs from "node:fs/promises";
 import { isPathInside } from "../../utils/paths.js";

@@ -1,3 +1,17 @@
+// `vibe policies` spans rule surfaces that share a name but are otherwise
+// unrelated: owner-authored project policies (the verbs registered from
+// policies-rules.ts) and the hard security gates loaded from the YAML files
+// under `.vibestrate/policies/`. `list` prints both; `doctor` reports the
+// malformed files and duplicate ids found while loading the YAML snapshot.
+//
+// `check` reads a patch file and evaluates the loaded rules against that text
+// in memory. Exit codes are the scriptable part of the contract: `check` and
+// `doctor` exit 1 when they found something, and `check` exits 2 on bad input
+// (unknown --surface, unreadable patch file).
+//
+// `config` sets the `policies.*` safety toggles it declares flags for - not the
+// whole config block; those writes go through setup/config-update-service.ts.
+
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Command } from "commander";

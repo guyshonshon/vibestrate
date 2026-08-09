@@ -1,3 +1,18 @@
+// Dashboard git routes, over two roots: the project root (status, history,
+// branch graph, per-branch overview, single-commit detail) and a run's
+// worktree (status, history). The `/tree/*` group backs the interactive merge
+// tree - predict and propose-resolutions read only, apply, apply-resolved and
+// undo write.
+//
+// Two things hold the write side shut. Each write route calls requireToken()
+// before parsing, so a dashboard running without VIBESTRATE_API_TOKEN refuses
+// to merge at all rather than exposing git history to any process that can
+// reach the loopback port. And a branch name arriving in a body is parsed with
+// SAFE_BRANCH first, which bounds its length and forces an alphanumeric first
+// character so a leading dash cannot be read by git as an option. Run-scoped
+// routes read the worktree path out of the persisted run state, answering 404
+// when the run is unknown and 409 while it has no worktree yet.
+
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {

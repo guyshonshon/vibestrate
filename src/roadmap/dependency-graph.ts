@@ -1,3 +1,15 @@
+// ── Task dependency graph ───────────────────────────────────────────────────
+// Pure, in-memory index over a task list, with the edge direction carried by
+// the map name: `blockers` maps a task to the ids it depends on, `dependents`
+// is the reverse. Cycle detection is an iterative three-color DFS over the
+// blocker edges, returning the first cycle it finds as a path of ids.
+//
+// A dependency id with no matching task is kept rather than dropped: it gets a
+// `dependents` entry but no `taskById` entry, and the readiness helpers count
+// it as an open blocker, so a dangling reference blocks its task instead of
+// silently making it ready. A blocker stops counting once its status is `done`
+// or `cancelled`.
+
 import type { Task, TaskStatus } from "./roadmap-types.js";
 
 export type DependencyEdge = { from: string; to: string };

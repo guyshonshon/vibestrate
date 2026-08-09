@@ -1,3 +1,14 @@
+/**
+ * Terminal Skills page: browse the skills discovered for the project and
+ * toggle which agent role each one is attached to (arrow keys or hjkl move
+ * the skill and role cursors, Enter or Space toggles the focused pair).
+ *
+ * The role axis is the built-in role id list, not the roles read from the
+ * project's crew config, so a role that exists only in a custom crew gets no
+ * column here even when the assignment rows carry it. Toggling writes through
+ * agents/skill-assignment-service and then refreshes from the caller.
+ */
+
 import React from "react";
 import { Box, Text, useInput } from "ink";
 import type { DiscoveredSkill } from "../../../agents/skill-discovery.js";

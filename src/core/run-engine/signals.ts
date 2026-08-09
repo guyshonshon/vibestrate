@@ -1,3 +1,11 @@
+// Exceptions that mark a deliberate, non-error unwinding of a run, such as the
+// user aborting, an approval being rejected, or a configured spend cap or
+// budget ceiling being reached. These are decisions rather than step failures.
+//
+// `__isControlSignal` below is a hand-written instanceof chain: a signal class
+// added to this file is not recognised as a control signal until it is added
+// to that chain too.
+
 export class __ApprovalRejectedSignal extends Error {
   constructor() {
     super("Run blocked after approval rejected");

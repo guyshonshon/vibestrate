@@ -1,3 +1,16 @@
+// HTTP surface for a run's review suggestions: reading them, adding one by
+// hand, and review verbs such as approve, reject, apply, validate and revert.
+// Handlers are mostly thin - validate the run id, confirm the run exists,
+// delegate to ReviewSuggestionService, and translate a SuggestionServiceError
+// into an HTTP reply using the status code it carries. The apply handler also
+// rejects a body that asks for auto-revert or a validation profile without
+// validateAfterApply.
+//
+// The read-only guard is per-handler, not global, and the asymmetry is easy to
+// misread: `refuseWritesOnReadOnlyRun` is called at the top of the apply,
+// validate and revert handlers. Handlers that do not call it, approve among
+// them, are not gated by it.
+
 import type { FastifyInstance } from "fastify";
 import {
   ReviewSuggestionService,
@@ -28,10 +41,10 @@ export async function registerSuggestionRoutes(
   }
 
   /**
-   * Read-only runs refuse every write-side action on
-   * suggestions (apply / validate / revert / approve). Reading them is
-   * allowed - the user can still inspect what the reviewer proposed,
-   * just not act on it. Returns 409 with a clear, actionable message.
+   * Refuses the calling action when the run is read-only
+   * (investigation-only). Reading suggestions stays allowed - the user can
+   * still inspect what the reviewer proposed, just not act on it. Returns 409
+   * with a clear, actionable message.
    */
   async function refuseWritesOnReadOnlyRun(runId: string): Promise<void> {
     try {

@@ -1,3 +1,20 @@
+/**
+ * CLI surface for supervised tasks ("sagas"): sequencing one, reporting its
+ * status, and pausing/resuming it.
+ *
+ * Sequencing does not drive the steps here - it flips the task's lifecycle to
+ * "sequencing" and launches a single audited run, then attributes the outcome
+ * from that run's exit code. Two rules keep that attribution honest and are
+ * easy to break while editing: exit code 1 means the run never started (a
+ * concurrent invocation may own this saga), so the lifecycle must be left
+ * exactly as found; and a halt already recorded from inside the run is never
+ * overwritten - only a task that came back un-halted gets "done" or a
+ * run-level halt written from here.
+ *
+ * Pause and resume target the live run holding the task's run lock, so a
+ * hard-crashed run that left a stale lock reports "nothing to pause" rather
+ * than signalling a process that cannot honor it.
+ */
 import path from "node:path";
 import { detectProject } from "../../project/project-detector.js";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";

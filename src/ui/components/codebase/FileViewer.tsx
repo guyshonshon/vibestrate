@@ -1,3 +1,17 @@
+/**
+ * Read-only source viewer for one file: header facts, numbered lines that
+ * copy a file:line reference on click, an optional per-line annotate hook,
+ * and an open-in-editor handoff.
+ *
+ * A view flagged secret-like is handled defensively here: no syntax
+ * highlighting, no annotate affordance, and the editor handoff is disabled.
+ *
+ * Highlighting and line rendering are capped separately at different line
+ * thresholds, so a large file can still render all of its lines with
+ * highlighting off. Both caps exist for responsiveness: highlight.js runs
+ * synchronously, and one div plus buttons per line was enough to make the
+ * page feel locked on big files.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { Copy, ExternalLink, FileCode2, Hash } from "lucide-react";
 import { ApiError, api } from "../../lib/api.js";

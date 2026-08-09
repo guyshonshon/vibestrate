@@ -1,3 +1,16 @@
+// `vibe integrate` - review-side merge tooling for run branches, including
+// listing the merge-ready runs, dry-run merging them, printing read-only
+// advice, and merging selected branches into a dedicated integration branch.
+//
+// The typed-consent UX for the write-side subcommands:
+//   - `apply` requires `--into <branch>`; there is no default target to fall
+//     back to.
+//   - `finish` is the subcommand that merges into main, so it wants the token
+//     "merge-to-main", passed as `--confirm` or typed at an interactive
+//     prompt. A `--confirm` carrying any other value exits 2 instead of
+//     falling through to the prompt, and an unconfirmed call returns non-zero
+//     without calling the service.
+
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
 import {

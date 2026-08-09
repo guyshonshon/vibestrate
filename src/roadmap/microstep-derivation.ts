@@ -1,3 +1,20 @@
+/**
+ * Micro-steps for a task's runs, derived on read from what a run already wrote
+ * to disk: its events log, its metrics file, and its approval records. Nothing
+ * here is persisted, so a micro-step is a presentation view over the same audit
+ * data and changing the derivation needs no migration.
+ *
+ * The derivation is layered and later layers overwrite earlier ones. Each stage
+ * in `STAGE_ORDER` starts as `pending`; metrics settle a stage to passed/failed
+ * from the agent's exit code; events then adjust it from live signals and
+ * validation results; a still-pending approval marks its stage blocked last, so
+ * a stage that metrics called passed can still end up blocked.
+ *
+ * Reading is deliberately tolerant, because these artifacts are written by a run
+ * that may still be in flight: a missing run directory yields no steps at all, a
+ * missing or half-written events line contributes no signal rather than throwing,
+ * and a stage id that is not a known stage is ignored.
+ */
 import path from "node:path";
 import { pathExists, readText } from "../utils/fs.js";
 import { runEventsPath, runDir } from "../utils/paths.js";

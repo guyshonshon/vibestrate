@@ -1,3 +1,17 @@
+// ── Flow participant ledger ──────────────────────────────────────────────────
+//
+// Per-run record of who is at the table for a Flow: one participant per seat,
+// the provider resolved for it, and every turn it took (context packet, prompt
+// and output artifact paths, session id). This is what lets one Role keep a
+// provider session across steps instead of starting cold each time, and what
+// makes the fallback visible when it cannot.
+//
+// prepareFlowParticipantTurn decides the next turn's context mode from the
+// participant's declared capabilities plus whether it already holds a session;
+// a provider without session reuse is re-grounded from artifacts rather than
+// resumed, and carries a fallbackReason saying so. Participants are keyed on
+// SEAT - the reason that must not change is spelled out at
+// createFlowParticipantLedger.
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { pathExists } from "../../utils/fs.js";

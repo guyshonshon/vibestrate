@@ -1,3 +1,14 @@
+/**
+ * Per-item review for checklist runs, where each item carries its own
+ * arbitration ledger on disk instead of the run sharing one. Builds the
+ * decision-summary record for such an item, and derives the item verdicts and
+ * open-finding counts back out of those ledgers.
+ *
+ * The read path is deliberately asymmetric: an item with no ledger file yet
+ * reports a "none" verdict, while a ledger that fails schema validation throws
+ * rather than degrading to "none" - degrading would report zero open findings
+ * for an item that has them.
+ */
 import { runChecklistItemArbitrationPath } from "../../utils/paths.js";
 import { pathExists } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";

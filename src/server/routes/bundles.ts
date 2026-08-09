@@ -1,3 +1,22 @@
+/**
+ * HTTP surface for suggestion bundles: named groups of a run's suggestions,
+ * driven through their lifecycle by the bundle service - including create,
+ * add/remove a suggestion, approve/reject, apply, validate and revert.
+ * Handlers here check the run id shape and require the run's state.json to
+ * exist before delegating, and translate the service's typed errors into
+ * HTTP status codes.
+ *
+ * Actions that mutate the worktree are refused with 409 on a run marked
+ * readOnly. The set of such actions is READ_ONLY_REFUSED_ACTIONS at the
+ * bottom of this file; a new mutating action has to be added there or it
+ * ships unguarded. That guard re-reads state.json per request and
+ * deliberately falls through to the handler when the file is unreadable or
+ * fails schema parse.
+ *
+ * Option combinations that would quietly do nothing are rejected at the
+ * edge with a 400 rather than passed down - for example
+ * autoRevertOnValidationFail without validateAfterApply.
+ */
 import type { FastifyInstance } from "fastify";
 import {
   SuggestionBundleError,

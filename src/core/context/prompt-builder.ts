@@ -1,3 +1,16 @@
+/**
+ * Composes the prompt text handed to an agent seat: identity and task, safety
+ * boundaries, the permission profile, project rules, then the optional context
+ * sections, the role's own instructions, and any trailing per-run notes, in
+ * source order.
+ *
+ * Two things to keep intact. Which boundary block is used comes from
+ * `permission.allowWrite`, so a seat that cannot write is told it is read-only
+ * by its profile, not by its role name. And this file only concatenates: the
+ * optional sections arrive pre-rendered (several of them documented as already
+ * redacted by whoever built them), and nothing here redacts, so a new section
+ * carrying file contents or config has to be sanitized before it is passed in.
+ */
 import type { LoadedSkill } from "../../agents/skill-schema.js";
 import type { PermissionProfile } from "../../safety/permission-schema.js";
 import type { ValidationResults } from "../validation/validation-runner.js";

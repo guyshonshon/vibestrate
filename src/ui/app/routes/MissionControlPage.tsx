@@ -1,3 +1,16 @@
+/**
+ * Mission control route - the page where work starts. Its body renders the
+ * hero, the composer, and the "waiting on you" deck of pending approvals.
+ *
+ * The load loop re-fetches runs on an interval and whenever a
+ * `vibestrate:runs-refresh` window event fires, then fans out per-active-run
+ * diff and approval requests through `settle` so one failing request does not
+ * cost the others. The approvals failure is kept as a value rather than
+ * swallowed, because an empty list and a lost fetch look identical here.
+ *
+ * `StatCard` and `RunCard` are defined and exported from this file but are not
+ * rendered by this page.
+ */
 import { Button } from "../../components/design/Button.js";
 import { isActiveStatus, type RunFilter } from "../../lib/run-filter.js";
 import { useEffect, useMemo, useState } from "react";

@@ -1,3 +1,13 @@
+// Renders a finished run's final markdown report. Pure string building: it
+// takes an already-assembled snapshot (see FinalReportInput below) and returns
+// the document.
+//
+// `mdCell` guards table cells against a stray pipe or newline, but it is
+// applied per call site, not by the table renderers: the approval free-text
+// columns, the bundle title and the suggestion title go through it, while
+// other interpolated cells (the validation command, the suggestion target)
+// do not.
+
 import type { RunState } from "../state-machine.js";
 import { mdCell } from "../../utils/markdown-cell.js";
 import type { ValidationResults } from "../validation/validation-runner.js";

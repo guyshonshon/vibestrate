@@ -1,3 +1,15 @@
+/**
+ * HTTP routes for run metrics: the per-run reads plus the cross-run rollups.
+ * Pure reads - nothing here writes to the project, and this file keeps no
+ * response cache of its own.
+ *
+ * The rollups walk every run directory under the project on each request and
+ * parse each run state, skipping any run that fails schema validation so one
+ * corrupt file cannot blank a whole page. They are written for repeated
+ * polling: provider detection goes through the cached detector, and config is
+ * loaded once per request and threaded into the provider lookup instead of
+ * being loaded again per helper. Keep both if you add work here.
+ */
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import {

@@ -1,3 +1,17 @@
+// Interactive setup for a flow run: prompts for the task and the run's
+// options, such as an optional flow brief, the context policy and a profile
+// per seated step, then formats the equivalent non-interactive `vibe run`
+// command line from the same answers.
+//
+// Two inversions here are easy to get wrong:
+//  - a step profile is stored only when the pick differs from the profile the
+//    step's seat already resolves to, so an unchanged step is absent from the
+//    map rather than pinned to its current profile.
+//  - the optional-step prompt asks which steps to INCLUDE, but the result is
+//    the SKIPPED set. Incoming skips for step ids this flow does not mark
+//    optional are carried through untouched, since the prompt never offered
+//    them and cannot be read as a decision to re-enable them.
+
 import {
   checkbox,
   input as askInput,

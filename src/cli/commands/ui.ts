@@ -1,3 +1,17 @@
+/**
+ * The `vibe ui` command: start the dashboard server (and the managed scheduler,
+ * unless the caller opted out), print a readout of what came up, then park. The
+ * returned promise resolves only once shutdown has finished, so this command
+ * owns the process for as long as the dashboard is serving.
+ *
+ * Shutdown is the load-bearing part. The first SIGINT/SIGTERM starts a graceful
+ * close under a hard timer that force-exits when the close stalls, and a second
+ * Ctrl+C exits immediately, so a wedged scheduler subprocess or a long-lived SSE
+ * client cannot trap the user with no way out. A shutdown asked for through the
+ * server's callback exits directly instead of going through that path. Each exit
+ * path releases this project's UI lock best-effort; a force-kill runs none of
+ * them, so the lock can outlive the process.
+ */
 import { detectProject } from "../../project/project-detector.js";
 import { startServer, DEFAULT_VIBESTRATE_PORT } from "../../server/server.js";
 import { color, header, indent, symbol } from "../ui/format.js";

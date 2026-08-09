@@ -1,3 +1,19 @@
+// Per-run metrics file store: runtime-metrics.json in the run directory, plus a
+// per-role snapshot under agent-metrics/ beside it. Writes to
+// runtime-metrics.json go through writeNow, which re-validates against
+// runtimeMetricsSchema and restamps updatedAt; the per-role snapshot is written
+// raw.
+//
+// The read-modify-write mutators go through `serialize`. That guard is per
+// instance and in-process: two MetricsStore objects over the same run, or two
+// processes, are not serialized against each other.
+//
+// appendRoleMetrics and update throw when the file is missing or unparseable
+// rather than starting a fresh document, so a lost or corrupt metrics file
+// surfaces instead of being quietly overwritten. appendRoleMetrics passes the
+// updated role list through recomputeRunTotals; update does not, so a mutator
+// that touches roles has to recompute totals itself.
+
 import path from "node:path";
 import { ensureDir, pathExists, readText, writeText } from "../../utils/fs.js";
 import { runDir } from "../../utils/paths.js";
@@ -21,7 +37,7 @@ export class MetricsStore {
   // Serialize the read-modify-write mutators. A parallel review panel
   // runs several turns concurrently, each appending its own role metrics; an
   // unguarded read-modify-write would lose updates (last writer wins). This
-  // promise-chain mutex makes appendRoleMetrics/update/write atomic per store.
+  // promise-chain mutex serializes appendRoleMetrics/update/write per store.
   private writeQueue: Promise<unknown> = Promise.resolve();
   private serialize<T>(op: () => Promise<T>): Promise<T> {
     const next = this.writeQueue.then(op, op);

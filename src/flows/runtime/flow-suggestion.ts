@@ -1,3 +1,19 @@
+// Heuristic Flow suggester: scores a task description, the known touched files,
+// a caller-supplied risk level, and the outcomes of recent local runs, then
+// returns a suggestion when the score clears a fixed threshold and nothing
+// below it. Plain arithmetic over keyword lists - no model call. The
+// suggestFlowsForProject wrapper is the costlier entry point: it reads the
+// runs directory and parses each run's state file before scoring.
+//
+// The scoring speaks about a single flow, quality-arbitration: when that flow
+// is absent from `availableFlows` it suggests nothing, and when it does fire the
+// returned list holds that flow by itself. Making a second flow suggestable
+// means reworking the scoring, not appending an id to a table.
+//
+// Reading past outcomes is best-effort: a run directory whose state file is
+// unreadable or fails schema parsing is skipped, so one stale run cannot stop
+// the suggester from answering.
+
 import { runStateSchema } from "../../core/state-machine.js";
 import { readDirSafe } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";

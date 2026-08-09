@@ -1,3 +1,18 @@
+/**
+ * Raising a notification: turn a draft into a stored notification, apply the
+ * user's filter rules, then hand it to the gateways. Also holds the read/
+ * resolve state changes the dashboard and CLI drive.
+ *
+ * Two behaviours are easy to misread. A draft the rules suppress is not
+ * written at all - `notify` returns `emitted: false` with a null notification,
+ * so no trace of the suppressed event is kept. And `notify` resolves once the
+ * notification is persisted, not once it is delivered: delivery is dispatched
+ * detached so callers are never held up by gateway latency, and its failures
+ * are recorded as receipts or logged rather than returned to the caller.
+ *
+ * The gateway registry is built once per service instance and cached; the
+ * per-gateway config is re-read on each delivery.
+ */
 import { randomUUID } from "node:crypto";
 import { nowIso } from "../utils/time.js";
 import { NotificationStore } from "./notification-store.js";

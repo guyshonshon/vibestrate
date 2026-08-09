@@ -1,3 +1,22 @@
+// Read-side discovery of the agent SKILLS present in a project. A skill on
+// disk is either a directory holding SKILL.md/skill.md, or a flat `.md` file;
+// the flat shape has no dir of its own and is reported with no MCP servers.
+//
+// Things that are easy to assume wrongly:
+//   - The frontmatter reader is not a YAML parser. It takes single-line
+//     `key: value` pairs out of the leading `---` block and strips matching
+//     surrounding quotes. Keys are trimmed regardless of indentation, so the
+//     children of a nested map land as TOP-LEVEL keys and the parent key
+//     survives holding an empty value; a line with no colon is dropped.
+//   - A skill id is `source:name`, so the merge in discoverSkills
+//     de-duplicates WITHIN a source. The same name under two sources survives
+//     as two entries; a name repeated inside one root collapses to whichever
+//     came first in sorted readdir order.
+//
+// Scanning is best-effort at the edges: a root that is absent or cannot be
+// listed contributes nothing instead of raising, so one unreadable directory
+// does not hide the skills found under another root.
+
 import path from "node:path";
 import fs from "node:fs/promises";
 import { pathExists, readText } from "../utils/fs.js";

@@ -1,3 +1,16 @@
+// Usage counters for validation profiles: how many times each profile (the
+// default one, or a named one) was recorded as used, plus the timestamp, run,
+// suggestion and bundle of the last recording. Persisted to
+// `validation-profile-usage.json` under the project's `.vibestrate/` directory.
+//
+// Best-effort telemetry, written to fail OPEN. A corrupt or unreadable file
+// reads as "nothing recorded", and the whole record path sits inside a catch
+// that returns quietly, so a bad or unwritable counter file does not throw
+// into the caller. Counts are approximate for a second reason:
+// recording reads the file and rewrites it whole with no lock, so two
+// recorders overlapping will drop one of the increments. Do not lean on
+// totalUses where an exact number matters.
+
 import path from "node:path";
 import { ensureDir, pathExists, readText, writeText } from "../../utils/fs.js";
 import { vibestrateRoot } from "../../utils/paths.js";
