@@ -1,7 +1,6 @@
 # Design: Merge Window + Supervisor Merge Advisor (T13)
 
-Status: **proposed - adversarially reviewed** · Triage:
-[`backlog-triage-2026-06.md`](./backlog-triage-2026-06.md) § T13
+Status: **proposed - reviewed**
 
 > Raw ask: "saying we should never merge is a lie - we need a window for
 > merging, done by the supervisor: insights and suggestions about merging

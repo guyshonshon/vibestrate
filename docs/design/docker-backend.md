@@ -27,9 +27,8 @@
 
 Status: **slice 1 SHIPPED (provider-native sandbox, OFF by default) · slice 2
 container backend SHIPPED (opt-in, 0.11.0) · egress-proxy DEFERRED** ·
-adversarially reviewed (Opus), verdict folded in · Triage:
-[`backlog-triage-2026-06.md`](./backlog-triage-2026-06.md) § T14 · Related:
-[`policy-enforcement-assurance.md`](./policy-enforcement-assurance.md) § S6.
+reviewed, verdict folded in · Related:
+[`policy-enforcement-assurance.md`](./policy-enforcement-assurance.md).
 
 > Raw ask (T14): "The supervisor should control how each flow/agent works with
 > a sandbox (Docker), prepare Dockerfile, with volume shared or inside git or

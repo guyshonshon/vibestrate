@@ -142,5 +142,4 @@ but M0 had a fatal false-positive and a live bug was understated.
 - **Rename "Shape" -> "Spec-up" (full, incl. internals): SHIPPED.** A ~150-file
   concept rename + the persisted `shaped` -> `specUpPhase` schema migration (plus
   the `WorkflowSelectionSource` enum `"shaped"` -> `"spec-up"`), done surface by
-  surface with `typecheck`/`test` gating per commit. Plan + naming map:
-  `docs/design/spec-up-rename-plan.md`.
+  surface with `typecheck`/`test` gating per commit.

@@ -1,4 +1,4 @@
-// specUpPosture (docs/design/spec-up-phase.md:178-182, spec-up-phase-plan.md:96).
+// specUpPosture (docs/design/spec-up-phase.md).
 // A persona aims the spec-up PLANNING agents (intake / scope / spec / architecture)
 // the way `reviewLenses` aim the independent reviewers.
 //
