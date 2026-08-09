@@ -1,3 +1,37 @@
+// Reads what a run's worktree CHANGED, and carries the secret detection that
+// the surfaces showing or forwarding a diff depend on.
+//
+// In source order: the secret PATH patterns, the secret CONTENT patterns with
+// the scanners and redactor built on them, a `runGit` helper, then the diff
+// readers - getDiffSnapshot (per-file counts), getWorktreeDiffText (the full
+// patch text) and getFileDiff (one file's patch).
+//
+// The secret defenses are separate and do different jobs:
+//   - PATH-shaped (isSecretLikePath): getFileDiff emits no body at all, just a
+//     reason; getDiffSnapshot only FLAGS the file (isSecretLike/diffRedacted)
+//     and emits counts, never patch text; getWorktreeDiffText skips
+//     secret-like paths in its untracked pass.
+//   - CONTENT-shaped: the vendor token shapes drive both the scanners and the
+//     redactor - scanPatchContentForSecrets reads only ADDED diff lines,
+//     redactSecretsInText rewrites matches in place and reports how many it
+//     replaced. The deliberately narrow `SECRET_KEY = value` assignment rule is
+//     redaction-only: it runs in redactSecretsInText's second pass and is not
+//     part of what the scanners report.
+// A false positive here blocks a real patch or corrupts the text a model still
+// has to read, which is why the content patterns stay prefix-anchored.
+//
+// Untracked files need their own handling: `git diff <ref>` omits them, so the
+// readers fall back to a /dev/null diff for a new file - getDiffSnapshot and
+// getWorktreeDiffText up front, getFileDiff when the tracked diff comes back
+// empty. Otherwise a brand-new file reads as no change at all.
+//
+// git runs through `runGit`: fixed cwd, `reject: false`, a timeout, and stdin
+// ignored so a git that wants to prompt fails instead of hanging forever.
+// Since it does not throw, a failed git arrives as empty stdout, which a
+// reader that ignores exitCode cannot tell apart from a clean tree - an empty
+// tracked diff in getFileDiff falls through to the /dev/null branch and
+// renders an existing file as brand new.
+
 import path from "node:path";
 import { execa } from "execa";
 import { pathExists } from "../utils/fs.js";
@@ -446,8 +480,8 @@ export async function getDiffSnapshot(input: {
 /**
  * The full unified diff TEXT of a worktree vs a base ref (default HEAD), including
  * untracked files (each diffed against /dev/null so a brand-new file's added lines
- * are present). Secret-like files are skipped entirely. Used by the preference
- * block gate (preference-block-gate.ts) to scan added lines at run completion.
+ * are present). The untracked pass skips secret-like paths; the tracked `git diff`
+ * below is not path-filtered, so a modified .env lands in this text in full.
  */
 export async function getWorktreeDiffText(input: {
   worktreePath: string;

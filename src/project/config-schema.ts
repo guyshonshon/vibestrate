@@ -1,3 +1,25 @@
+// The zod schema for a project's `.vibestrate/project.yml` - config-loader.ts
+// parses the YAML through `projectConfigSchema` here, so this file decides what
+// a project may say and what every unset key defaults to.
+//
+// Source order: the per-section schemas (git, commands, scheduler, policies,
+// budget, resilience, personas, ...), then `projectConfigBaseSchema` composing
+// them into the top-level object, then `projectConfigSchema` = that object plus
+// a superRefine for the checks a single field can't make on its own
+// (profile -> provider, crew role -> profile, defaultCrew/defaultPersona resolve).
+//
+// Things that will bite you:
+//  - Add a new top-level section to `projectConfigBaseSchema`, not to the
+//    refined `projectConfigSchema`. config-introspection.ts walks the BASE
+//    object; a section added past the refinement is invisible to it.
+//  - `.describe(...)` is not decoration. config-introspection.ts reads that text
+//    (walking through `.default()`/`.optional()` wrappers) and surfaces it, so a
+//    field with no description ships without one.
+//  - `.default(literal)` in zod v4 does NOT re-parse the literal through the
+//    schema, so a partial literal never picks up the nested fields' own
+//    defaults. Where the default is partial (or `{}`), use `.prefault(...)`,
+//    which does cascade. Swapping one for the other silently changes what a
+//    config with an absent section resolves to.
 import { z } from "zod";
 import { POLICY_LIMITS } from "../policies/policy-types.js";
 import { SUPERVISED_DEFAULT_MAX_STEPS } from "../roadmap/roadmap-types.js";

@@ -1,3 +1,32 @@
+// `vibe doctor`: the read-only health check of a project's Vibestrate setup,
+// plus the narrow repair pass behind `--fix`.
+//
+// `runDoctor` walks the setup in dependency order and appends `DoctorFinding`s
+// (ok / warn / fail); it writes nothing. Three checks RETURN EARLY with a
+// partial report rather than continuing on a broken foundation: not in a git
+// repo, no `.vibestrate/project.yml`, and a config that fails to load. Callers
+// must treat `findings` as "how far we got", not a fixed list.
+//
+// Contact with the outside world is kept narrow on purpose:
+//   - a command-backed provider is probed by spawning `<command> --version`
+//     with a 5s timeout and `reject: false`; a throw or non-zero exit just
+//     means "not on PATH", never an exception out of doctor.
+//   - the validation-profile audit, the notification-gateway check and the
+//     pending-approval scan each sit in their own try/catch, so a secondary
+//     scan failing cannot take down the whole report.
+//   - `.env` files are reported by PATH only. Nothing here opens them.
+//
+// `applyDoctorFixes` does NOT consume the findings list - it re-derives every
+// condition from disk. `fixable` is advisory metadata, not the fixer's input:
+// the only code that reads it is the next-steps builder below, which decides
+// whether to recommend `vibe doctor --fix`. Every rendered surface ignores it,
+// so a new fixable finding needs a matching repair added by hand. The fixer
+// creates only what is missing and restores built-in role prompts that are
+// absent; the two config writes (adopting a detected provider, filling in
+// validation commands) fire only when that part of the config is empty - an
+// existing provider set is never replaced, and existing validate commands are
+// never overwritten.
+
 import path from "node:path";
 import { execa } from "execa";
 import { pathExists, ensureDir, writeText } from "../utils/fs.js";

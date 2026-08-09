@@ -1,3 +1,19 @@
+// The generic CLI provider: turns a `type: "cli"` provider entry into one
+// child-process invocation and a result record. provider-runner.ts routes here
+// for that type only; claude-code and http-api providers have their own
+// modules and none of this code runs for them.
+//
+// Two things to keep straight. Argument order is part of the contract with the
+// provider binary, so the assembly below is sequenced deliberately (see the
+// comments at each step) rather than being a free-form concat. And the
+// returned record describes the PROVIDER, not how it was launched: command and
+// args are the provider's own even when an execStrategy rewrote the spawn into
+// a container, while executedIn and appliedSandbox carry the launch facts.
+//
+// A non-zero exit comes back as `exitCode` on the result rather than throwing;
+// interpreting it is the caller's job. This module does not parse or normalize
+// the provider's output either - stdout is returned raw.
+
 import { runArgvCommand } from "../core/execution/command-runner.js";
 import { ProviderError } from "../utils/errors.js";
 import type { CliProviderConfig } from "./provider-schema.js";

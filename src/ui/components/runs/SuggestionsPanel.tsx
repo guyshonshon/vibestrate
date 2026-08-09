@@ -1,3 +1,26 @@
+/**
+ * The review-suggestion list for one run: create a suggestion, approve or
+ * reject it, apply its patch (optionally validating afterwards, optionally
+ * reverting the patch when validation fails), re-validate, revert, and select
+ * several into a review pass. Each action is a call to the run's suggestion
+ * API.
+ *
+ * Nothing imports this panel today. It was left out of the run-inspector
+ * redesign deliberately, to be re-wired into the review flow later - it is not
+ * dead code to sweep.
+ *
+ * The list refreshes on its own - a 5 s poll plus the run's event stream,
+ * which reloads on the suggestion/bundle event types named in the subscribe
+ * effect - on top of a reload after each action. Rows read their record from
+ * the server on each load, with client-held exceptions: the validation
+ * profile, mirrored into row state so the dropdown updates immediately while
+ * the PATCH is in flight, and the per-row validation result, which is held in
+ * `validations` and is not cleared by a reload.
+ *
+ * `readOnly` hides the per-row approve / reject / apply / validate / revert
+ * controls. Creating a suggestion and editing a row's validation profile stay
+ * reachable.
+ */
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,

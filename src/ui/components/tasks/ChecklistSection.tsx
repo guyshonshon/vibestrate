@@ -1,3 +1,27 @@
+// The Checklist section of a task card: the ordered steps, and the surfaces
+// where they get planned, edited, reordered and run.
+//
+// In source order: ChecklistSection (step drawer, the planning and proposal
+// surfaces, the empty state, the run controls, the manual-add form), then
+// ChecklistRow (one step).
+//
+// What is easy to break here:
+//   - Ordinary mutations go through run(), which parks a single `busy` key and
+//     refreshes the card via onChanged(). enhance() and startPlan() do their
+//     own busy/error bookkeeping instead, because each holds an
+//     AbortController so a second click on the same button aborts the
+//     in-flight request.
+//   - A proposal lives in local state until "Add all", which appends the items
+//     one call at a time. Dismissing it writes nothing.
+//   - A row is draggable only while the grip is held (grip mousedown flips
+//     `grabbed`), so a press on the row body stays a plain click that opens
+//     the step drawer.
+//   - task.runMode === "supervised" is checked in two places for the same
+//     reason: it reveals the objective / acceptance-check / file-hint inputs
+//     in the manual-add form (and the branch that submits them), and it is
+//     passed to each row as `isSaga`, where it gates the matching read-only
+//     lines.
+
 import { useRef, useState } from "react";
 import {
   Check,

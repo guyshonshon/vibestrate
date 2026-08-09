@@ -1,3 +1,38 @@
+// The read/write service for configured providers: list them, add one, point
+// the profiles at one, remove one, and run a cheap liveness test. Provider
+// changes are meant to land through here rather than by hand-editing
+// project.yml, so every surface writes the same shape.
+//
+// Config edits go through config-update-service (ensureProvider,
+// pointAllProfilesAtProvider, deleteProvider) rather than serializing
+// project.yml here. `setDefaultProvider` and `removeProvider` return
+// `{ ok: false, reason, hint }` rather than throwing, so a refusal is a value
+// each surface can present its own way.
+//
+// `runSafeProviderTest` spawns a provider outside a run, so it is deliberately
+// cheap and boring:
+//   - A CLI provider is sent a fixed prompt asking for one magic token back. A
+//     pass needs exit 0 AND that token in stdout, so a CLI that exits 0 while
+//     ignoring the prompt is still reported as broken.
+//   - An `http-api` provider is NOT called: a paid API should not be billed for
+//     a test click, so the check is only that its key env var is set.
+//   - A `localhost-proxy` provider does get a real call, since a local server
+//     is free.
+// A failure carries a hint. `classifyProviderFailure` picks auth vs exit vs
+// flags; the auth branch names a login command to run OUTSIDE Vibestrate when
+// the CLI's command maps to a known preset. Anything left over falls through
+// to a local check for a rejected flag, then to "the CLI ran but did not echo
+// the magic token".
+//
+// The CLI test result carries the provider's `args` and its untruncated
+// stdout/stderr back to the caller, so a key configured inside args, or
+// printed by the CLI, reaches whatever displays the result. The http-api
+// branch reports the env var's name and whether it is set, not its value.
+//
+// The `build*PresetConfig` helpers each return a fresh object with its own
+// arrays, so a caller mutating the result cannot reach back into the shared
+// preset constants in `src/providers/presets/`.
+
 import { execa } from "execa";
 import { ConfigError } from "../utils/errors.js";
 import { ollamaPreset } from "../providers/presets/ollama.js";

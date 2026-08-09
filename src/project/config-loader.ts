@@ -1,3 +1,20 @@
+// Reading `.vibestrate/project.yml` into a validated `ProjectConfig`, plus the
+// project rules file that travels with it. This is the schema-validated read
+// path; the surgical edit path (`setup/config-update-service.ts`) parses the
+// same file as a YAML document so it can write back preserving comments.
+//
+// Whatever has to happen BEFORE validation belongs here, so that the schema on
+// this path is handed a canonical shape. The steps that do so run against the
+// raw parsed YAML below: carrying a renamed block forward (otherwise the old
+// key is dropped and the project silently reverts to defaults), and raising a
+// targeted message for a key that moved (otherwise the owner gets an opaque
+// validation error).
+//
+// A missing file, unparseable YAML and a schema rejection all raise a
+// `ConfigError`; the schema rejection lists each issue by path. A file that
+// exists but cannot be read surfaces the raw fs error instead. The rules file
+// is softer: absent, it falls back to a default string instead of failing.
+
 import path from "node:path";
 import YAML from "yaml";
 import { ConfigError } from "../utils/errors.js";
@@ -51,8 +68,7 @@ export async function loadConfig(projectRoot: string): Promise<LoadedConfig> {
   // Targeted migration error: persona-scoped `preferences` moved to top-level
   // `projectPolicies`. Catch a leftover key before the generic strict-schema
   // rejection so the owner gets an actionable message instead of an opaque
-  // "unknown key" (which would otherwise abort a run mid-flight, the run path has
-  // no loadConfig guard).
+  // "unknown key".
   const personas = (raw as { personas?: Record<string, unknown> } | null)?.personas;
   if (personas && typeof personas === "object") {
     for (const persona of Object.values(personas)) {

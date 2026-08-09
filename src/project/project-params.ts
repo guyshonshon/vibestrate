@@ -16,7 +16,7 @@ import type { FlowParam } from "../flows/schemas/flow-schema.js";
 // durable *values*; param resolution seeds them in (see prompt-params seeding +
 // orchestrator).
 //
-// Two load-bearing safety rules, both fixed in the adversarial design review:
+// Two load-bearing safety rules:
 //   1. Keys are **flow-id-namespaced by default** (`<flowId>.<param>`) so two
 //      flows that both declare `name` never silently cross-contaminate. A param
 //      may opt into a **project-global** bare key with `shared: true`.

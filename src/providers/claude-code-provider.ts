@@ -1,3 +1,19 @@
+// The `claude-code` provider adapter: turns a provider config plus one turn's
+// ProviderRunInput into a `claude` argv, spawns it through runArgvCommand, and
+// parses the CLI's output into that turn's metrics. provider-runner dispatches
+// here for providers of type "claude-code".
+//
+// Argv ORDER is load-bearing. Several claude flags are variadic
+// (`--disallowedTools <tools...>` and friends), so when the provider passes its
+// prompt as an argument (`config.input === "arg"`) the prompt is appended last,
+// behind a `--` separator. A new flag belongs above that branch. Pushed after
+// it, it lands past the separator and claude stops parsing it as an option - it
+// becomes a stray positional instead.
+//
+// An `execStrategy` rewrites only the spawned command/args/env (e.g. `docker
+// exec`); the returned `args` stay the claude argv, and `executedIn` records
+// where the turn actually ran.
+
 import { runArgvCommand } from "../core/execution/command-runner.js";
 import { ProviderError } from "../utils/errors.js";
 import type { ProviderRunInput, ProviderRunResult } from "./provider-types.js";
@@ -24,10 +40,11 @@ export async function runClaudeCodeProvider(
     writeCapable,
     hardenReadOnly: input.hardenReadOnly === true,
   });
-  // What was ACTUALLY applied (mirrors buildClaudeCodeArgs' own condition): the
-  // hardening lands only on a non-write turn, with the toggle on, and no explicit
-  // permissionMode override. This is the evidence the assurance posture reads -
-  // never config alone.
+  // What was ACTUALLY applied, mirroring buildClaudeCodeArgs' auto-hardening
+  // branch: it lands on a non-write turn, with the toggle on, and no explicit
+  // permissionMode override (an explicitly configured permissionMode emits the
+  // flag by its own path and is not counted here). This is the evidence the
+  // assurance posture reads, not config.
   const appliedReadOnlyHardening =
     !writeCapable &&
     input.hardenReadOnly === true &&

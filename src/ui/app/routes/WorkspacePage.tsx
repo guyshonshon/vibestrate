@@ -30,9 +30,10 @@ const RANGES: OverviewRange[] = ["24h", "7d", "30d", "90d"];
 
 /**
  * "All projects" - the cross-project navigator. Each project is an isolated
- * tenant (its own `vibe ui` server + scheduler); this page rolls up a read-only
- * glance across all of them and lets you OPEN any one in a new tab - starting it
- * if it's dormant. It never reaches into another project's state.
+ * tenant with its own `vibe ui` server and scheduler, so opening one here means
+ * opening that server's URL in a new tab, started first if it was dormant. The
+ * page also rolls up per-project counters for the selected range, registers a
+ * project root, and shuts a project down.
  */
 export function WorkspacePage() {
   const [range, setRange] = useState<OverviewRange>("7d");
@@ -306,9 +307,9 @@ function ProjectCard({
         ? `${project.activeRuns} live`
         : "no active runs";
 
-  // Keep the outcome quartet (runs / merged / failed / success) + the spend KPI.
-  // HeroCard caps at 5 tiles; `active` folds into the status sub-line above and
-  // `needs-test` is dropped (secondary operational nag, see report).
+  // Keep the outcome tiles (runs / merged / failed / success) + the spend KPI.
+  // `active` folds into the status sub-line above and `needs-test` is dropped:
+  // a secondary operational nag, not an outcome.
   const metrics: HeroMetric[] = [
     { value: w.runs.toLocaleString(), label: `runs/${range}` },
     {

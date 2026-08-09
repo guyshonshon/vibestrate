@@ -1,3 +1,27 @@
+// The retry / backoff / fallback wrapper around a single provider invocation,
+// so a run rides out a rate limit, a usage-limit window or a transient 5xx
+// instead of losing the step to it. The stateful loop lives here; the pure
+// decisions it consults - failure classification, backoff math, Retry-After
+// parsing, auto-fallback candidate selection - come from provider-resilience.ts.
+//
+// In source order: runProviderResilient (the loop), tryProviderFallback (one
+// attempt on an alternate Profile), interruptibleSleep, and lowestEffort (a
+// provider-capability lookup called from the orchestrator).
+//
+// Abort is not a failure class of its own. Killing the provider CLI does not
+// throw: the runner returns exitCode -1 with an `[aborted]` stderr marker, so
+// the kill goes through classification like any other failure, matches no
+// built-in pattern, lands on `hard`, and returns without a retry or a fallback
+// - the orchestrator re-checks the signal after the call returns and turns it
+// into a run abort there. An abort that does surface as a thrown error is
+// rethrown as-is from the catch. Backoff waits go through interruptibleSleep,
+// which rejects the instant the signal fires, so a wait never sits on a user's
+// abort for the length of the backoff.
+//
+// With `resilience` absent or disabled `runProviderResilient` is a straight
+// pass-through to runProvider, so a project that configures none of this
+// behaves as if the loop were not here.
+
 import { randomUUID } from "node:crypto";
 import {
   runProvider,

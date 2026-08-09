@@ -1,3 +1,27 @@
+// Per-run store for approval requests - the file behind
+// `.vibestrate/runs/<id>/approvals.json`. The run's approval gate waits on it
+// while the HTTP routes, the CLI and the terminal shell decide against it, so
+// the writers are separate PROCESSES, not just separate call sites.
+//
+// That is why create, resolve (approve / reject / request-changes) and the
+// timeout expiry each do their whole read-modify-write inside `withFileMutex`
+// on `<approvals.json>.lock`. Two deciders would otherwise both read `pending`,
+// both pass the guard, and both write - a last-writer-wins that silently drops
+// one decision's note or guidance. A new mutation added without that lock
+// reintroduces the race. Resolution is guarded as well: a request that is no
+// longer pending throws instead of being overwritten.
+//
+// Two properties to know before trusting a read:
+//   - `readAll` swallows a parse failure and returns an empty list, so an
+//     unreadable approvals.json reads as "no approvals" - and the next `create`
+//     writes a one-entry array over it.
+//   - `writeAll` overwrites in place (no temp-then-rename) and the read paths
+//     take no lock, so a reader can land on a partial file. That surfaces as
+//     the empty list above rather than as an error.
+//
+// `waitForResolution` polls rather than watching, and checks the AbortSignal
+// between polls; it is the call that blocks a run while a human decides.
+
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";

@@ -1,3 +1,40 @@
+// Read-only git queries over a worktree: working-tree status, commit history,
+// branch topology, each branch's standing vs main, and single-commit detail
+// (getGitStatus / getGitHistory / getGitGraph / getBranchesOverview /
+// getCommitDetail). Every git invocation here is a read - log, show, status,
+// diff, rev-parse, rev-list, for-each-ref, branch listing. Every call this
+// module issues itself goes through the one `git()` helper: reject:false so a
+// nonzero exit is data, a 4s per-call timeout, and stdin ignored so git can
+// never block on a prompt. The git-root and current-branch lookups come from
+// src/git/git.ts and do not carry those options.
+//
+// Absence is a value, not an exception. A path that does not exist, or a
+// directory with no git root, returns the query's shaped "unavailable" result
+// (`available: false`). Callers render that state rather than catching.
+// getCommitDetail returns null instead, which the commit route maps to a 404.
+//
+// Argument safety: getCommitDetail takes a hash only if it matches SAFE_HASH,
+// and branch names - both the configured `mainBranch` and the names git itself
+// reports - are tested against SAFE_REF before they are used as refs in argv,
+// so a name can never arrive as a `-flag`. The one earlier use of `mainBranch`
+// (`rev-parse --verify refs/heads/<main>`) is prefixed, so a leading dash
+// cannot become a flag there either. `baseRef` takes the other route: it is
+// proven by `git rev-parse --verify` and dropped if that fails.
+//
+// Parsing: COMMIT_FIELDS is the single `--pretty` field list shared by the
+// history, graph and detail queries, so the producers and parseCommitRecord
+// cannot drift apart. Records are split on the ASCII unit (\x1f) and record
+// (\x1e) separators. Note that getGitHistory and getGitGraph hold those
+// separators as the raw control bytes typed into the source, which render as
+// empty strings in most editors - an apparently empty literal there is load-
+// bearing, do not tidy it away. getCommitDetail spells them as escapes.
+//
+// The paged queries clamp their own result size (limit / maxBranches /
+// maxNodes). getGitStatus.changedFiles and getCommitDetail.files are
+// unbounded - they are as large as the working tree or the commit.
+// getBranchesOverview also runs its per-branch git calls in bounded-size
+// chunks, because that path costs two git calls per branch.
+
 import { execa } from "execa";
 import { pathExists } from "../../utils/fs.js";
 import { findGitRoot, getCurrentBranch } from "../../git/git.js";

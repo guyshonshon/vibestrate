@@ -1,4 +1,23 @@
 #!/usr/bin/env node
+// The CLI entry point: this file bundles to `dist/index.js`, which is what both
+// the `vibe` and `vibestrate` bins point at.
+//
+// In source order: `buildVibestrateProgram()` assembles the whole
+// commander tree and returns it without parsing argv, and is meant to stay
+// side-effect-free: the docs metadata generator, the interactive shell's
+// completion spec, and the CLI tests all build the program purely to
+// introspect it. Below it, the `isMain` block is the only code here that parses
+// argv, and it runs only when this module is the process entry (compared by
+// realpath, so a symlinked global bin still matches).
+//
+// Most command groups are built by a `build*Command()` in ./commands/* and
+// added whole. The ones declared inline are the small ones plus `run`, which is
+// long because of its flag surface and the hand-rolled option checks its action
+// runs first; those print a message and exit 2 before any run work starts.
+//
+// Running `vibe` with zero extra args opens the interactive shell instead of
+// printing help; anything else, including `--help` and `--version`, goes
+// through commander.
 import { Command, InvalidArgumentError } from "commander";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";

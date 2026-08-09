@@ -1,3 +1,27 @@
+// The local scheduler loop: it drains the run queue, launching at most one task
+// per tick and holding no more than `maxConcurrentRuns` in flight, and keeps
+// the on-disk scheduler state in step. Layout, in source order: child-process
+// termination, the argv a task launches with (`schedulerRunArgs`), the default
+// spawn-based runner, then `runSchedulerLoop` with its `heartbeat` /
+// `sleepWithHeartbeat` / `tick` closures.
+//
+// A launch SHELLS OUT to the CLI rather than calling the orchestrator
+// in-process, so a scheduled task takes the same path as a hand-typed one.
+// `runTask` is injectable, which is how a test drives the loop without a spawn.
+//
+// Three things a change here has to respect:
+//   - The RUN owns the task's final status. `tick` mirrors an exit code onto
+//     the task only when the task is still "running" afterwards AND no live run
+//     holds its task lock; otherwise a lock-rejected duplicate child would
+//     overwrite the status of the run that actually owns the task.
+//   - `heartbeat` re-writes the state file (throttled to once a second) purely
+//     so its `lastUpdatedAt` keeps advancing; scheduler-liveness derives "is a
+//     scheduler alive" from that timestamp, so a wait inside the loop should go
+//     through `sleepWithHeartbeat` rather than a bare `setTimeout`.
+//   - A blocked entry (dependencies unmet, source quota exhausted) stays in the
+//     queue and is reconsidered next tick; the picker skips past it. That is
+//     what lets a later-queued but ready task start first.
+
 import { spawn, type ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";

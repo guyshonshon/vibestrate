@@ -31,19 +31,22 @@ type Props = {
   onChange: () => void;
 };
 
-// Intent-tinted ghost recipe (primitives-contract §4), the same shape used
-// for the Approve/Reject decision pair on Mission Control
-// (MissionControlPage.tsx:349-351) - a dense, borderless tint rather than the
-// framed `design/Button`, since Button has no per-status (affirm/warn/fail)
-// color variant.
+// Intent-tinted ghost recipe: a dense, borderless tint rather than the framed
+// `design/Button`, since Button has no per-status (affirm/warn/fail) color
+// variant. Same shape as the Approve/Reject decision pair on Mission Control.
 const INTENT_BTN =
   "inline-flex items-center gap-1 rounded-[10px] px-1.5 py-0.5 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
 /**
- * Panel for review passes (suggestion bundles). Lives at the bottom of the
- * Suggestions inspector tab. Shows every bundle with its status, member
- * suggestions, preflight findings, and the lifecycle actions: approve /
- * apply / validate / revert.
+ * Panel for review passes (suggestion bundles). Mounted by
+ * `SuggestionsPanel`, which nothing currently imports - both are kept for a
+ * future review-flow rewire, not dead code to sweep.
+ *
+ * Shows every bundle with its status, member suggestions, preflight findings,
+ * and the bundle actions wired here: preflight, approve, reject, apply, smart
+ * apply, validate, and revert, plus the validation-profile selects. What an
+ * apply actually does to the worktree is decided server side - this panel
+ * posts the action and renders the result it gets back.
  */
 export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
   const { confirm } = useConfirm();

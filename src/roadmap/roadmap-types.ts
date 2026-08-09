@@ -1,3 +1,24 @@
+// The persisted shape of the roadmap: zod schemas for roadmap items, task
+// cards, the checklist steps inside a card, and comments, plus the column
+// tables and `coarseColumn()`, the canonical status-to-column mapping.
+// `roadmap-store.ts` parses through these schemas when it READS and validates
+// through them when it WRITES, so this is a file format, not only a type
+// declaration - a change here changes what is already on disk under
+// `.vibestrate/roadmap/`.
+//
+// Adding a field: give it a `.default()` (or `.prefault({})` for a nested
+// object). A file written before the field existed has no such key, and a
+// required field turns that file into a parse error at read time. Renaming or
+// regrouping a field instead needs a read-time rewrite - task files pass
+// through `migrate-task.ts` before `taskSchema.parse` for exactly that.
+//
+// In source order: ids, enums, records (including the supervised-run group),
+// then the board status list, the coarse columns with `coarseColumn()`, and
+// the fine-grained ROADMAP_COLUMNS last. The dashboard board imports none of
+// them: `src/ui/components/board/dnd.ts` keeps a hand-written mirror of
+// `coarseColumn()` and BoardColumn.tsx its own column list, so a change to the
+// mapping has to be made in both places.
+
 import { z } from "zod";
 import { contextSourceSchema } from "../core/context/context-source-schema.js";
 

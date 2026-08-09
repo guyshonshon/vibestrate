@@ -1,3 +1,30 @@
+// HTTP routes for the Flow catalog: list / get / export, create / import /
+// patch / fork / delete of project-local flows, resolve, seat-coverage of a
+// flow against a crew and flow suggestion for a task, the default-flow setting,
+// and the community hub (browse, install, publish).
+//
+// The handlers are deliberately thin. A handler that takes a body parses it
+// with a zod schema before touching anything; the hub browse route forwards its
+// query string as-is, and the id-only routes (get, export, fork, delete) carry
+// no body. The work itself lives in flows/runtime/*, flows/hub/*,
+// flows/catalog/*, and setup/config-update-service for the default-flow
+// setting.
+//
+// Those services do not share one error convention: some return an `ok: false`
+// result to be turned into an HttpError, some throw. Check the callee before
+// deciding whether a new handler needs a try/catch. An unknown flow id becomes
+// a 404 through the `flowOr404` helper.
+//
+// Worth knowing before extending this:
+//   - Import takes YAML text or a URL, not a local file path (the body schema
+//     requires exactly one of the two), so an HTTP caller cannot steer the
+//     server into reading arbitrary files on disk.
+//   - Publish sends project content outward and is fail-closed:
+//     VIBESTRATE_API_TOKEN must be set on the `vibe ui` process (a tokenless
+//     loopback API is reachable by any local process), VIBESTRATE_HUB_TOKEN
+//     must resolve, and a secret-shape preflight over the exported YAML
+//     refuses the upload on a hit.
+
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import { loadConfig } from "../../project/config-loader.js";

@@ -1,3 +1,19 @@
+// Where "the project" is, and what tooling it uses.
+//
+// `detectProject` is the definition of project root the CLI commands and the
+// setup surfaces take theirs from: the git root when there is one, the cwd
+// otherwise. So a command run from a subdirectory still operates on the whole
+// repo, and a non-repo directory still gets a usable root (with a note saying
+// `git init` first).
+//
+// Everything below it is inference from files on disk - lockfile to package
+// manager, config file to project type, package.json scripts to suggested
+// validation commands. It is written to degrade rather than fail: no git and
+// an absent or malformed package.json each turn into a human-readable line in
+// `notes` instead of an error, as does an unrecognized lockfile when there is
+// a package.json to interpret. The suggested
+// commands are a starting point the user edits, not a contract.
+
 import path from "node:path";
 import fs from "node:fs/promises";
 import { findGitRoot } from "../git/git.js";

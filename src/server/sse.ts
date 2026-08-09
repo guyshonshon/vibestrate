@@ -1,3 +1,30 @@
+// Server-sent-events plumbing for the dashboard. `createSseClient` is the
+// shared transport (event-stream headers, `event:`/`data:` framing, a close
+// that only fires once); the other SSE routes build on it too.
+//
+// The two tailers here are the same machine over two different NDJSON files -
+// a run's event log, and one provider's raw stdout/stderr stream. Both send
+// everything already in the file, then re-read from the last byte offset on
+// each `fs.watch` notification, forwarding a parsed line as `event` (run log)
+// or `chunk` (provider stream) and an unparseable one as `raw` in both. A line
+// split across two reads therefore arrives as two `raw` events, and a file that
+// shrank resets the offset to 0 and replays from the start - nothing here
+// dedupes, so a client must tolerate a repeat.
+//
+// Things that bite:
+//   - These write to `reply.raw` directly, so the call sites hijack the reply
+//     first. A hijacked reply can no longer carry an error response, which is
+//     why the route validates before calling in.
+//   - Neither function checks `runId` or `promptName`: the route matches them
+//     against a pattern beforehand, and the stream-path helper re-guards
+//     containment when it resolves the file.
+//   - `heartbeat` and `watcher` are `let`-declared above `cleanup` on purpose.
+//     A client that disconnects before they are assigned runs `cleanup`, and
+//     `const` bindings would put that in the temporal dead zone.
+//   - When `fs.watch` throws (the file does not exist yet) the fallback is a
+//     1s poll whose interval is cleared by its own request-close listener,
+//     not by `cleanup`.
+
 import fs from "node:fs";
 import { promises as fsp } from "node:fs";
 import { runEventsPath } from "../utils/paths.js";

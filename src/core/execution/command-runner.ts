@@ -1,3 +1,31 @@
+// Child-process execution primitives: `runShellCommand` (one command string
+// through a shell) and `runArgvCommand` (explicit argv, no shell, with live
+// output and cancellation). Both resolve a CommandResult instead of throwing -
+// execa runs with reject:false, so a nonzero exit is data rather than a
+// rejected promise.
+//
+// Both build the child env through `childEnv` AND pass extendEnv:false. Those
+// two go together: childEnv already carries a filtered copy of process.env, so
+// letting execa extend from the raw process.env would put back exactly the
+// vars childEnv exists to strip. Changing one without the other silently
+// re-opens that hole.
+//
+// Cancellation in runArgvCommand deliberately avoids execa's own `timeout`.
+// execa signals the direct child only, and a provider CLI that spawned its own
+// subagents would leave them orphaned and still spending. Instead the
+// `signal` abort and the `timeoutMs` deadline both route into
+// terminateSubprocess, which signals the whole process group (SIGTERM on
+// POSIX, `taskkill /T /F` on Windows) and arms a 3s SIGKILL follow-up to that
+// same group. This is why the subprocess is spawned with the `detached` flag
+// from detachedSpawnOptions() - the POSIX group kill needs its own process
+// group. runShellCommand does use execa's `timeout` and has no tree-kill path.
+//
+// A run that ended that way says so rather than looking like a clean finish:
+// exitCode -1, plus a trailing `[aborted: ...]` / `[timed out: ...]` marker
+// appended to stderr and pushed to onChunk when a live tailer is attached, so
+// a log that stops mid-stream explains itself. `onChunk` is additive - the
+// full stdout and stderr are still buffered onto the result either way.
+
 import { execa } from "execa";
 import { nowIso, durationMs } from "../../utils/time.js";
 import {

@@ -1,3 +1,23 @@
+// The `vibe tasks` command tree: the CLI surface for the cards on the local
+// board (including create, inspect, comment, mark ready or cancelled, archive,
+// delete), the ranked `suggest` list, the `enhance` assist that proposes a
+// checklist, `report` which writes the card's Markdown report, the nested
+// `checklist` group for the ordered breakdown inside a card, and the entry
+// points that start work on one.
+//
+// In source order: the cmd* handlers, then buildTasksCommand() which wires
+// them to commander.
+//
+// Starting work takes several shapes, and they are not interchangeable. A
+// supervised task (runMode "supervised") sequences its steps through the
+// conductor, so `run` delegates in-process to cmdSequence in saga.ts - the
+// same handler behind the `sequence` subcommand declared here, next to its
+// status/pause/resume siblings. A plain task and `pickup` instead re-spawn
+// this CLI as a child process (`vibe run ... --task <id>`, stdio inherited)
+// so the orchestrator owns the run and the user watches it live. `queue`
+// starts nothing itself: it enqueues the task and leaves the scheduler to
+// pick it up.
+
 import { Command } from "commander";
 import path from "node:path";
 import { spawn } from "node:child_process";

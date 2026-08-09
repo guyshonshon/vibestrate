@@ -1,3 +1,18 @@
+// Edits a project's `project.yml`. Every change is made on the YAML DOCUMENT,
+// not on a parsed plain object: `readDocument` keeps the user's comments, key
+// order and formatting, and `setIn`/`deleteIn` touch one node while the rest
+// of the file is preserved verbatim. Parsing to JS and re-serializing would
+// silently throw all of that away.
+//
+// `writeDocument` is the write funnel: it re-validates the WHOLE document
+// against projectConfigSchema and throws instead of writing when that fails.
+// It holds the module's only writeTextAtomic call, so a new helper should
+// route through it rather than writing the file itself.
+//
+// getConfigValue answers from what is written on disk first and otherwise from
+// the schema's resolved defaults, so a merely-unwritten key reports its
+// default rather than "not found".
+
 import path from "node:path";
 import YAML from "yaml";
 import { readText, writeTextAtomic, pathExists } from "../utils/fs.js";

@@ -1,3 +1,15 @@
+// The `vibe spec-up` command surface. Mostly presentation: flag parsing,
+// output, and the "here is your next command" hints. The state changes are
+// delegated - to spec-up-chain.ts (start/answer/approve/build/roadmap),
+// spec-up-assist.ts (simplify/suggest) and spec-up-artifact-edit.ts (edit).
+// What this file does own is the $EDITOR temp-file handoff for `edit`
+// (`editViaEditor` below).
+//
+// The chain keeps no CLI-side state, so the sequence is driven by copy-paste
+// rather than by a session: `start` prints a run id for `questions`/`answer`,
+// `answer` prints the next round's or the spec run's id for `approve`/`build`,
+// `roadmap` prints a proposal id for `vibe roadmap accept`.
+
 import { Command } from "commander";
 import { spawnSync } from "node:child_process";
 import os from "node:os";

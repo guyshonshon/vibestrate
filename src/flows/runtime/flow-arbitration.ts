@@ -1,3 +1,32 @@
+// The arbitration ledger for a Flow run: the durable record of what a reviewer
+// found, what the builder answered, how a second review resolved it, and the
+// decision summary on top. Persisted by `FlowArbitrationStore` as
+// `arbitration.json` in the run directory, unless a caller overrides the path.
+//
+// In source order: the record/ledger schemas, the pure updaters, the canonical
+// views handed back to the next step, the parser for provider-emitted contract
+// JSON, the prompt-side contract notes, the disagreement/accepted derivations,
+// the Markdown renderers, then the private helpers and `FlowArbitrationStore`.
+//
+// What a change here must respect:
+//  - The updaters are PURE and return a new ledger. They route through
+//    `validateLedger`, which re-parses the whole record against the strict
+//    schema and stamps `updatedAt`, so a bad partial update fails at the seam
+//    that made it. Drop the returned value and the record is simply lost.
+//  - The arbitration collections UPSERT by id rather than accumulate: a
+//    finding replaces the entry with the same `finding.id` (keeping any
+//    `suggestionId` already attached to it), responses and resolutions replace
+//    by `findingId`, and a decision replaces wholesale. Those ids come from
+//    the provider's own JSON, so a re-run only overwrites its earlier output
+//    for the ids it re-emits. `parseIssues` appends instead, skipping only an
+//    exact repeat of the same step/token/path/message, and that skip returns
+//    the ledger untouched, without re-validating or restamping `updatedAt`.
+//  - `parseFlowJsonContract` is lenient about EXTRACTION and strict about
+//    SHAPE. It will look inside output markers, a ```json fence, the whole
+//    text, and one level of wrapper key, because models wrap their output in
+//    all of those. It returns ok only for a payload the zod schema accepts
+//    and whose `stepId` matches the step being run.
+
 import { z } from "zod";
 import { mdCell } from "../../utils/markdown-cell.js";
 import { pathExists } from "../../utils/fs.js";

@@ -1,3 +1,28 @@
+// The Flow Builder route: edit one flow definition (label, steps, adaptive
+// loop) and save it to .vibestrate/flows/<id>/flow.yml. Built-in flows load
+// here read-only: the save, delete, and add/remove/reorder handlers return
+// early unless `selected.source.kind === "project"`, and the way to edit a
+// built-in is "Fork to project" first.
+//
+// The draft model is the part to understand before changing anything:
+//  - Field edits on a step accumulate in `draftSteps`, keyed by step id, and
+//    save as the `steps` patch (only the changed fields, per step).
+//  - The moment a step is added, removed, or reordered we give up on that patch
+//    model: `draftStepList` captures the whole list and the save switches to
+//    `replaceSteps`, folding any per-step field drafts back in by step id
+//    (which is why a reorder keeps each step's in-progress edits).
+//  - `pendingPatch` derives whichever of those two applies. It is also the
+//    dirty flag. A field-only draft that diffs to nothing reads as clean; once
+//    `draftStepList` exists the patch always carries `replaceSteps`, so a
+//    structural edit that nets back to the saved list still reads dirty.
+//
+// Undo/redo keeps its snapshot stack in a ref (`histRef`); the `histVer` state
+// exists only to re-render the toolbar when the pointer moves, and
+// `applyingHist` keeps an undo/redo apply from being recorded as a new entry.
+//
+// The reset effect keys on `selected?.id`, so anything that replaces a flow's
+// definition without changing its id (the raw-YAML save does exactly that) has
+// to resync the drafts by hand or the form view shows stale fields.
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import {
   Book,
@@ -278,8 +303,7 @@ export function FlowBuilderPage({
     if (draftLabel !== selected.label) patch.label = draftLabel;
     if (draftStepList) {
       // Structural changes were made - ship the entire list (folding
-      // any per-step field drafts into the right index) via
-      // `replaceSteps`.
+      // any per-step field drafts in by step id) via `replaceSteps`.
       patch.replaceSteps = draftStepList.map((s) => {
         const draft = draftSteps[s.id];
         return applyDraftToFullStep(s, draft);

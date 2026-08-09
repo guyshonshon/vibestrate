@@ -1,3 +1,32 @@
+/**
+ * The filesystem layer under the roadmap: the roadmap item list, one JSON
+ * file per task, one comments file per task, and raw proposal markdown, all
+ * inside the project's `.vibestrate/` roadmap dirs (paths come from
+ * utils/paths). This class owns reading, schema-validating and writing
+ * them.
+ *
+ * What to understand before editing:
+ *   - Reads of the roadmap file are split and the choice matters.
+ *     `readRoadmap` throws RoadmapCorruptError so a display path names the
+ *     damage instead of showing an empty board; `readRoadmapForWrite`
+ *     renames the unreadable file aside and starts fresh so a write path
+ *     can still make progress. The hazard both are shaped against is a read
+ *     that returns an empty roadmap while leaving the file in place - a
+ *     write path storing that result back erases every item.
+ *   - Every id used to build a path is validated by `safeIdSchema`, either
+ *     directly or through taskSchema, so a hostile id cannot walk out of
+ *     the roadmap dirs.
+ *   - `upsertRoadmapItem` wraps its read-modify-write in the file mutex
+ *     because separate processes share the same roadmap.json.
+ *     `writeRoadmap` on its own does not lock, so any new read-modify-write
+ *     on that file has to take the same lock around both halves.
+ *   - `listComments` returns an empty list when the comments file does not
+ *     parse, and does not preserve it. A caller that reads, appends and then
+ *     calls `writeComments` replaces the unreadable file with its one new
+ *     entry, so the same empty-read-then-write-back hazard described above
+ *     for roadmap.json is still open for comments.
+ */
+
 import path from "node:path";
 import fs from "node:fs/promises";
 import { ensureDir, pathExists, readText, writeText } from "../utils/fs.js";

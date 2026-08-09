@@ -1,3 +1,27 @@
+/**
+ * The notifications drawer: the inbox list, its filter tabs, and the inline
+ * actions on a card (approve or reject an approval, retry a failed run,
+ * preview a scheduler item, open the run or task, mark read, dismiss).
+ *
+ * About its shape:
+ *  - It is rendered whether or not it is open. `open` drives the
+ *    transform/opacity classes and aria-hidden, plus the Escape-to-close
+ *    listener and the body scroll lock; it does not gate mounting or the
+ *    loader effect, so panel and backdrop stay mounted while closed and the
+ *    loader - a 15 s poll plus the event stream - keeps running for as long
+ *    as this component is mounted.
+ *  - It renders into a portal at <body>. A `position: fixed` panel is clamped
+ *    to any ancestor carrying a filter, transform or backdrop-filter, which
+ *    collapses the drawer silently, so it must not live inside page chrome.
+ *
+ * A stream event only reloads the list when its type is in
+ * REFRESH_EVENT_TYPES; a new server-side notification trigger has to be added
+ * there or the drawer will only catch it on the next poll.
+ *
+ * Mark-read, mark-all and dismiss are optimistic - local state moves first and
+ * a failed request is swallowed for the next poll to resync. Approve, reject
+ * and retry surface their error instead.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -379,10 +403,9 @@ export function NotificationsSidebar({
     onClose();
   };
 
-  // Render to a portal at <body> so neither the TopBar's `backdrop-filter`
-  // nor any other ancestor stacking context can turn this `position: fixed`
-  // panel into a containing-block descendant (which silently clamps the
-  // drawer to the TopBar's 56-px height and hides every card).
+  // Render to a portal at <body>: an ancestor carrying a filter, transform or
+  // backdrop-filter becomes the containing block for this `position: fixed`
+  // panel, which silently clamps the drawer to that ancestor's box.
   if (typeof document === "undefined") return null;
   return createPortal(
     <>

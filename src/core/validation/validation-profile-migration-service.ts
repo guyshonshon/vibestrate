@@ -1,3 +1,34 @@
+/**
+ * Retargeting stored validation-profile references. When a profile is
+ * renamed or retired, the `validationProfile` field already written into
+ * past runs' suggestions.json / suggestion-bundles.json still names the old
+ * one. This module finds those records, rewrites them, and leaves an audit
+ * record under `.vibestrate/validation-profile-migrations/<id>.json`.
+ *
+ * In source order: the record and audit types plus the typed error, the
+ * scope/scan helpers, previewMigration, applyMigration, listMigrations, and
+ * the edit-distance "did you mean" helpers that doctor and the validation
+ * CLI use on an unknown profile name.
+ *
+ * Worth knowing before changing it:
+ *   - applyMigration takes no preview object. It re-runs previewMigration
+ *     itself, so the set of records rewritten is recomputed at apply time
+ *     against the config passed in.
+ *   - Under each scanned run only suggestions.json and suggestion-bundles
+ *     .json are opened, and only the `validationProfile` field of matched
+ *     records changes: the file is re-serialized from the parsed object, so
+ *     fields this module knows nothing about survive.
+ *   - `toProfile === null` means "clear back to the implicit default".
+ *     "default" as a literal name is rejected on both sides.
+ *   - The audit kinds written here are migrate_references and
+ *     clear_references. A rename_profile audit comes from
+ *     validation-profile-rename-service, which calls applyMigration and
+ *     then overwrites the audit file it produced with a richer record at
+ *     the same id.
+ *   - A file that will not parse is collected into malformedFiles and left
+ *     untouched rather than failing the scan.
+ */
+
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import {

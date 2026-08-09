@@ -1,3 +1,27 @@
+/**
+ * One aggregated snapshot of the project Vibestrate supervises - config,
+ * git head, providers/profiles/crews/skills, policy flags and a handful of
+ * counts - so a caller gets the whole picture in one await instead of
+ * reaching into each subsystem itself. Read by the dashboard's project
+ * metadata endpoint and by the consult context builder.
+ *
+ * Every subsystem read is guarded so one failure degrades to null/empty
+ * instead of losing the snapshot: no git, no `.vibestrate/`, an unloadable
+ * project.yml, or a run-state file that does not parse all still produce a
+ * result.
+ *
+ * Read `counts` carefully - three of its fields are scoped to the
+ * recent-runs window, not the full history. listRecentRuns is called with a
+ * limit of 10, so `runs` and `activeRuns` describe those runs only, and
+ * `pendingApprovals` sums approvals.json across the same ones.
+ * `runningTaskIds`, `queueLength` and the roadmap counts read their full
+ * sources.
+ *
+ * `isActiveStatus` is defined by exclusion: any status that is not
+ * merge_ready / blocked / failed / aborted counts as active. A new terminal
+ * status has to be listed there or it gets reported as still running.
+ */
+
 import path from "node:path";
 import { execa } from "execa";
 import {

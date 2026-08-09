@@ -1,3 +1,33 @@
+// The root Ink component of `vibe shell` - the terminal dashboard. It owns the
+// whole screen: one reducer (`reduceShellUi`) holds the UI state, a set of
+// data hooks (snapshot, tasks, config, approvals, skills, ...) supply the
+// content, and one `useInput` handler here covers the first-run gate, the modal
+// layers, the global keys and the Runs page. A page can also register its own
+// handler gated by an `active` prop (RoadmapPage does), in which case that page
+// and this handler both see the key.
+//
+// The keystroke handler is a PRECEDENCE CHAIN and the order is the design. In
+// source order: the first-run gate swallows everything but `i`/Enter (run init)
+// and `q`; then the modal layers - help, docs, crew/flow picker, prompt,
+// palette; then the branches where a page owns its own input (Runs event
+// filter, Flows hub search, the Roadmap form / delete-confirm), which return
+// early so a typed `q` is not read as quit; then the abort confirmation; then
+// the global keys; and last the per-page keys, where only the Runs branch is
+// handled here. Adding a key means placing it in that chain, not appending a
+// case at the end.
+// Some global letters are deliberately gated off the page that already binds
+// them (`c` and `d` off Roadmap, `f` off Doctor) so nothing double-handles.
+//
+// Rendering is a column of Panels: header, then context + prompt + footer, then
+// a fixed-height completion strip while the prompt is focused, then the body -
+// the active page beside the command-output pane, or beside the ActionsPanel
+// when no command has run, or full-width output when expanded with `O` - with
+// the picker/palette/help/docs overlays after it. When the config fails to load
+// the component returns early and renders the header plus InitView; a config
+// that simply has not arrived yet still takes the normal path. The body picks a
+// page through an explicit ternary chain; `renderPage` is its tail, and a
+// PageId it does not name falls through to PlaceholderPage.
+
 import React, { useEffect, useMemo, useReducer, useState } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import { Footer } from "./components/Footer.js";

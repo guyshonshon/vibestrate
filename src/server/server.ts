@@ -1,3 +1,29 @@
+// The dashboard's HTTP surface: builds the Fastify app, sets the security
+// posture, mounts the route modules from `src/server/routes/`, and serves the
+// built UI bundle. `startServer` is what `vibe ui` and `vibe run --ui` start,
+// and what the route tests boot.
+//
+// Source order: options and the `/api/v1` URL rewrite -> the UI-bundle lookup
+// -> `startServer`, inside which the security hooks, the error handler, a few
+// inline routes (health, self-shutdown, favicon), the route registrations, the
+// `/api/*` catch-all that keeps unmatched API paths inside the bearer gate, the
+// static / SPA handlers, then the optional managed scheduler sit in that order.
+//
+// The posture the route modules assume, and that must not be weakened here:
+//   - Loopback by default. Binding a non-loopback host without an API token
+//     throws before `listen` rather than serving an unauthenticated API.
+//   - The guards are app-level `onRequest` hooks, not per-route code: the Host
+//     rebinding check (loopback binds only - a non-loopback bind cannot
+//     enumerate its own reachable names and already requires the bearer token),
+//     the Origin allow-list, the Sec-Fetch-Site check on mutating methods, and
+//     the bearer gate when a token is configured. A handler in `routes/` does
+//     not repeat any of them.
+//   - The bearer gate scopes itself by the route pattern the router RESOLVED,
+//     so a new `/api/...` route added below is covered without touching it.
+//
+// Handlers here stay thin on purpose. This module wires and guards; behaviour
+// belongs in the route modules.
+
 import path from "node:path";
 import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";

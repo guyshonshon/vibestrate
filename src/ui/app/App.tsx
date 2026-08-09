@@ -1,3 +1,23 @@
+// Root of the dashboard single-page app: it owns the current route, the
+// global keyboard shortcuts, and the single place every page is mounted.
+//
+// In source order: the hash <-> Route helpers re-exported from ./route.ts,
+// then `navigate` at module scope (so it is a stable callback identity),
+// then the App component - route state and window effects first, the nested
+// ternary that picks a page from `route.kind` next, and last the overlays
+// mounted outside the ErrorBoundary.
+//
+// What to know before editing:
+//   - The `serverAlive` early return sits below every hook. New hooks go
+//     above it, or hook order changes between renders.
+//   - The page chain has no default arm: its closing `else` IS the proposal
+//     detail page. A new Route kind needs its own branch.
+//   - Older git / git-tree / merge route kinds are folded onto SourcePage
+//     here, so existing hash links keep resolving.
+//   - `navigate` re-dispatches `hashchange` itself when the target hash
+//     equals the current one, since assigning an unchanged hash fires no
+//     event and the page would not react.
+
 import { ServerOfflineScreen, useServerAlive } from "./ServerOfflineScreen.js";
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { AppShell } from "../components/layout/AppShell.js";

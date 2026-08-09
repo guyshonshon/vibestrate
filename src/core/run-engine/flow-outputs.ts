@@ -1,3 +1,27 @@
+// The output side of a Flow step: what a finished turn becomes. Raw model text
+// in, and out come the named outputs the next step reads, the artifacts on
+// disk, the run events, and the updated arbitration ledger.
+//
+// In source order: the step's prompt-side notes, the context-packet writer,
+// the honest turn-outcome check, the plain output registrars, the arbitration
+// recorder, the builder-handoff recorder, the accepted-finding bridge into
+// review suggestions, and the decision-summary artifact writer.
+//
+// Two things to know before changing this:
+//  - `outputs` is a Map keyed by output token that is MUTATED in place and
+//    threaded through every step of a run (the orchestrator creates one per
+//    run). `registerFlowRoleOutputs` stores the raw turn text under each token
+//    the step declares - `diff` excepted, which snapshots the worktree
+//    instead. The contract-aware recorders below then overwrite those entries
+//    with canonical JSON when parsing succeeds, which is why they only make
+//    sense after it, and why a parse failure deliberately leaves the raw text
+//    standing rather than emptying the token.
+//  - `feedFlowAcceptedFindings` has real side effects outside the ledger: it
+//    creates a review suggestion per accepted finding and groups them into a
+//    review pass. Its idempotency lives IN the ledger (`suggestionId` per
+//    finding, `acceptedReviewPassId` once), so the returned ledger has to be
+//    kept and written or the next call duplicates the lot.
+
 import path from "node:path";
 import type { ArtifactStore } from "../stores/artifact-store.js";
 import type { EventLog } from "../stores/event-log.js";

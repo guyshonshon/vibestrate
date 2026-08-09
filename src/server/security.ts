@@ -1,3 +1,22 @@
+// HTTP security primitives for the dashboard server: predicates over the
+// strings a request arrives with (bind host, `Host`, `Authorization`) and the
+// assertions routes use to refuse a bad run id or path before it reaches the
+// filesystem.
+//
+// Nothing here does I/O or knows about fastify. The enforcement lives outside
+// this module: `server.ts` refuses a non-loopback bind without a token before
+// it starts, its onRequest hooks apply the host / origin / bearer predicates,
+// and route handlers call the assertions directly. This module only answers
+// the questions, which is what keeps each rule testable on its own. The
+// reasoning behind each predicate is on the function, because the reason is
+// the whole content of these one-liners.
+//
+// `HttpError` lives here rather than with the generic errors because it is the
+// currency of this boundary: `server.ts`'s error handler maps a thrown
+// HttpError to its `statusCode` and a typed JSON body, so throwing one is how
+// nearly every route returns a 4xx (a handful set `reply.code(4xx)` directly
+// instead).
+
 import path from "node:path";
 import crypto from "node:crypto";
 import { isPathInside } from "../utils/paths.js";

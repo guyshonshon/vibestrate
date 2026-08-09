@@ -1,3 +1,32 @@
+// HTTP routes for project-level (non-run) state: project metadata, the
+// continuity ledger, Profiles, Crews, and read-only access to the codebase
+// (file tree, file view, content search, supervisor file search). The
+// run-scoped `/api/runs/:runId/tree` and `/api/runs/:runId/file` routes live
+// here as well because they are the same tree/file-view code aimed at a run's
+// worktree. The tree route roots at the worktree alone; the file route puts
+// the worktree ahead of the project root and resolves to whichever root
+// actually has the file, so a run's own copy wins over a stale project one.
+//
+// In source order: project metadata, ledger (read + hand-add), Profiles, Crews
+// (incl. presets and a Role's prompt file), project tree, search (grep +
+// supervisor), project file, run tree, run file.
+//
+// Rules that hold across the file:
+//   - Config edits go through setup/config-update-service (createProfile,
+//     setProfileFields, deleteProfile, setCrewRoleFields, installCrewPreset,
+//     setConfigValue) rather than writing project.yml here - that service is
+//     the same writer the CLI's config and crew commands use.
+//   - A route that reads or writes one named file resolves that path through
+//     buildProjectRoots + resolveSafePath before touching it, and re-throws a
+//     PathGuardError as an HttpError carrying the guard's own status code. The
+//     path is caller-supplied for the file-view routes and comes from the
+//     Role's `prompt` field in project.yml for the Role-context routes; the
+//     guard is what bounds it either way. The run-scoped routes call
+//     assertSafeRunId first and take the worktree root from the run's state
+//     file, not from the request. Content search is the exception by design:
+//     its include/exclude globs are never resolved to paths here, they become
+//     git pathspecs after `--`, which git itself bounds to the repo.
+
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { FastifyInstance } from "fastify";

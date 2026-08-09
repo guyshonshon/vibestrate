@@ -1,3 +1,35 @@
+// The run's state VOCABULARY and its on-disk store in one file: the zod schema
+// for `.vibestrate/runs/<id>/state.json`, the legal status graph, and the
+// RunStateStore that reads and writes that file. It is imported across the
+// orchestrator, the CLI, the server routes and the terminal shell, so a change
+// to the schema here is felt everywhere.
+//
+// Source order: the step / flow / run state schemas -> ALLOWED_TRANSITIONS and
+// the transition guards -> createInitialState -> RunStateStore ->
+// RunNotFoundError -> renameRun.
+//
+// Two things a reader must not break:
+//
+//   1. The status graph is an ALLOWLIST, checked at runtime. `canTransition`
+//      rejects a self-transition, the four terminal statuses list no successors,
+//      and `assertTransition` throws on anything the table does not name. The
+//      Record type forces a new status to declare its own row, but nothing
+//      forces the rows that should be able to REACH it to list it - that gap
+//      only shows up as a thrown StateTransitionError on a live run.
+//
+//   2. There are two write paths with deliberately opposite failure postures.
+//      `write` is the run's own writer putting back state it held in memory
+//      across a turn, and it DEGRADES to an unlocked write when the lock cannot
+//      be taken, because it is called from a finalizer where a throw leaves the
+//      run unfinished. `mutate` is the read-modify-write for every other
+//      process and FAILS CLOSED, because a CLI or HTTP caller can retry. Each
+//      method carries the longer reasoning at its own definition.
+//
+// Newer fields carry a default so a state.json written by an older build still
+// parses - `.default(...)` normally, `.optional()` where absent is meaningful,
+// `.prefault({})` where a nested schema supplies its own field defaults. A run
+// directory outlives the schema that made it.
+
 import { z } from "zod";
 import { StateTransitionError } from "../utils/errors.js";
 import { contextSourceSchema } from "./context/context-source-schema.js";

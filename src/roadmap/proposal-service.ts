@@ -1,3 +1,31 @@
+// Roadmap proposals: the markdown a planning run leaves under
+// `.vibestrate/roadmap/proposals/`, turned into real roadmap items and task
+// cards. Parsing lives in proposal-parser.ts; this module is the
+// read -> preview -> accept path around it.
+//
+// A proposal refers to other work BY TITLE (DEPENDS_ON), which shapes both
+// halves:
+//   - `dryRun` reads only. It resolves leftover titles against the tasks
+//     already on the roadmap and collects every problem it can find
+//     (unresolved dependency, dependency cycle, parse error) so the caller
+//     shows a complete list instead of one error per attempt. `accept` starts
+//     by calling it and refuses when it returned any error.
+//   - `accept` creates the tasks WITHOUT dependencies first, then patches the
+//     resolved title -> id edges in a second pass, because a title can point
+//     at a task the same proposal is still creating.
+//
+// Acceptance is recorded only by the `<id>-accepted.json` sidecar written next
+// to the proposal: `listProposals` reports `accepted` from that file existing
+// and `accept` refuses a proposal that has one. The proposal markdown is not
+// rewritten by either. The sidecar is written last, so a failure part-way
+// through leaves no accepted marker behind - and the rollback in the catch
+// removes only ids this call created and never touches the proposal file.
+// Two limits on that rollback: its roadmap.json read-modify-write is unlocked
+// (unlike `upsertRoadmapItem`), so a concurrent add from another process can be
+// lost; and it reads through the throwing `readRoadmap`, so a corrupt
+// roadmap.json aborts the item cleanup and surfaces the corruption error in
+// place of the original failure.
+
 import path from "node:path";
 import fs from "node:fs/promises";
 import { ensureDir, pathExists, readText, writeText } from "../utils/fs.js";

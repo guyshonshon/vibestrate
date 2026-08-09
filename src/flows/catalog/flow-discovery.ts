@@ -1,3 +1,21 @@
+// The flow catalog: which flows a project can run. Assembled from the builtins
+// defined in code plus one YAML file per directory under
+// `.vibestrate/flows/<id>/` (`flow.yml` or `flow.yaml`). Precedence and the
+// duplicate-id rule are documented on `combineFlows` below.
+//
+// The shape of the rest of the file follows from one decision: a project flow
+// that cannot be used (unparseable YAML, schema failure, duplicate id) is
+// collected into `invalid` and returned alongside the good ones, not thrown -
+// one broken file must not empty the picker. Since builtins come from code, a
+// broken project file can at worst fail to shadow a builtin; it cannot remove
+// a flow from the catalog.
+//
+// Four entry points, and picking the wrong one is the usual mistake:
+// `discoverFlowCatalog` (flows plus the diagnostics), `discoverFlows` (flows
+// only), `discoverSelectableFlows` (also drops `hidden` flows - user-facing
+// lists only), `findFlowById`. Nothing is cached: every call re-reads the
+// directory, so an edited YAML file takes effect on the next call.
+
 import path from "node:path";
 import fs from "node:fs/promises";
 import YAML from "yaml";

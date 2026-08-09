@@ -1,3 +1,33 @@
+// The dashboard's Codebase route: browse a file tree, read one file, search,
+// and pin annotations to a path. It reads from the project root, or from a
+// run's worktree once a run is picked. Content search, "Ask the supervisor" and
+// the codebase map are project-only - their mode chips render only in project
+// mode, and switching to Worktree resets the mode back to filename filtering
+// so the sidebar is not left in a mode the current source cannot serve.
+// Annotations are project-only too, and the add form is withheld when the open
+// file came back marked secret-like.
+//
+// In source order: the page component, which holds the source/tree/file/search
+// state, then a run of local helpers and controls, then the annotations panel
+// and its card.
+//
+// Things to preserve when editing:
+//   - The page and the annotations panel each hold a mounted ref and re-check
+//     it after every await before calling setState. Leaving this route with a
+//     burst of fetches in flight used to crash the app when they resolved onto
+//     the unmounted component; those refs, together with the timer and
+//     EventSource cleanup in useCodebaseEvents, are what make it safe to
+//     abandon.
+//   - Fetches are bounded on purpose, because the SSE channel re-triggers them:
+//     the project tree asks for depth 3 / 600 entries, and a burst of events
+//     collapses into one reload behind a 400ms timer. When a line is
+//     highlighted the file is fetched as a window around it; an unanchored open
+//     falls back to the server's own byte/line cap.
+//
+// The URL sync effect deliberately omits `onUrlChange` from its deps: an
+// unstable callback from the parent would re-fire it every render and stomp the
+// URL back to `#/codebase`, trapping the user on the page.
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bot, Check, FolderTree, Map as MapIcon, MessageSquarePlus, RotateCcw, Search, Sparkles, Trash2 } from "lucide-react";
 import { ApiError, api, type CodebaseAnnotation } from "../../lib/api.js";

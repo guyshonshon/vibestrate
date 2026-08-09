@@ -1,3 +1,32 @@
+// HTTP surface for the task board: the cards themselves, their comments and
+// checklist, the planning assists, and the queue / cancel / terminate
+// controls. Source order: the request schemas first, then a single
+// `registerTasksRoutes` with one `app.<method>` registration per endpoint.
+//
+// Most handlers are a thin shell over `RoadmapService`, which owns the board
+// data and the guards - board logic belongs there so the CLI and the dashboard
+// cannot drift apart. It does not serialize a card's read-modify-write (see its
+// own header), so two concurrent edits to one card can lose one. The handlers
+// that reach elsewhere do so because the answer is not in the board: run
+// status, derived micro-steps, the enhance assists, and the queue/abort paths.
+//
+// What holds across this file:
+//   - Every route with a `:taskId` calls `assertSafeId` before touching the
+//     board. Nested ids (comment, checklist item) are matched against the
+//     card's own arrays rather than turned into a path, so they need no such
+//     check.
+//   - Bodies are parsed by a zod schema from the top of the file; a failure is
+//     a 400 carrying the schema's message.
+//   - Service errors are mapped to a status per route rather than centrally,
+//     because the same rejection means different things per endpoint (missing
+//     card, refused edit, or a guard that refuses while the task is live).
+//   - No endpoint runs a command taken from the request. `acceptanceCommands`
+//     on POST /api/tasks and PATCH /api/tasks/:taskId is stored on the card and
+//     run later inside the run's validation pass, through the action broker and
+//     at the same trust level as `commands.validate`
+//     (core/run-engine/validation.ts). A per-task "run" endpoint is
+//     deliberately absent; the reason is at the bottom of the file.
+
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
