@@ -1,7 +1,8 @@
-// Integration test: per-item outcome summaries must be redacted before they
-// land on disk (item-N-summary.md) or are carried forward (before-item-N.md /
-// all-items.md). Uses the same fake-CLI harness as
-// tests/checklist-shape-b-band.test.ts.
+// Integration test: outcome text must be redacted before it lands on disk -
+// the per-item summaries (item-N-summary.md) and their carry-forward
+// (before-item-N.md / all-items.md), and the run brief (flows/run-brief.md),
+// which is also re-injected into every later turn's prompt. Uses the same
+// fake-CLI harness as tests/checklist-shape-b-band.test.ts.
 import { describe, it, expect } from "vitest";
 import path from "node:path";
 import os from "node:os";
@@ -125,8 +126,8 @@ async function runPickupReview(input: {
   return await orch.run();
 }
 
-describe("per-item outcome summary redaction", () => {
-  it("scrubs a token-shaped secret from item-N-summary.md and all-items.md", async () => {
+describe("run artifact redaction", () => {
+  it("scrubs a token-shaped secret from item-N-summary.md, all-items.md and run-brief.md", async () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
     await svc.init();
@@ -140,15 +141,15 @@ describe("per-item outcome summary redaction", () => {
       title: task.title,
     });
 
-    const artifactsBase = path.join(
+    const flowsBase = path.join(
       dir,
       ".vibestrate",
       "runs",
       out.runId,
       "artifacts",
       "flows",
-      "checklist",
     );
+    const artifactsBase = path.join(flowsBase, "checklist");
 
     // item-1-summary.md - the per-item artifact written to disk.
     const item1 = await fs.readFile(
@@ -172,5 +173,15 @@ describe("per-item outcome summary redaction", () => {
       "utf8",
     );
     expect(allItems).not.toContain(SECRET_TOKEN);
+
+    // run-brief.md - the story-so-far, rebuilt from each step's raw output and
+    // re-injected into every later turn's prompt. A leak here is persisted AND
+    // re-sent to the provider on the next turn.
+    const runBrief = await fs.readFile(
+      path.join(flowsBase, "run-brief.md"),
+      "utf8",
+    );
+    expect(runBrief).not.toContain(SECRET_TOKEN);
+    expect(runBrief).toContain("[REDACTED:AWS access key id]");
   }, 60_000);
 });
