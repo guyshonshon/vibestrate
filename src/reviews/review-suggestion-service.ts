@@ -1,3 +1,37 @@
+// Lifecycle service for review suggestions on one run: a proposed edit, often
+// carrying a unified-diff `proposedPatch`, that gets decided on before anything
+// touches the worktree. Records live in `runs/<id>/suggestions.json` behind
+// ReviewSuggestionStore. This class creates records in addManual,
+// addArtifactSuggestion and ingestArtifact (VIBESTRATE_SUGGESTION blocks parsed
+// out of an agent artifact), and moves them in approve, reject, apply, validate,
+// revert and resolve.
+//
+// apply() clears these gates before `git apply` runs: status must already be
+// `approved`, the record must carry a non-empty proposedPatch, the run must
+// have a worktree, checkPatchSafety (worktree containment, secret-like paths,
+// secret-bearing added lines), applyPolicyGate, the Action Broker (fail-closed:
+// a non-allow verdict refuses, and the decision is recorded in
+// `runs/<id>/actions.ndjson`), then `git apply --check` via
+// resolveApplicablePatch.
+//
+// revert() re-reads the captured reverse patch and runs checkPatchSafety, the
+// Action Broker and `git apply -R`. It does not call applyPolicyGate: project
+// policy governs what lands, not what is taken back out.
+//
+// apply(), validate() and revert() each resolve worktreePath from the run state
+// file and throw when the run has none, so no git command here can fall back to
+// the project root.
+//
+// Error convention, and the one place it does not hold. A broken precondition
+// (unknown id, wrong status, no worktree) throws SuggestionServiceError with an
+// HTTP-shaped statusCode; a patch that fails safety, policy, the broker, or git
+// does not throw - markFailed / markRevertFailed persist the record with status
+// `failed` / `revert_failed` plus an errorMessage. The exception is apply() with
+// validateAfterApply: its post-apply `this.validate(id, ...)` call is unguarded,
+// so an unknown validation profile or a validation-harness error throws out of
+// apply() after the patch has landed and the record has been persisted as
+// `applied`.
+
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { execa } from "execa";

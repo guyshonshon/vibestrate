@@ -1,3 +1,47 @@
+// Read-only projection that rebuilds a run's story from the files it left on
+// disk: one merged timeline plus side summaries (such as approvals,
+// suggestions, policy refusals and metrics). Nothing here writes, re-runs, or
+// calls a provider.
+//
+// Files opened: `.vibestrate/runs/<runId>/` (state.json, events.ndjson,
+// approvals.json, suggestions.json, suggestion-bundles.json,
+// runtime-metrics.json, artifacts/) plus two project-scoped stores that hold
+// rows for every run - the notifications file and the terminal sessions file.
+// Those two are filtered by runId here; dropping the filter leaks other runs
+// into this one. runId is not validated in this module - it goes straight into
+// path.join, so callers must reject unsafe ids before calling.
+//
+// Tolerant on purpose, since run folders written by older versions are missing
+// files and carry fields this code does not know: extractors default or skip
+// per row instead of throwing, an unrecognized event type still reaches the
+// timeline, and an absent optional file is silent. The single throw in this
+// module is the 404 for a missing state.json.
+//
+// missingOrMalformed is a partial record of what went wrong, not a complete
+// one: a file that parses as valid JSON of the wrong shape gets no entry, so
+// it still produces an unexplained empty section. Read it as a hint about what
+// failed, never as the full set of what did.
+//
+// Three things that are easy to get wrong:
+//   - MAX_EVENTS caps events.ndjson rows only, as slice(-MAX_EVENTS) over file
+//     order, before anything is sorted. Synthetic notification/terminal rows
+//     are merged in afterwards, so the timeline can exceed the cap and
+//     keptEventCount counts event rows alone. snapshots and policyRefusals are
+//     derived from the truncated timeline and lose whatever sat in the dropped
+//     head; the summaries read from their own files are not thinned.
+//   - Phase classification is a single forward pass over the timeline in its
+//     sorted order, and a row with no explicit mapping inherits the stage phase
+//     carried forward from earlier rows - so the sort decides labels. That sort
+//     is String.localeCompare over raw timestamp strings, with no parsing, and
+//     a synthetic row whose timestamp defaulted to "" sorts to the front of the
+//     run.
+//   - policyRefusals are recovered by regex from data.errorMessage (falling
+//     back to the row's message) on suggestion.apply_failed and
+//     bundle.apply_failed rows. The pattern is anchored to the end of the
+//     string (trailing whitespace aside), so appending text after the
+//     "(policy rule: <id>)" marker empties the list as silently as changing
+//     the marker itself would.
+
 import path from "node:path";
 import { pathExists, readDirSafe, readText } from "../../utils/fs.js";
 import {
@@ -8,18 +52,18 @@ import {
   notificationsFile,
 } from "../../utils/paths.js";
 
-/** Hard cap on events returned. We surface truncation honestly rather
- *  than silently dropping rows. The cap
- *  applies to the timeline; the cross-cutting summaries (approvals,
- *  suggestions, etc.) are not truncated since those files are bounded in
- *  size by other code paths.
- */
+/** Hard cap on events KEPT from events.ndjson; every line is still parsed, and
+ *  the truncation is reported rather than dropped silently. Applied to the
+ *  file's rows before synthetic rows are merged in, so the returned timeline
+ *  can hold more entries than this. The cross-cutting summaries are read from
+ *  their own files and are not thinned. */
 const MAX_EVENTS = 10_000;
 
 /** Re-stated locally so the projection types don't depend on the event-log
  *  enum - older event logs may carry types newer Vibestrate versions removed.
- *  The projection is forgiving: unknown event types still appear in the
- *  timeline, just classified into the "other" phase. */
+ *  The projection is forgiving: an unknown event type still appears in the
+ *  timeline. It gets no phase of its own, so it inherits the stage phase
+ *  carried forward from earlier rows rather than landing in "other". */
 export type ReplayPhaseKey =
   | "flows"
   | "planning"

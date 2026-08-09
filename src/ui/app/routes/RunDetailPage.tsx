@@ -1,3 +1,28 @@
+// The run screen: one page holding everything a human needs to judge a single
+// run - header and pause/abort controls, the supervisor's decisions and any
+// pending approval, the terminal assurance verdict, a persisted panel board of
+// live timeline / metrics / changed files / output, and the inspector (tree,
+// steps, events, artifacts + diff, validation, terminal, replay).
+//
+// Where the data comes from, for anyone chasing a stale or doubly-fetched
+// value: this page polls its own bundle every 2s (the effect keyed on runId +
+// retryTick), but most panels it renders fetch independently on their own
+// timers - the changed-files panel, for one, loads the same diff again. In the
+// page's own bundle `api.getRun` is the sole unguarded call, so only a missing
+// or broken run takes the page down; the rest go through `settle` and their
+// failures are held in `panelErrors` (see lib/settled.ts). Assurance is
+// fetched separately, only once the run reaches a terminal status, because
+// that is when it is written.
+//
+// Below the page component: ActiveRolePanel (live metric tiles),
+// RunOutcomeBanner (blocked/failed/aborted explanation + next actions),
+// RerunDialog, WorkspacePanel (worktree path + copyable `cd`), AssuranceBadge
+// (verdict + per-gate lanes). RerunDialog's only write is `api.spawnRun`: a
+// rewind starts a NEW run with `resumeFrom` rather than touching the source
+// run. Picking a reviewing/fixing/verifying rewind restores the source run's
+// code snapshot into a fresh worktree, so the dialog runs a restore dry run
+// first and blocks launch while it is loading or reports no snapshot - it does
+// not block when that dry run itself fails.
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   api,

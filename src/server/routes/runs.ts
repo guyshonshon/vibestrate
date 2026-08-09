@@ -1,3 +1,33 @@
+// The run lifecycle routes of the localhost dashboard API: list and launch
+// runs, the write-side controls behind the run screen, the projections derived
+// from a run's own files, and the SSE streams. `projectRoot` is closed over
+// from `deps`, not read from the request.
+//
+// In file order: list, restore-preview, launch, snapshot prune; per-run reads
+// (state, events, assurance, audit, engagement, arbitration, checklist
+// verdicts, selection); aggregate SSE across runs and per-run event SSE;
+// per-agent provider streams (JSON list, JSON full read, SSE tail); controls
+// (abort, pause, rename, retry, queued directives, resume); then changed
+// files, replay, run dir.
+//
+// GET /:runId/assurance is not a pure read: when the artifact is missing it
+// calls buildAndWriteRunAssurance, which writes into the run directory.
+//
+// POST /api/runs and /retry build a typed `RunSpec` and hand it to
+// startDetachedRun. The `argv` in the response is assembled here from parsed
+// body fields rather than taken from the body, and nothing in this file
+// executes it. It is display text and a lossy rendering of what actually
+// launches, so do not read it as the exact command: for instance `select` and
+// `persona` reach the spec but never argv, and a rewind pushes the non-command
+// marker `# rewind from`. On /retry the argv comes from deriveRerunArgs over
+// the persisted run state while the spec is built separately.
+//
+// A run id from the path is used directly as a directory name under
+// `.vibestrate/runs/`, so handlers call assertSafeRunId before touching disk.
+// On the SSE routes that validation has to happen BEFORE `reply.hijack()` - a
+// hijacked reply is out of Fastify's hands and can no longer carry an error
+// response.
+
 import path from "node:path";
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";

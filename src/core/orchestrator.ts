@@ -1,3 +1,53 @@
+// The run engine. One Orchestrator instance per run: its fields hold that run's
+// configuration plus the per-run mutable state (abort latch, action broker,
+// notifier, budget counters). It resolves the flow, walks its steps, invokes
+// the provider behind each seated step, gates the writes, and persists the
+// run's state, events, metrics, artifacts and final report.
+//
+// Sections, in file order:
+//   fields + constructor - per-run configuration and the read-only clamps
+//   run()                - preflight, flow/param resolution, worktree or
+//                          container setup, and the prompt blocks built once
+//                          per run, then the call into runFlowSequence
+//   runGraphFrontier()   - the fan-out/join scheduler for graph (DAG) flows
+//   runFlowSequence()    - the linear walk (adaptive loop, per-item checklist
+//                          band), the terminal verdict and the final report;
+//                          graph flows run their frontier from inside it
+//   runRole()            - one provider turn: prompt build, broker decision,
+//                          invocation, post-turn diff gate, artifact + metrics
+//                          write
+//
+// Invariants to know before editing:
+//   - Read-only is the stricter guarantee and wins over a weaker explicit
+//     permission mode: readOnly <-> permissionMode "read-only" move together in
+//     the constructor, so do not relax one without the other. The constructor
+//     also clamps a flow with no step declaring a `diff` output to read-only,
+//     but that clamp is guarded on `this.flow`, so a flow resolved later inside
+//     run() does not pass through it.
+//   - runGraphFrontier is the only place that schedules steps concurrently.
+//     Anything it fans out runs against shared per-run structures, so treat
+//     work reached from there as concurrent when you add to it.
+//   - Control signals (abort, spend cap, budget limit, action denied, approval
+//     rejected) are not step failures: the per-step retry helper and the
+//     continueOnError branches re-throw them rather than tolerate them, because
+//     swallowing one completes a run that actually stopped. The catch at the end
+//     of runFlowSequence maps abort, spend cap, action denied and budget limit
+//     to a terminal aborted/blocked.
+//   - `state` is a local, written whole-object. runGraphFrontier keeps its own
+//     copy and persists it directly, so the caller re-reads state from disk on a
+//     throw instead of writing its stale copy back over the frontier's.
+//   - runRole clears its per-turn abort observer in a `finally` when the
+//     provider returns, then re-checks abort explicitly before the diff gate and
+//     the artifact writes.
+//   - A write-capable turn whose worktree cannot be snapshotted is refused
+//     before the provider starts - with no baseline, its writes can be neither
+//     diff-gated nor rolled back.
+//   - prompt.md and output.md are secret-redacted; the prompt handed to the
+//     provider is not. Redaction happens at each write site, so a newly
+//     persisted value needs its own redactSecretsInText call.
+//   - Side-channel work such as the continuity ledger, codebase map and roadmap
+//     updates swallows its own failures and must never change a run's outcome.
+
 import path from "node:path";
 import { ArtifactStore } from "./stores/artifact-store.js";
 import { EventLog } from "./stores/event-log.js";
@@ -66,7 +116,7 @@ import {
   buildFlagEntries,
   renderFlagsForPrompt,
 } from "./context/ledger-match.js";
-import { loadCodebaseMap, writeCodebaseMap, renderCodebaseMapForPrompt } from "../project/codebase-map.js";
+import { loadCodebaseMap, renderCodebaseMapForPrompt } from "../project/codebase-map.js";
 import {
   resolveFlowParams,
   substituteParams,
@@ -879,9 +929,9 @@ export class Orchestrator {
         },
       });
     }
-    // The cost lever is a recorded judgment, never silent (adversarial
-    // review): when the persona's reviewerProfile actually pinned review
-    // seats, say so - the panel feed and the audit both show it.
+    // The cost lever is a recorded judgment, never silent: when the persona's
+    // reviewerProfile actually pinned review seats, say so - the panel feed and
+    // the audit both show it.
     {
       const personaForRun = resolvePersona(this.config, this.personaId);
       const rp = personaForRun.config.reviewerProfile ?? null;

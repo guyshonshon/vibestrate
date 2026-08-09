@@ -1,3 +1,43 @@
+// Write-side service for suggestion BUNDLES (a "review pass" in UI copy): a
+// named set of review suggestions in one run, applied together to that run's
+// worktree. Reading order: list/get, create, membership edits, approve/reject,
+// preflight, apply and its auto-revert, smartApply (delegated to
+// smart-apply.ts), validate, revert, updateValidationProfile, then the helpers
+// below the `helpers` divider.
+//
+// What to know before touching the apply/revert paths:
+//   - git runs with cwd = the worktreePath recorded in the run state.
+//     requireWorktree refuses a run whose state has none, and returns the
+//     value as-is - nothing here re-checks it against the project root.
+//   - apply() is check-all-then-apply: `git apply --check` every patch first,
+//     then apply in declared order, and on a mid-list failure reverse-apply
+//     the already-applied ones. That rollback is best effort, and nothing in
+//     this file serializes concurrent callers.
+//   - The rollback walk stops at the first reverse-apply that fails. The
+//     bundle then lands in `partially_applied` and each already-applied
+//     suggestion is stamped applied, including ones the walk had undone - so
+//     the stamp means "may be modified", not proof that it is. Do not collapse
+//     that status into `failed`.
+//   - Within apply(), the text that passed --check is the text applied and
+//     rolled back. It may have been EOL-normalized, so reversing the original
+//     suggestion bytes would not undo cleanly - and the per-suggestion capture
+//     stores exactly those original bytes, which is why bundle revert is the
+//     reliable undo for a pass applied together.
+//   - The captured `<id>-reverse.patch` holds the same FORWARD text as
+//     `<id>-applied.patch`; revert() undoes it with `git apply -R`. It is not a
+//     pre-inverted diff.
+//   - apply() clears patch safety, the project policy gate (surface
+//     `bundle-apply`, evaluated inside preflight), and the action broker before
+//     any bytes move; a non-allow broker verdict fails the bundle with the
+//     worktree untouched. revert() re-runs patch safety and the broker against
+//     the captured patch before touching the worktree.
+//   - addSuggestion/removeSuggestion go through requireDraft, so membership
+//     freezes once the bundle leaves `draft`. Patch bodies are still read live
+//     from the suggestion store at preflight/apply time, not snapshotted at
+//     create.
+//   - approve() creates the approval record and resolves it in the same call,
+//     so the record is an audit trail, not a gate that waits for a decision.
+
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { execa } from "execa";
@@ -584,9 +624,10 @@ export class SuggestionBundleService {
     };
     await this.bundleStore.upsert(finalBundle);
 
-    // Stamp every member suggestion as applied (with patch-capture pointing
-    // back at the bundle's combined patches so per-suggestion revert remains
-    // structurally honest - but we recommend bundle revert for the whole pass).
+    // Stamp every member suggestion as applied. The capture written per
+    // suggestion is that suggestion's own proposedPatch, NOT the bundle's
+    // combined patch, and not the EOL-normalized text that was actually
+    // applied - so prefer bundle revert for a pass applied together.
     for (const a of applied) {
       await this.markSuggestionApplied(a.id, bundle.id);
     }

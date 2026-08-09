@@ -1,3 +1,17 @@
+// The rules layer over RoadmapStore for the board: epics (roadmap items), task
+// cards, their comments, and the ordered checklist inside a card. The store owns
+// the files and the schemas; this owns the guards, so callers inherit them
+// instead of each re-implementing them.
+//
+// Shape of a mutator here: read the record through the store, patch it, write
+// the WHOLE record back. Nothing in this file holds a lock across that
+// read-modify-write, so concurrent mutations of one card are not safe.
+//
+// `patchTask` validates a dependency edit before persisting - it rejects
+// self-edges, unknown ids, and cycles, because a cycle corrupts the
+// ready/blocked logic and lets a card block itself. `addTask` stores its
+// `dependencies` input as given.
+
 import { randomUUID } from "node:crypto";
 import { nowIso } from "../utils/time.js";
 import { slugify } from "../utils/slug.js";

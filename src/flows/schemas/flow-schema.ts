@@ -1,3 +1,37 @@
+// Zod schemas for Flows: the authored definition (built-in flows plus project
+// YAML at `.vibestrate/flows/<id>/flow.yml`) and the resolved per-run snapshot
+// the runner executes. Schema only - no I/O, no provider invocation. Every
+// `z.object` here is `.strict()`, so a misspelled key is a parse error rather
+// than a silently dropped field. `seats` and `params` are `z.record`s instead,
+// keyed by author-chosen names: a seat or param no step references is not
+// itself an error.
+//
+// Graph mode is IMPLICIT: a flow is a DAG iff some step declares `needs`, and
+// otherwise stays on the linear path. That one bit gates several fields, and
+// the definition's refinements reject them rather than let them silently
+// no-op: `continueOnError` and `retries` are graph-only (and turn-kinds-only)
+// because only the graph scheduler honors them; `skipWhen` is linear-only;
+// loop x graph is rejected outright; checklist x graph is allowed only with the
+// DAG confined to the per-item band, so prelude/postlude steps stay linear and
+// are not miscounted as one huge parallel group.
+//
+// Acyclicity is structural, not computed: a `needs` target must appear EARLIER
+// in the `steps` array, so every edge points backwards and there is no cycle
+// detection pass to keep in sync.
+//
+// Structural validation only. A flow names seats, not roles, so who may WRITE is
+// crew-dependent: the "parallel-group steps must be read-only" invariant is
+// enforced in flow-resolver.ts once seats bind to permission profiles, not here.
+// Built-in flows call `flowDefinitionSchema.parse` at module load, so tightening
+// a rule here fails at import if a built-in violates it.
+//
+// Map: tokens and step kinds -> capabilities and params -> seats and steps ->
+// loop / checklist segment -> `flowDefinitionSchema` refinements (graph block
+// last) -> resolved snapshot. `addSkipWhenConstraintIssues` runs on both the
+// definition and the snapshot as defense-in-depth. Its loop-body clause is the
+// part that leans on the definition: it fires only once the loop's from/to
+// resolve to steps, and only the definition schema checks that they do.
+
 import { z } from "zod";
 import { approvalRiskSchema } from "../../core/run/approval-types.js";
 import { skillReferenceSchema } from "../../agents/skill-schema.js";

@@ -1,3 +1,29 @@
+// The `vibe run` command: the terminal front end for starting a run. It turns
+// CLI flags into a resolved Flow plus an Orchestrator config, narrates progress,
+// and maps the run's terminal state onto a process exit code.
+//
+// Order inside runRunCommand: preconditions (git repo, config) -> Flow pick and
+// resolve -> optional supervisor server -> roadmap-task inheritance -> signal
+// handlers -> rewind preview/resolve -> flow params -> per-task lock ->
+// orchestrator.run() -> outcome and exit code. The helpers below it prompt for
+// and persist flow params, and print.
+//
+// Exit codes are a contract: cmdSequence in src/cli/commands/saga.ts calls
+// runRunCommand in process and attributes a task's lifecycle from the code it
+// returns. 1 = the run never started (every `return 1` sits above the
+// orchestrator.run() call), so the caller must leave that task's state
+// untouched; 2 = orchestrator.run() threw; 3 = the run ended
+// blocked/failed/aborted; 0 = merge_ready or any other end state, and also
+// `--preview` with `--resume-from`, which prints the restore dry run and
+// returns before an Orchestrator is built. On the success path an `if (server)`
+// block sits ahead of that status switch: with a live `--ui` server it holds
+// the process open for inspection and returns its own code instead.
+//
+// The run id is minted before the lock is claimed because it doubles as the
+// lock holder id. Release is not in a `finally`: it sits on the
+// orchestrator.run() throw path and the completion path, so a throw between the
+// acquire and that call leaves the lockfile held.
+
 import path from "node:path";
 import { detectProject } from "../../project/project-detector.js";
 import { configExists, loadConfig } from "../../project/config-loader.js";
