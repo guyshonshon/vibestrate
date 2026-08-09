@@ -1,3 +1,17 @@
+/**
+ * Scaffolds a project's `.vibestrate/` directory: the generated `project.yml`,
+ * the rules doc, README stubs for policies and skills, and a copy of each
+ * built-in role prompt. In source order: the embedded templates as string
+ * constants, the YAML renderers, then `runInit`.
+ *
+ * Init is re-runnable. Without `force`, a path that already exists is recorded
+ * under `skipped` and left untouched, so running init again on a live project
+ * does not clobber hand-edited config or role prompts.
+ *
+ * `project.yml` is assembled by string concatenation rather than a YAML
+ * serializer, so anything interpolated into it has to be escaped where it is
+ * rendered - see renderValidationYaml for the quoting rule.
+ */
 import path from "node:path";
 import { ensureDir, writeText, pathExists } from "../utils/fs.js";
 import {

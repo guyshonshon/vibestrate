@@ -1,3 +1,18 @@
+/**
+ * Holds the gateways a notification can be delivered to, and fans one
+ * notification out to them.
+ *
+ * `deliver` handles the two local gateways before it walks the configured
+ * ones: the in-app gateway is invoked unconditionally because persisting the
+ * notification IS the delivery (the receipt exists for the audit trail), and
+ * the CLI gateway runs when its config is enabled. Any other config entry is
+ * skipped unless it is enabled, registered here, and passes the per-gateway
+ * severity/category gate.
+ *
+ * Delivery is best-effort: a gateway that throws becomes a synthetic "failed"
+ * receipt instead of propagating, so one broken gateway cannot fail the run
+ * that raised the notification. Receipts are returned, not persisted here.
+ */
 import type {
   DeliveryReceipt,
   GatewayConfig,

@@ -1,3 +1,15 @@
+/**
+ * Disk-backed store for notification state: the notification list, delivery
+ * receipts, the rules/settings config, and gateway credentials, each in its
+ * own JSON file under the project's notifications directory.
+ *
+ * The two directions are deliberately asymmetric. Writes validate through the
+ * zod schema first, so malformed input fails before it reaches disk. Reads are
+ * fail-soft: a missing, blank, or unparseable file yields the empty default
+ * instead of an error, because a corrupt notification file is not a reason to
+ * fail the work that produced the notification.
+ */
+
 import path from "node:path";
 import { ensureDir, pathExists, readText, writeText } from "../utils/fs.js";
 import {

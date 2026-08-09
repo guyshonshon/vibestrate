@@ -1,3 +1,15 @@
+// ── Notification drafters ────────────────────────────────────────────────────
+//
+// Pure content builders: each `draft*` function turns a domain event's facts
+// into the human-facing severity/category/title/message plus the ids and hash
+// route a reader needs to act on it. Despite the file name there is no routing
+// table and no I/O here: nothing is delivered, stored, or deduped, so wording
+// and severity can be reworked without touching the code that emits events.
+//
+// `draftToSkeleton` at the bottom widens a draft into the persisted shape,
+// filling the optional fields with nulls/defaults; id and timestamps are left
+// out of the returned object.
+
 import type {
   Category,
   Notification,

@@ -1,3 +1,18 @@
+/**
+ * The two interactive setup wizards. Both walk provider selection and the
+ * detected validation commands, but they are not interchangeable.
+ * runInteractiveSetupWizard calls applySetup to scaffold the project partway
+ * through; runStandaloneSetupWizard assumes a scaffolded project, writes config
+ * only, and additionally offers the global review-loop ceiling.
+ *
+ * They also attach the chosen provider differently: for a detected preset the
+ * interactive wizard adds the provider and then sets it as the project default,
+ * while the standalone wizard assigns it to every profile. Worth knowing before
+ * folding the two into one - the config they produce is not the same.
+ *
+ * The scaffold write lands before the custom-provider questions, so a Ctrl+C in
+ * between leaves an initialized project with no provider configured.
+ */
 import {
   confirm,
   select,

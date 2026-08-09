@@ -1,3 +1,14 @@
+/**
+ * `vibe logs <runId>` - print, or tail, the provider stdout/stderr recorded for
+ * a run.
+ *
+ * Follow mode reads the ndjson stream file directly instead of going back
+ * through the stream store: it tracks a byte offset, resets that offset to 0
+ * when the file shrinks (truncation), and runs both an fs.watch subscription
+ * and a 500ms poll because watch is unreliable on some filesystems. A line that
+ * does not parse as JSON is written through verbatim rather than dropped, and
+ * the follow loop resolves on SIGINT.
+ */
 import { Command } from "commander";
 import fs from "node:fs";
 import { promises as fsp } from "node:fs";

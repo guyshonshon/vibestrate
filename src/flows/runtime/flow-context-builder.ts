@@ -1,3 +1,24 @@
+/**
+ * Builds the prior-artifact blocks a Flow step's prompt carries, together with
+ * the context packet that records what was actually sent. Each input token the
+ * step declares gets a disposition - embedded whole, summarized,
+ * reference-only, or omitted because nothing has produced it yet - chosen from
+ * the flow's context policy, the participant's retention mode, and the size of
+ * the artifact.
+ *
+ * In source order: buildFlowContextPacket walks the step's input tokens and
+ * assembles both the prompt artifacts and the packet; decideContextInclusion
+ * picks the disposition; renderPromptContent wraps the chosen body;
+ * summarizeContent and summarizeJsonToken produce the summary bodies, with
+ * diff and validation artifacts getting a structured summary rather than a
+ * character clip.
+ *
+ * Keep intact: renderPromptContent opens each body with the artifact path, so
+ * a trimmed input still points a reader at the exact content. The packet's
+ * byte counts, token estimates, and sha256s are measured on the same string
+ * pushed into priorArtifacts, so the record describes the prompt that was
+ * built and not an approximation of it.
+ */
 import { createHash } from "node:crypto";
 import type { FlowContextRetentionMode } from "./flow-participant-ledger.js";
 import type {

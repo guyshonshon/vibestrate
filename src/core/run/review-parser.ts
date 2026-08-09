@@ -1,3 +1,12 @@
+/**
+ * Pulls the machine-readable verdict out of a reviewer's or verifier's
+ * free-text output: the `DECISION:` line, the `VERIFICATION:` line, and the
+ * advisory `HUMAN_REVIEW:` marker with its optional reason.
+ *
+ * The `effective*` helpers are the fail-closed entry points - output with no
+ * parseable verdict line resolves to BLOCKED / NEEDS_HUMAN rather than to a
+ * pass, so a model that ignores the format cannot wave a run through.
+ */
 import type { ReviewDecision, VerificationDecision } from "../state-machine.js";
 // Single source for the DECISION line shape - shared with the UI/shell review
 // panel parser so display and enforcement can't drift.

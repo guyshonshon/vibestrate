@@ -1,3 +1,25 @@
+/**
+ * Poll-based watchers for a single git worktree: a git-status watcher and an
+ * mtime-sweep file-tree watcher, both pushing to subscribers. Polling instead
+ * of fs.watch keeps the cost predictable on a large tree and needs no
+ * recursive watcher handles.
+ *
+ * Both watchers swallow poll errors - a transient git failure or an unreadable
+ * directory just skips a tick - and unref their timers, so an open watcher does
+ * not by itself hold the process alive. FileTreeWatcher's first tick seeds the
+ * baseline without emitting, so a subscriber sees diffs from the second poll
+ * onward.
+ *
+ * The tree sweep is deliberately partial: snapshotTree stops after MAX_ENTRIES
+ * directory entries and keeps only the most recently modified paths, and
+ * compareSnapshots diffs that truncated window. A path can therefore appear as
+ * added or removed purely because it moved in or out of the recency window, and
+ * a change below the entry cap is invisible. Read the diff as "something under
+ * this root changed", not as an exact changeset.
+ *
+ * CodebaseWatchEvent is the wire shape for codebase-change streams; no code in
+ * this file constructs one.
+ */
 import path from "node:path";
 import fs from "node:fs/promises";
 import { getGitStatus, type GitStatus } from "./git-history-service.js";

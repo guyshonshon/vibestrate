@@ -1,3 +1,23 @@
+/**
+ * Resume plumbing for a run that continues an earlier run's work.
+ *
+ * `maybeCapturePhaseSnapshot` records a worktree snapshot after a
+ * code-producing step, so a later run has something to rewind to.
+ * `seedResumedSteps` builds the resumed run's starting state: it copies the
+ * source run's upstream step outputs into this run's artifacts, marks those
+ * steps skipped, and seeds the run brief so the resumed stages still see what
+ * was decided before them.
+ *
+ * Keep the asymmetry behind `tolerateMissing`: a downstream resume
+ * (review/fix/verify) works on code restored from the source run's worktree
+ * snapshot, so an upstream output it cannot find is skipped rather than fatal,
+ * while an upstream resume throws - a missing plan there would leave the
+ * resumed stages running blind.
+ *
+ * Restoring a snapshot overwrites a working tree, so the restore is gated on a
+ * target check and a failed check is written to the event log as a refusal
+ * instead of proceeding.
+ */
 import path from "node:path";
 import { ArtifactStore } from "../stores/artifact-store.js";
 import type { EventLog } from "../stores/event-log.js";

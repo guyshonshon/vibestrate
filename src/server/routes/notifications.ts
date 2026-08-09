@@ -1,3 +1,17 @@
+/**
+ * HTTP surface for notifications and the gateways that relay them: listing and
+ * acknowledging notifications, reading and patching notification settings, and
+ * reading, patching, and test-firing a gateway config.
+ *
+ * Gateway config is projected through `safeGatewayView` before it goes into a
+ * response, which reduces url/token/target to either an env-var name plus a
+ * set/not-set flag or a bare "hasValue" marker, so a configured secret is not
+ * echoed back to the browser. A new gateway response belongs on that
+ * projection rather than on the raw stored config.
+ *
+ * Notification ids arriving in the path are checked by `assertSafeId` before
+ * they are used to look up a record.
+ */
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import { NotificationService } from "../../notifications/notification-service.js";

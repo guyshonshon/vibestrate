@@ -1,3 +1,19 @@
+/**
+ * `vibe welcome` - the interactive first-run walkthrough. Each step opens with
+ * a short paragraph on one concept, then either runs the real setup behind it
+ * or points at the commands that do, so the tour stays a frame around the
+ * product rather than a second copy of it.
+ *
+ * The walkthrough is resumable, and that rests on two rules here: a step is
+ * recorded only when its handler returns 0, so a step that failed stays
+ * unrecorded and the next invocation resumes at it; and the loop keeps going
+ * past a failed step while skipping any step the state already has a result
+ * for, so a later pass cannot re-prompt or re-install settled work.
+ *
+ * It prompts, so it needs a TTY - without one it prints the direct commands
+ * and exits 0. `--reset` is handled before the init offer, because declining
+ * init returns early.
+ */
 import { confirm, select } from "@inquirer/prompts";
 import { detectProject } from "../../project/project-detector.js";
 import { configExists } from "../../project/config-loader.js";

@@ -1,3 +1,20 @@
+/**
+ * Read-only assembly of one run's arbitration dataset into a single
+ * JSON-serializable object, including the run's flow state, the arbitration
+ * ledger, participants, provider turns, and the suggestions and review passes
+ * the ledger recorded as accepted. Nothing here writes.
+ *
+ * Missing inputs are split on purpose. A missing run, a run with no flow state,
+ * or a missing arbitration ledger throws FlowArbitrationExportError - there is
+ * nothing meaningful to export. The suggestion and bundle listings degrade to
+ * empty arrays instead, so an export still succeeds when those are absent.
+ *
+ * Provider turns are joined to flow steps by matching a metrics entry's stageId
+ * against a step id, so a metrics entry recorded under a stage the flow does not
+ * contain is dropped. `humanDisposition` is emitted as null; this module has no
+ * source for it. `schemaVersion` is part of the output contract - bump it when
+ * the shape of the returned object changes.
+ */
 import { MetricsStore } from "../../core/metrics/metrics-store.js";
 import { RunStateStore } from "../../core/state-machine.js";
 import { ReviewSuggestionService } from "../../reviews/review-suggestion-service.js";

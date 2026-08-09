@@ -1,3 +1,13 @@
+/**
+ * Applies one approve / reject / request-changes decision to a run's approval
+ * gate from the CLI, then appends the matching event to the run's event log.
+ *
+ * A decision only lands on an approval that exists and is still `pending`;
+ * anything else prints and returns non-zero without touching state.
+ * Request-changes is additionally refused for a policy-sourced gate, which has
+ * no agent turn to re-run with the guidance, and for empty guidance. The
+ * guidance text is not put in the event log - only the decision note is.
+ */
 import { detectProject } from "../../../project/project-detector.js";
 import { ApprovalService } from "../../../core/run/approval-service.js";
 import { EventLog } from "../../../core/stores/event-log.js";

@@ -1,3 +1,13 @@
+// Assembles and writes a run's final report artifact, plus the marker-block
+// suggestion capture used while stages produce artifacts.
+//
+// The renderer takes optional side inputs (review suggestions, suggestion
+// bundles, the arbitration ledger, stored approvals). Each is read behind its
+// own catch: by the time this runs the work is already done, so an unreadable
+// or absent store should leave that section empty rather than cost the whole
+// report. Same reason the pick-up checklist table write is swallowed. The
+// rendered report lands at `12-final-report.md` in the artifact store.
+
 import path from "node:path";
 import { mdCell } from "../../utils/markdown-cell.js";
 import type { ArtifactStore } from "../stores/artifact-store.js";

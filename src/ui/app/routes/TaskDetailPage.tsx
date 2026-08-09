@@ -1,3 +1,20 @@
+/**
+ * The task card opened full-page: brief and context, checklist, runs, git
+ * activity, comments, plus a metadata sidebar.
+ *
+ * This page owns the data. `load()` refetches the task, the task list and the
+ * roadmap together and is handed to the section components as their change
+ * callback, so a child that mutates something through the API signals back
+ * here rather than keeping its own copy of the task. It also runs on a 3s
+ * interval while the page is mounted, which keeps a running task's status and
+ * steps moving without a manual refresh - and which replaces the local `data`
+ * on every tick, so a value patched in place here only survives if the server
+ * returns it too.
+ *
+ * Comment lists here are task-level only: step-scoped comments are filtered
+ * out and belong to the step drawer inside the checklist section.
+ */
+
 import { useEffect, useState, type ReactNode } from "react";
 import { ArrowUpRight, Check, ExternalLink, Lock } from "lucide-react";
 import { api } from "../../lib/api.js";

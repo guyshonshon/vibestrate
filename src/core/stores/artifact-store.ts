@@ -1,3 +1,18 @@
+/**
+ * Per-run artifact I/O, scoped to one run's artifacts directory.
+ *
+ * Caller-supplied paths are untrusted: the read/write/exists helpers below
+ * resolve through resolveArtifactPath, which refuses absolute paths, ".."
+ * segments, and anything that lands outside this run's artifacts dir. Adding a
+ * helper that joins a caller path itself would step around that guard.
+ *
+ * Two write paths: `write`/`writeJson` for content this process produced, and
+ * `writeGuarded` for content of untrusted origin, which additionally refuses
+ * symlinked and hardlinked targets (see its own comment for the mechanics).
+ *
+ * `relPath` returns a run-relative POSIX key, not a native path - the value is
+ * stored, returned, and compared, so it must not carry Windows separators.
+ */
 import path from "node:path";
 import { promises as fs, constants as fsConstants } from "node:fs";
 import { ensureDir, writeText, readText, pathExists } from "../../utils/fs.js";

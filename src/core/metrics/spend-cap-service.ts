@@ -1,3 +1,12 @@
+/**
+ * Daily spend and usage totals behind the budget cap, plus the pure classifier
+ * that turns a total into ok / warn / exceeded.
+ *
+ * "Today" is the local calendar day of a run's `updatedAt`, not of its start,
+ * so a run that crosses midnight counts entirely against the day it last wrote
+ * metrics. A run whose metrics fail to read is skipped rather than thrown on -
+ * one unreadable run must not stop the cap from being evaluated.
+ */
 import { projectRunsDir } from "../../utils/paths.js";
 import { readDirSafe } from "../../utils/fs.js";
 import { MetricsStore } from "./metrics-store.js";

@@ -1,3 +1,21 @@
+// ── Per-agent work report for one run ────────────────────────────────────────
+//
+// Projects the run's recorded runtime metrics into one row per agent: who ran,
+// at which stage, on which provider, for how long, with the artifacts it left
+// and the diff/validation numbers captured around it. Absolute artifact paths
+// are rewritten relative to the run directory, so the report does not carry
+// filesystem paths from outside the run.
+//
+// The attribution is deliberately approximate and the rows say so: the diff
+// numbers are worktree deltas captured after the agent finished, not per-file
+// authorship. `bestEffort` is hardcoded true on every row built here, and
+// `notice` repeats the caveat in prose - neither should be softened without
+// first making the underlying capture per-file.
+//
+// Missing metrics are not an error: the report comes back with
+// `available: false` and an explanatory notice, because a run that has not
+// finished its first agent yet is the normal case for a live run.
+
 import path from "node:path";
 import { MetricsStore } from "./metrics-store.js";
 import { runDir } from "../../utils/paths.js";

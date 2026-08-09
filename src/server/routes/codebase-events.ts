@@ -1,3 +1,15 @@
+/**
+ * Server-sent-event streams for codebase change, scoped either to the project
+ * root or to a single run's worktree. A handler hijacks the reply, sends a
+ * git-status snapshot from an immediate poll so the client starts populated,
+ * then forwards git-status and file-tree events as the watchers report them.
+ *
+ * The watchers poll on their own timers and the stream holds the socket open,
+ * so teardown is the load-bearing part: the cleanup registered on the raw
+ * request's close and error stops the watchers and clears the heartbeat
+ * interval. Anything added to a handler that keeps a timer or a subscription
+ * alive belongs in that same cleanup, or it outlives the disconnected client.
+ */
 import type { FastifyInstance } from "fastify";
 import {
   FileTreeWatcher,

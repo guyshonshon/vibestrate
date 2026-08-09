@@ -1,3 +1,20 @@
+// Runs a set of validation commands one at a time in `cwd`, writes each
+// command's stdout and stderr into the run's artifact store, and returns a
+// per-command result list plus a rolled-up summary.
+//
+// Two things here are load-bearing:
+//
+// - A command whose toolchain is missing gets its own status, "environment",
+//   rather than "failed". Such a command never validated anything, so
+//   counting it as a failure would report a healthy change as broken.
+//   `isEnvironmentFailure` decides this from the exit code plus line-anchored
+//   shell messages (see its doc for why the anchoring matters).
+// - The Action Broker gate runs before the command is spawned, and only when
+//   the caller supplies both a broker and a runId. A non-allow verdict skips
+//   the spawn and still pushes a result (exit 126, status "failed") with the
+//   denial written to the stderr artifact, so a gated-off command stays
+//   visible in the summary instead of vanishing from it.
+
 import path from "node:path";
 import { runShellCommand } from "../execution/command-runner.js";
 import { writeText } from "../../utils/fs.js";
