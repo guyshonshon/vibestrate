@@ -2,52 +2,31 @@
 // and a fetch of a single artifact (or a nested listing when the path names a
 // directory).
 //
-// Every path segment here arrives from the URL, so the run id and the wildcard
-// remainder are validated, the target is resolved and re-checked with
-// isPathInside before anything is opened, and a path resolving outside the
-// artifacts root is a 400 rather than a read. The listing walk skips entries
-// whose readdir/stat fails instead of failing the whole listing, so one
-// unreadable subtree still leaves the rest browsable. Bodies are sent as text,
-// typed json or markdown from the file extension.
+// Both routes go through ArtifactStore's guarded read rather than resolving
+// and opening here. A run writes into its own artifacts dir, so the caller is
+// not the only untrusted party - the directory's own contents are too, and
+// proving a path string stays inside the root says nothing about where the
+// bytes behind it live. The store owns that proof; this file owns turning its
+// typed refusals into statuses. An unmapped throw would surface as a 500 and
+// record an issue, so a probe loop against a symlink would append to the
+// issues stream once per request.
 
-import path from "node:path";
-import fs from "node:fs/promises";
 import type { FastifyInstance } from "fastify";
-import { runArtifactsDir } from "../../utils/paths.js";
-import { isPathInside } from "../../utils/paths.js";
-import { pathExists, readText } from "../../utils/fs.js";
+import { ArtifactReadError, ArtifactStore } from "../../core/stores/artifact-store.js";
 import { assertSafeRelativePath, assertSafeRunId, HttpError } from "../security.js";
 
 export type ArtifactRoutesDeps = {
   projectRoot: string;
 };
 
-async function listDir(root: string): Promise<{ path: string; size: number }[]> {
-  const out: { path: string; size: number }[] = [];
-  async function walk(current: string, rel: string): Promise<void> {
-    let entries: import("node:fs").Dirent[];
-    try {
-      entries = await fs.readdir(current, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      const abs = path.join(current, entry.name);
-      const next = rel ? path.posix.join(rel, entry.name) : entry.name;
-      if (entry.isDirectory()) {
-        await walk(abs, next);
-        continue;
-      }
-      try {
-        const stat = await fs.stat(abs);
-        out.push({ path: next, size: stat.size });
-      } catch {
-        // skip
-      }
-    }
-  }
-  await walk(root, "");
-  return out.sort((a, b) => a.path.localeCompare(b.path));
+/**
+ * A missing artifact is a 404; every other refusal is the caller's fault and
+ * is a 400. The message is the store's, which names the mechanism without
+ * naming a path - an absolute path in an error body is its own small leak.
+ */
+function toHttpError(error: unknown): unknown {
+  if (!(error instanceof ArtifactReadError)) return error;
+  return new HttpError(error.code === "not-found" ? 404 : 400, error.message);
 }
 
 export async function registerArtifactRoutes(
@@ -56,18 +35,15 @@ export async function registerArtifactRoutes(
 ): Promise<void> {
   const { projectRoot } = deps;
 
-  app.get<{ Params: { runId: string } }>(
-    "/api/runs/:runId/artifacts",
-    async (req) => {
-      assertSafeRunId(req.params.runId);
-      const dir = runArtifactsDir(projectRoot, req.params.runId);
-      if (!(await pathExists(dir))) {
-        throw new HttpError(404, "Run artifacts directory not found.");
-      }
-      const entries = await listDir(dir);
-      return { artifacts: entries };
-    },
-  );
+  app.get<{ Params: { runId: string } }>("/api/runs/:runId/artifacts", async (req) => {
+    assertSafeRunId(req.params.runId);
+    const store = new ArtifactStore(projectRoot, req.params.runId);
+    try {
+      return { artifacts: await store.listGuarded() };
+    } catch (error) {
+      throw toHttpError(error);
+    }
+  });
 
   app.get<{ Params: { runId: string; "*": string } }>(
     "/api/runs/:runId/artifacts/*",
@@ -79,25 +55,21 @@ export async function registerArtifactRoutes(
       // stamped path is fetchable (the double-prefix variant 404'd).
       const rel = req.params["*"].replace(/^artifacts\//, "");
       assertSafeRelativePath(rel);
-      const root = runArtifactsDir(projectRoot, req.params.runId);
-      const target = path.resolve(root, rel);
-      if (!isPathInside(root, target)) {
-        throw new HttpError(400, "Path escapes artifacts directory.");
+      const store = new ArtifactStore(projectRoot, req.params.runId);
+      let result;
+      try {
+        result = await store.readGuarded(rel);
+      } catch (error) {
+        throw toHttpError(error);
       }
-      if (!(await pathExists(target))) {
-        throw new HttpError(404, "Artifact not found.");
+      if (result.kind === "directory") {
+        return { directory: rel, artifacts: result.entries };
       }
-      const stat = await fs.stat(target);
-      if (stat.isDirectory()) {
-        const entries = await listDir(target);
-        return { directory: rel, artifacts: entries };
-      }
-      const text = await readText(target);
       reply.header(
         "Content-Type",
         rel.endsWith(".json") ? "application/json; charset=utf-8" : "text/markdown; charset=utf-8",
       );
-      return reply.send(text);
+      return reply.send(result.text);
     },
   );
 }
