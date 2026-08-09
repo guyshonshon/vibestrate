@@ -22,12 +22,10 @@ plan-only re-ground pass that revises the saga's *pending* steps against the
 code as it actually is now, before the conductor continues. Today `ENHANCE`
 folds to `PROCEED` + a log line; Phase 3 makes it act.
 
-Authoritative context: [`saga-conductor.md`](./saga-conductor.md) (as-built
-decision record), the spec
-[`docs/superpowers/specs/2026-06-29-saga-tasks-conductor-design.md`](../superpowers/specs/2026-06-29-saga-tasks-conductor-design.md)
-(§5.5, §6.4, §11 design Enhance), and the Phase 2 plan
-[`docs/superpowers/plans/2026-06-29-saga-phase-2-conductor.md`](../superpowers/plans/2026-06-29-saga-phase-2-conductor.md)
-(M3 reserved `ENHANCE` -> PROCEED+log).
+Authoritative context: [`saga-conductor.md`](./saga-conductor.md), the as-built
+decision record. The originating spec (§5.5, §6.4, §11 design Enhance) and the
+Phase 2 plan (M3 reserved `ENHANCE` -> PROCEED+log) are internal planning docs
+and are not published in this repo.
 
 ## 1. Context - the real goal
 

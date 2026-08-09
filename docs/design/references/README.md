@@ -2,9 +2,8 @@
 
 The shared visual inputs every page-redesign agent reads **before** touching a
 screen, so redesigns match a real target instead of an invented one. Pointed at
-by the per-page agent brief in
-[`../../superpowers/specs/2026-06-27-design-rendered-rollout-design.md`](../../superpowers/specs/2026-06-27-design-rendered-rollout-design.md)
-and the contract in [`../primitives-contract.md`](../primitives-contract.md).
+by the per-page agent brief (an internal planning doc, not published in this
+repo) and the contract in [`../primitives-contract.md`](../primitives-contract.md).
 
 ## Files in this folder
 

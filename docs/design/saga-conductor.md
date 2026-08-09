@@ -28,11 +28,9 @@ drives the scheduler, not `runFromSpec`, so the first design was dead code there
 A lock-rejected concurrent launch no longer mislabels the live task `failed`
 (scheduler re-checks the live lock holder before mirroring the child exit code).
 
-This is a short decision record. The full design and the implementation plan with
-the complete review trail live in:
-
-- Spec: [`docs/superpowers/specs/2026-06-29-saga-tasks-conductor-design.md`](../superpowers/specs/2026-06-29-saga-tasks-conductor-design.md)
-- Plan + review trail: [`docs/superpowers/plans/2026-06-29-saga-phase-2-conductor.md`](../superpowers/plans/2026-06-29-saga-phase-2-conductor.md)
+This is a short decision record. The full design and the implementation plan
+carrying the complete review trail are internal planning docs and are not
+published in this repo.
 
 It records the decisions that differ from the spec's first draft - each forced by
 grounding the design against the real executor (four read-only explorations) and

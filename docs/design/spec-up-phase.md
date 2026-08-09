@@ -6,8 +6,9 @@
 > spec-up first (read-only intake -> spec), and then the **chosen** flow builds
 > from the approved spec (seeded as a file contextSource via
 > `approveSpecUpAndBuild`). See
-> `docs/superpowers/specs/2026-06-20-shape-program-design.md` (P1) for the
-> authoritative model; the sections below are the original v1 design.
+> the spec-up program design (an internal planning doc, not published in this
+> repo) for the authoritative model; the sections below are the original v1
+> design.
 
 Status: proposed, **revised after an adversarial review** (2026-06-19). The
 review found a fatal flaw in the first draft (it assumed durable pause/resume

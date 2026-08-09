@@ -9,8 +9,7 @@
 // `git apply --check`. A patch that already applies is never touched. The
 // normalizer runs only after a patch has failed --check, and its output must
 // pass a fresh --check before we apply it - so a wrong/incomplete normalization
-// can only fall back to the clean refusal, never corrupt. See
-// docs/superpowers/specs/2026-06-24-windows-patch-eol-design.md.
+// can only fall back to the clean refusal, never corrupt.
 import { execa } from "execa";
 import path from "node:path";
 import { promises as fs } from "node:fs";

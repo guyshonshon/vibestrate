@@ -11,7 +11,7 @@
 // per-turn), so codex-yes/claude-no degradation is left to the orchestrator's
 // existing per-seat sandbox request+degrade path. The override here can only ever
 // RAISE isolation (off -> sandboxed) and only ever inject `ask` - it can never
-// lower safety. See docs/superpowers/specs/2026-06-22-slice-2b-posture-applies-design.md.
+// lower safety.
 
 import type { WorkflowPosture } from "./select-workflow.js";
 import type { PermissionMode, PostureConfig } from "../project/config-schema.js";

@@ -2,11 +2,9 @@
 
 Status: **shipped (0.18.0)** - design of record for behavior now on main.
 
-Authoritative spec + plan (the plan corrects the design as built):
-
-- [`../superpowers/specs/2026-06-21-git-tree-merge-design.md`](../superpowers/specs/2026-06-21-git-tree-merge-design.md)
-- [`../superpowers/specs/2026-06-21-git-tree-merge-plan.md`](../superpowers/specs/2026-06-21-git-tree-merge-plan.md)
-  (§1 Critical/Hard/Soft corrections, applied during build)
+The originating spec and build plan are internal planning docs and are not
+published in this repo. The plan's Critical/Hard/Soft corrections were applied
+during the build, so this page is the authoritative published record.
 
 The any-node-to-any-node evolution of the merge advisor
 ([`merge-advisor.md`](./merge-advisor.md)): the same human-initiated, gated,
