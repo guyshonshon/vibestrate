@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.77.0
+
+- Source comments stand on their own, with no internal phase names, ticket ids
+  or review references, and the largest modules carry a header.
+- Internal build briefs, per-phase specs and QA checklists are out of the
+  published docs.
+- Corrected what the docs claimed about the read side of artifacts.
+
 ## 0.76.1
 
 - **The dashboard can merge to main more than once.** Merging took a lock and
