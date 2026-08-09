@@ -498,7 +498,14 @@ export async function runSmartApply(
     result,
   );
 
-  const appliedSteps = steps.filter((s) => s.applyStatus === "applied");
+  // A step that was auto-reverted is no longer in the tree, so it must not feed
+  // the combined patch or touchedFiles: including it produced a reverse patch
+  // with hunks for content that had already been undone, which git refuses to
+  // apply - killing revert for the whole bundle. "revert_failed" stays counted,
+  // because those changes really are still there.
+  const appliedSteps = steps.filter(
+    (s) => s.applyStatus === "applied" && s.revertStatus !== "reverted",
+  );
   const touched = unique(
     preflight.findings
       .filter((f) =>
@@ -592,7 +599,7 @@ export async function runSmartApply(
           : "apply_failed",
       message:
         finalStatus === "smart_reverted_failing"
-          ? `Smart apply reverted the failing suggestion; ${appliedSteps.length - 1} prior step(s) remain applied.`
+          ? `Smart apply reverted the failing suggestion; ${appliedSteps.length} prior step(s) remain applied.`
           : `Smart apply stopped at step ${(failedAt ?? 0) + 1}: ${stopReason ?? "no detail"}.`,
     });
   }

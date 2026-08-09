@@ -416,6 +416,19 @@ describe("integration: bundle smartApply", () => {
     expect(
       await fs.readFile(path.join(t.worktree, "src/b.ts"), "utf8"),
     ).toBe("export const b = 2\n");
+
+    // The reverted step must not be accounted as applied. It used to be, because
+    // the tally keyed on applyStatus alone, so B's hunks went into the bundle's
+    // reverse patch even though B was no longer in the tree - and the whole
+    // bundle became impossible to revert.
+    expect(r.bundle.touchedFiles).toContain("src/a.ts");
+    expect(r.bundle.touchedFiles).not.toContain("src/b.ts");
+
+    const reverted = await bsvc.revert(bundle.id);
+    expect(reverted.status).toBe("reverted");
+    expect(
+      await fs.readFile(path.join(t.worktree, "src/a.ts"), "utf8"),
+    ).toBe("export const a = 1\n");
   });
 });
 
