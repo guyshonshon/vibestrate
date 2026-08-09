@@ -5,6 +5,7 @@ import path from "node:path";
 import { RunStateStore, createInitialState } from "../src/core/state-machine.js";
 import { EventLog } from "../src/core/stores/event-log.js";
 import { requestAbort, isAbortRequested } from "../src/core/run/abort-service.js";
+import { applyPauseIfRequested } from "../src/core/run/pause-service.js";
 
 /**
  * Abort used to be a status four processes wrote directly to state.json. The
@@ -102,6 +103,38 @@ describe("abort as a signal", () => {
     expect(res.finalized).toBe(false);
     expect((await store.read()).status).toBe("merge_ready");
   });
+
+  // The regression this pins: abort is now a request, so a live paused run
+  // keeps status "paused" until the orchestrator ends it. The pause loop used to
+  // exit only on a TERMINAL status or on pauseRequested clearing - neither of
+  // which an abort produces any more - so aborting a paused run parked it in
+  // that loop forever, where before the change it terminated.
+  it("does not park a paused run in the pause loop when it is aborted", async () => {
+    await claimForThisProcess();
+    const s = await store.read();
+    await store.write({ ...s, pauseRequested: true });
+
+    const pausing = applyPauseIfRequested({
+      state: await store.read(),
+      store,
+      events,
+      pollMs: 10,
+    });
+
+    // Let it settle into "paused" and start polling, then abort it.
+    await new Promise((r) => setTimeout(r, 60));
+    expect((await store.read()).status).toBe("paused");
+    await requestAbort(store, events, { reason: "test" });
+
+    const settled = await Promise.race([
+      pausing.then(() => "returned" as const),
+      new Promise<"hung">((r) => setTimeout(() => r("hung"), 3000)),
+    ]);
+    expect(settled, "the pause loop must hand control back on an abort").toBe(
+      "returned",
+    );
+    expect((await pausing).abortRequested).toBe(true);
+  }, 10_000);
 
   it("still observes an abort written by an older client as a bare status", async () => {
     const s = await store.read();

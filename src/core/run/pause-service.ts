@@ -207,6 +207,14 @@ export async function applyPauseIfRequested(input: {
       // the orchestrator can exit cleanly via its normal terminal path.
       return latest;
     }
+    if (latest.abortRequested === true) {
+      // Abort is a request now, not a status: a live run keeps its current
+      // status until the orchestrator ends it. That means a paused run being
+      // aborted never becomes terminal from in here, and waiting for it to
+      // would park the run in this loop forever. Hand control back so the
+      // caller's abort check can throw and take the normal abort path.
+      return latest;
+    }
     if (latest.pauseRequested === false) {
       // Resume. Transition back to the saved pausedAtStatus, clear the
       // memo, persist, emit run.resumed, and hand the state back.

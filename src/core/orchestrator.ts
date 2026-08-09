@@ -2002,6 +2002,10 @@ export class Orchestrator {
         events: input.eventLog,
       });
       if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
+      // A paused run that gets aborted stays `paused` until we end it, so the
+      // pause loop hands control back here rather than waiting for a terminal
+      // status that only this line can produce.
+      await this.throwIfAbortRequested(input);
 
       const ready = steps.filter(
         (s) => !processed.has(s.id) && s.needs.every((n) => done.has(n)),
@@ -3315,6 +3319,9 @@ export class Orchestrator {
             events: input.eventLog,
           });
           if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
+          // Same as the frontier loop: abort is a request, so a paused run
+          // being aborted never goes terminal inside applyPauseIfRequested.
+          await this.throwIfAbortRequested(input);
           state = await moveToFlowStepStatus({
             state,
             step,
