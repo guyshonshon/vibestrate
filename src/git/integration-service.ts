@@ -492,6 +492,11 @@ export async function finishIntegration(input: {
       integrationBranch: target,
     };
   } finally {
-    await fs.rmdir(lockDir).catch(() => {});
+    // Recursive: the lock dir holds the pid file written at acquire time, so a
+    // plain rmdir fails ENOTEMPTY and the swallowed error left the lock behind
+    // forever. In a long-lived `vibe ui` process the recorded pid is the server
+    // itself - still alive - so stale-lock recovery saw a live holder and
+    // refused every merge after the first.
+    await fs.rm(lockDir, { recursive: true, force: true }).catch(() => {});
   }
 }

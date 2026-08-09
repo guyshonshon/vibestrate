@@ -8,6 +8,7 @@ import { setConfigValue } from "../src/setup/config-update-service.js";
 import {
   mergePreview,
   integrate,
+  finishIntegration,
   listMergeReadyRuns,
   IntegrationError,
 } from "../src/git/integration-service.js";
@@ -185,5 +186,69 @@ describe("integration - listMergeReadyRuns", () => {
     const out = await listMergeReadyRuns(dir);
     expect(out.map((r) => r.runId)).toEqual(["r-ready"]);
     expect(out[0]!.branchName).toBe("feat-a");
+  });
+});
+
+// The merge lock is a directory holding a pid file. Releasing it with rmdir
+// failed ENOTEMPTY and the swallowed error left it on disk, so the NEXT finish
+// hit stale-lock recovery, read a pid that was still alive (the same long-lived
+// `vibe ui` server that did the first merge), and concluded a merge was in
+// progress. Every merge-to-main after the first was refused until the user
+// deleted the directory by hand.
+describe("integration - finishIntegration releases its lock", () => {
+  let dir: string;
+  beforeEach(async () => {
+    dir = await makeRepo();
+    // finish refuses on a dirty tree, and this fixture keeps both the worktrees
+    // and `.vibestrate/` inside the repo untracked. A real project gitignores
+    // them (`vibe init` writes that), so mirror it here rather than reshaping
+    // the shared fixture.
+    await fs.writeFile(
+      path.join(dir, ".git", "info", "exclude"),
+      "worktrees/\n.vibestrate/\n",
+    );
+  });
+
+  const lockDir = (root: string) =>
+    path.join(root, ".vibestrate", "integration", ".finish-lock");
+
+  it("leaves no lock behind, so a second finish in the same process still runs", async () => {
+    await integrate({
+      projectRoot: dir,
+      branches: [{ branch: "feat-a" }],
+      integrationBranch: "integ-1",
+    });
+    await finishIntegration({
+      projectRoot: dir,
+      integrationBranch: "integ-1",
+      humanConfirmed: true,
+    });
+    await expect(fs.stat(lockDir(dir))).rejects.toThrow();
+
+    // The real regression: this process is still alive, exactly like the
+    // dashboard server, so a leaked lock reads as "held by a live process".
+    await integrate({
+      projectRoot: dir,
+      branches: [{ branch: "feat-b" }],
+      integrationBranch: "integ-2",
+    });
+    const second = await finishIntegration({
+      projectRoot: dir,
+      integrationBranch: "integ-2",
+      humanConfirmed: true,
+    });
+    expect(second.intoBranch).toBe("main");
+    await expect(fs.stat(lockDir(dir))).rejects.toThrow();
+  });
+
+  it("releases the lock when the merge is refused, not just when it succeeds", async () => {
+    await expect(
+      finishIntegration({
+        projectRoot: dir,
+        integrationBranch: "never-integrated",
+        humanConfirmed: true,
+      }),
+    ).rejects.toThrow(IntegrationError);
+    await expect(fs.stat(lockDir(dir))).rejects.toThrow();
   });
 });
