@@ -8,8 +8,8 @@
 //
 // Scope is deliberately small: a fixed catalog + a planner-prompt block. The
 // "advisor infers a methodology from the codebase and writes it to the profile"
-// idea stays CUT (it's the risky durable-memory Slice-4 write path) - methodology
-// is user-set, full stop. See docs/design/durable-project-memory.md.
+// idea stays CUT - that is the risky path where an advisor mutates durable
+// memory on its own. Methodology is user-set, full stop.
 
 /** A recognized methodology: its label + the concrete planning guidance the
  *  planner receives when the project selects it. */

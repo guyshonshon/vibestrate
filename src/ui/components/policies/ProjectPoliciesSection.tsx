@@ -11,9 +11,9 @@ const INPUT =
   "w-full rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none";
 
 /**
- * Project policies (docs/design/policy-consolidation.md): the owner authors both
- * tiers here - an `advise` rule the reviewer checks, or a `block` rule with a
- * deterministic matcher that caps the merge.
+ * Project policies: the owner authors both tiers here - an `advise` rule the
+ * reviewer checks, or a `block` rule with a deterministic matcher that caps the
+ * merge.
  *
  * Powerful authoring, safe by construction:
  *  - "Draft with the supervisor" turns an English rule into a PREFILLED, editable

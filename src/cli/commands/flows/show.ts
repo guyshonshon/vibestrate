@@ -76,7 +76,7 @@ export async function runFlowsShow(
   // Surface the parallel groups + read-only fan-out explicitly so the graph
   // shape (and its cost) is legible from the CLI, not just the dashboard.
   if (isGraph) {
-    // Phase D: when the graph lives in a per-item band, the band repeats once per
+    // When the graph lives in a per-item band, the band repeats once per
     // checklist item and the prelude/postlude stay linear. Group over the band
     // steps only - else the empty-`needs` prelude/postlude steps would be shown
     // as one big (false) parallel group. Also surface the band boundary.

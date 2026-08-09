@@ -15,7 +15,7 @@ import { cn } from "../design/cn.js";
  * the CONTENT width, not the viewport, so the same Deck nested inside a panel
  * still picks a sane rung. The thresholds below are the content widths at which
  * the next rung's card first reaches MIN_CARD (440px), derived rather than
- * chosen - see docs/design/repo-structure.md's sibling layout note.
+ * chosen.
  */
 export function Deck({
   gap = "normal",

@@ -63,9 +63,9 @@ function collectAnswer(value: string, acc: { id: string; answer: string }[]): { 
 }
 
 /**
- * `vibe spec-up` - the CTO planning chain (docs/design/spec-up-phase.md). UI <-> CLI
- * parity: every step the dashboard can do is reachable here. Each link launches a
- * fresh read-only run through the shared core launcher.
+ * `vibe spec-up` - the CTO planning chain. UI <-> CLI parity: every step the
+ * dashboard can do is reachable here. Each link launches a fresh read-only run
+ * through the shared core launcher.
  */
 export function buildSpecUpCommand(): Command {
   const cmd = new Command("spec-up").description(

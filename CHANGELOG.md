@@ -415,7 +415,7 @@ dependency list that had drifted a long way from what the CLI actually needs.
   bounded (no catastrophic backtracking on hostile input) and only fires when
   the secret word is the trailing segment of the key, so `tokenizer`,
   `access_key_header`, and `password_hint` are left alone. Hardened after an
-  adversarial review caught a ReDoS and a false-positive class in the first cut.
+  review caught a ReDoS and a false-positive class in the first cut.
 
 ## 0.63.0
 
@@ -880,13 +880,12 @@ dependency list that had drifted a long way from what the CLI actually needs.
   run needs zero policies.
 - **Migration:** rules previously stored as `personas.<id>.preferences` move to the
   top-level `projectPolicies` surface. Run `vibe policies migrate` once; until you do,
-  an old config fails to load with a message pointing at the command. Design note:
-  `docs/design/policy-consolidation.md`.
+  an old config fails to load with a message pointing at the command.
 
 ## 0.35.0
 
 - **A preference can now hard-block a merge, not just advise (preference gates
-  M2).** Mark a rule as a block with a pattern - `vibe preferences add
+  block tier).** Mark a rule as a block with a pattern - `vibe preferences add
   <supervisor> no-em-dash "do not use em-dash characters" --block --pattern "—"` -
   and if the run's diff contains a match, the run lands `blocked` with the reason
   surfaced, **even if the reviewer approved**. The block is deterministic (a
@@ -899,7 +898,7 @@ dependency list that had drifted a long way from what the CLI actually needs.
 ## 0.34.0
 
 - **Tell the supervisor a rule in a consult, confirm it once (preference gates
-  M1.5).** When you tell the supervisor something durable in a consult - "stop
+  automatic capture).** When you tell the supervisor something durable in a consult - "stop
   using em-dashes", "no eyebrow labels" - it can now propose that as a preference.
   The proposal lands *pending*: it does nothing until you confirm it, so a model
   can never quietly add a rule the reviewer enforces. Confirm or reject it with
@@ -910,7 +909,7 @@ dependency list that had drifted a long way from what the CLI actually needs.
 ## 0.33.0
 
 - **Teach a supervisor a preference without touching YAML (preference gates
-  M1).** `vibe preferences add <supervisor> "use a hyphen, not an em-dash"` and
+  advise tier).** `vibe preferences add <supervisor> "use a hyphen, not an em-dash"` and
   it is live on the next review - or do it from the Supervisors page, where each
   card now has a one-line add field and a remove for the rules it checks. An
   owner add is trusted on creation, so there is no confirm step to wade through.
@@ -922,7 +921,7 @@ dependency list that had drifted a long way from what the CLI actually needs.
 
 ## 0.32.0
 
-- **Preference gates (M0): teach a supervisor a rule, the reviewer checks for
+- **Preference gates: teach a supervisor a rule, the reviewer checks for
   it.** A supervisor can now carry `preferences` - stated rules like "use a
   hyphen, not an em-dash" or "no eyebrow labels" that are real but not worth a
   lint rule. On a review turn the reviewer is told to check the change against
@@ -930,8 +929,7 @@ dependency list that had drifted a long way from what the CLI actually needs.
   advisory (never a separate merge gate in this slice), a preference is injected
   only after you confirm it (unconfirmed entries are inert), and the reviewer is
   handed the exact diff - not a summary - so it can actually see a line-level
-  violation. Design note and the deferred `block`/capture milestones:
-  `docs/design/preference-gates.md` (adversarially reviewed before build).
+  violation. The `block` tier and automatic preference capture are deferred.
 
 ## 0.31.2
 
@@ -1312,7 +1310,7 @@ dependency list that had drifted a long way from what the CLI actually needs.
 
 ## 0.24.1
 
-- **Publish hardening (post-review).** Three fixes from an adversarial review of
+- **Publish hardening (post-review).** Three fixes from a review of
   the 0.24.0 publish path: (1) the token-bearing publish POST now uses
   `redirect: "manual"` and refuses any 3xx - the origin pin only validated the
   original URL, so a redirect was the one path that could have re-issued the
@@ -1729,7 +1727,7 @@ dependency list that had drifted a long way from what the CLI actually needs.
 
 ## 0.7.121
 
-- **The Flows page joined the flat slab design (P6).** The flow catalog had
+- **The Flows page joined the flat slab design.** The flow catalog had
   been missed by the slab migration - it styled its cards directly with
   translucent, rounded surfaces instead of the `.glass` class the migration
   swept - so it still read as the old era. Its flow cards, import panel, hub
@@ -2364,8 +2362,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   your last-known-good list and shows the real reason (e.g. "codex login")
   instead of silently emptying the picker. Honest limit: only codex exposes a
   models command today - claude/gemini keep curated suggestions, and an
-  occasional auto-refresh + "new model" notification is the next step. Design:
-  `docs/design/provider-capability-detection.md`.
+  occasional auto-refresh + "new model" notification is the next step.
 
 ## 0.7.65
 
@@ -2404,7 +2401,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   byte-capped and runs through the existing redaction rules first (secret-like
   files suppressed to path-only, secret-shaped tokens removed), the spawn is
   broker-gated like consult, and the result is cached as markdown under the
-  run. T13 (merge advisor) is now complete.
+  run. The merge advisor is now complete.
 
 ## 0.7.62
 
@@ -2441,8 +2438,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   reading as a green light. It also predicts the commit shape: finish
   fast-forwards main onto the integration branch when main hasn't moved
   (verified by test, not assumed). Merging itself is unchanged: explicit,
-  human-confirmed, local-only, never pushed. Design:
-  `docs/design/merge-advisor.md`.
+  human-confirmed, local-only, never pushed.
 
 ## 0.7.59
 
@@ -2461,7 +2457,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
 - **Consult now leads with computed facts, not whatever the model volunteered.**
   Ask the project consult and it shows a deterministic "Project state" block -
   recent activity, open intents, what was mentioned but never worked on, and
-  suggested next steps - computed in code from the ledger (T9) + roadmap + run
+  suggested next steps - computed in code from the ledger + roadmap + run
   history. Same project state, same sections every time; the model only narrates
   and ranks them, and is told not to contradict or invent them. Shown in
   `vibe consult` and on the dashboard Consult page.
@@ -2476,7 +2472,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   `GET /api/ledger` exposes the same. This is the foundation for stitching
   context *across* runs (a finished run can't be "continued" in place - the
   ledger is what carries the story forward). Write-back is idempotent (a re-run
-  or re-derive never double-records). Design: `docs/design/project-ledger.md`.
+  or re-derive never double-records).
 
 ## 0.7.56
 
@@ -2632,7 +2628,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   accumulates); every link is verified against git's actual ignore answer
   after creation and removed if git would still see it; and both staging
   boundaries (commits and snapshot/diff capture) now refuse any newly
-  staged symlink that resolves outside the worktree. Adversarially reviewed
+  staged symlink that resolves outside the worktree. Reviewed
   twice on the way in; proven by an end-to-end run whose staged set was
   exactly the one file it created, finishing merge-ready.
 
@@ -2660,7 +2656,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   there, commands report a distinct `environment` status - amber, not red -
   that never blocks a run, caps assurance honestly at partially verified,
   and tells the reviewer in plain words that nothing was validated and
-  nothing failed. Both core slices were adversarially reviewed pre-merge;
+  nothing failed. Both were reviewed pre-merge;
   the reviewer's catches (a stream-parse throw that could brick runs on odd
   claude binaries, an env regex that real test output could trigger, an
   un-ignored symlink that could ride a commit to main) were all fixed
@@ -2693,7 +2689,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   approval, and every attempt (including refused ones) is evidence-logged.
   The dashboard button is fail-closed: it requires `VIBESTRATE_API_TOKEN`,
   because a tokenless local API is reachable by any local process.
-  Adversarially reviewed pre-merge; the no-automated-caller rule is a tested
+  Reviewed pre-merge; the no-automated-caller rule is a tested
   invariant. Auto-merge and auto-push remain impossible.
 
 ## 0.7.43
@@ -2708,7 +2704,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   (`.env*`, keys, `credentials*`, `.npmrc`, `.netrc`, and more); any hit
   means the repo is initialized *without* a commit and you're told why. The
   commit stages only the vetted file list, never `git add -A`, so a scanner
-  miss can't leak. Adversarially reviewed pre-merge: the review caught (and
+  miss can't leak. Reviewed pre-merge: the review caught (and
   we fixed + test) an untracked-directory bypass that would have committed a
   `secrets/id_rsa`.
 
@@ -2749,7 +2745,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   recorded (`selection.json`, `workflow.selected` event, a "sized" card on
   run detail, the CLI flow line), and `flowSizing: off` restores the old
   behavior exactly. Opt-in `assisted` mode adds one cheap gray-zone model
-  call. The A1 slice - proportional orchestration (A2+A3+A1) is complete.
+  call. Proportional orchestration is complete.
 
 ## 0.7.39
 
@@ -2782,9 +2778,8 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   `review: skipped_inert_diff`, caps at `partially_verified`, and the
   merge-readiness rule is a tested invariant (a review that ran and objected
   always wins; evidence never substitutes for validation or verification).
-  Adversarially reviewed before merge; a gate-free "solo" variant was
-  rejected outright. The A3 slice of
-  `docs/design/proportional-orchestration.md`.
+  Reviewed before merge; a gate-free "solo" variant was
+  rejected outright. Part of the proportional-orchestration work.
 
 ## 0.7.37
 
@@ -2795,10 +2790,9 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   built-in requires the explicit `policies.unprotectedPaths`). First consumer:
   validation scoping - a protected file is never "inert", so a changed
   workflow `.yml` or a protected `.md` validates in full even though its
-  extension looks harmless. This is the A2 slice of
-  `docs/design/proportional-orchestration.md` and the prerequisite for the
-  upcoming `express` flow + flow sizer. Visible in `vibe config view` and the
-  Config page.
+  extension looks harmless. This is part of the proportional-orchestration work
+  and the prerequisite for the upcoming `express` flow + flow sizer. Visible in
+  `vibe config view` and the Config page.
 
 ## 0.7.36
 
@@ -2830,8 +2824,8 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   The shell run view shows the parsed finding headlines under its `review` line.
   One shared, dependency-free parser (`flows/runtime/review-findings.ts`) feeds
   web + shell and is the same source the runtime's decision-line enforcement
-  imports - display and enforcement can't drift. First slice (P1) of
-  `docs/design/run-experience-and-usability-batch.md`.
+  imports - display and enforcement can't drift. First slice of the run
+  experience and usability batch.
 
 ## 0.7.34
 
@@ -2843,7 +2837,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   re-launch when you decide. Attended runs are unchanged (they wait for you, a
   human is there). This only bounds the wait - it never auto-approves, and every
   gate, `forbidAutoMerge`, and `forbidAutoPush` are untouched. First slice of
-  `docs/design/always-on-execution.md`.
+  always-on execution.
 
 ## 0.7.33
 
@@ -2856,8 +2850,8 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   code, `.json`/`.yaml`/`.sql`/config, unknown extension, or extension-less file
   makes the whole run validate as before. One non-inert file validates everything.
   Toggle with `commands.scopeValidationByChange` (default on). First slice of
-  `docs/design/proportional-orchestration.md` (the orchestrator sizing the work);
-  the flow-sizing half is deferred behind a diff-aware protected-path floor.
+  proportional orchestration (the orchestrator sizing the work); the flow-sizing
+  half is deferred behind a diff-aware protected-path floor.
 
 ## 0.7.32
 
@@ -2873,7 +2867,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   explicit `settings.permissionMode` always wins. The grant is claude-specific,
   so it applies to `claude-code` providers only (a generic `cli` provider is left
   untouched). If you hand-wrote a `type: cli` claude provider, switch it to
-  `type: claude-code` to get this. See `docs/design/provider-permission-mode.md`.
+  `type: claude-code` to get this.
 
 ## 0.7.31
 
@@ -2890,7 +2884,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
 
 ## 0.7.30
 
-- **Supervisor personas: the orchestrator gets a judgment posture (slice 1).** A
+- **Supervisor personas: the orchestrator gets a judgment posture.** A
   persona is the orchestrator's advisory supervisor character - it ships one
   built-in **`staff-engineer`** (correctness/risk/blast-radius) out of the box, no
   config required, and you can pick it per run (`vibe run --supervisor <id>`, a
@@ -2909,8 +2903,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   evidence-weighting knob and no ability to raise confidence. The run-assurance
   badge now records the persona + an honest `independence` label: `cross-model`
   only when >=2 distinct models actually ran, else `single-profile` (a same-model
-  self-check that can only lower confidence). Design:
-  [`design/orchestrator-personas.md`](./docs/design/orchestrator-personas.md).
+  self-check that can only lower confidence).
 
 ## 0.7.29
 
@@ -2927,7 +2920,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
 
 ## 0.7.28
 
-- **Checklist DAGs: parallel agents on every checklist item (Phase D, "Shape A").**
+- **Checklist DAGs: parallel agents on every checklist item.**
   A Flow can now put a dependency graph *inside* the per-item band, so a pick-up
   run executes each checklist item as a mini-DAG instead of a straight line. The
   new built-in **`pickup-analysis`** flow does exactly this: for each item, two
@@ -2944,8 +2937,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
 - **Guardrails:** the DAG must stay confined to the band (prelude/postlude stay
   linear) - enforced in the schema and the resolver. Mid-band resume is refused
   with a clear message. Per-item *review* panels ("Shape B") are deliberately
-  deferred (they need a per-item arbitration ledger first). Design:
-  [`design/custom-workflow-dags.md`](./docs/design/custom-workflow-dags.md).
+  deferred (they need a per-item arbitration ledger first).
 
 ## 0.7.27
 
@@ -3317,8 +3309,8 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
     direct child), so an internally-fanned-out turn can't hang unbounded. It was
     advisory/dead in the spawn path before, like the old per-profile `budget`.
 
-  First DAG slice (Slice 4; custom-workflow-dags.md Phase A+B). Write-parallelism
-  and checklist-DAGs stay deferred and on paper.
+  First DAG slice: read-only fan-out only. Write-parallelism and checklist-DAGs
+  stay deferred and on paper.
 
 ## 0.6.0
 
@@ -3341,7 +3333,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   `--crew`, and validated) and flag an execution **posture** (sandbox / approval)
   as advice. Selected runs get a **Flow & why** card on the run-detail page -
   flow, confidence, reasons, and risks - read from the run's `selection.json`.
-  Completes Slice 2. (Per-step profile auto-selection and applying the sandbox
+  (Per-step profile auto-selection and applying the sandbox
   posture stay deferred - the latter needs the OS-sandbox backend.)
 
 ## 0.5.2
@@ -3364,7 +3356,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
 - **Manage the manual:** `vibe vibestrate init | show | proposals [--all] |
   proposals show <id> | apply <id> | reject <id>`, plus `GET /api/vibestrate`,
   `POST /api/vibestrate/init`, `GET /api/vibestrate/proposals`, and
-  `POST /api/vibestrate/proposals/:id/apply|reject`. Completes Slice 1.
+  `POST /api/vibestrate/proposals/:id/apply|reject`.
 
 ## 0.5.0
 
@@ -3384,8 +3376,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
 - **Flows declare `capabilities`** (taskKinds / strengths / costClass / requires)
   - small selection metadata the orchestrator uses to choose well. Additive and
   back-compat; the built-ins ship with sensible values.
-- Second slice of the **responsible orchestrator**
-  (`docs/design/responsible-orchestrator.md`).
+- Second slice of the **responsible orchestrator**.
 
 ## 0.4.0
 
@@ -3406,9 +3397,8 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
   orchestration preferences, risk rules). Distinct from `.vibestrate/rules.md`,
   with explicit precedence: Policy (code-enforced) > VIBESTRATE.md (advisory) >
   rules.md. Loaded read-only - path-guarded, secret-redacted, bounded.
-- First slice of the **responsible orchestrator** (design:
-  `docs/design/responsible-orchestrator.md`). Next: workflow selection and the
-  run brief.
+- First slice of the **responsible orchestrator**. Next: workflow selection and
+  the run brief.
 
 ## 0.3.19
 

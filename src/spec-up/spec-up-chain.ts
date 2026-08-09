@@ -1,11 +1,11 @@
 // ── Spec-up phase: the run-chain keystone ──────────────────────────────────────
 //
 // The Spec-up phase is a chain of fresh, human-initiated, read-only runs glued by
-// the consult surface (no durable pause, no nested runs - see
-// docs/design/spec-up-phase.md). This module is the one new primitive: it reads the
-// intake run's structured questions, and - when the user answers them - launches
-// the spec-up run through the SAME gated launch path the dashboard uses
-// (`startDetachedRun` over a typed `RunSpec`), never spawning a command itself.
+// the consult surface (no durable pause, no nested runs). This module is the one
+// new primitive: it reads the intake run's structured questions, and - when the
+// user answers them - launches the spec-up run through the SAME gated launch path
+// the dashboard uses (`startDetachedRun` over a typed `RunSpec`), never spawning
+// a command itself.
 //
 // Security invariants (Tier-2 reviewed):
 //   - The browser/CLI submit a typed, length-capped answer-set; this module

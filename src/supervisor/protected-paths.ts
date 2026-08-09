@@ -1,4 +1,4 @@
-// ── Protected-path matcher (proportional-orchestration.md) ──────────────────
+// ── Protected-path matcher ──────────────────────────────────────────────────
 //
 // The deterministic floor under every "do less checking" decision. A diff that
 // touches a protected path always gets the full check descent: it is never

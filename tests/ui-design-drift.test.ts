@@ -5,16 +5,15 @@ import path from "node:path";
 /**
  * Design-law guardrail.
  *
- * `docs/design/primitives-contract.md` names a hard-no list, and a legacy sweep
+ * The design primitives contract names a hard-no list, and a legacy sweep
  * cleared it out of `src/ui`. Prose does not keep it cleared - every one of
  * these came back at least once while the sweep was still running, reintroduced
  * by hand in a file nobody thought to re-check. This test is the thing that
  * fails the build instead, named after the invariant it defends.
  *
  * Adding a pattern here is only legitimate once the count is already zero.
- * A category that still has known survivors belongs in the inventory doc
- * (docs/design/legacy-sweep-inventory.md), not here - a failing guardrail
- * teaches people to skip it.
+ * A category that still has known survivors belongs in the sweep inventory,
+ * not here - a failing guardrail teaches people to skip it.
  */
 
 const UI_ROOT = path.join(process.cwd(), "src", "ui");

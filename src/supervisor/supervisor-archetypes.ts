@@ -1,4 +1,4 @@
-// Curated supervisor archetypes (orchestrator-personas.md). A gallery of
+// Curated supervisor archetypes. A gallery of
 // ready-to-adopt supervisor personas the dashboard/CLI can write into a project's
 // `personas:` block. SERVER-OWNED: the client picks by id and never sends a
 // persona object, so an archetype's judgment posture can't be tampered with over

@@ -43,18 +43,17 @@ docs/superpowers/
 docs/vibestrate-claude-code-implementation-spec.md
 docs/vibestrate-ui-supervisor-addendum.md
 
-# Scratch plans, hand-off briefs, dated audits and QA checklists. docs/design's
-# own index says one-off artifacts belong in the gitignored archive rather than
-# alongside the decision records, and these are those.
+# Scratch plans, hand-off briefs, dated audits and QA checklists.
 docs/MANUAL_SMOKE_TESTS.md
 docs/flows-quality-arbitration-plan.md
 docs/flows-quality-arbitration-review.md
-docs/design/backlog-triage-2026-06.md
-docs/design/interface-alignment-plan.md
-docs/design/spec-up-phase-plan.md
-docs/design/spec-up-rename-plan.md
-docs/design/task-planning-and-stages.md
-docs/design/v1-launch-readiness.md
+
+# The owner's working design notes. Its own index describes the directory as
+# internal and not rendered on the docs site: proposals, status lines that track
+# what shipped, and the reasoning behind decisions, written for whoever picks
+# the work up next. The published account of how the product works is README.md
+# and docs/content/. Kept local only.
+docs/design/
 
 # Legacy local state from before the Vibestrate rename. Do not publish stale
 # run history/config from an old checkout.

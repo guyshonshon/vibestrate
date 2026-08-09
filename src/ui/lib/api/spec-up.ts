@@ -5,7 +5,7 @@ import type {
 } from "../types.js";
 
 export const specUpApi = {
-  // ── Spec-up phase (docs/design/spec-up-phase.md): the CTO planning chain. ──
+  // ── Spec-up phase: the CTO planning chain. ─────────────────────────────────
   /** Start the Spec-up phase from a brief: launch the read-only intake run that
    *  asks the gap questions (the UI "Plan" action; mirrors `vibe spec-up start`).
    *  `flowId` is the flow to BUILD once the spec is approved (carried forward). */

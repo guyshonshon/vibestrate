@@ -372,7 +372,7 @@ export type WorkflowSelectionView = {
   risks: string[];
   posture: "normal" | "sandbox-suggested" | "approval-suggested";
   advisory: string | null;
-  /** Active supervisor persona id (orchestrator-personas.md). */
+  /** Active supervisor persona id. */
   personaId?: string | null;
   /** Set when the persona upgraded the flow for a risk-tagged task. */
   personaUpgrade?: { from: string; to: string; signals: string[] } | null;
@@ -1947,7 +1947,7 @@ export type RunAssurance = {
    *  `verified` run be told apart from a "nothing to check" run. Optional:
    *  older artifacts predate it. */
   anyRealCheckPassed?: boolean;
-  // Supervisor persona + how independent its review was (orchestrator-personas.md).
+  // Supervisor persona + how independent its review was.
   // independence is honest, NOT a confidence source.
   supervisor?: {
     persona: string | null;
@@ -1964,7 +1964,7 @@ export type RunAssurance = {
   };
 };
 
-// Supervisor personas (orchestrator-personas.md) - the run composer's selector.
+// Supervisor personas - the run composer's selector.
 export type PersonaSummary = {
   id: string;
   label: string;
@@ -1980,9 +1980,8 @@ export type PersonaSummary = {
   specUpPosture?: string | null;
   builtin: boolean;
 };
-/** A project policy (docs/design/policy-consolidation.md): the consolidated,
- *  project-scoped tiered rule surface (advise = reviewer-checked; block =
- *  deterministic merge-cap). */
+/** A project policy: the consolidated, project-scoped tiered rule surface
+ *  (advise = reviewer-checked; block = deterministic merge-cap). */
 export type ProjectPolicy = {
   id: string;
   statement: string;

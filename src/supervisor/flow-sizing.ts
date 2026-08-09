@@ -1,4 +1,4 @@
-// ── Flow sizer (proportional-orchestration.md) ──────────────────────────────
+// ── Flow sizer ──────────────────────────────────────────────────────────────
 //
 // Routes obviously-trivial tasks to the `express` flow so "make a test.txt"
 // stops paying for plan -> architect -> review. Two tiers:

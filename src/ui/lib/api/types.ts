@@ -151,7 +151,7 @@ export type ProvidersOverview = {
   };
 };
 
-// ── Cross-project "All projects" overview (Multi-project slice c) ──────────
+// ── Cross-project "All projects" overview ──────────────────────────────────
 export type WorkspaceRecentRun = {
   runId: string;
   task: string;
@@ -393,7 +393,7 @@ export type ComposerPreset = {
   updatedAt?: string;
 };
 
-/** Merge advice (design/merge-advisor.md). Structural mirror of the
+/** Merge advice. Structural mirror of the
  *  server's MergeAdvice - deterministic advisory data, no model output. */
 /** Hub-list row: facts only (no preview, no recommendation - those come
  *  from the full advice on drill-in). */

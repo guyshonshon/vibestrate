@@ -6,8 +6,7 @@
 // step only sees the specific prior artifacts its `inputs` select). The brief is
 // DETERMINISTIC (no LLM): assembled from facts the orchestrator already has,
 // budget-bounded by folding the oldest step outcomes - the same forward-carry
-// idea as the per-item ledger in pickup/item-summary.ts. See
-// docs/design/responsible-orchestrator.md.
+// idea as the per-item ledger in pickup/item-summary.ts.
 
 import type { WorkflowSelection } from "../../supervisor/select-workflow.js";
 

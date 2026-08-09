@@ -10,8 +10,8 @@ import { StatTile } from "../design/StatTile.js";
 // phase-grouped by `stage`); the inside-the-turn agent activity (tools +
 // sub-agents, or an opaque box) hangs off each step as leaves. The supervisor's
 // own moments ride the engagement lane. Data comes from buildRunAudit - layer-1
-// orchestration is exact; layer-2 provider internals are partial/opaque (see
-// docs/design/run-audit-graph.md), and this view says so rather than faking it.
+// orchestration is exact; layer-2 provider internals are partial/opaque, and
+// this view says so rather than faking it.
 
 const STAGE_ORDER = [
   "planning",

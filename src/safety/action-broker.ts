@@ -9,8 +9,7 @@
 //
 // The broker is the boundary + the decision/evidence records. Default policy is
 // allow (no evaluators wired yet); the action-policy engine plugs in as
-// evaluators without changing call sites. Design:
-// docs/design/policy-enforcement-assurance.md.
+// evaluators without changing call sites.
 
 import { appendLine, pathExists, readText } from "../utils/fs.js";
 import { runActionsPath } from "../utils/paths.js";

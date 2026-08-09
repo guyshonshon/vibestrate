@@ -1,9 +1,7 @@
-// Single-flow import / export / create - the first slice of the Flows hub
-// (design `docs/design/roadmap-and-sequencing.md` §5). A Flow is portable
-// *because* of the Phase-0 rewrite: it names Seats, not local Role / Provider
-// ids, so a YAML fetched from a URL or another project drops straight into
-// `.vibestrate/flows/` and resolves against whatever Crew the importing
-// project already has.
+// Single-flow import / export / create for the Flows hub. A Flow is portable
+// *because* it names Seats, not local Role / Provider ids, so a YAML fetched
+// from a URL or another project drops straight into `.vibestrate/flows/` and
+// resolves against whatever Crew the importing project already has.
 //
 // Everything funnels through one guarded writer (`writeProjectFlowDefinition`)
 // so import, URL fetch, and the create API share the same path guard, secret

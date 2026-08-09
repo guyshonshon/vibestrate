@@ -26,13 +26,12 @@ type Props = {
 };
 
 /**
- * Merge window (design/merge-advisor.md). Two levels with
- * different costs: the hub list renders the CHEAP overview (lanes + topology;
- * no scratch-worktree preview, no recommendation - a recommendation computed
- * blind to conflicts would lie), and the per-run window fetches the full
- * deterministic advice. All advice is read-only; the only mutating actions
- * are the existing apply/finish, embedded unchanged with their existing
- * confirmation UX and server-side gates.
+ * Merge window. Two levels with different costs: the hub list renders the CHEAP
+ * overview (lanes + topology; no scratch-worktree preview, no recommendation -
+ * a recommendation computed blind to conflicts would lie), and the per-run
+ * window fetches the full deterministic advice. All advice is read-only; the
+ * only mutating actions are the existing apply/finish, embedded unchanged with
+ * their existing confirmation UX and server-side gates.
  *
  * Shell-less: SourcePage owns the PageShell/PageHeader; this returns just the
  * content. Extracted verbatim from the former MergePage.

@@ -125,10 +125,10 @@ const assistBody = z
   .strict();
 
 /**
- * The Spec-up phase HTTP surface (docs/design/spec-up-phase.md). All three routes
- * inherit the `/api/*` localhost + CSRF + bearer gates. Runs are launched only
- * through the gated `startDetachedRun` path inside spec-up-chain - the browser
- * never passes a command.
+ * The Spec-up phase HTTP surface. Every route inherits the `/api/*` localhost
+ * + CSRF + bearer gates. Runs are launched only through the gated
+ * `startDetachedRun` path inside spec-up-chain - the browser never passes a
+ * command.
  */
 export async function registerSpecUpRoutes(
   app: FastifyInstance,

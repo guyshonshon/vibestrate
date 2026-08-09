@@ -8,8 +8,7 @@ import { Button, type ButtonVariant } from "./Button.js";
  * the canvas, no card, a big headline + a clear action ladder) so a
  * whole-surface failure reads as the main event with real hierarchy. The
  * `compact` variant is a slim inline strip for banners that sit above still-
- * visible content. See docs/design/primitives-contract.md + the CLAUDE.md
- * empty-state doctrine (every error offers a way forward).
+ * visible content. Every error offers a way forward.
  */
 
 export type ErrorAction = {

@@ -5,8 +5,7 @@ import { cn } from "../design/cn.js";
  * The canonical page canvas, extracted verbatim from Mission Control (the design
  * source of truth). Every page body composes these three primitives instead of
  * hand-rolling `px-10 py-7` / `<header class="mb-6">` so the page-level rhythm
- * can never drift. The live reference is the /canvas route. See
- * docs/design/primitives-contract.md ("Page canvas").
+ * can never drift. The live reference is the /canvas route.
  *
  * Two archetypes share one canvas:
  * - `scroll` (default): a vertical-scroll dashboard (Mission Control, config

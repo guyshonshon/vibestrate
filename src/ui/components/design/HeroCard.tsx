@@ -11,9 +11,6 @@ import { cn } from "./cn.js";
  * Two scales share the anatomy:
  * - `lg` - a page-level overview panel (the task hero, the Diffs inspector).
  * - `md` - the delightful board item: a grid card (crew hub, future catalogs).
- *
- * See
- * docs/design/primitives-contract.md.
  */
 
 export type HeroTone = "default" | "violet" | "sky" | "emerald" | "amber" | "rose";

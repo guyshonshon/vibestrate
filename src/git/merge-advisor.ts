@@ -1,4 +1,4 @@
-// ── Merge advisor (design/merge-advisor.md) ───────────────────
+// ── Merge advisor ──────────────────────────────────────────────────────────
 //
 // A READ-ONLY advisory layer over the integration machinery. It predicts and
 // explains what the existing apply + finish path will do - it never widens it.
@@ -481,7 +481,7 @@ export function computeMergeAdvice(input: MergeAdviceInput): MergeAdvice {
 }
 
 /** Persona reorders which flags LEAD - it can never add, remove, or soften
- *  one (orchestrator-personas.md: personas cannot weaken evidence). */
+ *  one, because a persona may not weaken the evidence a run reports. */
 function orderFlagsForPersona(
   flags: MergeRiskFlag[],
   personaId: string,

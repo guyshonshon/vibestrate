@@ -1,18 +1,14 @@
 import { z } from "zod";
 
-// Persona reviewLenses, made behavioral (orchestrator-personas.md follow-up;
-// config-schema.ts personaConfigSchema.reviewLenses: "Not yet enforced as a
-// panel-review filter this slice - that is a follow-up"). A persona's
-// `reviewLenses` used to be display-only metadata; this maps them through a
-// CLOSED vocabulary to fixed review-emphasis prompt fragments and the orchestrator
-// injects them into the independent-reviewer turns. So switching persona changes
-// WHAT the reviewers scrutinise (the design's "behavioral or cut" non-negotiable),
-// not just the label shown in the UI.
+// Persona reviewLenses, made behavioral. A persona's `reviewLenses` used to be
+// display-only metadata; this maps them through a CLOSED vocabulary to fixed
+// review-emphasis prompt fragments and the orchestrator injects them into the
+// independent-reviewer turns. So switching persona changes WHAT the reviewers
+// scrutinise, not just the label shown in the UI.
 //
-// The closed vocabulary is load-bearing (orchestrator-personas.md open question:
-// "reviewLenses should be a small closed vocabulary mapped to prompt fragments,
-// not free text, so personas can't smuggle behavior"). An unknown lens contributes
-// NO fragment - it is surfaced for audit but never reaches the reviewer prompt.
+// The closed vocabulary is load-bearing: lenses map to fixed prompt fragments
+// instead of being free text. An unknown lens contributes NO fragment - it is
+// surfaced for audit but never reaches the reviewer prompt.
 // Fail-safe: a typo, or a project persona trying to smuggle an instruction through
 // a lens string, is inert rather than injected. Persona text that DOES reach the
 // prompt is advisory-tier only and can never soften a code-enforced gate.

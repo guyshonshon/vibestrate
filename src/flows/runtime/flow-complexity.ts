@@ -50,7 +50,7 @@ export type FlowFanoutAdvice = {
  * Fan-out cost warning: a graph flow that runs N agents in parallel
  * multiplies spend, and each turn is an opaque box that may itself parallelize -
  * so the real footprint can exceed the per-turn estimate. Say so loudly. Returns
- * a null message for linear flows (no fan-out). See custom-workflow-dags.md.
+ * a null message for linear flows (no fan-out).
  */
 export function flowFanoutAdvice(flow: {
   steps: ReadonlyArray<{ needs?: readonly string[] }>;

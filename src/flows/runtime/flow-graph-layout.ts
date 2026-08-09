@@ -42,12 +42,12 @@ export function layersOf<T extends GraphLayoutStep>(steps: readonly T[]): T[][] 
   return out;
 }
 
-// One zone of a checklist + graph flow (custom-workflow-dags.md). The
-// flow splits into a prelude (runs once), the per-item band (a DAG repeated once
-// per checklist item), and a postlude (runs once). Renderers draw the band
-// boundary + its "repeats per item" nature so a reader sees both the parallelism
-// AND the iteration - a flat `layersOf` would hide both and falsely draw the
-// linear prelude/band-root side by side as if concurrent.
+// One zone of a checklist + graph flow. The flow splits into a prelude (runs
+// once), the per-item band (a DAG repeated once per checklist item), and a
+// postlude (runs once). Renderers draw the band boundary + its "repeats per
+// item" nature so a reader sees both the parallelism AND the iteration - a flat
+// `layersOf` would hide both and falsely draw the linear prelude/band-root side
+// by side as if concurrent.
 export type FlowZone<T> = {
   kind: "prelude" | "band" | "postlude";
   /** True for the per-item band: it repeats once per checklist item. */

@@ -4,7 +4,7 @@
 // project's operating manual. Proposals are durable, reviewable records under
 // `.vibestrate/manual-proposals/` - never auto-applied. A human applies one
 // explicitly, which appends its text to VIBESTRATE.md through the guarded writer
-// (Action Broker file.write + secret refusal). See responsible-orchestrator.md.
+// (Action Broker file.write + secret refusal).
 
 import fs from "node:fs/promises";
 import path from "node:path";

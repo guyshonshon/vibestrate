@@ -100,8 +100,7 @@ export async function runArgvCommand(input: {
   // timeout sends SIGTERM to the *direct child only*; a provider CLI that spawns
   // its own subagents (the "opaque box") would have those orphaned and left
   // spending. Instead `timeoutMs` drives the same tree-wide terminate path as an
-  // abort (process-group kill on POSIX), so the whole box is reaped. See
-  // custom-workflow-dags.md ("timeoutMs must actually fire that abort").
+  // abort (process-group kill on POSIX), so the whole box is reaped.
   const subprocess = execa(input.command, input.args, {
     cwd: input.cwd,
     env: childEnv(input.env),

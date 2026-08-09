@@ -1,16 +1,15 @@
-// specUpPosture (docs/design/spec-up-phase.md).
-// A persona aims the spec-up PLANNING agents (intake / scope / spec / architecture)
-// the way `reviewLenses` aim the independent reviewers.
+// specUpPosture: a persona aims the spec-up PLANNING agents (intake / scope /
+// spec / architecture) the way `reviewLenses` aim the independent reviewers.
 //
 // Unlike `reviewLenses` - which governs the REVIEWER and is a CLOSED vocabulary so a
 // persona can never smuggle behavior past the gate - `specUpPosture` is free text:
 // it governs the PLANNING agents, the same trust class as the per-step CTO-director
 // `instructions` already baked into the spec-up flows, and the spec-up output is
-// human-reviewed before any build. Why free text is safe here (orchestrator-personas.md
-// non-negotiable #7): the posture text is ALWAYS committed/reviewed config - the run
-// API/CLI accepts only a persona *id*, never free text, so it can never be remotely
-// sourced. It reaches the spec-up-review reviewer turn too, whose APPROVED decision
-// feeds computeMergeReady - but that gate governs a read-only, NO-DIFF, human-stepped
+// human-reviewed before any build. Why free text is safe here: the posture text is
+// ALWAYS committed/reviewed config - the run API/CLI accepts only a persona *id*,
+// never free text, so it can never be remotely sourced. It reaches the
+// spec-up-review reviewer turn too, whose APPROVED decision feeds
+// computeMergeReady - but that gate governs a read-only, NO-DIFF, human-stepped
 // terminal status (there is nothing to merge/push), not a code merge.
 
 /** The spec-up phase flow ids - the only runs that carry a spec-up posture. */

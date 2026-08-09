@@ -30,7 +30,7 @@ function RowError({ err, label }: { err: unknown; label: string }) {
  * branch, head commit, dirty/clean state, and diff totals. Nothing from outside
  * the task's own runs leaks in. Honest empty state when there are no runs (or
  * worktrees were cleaned up so git data is no longer fetchable). On the Mission
- * Control idiom (see docs/design/primitives-contract.md).
+ * Control idiom.
  */
 export function TaskGitActivity({
   runIds,

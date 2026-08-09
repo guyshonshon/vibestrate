@@ -1,7 +1,6 @@
 // Provider output adapters - normalize any provider's stdout (plain text,
 // JSON, or streaming-JSON) down to one contract so vibestrate's supervision,
-// live panel, and metrics consume a single shape. See
-// docs/design/provider-structured-output.md.
+// live panel, and metrics consume a single shape.
 //
 // The cardinal rule (it gates supervision): the control parsers
 // (HUMAN_APPROVAL / DECISION / VERIFICATION) read ONLY `responseText`. An

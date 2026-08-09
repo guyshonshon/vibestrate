@@ -4,8 +4,6 @@
 // runProviderResilient). This module is the pure, testable core: classify a
 // failure's text into a class, and compute the backoff before a retry. The
 // orchestrator owns the loop, the sleeping, and the events.
-//
-// Design: docs/design/unattended-resilience.md.
 
 import type { ResilienceConfig } from "../project/config-schema.js";
 import type { ProviderSessionRequest } from "../providers/provider-types.js";

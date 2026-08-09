@@ -5,7 +5,7 @@
 // It is a REGENERABLE CACHE over `project.ledger` (the source of truth) - losing
 // it is harmless. It is deliberately a SEPARATE file from `VIBESTRATE.md` (which
 // stays human/advisor-authored), so the orchestrator never rewrites authored
-// intent. See docs/design/durable-project-memory.md.
+// intent.
 
 import path from "node:path";
 import { promises as fs } from "node:fs";

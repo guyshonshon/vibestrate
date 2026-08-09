@@ -404,7 +404,7 @@ function FlowGraphView({
   checklistSegment = null,
 }: {
   steps: FlowDefStep[];
-  // Phase D: when set, zone the graph into prelude / per-item band / postlude so
+  // When set, zone the graph into prelude / per-item band / postlude so
   // the band boundary + its per-item repeat are visible (mirrors the web).
   checklistSegment?: { from: string; to: string } | null;
 }) {

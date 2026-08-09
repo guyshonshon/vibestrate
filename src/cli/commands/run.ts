@@ -968,7 +968,7 @@ function printFlowChoice(label: string, selection: WorkflowSelection): void {
     "supervisor-upgraded": "supervisor-upgraded",
   };
   console.log("");
-  // The active supervisor persona (orchestrator-personas.md) - shown like Flow.
+  // The active supervisor persona - shown like Flow.
   if (selection.personaId) {
     console.log(
       `${header("Supervisor:")} ${color.bold(selection.personaId)}`,

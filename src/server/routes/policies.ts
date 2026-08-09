@@ -58,7 +58,7 @@ const testBody = z
   })
   .strict();
 
-// Owner-authored project-policy add body (docs/design/policy-consolidation.md).
+// Owner-authored project-policy add body.
 // This is the OWNER surface, so it accepts `tier` + `matcher` (the UI authors a
 // block here). It is deliberately SEPARATE from the consult/propose path
 // (proposePolicy), which hard-sets tier:advise/matcher:null - a model can never

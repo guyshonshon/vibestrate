@@ -5,8 +5,6 @@
 // decisions - never from a model's self-assessment. The verdict is one of five
 // discrete levels (no fake confidence %); the artifact records each sub-check
 // and the caps (missing checks) that held the verdict below "verified".
-//
-// Design: docs/design/policy-enforcement-assurance.md (§ Run Assurance).
 
 import path from "node:path";
 import { pathExists, readText, writeText } from "../utils/fs.js";
@@ -114,11 +112,10 @@ export type RunAssurance = {
    *  statuses. A `verified` run with `anyRealCheckPassed: false` means "nothing
    *  needed checking", never "checked and approved". */
   anyRealCheckPassed: boolean;
-  /** The supervisor persona + how independent its review was (orchestrator-
-   *  personas.md). `independence` is honest, NOT a confidence source: it is
-   *  "cross-model" only when >= 2 distinct non-null models actually ran;
-   *  otherwise "single-profile" (a fresh-context self-check that, by the design's
-   *  non-negotiables, can only LOWER confidence, never raise this verdict). */
+  /** The supervisor persona + how independent its review was. `independence` is
+   *  honest, NOT a confidence source: it is "cross-model" only when >= 2 distinct
+   *  non-null models actually ran; otherwise "single-profile" (a fresh-context
+   *  self-check, which can only LOWER confidence, never raise this verdict). */
   supervisor: {
     persona: string | null;
     independence: "cross-model" | "single-profile";
@@ -272,7 +269,7 @@ export function deriveRunAssurance(input: {
   /** Root causes (deriveRunBlockers). Only surfaced on blocked/unsafe verdicts
    *  - a merge_ready run's coverage gaps are the caps' job. */
   blockers?: RunAssuranceBlocker[];
-  /** Active supervisor persona id (orchestrator-personas.md). */
+  /** Active supervisor persona id. */
   persona?: string | null;
   /** Models that actually ran (per seated step). >= 2 distinct non-null models
    *  means the review was cross-model; else it's a single-profile self-check. */

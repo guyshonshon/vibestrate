@@ -1,7 +1,7 @@
-// Project policy capture (docs/design/policy-consolidation.md). Owner-explicit
-// add/list/remove + confirm/reject for the PROJECT-scoped rule surface, so the owner
-// never hand-edits YAML. Was the persona-scoped preferences-service; rules now live
-// at top-level `projectPolicies`, not on a persona.
+// Project policy capture. Owner-explicit add/list/remove + confirm/reject for the
+// PROJECT-scoped rule surface, so the owner never hand-edits YAML. Was the
+// persona-scoped preferences-service; rules now live at top-level
+// `projectPolicies`, not on a persona.
 //
 // The friction-killer: an owner add is CONFIRMED ON CREATION (the owner authored it
 // via their own command, so it is trusted - no separate confirm step). The
@@ -164,12 +164,11 @@ export async function removePolicy(
 }
 
 /**
- * Migration (docs/design/policy-consolidation.md): lift any persona-scoped
- * `personas.<id>.preferences` into top-level `projectPolicies`, preserving
- * confirmedAt, and delete the persona field. Returns the count moved. Idempotent
- * (no persona preferences -> 0). Maps the legacy `severity`->`tier`,
- * `pattern`->`matcher`. On an id collision across personas, the later one is
- * suffixed with the persona id to stay unique.
+ * Migration: lift any persona-scoped `personas.<id>.preferences` into top-level
+ * `projectPolicies`, preserving confirmedAt, and delete the persona field.
+ * Returns the count moved. Idempotent (no persona preferences -> 0). Maps the
+ * legacy `severity`->`tier`, `pattern`->`matcher`. On an id collision across
+ * personas, the later one is suffixed with the persona id to stay unique.
  */
 export async function migratePersonaPreferences(
   projectRoot: string,

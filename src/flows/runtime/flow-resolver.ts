@@ -371,9 +371,9 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
     });
   });
   assertResolvedStepIds(steps);
-  // Read-only guarantee (custom-workflow-dags.md): the schema can't know who
-  // writes (flows are crew-agnostic), so the parallel-group read-only invariant
-  // is enforced HERE, once seats are bound to roles -> permission profiles.
+  // Read-only guarantee: the schema can't know who writes (flows are
+  // crew-agnostic), so the parallel-group read-only invariant is enforced
+  // HERE, once seats are bound to roles -> permission profiles.
   assertParallelGroupsAreReadOnly({
     steps,
     crew,

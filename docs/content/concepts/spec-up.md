@@ -85,7 +85,7 @@ each one before the run can pass - the prose criteria are judged by the verifier
 against the artifacts, and a card can also carry `acceptanceCommands` (shell
 checks you author) that run as an extra validation pass, so a failed acceptance
 check blocks merge-readiness like a failed test. See [Safety](concepts/safety) for
-the validation gate and `docs/design/spec-up-phase.md` for the full reasoning. The
-completeness loop (multi-round questioning) now ships; what's still deferred is
-one continuous "brief it and walk away" run (the chain stays a set of short runs
-you step between, not one long process that pauses mid-flight).
+the validation gate. The completeness loop (multi-round questioning) now ships;
+what's still deferred is one continuous "brief it and walk away" run (the chain
+stays a set of short runs you step between, not one long process that pauses
+mid-flight).

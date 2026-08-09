@@ -67,11 +67,10 @@ export async function registerIntegrationRoutes(
     return { rows };
   });
 
-  // (design/merge-advisor.md): READ-ONLY merge advice. Same
-  // gating and cost class as /preview (it wraps mergePreview's scratch
-  // worktree + cheap rev-list/diff facts): open on a tokenless loopback bind,
-  // bearer-gated when a token is configured. Mutates no branch; the
-  // deterministic recommendation contains no model output.
+  // READ-ONLY merge advice. Same gating and cost class as /preview (it wraps
+  // mergePreview's scratch worktree + cheap rev-list/diff facts): open on a
+  // tokenless loopback bind, bearer-gated when a token is configured. Mutates no
+  // branch; the deterministic recommendation contains no model output.
   app.post<{ Body: unknown }>("/api/integration/advice", async (req) => {
     const parsed = previewBody.safeParse(req.body ?? {});
     if (!parsed.success) throw new HttpError(400, parsed.error.message);
@@ -131,7 +130,7 @@ export async function registerIntegrationRoutes(
     }
   });
 
-  // P7b guided merge: merge a COMPLETE integration branch into main, locally.
+  // Guided merge: merge a COMPLETE integration branch into main, locally.
   // The body `confirm` token is an accident guard, NOT authorization (anything
   // that can POST can include it) - the real gates are the broker (`git.merge`
   // policies), the completeness record, the lock + re-checked preconditions,

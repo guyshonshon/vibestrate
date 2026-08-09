@@ -94,7 +94,7 @@ export function FlowGraph({
 }: {
   steps: FlowGraphStep[];
   title?: string;
-  // Phase D: when set, the flow is zoned into prelude / per-item band / postlude
+  // When set, the flow is zoned into prelude / per-item band / postlude
   // so the graph shows the band boundary AND that it repeats per checklist item
   // (a flat layout would hide both). Omit it for whole-flow graphs (unchanged).
   checklistSegment?: { from: string; to: string } | null;

@@ -56,8 +56,7 @@ policy can only *add* a check, never relax one.
 ## It stays optional
 
 A plain `vibe run "<prompt>"` needs zero policies. Policies are an additive,
-opt-in layer - a project with none runs exactly as before. The design note is
-[`docs/design/policy-consolidation.md`](https://github.com/) (in-repo).
+opt-in layer - a project with none runs exactly as before.
 
 ## Migrating from persona preferences
 

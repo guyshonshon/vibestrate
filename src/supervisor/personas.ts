@@ -1,16 +1,17 @@
-// Supervisor personas (orchestrator-personas.md). A persona is the orchestrator's
-// ADVISORY judgment posture. This module: (1) resolves the active persona
-// (config default + per-run override, always falling back to a built-in so a run
-// never fails on a persona), (2) a PURE deterministic task-risk classifier (the
-// mechanism; the policy - which signals - is data on the persona), and (3) the
-// one behavioral lever this slice: an UPGRADE-only flow bias (a risk-tagged task
-// is pushed toward the persona's preferred review flow; it can only add review,
-// never remove it, and never overrides an explicit --flow).
+// Supervisor personas. A persona is the orchestrator's ADVISORY judgment
+// posture. This module: (1) resolves the active persona (config default +
+// per-run override, always falling back to a built-in so a run never fails on a
+// persona), (2) a PURE deterministic task-risk classifier (the mechanism; the
+// policy - which signals - is data on the persona), and (3) the `prefersFlows`
+// data behind the UPGRADE-only flow bias, which select-workflow.ts applies: a
+// risk-tagged task is pushed toward the persona's preferred review flow, and it
+// can only add review, never remove it, and never overrides an explicit --flow.
 import type { PersonaConfig, ProjectConfig } from "../project/config-schema.js";
 
 // The shipped default persona, resolved in code so a project with no `personas:`
-// block still gets a supervisor. Its `instructions` are descriptive this slice
-// (shown in the UI); the behavioral teeth is `riskSignals` + `prefersFlows`.
+// block still gets a supervisor. The behavioral levers are `riskSignals` +
+// `prefersFlows` (flow upgrade) and `reviewLenses` (reviewer emphasis);
+// `instructions` is a path field nothing currently reads.
 export const BUILTIN_PERSONAS: Record<string, PersonaConfig> = {
   "staff-engineer": {
     label: "Staff engineer",

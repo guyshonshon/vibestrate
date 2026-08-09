@@ -22,7 +22,7 @@ import {
 // Durable, machine-written, human-editable project state that survives across
 // runs. One append-only NDJSON file under `.vibestrate/`; the reader skips torn
 // lines (mirroring run-assurance's event reader) so a partial last append never
-// corrupts the whole ledger. See docs/design/project-ledger.md.
+// corrupts the whole ledger.
 
 export const ledgerEntryKindSchema = z.enum([
   "shipped", // a run reached merge_ready: what changed

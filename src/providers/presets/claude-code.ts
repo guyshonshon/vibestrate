@@ -4,7 +4,7 @@ import type { ClaudeCodeProviderSchemaConfig } from "../provider-schema.js";
 // mode, so vibestrate gets live token-by-token output + real token/cost metrics out
 // of the box. Effective args: `claude -p --output-format stream-json --verbose
 // --include-partial-messages`, prompt on stdin. The stream-json adapter extracts
-// the response text + usage; see docs/design/provider-structured-output.md.
+// the response text + usage.
 export const claudeCodePreset: ClaudeCodeProviderSchemaConfig = {
   type: "claude-code",
   command: "claude",

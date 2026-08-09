@@ -1,5 +1,5 @@
 // Claude Code `--output-format stream-json` adapter. Validated against real
-// `claude` 2.x output. See docs/design/provider-structured-output.md.
+// `claude` 2.x output.
 //
 // The terminal `result` event carries the final answer + usage:
 //   {"type":"result","result":"<text>","total_cost_usd":N,

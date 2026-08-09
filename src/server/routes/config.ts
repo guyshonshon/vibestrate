@@ -206,9 +206,9 @@ export async function registerConfigRoutes(
     return { value: valueAtPath(loaded.config, key) ?? null };
   });
 
-  // Supervisor personas (orchestrator-personas.md): the resolved catalog
-  // (built-ins + project) + the active default, for the run composer's selector
-  // and any read-only persona surface. Read-only.
+  // Supervisor personas: the resolved catalog (built-ins + project) + the active
+  // default, for the run composer's selector and any read-only persona surface.
+  // Read-only.
   app.get("/api/personas", async () => {
     const loaded = await loadConfig(projectRoot).catch(() => null);
     return buildPersonaCatalog(loaded?.config ?? null);

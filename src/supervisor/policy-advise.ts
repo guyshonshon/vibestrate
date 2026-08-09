@@ -1,7 +1,7 @@
-// Project policy - advise tier (docs/design/policy-consolidation.md). Owner-taught,
-// project-scoped rules ("use a hyphen, not an em-dash"; "no eyebrow labels")
-// rendered into a reviewer turn so a MODEL verifies the artifact against them - the
-// enforcement tier for rules that are real but not mechanizable.
+// Project policy - advise tier. Owner-taught, project-scoped rules ("use a hyphen,
+// not an em-dash"; "no eyebrow labels") rendered into a reviewer turn so a MODEL
+// verifies the artifact against them - the enforcement tier for rules that are real
+// but not mechanizable.
 //
 // Project-scoped (was persona-scoped): a project-wide rule reaches the review under
 // ANY active supervisor. An UNSCOPED rule (scope.lenses == []) injects on every run;

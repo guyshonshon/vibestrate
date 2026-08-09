@@ -114,7 +114,7 @@ export function createFlowParticipantLedger(input: {
   // yet must stay independent processes - the reviewer inheriting the writer's
   // session would let it grade its own homework. Profile equality is a
   // coincidence, not a continuity signal. Do NOT change this to a profile/model
-  // key. (See docs/design/fast-track-and-session-policy.md, Decision 2.)
+  // key.
   const bySeat = new Map<string, { providerId: string; label: string }>();
   for (const step of input.snapshot.steps) {
     if (!step.seat || !step.providerId) continue;

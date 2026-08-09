@@ -104,7 +104,7 @@ const patchBody = z.object({
   touchedFiles: z.array(z.string()).optional(),
   riskLevel: z.enum(["low", "medium", "high"]).optional(),
   validationProfile: z.string().nullable().optional(),
-  // Phase A/B: per-task provider override + read-only.
+  // Per-task provider override + read-only.
   providerOverride: z.string().nullable().optional(),
   readOnly: z.boolean().optional(),
 });

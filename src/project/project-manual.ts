@@ -5,7 +5,7 @@
 // a workflow or advising the user. It is distinct from `.vibestrate/rules.md`:
 // rules.md is per-turn prompt guidance; VIBESTRATE.md is the orchestrator's
 // durable project model. Precedence: Policy (code-enforced) > VIBESTRATE.md
-// (advisory) > rules.md. See docs/design/responsible-orchestrator.md.
+// (advisory) > rules.md.
 //
 // Loading is read-only and safe: path-guarded to the project root, secret-shaped
 // content redacted, size-bounded. Absent / unreadable degrades to present:false

@@ -10,7 +10,6 @@
 // available when a provider streams it.
 //
 // Pure derivation (testable without disk), mirroring run-assurance.ts.
-// Design: docs/design/run-audit-graph.md.
 
 import { pathExists, readText } from "../../utils/fs.js";
 import { runEventsPath, runStatePath } from "../../utils/paths.js";
@@ -66,7 +65,7 @@ export type AuditStep = {
   decision: string | null;
   /** Ordered "what happened" markers for this step. */
   attempts: AuditAttempt[];
-  // Inside-the-turn activity (Phase C), from stream-json providers. `opaque` is
+  // Inside-the-turn activity, from stream-json providers. `opaque` is
   // true when no provider streamed structured events (we can't see inside).
   tools: { name: string; count: number }[];
   subAgents: { name: string; description: string | null }[];

@@ -1,5 +1,5 @@
-// Shared persona write-service (orchestrator-personas.md). The single place that
-// mutates a project's `personas:` / `defaultPersona` config, used by BOTH the CLI
+// Shared persona write-service. The single place that mutates a project's
+// `personas:` / `defaultPersona` config, used by BOTH the CLI
 // (`vibe supervisor adopt|default|remove`) and the HTTP routes so the two surfaces
 // can't drift and the same safety checks apply everywhere.
 //

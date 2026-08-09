@@ -5,15 +5,15 @@
 // code-enforced gate fired. This is the "where did the supervisor do something"
 // lane that sits beside the run graph.
 //
-// The classification axis is the honesty boundary from
-// docs/design/responsible-orchestrator.md: the orchestrator is itself a model,
-// so a "judgment" (workflow selection, a review/verification verdict) is
-// advisory and can be wrong, while an "enforced" gate (the diff gate, an Action
-// Broker denial, a budget ceiling, a required approval) is deterministic and
-// authoritative. The two must never be conflated - rendering a model verdict as
-// if it were a hard guarantee is exactly the "laundering model confidence as
-// supervision" failure the design forbids. "structural" is neither: it is the
-// orchestrator executing the chosen workflow shape (a fan-out wave, a rewind).
+// The classification axis is the honesty boundary a responsible orchestrator
+// has to hold: the orchestrator is itself a model, so a "judgment" (workflow
+// selection, a review/verification verdict) is advisory and can be wrong, while
+// an "enforced" gate (the diff gate, an Action Broker denial, a budget ceiling,
+// a required approval) is deterministic and authoritative. The two must never
+// be conflated - rendering a model verdict as if it were a hard guarantee is
+// exactly the "laundering model confidence as supervision" failure this
+// boundary exists to prevent. "structural" is neither: it is the orchestrator
+// executing the chosen workflow shape (a fan-out wave, a rewind).
 //
 // Pure derivation (testable without disk), mirroring run-audit.ts. Works live
 // (the event log is append-only) and at terminal state.

@@ -1,9 +1,9 @@
-// Project policy - block tier (docs/design/policy-consolidation.md). A `block`-tier
-// policy is a DETERMINISTIC hard merge-cap: its regex `matcher` is matched against
-// the run's ADDED diff lines, and any match caps merge-readiness. This is the only
-// place a project policy touches the merge gate, and it is deliberately NOT the model
-// reviewer (a model verdict in the merge path could brick legitimate merges; a regex
-// blocks exactly what it matches).
+// Project policy - block tier. A `block`-tier policy is a DETERMINISTIC hard
+// merge-cap: its regex `matcher` is matched against the run's ADDED diff lines, and
+// any match caps merge-readiness. This is the only place a project policy touches
+// the merge gate, and it is deliberately NOT the model reviewer (a model verdict in
+// the merge path could brick legitimate merges; a regex blocks exactly what it
+// matches).
 //
 // Reuses the policy engine's VALIDATED primitives rather than a parallel engine:
 // `extractAddedLines` for the diff body and `POLICY_LIMITS` for the bounds (the same

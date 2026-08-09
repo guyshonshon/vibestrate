@@ -4,9 +4,9 @@ import {
   personaConfigSchema,
 } from "../src/project/config-schema.js";
 
-// Policy consolidation (docs/design/policy-consolidation.md): the persona-scoped
-// `preferenceSchema` becomes the project-scoped `projectPolicySchema` with
-// `tier` (was `severity`) and `matcher` (was `pattern`).
+// Policy consolidation: the persona-scoped `preferenceSchema` becomes the
+// project-scoped `projectPolicySchema` with `tier` (was `severity`) and
+// `matcher` (was `pattern`).
 describe("projectPolicySchema", () => {
   it("defaults a bare rule to the advise tier with null matcher", () => {
     const p = projectPolicySchema.parse({ id: "no-em-dash", statement: "no em-dash" });

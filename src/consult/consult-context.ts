@@ -5,7 +5,7 @@
 // project config/policies, recent run evidence, agent-visible annotations, and
 // (optionally) a named task/run or selected files. Every piece is read-only,
 // bounded, secret-redacted, and non-fatal: a missing/failed source becomes a note
-// and is skipped, never an error. See docs/design/responsible-orchestrator.md.
+// and is skipped, never an error.
 
 import { getProjectMetadata } from "../core/context/project-context-service.js";
 import { loadProjectManual } from "../project/project-manual.js";

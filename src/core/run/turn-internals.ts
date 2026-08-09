@@ -1,4 +1,4 @@
-// ── Turn internals (audit graph Phase C) ────────────────────────────────────
+// ── Turn internals ──────────────────────────────────────────────────────────
 //
 // Extract what a provider did *inside* a single turn - tool calls and sub-agent
 // spawns - from its raw stream-json stdout. This is the "opaque box" made
@@ -12,7 +12,7 @@
 // sub-agent's OWN internals are not in the parent stream (they run inside the
 // tool) - the parent sees the spawn + its result, which is the honest boundary.
 //
-// Pure + dependency-free. Design: docs/design/run-audit-graph.md (Phase C).
+// Pure + dependency-free.
 
 export type TurnToolUse = { name: string; count: number };
 export type TurnSubAgent = { name: string; description: string | null };

@@ -80,9 +80,9 @@ describe("session-reuse lifetime cap (U7)", () => {
 });
 
 // ── The Seat-keying invariant: same provider, different seat -> independent ──
-// Guards Decision 2 of docs/design/fast-track-and-session-policy.md. If anyone
-// re-keys the ledger on profile/model, these break: a same-profile reviewer
-// would collapse into the writer's participant and inherit its session.
+// Guards the session-keying decision: if anyone re-keys the ledger on
+// profile/model, these break - a same-profile reviewer would collapse into the
+// writer's participant and inherit its session.
 
 describe("participant keying is per-Seat, not per-profile", () => {
   const resumeCaps: ProviderCapabilities = {

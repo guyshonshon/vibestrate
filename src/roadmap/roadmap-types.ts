@@ -128,11 +128,10 @@ export const provenanceSchema = z.enum(["owner", "conductor"]);
 export type Provenance = z.infer<typeof provenanceSchema>;
 
 // A single checklist entry ("item"/todo) that lives *inside* a card. The
-// ordered `checklist` array on a Task is the meso-altitude breakdown (see
-// docs/design/roadmap-and-sequencing.md §1). Kept on the task on purpose so
-// context isn't scattered across many cards. `commitSha`/`promotedTaskId` are
-// forward-compat hooks for the pick-up loop (per-item commits) and
-// promote-item-to-card; null until those land.
+// ordered `checklist` array on a Task is the meso-altitude breakdown. Kept on
+// the task on purpose so context isn't scattered across many cards.
+// `commitSha`/`promotedTaskId` are forward-compat hooks for the pick-up loop
+// (per-item commits) and promote-item-to-card; null until those land.
 export const checklistItemSchema = z.object({
   id: z.string().min(1),
   text: z.string().min(1),
@@ -154,7 +153,7 @@ export const checklistItemSchema = z.object({
   // anything a human added (the default, so legacy steps upgrade losslessly);
   // "conductor" only for a step the autonomous Enhance pass added. Drives the
   // escalate-on-destructive authority policy deterministically - the conductor
-  // may not silently drop an `owner` step. (docs/design/saga-conductor-enhance.md)
+  // may not silently drop an `owner` step.
   provenance: provenanceSchema.default("owner"),
 });
 export type ChecklistItem = z.infer<typeof checklistItemSchema>;

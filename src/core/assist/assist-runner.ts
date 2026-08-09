@@ -5,8 +5,7 @@
 // other effect), then parse + Zod-validate the JSON response. No worktree, no
 // run lifecycle, no fix loop - the degenerate "ask the model one question and
 // get typed data back" path. Reused by "enhance" (decompose a card into a
-// checklist) and, later, overview / suggest. Design:
-// docs/design/roadmap-and-sequencing.md §1 + §8.
+// checklist) and, later, overview / suggest.
 
 import { z } from "zod";
 import { VibestrateError } from "../../utils/errors.js";

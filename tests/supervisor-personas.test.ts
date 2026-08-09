@@ -165,7 +165,7 @@ describe("supervisor personas - the upgrade-only flow bias (the teeth)", () => {
   });
 });
 
-describe("supervisor personas - prefersPosture nudge (Slice B, advisory)", () => {
+describe("supervisor personas - prefersPosture nudge (advisory)", () => {
   const projectRoot = os.tmpdir();
 
   it("nudges posture to the persona's prefersPosture on a risk-matched task (security)", async () => {
@@ -213,7 +213,7 @@ describe("supervisor personas - prefersPosture nudge (Slice B, advisory)", () =>
   });
 });
 
-describe("posture-applies (Slice 2b) - real selection -> effective run posture", () => {
+describe("posture-applies - real selection -> effective run posture", () => {
   const projectRoot = os.tmpdir();
   const riskyTask = "Refactor the auth login + token handling";
 
@@ -345,13 +345,13 @@ describe("supervisor personas - assurance independence label (honest)", () => {
 });
 
 describe("supervisor personas - the review panels are review-only (capped at partially_verified)", () => {
-  // Honesty claim (CHANGELOG 0.7.31 + orchestrator-personas.md): a run on
-  // `security-review` (and the generalist `panel-review` the staff-engineer
-  // persona prefers) can NEVER reach the `verified` assurance level, because the
-  // flow ends at the arbiter with NO verifying step - so the run produces
-  // verification = not_run. The assurance *consequence* (verification not_run ->
-  // partially_verified, even with validation + review passing) is already proven
-  // in tests/safety/run-assurance.test.ts ("partially_verified: approved but
+  // Honesty claim (CHANGELOG 0.7.31): a run on `security-review` (and the
+  // generalist `panel-review` the staff-engineer persona prefers) can NEVER
+  // reach the `verified` assurance level, because the flow ends at the arbiter
+  // with NO verifying step - so the run produces verification = not_run. The
+  // assurance *consequence* (verification not_run -> partially_verified, even
+  // with validation + review passing) is already proven in
+  // tests/safety/run-assurance.test.ts ("partially_verified: approved but
   // verification not run"). What was unguarded is the STRUCTURAL reason that holds
   // that claim up - if someone adds a verify gate to these flows, the cap silently
   // breaks and the changelog becomes a lie. These two assertions are that guard.

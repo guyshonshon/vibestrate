@@ -1,4 +1,4 @@
-// ── Provider model/effort detection (design/provider-capability-detection.md) ─
+// ── Provider model/effort detection ─────────────────────────────────────────────────
 //
 // Some provider CLIs expose their real model catalog. codex 0.134+ ships
 // `codex debug models [--bundled]`, emitting JSON with each model's slug,

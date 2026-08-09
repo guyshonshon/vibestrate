@@ -11,10 +11,10 @@ import {
 import type { ProjectConfig } from "../../project/config-schema.js";
 import { color, symbol } from "../ui/format.js";
 
-// `vibe supervisor` - the CLI mirror of the dashboard's Supervisors surface
-// (orchestrator-personas.md). `list`/`archetypes` are read-only; `adopt`/
-// `default`/`remove` are the write actions, sharing the SAME persona-service the
-// HTTP routes use so the two surfaces can't drift.
+// `vibe supervisor` - the CLI mirror of the dashboard's Supervisors surface.
+// `list`/`archetypes` are read-only; `adopt`/`default`/`remove` are the write
+// actions, sharing the SAME persona-service the HTTP routes use so the two
+// surfaces can't drift.
 
 /** Resolve the project root or exit with a clear message (write commands need a
  *  real project). */
@@ -144,7 +144,7 @@ export async function runSupervisorRemove(id: string): Promise<number> {
 
 export function buildSupervisorCommand(): Command {
   const cmd = new Command("supervisor").description(
-    "Supervisor personas (the orchestrator's judgment posture). See orchestrator-personas.md.",
+    "Supervisor personas (the orchestrator's judgment posture).",
   );
 
   cmd

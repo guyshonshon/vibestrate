@@ -11,7 +11,7 @@
 // available - so simple projects pay nothing. The selection turn is read-only
 // (the assist primitive: broker-gated, structured, no writes; bucket
 // runs/selection/). It states a confidence + reasons + risks, never faking
-// authority. See docs/design/responsible-orchestrator.md.
+// authority.
 
 import { z } from "zod";
 import { classifyEffort } from "../core/effort-heuristic.js";
@@ -41,7 +41,7 @@ export type WorkflowSelectionSource =
   | "supervisor-upgraded";
 export type WorkflowPosture = "normal" | "sandbox-suggested" | "approval-suggested";
 
-/** Record of a persona's upgrade-only flow bias (orchestrator-personas.md). */
+/** Record of a persona's upgrade-only flow bias. */
 export type PersonaUpgrade = {
   from: string;
   to: string;
@@ -290,9 +290,9 @@ const flowWeight = (complexity: FlowComplexity | null | undefined): number =>
   COMPLEXITY_RANK[complexity ?? "medium"] ?? 1;
 
 /**
- * The persona's one behavioral lever this slice (orchestrator-personas.md): for a
- * NON-forced selection, if the task matches the persona's risk signals, UPGRADE
- * the flow to a preferred review flow. Strictly UPGRADE-ONLY: the target must not
+ * The persona's one behavioral lever on flow choice: for a NON-forced selection,
+ * if the task matches the persona's risk signals, UPGRADE the flow to a
+ * preferred review flow. Strictly UPGRADE-ONLY: the target must not
  * be a LIGHTER weight class than the chosen flow (else a project persona could
  * downgrade a heavy default while mislabeling it "upgraded"). Never overrides an
  * explicit --flow; always logged.
@@ -315,7 +315,7 @@ async function maybeUpgradeForPersona(input: {
   let result = base;
   let teethFired = false;
 
-  // Slice B - posture nudge (advisory, upgrade-only): a risk-matched task under a
+  // Posture nudge (advisory, upgrade-only): a risk-matched task under a
   // persona that prefers a heavier posture nudges the run's posture UP from
   // "normal". Never a downgrade, never a gate. Fires independently of the flow
   // upgrade below (a persona may want sandbox without changing the flow).

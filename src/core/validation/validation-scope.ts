@@ -1,4 +1,4 @@
-// Proportional validation scoping (proportional-orchestration.md).
+// Proportional validation scoping.
 //
 // The orchestrator should not run a project's code checks (tests, typecheck,
 // lint) for a change that is only documentation/text/assets. This module makes

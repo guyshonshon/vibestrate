@@ -1,4 +1,4 @@
-// ── "analyze deeper" (design/merge-advisor.md) ───────────────
+// ── "analyze deeper" ───────────────────────────────────────────────────────────────────────────
 //
 // An OPTIONAL, read-only consult-style LLM pass over a merge-ready run's diff
 // vs main, plus deterministic hot-path context. It is ADVISORY PROSE ONLY: it

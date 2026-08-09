@@ -220,7 +220,7 @@ type BundleActionHandler = (
   req: import("fastify").FastifyRequest,
 ) => Promise<unknown>;
 
-// Phase B: actions that mutate the worktree must be refused on a
+// Actions that mutate the worktree must be refused on a
 // read-only run. Add / remove / approve / reject / preflight only touch
 // metadata and stay allowed.
 const READ_ONLY_REFUSED_ACTIONS = new Set([

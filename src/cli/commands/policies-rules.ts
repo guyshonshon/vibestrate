@@ -17,9 +17,9 @@ import {
   type PolicyDraft,
 } from "../../policies/policy-assist.js";
 
-// Project-policy owner verbs, registered onto `vibe policies`
-// (docs/design/policy-consolidation.md). The owner authors tiered rules here so
-// they never hand-edit YAML. Optional by design - a plain `vibe run` needs none.
+// Project-policy owner verbs, registered onto `vibe policies`, the one
+// consolidated rule surface. The owner authors tiered rules here so they never
+// hand-edit YAML. Optional by design - a plain `vibe run` needs none.
 // Parity sibling of the dashboard Project Policies page.
 export function registerProjectPolicyCommands(cmd: Command): void {
   cmd

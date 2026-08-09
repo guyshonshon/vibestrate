@@ -44,7 +44,6 @@ const FLOW_AGENT_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 // width). Deliberately conservative: each concurrent turn is an opaque box that
 // may itself spawn provider-internal subagents, so the real footprint is a
 // multiple of this. The built-in panel uses 3; this caps any project flow.
-// See custom-workflow-dags.md ("Conservative width cap", "the opaque box").
 export const MAX_PARALLEL_FANOUT = 4;
 
 export const flowTokenSchema = z
@@ -178,8 +177,7 @@ export const flowParamSchema = z
      * **namespaced per flow** (`<flowId>.<param>`), so two flows that both
      * declare `name` never cross-contaminate. `true` -> a **project-global**
      * key (the bare param name), reused by any flow declaring a `shared` param
-     * of that name ("fill `niche` once, every flow sees it"). See
-     * docs/design/profiling-intake.md.
+     * of that name ("fill `niche` once, every flow sees it").
      */
     shared: z.boolean().default(false),
     /**
@@ -248,8 +246,8 @@ export const flowStepSchema = z
     seat: flowTokenSchema.optional(),
     inputs: z.array(flowTokenSchema).default([]),
     outputs: z.array(flowTokenSchema).default([]),
-    // Explicit DAG edges (custom-workflow-dags.md): the step
-    // ids this step depends on. Empty (the default) means today's linear flow -
+    // Explicit DAG edges: the step ids this step depends on. Empty (the
+    // default) means today's linear flow -
     // a flow that declares ANY `needs` opts the whole flow into graph mode, and
     // validation then requires the array order to be a valid topological sort
     // (so existing linear flows are trivially valid and unchanged). Steps that
@@ -275,7 +273,7 @@ export const flowStepSchema = z
     // Only honored by the graph scheduler, so it's restricted to graph flows and
     // to turn kinds (see validation below). A non-zero provider *exit* already
     // continues by design; this covers the hard-throw case the fan-out would
-    // otherwise let take the whole run down. See custom-workflow-dags.md.
+    // otherwise let take the whole run down.
     continueOnError: z.boolean().default(false),
     // Per-step retries: extra attempts for a flaky turn. If the turn
     // fails (provider non-zero exit) or throws (non-control) on an attempt, it's
@@ -288,8 +286,7 @@ export const flowStepSchema = z
     stage: flowStageSchema.optional(),
     approval: flowApprovalGateSchema.optional(),
     repeat: flowStepRepeatSchema.optional(),
-    // Express (proportional-orchestration.md): deterministic review descent.
-    // A review-turn marked `skipWhen:
+    // Express: deterministic review descent. A review-turn marked `skipWhen:
     // "inert_diff"` is skipped at runtime ONLY when the run's ACTUAL diff is
     // strict-prose (.md/.markdown/.txt/.rst) AND touches no protected path
     // (orchestrator/protected-paths.ts) - recorded evidence, never model
@@ -297,7 +294,7 @@ export const flowStepSchema = z
     // linear flows only, never inside an adaptive loop body (the loop's
     // decision contract needs a real decision).
     skipWhen: z.enum(["inert_diff"]).optional(),
-    // Clean-room context (context-scaling.md rung 2): when true, this step's seat
+    // Clean-room context: when true, this step's seat
     // does NOT get the producer's run-derived narrative - the run brief (the
     // "story so far") and the planner-only ledger/continuity - so a judge reasons
     // without anchoring to how the producer framed things. It KEEPS ground truth:
@@ -670,7 +667,7 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
       }
     }
 
-    // ── Graph (DAG) validation (custom-workflow-dags.md) ──
+    // ── Graph (DAG) validation ────────────────────────────
     // A flow is in "graph mode" iff any step declares `needs`. The linear path
     // is preserved byte-for-byte for non-graph flows, so this whole block is a
     // no-op for them. For graph flows we validate structure only (acyclicity,
@@ -736,7 +733,7 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
 
       flow.steps.forEach((step, index) => {
         // Fixed repeat expands a step into new ids (`<id>-repeat-N`), which can't
-        // be DAG targets cleanly; keep graph steps un-repeated for the first slice.
+        // be DAG targets cleanly, so graph steps stay un-repeated.
         if (step.repeat) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,

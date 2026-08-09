@@ -3,8 +3,7 @@
 // The meso-altitude planning move: take a task/card and break it into an
 // ordered Checklist of concrete items. An assist run (read-only, structured
 // output) proposes the items; appending them is a separate, explicit step
-// (dry-run + accept), so the model never mutates the board on its own. Design:
-// docs/design/roadmap-and-sequencing.md §1 ("Enhance").
+// (dry-run + accept), so the model never mutates the board on its own.
 
 import { z } from "zod";
 import { loadConfig, type LoadedConfig } from "../../project/config-loader.js";

@@ -984,7 +984,7 @@
         "vibe",
         "supervisor"
       ],
-      "description": "Supervisor personas (the orchestrator's judgment posture). See orchestrator-personas.md.",
+      "description": "Supervisor personas (the orchestrator's judgment posture).",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],

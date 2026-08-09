@@ -57,7 +57,7 @@ import {
 // validate → review → (fix → re-validate → review)* → verify workflow, expressed
 // as a real flow definition. This is the single source of truth for the default
 // workflow's shape - a plain `vibe run` resolves it and executes it through the
-// one flow runner (see runner-unification.md). There is no separate code path.
+// one flow runner. There is no separate code path.
 //
 // The review→fix loop is the adaptive-loop construct, not a fixed repeat: the
 // body is [review, fix, revalidation] and `decisionStep` is the head `review`.
@@ -396,12 +396,11 @@ export const pickupFlow = flowDefinitionSchema.parse({
   },
 });
 
-// The built-in **late review panel**: the first graph (DAG) flow
-// (custom-workflow-dags.md). It runs the standard plan -> architect ->
-// implement -> validate spine, then fans out into THREE read-only reviewers
-// that inspect the *same* real diff + validation evidence from distinct lenses
-// (correctness, tests, security/risk), concurrently, and an arbiter join reads
-// all three and renders one verdict.
+// The built-in **late review panel**: the first graph (DAG) flow. It runs the
+// standard plan -> architect -> implement -> validate spine, then fans out into
+// THREE read-only reviewers that inspect the *same* real diff + validation
+// evidence from distinct lenses (correctness, tests, security/risk),
+// concurrently, and an arbiter join reads all three and renders one verdict.
 //
 // Why a panel: late review over a concrete diff catches more than a single
 // reviewer, and the lenses are deliberately distinct (not the same prompt 3x).
@@ -576,8 +575,8 @@ export const reviewPanelFlow = flowDefinitionSchema.parse({
 });
 
 // The built-in **security review panel**: the `panel-review` shape aimed through
-// a SECURITY lens (orchestrator-personas.md). Same structure - plan -> architect
-// -> implement -> validate, then a 3-lens read-only fan-out + an arbiter join -
+// a SECURITY lens. Same structure - plan -> architect -> implement -> validate,
+// then a 3-lens read-only fan-out + an arbiter join -
 // but the three reviewers inspect AUTHZ, SECRETS/EXPOSURE, and INJECTION/UNSAFE
 // INPUT instead of the generalist correctness/tests/risk lenses. It is the flow
 // the built-in `security` persona prefers, so a risk-tagged task under that
@@ -732,9 +731,9 @@ export const securityReviewFlow = flowDefinitionSchema.parse({
   },
 });
 
-// The built-in **per-item analysis pick-up**: the first checklist DAG
-// (custom-workflow-dags.md). It is the pick-up flow with a
-// GRAPH inside the per-item band: for EACH checklist item, two read-only analysts
+// The built-in **per-item analysis pick-up**: the first checklist DAG. It is the
+// pick-up flow with a GRAPH inside the per-item band: for EACH checklist item,
+// two read-only analysts
 // study the item in parallel from distinct lenses (risk/impact + test-surface),
 // then a single serial implementer writes the item informed by both. "Think in
 // parallel, then build", once per item, in one worktree (a commit per item).
@@ -1076,9 +1075,9 @@ export const sagaFlow = flowDefinitionSchema.parse({
   },
 });
 
-// The built-in **express flow** (proportional-orchestration.md): one implementer
-// turn with a diff-floored safety net. Validation is change-scoped and the
-// review step is `skipWhen: "inert_diff"` - it runs
+// The built-in **express flow**: one implementer turn with a diff-floored safety
+// net. Validation is change-scoped and the review step is
+// `skipWhen: "inert_diff"` - it runs
 // UNLESS the run's actual diff is strict-prose (.md/.markdown/.txt/.rst) and
 // touches no protected path. The skip is recorded evidence; assurance
 // then reports `review: skipped_inert_diff` and caps at partially_verified.
@@ -1252,10 +1251,9 @@ export const planOnlyFlow = flowDefinitionSchema.parse({
 
 // ── Spec-up phase ("Plan" as a CTO) ────────────────────────────────────────────
 // Three read-only links in a human-stepped chain (no durable pause, no nested
-// runs - see docs/design/spec-up-phase.md). The CTO posture lives in each step's
-// `instructions` (the director, v1; a persona `specUpPosture` field is a tracked
-// follow-up). None of the steps produce a `diff`, so run-launcher clamps every
-// link read-only by construction.
+// runs). The CTO posture lives in each step's `instructions` (the director, v1;
+// a persona `specUpPosture` field is a tracked follow-up). None of the steps
+// produce a `diff`, so run-launcher clamps every link read-only by construction.
 //
 // Chain integrity (the load-bearing invariant, asserted by a test): the roadmap
 // link resumes the spec-up run at stage "executing", so seedResumedSteps copies the

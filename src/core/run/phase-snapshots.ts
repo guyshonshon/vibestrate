@@ -1,10 +1,10 @@
-// ── Per-phase worktree snapshots (Rewind phase 2) ───────────────────────────
+// ── Per-phase worktree snapshots ────────────────────────────────────────────
 //
 // Capture the run's worktree code state at each code-producing phase boundary
 // (after executing, after each fixing) as a DURABLE git object, so a later run
 // can "rewind to review/verify/fix" and have the same files to work on.
 //
-// Mechanism (see docs/design/rewind-phase-2.md):
+// Mechanism:
 //   tree   = git add -A + git write-tree            (snapshotWorktree)
 //   commit = git commit-tree <tree>                 (parentless; explicit author)
 //   ref    = git update-ref refs/vibestrate/snapshots/<runId>/<seq>  <commit>

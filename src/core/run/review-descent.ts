@@ -1,8 +1,7 @@
 // ── Express: deterministic review descent ───────────────────────────────────
 //
 // Decides whether a `skipWhen: "inert_diff"` review-turn may be skipped, from
-// the run's ACTUAL changed files - never the task text, never model judgment
-// (proportional-orchestration.md non-negotiable #2; run-experience batch P4b).
+// the run's ACTUAL changed files - never the task text, never model judgment.
 //
 // The bar is deliberately STRICTER than the validation-scoping allowlist:
 // only prose files (.md/.markdown/.txt/.rst) qualify. The inert-scope set

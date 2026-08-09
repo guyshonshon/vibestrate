@@ -102,13 +102,13 @@ export async function runValidation(
     message: `Validation starting in ${ctx.worktreePath}.`,
   });
 
-  // Proportional validation scoping (proportional-orchestration.md):
-  // when the run's entire diff is provably-inert (docs/text/assets) skip the
-  // configured code checks - running `pnpm test` for a `.md` change is pure
-  // waste. Keyed on the ACTUAL changed files (same uncommitted-vs-HEAD diff the
-  // orchestrator uses elsewhere), never the task text, and fail-safe: any
-  // non-inert/unknown file, an empty diff, or a diff error -> validate as
-  // configured. Off when `commands.scopeValidationByChange` is false.
+  // Proportional validation scoping: when the run's entire diff is provably-inert
+  // (docs/text/assets) skip the configured code checks - running `pnpm test` for
+  // a `.md` change is pure waste. Keyed on the ACTUAL changed files (same
+  // uncommitted-vs-HEAD diff the orchestrator uses elsewhere), never the task
+  // text, and fail-safe: any non-inert/unknown file, an empty diff, or a diff
+  // error -> validate as configured. Off when
+  // `commands.scopeValidationByChange` is false.
   const configured = deps.config.commands.validate;
   if (configured.length > 0 && deps.config.commands.scopeValidationByChange) {
     let decision: ReturnType<typeof classifyChangedFilesForValidation> | null = null;
@@ -116,7 +116,7 @@ export async function runValidation(
       const snap = await getDiffSnapshot({ worktreePath: ctx.worktreePath });
       // Protected-path floor: a protected path (built-in globs + policies.protectedPaths)
       // is never inert - a workflow .yml or a user-protected .md still
-      // validates in full. See orchestrator/protected-paths.ts.
+      // validates in full. The matcher lives in supervisor/protected-paths.ts.
       decision = classifyChangedFilesForValidation(
         snap.files.map((f) => f.path),
         {

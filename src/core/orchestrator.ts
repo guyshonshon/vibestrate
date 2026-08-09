@@ -406,16 +406,16 @@ export class Orchestrator {
    *  start and injected into the PLANNER turn alongside the continuity ledger
    *  so a fresh run is grounded in the real repo shape. "" when absent. */
   private codebaseMapBlock = "";
-  /** Pre-rendered persona review-lens emphasis block (orchestrator-personas.md
-   *  follow-up), computed once at run start from the active persona's
-   *  `reviewLenses` (closed vocabulary) and appended to independent-reviewer turns
-   *  so switching persona changes what the reviewers scrutinise. null = the
-   *  persona declared no known lens, so review turns are byte-identical to before. */
+  /** Pre-rendered persona review-lens emphasis block, computed once at run start
+   *  from the active persona's `reviewLenses` (closed vocabulary) and appended to
+   *  independent-reviewer turns so switching persona changes what the reviewers
+   *  scrutinise. null = the persona declared no known lens, so review turns are
+   *  byte-identical to before. */
   private reviewLensEmphasis: string | null = null;
-  /** Pre-rendered persona spec-up posture block (spec-up-phase.md), computed once
-   *  at run start from the active persona's `specUpPosture` and appended to the
-   *  spec-up phase's planning turns so a persona aims intake/scope/spec/architecture.
-   *  null = not a spec-up run, or the persona declared no posture (turns unchanged). */
+  /** Pre-rendered persona spec-up posture block, computed once at run start from
+   *  the active persona's `specUpPosture` and appended to the spec-up phase's
+   *  planning turns so a persona aims intake/scope/spec/architecture. null = not
+   *  a spec-up run, or the persona declared no posture (turns unchanged). */
   private specUpPostureBlock: string | null = null;
   /** Pre-rendered project-policy advise block (policy-advise.ts), computed once at
    *  run start from the project's confirmed advise policies and appended to lensed
@@ -907,8 +907,8 @@ export class Orchestrator {
         },
       });
     }
-    // The active supervisor persona (orchestrator-personas.md): always recorded
-    // for transparency, and the upgrade-only flow bias when it fired.
+    // The active supervisor persona: always recorded for transparency, and the
+    // upgrade-only flow bias when it fired.
     if (this.selection?.personaId) {
       await eventLog.append({
         type: "persona.selected",
@@ -945,11 +945,10 @@ export class Orchestrator {
           data: { personaId: personaForRun.id, reviewerProfile: rp, steps: pinned },
         });
       }
-      // reviewLens emphasis (orchestrator-personas.md follow-up): map the persona's
-      // declared lenses through the closed vocabulary and stash the block for
-      // injection into reviewer turns. Recorded as evidence (behavioral-or-cut):
-      // the audit shows which lenses aimed the review, and which lens strings were
-      // ignored (unknown -> never injected).
+      // reviewLens emphasis: map the persona's declared lenses through the closed
+      // vocabulary and stash the block for injection into reviewer turns. Recorded
+      // as evidence (behavioral-or-cut): the audit shows which lenses aimed the
+      // review, and which lens strings were ignored (unknown -> never injected).
       const lensEmphasis = renderPersonaReviewLensEmphasis(
         personaForRun.config.reviewLenses ?? [],
       );
@@ -986,11 +985,11 @@ export class Orchestrator {
           },
         });
       }
-      // specUpPosture (spec-up-phase.md): on a spec-up phase run, aim the planning
-      // agents through the persona's CTO posture. Free text (planning trust class:
-      // committed config, never remotely sourced; it also reaches the spec-up-review
-      // turn, but that decision gates only a read-only, no-diff terminal status, not
-      // a code merge). Recorded as evidence.
+      // specUpPosture: on a spec-up phase run, aim the planning agents through the
+      // persona's CTO posture. Free text (planning trust class: committed config,
+      // never remotely sourced; it also reaches the spec-up-review turn, but that
+      // decision gates only a read-only, no-diff terminal status, not a code
+      // merge). Recorded as evidence.
       if (isSpecUpFlow(flow.flowId)) {
         const postureBlock = renderSpecUpPostureBlock(personaForRun.config.specUpPosture ?? null);
         this.specUpPostureBlock = postureBlock;
@@ -1362,12 +1361,12 @@ export class Orchestrator {
   }
 
   /**
-   * The bounded read-only fan-out/join scheduler for graph (DAG) flows
-   * (custom-workflow-dags.md). Walks the dependency frontier: a step is
-   * ready once all its `needs` are done. Ready steps that belong to a parallel
-   * group (>= 2 steps sharing one `needs` set - guaranteed read-only at resolve
-   * time) run CONCURRENTLY; every other step runs one at a time, so a write turn
-   * or validation never overlaps anything (one writer per worktree).
+   * The bounded read-only fan-out/join scheduler for graph (DAG) flows. Walks
+   * the dependency frontier: a step is ready once all its `needs` are done.
+   * Ready steps that belong to a parallel group (>= 2 steps sharing one `needs`
+   * set - guaranteed read-only at resolve time) run CONCURRENTLY; every other
+   * step runs one at a time, so a write turn or validation never overlaps
+   * anything (one writer per worktree).
    *
    * Concurrency is "parallel compute, serial commit": only the provider turns
    * (the expensive part, with per-step-isolated artifacts) overlap; all
@@ -4376,11 +4375,10 @@ export class Orchestrator {
     /** The run brief (story so far), injected as a prompt section. */
     runBrief?: string;
     /**
-     * Clean-room seat (context-scaling.md rung 2): drop the run-level grounding
-     * injected on top of this turn (attached context sources, run brief, human
-     * annotations, ledger/continuity) - keep only the flow's declared prior
-     * artifacts + task/rules/role. Opt-in per flow step; default behaviour
-     * (undefined/false) is unchanged.
+     * Clean-room seat: drop the run-level grounding injected on top of this turn
+     * (attached context sources, run brief, human annotations, ledger/continuity)
+     * and keep only the flow's declared prior artifacts + task/rules/role. Opt-in
+     * per flow step; default behaviour (undefined/false) is unchanged.
      */
     cleanRoom?: boolean;
     /**
@@ -4560,14 +4558,14 @@ export class Orchestrator {
         : "";
     if (projectLedger || continuityFlags || methodologyGuidance || projectMemory)
       this.ledgerInjected = true;
-    // Clean-room seat (context-scaling.md rung 2): drop the producer's run-derived
-    // NARRATIVE - the run brief (the "story so far") and the planner-only
-    // ledger/continuity - so a judge reasons without being anchored to how the
-    // producer framed things. It deliberately KEEPS ground truth: attached context
-    // sources (the spec), user annotations, and the step's declared inputs. A
-    // controlled eval (see context-scaling.md) showed that dropping the attached
-    // spec from a reviewer measurably weakened spec-compliance review, while
-    // dropping only the brief cost nothing - so ground truth stays, chatter goes.
+    // Clean-room seat: drop the producer's run-derived NARRATIVE - the run brief
+    // (the "story so far") and the planner-only ledger/continuity - so a judge
+    // reasons without being anchored to how the producer framed things. It
+    // deliberately KEEPS ground truth: attached context sources (the spec), user
+    // annotations, and the step's declared inputs. A controlled eval showed that
+    // dropping the attached spec from a reviewer measurably weakened
+    // spec-compliance review, while dropping only the brief cost nothing - so
+    // ground truth stays, chatter goes.
     const cleanRoom = input.cleanRoom === true;
     const prompt = buildRolePrompt({
       roleId,

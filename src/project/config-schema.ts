@@ -66,7 +66,7 @@ const validationProfileEntrySchema = z.object({
 export const commandsConfigSchema = z.object({
   validate: z.array(z.string()).default([]).describe("Validation commands run on a run's diff (e.g. typecheck, test)."),
   /**
-   * Proportional validation scoping (proportional-orchestration.md).
+   * Proportional validation scoping.
    * When true (default), a run whose entire diff is provably-inert (only
    * docs/text/asset files - see validation-scope.ts) skips the configured
    * `validate` commands, since running the project's code checks (tests,
@@ -133,7 +133,7 @@ export const commitsConfigSchema = z.object({
 });
 export type CommitsConfig = z.infer<typeof commitsConfigSchema>;
 
-// Suggestion-only thresholds (design/merge-advisor.md).
+// Suggestion-only thresholds.
 // Crossing one flips the merge advisor's recommendation to
 // stage-on-integration-branch - it NEVER blocks an action. The hard merge
 // policies (forbidAutoMerge / forbidAutoPush / requireHumanMerge) live
@@ -230,10 +230,10 @@ export const policiesConfigSchema = z.object({
   // (ms) to give a delayed watcher a window. Applies only when a run is unattended.
   unattendedApprovalTimeoutMs: z.number().int().nonnegative().default(0).describe("Ms an unattended run waits at a gate before blocking; 0 = block promptly (default 0)."),
   approvalMaxChangeRounds: z.number().int().positive().default(3).describe("Max times a human can 'request changes' at one approval gate before the run blocks (bounds an accidental request-changes loop; default 3)."),
-  // Protected paths (proportional-orchestration.md). Globs whose changed
-  // files always demand the full check descent: never inert for validation
-  // scoping, and (future slices) always reviewed. ADDITIVE: these extend the
-  // built-in set in orchestrator/protected-paths.ts; they cannot remove it.
+  // Protected paths. Globs whose changed files always demand the full check
+  // descent: never inert for validation scoping, and (later) always reviewed.
+  // ADDITIVE: these extend the built-in set in orchestrator/protected-paths.ts;
+  // they cannot remove it.
   protectedPaths: z.array(z.string().min(1).max(300)).max(200).default([]).describe("Extra globs that always demand full validation/review (default none)."),
   // Explicit opt-out from the BUILT-IN protected set only (e.g. a repo whose
   // "auth/" directory is sample fixtures). User-added protectedPaths are not
@@ -261,13 +261,12 @@ export const budgetConfigSchema = z
      * new model - see the orchestrator's enforceSpendCap.
      */
     fallbackProfile: z.string().min(1).optional().describe("Cheaper profile to switch to on downgrade-model; unset falls back to stop."),
-    // ── Count/time ceilings (unattended-resilience) ─────────────────────────
+    // ── Count/time ceilings ─────────────────────────────────────────────────
     // Hard caps that bind WITHOUT measured cost - the reliable backstop for
     // unattended runs, since USD cost is often unmeasured for local CLI
     // providers. Checked before every agent turn at the spend-cap checkpoint.
     // All null = off (no behavior change). An agent turn is one model turn
-    // (validation/approval-gate steps don't count). See
-    // design/unattended-resilience.md.
+    // (validation/approval-gate steps don't count).
     /** Max agent turns in a single run. */
     maxTurnsPerRun: z.number().int().positive().nullable().default(null).describe("Max agent turns in a single run; null = off (default off)."),
     /** Max wall-clock minutes for a single run (start to now; catches hangs). */
@@ -328,13 +327,13 @@ export const supervisedConfigSchema = z
   .prefault({});
 export type SupervisedConfig = z.infer<typeof supervisedConfigSchema>;
 
-// Provider resilience (unattended-resilience). Recoverable provider failures
-// - rate limits (429/quota) and transient blips (5xx, "server temporarily
-// unavailable", overloaded, timeouts) - are auto-retried with backoff before the
-// turn's outcome is final, so an overnight run rides them out instead of dying.
+// Provider resilience. Recoverable provider failures - rate limits (429/quota)
+// and transient blips (5xx, "server temporarily unavailable", overloaded,
+// timeouts) - are auto-retried with backoff before the turn's outcome is final,
+// so an overnight run rides them out instead of dying.
 // On by default (pure robustness); hard failures (bad flag, auth, empty output)
 // are NOT retried here. `patterns` are extra user regexes merged with built-ins
-// (CLI providers phrase errors differently). See design/unattended-resilience.md.
+// (CLI providers phrase errors differently).
 const resilienceClassSchema = z
   .object({
     maxRetries: z.number().int().min(0).max(10).describe("Max retry attempts for this failure class."),
@@ -405,7 +404,7 @@ export type ResilienceConfig = z.infer<typeof resilienceConfigSchema>;
 // `maxReuseTurns` caps consecutive reuses before re-opening a fresh session
 // (re-seeded from artifacts - "compaction by re-grounding", lossless). 0 =
 // unlimited (today's behavior). Only affects providers that support session
-// reuse. See design/unattended-resilience.md.
+// reuse.
 export const sessionConfigSchema = z
   .object({
     maxReuseTurns: z.number().int().min(0).max(1000).default(0).describe("Max consecutive provider-session reuses before reopening; 0 = unlimited (default 0)."),
@@ -414,7 +413,7 @@ export const sessionConfigSchema = z
   .prefault({});
 export type SessionConfig = z.infer<typeof sessionConfigSchema>;
 
-// ─── Supervisor personas (orchestrator-personas.md) ──────────────────────────
+// ─── Supervisor personas ─────────────────────────────────────────────────────
 // A persona is the orchestrator's *judgment posture* - an ADVISORY preset that
 // biases supervision. It is NOT a crew/flow/profile. It never softens a
 // code-enforced gate and never raises confidence past deterministic evidence
@@ -436,9 +435,9 @@ export const personaNameSchema = z
   );
 
 /**
- * A single PROJECT policy (docs/design/policy-consolidation.md). The consolidated,
- * project-scoped rule surface (was the persona-scoped `preferenceSchema`): every
- * owner-authored rule carries a `tier`.
+ * A single PROJECT policy. The consolidated, project-scoped rule surface (was
+ * the persona-scoped `preferenceSchema`): every owner-authored rule carries a
+ * `tier`.
  * - `advise` (default): injected into a reviewer turn so a MODEL verifies the
  *   change against it; rides the existing review -> fix loop. No matcher.
  * - `block`: a DETERMINISTIC hard merge-cap (not the model reviewer) - it caps
@@ -555,10 +554,10 @@ export const personaConfigSchema = z
      */
     reviewLenses: z.array(z.string().min(1).max(40)).default([]).describe("Review lenses that aim the reviewers (closed vocabulary; unknown lenses are display-only)."),
     // Owner rules moved OFF the persona to the project-level `projectPolicies`
-    // surface (docs/design/policy-consolidation.md): a project-wide rule must hold
-    // under any supervisor, so it no longer lives on one persona. A persona keeps
-    // only its judgment (reviewLenses + posture). A leftover `preferences` key here
-    // now fails config load by `.strict()` - run `vibe policies migrate`.
+    // surface: a project-wide rule must hold under any supervisor, so it no
+    // longer lives on one persona. A persona keeps only its judgment
+    // (reviewLenses + posture). A leftover `preferences` key here now fails
+    // config load by `.strict()` - run `vibe policies migrate`.
   })
   .strict();
 export type PersonaConfig = z.infer<typeof personaConfigSchema>;
@@ -618,8 +617,8 @@ export const projectConfigBaseSchema = z.object({
    */
   defaultFlow: z.string().min(1).nullable().default(null).describe("Default flow for runs without --flow; null = auto-select per task (default null)."),
   /**
-   * Supervisor personas (orchestrator-personas.md). Project-defined personas; the
-   * built-in "staff-engineer" always resolves even when this is empty.
+   * Supervisor personas. Project-defined personas; the built-in
+   * "staff-engineer" always resolves even when this is empty.
    */
   personas: z.record(personaNameSchema, personaConfigSchema).default({}),
   /**
@@ -629,11 +628,11 @@ export const projectConfigBaseSchema = z.object({
    */
   defaultPersona: z.string().min(1).default("staff-engineer").describe("Default judgment posture; built-in or a key in personas (default staff-engineer)."),
   /**
-   * Project policies (docs/design/policy-consolidation.md): the consolidated,
-   * project-scoped rule surface. Each rule carries a `tier` (advise = model
-   * reviewer; block = deterministic merge-cap). Owner-authored, confirmed-gated;
-   * separate from the fail-CLOSED hard security toggles in `policies` below. A
-   * plain run needs none of these (the optionality law): defaults to [].
+   * Project policies: the consolidated, project-scoped rule surface. Each rule
+   * carries a `tier` (advise = model reviewer; block = deterministic merge-cap).
+   * Owner-authored, confirmed-gated; separate from the fail-CLOSED hard security
+   * toggles in `policies` below. A plain run needs none of these (the
+   * optionality law): defaults to [].
    */
   projectPolicies: z.array(projectPolicySchema).default([]).describe("Project-scoped tiered rules (advise = reviewer-injected; block = deterministic merge-cap). Default none."),
   /**

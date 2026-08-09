@@ -15,7 +15,7 @@ import { runEventsPath } from "../src/utils/paths.js";
 import type { VibestrateEvent } from "../src/core/stores/event-log.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
-// Proportional validation scoping, slice 1 (proportional-orchestration.md / B3).
+// Proportional validation scoping.
 // The safety property under test: validation is skipped ONLY when EVERY changed
 // file is provably-inert. The classifier is an allowlist, so anything unknown
 // (code, .json, .yaml, .sql, no-extension) forces validation - a misjudgment can

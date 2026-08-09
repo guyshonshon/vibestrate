@@ -5,8 +5,7 @@
 // Built on the assist primitive, so it is broker-gated and never writes. The
 // answer schema bakes in the locked guardrail from the design review: the model
 // must state a confidence and list caveats (what it could NOT verify) rather than
-// laundering model confidence as authority. See
-// docs/design/responsible-orchestrator.md.
+// laundering model confidence as authority.
 
 import { z } from "zod";
 import { VibestrateError } from "../utils/errors.js";

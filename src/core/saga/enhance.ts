@@ -11,8 +11,8 @@
 // Two scopes, one vocabulary:
 //   - conductor (autonomous): may refine / reorder / remove PENDING steps. It may
 //     NOT add (no durable status home for a fresh id without tripping the resume
-//     guard - see docs/design/saga-conductor-enhance.md), and it may
-//     not remove an `owner`-authored step. Either -> escalate to the owner.
+//     guard), and it may not remove an `owner`-authored step. Either ->
+//     escalate to the owner.
 //   - manual (`vibe saga enhance --apply`): may also add; the owner reviews the
 //     dry-run diff first, so nothing escalates.
 //
