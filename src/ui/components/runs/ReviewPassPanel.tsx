@@ -42,7 +42,7 @@ const INTENT_BTN =
 /**
  * Panel for review passes (suggestion bundles). Lives at the bottom of the
  * Suggestions inspector tab. Shows every bundle with its status, member
- * suggestions, preflight findings, and the four lifecycle actions: approve /
+ * suggestions, preflight findings, and the lifecycle actions: approve /
  * apply / validate / revert.
  */
 export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {

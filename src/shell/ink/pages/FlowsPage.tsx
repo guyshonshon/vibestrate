@@ -1,3 +1,18 @@
+// The terminal shell's Flows page: browse the discovered flows, inspect the
+// selected one, set it as the project default, or fork it into a new project
+// flow; or open the hub view to search and install a published flow. Both views live in this file - while
+// `hubUi.hubOpen` is set, `HubView` renders in place of the list/detail split.
+//
+// Render map: `FlowsPage` (list + key handling) -> `FlowDetail` (identity, seat
+// coverage, steps), which branches to `FlowGraphView` / `GraphLayers` /
+// `GraphNode` for a graph flow and `FlowStepsList` for a linear one.
+//
+// Input notes: key handling is inert unless the `active` prop is set, and while
+// the hub search box has focus (`hubFilterOpen`) this page returns early so
+// ink-text-input keeps the keystrokes. Enter on a listed flow persists
+// `defaultFlow` into the project config; Enter in the hub installs the
+// highlighted entry.
+
 import React, { useCallback, useEffect, useState } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";

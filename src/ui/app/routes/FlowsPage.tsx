@@ -1,3 +1,24 @@
+// The Flows page - the dashboard catalog of run recipes. Two halves live in
+// this file: the local catalog (builtin + project flows, with create, import,
+// export, fork, delete and "set as default") and, below it, the hub section
+// for browsing/installing community flows and publishing a project flow.
+// Server work goes through the `api` client in ui/lib/api.
+//
+// Defined in this file, in source order: FlowsPage (load, the action handlers,
+// the import panel, the card grid), HubSection (debounced hub search, install,
+// and the publish form), LocalFlowCard, DiagnosisBadge. On screen the local
+// cards render above the hub section.
+//
+// Worth knowing before editing:
+//   - Local cards and hub cards both render through the shared FlowCard, which
+//     is what keeps the two grids consistent. Put new card chrome in FlowCard
+//     rather than forking a second card here.
+//   - The flow with id "default" is pulled out of the list and rendered as its
+//     own card ahead of the rest; `effectiveDefault` falls back to "default"
+//     when the project has no persisted default flow.
+//   - The hub fetch lives inside a debounced effect, so the Retry button works
+//     by bumping `retryTick` (an effect dep) instead of calling it directly.
+
 import React, { useEffect, useState } from "react";
 import {
   ChevronDown,
@@ -63,7 +84,7 @@ function blankFlow(id: string) {
  * Builder. Discover builtin + project flows, inspect each one's flow (slots,
  * ordered steps, approval gates), fork a builtin into the project to customize
  * it, or delete a project flow. All over the audited `/api/flows` routes -
- * the browser never shells out. Groundwork for the Flows Hub (#3).
+ * the browser never shells out.
  */
 export function FlowsPage({ onOpenInFlow }: Props) {
   const { confirm } = useConfirm();
@@ -456,7 +477,7 @@ function hubDiagnosisLabel(d: unknown): string | null {
   return null;
 }
 
-/** Flows Hub browser (P3b): search the live hub, install by ref through the
+/** Flows Hub browser: search the live hub, install by ref through the
  *  validated + secret-guarded import writer. Badge honesty: the hub's
  *  `verified` flag renders as "hub-curated" (a curation claim, not an
  *  integrity guarantee); install always discloses that a flow is executable

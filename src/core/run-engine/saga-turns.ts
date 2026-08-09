@@ -1,3 +1,27 @@
+// The two between-step turns of a supervised (saga) run: a SUPERVISOR turn that
+// returns a three-way verdict on the run so far (proceed / enhance / escalate),
+// and an ENHANCE turn that re-grounds the still-pending checklist steps against
+// the code as built. Each function is the wiring - provider call, spend
+// accounting, event + roadmap persistence; the prompt building and the output
+// parsing live in ../saga/.
+//
+// Layout: SagaTurnDeps (the orchestrator state a turn borrows), then the
+// supervisor turn, then the enhance turn.
+//
+// Shape shared by both, worth knowing before editing either:
+//   - They call runProvider without a write grant. That withholds the flag; it
+//     does not harden the CLI to read-only (neither turn passes
+//     `hardenReadOnly`), and both run with `cwd` inside the worktree.
+//   - A completed provider call appends a RoleMetrics entry (roleId
+//     "saga-supervisor" / "saga-enhance") so these turns count against the run's
+//     spend. The append is best effort; a failure there is swallowed.
+//   - `enforceSpendCap` runs before the provider call and OUTSIDE the try that
+//     folds provider failures, so a blown cap reaches the caller rather than
+//     being absorbed into a keep-going result.
+//   - The enhance turn mutates the caller's `checklistItems` array in place
+//     (it splices the tail after `itemIndex`), which is what keeps the caller's
+//     absolute indexes into that array valid.
+
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { getCrew, getCrewRole } from "../../agents/crew-registry.js";
 import { getCurrentBranch } from "../../git/git.js";

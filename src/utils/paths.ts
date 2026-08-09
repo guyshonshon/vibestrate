@@ -1,3 +1,15 @@
+// Where a Vibestrate project keeps its state on disk: the `.vibestrate/`
+// directory and the config, run, roadmap, scheduler, notification, terminal
+// and policy files under it, each as a builder that takes the project root.
+//
+// Pure path math - `node:path` is the only import, so a schema or id module can
+// pull one helper in without dragging fs or git behind it.
+//
+// The tail of the file is the traversal guard: `isPathInside` answers whether a
+// candidate stays under a parent, and `safeJoin` throws rather than return a
+// joined path that escaped it. Reach for `safeJoin` over `path.join` when a
+// segment comes from outside (request params, model output).
+
 import path from "node:path";
 
 export const VIBESTRATE_DIR = ".vibestrate";

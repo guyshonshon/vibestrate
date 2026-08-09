@@ -1,3 +1,20 @@
+// Skill routes: list and read the discovered skills, assign or unassign one to
+// a role, and install one from a URL.
+//
+// Four of the five are thin wiring over skill-discovery and
+// skill-assignment-service. `POST /api/skills/fetch` is not: it is a
+// browser-reachable route that makes an outbound network request and then
+// writes a file into the project. Its guards all live in
+// agents/skill-fetch.ts - the fetch goes through `fetchGuardedText` (which
+// refuses private hosts, so a page cannot use this to reach the local network),
+// the body is passed through `redactSecretsInText` before it is stored, the
+// destination is checked with `isPathInside` against the project's skills dir,
+// and an existing file is only replaced when the caller asked for `overwrite`.
+// Keep those guards there rather than moving decisions into this file.
+//
+// The optional `assess` step feeds the stored text to a model for a read-only
+// overview; it is wrapped so a failure degrades to a null assessment and never
+// fails the install.
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import {

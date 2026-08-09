@@ -1,3 +1,20 @@
+// The `vibe validation` command tree - a CLI surface over the validation
+// profile services in core/validation. Scanning runs, rewriting suggestion and
+// bundle records, and writing migration audits all happen in those services;
+// this file parses flags, renders the previews and reports, and picks exit
+// codes.
+//
+// Commands: `profiles` and `usage` at the top level, plus a `profile` subgroup
+// (show, migrate, clear-references, rename, doctor, migrations).
+//
+// Two conventions run through the file:
+//   - Scope. `--run <id>` wins over `--all`; with neither flag the scan stays
+//     on the recent-runs scope (see pickScope).
+//   - Exit codes. A project that fails to load config exits 2. A service error
+//     carrying statusCode 404 exits 2, any other carried status exits 1;
+//     errors that are not one of the recognised service error types are
+//     rethrown instead of being flattened into a message.
+
 import { Command } from "commander";
 import { color, symbol } from "../ui/format.js";
 import { loadConfig } from "../../project/config-loader.js";

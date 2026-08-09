@@ -1,3 +1,24 @@
+// The git layer: shared async wrappers over the `git` binary. It is not the
+// only place git runs - several modules still call `execa("git", ...)`
+// directly - but new shared git work belongs here. Covers worktree lifecycle,
+// staging/committing, and the read primitives the merge apply/undo path in
+// src/git/merge-service.ts reasons with (ancestry, parents, tree identity).
+//
+// Conventions worth keeping when adding to this file:
+//   - Commands run with `reject: false`, so each wrapper decides from
+//     `exitCode` whether a failure is fatal (throw `GitError`) or expected;
+//     several are documented best-effort and return null / an empty list.
+//   - A wrapper that touches a repo takes its `cwd` explicitly. Nothing here
+//     assumes an ambient repo - the caller decides whether it is talking to the
+//     project root or to a run's worktree.
+//   - Nothing in this file contacts a remote. Vibestrate does not push or
+//     fetch on the user's behalf, so a remote-touching helper does not belong
+//     here.
+//
+// `stageAndCommitAll` runs `git add -A` and then drops symlinks resolving
+// outside the tree back out of the index; any new code that stages broadly
+// should route through `resetOutOfTreeStagedSymlinks` for the same reason.
+
 import path from "node:path";
 import fs from "node:fs/promises";
 import { execa } from "execa";

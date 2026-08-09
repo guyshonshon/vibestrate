@@ -9,7 +9,7 @@ import type {
   WorkflowSelectionView,
 } from "../../lib/types.js";
 
-// ── Supervisor panel (P9b) ───────────────────────────────────────────────────
+// ── Supervisor panel ─────────────────────────────────────────────────────────
 // Top of the run hierarchy: WHO is supervising (persona + review
 // independence), WHAT it decided about this task (flow selection / upgrade
 // story), the live decision feed (judgment vs enforced vs structural moments,

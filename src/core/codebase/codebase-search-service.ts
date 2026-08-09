@@ -51,8 +51,7 @@ export type FileListResult = {
  * shapes. A search snippet is only a preview - a false positive just muddies one
  * line, while a leaked credential is the worse error - so here we also catch
  * connection-string credentials, JWTs, Stripe test keys, and `secret = "..."`
- * style assignments. (Reviewer SHOULD-FIX: broaden redaction for the snippet
- * surface.)
+ * style assignments.
  */
 const DISPLAY_SECRET_PATTERNS: Array<{ name: string; re: RegExp }> = [
   // scheme://user:pass@host  ->  keep the scheme + host, redact the credential

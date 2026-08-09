@@ -17,11 +17,12 @@ import type {
 //
 // Runs each provider turn inside a disposable Docker container whose blast
 // radius is the container - model-agnostic isolation a provider-native sandbox
-// can't give. Security posture (Tier-2 reviewed):
-//   - EXACTLY two mounts: the run's git worktree (RW, identical host path so the
-//     host diff-gate/path-guard/attribution still resolve), and the codex auth
-//     credential (RO, single file) when present. Nothing else - no docker socket,
-//     no project root, no $HOME, no ~/.ssh / ~/.aws.
+// can't give. Security posture:
+//   - Mounts are kept to the minimum: the run's git worktree (RW, identical
+//     host path so the host diff-gate/path-guard/attribution still resolve),
+//     plus read-only single-file credential mounts where a provider needs one.
+//     Nothing else - no docker socket, no project root, no $HOME, no ~/.ssh,
+//     no ~/.aws. Adding a mount widens the blast radius; weigh it as such.
 //   - The container env is built from a HARDCODED provider-auth allowlist, never
 //     from the host process.env - so AWS_*/GITHUB_TOKEN never cross the wall.
 //   - Hardened: --cap-drop=ALL, --security-opt=no-new-privileges, no --privileged.
@@ -31,12 +32,12 @@ import type {
 //   - HONEST: the ExecStrategy.location is "container" only for commands that
 //     actually ran via `docker exec`; the assurance posture keys off that.
 //
-// KNOWN V1 LIMITATIONS (documented, tracked): the `image` must carry the provider
+// KNOWN LIMITATIONS: the `image` must carry the provider
 // CLI (the host binary is the wrong arch); egress is OPEN (a credential read
 // in-container can be exfiltrated - same data-plane risk as running the CLI, but
 // the user is invited to point this at sketchier inputs, so backend=docker warns
 // loudly); rootless/userns-remap is not yet the default (hardened-rootful here);
-// MCP-config turns and in-container validation are out of scope for this slice.
+// MCP-config turns and in-container validation are not supported.
 
 /** Host env keys that may cross into the container (provider auth + our own).
  *  Read from {process.env, spec.env}; everything else is dropped. */

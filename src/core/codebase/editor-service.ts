@@ -1,3 +1,21 @@
+// Editor handoff: opens a file from the project in the user's configured
+// editor. The config supplies the command name and an argv template; this
+// module substitutes {file}/{line}/{column} into the template and spawns it as
+// fixed argv through execa with `shell: false`, so the argument values are not
+// re-parsed by a shell.
+//
+// Two guards to keep in place: the command name has to pass isSafeCommandName
+// (a single [A-Za-z0-9_-] token, which rules out separators, traversal and
+// shell metacharacters) before either the availability probe or an open, and
+// openInEditor refuses a path whose ResolvedSafePath is marked isSecretLike.
+// Resolving and bounding the path is the caller's job - this module takes the
+// already-resolved value on trust.
+//
+// Probes and opens are bounded by timeouts. A spawn that fails or exits
+// non-zero comes back as a result with ok: false; a rejected config or a
+// secret-like path throws EditorOpenError, which carries an HTTP status for
+// the route layer.
+
 import { execa } from "execa";
 import type { EditorConfig } from "../../project/config-schema.js";
 import type { ResolvedSafePath } from "../path-guard.js";

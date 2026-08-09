@@ -25,7 +25,7 @@ export type ActionKind =
   | "mcp.tool"
   | "terminal.create"
   | "run.complete"
-  // P7b: the human-triggered integration->main merge (guided merge). Emitted
+  // The human-triggered integration->main merge (guided merge). Emitted
   // ONLY by the guided-merge service - no scheduler / run-completion path may
   // reach it (tested invariant in tests/guided-merge.test.ts).
   | "git.merge";

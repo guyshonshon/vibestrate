@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import { execa } from "execa";
 import { pathExists } from "../utils/fs.js";
 
-// ── Worktree environment linking (P8c) ──────────────────────────────────────
+// ── Worktree environment linking ────────────────────────────────────────────
 // A fresh `git worktree add` checks out tracked files only - the gitignored
 // environment (node_modules, virtualenvs) stays behind, so validation commands
 // fail with "command not found" and a correct change gets blocked for an

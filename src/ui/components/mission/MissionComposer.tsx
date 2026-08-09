@@ -1,3 +1,22 @@
+// The "New run" composer rendered on Mission Control: write a task brief, pick
+// a flow, a crew, a supervisor persona and run options, then launch. Two
+// columns: the left holds the brief, the flow and crew cards, the run-option
+// toggles and the flow params; the right holds the flow x crew wiring graph,
+// the persona picker and the Launch button, and after a launch it swaps the
+// Run summary for the live phase panel.
+//
+// Local pieces, in file order: `Section` (labeled well), `MiniToggle` (run
+// option switch), `SummaryRow` (one readback line), `PatchBay` (seats wired to
+// the roles that fill them), `LaunchPanel` (post-launch phase view).
+//
+// Two things to know before editing:
+//   - The initial metadata loads each fall back to a neutral value on purpose:
+//     they only pre-fill optional choices, and the launch reports its own
+//     failure separately.
+//   - After a successful launch the composer stays mounted. `launchedRunId` is
+//     what swaps the Run summary for `LaunchPanel` and what drives the status
+//     poll; "Start another run" clears it back to the launcher.
+
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowRight, Check, Lock, Plus } from "lucide-react";
 import { api } from "../../lib/api.js";

@@ -304,7 +304,7 @@ function IntegrationPanel() {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  /** A clean, complete integration branch eligible for merge-to-main (P7b). */
+  /** A clean, complete integration branch eligible for merge-to-main. */
   const [finishable, setFinishable] = useState<string | null>(null);
 
   // The panel hides itself when nothing is merge-ready, so a swallowed fetch

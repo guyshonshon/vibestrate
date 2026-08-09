@@ -1,4 +1,4 @@
-// ── Merge-readiness predicate (extracted for the P4b invariant tests) ───────
+// ── Merge-readiness predicate ───────────────────────────────────────────────
 //
 // The one place that says when a run may end `merge_ready`. Extracted from the
 // flow runner so the express-flow skip semantics are a TESTED invariant, not

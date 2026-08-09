@@ -338,7 +338,7 @@ export function deriveRunAssurance(input: {
     (r.evidence?.data as { environment?: unknown } | undefined)?.environment ===
       true;
   // A command whose toolchain was missing never validated anything - that is
-  // an environment gap, not a failing change (the P8c false-block fix).
+  // an environment gap, not a failing change.
   const cmdEnvironment = cmds.filter(isEnv).length;
   const cmdFailed = cmds.filter(
     (r) => r.evidence?.ok === false && !isEnv(r),

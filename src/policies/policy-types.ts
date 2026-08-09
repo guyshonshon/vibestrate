@@ -90,7 +90,7 @@ export const actionKindSchema = z.enum([
   "file.write",
   "terminal.create",
   "run.complete",
-  // P7b guided merge: the human-triggered integration->main merge. Policies
+  // Guided merge: the human-triggered integration->main merge. Policies
   // can deny or require_approval it like any other effect kind.
   "git.merge",
 ]);

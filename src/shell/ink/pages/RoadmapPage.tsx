@@ -1,3 +1,25 @@
+// The roadmap board in the terminal shell: task columns with a column/row
+// cursor, an inline create/edit form, and single-key actions on the selected
+// task (queue it for the scheduler, toggle backlog/ready, delete, start a run).
+//
+// This page's own keys go through one useInput handler registered with
+// `{ isActive: active }`, so when the page is not active ink never subscribes
+// it at all - do not drop that option, or the board would consume keystrokes
+// meant for other pages. Inside the handler an open form takes the key first,
+// then a pending delete confirmation, then board navigation and the action
+// keys. An open form also renders ink-text-input, which registers its own
+// handler, so keys reach two subscribers while editing. Mutations delegate to
+// roadmap/task-actions and refresh afterwards, so this file holds no task
+// persistence of its own.
+//
+// The form is seeded only on the closed -> open transition, tracked by the
+// wasFormOpen ref. `selected` is rebuilt on every tasks poll, so seeding off it
+// directly would wipe an edit in progress.
+//
+// Starting a run spawns a detached `vibe run --task <id>` rather than running
+// in-process, which is why the shell stays responsive and the output is
+// watched from the Runs page instead of here.
+
 import React, { useMemo, useReducer, useState } from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import type { Task } from "../../../roadmap/roadmap-types.js";

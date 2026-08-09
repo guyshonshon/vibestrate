@@ -1,3 +1,20 @@
+// The catalog of coding-agent CLIs Vibestrate knows how to drive, plus the
+// probe that reports which of them are on this machine. Detection is a
+// read-only observation - it runs an entry's version command and describes what
+// came back; nothing here writes project config.
+//
+// Two flags on a KNOWN_PROVIDERS entry (every shipped entry currently sets
+// them together, but they are read separately):
+//   - `popular` marks the first-class set offered out of the box; the rest are
+//     still supported but stay opt-in.
+//   - `presetReady` marks the ones whose preset is verified enough to apply
+//     without the user opting in. It is what turns a successful probe into
+//     confidence "ready" + `recommended`, instead of "detected-needs-setup".
+//
+// `detectAllProviders` spawns a subprocess per entry, sequentially. Callers
+// that poll are expected to cache: `detectAllProvidersCached` does it here (see
+// its doc for the TTL and in-flight sharing), and some routes keep their own.
+
 import { execa } from "execa";
 
 export type KnownProviderId =

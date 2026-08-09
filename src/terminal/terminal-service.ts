@@ -1,3 +1,29 @@
+// The interactive-terminal service: it decides whether a shell may be opened
+// at all, resolves where it may run, gates the spawn, and holds the live PTY
+// handles. The HTTP/WS routes spawn nothing themselves - they call in here, so
+// the checks below apply to every terminal the dashboard opens. Nothing
+// structurally stops a new caller from driving the driver directly, so keep
+// spawns behind this service.
+//
+// What a change here has to preserve:
+//   - Two independent gates before a child exists: `availability()` requires
+//     both `policies.allowInteractiveTerminal` and the injected driver's own
+//     `available` flag, and then the action broker must return an allow verdict
+//     for `terminal.create`. Both refuse rather than degrade.
+//   - The CWD comes from the run's recorded `worktreePath`, never from the
+//     caller. A run with no worktree, or one whose path resolves to the project
+//     root or inside it, is refused (see `resolveWorktreeCwd`).
+//   - The child gets the environment `buildSafeEnv` assembles from an
+//     allowlist, not the server's whole `process.env`.
+//   - Live PTY handles live in an in-memory map, so they are reachable only
+//     from the process that spawned them: `liveProcess` returns null and
+//     `resize` raises 410 for a session this process no longer holds. Reaping
+//     the children themselves is a best-effort `shutdown()` call from the
+//     route layer's close hook, so a hard kill of the server can orphan a PTY.
+//     Session rows go to `TerminalSessionStore`.
+//   - Refusals raise `TerminalError`, which carries the status code the route
+//     should return.
+
 import fs from "node:fs";
 import { randomBytes } from "node:crypto";
 import path from "node:path";

@@ -240,7 +240,7 @@ export async function integrate(input: {
     }
   }
 
-  // Record what this integration contains (P7b completeness check): finish
+  // Record what this integration contains, so finish can check completeness:
   // refuses to merge a PARTIAL integration branch - one whose apply stopped at
   // a conflict - because the human reviewed a set of runs, not a prefix of it.
   const tip = await execa("git", ["rev-parse", target], {
@@ -260,7 +260,7 @@ export async function integrate(input: {
   return { integrationBranch: target, baseBranch, worktreePath, integrated, stoppedAt };
 }
 
-// ── P7b: guided merge-to-main ────────────────────────────────────────────────
+// ── Guided merge-to-main ─────────────────────────────────────────────────────
 
 export type IntegrationRecord = {
   integrationBranch: string;

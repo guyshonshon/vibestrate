@@ -7,7 +7,7 @@
 // the dashboard uses (`startDetachedRun` over a typed `RunSpec`), never spawning
 // a command itself.
 //
-// Security invariants (Tier-2 reviewed):
+// Security invariants:
 //   - The browser/CLI submit a typed, length-capped answer-set; this module
 //     builds the `RunSpec` server-side and calls `startDetachedRun`. There is no
 //     path from a submitted answer to a shell argument.
@@ -294,7 +294,7 @@ export async function runAwaitsInput(
  * Append one round's answers to the accumulated answers doc (pure). The first
  * round seeds the header; later rounds are appended so the terminal spec run sees
  * the UNION of every round, grouped by round + category. Replaces the old
- * single-pass overwrite (reviewer SHOULD-FIX #3).
+ * single-pass overwrite.
  */
 export function appendAnswersDoc(
   priorDoc: string,

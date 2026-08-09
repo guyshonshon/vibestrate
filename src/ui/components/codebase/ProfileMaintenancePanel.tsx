@@ -20,8 +20,9 @@ const FIELD =
  *   - per-row staleness via a profile-migration preview pass
  *
  * Lets the user dry-run a `fromProfile → toProfile (or clear)` migration
- * and then explicitly Apply it after a confirm prompt. Writes nothing
- * outside the user-triggered Apply call.
+ * and then explicitly Apply it after a confirm prompt. Both write paths
+ * (migrate references, rename profile) are confirm-gated and user-triggered;
+ * nothing here writes on its own.
  */
 export function ProfileMaintenancePanel() {
   const [profiles, setProfiles] = useState<ValidationProfileSummary[]>([]);

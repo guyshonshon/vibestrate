@@ -70,7 +70,7 @@ export const integrationApi = {
       runId,
     });
   },
-  /** P7b: merge a complete integration branch into main, locally (never
+  /** Merge a complete integration branch into main, locally (never
    *  pushed). The confirm token guards against accidental invocation. */
   async finishIntegration(integrationBranch: string): Promise<{
     mergedSha: string;

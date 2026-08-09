@@ -574,7 +574,7 @@ export function RunDetailPage({
       <PanelBoard
         storageKey="vibestrate.rundetail.layout.v2"
         panels={[
-          // The live timeline (P8b): replaces the run graph + seat board pair
+          // The live timeline: replaces the run graph + seat board pair
           // with the one surface that answers "what is happening right now".
           ...(run.flow
             ? [
