@@ -1,10 +1,10 @@
 ---
 title: Vibestrate docs
-description: Vibestrate is the missing piece of vibe-coding - it breaks a task down, runs it across several models, and supervises the work while you make the final call.
+description: Vibestrate orchestrates the AI coding CLIs you already have - it breaks a task down, runs it across several models, and supervises the work while you make the final call.
 slug: index
 ---
 
-Vibestrate is the missing piece of vibe-coding. Hand it a task, even one you could not write yourself - a security fix, a piece of WebGL you have never touched. It breaks the work down, runs it across several models, and supervises the whole thing.
+Vibestrate orchestrates the AI coding CLIs you already have. Hand it a task, even one you could not write yourself - a security fix, a piece of WebGL you have never touched. It breaks the work down, runs it across several models, and supervises the whole thing.
 
 Because AI can write that code. AI also gets it wrong, and it tends to agree with whatever you said - see [why a human stays in the loop](/docs/getting-started/why-a-human).
 
