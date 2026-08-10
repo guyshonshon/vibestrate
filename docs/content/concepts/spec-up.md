@@ -1,12 +1,12 @@
 ---
-title: Spec-up (plan as a CTO)
+title: Spec-up (plan before you build)
 description: Turn a vague brief into a scoped spec, an architecture, the risks, and a reviewable roadmap - before any code is written.
 slug: concepts/spec-up
 ---
 
 Most planning tools answer "how do I write this change?" Spec-up answers the
-question a CTO asks first: "what are we actually building, and what did you not
-tell me yet?"
+question that comes before it: "what are we actually building, and what did you
+not tell me yet?"
 
 You give it a brief - even a vague one, like "a mini ecommerce store" - and it
 surfaces the decisions the brief left unstated (do users sign in? how do you
@@ -16,7 +16,7 @@ every step is a read-only run.
 
 ## What you get
 
-1. **Gap questions, in rounds.** The CTO reads the brief and asks the decisions
+1. **Gap questions, in rounds.** It reads the brief and asks for the decisions
    that change what gets built, grouped by area (scope, users, data, constraints,
    success, integrations). You answer a round; it reads your answers and asks the
    follow-ups that are still genuinely open, drilling deeper - up to four rounds.
