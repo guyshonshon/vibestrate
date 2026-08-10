@@ -65,6 +65,11 @@ curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/install
 npm install -g vibestrate
 ```
 
+> The `-g` matters. Vibestrate is a command-line tool, not a library: a plain
+> `npm install vibestrate` adds it as a dependency of whatever project you are
+> standing in and never puts `vibe` on your PATH. Nothing is published for you
+> to `import`.
+
 Vibestrate runs natively on macOS, Linux, and **Windows** - the full core loop (install, providers, runs, diffs, merge) works in PowerShell or cmd with no WSL. The one Windows-only exception is the in-app terminal tab; use WSL if you want an in-app shell. Details: [Native Windows support](https://vibestrate.com/docs/getting-started/windows).
 
 Then point it at any git repo:

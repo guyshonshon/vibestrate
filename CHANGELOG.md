@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.1
+
+- **A fresh install says something.** `vibe` with no arguments opened the panel,
+  which is the right answer once a project is set up and an empty board before
+  that - and it is the first thing anyone types after installing. In a project
+  with no config it now introduces itself and lists the five commands worth
+  knowing. There is deliberately no postinstall hook doing this: a lifecycle
+  script is arbitrary code at install time, `--ignore-scripts` skips it, and it
+  fires when vibestrate is somebody's transitive dependency.
+- **The no-terminal message points somewhere.** Off a TTY - a pipe, a CI step,
+  an editor task runner - the panel said it needed an interactive terminal and
+  stopped there. It now names what still works, since that is the case where a
+  reader is least able to guess.
+- **The README says why `-g` matters.** A plain `npm install vibestrate` adds a
+  dependency to whatever project you are standing in and never puts `vibe` on
+  your PATH, silently. Nothing is published to `import`.
+
 ## 1.0.0
 
 The first release you can install. Every version below this line was built in

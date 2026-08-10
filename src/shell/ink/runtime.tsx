@@ -16,9 +16,11 @@ export async function runInkShell(
   opts: StartInkShellOptions,
 ): Promise<number> {
   if (!process.stdin.isTTY || typeof process.stdin.setRawMode !== "function") {
-    process.stdout.write(
-      "vibestrate panel requires an interactive TTY (stdin must be a terminal).\n",
-    );
+    // Naming the constraint and stopping there leaves the reader nowhere, and
+    // this fires in exactly the places a person is least able to guess: a pipe,
+    // a CI step, an editor's task runner.
+    const { firstRunMessage } = await import("../../cli/first-run.js");
+    process.stdout.write(firstRunMessage("no-tty"));
     return 1;
   }
   // Walk the real command tree once so the prompt's autocomplete always

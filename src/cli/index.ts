@@ -645,8 +645,16 @@ if (isMain) {
     void (async () => {
       try {
         const { detectProject } = await import("../project/project-detector.js");
-        const { runInkShell } = await import("../shell/ink/runtime.js");
         const detected = await detectProject(process.cwd());
+        // Before `vibe init` there is nothing for the panel to show, and a bare
+        // `vibe` is the first thing someone types after installing. Greet them
+        // instead of opening an empty board.
+        const { firstRunMessage, isProjectInitialized } = await import("./first-run.js");
+        if (!(await isProjectInitialized(detected.projectRoot))) {
+          process.stdout.write(firstRunMessage("uninitialized"));
+          process.exit(0);
+        }
+        const { runInkShell } = await import("../shell/ink/runtime.js");
         const code = await runInkShell({ projectRoot: detected.projectRoot });
         process.exit(code);
       } catch (err) {
