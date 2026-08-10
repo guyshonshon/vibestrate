@@ -82,11 +82,13 @@ const SECRET_FILE_PATTERNS: RegExp[] = [
   // that do no content redaction at all (file-view-service, getFileDiff).
   /(^|\/)(\.env(rc.*|[.\-].*)?|[^/]*\.env)$/i,
   /(^|\/)secrets?\.(json|ya?ml|toml)$/i,
-  /(^|\/)id_rsa(\.pub)?$/,
-  /(^|\/)id_ed25519(\.pub)?$/,
+  // Case-insensitive like every other pattern here: macOS and Windows both
+  // default to case-insensitive filesystems, so `ID_RSA` is the same file.
+  /(^|\/)id_rsa(\.pub)?$/i,
+  /(^|\/)id_ed25519(\.pub)?$/i,
   // The key shapes a first commit most often sweeps in by accident.
-  /(^|\/)id_dsa(\.pub)?$/,
-  /(^|\/)id_ecdsa(\.pub)?$/,
+  /(^|\/)id_dsa(\.pub)?$/i,
+  /(^|\/)id_ecdsa(\.pub)?$/i,
   /(^|\/)credentials(\.(json|ya?ml|toml))?$/i,
   /(^|\/)\.npmrc$/i,
   /(^|\/)\.netrc$/i,

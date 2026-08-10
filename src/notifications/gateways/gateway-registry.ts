@@ -12,6 +12,13 @@
  * Delivery is best-effort: a gateway that throws becomes a synthetic "failed"
  * receipt instead of propagating, so one broken gateway cannot fail the run
  * that raised the notification. Receipts are returned, not persisted here.
+ *
+ * Every delivery goes through `attempt`, including the two local ones. They
+ * used to be bare awaits with only the configured-gateway loop wrapped, which
+ * had it exactly backwards: buildDefaultRegistry registers in-app and CLI and
+ * nothing else, so the protected loop was empty and the unprotected pair was
+ * the whole of delivery. The CLI gateway writes through a caller-installed
+ * writer, which is the most likely thing here to throw.
  */
 import type {
   DeliveryReceipt,
@@ -63,7 +70,7 @@ export class GatewayRegistry {
       categories: [],
     };
     out.push(
-      await inAppGateway.deliver({
+      await this.attempt(inAppGateway, {
         notification: input.notification,
         config: inAppCfg,
         settings: input.settings,
@@ -81,7 +88,7 @@ export class GatewayRegistry {
     };
     if (cliCfg.enabled) {
       out.push(
-        await cliGateway.deliver({
+        await this.attempt(cliGateway, {
           notification: input.notification,
           config: cliCfg,
           settings: input.settings,
@@ -104,33 +111,45 @@ export class GatewayRegistry {
       ) {
         continue;
       }
-      try {
-        const receipt = await gateway.deliver({
+      out.push(
+        await this.attempt(gateway, {
           notification: input.notification,
           config: cfg,
           settings: input.settings,
-        });
-        out.push(receipt);
-      } catch (err) {
-        // deliver() implementations are supposed to be defensive; this is
-        // belt-and-braces so a bad gateway never crashes the orchestrator.
-        out.push({
-          id: `synthetic-${gateway.id}-${input.notification.id}`,
-          notificationId: input.notification.id,
-          gatewayId: gateway.id,
-          channel: gateway.channel,
-          status: "failed",
-          attemptedAt: new Date().toISOString(),
-          deliveredAt: null,
-          failedAt: new Date().toISOString(),
-          errorMessage:
-            err instanceof Error ? err.message.slice(0, 500) : String(err).slice(0, 500),
-          externalMessageId: null,
-          retryCount: 0,
-        });
-      }
+        }),
+      );
     }
     return out;
+  }
+
+  /**
+   * One delivery, degraded to a "failed" receipt if it throws. deliver()
+   * implementations are supposed to be defensive already; this is the boundary
+   * that makes it impossible to forget.
+   */
+  private async attempt(
+    gateway: Gateway,
+    args: Parameters<Gateway["deliver"]>[0],
+  ): Promise<DeliveryReceipt> {
+    try {
+      return await gateway.deliver(args);
+    } catch (err) {
+      const at = new Date().toISOString();
+      return {
+        id: `synthetic-${gateway.id}-${args.notification.id}`,
+        notificationId: args.notification.id,
+        gatewayId: gateway.id,
+        channel: gateway.channel,
+        status: "failed",
+        attemptedAt: at,
+        deliveredAt: null,
+        failedAt: at,
+        errorMessage:
+          err instanceof Error ? err.message.slice(0, 500) : String(err).slice(0, 500),
+        externalMessageId: null,
+        retryCount: 0,
+      };
+    }
   }
 }
 

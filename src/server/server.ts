@@ -77,6 +77,7 @@ import {
 } from "./security.js";
 import { recordIssue } from "../core/stores/issues-store.js";
 import { formatError, toIssueInput } from "../core/error-format.js";
+import { relativizeRoot } from "../utils/redact-paths.js";
 
 export const DEFAULT_VIBESTRATE_PORT = 4317;
 
@@ -354,19 +355,24 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
     if (error && typeof error === "object" && "validation" in error) {
       const f = formatError(error);
       return reply.code(400).send({
-        error: f.detail,
+        error: relativizeRoot(f.detail, opts.projectRoot),
         kind: f.kind,
         title: f.title,
         ...(f.hint ? { hint: f.hint } : {}),
       });
     }
     const f = formatError(error);
+    // The issue record keeps the detail verbatim - it is a local file, and the
+    // absolute path is the useful part when debugging. The response does not:
+    // filesystem errors put the server's own absolute path in `detail`, and
+    // this body can travel to a client that is not the machine running the
+    // server. Project-relative says the same thing without the home directory.
     await recordIssue(
       opts.projectRoot,
       toIssueInput(error, { route: req.url, method: req.method }),
     ).catch(() => {});
     reply.code(500).send({
-      error: f.detail,
+      error: relativizeRoot(f.detail, opts.projectRoot),
       kind: f.kind,
       title: f.title,
       ...(f.hint ? { hint: f.hint } : {}),

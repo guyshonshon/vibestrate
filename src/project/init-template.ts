@@ -9,8 +9,11 @@
  * does not clobber hand-edited config or role prompts.
  *
  * `project.yml` is assembled by string concatenation rather than a YAML
- * serializer, so anything interpolated into it has to be escaped where it is
- * rendered - see renderValidationYaml for the quoting rule.
+ * serializer, so everything interpolated into a double-quoted scalar goes
+ * through `yamlQuote`. The project name is the one that reaches it from
+ * outside: it comes from the repo's package.json `name`, or failing that the
+ * directory basename, and a quote in either used to produce a project.yml that
+ * no command could parse.
  */
 import path from "node:path";
 import { ensureDir, writeText, pathExists } from "../utils/fs.js";
@@ -149,16 +152,20 @@ type ProjectYamlInput = {
   defaultProviderRef: string;
 };
 
+/**
+ * Body of a YAML double-quoted scalar. Backslash first: escaping only the
+ * quote turns `a\` into `a\"` and breaks the string it was meant to protect.
+ */
+function yamlQuote(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 function renderValidationYaml(commands: readonly string[]): string {
   if (commands.length === 0) {
     return `commands:
   validate: []`;
   }
-  // Backslash first: escaping only the quote turns `a\` into `a\"` and breaks
-  // the string it was meant to protect.
-  const list = commands
-    .map((c) => `    - "${c.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`)
-    .join("\n");
+  const list = commands.map((c) => `    - "${yamlQuote(c)}"`).join("\n");
   return `commands:
   validate:
 ${list}`;
@@ -201,7 +208,7 @@ function renderProvidersYaml(input: SetupPlan | null): {
 function projectYaml(input: ProjectYamlInput): string {
   const ref = input.defaultProviderRef;
   return `project:
-  name: "${input.projectName}"
+  name: "${yamlQuote(input.projectName)}"
   type: generic
 
 git:

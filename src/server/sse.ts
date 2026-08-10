@@ -31,6 +31,7 @@ import { promises as fsp } from "node:fs";
 import { runDir, runEventsPath } from "../utils/paths.js";
 import { streamFilePath, streamsDir } from "../core/stores/provider-stream-store.js";
 import { verifyRealLeaf, verifyRealRoot } from "../utils/real-path-guard.js";
+import { relativizeRoot } from "../utils/redact-paths.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 /**
@@ -160,7 +161,7 @@ export async function streamRunEvents(opts: StreamEventsOptions): Promise<void> 
     } catch (err) {
       // File may not exist yet.
       if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
-      client.send("error", String(err));
+      client.send("error", relativizeRoot(String(err), opts.projectRoot));
     }
   };
 
@@ -263,7 +264,7 @@ export async function streamProviderOutput(
       }
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
-      client.send("error", String(err));
+      client.send("error", relativizeRoot(String(err), opts.projectRoot));
     }
   };
 

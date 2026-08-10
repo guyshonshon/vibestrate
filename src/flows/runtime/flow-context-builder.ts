@@ -1,10 +1,9 @@
 /**
  * Builds the prior-artifact blocks a Flow step's prompt carries, together with
  * the context packet that records what was actually sent. Each input token the
- * step declares gets a disposition - embedded whole, summarized,
- * reference-only, or omitted because nothing has produced it yet - chosen from
- * the flow's context policy, the participant's retention mode, and the size of
- * the artifact.
+ * step declares gets a disposition - embedded whole, summarized, or omitted
+ * because nothing has produced it yet - chosen from the flow's context policy,
+ * the participant's retention mode, and the size of the artifact.
  *
  * In source order: buildFlowContextPacket walks the step's input tokens and
  * assembles both the prompt artifacts and the packet; decideContextInclusion
@@ -36,7 +35,6 @@ export type FlowContextOutput = {
 export type FlowContextDisposition =
   | "embedded-full"
   | "embedded-summary"
-  | "reference-only"
   | "omitted-unavailable";
 
 export type FlowContextPacketInput = {
@@ -67,7 +65,6 @@ export type FlowContextPacket = {
     availableInputs: number;
     embeddedFullInputs: number;
     summarizedInputs: number;
-    referenceOnlyInputs: number;
     omittedInputs: number;
     sourceBytes: number;
     promptBytes: number;
@@ -237,9 +234,6 @@ export function buildFlowContextPacket(
         summarizedInputs: packetInputs.filter(
           (item) => item.disposition === "embedded-summary",
         ).length,
-        referenceOnlyInputs: packetInputs.filter(
-          (item) => item.disposition === "reference-only",
-        ).length,
         omittedInputs: packetInputs.filter(
           (item) => item.disposition === "omitted-unavailable",
         ).length,
@@ -342,14 +336,6 @@ function renderPromptContent(input: {
   const reference = `Artifact path: ${input.output.artifactPath}`;
   if (input.disposition === "embedded-full") {
     return `${reference}\n\n${input.body.trim()}\n`;
-  }
-  if (input.disposition === "reference-only") {
-    return [
-      reference,
-      "",
-      "Exact content was retained in the live participant session. Inspect the artifact only if exact details are needed.",
-      "",
-    ].join("\n");
   }
   return [
     reference,
