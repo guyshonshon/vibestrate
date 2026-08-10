@@ -348,8 +348,8 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
       return reply.code(error.statusCode).send({
         error: error.message,
         kind: f.kind,
-        title: f.title,
-        ...(f.hint ? { hint: f.hint } : {}),
+        title: relativizeRoot(f.title, opts.projectRoot),
+        ...(f.hint ? { hint: relativizeRoot(f.hint, opts.projectRoot) } : {}),
       });
     }
     if (error && typeof error === "object" && "validation" in error) {
@@ -357,8 +357,8 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
       return reply.code(400).send({
         error: relativizeRoot(f.detail, opts.projectRoot),
         kind: f.kind,
-        title: f.title,
-        ...(f.hint ? { hint: f.hint } : {}),
+        title: relativizeRoot(f.title, opts.projectRoot),
+        ...(f.hint ? { hint: relativizeRoot(f.hint, opts.projectRoot) } : {}),
       });
     }
     const f = formatError(error);
@@ -374,8 +374,12 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
     reply.code(500).send({
       error: relativizeRoot(f.detail, opts.projectRoot),
       kind: f.kind,
-      title: f.title,
-      ...(f.hint ? { hint: f.hint } : {}),
+      // title and hint too, not just detail: formatError's generic branch uses
+      // the raw message as the title, so every errno without a hardcoded title
+      // - ELOOP among them, which is what O_NOFOLLOW raises when it wins its
+      // race - puts the same absolute path here.
+      title: relativizeRoot(f.title, opts.projectRoot),
+      ...(f.hint ? { hint: relativizeRoot(f.hint, opts.projectRoot) } : {}),
     });
   });
 

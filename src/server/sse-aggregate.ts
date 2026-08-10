@@ -4,9 +4,11 @@ import path from "node:path";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import {
   projectRunsDir,
+  runDir,
   runEventsPath,
 } from "../utils/paths.js";
-import { createSseClient } from "./sse.js";
+import { createSseClient, openTail, verifiedTailStat } from "./sse.js";
+import { relativizeRoot } from "../utils/redact-paths.js";
 
 export type AggregateStreamOptions = {
   projectRoot: string;
@@ -66,10 +68,14 @@ export async function streamAggregateRunEvents(
     if (!tail) return;
     const file = runEventsPath(opts.projectRoot, runId);
     try {
-      const stat = await fsp.stat(file);
+      // Same proof as the per-run tail in sse.ts, for the same reason: this
+      // forwards an unparseable line verbatim as `raw`, so following a link
+      // here streams its target to every Mission Control client at once.
+      const stat = await verifiedTailStat(file, runDir(opts.projectRoot, runId), opts);
+      if (!stat) return;
       if (stat.size < tail.position) tail.position = 0;
       if (stat.size === tail.position) return;
-      const fd = await fsp.open(file, "r");
+      const fd = await openTail(file);
       try {
         const buf = Buffer.alloc(stat.size - tail.position);
         await fd.read(buf, 0, buf.length, tail.position);
@@ -91,7 +97,7 @@ export async function streamAggregateRunEvents(
       }
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
-      client.send("error", { runId, error: String(err) });
+      client.send("error", { runId, error: relativizeRoot(String(err), opts.projectRoot) });
     }
   };
 
@@ -116,7 +122,9 @@ export async function streamAggregateRunEvents(
     const ids = await fsp.readdir(runsDir).catch(() => []);
     for (const id of ids) {
       const full = path.join(runsDir, id);
-      const stat = await fsp.stat(full).catch(() => null);
+      // lstat, not stat: a symlinked run dir is not a run, and tailing one
+      // would follow it straight out of the runs directory.
+      const stat = await fsp.lstat(full).catch(() => null);
       if (stat?.isDirectory()) ensureTail(id);
     }
   } catch {

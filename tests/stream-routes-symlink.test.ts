@@ -4,13 +4,20 @@
 // that is not ours, but the SSE tail forwards an unparseable line VERBATIM as a
 // `raw` event, so following a link there streams its target to the browser.
 //
-// Mutation-checked: reverting readStream's guard fails the read case, and
-// reverting listStreams' isFile allow-list fails the listing case.
+// Mutation-checked, each guard removed on its own:
+//   - readStream's root/leaf check     -> only the read case fails
+//   - listStreams' isFile allow-list   -> only the listing case fails
+//   - the parent-containment check     -> only the linked-directory case fails
+//   - the aggregate tail's two guards  -> only the aggregate case fails
 //
-// The SSE case needs BOTH of its guards reverted to fail, because either one
-// alone is sufficient - with only `verifiedTailStat` removed, O_NOFOLLOW turns
-// the read into ELOOP. Reverting both reproduces the original, which answers
-// `event: raw` / `data: <the secret>`. Verified by probe, not assumed.
+// The single-file SSE case is the exception: it needs BOTH of its guards
+// reverted, because either alone suffices - with only `verifiedTailStat` gone,
+// O_NOFOLLOW turns the read into ELOOP. Reverting both reproduces the original,
+// which answers `event: raw` / `data: <the secret>`. Verified by probe.
+//
+// The linked-directory case exists because O_NOFOLLOW cannot see it: the leaf
+// is a real file, so only the parent's realpath check catches it. Without that
+// case, removing the parent check broke nothing here.
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import path from "node:path";
@@ -51,6 +58,23 @@ function streamsDirOf(projectRoot: string, runId: string): string {
 let project: string;
 let outside: string;
 let server: StartedServer | null = null;
+
+/** Take whatever an SSE tail sends before its abort fires. */
+async function drain(res: Response): Promise<string> {
+  let body = "";
+  try {
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      body += decoder.decode(value, { stream: true });
+    }
+  } catch {
+    /* aborted by the timeout, which is the expected way out */
+  }
+  return body;
+}
 
 describe("stream tail refuses a planted link", () => {
   beforeEach(async () => {
@@ -97,6 +121,39 @@ describe("stream tail refuses a planted link", () => {
     expect(names).not.toContain("linked");
   });
 
+  it.skipIf(isWindows)("refuses a symlinked intermediate directory", async () => {
+    // The escape O_NOFOLLOW cannot see: the leaf is a real file, so only the
+    // parent's realpath check catches it. Without this case, reverting that
+    // check alone breaks nothing in this file.
+    await fs.mkdir(path.join(outside, "implement"), { recursive: true });
+    await fs.writeFile(
+      path.join(outside, "implement", "prompt.ndjson"),
+      `${JSON.stringify({ stream: "stdout", chunk: SECRET, at: new Date(0).toISOString() })}\n`,
+    );
+    await fs.symlink(outside, path.join(streamsDirOf(project, RUN_ID), "flows"));
+    expect(await readStream(project, RUN_ID, "flows/implement/prompt")).toEqual([]);
+
+    const res = await fetch(
+      `${server!.url}/api/runs/${RUN_ID}/streams/flows%2Fimplement%2Fprompt/stream`,
+      { signal: AbortSignal.timeout(1500) },
+    );
+    expect(await drain(res)).not.toContain(SECRET);
+  });
+
+  it.skipIf(isWindows)("the aggregate tail does not forward a symlinked event log", async () => {
+    // Mission Control subscribes here, not to the per-run stream, and it tails
+    // every run at once - so this is the higher-traffic copy of the same bug.
+    const runId = "20260509-130000-agglink";
+    const dir = path.join(project, ".vibestrate", "runs", runId);
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(outside, "events.txt"), `${SECRET}\n`);
+    await fs.symlink(path.join(outside, "events.txt"), path.join(dir, "events.ndjson"));
+    const res = await fetch(`${server!.url}/api/events/stream`, {
+      signal: AbortSignal.timeout(1500),
+    });
+    expect(await drain(res)).not.toContain(SECRET);
+  });
+
   it.skipIf(isWindows)("the SSE tail does not forward a symlinked file", async () => {
     await fs.symlink(
       path.join(outside, "plain.ndjson"),
@@ -105,20 +162,6 @@ describe("stream tail refuses a planted link", () => {
     const res = await fetch(`${server!.url}/api/runs/${RUN_ID}/streams/linked/stream`, {
       signal: AbortSignal.timeout(1500),
     });
-    let body = "";
-    try {
-      // The tail holds the connection open; take whatever it sends before the
-      // abort and assert the secret is not among it.
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        body += decoder.decode(value, { stream: true });
-      }
-    } catch {
-      /* aborted by the timeout, which is the expected way out */
-    }
-    expect(body).not.toContain(SECRET);
+    expect(await drain(res)).not.toContain(SECRET);
   });
 });

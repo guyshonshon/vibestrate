@@ -45,7 +45,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
  * at any point during the tail. An unparseable line is forwarded verbatim as a
  * `raw` event, so following a link here streams its target to the browser.
  */
-async function verifiedTailStat(
+export async function verifiedTailStat(
   file: string,
   root: string,
   opts: { projectRoot: string },
@@ -58,7 +58,7 @@ async function verifiedTailStat(
 
 /** O_NOFOLLOW closes the re-link race the stat above cannot; O_NONBLOCK keeps
  *  a leaf swapped for a FIFO from parking the open in the threadpool. */
-async function openTail(file: string): Promise<fsp.FileHandle> {
+export async function openTail(file: string): Promise<fsp.FileHandle> {
   return fsp.open(file, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW | fsConstants.O_NONBLOCK);
 }
 

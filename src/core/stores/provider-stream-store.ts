@@ -87,6 +87,11 @@ export async function listStreams(
   runId: string,
 ): Promise<{ promptName: string; bytes: number; updatedAt: string }[]> {
   const dir = streamsDir(projectRoot, runId);
+  // Anchored like the read path: without this a run that replaced its own
+  // streams dir with a link would have every name, size and mtime behind it
+  // listed as its own, and offered in the UI as a tab.
+  const root = await verifyRealRoot(dir, projectRoot);
+  if (!root.ok) return [];
   if (!(await pathExists(dir))) return [];
   const out: { promptName: string; bytes: number; updatedAt: string }[] = [];
   async function walk(current: string, rel: string): Promise<void> {

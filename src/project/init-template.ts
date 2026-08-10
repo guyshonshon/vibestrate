@@ -155,9 +155,17 @@ type ProjectYamlInput = {
 /**
  * Body of a YAML double-quoted scalar. Backslash first: escaping only the
  * quote turns `a\` into `a\"` and breaks the string it was meant to protect.
+ * A real line break has to become the `\n` escape rather than pass through -
+ * a double-quoted scalar cannot span lines, and package.json `name` is
+ * arbitrary JSON, so one can arrive.
  */
 function yamlQuote(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, "\\r")
+    .replace(/\n/g, "\\n")
+    .replace(/\t/g, "\\t");
 }
 
 function renderValidationYaml(commands: readonly string[]): string {
