@@ -13,6 +13,7 @@ import { promises as fs } from "node:fs";
 import { appendLine, pathExists, readText } from "../../utils/fs.js";
 import { runDir, isPathInside } from "../../utils/paths.js";
 import { redactSecretsInText } from "../diff-service.js";
+import { verifyRealLeaf, verifyRealRoot } from "../../utils/real-path-guard.js";
 
 export type ProviderStreamLine = {
   stream: "stdout" | "stderr";
@@ -22,7 +23,7 @@ export type ProviderStreamLine = {
   kind?: "text" | "thinking" | "tool" | "subagent";
 };
 
-function streamsDir(projectRoot: string, runId: string): string {
+export function streamsDir(projectRoot: string, runId: string): string {
   return path.join(runDir(projectRoot, runId), "streams");
 }
 
@@ -99,6 +100,12 @@ export async function listStreams(
         await walk(full, next);
         continue;
       }
+      // Allow-list, not "anything that is not a directory". readdir's dirents
+      // carry lstat semantics, so a symlink is neither a file nor a directory
+      // here - which matters, because the stat below follows one, and a link
+      // named `x.ndjson` would otherwise be listed with an outside file's size
+      // and then offered as a tab to read.
+      if (!entry.isFile()) continue;
       if (!entry.name.endsWith(".ndjson")) continue;
       try {
         const stat = await fs.stat(full);
@@ -129,7 +136,14 @@ export async function readStream(
   } catch {
     return []; // escaping name -> nothing to read
   }
-  if (!(await pathExists(file))) return [];
+  // streamFilePath is lexical, and a run writes into its own streams dir, so
+  // the name landing inside that dir does not mean the bytes do. Same shape as
+  // the artifacts read path; the leak here is narrower only because the parse
+  // below drops anything that is not one of our own JSON lines.
+  const root = await verifyRealRoot(streamsDir(projectRoot, runId), projectRoot);
+  if (!root.ok) return [];
+  const leaf = await verifyRealLeaf(file, root.realRoot);
+  if (!leaf.ok || !leaf.entry.isFile()) return [];
   const text = await readText(file).catch(() => "");
   const out: ProviderStreamLine[] = [];
   for (const line of text.split("\n")) {

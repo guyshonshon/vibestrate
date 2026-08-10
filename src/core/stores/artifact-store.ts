@@ -18,6 +18,7 @@ import { promises as fs, constants as fsConstants } from "node:fs";
 import { ensureDir, writeText, readText, pathExists } from "../../utils/fs.js";
 import { runArtifactsDir, runDir, isPathInside, safeJoin } from "../../utils/paths.js";
 import { isSecretLikePath } from "../diff-service.js";
+import { verifyRealLeaf, verifyRealRoot } from "../../utils/real-path-guard.js";
 
 /**
  * Bounds one response so a runaway artifact cannot exhaust memory. Set well
@@ -195,35 +196,35 @@ export class ArtifactStore {
     } catch {
       throw new ArtifactReadError("escapes-root", "Path escapes artifacts directory.");
     }
-    const entry = await fs.lstat(target).catch(() => null);
-    if (!entry) {
-      throw new ArtifactReadError("not-found", "Artifact not found.");
+    const leaf = await verifyRealLeaf(target, realRoot);
+    if (!leaf.ok) {
+      if (leaf.reason === "missing") {
+        throw new ArtifactReadError("not-found", "Artifact not found.");
+      }
+      // The symlink case is redundant with the isFile() allow-list downstream,
+      // which already rejects a link - kept because it names the actual cause,
+      // and "this artifact is a symlink" is something an operator can act on
+      // where "not a regular file" is not.
+      throw new ArtifactReadError(
+        "escapes-root",
+        leaf.reason === "symlink"
+          ? "Refusing to read a symlinked artifact."
+          : "Path escapes artifacts directory.",
+      );
     }
-    // Redundant with the isFile() allow-list below, which already rejects a
-    // symlink - kept because it names the actual cause, and "this artifact is
-    // a symlink" is something an operator can act on where "not a regular
-    // file" is not. Deleting it loses the message, not the defense.
-    if (entry.isSymbolicLink()) {
-      throw new ArtifactReadError("escapes-root", "Refusing to read a symlinked artifact.");
-    }
-    const realParent = await fs.realpath(path.dirname(target)).catch(() => null);
-    if (!realParent || !isPathInside(realRoot, realParent)) {
-      throw new ArtifactReadError("escapes-root", "Path escapes artifacts directory.");
-    }
-    return { target, entry };
+    return { target, entry: leaf.entry };
   }
 
   /** The artifacts dir's real path, proven to still live under the project. */
   private async realArtifactsRoot(): Promise<string> {
-    const realRoot = await fs.realpath(this.artifactsDir).catch(() => null);
-    if (!realRoot) {
-      throw new ArtifactReadError("not-found", "Run artifacts directory not found.");
-    }
-    const realProject = await fs.realpath(this.projectRoot).catch(() => null);
-    if (!realProject || !isPathInside(realProject, realRoot)) {
+    const root = await verifyRealRoot(this.artifactsDir, this.projectRoot);
+    if (!root.ok) {
+      if (root.reason === "missing") {
+        throw new ArtifactReadError("not-found", "Run artifacts directory not found.");
+      }
       throw new ArtifactReadError("escapes-root", "Artifacts directory escapes the project.");
     }
-    return realRoot;
+    return root.realRoot;
   }
 
   /**

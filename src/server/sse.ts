@@ -17,7 +17,8 @@
 //     why the route validates before calling in.
 //   - Neither function checks `runId` or `promptName`: the route matches them
 //     against a pattern beforehand, and the stream-path helper re-guards
-//     containment when it resolves the file.
+//     containment when it resolves the file. That guard is lexical, so each
+//     tick also proves the file really lives in the run dir before reading it.
 //   - `heartbeat` and `watcher` are `let`-declared above `cleanup` on purpose.
 //     A client that disconnects before they are assigned runs `cleanup`, and
 //     `const` bindings would put that in the temporal dead zone.
@@ -25,11 +26,40 @@
 //     1s poll whose interval is cleared by its own request-close listener,
 //     not by `cleanup`.
 
-import fs from "node:fs";
+import fs, { constants as fsConstants, type Stats } from "node:fs";
 import { promises as fsp } from "node:fs";
-import { runEventsPath } from "../utils/paths.js";
-import { streamFilePath } from "../core/stores/provider-stream-store.js";
+import { runDir, runEventsPath } from "../utils/paths.js";
+import { streamFilePath, streamsDir } from "../core/stores/provider-stream-store.js";
+import { verifyRealLeaf, verifyRealRoot } from "../utils/real-path-guard.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
+
+/**
+ * Stat a file about to be tailed, having proven it is really inside the run
+ * directory it claims to be in. Null means "nothing to send this tick" - the
+ * file usually does not exist yet when a tail starts, and a refusal is the
+ * same non-event to the client as an empty file.
+ *
+ * Re-proven on every tick rather than once at subscribe, because the party
+ * writing these files is the run itself: an agent can replace one with a link
+ * at any point during the tail. An unparseable line is forwarded verbatim as a
+ * `raw` event, so following a link here streams its target to the browser.
+ */
+async function verifiedTailStat(
+  file: string,
+  root: string,
+  opts: { projectRoot: string },
+): Promise<Stats | null> {
+  const verified = await verifyRealRoot(root, opts.projectRoot);
+  if (!verified.ok) return null;
+  const leaf = await verifyRealLeaf(file, verified.realRoot);
+  return leaf.ok && leaf.entry.isFile() ? leaf.entry : null;
+}
+
+/** O_NOFOLLOW closes the re-link race the stat above cannot; O_NONBLOCK keeps
+ *  a leaf swapped for a FIFO from parking the open in the threadpool. */
+async function openTail(file: string): Promise<fsp.FileHandle> {
+  return fsp.open(file, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW | fsConstants.O_NONBLOCK);
+}
 
 export type SseClient = {
   send: (event: string, data: unknown) => void;
@@ -105,10 +135,11 @@ export async function streamRunEvents(opts: StreamEventsOptions): Promise<void> 
 
   const readNew = async () => {
     try {
-      const stat = await fsp.stat(file);
+      const stat = await verifiedTailStat(file, runDir(opts.projectRoot, opts.runId), opts);
+      if (!stat) return;
       if (stat.size < position) position = 0;
       if (stat.size === position) return;
-      const fd = await fsp.open(file, "r");
+      const fd = await openTail(file);
       try {
         const buf = Buffer.alloc(stat.size - position);
         await fd.read(buf, 0, buf.length, position);
@@ -205,10 +236,15 @@ export async function streamProviderOutput(
 
   const readNew = async () => {
     try {
-      const stat = await fsp.stat(file);
+      const stat = await verifiedTailStat(
+        file,
+        streamsDir(opts.projectRoot, opts.runId),
+        opts,
+      );
+      if (!stat) return;
       if (stat.size < position) position = 0;
       if (stat.size === position) return;
-      const fd = await fsp.open(file, "r");
+      const fd = await openTail(file);
       try {
         const buf = Buffer.alloc(stat.size - position);
         await fd.read(buf, 0, buf.length, position);
