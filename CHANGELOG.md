@@ -1,5 +1,51 @@
 # Changelog
 
+## 1.0.0
+
+The first release you can install. Every version below this line was built in
+the open but never published, so if you are arriving now, 1.0.0 is all of it.
+
+Vibestrate is a local-first supervisor for the coding CLIs already on your
+machine. You give it a task in plain language; it opens a git worktree, walks a
+crew of specialists through the change, and runs your own validation commands as
+the referee. It does not push and it does not merge.
+
+- **A run is a flow you watch, not a chat you scroll.** A planner sketches the
+  change, an architect shapes it, an executor writes it in a throwaway worktree,
+  your tests decide whether it works, a reviewer - ideally on a different model,
+  so it does not share the executor's blind spots - tears into the diff, a fixer
+  answers the findings, a verifier signs off. Every handoff is visible and every
+  phase leaves a named artifact you can read afterwards.
+- **The models are yours, and so is the bill.** Vibestrate never holds an API
+  key. It spawns Claude Code, Codex, Gemini, Aider, OpenCode, Cursor, Amp or a
+  local Ollama model and reads their output, so your prompts go straight to the
+  vendor you already pay. Nothing runs on a server of ours and nothing phones
+  home.
+- **Swap the crew without rewriting the work.** A Flow names Seats rather than
+  your local setup, which is what makes one portable enough to export and hand
+  to someone else. When a model goes slow, unreliable or expensive, refill the
+  seats and the flow is unchanged.
+- **You hold the gates.** Approval gates wait for a human, a risky task is
+  deterministically upgraded to heavier review rather than talked past, and a
+  run ends at `merge_ready`, `blocked` or `failed` for you to decide. Merges are
+  human-initiated from a branch graph that predicts the conflicts before it
+  touches anything, and each one can be undone.
+- **Cost is a number, not a surprise.** Tokens and dollars are recorded per step
+  and per run, under a daily cap that can warn, downgrade the model, or stop the
+  run when you reach it.
+- **Reads stay inside the run.** File access is bounded to the project and the
+  run's own worktree, and proven against real paths rather than the shape of a
+  string. Secret-shaped files are refused rather than summarized, and the
+  dashboard binds to loopback unless you hand it a token.
+- **Everything twice.** Whatever the dashboard does, the CLI does, over a
+  versioned HTTP API you can script.
+
+From here the public surface is stable under SemVer: the CLI and its flags, the
+config schema, and `/api/v1`. Breaking any of them takes a major release.
+Modules under `src/` are internal and still move freely.
+
+Apache-2.0, all of it. Free to use, fork and ship.
+
 ## 0.77.0
 
 - Source comments stand on their own, with no internal phase names, ticket ids
