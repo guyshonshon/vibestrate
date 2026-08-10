@@ -81,7 +81,7 @@ function collectAnswer(value: string, acc: { id: string; answer: string }[]): { 
  */
 export function buildSpecUpCommand(): Command {
   const cmd = new Command("spec-up").description(
-    "Plan as a CTO: discovery -> spec -> architecture -> roadmap (a chain of read-only runs).",
+    "Plan before you build: discovery -> spec -> architecture -> roadmap (a chain of read-only runs).",
   );
 
   cmd

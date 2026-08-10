@@ -2115,7 +2115,7 @@
         "vibe",
         "spec-up"
       ],
-      "description": "Plan as a CTO: discovery -> spec -> architecture -> roadmap (a chain of read-only runs).",
+      "description": "Plan before you build: discovery -> spec -> architecture -> roadmap (a chain of read-only runs).",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],
