@@ -29,7 +29,8 @@ npm install -g vibestrate
 pnpm add -g vibestrate
 ```
 
-Pin a version through npm, for example `npm install -g vibestrate@0.7.0`. Then check it:
+Pin a version through npm with `npm install -g vibestrate@<version>` - `npm view
+vibestrate versions` lists what is published. Then check it:
 
 ```bash
 vibe --version
