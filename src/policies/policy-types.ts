@@ -96,6 +96,26 @@ export const actionKindSchema = z.enum([
 ]);
 export type PolicyActionKind = z.infer<typeof actionKindSchema>;
 
+/**
+ * The kinds whose effect sites can actually PAUSE for a human. Everywhere else
+ * a `require_approval` verdict has no approval seam to await on, so the effect
+ * is simply refused - the run gets a hard block where the author asked for a
+ * hold. Rather than let that footgun through, the schema rejects the
+ * combination (below) and `vibe policies doctor` names the offending kinds.
+ *
+ * - `run.complete` - the completion gate awaits the human sign-off.
+ * - `file.patch`   - the POST-TURN DIFF GATE awaits it. The other file.patch
+ *                    emitters (suggestion / bundle apply) have no seam and
+ *                    refuse instead; `gateAction` records that refusal as
+ *                    evidence so the audit log stays honest.
+ */
+export const HOLDABLE_ACTION_KINDS = [
+  "run.complete",
+  "file.patch",
+] as const satisfies readonly PolicyActionKind[];
+
+const HOLDABLE = new Set<string>(HOLDABLE_ACTION_KINDS);
+
 const actionMatchSchema = z
   .object({
     /** Exact provider id (provider.spawn). */
@@ -122,18 +142,33 @@ const actionMatchSchema = z
   })
   .optional();
 
-export const actionPolicySchema = z.object({
-  id: z
-    .string()
-    .min(1)
-    .max(96)
-    .regex(/^[A-Za-z][A-Za-z0-9_-]*$/, "id must match [A-Za-z][A-Za-z0-9_-]*"),
-  description: z.string().min(1).max(POLICY_LIMITS.maxMessageLength),
-  on: z.array(actionKindSchema).min(1),
-  match: actionMatchSchema,
-  effect: z.enum(["deny", "require_approval"]).default("deny"),
-  message: z.string().min(1).max(POLICY_LIMITS.maxMessageLength),
-});
+export const actionPolicySchema = z
+  .object({
+    id: z
+      .string()
+      .min(1)
+      .max(96)
+      .regex(/^[A-Za-z][A-Za-z0-9_-]*$/, "id must match [A-Za-z][A-Za-z0-9_-]*"),
+    description: z.string().min(1).max(POLICY_LIMITS.maxMessageLength),
+    on: z.array(actionKindSchema).min(1),
+    match: actionMatchSchema,
+    effect: z.enum(["deny", "require_approval"]).default("deny"),
+    message: z.string().min(1).max(POLICY_LIMITS.maxMessageLength),
+  })
+  .superRefine((policy, ctx) => {
+    // A `require_approval` on a kind with no approval seam cannot pause
+    // anything - it refuses the effect and hard-blocks the run. Reject it at
+    // load so the author finds out from `doctor` instead of from a run that
+    // died at a gate they thought was a prompt.
+    if (policy.effect !== "require_approval") return;
+    const unholdable = policy.on.filter((kind) => !HOLDABLE.has(kind));
+    if (unholdable.length === 0) return;
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["effect"],
+      message: `effect "require_approval" cannot pause ${unholdable.join(", ")} - there is no approval seam at those effect sites, so the action would simply be refused. Use effect "deny" for them, or narrow \`on\` to ${HOLDABLE_ACTION_KINDS.join(" / ")}.`,
+    });
+  });
 export type ActionPolicy = z.infer<typeof actionPolicySchema>;
 
 export const policyRuleFileSchema = z.object({

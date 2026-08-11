@@ -50,6 +50,12 @@ export const approvalRequestSchema = z.object({
   // approval itself is still a single record.
   alsoRequiredByPolicy: z.boolean().default(false),
   userMessage: z.string().nullable().default(null),
+  // Worktree-relative paths the gate is asking about (post-turn diff gate).
+  // Without these the approver saw only a reason and a count and had to go find
+  // the changes themselves - you cannot approve a diff you cannot see. Paths
+  // only: the patch body can carry secrets and is read through the run's diff
+  // surface, which redacts. Empty for gates that are not about a file change.
+  files: z.array(z.string()).default([]),
   resolvedAt: z.string().nullable().default(null),
   resolvedBy: z.string().nullable().default(null),
   decisionNote: z.string().nullable().default(null),

@@ -12,6 +12,7 @@ import path from "node:path";
 import { PolicyError } from "../utils/errors.js";
 import { pathExists } from "../utils/fs.js";
 import { resolveProfile } from "../safety/permission-profiles.js";
+import { loadPolicySnapshot } from "../policies/policy-store.js";
 import type { ProjectConfig } from "../project/config-schema.js";
 
 export type PolicyWarning = {
@@ -25,10 +26,45 @@ export type PolicyResult = {
 
 const ENV_FILES = [".env", ".env.local", ".env.development", ".env.production"];
 
+/**
+ * Describe a run that will execute with nothing bounding it: unattended (no
+ * human at any gate), no budget ceiling, and no OS/container confinement. None
+ * of those is wrong on its own - unattended runs are a feature and confinement
+ * is opt-in by design - but all three at once means an overnight run has no
+ * automatic stop and only the worktree + diff gate between it and the machine.
+ *
+ * Pure and exported so the preflight (event log, dashboard) and the CLI
+ * (printed BEFORE the run starts, while the user can still act on it) say the
+ * same thing from one source instead of drifting.
+ */
+export function describeUnboundedRun(input: {
+  config: ProjectConfig;
+  unattended: boolean;
+}): PolicyWarning | null {
+  if (!input.unattended) return null;
+  const { budget, execution } = input.config;
+  const hasCeiling =
+    budget.spendCapDailyUsd !== null ||
+    budget.maxTurnsPerRun !== null ||
+    budget.maxWallClockMinPerRun !== null ||
+    budget.maxTurnsPerDay !== null ||
+    budget.maxWallClockMinPerDay !== null;
+  const confined =
+    execution.backend !== "local-worktree" || execution.isolation !== "off";
+  if (hasCeiling || confined) return null;
+  return {
+    code: "UNBOUNDED_UNATTENDED_RUN",
+    message:
+      "Unattended run with no budget ceiling and no confinement: nothing will stop it automatically, and only the worktree + diff gate bound what it touches. Set a ceiling (`vibe budget set --max-turns-run 40`) or turn on confinement (`vibe config set execution.isolation sandboxed`, or `execution.backend docker`).",
+  };
+}
+
 export async function runPreflightChecks(input: {
   projectRoot: string;
   config: ProjectConfig;
   isGitRepo: boolean;
+  /** Unattended runs answer no gate; used for the unbounded-run advisory. */
+  unattended?: boolean;
 }): Promise<PolicyResult> {
   const { projectRoot, config, isGitRepo } = input;
   const warnings: PolicyWarning[] = [];
@@ -36,6 +72,29 @@ export async function runPreflightChecks(input: {
   if (!isGitRepo) {
     throw new PolicyError(
       `Vibestrate requires a git repository. ${projectRoot} is not inside a git repo.`,
+    );
+  }
+
+  // A policy set that did not fully load is a SILENT loss of protection: a
+  // malformed file contributes no rules, and a duplicate id drops the later
+  // definition (first occurrence wins) - so the stricter rule someone just
+  // added can vanish while `vibe policies list` still looks populated. Nothing
+  // downstream can detect this: the broker only ever sees the rules that DID
+  // load, and a rule that never loaded leaves no trace in the action log or the
+  // assurance verdict. Refuse the run instead, and name the fix.
+  const policySet = await loadPolicySnapshot(projectRoot);
+  if (policySet.malformedFiles.length > 0 || policySet.duplicateIds.length > 0) {
+    const problems: string[] = [];
+    for (const m of policySet.malformedFiles) {
+      problems.push(`  ${path.basename(m.file)}: ${m.reason}`);
+    }
+    if (policySet.duplicateIds.length > 0) {
+      problems.push(
+        `  duplicate id(s) defined more than once (only the first is loaded): ${policySet.duplicateIds.join(", ")}`,
+      );
+    }
+    throw new PolicyError(
+      `Refusing to start: the policy set in .vibestrate/policies/ did not fully load, so rules you think are active may not be.\n${problems.join("\n")}\nFix them (details: \`vibe policies doctor\`), then start the run again.`,
     );
   }
 
@@ -67,6 +126,12 @@ export async function runPreflightChecks(input: {
         "No validation commands configured. Reviews are stronger when Vibestrate can run your real checks. Add some with `vibe doctor --fix` or `vibe config set commands.validate \"[...]\"`.",
     });
   }
+
+  const unbounded = describeUnboundedRun({
+    config,
+    unattended: input.unattended ?? false,
+  });
+  if (unbounded) warnings.push(unbounded);
 
   return { warnings };
 }

@@ -39,6 +39,8 @@ export async function runApprovalsList(
     console.log(`${sym} ${color.bold(a.id)}  ${color.dim(a.status)}`);
     console.log(indent(`stage: ${a.stageId} · agent: ${a.roleId}`));
     if (a.reason) console.log(indent(`reason: ${a.reason}`));
+    if (a.files.length > 0)
+      console.log(indent(`files: ${a.files.length} (vibe approvals show ...)`));
     if (a.requestedAction)
       console.log(indent(color.dim(`requested: ${a.requestedAction}`)));
     if (a.decisionNote)

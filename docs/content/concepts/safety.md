@@ -12,7 +12,15 @@ In Vibestrate that doorway is the **Action Broker**. Every side-effecting operat
 
 <div class="docs-callout warn">
 
-**One guarded doorway, fail-closed.** Every side-effecting operation crosses the single Action Broker. For each request the broker decides against an ordered chain of evaluators (first `deny` wins, otherwise the first `require_approval`, otherwise `allow`) and records the decision plus post-execution evidence as one line in `.vibestrate/runs/<runId>/actions.ndjson`. Decisions are **fail-closed**: anything short of an explicit `allow` refuses the effect. There is no back door.
+**One guarded doorway.** Every side-effecting operation crosses the single Action Broker. For each request the broker decides against an ordered chain of evaluators (first `deny` wins, otherwise the first `require_approval`, otherwise `allow`) and records the decision plus post-execution evidence as one line in `.vibestrate/runs/<runId>/actions.ndjson`. Every decision is **honored fail-closed**: anything short of an explicit `allow` refuses the effect at the call site. There is no surface that skips the boundary.
+
+</div>
+
+<div class="docs-callout">
+
+**What the broker is not: a default-deny gate.** Resolution is **default-allow with a policy veto**. An effect that no policy matches is allowed, and policies can only *refuse* or *hold* - none of them can grant. So the broker is where you impose and record limits, not a whitelist you must satisfy to get anything done.
+
+What holds with **zero** policies configured is the layer underneath: the built-in patch-safety check (secret-bearing content, forbidden paths) refuses unsafe diffs on its own, the run is confined to its git worktree, and nothing is pushed or merged without you. Two things do fail closed inside the broker itself: a policy-loader error denies every write/outcome effect (`file.write`, `file.patch`, `run.complete`, `git.merge`) rather than waving them through, and a policy set that did not fully load refuses to start the run at all (below).
 
 </div>
 
@@ -49,6 +57,7 @@ actions:
     effect: require_approval
     message: Runs require human approval before completing.
 
+
   - id: no-secret-writes
     description: Refuse writes to dotenv-style files.
     on: [file.write, file.patch]
@@ -70,7 +79,34 @@ In plain words: the first action `deny`s any `npm install` / `pip install` comma
 
 An action with no `match` applies to **every** request of the listed `on:` kinds. Effects default to `deny`. Policies can only *refuse or hold* an effect - they never permit something the built-in safety checks already refused.
 
-Because every effect is constructed through the same broker, the same policy set reaches every effect site - there is no surface that quietly skips the boundary, and the `actions.ndjson` log is the audit trail the Run Assurance artifact and replay read from, including refused attempts. A malformed policy *file* is skipped (it can't wedge every run), but a matching `deny` is always honored.
+The seven kinds above are exactly the effects vibestrate actually raises. There is deliberately **no `network.request` or `mcp.tool` kind**: a provider CLI's own HTTP calls and tool invocations happen inside an opaque subprocess that vibestrate cannot intercept, so a policy kind for them would advertise a checkpoint that does not exist. Network confinement is enforced a layer down, at the container boundary - see [egress allowlist](concepts/sandbox).
+
+### `require_approval` only where something can pause
+
+`require_approval` is accepted on **`run.complete`** and **`file.patch`** only. Those are the two effects with a real approval seam: the completion gate and the post-turn diff gate both park the run in `waiting_for_approval` and wait for you.
+
+Every other kind is refused at load with an error naming the offending kinds. The reason is that a "hold" needs something to hold *on*: a `require_approval` on `command.run` had nothing to pause, so the command was simply refused and the step failed - a hard block wearing a hold's label. Use `deny` there and mean it.
+
+One honest edge: `file.patch` holds at the diff gate, but the suggestion/bundle **apply** surfaces have no seam either, so a hold there refuses the apply. When that happens the action log records the policy's `require_approval` decision *plus* evidence saying it was refused rather than held, so the audit trail never implies you were asked.
+
+Because every effect is constructed through the same broker, the same policy set reaches every effect site - there is no surface that quietly skips the boundary, and the `actions.ndjson` log is the audit trail the Run Assurance artifact and replay read from, including refused attempts.
+
+### A policy set that didn't fully load stops the run
+
+A policy file that fails to parse contributes **no rules**, and a rule id defined twice keeps only the first - so the stricter rule you just added can vanish while `vibe policies list` still looks healthy. Nothing downstream can catch this: the broker only ever sees the rules that *did* load, and a rule that never loaded leaves no trace in the action log or the assurance verdict.
+
+So a run **refuses to start** while `.vibestrate/policies/` contains a malformed file or a duplicate id, naming the file and the reason:
+
+```
+Refusing to start: the policy set in .vibestrate/policies/ did not fully load,
+so rules you think are active may not be.
+  safety.yml: YAML parse error: ...
+Fix them (details: `vibe policies doctor`), then start the run again.
+```
+
+This is deliberately strict - a broken YAML file blocks even a docs-only run - because the alternative is running with protections you believe are on. `vibe policies doctor` prints the same detail and exits non-zero.
+
+Scope, precisely: this gate is on **run creation**. The advisory assist surfaces that call a model without starting a run - `vibe consult`, task enhancement, flow selection, param generation - are not behind it. They are read-only and propose rather than act, but they do run before this check, so treat "no run will start" as exactly that claim and no wider.
 
 See what's loaded with `vibe policies list` / `vibe policies doctor`, the `GET /api/policies` endpoint, or the Policies panel in the dashboard.
 
@@ -88,6 +124,8 @@ The `policies.*` toggles - strict apply-only, harden read-only seats, interactiv
 A run takes a **permission mode** that decides how much rope it gets - enforced by Vibestrate the same way for **every** provider, not a per-model flag. Set it per run with `vibe run --permission-mode <mode>` (or the API / dashboard), or set the baseline with `policies.defaultPermissionMode`.
 
 <div class="docs-outcomes"><div class="docs-outcome ok"><b>read-only</b><span>No writes at all. Every seat runs read-only (no write grant); claude additionally gets plan mode when hardened, and a codex run gets OS confinement under the container backend.</span></div><div class="docs-outcome ok"><b>ask</b><span>The agent writes into the worktree, then every resulting change waits for your approval before it's kept - reject and the worktree is rolled back.</span></div><div class="docs-outcome warn"><b>accept-edits</b><span>Changes auto-apply, but the run does not auto-complete - it holds at the completion boundary for your sign-off, then resumes to merge_ready on approval (reject, or an unattended timeout, blocks it).</span></div><div class="docs-outcome warn"><b>auto</b><span>Fully hands-off (the default) - changes apply and the run completes on the evidence, bounded by the gates above and your budget ceilings.</span></div></div>
+
+When a gate is about a **change**, the request carries the files it is asking about, not just a count - the run detail page lists them under the approve/reject buttons with a link to the diff, and `vibe approvals show <runId> <id>` prints the same list. You cannot approve a diff you cannot see.
 
 A note on **ask** combined with `strictApplyOnly`: ask's "approve each change" runs on the post-turn diff gate (the direct-write path). With `strictApplyOnly` on, changes are routed through the apply gateway instead, which currently *refuses* a change pending approval rather than prompting for it - so a run lands blocked instead of pausing. Use one or the other for now (ask alone gives you the per-change prompt).
 
@@ -134,6 +172,7 @@ Three gates sit on the path between an agent and your files, each independently 
 - **Post-turn diff gate** - every write-capable turn is snapshotted before it runs. Afterward its diff is checked against secret/path safety and `file.patch` policies. A denied or unsafe diff is rolled back to the snapshot and the run is blocked.
 - **Strict apply-only mode** (`policies.strictApplyOnly`) - for the highest assurance, write roles run read-only and instead *propose* a unified diff that Vibestrate applies through the broker gateway. Nothing reaches disk without crossing the gate; a refused patch blocks the run.
 - **Provider-native OS sandbox** (`execution.isolation`, **off by default**) - an optional fourth layer that adds OS *prevention* on top of the diff gate's *detection*. The gates above bound your machine structurally already (worktree + diff gate + human-reviews-the-diff-before-merge), which is why a sandbox is opt-in, not a tax on every run - turn it on for an untrusted task or an unattended run. With `execution.isolation: sandboxed`, each turn is asked to run under the provider's own OS sandbox, scaled to the seat: a write-capable seat gets writes confined to the worktree, a read-only seat gets read-only. **Today this is real only for codex** (`codex exec --sandbox`, Apple Seatbelt / Linux Landlock - a write outside the worktree is refused by the OS). A provider with no OS sandbox flag (e.g. claude) **warns once and runs unsandboxed** rather than pretending - the worktree + diff gate still apply, and the run records only the sandbox that was actually enforced. Set it with `vibe config set execution.isolation sandboxed` or the dashboard config editor. For a wall that works the same around **any** provider (not just codex), move the run off your host entirely with the [container backend](concepts/sandbox) - `execution.backend: docker` runs each turn in a disposable Docker container.
+- **Egress allowlist** (`execution.container.egress.mode: allowlist`, **off by default**, container backend only) - the run container moves to a Docker network with no gateway, so its only route out is an allowlisting proxy that refuses any host you didn't name. See [the sandbox page](concepts/sandbox).
 - **Run assurance** - the terminal verdict above summarizes what actually happened, from the evidence log.
 
 ## Budget ceilings (don't lose control)
@@ -144,6 +183,12 @@ Beyond the daily **dollar** cap (`budget.spendCapDailyUsd`), Vibestrate has **co
 - `budget.maxTurnsPerDay` / `budget.maxWallClockMinPerDay` - across all of today's runs.
 
 Checked before every agent turn. When one is hit the run **stops (blocked)**, logs a `budget.limit` event, and notifies you. All off by default. Set them with `vibe budget set --max-turns-run 40 --max-time-day 120` (use `off` to clear), `PATCH /api/budget`, or the dashboard's Budget control.
+
+Because they're off by default, a `--unattended` run with **no ceiling and no confinement** says so before it starts - printed by `vibe run` while you're still at the keyboard, and recorded as an `UNBOUNDED_UNATTENDED_RUN` policy warning in the run's event log:
+
+> Unattended run with no budget ceiling and no confinement: nothing will stop it automatically, and only the worktree + diff gate bound what it touches.
+
+It is advice, not a gate. Setting any one ceiling, or turning on `execution.isolation` / `execution.backend: docker`, silences it.
 
 The **dollar** cap (`budget.spendCapDailyUsd`) has a configurable action when it's hit (`budget.capAction`):
 

@@ -8,7 +8,7 @@ Short, plain definitions for the words Vibestrate's docs use.
 
 <div class="docs-glossary">
 
-**Action Broker.** The one checkpoint every real effect has to pass through, whether that's starting a provider, running a command, or writing a file. For each effect it decides allow, deny, or ask a human first, then writes down what it decided and why in `.vibestrate/runs/<runId>/actions.ndjson`. This is where **Policy** actually gets enforced in the running code.
+**Action Broker.** The one checkpoint every real effect has to pass through, whether that's starting a provider, running a command, or writing a file. For each effect it decides allow, deny, or ask a human first, then writes down what it decided and why in `.vibestrate/runs/<runId>/actions.ndjson`. This is where **Policy** actually gets enforced in the running code. It is default-allow with a policy veto - an effect nobody wrote a rule about proceeds - so it's where you impose limits, not a whitelist you have to satisfy. See [Safety](/docs/concepts/safety).
 
 **Crew.** Your local team of Roles. A run picks one Crew (default: `defaultCrew`) and matches the Flow's Seats to the Roles in it. See [Crew](/docs/concepts/crew).
 
@@ -42,7 +42,7 @@ Short, plain definitions for the words Vibestrate's docs use.
 
 **Plan.** The structured output the planner agent produces. The first stage of the default workflow makes it.
 
-**Policy.** A gate enforced by code, not just a line in a prompt. Policies live in `.vibestrate/policies/*.yml` (and as approval gates via `policies.requireApprovalAtStages`); the **Action Broker** checks them and can `deny` a real effect or flag it as `require_approval`. A rule the model can't sweet-talk its way around. Contrast with **Instructions** (`rules.md`), which only get pasted into prompts as advice.
+**Policy.** A gate enforced by code, not just a line in a prompt. Policies live in `.vibestrate/policies/*.yml` (and as approval gates via `policies.requireApprovalAtStages`); the **Action Broker** checks them and can `deny` a real effect or flag it as `require_approval` (accepted only on `run.complete` and `file.patch`, the two effects that can actually pause). A rule the model can't sweet-talk its way around. A run refuses to start while any policy file is malformed or an id is defined twice, since a rule that didn't load protects nothing. Contrast with **Instructions** (`rules.md`), which only get pasted into prompts as advice.
 
 **Project root.** The git repository where `vibe init` was run. It's where `.vibestrate/` lives.
 

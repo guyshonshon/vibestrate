@@ -103,6 +103,7 @@ export class ApprovalService {
     source?: ApprovalSource;
     alsoRequiredByPolicy?: boolean;
     userMessage?: string | null;
+    files?: string[];
   }): Promise<ApprovalRequest> {
     const ts = nowIso();
     const req: ApprovalRequest = {
@@ -122,6 +123,7 @@ export class ApprovalService {
       source: input.source ?? "agent",
       alsoRequiredByPolicy: input.alsoRequiredByPolicy ?? false,
       userMessage: input.userMessage ?? null,
+      files: input.files ?? [],
       resolvedAt: null,
       resolvedBy: null,
       decisionNote: null,

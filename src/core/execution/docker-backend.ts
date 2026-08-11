@@ -2,8 +2,14 @@ import { execa } from "execa";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { prepareWorktree } from "../../git/worktree.js";
 import { VibestrateError } from "../../utils/errors.js";
+import {
+  DEFAULT_EGRESS_ALLOW,
+  EGRESS_PROXY_PORT,
+} from "./egress-proxy.js";
+import type { EgressConfig } from "./execution-backend-schema.js";
 import type {
   ExecutionBackend,
   ExecSpec,
@@ -32,11 +38,19 @@ import type {
 //   - HONEST: the ExecStrategy.location is "container" only for commands that
 //     actually ran via `docker exec`; the assurance posture keys off that.
 //
+//   - EGRESS is open by default and confinable on request
+//     (`execution.container.egress.mode: allowlist`): the run container moves to
+//     an `--internal` network with no gateway, and its only reachable peer is an
+//     allowlisting CONNECT proxy. See egress-proxy.ts for why the topology - not
+//     the HTTP(S)_PROXY env vars - is the enforcement.
+//
 // KNOWN LIMITATIONS: the `image` must carry the provider
-// CLI (the host binary is the wrong arch); egress is OPEN (a credential read
-// in-container can be exfiltrated - same data-plane risk as running the CLI, but
-// the user is invited to point this at sketchier inputs, so backend=docker warns
-// loudly); rootless/userns-remap is not yet the default (hardened-rootful here);
+// CLI (the host binary is the wrong arch); with the default open egress a
+// credential read in-container can be exfiltrated (same data-plane risk as
+// running the CLI, but the user is invited to point this at sketchier inputs, so
+// backend=docker warns loudly), and even under an allowlist a CONNECT tunnel to
+// an allowed model API is opaque TLS that data can be encoded into;
+// rootless/userns-remap is not yet the default (hardened-rootful here);
 // MCP-config turns and in-container validation are not supported.
 
 /** Host env keys that may cross into the container (provider auth + our own).
@@ -113,6 +127,9 @@ export function buildDockerRunArgs(input: {
   readonlyRoot: boolean;
   /** Cap in-container process count (fork-bomb guard). */
   pidsLimit: number;
+  /** Egress confinement: the internal network to join and the proxy URL to
+   *  advertise. Absent ⇒ default bridge networking (open egress). */
+  egress?: { networkName: string; proxyUrl: string };
 }): string[] {
   const args = [
     "run",
@@ -131,6 +148,20 @@ export function buildDockerRunArgs(input: {
     // Fork-bomb guard: cap the container's process count.
     `--pids-limit=${input.pidsLimit}`,
   ];
+  if (input.egress) {
+    // The `--internal` network has no gateway, so this container has NO route
+    // off it - the proxy container (the network's only other member) is the one
+    // reachable peer. That missing route is the enforcement; the proxy env vars
+    // below merely tell compliant clients where to go. NOT `--network none`,
+    // which would also cut the proxy off and leave the run with no egress at all.
+    args.push("--network", input.egress.networkName);
+    for (const key of ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]) {
+      args.push("-e", `${key}=${input.egress.proxyUrl}`);
+    }
+    // Never proxy loopback/link-local; some CLIs probe them.
+    args.push("-e", "NO_PROXY=localhost,127.0.0.1,::1");
+    args.push("-e", "no_proxy=localhost,127.0.0.1,::1");
+  }
   if (input.readonlyRoot) {
     // Read-only root FS. The provider CLI still needs to write temp files and a
     // HOME (claude writes ~/.claude, npm/tools write caches), so give it two
@@ -162,6 +193,125 @@ export function buildDockerRunArgs(input: {
   return args;
 }
 
+/**
+ * The `docker run -d` argv for the egress proxy sidecar. It joins the SAME
+ * internal network as the run container (so the run can reach it) and is later
+ * attached to `bridge` as well (so it can reach the internet) - the run
+ * container is never on bridge, which is what makes the proxy the only way out.
+ *
+ * The proxy image is the run image: it already has to carry a node runtime, and
+ * reusing it avoids a second pull. The proxy source is bind-mounted read-only
+ * at a `.mjs` path so node loads it as ESM regardless of the image's
+ * package.json.
+ */
+export function buildEgressProxyRunArgs(input: {
+  containerName: string;
+  image: string;
+  networkName: string;
+  /** Host path of the compiled egress-proxy module. */
+  proxyModulePath: string;
+  allow: readonly string[];
+  pidsLimit: number;
+}): string[] {
+  return [
+    "run",
+    "-d",
+    "--name",
+    input.containerName,
+    "--label",
+    "vibestrate.managed=true",
+    "--network",
+    input.networkName,
+    "--cap-drop=ALL",
+    "--security-opt=no-new-privileges",
+    // This container is dual-homed (internal net + bridge), so it is the one
+    // machine that could route the run container to the internet. Kernel IP
+    // forwarding is on by default in a container; turn it off. The run
+    // container also cannot install a route to it (that needs CAP_NET_ADMIN,
+    // which --cap-drop=ALL removes there) - this is the second lock, so that
+    // adding a capability later cannot silently open a full bypass.
+    "--sysctl",
+    "net.ipv4.ip_forward=0",
+    `--pids-limit=${input.pidsLimit}`,
+    "--read-only",
+    "--tmpfs",
+    "/tmp:rw,nosuid,nodev,size=64m",
+    "-v",
+    `${input.proxyModulePath}:${PROXY_MOUNT_PATH}:ro`,
+    "-e",
+    "VIBESTRATE_EGRESS_ENTRY=1",
+    "-e",
+    `VIBESTRATE_EGRESS_ALLOW=${input.allow.join(",")}`,
+    input.image,
+    "node",
+    PROXY_MOUNT_PATH,
+  ];
+}
+
+/** Where the proxy module is mounted inside the proxy container. `.mjs` so node
+ *  parses it as ESM whatever the image's package.json says. */
+const PROXY_MOUNT_PATH = "/vibestrate-egress-proxy.mjs";
+
+/**
+ * Resolve the COMPILED egress-proxy module on the host, so it can be
+ * bind-mounted into the proxy container. It must be a real .js file: the
+ * container runs it with its own node and knows nothing about TypeScript.
+ *
+ * Layout differs by install: the CLI ships as a single bundled `dist/index.js`
+ * with the proxy emitted beside it (a separate tsup entry), while a source
+ * checkout runs this module from `src/core/execution/`. Probe both rather than
+ * assume, and return the tried paths so the caller can say what was missing.
+ */
+export async function egressProxyModulePath(): Promise<{
+  file: string | null;
+  tried: string[];
+}> {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    // Installed / bundled: dist/index.js -> dist/egress-proxy.js
+    path.join(here, "egress-proxy.js"),
+    // Source checkout after a build: src/core/execution -> <root>/dist/...
+    path.join(here, "..", "..", "..", "dist", "egress-proxy.js"),
+  ];
+  for (const file of candidates) {
+    try {
+      await fs.access(file);
+      return { file, tried: candidates };
+    } catch {
+      /* try the next layout */
+    }
+  }
+  return { file: null, tried: candidates };
+}
+
+/**
+ * Poll until the proxy is actually accepting connections inside its container,
+ * or give up. Uses the container's own node (the image is required to have one)
+ * so no extra tooling is assumed. Returns false rather than throwing; the caller
+ * turns that into the fail-closed refusal.
+ */
+export async function waitForProxyReady(
+  exec: (file: string, args: string[]) => Promise<{ exitCode: number }>,
+  containerId: string,
+  opts: { attempts?: number; delayMs?: number } = {},
+): Promise<boolean> {
+  const attempts = opts.attempts ?? 20;
+  const delayMs = opts.delayMs ?? 250;
+  for (let i = 0; i < attempts; i += 1) {
+    const probe = await exec("docker", [
+      "exec",
+      containerId,
+      "node",
+      "-e",
+      `require("net").connect(${EGRESS_PROXY_PORT},"127.0.0.1")` +
+        `.on("connect",()=>process.exit(0)).on("error",()=>process.exit(1))`,
+    ]);
+    if (probe.exitCode === 0) return true;
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+  return false;
+}
+
 /** Is the Docker daemon reachable right now? (CLI present AND `docker info` ok.) */
 export async function dockerAvailable(): Promise<boolean> {
   try {
@@ -188,6 +338,8 @@ export type DockerBackendDeps = {
   readonlyRoot: boolean;
   /** Cap in-container process count (fork-bomb guard). */
   pidsLimit: number;
+  /** Outbound network policy. Absent ⇒ open egress (the default posture). */
+  egress?: EgressConfig;
   /** Test seam: override the credential file probe + the host env. */
   authFile?: string;
   hostEnv?: Record<string, string | undefined>;
@@ -246,7 +398,139 @@ export function makeDockerBackend(deps: DockerBackendDeps): ExecutionBackend {
         /* no codex credential on disk - claude/env-auth providers pass via -e */
       }
 
-      // 4. Start the disposable container.
+      // 4. Egress confinement (opt-in). Everything here is FAIL-CLOSED: if the
+      //    network or the proxy can't be created we throw, because the
+      //    alternative is a run that executes with full outbound access while
+      //    the config claims an allowlist. A silent fallback to open egress is
+      //    exactly the theater this feature exists to avoid.
+      const egressMode = deps.egress?.mode ?? "open";
+      let egressNetwork: string | null = null;
+      let proxyContainerId: string | null = null;
+      let egressForRun: { networkName: string; proxyUrl: string } | undefined;
+
+      if (egressMode === "allowlist") {
+        const allow = [...DEFAULT_EGRESS_ALLOW, ...(deps.egress?.allow ?? [])];
+        const networkName = `vibestrate-egress-${input.runId}`;
+        const proxyName = `vibestrate-proxy-${input.runId}`;
+
+        // A host process killed mid-run leaks its network (containers get reaped
+        // by label, networks do not). Docker's default address pool is finite -
+        // roughly 30 of these and `network create` starts failing, which,
+        // because this path is fail-closed, would block every allowlist run with
+        // an error pointing nowhere useful. Sweep unused ones first; `prune`
+        // only removes networks with no attached containers, so a concurrent
+        // run's network is never touched.
+        await runExec("docker", [
+          "network",
+          "prune",
+          "-f",
+          "--filter",
+          "label=vibestrate.managed=true",
+        ]);
+
+        // `--internal` = a bridge network with NO gateway. Containers on it can
+        // talk to each other and to nothing else.
+        const net = await runExec("docker", [
+          "network",
+          "create",
+          "--internal",
+          "--label",
+          "vibestrate.managed=true",
+          networkName,
+        ]);
+        if (net.exitCode !== 0) {
+          throw new VibestrateError(
+            "DOCKER_EGRESS_NETWORK_FAILED",
+            `execution.container.egress.mode is "allowlist" but the isolated Docker network could not be created: ${net.stderr.trim() || net.stdout.trim()}. Refusing to run with open egress.`,
+          );
+        }
+        egressNetwork = networkName;
+
+        const proxyModule = await egressProxyModulePath();
+        if (!proxyModule.file) {
+          await runExec("docker", ["network", "rm", networkName]).catch(() => {});
+          throw new VibestrateError(
+            "DOCKER_EGRESS_PROXY_MISSING",
+            `The egress proxy module was not found (looked in: ${proxyModule.tried.join(", ")}). ` +
+              `In a source checkout, run \`pnpm build\` first. Refusing to run with open egress.`,
+          );
+        }
+
+        const proxyStart = await runExec(
+          "docker",
+          buildEgressProxyRunArgs({
+            containerName: proxyName,
+            image: deps.image,
+            networkName,
+            proxyModulePath: proxyModule.file,
+            allow,
+            pidsLimit: deps.pidsLimit,
+          }),
+        );
+        if (proxyStart.exitCode !== 0) {
+          // `docker run` can fail AFTER creating the container, and a network
+          // with a leftover endpoint refuses to be removed - so remove the
+          // container by name first or both leak.
+          await runExec("docker", ["rm", "-f", proxyName]);
+          await runExec("docker", ["network", "rm", networkName]);
+          throw new VibestrateError(
+            "DOCKER_EGRESS_PROXY_FAILED",
+            `execution.container.egress.mode is "allowlist" but the egress proxy container could not start: ${proxyStart.stderr.trim() || proxyStart.stdout.trim()}. The image "${deps.image}" must carry a node runtime. Refusing to run with open egress.`,
+          );
+        }
+        proxyContainerId = proxyStart.stdout.trim() || proxyName;
+
+        // Give ONLY the proxy a route to the internet. The run container stays
+        // on the internal network, so the proxy is its single exit.
+        const bridged = await runExec("docker", [
+          "network",
+          "connect",
+          "bridge",
+          proxyContainerId,
+        ]);
+        if (bridged.exitCode !== 0) {
+          await runExec("docker", ["rm", "-f", proxyContainerId]).catch(() => {});
+          await runExec("docker", ["network", "rm", networkName]).catch(() => {});
+          throw new VibestrateError(
+            "DOCKER_EGRESS_PROXY_FAILED",
+            `The egress proxy could not be attached to an outbound network: ${bridged.stderr.trim() || bridged.stdout.trim()}. Refusing to run with open egress.`,
+          );
+        }
+
+        // `docker run -d` returns at container CREATE, not at listen(): it exits
+        // 0 for a proxy that starts and immediately dies (a bad node in a custom
+        // image, EADDRINUSE, OOM), and it returns before the port is up even on
+        // the happy path. Without this probe the run would start against a dead
+        // or not-yet-ready single exit and fail opaquely at the first model call.
+        const ready = await waitForProxyReady(runExec, proxyContainerId);
+        if (!ready) {
+          await runExec("docker", ["rm", "-f", proxyContainerId]);
+          await runExec("docker", ["network", "rm", networkName]);
+          throw new VibestrateError(
+            "DOCKER_EGRESS_PROXY_FAILED",
+            `The egress proxy container started but never listened on port ${EGRESS_PROXY_PORT}. Check that the image "${deps.image}" has a working node runtime (\`docker logs ${proxyName}\`). Refusing to run with open egress.`,
+          );
+        }
+
+        egressForRun = {
+          networkName,
+          proxyUrl: `http://${proxyName}:${EGRESS_PROXY_PORT}`,
+        };
+      }
+
+      /** Tear down anything already created, in reverse order. Used by the
+       *  failure paths below and by the returned teardown. A network cannot be
+       *  removed while a container is attached, so the proxy goes first. */
+      const teardownEgress = async () => {
+        if (proxyContainerId) {
+          await runExec("docker", ["rm", "-f", proxyContainerId]);
+        }
+        if (egressNetwork) {
+          await runExec("docker", ["network", "rm", egressNetwork]);
+        }
+      };
+
+      // 5. Start the disposable container.
       const containerName = `vibestrate-${input.runId}`;
       const runArgs = buildDockerRunArgs({
         containerName,
@@ -255,10 +539,15 @@ export function makeDockerBackend(deps: DockerBackendDeps): ExecutionBackend {
         roFileMounts,
         readonlyRoot: deps.readonlyRoot,
         pidsLimit: deps.pidsLimit,
+        egress: egressForRun,
       });
       const started = await runExec("docker", runArgs);
       if (started.exitCode !== 0) {
-        // Couldn't start the container - fail closed (do NOT fall through to host).
+        // Couldn't start the container - fail closed (do NOT fall through to
+        // host). `docker run` can fail after CREATING the container, and a
+        // leftover endpoint blocks `network rm`, so remove it by name first.
+        await runExec("docker", ["rm", "-f", containerName]);
+        await teardownEgress();
         throw new VibestrateError(
           "DOCKER_RUN_FAILED",
           `Failed to start the run container from image "${deps.image}": ${started.stderr.trim() || started.stdout.trim()}. ` +
@@ -281,6 +570,7 @@ export function makeDockerBackend(deps: DockerBackendDeps): ExecutionBackend {
         ]);
         if (probe.exitCode !== 0) {
           await runExec("docker", ["rm", "-f", containerId]).catch(() => {});
+          await teardownEgress();
           throw new VibestrateError(
             "DOCKER_READONLY_HOME",
             `The run container's root filesystem is read-only (execution.container.readonlyRoot) but the image "${deps.image}" ` +
@@ -314,6 +604,9 @@ export function makeDockerBackend(deps: DockerBackendDeps): ExecutionBackend {
         exec,
         teardown: async () => {
           await runExec("docker", ["rm", "-f", containerId]).catch(() => {});
+          // The network can only be removed once its members are gone, so this
+          // order matters: run container, then proxy, then network.
+          await teardownEgress();
         },
       };
     },

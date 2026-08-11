@@ -22,39 +22,35 @@ import {
 export async function writeMcpConfigFile(input: {
   dir: string;
   servers: ReadonlyArray<ResolvedMcpServer>;
-  /** Action Broker - when provided, this secret-bearing config write crosses
-   *  the boundary (fail-closed: a deny throws). */
-  broker?: ActionBroker;
-  runId?: string;
+  /** Action Broker. REQUIRED, not optional: this write can carry MCP server
+   *  tokens, and "every effect crosses the boundary" has to hold by
+   *  construction rather than by caller discipline. An optional broker meant a
+   *  future caller could omit it and silently write a secret-bearing file
+   *  outside the audit log. */
+  broker: ActionBroker;
+  runId: string;
 }): Promise<string | null> {
   if (input.servers.length === 0) return null;
   const file = path.join(input.dir, "mcp.json");
 
   // ── Action Broker boundary: file.write ───────────────────────────
-  if (input.broker && input.runId) {
-    const action: ActionRequest = {
-      runId: input.runId,
-      kind: "file.write",
-      // Path only - never the body (it can carry MCP server tokens).
-      subject: { path: file, purpose: "mcp.json", serverCount: input.servers.length },
-      proposedBy: "system",
-    };
-    const gate = await gateAction(input.broker, action);
-    if (!gate.allowed) {
-      throw new Error(`Action broker ${gate.effect} file.write (mcp.json): ${gate.reason}`);
-    }
-    await fs.mkdir(input.dir, { recursive: true });
-    const body = JSON.stringify(buildMcpConfigFile(input.servers), null, 2);
-    await fs.writeFile(file, body, { encoding: "utf8", mode: 0o600 });
-    await input.broker.record(action, gate.decision, {
-      ok: true,
-      summary: `wrote mcp.json (${input.servers.length} server(s))`,
-    });
-    return file;
+  const action: ActionRequest = {
+    runId: input.runId,
+    kind: "file.write",
+    // Path only - never the body (it can carry MCP server tokens).
+    subject: { path: file, purpose: "mcp.json", serverCount: input.servers.length },
+    proposedBy: "system",
+  };
+  const gate = await gateAction(input.broker, action);
+  if (!gate.allowed) {
+    throw new Error(`Action broker ${gate.effect} file.write (mcp.json): ${gate.reason}`);
   }
-
   await fs.mkdir(input.dir, { recursive: true });
   const body = JSON.stringify(buildMcpConfigFile(input.servers), null, 2);
   await fs.writeFile(file, body, { encoding: "utf8", mode: 0o600 });
+  await input.broker.record(action, gate.decision, {
+    ok: true,
+    summary: `wrote mcp.json (${input.servers.length} server(s))`,
+  });
   return file;
 }

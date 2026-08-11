@@ -322,13 +322,18 @@ export type PolicyRuleSummary = {
   message: string;
 };
 
+/** Mirror of `actionKindSchema` (src/policies/policy-types.ts). Kept in sync by
+ *  hand - the UI can't import server zod schemas. It drifted before (it was
+ *  missing `git.merge` and the schema's kinds had moved on), so a drift test in
+ *  tests/action-broker-honesty.test.ts pins the two lists together. */
 export type PolicyActionKind =
   | "provider.spawn"
   | "command.run"
   | "file.patch"
   | "file.write"
   | "terminal.create"
-  | "run.complete";
+  | "run.complete"
+  | "git.merge";
 
 export type ActionPolicySummary = {
   id: string;

@@ -71,17 +71,63 @@ execution:
 
 `docker exec` runs the provider CLI **inside** the container, so the image has to have it installed - your host's `codex`/`claude` binary is the wrong architecture for a Linux container. Point `execution.container.image` at an image that bundles the provider CLI (and your project's toolchain). If the CLI isn't there, the turn fails clearly with "command not found" rather than hanging. For claude there is no on-disk credential to mount, so authenticate it in-container by providing `ANTHROPIC_API_KEY` (it rides the allowlist).
 
-## Where it stops short (read this before trusting it)
+## Confining the network (egress allowlist)
 
-This slice gives you **filesystem and process isolation**, not a hardened jail for hostile code. Be honest with yourself about the gaps:
+By default the container has normal networking and can reach the whole internet - it has to reach the model API. That means a credential readable inside the container can be sent anywhere by code the agent runs.
 
-<div class="docs-callout warn">
+Turn that off with an **egress allowlist**:
 
-**Network egress is open.** The container can reach the whole internet (it needs to reach the model API). A credential that's readable inside the container can therefore be sent anywhere by code the agent runs. So the container is **not** a safe box for genuinely malicious input - it raises the floor for an *unattended* run, it does not make "run arbitrary untrusted code" safe. Every container run prints this warning.
+```
+vibe config set execution.container.egress.mode allowlist
+```
+
+The run container is then placed on a Docker network created with `--internal` - a network with **no gateway**, so there is no route off it at all. The only other member is a small proxy container that vibestrate starts alongside the run; it is attached to an outbound network as well, and it tunnels only to allowlisted hosts, refusing everything else with a 403 that names the host.
+
+<div class="docs-callout">
+
+**The enforcement is the network, not the proxy setting.** The run container also gets `HTTP_PROXY`/`HTTPS_PROXY` pointing at the proxy, but those only tell a well-behaved client where to go. Code that ignores them and opens a raw socket finds no route, because an internal network has no gateway. That is the whole point: an allowlist proxy on a *routable* network would be security theater that one raw socket defeats.
+
+Measured on the real thing, from inside a confined run container: no default route, public IPs unreachable, `169.254.169.254` (cloud metadata) unreachable, external DNS through Docker's embedded resolver returns SERVFAIL, and adding a route back out fails with `Operation not permitted` because `--cap-drop=ALL` removes `CAP_NET_ADMIN`.
 
 </div>
 
-Also deferred for now, and tracked: the container runs rootful (rootless/user-namespace remap is not yet the default); an aborted or timed-out turn kills the `docker exec` client but the in-container process is reaped when the run ends, not instantly; and MCP-tool turns plus in-container validation are out of scope for this slice. An egress allowlist proxy, rootless-by-default, and remote/cloud execution backends are on the roadmap - the underlying strategy is already built to extend to them.
+Allowed out of the box: the model API endpoints the supported provider CLIs need (`api.anthropic.com`, `api.openai.com` and their auth/telemetry siblings). Add your own - an exact host, or `.example.com` to include subdomains:
+
+```
+vibe config set execution.container.egress.allow '["registry.npmjs.org", ".github.com"]'
+```
+
+If a run needs a host you didn't list, the proxy logs the exact refusal (`egress DENY connect <host>:443`) so you know precisely what to add. Only ports 80 and 443 are tunnelled: a `CONNECT` to an arbitrary port is a generic TCP tunnel, not web egress, and is refused even for an allowed host.
+
+Setting up the network or the proxy is **fail-closed**. If either can't be created the run is refused, rather than quietly executing with full outbound access while the config claims an allowlist.
+
+<div class="docs-callout warn">
+
+**What an allowlist does not close.** Three honest limits:
+
+- The proxy tunnels TLS, so it cannot see inside a connection to a host you allowed. Data can still be encoded into an otherwise-legitimate request to an allowed model API. Hostname allowlisting **narrows** exfiltration to the hosts you named; it does not eliminate it.
+- `--internal` blocks *forwarded* traffic, so the internet is unreachable - but the **host itself is still reachable at the bridge gateway address**. A service you have bound to `0.0.0.0` on the machine (a dev server, a database, a Docker TCP socket) is reachable from inside the confined container. On Docker Desktop that "host" is the Linux VM; on native Linux it is your actual machine. Bind local services to `127.0.0.1` if that matters to you.
+- MCP-tool turns don't run under the container backend at all, so their egress isn't covered by this.
+
+</div>
+
+Each run's network is disposable and labelled. If a vibestrate process is killed outright, its network can outlive it - and Docker's address pool is finite, so enough strays eventually block new runs. Vibestrate sweeps unused ones at run start; to do it by hand:
+
+```
+docker network prune -f --filter label=vibestrate.managed=true
+```
+
+## Where it stops short (read this before trusting it)
+
+This gives you **filesystem, process, and (opt-in) network isolation**, not a hardened jail for hostile code. Be honest with yourself about the gaps:
+
+<div class="docs-callout warn">
+
+**With the default `egress.mode: open`, the container can reach the whole internet**, so a credential readable inside it can be sent anywhere. In that posture the container is **not** a safe box for genuinely malicious input - it raises the floor for an *unattended* run, it does not make "run arbitrary untrusted code" safe. Every container run prints this warning. Switch to `allowlist` above before pointing this at input you don't trust.
+
+</div>
+
+Also deferred for now, and tracked: the container runs rootful (rootless/user-namespace remap is not yet the default); an aborted or timed-out turn kills the `docker exec` client but the in-container process is reaped when the run ends, not instantly; and MCP-tool turns plus in-container validation are out of scope. Rootless-by-default and remote/cloud execution backends are on the roadmap - the underlying strategy is already built to extend to them.
 
 If the host process is killed before a run finishes, its container can linger. They're labelled, so you can reap any strays:
 

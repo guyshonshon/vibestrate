@@ -34,6 +34,10 @@ export async function runApprovalsShow(
     console.log(indent(`requested action: ${a.requestedAction}`));
   if (a.sourceArtifactPath)
     console.log(indent(color.dim(`source artifact: ${a.sourceArtifactPath}`)));
+  if (a.files.length > 0) {
+    console.log(indent(`files (${a.files.length}):`));
+    for (const f of a.files) console.log(indent(`  ${f}`));
+  }
   if (a.decisionNote)
     console.log(indent(color.dim(`decision note: ${a.decisionNote}`)));
   console.log(indent(color.dim(`created: ${a.createdAt}`)));

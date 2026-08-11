@@ -944,6 +944,7 @@ export async function runRoleTurn(
           riskLevel: "high",
           source: "policy",
           alsoRequiredByPolicy: true,
+          files: verdict.files,
           progressMessage: `Pausing: ${roleId}'s changes need approval...`,
           requestedMessage: `Approval required for ${roleId}'s changes (${verdict.files.length} file(s)): ${verdict.reason}`,
           resumedMessage: `Approved ${roleId}'s changes; continuing.`,

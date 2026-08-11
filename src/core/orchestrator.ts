@@ -567,6 +567,7 @@ export class Orchestrator {
         onUnavailable: c?.onUnavailable ?? "fail",
         readonlyRoot: c?.readonlyRoot ?? true,
         pidsLimit: c?.pidsLimit ?? 512,
+        egress: c?.egress,
       });
     }
     return localWorktreeBackend;
@@ -593,6 +594,7 @@ export class Orchestrator {
       projectRoot: this.projectRoot,
       config: this.config,
       isGitRepo: this.isGitRepo,
+      unattended: this.unattended,
     });
 
     // Every run executes a flow. An explicit `--flow` snapshot wins; otherwise

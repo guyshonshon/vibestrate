@@ -5,7 +5,15 @@ export default defineConfig({
   // `dist/run-entry.js` (core) rather than the CLI, keeping UI ⇄ CLI decoupled.
   // Object form pins output names so the bin stays `dist/index.js` (not
   // `dist/cli/index.js`, which multi-entry would otherwise produce).
-  entry: { index: "src/cli/index.ts", "run-entry": "src/core/run-entry.ts" },
+  // `egress-proxy` is a THIRD entry, not part of the CLI bundle: it is
+  // bind-mounted into the egress proxy container and run by that container's
+  // own node, so it has to exist as a standalone file on disk. Bundling it into
+  // index.js would leave nothing to mount (egressProxyModulePath resolves it).
+  entry: {
+    index: "src/cli/index.ts",
+    "run-entry": "src/core/run-entry.ts",
+    "egress-proxy": "src/core/execution/egress-proxy.ts",
+  },
   format: ["esm"],
   target: "node18",
   outDir: "dist",

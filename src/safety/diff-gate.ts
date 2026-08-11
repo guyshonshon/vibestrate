@@ -131,7 +131,9 @@ export async function evaluateTurnDiff(input: {
     subject: { op: "agent.turn.diff", roleId, files, worktree },
     proposedBy: "provider",
   };
-  const gate = await gateAction(broker, action);
+  // canHold: this is the one file.patch site with a real approval seam - the
+  // caller (role-turn) awaits a human on an `approve` verdict.
+  const gate = await gateAction(broker, action, { canHold: true });
   if (!gate.allowed) {
     return {
       verdict: gate.effect === "deny" ? "rollback" : "approve",

@@ -630,6 +630,18 @@ export async function runRunCommand(
     }
   }
 
+  // An unattended run with no ceiling and no confinement is told so HERE, while
+  // the user is still at the keyboard - the same advisory also lands in the run's
+  // event log via the preflight, but that arrives too late to act on.
+  {
+    const { describeUnboundedRun } = await import("../../core/policy-engine.js");
+    const unbounded = describeUnboundedRun({
+      config: loaded.config,
+      unattended: options.unattended === true,
+    });
+    if (unbounded) console.log(`${symbol.warn()} ${unbounded.message}`);
+  }
+
   // Flow params + durable param memory (Profiling): seed stored answers
   // (and VIBESTRATE_PARAM_* env) into the explicit values FIRST, so the
   // interactive prompt only asks for what's genuinely unfilled (and never

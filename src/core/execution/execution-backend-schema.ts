@@ -32,6 +32,40 @@ export const isolationModeSchema = z.enum(["off", "sandboxed"]);
 
 export type IsolationMode = z.infer<typeof isolationModeSchema>;
 
+// Outbound network policy for the run container.
+//
+// "open" (default) is today's posture: the container gets normal bridge
+// networking and can reach anything, so a credential readable inside it can be
+// sent anywhere. "allowlist" puts the container on an `--internal` Docker
+// network - one with NO gateway, so there is no route off it at all - whose only
+// reachable peer is a companion proxy that tunnels to allowlisted hosts and
+// refuses the rest.
+//
+// The enforcement is that network topology. HTTP(S)_PROXY is set for the run
+// container too, but only so compliant clients find the proxy; a turn that
+// ignores the env var is stopped by the missing route, not by the env var. An
+// allowlist proxy on a routable network would be theater.
+//
+// Honest residual risk: CONNECT tunnels are opaque TLS, so an allowlisted model
+// API is still a channel data can be encoded into. This narrows exfiltration to
+// hosts you named; it does not close it.
+export const egressConfigSchema = z.object({
+  mode: z
+    .enum(["open", "allowlist"])
+    .default("open")
+    .describe(
+      "Run-container egress: 'open' (default, full outbound) or 'allowlist' (internal network + allowlisting proxy).",
+    ),
+  allow: z
+    .array(z.string().min(1).max(253))
+    .default([])
+    .describe(
+      "Extra hosts allowed when mode=allowlist, on top of the built-in model-API set. Exact host, or '.example.com' for subdomains.",
+    ),
+});
+
+export type EgressConfig = z.infer<typeof egressConfigSchema>;
+
 // Container backend. Opt-in disposable-container execution: the
 // agent's provider turns run inside a throwaway Docker container whose blast
 // radius is the container, independent of the provider (the model-agnostic
@@ -61,6 +95,7 @@ export const containerConfigSchema = z.object({
     .max(100000)
     .default(512)
     .describe("Max processes inside the run container (fork-bomb guard; default 512)."),
+  egress: egressConfigSchema.prefault({}).describe("Outbound network policy for the run container."),
 });
 
 export type ContainerConfig = z.infer<typeof containerConfigSchema>;

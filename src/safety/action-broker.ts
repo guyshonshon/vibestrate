@@ -1,34 +1,55 @@
 // ── Action Broker ───────────────────────────────────────────────────────────
 //
 // The Vibestrate-owned boundary every real effect crosses: provider spawn,
-// command run, file patch/write, network/MCP, terminal create, run completion.
+// command run, file patch/write, terminal create, run completion, git merge.
 // A request is *decided* (allow / deny / require_approval) by a chain of pure
 // evaluators, then *recorded* to an append-only per-run evidence log
 // (`runs/<id>/actions.ndjson`) - the audit trail the Run Assurance artifact
 // and replay read from.
 //
-// The broker is the boundary + the decision/evidence records. Default policy is
-// allow (no evaluators wired yet); the action-policy engine plugs in as
-// evaluators without changing call sites.
+// The broker is the boundary + the decision/evidence records. Its resolution is
+// default-ALLOW with a policy VETO: an effect with no matching evaluator is
+// allowed, and evaluators can only refuse (`deny`) or hold (`require_approval`),
+// never grant. What is fail-closed is the *handling* of a decision - anything
+// short of `allow` refuses the effect at the call site - and a policy-loader
+// error, which denies write/outcome kinds (POLICY_UNAVAILABLE_EVALUATOR below).
+// The deny floor that applies with zero policies configured lives one layer up,
+// in the built-in patch-safety check (secret content, forbidden paths).
 
 import { appendLine, pathExists, readText } from "../utils/fs.js";
 import { runActionsPath } from "../utils/paths.js";
 import { nowIso } from "../utils/time.js";
 import { loadActionPolicyEvaluators } from "../policies/action-policy-engine.js";
 
+/**
+ * Every effect kind that a real emitter constructs today. The union is the
+ * product's honest claim about what crosses the boundary: a kind listed here
+ * with no emitter would advertise coverage that does not exist, so a kind is
+ * added only together with the site that raises it. `actionKindSchema`
+ * (policy-types.ts) mirrors this exactly, and a collision test keeps the two
+ * from drifting - a kind users can write a policy for must be a kind something
+ * actually raises.
+ *
+ * Deliberately absent: per-request network and per-tool MCP interception. A
+ * provider CLI's own HTTP calls and tool invocations happen inside an opaque
+ * subprocess vibestrate cannot see; network confinement is enforced at the
+ * container layer instead (`execution.container.egress`), not here.
+ */
 export type ActionKind =
   | "provider.spawn"
   | "command.run"
   | "file.patch"
   | "file.write"
-  | "network.request"
-  | "mcp.tool"
   | "terminal.create"
   | "run.complete"
   // The human-triggered integration->main merge (guided merge). Emitted
   // ONLY by the guided-merge service - no scheduler / run-completion path may
   // reach it (tested invariant in tests/guided-merge.test.ts).
   | "git.merge";
+
+// Which kinds can actually HOLD for a human (`require_approval`) rather than
+// merely refuse is a property of the effect sites, enumerated once as
+// HOLDABLE_ACTION_KINDS in policy-types.ts, where the policy schema enforces it.
 
 export type ActionRequest = {
   runId: string;
@@ -56,8 +77,8 @@ export type ActionEvidence = {
 
 /** The write/outcome/irreversible kinds that must FAIL CLOSED when policy can't
  *  be loaded: file writes, run completion, and the merge to main. The
- *  remaining kinds (provider.spawn, command.run, terminal.create,
- *  network.request, mcp.tool) stay permissive so a transient policy-load error
+ *  remaining kinds (provider.spawn, command.run, terminal.create) stay
+ *  permissive so a transient policy-load error
  *  can't brick benign runs - provider.spawn throwing would stop every run from
  *  even starting. git.merge is denied (not abstained) because it is the most
  *  irreversible effect and is only ever human-initiated, so failing it closed
@@ -213,14 +234,34 @@ export type ActionGate =
  * evidence log shows the blocked attempt) and return it so the caller can fail
  * closed. On allow, returns the decision; the caller runs the effect and then
  * calls `broker.record(request, decision, evidence)` with the outcome.
+ *
+ * `canHold` is the call site declaring it has an approval seam to await on. A
+ * `require_approval` verdict at a site WITHOUT one cannot pause anybody - it can
+ * only refuse - so the refusal is recorded as evidence against the decision.
+ * The decision itself is left untouched (the policy really did say "hold"); the
+ * evidence is what keeps the audit log from implying a human was asked. The
+ * policy schema blocks this combination for kinds where no site can ever hold,
+ * so in practice this fires only for `file.patch` outside the diff gate.
  */
 export async function gateAction(
   broker: ActionBroker,
   request: ActionRequest,
+  opts: { canHold?: boolean } = {},
 ): Promise<ActionGate> {
   const decision = await broker.decide(request);
   if (decision.effect === "allow") return { allowed: true, decision };
-  await broker.record(request, decision, null);
+  const heldWithoutSeam =
+    decision.effect === "require_approval" && opts.canHold !== true;
+  await broker.record(
+    request,
+    decision,
+    heldWithoutSeam
+      ? {
+          ok: false,
+          summary: `require_approval cannot pause ${request.kind} here (no approval seam at this effect site); the action was refused`,
+        }
+      : null,
+  );
   const reason = "reason" in decision ? decision.reason : "policy denied";
   return { allowed: false, decision, effect: decision.effect, reason };
 }

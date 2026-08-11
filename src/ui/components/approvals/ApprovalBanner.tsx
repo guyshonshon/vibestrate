@@ -15,6 +15,10 @@ type Props = {
   defaultMode?: "idle" | "changes";
 };
 
+/** Enough to recognise the change at a glance; the rest is one click away in
+ *  the diff. A gate that dumps 40 paths is not more reviewable, just taller. */
+const FILES_SHOWN = 6;
+
 const RISK_TONE: Record<ApprovalRequest["riskLevel"], HeroTone> = {
   low: "violet",
   medium: "amber",
@@ -161,6 +165,35 @@ export function ApprovalBanner({ runId, approval, onResolved, onDiscuss, default
           <p className="mt-2 text-[11px] text-chalk-400">
             from <span className="mono text-chalk-300">{approval.sourceArtifactPath}</span>
           </p>
+        ) : null}
+        {approval.files.length > 0 ? (
+          <div className="mt-3">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[11px] font-semibold text-violet-soft">
+                {approval.files.length} file{approval.files.length === 1 ? "" : "s"} changed
+              </span>
+              {/* Hash route, not a bare query string: a plain `?tab=diff` drops
+                  the hash and navigates away from the run entirely. */}
+              <a
+                href={`#/runs/${runId}?tab=diff`}
+                className="text-[11px] font-medium text-violet-soft hover:underline"
+              >
+                Read the diff
+              </a>
+            </div>
+            <ul className="mt-1.5 space-y-0.5">
+              {approval.files.slice(0, FILES_SHOWN).map((f) => (
+                <li key={f} className="mono truncate text-[11.5px] text-chalk-300">
+                  {f}
+                </li>
+              ))}
+            </ul>
+            {approval.files.length > FILES_SHOWN ? (
+              <p className="mt-1 text-[11px] text-chalk-300">
+                +{approval.files.length - FILES_SHOWN} more
+              </p>
+            ) : null}
+          </div>
         ) : null}
         {mode === "changes" ? (
           <textarea

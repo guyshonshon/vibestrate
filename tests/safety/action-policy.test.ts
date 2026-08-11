@@ -237,7 +237,11 @@ describe("createActionBroker enforces on-disk action policies", () => {
           "actions:",
           "  - id: a1",
           "    description: d",
-          "    on: [terminal.create]",
+          // run.complete, not terminal.create: `require_approval` is only
+          // accepted where an effect site can actually await a human. A
+          // terminal.create hold has nothing to pause on, so the schema now
+          // refuses it rather than silently meaning `deny`.
+          "    on: [run.complete]",
           "    effect: require_approval",
           "    message: ask first",
           "",

@@ -55,6 +55,9 @@ export async function awaitApprovalRequest(
     source: ApprovalSource;
     alsoRequiredByPolicy?: boolean;
     userMessage?: string | null;
+    /** Files the gate is about (post-turn diff gate); persisted on the request
+     *  so the approver can see WHAT changed, not just how many. */
+    files?: string[];
     progressMessage: string;
     requestedMessage: string;
     resumedMessage: string;
@@ -77,6 +80,7 @@ export async function awaitApprovalRequest(
     source: input.source,
     alsoRequiredByPolicy: input.alsoRequiredByPolicy,
     userMessage: input.userMessage,
+    files: input.files,
   });
 
   let pendingState: RunState = applyTransition(
@@ -112,6 +116,7 @@ export async function awaitApprovalRequest(
       riskLevel: input.riskLevel,
       source: input.source,
       alsoRequiredByPolicy: input.alsoRequiredByPolicy ?? false,
+      files: input.files ?? [],
     },
   });
 

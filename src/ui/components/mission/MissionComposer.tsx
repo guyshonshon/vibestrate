@@ -20,6 +20,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowRight, Check, Loader2, Lock, Plus } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { usePublishViewContext } from "../../lib/view-context.js";
 import { Button } from "../design/Button.js";
 import { navigate } from "../../app/App.js";
 import { EntityIcon, FlowIcon, type EntityKind } from "../design/EntityIcon.js";
@@ -570,6 +571,40 @@ export function MissionComposer() {
   const tuning = [concise ? "concise" : null, forceSelect ? "auto-pick flow" : null]
     .filter(Boolean)
     .join(" · ");
+
+  // Let the consult orb answer about the run being composed, not just the
+  // project. Without this the orb is asked from a screen it cannot see, so
+  // "is this brief specific enough?" gets answered off repo state alone. Typed
+  // projection of state the client already holds - never a DOM scrape - and the
+  // details string is redacted server-side before it reaches a provider.
+  usePublishViewContext(
+    task.trim() || planQ
+      ? {
+          screen: "New run composer",
+          details: [
+            `Brief: "${task.trim() || "(blank)"}"`,
+            `Flow: ${selectedFlow ? selectedFlow.definition.label : "Auto (orchestrator picks)"}`,
+            `Crew: ${selectedCrew ? selectedCrew.label : "Default"}`,
+            `Mode: ${modeLabel}${tuning ? ` · ${tuning}` : ""}`,
+            breakDown
+              ? `Item-by-item: on${stepMode ? ", pausing between items" : ", running straight through"}`
+              : "Item-by-item: off (one pass)",
+            missing.length ? `Unfilled required flow params: ${missing.join(", ")}` : null,
+            planQ
+              ? "Planner questions on screen:\n" +
+                planQ.questions
+                  .map(
+                    (q) =>
+                      `- "${q.question}" -> ${(planQ.answers[q.id] ?? "").trim() || "(blank)"}`,
+                  )
+                  .join("\n")
+              : null,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+        }
+      : null,
+  );
 
   return (
     <div className="rounded-[22px] border border-[color:var(--line)] bg-coal-600 p-5 lg:p-6">

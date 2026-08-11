@@ -15,11 +15,17 @@ vibe consult "What's left here?" --task <taskId>
 vibe consult "..." --file src/server/routes/consult.ts
 ```
 
-In the dashboard, the **Consult** button in the top bar opens the same thing.
+In the dashboard, the orb at the bottom-right opens the same thing from any screen.
 
 ## It only sees your project
 
 Consult is not a generic chatbot. It answers only from *controlled* project context: your `VIBESTRATE.md`, your `project.yml` (providers, profiles, crews, policies), recent run outcomes and validation evidence, agent-visible annotations, and, when you pass them, a task, a run, or selected files. All of it is read-only, path-guarded, secret-redacted, and bounded.
+
+## It can see the screen you asked from
+
+Some screens hand the orb a snapshot of what you are looking at, so you can ask about the thing in front of you instead of describing it again. The **New run** composer publishes the brief you have typed, the flow and crew you picked, the run options, and any planner questions still on screen; the spec-up questions screen publishes the round and your answers so far.
+
+The snapshot is a typed projection of state the dashboard already holds, never a screenshot or a scrape of the page, and its text is secret-redacted server-side before it reaches a provider. Screens that publish nothing leave the orb exactly as it was: grounded in the project alone.
 
 ## It is honest about what it can't verify
 

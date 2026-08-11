@@ -155,7 +155,11 @@
           "image": "node:22-bookworm-slim",
           "onUnavailable": "fail",
           "readonlyRoot": true,
-          "pidsLimit": 512
+          "pidsLimit": 512,
+          "egress": {
+            "mode": "open",
+            "allow": []
+          }
         }
       },
       "itemType": null,
@@ -195,7 +199,11 @@
             "image": "node:22-bookworm-slim",
             "onUnavailable": "fail",
             "readonlyRoot": true,
-            "pidsLimit": 512
+            "pidsLimit": 512,
+            "egress": {
+              "mode": "open",
+              "allow": []
+            }
           },
           "itemType": null,
           "children": [
@@ -236,6 +244,47 @@
               "default": 512,
               "itemType": null,
               "description": "Max processes inside the run container (fork-bomb guard; default 512)."
+            },
+            {
+              "key": "egress",
+              "fullKey": "execution.container.egress",
+              "type": "object",
+              "required": false,
+              "default": {
+                "mode": "open",
+                "allow": []
+              },
+              "itemType": null,
+              "children": [
+                {
+                  "key": "mode",
+                  "fullKey": "execution.container.egress.mode",
+                  "type": "enum",
+                  "required": false,
+                  "default": "open",
+                  "enum": [
+                    "open",
+                    "allowlist"
+                  ],
+                  "itemType": null,
+                  "description": "Run-container egress: 'open' (default, full outbound) or 'allowlist' (internal network + allowlisting proxy)."
+                },
+                {
+                  "key": "allow",
+                  "fullKey": "execution.container.egress.allow",
+                  "type": "array<string>",
+                  "required": false,
+                  "default": [],
+                  "itemType": {
+                    "key": "[item]",
+                    "fullKey": "[item]",
+                    "type": "string",
+                    "required": true
+                  },
+                  "description": "Extra hosts allowed when mode=allowlist, on top of the built-in model-API set. Exact host, or '.example.com' for subdomains."
+                }
+              ],
+              "description": "Outbound network policy for the run container."
             }
           ],
           "description": "Container backend settings (used when backend=docker)."

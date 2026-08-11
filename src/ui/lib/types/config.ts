@@ -333,6 +333,8 @@ export type ApprovalRequest = {
   source: "agent" | "policy";
   alsoRequiredByPolicy: boolean;
   userMessage: string | null;
+  /** Worktree-relative paths this gate is about (post-turn diff gate). */
+  files: string[];
   resolvedAt: string | null;
   resolvedBy: string | null;
   decisionNote: string | null;

@@ -8,6 +8,10 @@ import {
   buildMcpConfigFile,
 } from "../src/providers/mcp/mcp-resolve.js";
 import { writeMcpConfigFile } from "../src/providers/mcp/mcp-config-writer.js";
+import {
+  createActionBroker,
+  readActionLog,
+} from "../src/safety/action-broker.js";
 import { mcpServerSchema } from "../src/providers/mcp/mcp-schema.js";
 
 describe("mcpServerSchema", () => {
@@ -127,9 +131,21 @@ describe("readSkillMcpServers", () => {
 });
 
 describe("writeMcpConfigFile", () => {
+  /** A broker with no policies (default-allow) over a scratch project root. */
+  async function scratchBroker() {
+    const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mcp-root-"));
+    const runId = "run-mcp";
+    return {
+      projectRoot,
+      runId,
+      broker: createActionBroker(projectRoot, runId, { evaluatorLoader: async () => [] }),
+    };
+  }
+
   it("returns null and writes nothing when there are no servers", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mcp-"));
-    const out = await writeMcpConfigFile({ dir, servers: [] });
+    const { broker, runId } = await scratchBroker();
+    const out = await writeMcpConfigFile({ dir, servers: [], broker, runId });
     expect(out).toBeNull();
     const entries = await fs.readdir(dir);
     expect(entries).toEqual([]);
@@ -137,8 +153,11 @@ describe("writeMcpConfigFile", () => {
 
   it("materializes resolved servers to <dir>/mcp.json", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mcp-"));
+    const { broker, runId } = await scratchBroker();
     const file = await writeMcpConfigFile({
       dir,
+      broker,
+      runId,
       servers: [
         {
           name: "fs",
@@ -150,5 +169,60 @@ describe("writeMcpConfigFile", () => {
     expect(file).toBe(path.join(dir, "mcp.json"));
     const parsed = JSON.parse(await fs.readFile(file!, "utf8"));
     expect(parsed.mcpServers.fs.command).toBe("mcp-fs");
+  });
+
+  // The broker is a REQUIRED parameter precisely so this can't be skipped: an
+  // mcp.json can carry server tokens, so the write has to appear in the audit
+  // log by construction rather than because the caller remembered to pass one.
+  it("records the write through the action broker, with no server body", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mcp-"));
+    const { broker, runId, projectRoot } = await scratchBroker();
+    await writeMcpConfigFile({
+      dir,
+      broker,
+      runId,
+      servers: [
+        {
+          name: "fs",
+          source: "agent",
+          config: { command: "mcp-fs", args: [], env: { TOKEN: "s3cret-value" } },
+        },
+      ],
+    });
+    const log = await readActionLog(projectRoot, runId);
+    const write = log.find((r) => r.request.kind === "file.write");
+    expect(write, "the mcp.json write must cross the broker").toBeDefined();
+    expect(write!.request.subject.purpose).toBe("mcp.json");
+    expect(write!.evidence?.ok).toBe(true);
+    // Path + count only - the record must never carry the server env.
+    expect(JSON.stringify(write)).not.toContain("s3cret-value");
+  });
+
+  it("refuses the write when a policy denies file.write", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mcp-"));
+    const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mcp-root-"));
+    const broker = createActionBroker(projectRoot, "run-deny", {
+      evaluatorLoader: async () => [
+        (req) =>
+          req.kind === "file.write"
+            ? { effect: "deny" as const, ruleIds: ["no-mcp"], reason: "blocked" }
+            : null,
+      ],
+    });
+    await expect(
+      writeMcpConfigFile({
+        dir,
+        broker,
+        runId: "run-deny",
+        servers: [
+          {
+            name: "fs",
+            source: "agent",
+            config: { command: "mcp-fs", args: [], env: {} },
+          },
+        ],
+      }),
+    ).rejects.toThrow(/deny file\.write/);
+    expect(await fs.readdir(dir)).toEqual([]);
   });
 });

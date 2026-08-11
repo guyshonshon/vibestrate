@@ -28,8 +28,6 @@ const READ_ONLY_KINDS: ActionKind[] = [
   "provider.spawn",
   "command.run",
   "terminal.create",
-  "network.request",
-  "mcp.tool",
 ];
 
 describe("broker fails CLOSED when the policy loader throws (P4)", () => {

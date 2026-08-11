@@ -1,5 +1,82 @@
 # Changelog
 
+## 2.0.0
+
+**Breaking, and worth reading before you upgrade.** Two changes below can stop
+an existing project from starting a run, both deliberately. Run
+`vibe policies doctor` first - it names the file and the reason, and exits
+non-zero:
+
+- A **malformed policy file or a duplicate rule id** now blocks every run until
+  it is fixed.
+- A policy using `effect: require_approval` on any kind other than
+  `run.complete` or `file.patch` is **rejected at load**, which makes its whole
+  file malformed and (per the rule above) blocks runs. That combination never
+  did what it looked like - it hard-blocked the effect with no gate for anyone
+  to answer - so change those to `effect: deny`, which is what they already
+  meant in practice. The documented example (`on: [run.complete]`) is
+  unaffected.
+
+- **A run stops if its policy set didn't fully load.** A policy file that fails
+  to parse contributed no rules, and a rule id defined twice kept only the first
+  one - so the stricter rule you just added could vanish while
+  `vibe policies list` still looked healthy. Nothing downstream could notice:
+  the broker only ever sees the rules that *did* load. Now a run refuses to start
+  while `.vibestrate/policies/` holds a malformed file or a duplicate id, and
+  names the file and the reason. Strict on purpose - the alternative is running
+  with protections you believe are on.
+- **`require_approval` now means a pause, or it isn't accepted.** Only
+  `run.complete` and `file.patch` have an effect site that can actually wait for
+  a human. On every other kind, a `require_approval` policy was a hard block
+  wearing a hold's label: the effect was refused and the step failed, with no gate
+  for anyone to answer. Those are refused at load now, with an error naming the
+  kinds. Where `file.patch` genuinely can't hold (the suggestion and bundle apply
+  surfaces), the action log records the refusal alongside the decision, so the
+  audit trail never implies you were asked when you weren't.
+- **Approval gates show you what changed.** A gate about a diff carried a reason
+  and a file *count*, which is not something you can approve. It now carries the
+  file list - shown under the buttons on the run page with a link to the diff, and
+  printed by `vibe approvals show`.
+- **Confine the container's network, not just its filesystem.**
+  `execution.container.egress.mode: allowlist` (off by default) puts the run
+  container on a Docker network with **no gateway**, whose only reachable peer is
+  an allowlisting proxy - so the model APIs still work and everything else is
+  refused with the exact host logged, and code that ignores `HTTPS_PROXY` finds no
+  route rather than a way around. If the network or proxy can't be created, the
+  run is refused instead of quietly running with full egress. A TLS tunnel to an
+  allowed host stays opaque, so this narrows exfiltration to hosts you named - it
+  does not close it, and the docs say so.
+- **An unattended run with nothing bounding it says so.** No budget ceiling and
+  no confinement, launched with `--unattended`: `vibe run` prints that before it
+  starts, and the run records it. Advice, not a gate.
+- **The broker's vocabulary is honest again.** `network.request` and `mcp.tool`
+  were in the effect-kind type but nothing ever raised them - a provider's own
+  HTTP calls happen inside an opaque subprocess vibestrate can't intercept, so
+  they advertised a checkpoint that did not exist. Removed; network confinement
+  belongs to the container layer above. The docs also no longer describe the
+  broker as if it were default-deny: it is default-allow with a policy veto, and
+  saying otherwise invited exactly the wrong mental model.
+
+## 1.4.0
+
+- **Break a brief into a checklist from the composer.** Item-by-item execution
+  existed, but the only way in was a task's checklist section, which hardcoded
+  one flow - so the New-run box could not launch the thing the rest of the
+  product is built around. It can now: describe the change, and **Break into
+  steps** turns it into a card plus an ordered checklist the run works through
+  one item at a time, pausing between them if you ask it to. The control appears
+  only for a flow that declares a per-item band, because sending the mode to a
+  flow without one is silent: the plan resolves to zero items and the run does a
+  single ordinary pass, having advertised item-by-item execution.
+- **The consult orb can see the screen you asked from.** Ask it from the New-run
+  composer and it answers about the brief you have typed, the flow and crew you
+  picked and the planner questions still on screen, on top of the project
+  context it always had. Previously it was asked from a screen it could not see,
+  so "is this specific enough to run?" got answered off repo state alone. The
+  snapshot is a typed projection of state the dashboard already holds, never a
+  screenshot or a page scrape, and its text is secret-redacted before it reaches
+  a provider.
+
 ## 1.2.0
 
 - **Project instructions can be more than one file.** Drop `*.md` files into

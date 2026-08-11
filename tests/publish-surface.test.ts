@@ -70,6 +70,12 @@ describe("what the registry would receive", () => {
       "NO_COLOR",
       // User-configured outbound webhook, set by the user, used only when set.
       "SLACK_WEBHOOK_URL",
+      // Read ONLY inside the egress proxy module, which runs as its own process
+      // in the proxy container - never in the vibestrate CLI. The entry flag
+      // gates that container-only startup; the allow list is the run's host
+      // allowlist, passed as `-e` on the proxy container.
+      "VIBESTRATE_EGRESS_ENTRY",
+      "VIBESTRATE_EGRESS_ALLOW",
       // A placeholder in help text, not a read.
       "VAR_NAME",
     ]);
