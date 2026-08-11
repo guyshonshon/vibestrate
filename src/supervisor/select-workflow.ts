@@ -16,6 +16,7 @@
 import { z } from "zod";
 import { classifyEffort } from "../core/effort-heuristic.js";
 import { runAssist, type AssistProviderRunner } from "../core/assist/assist-runner.js";
+import { runTriageTurn, type TriageResult } from "./triage-turn.js";
 import {
   classifyObviousTrivial,
   classifyPlanWorthy,
@@ -69,6 +70,10 @@ export type WorkflowSelection = {
   personaId?: string | null;
   /** Set when the persona upgraded the flow for a risk-tagged task. */
   personaUpgrade?: PersonaUpgrade | null;
+  /** Ordered work items the triage turn named, when it named any. DATA only -
+   *  selection never writes them. The caller decides whether they land on a task
+   *  card, get shown, or are dropped. Absent on every deterministic path. */
+  triageSteps?: TriageResult["steps"];
 };
 
 export type AvailableFlow = {
@@ -495,17 +500,6 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
   return tag(await upgrade(base));
 }
 
-const sizingAnswerSchema = z
-  .object({
-    size: z.enum(["trivial", "standard"]),
-    reasons: z.array(z.string()).default([]),
-  })
-  .strict();
-
-const SIZING_SCHEMA_HINT = `{
-  "size": "trivial | standard - trivial ONLY for a small, low-risk change (docs/text tweaks, one tiny file); anything touching code, config, CI, auth, or that you are unsure about is standard",
-  "reasons": ["string - what made it trivial/standard"]
-}`;
 
 /** Decide whether this run sizes down to `express`. Deterministic tier
  *  first (free); gray-zone assist tier only on `flowSizing: "assisted"`. Any
@@ -541,33 +535,23 @@ async function maybeSizeToExpress(
   if (det.trivial) return sizedSelection("deterministic", det.reasons);
 
   if ((input.config.flowSizing ?? "deterministic") !== "assisted") return null;
-  try {
-    const result = await runAssist({
-      projectRoot: input.projectRoot,
-      label: "size-flow",
-      auditBucket: "selection",
-      instruction: [
-        "Size this task. Reply ONLY with the JSON.",
-        "",
-        `Task: ${input.task}`,
-        "",
-        "trivial = a small, low-risk change (docs/text tweaks, one tiny file).",
-        "standard = anything touching code, config, CI, auth/security, or that you're unsure about.",
-      ].join("\n"),
-      schema: sizingAnswerSchema,
-      schemaHint: SIZING_SCHEMA_HINT,
-      loaded: input.loaded ?? undefined,
-      signal: input.signal,
-      runner: input.runner,
-    });
-    if (result.parsed.size === "trivial") {
-      return sizedSelection(
-        "assisted",
-        result.parsed.reasons.length ? result.parsed.reasons : ["assist call sized it trivial"],
-      );
-    }
-    return null;
-  } catch {
-    return null; // assist failure -> default flow (more checking)
-  }
+
+  // Gray zone: the keyword lists could not settle it, so ask once. The triage
+  // turn reads the repo (the `vibe learn` map), which is the whole reason it can
+  // beat a vocabulary. It fails closed - null here means the full flow.
+  const triage = await runTriageTurn({
+    projectRoot: input.projectRoot,
+    task: input.task,
+    loaded: input.loaded ?? undefined,
+    signal: input.signal,
+    runner: input.runner,
+  });
+  if (!triage || triage.size !== "trivial") return null;
+  const sized = sizedSelection(
+    "assisted",
+    triage.reasons.length ? triage.reasons : ["the triage turn sized it trivial"],
+  );
+  // The roadmap rides along as DATA. Nothing here writes it: the caller decides
+  // whether it lands on a task card, gets shown, or is dropped.
+  return triage.steps.length ? { ...sized, triageSteps: triage.steps } : sized;
 }
