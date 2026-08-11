@@ -962,3 +962,18 @@ export class RoadmapService {
 // ─── derived micro-step helpers (separate import path) ───────────────────────
 
 export type { MicroStep };
+
+/** Whether a triage-authored roadmap may seed a card.
+ *
+ *  Only an empty checklist qualifies. A card the owner has already broken down
+ *  is never touched: a model's reading of a one-line brief does not get to
+ *  rewrite a plan a human wrote, and "the card looked stale" is not a judgment
+ *  it is in a position to make. Extracted so the rule is testable on its own -
+ *  it guards a write to the user's own planning data. */
+export function maySeedChecklist(
+  card: { checklist: unknown[] } | null,
+  steps: unknown[] | undefined,
+): boolean {
+  if (!card || !steps || steps.length === 0) return false;
+  return card.checklist.length === 0;
+}

@@ -452,6 +452,34 @@ export async function runRunCommand(
     }
   }
 
+  // Seed the bound card with the roadmap the triage turn named, but ONLY when
+  // the card has no checklist yet. A card the owner has already broken down is
+  // never touched - a model's reading of a one-line brief does not get to
+  // rewrite a plan a human wrote. The steps are stamped `conductor` so they
+  // stay visibly AI-proposed rather than passing as the owner's own.
+  if (roadmapTaskId && selection?.triageSteps?.length) {
+    try {
+      const { RoadmapService, maySeedChecklist } = await import(
+        "../../roadmap/roadmap-service.js"
+      );
+      const svc = new RoadmapService(detected.projectRoot);
+      const card = await svc.getTask(roadmapTaskId);
+      if (maySeedChecklist(card, selection.triageSteps)) {
+        for (const step of selection.triageSteps) {
+          await svc.addChecklistItem(roadmapTaskId, step.text, {
+            objective: step.objective || undefined,
+            provenance: "conductor",
+          });
+        }
+        console.log(
+          `${symbol.ok()} Seeded ${selection.triageSteps.length} checklist item(s) on ${roadmapTaskId} from the triage turn.`,
+        );
+      }
+    } catch {
+      // Best effort: a card that cannot be seeded must never stop the run.
+    }
+  }
+
   // If --task <id> was passed and the user did NOT override provider /
   // read-only on the CLI, inherit those from the roadmap task.
   let profileOverride: string | null = options.profileOverride ?? null;
@@ -995,6 +1023,16 @@ function printFlowChoice(label: string, selection: WorkflowSelection): void {
     selection.reasons.length
   ) {
     console.log(indent(color.dim(selection.reasons[selection.reasons.length - 1]!)));
+  }
+  // The triage turn's roadmap, when it named one. Shown before the run starts,
+  // because a plan you only see afterwards is a report, not a plan.
+  if (selection.triageSteps?.length) {
+    console.log(
+      indent(color.dim(`${selection.triageSteps.length} step(s) the triage turn named:`)),
+    );
+    for (const [i, step] of selection.triageSteps.entries()) {
+      console.log(indent(color.dim(`  ${i + 1}. ${step.text}`)));
+    }
   }
   if (selection.crewId) {
     console.log(indent(color.dim(`crew: ${selection.crewId}`)));
