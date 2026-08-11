@@ -137,11 +137,23 @@ happens to have been needed by HTTP first. **`src/utils/run-id.ts`,
 `src/utils/paths.ts` and `src/utils/real-path-guard.ts` already exist.**
 
 **3. The two terminal frontends are circular.**
-`shell/ink/runtime.tsx:4` imports `buildVibestrateProgram` from `cli/index.js`,
-while `cli/commands/shell.ts` imports `runInkShell` and `buildShellSnapshot`
-from `shell/`. Defensible in intent - `vibe shell` launches the TUI, and the TUI
-needs the command tree - but it is a true cycle and the only one among the
-frontends.
+Four edges, and only two of them are visible to a reader scanning import
+statements:
+
+| Direction | Site | Kind |
+|---|---|---|
+| `shell -> cli` | `shell/ink/runtime.tsx:4` - `buildVibestrateProgram` | static |
+| `cli -> shell` | `cli/commands/shell.ts:3-4` - `runInkShell`, `buildShellSnapshot` | static |
+| `shell -> cli` | `shell/ink/runtime.tsx:22` - `firstRunMessage` | **dynamic** |
+| `cli -> shell` | `cli/index.ts:657` - `runInkShell` | **dynamic** |
+
+Defensible in intent - `vibe shell` launches the TUI, and the TUI needs the
+command tree - but it is a true cycle and the only one among the frontends.
+
+The two dynamic edges matter beyond their count. A `await import("../../cli/…")`
+buried in a function body is invisible to directory-level reasoning, and would
+be equally invisible after any re-layout. It is the clearest evidence that the
+enforcement, not the tree, is what is missing here.
 
 ---
 
@@ -211,11 +223,16 @@ src/
 `bearerToken`, `timingSafeEqualStr`, `bindAddressFromArgs` and re-exports the
 moved validators for one release so no call site breaks in the same commit.
 
-For the `cli <-> shell` cycle, the cheapest correct fix is to invert one
-direction rather than move files: `cli/commands/shell.ts` should keep importing
-`shell/`, and `shell/ink/runtime.tsx` should receive the program as an argument
-instead of importing `cli/index.js`. One frontend may depend on another; they
-must not depend on each other.
+For the `cli <-> shell` cycle, keep `cli -> shell` and remove both `shell -> cli`
+edges. One frontend may depend on another; they must not depend on each other.
+
+| Edge | Fix |
+|---|---|
+| `runtime.tsx:4` -> `buildVibestrateProgram` | Pass the program in as a `StartInkShellOptions` field. `cli` already builds it before calling `runInkShell`. |
+| `runtime.tsx:22` -> `firstRunMessage` | Move the file. `cli/first-run.ts` is 58 lines and imports **only** `utils/fs` and `utils/paths` - it has no CLI dependency at all and is misfiled. `project/` is its home; it answers "is this project initialized". |
+
+The second one is the better bargain of the two: one file moves, and the edge
+stops existing rather than being routed around.
 
 **Explicitly not proposed:** no `app/`, no `domain/`, no `infrastructure/`, no
 `interfaces/`, no barrel-per-package, no renames. Zero directories created,
@@ -253,7 +270,11 @@ Not in review, and not in prose. As a test that fails the build, matching the
 repo's existing habit of a single central verify gate:
 
 - `tests/import-boundaries.test.ts` walks `src/`, resolves every relative
-  import to its owning package, and asserts the matrix above.
+  import to its owning package, and asserts the matrix above. **It must resolve
+  dynamic `import()` as well as static `import` statements** - there are 95
+  dynamic sites in `src/`, and two of them are cycle edges that a
+  static-only pass misses. Skipping them reproduces exactly the blind spot this
+  review had before the test existed.
 - Rules 1-3 assert **zero** violations after the three fixes land.
 - Rule 4 is a **pinned snapshot** of `core`'s 14 outbound edges. Adding a
   fifteenth fails with a message saying to justify it or invert the dependency.
