@@ -67,6 +67,29 @@ const TRIVIAL = [
   "address the spacing issue on the cards",
   "add a css reset",
   "fix the alignment of the price tag",
+  // A cross-section of the surface a vibe coder actually asks for. Kept broad
+  // rather than minimal: the refusal vocabulary is a keyword list, every term
+  // added to it risks swallowing ordinary phrasing, and a false refusal is
+  // SILENT - it costs a heavier flow and reports nothing. This block is what
+  // makes widening the list fail loudly instead.
+  "add a hover effect to the cards",
+  "make the footer sticky",
+  "round the corners of the images",
+  "add a loading skeleton to the list",
+  "fix the mobile menu overlap",
+  "make the table scroll horizontally",
+  "add a tooltip to the info icon",
+  "make the modal close when you click outside",
+  "add a back to top button",
+  "make the cards the same height",
+  "show a placeholder when the list is empty",
+  "make the nav sticky on scroll",
+  "make the timestamps relative",
+  "sort the list alphabetically",
+  "add a copy to clipboard button",
+  "truncate long titles with an ellipsis",
+  "add a count next to the tab label",
+  "increase the line height in the article body",
 ];
 
 const NOT_TRIVIAL: [string, string][] = [
@@ -81,6 +104,12 @@ const NOT_TRIVIAL: [string, string][] = [
   ["add a shipping address field", "shipping address"],
   ["reset the database before each run", "reset the database"],
   ["update the checkout price calculation", "checkout"],
+  // Broad-access grants, keyed on the grantee. Enumerating verbs loses this
+  // race: "allow anyone" was listed and "let anyone" was not, so a sweep found
+  // this one sizing as trivial.
+  ["let anyone edit the settings page", "anyone"],
+  ["let everyone see the internal notes", "everyone"],
+  ["let people in without logging in", "without logging in"],
   // Weakening a safeguard - no sensitive noun anywhere in the sentence.
   ["skip the email check for now", "skip"],
   ["just turn off that annoying warning", "turn off"],

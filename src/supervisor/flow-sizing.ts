@@ -67,10 +67,14 @@ const WEAKENING = [
   "opt out",
   "no longer require",
   "stop requiring",
-  "allow anyone",
-  "allow everyone",
-  "visible to everyone",
-  "available to everyone",
+  // Broad-access grants key on the GRANTEE, not the verb. "allow anyone" and
+  // "let anyone" and "so anyone can" are the same act, and enumerating verbs
+  // loses that race - a sweep caught "let anyone edit the settings page" while
+  // "allow anyone" was already listed.
+  "anyone",
+  "everyone",
+  "without logging in",
+  "no login required",
   "make it public",
   "hardcode",
   "hard-code",
