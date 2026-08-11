@@ -127,8 +127,11 @@ describe("supervisor personas - the upgrade-only flow bias (the teeth)", () => {
       task: "Tweak the footer spacing and copy",
       config: baseConfig(),
     });
-    expect(sel.flowId).toBe("default");
-    expect(sel.source).toBe("default");
+    // The sizer takes this one - it is short, names nothing sensitive, and is
+    // not a build brief. What matters here is that the persona's teeth stay
+    // sheathed: no risk signal matched, so nothing upgrades the sized choice.
+    expect(sel.flowId).toBe("express");
+    expect(sel.source).toBe("sized");
     expect(sel.personaUpgrade).toBeNull();
   });
 

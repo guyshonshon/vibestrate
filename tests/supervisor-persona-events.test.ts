@@ -132,7 +132,9 @@ describe("supervisor persona events (orchestrator -> events.ndjson)", () => {
     const task = "Tweak the footer spacing and copy";
     const { events, selectionFlowId, upgraded } = await runWithSelectionForTask(dir, task);
 
-    expect(selectionFlowId).toBe("default");
+    // Sized to express (short, nothing sensitive named). The persona still gets
+    // recorded for transparency, and still does not fire.
+    expect(selectionFlowId).toBe("express");
     expect(upgraded).toBe(false);
 
     const selected = events.find((e) => e.type === "persona.selected");

@@ -192,14 +192,37 @@ describe("chooseRunFlow precedence", () => {
     expect(s).toMatchObject({ flowId: "quality-arbitration", source: "default" });
   });
 
-  it("a plain run uses the built-in default, no LLM", async () => {
+  it("a plain run falls through to the built-in default, no LLM", async () => {
+    // Sizing off so this isolates the precedence rule. With sizing on (the
+    // default) a short unremarkable task is intercepted before this fallthrough
+    // - which is the sizer working, asserted in the next test.
     const s = await chooseRunFlow({
       projectRoot: "/nope",
       task: "x",
-      config: cfg(null),
+      config: { ...cfg(null), flowSizing: "off" } as unknown as ProjectConfig,
       runner: throwRunner,
     });
     expect(s).toMatchObject({ flowId: "default", source: "default" });
+  });
+
+  it("the sizer intercepts a plain trivial run before the default fallthrough", async () => {
+    const s = await chooseRunFlow({
+      projectRoot: "/nope",
+      task: "make the font bigger",
+      config: cfg(null),
+      runner: throwRunner,
+    });
+    expect(s).toMatchObject({ flowId: "express", source: "sized" });
+  });
+
+  it("a configured defaultFlow beats the sizer (an explicit choice always wins)", async () => {
+    const s = await chooseRunFlow({
+      projectRoot: "/nope",
+      task: "make the font bigger",
+      config: cfg("quality-arbitration"),
+      runner: throwRunner,
+    });
+    expect(s).toMatchObject({ flowId: "quality-arbitration", source: "default" });
   });
 
   it("round-trips a configured defaultFlow into the choice (what `vibe flows use` does)", async () => {

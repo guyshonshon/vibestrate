@@ -2,6 +2,19 @@
 
 ## 1.1.0
 
+- **Small tasks stop paying for the full line.** The trivial-task sizer used to
+  require you to name a file, and to refuse if any file you named was not a
+  `.md`. That is close to the opposite of how these requests get written: "make
+  the font bigger" names nothing, so it drew the eight-step flow, and only a
+  markdown edit ever qualified for the fast track. It now sizes on the shape of
+  the request instead. Short, not a build-a-system brief, nothing sensitive
+  named - accounts, payments, checkout, admin, deploys, migrations, deletions -
+  and it goes to `express`. Anything proposing to weaken a safeguard ("skip the
+  email check", "make it visible to everyone", "hardcode it") never does. Still
+  deterministic, still zero model calls, and it still only picks a leaner front:
+  `--flow` and a configured default both beat it, and it can only ever target
+  `express`, whose gates are decided by the diff.
+
 - **`express` now verifies code changes, not just reviews them.** The fast-track
   flow always had one deterministic safety net: a review turn that fires unless
   the run's actual diff is prose-only and touches no protected path. It now has

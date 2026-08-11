@@ -3,9 +3,9 @@
 // Routes obviously-trivial tasks to the `express` flow so "make a test.txt"
 // stops paying for plan -> architect -> review. Two tiers:
 //
-//   - deterministic (default): a conservative, structural classifier - zero
-//     model calls. Fires only when the task is short, names at least one file,
-//     and EVERY file it names is strict prose (.md/.markdown/.txt/.rst).
+//   - deterministic (default): a conservative classifier - zero model calls.
+//     Fires when the task is short, is not a build-a-system brief, and names
+//     nothing from the sensitive vocabulary below.
 //   - assisted (opt-in): a single cheap structured assist call for the gray
 //     zone; anything but a confident "trivial" -> the default flow.
 //
@@ -34,16 +34,97 @@ export type TrivialClassification = {
   reasons: string[];
 };
 
-const STRICT_PROSE_EXT_RE = /\.(md|markdown|txt|rst)$/i;
-/** File-looking tokens: a basename/path with an extension of 1-8 word chars. */
-const FILE_TOKEN_RE = /[\w./\\-]+\.[A-Za-z0-9]{1,8}\b/g;
 const MAX_TASK_CHARS = 400;
 const MAX_TASK_WORDS = 60;
 
+const STRICT_PROSE_EXT_RE = /\.(md|markdown|txt|rst)$/i;
+/** File-looking tokens: a basename/path with an extension of 1-8 word chars.
+ *  Used by the plan-worthiness classifier below - a named code file means a
+ *  targeted change, not a greenfield build. */
+const FILE_TOKEN_RE = /[\w./\\-]+\.[A-Za-z0-9]{1,8}\b/g;
+
+// ── The refusal vocabulary ───────────────────────────────────────────────────
+//
+// Two groups, because they catch different mistakes.
+//
+// WEAKENING asks what the sentence proposes to DO. "Skip the email check",
+// "make it visible to everyone", "hardcode the key" are dangerous whatever they
+// touch, and no noun in them is sensitive - a domain list alone never sees them.
+//
+// SENSITIVE asks what the sentence is ABOUT, in the words the people writing
+// these tasks actually use. An earlier pass at this was written in engineer
+// vocabulary - "payment", "authorization", "validation" - and sailed past
+// "make the checkout button work" and "make the admin page visible to everyone".
+// Someone describing intent rather than implementation says "checkout", not
+// "payment"; "admin page", not "authorization". So the list is product-side on
+// purpose, and it is deliberately over-broad: a false refusal costs a heavier
+// flow, which is the direction this is allowed to be wrong in.
+const WEAKENING = [
+  "skip",
+  "bypass",
+  "disable",
+  "turn off",
+  "opt out",
+  "no longer require",
+  "stop requiring",
+  "allow anyone",
+  "allow everyone",
+  "visible to everyone",
+  "available to everyone",
+  "make it public",
+  "hardcode",
+  "hard-code",
+  "comment out",
+  "ignore the error",
+  "suppress",
+];
+
+const SENSITIVE = [
+  // Identity and access, as a person would name it.
+  "auth", "login", "log in", "logout", "signup", "sign up", "register",
+  "password", "credential", "token", "session", "cookie", "secret", "api key",
+  "permission", "role", "admin", "authorization", "access control",
+  // Money.
+  "payment", "billing", "checkout", "cart", "order", "invoice", "subscription",
+  "refund", "charge", "price", "pricing", "coupon", "discount", "stripe",
+  // Personal data.
+  "account", "profile", "email", "phone", "address", "personal data",
+  "user data", "gdpr", "privacy",
+  // Persistence and shape.
+  "database", "schema", "migration", "migrate", "sql", "query",
+  // Anything that leaves the machine or changes how it is built.
+  "deploy", "production", "ci", "pipeline", "webhook", "cors", "redirect",
+  "upload", "download", "env", "environment variable", "dockerfile",
+  "package.json", "lockfile", "dependency", "upgrade",
+  // Destructive.
+  "delete", "drop", "wipe", "purge", "reset",
+  // Structural: not a tweak, whatever it touches.
+  "refactor", "rewrite", "restructure", "rename everything",
+];
+
+/** Word-boundary alternation over a phrase list. Phrases may contain spaces, so
+ *  interior whitespace is relaxed to `\s+` and dots are escaped. */
+function phraseMatcher(phrases: readonly string[]): RegExp {
+  const alts = phrases
+    .map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"))
+    .join("|");
+  return new RegExp(`\\b(${alts})\\b`, "i");
+}
+
+const WEAKENING_RE = phraseMatcher(WEAKENING);
+const SENSITIVE_RE = phraseMatcher(SENSITIVE);
+
 /**
- * Deterministic obvious-trivial classifier. Pure, structural, conservative:
- * misclassifying toward "standard" costs a heavier flow (safe); the inverse
- * is bounded by express's own diff floor.
+ * Deterministic obvious-trivial classifier. Pure and conservative: misclassifying
+ * toward "standard" costs a heavier flow (safe); the inverse is bounded by
+ * express's own diff floor, which reviews AND verifies every code change no
+ * matter what this function believed about the task text.
+ *
+ * It deliberately does NOT care which files the task names. Requiring a named
+ * file was the previous rule, and it is anti-correlated with the people this
+ * tier exists for: describing intent instead of paths ("make the font bigger")
+ * is the normal way to write one of these, and it disqualified every such task.
+ * File names are the diff's business, and the diff is consulted later.
  */
 export function classifyObviousTrivial(task: string): TrivialClassification {
   const text = (task ?? "").trim();
@@ -51,29 +132,32 @@ export function classifyObviousTrivial(task: string): TrivialClassification {
   if (text.length > MAX_TASK_CHARS) {
     return { trivial: false, reasons: ["task too long for the trivial tier"] };
   }
-  const words = text.split(/\s+/).length;
-  if (words > MAX_TASK_WORDS) {
+  if (text.split(/\s+/).length > MAX_TASK_WORDS) {
     return { trivial: false, reasons: ["task too wordy for the trivial tier"] };
   }
-  const fileTokens = [...new Set(text.match(FILE_TOKEN_RE) ?? [])];
-  if (fileTokens.length === 0) {
+  // A build-a-system brief is never trivial. Without this the sizer and the
+  // adaptive spec-up trigger could both fire, spec'ing up a whole product and
+  // then building it in one express turn.
+  if (classifyPlanWorthy(text).planWorthy) {
+    return { trivial: false, reasons: ["a build-a-system brief, not a tweak"] };
+  }
+  const weakening = text.match(WEAKENING_RE);
+  if (weakening) {
     return {
       trivial: false,
-      reasons: ["no concrete file named - can't size structurally"],
+      reasons: [`proposes weakening a safeguard: "${weakening[0]}"`],
     };
   }
-  const nonProse = fileTokens.filter((t) => !STRICT_PROSE_EXT_RE.test(t));
-  if (nonProse.length > 0) {
+  const sensitive = text.match(SENSITIVE_RE);
+  if (sensitive) {
     return {
       trivial: false,
-      reasons: [`non-prose file(s) named: ${nonProse.slice(0, 5).join(", ")}`],
+      reasons: [`touches sensitive ground: "${sensitive[0]}"`],
     };
   }
   return {
     trivial: true,
-    reasons: [
-      `short task naming only strict-prose file(s): ${fileTokens.slice(0, 5).join(", ")}`,
-    ],
+    reasons: ["short task, not a build brief, no sensitive or weakening terms"],
   };
 }
 

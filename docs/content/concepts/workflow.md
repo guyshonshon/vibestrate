@@ -56,6 +56,10 @@ Not every task deserves the full seven-stage line. For small, low-risk work the 
 
 That asymmetry is deliberate. Whatever routes a task to `express` is reading the task description, and a description can be wrong about what a change turns out to touch. The diff cannot. So the decision to skip a gate is never made from the task text - it is made from the files the run actually changed, after it changed them.
 
+You rarely have to ask for `express`. When you have not picked a flow and have not set a project default, Vibestrate sizes the task first (`flowSizing`, on by default, no model call). A short request that is not a build-a-system brief and does not mention sensitive ground - accounts, payments, checkout, admin, deploys, migrations, deletions - goes to `express`. Anything that proposes weakening a safeguard ("skip the email check", "make it visible to everyone", "hardcode it") never does, whatever else it says.
+
+Sizing only ever picks the leaner *front*. It cannot reduce a gate, its one possible target is `express`, and an explicit `--flow` or a configured default always beats it. Being wrong here costs a heavier flow, which is the direction it is allowed to be wrong in.
+
 ```bash
 vibe run "fix the typo in the seat concept page" --flow express
 ```
