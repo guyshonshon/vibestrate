@@ -117,6 +117,19 @@ const NOT_TRIVIAL: [string, string][] = [
   // A build brief is never a tweak, or the sizer and the spec-up trigger would
   // both fire: spec up a whole product, then build it in one express turn.
   ["build a mini ecommerce store", "build-a-system"],
+  // ...and the article does not decide it. Found by running a real task through
+  // the product: "build the spendly CLI, add tests" sized as trivial, because
+  // classifyPlanWorthy keys on an INDEFINITE article ("build A store" shapes,
+  // "build THE spendly CLI" reads as a targeted edit) and "cli" was not a scope
+  // noun. Building a CLI with a test suite is not a tweak. Guarded in the sizer
+  // rather than in classifyPlanWorthy, whose article rule is what keeps "make
+  // the API faster" out of the read-only spec-up chain.
+  ["build the spendly CLI", "definite article"],
+  ["create a markdown parser", "parser"],
+  ["write a small http server", "server"],
+  ["make me a dashboard for the sales data", "possessive"],
+  ["implement the export library", "library"],
+  ["scaffold the admin portal", "portal"],
 ];
 
 describe("the sizing table", () => {

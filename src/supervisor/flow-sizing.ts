@@ -151,6 +151,14 @@ export function classifyObviousTrivial(task: string): TrivialClassification {
   if (classifyPlanWorthy(text).planWorthy) {
     return { trivial: false, reasons: ["a build-a-system brief, not a tweak"] };
   }
+  // Building a whole thing is never a tweak, whatever article it uses.
+  const building = text.match(BUILD_SOMETHING_RE);
+  if (building) {
+    return {
+      trivial: false,
+      reasons: [`builds something from scratch: "${building[0].trim()}"`],
+    };
+  }
   const weakening = text.match(WEAKENING_RE);
   if (weakening) {
     return {
@@ -186,7 +194,7 @@ const BUILD_VERB_RE =
   /\b(build|create|make|design|redesign|develop|architect|scaffold|bootstrap|spin up|stand up|set up|prototype)\b/;
 /** System-scale nouns. */
 const SCOPE_NOUNS =
-  "app|application|site|website|web ?app|platform|system|service|micro-?service|dashboard|store|shop|marketplace|saas|product|portal|engine|pipeline|crm|cms|api|backend|frontend|game|bot|tool|landing page|integration";
+  "app|application|site|website|web ?app|platform|system|service|micro-?service|dashboard|store|shop|marketplace|saas|product|portal|engine|pipeline|crm|cms|api|backend|frontend|game|bot|tool|landing page|integration|cli|command.?line tool|library|package|parser|compiler|server|daemon|extension|plugin|scraper|generator";
 /** "a/an [1-4 qualifier words] <scope noun>" - the discriminator for building a
  *  NEW system instance. Requires >=1 qualifier word so a bare "a tool"/"a store"
  *  does NOT fire, while "a mini ecommerce store"/"a SaaS dashboard" do. The
@@ -197,6 +205,24 @@ const INDEFINITE_SCOPE_RE = new RegExp(
 );
 /** Explicit greenfield phrasing - fires on its own. */
 const GREENFIELD_RE = /\b(from scratch|greenfield|new project|new app|mvp|proof of concept|poc)\b/;
+
+/** "build/create/... <any article, or none> [qualifiers] <scope noun>" - a
+ *  from-scratch build REGARDLESS of article. Used only by the sizer.
+ *
+ *  This is deliberately NOT folded into classifyPlanWorthy. That classifier
+ *  routes a brief into the read-only spec-up chain, and its indefinite-article
+ *  rule is exactly what keeps "make the API faster" (a targeted tweak) out of
+ *  it. The sizer has the opposite failure cost: sending real build work down a
+ *  one-turn flow is worse than spending a heavier flow on a tweak, so it may
+ *  refuse on a reading that would be too eager for spec-up.
+ *
+ *  Found by running a real task: "build the spendly CLI" sized as trivial,
+ *  because the article is definite and "cli" was not a scope noun. */
+const BUILD_SOMETHING_RE = new RegExp(
+  `\\b(?:build|create|make|write|implement|develop|design|scaffold|bootstrap|prototype)\\s+` +
+    `(?:(?:a|an|the|my|our|your|this)\\s+)?(?:[a-z][a-z0-9-]*\\s+){0,4}(?:${SCOPE_NOUNS})\\b`,
+  "i",
+);
 
 export type PlanWorthyClassification = {
   planWorthy: boolean;
