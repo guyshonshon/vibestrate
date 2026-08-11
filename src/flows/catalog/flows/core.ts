@@ -1,0 +1,361 @@
+// The general-purpose flows: what a run picks when it picks nothing, the
+// read-only planner, the fast track, and the params worked example.
+//
+// Parsed through flowDefinitionSchema at module load, so a malformed builtin
+// fails at IMPORT rather than at run time. See ../builtin-flows.ts for the
+// catalog-wide editing rules.
+
+import {
+  flowDefinitionSchema,
+} from "../../schemas/flow-schema.js";
+
+// The built-in **default flow**: the fixed plan → architect → implement →
+// validate → review → (fix → re-validate → review)* → verify workflow, expressed
+// as a real flow definition. This is the single source of truth for the default
+// workflow's shape - a plain `vibe run` resolves it and executes it through the
+// one flow runner. There is no separate code path.
+//
+// The review→fix loop is the adaptive-loop construct, not a fixed repeat: the
+// body is [review, fix, revalidation] and `decisionStep` is the head `review`.
+// Each pass runs `review` first; if its decision is not CHANGES_REQUESTED the
+// loop exits *before* `fix` (straight to `verify`); otherwise it runs `fix` +
+// `revalidation` and loops back to `review`. `maxIterations: 3` = the initial
+// review plus the default `workflow.maxReviewLoops` (2) fix cycles.
+//
+// `skipWhenReadOnly` marks the steps a read-only run skips; `stage` marks each
+// step's phase so `--resume-from <stage>` can seed the upstream steps.
+export const defaultFlow = flowDefinitionSchema.parse({
+  id: "default",
+  version: 1,
+  label: "Default",
+  description:
+    "The standard plan → architect → implement → validate → review workflow. Review loops back to fix and re-validate until it passes or the bound is hit, then a verify gate decides merge-readiness. Runs when no other flow is picked.",
+  seats: {
+    planner: {
+      label: "Planner",
+      description: "Turns the task into a plan.",
+    },
+    architect: {
+      label: "Architect",
+      description: "Designs the approach from the plan.",
+    },
+    implementer: {
+      label: "Implementer",
+      description: "Implements the plan and architecture.",
+    },
+    reviewer: {
+      label: "Reviewer",
+      description: "Reviews the diff and decides whether changes are needed.",
+    },
+    fixer: {
+      label: "Fixer",
+      description: "Addresses review findings.",
+    },
+    verifier: {
+      label: "Verifier",
+      description: "Independently verifies the approved result.",
+    },
+  },
+  steps: [
+    {
+      id: "plan",
+      label: "Plan",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief"],
+      outputs: ["plan"],
+    },
+    {
+      id: "architecture",
+      label: "Architecture",
+      kind: "agent-turn",
+      seat: "architect",
+      stage: "architecting",
+      inputs: ["task-brief", "plan"],
+      outputs: ["architecture"],
+    },
+    {
+      id: "implement",
+      label: "Implement",
+      kind: "agent-turn",
+      seat: "implementer",
+      stage: "executing",
+      inputs: ["task-brief", "plan", "architecture"],
+      outputs: ["execution", "diff"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "validation",
+      label: "Validate",
+      kind: "validation",
+      stage: "executing",
+      inputs: ["diff"],
+      outputs: ["validation"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "review",
+      label: "Review",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      inputs: ["task-brief", "plan", "architecture", "execution", "validation"],
+      outputs: ["findings", "review-decision"],
+    },
+    {
+      id: "fix",
+      label: "Fix",
+      kind: "response-turn",
+      seat: "fixer",
+      stage: "executing",
+      inputs: [
+        "task-brief",
+        "plan",
+        "architecture",
+        "execution",
+        "findings",
+        "validation",
+      ],
+      outputs: ["finding-responses", "diff"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "revalidation",
+      label: "Re-validate",
+      kind: "validation",
+      stage: "executing",
+      inputs: ["diff"],
+      outputs: ["validation"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "verify",
+      label: "Verify",
+      kind: "summary-turn",
+      seat: "verifier",
+      stage: "verifying",
+      inputs: [
+        "task-brief",
+        "plan",
+        "architecture",
+        "execution",
+        "findings",
+        "validation",
+      ],
+      outputs: ["verification"],
+      skipWhenReadOnly: true,
+    },
+  ],
+  loop: {
+    from: "review",
+    to: "revalidation",
+    decisionStep: "review",
+    maxIterations: 3,
+  },
+  complexity: "high",
+  capabilities: {
+    taskKinds: ["feature", "bugfix", "refactor", "chore", "docs"],
+    strengths: ["general", "implementation"],
+    costClass: "medium",
+    latencyClass: "medium",
+    requires: { validation: true },
+  },
+});
+
+// ── Plan-only ("Plan mode") ─────────────────────────────────────────────────
+// A plan + review flow: a planner turns the task into a plan and a reviewer
+// critiques it. There are no implement/validate/fix/verify steps. The guard is
+// NOT the mere absence of write steps - an agent-turn under a write-capable
+// crew profile can still touch disk. The real guard is `run-launcher.ts`, which
+// forces `readOnly: true` for any flow that produces no `diff`, clamping every
+// role to the read-only permission profile; and `select-workflow.ts` excludes
+// no-write flows from auto-selection so a cost-minimizing `--select` can't route
+// implement-work here and silently write nothing. Reviewing a plan with no diff
+// is the same path a read-only default run already takes (implement skipped,
+// review still runs). Merge-readiness is APPROVED-only under read-only: the plan
+// itself is what the reviewer approves; CHANGES_REQUESTED terminates as BLOCKED.
+export const planOnlyFlow = flowDefinitionSchema.parse({
+  id: "plan-only",
+  version: 1,
+  label: "Plan",
+  description:
+    "Plan + review only - WRITES NO CODE. A planner turns the task into a concrete plan and a reviewer critiques it; nothing is implemented, validated, or written to disk. Produces a vetted plan and an APPROVED / BLOCKED verdict. Do not pick this for tasks that need code changes - it is for thinking a change through before building it.",
+  seats: {
+    planner: {
+      label: "Planner",
+      description: "Turns the task into a concrete plan.",
+    },
+    reviewer: {
+      label: "Reviewer",
+      description: "Critiques the plan and decides whether it is sound.",
+    },
+  },
+  steps: [
+    {
+      id: "plan",
+      label: "Plan",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief"],
+      outputs: ["plan"],
+    },
+    {
+      id: "plan-review",
+      label: "Review plan",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      inputs: ["task-brief", "plan"],
+      outputs: ["findings", "review-decision"],
+    },
+  ],
+  complexity: "low",
+  capabilities: {
+    taskKinds: [],
+    strengths: ["planning", "analysis"],
+    costClass: "low",
+    latencyClass: "low",
+  },
+});
+
+// The built-in **express flow**: one implementer turn with a diff-floored safety
+// net. Validation is change-scoped, and BOTH back gates - review and verify -
+// carry `skipWhen: "inert_diff"`, so they run UNLESS the run's actual diff is
+// strict-prose (.md/.markdown/.txt/.rst) and touches no protected path.
+//
+// Both gates matter, and for different reasons: the review judges the change,
+// the verify independently confirms the result. Express is the flow a sizer
+// routes to when it believes a task is small, and a sizer works from task text
+// - it can be wrong. The diff cannot. So every code change that lands here gets
+// checked twice regardless of what anything believed about the task going in,
+// while a genuine prose tweak still costs one turn.
+//
+// A skipped review is recorded evidence; assurance then reports
+// `review: skipped_inert_diff`. A gate-free "solo" variant was rejected
+// deliberately: the back gate must be decided by the diff, never by task text.
+export const expressFlow = flowDefinitionSchema.parse({
+  id: "express",
+  version: 1,
+  label: "Express",
+  description:
+    "One implementer turn for small, low-risk tasks. Validation is scoped to the actual change, and review plus verification run only when the diff demands it - any non-prose or protected file gets both a real review turn and a real verify turn.",
+  seats: {
+    implementer: {
+      label: "Implementer",
+      description: "Implements the task directly (no separate plan/architect).",
+    },
+    reviewer: {
+      label: "Reviewer",
+      description:
+        "Reviews the diff when the deterministic descent requires it.",
+    },
+    verifier: {
+      label: "Verifier",
+      description:
+        "Independently confirms the result when the diff demands it.",
+    },
+  },
+  steps: [
+    {
+      id: "implement",
+      label: "Implement",
+      kind: "agent-turn",
+      seat: "implementer",
+      stage: "executing",
+      inputs: ["task-brief"],
+      outputs: ["execution", "diff"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "validation",
+      label: "Validate",
+      kind: "validation",
+      stage: "executing",
+      inputs: ["diff"],
+      outputs: ["validation"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "review",
+      label: "Review (diff-floored)",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      inputs: ["task-brief", "execution", "validation"],
+      outputs: ["findings", "review-decision"],
+      skipWhen: "inert_diff",
+    },
+    {
+      id: "verify",
+      label: "Verify (diff-floored)",
+      kind: "summary-turn",
+      seat: "verifier",
+      stage: "verifying",
+      inputs: ["task-brief", "execution", "findings", "validation"],
+      outputs: ["verification"],
+      skipWhenReadOnly: true,
+      skipWhen: "inert_diff",
+    },
+  ],
+  complexity: "low",
+  capabilities: {
+    taskKinds: ["docs", "chore", "tweak", "bugfix"],
+    strengths: ["speed", "small-changes"],
+    costClass: "low",
+    latencyClass: "low",
+  },
+});
+
+// ── Parameterized example ────────────────────────────────────────────────────
+// Demonstrates `params:` + `{{params.x}}` substitution. A "scaffold" flow that
+// takes a project name + framework and builds a starter. Real, runnable - and
+// the worked example the docs point at.
+export const scaffoldFlow = flowDefinitionSchema.parse({
+  id: "scaffold",
+  version: 1,
+  label: "Scaffold (parameterized)",
+  description:
+    "A small parameterized example: scaffold a starter project from a name + framework. Shows how a flow declares `params:` and substitutes them into step instructions with {{params.x}}.",
+  params: {
+    projectName: {
+      type: "string",
+      required: true,
+      description: "The name of the project to scaffold",
+    },
+    framework: {
+      type: "enum",
+      values: ["next", "astro", "sveltekit", "remix"],
+      default: "next",
+      description: "Which framework to scaffold",
+    },
+  },
+  seats: {
+    implementer: {
+      label: "Implementer",
+      description: "Scaffolds the starter project.",
+    },
+  },
+  steps: [
+    {
+      id: "scaffold",
+      label: "Scaffold the project",
+      kind: "agent-turn",
+      seat: "implementer",
+      stage: "executing",
+      instructions:
+        "Scaffold a starter {{params.framework}} project named \"{{params.projectName}}\". Create a minimal, runnable skeleton; do not over-build.",
+      inputs: ["task-brief"],
+      outputs: ["execution", "diff"],
+    },
+    {
+      id: "validation",
+      label: "Validate",
+      kind: "validation",
+      stage: "executing",
+      inputs: ["diff"],
+      outputs: ["validation"],
+    },
+  ],
+});
