@@ -151,12 +151,9 @@ import { makeDockerBackend } from "./execution/docker-backend.js";
 import type { ExecutionBackend, ExecStrategy, IsolationMode } from "./execution/execution-backend-schema.js";
 import {
   isGitAvailable,
-  stageAndCommitAll,
-  filesInCommit,
   getCurrentBranch,
   discardWorktreeChanges,
 } from "../git/git.js";
-import { creditTrailers } from "../git/commit-credit.js";
 import { linkWorktreeEnvironment } from "../git/worktree-env.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
 import { materializeContextSources, materializedContextLabel } from "./context/context-sources.js";
@@ -165,9 +162,6 @@ import {
   type ContextSource,
 } from "./context/context-source-schema.js";
 import {
-  renderCurrentItemBrief,
-  buildPriorItemsContext,
-  renderItemSummaryArtifact,
   compactImplementationSummary,
   type ChecklistItemOutcome,
 } from "./run/item-summary.js";
@@ -182,7 +176,6 @@ import { makeEmptyMetrics, type RoleMetrics } from "./metrics/runtime-metrics.js
 import { computeRunSpendUsd, checkSagaStopConditions } from "./saga/budget.js";
 import { extractTurnInternals } from "./run/turn-internals.js";
 import { getDiffSnapshot, getWorktreeDiffText, redactSecretsInText } from "./diff-service.js";
-import { buildStepPacket, readFreshFileReads } from "./saga/packet.js";
 import { evaluateBlockPolicies } from "../supervisor/policy-block.js";
 import {
   computeMergeReady,
@@ -323,6 +316,10 @@ import {
   resolveChecklistPlan,
   writeTaskBrief,
 } from "./run-engine/flow-sequence-prologue.js";
+import {
+  createChecklistBand,
+  type PendingItemReview,
+} from "./run-engine/checklist-band.js";
 
 // Re-exported so existing importers (server routes, CLI, workflow runner) keep
 // resolving these from here; the definitions live under run-engine/.
@@ -2300,13 +2297,7 @@ export class Orchestrator {
     // Per-item REVIEW band (Shape B): the band can't emit a ledger token, so the
     // per-item loop records its resolved verdict here, and commitChecklistItem
     // stamps it onto the item outcome. null for non-review bands / Shape A.
-    let pendingItemReview:
-      | {
-          verdict: "approved" | "changes_requested";
-          openFindingCount: number;
-          fixIterations: number;
-        }
-      | null = null;
+    let pendingItemReview: PendingItemReview | null = null;
 
     await writeTaskBrief({
       task: this.task,
@@ -2505,267 +2496,42 @@ export class Orchestrator {
       // BOTH the linear walk and the graph band so there is one source of
       // truth for per-item commit. Control flow (jump-back, itemIndex, the
       // step-mode pause) stays inline at the call sites.
-      const enterChecklistItem = async (i: number): Promise<void> => {
-        // Fresh per-item review state; the band's loop (review bands only) sets it.
-        pendingItemReview = null;
-        const item = checklistItems[i]!;
-        const briefContent = renderCurrentItemBrief(item, i, checklistItems.length);
-        const briefAbs = await input.artifactStore.write(
-          path.posix.join("flows", "checklist", `item-${i + 1}-brief.md`),
-          briefContent,
-        );
-        outputs.set("checklist-item", {
-          token: "checklist-item",
-          label: `Checklist item ${i + 1}/${checklistItems.length}`,
-          content: briefContent,
-          artifactPath: input.artifactStore.relPath(briefAbs),
-        });
-        const priorContent = buildPriorItemsContext(itemOutcomes, 1400);
-        if (priorContent) {
-          const priorAbs = await input.artifactStore.write(
-            path.posix.join("flows", "checklist", `before-item-${i + 1}.md`),
-            priorContent,
-          );
-          outputs.set("prior-items", {
-            token: "prior-items",
-            label: "Completed checklist items",
-            content: priorContent,
-            artifactPath: input.artifactStore.relPath(priorAbs),
-          });
-        }
-        // ── Saga: fresh session + curated packet per step ──────────────
-        // enterChecklistItem fires ONCE per item, at the band head, BEFORE the
-        // fix loop. So both effects below are guarded to the item boundary, NOT
-        // the fix loop: the session is reset per step (not per fix iteration),
-        // and the packet is built once per step. Gated on sagaMode so non-saga
-        // and plain checklist runs are byte-for-byte unchanged.
-        if (this.sagaMode) {
-          // Deliverable 1: null every participant's sessionId and persist, so the
-          // next provider turn that DOES reuse sessions opens a FRESH one
-          // (prepareFlowParticipantTurn opens a new session when sessionId is
-          // null - flow-participant-ledger.ts). Resetting the whole band is
-          // intentional: the micro-plan -> implement -> review-item step starts
-          // from a clean context, the anti-rot guarantee sagas exist for.
-          // (The saga band steps run via the graph frontier's runRole, which is
-          // already stateless per turn, so for them this is a guard, not a
-          // change; it bites for the linear plan/review participants and any
-          // future session-reusing band.) The context_reset event is the robust
-          // per-step signal: it fires ONCE per step at the band head, NOT per fix
-          // iteration, which is what makes each step a fresh context.
-          let sessionsReset = 0;
-          for (const participant of participantLedger.participants) {
-            if (participant.sessionId !== null) {
-              participant.sessionId = null;
-              sessionsReset += 1;
-            }
-          }
-          if (sessionsReset > 0) {
-            await participantStore.write(participantLedger);
-            state = patchFlowParticipants(state, participantLedger);
-          }
-          await input.eventLog.append({
-            type: "supervised.step.context_reset",
-            message: `Saga step ${i + 1}/${checklistItems.length}: fresh context (${sessionsReset} session(s) reset).`,
-            data: { itemId: item.id, index: i, sessionsReset },
-          });
-
-          // Deliverable 2: build the curated packet from in-scope values and set
-          // it as the `checklist-item` token (the saga flow's steps read it). The
-          // packet SUPERSEDES the plain brief written above. We still keep the
-          // brief artifact (audit) and also write the packet artifact.
-          let accumulatedDiff = "";
-          if (input.worktreePath) {
-            // Diff from the fork point of the branch the worktree forked from, so
-            // committed prior steps are captured (git diff HEAD would miss them).
-            const baseBranch = await getCurrentBranch(this.projectRoot).catch(
-              () => null,
-            );
-            accumulatedDiff = await getWorktreeDiffText({
-              worktreePath: input.worktreePath,
-              baseBranch,
-            }).catch(() => "");
-          }
-          const fileReads = input.worktreePath
-            ? await readFreshFileReads({
-                worktreePath: input.worktreePath,
-                fileHints: item.fileHints,
-              }).catch(() => [])
-            : [];
-          // Re-read the invariants ledger FRESH each step: the between-steps
-          // supervisor appends to it after the previous step, so a value
-          // cached at band head would be stale by step 2.
-          const sagaInvariants = this.taskId
-            ? (await roadmap.getTask(this.taskId).catch(() => null))
-                ?.supervised.invariants ?? []
-            : [];
-          const packet = buildStepPacket({
-            goal: this.task,
-            priorItemsContext: priorContent,
-            accumulatedDiff,
-            fileReads,
-            invariants: sagaInvariants,
-            item: {
-              text: item.text,
-              objective: item.objective,
-              acceptanceCheck: item.acceptanceCheck,
-              index: i,
-              total: checklistItems.length,
-              fileHints: item.fileHints,
-            },
-          });
-          const packetAbs = await input.artifactStore.write(
-            path.posix.join("flows", "checklist", `item-${i + 1}-packet.md`),
-            packet,
-          );
-          outputs.set("checklist-item", {
-            token: "checklist-item",
-            label: `Saga step ${i + 1}/${checklistItems.length}`,
-            content: packet,
-            artifactPath: input.artifactStore.relPath(packetAbs),
-          });
-        }
-        currentChecklistItemId = item.id;
-        await roadmap
-          .setChecklistItemStatus(this.taskId!, item.id, "in_progress")
-          .catch(() => {});
-        state = {
-          ...state,
-          checklistProgress: {
-            total: checklistItems.length,
-            completed: i,
-            currentItemId: item.id,
-            currentIndex: i,
-          },
-        };
-        await input.stateStore.write(state);
-        await input.eventLog.append({
-          type: "checklist.item.started",
-          message: `Checklist item ${i + 1}/${checklistItems.length}: ${item.text}`,
-          data: { itemId: item.id, index: i, text: item.text },
-        });
-        this.onProgress(`Item ${i + 1}/${checklistItems.length}: ${item.text}`);
-      };
-
-      // Commit + summarize this item; returns whether more items remain. The
-      // caller advances itemIndex / jumps back / pauses. "proceed" also means the
-      // full prior-items ledger has been rebuilt for the holistic postlude.
-      const commitChecklistItem = async (
-        i: number,
-      ): Promise<"repeat" | "proceed"> => {
-        const item = checklistItems[i]!;
-        let commitSha: string | null = null;
-        let filesTouched: string[] = [];
-        if (input.worktreePath) {
-          const committed = await stageAndCommitAll({
-            cwd: input.worktreePath,
-            message: `${item.text}\n\nChecklist item ${i + 1}/${checklistItems.length}.`,
-            trailers: {
-              "Vibestrate-Run": input.runId,
-              "Vibestrate-Checklist-Item": item.id,
-              ...creditTrailers(this.config.commits),
-            },
-          });
-          commitSha = committed?.sha ?? null;
-          if (committed && committed.excludedSymlinks.length > 0) {
-            // Never silent: the commit refused to carry out-of-tree symlinks
-            // (worktree env links a dir-only ignore pattern missed).
-            await input.eventLog.append({
-              type: "git.commit.excluded-symlinks",
-              message: `Commit excluded out-of-tree symlink(s): ${committed.excludedSymlinks.join(", ")}.`,
-              data: { excludedSymlinks: committed.excludedSymlinks },
-            });
-          }
-          if (commitSha) {
-            filesTouched = await filesInCommit(input.worktreePath, commitSha);
-          }
-        }
-        // Summarize the item by the writer's `execution` output when present
-        // (with a band DAG the tail `segTo` may be a read-only join/arbiter whose
-        // first output is a verdict, not the build) - fall back to segTo's output.
-        const implTok = outputs.has("execution")
-          ? "execution"
-          : steps[segTo]!.outputs[0];
-        const implOutput = implTok ? outputs.get(implTok)?.content ?? "" : "";
-        const outcome: ChecklistItemOutcome = {
-          itemId: item.id,
-          index: i,
-          total: checklistItems.length,
-          text: item.text,
-          status: "done",
-          commitSha,
-          filesTouched,
-          summary: redactSecretsInText(compactImplementationSummary(implOutput)).redacted,
-          error: null,
-          reviewVerdict: pendingItemReview?.verdict ?? null,
-          openFindingCount: pendingItemReview?.openFindingCount ?? 0,
-          fixIterations: pendingItemReview?.fixIterations ?? 0,
-        };
-        itemOutcomes.push(outcome);
-        currentChecklistItemId = null;
-        await input.artifactStore.write(
-          path.posix.join("flows", "checklist", `item-${i + 1}-summary.md`),
-          renderItemSummaryArtifact(outcome),
-        );
-        await roadmap
-          .updateChecklistItem(this.taskId!, item.id, {
-            status: "done",
-            commitSha,
-            // Saga mode: stamp the step's run + curated outcome so a saga's
-            // checklist records which run executed each step and a one-line
-            // result. Reuse the SAME redacted summary already computed for the
-            // outcome (no second redaction pass). Non-saga checklist runs leave
-            // these fields untouched (their false-capability gap is unchanged).
-            ...(this.sagaMode
-              ? { runId: input.runId, outcomeSummary: outcome.summary }
-              : {}),
-          })
-          .catch(() => {});
-        state = {
-          ...state,
-          checklistProgress: {
-            total: checklistItems.length,
-            completed: i + 1,
-            currentItemId: null,
-            currentIndex: i,
-          },
-        };
-        await input.stateStore.write(state);
-        await input.eventLog.append({
-          type: "checklist.item.completed",
-          message: `Checklist item ${i + 1}/${checklistItems.length} done${commitSha ? ` (${commitSha.slice(0, 8)})` : " (no file changes)"}.`,
-          data: { itemId: item.id, index: i, commitSha, files: filesTouched },
-        });
-        if (i < checklistItems.length - 1) return "repeat";
-        // Last item done -> rebuild prior-items with the FULL ledger so the
-        // holistic postlude (review/verify) sees every item.
-        const fullPrior = buildPriorItemsContext(itemOutcomes, 1400);
-        if (fullPrior) {
-          const fullAbs = await input.artifactStore.write(
-            path.posix.join("flows", "checklist", "all-items.md"),
-            fullPrior,
-          );
-          outputs.set("prior-items", {
-            token: "prior-items",
-            label: "All completed checklist items",
-            content: fullPrior,
-            artifactPath: input.artifactStore.relPath(fullAbs),
-          });
-        }
-        return "proceed";
-      };
-
-      // Step-by-step gate between items (shared by both paths): pause so the next
-      // item's first step (or the next band) holds until the human resumes.
-      const maybeStepModeGate = async (nextIndex: number): Promise<void> => {
-        if (this.checklistMode !== "step") return;
-        state = { ...state, pauseRequested: true };
-        await input.stateStore.write(state);
-        await input.eventLog.append({
-          type: "checklist.item.gate",
-          message: `Step-by-step: paused before item ${nextIndex + 1}/${checklistItems.length}.`,
-          data: { nextIndex },
-        });
-      };
+      const band = createChecklistBand({
+        projectRoot: this.projectRoot,
+        config: this.config,
+        task: this.task,
+        taskId: this.taskId,
+        sagaMode: this.sagaMode,
+        checklistMode: this.checklistMode,
+        runId: input.runId,
+        worktreePath: input.worktreePath,
+        artifactStore: input.artifactStore,
+        stateStore: input.stateStore,
+        eventLog: input.eventLog,
+        roadmap,
+        participantStore,
+        onProgress: (message) => this.onProgress(message),
+        steps,
+        segTo,
+        outputs,
+        itemOutcomes,
+        items: () => checklistItems,
+        participantLedger: () => participantLedger,
+        getState: () => state,
+        setState: (next) => {
+          state = next;
+        },
+        getPendingItemReview: () => pendingItemReview,
+        setPendingItemReview: (review) => {
+          pendingItemReview = review;
+        },
+        setCurrentItemId: (itemId) => {
+          currentChecklistItemId = itemId;
+        },
+      });
+      const enterChecklistItem = band.enterItem;
+      const commitChecklistItem = band.commitItem;
+      const maybeStepModeGate = band.stepModeGate;
 
       // Human "request changes" on the linear path: guidance rides into the
       // step's next turn (re-run forward by not advancing stepIndex). The cap is
