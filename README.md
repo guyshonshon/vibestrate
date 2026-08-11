@@ -16,9 +16,10 @@ Vibestrate is an open-source, supervised flow for AI coding: choose or share a f
 
 <br />
 
-<img src="./.github/assets/demo.gif" alt="A run where Sonnet implements a CLI and Opus reviews the diff, catching a crash the passing tests never reached" width="720" />
+<img src="./.github/assets/demo.gif" alt="A run where Sonnet implements a CLI and Opus reviews the diff, catching a crash the passing tests never reached" />
 
-<sub>A real run. Sonnet wrote the code and its tests; Opus reviewed the diff and found a crash on negative totals that the passing tests never reached.</sub>
+<sub>A real run. Sonnet wrote the code and its tests; Opus reviewed the diff and found a crash on negative totals that the passing tests never reached.<br />
+Too fast? <a href="https://claude.ai/code/artifact/c6c2caa2-c90d-4742-8673-5358cb81612b">Replay it with pause and scrub</a>.</sub>
 
 <br />
 
