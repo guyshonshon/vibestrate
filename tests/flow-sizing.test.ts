@@ -58,6 +58,15 @@ const TRIVIAL = [
   "update the copy on the landing page",
   "center the logo",
   "fix the broken link in docs/intro.md",
+  // Ordinary phrasing that a bare-word vocabulary swallows. Each of these was
+  // refused by a real draft of the list: "in order to" hit `order`, "address
+  // the spacing" hit `address`, a CSS `reset` read as destructive, and a price
+  // TAG is display copy, not money logic. A refusal only costs a heavier flow,
+  // so these never fail loudly - they just quietly undo the point of the tier.
+  "make the font bigger in order to improve readability",
+  "address the spacing issue on the cards",
+  "add a css reset",
+  "fix the alignment of the price tag",
 ];
 
 const NOT_TRIVIAL: [string, string][] = [
@@ -67,6 +76,11 @@ const NOT_TRIVIAL: [string, string][] = [
   ["add a loading spinner to the login form", "login"],
   ["let users delete their account", "delete / account"],
   ["add a database column for phone numbers", "database / phone"],
+  // The qualified forms still bite - narrowing them must not disarm them.
+  ["show the user their order history", "order history"],
+  ["add a shipping address field", "shipping address"],
+  ["reset the database before each run", "reset the database"],
+  ["update the checkout price calculation", "checkout"],
   // Weakening a safeguard - no sensitive noun anywhere in the sentence.
   ["skip the email check for now", "skip"],
   ["just turn off that annoying warning", "turn off"],

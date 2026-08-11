@@ -84,20 +84,26 @@ const SENSITIVE = [
   "auth", "login", "log in", "logout", "signup", "sign up", "register",
   "password", "credential", "token", "session", "cookie", "secret", "api key",
   "permission", "role", "admin", "authorization", "access control",
-  // Money.
-  "payment", "billing", "checkout", "cart", "order", "invoice", "subscription",
-  "refund", "charge", "price", "pricing", "coupon", "discount", "stripe",
-  // Personal data.
-  "account", "profile", "email", "phone", "address", "personal data",
-  "user data", "gdpr", "privacy",
+  // Money. Bare "price"/"pricing" are deliberately absent: a price tag and a
+  // pricing page are display copy, and money LOGIC reliably says checkout,
+  // billing or payment somewhere in the same sentence.
+  "payment", "billing", "checkout", "cart", "invoice", "subscription",
+  "refund", "charge", "coupon", "discount", "stripe",
+  "orders", "place an order", "order history",
+  // Personal data. "address" is qualified rather than bare - "address the
+  // spacing issue" is ordinary phrasing and has nothing to do with PII.
+  "account", "profile", "email", "phone", "personal data", "user data",
+  "gdpr", "privacy", "email address", "shipping address", "billing address",
+  "home address", "mailing address",
   // Persistence and shape.
   "database", "schema", "migration", "migrate", "sql", "query",
   // Anything that leaves the machine or changes how it is built.
   "deploy", "production", "ci", "pipeline", "webhook", "cors", "redirect",
   "upload", "download", "env", "environment variable", "dockerfile",
   "package.json", "lockfile", "dependency", "upgrade",
-  // Destructive.
-  "delete", "drop", "wipe", "purge", "reset",
+  // Destructive. Bare "reset" is absent - a CSS reset is a stylesheet, not a
+  // destructive act; the dangerous senses are covered by the rest of this line.
+  "delete", "drop", "wipe", "purge", "password reset", "reset the database",
   // Structural: not a tweak, whatever it touches.
   "refactor", "rewrite", "restructure", "rename everything",
 ];
