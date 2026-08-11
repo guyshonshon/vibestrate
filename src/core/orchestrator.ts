@@ -296,6 +296,10 @@ import {
 } from "./run-engine/report.js";
 import { BudgetGovernor } from "./run-engine/budget-governor.js";
 import {
+  createRunTurnState,
+  type RunTurnState,
+} from "./run-engine/run-turn-state.js";
+import {
   lowestEffort,
   runProviderResilient,
   type ResilientProviderDeps,
@@ -328,15 +332,11 @@ export type {
 export class Orchestrator {
   private readonly projectRoot: string;
   private readonly config: ProjectConfig;
-  /** Resolved capability catalog (built-in + project overlay), loaded once. */
-  private resolvedCatalog: ResolvedCatalog | null = null;
-  /** Latched by the per-turn abort observer so the signal outlives the interval
-   *  that saw it. Checked at every point the run is about to continue. */
-  private abortRequestedSeen = false;
-  /** Dedupe key set for the "effort won't take effect" warning (per provider+effort). */
-  private readonly warnedEffort = new Set<string>();
-  /** Dedupe key set for the "isolation requested but no provider sandbox" warning (per provider). */
-  private readonly warnedSandbox = new Set<string>();
+  /** The mutable state this run accumulates across its turns: the abort latch,
+   *  the catalog cache, the one-shot ledger guard, and the warn-once sets. One
+   *  object rather than four fields because more than one call path writes them
+   *  - see run-engine/run-turn-state.ts for why that matters. */
+  private readonly turnState: RunTurnState = createRunTurnState();
   private readonly rules: string;
   private task: string;
   private readonly rawParams: Record<string, string>;
@@ -422,8 +422,6 @@ export class Orchestrator {
    *  guidance. Injected into the PLANNER turn alongside the ledger. "" when unset
    *  or set to an unknown value. */
   private methodologyBlock = "";
-  /** One-shot guard so the ledger + flags blocks go to a single planner turn. */
-  private ledgerInjected = false;
   private readonly abortSignal: AbortSignal | null;
   private readonly selection: WorkflowSelection | null;
   /** The active supervisor persona id, resolved from selection OR (on resume, where
@@ -555,10 +553,10 @@ export class Orchestrator {
   private async throwIfAbortRequested(ctx: {
     stateStore: RunStateStore;
   }): Promise<void> {
-    if (!this.abortRequestedSeen && !(await isAbortRequested(ctx.stateStore))) {
+    if (!this.turnState.abortRequestedSeen && !(await isAbortRequested(ctx.stateStore))) {
       return;
     }
-    this.abortRequestedSeen = true;
+    this.turnState.abortRequestedSeen = true;
     throw new __RunAbortedSignal();
   }
 
@@ -3806,10 +3804,10 @@ export class Orchestrator {
       // Resolve-and-cache on the orchestrator: the same catalog cache real
       // turns use, retried on the next turn if resolution failed (null).
       ensureResolvedCatalog: async () => {
-        if (!this.resolvedCatalog) {
-          this.resolvedCatalog = await resolveCatalog(this.projectRoot).catch(() => null);
+        if (!this.turnState.resolvedCatalog) {
+          this.turnState.resolvedCatalog = await resolveCatalog(this.projectRoot).catch(() => null);
         }
-        return this.resolvedCatalog;
+        return this.turnState.resolvedCatalog;
       },
     };
   }
@@ -3990,7 +3988,7 @@ export class Orchestrator {
     // where the project stands. Other roles build on the run's own brief, and
     // resumed runs (no planner re-run) correctly skip it. One-shot guards
     // against a flow with more than one planner turn.
-    const injectContinuity = roleId === "planner" && !this.ledgerInjected;
+    const injectContinuity = roleId === "planner" && !this.turnState.ledgerInjected;
     const projectLedger =
       injectContinuity && this.ledgerPromptBlock ? this.ledgerPromptBlock : "";
     const continuityFlags =
@@ -4010,7 +4008,7 @@ export class Orchestrator {
         ? this.codebaseMapBlock
         : "";
     if (projectLedger || continuityFlags || methodologyGuidance || projectMemory)
-      this.ledgerInjected = true;
+      this.turnState.ledgerInjected = true;
     // Clean-room seat: drop the producer's run-derived NARRATIVE - the run brief
     // (the "story so far") and the planner-only ledger/continuity - so a judge
     // reasons without being anchored to how the producer framed things. It
@@ -4218,7 +4216,7 @@ export class Orchestrator {
             // diff gate, artifact writes and approval gate run - and that gap is
             // exactly where an abort used to be observed by nobody and then
             // overwritten by the turn's own state write.
-            this.abortRequestedSeen = true;
+            this.turnState.abortRequestedSeen = true;
             if (!providerAbort.signal.aborted) providerAbort.abort();
           }
         } catch {
@@ -4234,8 +4232,8 @@ export class Orchestrator {
       // Resolve the capability catalog (built-in + project overlay) once; the
       // provider applies model/effort from it so a user's custom catalog entry
       // actually reaches the spawn.
-      if (!this.resolvedCatalog) {
-        this.resolvedCatalog = await resolveCatalog(this.projectRoot);
+      if (!this.turnState.resolvedCatalog) {
+        this.turnState.resolvedCatalog = await resolveCatalog(this.projectRoot);
       }
       // Fail-loud (not silent): if the profile sets an effort the provider won't
       // honor (no effort knob, or not one of its real levels), the provider would
@@ -4244,12 +4242,12 @@ export class Orchestrator {
       if (profileEffort) {
         const provCfg = this.config.providers[effectiveProviderId];
         const levels = provCfg
-          ? capabilitiesForProvider(effectiveProviderId, provCfg, this.resolvedCatalog).powerLevels
+          ? capabilitiesForProvider(effectiveProviderId, provCfg, this.turnState.resolvedCatalog).powerLevels
           : [];
         if (!levels.includes(profileEffort)) {
           const key = `${effectiveProviderId}:${profileEffort}`;
-          if (!this.warnedEffort.has(key)) {
-            this.warnedEffort.add(key);
+          if (!this.turnState.warnedEffort.has(key)) {
+            this.turnState.warnedEffort.add(key);
             const why =
               levels.length === 0
                 ? `${effectiveProviderId} exposes no effort control`
@@ -4305,7 +4303,7 @@ export class Orchestrator {
           // reduce-effort: drop to the provider's minimum effort if it has one.
           effort:
             this.budgetGovernor.budgetOverride?.kind === "reduce-effort"
-              ? lowestEffort(this.config.providers, this.resolvedCatalog, effectiveProviderId) ??
+              ? lowestEffort(this.config.providers, this.turnState.resolvedCatalog, effectiveProviderId) ??
                 runtimeProfile?.power ??
                 undefined
               : runtimeProfile?.power ?? undefined,
@@ -4316,7 +4314,7 @@ export class Orchestrator {
           // Real wall-clock cap (no longer advisory): the provider tree-kills the
           // whole turn if it overruns - matters most for fanned-out review turns.
           timeoutMs: runtimeProfile?.timeoutMs ?? undefined,
-          catalog: this.resolvedCatalog,
+          catalog: this.turnState.resolvedCatalog,
           mcpConfigPath: mcpConfigAbsPath ?? undefined,
           // Container/cloud execution: run this turn off-host.
           execStrategy: this.execStrategy ?? undefined,
@@ -4377,10 +4375,10 @@ export class Orchestrator {
             message: `Provider ${ranProvider} ran this turn under OS sandbox "${providerResult.appliedSandbox}".`,
             data: { roleId, stageId: input.stageId, provider: ranProvider, mode: providerResult.appliedSandbox },
           });
-        } else if (!this.warnedSandbox.has(ranProvider)) {
+        } else if (!this.turnState.warnedSandbox.has(ranProvider)) {
           // Sandbox was asked for but this provider has no OS sandbox - warn once
           // (per provider that actually ran) and be explicit it ran unconfined.
-          this.warnedSandbox.add(ranProvider);
+          this.turnState.warnedSandbox.add(ranProvider);
           const msg = `Isolation is "sandboxed" but provider ${ranProvider} has no OS-level sandbox - this turn ran unsandboxed (worktree + diff gate still apply). codex provides provider-native OS confinement.`;
           this.onProgress(msg);
           await ctx.eventLog.append({
