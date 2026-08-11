@@ -142,7 +142,6 @@ import {
 import { applyProposedPatchThroughGateway } from "../safety/apply-gateway.js";
 import { selectOutputAdapter } from "../providers/adapters/select.js";
 import { estimateTokensFromText, resolveCost } from "./metrics/pricing.js";
-import { providerCapabilities } from "../providers/provider-capabilities.js";
 import {
   appendStreamLine,
   ensureStreamsDir,
@@ -160,7 +159,6 @@ import {
 import { creditTrailers } from "../git/commit-credit.js";
 import { linkWorktreeEnvironment } from "../git/worktree-env.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
-import { renderTaskGrounding } from "../roadmap/task-grounding.js";
 import { materializeContextSources, materializedContextLabel } from "./context/context-sources.js";
 import {
   CODEBASE_MAP_CONTEXT_SOURCE_LABEL,
@@ -185,7 +183,6 @@ import { computeRunSpendUsd, checkSagaStopConditions } from "./saga/budget.js";
 import { extractTurnInternals } from "./run/turn-internals.js";
 import { getDiffSnapshot, getWorktreeDiffText, redactSecretsInText } from "./diff-service.js";
 import { buildStepPacket, readFreshFileReads } from "./saga/packet.js";
-import type { Provenance } from "../roadmap/roadmap-types.js";
 import { evaluateBlockPolicies } from "../supervisor/policy-block.js";
 import {
   computeMergeReady,
@@ -201,18 +198,13 @@ import {
 import type { NotificationDraft } from "../notifications/notification-router.js";
 import { applyPauseIfRequested } from "./run/pause-service.js";
 import { isAbortRequested } from "./run/abort-service.js";
-import { isTerminal, runStateSchema } from "./state-machine.js";
-import { writeJson, readJson } from "../utils/json.js";
+import { isTerminal } from "./state-machine.js";
+import { writeJson } from "../utils/json.js";
 import {
   runFlowSnapshotPath,
   projectRunsDir,
   runChecklistItemArbitrationPath,
-  runStatePath,
 } from "../utils/paths.js";
-import {
-  reconstructDoneOutcomes,
-  checklistIdsChanged,
-} from "./run/resume-checklist.js";
 import { readdir } from "node:fs/promises";
 import {
   isGraphFlow,
@@ -250,8 +242,6 @@ import {
 import { checklistItemGapsCap } from "../safety/run-assurance.js";
 import type { FlowContextOutput } from "../flows/runtime/flow-context-builder.js";
 import {
-  FlowParticipantLedgerStore,
-  createFlowParticipantLedger,
   prepareFlowParticipantTurn,
   recordFlowParticipantTurn,
   type PreparedFlowParticipantTurn,
@@ -328,6 +318,11 @@ import {
   runSagaEnhanceTurn,
   type SagaTurnDeps,
 } from "./run-engine/saga-turns.js";
+import {
+  openFlowLedgers,
+  resolveChecklistPlan,
+  writeTaskBrief,
+} from "./run-engine/flow-sequence-prologue.js";
 
 // Re-exported so existing importers (server routes, CLI, workflow runner) keep
 // resolving these from here; the definitions live under run-engine/.
@@ -2251,151 +2246,49 @@ export class Orchestrator {
     // orchestrator carries across steps. Seeded from the task + flow selection;
     // each completed step appends its outcome. Injected into every step's prompt.
     const runBriefState = initRunBrief({ task: this.task, selection: this.selection });
-    const participantStore = new FlowParticipantLedgerStore(
-      this.projectRoot,
-      input.runId,
-    );
-    let participantLedger =
-      (await participantStore.read()) ??
-      createFlowParticipantLedger({
-        snapshot: input.snapshot,
-        capabilities: (providerId) =>
-          providerCapabilities(this.config.providers, providerId),
-      });
-    await participantStore.write(participantLedger);
-    state = patchFlowParticipants(state, participantLedger);
-    await input.stateStore.write(state);
-    for (const participant of participantLedger.participants) {
-      await input.eventLog.append({
-        type: "flow.participant.capabilities",
-        message: `Flow participant ${participant.seat} uses ${participant.providerId} with ${participant.capabilities.sessionReuse} session reuse.`,
-        data: {
-          flowId: input.snapshot.flowId,
-          seat: participant.seat,
-          providerId: participant.providerId,
-          capabilities: participant.capabilities,
-        },
-      });
-    }
-    const arbitrationStore = new FlowArbitrationStore(
-      this.projectRoot,
-      input.runId,
-    );
-    let arbitrationLedger =
-      (await arbitrationStore.read()) ??
-      createFlowArbitrationLedger({
-        runId: input.runId,
-        snapshot: input.snapshot,
-      });
-    await arbitrationStore.write(arbitrationLedger);
+    const ledgers = await openFlowLedgers({
+      projectRoot: this.projectRoot,
+      providers: this.config.providers,
+      runId: input.runId,
+      snapshot: input.snapshot,
+      state,
+      stateStore: input.stateStore,
+      eventLog: input.eventLog,
+    });
+    const { participantStore, arbitrationStore } = ledgers;
+    // Both ledgers are reassigned as the walk records turns and decisions.
+    let participantLedger = ledgers.participantLedger;
+    let arbitrationLedger = ledgers.arbitrationLedger;
+    state = ledgers.state;
 
     // ── Pick-up execution setup ──────────────────────────────────
     // When this run is bound to a task, the task has a Checklist, the flow
     // declares a checklistSegment, and a checklist mode was requested, the
     // segment band repeats once per item (in this one worktree, carrying
     // compact summaries forward). Otherwise the segment runs once - the N=1
-    // instant-task case, identical to today.
+    // instant-task case.
     const roadmap = new RoadmapService(this.projectRoot);
-    // Carries the saga step fields (objective / acceptanceCheck / fileHints)
-    // alongside id/text so the saga curated packet can ground each step in them.
-    // Non-saga reads only ever touch id/text, so this is inert for them.
-    let checklistItems: {
-      id: string;
-      text: string;
-      objective: string;
-      acceptanceCheck: string;
-      fileHints: string[];
-      // ENHANCE pass: carried so the ENHANCE pass can classify authority
-      // (a conductor may not remove an `owner` step) without a second task read.
-      provenance: Provenance;
-    }[] = [];
-    // Ground the brief in the bound card's own context (description + open
-    // checklist) for ANY `--task` run, not just the pickup band - otherwise the
-    // planner sees only the task string and guesses. The per-item checklist
-    // ITERATION still gates on the pickup flow + --checklist-mode (below);
-    // grounding is unconditional when a card is bound. Redacted + bounded.
-    let cardGrounding = "";
-    // On a RESUME of a checklist run, the still-pending items would otherwise run
-    // with an empty prior-items ledger (the done items were committed in the
+    const checklistPlan = await resolveChecklistPlan({
+      roadmap,
+      projectRoot: this.projectRoot,
+      taskId: this.taskId,
+      checklistMode: this.checklistMode,
+      sagaMode: this.sagaMode,
+      resumeFrom: this.resumeFrom,
+      snapshot: input.snapshot,
+      state,
+      stateStore: input.stateStore,
+    });
+    // The saga ENHANCE turn splices this array in place, so it stays a `let`
+    // binding the walk owns rather than a read-through into the plan.
+    let checklistItems = checklistPlan.items;
+    const cardGrounding = checklistPlan.cardGrounding;
+    // On a RESUME of a checklist run, the still-pending items would otherwise
+    // run with an empty prior-items ledger (the done items were committed in the
     // source run). These terse outcomes re-seed that ledger so cross-item
     // coherence + the holistic postlude survive a resume.
-    let resumeSeedOutcomes: ChecklistItemOutcome[] = [];
-    if (this.taskId) {
-      const task = await roadmap.getTask(this.taskId);
-      if (task) {
-        cardGrounding = redactSecretsInText(renderTaskGrounding(task)).redacted;
-        if (input.snapshot.checklistSegment && this.checklistMode) {
-          checklistItems = task.checklist
-            .filter((c) => c.status !== "done")
-            .map((c) => ({
-              id: c.id,
-              text: c.text,
-              objective: c.objective,
-              acceptanceCheck: c.acceptanceCheck,
-              fileHints: c.fileHints,
-              provenance: c.provenance,
-            }));
-          // ENHANCE pass: if a prior pass left a saga-scoped pending overlay,
-          // it supersedes the original pending steps (refined text/objective,
-          // resequenced, with removed steps absent). The overlay carries only
-          // EXISTING ids (autonomous add is excluded), so `task.checklist` - and
-          // thus the resume guard below, which compares its ids - is untouched.
-          // Any overlay step that has since completed is filtered out by status.
-          //
-          // FAIL-CLOSED: only apply the overlay if every id it lists still exists
-          // in the checklist. A structural checklist edit clears the overlay at
-          // the source (RoadmapService.writeChecklist), but if a stale/foreign
-          // overlay ever slips through, we ignore it and run the real checklist
-          // rather than silently dropping owner steps it doesn't know about.
-          const overlay = task.supervised.pendingRevision;
-          const checklistIdSet = new Set(task.checklist.map((c) => c.id));
-          if (
-            this.sagaMode &&
-            overlay &&
-            overlay.pending.every((p) => checklistIdSet.has(p.id))
-          ) {
-            const doneIds = new Set(
-              task.checklist.filter((c) => c.status === "done").map((c) => c.id),
-            );
-            checklistItems = overlay.pending
-              .filter((p) => !doneIds.has(p.id))
-              .map((p) => ({
-                id: p.id,
-                text: p.text,
-                objective: p.objective,
-                acceptanceCheck: p.acceptanceCheck,
-                fileHints: p.fileHints,
-                provenance: p.provenance,
-              }));
-          }
-          const currentIds = task.checklist.map((c) => c.id);
-          if (this.resumeFrom) {
-            // Refuse if the checklist was edited between the original run and this
-            // resume: resume skips items by their per-item done status, so a
-            // mutated list could skip un-built work or re-run the wrong item.
-            const sourceRaw = await readJson<unknown>(
-              runStatePath(this.projectRoot, this.resumeFrom.sourceRunId),
-            ).catch(() => null);
-            const sourceParsed = sourceRaw
-              ? runStateSchema.safeParse(sourceRaw)
-              : null;
-            const recordedIds = sourceParsed?.success
-              ? sourceParsed.data.checklistItemIds
-              : null;
-            if (checklistIdsChanged(recordedIds, currentIds)) {
-              throw new Error(
-                "This task's checklist changed since the run being resumed (items added, removed, or reordered). Re-run the task instead of resuming - resume-from-item relies on a stable checklist.",
-              );
-            }
-            resumeSeedOutcomes = reconstructDoneOutcomes(task.checklist);
-          }
-          // Record the ordered ids so a later resume of THIS run can verify the
-          // checklist hasn't shifted under it (fails open when absent).
-          state = { ...state, checklistItemIds: currentIds };
-          await input.stateStore.write(state);
-        }
-      }
-    }
+    const resumeSeedOutcomes = checklistPlan.resumeSeedOutcomes;
+    state = checklistPlan.state;
     // Hoisted above the try so the finalize block (final report) and the catch
     // (mark a failed item blocked) can see them.
     const itemOutcomes: ChecklistItemOutcome[] = [];
@@ -2415,27 +2308,13 @@ export class Orchestrator {
         }
       | null = null;
 
-    const taskBriefBody = [
-      "# Flow Task Brief",
-      "",
-      `Task: ${this.task}`,
-      "",
-      input.snapshot.brief ? input.snapshot.brief : "_No extra Flow brief._",
-      cardGrounding ? `\n${cardGrounding}` : "",
-      checklistItems.length
-        ? "\n## Checklist (work these in order, one per item band)\n" +
-          checklistItems.map((c, i) => `${i + 1}. ${c.text}`).join("\n")
-        : "",
-    ].join("\n");
-    const taskBriefAbs = await input.artifactStore.write(
-      path.posix.join("flows", "task-brief.md"),
-      `${taskBriefBody}\n`,
-    );
-    outputs.set("task-brief", {
-      token: "task-brief",
-      label: "Task Brief",
-      content: `${taskBriefBody}\n`,
-      artifactPath: input.artifactStore.relPath(taskBriefAbs),
+    await writeTaskBrief({
+      task: this.task,
+      snapshot: input.snapshot,
+      cardGrounding,
+      checklistItems,
+      artifactStore: input.artifactStore,
+      outputs,
     });
 
     try {
