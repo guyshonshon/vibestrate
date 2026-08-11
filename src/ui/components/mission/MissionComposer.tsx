@@ -18,8 +18,9 @@
 //     poll; "Start another run" clears it back to the launcher.
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowRight, Check, Lock, Plus } from "lucide-react";
+import { ArrowRight, Check, Loader2, Lock, Plus } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { Button } from "../design/Button.js";
 import { navigate } from "../../app/App.js";
 import { EntityIcon, FlowIcon, type EntityKind } from "../design/EntityIcon.js";
 import { FlowBars } from "../design/FlowBars.js";
@@ -355,6 +356,17 @@ export function MissionComposer() {
   const [unattended, setUnattended] = useState(false);
   const [forceSelect, setForceSelect] = useState(false);
   const [params, setParams] = useState<Record<string, string>>({});
+  // Item-by-item execution. Offered only for a flow that declares a
+  // checklistSegment, because without one the band collapses to a single pass
+  // and the toggle would be a lie (flow-sequence-prologue rejects the pair).
+  const [breakDown, setBreakDown] = useState(false);
+  const [stepMode, setStepMode] = useState(true);
+  const [planQ, setPlanQ] = useState<{
+    cardId: string;
+    questions: { id: string; question: string; why: string; kind: "choice" | "text"; options: string[] }[];
+    answers: Record<string, string>;
+  } | null>(null);
+  const [planStage, setPlanStage] = useState<string | null>(null);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -425,10 +437,98 @@ export function MissionComposer() {
     : [];
 
   const crews = meta?.crews ?? [];
+  // Whether the picked flow has a per-item band at all. Auto (no flowId) never
+  // qualifies: the flow is not known until the orchestrator picks one, so the
+  // offer would be made before the thing it depends on exists.
+  const bandFlow = selectedFlow?.definition.checklistSegment != null;
   const canLaunch = task.trim().length > 0 && missing.length === 0 && !busy;
+
+  /**
+   * Break the brief into a card + checklist, then run it item by item.
+   *
+   * Composed entirely from calls the task page already makes - create a card,
+   * ask the bounded planning questions, apply the breakdown, spawn a linked
+   * run. Nothing new is written to disk by this path, so the guarantees on
+   * those endpoints (a checklist is never overwritten, the run takes the task
+   * lock) hold here unchanged.
+   *
+   * Split in two because the questions are the point: the run does not start
+   * until they are answered, which is what makes the breakdown the owner's and
+   * not the model's guess at a one-line brief.
+   */
+  const startBreakdown = async () => {
+    if (!canLaunch) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setPlanStage("Creating the card");
+      const card = await api.addTask({ title: task.trim() });
+      setPlanStage("Working out what it needs to know");
+      const q = await api.planQuestions(card.id);
+      if (q.proposal.questions.length === 0) {
+        // Nothing to ask - go straight to the breakdown rather than showing an
+        // empty form the user has to dismiss.
+        await finishBreakdown(card.id, []);
+        return;
+      }
+      setPlanQ({ cardId: card.id, questions: q.proposal.questions, answers: {} });
+      setPlanStage(null);
+      setBusy(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setPlanStage(null);
+      setBusy(false);
+    }
+  };
+
+  const finishBreakdown = async (
+    cardId: string,
+    answers: { question: string; answer: string }[],
+  ) => {
+    setBusy(true);
+    setError(null);
+    setPlanQ(null);
+    try {
+      setPlanStage("Breaking it into steps");
+      await api.enhanceChecklist(cardId, {
+        apply: true,
+        answers: answers.length > 0 ? answers : undefined,
+      });
+      setPlanStage("Starting the run");
+      const filled = Object.fromEntries(
+        Object.entries(params).filter(([, v]) => v && v.trim() !== ""),
+      );
+      const r = await api.spawnRun({
+        task: task.trim(),
+        taskId: cardId,
+        crewId: crewId || undefined,
+        flow: flowId ? { id: flowId } : undefined,
+        persona: personaId || undefined,
+        params: Object.keys(filled).length > 0 ? filled : undefined,
+        concise: concise || undefined,
+        readOnly: readOnly || undefined,
+        unattended: unattended || undefined,
+        checklistMode: stepMode ? "step" : "continuous",
+      });
+      setLaunchedRun(null);
+      setLaunchStatus("created");
+      setLaunchedRunId(r.runId);
+      setPlanStage(null);
+      setBusy(false);
+      window.dispatchEvent(new Event("vibestrate:runs-refresh"));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setPlanStage(null);
+      setBusy(false);
+    }
+  };
 
   const launch = async () => {
     if (!canLaunch) return;
+    if (breakDown && bandFlow) {
+      await startBreakdown();
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -516,7 +616,116 @@ export function MissionComposer() {
               <MiniToggle on={readOnly} set={setReadOnly} label="Read-only" title="No file writes" />
               <MiniToggle on={unattended} set={setUnattended} label="Unattended" title="Skip approval pauses" />
               <MiniToggle on={forceSelect} set={setForceSelect} label="Force flow select" title="Always auto-pick a flow" />
+              {bandFlow ? (
+                <>
+                  <MiniToggle
+                    on={breakDown}
+                    set={setBreakDown}
+                    label="Break into steps"
+                    title="Plan a checklist first, then work it item by item"
+                  />
+                  {breakDown ? (
+                    <MiniToggle
+                      on={stepMode}
+                      set={setStepMode}
+                      label="Pause between items"
+                      title="Stop after each item so you can look before the next one starts"
+                    />
+                  ) : null}
+                </>
+              ) : null}
             </div>
+
+            {planStage ? (
+              <div className="mt-2.5 flex items-center gap-2 text-[12.5px] text-chalk-300">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-violet-soft" aria-hidden />
+                {planStage}
+              </div>
+            ) : null}
+
+            {planQ ? (
+              <div className="mt-3 rounded-[13px] border border-violet-soft/35 bg-violet-soft/[0.06] p-3.5">
+                <div className="text-[13px] font-semibold text-chalk-100">
+                  Before it plans, it needs to know
+                </div>
+                <div className="mt-0.5 text-[12px] text-chalk-300">
+                  Answer what you care about. Anything you leave blank is left to the planner.
+                </div>
+                <div className="mt-3 flex flex-col gap-3">
+                  {planQ.questions.map((q) => (
+                    <div key={q.id}>
+                      <div className="text-[12.5px] font-medium text-chalk-100">{q.question}</div>
+                      {q.why ? (
+                        <div className="mt-0.5 text-[11.5px] text-chalk-300">{q.why}</div>
+                      ) : null}
+                      {q.kind === "choice" && q.options.length > 0 ? (
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {q.options.map((opt) => (
+                            <MiniToggle
+                              key={opt}
+                              on={planQ.answers[q.id] === opt}
+                              set={() =>
+                                setPlanQ((p) =>
+                                  p
+                                    ? {
+                                        ...p,
+                                        answers: {
+                                          ...p.answers,
+                                          [q.id]: p.answers[q.id] === opt ? "" : opt,
+                                        },
+                                      }
+                                    : p,
+                                )
+                              }
+                              label={opt}
+                              title={opt}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <input
+                          value={planQ.answers[q.id] ?? ""}
+                          onChange={(e) =>
+                            setPlanQ((p) =>
+                              p ? { ...p, answers: { ...p.answers, [q.id]: e.target.value } } : p,
+                            )
+                          }
+                          placeholder="Your answer"
+                          className="mt-1.5 w-full rounded-[12px] border border-[color:var(--line-strong)] bg-coal-600 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3.5 flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      finishBreakdown(
+                        planQ.cardId,
+                        planQ.questions
+                          .map((q) => ({
+                            question: q.question,
+                            answer: (planQ.answers[q.id] ?? "").trim(),
+                          }))
+                          .filter((a) => a.answer.length > 0),
+                      )
+                    }
+                    disabled={busy}
+                  >
+                    Break it down and run
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setPlanQ(null)}
+                    disabled={busy}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <Section title="Flow" entity="flow">
