@@ -16,6 +16,12 @@ Vibestrate is an open-source, supervised flow for AI coding: choose or share a f
 
 <br />
 
+<img src="./.github/assets/demo.gif" alt="A run where Sonnet implements a CLI and Opus reviews the diff, catching a crash the passing tests never reached" width="720" />
+
+<sub>A real run. Sonnet wrote the code and its tests; Opus reviewed the diff and found a crash on negative totals that the passing tests never reached.</sub>
+
+<br />
+
 [![License](https://img.shields.io/badge/License-Apache_2.0-8b7cff?style=flat-square&labelColor=0e1118)](./LICENSE)
 [![npm](https://img.shields.io/npm/v/vibestrate?style=flat-square&labelColor=0e1118&color=8b7cff)](https://www.npmjs.com/package/vibestrate)
 [![Downloads](https://img.shields.io/npm/dm/vibestrate?style=flat-square&labelColor=0e1118&color=8b7cff&label=downloads)](https://www.npmjs.com/package/vibestrate)
