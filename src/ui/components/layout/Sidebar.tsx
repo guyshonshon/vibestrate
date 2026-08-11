@@ -206,6 +206,16 @@ export function Sidebar({
           selected={currentNav === "crew"}
           onClick={onShowCrew}
         />
+        {/* Top-level, not inside More: policies are the one surface where the
+            owner's rules outrank the model's judgment, so they must be findable
+            without knowing to look. */}
+        <NavItem
+          icon={<Scale className="h-[18px] w-[18px]" />}
+          label="Policies"
+          selected={currentNav === "policies"}
+          onClick={onShowPolicies}
+          tourId="nav-policies"
+        />
         <NavItem
           icon={<GitBranch className="h-[18px] w-[18px]" />}
           label="Source"
@@ -258,7 +268,6 @@ export function Sidebar({
         {moreOpen ? (
           <div className="mb-1 ml-[22px] flex flex-col gap-0.5 border-l-[1.5px] border-[color:var(--line-strong)] pl-2.5">
             <MoreItem icon={<ShieldCheck className="h-4 w-4" strokeWidth={1.9} />} label="Supervisors" active={currentNav === "supervisors"} onClick={onShowSupervisors} />
-            <MoreItem icon={<Scale className="h-4 w-4" strokeWidth={1.9} />} label="Policies" active={currentNav === "policies"} onClick={onShowPolicies} />
             <MoreItem icon={<FileText className="h-4 w-4" strokeWidth={1.9} />} label="Proposals" active={currentNav === "proposals"} onClick={onShowProposals} />
             <MoreItem icon={<Folder className="h-4 w-4" strokeWidth={1.9} />} label="Project" active={currentNav === "project"} onClick={onShowProject} />
             <MoreItem icon={<Settings2 className="h-4 w-4" strokeWidth={1.9} />} label="Config" active={currentNav === "config"} onClick={onShowConfig} />

@@ -52,6 +52,7 @@ Too fast to follow? <code>.github/assets/demo.cast</code> is the raw recording, 
 - [Ready in one command](#-ready-in-one-command)
 - [Why local-first](#-why-local-first)
 - [How a run works](#-how-a-run-works)
+- [Rules, not suggestions](#-rules-not-suggestions)
 - [Full coverage, full control](#-full-coverage-full-control)
 - [Documentation](#-documentation)
 - [Built with](#-built-with)
@@ -181,6 +182,31 @@ vibe run "<same task>" --resume-from <runId> --resume-stage executing
 ```
 
 > [Concepts](https://vibestrate.com/docs/concepts/task) · [Task lifecycle](https://vibestrate.com/docs/task-lifecycle) · [CLI reference](https://vibestrate.com/docs/reference/cli)
+
+<p align="right"><a href="#top">↑ back to top</a></p>
+
+## ◆ Rules, not suggestions
+
+Telling a model "stop using em-dashes" works right up until the run where it doesn't. You can't audit an instruction the model merely *agreed* to. So write the rule down once, at the project level, and every run gets checked against it - whichever supervisor is on duty, whichever model is in the chair.
+
+```bash
+vibe policies add no-em-dash "do not use em-dash characters" --fix "use a hyphen"
+vibe policies add no-eyebrow "no eyebrow labels" --block --matcher "SectionEyebrow"
+vibe policies list
+```
+
+Two tiers, and the difference between them is the whole point:
+
+| Tier | How it's enforced | What it's for |
+|---|---|---|
+| **advise** | The reviewer reads your rule alongside the diff. A violation is flagged and rides the normal review → fix loop, same as a correctness note. | Judgment calls - "no eyebrow labels", "match our design language", "don't over-engineer this". A model catches the paraphrase a regex would miss. |
+| **block** | A regex over the run's changed lines. Match, and the run lands `blocked` with the reason shown - **even if the reviewer approved it**. | Rules with a shape you can name. It's not a model verdict, so it can't be reasoned with, softened, or forgotten. |
+
+Here's the part that matters: **a block is owner-only.** The supervisor can *propose* a rule from a consult, but that path is hard-constrained to `advise`, and the proposal sits pending doing nothing until you confirm it. **A model can never author its own hard merge-cap.** The gate scans from the run's fork point (so mid-run commits are caught), skips secret-shaped files, and fails closed - if it can't read the diff, it blocks rather than waving the change through.
+
+The dashboard **Policies** page does all of it too: create either tier, confirm or reject what the supervisor proposed, remove. And a plain `vibe run` needs zero policies - this is an additive layer, not a tax.
+
+> [Policies](https://vibestrate.com/docs/concepts/policies) · [CLI reference](https://vibestrate.com/docs/reference/cli)
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 

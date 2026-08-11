@@ -15,7 +15,14 @@ type TourStep = {
 // A fixed-length tuple (not TourStep[]) so `STEPS[stepIndex]` types as
 // TourStep rather than TourStep | undefined under noUncheckedIndexedAccess -
 // stepIndex is always kept in range by firstAvailableFrom/lastAvailableUpTo.
-const STEPS: readonly [TourStep, TourStep, TourStep, TourStep, TourStep] = [
+const STEPS: readonly [
+  TourStep,
+  TourStep,
+  TourStep,
+  TourStep,
+  TourStep,
+  TourStep,
+] = [
   {
     id: "runs",
     title: "Runs",
@@ -33,6 +40,12 @@ const STEPS: readonly [TourStep, TourStep, TourStep, TourStep, TourStep] = [
     title: "Board",
     body: "The Board lines up every active run side by side, with its phase and current agent.",
     anchor: "nav-board",
+  },
+  {
+    id: "policies",
+    title: "Policies",
+    body: "Rules you write once that every run is checked against. Advise rules go to the reviewer; a block rule is a matcher that caps the merge even when the reviewer approved.",
+    anchor: "nav-policies",
   },
   {
     id: "consult",
