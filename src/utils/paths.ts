@@ -41,6 +41,12 @@ export function projectRulesPath(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), RULES_FILENAME);
 }
 
+/** Optional directory of additional `*.md` rule files, composed after
+ *  `rules.md` (see project-rules.ts). */
+export function projectRulesDirPath(projectRoot: string): string {
+  return path.join(vibestrateRoot(projectRoot), "rules");
+}
+
 /** Append-only project continuity ledger: one JSON entry per line. */
 export function projectLedgerPath(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), "ledger.ndjson");

@@ -51,6 +51,9 @@ The full, field-by-field schema is generated from the source, so it never drifts
 The rest of `.vibestrate/` holds files you edit directly:
 
 - `rules.md` - your **project instructions**: advisory guidance read on every agent turn. It's advisory, not enforced. The enforced rules are [policies](/docs/concepts/safety).
+- `rules/` - optional. Once one page of instructions isn't enough, drop more `*.md` files here and they compose onto `rules.md`, sorted by filename, each labelled with the file it came from. Name them so the order reads the way you want (`10-style.md`, `20-testing.md`).
+
+  Instructions are the most expensive text in the product - they go into every agent turn of every run - so the composed ruleset is size-bounded, and `vibe doctor` tells you if any of it is being truncated or refused rather than letting your rules quietly stop arriving.
 - `roles/` - the prompt templates for each Role, yours to edit.
 - `skills/` - markdown [skills](/docs/concepts/skill) that load as extra context.
 - `flows/` - your project's own [Flow](/docs/concepts/flow) definitions.

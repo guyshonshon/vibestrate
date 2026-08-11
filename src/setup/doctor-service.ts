@@ -39,6 +39,7 @@ import {
 } from "../utils/paths.js";
 import { isGitAvailable, findGitRoot } from "../git/git.js";
 import { configExists, loadConfig } from "../project/config-loader.js";
+import { rulesetWarnings } from "../project/project-rules.js";
 import { detectFullProject } from "../project/project-detector.js";
 import { isWindows } from "../utils/platform.js";
 import {
@@ -800,6 +801,30 @@ export async function runDoctor(input: {
     }
   } catch {
     // best-effort - never fail doctor over approval scanning.
+  }
+
+  // The ruleset enters every prompt, and every way it can be quietly wrong -
+  // truncated, refused by the path guard, redacted - is invisible from a run.
+  // Doctor is where that becomes visible.
+  const rulesetProblems = rulesetWarnings(loaded.ruleset);
+  if (rulesetProblems.length > 0) {
+    findings.push({
+      id: "ruleset",
+      severity: "warn",
+      title: `Your Project Instructions are not reaching the agents intact (${loaded.ruleset.sources.length} file(s))`,
+      detail: rulesetProblems.join(" "),
+      fixHint:
+        "Trim the rule files, or move durable project context into VIBESTRATE.md - it is read once by the orchestrator instead of on every turn.",
+      fixable: false,
+    });
+  } else if (loaded.ruleset.sources.length > 1) {
+    findings.push({
+      id: "ruleset",
+      severity: "ok",
+      title: `Project Instructions compose ${loaded.ruleset.sources.length} files`,
+      detail: loaded.ruleset.sources.map((s) => s.relativePath).join(", "),
+      fixable: false,
+    });
   }
 
   // Build next-step recommendations.

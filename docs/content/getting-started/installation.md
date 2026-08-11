@@ -60,13 +60,14 @@ Doctor checks everything needed before your first run: git state, project config
 .vibestrate/
   project.yml      providers, profiles, crews (roles), commands, policies
   rules.md         project instructions agents read on every turn
+  rules/           optional extra instruction files, composed onto rules.md
   roles/           per-role prompt templates you can edit
   skills/          markdown attachments that add domain context
   flows/           your project's run Flows (empty until you add one)
   runs/            run state, artifacts, metrics, events
 ```
 
-Commit `project.yml`, `rules.md`, `roles/`, `skills/`, and `flows/`. Leave `runs/` untracked. Vibestrate adds it to your `.gitignore` automatically.
+Commit `project.yml`, `rules.md`, `rules/`, `roles/`, `skills/`, and `flows/`. Leave `runs/` untracked. Vibestrate adds it to your `.gitignore` automatically.
 
 ## Next
 

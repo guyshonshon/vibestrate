@@ -18,11 +18,11 @@
 import path from "node:path";
 import YAML from "yaml";
 import { ConfigError } from "../utils/errors.js";
+import { loadProjectRuleset, type ProjectRuleset } from "./project-rules.js";
 import { readText, pathExists } from "../utils/fs.js";
 import {
   vibestrateRoot,
   projectConfigPath,
-  projectRulesPath,
 } from "../utils/paths.js";
 import { projectConfigSchema, type ProjectConfig } from "./config-schema.js";
 
@@ -31,6 +31,8 @@ export type LoadedConfig = {
   configPath: string;
   config: ProjectConfig;
   rules: string;
+  /** Where the rules came from, plus anything refused or truncated. */
+  ruleset: ProjectRuleset;
 };
 
 const DEFAULT_RULES =
@@ -90,16 +92,16 @@ export async function loadConfig(projectRoot: string): Promise<LoadedConfig> {
     );
   }
 
-  const rulesPath = projectRulesPath(projectRoot);
-  const rules = (await pathExists(rulesPath))
-    ? await readText(rulesPath)
-    : DEFAULT_RULES;
+  // Composed from rules.md plus any .vibestrate/rules/*.md - redacted, bounded
+  // and path-guarded there, because this text enters every prompt.
+  const ruleset = await loadProjectRuleset(projectRoot, DEFAULT_RULES);
 
   return {
     projectRoot,
     configPath,
     config: parsed.data,
-    rules,
+    rules: ruleset.text,
+    ruleset,
   };
 }
 

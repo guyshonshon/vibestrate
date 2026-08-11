@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.2.0
+
+- **Project instructions can be more than one file.** Drop `*.md` files into
+  `.vibestrate/rules/` and they compose onto `rules.md`, sorted by filename and
+  each labelled with the file it came from, so a rule can be traced back to
+  where it lives instead of grepping one long page. `rules.md` alone still works
+  exactly as before.
+- **And they are now handled like everything else that reaches a prompt.**
+  `rules.md` was being read raw - no redaction, no size limit, no path guard -
+  while the operating manual next to it was already loaded properly. Instructions
+  go into every agent turn of every run, which makes them the most-copied text in
+  the product, so the composed ruleset is now redacted, bounded and path-guarded.
+  Truncation and refusals are reported by `vibe doctor`: an instruction that
+  stops reaching your agents should not be something you find out from a
+  confusing run.
+
 ## 1.1.0
 
 - **Small tasks stop paying for the full line.** The trivial-task sizer used to
