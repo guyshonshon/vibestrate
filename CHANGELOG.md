@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0
+
+- **`express` now verifies code changes, not just reviews them.** The fast-track
+  flow always had one deterministic safety net: a review turn that fires unless
+  the run's actual diff is prose-only and touches no protected path. It now has
+  two - the verify turn is gated the same way. A markdown tweak still costs a
+  single turn; anything that touches code gets reviewed *and* independently
+  verified. The point is that whatever decides a task is "small" is reading a
+  task description, and a description can be wrong about what the change turns
+  out to touch. The diff cannot, so the gates are decided from the files the run
+  actually changed, after it changed them.
+- **Flow authors can diff-floor their own verify step.** `skipWhen: "inert_diff"`
+  used to be valid on a review turn only; it now accepts a summary turn too, so a
+  project flow can carry the same net. Steps that produce the diff are still
+  refused - skipping a writing step on the strength of its own output is
+  circular, and the schema says so.
+
 ## 1.0.1
 
 - **A fresh install says something.** `vibe` with no arguments opened the panel,

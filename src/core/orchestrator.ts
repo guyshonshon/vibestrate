@@ -2956,14 +2956,15 @@ export class Orchestrator {
             return;
           }
 
-          // Express: deterministic review descent. A review-turn marked
-          // `skipWhen: "inert_diff"` is skipped ONLY on recorded diff evidence -
-          // every changed file strict-prose AND unprotected (review-descent.ts).
-          // Model judgment and task text play no part. Read-only runs always
-          // review (their diff is empty, so "evidence" there would be vacuous).
-          // Any uncertainty (no worktree, diff error) -> the review runs.
+          // Deterministic back-gate descent. A checking step (review-turn /
+          // summary-turn) marked `skipWhen: "inert_diff"` is skipped ONLY on
+          // recorded diff evidence - every changed file strict-prose AND
+          // unprotected (review-descent.ts). Model judgment and task text play no
+          // part. Read-only runs always check (their diff is empty, so "evidence"
+          // there would be vacuous). Any uncertainty (no worktree, diff error) ->
+          // the step runs.
           if (
-            step.kind === "review-turn" &&
+            (step.kind === "review-turn" || step.kind === "summary-turn") &&
             step.skipWhen === "inert_diff" &&
             !this.readOnly
           ) {
@@ -2972,25 +2973,36 @@ export class Orchestrator {
               this.config.policies,
             );
             if (descent?.skip) {
-              reviewSkipEvidence = { stepId: step.id, files: descent.files };
+              // Only a skipped REVIEW records review evidence. A skipped verify
+              // must not: `reviewSkipped` is what lets merge-readiness treat the
+              // review requirement as satisfied without a reviewer, and a verify
+              // step has no standing to satisfy it. A skipped verify already
+              // reads correctly downstream - it produces no verification
+              // artifact, so `verified` stays false.
+              const isReview = step.kind === "review-turn";
+              if (isReview) {
+                reviewSkipEvidence = { stepId: step.id, files: descent.files };
+              }
               state = patchFlowStep(
                 state,
                 step.id,
                 { status: "skipped", endedAt: nowIso() },
                 step.id,
               );
-              state = {
-                ...state,
-                reviewSkipped: {
-                  reason: "inert_diff",
-                  stepId: step.id,
-                  files: descent.files,
-                },
-              };
+              if (isReview) {
+                state = {
+                  ...state,
+                  reviewSkipped: {
+                    reason: "inert_diff",
+                    stepId: step.id,
+                    files: descent.files,
+                  },
+                };
+              }
               await input.stateStore.write(state);
               await input.eventLog.append({
                 type: "flow.step.skipped",
-                message: `Flow review ${step.id} skipped on diff evidence: ${descent.files.length} strict-prose, unprotected file(s) changed.`,
+                message: `Flow ${isReview ? "review" : "verification"} ${step.id} skipped on diff evidence: ${descent.files.length} strict-prose, unprotected file(s) changed.`,
                 data: {
                   flowId: input.snapshot.flowId,
                   stepId: step.id,

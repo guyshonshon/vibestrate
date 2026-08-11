@@ -1076,19 +1076,26 @@ export const sagaFlow = flowDefinitionSchema.parse({
 });
 
 // The built-in **express flow**: one implementer turn with a diff-floored safety
-// net. Validation is change-scoped and the review step is
-// `skipWhen: "inert_diff"` - it runs
-// UNLESS the run's actual diff is strict-prose (.md/.markdown/.txt/.rst) and
-// touches no protected path. The skip is recorded evidence; assurance
-// then reports `review: skipped_inert_diff` and caps at partially_verified.
-// A gate-free "solo" variant was rejected deliberately: the back gate must be
-// decided by the diff, never by task text.
+// net. Validation is change-scoped, and BOTH back gates - review and verify -
+// carry `skipWhen: "inert_diff"`, so they run UNLESS the run's actual diff is
+// strict-prose (.md/.markdown/.txt/.rst) and touches no protected path.
+//
+// Both gates matter, and for different reasons: the review judges the change,
+// the verify independently confirms the result. Express is the flow a sizer
+// routes to when it believes a task is small, and a sizer works from task text
+// - it can be wrong. The diff cannot. So every code change that lands here gets
+// checked twice regardless of what anything believed about the task going in,
+// while a genuine prose tweak still costs one turn.
+//
+// A skipped review is recorded evidence; assurance then reports
+// `review: skipped_inert_diff`. A gate-free "solo" variant was rejected
+// deliberately: the back gate must be decided by the diff, never by task text.
 export const expressFlow = flowDefinitionSchema.parse({
   id: "express",
   version: 1,
   label: "Express",
   description:
-    "One implementer turn for small, low-risk tasks. Validation is scoped to the actual change, and review runs only when the diff demands it - any non-prose or protected file gets a real review turn.",
+    "One implementer turn for small, low-risk tasks. Validation is scoped to the actual change, and review plus verification run only when the diff demands it - any non-prose or protected file gets both a real review turn and a real verify turn.",
   seats: {
     implementer: {
       label: "Implementer",
@@ -1098,6 +1105,11 @@ export const expressFlow = flowDefinitionSchema.parse({
       label: "Reviewer",
       description:
         "Reviews the diff when the deterministic descent requires it.",
+    },
+    verifier: {
+      label: "Verifier",
+      description:
+        "Independently confirms the result when the diff demands it.",
     },
   },
   steps: [
@@ -1128,6 +1140,17 @@ export const expressFlow = flowDefinitionSchema.parse({
       stage: "reviewing",
       inputs: ["task-brief", "execution", "validation"],
       outputs: ["findings", "review-decision"],
+      skipWhen: "inert_diff",
+    },
+    {
+      id: "verify",
+      label: "Verify (diff-floored)",
+      kind: "summary-turn",
+      seat: "verifier",
+      stage: "verifying",
+      inputs: ["task-brief", "execution", "findings", "validation"],
+      outputs: ["verification"],
+      skipWhenReadOnly: true,
       skipWhen: "inert_diff",
     },
   ],

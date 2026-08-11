@@ -1513,7 +1513,7 @@
       "id": "express",
       "version": 1,
       "label": "Express",
-      "description": "One implementer turn for small, low-risk tasks. Validation is scoped to the actual change, and review runs only when the diff demands it - any non-prose or protected file gets a real review turn.",
+      "description": "One implementer turn for small, low-risk tasks. Validation is scoped to the actual change, and review plus verification run only when the diff demands it - any non-prose or protected file gets both a real review turn and a real verify turn.",
       "seats": [
         {
           "id": "implementer",
@@ -1524,6 +1524,11 @@
           "id": "reviewer",
           "label": "Reviewer",
           "description": "Reviews the diff when the deterministic descent requires it."
+        },
+        {
+          "id": "verifier",
+          "label": "Verifier",
+          "description": "Independently confirms the result when the diff demands it."
         }
       ],
       "steps": [
@@ -1585,6 +1590,28 @@
           "continueOnError": false,
           "retries": 0,
           "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "verify",
+          "label": "Verify (diff-floored)",
+          "kind": "summary-turn",
+          "seat": "verifier",
+          "inputs": [
+            "task-brief",
+            "execution",
+            "findings",
+            "validation"
+          ],
+          "outputs": [
+            "verification"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "verifying",
           "approval": null,
           "repeat": null
         }

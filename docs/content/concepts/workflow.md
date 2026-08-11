@@ -52,7 +52,9 @@ vibe run "..." --flow quality-arbitration
 
 ### Fast tracks
 
-Not every task deserves the full seven-stage line. For small, low-risk work the built-in **`express`** flow runs one implementer turn plus a review that only fires when the change demands it: a pure-prose or otherwise inert diff skips review entirely and goes straight to merge-ready, while anything touching code or a protected path gets a real review turn.
+Not every task deserves the full seven-stage line. For small, low-risk work the built-in **`express`** flow runs one implementer turn behind two gates that only fire when the change demands it: a pure-prose, unprotected diff skips both review and verification and goes straight to merge-ready, while anything touching code or a protected path gets a real review turn *and* a real verify turn.
+
+That asymmetry is deliberate. Whatever routes a task to `express` is reading the task description, and a description can be wrong about what a change turns out to touch. The diff cannot. So the decision to skip a gate is never made from the task text - it is made from the files the run actually changed, after it changed them.
 
 ```bash
 vibe run "fix the typo in the seat concept page" --flow express

@@ -286,13 +286,17 @@ export const flowStepSchema = z
     stage: flowStageSchema.optional(),
     approval: flowApprovalGateSchema.optional(),
     repeat: flowStepRepeatSchema.optional(),
-    // Express: deterministic review descent. A review-turn marked `skipWhen:
+    // Deterministic back-gate descent. A checking step marked `skipWhen:
     // "inert_diff"` is skipped at runtime ONLY when the run's ACTUAL diff is
     // strict-prose (.md/.markdown/.txt/.rst) AND touches no protected path
     // (orchestrator/protected-paths.ts) - recorded evidence, never model
-    // judgment or task text. Restricted by validation below: review-turn only,
-    // linear flows only, never inside an adaptive loop body (the loop's
-    // decision contract needs a real decision).
+    // judgment or task text. Restricted by validation below: checking steps
+    // (review-turn / summary-turn) only, linear flows only, never inside an
+    // adaptive loop body (the loop's decision contract needs a real decision).
+    //
+    // Only the BACK gates may carry this. A step that produces work (agent-turn,
+    // response-turn) must never be diff-skippable: its own output is what the
+    // diff is made of, so skipping it on diff evidence is circular.
     skipWhen: z.enum(["inert_diff"]).optional(),
     // Clean-room context: when true, this step's seat
     // does NOT get the producer's run-derived narrative - the run brief (the
@@ -386,14 +390,24 @@ const TURN_STEP_KINDS = new Set<FlowStepKind>([
   "summary-turn",
 ]);
 
+/** The step kinds a deterministic diff descent may skip: the BACK gates that
+ *  check work someone else produced. Anything that writes is excluded on
+ *  purpose - a step whose own output forms the diff cannot be skipped on the
+ *  strength of that diff. */
+const SKIP_WHEN_KINDS: ReadonlySet<string> = new Set([
+  "review-turn",
+  "summary-turn",
+]);
+
 /**
- * The skipWhen (express deterministic review-descent) constraints, asserted
- * on BOTH the authored flow definition AND the resolved snapshot so a
- * hand-crafted snapshot can't bypass them if a future code path ever feeds one
- * in (defense-in-depth). skipWhen is valid only on a review-turn, in
- * a linear flow (no `needs`), never in a checklist flow, and never inside the
- * adaptive loop body - a skipped decision step would leave the loop's exit
- * contract undefined or narrow the band review to a per-item diff slice.
+ * The skipWhen (deterministic back-gate descent) constraints, asserted on BOTH
+ * the authored flow definition AND the resolved snapshot so a hand-crafted
+ * snapshot can't bypass them if a future code path ever feeds one in
+ * (defense-in-depth). skipWhen is valid only on a checking step (review-turn /
+ * summary-turn), in a linear flow (no `needs`), never in a checklist flow, and
+ * never inside the adaptive loop body - a skipped decision step would leave the
+ * loop's exit contract undefined or narrow the band review to a per-item diff
+ * slice.
  */
 function addSkipWhenConstraintIssues(
   flow: {
@@ -414,11 +428,11 @@ function addSkipWhenConstraintIssues(
   const loopTo = loop ? flow.steps.findIndex((s) => s.id === loop.to) : -1;
   flow.steps.forEach((step, index) => {
     if (!step.skipWhen) return;
-    if (step.kind !== "review-turn") {
+    if (!SKIP_WHEN_KINDS.has(step.kind)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["steps", index, "skipWhen"],
-        message: `Flow step "${step.id}" of kind "${step.kind}" can't use skipWhen (review-turn steps only).`,
+        message: `Flow step "${step.id}" of kind "${step.kind}" can't use skipWhen (review-turn / summary-turn steps only).`,
       });
     }
     if (anyNeeds) {
