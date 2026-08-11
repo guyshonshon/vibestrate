@@ -11,13 +11,10 @@
 #   3. Bump: `npm version <bump>` (updates package.json, commits, tags vX.Y.Z).
 #   4. Push: `git push --follow-tags origin main`.
 #
-# Pushing the tag does NOT publish. There is no release workflow in
-# .github/workflows/ (CI only), so the publish is a manual `npm publish` from
-# this machine - the script prints the exact command at the end.
-#
-# npm trusted publishing (OIDC) has to be configured against a package that
-# already exists on the registry, so a CI publish workflow can only be added
-# after the first manual publish. See .github/MAINTAINING.md.
+# Pushing the tag triggers .github/workflows/release.yml, which re-runs this
+# same gate and publishes from CI via npm trusted publishing (OIDC) - no stored
+# token, and a real provenance attestation. The `release` environment's required
+# reviewers hold it for a click first. See .github/MAINTAINING.md.
 set -euo pipefail
 
 BUMP="${1:-patch}"
@@ -72,10 +69,11 @@ cat <<EOF
 
 ✓ Released $NEW_VERSION.
 
-  Publishing is manual (there is no CI publish workflow). From this machine:
-      npm publish --provenance --access public --otp=<your-2fa-code>
+  The tag push triggers .github/workflows/release.yml, which re-runs this gate
+  and publishes from CI via npm trusted publishing - no token on this machine.
+  It waits on the \`release\` environment's required reviewers, so approve it:
+      https://github.com/guyshonshon/vibestrate/actions
 
-  --provenance is EXPERIMENTAL / WIP: npm mints an attestation only from a
-  supported CI with OIDC, so it can fail from a laptop. If it does, publish
-  without the flag and see .github/MAINTAINING.md.
+  If the publish step fails on auth, the Trusted Publisher is not configured
+  yet - see .github/MAINTAINING.md.
 EOF

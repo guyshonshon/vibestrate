@@ -1,0 +1,103 @@
+name: Release
+
+# Publish to npm from CI using **trusted publishing** (OIDC): npm mints a
+# short-lived credential for this workflow, so there is no NPM_TOKEN stored
+# anywhere and nothing to rotate or leak. It also makes `--provenance` real -
+# npm only attests a build it can trace to a supported CI, which is why the flag
+# never worked from a laptop.
+#
+# Trigger: pushing a `v*` tag, or a manual dispatch. The version published is
+# whatever `package.json` says at that tag - this workflow never bumps. Tag and
+# bump stay a human decision made in the repo (scripts/release.sh), so a
+# mis-tagged release cannot be manufactured by re-running a job.
+#
+# The gate below deliberately mirrors ci.yml and scripts/release.sh step for
+# step, including the packed-artifact verify. A release must not be able to pass
+# a weaker bar than an ordinary push to main.
+#
+# Setup this expects, once (see .github/MAINTAINING.md):
+#   1. npmjs.com -> vibestrate -> Settings -> Trusted Publisher -> GitHub Actions
+#      -> repo guyshonshon/vibestrate, workflow release.yml
+#   2. Settings -> Environments -> `release` -> Required reviewers (you), so a
+#      tag push PAUSES for a click instead of publishing on its own.
+# Without (2) a tag publishes unattended; without (1) the publish step fails
+# closed on auth and nothing ships.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Gates the job behind the `release` environment's required reviewers.
+    environment: release
+    permissions:
+      contents: read
+      # Required for trusted publishing: lets the job request the OIDC token npm
+      # exchanges for a publish credential. Nothing else needs it.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs a recent npm; the one bundled with Node 22 is
+      # older than the OIDC support.
+      - name: Use an npm that supports trusted publishing
+        run: npm install -g npm@latest
+
+      - run: pnpm install --frozen-lockfile
+
+      # Several tests make real git commits (e.g. git-init); GitHub runners have
+      # no default git identity.
+      - name: Configure git identity
+        run: |
+          git config --global user.email "ci@vibestrate.local"
+          git config --global user.name "Vibestrate CI"
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # Build before test: the shell-command-runner test spawns the bundled
+      # dist/index.js, so dist must exist first.
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Audit (prod)
+        run: pnpm audit --prod
+
+      - name: Verify packed artifact
+        run: bash scripts/verify-pack.sh
+
+      # A tag whose name disagrees with package.json means someone tagged the
+      # wrong commit. Publishing that ships a version under a name nobody wrote
+      # a changelog for, and npm versions cannot be reused - so fail here.
+      - name: Tag matches package.json
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json version $PKG."
+            exit 1
+          fi
+          echo "Publishing $PKG."
+
+      # `prepublishOnly` runs the build and strips sourcemaps, so the tarball
+      # matches what verify-pack.sh just proved installs from a clean room.
+      - name: Publish
+        run: npm publish --provenance --access public

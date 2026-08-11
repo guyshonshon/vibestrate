@@ -20,17 +20,26 @@ Releasing is done from a maintainer's machine; there is no CI publish workflow.
 The version lives in `package.json` only and flows into `vibestrate --version` and
 the generated docs reference - no other place to bump.
 
-### Optional: CI publishing later
+### CI publishing
 
-No publish workflow exists today (`.github/workflows/` has CI only). If you
-ever add one, npm **trusted publishing** (OIDC) lets it publish with no stored
-secret:
+`.github/workflows/release.yml` publishes to npm on a `v*` tag (or a manual
+dispatch) using npm **trusted publishing** (OIDC), so there is no stored token
+to leak or rotate, and `--provenance` produces a real attestation - npm only
+signs a build it can trace to a supported CI, which is why the flag never
+worked from a laptop.
 
-1. Publish once manually (below) so the package exists.
-2. npmjs.com → `vibestrate` → Settings → **Trusted Publisher** → GitHub Actions
-   → repo `guyshonshon/vibestrate`, workflow `release.yml`.
-3. Gate it behind approval via repo **Settings → Environments → release →
-   Required reviewers** so a tag push pauses for your click.
+The workflow never bumps a version: it publishes whatever `package.json` says
+at the tag, and fails if the tag name disagrees with it. Bumping and tagging
+stay a human decision made in the repo (`scripts/release.sh`), so a release
+cannot be manufactured by re-running a job.
+
+Two one-time setup steps, both in a browser:
+
+1. npmjs.com → `vibestrate` → Settings → **Trusted Publisher** → GitHub Actions
+   → repo `guyshonshon/vibestrate`, workflow `release.yml`. Until this exists
+   the publish step fails closed on auth and nothing ships.
+2. Repo **Settings → Environments → `release` → Required reviewers** (you), so
+   a tag push PAUSES for your click. Without it, a tag publishes unattended.
 
 ## Tags and GitHub Releases
 
