@@ -78,13 +78,15 @@ function Brandmark() {
   return (
     <div className="flex flex-col items-center">
       <img src="./logo-icon.png" alt="" className="h-11 w-11 rounded-[22%]" decoding="async" />
-      {/* The wordmark is set as text, not logo-wordmark.png: that asset is a
-          single white-glyph image with no dark variant, so on the light theme it
-          rendered near-invisible on the pale canvas. Text takes chalk-100, which
-          flips with the theme, and matches the sidebar's own lockup. */}
-      <span className="mt-4 text-[26px] font-extrabold tracking-[-0.01em] text-chalk-100">
-        vibestrate
-      </span>
+      {/* logo-wordmark.png is DARK ink (#1A0D40) on transparent - an earlier
+          note here said white, which is why this fell back to set text. It reads
+          as-is on the light canvas and inverts to near-white on the dark one. */}
+      <img
+        src="./logo-wordmark.png"
+        alt="vibestrate"
+        className="mt-4 h-[26px] w-auto dark:brightness-0 dark:invert"
+        decoding="async"
+      />
     </div>
   );
 }

@@ -19,7 +19,7 @@ import { workspaceApi } from "./api/workspace.js";
 import { queueApi } from "./api/queue.js";
 import { notificationsApi } from "./api/notifications.js";
 import { configApi } from "./api/config.js";
-import { projectApi } from "./api/project.js";
+import { projectApi, versionApi } from "./api/project.js";
 import { codebaseApi } from "./api/codebase.js";
 import { gitApi } from "./api/git.js";
 import { agentWorkApi } from "./api/agent-work.js";
@@ -94,6 +94,7 @@ export const api = {
   ...notificationsApi,
   ...configApi,
   ...projectApi,
+  ...versionApi,
   ...codebaseApi,
   ...gitApi,
   ...agentWorkApi,

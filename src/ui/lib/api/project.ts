@@ -95,3 +95,12 @@ export const projectApi = {
     return r.entry;
   },
 };
+
+/** What version of vibestrate is serving this dashboard. Read from the server
+ *  rather than baked into the UI bundle, so a stale tab shows the version that
+ *  is actually answering it rather than the one it was built from. */
+export const versionApi = {
+  async getAppVersion(): Promise<{ version: string }> {
+    return jsonGet("/api/version");
+  },
+};

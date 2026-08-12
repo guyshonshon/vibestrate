@@ -15,7 +15,7 @@ import { workspaceApi } from "../src/ui/lib/api/workspace.js";
 import { queueApi } from "../src/ui/lib/api/queue.js";
 import { notificationsApi } from "../src/ui/lib/api/notifications.js";
 import { configApi } from "../src/ui/lib/api/config.js";
-import { projectApi } from "../src/ui/lib/api/project.js";
+import { projectApi, versionApi } from "../src/ui/lib/api/project.js";
 import { codebaseApi } from "../src/ui/lib/api/codebase.js";
 import { gitApi } from "../src/ui/lib/api/git.js";
 import { agentWorkApi } from "../src/ui/lib/api/agent-work.js";
@@ -42,6 +42,7 @@ const slices: Record<string, Record<string, unknown>> = {
   notificationsApi,
   configApi,
   projectApi,
+  versionApi,
   codebaseApi,
   gitApi,
   agentWorkApi,

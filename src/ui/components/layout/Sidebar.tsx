@@ -95,8 +95,26 @@ export function Sidebar({
 }: Props) {
   const [counts, setCounts] = useState({ active: 0, mergeReady: 0, failed: 0 });
   const [live, setLive] = useState<RunState[]>([]);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
   const [runsOpen, setRunsOpen] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  useEffect(() => {
+    // Once per mount: the served version cannot change without a restart, which
+    // would remount this anyway.
+    let dropped = false;
+    void api
+      .getAppVersion()
+      .then((r) => {
+        if (!dropped) setAppVersion(r.version);
+      })
+      .catch(() => {
+        /* a version line is not worth surfacing an error for */
+      });
+    return () => {
+      dropped = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,14 +183,23 @@ export function Sidebar({
           <img
             src="./logo-icon.png"
             alt=""
-            className="h-7 w-7 rounded-[22%]"
+            className="h-7 w-7 shrink-0 rounded-[22%]"
             decoding="async"
           />
-          <span className="text-[16px] font-extrabold tracking-[-0.01em] text-chalk-100">
-            vibestrate
-          </span>
+          {/* The wordmark asset, not set text. It is dark ink (#1A0D40) on
+              transparent, so it reads as-is on the light canvas and has to be
+              inverted to near-white on the dark one - the reverse of what
+              InitScreen used to claim. `logo-wordmark` carries the real
+              letterforms; the alt keeps the name available to search and screen
+              readers now that it is no longer live text. */}
+          <img
+            src="./logo-wordmark.png"
+            alt="vibestrate"
+            className="h-[15px] w-auto shrink-0 dark:brightness-0 dark:invert"
+            decoding="async"
+          />
         </button>
-        <ThemeToggle className="ml-auto h-8 w-8 rounded-[10px]" />
+        <ThemeToggle className="ml-auto h-8 w-8 shrink-0 rounded-[10px]" />
       </div>
 
       {/* Which project this dashboard is serving, and the way to another one. */}
@@ -374,6 +401,16 @@ export function Sidebar({
       >
         <Plus className="h-4 w-4" /> New run
       </button>
+
+      {/* Version, at the bottom edge. Read from the server rather than baked
+          into this bundle, so a tab left open overnight shows the version that
+          is actually answering it, not the one it was built from. Silent when
+          it cannot be read - a version line is not worth an error. */}
+      {appVersion ? (
+        <div className="mt-2.5 px-2 text-center text-[10.5px] text-chalk-400">
+          v{appVersion}
+        </div>
+      ) : null}
     </aside>
   );
 }

@@ -24,6 +24,8 @@
 // Handlers here stay thin on purpose. This module wires and guards; behaviour
 // belongs in the route modules.
 
+// Same single source the CLI uses for `vibe --version`; the bundler inlines it.
+import pkg from "../../package.json";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -386,6 +388,11 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
 
   // Health.
   app.get("/api/health", async () => ({ ok: true, projectRoot: opts.projectRoot }));
+
+  /** What version of vibestrate is serving this dashboard. Same package.json the
+   *  CLI reads for `vibe --version`, inlined by the bundler, so the number on
+   *  screen can never drift from the binary that drew it. */
+  app.get("/api/version", async () => ({ version: pkg.version }));
 
   // The managed scheduler handle, assigned after `app.listen` below. Declared
   // here so the self-shutdown route can stop it. Stays null when the server

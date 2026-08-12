@@ -203,10 +203,14 @@ describe("/api/v1 versioned alias", () => {
 
   it("does not mangle a path that merely starts with /api/v (e.g. /api/version)", async () => {
     const s = await boot();
-    // No such route exists, but it must 404 as an API miss - proving it wasn't
-    // rewritten to "/apiersion" or similar.
+    // /api/version is now a real route, which proves this more strongly than the
+    // 404 this used to assert: reaching the handler AND getting a version back
+    // means the path survived the /api/v1 stripper intact rather than being
+    // rewritten to "/apiersion".
     const res = await fetch(`${s.url}/api/version`);
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { version: string };
+    expect(body.version).toMatch(/^\d+\.\d+\.\d+/);
   });
 });
 
