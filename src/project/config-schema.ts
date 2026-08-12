@@ -268,6 +268,36 @@ export const policiesConfigSchema = z.object({
 // checks today's estimated spend (across all runs) before each agent turn and,
 // at the cap, applies `capAction`. `warnThresholdPct` fires a one-time warning
 // notification on the way up.
+/**
+ * How much rope the Supervisor Control panel gets.
+ *
+ * TWO values, not three. An earlier draft had `advise | queue | act`, which was
+ * dishonest: queueing a task calls `ensureSchedulerRunning`, so "queue" starts
+ * the work exactly like "act" does, just through another process. A setting
+ * that reads as a middle tier while behaving like the top one is worse than no
+ * setting.
+ *
+ * - `advise` (default) - the supervisor answers, proposes, and drafts. It
+ *   writes nothing. This is what Consult has always been.
+ * - `act` - the supervisor may create tasks, add TODOs, and start runs off
+ *   what you type, deciding the destination itself.
+ *
+ * `act` is deliberately not the default. A misrouted intent under `act` spends
+ * money and executes shell on the host (the broker is default-allow, so with no
+ * policies configured nothing vetoes an agent's commands), which is a thing to
+ * opt into rather than discover.
+ */
+export const supervisorControlConfigSchema = z.object({
+  autonomy: z
+    .enum(["advise", "act"])
+    .default("advise")
+    .describe(
+      "Supervisor Control autonomy: 'advise' (answers only, writes nothing - the default) or 'act' (may create tasks, add TODOs and start runs from chat).",
+    ),
+});
+
+export type SupervisorControlConfig = z.infer<typeof supervisorControlConfigSchema>;
+
 export const budgetConfigSchema = z
   .object({
     spendCapDailyUsd: z.number().nonnegative().nullable().default(null).describe("Daily USD spend cap across all runs; null = off (default off)."),
@@ -676,6 +706,7 @@ export const projectConfigBaseSchema = z.object({
    */
   ponytail: z.boolean().default(true).describe("Inject the ponytail minimalism posture into code-writing agents so they default to the smallest solution that works (credit: the ponytail skill, MIT). Default on."),
   budget: budgetConfigSchema,
+  supervisorControl: supervisorControlConfigSchema.prefault({}),
   /**
    * Supervised-run defaults (the Conductor). The override layer a freshly created
    * `runMode:"supervised"` task inherits and that the launch path applies wherever
@@ -735,6 +766,30 @@ export const projectConfigBaseSchema = z.object({
  */
 export const projectConfigSchema = projectConfigBaseSchema.superRefine(
   (cfg, ctx) => {
+    // `act` lets a typed sentence start a run. A run's agent emits command.run,
+    // and the Action Broker is default-ALLOW, so with no policies configured
+    // nothing vetoes the shell it executes on this machine. Every budget ceiling
+    // ships as null, so without one an unintended run has no stop at all: not a
+    // dollar cap, not a turn cap, not a clock. Refuse the combination rather
+    // than warn about it, the same way a removed execution.backend id is
+    // refused instead of quietly downgraded.
+    if (cfg.supervisorControl.autonomy === "act") {
+      const b = cfg.budget;
+      const bounded =
+        b.spendCapDailyUsd !== null ||
+        b.maxTurnsPerRun !== null ||
+        b.maxWallClockMinPerRun !== null ||
+        b.maxTurnsPerDay !== null ||
+        b.maxWallClockMinPerDay !== null;
+      if (!bounded) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["supervisorControl", "autonomy"],
+          message:
+            'supervisorControl.autonomy "act" lets a chat message start a run, so it requires at least one budget ceiling to bound what that can cost. Set one of budget.spendCapDailyUsd, budget.maxTurnsPerRun, budget.maxWallClockMinPerRun, budget.maxTurnsPerDay or budget.maxWallClockMinPerDay (for example: `vibe budget set --max-turns-run 40`), or set supervisorControl.autonomy back to "advise".',
+        });
+      }
+    }
     for (const [profileId, profile] of Object.entries(cfg.profiles)) {
       if (!cfg.providers[profile.provider]) {
         ctx.addIssue({

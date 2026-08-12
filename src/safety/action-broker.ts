@@ -42,6 +42,13 @@ export type ActionKind =
   | "file.write"
   | "terminal.create"
   | "run.complete"
+  // A run started by the SUPERVISOR off something the user typed in chat,
+  // rather than by a human clicking run. Distinct from `provider.spawn`, which
+  // fires inside a run that already exists: by then the worktree is created and
+  // the task lock is taken, and its subject cannot tell a chat-started run from
+  // a human-started one. This is the only point where a policy can refuse the
+  // whole thing. Emitted ONLY by the supervisor action executor.
+  | "run.start"
   // The human-triggered integration->main merge (guided merge). Emitted
   // ONLY by the guided-merge service - no scheduler / run-completion path may
   // reach it (tested invariant in tests/guided-merge.test.ts).

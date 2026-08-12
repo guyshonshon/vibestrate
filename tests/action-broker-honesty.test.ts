@@ -45,6 +45,7 @@ describe("the action-kind vocabulary matches what actually crosses the boundary"
       "file.write",
       "terminal.create",
       "run.complete",
+      "run.start",
       "git.merge",
     ];
     expect(schemaKinds).toEqual([...unionKinds].sort());

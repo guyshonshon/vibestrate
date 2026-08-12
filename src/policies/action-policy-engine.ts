@@ -106,6 +106,10 @@ const BROKEN_SET_DENY_KINDS = new Set<ActionRequest["kind"]>([
   "git.merge",
   "command.run",
   "terminal.create",
+  // Launching a run off a chat message while the policy set is half-loaded is
+  // the worst version of this: the rules meant to bound that run are exactly
+  // the ones that failed to load.
+  "run.start",
 ]);
 
 /**

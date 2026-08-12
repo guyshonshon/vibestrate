@@ -333,6 +333,7 @@ export type PolicyActionKind =
   | "file.write"
   | "terminal.create"
   | "run.complete"
+  | "run.start"
   | "git.merge";
 
 export type ActionPolicySummary = {

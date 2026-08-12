@@ -90,6 +90,9 @@ export const actionKindSchema = z.enum([
   "file.write",
   "terminal.create",
   "run.complete",
+  // A run started by the supervisor from chat. See the ActionKind comment in
+  // action-broker.ts for why this is not provider.spawn.
+  "run.start",
   // Guided merge: the human-triggered integration->main merge. Policies
   // can deny or require_approval it like any other effect kind.
   "git.merge",
