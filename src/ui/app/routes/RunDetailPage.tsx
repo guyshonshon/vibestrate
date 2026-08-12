@@ -61,6 +61,7 @@ import { LiveTimeline } from "../../components/runs/LiveTimeline.js";
 import { PanelBoard } from "../../components/layout/PanelBoard.js";
 import { isActiveStatus } from "../../lib/run-filter.js";
 import { SupervisorControl } from "../../components/supervisor/SupervisorControl.js";
+import { RunControlCenter } from "../../components/runs/RunControlCenter.js";
 import {
   InspectorTabsV3,
   type InspectorV3Tab,
@@ -669,9 +670,19 @@ export function RunDetailPage({
           run is terminal there is nothing to steer, and the thread stays
           readable in its history. */}
       {isActiveStatus(run.status) ? (
-        <section data-screen-label="04b Supervisor">
-          <SupervisorControl runId={runId} />
-        </section>
+        <>
+          <section data-screen-label="04a Control centre">
+            <RunControlCenter
+              runId={runId}
+              run={run}
+              metrics={metrics}
+              engagement={engagement}
+            />
+          </section>
+          <section data-screen-label="04b Supervisor">
+            <SupervisorControl runId={runId} />
+          </section>
+        </>
       ) : null}
 
       <section data-screen-label="05 Inspector">

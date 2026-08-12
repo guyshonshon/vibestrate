@@ -110,6 +110,14 @@ export type FlowRunParticipantState = {
 };
 
 export type RunState = {
+  /** Present on a checklist run: where the band has got to. Mirrors
+   *  runStateSchema.checklistProgress, which the server already sends. */
+  checklistProgress?: {
+    total: number;
+    completed: number;
+    currentItemId: string | null;
+    currentIndex: number;
+  } | null;
   runId: string;
   task: string;
   /** Friendly, editable run label. Falls back to the task when absent. */

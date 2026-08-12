@@ -174,7 +174,7 @@ export function SupervisorControl({ runId }: { runId: string }) {
         <button
           type="button"
           onClick={togglePause}
-          className="inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[12px] font-medium text-chalk-200 hover:bg-white/5"
+          className="inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[12px] font-medium text-chalk-200 hover:bg-chalk-400/[0.08]"
         >
           {pause?.paused ? (
             <>
