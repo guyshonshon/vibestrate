@@ -20,6 +20,7 @@ function input(extra: Partial<ProviderRunInput>): ProviderRunInput {
     providerId: "claude",
     prompt: "PROMPT",
     cwd: process.cwd(),
+      projectRoot: process.cwd(),
     ...extra,
   };
 }

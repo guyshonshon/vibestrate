@@ -449,6 +449,13 @@ export class ReviewSuggestionService {
     };
     const gate = await gateAction(this.broker, action);
     if (!gate.allowed) {
+      // A broken policy SET is a configuration problem, not a verdict on this
+      // patch - and `failed` is terminal here (approve() needs `open`, apply()
+      // needs `approved`), so recording it would burn the suggestion for good
+      // over a YAML typo the user is about to fix. Refuse without consuming it.
+      if (gate.decision.ruleIds.includes("policy.set.broken")) {
+        throw new SuggestionServiceError(409, gate.reason);
+      }
       return this.markFailed(
         current,
         `action broker ${gate.effect} the patch: ${gate.reason}`,

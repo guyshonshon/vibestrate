@@ -14,7 +14,11 @@ import {
   actionPolicySchema,
   HOLDABLE_ACTION_KINDS,
 } from "../src/policies/policy-types.js";
-import { loadPolicySnapshot } from "../src/policies/policy-store.js";
+import {
+  describeBrokenPolicySet,
+  loadPolicySnapshot,
+} from "../src/policies/policy-store.js";
+import { runProvider } from "../src/providers/provider-runner.js";
 import { runPreflightChecks, describeUnboundedRun } from "../src/core/policy-engine.js";
 import { PolicyError } from "../src/utils/errors.js";
 
@@ -233,6 +237,124 @@ describe("a policy set that did not fully load refuses the run", () => {
       isGitRepo: true,
     });
     expect(Array.isArray(result.warnings)).toBe(true);
+  });
+
+  // The preflight only guards run CREATION. Several surfaces reach a provider
+  // without it - `vibe consult`, task enhancement, flow selection, param
+  // generation - and they all build their broker through createActionBroker.
+  // So the same condition has to deny at the boundary too, or "a broken policy
+  // set stops the work" is only true for one entry point.
+  it("denies every effect that changes or runs something", async () => {
+    const { root } = await projectWith({ "bad.yml": "actions: [ this: is: not: valid" });
+    const broker = createActionBroker(root, "assist");
+    for (const kind of actionKindSchema.options) {
+      const decision = await broker.decide(req(kind));
+      if (kind === "provider.spawn") continue; // refused in runProvider instead
+      expect(decision.effect, kind).toBe("deny");
+      expect(decision.ruleIds).toContain("policy.set.broken");
+    }
+  });
+
+  // provider.spawn is refused one layer down, because three spawn sites
+  // (roadmap planning, provider self-test, the conductor's supervisor turns)
+  // build no broker at all - gating it here would have left them wide open.
+  it("refuses a model spawn at runProvider, the funnel every turn crosses", async () => {
+    const { root } = await projectWith({ "bad.yml": "actions: [ this: is: not: valid" });
+    await expect(
+      runProvider({} as never, {
+        providerId: "anything",
+        prompt: "hi",
+        cwd: root,
+        projectRoot: root,
+      }),
+    ).rejects.toThrow(/did not fully load/);
+  });
+
+  it("lets a model spawn through when the set is clean", async () => {
+    // Reaching provider resolution (an unknown id) proves the policy gate
+    // passed rather than the spawn being blocked for the wrong reason.
+    const { root } = await projectWith({ "a.yml": GOOD });
+    await expect(
+      runProvider({} as never, {
+        providerId: "nope",
+        prompt: "hi",
+        cwd: root,
+        projectRoot: root,
+      }),
+    ).rejects.toThrow(/is not configured/);
+  });
+
+  it("names the offending file in the denial, so the fix is discoverable", async () => {
+    const { root } = await projectWith({ "bad.yml": "actions: [ this: is: not: valid" });
+    const broker = createActionBroker(root, "assist");
+    const decision = await broker.decide(req("file.write"));
+    const reason = "reason" in decision ? decision.reason : "";
+    expect(reason).toContain("bad.yml");
+    expect(reason).toContain("vibe policies doctor");
+  });
+
+  it("denies on a duplicate id too, not just a parse failure", async () => {
+    const { root } = await projectWith({
+      "a.yml": GOOD,
+      "b.yml": GOOD.replace("no installs", "no installs (stricter)"),
+    });
+    const broker = createActionBroker(root, "assist");
+    expect((await broker.decide(req("file.write"))).effect).toBe("deny");
+  });
+
+  it("leaves a clean policy set alone - an effect nobody wrote a rule about proceeds", async () => {
+    // Guards against the deny firing on the happy path, which would brick every
+    // run rather than only the broken ones.
+    const { root } = await projectWith({ "a.yml": GOOD });
+    const broker = createActionBroker(root, "assist");
+    expect((await broker.decide(req("file.write"))).effect).toBe("allow");
+    // The real rule in that file still applies.
+    const cmd = await broker.decide({
+      runId: "assist",
+      kind: "command.run",
+      subject: { command: "npm install lodash" },
+      proposedBy: "system",
+    });
+    expect(cmd.effect).toBe("deny");
+    expect(cmd.ruleIds).toContain("no-installs");
+  });
+
+  // The likeliest real-world breakage, and it used to fail OPEN: `access` with
+  // F_OK succeeds on a chmod-000 directory and readdir's EACCES was swallowed,
+  // so an unreadable policies dir was byte-identical to "no policies
+  // configured" - every rule silently evaporated.
+  it("treats an unreadable policies directory as broken, not as empty", async () => {
+    const { root } = await projectWith({ "a.yml": GOOD });
+    const dir = path.join(root, ".vibestrate", "policies");
+    await fs.chmod(dir, 0o000);
+    try {
+      const snap = await loadPolicySnapshot(root);
+      expect(snap.malformedFiles.length, "an unreadable dir must be reported").toBeGreaterThan(0);
+      expect(describeBrokenPolicySet(snap)).not.toBeNull();
+      const broker = createActionBroker(root, "assist");
+      expect((await broker.decide(req("file.write"))).effect).toBe("deny");
+    } finally {
+      await fs.chmod(dir, 0o755);
+    }
+  });
+
+  it("a missing policies directory is still just 'no policies'", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-nopol-"));
+    const snap = await loadPolicySnapshot(root);
+    expect(snap.malformedFiles).toEqual([]);
+    expect(describeBrokenPolicySet(snap)).toBeNull();
+  });
+
+  it("says it is a config problem, not a rule the user wrote", async () => {
+    // The reason gets wrapped as `blocked by policy (deny): ...` at nine call
+    // sites - the same shape a real deny rule produces - so the one line has to
+    // distinguish itself or the user hunts for a rule they never authored.
+    const { root } = await projectWith({ "bad.yml": "actions: [ this: is: not: valid" });
+    const broker = createActionBroker(root, "assist");
+    const decision = await broker.decide(req("file.write"));
+    const reason = "reason" in decision ? decision.reason : "";
+    expect(reason).toContain("not a rule you wrote");
+    expect(reason).not.toContain("\n"); // one line, for a wrapped error string
   });
 });
 

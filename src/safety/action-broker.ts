@@ -75,12 +75,20 @@ export type ActionEvidence = {
   data?: Record<string, unknown>;
 };
 
-/** The write/outcome/irreversible kinds that must FAIL CLOSED when policy can't
- *  be loaded: file writes, run completion, and the merge to main. The
- *  remaining kinds (provider.spawn, command.run, terminal.create) stay
- *  permissive so a transient policy-load error
- *  can't brick benign runs - provider.spawn throwing would stop every run from
- *  even starting. git.merge is denied (not abstained) because it is the most
+/** The write/outcome/irreversible kinds that must FAIL CLOSED when the policy
+ *  loader THROWS (an fs blip, not a policy the user wrote): file writes, run
+ *  completion, and the merge to main. The remaining kinds stay permissive so a
+ *  transient error can't brick benign runs - provider.spawn throwing would stop
+ *  every run from even starting.
+ *
+ *  Distinct from a policy set that loaded but is BROKEN (malformed file,
+ *  duplicate id, unreadable directory). That is deterministic and user-fixable,
+ *  so it denies a wider set (see BROKEN_SET_DENY_KINDS in
+ *  action-policy-engine.ts) and refuses model spawns one layer down, in
+ *  runProvider. The two paths are mutually exclusive: this one fires on a
+ *  rejected promise, that one on a resolved-but-broken snapshot.
+ *
+ *  git.merge is denied (not abstained) because it is the most
  *  irreversible effect and is only ever human-initiated, so failing it closed
  *  just makes the user retry once policy loads - the safer default. */
 const POLICY_UNAVAILABLE_KINDS = new Set<ActionKind>([
@@ -94,8 +102,10 @@ const POLICY_UNAVAILABLE_KINDS = new Set<ActionKind>([
  * Injected in place of `[]` when the policy loader throws: a loader error
  * is no longer fail-OPEN. It DENIES write/outcome effects (so an apply refuses, a
  * diff rolls back, a run can't reach merge_ready) and ABSTAINS on everything else
- * (so runs still start). Malformed policy FILES never reach here - the store
- * swallows them - so this fires only on a genuinely unexpected fs/read error.
+ * (so runs still start). A malformed policy FILE never reaches here: the store
+ * records it and the loader turns it into the broken-set denial instead, which
+ * is a stricter and better-explained refusal. This fires only on a genuinely
+ * unexpected fs/read error that leaves us with no snapshot at all.
  */
 export const POLICY_UNAVAILABLE_EVALUATOR: ActionEvaluator = (request) =>
   POLICY_UNAVAILABLE_KINDS.has(request.kind)

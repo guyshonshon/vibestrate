@@ -17,6 +17,7 @@ describe("runCliProvider applies the profile's model + effort to the spawn", () 
       providerId: "codex",
       prompt: "hi",
       cwd: process.cwd(),
+      projectRoot: process.cwd(),
       model: "gpt-5-codex",
       effort: "high",
     });
@@ -34,6 +35,7 @@ describe("runCliProvider applies the profile's model + effort to the spawn", () 
       providerId: "codex",
       prompt: "hi",
       cwd: process.cwd(),
+      projectRoot: process.cwd(),
     });
     expect(r.args).toEqual(["exec"]);
     expect(r.appliedSandbox ?? null).toBeNull();
@@ -46,6 +48,7 @@ describe("runCliProvider injects a provider-native OS sandbox (codex only)", () 
       providerId: "codex",
       prompt: "hi",
       cwd: process.cwd(),
+      projectRoot: process.cwd(),
       sandbox: "workspace-write",
       model: "gpt-5-codex",
       effort: "high",
@@ -67,6 +70,7 @@ describe("runCliProvider injects a provider-native OS sandbox (codex only)", () 
       providerId: "codex",
       prompt: "hi",
       cwd: process.cwd(),
+      projectRoot: process.cwd(),
       sandbox: "read-only",
     });
     expect(r.args).toEqual(["exec", "--sandbox", "read-only"]);
@@ -78,6 +82,7 @@ describe("runCliProvider injects a provider-native OS sandbox (codex only)", () 
       providerId: "gemini",
       prompt: "hi",
       cwd: process.cwd(),
+      projectRoot: process.cwd(),
       sandbox: "workspace-write",
       model: "gemini-2.5-pro",
     });

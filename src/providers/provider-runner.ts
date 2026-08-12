@@ -16,6 +16,10 @@
 // provider that never learned the flag still produces a usable turn.
 
 import { ProviderError } from "../utils/errors.js";
+import {
+  describeBrokenPolicySet,
+  loadPolicySnapshot,
+} from "../policies/policy-store.js";
 import type { ProviderConfig, ProvidersConfigMap } from "./provider-schema.js";
 import type { ProviderRunInput, ProviderRunResult } from "./provider-types.js";
 import { runCliProvider } from "./cli-provider.js";
@@ -73,10 +77,31 @@ export function resolveProvider(
   return provider;
 }
 
+/**
+ * Refuse to spawn a model when the project's policy set did not fully load.
+ *
+ * This lives HERE, not at the broker, because `runProvider` is the only thing
+ * every model turn passes through. The broker is a per-effect boundary and
+ * three spawn sites (roadmap planning, provider self-test, the conductor's
+ * supervisor turns) never construct one - so gating spawns at the broker would
+ * have left exactly the surfaces this is meant to cover wide open.
+ *
+ * A plain throw, with no broker record: there is no run to attribute it to, and
+ * inventing an audit bucket to log a refusal that never reached a provider
+ * would put fake runs in the ledger.
+ */
+async function assertPolicySetIntact(projectRoot: string): Promise<void> {
+  const broken = describeBrokenPolicySet(await loadPolicySnapshot(projectRoot));
+  if (broken) {
+    throw new ProviderError(`Refusing to run a model. ${broken.long}`);
+  }
+}
+
 export async function runProvider(
   providers: ProvidersConfigMap,
   input: ProviderRunInput,
 ): Promise<RichProviderRunResult> {
+  await assertPolicySetIntact(input.projectRoot);
   const provider = resolveProvider(providers, input.providerId);
   if (provider.type === "cli") {
     const result = await runCliProvider(provider, input);

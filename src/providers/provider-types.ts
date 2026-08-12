@@ -72,6 +72,13 @@ export type ProviderRunInput = {
   providerId: string;
   prompt: string;
   cwd: string;
+  /** The project whose `.vibestrate/` governs this turn. REQUIRED and distinct
+   *  from `cwd`, which is the worktree for a run turn and therefore not where
+   *  the policies live. `runProvider` refuses to spawn when that project's
+   *  policy set did not load; making this required is what forces every present
+   *  and future spawn site through that check instead of remembering to call
+   *  it - three sites already spawned with no broker at all. */
+  projectRoot: string;
   env?: Record<string, string>;
   /** Resolved profile knobs for this turn, applied to the spawn where the
    *  provider supports it (see provider-apply.ts). Advisory otherwise. */

@@ -17,6 +17,7 @@ describe("claude-code provider applies model + effort as real flags", () => {
       providerId: "claude",
       prompt: "hi",
       cwd: process.cwd(),
+      projectRoot: process.cwd(),
       model: "sonnet",
       effort: "high",
     });
@@ -31,6 +32,7 @@ describe("claude-code provider applies model + effort as real flags", () => {
       providerId: "claude",
       prompt: "hi",
       cwd: process.cwd(),
+      projectRoot: process.cwd(),
     });
     expect(r.args).not.toContain("--model");
     expect(r.args).not.toContain("--effort");

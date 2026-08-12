@@ -106,7 +106,9 @@ Fix them (details: `vibe policies doctor`), then start the run again.
 
 This is deliberately strict - a broken YAML file blocks even a docs-only run - because the alternative is running with protections you believe are on. `vibe policies doctor` prints the same detail and exits non-zero.
 
-Scope, precisely: this gate is on **run creation**. The advisory assist surfaces that call a model without starting a run - `vibe consult`, task enhancement, flow selection, param generation - are not behind it. They are read-only and propose rather than act, but they do run before this check, so treat "no run will start" as exactly that claim and no wider.
+The check runs in two places, on purpose. Run creation refuses early, so `vibe run` gives you a readable error before anything happens. And the broker's own policy loader **denies every effect** on the same condition - which is what covers the surfaces that reach a model without creating a run (`vibe consult`, task enhancement, flow selection, parameter generation) and anything added later. They all build their broker through one constructor, so the gate holds by construction rather than by remembering to call it.
+
+Fixing it is never blocked by it: `vibe policies doctor`, `vibe policies list`, the `/api/policies` routes, and the dashboard Policies panel all read the policy files directly, without a broker. A broken set can't lock you out of the message telling you what to fix.
 
 See what's loaded with `vibe policies list` / `vibe policies doctor`, the `GET /api/policies` endpoint, or the Policies panel in the dashboard.
 

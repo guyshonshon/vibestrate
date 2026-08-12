@@ -12,7 +12,10 @@ import path from "node:path";
 import { PolicyError } from "../utils/errors.js";
 import { pathExists } from "../utils/fs.js";
 import { resolveProfile } from "../safety/permission-profiles.js";
-import { loadPolicySnapshot } from "../policies/policy-store.js";
+import {
+  describeBrokenPolicySet,
+  loadPolicySnapshot,
+} from "../policies/policy-store.js";
 import type { ProjectConfig } from "../project/config-schema.js";
 
 export type PolicyWarning = {
@@ -75,28 +78,13 @@ export async function runPreflightChecks(input: {
     );
   }
 
-  // A policy set that did not fully load is a SILENT loss of protection: a
-  // malformed file contributes no rules, and a duplicate id drops the later
-  // definition (first occurrence wins) - so the stricter rule someone just
-  // added can vanish while `vibe policies list` still looks populated. Nothing
-  // downstream can detect this: the broker only ever sees the rules that DID
-  // load, and a rule that never loaded leaves no trace in the action log or the
-  // assurance verdict. Refuse the run instead, and name the fix.
-  const policySet = await loadPolicySnapshot(projectRoot);
-  if (policySet.malformedFiles.length > 0 || policySet.duplicateIds.length > 0) {
-    const problems: string[] = [];
-    for (const m of policySet.malformedFiles) {
-      problems.push(`  ${path.basename(m.file)}: ${m.reason}`);
-    }
-    if (policySet.duplicateIds.length > 0) {
-      problems.push(
-        `  duplicate id(s) defined more than once (only the first is loaded): ${policySet.duplicateIds.join(", ")}`,
-      );
-    }
-    throw new PolicyError(
-      `Refusing to start: the policy set in .vibestrate/policies/ did not fully load, so rules you think are active may not be.\n${problems.join("\n")}\nFix them (details: \`vibe policies doctor\`), then start the run again.`,
-    );
-  }
+  // A policy set that did not fully load is a silent loss of protection
+  // (see describeBrokenPolicySet). Refuse the run here so the common path gets
+  // an early, readable error; the broker's evaluator loader independently
+  // denies every effect on the same condition, which is what covers the
+  // surfaces that reach a provider without going through this preflight.
+  const broken = describeBrokenPolicySet(await loadPolicySnapshot(projectRoot));
+  if (broken) throw new PolicyError(`Refusing to start. ${broken.long}`);
 
   for (const [crewId, crew] of Object.entries(config.crews)) {
     for (const [roleId, role] of Object.entries(crew.roles)) {

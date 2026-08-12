@@ -1,22 +1,22 @@
 # Changelog
 
-## 2.0.0
+## 1.3.0
 
-**Breaking, and worth reading before you upgrade.** Two changes below can stop
-an existing project from starting a run, both deliberately. Run
-`vibe policies doctor` first - it names the file and the reason, and exits
-non-zero:
+**Two changes here can stop a project from starting a run, deliberately.** If
+`.vibestrate/policies/` holds a malformed file, a duplicate rule id, or an
+`effect: require_approval` on any kind other than `run.complete` / `file.patch`,
+nothing that spawns a model will run until it is fixed. `vibe policies doctor`
+names the file and the reason. For the `require_approval` case, change it to
+`effect: deny` - that is what it already did in practice.
 
-- A **malformed policy file or a duplicate rule id** now blocks every run until
-  it is fixed.
-- A policy using `effect: require_approval` on any kind other than
-  `run.complete` or `file.patch` is **rejected at load**, which makes its whole
-  file malformed and (per the rule above) blocks runs. That combination never
-  did what it looked like - it hard-blocked the effect with no gate for anyone
-  to answer - so change those to `effect: deny`, which is what they already
-  meant in practice. The documented example (`on: [run.complete]`) is
-  unaffected.
-
+- **An unreadable policies directory used to fail open, silently.** A per-file
+  read error was recorded; a *directory* read error was not - and the checks
+  used to find it (`access` with `F_OK`, then a `readdir` whose error was
+  swallowed) both succeed on a directory you cannot actually read. The result
+  was byte-identical to "no policies configured": every rule evaporated with
+  nothing said, which is likelier under a container or CI mount than malformed
+  YAML is. It is now reported like any other unreadable file, so the gates below
+  catch it.
 - **A run stops if its policy set didn't fully load.** A policy file that fails
   to parse contributed no rules, and a rule id defined twice kept only the first
   one - so the stricter rule you just added could vanish while
@@ -24,7 +24,14 @@ non-zero:
   the broker only ever sees the rules that *did* load. Now a run refuses to start
   while `.vibestrate/policies/` holds a malformed file or a duplicate id, and
   names the file and the reason. Strict on purpose - the alternative is running
-  with protections you believe are on.
+  with protections you believe are on. The check sits at two layers so it can't
+  be walked around: run creation refuses early with a readable error, and
+  `runProvider` - the one thing every model turn passes through - refuses to
+  spawn at all. That second one is what covers the surfaces that reach a model
+  without creating a run: roadmap planning, provider self-test, the conductor's
+  supervisor turns, consult, and task enhancement. Reading and fixing your
+  policies never goes through either gate, so a broken file can't lock you out
+  of the message telling you what's wrong.
 - **`require_approval` now means a pause, or it isn't accepted.** Only
   `run.complete` and `file.patch` have an effect site that can actually wait for
   a human. On every other kind, a `require_approval` policy was a hard block
@@ -56,8 +63,6 @@ non-zero:
   belongs to the container layer above. The docs also no longer describe the
   broker as if it were default-deny: it is default-allow with a policy veto, and
   saying otherwise invited exactly the wrong mental model.
-
-## 1.4.0
 
 - **Break a brief into a checklist from the composer.** Item-by-item execution
   existed, but the only way in was a task's checklist section, which hardcoded

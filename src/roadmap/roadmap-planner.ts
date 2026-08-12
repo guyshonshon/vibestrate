@@ -88,6 +88,7 @@ export async function generateRoadmapProposal(
     providerId,
     prompt,
     cwd: input.projectRoot,
+    projectRoot: input.projectRoot,
   });
   if (result.exitCode !== 0) {
     const detail = result.stderr?.trim() ? ` ${result.stderr.trim()}` : "";

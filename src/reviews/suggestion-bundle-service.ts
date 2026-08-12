@@ -487,6 +487,12 @@ export class SuggestionBundleService {
     };
     const gate = await gateAction(this.broker, action);
     if (!gate.allowed) {
+      // See the same guard in review-suggestion-service: `failed` is terminal,
+      // so a broken policy set (a config typo, not a verdict on this bundle)
+      // must not consume it - and a bundle can hold many suggestions.
+      if (gate.decision.ruleIds.includes("policy.set.broken")) {
+        throw new SuggestionBundleError(409, gate.reason);
+      }
       const updated = await this.markFailed(
         bundle,
         `action broker ${gate.effect} the bundle apply: ${gate.reason}`,

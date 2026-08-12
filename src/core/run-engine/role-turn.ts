@@ -631,6 +631,9 @@ export async function runRoleTurn(
           providerId: effectiveProviderId,
           prompt,
           cwd,
+          // Not `cwd`: that is the run's worktree, which lives outside the
+          // project, so the policies would not be found from it.
+          projectRoot: deps.projectRoot,
           sandbox: requestedSandbox ?? undefined,
           // The resolved, POST-OVERRIDE write capability for this turn. read-only
           // runs, strict-apply-only, and read-only seats already collapsed

@@ -11,8 +11,11 @@
 // or an exact run.complete status. A policy with no `match` applies to every
 // request of its listed kinds.
 
-import { globToRegex } from "./policy-store.js";
-import { loadPolicySnapshot } from "./policy-store.js";
+import {
+  describeBrokenPolicySet,
+  globToRegex,
+  loadPolicySnapshot,
+} from "./policy-store.js";
 import type { ActionPolicy } from "./policy-types.js";
 import type {
   ActionDecision,
@@ -85,13 +88,58 @@ export function buildActionEvaluators(
 }
 
 /**
+ * Effects refused when the policy set on disk did not fully load: every kind
+ * that changes something, plus the two that run something.
+ *
+ * `provider.spawn` is deliberately NOT here, and that is not a gap - it is
+ * refused one layer down, in `runProvider`, which is the true single funnel for
+ * model turns (three spawn sites build no broker at all). Refusing it there
+ * makes it read as the configuration error it is, rather than a policy-shaped
+ * deny that looks like a rule the user wrote. Keeping it out also makes this
+ * path structurally identical to POLICY_UNAVAILABLE_KINDS - same kinds,
+ * different reason - instead of two fail-closed paths that disagree.
+ */
+const BROKEN_SET_DENY_KINDS = new Set<ActionRequest["kind"]>([
+  "file.patch",
+  "file.write",
+  "run.complete",
+  "git.merge",
+  "command.run",
+  "terminal.create",
+]);
+
+/**
+ * An evaluator that refuses effects because the policy set did not load. Not a
+ * general fail-closed default - it fires only on a condition the user can see
+ * and fix, and the reason names both the condition and the command that
+ * explains it.
+ */
+export function brokenPolicySetEvaluator(reason: string): ActionEvaluator {
+  return (request) =>
+    BROKEN_SET_DENY_KINDS.has(request.kind)
+      ? { effect: "deny", ruleIds: ["policy.set.broken"], reason }
+      : null;
+}
+
+/**
  * Load `.vibestrate/policies/` and compile its action policies into evaluators.
  * Used by `createActionBroker` to lazily wire policy enforcement into every
  * broker without changing any (synchronous) construction site.
+ *
+ * If the set did not fully load, the compiled policies are REPLACED by the deny
+ * evaluator above rather than appended to - the loaded subset is not a policy
+ * set anyone chose.
+ *
+ * The recovery path is deliberately outside the broker: `vibe policies doctor`
+ * and `list`, the policies HTTP routes, and the dashboard panel all read the
+ * snapshot directly, so a broken set can never lock someone out of the error
+ * that tells them what to fix.
  */
 export async function loadActionPolicyEvaluators(
   projectRoot: string,
 ): Promise<ActionEvaluator[]> {
   const snapshot = await loadPolicySnapshot(projectRoot);
+  const broken = describeBrokenPolicySet(snapshot);
+  if (broken) return [brokenPolicySetEvaluator(broken.short)];
   return buildActionEvaluators(snapshot.actions);
 }

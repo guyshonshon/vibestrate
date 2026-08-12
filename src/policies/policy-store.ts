@@ -1,6 +1,7 @@
 import path from "node:path";
+import fs from "node:fs/promises";
 import YAML from "yaml";
-import { pathExists, readDirSafe, readText } from "../utils/fs.js";
+import { readText } from "../utils/fs.js";
 import { isPathInside, policiesDir } from "../utils/paths.js";
 import {
   policyRuleFileSchema,
@@ -28,20 +29,96 @@ import {
  *   - No code is executed. The YAML parser is the only interpreter that
  *     ever touches the file contents.
  */
+/**
+ * Describe a policy set that did not fully load, or null when it is clean.
+ *
+ * This is a SILENT loss of protection, which is why it gets its own concept: a
+ * malformed file contributes no rules, and a duplicate id keeps only the first
+ * definition - so the stricter rule someone just added can vanish while
+ * `vibe policies list` still looks populated. Nothing downstream can notice,
+ * because the broker only ever sees the rules that DID load; a rule that never
+ * loaded leaves no trace in the action log or the assurance verdict.
+ *
+ * One function, several callers that must not drift: the run preflight, the
+ * provider funnel, and the broker's evaluator loader.
+ *
+ * Two shapes, because they land in very different places. `long` is the
+ * indented listing a CLI refusal can afford. `short` is one line, for a broker
+ * `reason` - those get wrapped by nine different call-site prefixes
+ * ("blocked by policy (deny): ..."), which is the exact shape a rule the USER
+ * wrote produces. Without naming the condition and the fix in that one line,
+ * someone would go hunting for a deny rule they never authored.
+ */
+export function describeBrokenPolicySet(
+  snapshot: Pick<PolicyStoreSnapshot, "malformedFiles" | "duplicateIds">,
+): { short: string; long: string } | null {
+  const { malformedFiles, duplicateIds } = snapshot;
+  if (malformedFiles.length === 0 && duplicateIds.length === 0) return null;
+
+  const problems = malformedFiles.map(
+    (m) => `  ${path.basename(m.file)}: ${m.reason}`,
+  );
+  if (duplicateIds.length > 0) {
+    problems.push(
+      `  duplicate id(s) defined more than once (only the first is loaded): ${duplicateIds.join(", ")}`,
+    );
+  }
+  const counts: string[] = [];
+  if (malformedFiles.length > 0) {
+    counts.push(
+      `${malformedFiles.length} unreadable file(s): ${malformedFiles.map((m) => path.basename(m.file)).join(", ")}`,
+    );
+  }
+  if (duplicateIds.length > 0) {
+    counts.push(`duplicate id(s): ${duplicateIds.join(", ")}`);
+  }
+  return {
+    short:
+      `this project's policy set in .vibestrate/policies/ did not fully load ` +
+      `(${counts.join("; ")}), so rules you believe are active may not be. ` +
+      "This is a configuration problem, not a rule you wrote - run `vibe policies doctor`.",
+    long:
+      `The policy set in .vibestrate/policies/ did not fully load, so rules you think are active may not be.\n` +
+      `${problems.join("\n")}\n` +
+      "Fix them (details: `vibe policies doctor`), then try again.",
+  };
+}
+
 export async function loadPolicySnapshot(
   projectRoot: string,
 ): Promise<PolicyStoreSnapshot> {
   const dir = policiesDir(projectRoot);
-  if (!(await pathExists(dir))) {
+  const empty: PolicyStoreSnapshot = {
+    rules: [],
+    actions: [],
+    ruleFiles: [],
+    malformedFiles: [],
+    duplicateIds: [],
+  };
+  // Read the directory FIRST and distinguish "not there" from "cannot read it".
+  // This used to be pathExists + readDirSafe, which both fail open: `access`
+  // with F_OK succeeds on a `chmod 000` directory, and readDirSafe swallows the
+  // EACCES and returns []. The result was byte-identical to "no policies
+  // configured" - every rule silently evaporated, which is precisely the
+  // failure this whole gate exists to prevent, and likelier than malformed YAML
+  // under a container or CI mount. A per-FILE read error was already recorded
+  // as malformed; the directory just wasn't.
+  let entries: string[];
+  try {
+    entries = await fs.readdir(dir);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT") return empty; // genuinely no policies - the normal case
     return {
-      rules: [],
-      actions: [],
-      ruleFiles: [],
-      malformedFiles: [],
-      duplicateIds: [],
+      ...empty,
+      malformedFiles: [
+        {
+          file: dir,
+          reason: `Could not read the policies directory: ${err instanceof Error ? err.message : String(err)}. No policy is being enforced until this is readable.`,
+        },
+      ],
     };
   }
-  const entries = await readDirSafe(dir);
   const rules: PolicyRule[] = [];
   const actions: ActionPolicy[] = [];
   const ruleFiles: { file: string; ruleIds: string[]; actionIds: string[] }[] =

@@ -284,6 +284,7 @@ export async function runAssist<T>(req: AssistRequest<T>): Promise<AssistResult<
       providerId,
       prompt,
       cwd: req.projectRoot,
+      projectRoot: req.projectRoot,
       // Apply the resolved knobs so the chosen model/effort actually take effect
       // (provider-apply maps them to the right CLI flag / request-body field).
       model: model ?? undefined,

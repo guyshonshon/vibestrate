@@ -28,6 +28,7 @@ const input = {
   providerId: "p",
   prompt: "say hi",
   cwd: "/tmp",
+    projectRoot: "/tmp",
 };
 
 afterEach(() => {

@@ -269,6 +269,7 @@ export async function runSafeProviderTest(input: {
           providerId: input.providerId,
           prompt: SAFE_TEST_PROMPT,
           cwd: input.projectRoot,
+          projectRoot: input.projectRoot,
         });
         return {
           ...base,
