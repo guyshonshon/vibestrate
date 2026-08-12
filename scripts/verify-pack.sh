@@ -63,6 +63,16 @@ require "package.json"
 require "dist/index.js"
 require "README.md"
 require "LICENSE"
+# The entries below are resolved BY PATH at runtime, not imported, so a bundler
+# or `files` change can drop one without breaking the build or any test. Each
+# absence is silent and total: no detached runs, no container egress, no default
+# roles, no dashboard.
+require "dist/run-entry.js"
+require "dist/egress-proxy.js"
+# One real prompt, not the directory: `require` is an exact-line match against
+# the tar manifest, which lists files.
+require "dist/default-prompts/planner.md"
+require "dist/ui/index.html"
 forbid "sourcemaps (should be trimmed)" '\.map$'
 forbid "a node_modules dir"            '^package/node_modules/'
 forbid "an env file"                   '^package/\.env'

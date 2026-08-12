@@ -1,6 +1,28 @@
 # Changelog
 
-## 1.1.4
+## 1.1.5
+
+> **Versions 1.1.0 through 1.1.4 were never published.** They were local bumps
+> taken one per branch; the work they describe ships here. If you are coming
+> from 1.0.1, this release is everything below plus those four sections.
+
+**Breaking, and it is the one thing to read before upgrading.** A policy with
+`effect: require_approval` on any kind other than `run.complete` or `file.patch`
+is now refused when the policy set loads, and a policy set that fails to load
+blocks runs from starting rather than being skipped. On 1.0.1 those policies
+loaded and quietly did nothing, which is the worse outcome - a rule you believe
+is holding, that never fires. **Migration:** change those entries to
+`effect: deny`, or narrow them to the two kinds that have a real approval seam.
+`vibe policies list` names any file that will be refused.
+
+- **Secrets no longer reach the run brief.** The brief carries each step's
+  outcome summary into `flows/run-brief.md` and back into every later turn's
+  prompt, and it was assembled from raw provider text with no redaction - so a
+  token-shaped string in one step's output was written to disk and re-sent on
+  every turn after it. Redaction moved into the brief itself rather than onto
+  each caller, because a caller that forgets is exactly how this happened.
+
+### Also in this release
 
 - **Supervisor Control: a conversation about a run that remembers.** The panel
   sits on the run's page next to the control centre, and every run gets its own
