@@ -145,8 +145,14 @@ export class SupervisorConversationStore {
    */
   async append(
     threadId: string,
-    message: Omit<SupervisorMessage, "id" | "createdAt"> &
-      Partial<Pick<SupervisorMessage, "id" | "createdAt">>,
+    message: {
+      role: SupervisorMessageRole;
+      text: string;
+      /** Present only on a supervisor message that carried out an action. */
+      action?: SupervisorActionRecord | null;
+      id?: string;
+      createdAt?: string;
+    },
   ): Promise<SupervisorThread> {
     const file = this.threadPath(threadId);
     return withFileMutex(`${file}.lock`, async () => {

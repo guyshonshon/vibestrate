@@ -228,6 +228,44 @@ export class RoadmapStore {
     );
   }
 
+  /**
+   * Read a task, transform it, and write the result under one lock.
+   *
+   * Every task mutation is a read-modify-write of the whole JSON file from
+   * processes that do not know about each other: the dashboard, the CLI, the
+   * TUI, and a live run's checklist band. Unlocked, they lose each other's
+   * writes, and the loss is silent because the band's own write is wrapped in a
+   * catch. The concrete case: a run marks checklist item 3 done with its commit
+   * sha, someone adds an item from another surface a moment later off a copy
+   * read before that, and item 3 goes back to pending with the sha gone.
+   *
+   * Locking `writeTask` alone would NOT fix this. The read has to be inside the
+   * same lock as the write, which is what this gives callers and a bare
+   * write cannot. `upsertRoadmapItem` above does the same thing for the roadmap
+   * items file, for the same reason.
+   *
+   * The lock is link-based and NOT reentrant: never call another mutating store
+   * method from inside `mutate`.
+   *
+   * Returns the written task, or null when the task does not exist or the
+   * mutator declines by returning null.
+   */
+  async mutateTask(
+    id: string,
+    mutate: (current: Task) => Task | null | Promise<Task | null>,
+  ): Promise<Task | null> {
+    safeIdSchema.parse(id);
+    const file = roadmapTaskFile(this.projectRoot, id);
+    return withFileMutex(`${file}.lock`, async () => {
+      const current = await this.getTask(id);
+      if (!current) return null;
+      const next = await mutate(current);
+      if (!next) return null;
+      await this.writeTask(next);
+      return next;
+    });
+  }
+
   async deleteTask(id: string): Promise<void> {
     safeIdSchema.parse(id);
     const file = roadmapTaskFile(this.projectRoot, id);

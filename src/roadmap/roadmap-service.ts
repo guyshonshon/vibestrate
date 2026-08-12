@@ -576,13 +576,17 @@ export class RoadmapService {
           (c) => c.id === t.derivedFrom!.itemId,
         );
         if (idx >= 0 && origin.checklist[idx]!.promotedTaskId === id) {
-          const checklist = [...origin.checklist];
-          checklist[idx] = {
-            ...checklist[idx]!,
-            promotedTaskId: null,
-            updatedAt: nowIso(),
-          };
-          await this.writeChecklist(origin, checklist);
+          await this.mutateChecklist(origin.id, (items) => {
+            const at = items.findIndex((c) => c.id === t.derivedFrom!.itemId);
+            if (at < 0) return items;
+            const checklist = [...items];
+            checklist[at] = {
+              ...checklist[at]!,
+              promotedTaskId: null,
+              updatedAt: nowIso(),
+            };
+            return checklist;
+          });
         }
       }
     }
@@ -712,12 +716,38 @@ export class RoadmapService {
     return t;
   }
 
-  private async writeChecklist(
+  /**
+   * Apply a checklist transform under the task's lock.
+   *
+   * The checklist is the one part of a task written by two parties at once: a
+   * live run's band marks items done with their commit sha, while the board,
+   * the CLI and (now) the supervisor add and edit items. Read-modify-write
+   * without a lock loses one of them, and the band's write is wrapped in a catch
+   * so the loss is silent - an item goes from done-with-a-sha back to pending
+   * and nothing says so.
+   *
+   * The transform receives the CURRENT checklist read inside the lock, not the
+   * caller's copy, which is the whole point: a caller that read the task a
+   * moment ago no longer has authority over what it contains.
+   */
+  private async mutateChecklist(
+    taskId: string,
+    transform: (current: ChecklistItem[]) => ChecklistItem[],
+    opts: { clearSagaPendingRevision?: boolean } = {},
+  ): Promise<Task> {
+    const next = await this.store.mutateTask(taskId, (current) =>
+      this.nextChecklistTask(current, transform(current.checklist), opts),
+    );
+    if (!next) throw new RoadmapServiceError(`Task "${taskId}" not found.`);
+    return next;
+  }
+
+  private nextChecklistTask(
     task: Task,
     checklist: ChecklistItem[],
     opts: { clearSagaPendingRevision?: boolean } = {},
-  ): Promise<Task> {
-    const next: Task = {
+  ): Task {
+    return {
       ...task,
       checklist,
       // A STRUCTURAL checklist edit (add / remove / reorder /
@@ -732,8 +762,6 @@ export class RoadmapService {
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };
-    await this.store.writeTask(next);
-    return next;
   }
 
   async addChecklistItem(
@@ -749,7 +777,6 @@ export class RoadmapService {
       provenance?: Provenance;
     } = {},
   ): Promise<{ task: Task; item: ChecklistItem }> {
-    const t = await this.requireTask(taskId);
     const trimmed = text.trim();
     if (!trimmed) {
       throw new RoadmapServiceError("Checklist item text is required.");
@@ -771,7 +798,9 @@ export class RoadmapService {
       fileHints: normalized.fileHints ?? [],
       provenance: fields.provenance ?? "owner",
     };
-    const task = await this.writeChecklist(t, [...t.checklist, item], {
+    // Appends to whatever the checklist is INSIDE the lock, not to a copy read
+    // before it: a run committing an item concurrently must not be undone.
+    const task = await this.mutateChecklist(taskId, (current) => [...current, item], {
       clearSagaPendingRevision: true,
     });
     return { task, item };
@@ -782,26 +811,9 @@ export class RoadmapService {
     itemId: string,
     patch: ChecklistItemPatch,
   ): Promise<{ task: Task; item: ChecklistItem }> {
-    const t = await this.requireTask(taskId);
-    const idx = t.checklist.findIndex((c) => c.id === itemId);
-    if (idx < 0) {
-      throw new RoadmapServiceError(
-        `Checklist item "${itemId}" not found on task "${taskId}".`,
-      );
-    }
     if (patch.text !== undefined && !patch.text.trim()) {
       throw new RoadmapServiceError("Checklist item text cannot be empty.");
     }
-    const prev = t.checklist[idx]!;
-    const item: ChecklistItem = {
-      ...prev,
-      ...patch,
-      ...normalizeStepFields(patch),
-      text: patch.text !== undefined ? patch.text.trim() : prev.text,
-      updatedAt: nowIso(),
-    };
-    const checklist = [...t.checklist];
-    checklist[idx] = item;
     // Only a STRUCTURAL edit (text/objective/acceptanceCheck/fileHints)
     // invalidates a conductor pending overlay. A status-only update - the run's
     // own per-step commit - must NOT clear it, or the overlay would be wiped mid
@@ -811,10 +823,34 @@ export class RoadmapService {
       patch.objective !== undefined ||
       patch.acceptanceCheck !== undefined ||
       patch.fileHints !== undefined;
-    const task = await this.writeChecklist(t, checklist, {
-      clearSagaPendingRevision: structural,
-    });
-    return { task, item };
+    let item: ChecklistItem | null = null;
+    // Both the existence check and the merge run against the checklist read
+    // inside the lock, so this cannot resurrect an item another writer just
+    // removed or clobber a status another writer just set.
+    const task = await this.mutateChecklist(
+      taskId,
+      (current) => {
+        const idx = current.findIndex((c) => c.id === itemId);
+        if (idx < 0) {
+          throw new RoadmapServiceError(
+            `Checklist item "${itemId}" not found on task "${taskId}".`,
+          );
+        }
+        const prev = current[idx]!;
+        item = {
+          ...prev,
+          ...patch,
+          ...normalizeStepFields(patch),
+          text: patch.text !== undefined ? patch.text.trim() : prev.text,
+          updatedAt: nowIso(),
+        };
+        const checklist = [...current];
+        checklist[idx] = item;
+        return checklist;
+      },
+      { clearSagaPendingRevision: structural },
+    );
+    return { task, item: item! };
   }
 
   async setChecklistItemStatus(
@@ -826,34 +862,46 @@ export class RoadmapService {
   }
 
   async removeChecklistItem(taskId: string, itemId: string): Promise<Task> {
-    const t = await this.requireTask(taskId);
-    const checklist = t.checklist.filter((c) => c.id !== itemId);
-    if (checklist.length === t.checklist.length) {
-      throw new RoadmapServiceError(
-        `Checklist item "${itemId}" not found on task "${taskId}".`,
-      );
-    }
-    return this.writeChecklist(t, checklist, { clearSagaPendingRevision: true });
+    return this.mutateChecklist(
+      taskId,
+      (current) => {
+        const checklist = current.filter((c) => c.id !== itemId);
+        if (checklist.length === current.length) {
+          throw new RoadmapServiceError(
+            `Checklist item "${itemId}" not found on task "${taskId}".`,
+          );
+        }
+        return checklist;
+      },
+      { clearSagaPendingRevision: true },
+    );
   }
 
   /** Reorder the checklist to `orderedIds`, which must be a permutation of the
    *  existing item ids (same set, no additions/removals). */
   async reorderChecklist(taskId: string, orderedIds: string[]): Promise<Task> {
-    const t = await this.requireTask(taskId);
-    const current = new Set(t.checklist.map((c) => c.id));
-    const wanted = new Set(orderedIds);
-    if (
-      orderedIds.length !== t.checklist.length ||
-      wanted.size !== orderedIds.length ||
-      [...current].some((id) => !wanted.has(id))
-    ) {
-      throw new RoadmapServiceError(
-        "Reorder must be a permutation of the existing checklist item ids.",
-      );
-    }
-    const byId = new Map(t.checklist.map((c) => [c.id, c]));
-    const checklist = orderedIds.map((id) => byId.get(id)!);
-    return this.writeChecklist(t, checklist, { clearSagaPendingRevision: true });
+    return this.mutateChecklist(
+      taskId,
+      (items) => {
+        // The permutation check runs against the checklist as it is inside the
+        // lock. Validated against a stale copy, a reorder racing an add would
+        // drop the new item on the floor while reporting success.
+        const existing = new Set(items.map((c) => c.id));
+        const wanted = new Set(orderedIds);
+        if (
+          orderedIds.length !== items.length ||
+          wanted.size !== orderedIds.length ||
+          [...existing].some((id) => !wanted.has(id))
+        ) {
+          throw new RoadmapServiceError(
+            "Reorder must be a permutation of the existing checklist item ids.",
+          );
+        }
+        const byId = new Map(items.map((c) => [c.id, c]));
+        return orderedIds.map((id) => byId.get(id)!);
+      },
+      { clearSagaPendingRevision: true },
+    );
   }
 
   /**
@@ -891,16 +939,19 @@ export class RoadmapService {
       roadmapItemId: t.roadmapItemId,
       derivedFrom: { taskId, itemId },
     });
-    // Stamp the forward-pointer on the item (re-read in case addTask touched it).
-    const fresh = await this.requireTask(taskId);
-    const freshIdx = fresh.checklist.findIndex((c) => c.id === itemId);
-    const checklist = [...fresh.checklist];
-    checklist[freshIdx] = {
-      ...checklist[freshIdx]!,
-      promotedTaskId: card.id,
-      updatedAt: nowIso(),
-    };
-    const task = await this.writeChecklist(fresh, checklist);
+    // Stamp the forward-pointer on the item. The re-read happens inside the
+    // lock, which also covers addTask above having touched the task.
+    const task = await this.mutateChecklist(taskId, (items) => {
+      const at = items.findIndex((c) => c.id === itemId);
+      if (at < 0) return items;
+      const checklist = [...items];
+      checklist[at] = {
+        ...checklist[at]!,
+        promotedTaskId: card.id,
+        updatedAt: nowIso(),
+      };
+      return checklist;
+    });
     return { task, card };
   }
 

@@ -88,6 +88,7 @@ describe("supervisor threads persist a conversation", () => {
         targetKind: "checklist",
         targetId: "task-1",
         ok: true,
+        error: null,
         undone: false,
       },
     });
