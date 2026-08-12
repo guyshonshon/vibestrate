@@ -56,3 +56,74 @@ export const supervisorsApi = {
     return jsonPost("/api/consult", input);
   },
 };
+
+// ── Supervisor Control: the durable conversation, and the kill switch ───────
+// The turn endpoint is the only one that can act; the rest are inert.
+
+export type SupervisorActionRecordView = {
+  intent: string;
+  summary: string;
+  targetKind: "task" | "checklist" | "queue" | "run" | "none";
+  targetId: string | null;
+  ok: boolean;
+  error: string | null;
+  undone: boolean;
+};
+
+export type SupervisorMessageView = {
+  id: string;
+  role: "user" | "supervisor" | "system";
+  text: string;
+  createdAt: string;
+  action: SupervisorActionRecordView | null;
+};
+
+export type SupervisorThreadView = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: SupervisorMessageView[];
+};
+
+export type SupervisorThreadSummary = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
+};
+
+export type SupervisorPauseView = {
+  paused: boolean;
+  reason: string;
+  updatedAt: string;
+};
+
+export const supervisorControlApi = {
+  async listThreads(): Promise<{ threads: SupervisorThreadSummary[] }> {
+    return jsonGet("/api/supervisor/threads");
+  },
+  async getThread(threadId: string): Promise<{ thread: SupervisorThreadView }> {
+    return jsonGet(`/api/supervisor/threads/${encodeURIComponent(threadId)}`);
+  },
+  async createThread(): Promise<{ thread: SupervisorThreadView }> {
+    return jsonPost("/api/supervisor/threads", {});
+  },
+  /** Say something. The supervisor answers, and acts when autonomy allows it. */
+  async supervisorTurn(
+    threadId: string,
+    text: string,
+  ): Promise<{ thread: SupervisorThreadView }> {
+    return jsonPost(`/api/supervisor/threads/${encodeURIComponent(threadId)}/turn`, { text });
+  },
+  async getSupervisorPause(): Promise<{ pause: SupervisorPauseView }> {
+    return jsonGet("/api/supervisor/pause");
+  },
+  async setSupervisorPause(
+    paused: boolean,
+    reason = "",
+  ): Promise<{ pause: SupervisorPauseView }> {
+    return jsonPost("/api/supervisor/pause", { paused, reason });
+  },
+};

@@ -53,6 +53,10 @@
           "label": "Policies"
         },
         {
+          "slug": "concepts/supervisor-control",
+          "label": "Supervisor Control"
+        },
+        {
           "slug": "concepts/consult",
           "label": "Consult"
         },

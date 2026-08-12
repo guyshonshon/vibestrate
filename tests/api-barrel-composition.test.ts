@@ -3,7 +3,7 @@ import { api } from "../src/ui/lib/api.js";
 import { runsApi } from "../src/ui/lib/api/runs.js";
 import { specUpApi } from "../src/ui/lib/api/spec-up.js";
 import { providersApi } from "../src/ui/lib/api/providers.js";
-import { supervisorsApi } from "../src/ui/lib/api/supervisors.js";
+import { supervisorsApi, supervisorControlApi } from "../src/ui/lib/api/supervisors.js";
 import { policiesApi } from "../src/ui/lib/api/policies.js";
 import { flowsApi } from "../src/ui/lib/api/flows.js";
 import { metricsApi } from "../src/ui/lib/api/metrics.js";
@@ -29,6 +29,7 @@ const slices: Record<string, Record<string, unknown>> = {
   specUpApi,
   providersApi,
   supervisorsApi,
+  supervisorControlApi,
   policiesApi,
   flowsApi,
   metricsApi,

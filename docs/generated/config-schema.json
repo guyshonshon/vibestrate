@@ -508,6 +508,31 @@
       ]
     },
     {
+      "key": "supervisorControl",
+      "fullKey": "supervisorControl",
+      "type": "object",
+      "required": false,
+      "default": {
+        "autonomy": "advise"
+      },
+      "itemType": null,
+      "children": [
+        {
+          "key": "autonomy",
+          "fullKey": "supervisorControl.autonomy",
+          "type": "enum",
+          "required": false,
+          "default": "advise",
+          "enum": [
+            "advise",
+            "act"
+          ],
+          "itemType": null,
+          "description": "Supervisor Control autonomy: 'advise' (answers only, writes nothing - the default) or 'act' (may create tasks, add TODOs and start runs from chat)."
+        }
+      ]
+    },
+    {
       "key": "supervised",
       "fullKey": "supervised",
       "type": "object",

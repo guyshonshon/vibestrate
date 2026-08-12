@@ -6,6 +6,8 @@ slug: concepts/consult
 
 **Consult** is the senior voice you can pull aside mid-build. Ask the orchestrator a question and get an answer grounded only in your project's real context. It is read-only: it recommends, it never acts. It reads your project, weighs the trade-offs, and tells you what it would do, then stops - the decision stays yours.
 
+For a conversation that persists, and that can act on what you say when you allow it, see [Supervisor Control](concepts/supervisor-control). Consult stays the one-shot, always-read-only way in.
+
 ## Ask it anything
 
 ```bash

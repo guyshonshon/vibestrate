@@ -7,7 +7,7 @@
 import { runsApi } from "./api/runs.js";
 import { specUpApi } from "./api/spec-up.js";
 import { providersApi } from "./api/providers.js";
-import { supervisorsApi } from "./api/supervisors.js";
+import { supervisorsApi, supervisorControlApi } from "./api/supervisors.js";
 import { policiesApi } from "./api/policies.js";
 import { flowsApi } from "./api/flows.js";
 import { metricsApi } from "./api/metrics.js";
@@ -81,6 +81,7 @@ export const api = {
   ...specUpApi,
   ...providersApi,
   ...supervisorsApi,
+  ...supervisorControlApi,
   ...policiesApi,
   ...flowsApi,
   ...metricsApi,
