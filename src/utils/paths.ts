@@ -23,6 +23,8 @@ export const ROLES_DIRNAME = "roles";
 export const SKILLS_DIRNAME = "skills";
 export const FLOWS_DIRNAME = "flows";
 export const RUNS_DIRNAME = "runs";
+export const SUPERVISOR_DIRNAME = "supervisor";
+export const THREADS_DIRNAME = "threads";
 export const ROADMAP_DIRNAME = "roadmap";
 export const SCHEDULER_DIRNAME = "scheduler";
 export const NOTIFICATIONS_DIRNAME = "notifications";
@@ -94,6 +96,20 @@ export function projectFlowsDir(projectRoot: string): string {
 
 export function projectRunsDir(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), RUNS_DIRNAME);
+}
+
+/** Where the supervisor keeps state that outlives any single run. */
+export function supervisorDir(projectRoot: string): string {
+  return path.join(vibestrateRoot(projectRoot), SUPERVISOR_DIRNAME);
+}
+
+/** One file per conversation thread with the supervisor. */
+export function supervisorThreadsDir(projectRoot: string): string {
+  return path.join(supervisorDir(projectRoot), THREADS_DIRNAME);
+}
+
+export function supervisorThreadPath(projectRoot: string, threadId: string): string {
+  return path.join(supervisorThreadsDir(projectRoot), `${threadId}.json`);
 }
 
 export function runDir(projectRoot: string, runId: string): string {
