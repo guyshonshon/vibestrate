@@ -271,6 +271,30 @@ describe("the executor validates the model's proposal before acting", () => {
     expect(received).toBe("build the hero section");
   });
 
+  it("will not start a sibling run from inside a live run's conversation", async () => {
+    // Runs are genuinely concurrent (the scheduler cap only governs queue
+    // pickup), so a run-scoped chat that could launch another would quietly
+    // start one while you were talking about the first.
+    const root = await scratch();
+    const svc = new RoadmapService(root);
+    const task = await svc.addTask({ title: "landing page" });
+    let started = false;
+    const res = await executeProposal({
+      projectRoot: root,
+      config: actConfig(),
+      userMessage: "build the hero",
+      proposal: proposal({ intent: "run.start", targetId: task.id, echo: "build the hero" }),
+      allowedTargetIds: [task.id],
+      scopedRunId: "run-already-going",
+      startRun: async () => {
+        started = true;
+        return "run-2";
+      },
+    });
+    expect(started).toBe(false);
+    expect(res.reply).toMatch(/already going/);
+  });
+
   it("does not start a run while paused", async () => {
     const root = await scratch();
     const svc = new RoadmapService(root);

@@ -59,6 +59,8 @@ import { RunStatusSection } from "../../components/runs/v3/RunStatusSection.js";
 import { SupervisorPanel } from "../../components/runs/SupervisorPanel.js";
 import { LiveTimeline } from "../../components/runs/LiveTimeline.js";
 import { PanelBoard } from "../../components/layout/PanelBoard.js";
+import { isActiveStatus } from "../../lib/run-filter.js";
+import { SupervisorControl } from "../../components/supervisor/SupervisorControl.js";
 import {
   InspectorTabsV3,
   type InspectorV3Tab,
@@ -660,6 +662,17 @@ export function RunDetailPage({
           },
         ]}
       />
+
+      {/* The supervisor for THIS run, and only while it is live. Runs are
+          genuinely concurrent (the scheduler cap only governs queue pickup), so
+          a single global chat would leave "do it" without a referent. Once the
+          run is terminal there is nothing to steer, and the thread stays
+          readable in its history. */}
+      {isActiveStatus(run.status) ? (
+        <section data-screen-label="04b Supervisor">
+          <SupervisorControl runId={runId} />
+        </section>
+      ) : null}
 
       <section data-screen-label="05 Inspector">
         <div className="mb-2.5 flex items-center justify-between">

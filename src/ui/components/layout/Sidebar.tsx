@@ -1,5 +1,6 @@
 import { ProjectSwitcher } from "./ProjectSwitcher.js";
-import { countByFilter, type RunFilter } from "../../lib/run-filter.js";
+import { countByFilter, isActiveStatus, type RunFilter } from "../../lib/run-filter.js";
+import { navigate } from "../../app/App.js";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ChevronDown,
@@ -20,7 +21,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
-import type { NotificationRecord, RunStatus } from "../../lib/types.js";
+import type { NotificationRecord, RunState, RunStatus } from "../../lib/types.js";
 import { EntityIcon } from "../design/EntityIcon.js";
 import { ThemeToggle } from "../design/ThemeToggle.js";
 import { NotificationBell } from "../notifications/NotificationBell.js";
@@ -84,6 +85,7 @@ export function Sidebar({
   onOpenSwitcher,
 }: Props) {
   const [counts, setCounts] = useState({ active: 0, mergeReady: 0, failed: 0 });
+  const [live, setLive] = useState<RunState[]>([]);
   const [runsOpen, setRunsOpen] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -93,6 +95,12 @@ export function Sidebar({
       try {
         const runs = await api.listRuns();
         if (cancelled) return;
+        setLive(
+          runs
+            .filter((r) => isActiveStatus(r.status))
+            .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+            .slice(0, 4),
+        );
         setCounts({
           active: countByFilter(runs, "active"),
           mergeReady: countByFilter(runs, "merge-ready"),
@@ -153,6 +161,33 @@ export function Sidebar({
 
       {/* Scrollable nav body; New-run + utility row stay pinned below. */}
       <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
+        {/* Live runs sit ABOVE everything. Runs are genuinely concurrent here,
+            so this is a list rather than a single row, and each one is the way
+            into its own cockpit. */}
+        {live.length > 0 ? (
+          <div className="mb-1.5 flex flex-col gap-1">
+            {live.map((r) => (
+              <button
+                key={r.runId}
+                type="button"
+                onClick={() => navigate({ kind: "run", runId: r.runId })}
+                className="live-flash flex items-center gap-2.5 rounded-[11px] border border-emerald/40 px-3 py-2 text-left"
+                style={{ backgroundColor: "color-mix(in srgb, var(--emerald) 8%, transparent)" }}
+                title={r.displayName || r.task}
+              >
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-semibold text-chalk-100">
+                    {r.displayName || r.task}
+                  </span>
+                  <span className="block text-[11px] font-medium text-emerald">
+                    {r.status.replace(/_/g, " ")}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
         <NavItem
           icon={<LayoutGrid className="h-[18px] w-[18px]" />}
           label="Mission control"

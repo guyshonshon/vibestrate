@@ -74,6 +74,17 @@ export const supervisorThreadSchema = z.object({
   id: z.string().min(1),
   /** Short label for the thread list. Derived from the first user message. */
   title: z.string().max(200).default("New conversation"),
+  /**
+   * The run this conversation is about, or null for a project-level thread.
+   *
+   * Scoping lives on the THREAD rather than being a filter applied at read
+   * time, because runs are genuinely concurrent: `scheduler.maxConcurrentRuns`
+   * is only consulted by the queue picker, so `vibe run` and the dashboard
+   * launch as many as you ask for, and a run with no task takes no lock at all.
+   * With one shared conversation, "do it" has no referent while three runs are
+   * live, and the transcript afterwards cannot say which run you meant.
+   */
+  runId: z.string().max(200).nullable().default(null),
   createdAt: z.string(),
   updatedAt: z.string(),
   messages: z.array(supervisorMessageSchema).default([]),
@@ -122,18 +133,26 @@ export class SupervisorConversationStore {
     return out.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }
 
-  async create(): Promise<SupervisorThread> {
+  async create(runId: string | null = null): Promise<SupervisorThread> {
     const ts = nowIso();
     const thread: SupervisorThread = {
       schemaVersion: 1,
       id: randomUUID(),
       title: "New conversation",
+      runId,
       createdAt: ts,
       updatedAt: ts,
       messages: [],
     };
     await this.writeThread(thread);
     return thread;
+  }
+
+  /** The newest thread for a run, or a fresh one. The panel opens straight into
+   *  the conversation about the run you are looking at. */
+  async forRun(runId: string): Promise<SupervisorThread> {
+    const existing = (await this.list()).find((t) => t.runId === runId);
+    return existing ?? (await this.create(runId));
   }
 
   /**
@@ -160,6 +179,7 @@ export class SupervisorConversationStore {
         schemaVersion: 1 as const,
         id: threadId,
         title: "New conversation",
+        runId: null,
         createdAt: nowIso(),
         updatedAt: nowIso(),
         messages: [],

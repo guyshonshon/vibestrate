@@ -25,7 +25,6 @@ import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import { navigate } from "../App.js";
 import { MissionComposer } from "../../components/mission/MissionComposer.js";
-import { SupervisorControl } from "../../components/supervisor/SupervisorControl.js";
 import { RunActions } from "../../components/mission/RunActions.js";
 import { Chip } from "../../components/design/Chip.js";
 import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
@@ -270,13 +269,6 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
             }
             footer="The dashboard has the panels: recent runs, queue, spend and the rest."
           />
-        </Cell>
-
-        {/* The supervisor comes before the composer on purpose. Starting a run
-            is one of the things you can ask it for, so the conversation is the
-            way in and the composer is the explicit shortcut, not the reverse. */}
-        <Cell size="full" reason="masthead">
-          <SupervisorControl />
         </Cell>
 
         <Cell size="full" reason="masthead">

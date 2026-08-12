@@ -39,6 +39,11 @@ export type ExecuteInput = {
   proposal: SupervisorProposal;
   /** Ids the router was offered. Anything outside this is rejected. */
   allowedTargetIds: readonly string[];
+  /** The run this conversation is about, when it is scoped to one. Inside a
+   *  live run's panel, "build the hero" means add it to what is happening, not
+   *  launch a second run alongside it - and runs really are concurrent here, so
+   *  that would quietly start one. */
+  scopedRunId?: string | null;
   /** Injected so a test can drive the executor without launching real runs. */
   startRun?: (input: { projectRoot: string; taskId: string; task: string }) => Promise<string>;
 };
@@ -94,6 +99,16 @@ export async function executeProposal(input: ExecuteInput): Promise<ExecuteResul
     return refusal(
       proposal.intent,
       "I could not confirm that the request I routed matches what you typed, so I have not acted on it. Say it again and I will take another look.",
+    );
+  }
+
+  // A run-scoped conversation does not start runs. Inside run X's panel the
+  // request is about X, and launching a sibling is both surprising and
+  // genuinely possible: concurrency is not capped on the direct launch path.
+  if (proposal.intent === "run.start" && input.scopedRunId) {
+    return refusal(
+      proposal.intent,
+      "This conversation is about a run that is already going, so I have not started another one. I can add it to the task instead, or you can start a separate run from Mission Control.",
     );
   }
 

@@ -81,6 +81,7 @@ export type SupervisorMessageView = {
 export type SupervisorThreadView = {
   id: string;
   title: string;
+  runId: string | null;
   createdAt: string;
   updatedAt: string;
   messages: SupervisorMessageView[];
@@ -91,6 +92,7 @@ export type SupervisorThreadSummary = {
   title: string;
   createdAt: string;
   updatedAt: string;
+  runId: string | null;
   messageCount: number;
 };
 
@@ -101,14 +103,16 @@ export type SupervisorPauseView = {
 };
 
 export const supervisorControlApi = {
-  async listThreads(): Promise<{ threads: SupervisorThreadSummary[] }> {
-    return jsonGet("/api/supervisor/threads");
+  async listThreads(runId?: string): Promise<{ threads: SupervisorThreadSummary[] }> {
+    const q = runId ? `?runId=${encodeURIComponent(runId)}` : "";
+    return jsonGet(`/api/supervisor/threads${q}`);
   },
   async getThread(threadId: string): Promise<{ thread: SupervisorThreadView }> {
     return jsonGet(`/api/supervisor/threads/${encodeURIComponent(threadId)}`);
   },
-  async createThread(): Promise<{ thread: SupervisorThreadView }> {
-    return jsonPost("/api/supervisor/threads", {});
+  /** Opens (or creates) the conversation for a run. */
+  async createThread(runId?: string): Promise<{ thread: SupervisorThreadView }> {
+    return jsonPost("/api/supervisor/threads", runId ? { runId } : {});
   },
   /** Say something. The supervisor answers, and acts when autonomy allows it. */
   async supervisorTurn(

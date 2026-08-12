@@ -34,6 +34,10 @@ const appendBody = z
   })
   .strict();
 
+const createBody = z
+  .object({ runId: z.string().min(1).max(200).optional() })
+  .strict();
+
 const pauseBody = z
   .object({
     paused: z.boolean(),
@@ -50,14 +54,19 @@ export async function registerSupervisorRoutes(
   /** Thread list for the panel's sidebar, newest first. Messages are trimmed
    *  out: the list renders titles and timestamps, and shipping every message of
    *  every thread would grow without bound as conversations accumulate. */
-  app.get("/api/supervisor/threads", async () => {
-    const threads = await store.list();
+  app.get<{ Querystring: { runId?: string } }>("/api/supervisor/threads", async (req) => {
+    const all = await store.list();
+    // Scoped by default: a run's panel must not show another run's conversation.
+    const threads = req.query.runId
+      ? all.filter((t) => t.runId === req.query.runId)
+      : all;
     return {
       threads: threads.map((t) => ({
         id: t.id,
         title: t.title,
         createdAt: t.createdAt,
         updatedAt: t.updatedAt,
+        runId: t.runId,
         messageCount: t.messages.length,
       })),
     };
@@ -72,8 +81,13 @@ export async function registerSupervisorRoutes(
     },
   );
 
-  app.post("/api/supervisor/threads", async () => {
-    return { thread: await store.create() };
+  /** Open the conversation for a run, creating it on first use. Without a
+   *  runId this makes a project-level thread. */
+  app.post<{ Body: unknown }>("/api/supervisor/threads", async (req) => {
+    const parsed = createBody.safeParse(req.body ?? {});
+    if (!parsed.success) throw new HttpError(400, "Invalid request.");
+    const runId = parsed.data.runId ?? null;
+    return { thread: runId ? await store.forRun(runId) : await store.create(null) };
   });
 
   /** Append the user's message. Returns the whole thread so the client renders
@@ -151,6 +165,7 @@ export async function registerSupervisorRoutes(
         userMessage: message,
         proposal,
         allowedTargetIds: targets.map((t) => t.id),
+        scopedRunId: (await store.read(threadId))?.runId ?? null,
         startRun: async ({ taskId, task }) => {
           await startDetachedRun({
             spec: { projectRoot: deps.projectRoot, task, taskId },

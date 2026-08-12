@@ -1305,3 +1305,18 @@ button:active,
 .t-label { font-size: 13px; line-height: 1.4; font-weight: 600; }
 /* The floor. Nothing renders below 12px. */
 .t-meta { font-size: 12px; line-height: 1.35; }
+
+/* A run appearing in the sidebar flashes green ONCE and settles. Deliberately
+   not a loop: a persistently pulsing row is noise you learn to ignore, and the
+   point is to catch your eye at the moment work starts. Respects
+   prefers-reduced-motion by simply not animating. */
+@keyframes vibestrate-live-flash {
+  0%   { background-color: color-mix(in srgb, var(--emerald) 26%, transparent); }
+  100% { background-color: color-mix(in srgb, var(--emerald) 8%, transparent); }
+}
+.live-flash {
+  animation: vibestrate-live-flash 900ms ease-out 1 both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-flash { animation: none; }
+}
