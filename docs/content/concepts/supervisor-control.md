@@ -42,7 +42,15 @@ The panel header has one. It stops the supervisor acting immediately, without to
 
 It **fails closed**: if the flag cannot be read - corrupt, half-written, wrong permissions - the supervisor is treated as stopped. A stop button that quietly degrades to "go" is not a stop button.
 
-Talking still works while stopped. Only acting is off.
+Talking still works while stopped. Only acting is off - and while it is stopped the routing model is not called at all, so a stopped supervisor is not quietly spending to reach decisions it cannot use.
+
+It is on both surfaces, because the moment you most want a stop button is not reliably a moment you have a browser tab open:
+
+```bash
+vibe supervisor stop --reason "reviewing the last diff"
+vibe supervisor status
+vibe supervisor resume
+```
 
 ## Why it cannot be talked into things
 

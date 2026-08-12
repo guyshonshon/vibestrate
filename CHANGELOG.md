@@ -18,9 +18,12 @@
   warned about. There are two settings, not three: an earlier "queue" tier was
   dropped for being dishonest, since queueing starts the scheduler and runs the
   work exactly like `act` does.
-- **A stop button that means it.** In the panel header, no config round-trip,
-  survives a restart, and fails closed - an unreadable flag reads as stopped.
-  Talking still works while stopped; only acting is off.
+- **A stop button that means it.** In the panel header and on the CLI
+  (`vibe supervisor stop | resume | status`), no config round-trip, survives a
+  restart, and fails closed - an unreadable flag reads as stopped. Talking still
+  works while stopped; only acting is off, and the routing model is not called
+  at all, so a stopped supervisor is not quietly spending on decisions it cannot
+  use.
 - **Harder to talk into things via your own repo.** The supervisor answers from
   context that is not all written by you: a merged diff edits VIBESTRATE.md, a
   dependency README reaches the codebase map, annotations arrive over HTTP. So

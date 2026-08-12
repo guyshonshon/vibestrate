@@ -20,11 +20,13 @@ import { ErrorView } from "../../lib/error-view.js";
 // created a task or started a run has to show it inline, refusals included -
 // that trail is the point of the feature, not decoration.
 
-const INTENT_LABEL: Record<string, string> = {
-  "task.create": "Made a task",
-  "checklist.add": "Added TODOs",
-  "run.start": "Started a run",
-  answer: "Answered",
+/** Two labels per intent, because the chip renders refusals too and a red-bordered
+ *  card that reads "Started a run" is worse than no chip at all. */
+const INTENT_LABEL: Record<string, { ok: string; refused: string }> = {
+  "task.create": { ok: "Made a task", refused: "Did not make a task" },
+  "checklist.add": { ok: "Added TODOs", refused: "Did not add TODOs" },
+  "run.start": { ok: "Started a run", refused: "Did not start a run" },
+  answer: { ok: "Answered", refused: "Answered" },
 };
 
 /** Readable measure. Prose wider than roughly 70 characters is measurably
@@ -48,7 +50,8 @@ function ActionNote({ action }: { action: NonNullable<SupervisorMessageView["act
       )}
       <span className="text-[12px] leading-snug">
         <span className="font-semibold">
-          {INTENT_LABEL[action.intent] ?? action.intent}
+          {(ok ? INTENT_LABEL[action.intent]?.ok : INTENT_LABEL[action.intent]?.refused) ??
+            action.intent}
           {action.undone ? " (undone)" : ""}
         </span>
         <span className="opacity-90"> {action.summary}</span>

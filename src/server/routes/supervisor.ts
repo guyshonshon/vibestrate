@@ -19,7 +19,11 @@ import { z } from "zod";
 import { SupervisorConversationStore } from "../../supervisor/conversation-store.js";
 import { proposeIntent } from "../../supervisor/intake-router.js";
 import { executeProposal } from "../../supervisor/action-executor.js";
-import { readPauseState, setPaused } from "../../supervisor/autonomy-gate.js";
+import {
+  checkAutonomy,
+  readPauseState,
+  setPaused,
+} from "../../supervisor/autonomy-gate.js";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { loadConfig } from "../../project/config-loader.js";
 import { runConsult } from "../../consult/consult.js";
@@ -204,11 +208,29 @@ export async function registerSupervisorRoutes(
         .slice(0, 40)
         .map((t) => ({ id: t.id, title: t.title }));
 
-      const proposal = await proposeIntent({
-        projectRoot: deps.projectRoot,
-        message,
-        targets,
+      // Read the kill switch BEFORE the router runs, not only in the executor.
+      // The router is a paid model call, so a stopped supervisor that still
+      // routed every message would keep spending to reach a decision it is not
+      // allowed to act on. Stopped means it goes straight to the answerer.
+      const canAct = !checkAutonomy({
+        supervisor: config.supervisorControl,
+        pause: await readPauseState(deps.projectRoot),
       });
+
+      const proposal = canAct
+        ? await proposeIntent({
+            projectRoot: deps.projectRoot,
+            message,
+            targets,
+          })
+        : {
+            intent: "answer" as const,
+            targetId: null,
+            title: "",
+            items: [],
+            echo: message,
+            rationale: "",
+          };
 
       const outcome = await executeProposal({
         projectRoot: deps.projectRoot,

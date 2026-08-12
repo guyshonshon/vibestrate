@@ -1090,6 +1090,62 @@
           ],
           "options": [],
           "subcommands": []
+        },
+        {
+          "name": "stop",
+          "path": [
+            "vibe",
+            "supervisor",
+            "stop"
+          ],
+          "description": "Stop the supervisor acting. It still answers.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--reason <text>",
+              "description": "why, shown in the panel",
+              "defaultValue": "",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "resume",
+          "path": [
+            "vibe",
+            "supervisor",
+            "resume"
+          ],
+          "description": "Let the supervisor act again.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "status",
+          "path": [
+            "vibe",
+            "supervisor",
+            "status"
+          ],
+          "description": "Whether the supervisor may act right now.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
         }
       ]
     },

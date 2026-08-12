@@ -1327,11 +1327,26 @@ button:active,
    prefers-reduced-motion by simply not animating. */
 @keyframes vibestrate-live-flash {
   0%   { background-color: color-mix(in srgb, var(--emerald) 26%, transparent); }
-  100% { background-color: color-mix(in srgb, var(--emerald) 8%, transparent); }
+  100% { background-color: transparent; }
 }
+/* `both` keeps the last keyframe applied for good, and an animated property
+ * outranks even an inline style - so this flash used to repaint a card that
+ * needs YOUR answer from amber to green and leave it there. The keyframes drive
+ * an overlay pseudo-element instead, so the card keeps whatever tint its state
+ * asked for and the flash is a thing that passes over it. */
 .live-flash {
-  animation: vibestrate-live-flash 900ms ease-out 1 both;
+  position: relative;
+  isolation: isolate;
+}
+.live-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: vibestrate-live-flash 900ms ease-out 1 forwards;
 }
 @media (prefers-reduced-motion: reduce) {
-  .live-flash { animation: none; }
+  .live-flash::after { animation: none; }
 }
