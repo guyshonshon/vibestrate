@@ -29,9 +29,18 @@ const INTENT_LABEL: Record<string, { ok: string; refused: string }> = {
   answer: { ok: "Answered", refused: "Answered" },
 };
 
-/** Readable measure. Prose wider than roughly 70 characters is measurably
- *  harder to track back to the next line. */
-const MEASURE = "max-w-[68ch]";
+/** The assistant's column. The wrapper around it is already capped at 760px,
+ *  which is inside the readable measure, so this only has to not exceed it. */
+const MEASURE = "max-w-full";
+
+/** Your own message stops well short of the column.
+ *
+ *  It used to share MEASURE at 68ch - about 918px, wider than the 760px wrapper
+ *  it sits in, so it never constrained anything and the bubble rendered at 736
+ *  of 760. A bubble that fills the column has no shape to distinguish it from
+ *  the supervisor's full-width prose, which is the one visual cue telling you
+ *  who said what. */
+const USER_MEASURE = "max-w-[74%]";
 
 function ActionNote({ action }: { action: NonNullable<SupervisorMessageView["action"]> }) {
   const ok = action.ok;
@@ -66,7 +75,7 @@ function Turn({ message }: { message: SupervisorMessageView }) {
     // without the tail-and-balloon treatment.
     return (
       <div className="flex justify-end">
-        <div className={`${MEASURE} rounded-[14px] bg-violet-soft/14 px-4 py-2.5`}>
+        <div className={`${USER_MEASURE} rounded-[14px] bg-violet-soft/14 px-4 py-2.5`}>
           <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-chalk-100">
             {message.text}
           </p>
@@ -105,7 +114,7 @@ export function SupervisorControl({
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const endRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const load = useCallback(async () => {
@@ -133,8 +142,15 @@ export function SupervisorControl({
     void load();
   }, [load]);
 
+  // Drive the panel's own scroll container rather than calling scrollIntoView
+  // on a sentinel. On a nested scroller that walks up to the nearest scrollable
+  // ancestor, which here moved the panel by 11px of 580 and left the newest
+  // messages - including any action chip - below the fold on load. Setting
+  // scrollTop cannot escape the element it is called on.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
   }, [thread?.messages.length, busy]);
 
   /** Grow the composer with its content, up to a point, the way both reference
@@ -206,7 +222,7 @@ export function SupervisorControl({
         </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 py-6">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6">
         <div className="mx-auto flex w-full max-w-[760px] flex-col gap-7">
           {error ? <ErrorView compact err={error} onRetry={() => void load()} /> : null}
 
@@ -236,7 +252,6 @@ export function SupervisorControl({
             </div>
           ) : null}
 
-          <div ref={endRef} />
         </div>
       </div>
 
