@@ -99,7 +99,7 @@ export function MetricsPage() {
                       : "rose",
             }}
             title="Metrics"
-            purpose="What the orchestrator actually cost and returned over this window: spend by role, latency by phase, and which providers earned their runs."
+            purpose="What your runs cost, and how long they took."
             actions={
               <>
                 <div className="inline-flex items-center gap-1 rounded-[12px] border border-[color:var(--line-strong)] bg-coal-500 p-[3px]">

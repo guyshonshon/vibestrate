@@ -87,7 +87,7 @@ export function WorkspacePage() {
           tone: totals && totals.activeRuns > 0 ? "violet" : "neutral",
         }}
         title="All projects"
-        purpose="A glance across every registered project - each runs on its own isolated dashboard and scheduler. Open any one in a new tab; dormant ones start on demand."
+        purpose="Every project you have registered. Open one in a new tab."
         actions={
           <>
             {/* Segmented range toggle - the Board's toolbar idiom. */}

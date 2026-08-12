@@ -307,7 +307,7 @@ export function RunComposePage() {
       <Cell size="full" reason="masthead">
         <PageHero
           title="New run"
-          purpose="Describe the change or pick one up from your roadmap, choose the flow and crew, and start. The run plans, builds, reviews and verifies, then stops before anything ships."
+          purpose="Describe the change, pick the flow and crew, start. It stops before anything ships."
           footer={
             <>
               <span className="shrink-0">The same run from a terminal:</span>

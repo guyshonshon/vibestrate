@@ -256,18 +256,18 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
                   : "Nothing blocked",
               note:
                 approvals.length > 0
-                  ? "A run has stopped and cannot move until you decide."
-                  : "No run is waiting on a decision. Describe the next one below.",
+                  ? "A run stopped and needs your answer."
+                  : "Nothing is waiting on you. Start something below.",
               tone: approvals.length > 0 ? "amber" : "emerald",
             }}
             title="Mission control"
-            purpose="Where work starts. Describe a change, pick the flow and crew that should carry it, and answer anything a run stops to ask you."
+            purpose="Describe a change and start a run. Answer anything it stops to ask."
             actions={
               <Button variant="secondary" size="sm" onClick={onShowDashboard}>
                 Open dashboard
               </Button>
             }
-            footer="The dashboard has the panels: recent runs, queue, spend and the rest."
+            footer="Runs, queue and spend live on the dashboard."
           />
         </Cell>
 

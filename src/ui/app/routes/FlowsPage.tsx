@@ -260,7 +260,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
             tone: "violet",
           }}
           title="Flows"
-          purpose="A flow is the recipe your crew follows - ordered steps, the roles that run them, and the approval gates between them. The default flow runs unless a run names a different one."
+          purpose="A flow is the steps a run follows, and who runs each one."
           actions={
             <>
               <Button

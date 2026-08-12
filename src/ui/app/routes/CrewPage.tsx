@@ -176,7 +176,7 @@ export function CrewPage({
           <Cell size="full" reason="masthead">
             <PageHero
               title="Crew"
-              purpose="The providers your roles can run on. A provider is a local CLI this machine can call; a profile pins one to a model and effort, and a role points at a profile."
+              purpose="The local CLIs your roles run on."
               actions={
                 <SegmentedControl
                   options={CREW_TABS}
@@ -204,7 +204,7 @@ export function CrewPage({
                 tone: "violet",
               }}
               title="Crew"
-              purpose="A crew is the cast for a run: a set of roles, each on a profile, each claiming the seats a flow asks for. Open one to see its roster and where it has gaps."
+              purpose="A crew is the cast for a run. Open one to see its roles."
               actions={
                 <SegmentedControl
                   options={CREW_TABS}
@@ -216,7 +216,7 @@ export function CrewPage({
                 { value: crews?.length ?? "-", label: "crews" },
                 { value: flows?.length ?? "-", label: "flows they can run" },
               ]}
-              footer="Installing a preset writes a crew into your project config - nothing runs until you pick it."
+              footer="Installing a preset just saves it. Nothing runs until you pick it."
             />
           </Cell>
           {error ? (
@@ -308,7 +308,7 @@ export function CrewPage({
                       tone,
                     }}
                     title={crew.label}
-                    purpose="A crew is the cast for a run. Each role runs on a profile (the model and effort) and claims one or more seats. When a run starts, the flow's required seats are matched against these roles."
+                    purpose="Each role runs on a profile and fills one of the flow's seats."
                     actions={
                       <>
                         <Button

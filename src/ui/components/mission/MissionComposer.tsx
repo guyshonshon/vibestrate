@@ -215,7 +215,7 @@ function PatchBay({
   if (!flow) {
     return wrap(
       <p className="max-w-[300px] text-[12px] leading-[1.5] text-chalk-400">
-        Auto - the orchestrator picks the flow and fills its seats from the default crew. Pick a flow to see the wiring.
+        Auto picks both for you. Pick a flow to see its seats.
       </p>,
     );
   }
@@ -960,7 +960,7 @@ export function MissionComposer() {
           <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-800 p-4">
             <h3 className="text-[13.5px] font-bold text-chalk-100">Run summary</h3>
             <p className="mt-1 text-[12px] leading-[1.5] text-chalk-400">
-              What this run will do, before you start it.
+              What happens when you start.
             </p>
 
             <div className="mt-3 flex flex-col gap-2">

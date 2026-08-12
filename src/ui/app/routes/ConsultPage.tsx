@@ -116,7 +116,7 @@ export function ConsultPage({
           tone: "emerald",
         }}
         title="Ask the project orchestrator"
-        purpose="A project-aware advisor. It answers only from controlled context - your VIBESTRATE.md, config, recent runs and annotations - and is honest about what it could not verify."
+        purpose="Ask about this project. It answers from your files, config and runs."
         actions={
           taskId ? (
             <Button
@@ -128,7 +128,7 @@ export function ConsultPage({
             </Button>
           ) : undefined
         }
-        footer="Answers are grounded in this project only - it will say so when it had to guess."
+        footer="It says so when it had to guess."
       />
       </Cell>
 

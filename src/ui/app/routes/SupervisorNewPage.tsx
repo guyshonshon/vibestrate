@@ -104,7 +104,7 @@ export function SupervisorNewPage({ onDone }: { onDone: () => void }) {
               tone: "violet",
             }}
             title="Add a supervisor"
-            purpose="A supervisor is a judgment posture: which lenses the reviewers use, which flow risky work is upgraded to, and the safety posture it suggests. Adopt a curated one, or write your own."
+            purpose="A supervisor decides how hard to check a run. Adopt one, or write your own."
             actions={
               <Button
                 variant="secondary"
@@ -115,7 +115,7 @@ export function SupervisorNewPage({ onDone }: { onDone: () => void }) {
                 Back to supervisors
               </Button>
             }
-            footer="Both paths write a personas: entry into project.yml, which you review like any other config."
+            footer="Either way it lands in project.yml, for you to review."
           />
         </Cell>
 

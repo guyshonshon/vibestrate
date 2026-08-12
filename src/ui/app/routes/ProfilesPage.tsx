@@ -229,7 +229,7 @@ export function ProfilesPage() {
               tone: broken.length > 0 ? "amber" : "violet",
             }}
             title="Profiles"
-            purpose="A profile is a reusable preset of how strong and expensive a run is - a provider plus model and effort. Keep several per provider (say claude and claude-cheap) and let each crew role pick the one it deserves."
+            purpose="A profile is a model plus effort, saved to reuse. Keep a strong one and a cheap one."
             actions={
               <Button
                 variant="primary"
@@ -253,7 +253,7 @@ export function ProfilesPage() {
                   ]
                 : []),
             ]}
-            footer="Changing a profile changes every role pointing at it, on the next run."
+            footer="Editing one changes every role using it, from the next run."
           />
         </Cell>
 

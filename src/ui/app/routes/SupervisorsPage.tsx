@@ -106,7 +106,7 @@ export function SupervisorsPage({ onAddSupervisor }: { onAddSupervisor: () => vo
               tone: "violet",
             }}
             title="Supervisors"
-            purpose="The orchestrator's judgment postures. A supervisor decides how hard to look at a run: which lenses the reviewers are aimed at, which flow risky work is upgraded to, and the safety posture it suggests."
+            purpose="A supervisor decides how hard to check a run, and how careful to be."
             actions={
               <>
                 <Button variant="primary" size="sm" onClick={onAddSupervisor}>

@@ -98,7 +98,7 @@ export function ProposalsPage({
               tone: drafts > 0 ? "amber" : "emerald",
             }}
             title="Roadmap proposals"
-            purpose="One inbox for every roadmap draft, whether the planner wrote it from a broad goal here or it came out of a spec-up run. Review, dry-run, then accept to create the roadmap items and tasks."
+            purpose="Every roadmap draft, waiting for you. Review one, then accept it to create the tasks."
             actions={
               <div className="flex w-[440px] max-w-full items-center gap-2">
                 <input

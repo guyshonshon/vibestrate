@@ -178,7 +178,7 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
               tone: active > 0 ? "violet" : "neutral",
             }}
             title="Dashboard"
-            purpose="What the orchestrator is doing right now. Every panel here can be moved or hidden - the arrangement is yours and it persists."
+            purpose="What is running right now. Move or hide any panel; it stays that way."
             actions={
               <Button variant="primary" size="sm" onClick={onCompose}>
                 New run
