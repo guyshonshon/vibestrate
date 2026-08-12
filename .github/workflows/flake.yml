@@ -32,7 +32,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        seed: [11, 2027, 60013]
+        # An INDEX, not a seed. The seed is derived per run below - a hardcoded
+        # list would replay the same three orders every night, so once they went
+        # green they would stay green forever and the job would explore nothing.
+        lane: [0, 1, 2]
     steps:
       - uses: actions/checkout@v4
 
@@ -61,13 +64,19 @@ jobs:
       # throw "Unknown option"). Three independent full runs in separate
       # processes cover most of what it gave us anyway - a test that only passes
       # the first time fails the next seed's run.
-      - name: Test (seed ${{ matrix.seed }})
-        run: pnpm vitest run --sequence.seed=${{ matrix.seed }}
+      # Fresh every night, still replayable: github.run_id is unique per run and
+      # printed in the log, so a red night can be reproduced exactly.
+      - name: Pick a seed
+        id: pick
+        run: echo "seed=$(( (${{ github.run_id }} + ${{ matrix.lane }} * 7919) % 2000000000 ))" >> "$GITHUB_OUTPUT"
+
+      - name: Test (seed ${{ steps.pick.outputs.seed }})
+        run: pnpm vitest run --sequence.seed=${{ steps.pick.outputs.seed }}
 
       - name: How to reproduce
         if: failure()
         run: |
           echo "This order is replayable. Locally:"
-          echo "  pnpm vitest run --sequence.seed=${{ matrix.seed }}"
+          echo "  pnpm vitest run --sequence.seed=${{ steps.pick.outputs.seed }}"
           echo "If it passes locally, the difference is timing, not order -"
           echo "check the worker cap and the timeouts in vitest.config.ts."

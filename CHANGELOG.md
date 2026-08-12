@@ -2,10 +2,9 @@
 
 ## 1.1.6
 
-- **The replay timeline works.** `state.changed` had four consumers - the replay
-  service, pause, the shell snapshot, the event log - and nothing anywhere
-  emitted it, so a feature that looked finished had never produced a single
-  event. The emitter now lives in the run state store's `write` and `mutate`
+- **The replay timeline works.** `state.changed` was read by the replay service
+  and the shell snapshot, and nothing anywhere emitted it, so a feature that
+  looked finished had never produced a single event. The emitter now lives in the run state store's `write` and `mutate`
   rather than at the forty-odd places that change state, because a funnel is the
   only version of this you cannot forget to call.
 - **The supervisor leads Mission Control.** It sits above the composer, with its
@@ -22,8 +21,8 @@
 - **Tests run in a random order now.** Nothing checked for order-dependence
   before, and a third of these files drive a real orchestrator against real git,
   so a fixed order let one file leave state the next quietly relied on. A failure
-  prints its seed and replays exactly. A nightly job draws three fresh seeds,
-  because one green run is one draw, not proof.
+  prints its seed and replays exactly. A nightly job draws three new seeds each
+  night, because one green run is one draw, not proof.
 
 ## 1.1.5
 

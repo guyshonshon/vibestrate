@@ -146,4 +146,44 @@ describe("supervisor conversation routes", () => {
     expect(body.thread.messages.every((m) => m.role === "user")).toBe(true);
     expect(body.thread.messages.every((m) => m.action === null)).toBe(true);
   });
+
+  it("scopes the thread list in BOTH directions", async () => {
+    // The Mission Control panel asks with no runId. Before this was scoped, that
+    // returned every thread including run-scoped ones, so the project panel
+    // would adopt whichever run was talked to most recently as its own
+    // conversation - the same lost-referent bug that scoping to a run fixes.
+    //
+    // Driven through the route rather than the store: the filter lives at
+    // routes/supervisor.ts, and asserting it against store.list() would just
+    // re-implement the line under test.
+    const project = await makeProject();
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    const mk = async (runId?: string) => {
+      const res = await fetch(`${server!.url}/api/supervisor/threads`, {
+        method: "POST",
+        headers: json,
+        body: JSON.stringify(runId ? { runId } : {}),
+      });
+      expect(res.status).toBe(200);
+      return ((await res.json()) as { thread: { id: string } }).thread.id;
+    };
+    const list = async (q: string) => {
+      const res = await fetch(`${server!.url}/api/supervisor/threads${q}`);
+      const { threads } = (await res.json()) as { threads: Array<{ id: string }> };
+      return threads.map((t) => t.id).sort();
+    };
+
+    const projectThread = await mk();
+    const runA = await mk("run-a");
+    const runB = await mk("run-b");
+
+    expect(await list(""), "no runId means the PROJECT thread, not everything").toEqual([
+      projectThread,
+    ]);
+    expect(await list("?runId=run-a"), "a run sees only its own").toEqual([runA]);
+    expect(await list("?runId=run-b")).toEqual([runB]);
+    expect(await list("?runId=run-nope"), "an unknown run sees none").toEqual([]);
+  });
+
 });
