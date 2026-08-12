@@ -157,7 +157,17 @@ export function Sidebar({
           className="flex items-center gap-2.5"
           aria-label="Mission control"
         >
-          <span className="h-7 w-7 rounded-[9px] bg-gradient-to-br from-violet-soft to-[#6d4fd4]" />
+          {/* The real mark, the same asset InitScreen renders. This used to be a
+              gradient square standing in for it. Percentage radius so the corners
+              stay proportional if the size changes; the wordmark beside it stays
+              TEXT because logo-wordmark.png is a single white glyph with no dark
+              variant and disappears on the light theme. */}
+          <img
+            src="./logo-icon.png"
+            alt=""
+            className="h-7 w-7 rounded-[22%]"
+            decoding="async"
+          />
           <span className="text-[16px] font-extrabold tracking-[-0.01em] text-chalk-100">
             vibestrate
           </span>
