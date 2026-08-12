@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.1.6
+
+- **The replay timeline works.** `state.changed` had four consumers - the replay
+  service, pause, the shell snapshot, the event log - and nothing anywhere
+  emitted it, so a feature that looked finished had never produced a single
+  event. The emitter now lives in the run state store's `write` and `mutate`
+  rather than at the forty-odd places that change state, because a funnel is the
+  only version of this you cannot forget to call.
+- **The supervisor leads Mission Control.** It sits above the composer, with its
+  own project-level conversation: say what you want and it can make the task and
+  start the run. A run's own thread stays on that run's page and will not start a
+  second run from inside the first - it offers to add the work to the task
+  instead. Listing threads without a run id used to return every thread, so the
+  project panel could adopt whichever run you last talked to as its own
+  conversation.
+- **The chat opens where the conversation is.** The transcript did not scroll to
+  the end on load, so the newest messages - including the chip saying whether a
+  task or a run had just been created - sat below the fold. Your own message also
+  filled the whole column, which is what made it stop reading as a chat.
+- **Tests run in a random order now.** Nothing checked for order-dependence
+  before, and a third of these files drive a real orchestrator against real git,
+  so a fixed order let one file leave state the next quietly relied on. A failure
+  prints its seed and replays exactly. A nightly job draws three fresh seeds,
+  because one green run is one draw, not proof.
+
 ## 1.1.5
 
 > **Versions 1.1.0 through 1.1.4 were never published.** They were local bumps
