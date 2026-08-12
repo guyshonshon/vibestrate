@@ -130,7 +130,7 @@ export function MetricsPage() {
                 </Button>
               </>
             }
-            footer={`Window: last ${range}. Figures refresh every 8 seconds; export takes a snapshot of exactly what is on screen.`}
+            footer={`Last ${range}, refreshed every 8 seconds. Export saves what is on screen.`}
           />
         </Cell>
 

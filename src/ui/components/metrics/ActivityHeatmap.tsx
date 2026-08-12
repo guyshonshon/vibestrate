@@ -67,7 +67,7 @@ export function ActivityHeatmapPanel({
         </div>
       </div>
       {data.length === 0 ? (
-        <EmptyState text="No activity recorded yet. Runs plot by hour and weekday once they start landing." />
+        <EmptyState text="No activity yet." />
       ) : (
         <div className="relative" ref={ref}>
           <div className="overflow-x-auto">

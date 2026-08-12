@@ -515,7 +515,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           <Panel>
             {meta.recentRuns.length === 0 ? (
               <Empty>
-                No runs yet. Queue one from Mission Control to see it land here.
+                No runs yet. Start one from Mission control.
               </Empty>
             ) : (
               <ul className="flex flex-col gap-1.5">

@@ -10,7 +10,7 @@ export function LeaderboardTable({ overview }: { overview: MetricsOverview | nul
   if (rows.length === 0)
     return (
       <div className={CARD}>
-        <EmptyState text="No agents have produced runs in this window yet. Queue a run to populate the ranking." />
+        <EmptyState text="No agents have run in this window." />
       </div>
     );
   return (

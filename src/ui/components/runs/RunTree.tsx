@@ -330,7 +330,7 @@ export function RunTree({
   if (!audit) {
     return (
       <div className="p-6 text-center text-[13px] text-chalk-400">
-        No activity tree yet. It appears once the run starts writing its events.
+        No activity yet.
       </div>
     );
   }

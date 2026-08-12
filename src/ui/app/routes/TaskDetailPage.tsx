@@ -251,7 +251,7 @@ export function TaskDetailPage({
                 </div>
               ) : (
                 <div className="text-[12px] text-chalk-400">
-                  No description yet - the brief grounds what the supervisor plans.
+                  No description yet. The supervisor plans from it.
                 </div>
               )}
               <div className="mt-3 border-t border-[color:var(--line-soft)] pt-3">

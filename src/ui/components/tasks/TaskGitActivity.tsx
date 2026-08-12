@@ -96,7 +96,7 @@ export function TaskGitActivity({
       <div className={CARD}>
         {runIds.length === 0 ? (
           <div className="text-[12px] text-chalk-400">
-            No runs yet - queue this task to see scoped git activity here.
+            No runs yet.
           </div>
         ) : (
           <>

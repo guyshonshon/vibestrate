@@ -26,37 +26,37 @@ const STEPS: readonly [
   {
     id: "runs",
     title: "Runs",
-    body: "Every task you start shows up here - queued, executing, or waiting on you to approve something.",
+    body: "Every run you start shows up here: queued, working, or waiting on you.",
     anchor: "nav-runs",
   },
   {
     id: "flows",
     title: "Flows",
-    body: "Flows are the playbooks a run follows. Built-in ones cover the common shapes; add your own per project.",
+    body: "A flow is the playbook a run follows. Use a builtin, or add your own.",
     anchor: "nav-flows",
   },
   {
     id: "board",
     title: "Board",
-    body: "The Board lines up every active run side by side, with its phase and current agent.",
+    body: "Every active run side by side, with its phase and agent.",
     anchor: "nav-board",
   },
   {
     id: "policies",
     title: "Policies",
-    body: "Rules you write once that every run is checked against. Advise rules go to the reviewer; a block rule is a matcher that caps the merge even when the reviewer approved.",
+    body: "Rules every run is checked against. Advise rules guide the reviewer; a block rule caps the merge even when the reviewer approved.",
     anchor: "nav-policies",
   },
   {
     id: "consult",
     title: "Consult",
-    body: "The orb answers questions about the project from its real context - read-only, it never acts on its own.",
+    body: "The orb answers questions about your project. It never acts.",
     anchor: "consult-orb",
   },
   {
     id: "new-run",
     title: "New run",
-    body: "This is where it starts - describe the task and the orchestrator takes it from there. Settings and the help overlay (press ?) cover the rest.",
+    body: "Describe what you want, and it takes it from there. Press ? any time for help.",
     anchor: "nav-new-run",
   },
 ];

@@ -48,7 +48,7 @@ export function OutcomesDonut({ overview }: { overview: MetricsOverview | null }
         Outcomes
       </h3>
       {sum === 0 ? (
-        <EmptyState text="No outcomes recorded for this range. Completed runs split into merged, changes requested, and failed here." />
+        <EmptyState text="No outcomes in this range." />
       ) : (
         <>
           <div className="flex items-center gap-5">

@@ -31,7 +31,7 @@ export function RunsPanel({ overview }: { overview: MetricsOverview | null }) {
         </div>
       </div>
       {data.length === 0 ? (
-        <EmptyState text="No runs yet. Every completed run lands here - queue one from Mission control to get started." />
+        <EmptyState text="No runs yet. Start one from Mission control." />
       ) : (
         <RunsAreaChart data={data} height={240} />
       )}

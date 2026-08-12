@@ -249,7 +249,7 @@ export function GitDag({ graph, selectedHash, onSelectCommit, source, target }: 
   if (commits.length === 0) {
     return (
       <div className="flex h-32 items-center justify-center text-[12px] text-chalk-300">
-        No commits loaded - refresh once the repository has history.
+        No commits yet.
       </div>
     );
   }

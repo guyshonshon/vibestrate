@@ -10,7 +10,7 @@ export function PerModelPanel({ overview }: { overview: MetricsOverview | null }
         Per model
       </h3>
       {rows.length === 0 ? (
-        <EmptyState text="No model usage in this window yet. Once a run completes, its model calls tally here." />
+        <EmptyState text="No model usage in this window." />
       ) : (
         <table className="w-full text-[12.5px]">
           <thead>

@@ -30,7 +30,7 @@ export function SpendByRolePanel({ overview }: { overview: MetricsOverview | nul
         ) : null}
       </div>
       {data.length === 0 ? (
-        <EmptyState text="No agent spend recorded yet. Once metered runs complete, spend per agent shows up here." />
+        <EmptyState text="No spend recorded yet." />
       ) : (
         <div className="space-y-3">
           {data.map((d) => {

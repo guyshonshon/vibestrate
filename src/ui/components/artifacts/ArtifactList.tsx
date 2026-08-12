@@ -119,7 +119,7 @@ export function ArtifactList({
           type="button"
           onClick={() => setShowInternals((v) => !v)}
           className="text-[11px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
-          title="Prompts, context packets, diff snapshots, validation output files - the run's plumbing"
+          title="Prompts, context packets, diff snapshots and validation output."
         >
           {showInternals
             ? "hide internals"

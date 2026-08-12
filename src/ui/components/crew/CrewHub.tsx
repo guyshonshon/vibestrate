@@ -47,7 +47,7 @@ export function CrewHub({
         // Empty state is a CTA, not a dead end - a preset below installs one.
         <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-8 text-center">
           <p className="text-[13px] text-chalk-300">
-            No crews yet. Install a ready-made preset to get your first roster.
+            No crews yet. Install a preset below.
           </p>
           <div className="mt-3 flex justify-center">
             <Button

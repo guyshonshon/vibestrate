@@ -773,7 +773,7 @@ function HubSection({
                     </label>
                     {projectFlows.length === 0 ? (
                       <p className="text-[12.5px] text-chalk-400">
-                        No project flows found. Fork or create a project flow first.
+                        No project flows yet. Fork a builtin to make one.
                       </p>
                     ) : (
                       <select

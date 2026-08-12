@@ -47,7 +47,7 @@ export function WorktreeFileView({
   if (!filePath)
     return (
       <div className="px-4 py-8 text-center text-[12.5px] text-chalk-400">
-        Select a changed file to view its contents in the run's worktree.
+        Pick a changed file to see it.
       </div>
     );
   if (error)

@@ -131,7 +131,7 @@ export function WorkspacePage() {
             </Button>
           </>
         }
-        footer={`Window: last ${range}. Registering a project only records its path - nothing starts until you open it.`}
+        footer={`Last ${range}. Registering a project records its path; nothing starts until you open it.`}
       />
         </Cell>
 

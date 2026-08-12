@@ -146,7 +146,7 @@ export function ProposalsPage({
         {proposals.length === 0 ? (
           <Cell size="full" reason="masthead">
             <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 px-6 py-10 text-center text-[13px] text-chalk-300">
-              No proposals yet. Describe a goal above and generate your first one.
+              No proposals yet. Describe a goal above to make one.
             </div>
           </Cell>
         ) : (
