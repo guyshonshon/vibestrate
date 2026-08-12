@@ -87,7 +87,9 @@ The run container is then placed on a Docker network created with `--internal` -
 
 **The enforcement is the network, not the proxy setting.** The run container also gets `HTTP_PROXY`/`HTTPS_PROXY` pointing at the proxy, but those only tell a well-behaved client where to go. Code that ignores them and opens a raw socket finds no route, because an internal network has no gateway. That is the whole point: an allowlist proxy on a *routable* network would be security theater that one raw socket defeats.
 
-Measured on the real thing, from inside a confined run container: no default route, public IPs unreachable, `169.254.169.254` (cloud metadata) unreachable, external DNS through Docker's embedded resolver returns SERVFAIL, and adding a route back out fails with `Operation not permitted` because `--cap-drop=ALL` removes `CAP_NET_ADMIN`.
+Measured on the real thing, from inside a confined run container: no default route, public IPs unreachable (`ENETUNREACH`, even for code that ignores the proxy variables entirely), `169.254.169.254` (cloud metadata) unreachable, external DNS through Docker's embedded resolver returns SERVFAIL, and adding a route back out fails with `Operation not permitted` because `--cap-drop=ALL` removes `CAP_NET_ADMIN`.
+
+**Your own localhost services are out of reach too.** `--internal` only filters *forwarded* traffic - the host normally keeps an address on the bridge, and packets to it take a different path - so a database or dev server bound to `0.0.0.0` would otherwise still be reachable from the "confined" container. The network is created with the host's address inhibited, so there is nothing on it to address the host by. This needs Docker Engine 25 or newer; on an older daemon the run is refused rather than started with the weaker network.
 
 </div>
 
@@ -106,8 +108,8 @@ Setting up the network or the proxy is **fail-closed**. If either can't be creat
 **What an allowlist does not close.** Three honest limits:
 
 - The proxy tunnels TLS, so it cannot see inside a connection to a host you allowed. Data can still be encoded into an otherwise-legitimate request to an allowed model API. Hostname allowlisting **narrows** exfiltration to the hosts you named; it does not eliminate it.
-- `--internal` blocks *forwarded* traffic, so the internet is unreachable - but the **host itself is still reachable at the bridge gateway address**. A service you have bound to `0.0.0.0` on the machine (a dev server, a database, a Docker TCP socket) is reachable from inside the confined container. On Docker Desktop that "host" is the Linux VM; on native Linux it is your actual machine. Bind local services to `127.0.0.1` if that matters to you.
 - MCP-tool turns don't run under the container backend at all, so their egress isn't covered by this.
+- The proxy is not authenticated, so other containers on your default Docker bridge can use it. It only ever relays to allowlisted hosts, so the blast radius is small, but it isn't private.
 
 </div>
 

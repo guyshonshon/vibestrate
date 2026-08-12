@@ -50,9 +50,15 @@ names the file and the reason. For the `require_approval` case, change it to
   an allowlisting proxy - so the model APIs still work and everything else is
   refused with the exact host logged, and code that ignores `HTTPS_PROXY` finds no
   route rather than a way around. If the network or proxy can't be created, the
-  run is refused instead of quietly running with full egress. A TLS tunnel to an
-  allowed host stays opaque, so this narrows exfiltration to hosts you named - it
-  does not close it, and the docs say so.
+  run is refused instead of quietly running with full egress. Your own localhost
+  services are out of reach as well: the network is created with the host's
+  address inhibited, because `--internal` alone only filters forwarded traffic
+  and would have left a database or dev server bound to `0.0.0.0` reachable from
+  inside the "confined" container. Verified end to end against real Docker - no
+  route out, cloud metadata unreachable, allowlisted hosts tunnelling, blocked
+  hosts refused, and every container and network removed on teardown. A TLS
+  tunnel to an allowed host stays opaque, so this narrows exfiltration to hosts
+  you named - it does not close it, and the docs say so.
 - **An unattended run with nothing bounding it says so.** No budget ceiling and
   no confinement, launched with `--unattended`: `vibe run` prints that before it
   starts, and the run records it. Advice, not a gate.

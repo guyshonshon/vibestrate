@@ -13,10 +13,14 @@ import {
   startEgressProxy,
 } from "../src/core/execution/egress-proxy.js";
 import path from "node:path";
+import os from "node:os";
+import fs from "node:fs/promises";
+import { execa } from "execa";
 import {
   buildDockerRunArgs,
   buildEgressProxyRunArgs,
   egressProxyModulePath,
+  makeDockerBackend,
 } from "../src/core/execution/docker-backend.js";
 import { egressConfigSchema } from "../src/core/execution/execution-backend-schema.js";
 
@@ -340,6 +344,67 @@ describe("the proxy module is resolvable as a real file to bind-mount", () => {
     expect(tried.length).toBeGreaterThanOrEqual(2);
     expect(tried.every((p) => p.endsWith("egress-proxy.js"))).toBe(true);
     expect(tried.some((p) => p.includes(`${path.sep}dist${path.sep}`))).toBe(true);
+  });
+});
+
+describe("the isolated network keeps the host out of reach", () => {
+  /** Drive prepareRun with a fake docker so the argv is asserted anywhere,
+   *  including CI with no daemon. */
+  async function captureDockerArgs() {
+    const calls: string[][] = [];
+    const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-net-"));
+    await execa("git", ["init", "-q", "-b", "main"], { cwd: projectRoot });
+    await execa("git", ["config", "user.email", "e@x.com"], { cwd: projectRoot });
+    await execa("git", ["config", "user.name", "e"], { cwd: projectRoot });
+    await fs.writeFile(path.join(projectRoot, "README.md"), "# t\n");
+    await execa("git", ["add", "-A"], { cwd: projectRoot });
+    await execa("git", ["commit", "-qm", "init"], { cwd: projectRoot });
+
+    const backend = makeDockerBackend({
+      image: "node:22-slim",
+      onUnavailable: "fail",
+      readonlyRoot: false,
+      pidsLimit: 512,
+      egress: { mode: "allowlist", allow: [] },
+      available: async () => true,
+      exec: async (_file, args) => {
+        calls.push(args);
+        return { exitCode: 0, stdout: "fake-id", stderr: "" };
+      },
+    });
+    await backend.prepareRun({
+      projectRoot,
+      runId: "t1",
+      branchPrefix: "vibestrate",
+      worktreeDir: path.join(projectRoot, ".vibestrate", "worktrees"),
+      mainBranch: "main",
+    });
+    await fs.rm(projectRoot, { recursive: true, force: true }).catch(() => {});
+    return calls;
+  }
+
+  it("creates the network with the host address inhibited", async () => {
+    // `--internal` filters FORWARDed traffic, but the host keeps an address on
+    // the bridge and packets to it traverse INPUT instead - so a database or dev
+    // server bound to 0.0.0.0 stayed reachable from inside the "confined"
+    // container. inhibit_ipv4 removes that address entirely.
+    const calls = await captureDockerArgs();
+    const create = calls.find((a) => a[0] === "network" && a[1] === "create");
+    expect(create, "the run network must be created").toBeDefined();
+    expect(create).toContain("--internal");
+    expect(create).toContain("com.docker.network.bridge.inhibit_ipv4=true");
+  });
+
+  it("puts the proxy on the internal network and bridges only the proxy", async () => {
+    const calls = await captureDockerArgs();
+    const connect = calls.find((a) => a[0] === "network" && a[1] === "connect");
+    expect(connect, "only the proxy gets an outbound network").toBeDefined();
+    expect(connect).toContain("bridge");
+    const runContainer = calls.find(
+      (a) => a[0] === "run" && a.includes("--name") && a.includes("vibestrate-t1"),
+    );
+    expect(runContainer).toBeDefined();
+    expect(runContainer, "the run container must never join bridge").not.toContain("bridge");
   });
 });
 

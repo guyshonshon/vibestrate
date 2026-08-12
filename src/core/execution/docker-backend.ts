@@ -428,12 +428,23 @@ export function makeDockerBackend(deps: DockerBackendDeps): ExecutionBackend {
           "label=vibestrate.managed=true",
         ]);
 
-        // `--internal` = a bridge network with NO gateway. Containers on it can
-        // talk to each other and to nothing else.
+        // `--internal` = a bridge network with no route off it, so the internet
+        // and cloud metadata are unreachable. On its own that is not quite
+        // enough: `--internal` filters FORWARDed traffic, but the HOST still has
+        // an address on the bridge, and packets to it go through INPUT instead -
+        // so anything the user has bound to 0.0.0.0 (a database, a dev server)
+        // stays reachable from inside the "confined" container.
+        //
+        // `inhibit_ipv4` is what closes that: the host side of the bridge gets
+        // no IPv4 address at all, so there is nothing on this network to address
+        // it by. Container-to-container traffic and Docker's embedded DNS are
+        // unaffected, which is all the run container needs to reach the proxy.
         const net = await runExec("docker", [
           "network",
           "create",
           "--internal",
+          "-o",
+          "com.docker.network.bridge.inhibit_ipv4=true",
           "--label",
           "vibestrate.managed=true",
           networkName,
@@ -441,7 +452,8 @@ export function makeDockerBackend(deps: DockerBackendDeps): ExecutionBackend {
         if (net.exitCode !== 0) {
           throw new VibestrateError(
             "DOCKER_EGRESS_NETWORK_FAILED",
-            `execution.container.egress.mode is "allowlist" but the isolated Docker network could not be created: ${net.stderr.trim() || net.stdout.trim()}. Refusing to run with open egress.`,
+            `execution.container.egress.mode is "allowlist" but the isolated Docker network could not be created: ${net.stderr.trim() || net.stdout.trim()}. ` +
+              `This needs Docker Engine 25 or newer (for the host-address inhibit that keeps your own localhost services out of reach of the run). Refusing to run with open egress.`,
           );
         }
         egressNetwork = networkName;
