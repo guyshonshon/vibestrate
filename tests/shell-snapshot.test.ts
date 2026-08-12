@@ -116,20 +116,26 @@ describe("buildShellSnapshot", () => {
       type: "run.created",
       message: "Run created.",
     });
+    // The payload RunStateStore actually emits: {from,to}, and a bare
+    // transition string for a message. Appended BEFORE the policy.warning
+    // because that is the real ordering - the state write precedes the event
+    // explaining it (approval-gate.ts writes blockedState, THEN appends
+    // approval.rejected). "why" is first-rank-wins, so a transition that
+    // scored above 0 would win here and bury the actual reason.
+    await appendEvent(root, "run-1", {
+      type: "state.changed",
+      message: "executing → blocked",
+      data: { from: "executing", to: "blocked" },
+    });
     await appendEvent(root, "run-1", {
       type: "policy.warning",
       message: "forbidMainBranchWrites: project main is dirty",
     });
-    await appendEvent(root, "run-1", {
-      type: "state.changed",
-      message: "Run blocked by preflight policy.",
-      data: { status: "blocked" },
-    });
     const snap = await buildShellSnapshot(root);
     const row = snap.runs[0]!;
     expect(row.lastRole).toBeNull();
-    // policy.warning has the most useful "why" - should win over
-    // the generic state-change message.
+    // policy.warning has the most useful "why" - it must win over the
+    // earlier transition, which carries no reason at all.
     expect(row.error).toBe(
       "forbidMainBranchWrites: project main is dirty",
     );

@@ -520,9 +520,17 @@ function deriveLive(events: ShellEvent[]): {
     //
     // Priority: a hard failure (role.failed / provider.failed /
     // run.failed / run.aborted) wins over a softer one (policy
-    // warning, approval reject, generic state→blocked). We
-    // OVERWRITE a softer earlier reason when a hard one shows up,
-    // but never overwrite a hard reason with a softer follow-up.
+    // warning, approval reject). We OVERWRITE a softer earlier
+    // reason when a hard one shows up, but never overwrite a hard
+    // reason with a softer follow-up.
+    //
+    // A `state.changed` into "blocked" deliberately ranks 0. It used to rank 1,
+    // back when nothing emitted the event and the branch could never fire. Now
+    // that it does fire, ranking it would WIN: the approval gate writes the
+    // blocked state before appending approval.rejected, and the first rank>0
+    // event sticks unless a rank-3 one follows. The user would read
+    // "waiting_for_approval → blocked" where the rejection reason belongs.
+    // A transition is not a reason.
     const eventReasonRank = (t: string): number => {
       if (
         t === "role.failed" ||
@@ -536,12 +544,7 @@ function deriveLive(events: ShellEvent[]): {
       if (t === "policy.warning") return 1;
       return 0;
     };
-    const isBlockedTransition =
-      ev.type === "state.changed" &&
-      ev.data &&
-      typeof ev.data.status === "string" &&
-      ev.data.status === "blocked";
-    const incomingRank = isBlockedTransition ? 1 : eventReasonRank(ev.type);
+    const incomingRank = eventReasonRank(ev.type);
     if (incomingRank > 0 && ev.message) {
       if (!errorFromEvents || incomingRank >= 3) {
         errorFromEvents = ev.message;
