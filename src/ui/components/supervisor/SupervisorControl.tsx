@@ -87,7 +87,19 @@ function Turn({ message }: { message: SupervisorMessageView }) {
   );
 }
 
-export function SupervisorControl({ runId }: { runId: string }) {
+export function SupervisorControl({
+  runId,
+  compact = false,
+}: {
+  /** The run this conversation is about, or null for the project-level thread
+   *  on Mission Control. A project thread is the only one allowed to start a
+   *  run: inside run X's panel "do it" would have two referents, so the
+   *  executor refuses run.start there. */
+  runId: string | null;
+  /** Shorter on Mission Control, where it sits above the composer rather than
+   *  filling a tab. */
+  compact?: boolean;
+}) {
   const [thread, setThread] = useState<SupervisorThreadView | null>(null);
   const [pause, setPause] = useState<SupervisorPauseView | null>(null);
   const [draft, setDraft] = useState("");
@@ -99,7 +111,7 @@ export function SupervisorControl({ runId }: { runId: string }) {
   const load = useCallback(async () => {
     try {
       const [{ threads }, { pause: p }] = await Promise.all([
-        api.listThreads(runId),
+        api.listThreads(runId ?? undefined),
         api.getSupervisorPause(),
       ]);
       setPause(p);
@@ -109,7 +121,7 @@ export function SupervisorControl({ runId }: { runId: string }) {
       // which run you meant.
       const t = newest
         ? (await api.getThread(newest.id)).thread
-        : (await api.createThread(runId)).thread;
+        : (await api.createThread(runId ?? undefined)).thread;
       setThread(t);
       setError(null);
     } catch (err) {
@@ -163,7 +175,14 @@ export function SupervisorControl({ runId }: { runId: string }) {
   const empty = thread && thread.messages.length === 0 && !error;
 
   return (
-    <section className="flex h-full min-h-[520px] flex-col overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-900">
+    <section
+      className={`flex flex-col overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-900 ${
+        // On Mission Control the height follows the conversation. Reserving the
+        // full panel for an empty thread leaves a void between the prompt and
+        // the composer below it, which reads as something failing to load.
+        compact ? (empty ? "h-[268px]" : "h-[440px]") : "h-full min-h-[520px]"
+      }`}
+    >
       <header className="flex items-center justify-between gap-3 border-b border-[color:var(--line-soft)] px-5 py-3">
         {/* No dot-and-sentence status line. Whether it can act is already
             carried by the control on the right: it reads Stop while it can act
@@ -192,13 +211,14 @@ export function SupervisorControl({ runId }: { runId: string }) {
           {error ? <ErrorView compact err={error} onRetry={() => void load()} /> : null}
 
           {empty ? (
-            <div className="pt-10 text-center">
+            <div className={compact ? "text-center" : "pt-10 text-center"}>
               <p className="text-[15px] font-semibold text-chalk-100">
-                What do you want to know about this run?
+                {runId ? "What do you want to know about this run?" : "What are we building?"}
               </p>
               <p className="mx-auto mt-2 max-w-[46ch] text-[13px] leading-relaxed text-chalk-300">
-                It can tell you what the run is doing, what to look at in the diff before
-                you approve it, or take something new down onto its task.
+                {runId
+                  ? "It can tell you what the run is doing, what to look at in the diff before you approve it, or take something new down onto its task."
+                  : "Think out loud, or ask it to make the task and get started."}
               </p>
             </div>
           ) : null}
@@ -242,7 +262,11 @@ export function SupervisorControl({ runId }: { runId: string }) {
                   void send();
                 }
               }}
-              placeholder="Ask about this run, or say what you want done"
+              placeholder={
+                runId
+                  ? "Ask about this run, or say what you want done"
+                  : "Ask anything, or say what you want built"
+              }
               className="max-h-[200px] flex-1 resize-none bg-transparent py-1 text-[13.5px] leading-relaxed text-chalk-100 placeholder:text-chalk-400 focus:outline-none"
             />
             <button

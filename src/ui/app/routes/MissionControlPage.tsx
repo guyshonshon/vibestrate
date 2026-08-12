@@ -25,6 +25,7 @@ import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import { navigate } from "../App.js";
 import { MissionComposer } from "../../components/mission/MissionComposer.js";
+import { SupervisorControl } from "../../components/supervisor/SupervisorControl.js";
 import { RunActions } from "../../components/mission/RunActions.js";
 import { Chip } from "../../components/design/Chip.js";
 import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
@@ -268,6 +269,16 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
             }
             footer="Runs, queue and spend live on the dashboard."
           />
+        </Cell>
+
+        {/* The supervisor comes FIRST, above the composer.
+            With autonomy on it can make the task and start the run itself, so
+            saying what you want out loud is a real way in rather than a side
+            channel - which is why it precedes the form rather than replacing
+            it. The form stays for when you already know the flow and crew you
+            want; a model should not be the only door into starting work. */}
+        <Cell size="full" reason="masthead">
+          <SupervisorControl runId={null} compact />
         </Cell>
 
         <Cell size="full" reason="masthead">

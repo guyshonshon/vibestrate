@@ -4,7 +4,12 @@ description: A conversation with your project's supervisor that remembers, and -
 slug: concepts/supervisor-control
 ---
 
-**Supervisor Control** is the panel on a run's page, beside the control centre. Each run gets its own thread, so "look at that again" always has a referent. It is a conversation with the supervisor that persists, knows your project, and can put work where it belongs.
+**Supervisor Control** is the first thing on Mission Control, above the composer. It is a conversation with the supervisor that persists, knows your project, and can put work where it belongs - so saying what you want out loud is a real way to start work, not a side channel.
+
+There are two kinds of thread, and the difference matters:
+
+- **The project thread**, on Mission Control. This is the one that can start runs.
+- **A run's thread**, on that run's page beside the control centre. Scoped to one run, because runs are genuinely concurrent and a shared thread would leave "do that again" without a referent. It will not start a *second* run from inside the first; it offers to add the work to the task instead.
 
 [Consult](concepts/consult) answers one question and forgets it. That is right for "what would you do here" and useless for someone you work alongside: every follow-up re-explains the project, and nothing it decided five minutes ago survives. Supervisor Control keeps the thread.
 

@@ -97,10 +97,15 @@ export async function registerSupervisorRoutes(
     "/api/supervisor/threads",
     async (req) => {
       const all = await store.list();
-      // Scoped by default: a run's panel must not show another run's conversation.
+      // Always scoped, in both directions. A run's panel must not show another
+      // run's conversation - and WITHOUT a runId this means the project thread,
+      // not "everything". Returning all threads here would let the Mission
+      // Control panel adopt whichever run was talked to most recently as its
+      // own conversation, which is the same lost-referent bug that scoping to a
+      // run was meant to fix.
       const threads = req.query.runId
         ? all.filter((t) => t.runId === req.query.runId)
-        : all;
+        : all.filter((t) => t.runId === null);
       return {
         threads: threads.map((t) => ({
           id: t.id,
