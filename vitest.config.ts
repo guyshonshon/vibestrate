@@ -32,6 +32,25 @@ export default defineConfig({
     // already describes, and a slower gate that means something beats a faster
     // one that trains you to re-run until green.
     maxWorkers: Math.max(2, Math.floor(cpus().length / 2)),
+    // Randomise order, files and tests both.
+    //
+    // Nothing else in this suite catches order-dependence: 33 files drive a
+    // real Orchestrator against real git and real subprocesses, and a fixed
+    // order lets one file leave state that the next one silently relies on.
+    // That bug does not show up as a flake, it shows up as a test that has
+    // never actually tested what it claims - until the day someone adds a file
+    // above it.
+    //
+    // Vitest prints the seed on failure, and `--sequence.seed=<n>` replays that
+    // exact order. A shuffled failure is therefore reproducible, which is the
+    // difference between this and simply making the suite random.
+    //
+    // Turned on only after the suite survived five full runs under five
+    // different seeds (1, 7, 42, 1337, 60013) - shuffle in a required gate is a
+    // promise that the suite has no order-dependence, and it was worth checking
+    // rather than asserting. .github/workflows/flake.yml keeps drawing seeds
+    // nightly, because five clean runs is evidence, not proof.
+    sequence: { shuffle: { files: true, tests: true } },
     // Reap leaked detached run-workers before and after the suite so test runs
     // can't accumulate zombie run-entry.js processes (see tests/global-setup.ts).
     globalSetup: ["./tests/global-setup.ts"],

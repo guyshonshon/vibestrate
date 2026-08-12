@@ -1,0 +1,73 @@
+name: Flake watch
+
+# Runs the whole suite several times a night, each pass under a different
+# shuffle seed, to catch what a single run cannot.
+#
+# The main gate (ci.yml) runs the suite ONCE. That answers "does it pass", not
+# "does it pass reliably" - a test that fails one run in twenty shows up there
+# as an unexplained red build, and the honest reaction to an unexplained red
+# build is to hit re-run, which is how a real bug gets trained into background
+# noise. This job makes the distinction visible: a failure here names the seed
+# that produced it, so the order is replayable rather than a story about a bad
+# night.
+#
+# Deliberately NOT a required check. Its job is to tell you something is flaky,
+# not to block a PR on a probabilistic outcome.
+
+on:
+  schedule:
+    # 03:20 UTC. Off the hour because the whole world schedules on the hour and
+    # the runner queue shows it.
+    - cron: "20 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repeat:
+    runs-on: ubuntu-latest
+    # Independent draws: one seed failing tells you which order broke it, and
+    # the others still run rather than being cancelled by the first red.
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [11, 2027, 60013]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Several tests make real git commits (e.g. git-init); GitHub runners have
+      # no default git identity.
+      - name: Configure git identity
+        run: |
+          git config --global user.email "ci@vibestrate.local"
+          git config --global user.name "Vibestrate CI"
+
+      # The shell-command-runner test spawns the bundled dist/index.js.
+      - name: Build
+        run: pnpm build
+
+      # Per-test repetition is NOT available: vitest 4 dropped `repeats`, and
+      # neither --repeat nor --repeats parses (verified against 4.1.10, both
+      # throw "Unknown option"). Three independent full runs in separate
+      # processes cover most of what it gave us anyway - a test that only passes
+      # the first time fails the next seed's run.
+      - name: Test (seed ${{ matrix.seed }})
+        run: pnpm vitest run --sequence.seed=${{ matrix.seed }}
+
+      - name: How to reproduce
+        if: failure()
+        run: |
+          echo "This order is replayable. Locally:"
+          echo "  pnpm vitest run --sequence.seed=${{ matrix.seed }}"
+          echo "If it passes locally, the difference is timing, not order -"
+          echo "check the worker cap and the timeouts in vitest.config.ts."
