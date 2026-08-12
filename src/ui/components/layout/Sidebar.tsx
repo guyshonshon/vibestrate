@@ -28,6 +28,15 @@ import { NotificationBell } from "../notifications/NotificationBell.js";
 import { cn } from "../design/cn.js";
 import type { NavId } from "./nav-id.js";
 
+/** An active run that is NOT progressing: it is stopped, or it is blocked on a
+ *  decision from you. The card's colour carries this, so the row needs no status
+ *  sentence beside it - but the distinction itself must survive, because
+ *  "working" and "waiting for you" are the only two things worth telling apart
+ *  at a glance. */
+function needsYou(status: RunStatus): boolean {
+  return status === "waiting_for_approval" || status === "paused";
+}
+
 type Props = {
   currentNav: NavId;
   onShowHome: () => void;
@@ -171,9 +180,16 @@ export function Sidebar({
                 key={r.runId}
                 type="button"
                 onClick={() => navigate({ kind: "run", runId: r.runId })}
-                className="live-flash flex items-center gap-2.5 rounded-[11px] border border-emerald/40 px-3 py-2 text-left"
-                style={{ backgroundColor: "color-mix(in srgb, var(--emerald) 8%, transparent)" }}
-                title={r.displayName || r.task}
+                className={cn(
+                  "live-flash flex items-center gap-2.5 rounded-[11px] border px-3 py-2 text-left",
+                  needsYou(r.status) ? "border-amber-soft/45" : "border-emerald/40",
+                )}
+                style={{
+                  backgroundColor: needsYou(r.status)
+                    ? "color-mix(in srgb, var(--color-amber-soft) 12%, transparent)"
+                    : "color-mix(in srgb, var(--emerald) 8%, transparent)",
+                }}
+                title={`${r.displayName || r.task} - ${r.status.replace(/_/g, " ")}`}
               >
                 {/* No status dot: the green card IS the liveness signal, and a
                     dot beside it says the same thing twice. The word below the
@@ -182,9 +198,7 @@ export function Sidebar({
                   <span className="block truncate text-[13px] font-semibold text-chalk-100">
                     {r.displayName || r.task}
                   </span>
-                  <span className="block text-[11px] font-medium text-emerald">
-                    {r.status.replace(/_/g, " ")}
-                  </span>
+
                 </span>
               </button>
             ))}

@@ -233,7 +233,6 @@ export function RunControlCenter({
                   depth={2}
                   icon={<MessageSquare className="h-4 w-4" strokeWidth={2} />}
                   title="Supervisor on this step"
-                  meta="read-only"
                 >
                   {stepExchange.length === 0 ? (
                     <p className="text-[12.5px] text-chalk-300">
