@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4.0
+## 1.1.4
 
 - **Supervisor Control: a conversation about a run that remembers.** The panel
   sits on the run's page next to the control centre, and every run gets its own
@@ -49,7 +49,7 @@
   checklist alike. It has been true for the dashboard, the CLI and the TUI all
   along.
 
-## 1.3.0
+## 1.1.3
 
 **Two changes here can stop a project from starting a run, deliberately.** If
 `.vibestrate/policies/` holds a malformed file, a duplicate rule id, or an
@@ -137,7 +137,7 @@ names the file and the reason. For the `require_approval` case, change it to
   screenshot or a page scrape, and its text is secret-redacted before it reaches
   a provider.
 
-## 1.2.0
+## 1.1.2
 
 - **Project instructions can be more than one file.** Drop `*.md` files into
   `.vibestrate/rules/` and they compose onto `rules.md`, sorted by filename and
@@ -153,7 +153,7 @@ names the file and the reason. For the `require_approval` case, change it to
   stops reaching your agents should not be something you find out from a
   confusing run.
 
-## 1.1.0
+## 1.1.1
 
 - **Small tasks stop paying for the full line.** The trivial-task sizer used to
   require you to name a file, and to refuse if any file you named was not a

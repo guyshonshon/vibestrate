@@ -35,7 +35,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Run control",
         blurb:
-          "Watch and steer a single run - status, stage, diff, activity, and the controls. The deep inspector is one hop away.",
+          "One run: status, diff, activity and the controls.",
         commands: [],
         tips: [],
       };
@@ -43,7 +43,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Mission Control",
         blurb:
-          "Live view of every active run + queue depth + pending attention. The CLI has the same data behind several commands.",
+          "Every active run, the queue depth, and what needs you.",
         commands: [
           { cmd: "vibe status", note: "current runs (table)" },
           { cmd: "vibe shell", note: "interactive TUI version of this page" },
@@ -55,7 +55,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "New run",
         blurb:
-          "Compose a run: brief, flow, crew, and the full control surface - or start one from your roadmap. The CLI maps 1:1.",
+          "A new run: the brief, the flow, the crew.",
         commands: [
           { cmd: 'vibe run "describe the change"', note: "start a run" },
           { cmd: "vibe run --flow <id>", note: "pin a specific flow" },
@@ -67,7 +67,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Runs & queue",
         blurb:
-          "Browse, start, and inspect runs - plus the scheduler queue at the top. Everything you see here is also exposed on the CLI.",
+          "Every run, and the scheduler queue above them.",
         commands: [
           { cmd: "vibe shell", note: "live interactive panel (runs, agent, MCP, pause/resume)" },
           { cmd: "vibe status", note: "one-shot run table" },
@@ -82,7 +82,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Run detail",
         blurb:
-          "Live state of a single run. The CLI surfaces the same projection plus pause/resume.",
+          "The live state of one run.",
         commands: [
           { cmd: `vibe status ${route.runId}`, note: "current phase + summary" },
           { cmd: `vibe replay ${route.runId}`, note: "scroll the timeline event-by-event" },
@@ -98,7 +98,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Roadmap board",
         blurb:
-          "Tasks across status columns. The same backlog drives `vibe tasks` and `vibe queue`.",
+          "Your tasks, in status columns.",
         commands: [
           { cmd: "vibe tasks list", note: "table of tasks with status + linked runs" },
           { cmd: 'vibe tasks add "title"', note: "create a new task" },
@@ -112,7 +112,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Task detail",
         blurb:
-          "One task with its runs, comments, and report. The CLI mirrors every view here.",
+          "One task, with its runs, comments and report.",
         commands: [
           { cmd: `vibe tasks show ${route.taskId}`, note: "full task record" },
           { cmd: `vibe tasks report ${route.taskId}`, note: "rendered implementation report" },
@@ -126,7 +126,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "All projects",
         blurb:
-          "Cross-project rollup - runs, outcomes, and spend across every registered project. The CLI exposes the same data.",
+          "Runs, outcomes and spend across every project.",
         commands: [
           { cmd: "vibe workspace overview", note: "rollup across registered projects" },
           { cmd: "vibe workspace list", note: "registered projects (live ● / dormant ○)" },
@@ -161,7 +161,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Settings",
         blurb:
-          "Project + provider + notification settings. The CLI exposes the same knobs without a server.",
+          "Project, provider and notification settings.",
         commands: [
           { cmd: "vibe config show", note: "dump the resolved project config" },
           { cmd: "vibe provider list", note: "available providers + which CLI is detected" },
@@ -174,7 +174,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Policies",
         blurb:
-          "The project's rule surface: owner-authored tiered policies (advise + block) plus the hard, fail-closed security gates. The CLI authors the same rules.",
+          "Your own rules, plus the security gates that cannot be turned off.",
         commands: [
           { cmd: "vibe policies list", note: "project policies + the hard security gates" },
           { cmd: 'vibe policies add <id> "<rule>" --fix "<fix>"', note: "an advise rule the reviewer checks" },
@@ -206,7 +206,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Codebase browser",
         blurb:
-          "Read-only navigation of the repo as Vibestrate sees it. The CLI doesn't replicate the tree, but exposes the metadata.",
+          "Your repo, as Vibestrate sees it.",
         commands: cmds,
       };
     }
@@ -216,7 +216,7 @@ export function hintForRoute(route: Route): CliHint {
         return {
           title: "Git tree",
           blurb:
-            "Interactive any-node-to-any-node merge: pick source + target, see the predicted result and conflicts before anything is applied, and undo with one click. UI-only by design - the underlying ops are plain git.",
+            "Pick two branches and see the merge before it happens. Undo is one click.",
           commands: [
             { cmd: "git merge --no-ff <source>", note: "what an applied merge runs on the target branch" },
             { cmd: "git reset --hard <pre-merge-sha>", note: "what an undo runs (only while unpushed + nothing built on top)" },
@@ -231,7 +231,7 @@ export function hintForRoute(route: Route): CliHint {
         return {
           title: "Merge window",
           blurb:
-            "Read-only merge advice per merge-ready run, then the explicit integrate/finish actions. Full parity on the CLI.",
+            "Advice on each merge-ready run, then the integrate action.",
           commands: [
             { cmd: "vibe integrate advise", note: "deterministic advice for all merge-ready runs" },
             { cmd: `vibe integrate advise ${route.runId ?? "<runId>"} --json`, note: "one run, machine-readable" },
@@ -248,7 +248,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Git overview",
         blurb:
-          "Per-run worktree + diff state. Bundles and validation live on the CLI.",
+          "The worktree and diff for each run.",
         commands: [
           { cmd: "vibe bundles list", note: "validation bundles per run" },
           { cmd: "vibe bundles apply <bundleId>", note: "apply a bundle to the project root" },
@@ -260,7 +260,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Git overview",
         blurb:
-          "Per-run worktree + diff state. Bundles and validation live on the CLI.",
+          "The worktree and diff for each run.",
         commands: [
           { cmd: "vibe bundles list", note: "validation bundles per run" },
           { cmd: "vibe bundles apply <bundleId>", note: "apply a bundle to the project root" },
@@ -272,7 +272,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Git tree",
         blurb:
-          "Interactive any-node-to-any-node merge: pick source + target, see the predicted result and conflicts before anything is applied, and undo with one click. UI-only by design - the underlying ops are plain git.",
+          "Pick two branches and see the merge before it happens. Undo is one click.",
         commands: [
           { cmd: "git merge --no-ff <source>", note: "what an applied merge runs on the target branch" },
           { cmd: "git reset --hard <pre-merge-sha>", note: "what an undo runs (only while unpushed + nothing built on top)" },
@@ -286,7 +286,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Merge window",
         blurb:
-          "Read-only merge advice per merge-ready run, then the explicit integrate/finish actions. Full parity on the CLI.",
+          "Advice on each merge-ready run, then the integrate action.",
         commands: [
           { cmd: "vibe integrate advise", note: "deterministic advice for all merge-ready runs" },
           { cmd: `vibe integrate advise ${route.runId ?? "<runId>"} --json`, note: "one run, machine-readable" },
@@ -303,7 +303,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Project ledger",
         blurb:
-          "Where the project stands - shipped, open intents, follow-ups, decisions. Same view as the CLI.",
+          "Where the project stands: shipped, open, and decided.",
         commands: [
           { cmd: "vibe ledger", note: "the continuity brief in your terminal" },
           { cmd: "vibe ledger --json", note: "the folded ledger state as JSON" },
@@ -333,7 +333,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Flows",
         blurb:
-          "Browse the flow recipes Vibestrate discovers. Fork a builtin into .vibestrate/flows/ to customize it, then run it.",
+          "The flows Vibestrate found. Fork a builtin to change it.",
         commands: [
           { cmd: "vibe flows list", note: "discovered flows (builtin + project)" },
           { cmd: "vibe flows show <flowId>", note: "inspect a flow's flow" },
@@ -344,7 +344,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Metrics",
         blurb:
-          "Rollups across every run and every model. Same data as the JSON metrics endpoint.",
+          "Totals across every run and every model.",
         commands: [
           {
             cmd: "vibe status",
@@ -360,7 +360,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Crew",
         blurb:
-          "Your local team of roles - the seats each fills and the profile each runs on. Edit roles in `.vibestrate/project.yml` or here.",
+          "Your roles: the seats each fills, and the profile each runs on.",
         commands: [
           { cmd: "vibe config show", note: "crews + roles in project.yml" },
           {
@@ -373,7 +373,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Profiles",
         blurb:
-          "Runtime profiles - provider + model + power. Roles point at a profile; override per run with `--profile` or per step with `--step-profile`.",
+          "A profile is a provider, a model and a power level.",
         commands: [
           { cmd: "vibe config show", note: "profiles in project.yml" },
           {
@@ -386,7 +386,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Providers",
         blurb:
-          "Detect, configure, set, and test the local CLIs Vibestrate drives - the same actions as the `vibe provider` commands.",
+          "The local CLIs Vibestrate drives. Detect, configure and test them.",
         commands: [
           { cmd: "vibe provider detect", note: "what's installed + confidence" },
           { cmd: "vibe provider setup", note: "apply a preset / wire flags" },
@@ -401,7 +401,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Dashboard",
         blurb:
-          "What is happening right now - runs in flight, what is merge-ready, and what finished. The panels are movable and the arrangement is remembered per browser. Starting work lives on Mission control.",
+          "What is happening right now. Every panel can be moved or hidden.",
         commands: [
           { cmd: "vibe runs", note: "the same list on the CLI" },
           { cmd: "vibe status", note: "the current project's run state" },
@@ -412,7 +412,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Add a supervisor",
         blurb:
-          "Adopt a curated archetype, or author your own judgment posture. Either way it lands as a personas: entry in project.yml and judges nothing until you make it the default or pick it on a run.",
+          "A curated posture, or your own. Neither judges anything until you pick it.",
         commands: [
           { cmd: "vibe supervisor archetypes", note: "the curated catalog" },
           { cmd: "vibe supervisor adopt <id>", note: "adopt an archetype into this project" },
@@ -426,7 +426,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Supervisors",
         blurb:
-          "The orchestrator's judgment postures (personas) - what each aims the reviewers at, the flow it favors for risky work, and which is the default. Same catalog as the CLI.",
+          "How hard each supervisor checks a run, and which is the default.",
         commands: [
           { cmd: "vibe supervisor list", note: "the persona catalog (built-ins + project)" },
           { cmd: "vibe supervisor list --json", note: "structured, scriptable" },
@@ -440,7 +440,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Config",
         blurb:
-          "A readable, grouped view of project.yml - what each section controls and where it's editable. The raw YAML is one command away.",
+          "project.yml, grouped and editable. The raw YAML is one command away.",
         commands: [
           { cmd: "vibe config view", note: "grouped, readable view (this page)" },
           { cmd: "vibe config view --json", note: "the structured view, scriptable" },
@@ -452,7 +452,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Consult",
         blurb:
-          "Ask the project orchestrator a question, answered from controlled project context (VIBESTRATE.md + config + recent runs + annotations). Read-only - it recommends, never acts.",
+          "Ask about this project. It recommends, and never acts.",
         commands: [
           { cmd: 'vibe consult "should this use a heavier review?"', note: "ask a question" },
           { cmd: "vibe consult \"...\" --task <id>", note: "scope to a task's context" },

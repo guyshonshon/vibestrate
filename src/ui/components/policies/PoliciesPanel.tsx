@@ -107,7 +107,7 @@ export function PoliciesPanel() {
               tone: guards === 4 ? "emerald" : "amber",
             }}
             title="Policies"
-            purpose="Owner-authored rules the reviewer and the merge gate enforce on every run. A plain run needs none of this."
+            purpose="Your own rules, enforced by the reviewer and the merge gate. A plain run needs none."
             metrics={[
               { value: advise, label: "advise" },
               { value: block, label: "block", tone: block > 0 ? "warn" : "default" },

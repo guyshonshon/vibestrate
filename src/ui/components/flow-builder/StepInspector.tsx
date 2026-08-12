@@ -61,42 +61,42 @@ const KIND_INFO: Record<
     phase: "plan / architect / build",
     icon: Cpu,
     blurb:
-      "One seat does primary work - plans, architects, or writes the change. These are the build steps.",
+      "One seat plans, architects, or writes the change.",
   },
   "review-turn": {
     title: "Review turn",
     phase: "reviewing",
     icon: Eye,
     blurb:
-      "A different seat critiques a prior step's work and raises findings. Who reviews (and with what lens) is the seat you bind below, filled by the crew at run time.",
+      "A different seat critiques an earlier step and raises findings.",
   },
   "response-turn": {
     title: "Response turn",
     phase: "fixing",
     icon: Wrench,
     blurb:
-      "The original seat answers the review's findings - applies fixes or pushes back.",
+      "The original seat answers the findings: fixes them, or pushes back.",
   },
   validation: {
     title: "Validation",
     phase: "validating",
     icon: ShieldCheck,
     blurb:
-      "Runs the project's validate commands (build / test / lint). No agent - a pass/fail check.",
+      "Runs your build, test and lint. No agent, just pass or fail.",
   },
   "approval-gate": {
     title: "Approval gate",
     phase: "waiting for approval",
     icon: Lock,
     blurb:
-      "Pauses the run for a person to sign off before it continues - they review the work so far (the diff + the prior step's output) and Approve or Reject. No agent runs.",
+      "Pauses for a person to approve or reject the work so far.",
   },
   "summary-turn": {
     title: "Summary turn",
     phase: "verifying",
     icon: FileCheck,
     blurb:
-      "A final seat verifies the result and writes the run's summary. The closing step.",
+      "A final seat verifies the result and writes the summary.",
   },
 };
 
