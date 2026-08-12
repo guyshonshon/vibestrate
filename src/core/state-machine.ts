@@ -38,6 +38,7 @@ import { readJson } from "../utils/json.js";
 import { pathExists, writeTextAtomic } from "../utils/fs.js";
 import { withFileMutex } from "../utils/file-mutex.js";
 import { nowIso } from "../utils/time.js";
+import { EventLog } from "./stores/event-log.js";
 import { defaultDisplayName } from "../utils/slug.js";
 import type { RunStatus } from "./workflow/workflow-types.js";
 import { TERMINAL_STATUSES } from "./workflow/workflow-types.js";
@@ -534,6 +535,14 @@ export function createInitialState(input: {
   };
 }
 
+/** What a pre-write read of state.json found. "absent" and "unreadable" are held
+ *  apart on purpose: the first means this write creates the run, the second means
+ *  we cannot know what it replaced. See `readOnDisk`. */
+type OnDiskState =
+  | { kind: "absent" }
+  | { kind: "unreadable"; error: unknown }
+  | { kind: "read"; state: RunState };
+
 export class RunStateStore {
   constructor(private readonly projectRoot: string, private readonly runId: string) {}
 
@@ -587,10 +596,17 @@ export class RunStateStore {
   async write(state: RunState): Promise<void> {
     const validated = runStateSchema.parse(state);
     let acquired = false;
+    // Set by persistFresh, read after the mutex releases. The pre-read it comes
+    // from MUST stay inside the critical section - see keepAbortRequested.
+    let onDisk: OnDiskState = { kind: "absent" };
+    const persistFresh = async (): Promise<void> => {
+      onDisk = await this.readOnDisk();
+      await this.persist(this.keepAbortRequested(validated, onDisk));
+    };
     try {
       await withFileMutex(this.lockPath, async () => {
         acquired = true;
-        await this.persist(await this.keepAbortRequested(validated));
+        await persistFresh();
       });
     } catch (err) {
       // Acquired means the failure is the write itself - a real I/O error the
@@ -600,8 +616,10 @@ export class RunStateStore {
         `Could not lock ${this.filePath} (${err instanceof Error ? err.message : String(err)}); writing unlocked so the run is not left unfinalized.`,
         "VibestrateStateLockDegraded",
       );
-      await this.persist(await this.keepAbortRequested(validated));
+      await persistFresh();
     }
+    // Strictly after the mutex releases - never inside. See recordStatusChange.
+    await this.recordStatusChange(onDisk, validated.status);
   }
 
   /**
@@ -615,12 +633,93 @@ export class RunStateStore {
    * can wait on a human indefinitely, so an abort arriving in that window is
    * seen by nobody and then overwritten by the commit's own state write - after
    * the user was told the run would stop.
+   *
+   * Takes the on-disk copy rather than reading it, so `write` can spend ONE read
+   * on both this and the status diff. That read must happen inside the lock: a
+   * copy taken before acquiring can be overtaken by a concurrent `requestAbort`
+   * raising the flag, and this would then put the stale false back - the exact
+   * dropped abort described above.
    */
-  private async keepAbortRequested(next: RunState): Promise<RunState> {
+  private keepAbortRequested(next: RunState, onDisk: OnDiskState): RunState {
     if (next.abortRequested) return next;
-    const onDisk = await this.read().catch(() => null);
-    if (onDisk?.abortRequested !== true) return next;
+    if (onDisk.kind !== "read") return next;
+    if (onDisk.state.abortRequested !== true) return next;
     return { ...next, abortRequested: true };
+  }
+
+  /**
+   * One read, three outcomes kept apart. A missing file means this write CREATES
+   * the run; an unreadable one means we cannot know what it held. Folding both
+   * into "no previous state" silently coerces a torn read into a fresh run,
+   * which would drop a real transition from the audit log with no signal.
+   */
+  private async readOnDisk(): Promise<OnDiskState> {
+    try {
+      return { kind: "read", state: await this.read() };
+    } catch (err) {
+      if (!(await pathExists(this.filePath))) return { kind: "absent" };
+      return { kind: "unreadable", error: err };
+    }
+  }
+
+  /**
+   * THE funnel for `state.changed`. Every status a run ever reaches passes
+   * through `persist`, so emitting here - rather than beside the ~40 callers of
+   * `write`/`mutate` scattered across the orchestrator, the approval gate, the
+   * pause and abort services and the flow runner - makes the invariant
+   * structural: state.json's status changed on disk => the event exists.
+   * The event type had two consumers and no emitter for exactly as long as it
+   * was the callers' job to remember.
+   *
+   * Called only AFTER the mutex releases. `withFileMutex` is a link()-based
+   * cross-process lock and is NOT reentrant, so anything under this that took
+   * `lockPath` again would spin the full timeout and then either throw or
+   * degrade to an unlocked write. It is safe today only because `EventLog.append`
+   * is a bare `fs.appendFile` that takes no lock at all - keep it that way, or
+   * keep this call outside.
+   *
+   * BEST-EFFORT, never throws. `write` is called from the orchestrator's
+   * finalizer inside a catch block with nothing behind it; a throw here would
+   * skip the run.failed event, the metrics finalize and the final report - the
+   * same failure the unlocked-write degrade exists to prevent. An audit line is
+   * not worth a run left unfinalized.
+   */
+  private async recordStatusChange(
+    onDisk: OnDiskState,
+    to: RunStatus,
+  ): Promise<void> {
+    // The run was born by this write. `run.created` marks that; a transition
+    // from nothing is not a state CHANGE, and emitting one here would displace
+    // run.created as the first line of every run's events.ndjson.
+    if (onDisk.kind === "absent") return;
+    const from = onDisk.kind === "read" ? onDisk.state.status : null;
+    if (from === to) return;
+    if (from === null) {
+      process.emitWarning(
+        `Could not read ${this.filePath} before writing status "${to}" (${onDisk.kind === "unreadable" && onDisk.error instanceof Error ? onDisk.error.message : "unreadable"}); recording the transition without its origin.`,
+        "VibestrateStateOriginUnknown",
+      );
+    }
+    await this.appendStateChanged(from, to);
+  }
+
+  /** Shared by both write paths. Swallows and warns - see recordStatusChange. */
+  private async appendStateChanged(
+    from: RunStatus | null,
+    to: RunStatus,
+  ): Promise<void> {
+    try {
+      await new EventLog(this.projectRoot, this.runId).append({
+        type: "state.changed",
+        message: from ? `${from} → ${to}` : `→ ${to}`,
+        data: { from, to },
+      });
+    } catch (err) {
+      process.emitWarning(
+        `Could not record the ${from ?? "?"} → ${to} transition for run ${this.runId} (${err instanceof Error ? err.message : String(err)}); state.json is written, only the audit line is missing.`,
+        "VibestrateStateEventDegraded",
+      );
+    }
   }
 
   /**
@@ -651,12 +750,20 @@ export class RunStateStore {
     if (!(await this.exists())) {
       throw new RunNotFoundError(`Run ${this.runId} not found.`);
     }
-    return withFileMutex(this.lockPath, async () => {
+    // The transition is carried OUT of the critical section rather than emitted
+    // inside it, for the same reason `fn` may not do I/O - see the note above
+    // and recordStatusChange. `fresh` is a real read, so a status change seen
+    // here is never a phantom.
+    const { result, from, to } = await withFileMutex(this.lockPath, async () => {
       const fresh = await this.read();
       const { next, result } = fn(fresh);
-      if (next) await this.persist(runStateSchema.parse(next));
-      return result;
+      if (!next) return { result, from: null, to: null };
+      const parsed = runStateSchema.parse(next);
+      await this.persist(parsed);
+      return { result, from: fresh.status, to: parsed.status };
     });
+    if (to !== null && from !== to) await this.appendStateChanged(from, to);
+    return result;
   }
 }
 

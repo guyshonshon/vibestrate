@@ -118,6 +118,15 @@ export function flowStatusForStep(step: ResolvedFlowStep): RunStatus {
   }
 }
 
+/**
+ * The no-op guard below compares the IN-MEMORY status, so it only holds while
+ * callers are serial. They are: the graph runner awaits `prepareStep` for each
+ * step before the parallel `Promise.allSettled` wave, precisely so this runs one
+ * at a time. That serialization is load-bearing beyond the flow ledger - every
+ * write here now funnels through RunStateStore and emits a `state.changed`, so
+ * moving this into the parallel map would record a ping-pong of transitions on
+ * disk rather than a timeline.
+ */
 export async function moveToFlowStepStatus(input: {
   state: RunState;
   step: ResolvedFlowStep;
