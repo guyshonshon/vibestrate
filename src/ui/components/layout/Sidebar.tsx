@@ -175,7 +175,9 @@ export function Sidebar({
                 style={{ backgroundColor: "color-mix(in srgb, var(--emerald) 8%, transparent)" }}
                 title={r.displayName || r.task}
               >
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald" />
+                {/* No status dot: the green card IS the liveness signal, and a
+                    dot beside it says the same thing twice. The word below the
+                    title carries WHICH live state, which the colour cannot. */}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13px] font-semibold text-chalk-100">
                     {r.displayName || r.task}

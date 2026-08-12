@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Bot, ListChecks, MessageSquare, Terminal } from "lucide-react";
+import { Bot, ListChecks, MessageSquare, Terminal, Users } from "lucide-react";
 import type { EngagementEntry, RunState, RuntimeMetrics } from "../../lib/types.js";
 import { LiveOutputPanel } from "./LiveOutputPanel.js";
 
@@ -155,6 +155,26 @@ export function RunControlCenter({
         />
       </div>
 
+      {/* The crew, as a static fact rather than a level. Who is seated does not
+          change while the run works, so nesting it under "what is happening now"
+          would imply a liveness it does not have. */}
+      {(metrics?.roles?.length ?? 0) > 0 ? (
+        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-800 px-3.5 py-2.5">
+          <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-violet-soft">
+            <Users className="h-3.5 w-3.5" strokeWidth={2} />
+            Crew
+          </span>
+          {[...new Map((metrics?.roles ?? []).map((r) => [r.roleId, r])).values()].map(
+            (r) => (
+              <span key={r.roleId} className="text-[12px] text-chalk-200">
+                <span className="font-semibold text-chalk-100">{r.roleId}</span>
+                {r.model ? <span className="text-chalk-300"> · {r.model}</span> : null}
+              </span>
+            ),
+          )}
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-4">
         {/* Level 1 - the step being worked. */}
         <Level
@@ -254,7 +274,6 @@ export function RunControlCenter({
           depth={0}
           icon={<Terminal className="h-4 w-4" strokeWidth={2} />}
           title="Transcript"
-          meta="live"
         >
           <div className="h-[280px] overflow-hidden rounded-[12px] border border-[color:var(--line-soft)]">
             <LiveOutputPanel runId={runId} status={run.status} />

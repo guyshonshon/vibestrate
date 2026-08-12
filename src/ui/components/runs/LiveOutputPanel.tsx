@@ -7,7 +7,6 @@ import { Select } from "../design/Select.js";
 import { SegmentedControl } from "../design/SegmentedControl.js";
 import { Button } from "../design/Button.js";
 import { Chip } from "../design/Chip.js";
-import { StatTile } from "../design/StatTile.js";
 import { cn } from "../design/cn.js";
 
 type Line = {
@@ -262,19 +261,29 @@ export function LiveOutputPanel({
             />
           ) : null}
         </div>
-        <div className="mt-1.5 flex flex-wrap items-stretch gap-1">
-          <StatTile
-            size="sm"
-            value={lines.length}
-            label={lines.length === 1 ? "chunk" : "chunks"}
-          />
-          <StatTile
-            size="sm"
-            value={totalChars.toLocaleString()}
-            label={totalChars === 1 ? "char" : "chars"}
-          />
+        {/* Stream telemetry, not facts about the work: how much has come down
+            the pipe and when. Tiles are the right shape for run facts and the
+            wrong shape here - three little boxes in a panel header read as
+            cards that lost their panel. Inline, with the labels carrying the
+            colour so they never become faint grey meta text. */}
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px]">
+          <span>
+            <span className="mono text-chalk-100">{lines.length}</span>{" "}
+            <span className="font-medium text-violet-soft">
+              {lines.length === 1 ? "chunk" : "chunks"}
+            </span>
+          </span>
+          <span>
+            <span className="mono text-chalk-100">{totalChars.toLocaleString()}</span>{" "}
+            <span className="font-medium text-violet-soft">
+              {totalChars === 1 ? "char" : "chars"}
+            </span>
+          </span>
           {lastAt ? (
-            <StatTile size="sm" value={formatCliTime(lastAt)} label="last seen" />
+            <span>
+              <span className="mono text-chalk-100">{formatCliTime(lastAt)}</span>{" "}
+              <span className="font-medium text-violet-soft">last seen</span>
+            </span>
           ) : null}
         </div>
       </header>

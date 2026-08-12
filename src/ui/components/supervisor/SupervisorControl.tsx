@@ -162,15 +162,11 @@ export function SupervisorControl({ runId }: { runId: string }) {
   return (
     <section className="flex h-full min-h-[520px] flex-col overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-900">
       <header className="flex items-center justify-between gap-3 border-b border-[color:var(--line-soft)] px-5 py-3">
-        <div className="flex items-center gap-2.5">
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${pause?.paused ? "bg-amber-400" : "bg-emerald"}`}
-          />
-          <h2 className="text-[13px] font-semibold text-chalk-100">Supervisor</h2>
-          <span className="text-[11.5px] text-chalk-300">
-            {pause?.paused ? "answering only" : "watching this run"}
-          </span>
-        </div>
+        {/* No dot-and-sentence status line. Whether it can act is already
+            carried by the control on the right: it reads Stop while it can act
+            and Resume while it cannot. Narrating the same state in prose next
+            to a coloured dot says it twice and commits to neither. */}
+        <h2 className="text-[13px] font-semibold text-chalk-100">Supervisor</h2>
         <button
           type="button"
           onClick={togglePause}
@@ -221,7 +217,10 @@ export function SupervisorControl({ runId }: { runId: string }) {
         </div>
       </div>
 
-      <div className="px-5 pb-5">
+      {/* Hard against the bottom of the panel. The hint used to live here
+          permanently, which put a line of chrome under the field and read as
+          dead space; it now appears only while you are actually typing. */}
+      <div className="shrink-0 px-5 pb-4">
         <div className="mx-auto w-full max-w-[760px]">
           <div className="flex items-end gap-2 rounded-[16px] border border-[color:var(--line-soft)] bg-coal-800 px-3 py-2.5 focus-within:border-violet-soft/50">
             <textarea
@@ -253,9 +252,11 @@ export function SupervisorControl({ runId }: { runId: string }) {
               <ArrowUp className="h-4 w-4" strokeWidth={2.2} />
             </button>
           </div>
-          <p className="mt-1.5 text-center text-[11px] text-chalk-400">
-            Enter to send, Shift+Enter for a new line
-          </p>
+          {draft.trim() ? (
+            <p className="mt-1.5 text-center text-[11px] text-chalk-300">
+              Enter to send, Shift+Enter for a new line
+            </p>
+          ) : null}
         </div>
       </div>
     </section>
