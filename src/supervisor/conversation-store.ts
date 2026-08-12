@@ -22,6 +22,7 @@ import { z } from "zod";
 import { ensureDir, pathExists, readDirSafe, readText, writeText } from "../utils/fs.js";
 import { withFileMutex } from "../utils/file-mutex.js";
 import { supervisorThreadPath, supervisorThreadsDir } from "../utils/paths.js";
+import { safeIdSchema } from "../roadmap/roadmap-types.js";
 import { nowIso } from "../utils/time.js";
 
 /** Who produced a message. `system` covers notes the product writes into the
@@ -102,8 +103,17 @@ export function deriveThreadTitle(firstMessage: string): string {
 export class SupervisorConversationStore {
   constructor(private readonly projectRoot: string) {}
 
+  /** The one place a thread id becomes a filesystem path, so it is the one
+   *  place the id has to be checked. The id arrives from the URL - `POST
+   *  /api/supervisor/threads/:threadId/messages` - and lands in `path.join`,
+   *  so an id of `../../..` would read and WRITE outside the project. Every
+   *  read, append and write goes through here; nothing else builds the path. */
   private threadPath(threadId: string): string {
-    return supervisorThreadPath(this.projectRoot, threadId);
+    const parsed = safeIdSchema.safeParse(threadId);
+    if (!parsed.success) {
+      throw new Error(`Not a valid conversation id: ${JSON.stringify(threadId).slice(0, 80)}`);
+    }
+    return supervisorThreadPath(this.projectRoot, parsed.data);
   }
 
   /** Read one thread, or null when it does not exist. A thread that will not

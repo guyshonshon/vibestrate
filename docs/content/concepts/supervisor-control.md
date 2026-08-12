@@ -4,7 +4,7 @@ description: A conversation with your project's supervisor that remembers, and -
 slug: concepts/supervisor-control
 ---
 
-**Supervisor Control** is the panel at the top of Mission Control. It is a conversation with the supervisor that persists, knows your project, and can put work where it belongs.
+**Supervisor Control** is the panel on a run's page, beside the control centre. Each run gets its own thread, so "look at that again" always has a referent. It is a conversation with the supervisor that persists, knows your project, and can put work where it belongs.
 
 [Consult](concepts/consult) answers one question and forgets it. That is right for "what would you do here" and useless for someone you work alongside: every follow-up re-explains the project, and nothing it decided five minutes ago survives. Supervisor Control keeps the thread.
 
@@ -53,7 +53,7 @@ So the work is split in two, and they never meet:
 <div class="docs-cards">
 
 **The router**
-Decides what you meant. Sees your message and a list of task ids. No manual, no codebase map, no annotations, no file contents, no run output.
+Decides what you meant. Its prompt holds your message and a list of task ids. No manual, no codebase map, no annotations, no file contents, no run output, and none of the earlier turns.
 
 **The answerer**
 Writes the reply. Has the full project context, and cannot route anything.
@@ -66,6 +66,8 @@ Then deterministic code, with no model involved, checks the router's proposal be
 - Its echo of your message must match what you actually typed. This catches the subtle version, where the intent is left alone and the *brief* is quietly rewritten.
 - A run's instructions are **your words, verbatim**. Never a model's summary of them.
 - Starting a run crosses the Action Broker as `run.start`, so a policy can refuse it.
+
+One limit worth knowing: this describes what Vibestrate puts *into* the router's prompt. The model still runs as a CLI in your project directory, so a tool-capable one can read files on its own. The checks above are what actually stand between a poisoned repo and an action, which is why they are deterministic code rather than more instructions to the model.
 
 ## What it tells you afterwards
 

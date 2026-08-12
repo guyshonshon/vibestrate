@@ -106,11 +106,23 @@ export type ChecklistItemPatch = Partial<
   >
 >;
 
-function normalizeStepFields(f: { objective?: string; acceptanceCheck?: string; fileHints?: string[] }) {
-  const out: { objective?: string; acceptanceCheck?: string; fileHints?: string[] } = {};
+function normalizeStepFields(f: {
+  objective?: string;
+  acceptanceCheck?: string;
+  fileHints?: string[];
+}) {
+  const out: {
+    objective?: string;
+    acceptanceCheck?: string;
+    fileHints?: string[];
+  } = {};
   if (f.objective !== undefined) out.objective = f.objective.trim();
-  if (f.acceptanceCheck !== undefined) out.acceptanceCheck = f.acceptanceCheck.trim();
-  if (f.fileHints !== undefined) out.fileHints = f.fileHints.map((x) => x.trim()).filter((x) => x.length > 0);
+  if (f.acceptanceCheck !== undefined)
+    out.acceptanceCheck = f.acceptanceCheck.trim();
+  if (f.fileHints !== undefined)
+    out.fileHints = f.fileHints
+      .map((x) => x.trim())
+      .filter((x) => x.length > 0);
   return out;
 }
 
@@ -158,7 +170,10 @@ export class RoadmapService {
   async updateRoadmapItem(
     id: string,
     patch: Partial<
-      Pick<RoadmapItem, "title" | "description" | "priority" | "status" | "notes">
+      Pick<
+        RoadmapItem,
+        "title" | "description" | "priority" | "status" | "notes"
+      >
     >,
   ): Promise<RoadmapItem> {
     // Write path, so it must use the quarantining read: a corrupt file has to
@@ -280,11 +295,12 @@ export class RoadmapService {
   }
 
   async updateTaskStatus(id: string, status: TaskStatus): Promise<Task> {
-    const t = await this.store.getTask(id);
-    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
-    const next: Task = { ...t, status, updatedAt: nowIso(), lastEventAt: nowIso() };
-    await this.store.writeTask(next);
-    return next;
+    return this.mutate(id, (t) => ({
+      ...t,
+      status,
+      updatedAt: nowIso(),
+      lastEventAt: nowIso(),
+    }));
   }
 
   /** Saga conductor: record a clean halt - set sagaState to "halted"
@@ -292,16 +308,12 @@ export class RoadmapService {
    *  the conductor to manage (it resets it to "pending" so a resume re-attempts
    *  the step from the clean branch tip). */
   async recordSagaHalt(id: string, halt: SupervisedHalt): Promise<Task> {
-    const t = await this.store.getTask(id);
-    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
-    const next: Task = {
+    return this.mutate(id, (t) => ({
       ...t,
       supervised: { ...t.supervised, state: "halted", halt },
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
-    };
-    await this.store.writeTask(next);
-    return next;
+    }));
   }
 
   /** Saga conductor: set the saga lifecycle state (sequencing on
@@ -313,10 +325,8 @@ export class RoadmapService {
     id: string,
     state: Task["supervised"]["state"],
   ): Promise<Task> {
-    const t = await this.store.getTask(id);
-    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
     const clearsHalt = state === "sequencing" || state === "done";
-    const next: Task = {
+    return this.mutate(id, (t) => ({
       ...t,
       supervised: {
         ...t.supervised,
@@ -325,9 +335,7 @@ export class RoadmapService {
       },
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
-    };
-    await this.store.writeTask(next);
-    return next;
+    }));
   }
 
   /** Saga conductor: append new cross-cutting invariants the
@@ -336,18 +344,16 @@ export class RoadmapService {
    *  is scrubbed before it lands on disk). A no-op write when nothing new
    *  survives dedup, so a chatty supervisor doesn't churn the task file. */
   async appendSagaInvariants(id: string, incoming: string[]): Promise<Task> {
-    const t = await this.store.getTask(id);
-    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
-    const merged = appendInvariants(t.supervised.invariants, incoming);
-    if (merged.length === t.supervised.invariants.length) return t; // nothing new
-    const next: Task = {
-      ...t,
-      supervised: { ...t.supervised, invariants: merged },
-      updatedAt: nowIso(),
-      lastEventAt: nowIso(),
-    };
-    await this.store.writeTask(next);
-    return next;
+    return this.mutate(id, (t) => {
+      const merged = appendInvariants(t.supervised.invariants, incoming);
+      if (merged.length === t.supervised.invariants.length) return t; // nothing new
+      return {
+        ...t,
+        supervised: { ...t.supervised, invariants: merged },
+        updatedAt: nowIso(),
+        lastEventAt: nowIso(),
+      };
+    });
   }
 
   /** Saga conductor (Enhance): persist the revised pending-plan overlay
@@ -359,16 +365,12 @@ export class RoadmapService {
     id: string,
     revision: SupervisedPendingRevision | null,
   ): Promise<Task> {
-    const t = await this.store.getTask(id);
-    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
-    const next: Task = {
+    return this.mutate(id, (t) => ({
       ...t,
       supervised: { ...t.supervised, pendingRevision: revision },
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
-    };
-    await this.store.writeTask(next);
-    return next;
+    }));
   }
 
   /** Saga conductor (Enhance): on clean saga completion, fold the
@@ -378,38 +380,36 @@ export class RoadmapService {
    *  checklist. Done items and ids are otherwise preserved. A no-op when no
    *  overlay is set. */
   async reconcileSagaPendingRevision(id: string): Promise<Task> {
-    const t = await this.store.getTask(id);
-    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
-    const overlay = t.supervised.pendingRevision;
-    if (!overlay) return t;
-    const byId = new Map(overlay.pending.map((p) => [p.id, p]));
-    const overlayIds = new Set(overlay.pending.map((p) => p.id));
-    const checklist = t.checklist
-      // Drop pending items the overlay removed (not done, not in the overlay).
-      .filter((c) => c.status === "done" || overlayIds.has(c.id))
-      // Patch refined fields from the overlay onto the matching items.
-      .map((c) => {
-        const p = byId.get(c.id);
-        return p
-          ? {
-              ...c,
-              text: p.text,
-              objective: p.objective,
-              acceptanceCheck: p.acceptanceCheck,
-              fileHints: p.fileHints,
-              updatedAt: nowIso(),
-            }
-          : c;
-      });
-    const next: Task = {
-      ...t,
-      checklist,
-      supervised: { ...t.supervised, pendingRevision: null },
-      updatedAt: nowIso(),
-      lastEventAt: nowIso(),
-    };
-    await this.store.writeTask(next);
-    return next;
+    return this.mutate(id, (t) => {
+      const overlay = t.supervised.pendingRevision;
+      if (!overlay) return t;
+      const byId = new Map(overlay.pending.map((p) => [p.id, p]));
+      const overlayIds = new Set(overlay.pending.map((p) => p.id));
+      const checklist = t.checklist
+        // Drop pending items the overlay removed (not done, not in the overlay).
+        .filter((c) => c.status === "done" || overlayIds.has(c.id))
+        // Patch refined fields from the overlay onto the matching items.
+        .map((c) => {
+          const p = byId.get(c.id);
+          return p
+            ? {
+                ...c,
+                text: p.text,
+                objective: p.objective,
+                acceptanceCheck: p.acceptanceCheck,
+                fileHints: p.fileHints,
+                updatedAt: nowIso(),
+              }
+            : c;
+        });
+      return {
+        ...t,
+        checklist,
+        supervised: { ...t.supervised, pendingRevision: null },
+        updatedAt: nowIso(),
+        lastEventAt: nowIso(),
+      };
+    });
   }
 
   async patchTask(
@@ -433,49 +433,51 @@ export class RoadmapService {
       >
     >,
   ): Promise<Task> {
-    const t = await this.store.getTask(id);
-    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
-    // Dependency edits must keep the roadmap a DAG: a cycle corrupts the
-    // ready/blocked logic (a card could block itself). Validate against the
-    // full task set BEFORE persisting - the route + accept both reach here, so
-    // this is the single guard. (Edges toward an acyclic target are always a
-    // subgraph of it, so accept's incremental second pass never trips this.)
-    if (patch.dependencies !== undefined) {
-      const deps = [...new Set(patch.dependencies)];
-      if (deps.includes(id)) {
-        throw new RoadmapServiceError(`A task cannot depend on itself ("${id}").`);
-      }
-      const all = await this.store.listTasks();
-      const known = new Set(all.map((x) => x.id));
-      const missing = deps.find((d) => !known.has(d));
-      if (missing) {
-        throw new RoadmapServiceError(`Unknown dependency "${missing}".`);
-      }
-      const proposed = all.map((x) => (x.id === id ? { ...x, dependencies: deps } : x));
-      const cycle = findFirstCycle(buildDependencyGraph(proposed));
-      if (cycle.cyclic) {
-        throw new RoadmapServiceError(
-          `That dependency would create a cycle: ${cycle.cycle.join(" -> ")}.`,
+    return this.mutate(id, async (t) => {
+      // Dependency edits must keep the roadmap a DAG: a cycle corrupts the
+      // ready/blocked logic (a card could block itself). Validate against the
+      // full task set BEFORE persisting - the route + accept both reach here, so
+      // this is the single guard. (Edges toward an acyclic target are always a
+      // subgraph of it, so accept's incremental second pass never trips this.)
+      if (patch.dependencies !== undefined) {
+        const deps = [...new Set(patch.dependencies)];
+        if (deps.includes(id)) {
+          throw new RoadmapServiceError(
+            `A task cannot depend on itself ("${id}").`,
+          );
+        }
+        const all = await this.store.listTasks();
+        const known = new Set(all.map((x) => x.id));
+        const missing = deps.find((d) => !known.has(d));
+        if (missing) {
+          throw new RoadmapServiceError(`Unknown dependency "${missing}".`);
+        }
+        const proposed = all.map((x) =>
+          x.id === id ? { ...x, dependencies: deps } : x,
         );
+        const cycle = findFirstCycle(buildDependencyGraph(proposed));
+        if (cycle.cyclic) {
+          throw new RoadmapServiceError(
+            `That dependency would create a cycle: ${cycle.cycle.join(" -> ")}.`,
+          );
+        }
       }
-    }
-    const next: Task = {
-      ...t,
-      ...patch,
-      // Normalize acceptanceCommands like addTask does (trim + drop blanks) so an
-      // edit can't persist a whitespace-only command.
-      ...(patch.acceptanceCommands !== undefined
-        ? {
-            acceptanceCommands: patch.acceptanceCommands
-              .map((c) => c.trim())
-              .filter((c) => c.length > 0),
-          }
-        : {}),
-      updatedAt: nowIso(),
-      lastEventAt: nowIso(),
-    };
-    await this.store.writeTask(next);
-    return next;
+      return {
+        ...t,
+        ...patch,
+        // Normalize acceptanceCommands like addTask does (trim + drop blanks) so an
+        // edit can't persist a whitespace-only command.
+        ...(patch.acceptanceCommands !== undefined
+          ? {
+              acceptanceCommands: patch.acceptanceCommands
+                .map((c) => c.trim())
+                .filter((c) => c.length > 0),
+            }
+          : {}),
+        updatedAt: nowIso(),
+        lastEventAt: nowIso(),
+      };
+    });
   }
 
   async setTaskRun(input: {
@@ -485,9 +487,7 @@ export class RoadmapService {
     worktreePath?: string | null;
     status?: TaskStatus;
   }): Promise<Task> {
-    const t = await this.store.getTask(input.taskId);
-    if (!t) throw new RoadmapServiceError(`Task "${input.taskId}" not found.`);
-    const next: Task = {
+    return this.mutate(input.taskId, (t) => ({
       ...t,
       currentRunId: input.runId,
       runIds: [...new Set([...t.runIds, input.runId])],
@@ -496,9 +496,7 @@ export class RoadmapService {
       status: input.status ?? t.status,
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
-    };
-    await this.store.writeTask(next);
-    return next;
+    }));
   }
 
   /**
@@ -511,7 +509,11 @@ export class RoadmapService {
    * inherit the same guard.
    */
   private async assertTaskRemovable(t: Task): Promise<void> {
-    const inFlight: TaskStatus[] = ["queued", "running", "waiting_for_approval"];
+    const inFlight: TaskStatus[] = [
+      "queued",
+      "running",
+      "waiting_for_approval",
+    ];
     if (inFlight.includes(t.status)) {
       throw new RoadmapServiceError(
         `Task "${t.id}" is ${t.status}; terminate or cancel its run before removing it.`,
@@ -606,18 +608,17 @@ export class RoadmapService {
     return t;
   }
 
-  async clearTaskCurrentRun(taskId: string, finalStatus: TaskStatus): Promise<Task> {
-    const t = await this.store.getTask(taskId);
-    if (!t) throw new RoadmapServiceError(`Task "${taskId}" not found.`);
-    const next: Task = {
+  async clearTaskCurrentRun(
+    taskId: string,
+    finalStatus: TaskStatus,
+  ): Promise<Task> {
+    return this.mutate(taskId, (t) => ({
       ...t,
       currentRunId: null,
       status: finalStatus,
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
-    };
-    await this.store.writeTask(next);
-    return next;
+    }));
   }
 
   /** Replace a task's context sources. */
@@ -625,35 +626,26 @@ export class RoadmapService {
     taskId: string,
     sources: import("../core/context/context-source-schema.js").ContextSource[],
   ): Promise<Task> {
-    const t = await this.store.getTask(taskId);
-    if (!t) throw new RoadmapServiceError(`Task "${taskId}" not found.`);
-    const next: Task = {
+    return this.mutate(taskId, (t) => ({
       ...t,
       contextSources: sources,
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
-    };
-    await this.store.writeTask(next);
-    return next;
+    }));
   }
 
   /** Archive or un-archive a task (board overlay; orthogonal to run status). */
   async setArchived(taskId: string, archived: boolean): Promise<Task> {
-    const t = await this.store.getTask(taskId);
-    if (!t) throw new RoadmapServiceError(`Task "${taskId}" not found.`);
-    if (archived && t.currentRunId) {
-      throw new RoadmapServiceError(
-        `Task "${taskId}" is linked to active run ${t.currentRunId}; abort the run before archiving.`,
-      );
-    }
-    const next: Task = {
-      ...t,
-      archived,
-      updatedAt: nowIso(),
-      lastEventAt: nowIso(),
-    };
-    await this.store.writeTask(next);
-    return next;
+    return this.mutate(taskId, (t) => {
+      // Checked inside the lock: a run linking itself between an unlocked read
+      // and the write is exactly the race this guard exists to lose.
+      if (archived && t.currentRunId) {
+        throw new RoadmapServiceError(
+          `Task "${taskId}" is linked to active run ${t.currentRunId}; abort the run before archiving.`,
+        );
+      }
+      return { ...t, archived, updatedAt: nowIso(), lastEventAt: nowIso() };
+    });
   }
 
   // ─── comments ─────────────────────────────────────────────────────────────
@@ -688,7 +680,10 @@ export class RoadmapService {
     return comment;
   }
 
-  async resolveComment(taskId: string, commentId: string): Promise<Comment | null> {
+  async resolveComment(
+    taskId: string,
+    commentId: string,
+  ): Promise<Comment | null> {
     const all = await this.store.listComments(taskId);
     const idx = all.findIndex((c) => c.id === commentId);
     if (idx < 0) return null;
@@ -709,6 +704,26 @@ export class RoadmapService {
   // The ordered breakdown that lives *inside* a card. Every mutation is a
   // read-modify-write of the whole task (consistent with patchTask), so the
   // checklist always round-trips through taskSchema validation.
+
+  /**
+   * Read-modify-write a task under its own file lock.
+   *
+   * EVERY method that reads a task, derives a new one, and writes it back MUST
+   * go through here. Two concurrent runs touching the same task - a status
+   * flip while a checklist item completes, a counter patch while a run links -
+   * otherwise both read the same base and the second write silently discards
+   * the first. The lock is per-task-file, so unrelated tasks never contend.
+   *
+   * Return the task you were handed to signal "no change" and skip the write.
+   */
+  private async mutate(
+    taskId: string,
+    transform: (current: Task) => Task | Promise<Task>,
+  ): Promise<Task> {
+    const next = await this.store.mutateTask(taskId, transform);
+    if (!next) throw new RoadmapServiceError(`Task "${taskId}" not found.`);
+    return next;
+  }
 
   private async requireTask(taskId: string): Promise<Task> {
     const t = await this.store.getTask(taskId);
@@ -800,9 +815,13 @@ export class RoadmapService {
     };
     // Appends to whatever the checklist is INSIDE the lock, not to a copy read
     // before it: a run committing an item concurrently must not be undone.
-    const task = await this.mutateChecklist(taskId, (current) => [...current, item], {
-      clearSagaPendingRevision: true,
-    });
+    const task = await this.mutateChecklist(
+      taskId,
+      (current) => [...current, item],
+      {
+        clearSagaPendingRevision: true,
+      },
+    );
     return { task, item };
   }
 
@@ -959,16 +978,13 @@ export class RoadmapService {
 
   /** Flag a task for human testing (non-blocking advisory from a run). */
   async flagNeedsTesting(taskId: string, reason: string | null): Promise<Task> {
-    const t = await this.requireTask(taskId);
-    const next: Task = {
+    return this.mutate(taskId, (t) => ({
       ...t,
       needsTesting: true,
       needsTestingReason: reason,
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
-    };
-    await this.store.writeTask(next);
-    return next;
+    }));
   }
 
   /**
@@ -980,33 +996,27 @@ export class RoadmapService {
     taskId: string,
     verdict: "pass" | "fail",
   ): Promise<Task> {
-    const t = await this.requireTask(taskId);
-    const next: Task = {
+    return this.mutate(taskId, (t) => ({
       ...t,
       needsTesting: false,
       needsTestingReason: null,
       status: verdict === "pass" ? "done" : "ready",
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
-    };
-    await this.store.writeTask(next);
-    return next;
+    }));
   }
 
   private async patchTaskCounters(
     taskId: string,
     comments: Comment[],
   ): Promise<void> {
-    const t = await this.store.getTask(taskId);
-    if (!t) return;
     const open = comments.filter((c) => !c.resolved).length;
-    const next: Task = {
+    await this.store.mutateTask(taskId, (t) => ({
       ...t,
       commentsCount: open,
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
-    };
-    await this.store.writeTask(next);
+    }));
   }
 }
 

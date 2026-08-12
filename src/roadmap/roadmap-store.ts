@@ -261,7 +261,10 @@ export class RoadmapStore {
       if (!current) return null;
       const next = await mutate(current);
       if (!next) return null;
-      await this.writeTask(next);
+      // Handing back the object you were given means "nothing changed", so the
+      // write is skipped. Several callers early-out on a dedup or an absent
+      // overlay and must not churn the file's mtime for a no-op.
+      if (next !== current) await this.writeTask(next);
       return next;
     });
   }

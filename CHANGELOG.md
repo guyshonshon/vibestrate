@@ -2,12 +2,12 @@
 
 ## 1.4.0
 
-- **Supervisor Control: a conversation with your project that remembers.** The
-  panel now sits at the top of Mission Control, above the composer, because
-  starting a run is one of the things you can ask it for. Consult answered one
-  question and forgot it; this keeps the thread, knows your tasks and runs, and
-  is the right place to ask "I do not know how to review this, what should I
-  look at".
+- **Supervisor Control: a conversation about a run that remembers.** The panel
+  sits on the run's page next to the control centre, and every run gets its own
+  thread - with runs genuinely concurrent, a shared one would leave "do that
+  again" without a referent. Consult answered one question and forgot it; this
+  keeps the thread, hands the recent turns back to the answerer, and is the
+  right place to ask "I do not know how to review this, what should I look at".
 - **And, when you allow it, acts.** `supervisorControl.autonomy: act` lets
   "add a hero section to the landing page" become a task, a set of TODOs, or a
   run, with the supervisor choosing where it belongs. Off by default: out of the
@@ -21,20 +21,30 @@
 - **A stop button that means it.** In the panel header, no config round-trip,
   survives a restart, and fails closed - an unreadable flag reads as stopped.
   Talking still works while stopped; only acting is off.
-- **It cannot be talked into things by your own repo.** The supervisor answers
-  from context that is not all written by you: a merged diff edits
-  VIBESTRATE.md, a dependency README reaches the codebase map, annotations
-  arrive over HTTP. So deciding what you meant and writing the reply are two
-  separate calls that never meet - the router sees your message and a list of
-  task ids and nothing else. Then code, with no model involved, checks the
-  result: the task must be one that was offered, its echo of your message must
-  match what you typed, and a run's instructions are your words verbatim rather
-  than a summary of them.
+- **Harder to talk into things via your own repo.** The supervisor answers from
+  context that is not all written by you: a merged diff edits VIBESTRATE.md, a
+  dependency README reaches the codebase map, annotations arrive over HTTP. So
+  deciding what you meant and writing the reply are two separate calls that
+  never meet - the router's prompt holds your message and a list of task ids and
+  nothing else, not even the earlier turns. Then code, with no model involved,
+  checks the result: the task must be one that was offered, its echo of your
+  message must match what you typed, and a run's instructions are your words
+  verbatim rather than a summary of them. Stated plainly because it is the
+  limit: that covers what is put *into* the prompt. The model still runs as a
+  CLI in your project directory and can read files itself, so the deterministic
+  checks are the real barrier, not the prompt hygiene.
+- **A supervisor-started run now actually starts.** It never had: the launch
+  omitted the run id a task-linked run requires, the child was spawned with its
+  output discarded, and the thread had already said "started a run on that
+  task". The id is minted before the spawn, the launch waits for the run to
+  prove it exists, and a run that does not start says so instead.
 - **Task writes no longer lose each other.** Unrelated to the above and worth
   its own line: every task mutation was a lock-free read-modify-write, so a run
   marking a checklist item done with its commit sha could be silently undone by
-  an add from the board a moment later. It has been true for the dashboard, the
-  CLI and the TUI all along.
+  an add from the board a moment later. All of them now go through one locked
+  path - status flips, run links, needs-testing flags, comment counters and the
+  checklist alike. It has been true for the dashboard, the CLI and the TUI all
+  along.
 
 ## 1.3.0
 

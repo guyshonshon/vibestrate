@@ -12,7 +12,12 @@
 //             context could leave the intent alone and quietly rewrite the brief
 //             of a run the user genuinely asked for.
 //   intent    must be permitted by the autonomy gate and the kill switch.
-//   effects   cross the Action Broker, so a policy can refuse them.
+//   effects   run.start crosses the Action Broker, so a policy can refuse it.
+//             task.create and checklist.add do NOT: there is no ActionKind for
+//             either, and inventing one that nothing else in the product emits
+//             would put a name in the policy vocabulary that only ever fires
+//             here. They are bounded instead - a title and a list of strings,
+//             both length-capped, onto a task that was already offered.
 //
 // The verbatim rule is absolute for anything that becomes an agent's
 // instruction: a run's task text is the user's own words, never a model's

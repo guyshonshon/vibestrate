@@ -3,9 +3,19 @@
 // Turns what you typed into a proposed action. Phase one of two, and the only
 // phase a model is allowed anywhere near.
 //
-// THE RULE THAT SHAPES THIS FILE: the router sees your message and a list of
-// opaque target ids. It does not see project context. Not VIBESTRATE.md, not
-// the codebase map, not annotations, not run evidence, not file contents.
+// THE RULE THAT SHAPES THIS FILE: the prompt this router builds contains your
+// message and a list of opaque target ids. Nothing else is put into it - not
+// VIBESTRATE.md, not the codebase map, not annotations, not run evidence, not
+// file contents, and not the earlier turns of the conversation.
+//
+// KNOWN GAP, stated rather than papered over: the provider still runs as a CLI
+// with its cwd at the project root, so a tool-capable model can go and read
+// files itself, and some CLIs auto-load their own memory file from that
+// directory. What follows is therefore true of what this code SENDS, not yet a
+// guarantee about everything the model can reach. Closing it needs a
+// tool-restricted mode on the shared assist runner, which every other assist
+// caller shares; until then the executor's deterministic checks below are what
+// actually stand between a poisoned repo and an action.
 //
 // That is not caution for its own sake. Every one of those sources is writable
 // by something other than you: a merged agent diff, a dependency's README, a
@@ -26,6 +36,7 @@
 
 import { z } from "zod";
 import { runAssist } from "../core/assist/assist-runner.js";
+import { loadConfig } from "../project/config-loader.js";
 
 /**
  * What the supervisor may propose.
@@ -120,6 +131,12 @@ export async function proposeIntent(input: {
 
   const result = await runAssist({
     projectRoot: input.projectRoot,
+    // Suppress assist's own rules.md injection. Without this the composed
+    // Project Instructions - every *.md under .vibestrate/rules/ - land in this
+    // prompt under a "Project context" heading, which is free-form instruction
+    // prose reaching the one call that picks an intent and a target. The whole
+    // isolation claim above depends on this line. consult.ts does the same.
+    loaded: { ...(await loadConfig(input.projectRoot)), rules: "" },
     label: "supervisor:route",
     instruction: prompt,
     schema: supervisorProposalSchema,

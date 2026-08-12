@@ -118,3 +118,53 @@ describe("mutateTask", () => {
     expect((await svc.getTask(task.id))?.title).toBe("keep me");
   });
 });
+
+// The checklist was only half the problem. Every other read-modify-write on the
+// task file - status flips, run links, needs-testing flags, comment counters -
+// was still lock-free, so a checklist write racing any of them lost whichever
+// landed second. These cover the field pairs that a single run genuinely writes
+// at the same time.
+describe("concurrent task-field writes do not lose each other", () => {
+  it("keeps both a status flip and a checklist completion", async () => {
+    const { svc } = await scratch();
+    const id = await taskWithItems(svc, 2);
+    const target = (await svc.getTask(id))!.checklist[0]!;
+
+    await Promise.all([
+      svc.updateTaskStatus(id, "running"),
+      svc.updateChecklistItem(id, target.id, { status: "done", commitSha: "def5678" }),
+    ]);
+
+    const after = await svc.getTask(id);
+    expect(after?.status, "the status flip must survive").toBe("running");
+    expect(
+      after!.checklist.find((c) => c.id === target.id)?.status,
+      "the completion must survive",
+    ).toBe("done");
+  });
+
+  it("keeps every run id when runs link concurrently", async () => {
+    // runIds is an append. A lock-free read-modify-write drops all but one.
+    const { svc } = await scratch();
+    const task = await svc.addTask({ title: "landing page" });
+    await Promise.all(
+      Array.from({ length: 6 }, (_, i) =>
+        svc.setTaskRun({ taskId: task.id, runId: `run-${i}` }),
+      ),
+    );
+    const after = await svc.getTask(task.id);
+    expect(after?.runIds).toHaveLength(6);
+  });
+
+  it("keeps a needs-testing flag and a comment counter written at once", async () => {
+    const { svc } = await scratch();
+    const task = await svc.addTask({ title: "landing page" });
+    await Promise.all([
+      svc.flagNeedsTesting(task.id, "check the mobile header"),
+      svc.addComment(task.id, { body: "looks off on iOS" }),
+    ]);
+    const after = await svc.getTask(task.id);
+    expect(after?.needsTesting, "the flag must survive").toBe(true);
+    expect(after?.commentsCount, "the counter must survive").toBe(1);
+  });
+});

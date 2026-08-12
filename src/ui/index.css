@@ -321,6 +321,21 @@
   --ring: #6951f0;
 }
 
+/* The wordmark asset is a single WHITE glyph with a violet accent and no dark
+ * variant, so it is correct as shipped on the dark canvas and invisible on the
+ * light one. Darken it there to sit at chalk-100 (#1b1b1f) rather than pure
+ * black, which reads harsh next to the violet icon. The transition rides the
+ * theme toggle: <html> swaps its class, the filter interpolates instead of
+ * snapping. Do NOT reach for `invert(1)` - it turns the violet accent
+ * yellow-green; brightness(0) flattens to ink and the small invert lifts it off
+ * true black. */
+.brand-wordmark {
+  transition: filter 260ms ease;
+}
+:root.light .brand-wordmark {
+  filter: brightness(0) invert(0.105);
+}
+
 /* default/deep scenes follow the theme in light (paper-like); explicit
  * `paper`/`violet` scenes keep their own tokens. */
 :root.light [data-scene]:not([data-scene="paper"]):not([data-scene="violet"]) {

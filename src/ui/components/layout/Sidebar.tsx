@@ -175,27 +175,24 @@ export function Sidebar({
           className="flex items-center gap-2.5"
           aria-label="Mission control"
         >
-          {/* The real mark, the same asset InitScreen renders. This used to be a
-              gradient square standing in for it. Percentage radius so the corners
-              stay proportional if the size changes; the wordmark beside it stays
-              TEXT because logo-wordmark.png is a single white glyph with no dark
-              variant and disappears on the light theme. */}
+          {/* The real mark. Violet on transparent, so it needs no theme
+              treatment; percentage radius keeps the corners proportional if the
+              size changes. */}
           <img
             src="./logo-icon.png"
             alt=""
             className="h-7 w-7 shrink-0 rounded-[22%]"
             decoding="async"
           />
-          {/* The wordmark asset, not set text. It is dark ink (#1A0D40) on
-              transparent, so it reads as-is on the light canvas and has to be
-              inverted to near-white on the dark one - the reverse of what
-              InitScreen used to claim. `logo-wordmark` carries the real
-              letterforms; the alt keeps the name available to search and screen
+          {/* The wordmark asset, not set text. It is a WHITE glyph, so it is
+              correct untouched on dark and gets darkened on light by
+              `.brand-wordmark` (see index.css, which also carries the
+              transition). The alt keeps the name available to search and screen
               readers now that it is no longer live text. */}
           <img
             src="./logo-wordmark.png"
             alt="vibestrate"
-            className="h-[15px] w-auto shrink-0 dark:brightness-0 dark:invert"
+            className="brand-wordmark h-[15px] w-auto shrink-0"
             decoding="async"
           />
         </button>
@@ -402,15 +399,17 @@ export function Sidebar({
         <Plus className="h-4 w-4" /> New run
       </button>
 
-      {/* Version, at the bottom edge. Read from the server rather than baked
-          into this bundle, so a tab left open overnight shows the version that
-          is actually answering it, not the one it was built from. Silent when
-          it cannot be read - a version line is not worth an error. */}
+      {/* Build stamp, bottom-left corner. Labelled rather than a bare number,
+          which on its own read as a stray figure wherever it was put. Read from
+          the server rather than baked into this bundle, so a tab left open
+          overnight shows the version actually answering it, not the one it was
+          built from. Silent when unreadable - not worth an error. */}
       {appVersion ? (
-        <div className="mt-2.5 px-2 text-center text-[10.5px] text-chalk-400">
-          v{appVersion}
+        <div className="mt-2 pl-1 text-[10px] tabular-nums leading-none text-chalk-400/70">
+          build {appVersion}
         </div>
       ) : null}
+
     </aside>
   );
 }
