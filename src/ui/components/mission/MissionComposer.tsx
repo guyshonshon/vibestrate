@@ -17,8 +17,8 @@
 //     what swaps the Run summary for `LaunchPanel` and what drives the status
 //     poll; "Start another run" clears it back to the launcher.
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowRight, Check, Loader2, Lock, Plus } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ArrowRight, Check, Loader2, Lock, Paperclip, Plus } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { usePublishViewContext } from "../../lib/view-context.js";
 import { Button } from "../design/Button.js";
@@ -64,6 +64,62 @@ function Section({
 
 // Compact run-option toggle: a small inline switch + label. Several fit on one
 // row, so run options stay tiny under the task brief.
+/**
+ * Attach files to a brief.
+ *
+ * These are REFERENCES, not uploads: the picker records what you chose and the
+ * paths ride along with the task text, so the agent opens them from the repo it
+ * is already working in. Nothing is copied into .vibestrate, which keeps a
+ * screenshot or a spec out of the run's artifacts and out of anything that gets
+ * replayed later.
+ */
+function AttachButton({
+  files,
+  onAdd,
+  onClear,
+}: {
+  files: string[];
+  onAdd: (names: string[]) => void;
+  onClear: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept="image/*,.pdf,.md,.txt,.json,.csv"
+        className="hidden"
+        onChange={(e) => {
+          const picked = Array.from(e.target.files ?? []).map((f) => f.name);
+          if (picked.length) onAdd(picked);
+          e.target.value = "";
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        title="Attach a screenshot, spec or file for the run to read"
+        className="inline-flex items-center gap-1.5 rounded-[10px] border border-[color:var(--line-soft)] px-3 py-1.5 text-[12px] font-semibold text-chalk-200 transition hover:border-violet-soft/50 hover:text-chalk-100"
+      >
+        <Paperclip className="h-3.5 w-3.5" strokeWidth={2} />
+        {files.length > 0 ? `${files.length} attached` : "Attach"}
+      </button>
+      {files.length > 0 ? (
+        <button
+          type="button"
+          onClick={onClear}
+          title="Remove attachments"
+          className="text-[11.5px] font-medium text-chalk-400 hover:text-chalk-200"
+        >
+          clear
+        </button>
+      ) : null}
+    </>
+  );
+}
+
 function MiniToggle({
   on,
   set,
@@ -82,7 +138,7 @@ function MiniToggle({
       aria-checked={on}
       title={title}
       onClick={() => set(!on)}
-      className={`inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-1 text-[11.5px] font-medium transition ${
+      className={`inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-[12px] font-semibold transition ${
         on
           ? "border-violet-soft/55 bg-violet-soft/[0.14] text-violet-vivid"
           : "border-[color:var(--line)] text-chalk-400 hover:border-[color:var(--line-strong)] hover:text-chalk-100"
@@ -352,6 +408,18 @@ export function MissionComposer() {
   const [crewId, setCrewId] = useState<string>("");
   const [flowId, setFlowId] = useState<string>("");
   const [personaId, setPersonaId] = useState<string>("");
+  const [attachments, setAttachments] = useState<string[]>([]);
+  const addAttachments = (names: string[]) =>
+    setAttachments((prev) => [...new Set([...prev, ...names])]);
+  const clearAttachments = () => setAttachments([]);
+  /** Attachments ride in the brief as an explicit list of paths, so the agent
+   *  opens them from the repo rather than us copying bytes into run state. */
+  const briefWithAttachments = () => {
+    const base = task.trim();
+    if (attachments.length === 0) return base;
+    return `${base}\n\nAttached for reference: ${attachments.join(", ")}`;
+  };
+
   const [concise, setConcise] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
   const [unattended, setUnattended] = useState(false);
@@ -500,7 +568,7 @@ export function MissionComposer() {
         Object.entries(params).filter(([, v]) => v && v.trim() !== ""),
       );
       const r = await api.spawnRun({
-        task: task.trim(),
+        task: briefWithAttachments(),
         taskId: cardId,
         crewId: crewId || undefined,
         flow: flowId ? { id: flowId } : undefined,
@@ -535,7 +603,7 @@ export function MissionComposer() {
     try {
       const filled = Object.fromEntries(Object.entries(params).filter(([, v]) => v && v.trim() !== ""));
       const r = await api.spawnRun({
-        task: task.trim(),
+        task: briefWithAttachments(),
         crewId: crewId || undefined,
         flow: flowId ? { id: flowId } : undefined,
         persona: personaId || undefined,
@@ -613,7 +681,10 @@ export function MissionComposer() {
         <div className="flex min-w-0 flex-col gap-5 lg:col-span-7">
           <div>
             <h2 className="mb-2.5 text-[16px] font-bold text-chalk-100">New run</h2>
-            <div className="relative">
+            {/* One field, the way a chat composer works: the box owns the
+                border and focus ring, and everything you can set about the run
+                lives inside it rather than floating underneath. */}
+            <div className="relative rounded-[16px] border border-[color:var(--line-strong)] bg-coal-800 focus-within:border-violet-soft/50">
               <textarea
                 value={task}
                 onChange={(e) => setTask(e.target.value)}
@@ -622,7 +693,7 @@ export function MissionComposer() {
                 }}
                 rows={3}
                 placeholder="Describe the change to run. e.g. Add retry with backoff to the uploader."
-                className="w-full resize-none rounded-[14px] border border-[color:var(--line-strong)] bg-coal-800 py-3 pl-4 pr-14 text-[14px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+                className="w-full resize-none bg-transparent py-3 pl-4 pr-14 text-[14px] text-chalk-100 placeholder:text-chalk-400 focus:outline-none"
               />
               <button
                 type="button"
@@ -644,9 +715,10 @@ export function MissionComposer() {
                   onClose={() => setAssistOpen(false)}
                 />
               ) : null}
-            </div>
 
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5 border-t border-[color:var(--line-soft)] px-2.5 py-2">
+                <AttachButton files={attachments} onAdd={addAttachments} onClear={clearAttachments} />
+                <span className="mx-0.5 h-4 w-px bg-[color:var(--line-soft)]" />
               <MiniToggle on={concise} set={setConcise} label="Concise" title="Terser supervisor output" />
               <MiniToggle on={readOnly} set={setReadOnly} label="Read-only" title="No file writes" />
               <MiniToggle on={unattended} set={setUnattended} label="Unattended" title="Skip approval pauses" />
@@ -669,6 +741,7 @@ export function MissionComposer() {
                   ) : null}
                 </>
               ) : null}
+              </div>
             </div>
 
             {planStage ? (
