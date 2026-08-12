@@ -178,7 +178,7 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
               tone: active > 0 ? "violet" : "neutral",
             }}
             title="Dashboard"
-            purpose="What is running right now. Move or hide any panel; it stays that way."
+            purpose="What is running right now. Every panel can be moved or hidden."
             actions={
               <Button variant="primary" size="sm" onClick={onCompose}>
                 New run

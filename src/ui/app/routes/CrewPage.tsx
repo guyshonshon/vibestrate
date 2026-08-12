@@ -204,7 +204,7 @@ export function CrewPage({
                 tone: "violet",
               }}
               title="Crew"
-              purpose="A crew is the cast for a run. Open one to see its roles."
+              purpose="A crew is the cast for a run: a set of roles, each on a model."
               actions={
                 <SegmentedControl
                   options={CREW_TABS}
@@ -216,7 +216,7 @@ export function CrewPage({
                 { value: crews?.length ?? "-", label: "crews" },
                 { value: flows?.length ?? "-", label: "flows they can run" },
               ]}
-              footer="Installing a preset just saves it. Nothing runs until you pick it."
+              footer="Installing a preset just saves it. Nothing runs until you pick one."
             />
           </Cell>
           {error ? (

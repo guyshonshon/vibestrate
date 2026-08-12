@@ -246,6 +246,9 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
       <Deck>
         <Cell size="full" reason="masthead">
           <PageHero
+            /* No third line under the state: the value and the caption already
+               say it, in both tones. "Clear / Nothing blocked / Nothing is
+               waiting on you" is one fact written three times. */
             state={{
               value: approvals.length > 0 ? approvals.length : "Clear",
               caption:
@@ -254,14 +257,10 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
                     ? "Waiting on you"
                     : "Waiting on you"
                   : "Nothing blocked",
-              note:
-                approvals.length > 0
-                  ? "A run stopped and needs your answer."
-                  : "Nothing is waiting on you. Start something below.",
               tone: approvals.length > 0 ? "amber" : "emerald",
             }}
             title="Mission control"
-            purpose="Describe a change and start a run. Answer anything it stops to ask."
+            purpose="Your starting point for anything you want built."
             actions={
               <Button variant="secondary" size="sm" onClick={onShowDashboard}>
                 Open dashboard

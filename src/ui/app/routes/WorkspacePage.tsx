@@ -87,7 +87,7 @@ export function WorkspacePage() {
           tone: totals && totals.activeRuns > 0 ? "violet" : "neutral",
         }}
         title="All projects"
-        purpose="Every project you have registered. Open one in a new tab."
+        purpose="Every project you have registered, each with its own dashboard."
         actions={
           <>
             {/* Segmented range toggle - the Board's toolbar idiom. */}
