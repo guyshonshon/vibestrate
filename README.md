@@ -272,7 +272,11 @@ pnpm install && pnpm typecheck && pnpm test && pnpm build
 
 ## ◆ Versioning
 
-Vibestrate follows [SemVer](https://semver.org). From `1.0.0` on the public surface is stable: the CLI commands and their flags, the config schema, and the versioned HTTP API (`/api/v1`). Breaking changes there require a major release; minors add capability without breaking what already works, and patches only fix. Internal modules under `src/` are not a public API and can change in any release. The version lives in [`package.json`](./package.json) only, and flows into `vibe --version` and the generated docs reference.
+Vibestrate versions by the SIZE of the change. A **patch** is ordinary work - a merged branch, a fix, a feature that fits the shape already there. A **minor** is a big change: something that alters how you work with the product. A **major** is a whole new version of Vibestrate, not one breaking edit.
+
+That last part is the deliberate difference from strict [SemVer](https://semver.org): a breaking change does not on its own earn a major here. When one ships, it leads the release notes with its migration - see the `1.1.5` entry in [`CHANGELOG.md`](./CHANGELOG.md) for the shape. Pin an exact version if you need that guarantee rather than a caret range.
+
+The public surface is the CLI commands and their flags, the config schema, and the versioned HTTP API (`/api/v1`). Internal modules under `src/` are not a public API and can change in any release. The version lives in [`package.json`](./package.json) only, and flows into `vibe --version` and the generated docs reference.
 
 ## ◆ License
 
