@@ -10,6 +10,10 @@
 
 <br />
 
+<sub><b>BETA</b> - usable, not settled. <a href="#-beta">What that means</a>.</sub>
+
+<br />
+
 One chat with one model is great for sketches.
 Real work - refactors, migrations, whole features - wants a supervised flow you can stay inside.
 Vibestrate is an open-source, supervised flow for AI coding: choose or share a flow, fill the crew with Claude Code, Codex, Gemini, Aider, OpenCode, or local models, approve the risky gates yourself, and keep the run ledger on your machine. If one model becomes unavailable, unreliable, or overpriced, swap the crew without changing the flow.
@@ -269,6 +273,26 @@ pnpm install && pnpm typecheck && pnpm test && pnpm build
 ```
 
 <p align="right"><a href="#top">↑ back to top</a></p>
+
+<a name="-beta"></a>
+
+## ◆ Beta
+
+Vibestrate is in beta. Not a disclaimer - a description of which parts have settled and which have not, so you can decide what to build on.
+
+**Settled.** The CLI command names and their flags. The run model: a run works in its own git worktree, stops at merge-ready, and never pushes or merges on its own. Everything stays on your machine - no cloud, no relay, no telemetry. The `.vibestrate/` layout for runs, tasks and events.
+
+**Not settled.** The config schema, and the policy schema in particular - `1.1.5` refused a `require_approval` effect that `1.0.1` accepted at load. Flow and crew YAML. The HTTP surface outside `/api/v1`. Internal modules under `src/` are not an API at all.
+
+**What you get before something breaks.** Every breaking change leads its release notes with the migration, in the words you would need to fix it - see the `1.1.5` entry in [`CHANGELOG.md`](./CHANGELOG.md) for the shape. Loud is the point: a config Vibestrate can no longer honour is refused at load rather than silently ignored, because a rule you believe is holding and never fires is worse than an error.
+
+**If you need it to stop moving,** pin an exact version rather than a caret range:
+
+```json
+"vibestrate": "1.1.7"
+```
+
+Beta ends when the config and policy schemas go a release cycle without a breaking change and the numbers below start meaning what they say to everyone else.
 
 ## ◆ Versioning
 

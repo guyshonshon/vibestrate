@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.7
+
+- **Vibestrate says it is in beta, and says what that means.** Not a badge and a
+  shrug: the README now names which parts have settled and which have not. The
+  CLI surface, the run model and the on-disk layout are stable. The config and
+  policy schemas are not - `1.1.5` refused a policy effect that `1.0.1` accepted
+  at load, which is exactly the kind of change a 1.x number quietly promises not
+  to make. Reaching 1.0.0 before the schemas stopped moving was the mistake; the
+  honest fix is to describe the state rather than renumber history that npm
+  keeps a permanent record of either way.
+- **And what you get before something breaks.** Every breaking change leads its
+  release notes with the migration, and a config Vibestrate can no longer honour
+  is refused at load rather than skipped - a rule you believe is holding and
+  never fires is worse than an error. If you need it to stop moving, pin the
+  exact version instead of a caret range.
+
 ## 1.1.6
 
 - **The replay timeline works.** `state.changed` was read by the replay service

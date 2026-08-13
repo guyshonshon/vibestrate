@@ -15,7 +15,7 @@ pnpm release patch    # or minor | major
 with origin), runs the full gate (typecheck → build → test → audit → packed
 artifact verify), then `npm version` (commits + tags `vX.Y.Z`) and pushes main
 plus the tag. It does **not** publish - publish manually right after (below).
-Releasing is done from a maintainer's machine; there is no CI publish workflow.
+Releasing is done from a maintainer's machine; publishing runs in CI (see below).
 
 The version lives in `package.json` only and flows into `vibestrate --version` and
 the generated docs reference - no other place to bump.
