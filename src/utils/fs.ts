@@ -35,10 +35,43 @@ export async function writeTextAtomic(filePath: string, contents: string): Promi
     // yet keeps the default.
     const existing = await fs.stat(filePath).catch(() => null);
     if (existing) await fs.chmod(tmp, existing.mode & 0o777);
-    await fs.rename(tmp, filePath);
+    await renameWithRetry(tmp, filePath);
   } catch (err) {
     await fs.unlink(tmp).catch(() => undefined);
     throw err;
+  }
+}
+
+// Windows fails a rename onto a destination another handle has open, which POSIX
+// allows outright. The readers this function exists to protect take no lock and
+// poll, so they hold that handle constantly - meaning the atomic write and the
+// safe read collide precisely on the files that need both. It is transient: the
+// reader's handle closes in microseconds. Retrying briefly turns it back into
+// the atomic replace it is everywhere else.
+//
+// Keyed on the error codes rather than `process.platform`, because network
+// shares and antivirus scanners produce the same codes on paths that are
+// nominally POSIX, and on real POSIX these codes do not arise from this call at
+// all - so the retry is dead weight there rather than a behaviour change.
+const RENAME_CONTENDED = new Set(["EPERM", "EACCES", "EBUSY"]);
+const RENAME_ATTEMPTS = 10;
+
+async function renameWithRetry(from: string, to: string): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await fs.rename(from, to);
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code ?? "";
+      // Give up on the last attempt, and immediately on anything that will not
+      // clear by waiting - a missing temp file or a bad path is a real error and
+      // must not be buried under a retry loop.
+      if (attempt >= RENAME_ATTEMPTS || !RENAME_CONTENDED.has(code)) throw err;
+      // Back off linearly to ~55ms total. Long enough to outlast a reader's open
+      // handle, short enough that a genuinely locked file still fails promptly
+      // rather than stalling a run.
+      await new Promise((resolve) => setTimeout(resolve, attempt));
+    }
   }
 }
 

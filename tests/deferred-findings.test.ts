@@ -22,7 +22,10 @@ describe("a project name carrying a quote still produces parseable YAML", () => 
     // The name comes from the repo's package.json, so it is not the operator's
     // to get right - a quote in it used to write a project.yml no command could
     // read, which fails at every later step instead of at the one that wrote it.
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'vibestrate-quo"te-'));
+    // The quote under test belongs in the project NAME below, not in the
+    // directory holding it: Windows rejects `"` in a path outright, so a quoted
+    // temp dir failed at mkdtemp and this never reached the assertion there.
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-quote-"));
     await fs.writeFile(
       path.join(dir, "package.json"),
       JSON.stringify({ name: 'demo" # not a comment' }),
