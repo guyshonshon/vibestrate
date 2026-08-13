@@ -99,5 +99,31 @@ jobs:
 
       # `prepublishOnly` runs the build and strips sourcemaps, so the tarball
       # matches what verify-pack.sh just proved installs from a clean room.
+      #
+      # `--tag latest` is explicit on purpose. npm refuses to apply the latest
+      # tag IMPLICITLY when the version being published is lower than the one
+      # already there ("Cannot implicitly apply the latest tag because
+      # previously published version X is higher"), which is a guard against
+      # publishing an old backport and silently making it the default install.
+      # Vibestrate renumbered DOWN from 1.1.7 to 0.1.0, so every release until
+      # the 1.x versions are gone trips that guard. Passing the tag explicitly
+      # clears npm's is-this-the-default-tag check and still lands on latest.
+      # Dropping this flag does not fail loudly the way most mistakes do - it
+      # only fails while a higher version exists, so it would look fine for
+      # months and then block a release nobody expected to be blocked.
       - name: Publish
-        run: npm publish --provenance --access public
+        run: npm publish --provenance --access public --tag latest
+
+      # A publish reporting success while `latest` still points somewhere else
+      # means every install keeps getting the old version. Cheap to check, and
+      # invisible until a user tells you.
+      - name: Latest points at what we just published
+        run: |
+          PKG="$(node -p "require('./package.json').version")"
+          TAG="$(npm view vibestrate dist-tags.latest)"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "Published $PKG but dist-tag latest is $TAG."
+            echo "Fix with: npm dist-tag add vibestrate@$PKG latest"
+            exit 1
+          fi
+          echo "latest -> $TAG"
