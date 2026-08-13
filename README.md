@@ -14,9 +14,11 @@
 
 <br />
 
-One chat with one model is great for sketches.
-Real work - refactors, migrations, whole features - wants a supervised flow you can stay inside.
-Vibestrate is an open-source, supervised flow for AI coding: choose or share a flow, fill the crew with Claude Code, Codex, Gemini, Aider, OpenCode, or local models, approve the risky gates yourself, and keep the run ledger on your machine. If one model becomes unavailable, unreliable, or overpriced, swap the crew without changing the flow.
+You already have the models. Vibestrate is where they work together.
+
+You set the rules, the procedure, and the roadmap once. Every model on the task reads the same plan and the same project context, hands its work to the next one, and stops at the gates you chose. Claude Code, Codex, Gemini, Aider, OpenCode, or a local model: swap who does what without rewriting the plan.
+
+Free, open source, and light enough to drop into any repo.
 
 <br />
 
@@ -100,19 +102,31 @@ Add `--ui` to any run to open the Mission Control dashboard. New here? [Ready in
 
 ## ◆ Why it exists
 
-Vibe-coding with a single chat is a high-wire act. It flies for a sketch - then you hit real work and quietly become the babysitter: re-pasting context the model already forgot, catching the confident-but-wrong refactor *before* it lands, squinting at a diff you never watched get made, and losing count of how many tokens (and dollars) five "quick tries" just burned. One model, one point of view, no record, no brakes.
+Running one model is easy. Running three is a job.
 
-Vibestrate trades the high-wire for an assembly line you can see. Your task walks down a row of specialists - a **planner** sketches the change, an **architect** shapes it, an **executor** writes it in a throwaway git worktree, *your own tests* run as the referee, a **reviewer** (ideally a **different** model, so it doesn't share the executor's blind spots) tears into the diff, a **fixer** answers the findings, and a **verifier** signs off. You watch each handoff. You approve the moments that matter. Every prompt, diff, decision, and token is on the record - and nothing merges until you say so.
+You paste the same context into the second tool, because it has never seen the project. You keep the worktrees straight yourself. You carry the plan from one model to the next and explain it again, in your own words, every time. You watch each one closely enough to catch it drifting off the task you actually asked for. And when something lands wrong, there is no record of how it got there.
 
-That's the whole trick: the work that used to live in your head - the plan, the second opinion, the "did it *actually* pass?", the running cost - becomes visible, ordered, and replayable. Same models you already pay for. Your machine. Your call at every gate.
+None of that is the work. It is the cost of doing the work in three places at once, and it grows with every model you add.
+
+Vibestrate absorbs it. The plan lives in one place. The rules live in one place. Each model reads both, does its part in a throwaway git worktree, and hands off to the next with its output attached. Your own tests are the referee. Every prompt, diff, decision, and token is on the record, and nothing reaches your branch without you.
+
+Same models you already pay for. Your machine. Your call at every gate.
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 
 ## ◆ What it is
 
-Vibestrate is a **local-first supervisor for coding agents** - the review-and-verification layer for the AI CLIs already on your machine. You give it a task in plain language; it spins up a git worktree, walks a **planner → architect → executor → reviewer → verifier** crew through the change, runs *your* validation commands, records every step, and stops at `merge_ready`, `blocked`, or `failed`. It never pushes and never merges - you stay in the chair.
+Vibestrate is a **local-first control layer for coding agents**. It gives the AI CLIs already on your machine the three things they never get on their own:
 
-The agents are the CLIs you already have - **Claude Code, Codex, Aider, Ollama, OpenCode** - mix and match per role. Plan with one model, implement with another, review with a third.
+- **A plan.** One brief, one spec, one roadmap. Written once, read by every model on the task and carried across each handoff, so nobody starts from zero and nothing gets re-explained.
+- **Rules.** Your project's standards, stated as policy the run enforces, not advice a model can talk itself out of.
+- **A frame.** Each model works in a throwaway git worktree, in the role you gave it, with the permissions you set, and stops at the gates you chose.
+
+The rules are yours, so the strictness is yours. Tighten it until nothing moves without your sign-off, or loosen it to a single plain-language run. Both are the same tool.
+
+You give it a task in plain language. It walks a **planner → architect → executor → reviewer → verifier** crew through the change, runs *your* validation commands, records every step, and stops at `merge_ready`, `blocked`, or `failed`. It never pushes and never merges. You stay in the chair.
+
+You pick the crew: **Claude Code, Codex, Gemini, Aider, Ollama, OpenCode**, or a local model. Plan with one, implement with another, review with a third. Swapping a model never changes the flow.
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 

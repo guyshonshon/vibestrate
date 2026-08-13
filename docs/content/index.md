@@ -1,10 +1,12 @@
 ---
 title: Vibestrate docs
-description: Vibestrate orchestrates the AI coding CLIs you already have - it breaks a task down, runs it across several models, and supervises the work while you make the final call.
+description: Vibestrate is where your AI coding agents work together - one shared plan, one set of rules, one record. It runs the CLIs you already have and leaves the final call to you.
 slug: index
 ---
 
-Vibestrate orchestrates the AI coding CLIs you already have. Hand it a task, even one you could not write yourself - a security fix, a piece of WebGL you have never touched. It breaks the work down, runs it across several models, and supervises the whole thing.
+Vibestrate is where your AI coding agents work together. You already have the models; what you don't have is somewhere to run them as a team. Vibestrate gives them one plan, one set of rules, and a place to hand work to each other, so you stop carrying context between tools by hand.
+
+Hand it a task, even one you could not write yourself - a security fix, a piece of WebGL you have never touched. It breaks the work down, runs it across several models, and supervises the whole thing.
 
 Because AI can write that code. AI also gets it wrong, and it tends to agree with whatever you said - see [why a human stays in the loop](/docs/getting-started/why-a-human).
 
