@@ -118,13 +118,34 @@ jobs:
       # A publish reporting success while `latest` still points somewhere else
       # means every install keeps getting the old version. Cheap to check, and
       # invisible until a user tells you.
+      #
+      # Polled, not read once. The registry does not serve a new dist-tag
+      # instantly: the 0.1.0 release published correctly and this step still
+      # failed, because it asked within seconds and got the previous value. A
+      # release check that reports failure on a successful release is worse than
+      # no check - the next real failure reads as "that flaky step again".
+      #
+      # --prefer-online on every attempt, because npm will otherwise answer from
+      # its own cached packument and hand back the same stale tag no matter how
+      # long the loop waits, turning the retry into an expensive no-op.
+      #
+      # Still fails if the tag genuinely never moves. The attempt count is
+      # printed so the real propagation margin shows up in the log, rather than
+      # staying a guess the next person has to re-make.
       - name: Latest points at what we just published
         run: |
           PKG="$(node -p "require('./package.json').version")"
-          TAG="$(npm view vibestrate dist-tags.latest)"
-          if [ "$TAG" != "$PKG" ]; then
-            echo "Published $PKG but dist-tag latest is $TAG."
-            echo "Fix with: npm dist-tag add vibestrate@$PKG latest"
-            exit 1
-          fi
-          echo "latest -> $TAG"
+          TAG=""
+          for attempt in $(seq 1 20); do
+            TAG="$(npm view --prefer-online vibestrate dist-tags.latest 2>/dev/null || true)"
+            if [ "$TAG" = "$PKG" ]; then
+              echo "latest -> $TAG (settled after $attempt check(s))"
+              exit 0
+            fi
+            sleep 6
+          done
+          echo "Published $PKG but dist-tag latest is still \"$TAG\" after ~2 minutes."
+          echo "The publish itself succeeded, so the package is on the registry"
+          echo "and only the default-install pointer is wrong. Fix with:"
+          echo "  npm dist-tag add vibestrate@$PKG latest"
+          exit 1
