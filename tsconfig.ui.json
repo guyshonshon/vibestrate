@@ -3,11 +3,13 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "baseUrl": ".",
-    "paths": { "@/*": ["src/ui/*"] },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "types": ["node"],
+    // `vite/client` declares the asset modules Vite resolves at build time
+    // (`*.css` and friends). Without it a bare `import "./index.css"` has no
+    // declaration to bind to - which TypeScript 5 let pass silently and
+    // TypeScript 6+ reports as TS2882.
+    "types": ["node", "vite/client"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,

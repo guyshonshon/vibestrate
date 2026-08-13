@@ -7,9 +7,6 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   root: path.resolve(__dirname, "src/ui"),
   base: "./",
-  resolve: {
-    alias: { "@": path.resolve(__dirname, "src/ui") },
-  },
   build: {
     outDir: path.resolve(__dirname, "dist/ui"),
     emptyOutDir: true,
