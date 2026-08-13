@@ -1,14 +1,16 @@
 ---
 title: The big picture
-description: Vibestrate orchestrates AI coding agents - a crew of different models that check each other while you stay in control. Task, Flow, and Crew, explained once.
+description: Vibestrate is the frame your AI coding agents work in - one shared plan, rules the run enforces, and your call at the end. Task, Flow, and Crew, explained once.
 slug: getting-started/big-picture
 ---
 
 Spend three minutes here before any commands. This is the one short read that makes everything click.
 
-Vibestrate orchestrates the AI coding CLIs you already have. Hand it a job, it follows a set routine to get it done, and that routine is carried out by a team of AI workers you put together. Job, routine, team. The rest is just the real names for those three things. Different models check each other along the way instead of one model rubber-stamping itself - see [why a human stays in the loop](/docs/getting-started/why-a-human).
+Vibestrate orchestrates the AI coding CLIs you already have. Hand it a job, it follows a set routine to get it done, and that routine is carried out by a team of AI workers you put together. Job, routine, team. The rest is just the real names for those three things.
 
-You stay in control the whole way. Each Task works in an isolated copy of your project, runs your checks, and stops at a clear outcome. It never pushes or merges for you - see [the safety guarantees](/docs/concepts/safety).
+Running several models on one job by hand is where the time goes: pasting the same context into a tool that has never seen the project, carrying the plan from one chat to the next, watching each one for drift. Vibestrate is the frame that work happens inside. Every worker on the job reads the same plan and the same [project context](/docs/concepts/vibestrate-md), so nobody starts from zero and you never explain the project twice. Different models check each other along the way instead of one model rubber-stamping itself - see [why a human stays in the loop](/docs/getting-started/why-a-human).
+
+You stay in control the whole way. The standards you set are [rules the run enforces](/docs/concepts/policies), not advice a model can talk itself out of. Each Task works in an isolated copy of your project, runs your checks, and stops at a clear outcome. It never pushes or merges for you - see [the safety guarantees](/docs/concepts/safety).
 
 ## Task - the job you want done
 
