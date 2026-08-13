@@ -327,7 +327,25 @@ describe("a policy set that did not fully load refuses the run", () => {
   it("treats an unreadable policies directory as broken, not as empty", async () => {
     const { root } = await projectWith({ "a.yml": GOOD });
     const dir = path.join(root, ".vibestrate", "policies");
-    await fs.chmod(dir, 0o000);
+    // Break the directory in whichever way the host actually honours. chmod 000
+    // is the real-world shape, but on Windows it only toggles the read-only
+    // attribute - the directory stays listable, the precondition never exists,
+    // and the assertion below fails for a reason that has nothing to do with the
+    // guard. Replacing the directory with a file raises ENOTDIR instead, which
+    // lands in the SAME readdir catch in policy-store.ts (everything but ENOENT
+    // is reported as malformed), so both platforms exercise one branch.
+    let restore: () => Promise<void>;
+    if (process.platform === "win32") {
+      await fs.rm(dir, { recursive: true, force: true });
+      await fs.writeFile(dir, "not a directory\n");
+      restore = async () => {
+        await fs.rm(dir, { force: true });
+        await fs.mkdir(dir, { recursive: true });
+      };
+    } else {
+      await fs.chmod(dir, 0o000);
+      restore = () => fs.chmod(dir, 0o755);
+    }
     try {
       const snap = await loadPolicySnapshot(root);
       expect(snap.malformedFiles.length, "an unreadable dir must be reported").toBeGreaterThan(0);
@@ -335,7 +353,7 @@ describe("a policy set that did not fully load refuses the run", () => {
       const broker = createActionBroker(root, "assist");
       expect((await broker.decide(req("file.write"))).effect).toBe("deny");
     } finally {
-      await fs.chmod(dir, 0o755);
+      await restore();
     }
   });
 

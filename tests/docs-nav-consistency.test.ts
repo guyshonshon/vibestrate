@@ -34,7 +34,13 @@ function pageSlugs(dir = ""): string[] {
 /** The raw `key: value` lines of a page's leading YAML frontmatter block. */
 function frontmatter(slug: string): Record<string, string> {
   const text = readFileSync(join(contentDir, `${slug}.md`), "utf8");
-  const match = /^---\n([\s\S]*?)\n---/.exec(text);
+  // \r? on both anchors: git checks these out with CRLF under the Windows
+  // default core.autocrlf, so an LF-only pattern reads every page as having no
+  // frontmatter at all. Tolerating it here rather than pinning the files to LF
+  // is deliberate - people author docs on Windows too, and a parser that only
+  // accepts one line ending would reject their contributions for invisible
+  // reasons.
+  const match = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
   if (!match) throw new Error(`${slug}.md has no frontmatter block`);
   const [, block = ""] = match;
   const fields: Record<string, string> = {};

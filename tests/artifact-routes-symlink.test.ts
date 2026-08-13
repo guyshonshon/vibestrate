@@ -166,7 +166,15 @@ describe("artifact routes refuse what the run's own directory can hide", () => {
     }
   });
 
-  it("maps an unopenable artifact to 400 rather than the generic 500", async () => {
+  // Skipped on Windows for want of a precondition, not because the guard is
+  // POSIX-only: the mapping under test is platform-neutral, but chmod 000 there
+  // only sets the read-only attribute, so the file opens fine and the route
+  // correctly returns 200 to a request that was never unopenable. Making it a
+  // directory instead would be answered by the isFile() guard, which would leave
+  // this case passing while proving a different mechanism - worse than skipping,
+  // because it would read as coverage. What stays unverified on Windows is only
+  // that an EACCES-shaped open failure maps to 400 rather than 500.
+  it.skipIf(isWindows)("maps an unopenable artifact to 400 rather than the generic 500", async () => {
     // A 500 goes through the generic handler, which records an issue per
     // request and puts the absolute path in the body. O_NOFOLLOW winning its
     // race raises ELOOP through this same path, so the guard succeeding was
