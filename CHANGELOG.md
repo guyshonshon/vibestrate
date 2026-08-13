@@ -5,6 +5,33 @@
 <!-- Work accumulates here during a sprint and is versioned ONCE at release.
      Do not add a numbered heading per commit - see CLAUDE.md 10. -->
 
+## 0.1.1
+
+> **Breaking: Vibestrate now needs Node 24 or newer.** If `vibe` stops starting
+> after this upgrade, that is why. Node 24 is the Active LTS ("Krypton"); Node 22
+> is still supported by Node itself until April 2027, so if you are pinned there,
+> stay on `0.1.0` until you can move. `nvm install 24 && nvm use 24`, or your
+> platform's equivalent, is the whole migration. CI proves every release on both
+> 24 and 26 so the next line up is never a surprise.
+
+- **A run waiting on your approval could fail over the approval landing.** The
+  gate polls `approvals.json` without a lock while the dashboard, CLI and shell
+  write it from other processes, and that write was not atomic - so a poll could
+  catch the file mid-rewrite, read it as empty, and kill the run with "approval
+  disappeared" at the exact moment a decision was being recorded. It is replaced
+  atomically now, which is what makes the unlocked reads correct.
+- **Windows is genuinely tested again.** The Windows job had been red on every
+  run for weeks; it is not a required check, so nothing blocked and nobody
+  looked. Three causes, none of them a product bug: frontmatter parsed with an
+  LF-only pattern against CRLF checkouts, and two tests building their
+  preconditions with `chmod`, which on Windows only sets the read-only attribute.
+  The fail-closed policy guard - an unreadable policies directory must never read
+  as "no policies configured" - is now covered on Windows too, by breaking the
+  directory a way Windows honours rather than skipping the case.
+- **Atomic writes survive a reader on Windows.** `rename` onto a file another
+  handle has open is refused there and allowed on POSIX, so the run state file
+  could fail to save whenever something was reading it. Retried briefly, keyed on
+  the error rather than the platform.
 - **TypeScript 7.** The typechecker is the Go-native compiler now, and the full
   two-config `pnpm typecheck` drops from 14.6s to 3.4s. Three things had to go
   first: a `?? null` in the profile-precedence chain that never changed a
@@ -17,10 +44,10 @@
 
 > **The version number went down on purpose.** 1.0.0 shipped before the config
 > and policy schemas stopped moving, and a 1.x number quietly promises they have.
-> This is the same product as 1.1.7 wearing an honest number. npm keeps every
-> published version permanently, so 1.0.1 through 1.1.7 stay visible above this
-> one, deprecated and pointing here. **A higher number further up the npm page is
-> the old line, not a newer release.**
+> This is the same product as 1.1.7 wearing an honest number. `1.0.0`, `1.0.1`,
+> `1.1.5` and `1.1.6` were unpublished; `1.1.7` stays on the registry above this
+> release. **A higher number further up the npm page is the old line, not a newer
+> release** - `latest` points here, so a plain install gets this.
 
 - **Vibestrate says what it is for.** The README argued that one model gets
   things wrong and the fix is a second model reviewing it. True, and not the
