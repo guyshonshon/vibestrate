@@ -15,9 +15,13 @@
 //   - `readAll` swallows a parse failure and returns an empty list, so an
 //     unreadable approvals.json reads as "no approvals" - and the next `create`
 //     writes a one-entry array over it.
-//   - `writeAll` overwrites in place (no temp-then-rename) and the read paths
-//     take no lock, so a reader can land on a partial file. That surfaces as
-//     the empty list above rather than as an error.
+//   - `writeAll` replaces the file atomically (temp-then-rename), which is what
+//     makes the UNLOCKED read paths safe. A reader sees either the whole old
+//     file or the whole new one, never a truncated middle. Without that, a poll
+//     landing mid-write read an empty list and `waitForResolution` reported the
+//     approval had "disappeared", failing a run over a decision that was being
+//     recorded at that instant. Do not swap this back to a plain write to save
+//     a rename: the readers here deliberately take no lock.
 //
 // `waitForResolution` polls rather than watching, and checks the AbortSignal
 // between polls; it is the call that blocks a run while a human decides.
@@ -25,7 +29,7 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { ensureDir, pathExists, readText, writeText } from "../../utils/fs.js";
+import { ensureDir, pathExists, readText, writeTextAtomic } from "../../utils/fs.js";
 import { runDir } from "../../utils/paths.js";
 import { nowIso } from "../../utils/time.js";
 import { withFileMutex } from "../../utils/file-mutex.js";
@@ -68,7 +72,7 @@ export class ApprovalService {
   async writeAll(items: ApprovalRequest[]): Promise<void> {
     const validated = fileSchema.parse(items);
     await ensureDir(path.dirname(this.filePath));
-    await writeText(this.filePath, `${JSON.stringify(validated, null, 2)}\n`);
+    await writeTextAtomic(this.filePath, `${JSON.stringify(validated, null, 2)}\n`);
   }
 
   async list(): Promise<ApprovalRequest[]> {
