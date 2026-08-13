@@ -5,6 +5,14 @@
 <!-- Work accumulates here during a sprint and is versioned ONCE at release.
      Do not add a numbered heading per commit - see CLAUDE.md 10. -->
 
+- **TypeScript 7.** The typechecker is the Go-native compiler now, and the full
+  two-config `pnpm typecheck` drops from 14.6s to 3.4s. Three things had to go
+  first: a `?? null` in the profile-precedence chain that never changed a
+  result, a `baseUrl` and `@/*` alias nothing ever imported through, and the
+  `vite/client` types missing behind every `import "./index.css"`. Only the
+  first was ever visible, because `typecheck` chains its two configs with `&&`
+  and the second one never got to run.
+
 ## 0.1.0
 
 > **The version number went down on purpose.** 1.0.0 shipped before the config

@@ -323,7 +323,7 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
       profileId =
         input.stepProfileOverrides?.[step.id] ??
         input.profileOverride ??
-        (isReviewStep ? input.reviewerProfile ?? null : null) ??
+        (isReviewStep ? input.reviewerProfile : null) ??
         chosen.role.profile;
       const profile = getProfile(input.config, profileId);
       providerId = profile.provider;
