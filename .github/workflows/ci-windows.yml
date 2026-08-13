@@ -22,14 +22,23 @@ permissions:
 jobs:
   check:
     runs-on: windows-latest
+    # Matrixed to match ci.yml on purpose. Windows breaks in ways Linux does not
+    # - the execa 9->10 bump swapped the process spawner and killed extensionless
+    # shebang resolution here while every Ubuntu leg stayed green - and a Node
+    # major is exactly the kind of change that moves child_process behaviour. A
+    # Node 26 claim tested only on Ubuntu is a Node 26 claim for half the users.
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [24, 26]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile

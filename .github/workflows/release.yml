@@ -42,18 +42,19 @@ jobs:
       # exchanges for a publish credential. Nothing else needs it.
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
-      # Trusted publishing needs a recent npm; the one bundled with Node 22 is
-      # older than the OIDC support.
+      # Trusted publishing needs an npm newer than the one bundled with Node,
+      # which lags the OIDC support. Pinning to the bundled npm silently loses
+      # provenance rather than failing, so this stays even as Node moves.
       - name: Use an npm that supports trusted publishing
         run: npm install -g npm@latest
 
