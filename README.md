@@ -10,7 +10,7 @@
 
 <br />
 
-<sub><b>BETA</b> - usable, not settled. <a href="#-beta">What that means</a>.</sub>
+<sub><a href="https://www.npmjs.com/package/vibestrate"><img src="https://img.shields.io/npm/v/vibestrate?label=&color=6951f0" alt="" /></a> <b>(BETA)</b></sub>
 
 <br />
 

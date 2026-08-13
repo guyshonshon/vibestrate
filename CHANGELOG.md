@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+<!-- Work accumulates here during a sprint and is versioned ONCE at release.
+     Do not add a numbered heading per commit - see CLAUDE.md 10. -->
+
+- **The masthead carries the live version and the beta mark, nothing more.** The
+  version reads from npm rather than being typed into the file, so it cannot go
+  stale the way a hardcoded number does after three releases in a day.
+- **The changelog stops listing versions that do not exist.** 1.1.1 through
+  1.1.4 were drafted headings for local bumps that never reached npm; they are
+  folded into 1.1.5, which is the release that actually carried that work. The
+  file's headings now match `npm view vibestrate versions` exactly, so the jump
+  from 1.0.1 to 1.1.5 reads as what it is rather than as missing releases.
+
 ## 1.1.7
 
 - **Vibestrate says it is in beta, and says what that means.** Not a badge and a
@@ -42,9 +56,9 @@
 
 ## 1.1.5
 
-> **Versions 1.1.0 through 1.1.4 were never published.** They were local bumps
-> taken one per branch; the work they describe ships here. If you are coming
-> from 1.0.1, this release is everything below plus those four sections.
+> **This is the next release after 1.0.1** - the numbers between were local
+> bumps, one per branch, that never reached npm. All of that work ships here,
+> which is why this section is long and the jump looks wide.
 
 **Breaking, and it is the one thing to read before upgrading.** A policy with
 `effect: require_approval` on any kind other than `run.complete` or `file.patch`
@@ -62,7 +76,7 @@ is holding, that never fires. **Migration:** change those entries to
   every turn after it. Redaction moved into the brief itself rather than onto
   each caller, because a caller that forgets is exactly how this happened.
 
-### Also in this release
+### Supervisor Control
 
 - **Supervisor Control: a conversation about a run that remembers.** The panel
   sits on the run's page next to the control centre, and every run gets its own
@@ -111,7 +125,7 @@ is holding, that never fires. **Migration:** change those entries to
   checklist alike. It has been true for the dashboard, the CLI and the TUI all
   along.
 
-## 1.1.3
+**Drafted as 1.1.3, never published**
 
 **Two changes here can stop a project from starting a run, deliberately.** If
 `.vibestrate/policies/` holds a malformed file, a duplicate rule id, or an
@@ -199,7 +213,7 @@ names the file and the reason. For the `require_approval` case, change it to
   screenshot or a page scrape, and its text is secret-redacted before it reaches
   a provider.
 
-## 1.1.2
+**Drafted as 1.1.2, never published**
 
 - **Project instructions can be more than one file.** Drop `*.md` files into
   `.vibestrate/rules/` and they compose onto `rules.md`, sorted by filename and
@@ -215,7 +229,7 @@ names the file and the reason. For the `require_approval` case, change it to
   stops reaching your agents should not be something you find out from a
   confusing run.
 
-## 1.1.1
+**Drafted as 1.1.1, never published**
 
 - **Small tasks stop paying for the full line.** The trivial-task sizer used to
   require you to name a file, and to refuse if any file you named was not a
