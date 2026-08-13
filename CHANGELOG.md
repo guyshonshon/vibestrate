@@ -5,14 +5,28 @@
 <!-- Work accumulates here during a sprint and is versioned ONCE at release.
      Do not add a numbered heading per commit - see CLAUDE.md 10. -->
 
-- **The masthead carries the live version and the beta mark, nothing more.** The
-  version reads from npm rather than being typed into the file, so it cannot go
-  stale the way a hardcoded number does after three releases in a day.
-- **The changelog stops listing versions that do not exist.** 1.1.1 through
-  1.1.4 were drafted headings for local bumps that never reached npm; they are
-  folded into 1.1.5, which is the release that actually carried that work. The
-  file's headings now match `npm view vibestrate versions` exactly, so the jump
-  from 1.0.1 to 1.1.5 reads as what it is rather than as missing releases.
+## 0.1.0
+
+> **The version number went down on purpose.** 1.0.0 shipped before the config
+> and policy schemas stopped moving, and a 1.x number quietly promises they have.
+> This is the same product as 1.1.7 wearing an honest number. npm keeps every
+> published version permanently, so 1.0.1 through 1.1.7 stay visible above this
+> one, deprecated and pointing here. **A higher number further up the npm page is
+> the old line, not a newer release.**
+
+- **Vibestrate says what it is for.** The README argued that one model gets
+  things wrong and the fix is a second model reviewing it. True, and not the
+  point. What actually eats the day is running several models on one job by hand:
+  pasting the same context into a tool that has never seen the project, carrying
+  the plan from one chat to the next, watching each one for drift. Vibestrate is
+  the frame that work happens inside - one plan every model reads, rules the run
+  enforces rather than advice a model can talk itself out of, and a throwaway
+  worktree per role. The three-minute read taught all six words without ever
+  saying what the arrangement was for; now it says so first.
+- **Beta means 0.x.** A patch is a merged branch, a minor is a big change, and
+  1.0.0 is what beta ending looks like: the config and policy schemas going a
+  release cycle without a breaking change. The number and the promise finally
+  agree, which is the whole reason for the renumber.
 
 ## 1.1.7
 

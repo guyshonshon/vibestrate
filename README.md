@@ -296,23 +296,27 @@ Vibestrate is in beta. Not a disclaimer - a description of which parts have sett
 
 **Settled.** The CLI command names and their flags. The run model: a run works in its own git worktree, stops at merge-ready, and never pushes or merges on its own. Everything stays on your machine - no cloud, no relay, no telemetry. The `.vibestrate/` layout for runs, tasks and events.
 
-**Not settled.** The config schema, and the policy schema in particular - `1.1.5` refused a `require_approval` effect that `1.0.1` accepted at load. Flow and crew YAML. The HTTP surface outside `/api/v1`. Internal modules under `src/` are not an API at all.
+**Not settled.** The config schema, and the policy schema in particular - one release refused a `require_approval` effect that the one before it accepted at load. Flow and crew YAML. The HTTP surface outside `/api/v1`. Internal modules under `src/` are not an API at all.
 
-**What you get before something breaks.** Every breaking change leads its release notes with the migration, in the words you would need to fix it - see the `1.1.5` entry in [`CHANGELOG.md`](./CHANGELOG.md) for the shape. Loud is the point: a config Vibestrate can no longer honour is refused at load rather than silently ignored, because a rule you believe is holding and never fires is worse than an error.
+**What you get before something breaks.** Every breaking change leads its release notes with the migration, in the words you would need to fix it - see [`CHANGELOG.md`](./CHANGELOG.md) for the shape. Loud is the point: a config Vibestrate can no longer honour is refused at load rather than silently ignored, because a rule you believe is holding and never fires is worse than an error.
 
 **If you need it to stop moving,** pin an exact version rather than a caret range:
 
 ```json
-"vibestrate": "1.1.7"
+"vibestrate": "0.1.0"
 ```
 
-Beta ends when the config and policy schemas go a release cycle without a breaking change and the numbers below start meaning what they say to everyone else.
+Beta ends at `1.0.0`, when the config and policy schemas go a release cycle without a breaking change.
+
+<a name="-versioning"></a>
 
 ## ◆ Versioning
 
-Vibestrate versions by the SIZE of the change. A **patch** is ordinary work - a merged branch, a fix, a feature that fits the shape already there. A **minor** is a big change: something that alters how you work with the product. A **major** is a whole new version of Vibestrate, not one breaking edit.
+**Vibestrate is on `0.x`, and npm still lists a `1.x` line above it.** Those are older, not newer. Vibestrate reached 1.0.0 before its schemas stopped moving, which is a promise it could not keep, so the numbering was corrected downward to where the project actually is. Every version from `1.0.1` to `1.1.7` is deprecated and points here. npm keeps published versions permanently, so the old line stays on the page rather than disappearing - hiding it would be tidier and less honest.
 
-That last part is the deliberate difference from strict [SemVer](https://semver.org): a breaking change does not on its own earn a major here. When one ships, it leads the release notes with its migration - see the `1.1.5` entry in [`CHANGELOG.md`](./CHANGELOG.md) for the shape. Pin an exact version if you need that guarantee rather than a caret range.
+Within `0.x`, Vibestrate versions by the SIZE of the change. A **patch** (`0.1.1`) is ordinary work: a merged branch, a fix, a feature that fits the shape already there. A **minor** (`0.2.0`) is a big change, something that alters how you work with the product. **`1.0.0` means beta is over**, not that something broke.
+
+That last part is the deliberate difference from strict [SemVer](https://semver.org): a breaking change does not on its own earn a major here. When one ships, it leads the release notes with its migration. Pin an exact version if you need that guarantee rather than a caret range.
 
 The public surface is the CLI commands and their flags, the config schema, and the versioned HTTP API (`/api/v1`). Internal modules under `src/` are not a public API and can change in any release. The version lives in [`package.json`](./package.json) only, and flows into `vibe --version` and the generated docs reference.
 
