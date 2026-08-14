@@ -41,6 +41,62 @@ describe("comment-only guard", () => {
   });
 });
 
+// Every case here came from running the harvest on this repo, where the first
+// implementation reported 35 markers and almost all of them were these.
+describe("comment syntax inside string literals", () => {
+  it("rejects a comment opener inside a double-quoted string", () => {
+    expect(classify('expect(classify("// TODO: fix the retry loop")).toBe(1);')).toBeNull();
+  });
+
+  it("rejects a comment opener inside a single-quoted string", () => {
+    expect(classify("const s = '// TODO: fix the retry loop';")).toBeNull();
+  });
+
+  it("rejects a comment opener inside a template literal", () => {
+    expect(classify("const s = `// TODO: fix the retry loop`;")).toBeNull();
+  });
+
+  it("rejects a url whose slashes look like a comment", () => {
+    expect(classify('const u = "http://TODO: not a comment at all";')).toBeNull();
+  });
+
+  it("still finds a real trailing comment after a string containing slashes", () => {
+    const got = classify('const u = "http://x"; // TODO: replace the hardcoded host');
+    expect(got?.text).toBe("replace the hardcoded host");
+  });
+
+  it("handles an escaped quote without losing the rest of the line", () => {
+    const got = classify(`const s = 'it\\'s fine'; // TODO: rename this variable`);
+    expect(got?.text).toBe("rename this variable");
+  });
+});
+
+describe("openers that only look like openers", () => {
+  // The first opener on the line is often a false start; scanning must continue.
+  it("finds the real comment after a decrement", () => {
+    const got = classify("i--; // TODO: hoist this out of the loop");
+    expect(got?.text).toBe("hoist this out of the loop");
+  });
+
+  it("finds the real comment after a private field", () => {
+    const got = classify("this.#cache.clear(); // TODO: bound the cache size");
+    expect(got?.text).toBe("bound the cache size");
+  });
+});
+
+describe("the marker must open the comment", () => {
+  // Prose ABOUT a TODO is not a TODO. This is what kept a module's own header
+  // comment out of the harvest.
+  it("rejects a marker mentioned mid-sentence", () => {
+    expect(classify("// See the TODO in foo.ts for the reason")).toBeNull();
+    expect(classify("// like `foo(); // TODO: ...` are caught), plus more")).toBeNull();
+  });
+
+  it("accepts a marker that opens the comment", () => {
+    expect(classify("// TODO: see foo.ts for the reason")?.marker).toBe("TODO");
+  });
+});
+
 describe("comment styles", () => {
   it("accepts a line comment", () => {
     expect(classify("// TODO: fix the retry loop")?.marker).toBe("TODO");

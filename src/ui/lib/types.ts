@@ -13,6 +13,7 @@ export type * from "./types/config.js";
 export type * from "./types/proposals.js";
 export type * from "./types/notifications.js";
 export type * from "./types/codebase.js";
+export type * from "./types/todos.js";
 export type * from "./types/git.js";
 export type * from "./types/suggestions.js";
 export type * from "./types/policies.js";

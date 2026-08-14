@@ -36,6 +36,7 @@ export type Route =
   | { kind: "task"; taskId: string }
   | { kind: "workspace" }
   | { kind: "proposals" }
+  | { kind: "todos" }
   | { kind: "proposal"; proposalId: string }
   | { kind: "settings" }
   | { kind: "policies" }
@@ -234,6 +235,7 @@ export function parseHashRoute(hash: string): Route {
     const taskId = query.get("task");
     return { kind: "consult", taskId: taskId ?? null };
   }
+  if (parts[0] === "todos") return { kind: "todos" };
   if (parts[0] === "proposals" && parts[1])
     return { kind: "proposal", proposalId: parts.slice(1).join("/") };
   if (parts[0] === "proposals") return { kind: "proposals" };
@@ -273,6 +275,8 @@ export function serializeRoute(route: Route): string {
       return "#/workspace";
     case "proposals":
       return "#/proposals";
+    case "todos":
+      return "#/todos";
     case "proposal":
       return `#/proposals/${route.proposalId}`;
     case "settings":

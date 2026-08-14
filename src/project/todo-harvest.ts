@@ -125,26 +125,72 @@ const TODO_SCAN_INCLUDE =
   "*.c,*.h,*.cc,*.cpp,*.hpp,*.cs,*.php,*.sh,*.bash,*.zsh,*.sql,*.vue,*.svelte," +
   "*.scss,*.css,*.yml,*.yaml,*.toml";
 
-// A marker only counts when a comment opener precedes it on the same line.
-// Without this the scan reports `const label = "TODO"` and a markdown heading as
-// Board cards - the naive-grep failure this whole module exists to avoid.
-//
-// Openers: `//` `#` `/*` `<!--` `--` anywhere on the line (so trailing comments
-// like `foo(); // TODO: ...` are caught), plus a leading `*` ONLY at line start
-// (the javadoc continuation) - a bare `*` mid-line is multiplication, not a
-// comment opener.
-const TODO_LINE_RE = new RegExp(
-  "(?:" +
-    "^[ \\t]*\\*+[ \\t]*" + // javadoc continuation, line-start only
-    "|\\/\\/+[ \\t]*" + // //
-    "|#+[ \\t]*" + // #
-    "|\\/\\*+[ \\t]*" + // /*
-    "|<!--[ \\t]*" + // <!--
-    "|--+[ \\t]*" + // -- (sql, lua, haskell)
-    ")" +
-    "(TODO|FIXME|HACK|XXX|BUG)\\b" +
-    "(.*)$",
-);
+/** The marker must be the first thing in the comment. `// See the TODO in
+ *  foo.ts` is prose ABOUT a TODO, not one. */
+const MARKER_AT_START_RE = /^[ \t]*(TODO|FIXME|HACK|XXX|BUG)\b(.*)$/;
+
+/**
+ * Every comment body on a line, in order, skipping openers that sit inside a
+ * string literal.
+ *
+ * Quote tracking is what stops `classify("// TODO: x")` in a test file from
+ * being harvested as real work - and on a real codebase that pattern is
+ * everywhere: URLs (`"http://..."`), regex sources, and any test about comments.
+ * A guard that only asks "is there a `//` somewhere on this line" reports all of
+ * them.
+ *
+ * It yields EVERY opener rather than stopping at the first, because the first
+ * one is often a false start: `i--; // TODO: fix` (decrement, not a SQL
+ * comment) and `this.#x; // TODO: fix` (private field, not a hash comment) both
+ * carry a real trailing comment after a token that merely looks like an opener.
+ */
+export function commentBodies(line: string): string[] {
+  const bodies: string[] = [];
+
+  // The javadoc continuation is line-start only: a bare `*` mid-line is
+  // multiplication, not a comment.
+  const star = /^[ \t]*\*+[ \t]*/.exec(line);
+  if (star) bodies.push(line.slice(star[0].length));
+
+  // `--` is a comment only in sql/lua/haskell, where it starts the line. Treated
+  // as an anywhere-opener it would swallow every `i--` in C-family code.
+  const dash = /^[ \t]*--+[ \t]*/.exec(line);
+  if (dash) bodies.push(line.slice(dash[0].length));
+
+  let quote: string | null = null;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i]!;
+    if (quote !== null) {
+      if (ch === "\\") {
+        i += 1; // escaped character, including an escaped quote
+        continue;
+      }
+      if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      quote = ch;
+      continue;
+    }
+    if (ch === "/" && line[i + 1] === "/") {
+      bodies.push(line.slice(i + 2).replace(/^\/+/, ""));
+      continue;
+    }
+    if (ch === "/" && line[i + 1] === "*") {
+      bodies.push(line.slice(i + 2).replace(/^\*+/, ""));
+      continue;
+    }
+    if (ch === "<" && line.startsWith("<!--", i)) {
+      bodies.push(line.slice(i + 4));
+      continue;
+    }
+    if (ch === "#") {
+      bodies.push(line.slice(i + 1).replace(/^#+/, ""));
+      continue;
+    }
+  }
+  return bodies;
+}
 
 /** `TODO(guy):` / `TODO:` / `TODO -` / `TODO` - the owner annotation and
  *  separator between the marker and the actual text. */
@@ -206,19 +252,23 @@ function toTitle(text: string): string {
  * priority - happens here and nowhere else, so it can be tested directly rather
  * than only through an end-to-end scan.
  *
- * KNOWN LIMIT, deliberately not fixed: this is line-based and cannot see
- * block-comment state. A marker inside a multi-line block comment on a line
- * starting with neither `*` nor the opener is missed, and a marker inside a
- * multi-line string whose line happens to start with `#` is a false positive.
- * Both are rare, neither is worth a parser, and the surface says it is
- * heuristic rather than pretending to be exhaustive.
+ * KNOWN LIMIT, deliberately not fixed: this is line-based, so it cannot see
+ * MULTI-LINE state. A marker inside a block comment, on a line starting with
+ * neither `*` nor the opener, is missed; a marker inside a multi-line template
+ * string is a false positive. Single-line quoting is handled (see
+ * `commentBodies`), which is what covers the common cases. The surface says the
+ * detection is heuristic rather than pretending to be exhaustive.
  */
 export function classifyTodoLine(
   filePath: string,
   line: number,
   rawLine: string,
 ): HarvestedTodo | null {
-  const m = TODO_LINE_RE.exec(rawLine);
+  let m: RegExpExecArray | null = null;
+  for (const body of commentBodies(rawLine)) {
+    m = MARKER_AT_START_RE.exec(body);
+    if (m) break;
+  }
   if (!m) return null;
 
   const marker = m[1] as TodoMarker;
@@ -370,7 +420,7 @@ export function promotableCount(harvest: TodosFile): number {
 /**
  * Regenerate the harvest artifact: extract -> redact -> write. Redaction runs
  * over the serialized JSON for the same reason `writeCodebaseMap` does it - a
- * TODO line can carry a token, and this is a third artifact on disk.
+ * harvested comment can carry a token, and this is a third artifact on disk.
  */
 export async function writeTodoHarvest(
   projectRoot: string,

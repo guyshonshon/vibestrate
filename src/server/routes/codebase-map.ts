@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { loadCodebaseMap, writeCodebaseMap } from "../../project/codebase-map.js";
+import { loadCodebaseMap } from "../../project/codebase-map.js";
+import { writeProjectScan } from "../../project/project-scan.js";
 
 export type CodebaseMapRoutesDeps = { projectRoot: string };
 
@@ -13,9 +14,14 @@ const refreshBody = z.object({}).strict();
  * Codebase map routes - read the cached `.vibestrate/codebase-map.json` and
  * (on explicit request) regenerate it.
  *
- * The POST calls ONLY `writeCodebaseMap` - the same deterministic extractor
- * `vibe learn` uses. No shell, no side effects beyond the two files it
- * already writes.
+ * The POST calls `writeProjectScan` - the exact path `vibe learn` takes, so the
+ * dashboard and the CLI cannot drift into producing different artifacts. It is
+ * deterministic (no model calls) and its only side effects are the files it
+ * already writes: the map pair, plus the TODO harvest.
+ *
+ * Refreshing the map WITHOUT the harvest would leave the dashboard unable to
+ * populate its own TODO surface - the empty state's "Learn the codebase" button
+ * would not fix the empty state.
  */
 export async function registerCodebaseMapRoutes(
   app: FastifyInstance,
@@ -33,7 +39,7 @@ export async function registerCodebaseMapRoutes(
       reply.code(400);
       return { error: parsed.error.issues.map((i) => i.message).join("; ") };
     }
-    const { map } = await writeCodebaseMap(projectRoot, new Date().toISOString());
+    const { map } = await writeProjectScan(projectRoot, new Date().toISOString());
     return { present: true, stale: false, map };
   });
 }

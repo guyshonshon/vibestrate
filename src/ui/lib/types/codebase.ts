@@ -309,7 +309,7 @@ export type GitGraph = {
 // type (this file's own convention) rather than importing the server/zod
 // type directly.
 export type CodebaseMapView = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   generatedAt: string;
   rev: string | null;
   project: {
@@ -328,6 +328,14 @@ export type CodebaseMapView = {
     truncated: boolean;
   };
   tooling: string[];
+  /** Harvested TODO marker COUNTS. The markers themselves live in the harvest
+   *  artifact, not here. `null` means the scan did not run - never zero, so a
+   *  failed scan cannot be shown as a clean codebase. */
+  todos: {
+    counts: Record<string, number>;
+    total: number;
+    truncated: boolean;
+  } | null;
   totalTrackedFiles: number;
   truncated: boolean;
   notes: string[];

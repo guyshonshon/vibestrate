@@ -53,6 +53,7 @@ import {
   ProposalsPage,
   ProposalDetailPage,
 } from "./routes/ProposalsPage.js";
+import { TodosPage } from "./routes/TodosPage.js";
 import type { NotificationRecord, CodeReference } from "../lib/types.js";
 import {
   type ReplayFocus,
@@ -296,7 +297,9 @@ export function App() {
           ? "board"
           : route.kind === "workspace"
             ? "workspace"
-            : route.kind === "proposals" || route.kind === "proposal"
+            : route.kind === "proposals" ||
+                route.kind === "proposal" ||
+                route.kind === "todos"
               ? "proposals"
               : route.kind === "settings"
                 ? "settings"
@@ -403,6 +406,7 @@ export function App() {
           }
           onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
           onOpenRun={(runId) => navigate({ kind: "run", runId })}
+          onOpenTodos={() => navigate({ kind: "todos" })}
         />
       ) : route.kind === "task" ? (
         <TaskDetailPage
@@ -482,6 +486,7 @@ export function App() {
           }
           onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
           onOpenRun={(runId) => navigate({ kind: "run", runId })}
+          onOpenTodos={() => navigate({ kind: "todos" })}
         />
       ) : route.kind === "flow" ? (
         <FlowBuilderPage
@@ -535,9 +540,12 @@ export function App() {
           taskId={route.taskId}
           onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
         />
+      ) : route.kind === "todos" ? (
+        <TodosPage onOpenTask={(taskId) => navigate({ kind: "task", taskId })} />
       ) : route.kind === "proposals" ? (
         <ProposalsPage
           onOpenProposal={(id) => navigate({ kind: "proposal", proposalId: id })}
+          onOpenTodos={() => navigate({ kind: "todos" })}
         />
       ) : (
         <ProposalDetailPage

@@ -23,6 +23,7 @@ import { suggestionsApi } from "../src/ui/lib/api/suggestions.js";
 import { bundlesApi } from "../src/ui/lib/api/bundles.js";
 import { terminalApi } from "../src/ui/lib/api/terminal.js";
 import { paramsApi } from "../src/ui/lib/api/params.js";
+import { todosApi } from "../src/ui/lib/api/todos.js";
 
 const slices: Record<string, Record<string, unknown>> = {
   runsApi,
@@ -50,6 +51,7 @@ const slices: Record<string, Record<string, unknown>> = {
   bundlesApi,
   terminalApi,
   paramsApi,
+  todosApi,
 };
 
 describe("lib/api barrel composition", () => {

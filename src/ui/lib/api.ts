@@ -27,6 +27,7 @@ import { suggestionsApi } from "./api/suggestions.js";
 import { bundlesApi } from "./api/bundles.js";
 import { terminalApi } from "./api/terminal.js";
 import { paramsApi } from "./api/params.js";
+import { todosApi } from "./api/todos.js";
 
 export { ApiError } from "./api/http.js";
 export type {
@@ -102,4 +103,5 @@ export const api = {
   ...bundlesApi,
   ...terminalApi,
   ...paramsApi,
+  ...todosApi,
 };

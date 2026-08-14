@@ -244,6 +244,23 @@ async function cmdPromote(
   for (const raw of requested) {
     const resolved = resolveFingerprint(raw, candidates);
     if (!resolved.ok) {
+      // "No match" is misleading when the TODO exists but is not promotable.
+      // Say which, so the next command is obvious instead of a guess.
+      const known = resolveFingerprint(
+        raw,
+        view.items.map((t) => t.fingerprint),
+      );
+      if (known.ok) {
+        const item = view.items.find((t) => t.fingerprint === known.fingerprint)!;
+        const why =
+          item.state === "on_board"
+            ? `is already on the board${item.taskId ? ` as ${item.taskId}` : ""}`
+            : item.state === "dismissed"
+              ? "was dismissed - bring it back with `vibe todos undismiss`"
+              : "is too vague to promote";
+        console.error(`${symbol.fail()} That TODO ${why}.`);
+        return 1;
+      }
       console.error(`${symbol.fail()} ${resolved.error}`);
       return 1;
     }
