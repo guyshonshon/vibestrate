@@ -202,6 +202,14 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
   const learned = await runLearn(detected.projectRoot, new Date().toISOString());
   if (learned.ok) {
     console.log(`${symbol.ok()} Learned the codebase -> ${color.bold(".vibestrate/CODEBASE.md")}`);
+    // Init on a repo that is already underway is exactly the moment this is
+    // worth saying: the project's own TODO comments are a backlog you can pick
+    // from instead of starting at a blank board.
+    if (learned.scan.promotable > 0) {
+      console.log(
+        `${symbol.ok()} Found ${color.bold(String(learned.scan.promotable))} TODO/FIXME markers worth reviewing -> ${color.bold("vibe todos")}`,
+      );
+    }
   } else {
     console.log(`${symbol.warn()} Codebase map skipped: ${learned.error} (run ${color.bold("vibe learn")} later)`);
   }

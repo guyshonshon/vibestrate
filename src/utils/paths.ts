@@ -209,6 +209,26 @@ export function roadmapProposalsDir(projectRoot: string): string {
   return path.join(roadmapDir(projectRoot), "proposals");
 }
 
+// Harvested code TODOs. Lives under `roadmap/` for the same reason `proposals/`
+// does: the producer is elsewhere (`vibe learn` scans the codebase), but the
+// roadmap is what consumes these, and the consumer owns the location.
+//
+// The two files have OPPOSITE lifecycles and the directory makes that visible:
+// `harvest.json` is a regenerable cache clobbered wholesale on every scan, while
+// `dismissed.json` is user data that has to survive exactly that clobbering.
+// Anything durable must never be folded back into harvest.json.
+export function roadmapTodosDir(projectRoot: string): string {
+  return path.join(roadmapDir(projectRoot), "todos");
+}
+
+export function roadmapTodosHarvestFile(projectRoot: string): string {
+  return path.join(roadmapTodosDir(projectRoot), "harvest.json");
+}
+
+export function roadmapTodosDismissedFile(projectRoot: string): string {
+  return path.join(roadmapTodosDir(projectRoot), "dismissed.json");
+}
+
 export function roadmapTaskReportFile(projectRoot: string, taskId: string): string {
   return path.join(roadmapTasksDir(projectRoot), `${taskId}-report.md`);
 }

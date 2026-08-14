@@ -67,7 +67,7 @@ describe("codebase map routes", () => {
     expect(refreshBody.map).not.toBeNull();
     expect(refreshBody.map!.project.name).toBe("demo-project");
     expect(refreshBody.map!.project.scripts.build).toBe("tsc -p .");
-    expect(refreshBody.map!.schemaVersion).toBe(1);
+    expect(refreshBody.map!.schemaVersion).toBe(2);
 
     const getRes = await get(`${server.url}/api/codebase-map`);
     expect(getRes.status).toBe(200);

@@ -9,7 +9,6 @@ import {
   vibestrateRoot,
 } from "../../utils/paths.js";
 import { withFileMutex } from "../../utils/file-mutex.js";
-import { writeCodebaseMap } from "../../project/codebase-map.js";
 import { flowArbitrationLedgerSchema } from "../../flows/runtime/flow-arbitration.js";
 import {
   flowEvidenceRefSchema,
@@ -377,10 +376,16 @@ async function appendAndRefresh(
   if (opts?.refreshCodebaseMap) {
     // A merge/run boundary is exactly when the repo shape is most likely to
     // have moved (new files, routes, scripts) - refresh the map so the next
-    // planner turn isn't grounded in a stale snapshot. Best-effort: this is a
-    // regenerable cache, so a refresh failure must never fail the run whose
-    // completion is being recorded.
-    await writeCodebaseMap(projectRoot, now).catch(() => {});
+    // planner turn isn't grounded in a stale snapshot. The TODO harvest rides
+    // along for the same reason: a list of candidate work that is stale exactly
+    // when the code changed is worse than no list.
+    //
+    // Best-effort: these are regenerable caches, so a refresh failure must never
+    // fail the run whose completion is being recorded. `writeProjectScan`
+    // isolates the harvest inside its own try, so a harvest failure still
+    // produces a refreshed map.
+    const { writeProjectScan } = await import("../../project/project-scan.js");
+    await writeProjectScan(projectRoot, now).catch(() => {});
   }
 }
 

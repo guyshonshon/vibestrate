@@ -16,9 +16,10 @@ import { listCodebaseFiles, searchCodebaseContent } from "../core/codebase/codeb
 import { writeTextAtomic, ensureDir, pathExists } from "../utils/fs.js";
 import { redactSecretsInText } from "../core/diff-service.js";
 import { vibestrateRoot } from "../utils/paths.js";
+import { renderTodoSummaryLine, type TodoCounts } from "./todo-harvest.js";
 
 export type CodebaseMap = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   generatedAt: string;
   /** git HEAD when generated; null when not a git repo. Drives staleness. */
   rev: string | null;
@@ -43,6 +44,16 @@ export type CodebaseMap = {
   };
   /** detected tooling markers: vitest, eslint, prettier, docker, github-actions, ... */
   tooling: string[];
+  /**
+   * Counts of harvested TODO/FIXME/HACK/XXX/BUG markers - NUMBERS ONLY. The
+   * entries live in `.vibestrate/roadmap/todos/harvest.json`, because this file
+   * is fetched on every Codebase page load and its rendering is prompt-adjacent;
+   * full TODO text has no business here.
+   *
+   * `null` means the scan did not run or failed. Deliberately not `0`: reporting
+   * "no TODOs" when the scan never happened is a lie the UI would repeat.
+   */
+  todos: TodoCounts | null;
   totalTrackedFiles: number;
   /** any cap was hit or a source was unavailable */
   truncated: boolean;
@@ -247,6 +258,7 @@ async function detectHttpRoutes(
 export async function extractCodebaseMap(
   projectRoot: string,
   generatedAt: string,
+  todos: TodoCounts | null = null,
 ): Promise<CodebaseMap> {
   const notes: string[] = [];
   let truncated = false;
@@ -305,7 +317,7 @@ export async function extractCodebaseMap(
   const tooling = detectTooling(trackedPaths);
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt,
     rev,
     project: {
@@ -324,6 +336,7 @@ export async function extractCodebaseMap(
       truncated: routesTruncated || conventionMatches.length > MAX_CONVENTION_FILES,
     },
     tooling,
+    todos,
     totalTrackedFiles: trackedPaths.length,
     truncated,
     notes,
@@ -404,6 +417,21 @@ function renderToolingSection(map: CodebaseMap): string[] {
   return ["## Tooling", "", ...map.tooling.map((t) => `- ${t}`), ""];
 }
 
+/** Counts and the heuristic, never a list. The entries are rendered by the UI
+ *  and TUI from the typed harvest, which is the whole point of storing them as
+ *  JSON rather than dumping them into a markdown file nobody can filter. */
+function renderTodosSection(map: CodebaseMap): string[] {
+  if (map.todos === null) return [];
+  return [
+    "## TODOs",
+    "",
+    `- ${renderTodoSummaryLine(map.todos)}`,
+    "- Detection is heuristic: comment lines only, and it cannot see multi-line",
+    "  block-comment state. Verify against the code.",
+    "",
+  ];
+}
+
 function renderNotesSection(map: CodebaseMap): string[] {
   if (map.notes.length === 0) return [];
   return ["## Notes", "", ...map.notes.map((n) => `- ${n}`), ""];
@@ -418,6 +446,7 @@ function renderSections(map: CodebaseMap): string {
     renderEntryPointsSection(map),
     renderHttpRoutesSection(map),
     renderToolingSection(map),
+    renderTodosSection(map),
     renderNotesSection(map),
   ].filter((block) => block.length > 0);
   return blocks.map((block) => block.join("\n")).join("\n");
@@ -537,6 +566,10 @@ function renderSectionsForPrompt(map: CodebaseMap): string {
     renderLayoutForPrompt(map),
     renderRouteSummaryForPrompt(map),
     renderEntryPointsSection(map),
+    // One line, not the list: the planner turn has a byte budget and knowing
+    // "this codebase carries 47 FIXMEs" is grounding, while 47 comment bodies
+    // would crowd out the stack and route summary that matter more.
+    renderTodosSection(map).slice(0, 3),
     renderNotesSection(map),
   ].filter((block) => block.length > 0);
   return blocks.map((block) => block.join("\n")).join("\n");
@@ -567,8 +600,9 @@ export function renderCodebaseMapForPrompt(
 export async function writeCodebaseMap(
   projectRoot: string,
   generatedAt: string,
+  todos: TodoCounts | null = null,
 ): Promise<{ map: CodebaseMap; markdownPath: string }> {
-  const map = await extractCodebaseMap(projectRoot, generatedAt);
+  const map = await extractCodebaseMap(projectRoot, generatedAt, todos);
   const markdown = redactSecretsInText(renderCodebaseMap(map)).redacted;
   const json = redactSecretsInText(JSON.stringify(map, null, 2)).redacted;
 
@@ -590,7 +624,7 @@ function isCodebaseMapShape(value: unknown): value is CodebaseMap {
   return (
     typeof value === "object" &&
     value !== null &&
-    (value as { schemaVersion?: unknown }).schemaVersion === 1
+    (value as { schemaVersion?: unknown }).schemaVersion === 2
   );
 }
 
