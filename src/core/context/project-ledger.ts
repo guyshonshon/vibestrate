@@ -376,16 +376,19 @@ async function appendAndRefresh(
   if (opts?.refreshCodebaseMap) {
     // A merge/run boundary is exactly when the repo shape is most likely to
     // have moved (new files, routes, scripts) - refresh the map so the next
-    // planner turn isn't grounded in a stale snapshot. The TODO harvest rides
-    // along for the same reason: a list of candidate work that is stale exactly
-    // when the code changed is worse than no list.
+    // planner turn isn't grounded in a stale snapshot. Best-effort: this is a
+    // regenerable cache, so a refresh failure must never fail the run whose
+    // completion is being recorded.
     //
-    // Best-effort: these are regenerable caches, so a refresh failure must never
-    // fail the run whose completion is being recorded. `writeProjectScan`
-    // isolates the harvest inside its own try, so a harvest failure still
-    // produces a refreshed map.
-    const { writeProjectScan } = await import("../../project/project-scan.js");
-    await writeProjectScan(projectRoot, now).catch(() => {});
+    // Deliberately map-only. The TODO harvest is NOT rescanned here: it grounds
+    // no prompt, it is read on demand, and it already reports its own staleness,
+    // so a full-tree grep per run completion would be cost with no consumer.
+    // `vibe learn` (and the dashboard's refresh) rescan it. The existing counts
+    // are carried through so the map does not blank them.
+    const { refreshCodebaseMapOnly } = await import(
+      "../../project/project-scan.js"
+    );
+    await refreshCodebaseMapOnly(projectRoot, now).catch(() => {});
   }
 }
 

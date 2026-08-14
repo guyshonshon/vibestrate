@@ -52,9 +52,12 @@ Next to VIBESTRATE.md sits a different kind of memory: `.vibestrate/CODEBASE.md`
 
 The map grounds the planner - injected once per run alongside the project's ledger digest - and Consult, so both reason from the real shape of your project instead of asking you to describe it. Judges (review, verify) stay clean-room and never see it, the same isolation VIBESTRATE.md gets. It refreshes automatically whenever a run reaches a terminal outcome, and marks itself stale in `vibe learn show` when your `HEAD` has moved since it was generated.
 
+The same scan collects your codebase's `TODO` and `FIXME` comments. Those are a third kind of memory again: not your authored intent and not a fact about the project's shape, but *candidate work* your team already wrote down. They are kept out of the map itself - it carries only the counts - and live in `.vibestrate/roadmap/todos/`, because the roadmap is what consumes them. Nothing reaches the Board without an explicit promote. See [Picking up a project already underway](/docs/getting-started/existing-project).
+
 ```bash
-vibe learn                                 # regenerate the map
+vibe learn                                 # regenerate the map + rescan for TODOs
 vibe learn show                            # print the current CODEBASE.md
+vibe todos                                 # review the TODOs it found
 ```
 
 Related: [[consult]], [[safety]], [[configuration]].

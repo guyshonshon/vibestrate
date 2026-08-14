@@ -24,6 +24,7 @@
 import { writeCodebaseMap, type CodebaseMap } from "./codebase-map.js";
 import {
   writeTodoHarvest,
+  readTodoCounts,
   todoCountsOf,
   promotableCount,
   type TodosFile,
@@ -70,4 +71,30 @@ export async function writeProjectScan(
     promotable: harvest ? promotableCount(harvest) : 0,
     harvestError,
   };
+}
+
+/**
+ * Refresh ONLY the codebase map, carrying the existing TODO counts through.
+ *
+ * This is what the automatic run/merge boundary uses. The map is refreshed there
+ * because it grounds the next planner turn, so a stale one is actively
+ * misleading. The TODO harvest grounds nothing - it is a human review surface,
+ * read on demand, and `loadTodoHarvest` already reports when it is stale. Paying
+ * a full-tree `git grep` on every single run completion to keep it warm is cost
+ * with no consumer, and it measurably loaded the subprocess-heavy end-to-end
+ * suites.
+ *
+ * Reading the existing harvest (one file read, no scan) rather than passing
+ * `null` matters: `null` means "not scanned", so skipping it would blank the
+ * counts out of the map after every run.
+ */
+export async function refreshCodebaseMapOnly(
+  projectRoot: string,
+  generatedAt: string,
+): Promise<void> {
+  // `readTodoCounts`, not `loadTodoHarvest`: the latter spawns `git rev-parse`
+  // for a staleness flag nothing here reads, and `writeCodebaseMap` already pays
+  // for its own rev read. Using the full loader would double the git
+  // subprocesses on every run completion.
+  await writeCodebaseMap(projectRoot, generatedAt, await readTodoCounts(projectRoot));
 }

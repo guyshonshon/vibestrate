@@ -243,9 +243,11 @@ export function buildRoadmapCommand(): Command {
     });
 
   cmd
-    .command("accept <id>")
+    // Optional id: omit it and you get a TAB-completing prompt over the
+    // proposals that are actually acceptable.
+    .command("accept [id]")
     .description(
-      "Accept a parsed proposal (creates roadmap items + tasks atomically).",
+      "Accept a parsed proposal (creates roadmap items + tasks atomically). Omit the id to pick one with TAB.",
     )
     .option("--dry-run", "preview without writing")
     .option(
@@ -255,14 +257,16 @@ export function buildRoadmapCommand(): Command {
     .option("--json", "emit JSON")
     .action(
       async (
-        id: string,
+        id: string | undefined,
         opts: {
           dryRun?: boolean;
           allowUnresolvedDependencies?: boolean;
           json?: boolean;
         },
       ) => {
-        const code = await cmdProposalAccept(id, opts);
+        const resolved = id ?? (await promptForProposalId());
+        if (resolved === null) process.exit(1);
+        const code = await cmdProposalAccept(resolved, opts);
         process.exit(code);
       },
     );
@@ -283,6 +287,33 @@ export function buildRoadmapCommand(): Command {
 }
 
 // ─── proposal command bodies ───────────────────────────────────────────────
+
+/**
+ * TAB-completing prompt for `vibe roadmap accept` with no id.
+ *
+ * Only proposals that can still be accepted are offered: an already-accepted one
+ * would be refused a moment later anyway, so putting it in the completion list
+ * would just be a trap.
+ */
+async function promptForProposalId(): Promise<string | null> {
+  const detected = await detectProject(process.cwd());
+  const list = await new ProposalService(detected.projectRoot).listProposals();
+  const open = list.filter((p) => !p.accepted);
+  if (open.length === 0) {
+    console.error(
+      `${symbol.fail()} No proposals waiting. Create one: ${color.bold('vibe roadmap plan "<goal>"')}`,
+    );
+    return null;
+  }
+  const { tabCompleteInput } = await import("../ui/tab-complete-input.js");
+  return tabCompleteInput({
+    message: "Accept which proposal?",
+    candidates: open.map((p) => ({
+      value: p.id,
+      hint: new Date(p.modifiedAt).toLocaleString(),
+    })),
+  });
+}
 
 async function cmdProposalsList(opts: { json?: boolean }): Promise<number> {
   const detected = await detectProject(process.cwd());

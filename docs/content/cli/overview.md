@@ -90,10 +90,20 @@ vibe config validate                       # check against the Zod schema
 
 `vibe learn` scans your project (stack, scripts, layout, languages, best-effort HTTP routes, tooling markers) and writes a machine-owned, regenerable map: `.vibestrate/CODEBASE.md` (human/prompt-facing) and `.vibestrate/codebase-map.json` (structured, server/UI-facing). `vibe init` already runs it best-effort at the end, so most projects have a map from the start.
 
+It also collects the `TODO`, `FIXME`, `HACK`, `XXX` and `BUG` comments in your code, which `vibe todos` turns into a review list you can promote onto the Board. On a project that's already underway, that's usually the fastest way to fill an empty Board - see [Picking up a project already underway](/docs/getting-started/existing-project).
+
 ```bash
-vibe learn                                 # regenerate the codebase map
+vibe learn                                 # regenerate the map + rescan for TODOs
 vibe learn show                            # print the current CODEBASE.md
+vibe learn todos                           # the TODO counts from the last scan
+
+vibe todos                                 # the markers worth reviewing
+vibe todos promote <fingerprint>           # make one a card (TAB completes)
+vibe todos dismiss <fingerprint>           # stop offering it
+vibe todos undismiss <fingerprint>         # bring it back
 ```
+
+Leave the fingerprint off and press TAB to pick from the list. Promoting is always explicit: a marker becomes a card only when you say so, and the card remembers the `file:line` it came from, so re-running `vibe learn` never offers it twice.
 
 It is entirely deterministic - no model call, so it can run on demand without surprising drift. Everything is secret-redacted, size-bounded, and written atomically. A non-git project degrades honestly (a note in the map, not an error). See [Codebase map](/docs/concepts/vibestrate-md) for what grounds on it and why it stays separate from `VIBESTRATE.md`.
 

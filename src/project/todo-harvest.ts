@@ -473,6 +473,32 @@ export async function loadTodoHarvest(
   return { present: true, harvest, stale };
 }
 
+/**
+ * Counts only, without the staleness check.
+ *
+ * `loadTodoHarvest` spawns `git rev-parse` to decide whether the harvest is
+ * stale. The map refresh at the run/merge boundary only needs the numbers, and
+ * that boundary already pays for its own rev read - so using the full loader
+ * there doubles the git subprocesses on every single run completion for a flag
+ * nothing reads. Returns null when there is no readable harvest.
+ */
+export async function readTodoCounts(
+  projectRoot: string,
+): Promise<TodoCounts | null> {
+  let raw: string;
+  try {
+    raw = await fs.readFile(roadmapTodosHarvestFile(projectRoot), "utf8");
+  } catch {
+    return null;
+  }
+  try {
+    const parsed = todosFileSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? todoCountsOf(parsed.data) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** One-line counts summary for `CODEBASE.md` and the `vibe learn` output. The
  *  entries themselves are never rendered there - that is the UI's job, which is
  *  the whole reason the harvest is typed JSON. */
