@@ -44,10 +44,11 @@
 
 > **The version number went down on purpose.** 1.0.0 shipped before the config
 > and policy schemas stopped moving, and a 1.x number quietly promises they have.
-> This is the same product as 1.1.7 wearing an honest number. `1.0.0`, `1.0.1`,
-> `1.1.5` and `1.1.6` were unpublished; `1.1.7` stays on the registry above this
-> release. **A higher number further up the npm page is the old line, not a newer
-> release** - `latest` points here, so a plain install gets this.
+> This is the same product as 1.1.7 wearing an honest number. The 1.x line is
+> retired and `latest` points at the 0.x line, so a plain install resolves here.
+> The entries below `0.1.0` in this file are kept on purpose: those versions
+> existed and people installed them, and deleting their notes would make this
+> file a tidier lie than the history is.
 
 - **Vibestrate says what it is for.** The README argued that one model gets
   things wrong and the fix is a second model reviewing it. True, and not the

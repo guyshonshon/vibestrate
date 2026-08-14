@@ -312,7 +312,7 @@ Beta ends at `1.0.0`, when the config and policy schemas go a release cycle with
 
 ## ◆ Versioning
 
-**Vibestrate is on `0.x`, and npm still lists a `1.x` line above it.** Those are older, not newer. Vibestrate reached 1.0.0 before its schemas stopped moving, which is a promise it could not keep, so the numbering was corrected downward to where the project actually is. Every version from `1.0.1` to `1.1.7` is deprecated and points here. npm keeps published versions permanently, so the old line stays on the page rather than disappearing - hiding it would be tidier and less honest.
+**Vibestrate is on `0.x`, and briefly wasn't.** It reached 1.0.0 before the config and policy schemas stopped moving, which is a promise a 1.x number makes and this one could not keep, so the numbering was corrected back down to where the project actually is. The 1.x line is retired: `latest` resolves to the current `0.x` release, so a plain install gets the right thing. If you pinned a `1.x` during that window, move to the current version - same product, better tested.
 
 Within `0.x`, Vibestrate versions by the SIZE of the change. A **patch** (`0.1.1`) is ordinary work: a merged branch, a fix, a feature that fits the shape already there. A **minor** (`0.2.0`) is a big change, something that alters how you work with the product. **`1.0.0` means beta is over**, not that something broke.
 
