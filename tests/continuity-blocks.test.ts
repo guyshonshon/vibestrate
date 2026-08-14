@@ -19,6 +19,7 @@ function call(over: Partial<Parameters<typeof resolveContinuityBlocks>[0]> = {})
     cleanRoom: false,
     turnState: createRunTurnState(),
     codebaseMapRoles: ["planner"],
+    methodologyRoles: ["planner"],
     codebaseMapBlock: MAP,
     hasStagedCodebaseMapContext: false,
     ledgerPromptBlock: LEDGER,
@@ -81,6 +82,34 @@ describe("resolveContinuityBlocks", () => {
     expect(call({ roleId: "implementer", codebaseMapRoles: roles, turnState }).projectMemory).toBe(
       MAP,
     );
+  });
+
+  // express / scaffold / quality-arbitration have no planner seat, so a
+  // methodology set on the project used to reach nobody on those flows.
+  it("sends the methodology to a code-writing role when configured", () => {
+    expect(call({ roleId: "implementer" }).methodologyGuidance, "default is planner-only").toBe("");
+    const opted = call({ roleId: "implementer", methodologyRoles: ["implementer"] });
+    expect(opted.methodologyGuidance).toBe(METHOD);
+    expect(opted.projectLedger, "the ledger stays planner-only").toBe("");
+  });
+
+  it("does not resend the methodology to a role that already has it", () => {
+    const turnState = createRunTurnState();
+    const roles = ["implementer"];
+    expect(
+      call({ roleId: "implementer", methodologyRoles: roles, turnState }).methodologyGuidance,
+    ).toBe(METHOD);
+    expect(
+      call({ roleId: "implementer", methodologyRoles: roles, turnState }).methodologyGuidance,
+    ).toBe("");
+  });
+
+  it("a role taking the methodology does not consume the planner's ledger", () => {
+    const turnState = createRunTurnState();
+    const first = call({ roleId: "builder", methodologyRoles: ["builder"], turnState });
+    expect(first.methodologyGuidance).toBe(METHOD);
+    expect(turnState.ledgerInjected, "the ledger guard must be intact").toBe(false);
+    expect(call({ roleId: "planner", turnState }).projectLedger).toBe(LEDGER);
   });
 
   it("stays quiet when a context source already staged the map", () => {

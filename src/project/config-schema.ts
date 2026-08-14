@@ -715,6 +715,25 @@ export const projectConfigBaseSchema = z.object({
    */
   codebaseMapRoles: z.array(z.string().min(1)).default(["planner"]).describe("Crew roles that receive the vibe learn codebase map (default: planner only)."),
   /**
+   * Which crew roles receive the project's selected methodology (`vibe params
+   * set methodology=tdd`).
+   *
+   * Planner by default, because the guidance is written plan-shaped - every
+   * entry in KNOWN_METHODOLOGIES says "the plan should ...". That is the right
+   * reader in a flow that has a planner.
+   *
+   * `express`, `scaffold` and `quality-arbitration` have no planner seat, so on
+   * those flows a methodology you set reaches nobody at all. Naming a
+   * code-writing role here is how you close that: the TDD and incremental
+   * guidance both read coherently to an implementer, since they describe how to
+   * sequence the work as well as how to plan it.
+   *
+   * A sibling of `codebaseMapRoles` rather than a shared `contextRoles` object,
+   * because the two answer different questions and a project will often widen
+   * one without the other.
+   */
+  methodologyRoles: z.array(z.string().min(1)).default(["planner"]).describe("Crew roles that receive the project's methodology guidance (default: planner only)."),
+  /**
    * Ponytail minimalism posture (orchestrator/ponytail-posture.ts): inject a
    * "lazy senior dev" ruleset into the code-WRITING seats (implementer/fixer) so
    * implementation defaults to the smallest solution that works. On by default

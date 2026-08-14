@@ -407,6 +407,22 @@
       "description": "Crew roles that receive the vibe learn codebase map (default: planner only)."
     },
     {
+      "key": "methodologyRoles",
+      "fullKey": "methodologyRoles",
+      "type": "array<string>",
+      "required": false,
+      "default": [
+        "planner"
+      ],
+      "itemType": {
+        "key": "[item]",
+        "fullKey": "[item]",
+        "type": "string",
+        "required": true
+      },
+      "description": "Crew roles that receive the project's methodology guidance (default: planner only)."
+    },
+    {
       "key": "ponytail",
       "fullKey": "ponytail",
       "type": "boolean",

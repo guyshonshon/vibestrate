@@ -20,6 +20,8 @@ export type ContinuityBlockInput = {
   turnState: RunTurnState;
   /** Crew roles configured to receive the codebase map. */
   codebaseMapRoles: readonly string[];
+  /** Crew roles configured to receive the project's methodology guidance. */
+  methodologyRoles: readonly string[];
   codebaseMapBlock: string;
   /** A run-level context source already carries the map (spec-up stages it into
    *  priorArtifacts for every role), so injecting here would send it twice. */
@@ -39,15 +41,24 @@ export type ContinuityBlocks = {
 export function resolveContinuityBlocks(input: ContinuityBlockInput): ContinuityBlocks {
   const { roleId, turnState } = input;
 
-  // Ledger, flags and methodology: the PLANNER only, once per run. They prime
-  // the role that decides the approach with where the project stands. Other
-  // roles build on the run's own brief, and a resumed run that re-runs no
-  // planner correctly skips them.
+  // Ledger and flags: the PLANNER only, once per run. They prime the role that
+  // decides the approach with where the project stands. Other roles build on
+  // the run's own brief, and a resumed run that re-runs no planner correctly
+  // skips them.
   const injectContinuity =
     roleId === "planner" && !input.cleanRoom && !turnState.ledgerInjected;
   const projectLedger = injectContinuity ? input.ledgerPromptBlock : "";
   const continuityFlags = injectContinuity ? input.ledgerFlagsBlock : "";
-  const methodologyGuidance = injectContinuity ? input.methodologyBlock : "";
+
+  // Methodology used to ride the ledger's planner-only channel, which meant a
+  // flow without a planner seat - express, scaffold, quality-arbitration - never
+  // saw the methodology the project had set. Configurable and per-role now, for
+  // the same reason as the map below.
+  const wantsMethodology =
+    input.methodologyRoles.includes(roleId) &&
+    !input.cleanRoom &&
+    !turnState.methodologySentTo.has(roleId);
+  const methodologyGuidance = wantsMethodology ? input.methodologyBlock : "";
 
   // The map is gated per-role rather than one-shot: each configured role needs
   // orienting once, while a role taking several turns (a builder runs three
@@ -62,7 +73,8 @@ export function resolveContinuityBlocks(input: ContinuityBlockInput): Continuity
   // Consume the guards only for what actually went out, so an empty block does
   // not burn the one chance a later turn had at a real one.
   if (projectMemory) turnState.codebaseMapSentTo.add(roleId);
-  if (projectLedger || continuityFlags || methodologyGuidance) turnState.ledgerInjected = true;
+  if (methodologyGuidance) turnState.methodologySentTo.add(roleId);
+  if (projectLedger || continuityFlags) turnState.ledgerInjected = true;
 
   return { projectLedger, continuityFlags, methodologyGuidance, projectMemory };
 }

@@ -31,6 +31,7 @@ The file is split into a handful of top-level sections. Each owns one slice of h
 | `flowSizing` | Routes obviously-trivial tasks to a lighter, diff-floored flow. | [Flow](/docs/concepts/flow) |
 | `adaptiveSpecUp` | Routes plan-worthy greenfield/system briefs into the read-only Spec-up chain before executing. | [Spec-up](/docs/concepts/spec-up) |
 | `codebaseMapRoles` | Which crew roles receive the `vibe learn` codebase map. Defaults to the planner alone. | [VIBESTRATE.md](/docs/concepts/vibestrate-md) |
+| `methodologyRoles` | Which crew roles receive the project's methodology guidance. Defaults to the planner alone. | - |
 | `ponytail` | Injects the "smallest solution that works" minimalism posture into code-writing agents. | [Ponytail](/docs/concepts/ponytail) |
 | `budget` | Daily spend cap and what happens when a run hits it. | - |
 | `supervised` | Defaults for supervised tasks: max steps/spend, the between-steps supervisor turn. | [Supervised tasks](/docs/concepts/supervised-tasks) |

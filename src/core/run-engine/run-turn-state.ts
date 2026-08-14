@@ -32,6 +32,9 @@ export type RunTurnState = {
    *  purpose: sharing that flag would let the first role to take the map
    *  suppress the ledger for the planner. See continuity-blocks.ts. */
   readonly codebaseMapSentTo: Set<string>;
+  /** Roles already handed the methodology guidance. Same per-role shape as the
+   *  map, and off `ledgerInjected` for the same reason. */
+  readonly methodologySentTo: Set<string>;
   /** One-shot so a `codebaseMapRoles` entry naming a role the crew does not
    *  have is reported once, not once per turn. Silence was the alternative and
    *  a typo would then read exactly like the feature being off. */
@@ -49,6 +52,7 @@ export function createRunTurnState(): RunTurnState {
     resolvedCatalog: null,
     ledgerInjected: false,
     codebaseMapSentTo: new Set<string>(),
+    methodologySentTo: new Set<string>(),
     warnedUnknownMapRoles: false,
     warnedEffort: new Set<string>(),
     warnedSandbox: new Set<string>(),

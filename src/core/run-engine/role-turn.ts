@@ -364,6 +364,7 @@ export async function runRoleTurn(
         cleanRoom,
         turnState: deps.turnState,
         codebaseMapRoles: deps.config.codebaseMapRoles,
+        methodologyRoles: deps.config.methodologyRoles,
         codebaseMapBlock: deps.codebaseMapBlock,
         hasStagedCodebaseMapContext: deps.hasStagedCodebaseMapContext,
         ledgerPromptBlock: deps.ledgerPromptBlock,
