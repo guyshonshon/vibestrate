@@ -112,6 +112,7 @@ import {
   renderControlNotes,
 } from "../stores/run-control.js";
 import { ValidationResults } from "../validation/validation-runner.js";
+import { resolveContinuityBlocks } from "./continuity-blocks.js";
 import path from "node:path";
 
 /** The orchestrator state a role turn borrows. Assembled fresh at each call
@@ -137,7 +138,7 @@ export type RoleTurnDeps = {
   ledgerFlagsBlock: string;
   methodologyBlock: string;
   /** True when a run-level context source already carries the codebase map, so
-   *  the planner-only injection is suppressed rather than sent twice. */
+   *  the per-role injection is suppressed rather than sent twice. */
   hasStagedCodebaseMapContext: boolean;
   /** Every real effect is decided and recorded through the broker. */
   broker: ActionBroker;
@@ -198,6 +199,20 @@ export async function runRoleTurn(
     // Resolve the Role from the Crew the run's flow snapshot was built against.
     const { crew } = getCrew(deps.config, deps.activeCrewId);
     const agent = getCrewRole(crew, roleId);
+    // A `codebaseMapRoles` entry naming a role this crew does not have never
+    // matches, and the map simply never arrives. Left silent, a typo reads
+    // exactly like the feature being switched off. Not fatal - the crew is only
+    // known per-run, so this cannot be a load-time error, and a prompt
+    // enrichment is not worth failing a run over.
+    if (!deps.turnState.warnedUnknownMapRoles) {
+      const unknown = deps.config.codebaseMapRoles.filter((r) => !crew.roles[r]);
+      if (unknown.length > 0) {
+        deps.turnState.warnedUnknownMapRoles = true;
+        deps.onProgress(
+          `codebaseMapRoles names ${unknown.map((r) => `"${r}"`).join(", ")}, which this crew does not define - the codebase map will not reach ${unknown.length > 1 ? "those roles" : "that role"}.`,
+        );
+      }
+    }
     // Read-only runs override every role's permission profile to the built-in
     // `read_only` (allowWrite/allowShell false), regardless of how the role is
     // configured. Using the builtin name guarantees resolution via
@@ -327,41 +342,34 @@ export async function runRoleTurn(
     const humanAnnotations = renderAnnotationsForPrompt(
       await listAnnotations(deps.projectRoot, { status: "open" }),
     );
-    // Continuity ledger: inject the planning-context block into the
-    // PLANNER turn only - it primes the role that decides the approach with
-    // where the project stands. Other roles build on the run's own brief, and
-    // resumed runs (no planner re-run) correctly skip it. One-shot guards
-    // against a flow with more than one planner turn.
-    const injectContinuity = roleId === "planner" && !deps.turnState.ledgerInjected;
-    const projectLedger =
-      injectContinuity && deps.ledgerPromptBlock ? deps.ledgerPromptBlock : "";
-    const continuityFlags =
-      injectContinuity && deps.ledgerFlagsBlock ? deps.ledgerFlagsBlock : "";
-    // Methodology rides the same planner-only, one-shot channel as the ledger.
-    const methodologyGuidance =
-      injectContinuity && deps.methodologyBlock ? deps.methodologyBlock : "";
-    // The codebase map rides the same channel: planner-only judges reason
-    // from the live repo, not a summary, so broadcasting the map to every
-    // turn would just be token waste on top of what the provider CLI already
-    // reads natively from the worktree. Skipped when a run-level context
-    // source already staged the map (spec-up) - that source lands in
-    // priorArtifacts for every role, so injecting it here too would hand the
-    // planner-seat turn the same projection twice.
-    const projectMemory =
-      injectContinuity && deps.codebaseMapBlock && !deps.hasStagedCodebaseMapContext
-        ? deps.codebaseMapBlock
-        : "";
-    if (projectLedger || continuityFlags || methodologyGuidance || projectMemory)
-      deps.turnState.ledgerInjected = true;
     // Clean-room seat: drop the producer's run-derived NARRATIVE - the run brief
-    // (the "story so far") and the planner-only ledger/continuity - so a judge
-    // reasons without being anchored to how the producer framed things. It
-    // deliberately KEEPS ground truth: attached context sources (the spec), user
-    // annotations, and the step's declared inputs. A controlled eval showed that
-    // dropping the attached spec from a reviewer measurably weakened
-    // spec-compliance review, while dropping only the brief cost nothing - so
-    // ground truth stays, chatter goes.
+    // (the "story so far") and the ledger/continuity - so a judge reasons
+    // without being anchored to how the producer framed things. It deliberately
+    // KEEPS ground truth: attached context sources (the spec), user annotations,
+    // and the step's declared inputs. A controlled eval showed that dropping the
+    // attached spec from a reviewer measurably weakened spec-compliance review,
+    // while dropping only the brief cost nothing - so ground truth stays,
+    // chatter goes.
+    //
+    // Resolved BEFORE the blocks, not after: a clean-room turn must not spend a
+    // one-shot guard on a block it is about to discard, or the role loses that
+    // block for the whole run.
     const cleanRoom = input.cleanRoom === true;
+    // Ledger, continuity flags, methodology and the codebase map: which of the
+    // four this turn gets, and which guards it consumes. The rules, and why the
+    // map is gated apart from the other three, live with the function.
+    const { projectLedger, continuityFlags, methodologyGuidance, projectMemory } =
+      resolveContinuityBlocks({
+        roleId,
+        cleanRoom,
+        turnState: deps.turnState,
+        codebaseMapRoles: deps.config.codebaseMapRoles,
+        codebaseMapBlock: deps.codebaseMapBlock,
+        hasStagedCodebaseMapContext: deps.hasStagedCodebaseMapContext,
+        ledgerPromptBlock: deps.ledgerPromptBlock,
+        ledgerFlagsBlock: deps.ledgerFlagsBlock,
+        methodologyBlock: deps.methodologyBlock,
+      });
     const prompt = buildRolePrompt({
       roleId,
       task: deps.task,

@@ -697,6 +697,24 @@ export const projectConfigBaseSchema = z.object({
   flowSizing: z.enum(["off", "deterministic", "assisted"]).default("deterministic").describe("Route trivial tasks to a lighter flow: off, deterministic, or assisted (default deterministic)."),
   adaptiveSpecUp: z.enum(["off", "auto"]).default("auto").describe("Route plan-worthy greenfield/system briefs into the read-only Spec-up chain before executing: off or auto (default auto)."),
   /**
+   * Which crew roles receive the `vibe learn` codebase map in their prompt.
+   *
+   * Default is the planner alone, and for a capable agent CLI that is the right
+   * answer: the executor and reviewer stand IN the worktree with a plan that
+   * already names the files, so a generated summary costs tokens and risks them
+   * trusting a stale projection over the repo in front of them. The planner is
+   * the one seat that has to name real files before it has read anything.
+   *
+   * Widen it when the crew cannot explore for itself - a small local model, a
+   * sandbox with no file tools, or a flow with no planner seat at all
+   * (`express` and `quality-arbitration` ship without one, so today they see no
+   * map whatever is configured here until a role they DO use is listed).
+   *
+   * Names are crew role ids, matching the `roleId === "planner"` test this
+   * replaced - not flow seat names. The two coincide in the default crew.
+   */
+  codebaseMapRoles: z.array(z.string().min(1)).default(["planner"]).describe("Crew roles that receive the vibe learn codebase map (default: planner only)."),
+  /**
    * Ponytail minimalism posture (orchestrator/ponytail-posture.ts): inject a
    * "lazy senior dev" ruleset into the code-WRITING seats (implementer/fixer) so
    * implementation defaults to the smallest solution that works. On by default

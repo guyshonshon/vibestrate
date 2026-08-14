@@ -57,4 +57,18 @@ vibe learn                                 # regenerate the map
 vibe learn show                            # print the current CODEBASE.md
 ```
 
+### Who gets the map
+
+The planner, by default, and only the planner. That is deliberate rather than a limitation: every other role is standing *in* the worktree, holding a plan that already names the files, running an agent CLI that opens them natively. Handing those roles a generated summary costs tokens on every turn and gives them a second, staler account of a repo they can simply read.
+
+The planner is the exception because it has to name real files *before* it has read anything.
+
+Widen the audience when the crew cannot explore for itself - a small local model, a sandbox with no file tools - or when the flow has no planner seat at all. `express` and `quality-arbitration` are both in that category, so neither sees a map today whatever else is configured:
+
+```yaml
+codebaseMapRoles: [planner, implementer]
+```
+
+Names are crew role ids. Each listed role is oriented once per run, so a role taking several turns does not pay for it again.
+
 Related: [[consult]], [[safety]], [[configuration]].

@@ -28,6 +28,14 @@ export type RunTurnState = {
   /** One-shot guard so the continuity ledger and its flags reach a single
    *  planner turn rather than every planning turn in the run. */
   ledgerInjected: boolean;
+  /** Roles already handed the codebase map. Separate from `ledgerInjected` on
+   *  purpose: sharing that flag would let the first role to take the map
+   *  suppress the ledger for the planner. See continuity-blocks.ts. */
+  readonly codebaseMapSentTo: Set<string>;
+  /** One-shot so a `codebaseMapRoles` entry naming a role the crew does not
+   *  have is reported once, not once per turn. Silence was the alternative and
+   *  a typo would then read exactly like the feature being off. */
+  warnedUnknownMapRoles: boolean;
   /** Dedupe keys for the "effort won't take effect" warning (provider+effort)
    *  and the "isolation requested but no provider sandbox" warning (provider),
    *  so a long run warns once rather than once per turn. Mutated in place. */
@@ -40,6 +48,8 @@ export function createRunTurnState(): RunTurnState {
     abortRequestedSeen: false,
     resolvedCatalog: null,
     ledgerInjected: false,
+    codebaseMapSentTo: new Set<string>(),
+    warnedUnknownMapRoles: false,
     warnedEffort: new Set<string>(),
     warnedSandbox: new Set<string>(),
   };
