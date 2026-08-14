@@ -5,6 +5,14 @@
 <!-- Work accumulates here during a sprint and is versioned ONCE at release.
      Do not add a numbered heading per commit - see CLAUDE.md 10. -->
 
+- **Five frozen polyfills in the dependency tree now resolve to maintained
+  forks.** `object-assign`, `safe-buffer`, `safer-buffer`, `indent-string` and
+  `is-unicode-supported` are shims for things Node has had natively for years, or
+  utilities smaller than the cost of depending on them. They arrive transitively,
+  so they cannot simply be deleted; they are pinned to Socket's zero-dependency
+  replacements instead. Worth stating plainly because it changes what lands in
+  your `node_modules`: those five now come from `@socketregistry`.
+
 ## 0.1.1
 
 > **Breaking: Vibestrate now needs Node 24 or newer.** If `vibe` stops starting
