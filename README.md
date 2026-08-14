@@ -303,7 +303,7 @@ Vibestrate is in beta. Not a disclaimer - a description of which parts have sett
 **If you need it to stop moving,** pin an exact version rather than a caret range:
 
 ```json
-"vibestrate": "0.1.0"
+"vibestrate": "0.1.1"
 ```
 
 Beta ends at `1.0.0`, when the config and policy schemas go a release cycle without a breaking change.
