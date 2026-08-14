@@ -3,11 +3,19 @@
 // from a URL or another project drops straight into `.vibestrate/flows/` and
 // resolves against whatever Crew the importing project already has.
 //
-// Everything funnels through one guarded writer (`writeProjectFlowDefinition`)
-// so import, URL fetch, and the create API share the same path guard, secret
-// scan, control-char guard, overwrite policy, and atomic write. The flow id is
-// schema-constrained to `[a-z][a-z0-9-]*` (flowTokenSchema), which is what
-// keeps the `<id>/flow.yml` target path inside the flows dir.
+// Import, URL fetch, and the create API share one validating writer
+// (`writeProjectFlowDefinition`): same path guard, secret scan, control-char
+// guard, overwrite policy. The flow id is schema-constrained to
+// `[a-z][a-z0-9-]*` (flowTokenSchema), which is what keeps the `<id>/flow.yml`
+// target path inside the flows dir.
+//
+// Under that sits `writeFlowYamlAudited` - the single point where flow YAML
+// reaches disk. Every flow writer in the repo (here, plus fork and builder
+// patch in flow-patch.ts) goes through it, so the Action Broker sees a
+// `file.write` for each one and a project policy that denies file writes stops
+// flow authoring the same way it stops every other write. Anything that wrote
+// a flow.yml with its own fs call would be outside the audit trail, so there
+// is deliberately no second write path.
 
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -17,6 +25,11 @@ import YAML from "yaml";
 import { isPathInside, projectFlowsDir } from "../../utils/paths.js";
 import { pathExists, readText } from "../../utils/fs.js";
 import { scanTextForSecrets } from "../../core/diff-service.js";
+import {
+  createActionBroker,
+  gateAction,
+  type ActionRequest,
+} from "../../safety/action-broker.js";
 import {
   flowDefinitionSchema,
   type FlowDefinition,
@@ -156,19 +169,97 @@ export function validateFlowObject(raw: unknown): ValidateResult {
   return { ok: true, definition: parsed.data };
 }
 
+// ─── audited writer ──────────────────────────────────────────────────────
+
+/** Audit bucket for flow authoring. Editing a flow happens outside any run, so
+ *  its evidence lands in `runs/flows/actions.ndjson` next to the other run-less
+ *  effect sites (`manual`, `git-tree`, `supervisor`). */
+const FLOW_AUDIT_RUN = "flows";
+
+/** Why a flow file is being written, recorded on the broker request so an audit
+ *  reader can tell an import from a fork from a builder edit. */
+export type FlowWritePurpose =
+  | "flow-import"
+  | "flow-create"
+  | "flow-fork"
+  | "flow-patch";
+
+/**
+ * The one place flow YAML reaches disk: Action Broker gate (`file.write`),
+ * atomic tmpfile + rename at 0600, then a record of the outcome.
+ *
+ * The broker is constructed here rather than accepted as a parameter, on
+ * purpose: an optional broker argument is a write that silently escapes the
+ * audit trail the moment a caller forgets it. With no parameter there is
+ * nothing to forget, and no flow write can exist without a decision and an
+ * evidence record.
+ *
+ * A non-allow verdict is returned as a 403 refusal rather than thrown because
+ * every flow write path already reports failure as {ok, status, reasons}. The
+ * caller owns validation and the path guard; this owns the gate and the bytes.
+ */
+export async function writeFlowYamlAudited(input: {
+  projectRoot: string;
+  flowId: string;
+  /** Already path-guarded absolute target (`<flows dir>/<id>/flow.yml`). */
+  targetPath: string;
+  yaml: string;
+  purpose: FlowWritePurpose;
+}): Promise<{ ok: true } | FlowPortabilityError> {
+  const broker = createActionBroker(input.projectRoot, FLOW_AUDIT_RUN);
+  // "system": flow writes arrive from the CLI, the HTTP API, and the TUI alike,
+  // and this seam cannot tell them apart - so it does not claim to.
+  const request: ActionRequest = {
+    runId: FLOW_AUDIT_RUN,
+    kind: "file.write",
+    subject: {
+      path: input.targetPath,
+      flowId: input.flowId,
+      purpose: input.purpose,
+    },
+    proposedBy: "system",
+  };
+  const gate = await gateAction(broker, request);
+  if (!gate.allowed) {
+    return {
+      ok: false,
+      status: 403,
+      reasons: [
+        `Action broker ${gate.effect} the flow write for "${input.flowId}": ${gate.reason}`,
+      ],
+    };
+  }
+
+  await fs.mkdir(path.dirname(input.targetPath), { recursive: true });
+  const tmp = `${input.targetPath}.tmp-${process.pid}-${Date.now()}`;
+  await fs.writeFile(tmp, input.yaml, { encoding: "utf8", mode: 0o600 });
+  try {
+    await fs.rename(tmp, input.targetPath);
+  } catch (err) {
+    await fs.rm(tmp, { force: true }).catch(() => undefined);
+    throw err;
+  }
+  await broker.record(request, gate.decision, {
+    ok: true,
+    summary: `wrote flow "${input.flowId}" (${input.purpose})`,
+  });
+  return { ok: true };
+}
+
 // ─── guarded writer ──────────────────────────────────────────────────────
 
 /**
- * The single choke point every write path goes through. Path-guards the
+ * The choke point the import / create paths go through. Path-guards the
  * target inside `.vibestrate/flows/`, enforces the overwrite policy (an
  * existing *project* flow is only replaced with `overwrite: true`; shadowing a
- * builtin is always allowed, like `fork`), and writes the YAML atomically
- * (tmpfile + rename, 0600).
+ * builtin is always allowed, like `fork`), then hands the bytes to
+ * {@link writeFlowYamlAudited} for the broker gate and the atomic write.
  */
 export async function writeProjectFlowDefinition(input: {
   projectRoot: string;
   definition: FlowDefinition;
   overwrite?: boolean;
+  purpose?: FlowWritePurpose;
 }): Promise<FlowWriteResult> {
   const { projectRoot, definition } = input;
   const flowId = definition.id;
@@ -194,16 +285,15 @@ export async function writeProjectFlowDefinition(input: {
     };
   }
 
-  await fs.mkdir(dirPath, { recursive: true });
-  const yaml = YAML.stringify(definition);
-  const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
-  await fs.writeFile(tmp, yaml, { encoding: "utf8", mode: 0o600 });
-  try {
-    await fs.rename(tmp, filePath);
-  } catch (err) {
-    await fs.rm(tmp, { force: true }).catch(() => undefined);
-    throw err;
-  }
+  const written = await writeFlowYamlAudited({
+    projectRoot,
+    flowId,
+    targetPath: filePath,
+    yaml: YAML.stringify(definition),
+    purpose: input.purpose ?? "flow-import",
+  });
+  if (!written.ok) return written;
+
   return {
     ok: true,
     flowId,
@@ -241,6 +331,7 @@ export async function createProjectFlow(input: {
     projectRoot: input.projectRoot,
     definition: validated.definition,
     overwrite: input.overwrite,
+    purpose: "flow-create",
   });
 }
 

@@ -3,12 +3,17 @@
 // from the API surface - editing them would silently fork the recipe
 // out of project source control, which is exactly the trap the
 // builtin/project distinction exists to avoid.
+//
+// Fork and patch do not write their own bytes: both hand the YAML to
+// `writeFlowYamlAudited` (flow-portability.ts) so every flow write in the repo
+// crosses the Action Broker as a `file.write` and lands in the evidence log.
 
 import path from "node:path";
 import fs from "node:fs/promises";
 import YAML from "yaml";
 import { z } from "zod";
 import { isPathInside, projectFlowsDir } from "../../utils/paths.js";
+import { writeFlowYamlAudited } from "./flow-portability.js";
 import {
   flowApprovalGateSchema,
   flowDefinitionSchema,
@@ -236,16 +241,15 @@ export async function forkFlowToProject(input: {
       reasons: [`Flow id "${flowId}" produced an unsafe target path.`],
     };
   }
-  await fs.mkdir(dirPath, { recursive: true });
-  const yaml = YAML.stringify(flow.definition);
-  const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
-  await fs.writeFile(tmp, yaml, { encoding: "utf8", mode: 0o600 });
-  try {
-    await fs.rename(tmp, filePath);
-  } catch (err) {
-    await fs.rm(tmp, { force: true }).catch(() => undefined);
-    throw err;
-  }
+  const written = await writeFlowYamlAudited({
+    projectRoot,
+    flowId,
+    targetPath: filePath,
+    yaml: YAML.stringify(flow.definition),
+    purpose: "flow-fork",
+  });
+  if (!written.ok) return written;
+
   return {
     ok: true,
     flowId,
@@ -320,9 +324,9 @@ export type ApplyFlowPatchResult =
     };
 
 /**
- * End-to-end: load the flow, refuse if it isn't project-local, merge
- * the patch, validate, and write the YAML back atomically (write to a
- * sibling tempfile + rename). Path-guarded so an attacker can't escape
+ * End-to-end: load the flow, merge the patch, validate, and write the YAML
+ * back through the audited writer (broker gate + atomic tempfile + rename).
+ * Path-guarded so an attacker can't escape
  * `.vibestrate/flows/` via a weird flow id (the loader itself only ever
  * returns paths under `projectFlowsDir`, but we double-check here so
  * a future loader change can't widen the blast radius).
@@ -367,16 +371,14 @@ export async function applyFlowPatch(input: {
     return { ok: false, status: 400, reasons: verdict.reasons };
   }
 
-  const yaml = YAML.stringify(verdict.next);
-  await fs.mkdir(path.dirname(targetPath), { recursive: true });
-  const tmpPath = `${targetPath}.tmp-${process.pid}-${Date.now()}`;
-  await fs.writeFile(tmpPath, yaml, { encoding: "utf8", mode: 0o600 });
-  try {
-    await fs.rename(tmpPath, targetPath);
-  } catch (err) {
-    await fs.rm(tmpPath, { force: true }).catch(() => undefined);
-    throw err;
-  }
+  const written = await writeFlowYamlAudited({
+    projectRoot,
+    flowId,
+    targetPath,
+    yaml: YAML.stringify(verdict.next),
+    purpose: "flow-patch",
+  });
+  if (!written.ok) return written;
 
   return {
     ok: true,
