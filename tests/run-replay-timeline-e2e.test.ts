@@ -92,7 +92,7 @@ describe("replay status timeline - end to end on a real run", () => {
             label: "Role",
             profile: "codex-x",
             seats: ["builder", "reviewer"],
-            prompt: ".vibestrate/roles/planner.md",
+            prompt: ".vibestrate/roles/planner.json",
             permissions: "read_only",
             skills: [],
           },

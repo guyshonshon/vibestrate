@@ -35,6 +35,7 @@ import { Button } from "../../components/design/Button.js";
 import { FlowBars } from "../../components/design/FlowBars.js";
 import { FlowCard, FlowCardMenu, type FlowCardStat } from "../../components/design/FlowCard.js";
 import { StepKindLegend } from "../../components/design/StepKindLegend.js";
+import { DraftFlowPanel } from "../../components/flow-builder/DraftFlowPanel.js";
 import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
 import { useConfirm } from "../../components/design/ConfirmDialog.js";
@@ -370,6 +371,15 @@ export function FlowsPage({ onOpenInFlow }: Props) {
         </section>
         </Cell>
       ) : null}
+
+      <Cell size="full" reason="masthead">
+        <DraftFlowPanel
+          onCreated={(flowId) => {
+            void load();
+            flash({ kind: "ok", text: `Saved ${flowId} - open it to edit the steps.` });
+          }}
+        />
+      </Cell>
 
       {error ? (
         <Cell size="full" reason="masthead">

@@ -84,10 +84,49 @@ All three write to `.vibestrate/flows/<id>/flow.yml` through one guarded path:
 - **Overwrite policy** - an existing *project* flow is replaced only with
   `overwrite: true` (a builtin of the same id is always shadowable, like
   `fork`). New writes return `201`; replacements return `200`.
+- **Action Broker gate** - every one of them (plus fork and the builder's
+  patch) raises a `file.write` the broker decides on, so a policy that denies
+  file writes stops flow authoring too. A refusal comes back as `403` with the
+  broker's reasons, not as a thrown error. Flow edits happen outside any run,
+  so the evidence lands in `runs/flows/actions.ndjson`, tagged with which
+  writer it was (`flow-import`, `flow-create`, `flow-fork`, `flow-patch`).
 
 CLI equivalents: `vibe flows export <id> [--out file]` and
 `vibe flows import <file-or-url> [--overwrite]`. In the dashboard: the **Flows**
 page has **Export**, **Import** (paste YAML or URL), and **New flow** controls.
+
+## Drafting a Flow or a Crew
+
+Two endpoints turn an English description into an editable draft. Neither one
+writes anything, and neither is a shortcut past the write endpoints above.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/v1/flows/draft` | Draft a flow from `{ description, crewId? }`. Returns `{ draft }`: the `FlowDefinition`, its canonical YAML, the rationale, seat `coverage` against that crew, `targetPath`, and `exists`. |
+| `POST` | `/api/v1/crews/draft` | Draft a crew from `{ description }`. Returns `{ draft }`: the `crews.<id>` block, its YAML, one `roleFiles` entry per role (the exact JSON role file to save), the rationale, `problems`, and `exists`. |
+
+What holds for both:
+
+- **Draft only** - adopting a flow is a separate call to `POST /api/v1/flows` or
+  `/api/v1/flows/import`; adopting a crew is the owner saving each `roleFiles`
+  entry and then editing `project.yml`, in that order (a crew block whose roles
+  point at files nobody wrote fails when the config loads). The model proposes;
+  committing is the owner's action.
+- **Redacted in, secret-scanned out** - the description is redacted before it
+  reaches the model, and a draft carrying a secret shape is refused rather than
+  redacted.
+- **Bounded input** - `description` is capped at 1000 characters and rejected
+  with `400` past that, before a provider is resolved. Bad input and a refused
+  draft return `400` with the reason; anything else (a provider that never
+  answered, an unreadable config) is a `500` with the path stripped out.
+- **No network of ours** - any currency claim in the response comes from the
+  agent's own web tool inside its provider CLI. Vibestrate opens no socket here,
+  so an agent without one reports the gap in `currency.unverified`.
+- **`crews/draft` needs an initialized project** - `404` otherwise.
+
+CLI equivalents: `vibe flows draft "<description>" [--crew <id>] [--yaml|--json]`
+and `vibe crew draft "<description>" [--yaml|--json]`. In the dashboard: the
+**Flows** page and the **Crew** page each have a draft panel.
 
 ## Integration: merge advice + guided merge-to-main
 

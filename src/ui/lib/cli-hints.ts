@@ -329,6 +329,28 @@ export function hintForRoute(route: Route): CliHint {
           },
         ],
       };
+    case "flow-editor":
+      return {
+        title: route.flowId ? "Edit a flow" : "New flow",
+        blurb:
+          "Steps, seats and the loop, checked against the flow schema as you go.",
+        commands: [
+          {
+            cmd: 'vibe flows draft "describe the flow"',
+            note: "the supervisor drafts one you then edit",
+          },
+          {
+            cmd: "vibe flows import <file|url>",
+            note: "write a flow from YAML you already have",
+          },
+          {
+            cmd: route.flowId
+              ? `vibe flows export ${route.flowId}`
+              : "vibe flows export <flowId>",
+            note: "the same flow as canonical YAML",
+          },
+        ],
+      };
     case "flows":
       return {
         title: "Flows",
@@ -367,6 +389,27 @@ export function hintForRoute(route: Route): CliHint {
             cmd: 'curl http://127.0.0.1:4317/api/crews',
             note: "raw JSON, scriptable",
           },
+        ],
+      };
+    case "crew-editor":
+      return {
+        title: "Crew editor",
+        blurb:
+          "Compose a crew, or change a role's seats, profile, permissions and instructions.",
+        commands: [
+          {
+            cmd: route.crewId ? `vibe crew show ${route.crewId}` : "vibe crew list",
+            note: "the same roster in the terminal",
+          },
+          {
+            cmd: 'vibe crew draft "who should be on this crew"',
+            note: "let the supervisor propose a roster",
+          },
+          { cmd: "vibe crew presets add <id>", note: "install a ready-made crew" },
+        ],
+        tips: [
+          "A role's own text lives in its JSON role file under .vibestrate/roles/; the crew wiring lives in project.yml.",
+          "Adding, removing, or renaming a role is a project.yml edit - the editor hands you the exact block.",
         ],
       };
     case "profiles":

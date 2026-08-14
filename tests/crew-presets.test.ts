@@ -61,7 +61,7 @@ describe("preset primitives", () => {
     expect(Object.keys(crew.roles).sort()).toEqual(PRESET_ROSTER.map((r) => r.id).sort());
     for (const r of PRESET_ROSTER) {
       expect(crew.roles[r.id]!.profile).toBe("claude-fast");
-      expect(crew.roles[r.id]!.prompt).toBe(`${ROLES_DIR}/${r.id}.md`);
+      expect(crew.roles[r.id]!.prompt).toBe(`${ROLES_DIR}/${r.id}.json`);
       expect(crew.roles[r.id]!.seats).toEqual(r.seats);
     }
   });

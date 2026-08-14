@@ -41,7 +41,7 @@ profiles:
 crews:
   default:
     roles:
-      reviewer: { seats: [reviewer], profile: my-model-default, prompt: .vibestrate/roles/reviewer.md, permissions: read_only }
+      reviewer: { seats: [reviewer], profile: my-model-default, prompt: .vibestrate/roles/reviewer.json, permissions: read_only }
 ```
 
 Or skip the config and use it for a single run by pointing at a Profile that names the provider:

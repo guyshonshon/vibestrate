@@ -21,11 +21,13 @@
 // the only code that reads it is the next-steps builder below, which decides
 // whether to recommend `vibe doctor --fix`. Every rendered surface ignores it,
 // so a new fixable finding needs a matching repair added by hand. The fixer
-// creates only what is missing and restores built-in role prompts that are
-// absent; the two config writes (adopting a detected provider, filling in
-// validation commands) fire only when that part of the config is empty - an
-// existing provider set is never replaced, and existing validate commands are
-// never overwritten.
+// creates only what is missing and restores built-in role files that are
+// absent; a role whose `prompt` the loader refuses (a stale `.md` pointer, an
+// unparseable file) is reported under `skipped` and left alone, because the
+// only repair there is a config or file edit the user has to make. The two
+// config writes (adopting a detected provider, filling in validation commands)
+// fire only when that part of the config is empty - an existing provider set is
+// never replaced, and existing validate commands are never overwritten.
 
 import path from "node:path";
 import { execa } from "execa";
@@ -38,7 +40,11 @@ import {
   projectConfigPath,
 } from "../utils/paths.js";
 import { isGitAvailable, findGitRoot } from "../git/git.js";
-import { configExists, loadConfig } from "../project/config-loader.js";
+import {
+  configExists,
+  loadConfig,
+  loadRolePrompt,
+} from "../project/config-loader.js";
 import { rulesetWarnings } from "../project/project-rules.js";
 import { detectFullProject } from "../project/project-detector.js";
 import { isWindows } from "../utils/platform.js";
@@ -52,6 +58,7 @@ import { resolveProfile } from "../safety/permission-profiles.js";
 import { readDefaultPrompt } from "../agents/default-roles.js";
 import {
   builtinRoleIds,
+  parseRoleFile,
   type BuiltinRoleId,
 } from "../agents/role-schema.js";
 import { discoverSkills } from "../agents/skill-discovery.js";
@@ -85,6 +92,37 @@ export type DoctorReport = {
 };
 
 const ENV_FILES = [".env", ".env.local", ".env.development", ".env.production"];
+
+/**
+ * Whether a role's `prompt` pointer actually yields instructions at run time.
+ * The loader is the authority, so doctor drives the real load instead of
+ * stat-ing the path: a config still pointing at a `.md` prompt has that file on
+ * disk, and a stat-only check certified projects whose first turn then died.
+ * Returns null when the role file loads, else the loader's own message - which
+ * carries the migration instruction for a stale pointer.
+ */
+async function roleFileProblem(
+  projectRoot: string,
+  promptRelOrAbs: string,
+): Promise<string | null> {
+  try {
+    await loadRolePrompt(projectRoot, promptRelOrAbs);
+    return null;
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err);
+  }
+}
+
+/**
+ * True when the pointer names a JSON role file that is simply absent - the one
+ * role-file problem `--fix` can repair by restoring a bundled default.
+ */
+async function isRestorableGap(promptPath: string): Promise<boolean> {
+  return (
+    path.extname(promptPath).toLowerCase() === ".json" &&
+    !(await pathExists(promptPath))
+  );
+}
 
 async function checkProviderAvailable(command: string): Promise<boolean> {
   try {
@@ -377,28 +415,61 @@ export async function runDoctor(input: {
     });
   }
 
-  // Check prompt files exist.
+  // Every role's prompt pointer must load, not merely exist. Doctor is the
+  // command people run when an upgrade broke the project, so a role file that
+  // parses only at the first turn - after the run, branch and worktree already
+  // exist - has to fail here instead.
   const missingPrompts: string[] = [];
+  const unusablePrompts: { label: string; reason: string }[] = [];
   for (const { key, roleId, role } of crewRoles) {
+    const label = builtinRoleIds.includes(roleId as never) ? roleId : key;
     const promptPath = path.isAbsolute(role.prompt)
       ? role.prompt
       : path.join(projectRoot, role.prompt);
-    if (!(await pathExists(promptPath))) {
-      missingPrompts.push(builtinRoleIds.includes(roleId as never) ? roleId : key);
+    const problem = await roleFileProblem(projectRoot, role.prompt);
+    if (!problem) continue;
+    if (await isRestorableGap(promptPath)) {
+      missingPrompts.push(label);
+    } else {
+      unusablePrompts.push({ label, reason: problem });
     }
   }
-  if (missingPrompts.length > 0) {
+  if (missingPrompts.length > 0 || unusablePrompts.length > 0) {
     const restorable = missingPrompts.filter((id) =>
       (builtinRoleIds as readonly string[]).includes(id),
     );
+    const titleParts: string[] = [];
+    if (missingPrompts.length > 0) {
+      titleParts.push(`missing for: ${missingPrompts.join(", ")}`);
+    }
+    if (unusablePrompts.length > 0) {
+      titleParts.push(
+        `unusable for: ${unusablePrompts.map((p) => p.label).join(", ")}`,
+      );
+    }
+    const detailParts = [
+      "Each role needs a JSON role file holding its instructions.",
+      ...unusablePrompts.map((p) => `${p.label}: ${p.reason}`),
+    ];
+    const hints: string[] = [];
+    if (restorable.length > 0) {
+      hints.push(
+        `Run \`vibe doctor --fix\` to restore the default role file(s) for: ${restorable.join(", ")}.`,
+      );
+    } else if (missingPrompts.length > 0) {
+      hints.push("Restore the missing role files manually.");
+    }
+    if (unusablePrompts.length > 0) {
+      hints.push(
+        "`vibe doctor --fix` will not touch an unusable role file - fix the role's `prompt` in .vibestrate/project.yml, or the file it points at, as described above.",
+      );
+    }
     findings.push({
       id: "prompt-files",
       severity: "fail",
-      title: `Missing prompt files for: ${missingPrompts.join(", ")}`,
-      detail: "Each agent needs a Markdown prompt file.",
-      fixHint: restorable.length > 0
-        ? `Run \`vibe doctor --fix\` to restore the default prompt(s) for: ${restorable.join(", ")}.`
-        : "Restore the missing prompt files manually.",
+      title: `Role files ${titleParts.join("; ")}`,
+      detail: detailParts.join("\n"),
+      fixHint: hints.join(" "),
       fixable: restorable.length > 0,
     });
   } else {
@@ -905,8 +976,26 @@ export async function applyDoctorFixes(input: {
         const promptPath = path.isAbsolute(role.prompt)
           ? role.prompt
           : path.join(projectRoot, role.prompt);
-        if (await pathExists(promptPath)) continue;
+        const problem = await roleFileProblem(projectRoot, role.prompt);
+        if (!problem) continue;
+        // Restoring is only a repair when the loader can read the result back.
+        // Writing a JSON role file into a pointer the loader rejects - a stale
+        // `.md` path, or a name that disagrees with the role id - turns doctor
+        // green while the run still dies, so refuse and hand back the loader's
+        // own instruction.
+        if (!(await isRestorableGap(promptPath))) {
+          skipped.push(`Role "${roleId}": ${problem}`);
+          continue;
+        }
         const contents = await readDefaultPrompt(roleId as BuiltinRoleId);
+        try {
+          parseRoleFile(contents, promptPath);
+        } catch (err) {
+          skipped.push(
+            `Role "${roleId}": ${err instanceof Error ? err.message : String(err)}`,
+          );
+          continue;
+        }
         await writeText(promptPath, contents);
         applied.push(`Restored ${path.relative(projectRoot, promptPath)}`);
       }

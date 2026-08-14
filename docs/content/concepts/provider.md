@@ -110,7 +110,7 @@ profiles:
 crews:
   default:
     roles:
-      reviewer: { seats: [reviewer], profile: codex-balanced, prompt: .vibestrate/roles/reviewer.md, permissions: read_only }
+      reviewer: { seats: [reviewer], profile: codex-balanced, prompt: .vibestrate/roles/reviewer.json, permissions: read_only }
 ```
 
 Read it bottom-up: the `reviewer` Role runs on the `codex-balanced` Profile, which names the `codex` Provider at `balanced` power; the `codex` Provider is the raw `codex exec` CLI. Roles never name a Provider directly - the Profile is the link.

@@ -335,7 +335,7 @@ function generateStateMachine() {
 const AGENT_DESCRIPTIONS: Record<string, { role: string; reads: string; writes: string }> = {
   planner: {
     role: "Reads the task brief and produces a plan.",
-    reads: "Task description, project rules, .vibestrate/roles/planner.md prompt, attached skills.",
+    reads: "Task description, project rules, .vibestrate/roles/planner.json prompt, attached skills.",
     writes: "Structured plan artifact.",
   },
   architect: {
@@ -369,12 +369,12 @@ function generateAgents() {
   const agents = builtinRoleIds.map((id) => ({
     id,
     ...(AGENT_DESCRIPTIONS[id] ?? { role: "", reads: "", writes: "" }),
-    promptTemplateRelPath: `src/agents/default-prompts/${id}.md`,
+    promptTemplateRelPath: `src/agents/default-prompts/${id}.json`,
   }));
   writeJson("agents.json", {
     schemaVersion: 1,
     description:
-      "Built-in agent roles. Each is a configured row under `agents:` in project.yml - provider, prompt template, permission profile, and any skills.",
+      "Built-in agent roles. Each is a configured row under `crews.<id>.roles` in project.yml - the profile it runs on, its JSON role file, a permission profile, and any skills.",
     agents,
   });
 }

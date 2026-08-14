@@ -31,32 +31,32 @@ crews:
       planner:
         seats: [planner]
         profile: claude-balanced
-        prompt: .vibestrate/roles/planner.md
+        prompt: .vibestrate/roles/planner.json
         permissions: readOnly
       architect:
         seats: [architect]
         profile: claude-balanced
-        prompt: .vibestrate/roles/architect.md
+        prompt: .vibestrate/roles/architect.json
         permissions: readOnly
       executor:
         seats: [implementer, builder]
         profile: claude-balanced
-        prompt: .vibestrate/roles/executor.md
+        prompt: .vibestrate/roles/executor.json
         permissions: codeWrite
       fixer:
         seats: [fixer]
         profile: claude-balanced
-        prompt: .vibestrate/roles/fixer.md
+        prompt: .vibestrate/roles/fixer.json
         permissions: codeWrite
       reviewer:
         seats: [reviewer, challenger]
         profile: codex-balanced
-        prompt: .vibestrate/roles/reviewer.md
+        prompt: .vibestrate/roles/reviewer.json
         permissions: readOnly
       verifier:
         seats: [verifier, arbiter]
         profile: codex-balanced
-        prompt: .vibestrate/roles/verifier.md
+        prompt: .vibestrate/roles/verifier.json
         permissions: readOnly
 defaultCrew: default
 `;

@@ -3,6 +3,7 @@ import path from "node:path";
 import { runFlowsList } from "./list.js";
 import { runFlowsShow } from "./show.js";
 import { runFlowsSuggest } from "./suggest.js";
+import { runFlowsDraft } from "./draft.js";
 import { runFlowsExport } from "./export.js";
 import { runFlowsImport } from "./import.js";
 import { detectProject } from "../../../project/project-detector.js";
@@ -87,6 +88,31 @@ export function buildFlowsCommand(): Command {
         const code = await runFlowsSuggest(taskParts, {
           files: opts.file,
           risk: opts.risk,
+          json: opts.json,
+        });
+        process.exit(code);
+      },
+    );
+
+  // Supervisor-assisted authoring, parity with `vibe policies draft` and the
+  // dashboard's draft panel. It hits the model and NEVER writes: the draft is
+  // reviewed, then adopted through the existing `flows import`.
+  cmd
+    .command("draft <description>")
+    .description(
+      "Turn an English description into an editable Flow draft (supervisor-assisted). Draft only - never writes; adopt it with `flows import`.",
+    )
+    .option("--crew <id>", "check seat coverage against this crew (default: project default)")
+    .option("--yaml", "print only the flow YAML, for piping into a file")
+    .option("--json", "emit JSON")
+    .action(
+      async (
+        description: string,
+        opts: { crew?: string; yaml?: boolean; json?: boolean },
+      ) => {
+        const code = await runFlowsDraft(description, {
+          crew: opts.crew,
+          yaml: opts.yaml,
           json: opts.json,
         });
         process.exit(code);

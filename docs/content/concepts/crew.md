@@ -21,7 +21,7 @@ crews:
         label: Backend Implementer
         seats: [implementer, executor, builder]
         profile: claude-sonnet-deep
-        prompt: .vibestrate/roles/executor.md
+        prompt: .vibestrate/roles/executor.json
         permissions: code_write
         skills: []
 defaultCrew: default

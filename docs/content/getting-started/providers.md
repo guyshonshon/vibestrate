@@ -61,9 +61,9 @@ profiles:
 crews:
   default:
     roles:
-      planner:  { seats: [planner],  profile: claude-default, prompt: .vibestrate/roles/planner.md,  permissions: read_only }
-      executor: { seats: [executor], profile: codex-default,  prompt: .vibestrate/roles/executor.md, permissions: code_write }
-      reviewer: { seats: [reviewer], profile: claude-default, prompt: .vibestrate/roles/reviewer.md, permissions: read_only }
+      planner:  { seats: [planner],  profile: claude-default, prompt: .vibestrate/roles/planner.json,  permissions: read_only }
+      executor: { seats: [executor], profile: codex-default,  prompt: .vibestrate/roles/executor.json, permissions: code_write }
+      reviewer: { seats: [reviewer], profile: claude-default, prompt: .vibestrate/roles/reviewer.json, permissions: read_only }
 ```
 
 To pick by how much horsepower a task needs, give your crew roles different [Profiles](/docs/concepts/profile) - a Profile pins the provider, model, and effort, so a quick role can run on a cheap model and a hard one on your best.

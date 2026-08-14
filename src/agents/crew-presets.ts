@@ -121,7 +121,7 @@ export type PresetCrewRole = {
 export type PresetCrew = { label: string; roles: Record<string, PresetCrewRole> };
 
 /** Build a preset crew: the shared roster, every role on `profileId` and the
- *  project's per-role prompt files (`<rolesDirRel>/<role>.md`). */
+ *  project's per-role JSON role files (`<rolesDirRel>/<role>.json`). */
 export function buildPresetCrew(
   tier: PresetTier,
   profileId: string,
@@ -133,7 +133,7 @@ export function buildPresetCrew(
       label: r.label,
       seats: [...r.seats],
       profile: profileId,
-      prompt: `${rolesDirRel}/${r.id}.md`,
+      prompt: `${rolesDirRel}/${r.id}.json`,
       permissions: r.permissions,
       skills: [],
     };

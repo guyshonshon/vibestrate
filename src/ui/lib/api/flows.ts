@@ -15,8 +15,18 @@ import type {
   FlowPatch,
   ComposerPreset,
 } from "./types.js";
+import type { FlowDraft } from "../types/flows.js";
 
 export const flowsApi = {
+  /** Describe a flow in plain English; the supervisor returns an EDITABLE
+   *  draft. Drafting writes nothing - `createFlow` below is the accept step,
+   *  and it is the only call here that reaches the flow writer. */
+  async draftFlow(input: {
+    description: string;
+    crewId?: string;
+  }): Promise<{ draft: FlowDraft }> {
+    return jsonPost("/api/flows/draft", input);
+  },
   async listSkills(): Promise<{
     skills: DiscoveredSkill[];
     assignments: SkillAssignmentSummary[];

@@ -1,5 +1,6 @@
-import { Plus } from "lucide-react";
+import { PenLine, Plus } from "lucide-react";
 import type { CrewView, DiscoveredFlow } from "../../lib/types.js";
+import { serializeRoute } from "../../app/route.js";
 import { Button } from "../design/Button.js";
 import {
   HeroCard,
@@ -8,7 +9,16 @@ import {
 } from "../design/HeroCard.js";
 import { EntityIcon } from "../design/EntityIcon.js";
 import { Section } from "../layout/PageShell.js";
+import { DraftCrewPanel } from "./DraftCrewPanel.js";
 import { computeCoverage } from "./helpers.js";
+
+/** The hub is rendered from the crew page, which has no navigate callback to
+ *  spare for a surface it does not own. Setting the hash is how ConfigPage
+ *  crosses the same gap, and it goes through the shared serializer so the URL
+ *  shape stays in one place. */
+function openEditor(crewId: string | null): void {
+  window.location.hash = serializeRoute({ kind: "crew-editor", crewId });
+}
 
 export function CrewHub({
   crews,
@@ -29,11 +39,21 @@ export function CrewHub({
     <Section
       title="Your crews"
       action={
-        crews && crews.length > 0 ? (
-          <span className="mono text-[12px] text-chalk-400">
-            {crews.length} {crews.length === 1 ? "crew" : "crews"}
-          </span>
-        ) : null
+        <div className="flex items-center gap-2">
+          {crews && crews.length > 0 ? (
+            <span className="mono text-[12px] text-chalk-300">
+              {crews.length} {crews.length === 1 ? "crew" : "crews"}
+            </span>
+          ) : null}
+          <Button
+            variant="secondary"
+            size="sm"
+            iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={2} />}
+            onClick={() => openEditor(null)}
+          >
+            New crew
+          </Button>
+        </div>
       }
     >
       <p className="mb-4 max-w-[74ch] text-[13px] leading-[1.55] text-chalk-300">
@@ -47,9 +67,9 @@ export function CrewHub({
         // Empty state is a CTA, not a dead end - a preset below installs one.
         <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-8 text-center">
           <p className="text-[13px] text-chalk-300">
-            No crews yet. Install a preset below.
+            No crews yet. Install a preset, or compose one role by role.
           </p>
-          <div className="mt-3 flex justify-center">
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
             <Button
               variant="primary"
               size="sm"
@@ -61,6 +81,14 @@ export function CrewHub({
               }}
             >
               Add a crew preset
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              iconLeft={<PenLine className="h-3.5 w-3.5" strokeWidth={1.9} />}
+              onClick={() => openEditor(null)}
+            >
+              Compose a crew
             </Button>
           </div>
         </div>
@@ -136,6 +164,14 @@ export function CrewHub({
                     >
                       Configure
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      iconLeft={<PenLine className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                      onClick={() => openEditor(c.id)}
+                    >
+                      Edit roles
+                    </Button>
                     {!isDefault ? (
                       <Button
                         variant="ghost"
@@ -153,6 +189,8 @@ export function CrewHub({
           })}
         </div>
       )}
+
+      <DraftCrewPanel className="mt-4" />
     </Section>
   );
 }

@@ -72,7 +72,7 @@ Who runs a seat: the crew -> role -> profile -> skills configuration chain.
 
 - `crew-registry.ts` / `crew-schema.ts` / `crew-presets.ts` - the Crew (team of roles) a run uses.
 - `role-registry.ts` / `role-schema.ts` - Role config.
-- `default-roles.ts` + `default-prompts/<role>.md` - the built-in roles and their prompt templates.
+- `default-roles.ts` + `default-prompts/<role>.json` - the built-in roles and their prompt templates.
 - `profile-schema.ts` / `profile-usage.ts` - Profiles (how strong/expensive a role runs).
 - `skill-discovery.ts` / `skill-loader.ts` / `skill-assignment-service.ts` - skill packs and their assignment to roles.
 

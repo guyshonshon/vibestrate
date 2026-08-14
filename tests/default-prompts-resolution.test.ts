@@ -8,6 +8,7 @@ import {
   readDefaultPrompt,
   getBuiltinRoleIds,
 } from "../src/agents/default-roles.js";
+import { parseRoleFile } from "../src/agents/role-schema.js";
 
 const repoRoot = path.resolve(fileURLToPath(import.meta.url), "..", "..");
 
@@ -25,7 +26,10 @@ describe("default-prompts resolution", () => {
     const prompts = path.join(pkg, "src", "agents", "default-prompts");
     await fs.mkdir(prompts, { recursive: true });
     await fs.mkdir(path.join(pkg, "dist"), { recursive: true });
-    await fs.writeFile(path.join(prompts, "planner.md"), "# planner");
+    await fs.writeFile(
+      path.join(prompts, "planner.json"),
+      JSON.stringify({ schemaVersion: 1, id: "planner", prompt: "# planner" }),
+    );
 
     const { dir } = await resolvePromptsDir(path.join(pkg, "dist"));
     expect(dir).toBe(prompts);
@@ -39,17 +43,21 @@ describe("default-prompts resolution", () => {
     expect(tried.length).toBeGreaterThan(0);
   });
 
-  it("ships a prompt for every builtin role (guards a moved/renamed dir)", async () => {
+  it("ships a role file for every builtin role (guards a moved/renamed dir)", async () => {
     const dir = path.join(repoRoot, "src", "agents", "default-prompts");
     for (const roleId of getBuiltinRoleIds()) {
-      const stat = await fs.stat(path.join(dir, `${roleId}.md`));
+      const stat = await fs.stat(path.join(dir, `${roleId}.json`));
       expect(stat.isFile()).toBe(true);
     }
   });
 
-  it("readDefaultPrompt returns non-empty content for a builtin role", async () => {
-    const md = await readDefaultPrompt("planner");
-    expect(md.trim().length).toBeGreaterThan(0);
+  it("readDefaultPrompt returns the role file text, validated", async () => {
+    const text = await readDefaultPrompt("planner");
+    // The scaffolder writes this verbatim, so it has to be the JSON document
+    // and not just the instruction text.
+    const parsed = parseRoleFile(text, "planner.json");
+    expect(parsed.id).toBe("planner");
+    expect(parsed.prompt.trim().length).toBeGreaterThan(0);
   });
 
   /**

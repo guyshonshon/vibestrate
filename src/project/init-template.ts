@@ -256,7 +256,7 @@ crews:
         label: Planner
         seats: [planner]
         profile: ${ref}-balanced
-        prompt: .vibestrate/roles/planner.md
+        prompt: .vibestrate/roles/planner.json
         permissions: read_only
         skills: []
 
@@ -264,7 +264,7 @@ crews:
         label: Architect
         seats: [architect]
         profile: ${ref}-balanced
-        prompt: .vibestrate/roles/architect.md
+        prompt: .vibestrate/roles/architect.json
         permissions: read_only
         skills: []
 
@@ -272,7 +272,7 @@ crews:
         label: Backend Implementer
         seats: [implementer, executor, builder]
         profile: ${ref}-balanced
-        prompt: .vibestrate/roles/executor.md
+        prompt: .vibestrate/roles/executor.json
         permissions: code_write
         skills: []
 
@@ -280,7 +280,7 @@ crews:
         label: Fixer
         seats: [fixer]
         profile: ${ref}-balanced
-        prompt: .vibestrate/roles/fixer.md
+        prompt: .vibestrate/roles/fixer.json
         permissions: code_write
         skills: []
 
@@ -288,7 +288,7 @@ crews:
         label: Reviewer
         seats: [reviewer, challenger]
         profile: ${ref}-balanced
-        prompt: .vibestrate/roles/reviewer.md
+        prompt: .vibestrate/roles/reviewer.json
         permissions: read_only
         skills: []
 
@@ -296,7 +296,7 @@ crews:
         label: Verifier
         seats: [verifier, arbiter]
         profile: ${ref}-balanced
-        prompt: .vibestrate/roles/verifier.md
+        prompt: .vibestrate/roles/verifier.json
         permissions: read_only
         skills: []
 
@@ -447,7 +447,7 @@ export async function runInit(opts: InitOptions): Promise<InitResult> {
   );
 
   for (const roleId of getBuiltinRoleIds()) {
-    const target = path.join(projectRolesDir(projectRoot), `${roleId}.md`);
+    const target = path.join(projectRolesDir(projectRoot), `${roleId}.json`);
     const contents = await readDefaultPrompt(roleId);
     await writeIfMissing(target, contents, result, force);
   }

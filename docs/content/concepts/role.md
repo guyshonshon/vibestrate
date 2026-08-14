@@ -20,12 +20,12 @@ crews:
         label: Reviewer
         seats: [reviewer, challenger]
         profile: opus-deep
-        prompt: .vibestrate/roles/reviewer.md
+        prompt: .vibestrate/roles/reviewer.json
         permissions: read_only
         skills: []
 ```
 
-- A `prompt` file with its instructions.
+- A `prompt` pointing at its JSON role file - `{"schemaVersion": 1, "id": "reviewer", "prompt": "..."}`, where `prompt` holds the instructions.
 - A `profile` it runs on (it points at a Profile, never directly at a provider).
 - A `seats` list of step kinds it can fill.
 - A `permissions` profile and any attached `skills`.
@@ -79,7 +79,7 @@ Fills the `verifier` and `arbiter` seats. Final gate before `merge_ready`.
 Vibestrate stacks these into one prompt before the Role runs:
 
 <div class="docs-flow">
-<div><b>Role template</b><span>The Role's prompt template, e.g. .vibestrate/roles/planner.md.</span></div>
+<div><b>Role template</b><span>The Role's prompt template, e.g. .vibestrate/roles/planner.json.</span></div>
 <div><b>Project rules</b><span>The project rules file, .vibestrate/rules.md.</span></div>
 <div><b>Skills</b><span>Any attached skills, configured plus per-run.</span></div>
 <div><b>Task</b><span>The current task description.</span></div>
@@ -89,7 +89,7 @@ Vibestrate stacks these into one prompt before the Role runs:
 ## Going deeper
 
 - The run records the resolved Role per Step (`resolvedRoleId`, `resolvedRoleLabel`) in `flow.json`.
-- `PATCH /api/crews/:crewId/roles/:roleId` edits a Role's `profile` / `seats` / `permissions` / `label` / `skills`. The role context (prompt) is read and written at `/api/crews/:crewId/roles/:roleId/context`.
+- `PATCH /api/crews/:crewId/roles/:roleId` edits a Role's `profile` / `seats` / `permissions` / `label` / `skills`. The role context (prompt) is read and written at `/api/crews/:crewId/roles/:roleId/context`. That endpoint works in the instruction *text*: `GET` hands back what's inside `prompt`, and `PUT` takes plain `content` and rebuilds the JSON envelope around it, so an edit can't produce a role file that only fails later, on the run that loads it. The file's `id` comes from the filename the config points at, not from the crew's key for the Role - several crews can share one role file.
 - [[crew]] - the roster a Role belongs to.
 - [[seat]] - what a Role fills in a Flow.
 - [[profile]] - how strong or expensive a Role runs.

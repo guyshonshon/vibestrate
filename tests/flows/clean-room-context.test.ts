@@ -68,8 +68,8 @@ describe("clean-room seat drops run-level grounding (rung 2)", () => {
       JSON.stringify({
         label: "T",
         roles: {
-          w: { label: "Worker", profile: "fake-prof", seats: ["worker"], prompt: ".vibestrate/roles/planner.md", permissions: "read_only", skills: [] },
-          j: { label: "Judge", profile: "fake-prof", seats: ["judge"], prompt: ".vibestrate/roles/reviewer.md", permissions: "read_only", skills: [] },
+          w: { label: "Worker", profile: "fake-prof", seats: ["worker"], prompt: ".vibestrate/roles/planner.json", permissions: "read_only", skills: [] },
+          j: { label: "Judge", profile: "fake-prof", seats: ["judge"], prompt: ".vibestrate/roles/reviewer.json", permissions: "read_only", skills: [] },
         },
       }),
     );

@@ -28,12 +28,12 @@ crews:
       planner:
         seats: [planner]
         profile: claude-balanced
-        prompt: .vibestrate/roles/planner.md
+        prompt: .vibestrate/roles/planner.json
         permissions: readOnly
       reviewer:
         seats: [reviewer]
         profile: claude-balanced
-        prompt: .vibestrate/roles/reviewer.md
+        prompt: .vibestrate/roles/reviewer.json
         permissions: readOnly
 defaultCrew: default
 `;

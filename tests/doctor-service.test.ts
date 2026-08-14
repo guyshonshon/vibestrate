@@ -10,6 +10,7 @@ import {
   type DoctorFinding,
 } from "../src/setup/doctor-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
+import { parseRoleFile } from "../src/agents/role-schema.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({
@@ -27,6 +28,32 @@ async function makeGitProject(): Promise<string> {
 
 function ids(findings: DoctorFinding[]): string[] {
   return findings.map((f) => f.id);
+}
+
+/**
+ * Put the planner back on the shape that shipped before role files became JSON:
+ * a config pointing at a Markdown prompt. `onDisk` picks which half of the
+ * upgrade breakage is under test - the Markdown still present (what doctor used
+ * to certify as healthy) or already gone (what `--fix` used to manufacture a
+ * JSON envelope into).
+ */
+async function pointPlannerAtMarkdown(
+  root: string,
+  opts: { onDisk: boolean },
+): Promise<string> {
+  const rolesDir = path.join(root, ".vibestrate", "roles");
+  await fs.unlink(path.join(rolesDir, "planner.json"));
+  const mdPath = path.join(rolesDir, "planner.md");
+  if (opts.onDisk) {
+    await fs.writeFile(mdPath, "# Planner Agent\n\nPlan the work.\n");
+  }
+  const configPath = path.join(root, ".vibestrate", "project.yml");
+  const yaml = await fs.readFile(configPath, "utf8");
+  await fs.writeFile(
+    configPath,
+    yaml.replace("roles/planner.json", "roles/planner.md"),
+  );
+  return mdPath;
 }
 
 function severityFor(findings: DoctorFinding[], id: string): string | undefined {
@@ -58,11 +85,60 @@ describe("doctor service", () => {
 
   it("flags missing prompt files", async () => {
     await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
-    await fs.unlink(path.join(projectRoot, ".vibestrate", "roles", "planner.md"));
+    await fs.unlink(path.join(projectRoot, ".vibestrate", "roles", "planner.json"));
     const r = await runDoctor({ cwd: projectRoot });
     const find = r.findings.find((f) => f.id === "prompt-files");
     expect(find?.severity).toBe("fail");
     expect(find?.fixable).toBe(true);
+  });
+
+  it("fails a role still pointing at an old-shape .md prompt", async () => {
+    await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
+    await pointPlannerAtMarkdown(projectRoot, { onDisk: true });
+
+    const r = await runDoctor({ cwd: projectRoot });
+    const find = r.findings.find((f) => f.id === "prompt-files");
+    expect(find?.severity).toBe("fail");
+    // The file exists, so a stat-only check passes it. Only loading it catches
+    // this, and only doctor catching it keeps the run from dying mid-flight.
+    expect(find?.title).toContain("planner");
+    // The message has to name the file and say what to change, not just fail.
+    expect(find?.detail).toContain(".vibestrate/roles/planner.md");
+    expect(find?.detail).toContain(".vibestrate/roles/planner.json");
+    expect(find?.detail).toContain("JSON role files");
+    // `--fix` cannot repair a config edit, so it must not be advertised here.
+    expect(find?.fixable).toBe(false);
+    expect(find?.fixHint).toContain("will not touch");
+  });
+
+  it("doctor --fix refuses to manufacture a role file at an old-shape pointer", async () => {
+    await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
+    const mdPath = await pointPlannerAtMarkdown(projectRoot, { onDisk: false });
+
+    const outcome = await applyDoctorFixes({ projectRoot });
+
+    // A JSON envelope written to planner.md would report "Restored" and turn
+    // doctor green while loading nowhere, so nothing may appear at that path.
+    expect(outcome.applied.join("\n")).not.toContain("planner");
+    await expect(fs.access(mdPath)).rejects.toThrow();
+    await expect(
+      fs.access(path.join(projectRoot, ".vibestrate", "roles", "planner.json")),
+    ).rejects.toThrow();
+    // The refusal carries the migration instruction rather than going quiet.
+    const skipped = outcome.skipped.join("\n");
+    expect(skipped).toContain(".vibestrate/roles/planner.md");
+    expect(skipped).toContain(".vibestrate/roles/planner.json");
+  });
+
+  it("doctor --fix leaves an existing old-shape prompt file untouched", async () => {
+    await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
+    const mdPath = await pointPlannerAtMarkdown(projectRoot, { onDisk: true });
+    const before = await fs.readFile(mdPath, "utf8");
+
+    const outcome = await applyDoctorFixes({ projectRoot });
+
+    expect(await fs.readFile(mdPath, "utf8")).toBe(before);
+    expect(outcome.skipped.join("\n")).toContain(".vibestrate/roles/planner.md");
   });
 
   it("flags a profile that references a missing provider (invalid config)", async () => {
@@ -87,25 +163,35 @@ describe("doctor service", () => {
 
   it("doctor --fix restores missing prompts and skills README", async () => {
     await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
-    await fs.unlink(path.join(projectRoot, ".vibestrate", "roles", "planner.md"));
+    await fs.unlink(path.join(projectRoot, ".vibestrate", "roles", "planner.json"));
     await fs.unlink(path.join(projectRoot, ".vibestrate", "skills", "README.md"));
 
     const outcome = await applyDoctorFixes({ projectRoot });
-    expect(outcome.applied.join("\n")).toContain("planner.md");
+    expect(outcome.applied.join("\n")).toContain("planner.json");
     expect(outcome.applied.join("\n")).toContain("skills/README.md");
 
-    expect(
-      await fs.readFile(path.join(projectRoot, ".vibestrate", "roles", "planner.md"), "utf8"),
-    ).toContain("# Planner Agent");
+    // The restored file has to be a valid role file, not just text that happens
+    // to mention the agent - a restore that writes the wrong shape only shows up
+    // on the next run otherwise.
+    const restored = await fs.readFile(
+      path.join(projectRoot, ".vibestrate", "roles", "planner.json"),
+      "utf8",
+    );
+    expect(parseRoleFile(restored, "planner.json").prompt).toContain("# Planner Agent");
   });
 
   it("doctor --fix never deletes existing files", async () => {
     await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
-    const customPlanner = path.join(projectRoot, ".vibestrate", "roles", "planner.md");
-    await fs.writeFile(customPlanner, "# CUSTOM\nDo not overwrite.");
+    const customPlanner = path.join(projectRoot, ".vibestrate", "roles", "planner.json");
+    const custom = JSON.stringify(
+      { schemaVersion: 1, id: "planner", prompt: "CUSTOM. Do not overwrite." },
+      null,
+      2,
+    );
+    await fs.writeFile(customPlanner, custom);
     await applyDoctorFixes({ projectRoot });
     const after = await fs.readFile(customPlanner, "utf8");
-    expect(after).toBe("# CUSTOM\nDo not overwrite.");
+    expect(after).toBe(custom);
   });
 
   it("findings are JSON-serializable (UI-friendly)", async () => {

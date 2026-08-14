@@ -11,6 +11,7 @@ import { loadConfig } from "../project/config-loader.js";
 import { runProvider } from "../providers/provider-runner.js";
 import { getCrew, rolesFillingSeat } from "../agents/crew-registry.js";
 import { resolvePromptsDir } from "../agents/default-roles.js";
+import { parseRoleFile } from "../agents/role-schema.js";
 import { ProposalService } from "./proposal-service.js";
 import { VibestrateError } from "../utils/errors.js";
 
@@ -78,10 +79,9 @@ export async function generateRoadmapProposal(
       `Could not locate the roadmap-planner prompt template. Looked in:\n${tried.join("\n")}`,
     );
   }
-  const template = await fs.readFile(
-    path.join(dir, "roadmap-planner.md"),
-    "utf8",
-  );
+  const templateFile = path.join(dir, "roadmap-planner.json");
+  const template = parseRoleFile(await fs.readFile(templateFile, "utf8"), templateFile)
+    .prompt;
   const prompt = `${template}\n\n# Broad goal\n\n${goal}\n`;
 
   const result = await runProvider(loaded.config.providers, {

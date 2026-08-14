@@ -79,7 +79,7 @@ async function setupProject(): Promise<string> {
           label: "Planner",
           profile: "fake-prof",
           seats: ["planner"],
-          prompt: ".vibestrate/roles/planner.md",
+          prompt: ".vibestrate/roles/planner.json",
           permissions: "read_only",
           skills: [],
         },

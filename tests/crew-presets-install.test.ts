@@ -9,7 +9,7 @@ import {
   createProfile,
   setCrewRoleFields,
 } from "../src/setup/config-update-service.js";
-import { loadConfig } from "../src/project/config-loader.js";
+import { loadConfig, loadRolePrompt } from "../src/project/config-loader.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const claudeOk: ProviderDetectionRunner = async (cmd) =>
@@ -48,6 +48,10 @@ describe("installCrewPreset", () => {
     );
     for (const role of Object.values(config.crews.fast!.roles)) {
       expect(role.profile).toBe("claude-fast");
+      // A preset points its roles at the role files `vibe init` scaffolded, so
+      // every pointer has to resolve. Mutation check: aim buildPresetCrew at
+      // `<role>.md` and this fails here rather than on the crew's first run.
+      expect(await loadRolePrompt(root, role.prompt)).not.toBe("");
     }
   });
 

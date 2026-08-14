@@ -30,7 +30,7 @@ crews:
       planner:
         seats: [planner]
         profile: claude-balanced
-        prompt: .vibestrate/roles/planner.md
+        prompt: .vibestrate/roles/planner.json
         permissions: readOnly
 defaultCrew: default
 `,

@@ -38,9 +38,11 @@ import { SourcePage } from "./routes/SourcePage.js";
 import { ConsultDock } from "../components/consult/ConsultDock.js";
 import { TourOverlay } from "../components/onboarding/TourOverlay.js";
 import { FlowBuilderPage } from "./routes/FlowBuilderPage.js";
+import { FlowEditorPage } from "./routes/FlowEditorPage.js";
 import { FlowsPage } from "./routes/FlowsPage.js";
 import { MetricsPage } from "./routes/MetricsPage.js";
 import { CrewPage } from "./routes/CrewPage.js";
+import { CrewEditorPage } from "./routes/CrewEditorPage.js";
 import { ProfilesPage } from "./routes/ProfilesPage.js";
 import { ConsultPage } from "./routes/ConsultPage.js";
 import { SupervisorsPage } from "./routes/SupervisorsPage.js";
@@ -311,7 +313,9 @@ export function App() {
                         route.kind === "git-tree" ||
                         route.kind === "merge"
                       ? "source"
-                      : route.kind === "flow" || route.kind === "flows"
+                      : route.kind === "flow" ||
+                          route.kind === "flow-editor" ||
+                          route.kind === "flows"
                         ? "flows"
                         : route.kind === "metrics"
                           ? "metrics"
@@ -321,7 +325,7 @@ export function App() {
                               ? "crew"
                               : route.kind === "supervisors"
                                 ? "supervisors"
-                              : route.kind === "crew"
+                              : route.kind === "crew" || route.kind === "crew-editor"
                                 ? "crew"
                               : route.kind === "config"
                                 ? "config"
@@ -488,6 +492,15 @@ export function App() {
           initialFlowId={route.flowId}
           onBack={() => navigate({ kind: "flows" })}
         />
+      ) : route.kind === "flow-editor" ? (
+        <FlowEditorPage
+          // Deliberately NOT keyed on flowId. The page reseeds its draft when
+          // the id changes, and remounting would throw away the "saved" toast
+          // in the very moment creating a flow navigates to its new id.
+          flowId={route.flowId}
+          onBack={() => navigate({ kind: "flows" })}
+          onSaved={(flowId) => navigate({ kind: "flow-editor", flowId })}
+        />
       ) : route.kind === "flows" ? (
         <FlowsPage
           onOpenInFlow={(flowId: string) => navigate({ kind: "flow", flowId })}
@@ -507,6 +520,12 @@ export function App() {
                 : { kind: "crew", crewId: null },
             )
           }
+        />
+      ) : route.kind === "crew-editor" ? (
+        <CrewEditorPage
+          crewId={route.crewId}
+          onBack={() => navigate({ kind: "crew", crewId: null })}
+          onOpenCrew={(crewId) => navigate({ kind: "crew", crewId })}
         />
       ) : route.kind === "profiles" ? (
         <ProfilesPage />

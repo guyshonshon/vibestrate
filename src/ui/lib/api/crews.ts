@@ -1,6 +1,7 @@
 // Crews, presets, and per-role bindings/context.
 import { jsonGet, jsonPost, jsonPatch, jsonPut } from "./http.js";
 import type {
+  CrewDraft,
   CrewView,
 } from "../types.js";
 import type {
@@ -8,6 +9,12 @@ import type {
 } from "./types.js";
 
 export const crewsApi = {
+  /** Describe a crew in plain English; the supervisor returns an EDITABLE
+   *  draft. Nothing here installs it - no route writes a drafted crew, so the
+   *  YAML block the draft carries is what the owner puts under `crews:`. */
+  async draftCrew(description: string): Promise<{ draft: CrewDraft }> {
+    return jsonPost("/api/crews/draft", { description });
+  },
   async getCrews(): Promise<{ crews: CrewView[]; defaultCrew: string | null }> {
     return jsonGet("/api/crews");
   },

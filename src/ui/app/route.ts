@@ -49,9 +49,14 @@ export type Route =
   | { kind: "git-tree" }
   | { kind: "merge"; runId: string | null }
   | { kind: "flow"; flowId: string | null }
+  // The dedicated editor. `flowId: null` is "create a new flow", which is why
+  // it is a separate route from the builder rather than a mode inside it.
+  | { kind: "flow-editor"; flowId: string | null }
   | { kind: "flows" }
   | { kind: "metrics" }
   | { kind: "crew"; crewId: string | null }
+  /** The crew editor. `crewId` null = compose a new crew. */
+  | { kind: "crew-editor"; crewId: string | null }
   | { kind: "providers" }
   | { kind: "supervisors" }
   | { kind: "ledger" }
@@ -214,6 +219,10 @@ export function parseHashRoute(hash: string): Route {
     const runId = query.get("run");
     return { kind: "merge", runId: runId ?? null };
   }
+  // Editor is #/flow-editor[/id]; a bare #/flow-editor creates a new flow.
+  if (parts[0] === "flow-editor") {
+    return { kind: "flow-editor", flowId: parts[1] ? decodeURIComponent(parts[1]) : null };
+  }
   // Builder is singular (#/flow[/id]); the catalog is plural (#/flows).
   if (parts[0] === "flow") {
     const flowId = parts[1] ?? query.get("flow");
@@ -221,6 +230,12 @@ export function parseHashRoute(hash: string): Route {
   }
   if (parts[0] === "flows") return { kind: "flows" };
   if (parts[0] === "metrics") return { kind: "metrics" };
+  if (parts[0] === "crew-editor") {
+    return {
+      kind: "crew-editor",
+      crewId: parts[1] ? decodeURIComponent(parts[1]) : null,
+    };
+  }
   if (parts[0] === "crew" || parts[0] === "agents") {
     return { kind: "crew", crewId: parts[1] ? decodeURIComponent(parts[1]) : null };
   }
@@ -316,12 +331,20 @@ export function serializeRoute(route: Route): string {
       return route.flowId
         ? `#/flow/${encodeURIComponent(route.flowId)}`
         : "#/flow";
+    case "flow-editor":
+      return route.flowId
+        ? `#/flow-editor/${encodeURIComponent(route.flowId)}`
+        : "#/flow-editor";
     case "flows":
       return "#/flows";
     case "metrics":
       return "#/metrics";
     case "crew":
       return route.crewId ? `#/crew/${encodeURIComponent(route.crewId)}` : "#/crew";
+    case "crew-editor":
+      return route.crewId
+        ? `#/crew-editor/${encodeURIComponent(route.crewId)}`
+        : "#/crew-editor";
     case "providers":
       return "#/providers";
     case "supervisors":

@@ -5,6 +5,8 @@ import fs from "node:fs/promises";
 import { execa } from "execa";
 import { startServer, type StartedServer } from "../src/server/server.js";
 import { applySetup } from "../src/setup/setup-service.js";
+import { parseRoleFile } from "../src/agents/role-schema.js";
+import { loadRolePrompt } from "../src/project/config-loader.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({
@@ -58,6 +60,41 @@ describe("role context API", () => {
       r.json(),
     )) as { content: string };
     expect(after.content).toContain("You are a careful planner.");
+
+    // The editor works in instruction text, but what lands on disk is a role
+    // file. Mutation check: write `content` raw and this fails - the config
+    // loader would reject the file on the next run instead of here.
+    const onDisk = await fs.readFile(
+      path.join(project, ".vibestrate", "roles", "planner.json"),
+      "utf8",
+    );
+    expect(parseRoleFile(onDisk, "planner.json")).toEqual({
+      schemaVersion: 1,
+      id: "planner",
+      prompt: "# Planner\n\nYou are a careful planner.\n",
+    });
+    // And the same file the API just wrote is the one a run resolves.
+    expect(await loadRolePrompt(project, ".vibestrate/roles/planner.json")).toBe(
+      "# Planner\n\nYou are a careful planner.\n",
+    );
+  });
+
+  it("422s a role file that is not a valid role file, rather than opening an empty editor", async () => {
+    const project = await makeProject();
+    // A hand-broken file must surface where it can be fixed. Serving "" would
+    // invite a save that silently replaces the owner's instructions.
+    await fs.writeFile(
+      path.join(project, ".vibestrate", "roles", "planner.json"),
+      "# Planner\n\nnot json at all\n",
+    );
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    const res = await fetch(`${server.url}/api/crews/default/roles/planner/context`);
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { error?: string; message?: string };
+    expect(JSON.stringify(body)).toMatch(/planner\.json/);
+    // The message names the file, not where the project lives on disk.
+    expect(JSON.stringify(body)).not.toContain(project);
   });
 
   it("404s an unknown role and 400s a bad content body", async () => {

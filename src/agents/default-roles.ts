@@ -2,7 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readText, pathExists } from "../utils/fs.js";
 import type { BuiltinRoleId } from "./role-schema.js";
-import { builtinRoleIds } from "./role-schema.js";
+import { builtinRoleIds, parseRoleFile } from "./role-schema.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -51,9 +51,17 @@ async function findPromptsDir(): Promise<string> {
   );
 }
 
+/**
+ * The bundled role file for `roleId`, as the raw JSON text a scaffolder writes
+ * verbatim. It is validated on the way out so a malformed bundled file fails at
+ * `vibe init` rather than on the first run that reads the copy.
+ */
 export async function readDefaultPrompt(roleId: BuiltinRoleId): Promise<string> {
   const dir = await findPromptsDir();
-  return readText(path.join(dir, `${roleId}.md`));
+  const file = path.join(dir, `${roleId}.json`);
+  const text = await readText(file);
+  parseRoleFile(text, file);
+  return text;
 }
 
 export function getBuiltinRoleIds(): readonly BuiltinRoleId[] {

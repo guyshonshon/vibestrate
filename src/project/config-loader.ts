@@ -25,6 +25,7 @@ import {
   projectConfigPath,
 } from "../utils/paths.js";
 import { projectConfigSchema, type ProjectConfig } from "./config-schema.js";
+import { parseRoleFile } from "../agents/role-schema.js";
 
 export type LoadedConfig = {
   projectRoot: string;
@@ -117,6 +118,11 @@ export function relativeConfigPath(projectRoot: string): string {
   return path.relative(projectRoot, projectConfigPath(projectRoot));
 }
 
+/**
+ * Read a role's instruction text out of its JSON role file. The `.md` role
+ * prompts this replaced are gone, so a config still pointing at one is a config
+ * that has to be edited, not a shape to fall back to.
+ */
 export async function loadRolePrompt(
   projectRoot: string,
   promptRelOrAbs: string,
@@ -124,8 +130,13 @@ export async function loadRolePrompt(
   const candidate = path.isAbsolute(promptRelOrAbs)
     ? promptRelOrAbs
     : path.join(projectRoot, promptRelOrAbs);
-  if (!(await pathExists(candidate))) {
-    throw new ConfigError(`Agent prompt file not found: ${promptRelOrAbs}`);
+  if (path.extname(candidate).toLowerCase() !== ".json") {
+    throw new ConfigError(
+      `Role "prompt" points at ${promptRelOrAbs}, but roles are stored as JSON role files. Point it at ${promptRelOrAbs.replace(/\.[^./\\]*$/, "")}.json and move the instruction text into that file's "prompt" field.`,
+    );
   }
-  return readText(candidate);
+  if (!(await pathExists(candidate))) {
+    throw new ConfigError(`Role file not found: ${promptRelOrAbs}`);
+  }
+  return parseRoleFile(await readText(candidate), candidate).prompt;
 }

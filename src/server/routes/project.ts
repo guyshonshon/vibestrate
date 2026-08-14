@@ -63,7 +63,12 @@ import {
   listCrewPresets,
 } from "../../setup/config-update-service.js";
 import { CREW_PRESETS, type PresetTier } from "../../agents/crew-presets.js";
+import {
+  draftCrewFromDescription,
+  CrewAssistError,
+} from "../../agents/crew-assist.js";
 import { profileUsage, rolesUsingProfile } from "../../agents/profile-usage.js";
+import { parseRoleFile, ROLE_FILE_SCHEMA_VERSION } from "../../agents/role-schema.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 import { z } from "zod";
 
@@ -86,6 +91,13 @@ const duplicateProfileBody = z
     newId: z.string().min(1).max(80),
     label: z.string().min(1).max(120).optional(),
   })
+  .strict();
+
+// One English sentence in, one editable crew draft out. The 1000-character cap
+// is the service's own MAX_DESCRIPTION - keeping it here too means an over-long
+// body is refused before a provider is ever resolved.
+const draftCrewBody = z
+  .object({ description: z.string().min(1).max(1000) })
   .strict();
 
 export type ProjectRoutesDeps = { projectRoot: string };
@@ -319,6 +331,39 @@ export async function registerProjectRoutes(
     }
   });
 
+  // ─── Supervisor-assisted authoring (draft) ────────────────────────────────
+  // SECURITY: this does not create anything, and unlike the preset route above
+  // it touches no config writer at all. /draft returns an EDITABLE DRAFT - the
+  // `crews.<id>` block plus every problem the owner must fix - which the owner
+  // installs by their own explicit action. The description is redacted at the
+  // service source before it reaches the model, and the drafted YAML is
+  // secret-scanned, and refused rather than redacted, before it is returned.
+  // Vibestrate opens no socket here: any currency check is the agent's own web
+  // tool inside its provider CLI, and an agent without one reports the gap in
+  // `currency.unverified`.
+  app.post<{ Body: unknown }>("/api/crews/draft", async (req) => {
+    const parsed = draftCrewBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    if (!(await configExists(projectRoot))) {
+      throw new HttpError(404, "Vibestrate is not initialized here.");
+    }
+    try {
+      return await draftCrewFromDescription({
+        projectRoot,
+        description: parsed.data.description,
+      });
+    } catch (err) {
+      // Bad input and a refused draft are the caller's problem, and their
+      // messages are safe to echo. Anything else - a provider that never
+      // answered, an unreadable config - is rethrown untouched so the server's
+      // error handler records it and strips the absolute path out of the
+      // response body; an HttpError's message is sent verbatim, so wrapping it
+      // here would leak that path.
+      if (err instanceof CrewAssistError) throw new HttpError(400, err.message);
+      throw err;
+    }
+  });
+
   app.get<{ Params: { crewId: string } }>("/api/crews/:crewId", async (req) => {
     const crewId = req.params.crewId;
     if (!ID_RE.test(crewId)) throw new HttpError(400, "Invalid crew id.");
@@ -357,7 +402,10 @@ export async function registerProjectRoutes(
     },
   );
 
-  // Read a Role's context (its prompt - the "brain") for inline editing.
+  // Read a Role's context (its prompt - the "brain") for inline editing. The
+  // editor works in the instruction TEXT, never in the role file's JSON
+  // envelope: both ends go through parseRoleFile, so a save cannot produce a
+  // file that only fails later, on the first run that loads it.
   app.get<{ Params: { crewId: string; roleId: string } }>(
     "/api/crews/:crewId/roles/:roleId/context",
     async (req) => {
@@ -382,10 +430,20 @@ export async function registerProjectRoutes(
         throw err;
       }
       let content = "";
+      let raw: string | null = null;
       try {
-        content = await fs.readFile(resolved.absolutePath, "utf8");
+        raw = await fs.readFile(resolved.absolutePath, "utf8");
       } catch {
-        // No prompt file yet - treat as an empty context to author.
+        // No role file yet - treat as an empty context to author.
+      }
+      if (raw !== null) {
+        try {
+          // Named by the project-relative path so a parse error tells the owner
+          // which file to fix without exposing where the project lives.
+          content = parseRoleFile(raw, role.prompt).prompt;
+        } catch (err) {
+          throw new HttpError(422, err instanceof Error ? err.message : String(err));
+        }
       }
       return {
         crewId,
@@ -400,7 +458,8 @@ export async function registerProjectRoutes(
     },
   );
 
-  // Write a Role's context (prompt). Path-guarded; creates the file if missing.
+  // Write a Role's context (prompt) into its JSON role file. Path-guarded;
+  // creates the file if missing.
   app.put<{ Params: { crewId: string; roleId: string }; Body: unknown }>(
     "/api/crews/:crewId/roles/:roleId/context",
     async (req) => {
@@ -431,8 +490,22 @@ export async function registerProjectRoutes(
         }
         throw err;
       }
+      // The role file is named after the role it defines, so its `id` comes
+      // from the file name the config points at - not from `roleId`, which is
+      // the crew's key for it and may differ (several crews share one file).
+      const fileRoleId = path.basename(role.prompt, path.extname(role.prompt));
+      const serialized = `${JSON.stringify(
+        { schemaVersion: ROLE_FILE_SCHEMA_VERSION, id: fileRoleId, prompt: body.content },
+        null,
+        2,
+      )}\n`;
+      try {
+        parseRoleFile(serialized, role.prompt);
+      } catch (err) {
+        throw new HttpError(400, err instanceof Error ? err.message : String(err));
+      }
       await fs.mkdir(path.dirname(resolved.absolutePath), { recursive: true });
-      await fs.writeFile(resolved.absolutePath, body.content, "utf8");
+      await fs.writeFile(resolved.absolutePath, serialized, "utf8");
       return { ok: true, crewId, roleId, promptPath: role.prompt };
     },
   );

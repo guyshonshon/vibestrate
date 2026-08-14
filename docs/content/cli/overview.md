@@ -115,9 +115,27 @@ Commands for a [Flow](/docs/concepts/flow), the list of steps a task works throu
 vibe flows list                           # built-in + project Flows
 vibe flows show <id>                      # the resolved definition
 vibe flows suggest "<task>" --risk high   # advisory suggestion only
+vibe flows draft "<description>"          # supervisor drafts a Flow for you to review
 vibe run "<task>" --flow <id>             # run with a Flow
 vibe run -i "<task>"                       # pick the Flow + Crew interactively, then run
 ```
+
+### Drafting a Flow or a Crew from a description
+
+Describe what you want in English and the supervisor drafts it. Both drafters are draft-only: they write nothing, and what you get back is a document to read, edit, and adopt yourself.
+
+```bash
+vibe flows draft "review-heavy flow for payment work" --crew thorough
+vibe flows draft "<description>" --yaml > deep-review.yml   # just the flow YAML, for piping
+vibe crew draft "cheap planner, strong reviewer"
+vibe crew draft "<description>" --json                      # the whole draft, machine-readable
+```
+
+`flows draft` prints the flow's canonical YAML - byte for byte what accepting it would write - plus the seat coverage against a crew (`--crew <id>`, default: your project's), so you see which steps no Role can fill before you commit to it. A gap doesn't reject the draft; you may be about to add that Role. Adopt it with `vibe flows import deep-review.yml`.
+
+`crew draft` gives you both halves of a crew: the `crews.<id>` block, and one JSON [role file](/docs/concepts/role) per Role with its full contents. Save the role files at the paths shown *first* - a crew block whose roles point at files nobody wrote fails the moment a run loads the config - then add the block under `crews:` in `.vibestrate/project.yml` and run `vibe crew use <id>`. The draft also lists the problems no schema can catch: profile or permission ids this project doesn't define, a seat two Roles both claim (a run refuses to start on that), and a role file already on disk that saving the draft would replace.
+
+Both commands end with two lists: what the agent verified using its own tools, and what it couldn't. That's the agent's self-report - Vibestrate opens no connection of its own to check a draft - so the "could not verify" list is the part to read closely. Both lists print even when empty, so silence there is a claim rather than an omission.
 
 ### Publishing a Flow to the Hub
 

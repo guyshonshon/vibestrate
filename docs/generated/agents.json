@@ -1,48 +1,48 @@
 {
   "schemaVersion": 1,
-  "description": "Built-in agent roles. Each is a configured row under `agents:` in project.yml - provider, prompt template, permission profile, and any skills.",
+  "description": "Built-in agent roles. Each is a configured row under `crews.<id>.roles` in project.yml - the profile it runs on, its JSON role file, a permission profile, and any skills.",
   "agents": [
     {
       "id": "planner",
       "role": "Reads the task brief and produces a plan.",
-      "reads": "Task description, project rules, .vibestrate/roles/planner.md prompt, attached skills.",
+      "reads": "Task description, project rules, .vibestrate/roles/planner.json prompt, attached skills.",
       "writes": "Structured plan artifact.",
-      "promptTemplateRelPath": "src/agents/default-prompts/planner.md"
+      "promptTemplateRelPath": "src/agents/default-prompts/planner.json"
     },
     {
       "id": "architect",
       "role": "Expands the plan with implementation specifics.",
       "reads": "Plan + project rules + attached skills.",
       "writes": "Architecture artifact (module map, interfaces, data flow).",
-      "promptTemplateRelPath": "src/agents/default-prompts/architect.md"
+      "promptTemplateRelPath": "src/agents/default-prompts/architect.json"
     },
     {
       "id": "executor",
       "role": "Applies code changes in the run's worktree.",
       "reads": "Plan, architecture, review findings if any.",
       "writes": "File edits in the worktree; execution log.",
-      "promptTemplateRelPath": "src/agents/default-prompts/executor.md"
+      "promptTemplateRelPath": "src/agents/default-prompts/executor.json"
     },
     {
       "id": "fixer",
       "role": "Addresses review findings.",
       "reads": "Review findings, validation logs, current diff.",
       "writes": "Patches and a `finding-responses` artifact.",
-      "promptTemplateRelPath": "src/agents/default-prompts/fixer.md"
+      "promptTemplateRelPath": "src/agents/default-prompts/fixer.json"
     },
     {
       "id": "reviewer",
       "role": "Critiques the diff against the plan.",
       "reads": "Plan, current diff, validation output.",
       "writes": "Findings + a review decision (APPROVED / CHANGES_REQUESTED / BLOCKED).",
-      "promptTemplateRelPath": "src/agents/default-prompts/reviewer.md"
+      "promptTemplateRelPath": "src/agents/default-prompts/reviewer.json"
     },
     {
       "id": "verifier",
       "role": "Final gate before merge.",
       "reads": "All artifacts from the run.",
       "writes": "Verification decision (PASSED / FAILED / NEEDS_HUMAN) + decision summary.",
-      "promptTemplateRelPath": "src/agents/default-prompts/verifier.md"
+      "promptTemplateRelPath": "src/agents/default-prompts/verifier.json"
     }
   ]
 }

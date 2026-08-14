@@ -82,7 +82,7 @@ async function makeProject(opts: { fail?: boolean } = {}): Promise<{
           label: "Worker",
           profile: "codex-hi",
           seats: ["worker"],
-          prompt: ".vibestrate/roles/planner.md",
+          prompt: ".vibestrate/roles/planner.json",
           permissions: "read_only",
           skills: [],
         },

@@ -20,7 +20,7 @@ crews:
       worker:
         seats: [worker]
         profile: claude-balanced
-        prompt: .vibestrate/roles/worker.md
+        prompt: .vibestrate/roles/worker.json
         permissions: readOnly
 defaultCrew: default
 `;

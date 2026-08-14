@@ -61,7 +61,7 @@ Doctor checks everything needed before your first run: git state, project config
   project.yml      providers, profiles, crews (roles), commands, policies
   rules.md         project instructions agents read on every turn
   rules/           optional extra instruction files, composed onto rules.md
-  roles/           per-role prompt templates you can edit
+  roles/           one JSON role file per role, holding its instructions
   skills/          markdown attachments that add domain context
   flows/           your project's run Flows (empty until you add one)
   runs/            run state, artifacts, metrics, events

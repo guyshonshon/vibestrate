@@ -165,7 +165,7 @@ describe("flow step skills - resolve + inject", () => {
             label: "Worker",
             profile: "codex-x",
             seats: ["worker"],
-            prompt: ".vibestrate/roles/planner.md",
+            prompt: ".vibestrate/roles/planner.json",
             permissions: "read_only",
             skills: [],
           },

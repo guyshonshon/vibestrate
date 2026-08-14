@@ -9,6 +9,14 @@ import {
 import { roleLabel } from "../../agents/crew-registry.js";
 import { CREW_PRESETS, type PresetTier } from "../../agents/crew-presets.js";
 import type { CrewConfig } from "../../agents/crew-schema.js";
+import {
+  draftCrewFromDescription,
+  type DraftedRoleFile,
+} from "../../agents/crew-assist.js";
+// One currency renderer for both drafting surfaces, mirroring the single
+// `currencySchema` the two assist services share - "what I checked / what I
+// could not" must read identically wherever a draft is shown.
+import { printCurrency } from "./flows/draft.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 
 type CrewRole = CrewConfig["roles"][string];
@@ -192,6 +200,127 @@ async function cmdPresetAdd(id: string): Promise<number> {
   }
 }
 
+/**
+ * Turn an English description into an editable Crew draft.
+ *
+ * DRAFT ONLY - this command writes nothing, and no installer exists yet, so the
+ * owner installs BOTH artifacts by hand: one JSON role file per role, then the
+ * `crews.<id>` block under `crews:` in .vibestrate/project.yml. Printing only
+ * the block would hand the owner a crew whose roles point at files nobody
+ * wrote, which fails the moment a run loads the config - so every role file is
+ * printed in full, and the install order is stated.
+ *
+ * `problems` are the checks the crew schema cannot make (profile ids,
+ * permission ids, role files, one role per seat); they are shown, not thrown,
+ * so the whole roster stays reviewable.
+ */
+async function cmdDraft(
+  description: string,
+  opts: { yaml?: boolean; json?: boolean },
+): Promise<number> {
+  const root = await ctx();
+  const { draft } = await draftCrewFromDescription({ projectRoot: root, description });
+
+  if (opts.json) {
+    console.log(JSON.stringify({ draft }, null, 2));
+    return 0;
+  }
+
+  if (opts.yaml) {
+    // Only the block on stdout so it pipes cleanly. Everything the piped block
+    // is not - the role files it points at, the problems, the currency report -
+    // goes to stderr, where a redirect cannot hide it.
+    const err = (line: string) => process.stderr.write(`${line}\n`);
+    process.stdout.write(draft.yaml.endsWith("\n") ? draft.yaml : `${draft.yaml}\n`);
+    printRoleFiles(draft.roleFiles, err);
+    printProblems(draft.problems, err);
+    printCurrency(draft.currency, err);
+    err(
+      `\n${color.dim("Nothing was written, and the piped block is half a crew: save each role file above first, then the block belongs under ")}${color.bold("crews:")}${color.dim(" in .vibestrate/project.yml.")}`,
+    );
+    return 0;
+  }
+
+  console.log(header(`Draft crew: ${draft.crew.label ?? draft.crewId}`));
+  console.log(indent(color.dim(`id: ${draft.crewId}`)));
+  if (draft.exists) {
+    console.log(
+      indent(color.yellow(`a crew "${draft.crewId}" already exists - rename it or replace it`)),
+    );
+  }
+  console.log("");
+  for (const [roleId, role] of Object.entries(draft.crew.roles)) {
+    console.log(indent(roleLine(roleId, role)));
+  }
+
+  printRoleFiles(draft.roleFiles);
+
+  console.log("");
+  console.log(
+    color.bold("The crew block") + color.dim(" - under crews: in .vibestrate/project.yml"),
+  );
+  console.log(indent(draft.yaml.trimEnd()));
+
+  console.log("");
+  console.log(color.bold("Rationale"));
+  console.log(indent(draft.rationale));
+
+  // Problems and currency print last, above the hint: the YAML block is long
+  // enough to scroll them off the top if they came first.
+  printProblems(draft.problems);
+  printCurrency(draft.currency);
+
+  console.log("");
+  console.log(
+    color.dim("Nothing was written. In order: save each role file above, add the block under ") +
+      color.bold("crews:") +
+      color.dim(" in .vibestrate/project.yml, then ") +
+      color.bold(`vibe crew use ${draft.crewId}`) +
+      color.dim("."),
+  );
+  return 0;
+}
+
+/**
+ * The half of the draft that is not the config block: one JSON role file per
+ * role, path and full contents, ready to save. A crew block installed without
+ * these points every role at a file that is not there, and the run stops in
+ * `loadRolePrompt` before a single agent starts - so this prints in every
+ * non-JSON mode, including `--yaml`.
+ */
+export function printRoleFiles(
+  files: DraftedRoleFile[],
+  write: (line: string) => void = console.log,
+): void {
+  write("");
+  write(
+    color.bold(`The role files (${files.length})`) +
+      color.dim(" - save each one at the path shown, before the crew block"),
+  );
+  for (const file of files) {
+    write("");
+    write(indent(color.cyan(file.path)));
+    write(indent(file.json.trimEnd()));
+  }
+}
+
+/** What stands between the draft and a crew that runs - what is wrong, and what
+ *  is still to write. Prints always, so an empty list is a real terminus. */
+function printProblems(
+  problems: string[],
+  write: (line: string) => void = console.log,
+): void {
+  write("");
+  write(color.bold("Before this crew can run"));
+  if (problems.length === 0) {
+    write(indent(color.dim("(nothing outstanding)")));
+    return;
+  }
+  for (const problem of problems) {
+    write(indent(`${symbol.warn()} ${problem}`));
+  }
+}
+
 export function buildCrewCommand(): Command {
   const cmd = new Command("crew").description(
     'List crews, show a crew\'s roles, and set the default ("active") crew.',
@@ -212,6 +341,18 @@ export function buildCrewCommand(): Command {
     .command("use <id>")
     .description("Set the default (\"active\") crew - runs without --crew use it.")
     .action(async (id: string) => process.exit(await cmdUse(id)));
+  // Supervisor-assisted authoring, parity with `vibe flows draft` and the
+  // dashboard's draft panel. It hits the model and NEVER writes.
+  cmd
+    .command("draft <description>")
+    .description(
+      "Turn an English description into an editable Crew draft (supervisor-assisted). Draft only - never writes; adopting it means saving the printed role files, then the block, into project.yml.",
+    )
+    .option("--yaml", "print only the crews block, for piping into a file")
+    .option("--json", "emit JSON")
+    .action(async (description: string, opts: { yaml?: boolean; json?: boolean }) =>
+      process.exit(await cmdDraft(description, opts)),
+    );
   const presets = cmd
     .command("presets")
     .description("Ready-made crews (fast / thorough) tuned by provider effort.");

@@ -69,9 +69,9 @@ require "LICENSE"
 # roles, no dashboard.
 require "dist/run-entry.js"
 require "dist/egress-proxy.js"
-# One real prompt, not the directory: `require` is an exact-line match against
-# the tar manifest, which lists files.
-require "dist/default-prompts/planner.md"
+# One real role file, not the directory: `require` is an exact-line match
+# against the tar manifest, which lists files.
+require "dist/default-prompts/planner.json"
 require "dist/ui/index.html"
 forbid "sourcemaps (should be trimmed)" '\.map$'
 forbid "a node_modules dir"            '^package/node_modules/'
@@ -134,7 +134,35 @@ fi
 [ -f "$PROJ/.vibestrate/project.yml" ] || {
   echo "FAIL: vibe init did not scaffold .vibestrate/project.yml"; cat "$WORK/init.log"; exit 1
 }
-echo "   ok: vibe init --yes --git-init (scaffolded .vibestrate/project.yml)"
+# The scaffolder copies the bundled role files out of dist/default-prompts. A
+# wrong layout there produces a config whose role pointers resolve to nothing,
+# and nothing before the project's FIRST RUN would notice - so check the file
+# landed, is a role file, and is the one project.yml points at.
+ROLE_FILE="$PROJ/.vibestrate/roles/planner.json"
+[ -f "$ROLE_FILE" ] || {
+  echo "FAIL: vibe init did not scaffold .vibestrate/roles/planner.json"
+  ls -la "$PROJ/.vibestrate/roles" 2>&1 | sed 's/^/     /'
+  exit 1
+}
+node -e '
+  const fs = require("node:fs");
+  const role = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  if (role.schemaVersion !== 1 || role.id !== "planner" || !role.prompt) {
+    throw new Error("scaffolded role file has the wrong shape: " + JSON.stringify(Object.keys(role)));
+  }
+  const yml = fs.readFileSync(process.argv[2], "utf8");
+  if (!yml.includes(".vibestrate/roles/planner.json")) {
+    throw new Error("project.yml does not point at the scaffolded role file");
+  }
+' "$ROLE_FILE" "$PROJ/.vibestrate/project.yml" || {
+  echo "FAIL: scaffolded role file / config pointer mismatch"; exit 1
+}
+[ -z "$(find "$PROJ/.vibestrate/roles" -name '*.md' -print -quit)" ] || {
+  echo "FAIL: vibe init wrote a Markdown role file; roles are JSON"
+  find "$PROJ/.vibestrate/roles" -name '*.md' | sed 's/^/     /'
+  exit 1
+}
+echo "   ok: vibe init --yes --git-init (scaffolded project.yml + JSON role files)"
 
 echo ""
 echo "OK: the published artifact installs from a clean room and runs."

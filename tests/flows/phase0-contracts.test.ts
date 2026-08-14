@@ -39,12 +39,12 @@ function flowTestConfig() {
     crews: {
       default: {
         roles: {
-          planner: { seats: ["planner"], profile: "claude-balanced", prompt: ".vibestrate/roles/planner.md", permissions: "read_only" },
-          architect: { seats: ["architect"], profile: "claude-balanced", prompt: ".vibestrate/roles/architect.md", permissions: "read_only" },
-          executor: { seats: ["implementer", "builder"], profile: "claude-balanced", prompt: ".vibestrate/roles/executor.md", permissions: "code_write" },
-          fixer: { seats: ["fixer"], profile: "claude-balanced", prompt: ".vibestrate/roles/fixer.md", permissions: "code_write" },
-          reviewer: { seats: ["reviewer", "challenger"], profile: "codex-balanced", prompt: ".vibestrate/roles/reviewer.md", permissions: "read_only" },
-          verifier: { seats: ["verifier", "arbiter"], profile: "codex-balanced", prompt: ".vibestrate/roles/verifier.md", permissions: "read_only" },
+          planner: { seats: ["planner"], profile: "claude-balanced", prompt: ".vibestrate/roles/planner.json", permissions: "read_only" },
+          architect: { seats: ["architect"], profile: "claude-balanced", prompt: ".vibestrate/roles/architect.json", permissions: "read_only" },
+          executor: { seats: ["implementer", "builder"], profile: "claude-balanced", prompt: ".vibestrate/roles/executor.json", permissions: "code_write" },
+          fixer: { seats: ["fixer"], profile: "claude-balanced", prompt: ".vibestrate/roles/fixer.json", permissions: "code_write" },
+          reviewer: { seats: ["reviewer", "challenger"], profile: "codex-balanced", prompt: ".vibestrate/roles/reviewer.json", permissions: "read_only" },
+          verifier: { seats: ["verifier", "arbiter"], profile: "codex-balanced", prompt: ".vibestrate/roles/verifier.json", permissions: "read_only" },
         },
       },
     },
@@ -155,7 +155,7 @@ describe("Flow Phase 0 contracts", () => {
     config.crews.default!.roles["builder2"] = {
       seats: ["builder"],
       profile: "claude-balanced",
-      prompt: ".vibestrate/roles/executor.md",
+      prompt: ".vibestrate/roles/executor.json",
       permissions: "code_write",
       skills: [],
       mcpServers: {},
@@ -175,7 +175,7 @@ describe("Flow Phase 0 contracts", () => {
     config.crews.default!.roles["builder2"] = {
       seats: ["builder"],
       profile: "opus-deep",
-      prompt: ".vibestrate/roles/executor.md",
+      prompt: ".vibestrate/roles/executor.json",
       permissions: "code_write",
       skills: [],
       mcpServers: {},

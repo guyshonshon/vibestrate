@@ -1,3 +1,5 @@
+import type { AssistCurrency } from "./flows.js";
+
 // ─── crews / profiles (the new run-composition model) ───────────────────────
 
 export type CrewRoleView = {
@@ -20,6 +22,60 @@ export type CrewView = {
   /** Per-crew override of the global review-loop count; null = inherit. */
   maxReviewLoops: number | null;
   roles: CrewRoleView[];
+};
+
+// ── Supervisor-assisted crew authoring (draft) ──────────────────────────────
+// Hand-mirrored from src/agents/crew-assist.ts and the crew/role schemas it
+// validates against.
+
+/** One drafted role. `prompt` is a project-relative path to the role's JSON
+ *  role file. The drafter AUTHORS that file (its contents arrive separately in
+ *  `CrewDraft.roleFiles`) and derives the pointer itself, so the model never
+ *  names a path and a role cannot aim at a file nobody wrote. */
+export type CrewDraftRole = {
+  label?: string;
+  seats: string[];
+  profile: string;
+  prompt: string;
+  permissions: string;
+  skills?: string[];
+};
+
+export type CrewDraftConfig = {
+  label?: string;
+  maxReviewLoops?: number;
+  roles: Record<string, CrewDraftRole>;
+};
+
+/** One role file the owner saves, byte-for-byte as it would land on disk. */
+export type CrewDraftRoleFile = {
+  roleId: string;
+  /** Project-relative: `.vibestrate/roles/<roleId>.json`. */
+  path: string;
+  /** The file's contents - `{schemaVersion, id, prompt}`. */
+  json: string;
+};
+
+/** A model-proposed, EDITABLE crew. No route installs one: the deliverable is
+ *  the `crews.<id>` block PLUS one role file per role, and the owner saves both
+ *  themselves. A crew installed without its role files fails on its first run,
+ *  so both halves have to reach the owner. */
+export type CrewDraft = {
+  crewId: string;
+  crew: CrewDraftConfig;
+  /** The `crews.<id>` block, for review and copy. */
+  yaml: string;
+  /** One file per role, carrying that role's instructions. */
+  roleFiles: CrewDraftRoleFile[];
+  rationale: string;
+  currency: AssistCurrency;
+  /** Blocking problems the owner fixes before this crew can be installed - an
+   *  unknown profile or permission id, a role file that would be replaced. The
+   *  crew schema cross-validates none of those, so the service checks them and
+   *  reports rather than throwing: the draft is still worth reading. */
+  problems: string[];
+  /** A crew with this id already exists in the project config. */
+  exists: boolean;
 };
 
 export type WorkflowSelectionView = {

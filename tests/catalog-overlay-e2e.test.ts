@@ -89,7 +89,7 @@ async function makeProject(): Promise<{ dir: string; argvOut: string }> {
           label: "Worker",
           profile: "mycli-hi",
           seats: ["worker"],
-          prompt: ".vibestrate/roles/planner.md",
+          prompt: ".vibestrate/roles/planner.json",
           permissions: "read_only",
           skills: [],
         },

@@ -722,6 +722,48 @@
           "subcommands": []
         },
         {
+          "name": "draft",
+          "path": [
+            "vibe",
+            "flows",
+            "draft"
+          ],
+          "description": "Turn an English description into an editable Flow draft (supervisor-assisted). Draft only - never writes; adopt it with `flows import`.",
+          "usage": "[options] <description>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--crew <id>",
+              "description": "check seat coverage against this crew (default: project default)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--yaml",
+              "description": "print only the flow YAML, for piping into a file",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
           "name": "export",
           "path": [
             "vibe",
@@ -1578,6 +1620,41 @@
             }
           ],
           "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "draft",
+          "path": [
+            "vibe",
+            "crew",
+            "draft"
+          ],
+          "description": "Turn an English description into an editable Crew draft (supervisor-assisted). Draft only - never writes; adopting it means saving the printed role files, then the block, into project.yml.",
+          "usage": "[options] <description>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--yaml",
+              "description": "print only the crews block, for piping into a file",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
           "subcommands": []
         },
         {

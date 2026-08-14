@@ -52,7 +52,7 @@ const STEP_KINDS: FlowStepKind[] = [
 // labels. `phase` is the run status the step drives (the orchestrator maps each
 // kind to one); it's the clearest way to tell the turn kinds apart. Sourced from
 // docs/content/extending/add-flow.md + core/orchestrator.ts (flowStatusForStep).
-const KIND_INFO: Record<
+export const KIND_INFO: Record<
   FlowStepKind,
   { title: string; phase: string; blurb: string; icon: LucideIcon }
 > = {

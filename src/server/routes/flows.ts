@@ -1,7 +1,8 @@
 // HTTP routes for the Flow catalog: list / get / export, create / import /
-// patch / fork / delete of project-local flows, resolve, seat-coverage of a
-// flow against a crew and flow suggestion for a task, the default-flow setting,
-// and the community hub (browse, install, publish).
+// patch / fork / delete of project-local flows, drafting one from an English
+// description, resolve, seat-coverage of a flow against a crew and flow
+// suggestion for a task, the default-flow setting, and the community hub
+// (browse, install, publish).
 //
 // The handlers are deliberately thin. A handler that takes a body parses it
 // with a zod schema before touching anything; the hub browse route forwards its
@@ -51,6 +52,10 @@ import {
   importFlowFromUrl,
 } from "../../flows/runtime/flow-portability.js";
 import { flowDefinitionSchema } from "../../flows/schemas/flow-schema.js";
+import {
+  draftFlowFromDescription,
+  FlowAssistError,
+} from "../../flows/authoring/flow-assist.js";
 import { computeFlowCoverageForConfig } from "../../flows/runtime/seat-coverage.js";
 import { setConfigValue } from "../../setup/config-update-service.js";
 import { HttpError } from "../security.js";
@@ -110,6 +115,17 @@ const importFlowBody = z
     (b) => (b.yaml ? 1 : 0) + (b.url ? 1 : 0) === 1,
     "Provide exactly one of `yaml` or `url`.",
   );
+
+// One English sentence in, one editable draft out. The 1000-character cap is the
+// service's own MAX_DESCRIPTION - keeping it here too means an over-long body is
+// refused before a provider is ever resolved.
+const draftFlowBody = z
+  .object({
+    description: z.string().min(1).max(1000),
+    /** Coverage target, and the crew whose planner drafts it. */
+    crewId: z.string().min(1).max(128).optional(),
+  })
+  .strict();
 
 // Flow-creator API: a full FlowDefinition (validated by the portability layer)
 // plus an optional overwrite flag.
@@ -246,6 +262,33 @@ export async function registerFlowsRoutes(
         ...parsed.data,
       }),
     };
+  });
+
+  // ─── Supervisor-assisted authoring (draft) ────────────────────────────────
+  // SECURITY: this does not create anything. /draft returns an EDITABLE DRAFT
+  // the owner must explicitly accept via POST /api/flows (below), the only route
+  // that writes a project flow. The model may propose steps, seats and shape;
+  // committing it is the owner's action. The description is redacted at the
+  // service source before it reaches the model, and the drafted YAML is
+  // secret-scanned - and refused, not redacted - before it is returned.
+  // Vibestrate opens no socket here: any currency check is the agent's own web
+  // tool inside its provider CLI, and an agent without one reports the gap in
+  // `currency.unverified`.
+  app.post<{ Body: unknown }>("/api/flows/draft", async (req) => {
+    const parsed = draftFlowBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    try {
+      return await draftFlowFromDescription({ projectRoot, ...parsed.data });
+    } catch (err) {
+      // Bad input (empty or over-long description, unknown crew id) and a
+      // refused draft are the caller's problem, and their messages are safe to
+      // echo. Anything else - a provider that never answered, an unreadable
+      // config - is rethrown untouched so the server's error handler records it
+      // and strips the absolute path out of the response body; an HttpError's
+      // message is sent verbatim, so wrapping it here would leak that path.
+      if (err instanceof FlowAssistError) throw new HttpError(400, err.message);
+      throw err;
+    }
   });
 
   // Flow-creator API: write a brand-new project flow from a full definition.

@@ -5,6 +5,47 @@
 <!-- Work accumulates here during a sprint and is versioned ONCE at release.
      Do not add a numbered heading per commit - see CLAUDE.md 10. -->
 
+> **Breaking: role prompts are JSON files now, not Markdown.**
+> `.vibestrate/roles/planner.md` becomes `.vibestrate/roles/planner.json`, holding
+> `{"schemaVersion": 1, "id": "planner", "prompt": "..."}`. Everything that was in
+> the `.md` goes into `prompt` verbatim - none of your wording changes, it just
+> gets an envelope - and then every `prompt:` under `crews:` in
+> `.vibestrate/project.yml` points at the new `.json` path. A config still naming
+> a `.md` file is refused when it loads, with the file named and the edit spelled
+> out, and `vibe doctor` lists every role whose file the loader will not read. If
+> you never edited the defaults, change the paths and `vibe doctor --fix` writes
+> the built-in role files back. Nothing converts your own prompts for you: those
+> are your instructions, and a script quietly rewriting them is not a trade worth
+> making. Why the move: a role file is written and read by Vibestrate, so it
+> carries a version to reject on and an id that has to match its filename, and a
+> wrong one fails when it loads, naming the file, instead of reaching a model
+> as-is. Markdown stays where a human writes it: `VIBESTRATE.md`, `rules.md`, the
+> docs.
+
+- **Describe a Flow or a Crew and get a draft back.** `vibe flows draft "review
+  every change to payment code twice"`, `vibe crew draft "cheap planner, strong
+  reviewer"`, and a draft panel on both the Flows and the Crew page. A flow draft
+  comes back as the canonical YAML that accepting it would write, with the seats
+  your crew cannot fill already marked. A crew draft comes back as both halves of
+  a crew - the `crews.<id>` block and one JSON role file per role, contents and
+  all - plus the problems no schema can catch: a profile id this project does not
+  define, two roles claiming the same seat, a role file already on disk that
+  saving the draft would replace. Neither one writes anything. Adopting a flow is
+  still `vibe flows import`; adopting a crew is still you saving those role files
+  and editing `project.yml`, in that order. Both finish with what the agent
+  checked using its own tools and what it could not, and both lists print even
+  when empty - Vibestrate opens no connection of its own to verify a draft, so
+  "nothing unverified" has to read as a claim the agent made, not as silence.
+- **A policy that denies file writes now covers flow authoring too.** Flow YAML
+  reached disk on four paths - import, create, fork, and the builder's patch -
+  and not one of them crossed the Action Broker. So the single directory that
+  decides how every future run is shaped was the one directory your policies did
+  not reach. All four go through one writer now: it gates a `file.write`, writes
+  atomically, and records the effect in `runs/flows/actions.ndjson` tagged with
+  which writer it was, so an audit reader can tell an import from a fork. A
+  denial comes back as a refusal you can read rather than a thrown error.
+  Deleting a flow is still ungated - the broker has no `file.delete` verb yet,
+  and a verb gets added together with the site that raises it.
 - **You can choose which roles see the codebase map.** `vibe learn` builds a map
   of your project, and until now only the planner ever read it. That is the right
   default: every other role works inside the worktree with a plan that already

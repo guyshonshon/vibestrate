@@ -83,7 +83,7 @@ describe("project policy advise - reviewer-turn injection end-to-end", () => {
             label: "Role",
             profile: "codex-x",
             seats: ["builder", "reviewer"],
-            prompt: ".vibestrate/roles/planner.md",
+            prompt: ".vibestrate/roles/planner.json",
             permissions: "read_only",
             skills: [],
           },
