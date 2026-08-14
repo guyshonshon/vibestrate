@@ -5,6 +5,16 @@
 <!-- Work accumulates here during a sprint and is versioned ONCE at release.
      Do not add a numbered heading per commit - see CLAUDE.md 10. -->
 
+- **You can choose which roles see the codebase map.** `vibe learn` builds a map
+  of your project, and until now only the planner ever read it. That is the right
+  default: every other role works inside the worktree with a plan that already
+  names the files, and an agent CLI would rather open the real thing than read a
+  summary of it. But a small or sandboxed model cannot go looking for itself, and
+  the `express`, `scaffold` and `quality-arbitration` flows have no planner seat
+  at all - so they were seeing no map whatever you configured. Set
+  `codebaseMapRoles: [planner, implementer]` to widen it. Each listed role is
+  oriented once per run, and clean-room judges still see nothing, so a reviewer
+  is never anchored to how the producer framed the work.
 - **Five frozen polyfills in the dependency tree now resolve to maintained
   forks.** `object-assign`, `safe-buffer`, `safer-buffer`, `indent-string` and
   `is-unicode-supported` are shims for things Node has had natively for years, or
