@@ -263,6 +263,25 @@ export const runOptionsSchema = z.object({
 });
 export type RunOptions = z.infer<typeof runOptionsSchema>;
 
+// Foreign identity for a card that was promoted from somewhere else rather than
+// authored. A discriminated union with one member today: an unknown `kind`
+// FAILS the parse rather than being silently dropped, and adding a second origin
+// (an issue tracker, say) is purely additive.
+export const taskSourceSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("code-todo"),
+    /** Repo-relative path of the comment this card came from. */
+    path: z.string().min(1).max(1024),
+    /** Line at harvest time. Informational: it drifts as the file is edited,
+     *  which is exactly why it is NOT part of the fingerprint. */
+    line: z.number().int().min(1),
+    marker: z.string().min(1).max(16),
+    /** Stable identity of the comment. The dedupe key. */
+    fingerprint: z.string().min(1).max(64),
+  }),
+]);
+export type TaskSource = z.infer<typeof taskSourceSchema>;
+
 export const taskSchema = z.object({
   id: safeIdSchema,
   // How the task runs (was `kind: "single" | "saga"`). "supervised" flips the
@@ -344,6 +363,17 @@ export const taskSchema = z.object({
   // Context sources: files/URLs injected into every agent's prompt
   // for runs launched from this card (inherited when the run doesn't override).
   contextSources: z.array(contextSourceSchema).default([]),
+  // Where this card came from, when it was not authored by hand. Today the only
+  // origin is a harvested code comment (`vibe learn`).
+  //
+  // IDEMPOTENCY, not decoration. The TODO harvest is regenerated on every scan,
+  // so it needs a way to know which markers are already on the board or it
+  // re-offers them forever and duplicates pile up. Matching on `fingerprint`
+  // makes the BOARD the ledger: no second record to keep in sync, and deleting
+  // a card correctly returns its TODO to the promotable list.
+  //
+  // The traceability (click through to file:line) is the secondary benefit.
+  source: taskSourceSchema.nullable().default(null),
 });
 export type Task = z.infer<typeof taskSchema>;
 

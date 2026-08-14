@@ -36,6 +36,7 @@ import {
   type SupervisedPendingRevision,
   type Task,
   type RunMode,
+  type TaskSource,
   type TaskStatus,
   SUPERVISED_DEFAULT_MAX_STEPS,
   safeIdSchema,
@@ -83,6 +84,8 @@ export type AddTaskInput = {
   readOnly?: boolean;
   derivedFrom?: { taskId: string; itemId: string } | null;
   runMode?: RunMode;
+  /** Provenance for a promoted card (today: a harvested code TODO). */
+  source?: TaskSource | null;
 };
 
 export type CommentInput = {
@@ -264,6 +267,7 @@ export class RoadmapService {
       derivedFrom: input.derivedFrom ?? null,
       archived: false,
       contextSources: [],
+      source: input.source ?? null,
     };
     await this.store.writeTask(task);
     if (input.roadmapItemId) {

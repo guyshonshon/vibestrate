@@ -12,6 +12,7 @@ function task(
   return {
     id,
     roadmapItemId: null,
+    source: null,
     title: id,
     description: "",
     acceptanceCriteria: "",

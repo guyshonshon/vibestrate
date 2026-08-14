@@ -71,6 +71,7 @@ import {
 } from "./routes/terminal.js";
 import { registerPoliciesRoutes } from "./routes/policies.js";
 import { registerCodebaseMapRoutes } from "./routes/codebase-map.js";
+import { registerTodosRoutes } from "./routes/todos.js";
 import {
   HttpError,
   bearerToken,
@@ -486,6 +487,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   });
   await registerPoliciesRoutes(app, { projectRoot: opts.projectRoot });
   await registerCodebaseMapRoutes(app, { projectRoot: opts.projectRoot });
+  await registerTodosRoutes(app, { projectRoot: opts.projectRoot });
   const { registerProvidersRoutes } = await import("./routes/providers.js");
   await registerProvidersRoutes(app, { projectRoot: opts.projectRoot });
 
