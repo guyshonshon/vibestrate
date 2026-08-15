@@ -64,12 +64,19 @@ function sortKeys<T>(value: T): T {
   return value;
 }
 
+// Rendered output, keyed by filename, in generator-call order. The generators
+// below render into this map instead of writing straight to disk, so the same
+// bytes `pnpm docs:generate` commits can be re-rendered in-process and compared
+// against the committed files without touching the working tree - see
+// buildDocsFiles() and tests/docs-generated.test.ts.
+let collected: Map<string, string> | null = null;
+
 function writeJson(filename: string, payload: unknown, opts: { sort?: boolean } = {}): void {
-  const path = resolve(outDir, filename);
+  if (!collected) {
+    throw new Error(`writeJson("${filename}") called outside buildDocsFiles()`);
+  }
   const finalPayload = opts.sort ? sortKeys(payload) : payload;
-  const json = JSON.stringify(finalPayload, null, 2) + "\n";
-  writeFileSync(path, json, "utf8");
-  console.log(`  ${relative(repoRoot, path)}  (${json.length.toLocaleString()} bytes)`);
+  collected.set(filename, JSON.stringify(finalPayload, null, 2) + "\n");
 }
 
 // ─── CLI command tree ────────────────────────────────────────────────────
@@ -234,8 +241,12 @@ function generateFlows() {
   }));
   writeJson("flows.json", {
     schemaVersion: 1,
+    // The selection order belongs here, on the file, not on the `default` Flow's
+    // own description: which Flow runs is a property of the project's config and
+    // the run's flags, so any single Flow asserting "this one runs by default" is
+    // false the moment `defaultFlow` names another (see flows/core.ts).
     description:
-      "Built-in run Flows. Project Flows live in `.vibestrate/flows/<id>/flow.yml` and follow the same schema (src/flows/schemas/flow-schema.ts).",
+      "Built-in run Flows. Which one a run gets: `--flow` wins, then `--select` (the supervisor picks), then `config.defaultFlow`; with none of those a run takes the `default` Flow unless task sizing or the supervisor persona moves it. Project Flows live in `.vibestrate/flows/<id>/flow.yml` and follow the same schema (src/flows/schemas/flow-schema.ts).",
     flows,
   });
 }
@@ -398,22 +409,23 @@ function generatePolicies() {
 
 // ─── Meta ────────────────────────────────────────────────────────────────
 
-function generateMeta() {
-  // Ask git rather than reading .git/HEAD: in a worktree .git is a FILE
-  // pointing at .git/worktrees/<name>/, so the file read silently produced
-  // null and every regeneration from a feature branch committed a revision-less
-  // meta.json. The catch covers a git-less source tarball, which is the only
-  // case where null is the honest answer.
-  let gitRev: string | null = null;
+/** Ask git rather than reading .git/HEAD: in a worktree .git is a FILE
+ *  pointing at .git/worktrees/<name>/, so the file read silently produced
+ *  null and every regeneration from a feature branch committed a revision-less
+ *  meta.json. The catch covers a git-less source tarball, which is the only
+ *  case where null is the honest answer. */
+function headRev(): string | null {
   try {
-    gitRev = execFileSync("git", ["rev-parse", "HEAD"], {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
       cwd: repoRoot,
       encoding: "utf8",
     }).trim();
   } catch {
-    gitRev = null;
+    return null;
   }
+}
 
+function generateMeta(gitRev: string | null) {
   const pkgPath = resolve(repoRoot, "package.json");
   const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { version: string };
 
@@ -431,23 +443,56 @@ function generateMeta() {
 
 // ─── Driver ─────────────────────────────────────────────────────────────
 
-async function main() {
+/** Render every `docs/generated/` file from source and return its exact bytes,
+ *  keyed by filename. Writes nothing - `main()` does that, and the drift test
+ *  re-renders and compares.
+ *
+ *  `sourceRev` is injectable because it is the one field that cannot match the
+ *  file it lands in: regeneration stamps the CURRENT HEAD, and the commit that
+ *  carries the result always has a later sha. The test pins the committed value
+ *  so the rest of meta.json is still compared byte-for-byte. */
+export function buildDocsFiles(
+  options: { sourceRev?: string | null } = {},
+): Map<string, string> {
+  const files = new Map<string, string>();
+  const previous = collected;
+  collected = files;
+  try {
+    generateCliMetadata();
+    generateConfigSchema();
+    generateProviders();
+    generateFlows();
+    generateWorkflow();
+    generateStateMachine();
+    generateAgents();
+    generatePolicies();
+    generateMeta(options.sourceRev !== undefined ? options.sourceRev : headRev());
+  } finally {
+    collected = previous;
+  }
+  return files;
+}
+
+function main() {
   ensureDir(outDir);
   console.log(`Writing docs metadata to ${relative(repoRoot, outDir)}/`);
-  generateCliMetadata();
-  generateConfigSchema();
-  generateProviders();
-  generateFlows();
-  generateWorkflow();
-  generateStateMachine();
-  generateAgents();
-  generatePolicies();
-  generateMeta();
+  for (const [filename, json] of buildDocsFiles()) {
+    const path = resolve(outDir, filename);
+    writeFileSync(path, json, "utf8");
+    console.log(`  ${relative(repoRoot, path)}  (${json.length.toLocaleString()} bytes)`);
+  }
   console.log("Done.");
 }
 
-void main().catch((err) => {
-  console.error("docs metadata generator failed:");
-  console.error(err);
-  process.exit(1);
-});
+// Only generate when run as a script (`pnpm docs:generate`). The drift test
+// imports buildDocsFiles from this module, and an import must never write to
+// the repo.
+if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    main();
+  } catch (err) {
+    console.error("docs metadata generator failed:");
+    console.error(err);
+    process.exit(1);
+  }
+}

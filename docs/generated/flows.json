@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Built-in run Flows. Project Flows live in `.vibestrate/flows/<id>/flow.yml` and follow the same schema (src/flows/schemas/flow-schema.ts).",
+  "description": "Built-in run Flows. Which one a run gets: `--flow` wins, then `--select` (the supervisor picks), then `config.defaultFlow`; with none of those a run takes the `default` Flow unless task sizing or the supervisor persona moves it. Project Flows live in `.vibestrate/flows/<id>/flow.yml` and follow the same schema (src/flows/schemas/flow-schema.ts).",
   "flows": [
     {
       "id": "default",
