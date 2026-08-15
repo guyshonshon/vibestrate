@@ -55,7 +55,7 @@ export function FilesSection({ task }: { task: Task }) {
       <div className={CARD}>
         {task.touchedFiles.length > 0 ? (
           <div>
-            <div className="text-[11px] font-medium text-violet-soft">
+            <div className="text-meta font-medium text-violet-soft">
               Declared (touchedFiles)
             </div>
             <ul className="mt-1.5 grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -69,7 +69,7 @@ export function FilesSection({ task }: { task: Task }) {
         ) : null}
         {runFiles.length > 0 ? (
           <div className="mt-3">
-            <div className="text-[11px] font-medium text-violet-soft">
+            <div className="text-meta font-medium text-violet-soft">
               Changed by linked runs
             </div>
             <ul className="mt-1.5 grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -124,7 +124,7 @@ function FileLink({
       }
       disabled={redacted}
       className={cn(
-        "flex w-full items-center gap-1.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-1.5 text-left text-[11.5px] transition",
+        "flex w-full items-center gap-1.5 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-1.5 text-left text-meta transition",
         redacted
           ? "text-amber-soft opacity-80"
           : "text-chalk-300 hover:border-violet-soft/40 hover:text-chalk-100",
@@ -138,7 +138,7 @@ function FileLink({
       )}
       <span className="truncate font-mono">{path}</span>
       {status ? (
-        <span className={cn("ml-auto text-[10px] font-medium", STATUS_TONE[status])}>
+        <span className={cn("ml-auto text-meta font-medium", STATUS_TONE[status])}>
           {status}
         </span>
       ) : null}

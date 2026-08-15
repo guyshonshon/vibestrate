@@ -10,6 +10,7 @@ import { api } from "../../lib/api.js";
 import { Button } from "../design/Button.js";
 import { Chip } from "../design/Chip.js";
 import type { ChipTone } from "../design/Chip.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
 import type {
   GatewayConfigView,
   GatewayView,
@@ -124,7 +125,31 @@ export function GatewaySettings({ initialPermission }: Props) {
 
   if (busy && !settings) {
     return (
-      <div className="px-4 py-6 text-[12px] text-chalk-400">Loading…</div>
+      <Skeleton label="Loading notification settings" className="flex flex-col gap-6 px-4 py-4">
+        {[0, 1].map((s) => (
+          <div
+            key={s}
+            className="rounded-[16px] border border-[color:var(--line)] bg-coal-600"
+          >
+            <div className="flex items-center gap-2 border-b border-[color:var(--line)] px-3 py-2">
+              <SkeletonBlock w={14} h={14} radius={4} />
+              <SkeletonBlock tone="text" h={12} w={132} />
+              <SkeletonBlock h={26} w={34} className="ml-auto" />
+            </div>
+            <div className="grid grid-cols-1 gap-2 p-3 md:grid-cols-2">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 rounded-[12px] border border-[color:var(--line-soft)] px-2.5 py-2"
+                >
+                  <SkeletonBlock tone="text" h={12} w={`${[62, 44, 74, 52, 68, 48][i]}%`} />
+                  <SkeletonBlock w={30} h={18} radius={999} className="ml-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </Skeleton>
     );
   }
   if (error && !settings) {
@@ -249,7 +274,7 @@ export function GatewaySettings({ initialPermission }: Props) {
               Allow browser notifications
             </Button>
           ) : null}
-          <span className="text-[11.5px] text-chalk-300">
+          <span className="text-meta text-chalk-300">
             {permission === "granted"
               ? "Attention/critical alerts will surface as system notifications."
               : permission === "denied"
@@ -327,11 +352,11 @@ export function GatewaySettings({ initialPermission }: Props) {
                   ) : null}
                 </div>
                 {g.validationReason ? (
-                  <div className="mt-1 text-[11.5px] text-amber-soft">
+                  <div className="mt-1 text-meta text-amber-soft">
                     {g.validationReason}
                   </div>
                 ) : null}
-                <div className="mt-1.5 grid grid-cols-3 gap-1.5 text-[11px]">
+                <div className="mt-1.5 grid grid-cols-3 gap-1.5 text-meta">
                   <FieldRow
                     label="url"
                     info={url}
@@ -349,13 +374,13 @@ export function GatewaySettings({ initialPermission }: Props) {
                   />
                 </div>
                 {g.missingEnvVars.length > 0 ? (
-                  <div className="mono mt-1 text-[10.5px] text-amber-soft">
+                  <div className="mono mt-1 text-meta text-amber-soft">
                     missing: {g.missingEnvVars.join(", ")}
                   </div>
                 ) : null}
                 {test ? (
                   <div
-                    className={`mt-1.5 rounded-[10px] border px-2 py-1 text-[11px] ${
+                    className={`mt-1.5 rounded-[10px] border px-2 py-1 text-meta ${
                       test.ok
                         ? "border-emerald/30 bg-emerald/10 text-emerald"
                         : "border-rose-400/30 bg-rose-500/10 text-rose-300"
@@ -368,7 +393,7 @@ export function GatewaySettings({ initialPermission }: Props) {
             );
           })}
         </div>
-        <p className="border-t border-[color:var(--line)] px-3 py-2 text-[10.5px] text-chalk-400">
+        <p className="border-t border-[color:var(--line)] px-3 py-2 text-meta text-chalk-400">
           Secrets stay on your machine. The dashboard never receives token or
           URL values - only whether they are set. Configure with{" "}
           <span className="mono text-chalk-300">env:VAR_NAME</span> via the CLI or{" "}
@@ -421,8 +446,8 @@ function FieldRow({
           : "text-chalk-400";
   return (
     <div className="rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-2 py-1">
-      <div className="text-[10px] font-semibold text-chalk-400">{label}</div>
-      <div className={`mono mt-0.5 truncate text-[11px] ${color}`}>
+      <div className="text-meta font-semibold text-chalk-400">{label}</div>
+      <div className={`mono mt-0.5 truncate text-meta ${color}`}>
         {info.label}
       </div>
     </div>

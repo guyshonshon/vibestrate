@@ -46,7 +46,7 @@ export function SuggestInput({
             onChange("");
           }}
           title="back to the list"
-          className="shrink-0 rounded-[8px] px-1.5 py-1 text-[11px] text-chalk-400 transition hover:text-chalk-100"
+          className="shrink-0 rounded-[8px] px-1.5 py-1 text-meta text-chalk-400 transition hover:text-chalk-100"
         >
           list
         </button>
@@ -69,7 +69,8 @@ export function SuggestInput({
       }}
       className={className}
     >
-      <option value="">{placeholder ?? "—"}</option>
+      {/* "-" is the app's no-value glyph; an em-dash is banned in UI text. */}
+      <option value="">{placeholder ?? "-"}</option>
       {suggestions.map((s) => (
         <option key={s} value={s}>
           {s}

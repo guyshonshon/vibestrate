@@ -28,7 +28,7 @@ export function ProfileSelect({
   const found = profiles.find((p) => p.profileName === selected);
 
   return (
-    <div className="flex flex-col gap-1 text-[10.5px]">
+    <div className="flex flex-col gap-1 text-meta">
       <label className="flex items-center gap-1.5 text-chalk-100">
         <span>{label}</span>
         <Select

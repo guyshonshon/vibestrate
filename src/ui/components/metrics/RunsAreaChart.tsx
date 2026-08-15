@@ -28,11 +28,32 @@ const C = {
   emerald: "var(--color-emerald, #34d399)",
   amber: "var(--color-amber-soft, #fb923c)",
   rose: "var(--color-fail, #fb7185)",
-  axis: "var(--color-chalk-400, #8e8e96)",
+  axis: "var(--color-chalk-400)",
   grid: "var(--line-soft, rgba(255,255,255,0.06))",
 };
 
+// SVG `font-size` is an attribute, so axis labels cannot inherit the app's
+// secondary-text tier the way a class can - they get it through CSS instead, or
+// they sit at whatever px was typed here and stay there when the tier is raised.
+const AXIS_LABEL = { fontSize: "var(--text-meta)" } as const;
+
 type Datum = DailyOutcomeBucket & { total: number };
+
+/** A date at the secondary-text size is ~44px wide, so this is the tightest
+ *  pitch that still leaves air between two of them. */
+const X_LABEL_PX = 56;
+
+/**
+ * How many days to skip between x labels so they never overlap.
+ *
+ * A fixed every-other stride read fine over 7 days and smeared into an
+ * unreadable band over 30 and 90. Callers pair this with a phase of
+ * `(count - 1) % stride` so the newest day always lands on a label.
+ */
+export function xLabelStride(count: number, innerWidth: number): number {
+  const slots = Math.max(1, Math.floor(innerWidth / X_LABEL_PX));
+  return Math.max(1, Math.ceil(count / slots));
+}
 
 const MARGIN = { top: 14, right: 16, bottom: 26, left: 34 };
 
@@ -95,7 +116,17 @@ function Chart({
     [data, xScale, yScale, showTooltip],
   );
 
-  const ticks = yScale.ticks(3);
+  // Runs are whole things, so a domain that peaks at 1 must not offer d3's 0.5.
+  // Dropping the fractional ticks is preferable to widening the domain, which
+  // would flatten a low-volume chart against the floor.
+  const ticks = yScale.ticks(3).filter(Number.isInteger);
+
+  const stride = xLabelStride(data.length, innerW);
+  // Anchor the stride to the LAST index so today always carries a label.
+  // Anchoring to the first instead drops it whenever the stride does not divide
+  // the range - at 90 days the axis stopped three days short of the newest one,
+  // which is the day people are looking for.
+  const stridePhase = (data.length - 1) % stride;
 
   return (
     <>
@@ -139,8 +170,8 @@ function Chart({
             <text
               key={t}
               x={-8}
-              y={(yScale(t) ?? 0) + 3}
-              fontSize={10}
+              y={(yScale(t) ?? 0) + 4}
+              style={AXIS_LABEL}
               textAnchor="end"
               fill={C.axis}
               fontFamily="Geist Mono, monospace"
@@ -148,15 +179,25 @@ function Chart({
               {t}
             </text>
           ))}
-          {/* x labels (every other, plus last) */}
+          {/* x labels */}
           {data.map((d, i) =>
-            i % 2 === 0 || i === data.length - 1 ? (
+            i % stride === stridePhase ? (
               <text
                 key={d.date}
                 x={xScale(i) ?? 0}
-                y={innerH + 18}
-                fontSize={10}
-                textAnchor="middle"
+                y={innerH + 19}
+                style={AXIS_LABEL}
+                // The end labels sit exactly on the plot edges, where centring
+                // pushes half the date past the SVG and the browser clips it -
+                // the last day rendered as "Aug 1" instead of "Aug 15". Anchor
+                // the edge labels inward; the margins only cover half a label.
+                textAnchor={
+                  (xScale(i) ?? 0) <= 1
+                    ? "start"
+                    : (xScale(i) ?? 0) >= innerW - 1
+                      ? "end"
+                      : "middle"
+                }
                 fill={C.axis}
                 fontFamily="Geist Mono, monospace"
               >

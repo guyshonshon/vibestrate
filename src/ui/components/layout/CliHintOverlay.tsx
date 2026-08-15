@@ -125,7 +125,7 @@ export function CliHintOverlay({ route }: Props) {
               <div className="text-[12.5px] font-semibold text-chalk-100">
                 {hint.title}
               </div>
-              <div className="mt-0.5 text-[11px] leading-snug text-chalk-300">
+              <div className="mt-0.5 text-meta leading-snug text-chalk-300">
                 {hint.blurb}
               </div>
             </div>
@@ -137,7 +137,7 @@ export function CliHintOverlay({ route }: Props) {
             {hint.commands.map((c) => (
               <li key={c.cmd} className="group">
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 truncate rounded-[8px] border border-[color:var(--line-soft)] bg-coal-800 px-2 py-1 font-mono text-[11px] text-chalk-100">
+                  <code className="flex-1 truncate rounded-[8px] border border-[color:var(--line-soft)] bg-coal-800 px-2 py-1 font-mono text-meta text-chalk-100">
                     {c.cmd}
                   </code>
                   {/* Bare, not IconBtn: needs the row-hover reveal
@@ -159,7 +159,7 @@ export function CliHintOverlay({ route }: Props) {
                   </button>
                 </div>
                 {c.note ? (
-                  <div className="ml-0.5 mt-0.5 text-[10.5px] leading-snug text-chalk-400">
+                  <div className="ml-0.5 mt-0.5 text-meta leading-snug text-chalk-400">
                     {c.note}
                   </div>
                 ) : null}
@@ -168,10 +168,10 @@ export function CliHintOverlay({ route }: Props) {
           </ul>
           {hint.tips && hint.tips.length > 0 ? (
             <div className="border-t border-[color:var(--line)] px-3.5 py-2.5">
-              <div className="text-[11px] font-semibold text-violet-soft">
+              <div className="text-meta font-semibold text-violet-soft">
                 Tips
               </div>
-              <ul className="mt-1 list-disc space-y-0.5 pl-3.5 text-[10.5px] leading-snug text-chalk-300">
+              <ul className="mt-1 list-disc space-y-0.5 pl-3.5 text-meta leading-snug text-chalk-300">
                 {hint.tips.map((t, i) => (
                   <li key={i}>{t}</li>
                 ))}

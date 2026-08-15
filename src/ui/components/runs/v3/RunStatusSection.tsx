@@ -209,8 +209,8 @@ export function RunStatusSection({
         {/* The flow map + the "Now" cue - the run's live where-are-we section. */}
         <div className="border-b border-[color:var(--line-soft)] px-5 py-3">
           <div className="mb-1.5 flex items-baseline gap-2">
-            <span className="mono text-[11px] text-violet-soft">Flow</span>
-            <span className="text-[11.5px] text-chalk-300">
+            <span className="mono text-meta text-violet-soft">Flow</span>
+            <span className="text-meta text-chalk-300">
               {run.flow ? run.flow.label : "stage pipeline"}
             </span>
           </div>
@@ -221,7 +221,7 @@ export function RunStatusSection({
               <span className="text-chalk-300">Now</span>
               <span className="font-medium text-chalk-100">{nowLabel}</span>
               {nowRole ? (
-                <span className="mono text-[11.5px] text-violet-soft">{nowRole}</span>
+                <span className="mono text-meta text-violet-soft">{nowRole}</span>
               ) : null}
             </div>
           ) : null}

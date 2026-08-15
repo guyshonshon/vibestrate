@@ -24,7 +24,7 @@ export function FileTreeView({ data, selectedPath, onSelectFile, filter }: Props
   );
   if (!filtered) {
     return (
-      <div className="px-3 py-4 text-[11.5px] text-chalk-400">
+      <div className="px-3 py-4 text-meta text-chalk-400">
         No matches for “{filter}”.
       </div>
     );
@@ -43,7 +43,7 @@ export function FileTreeView({ data, selectedPath, onSelectFile, filter }: Props
         />
       ))}
       {filtered.truncated ? (
-        <li className="px-2 py-1 text-[10.5px] text-chalk-400">
+        <li className="px-2 py-1 text-meta text-chalk-400">
           tree truncated - increase ?depth or maxEntries
         </li>
       ) : null}
@@ -134,7 +134,7 @@ function Node({
       {isDir && expanded && entry.truncated ? (
         <li
           style={{ paddingLeft: 6 + (depth + 1) * 12 }}
-          className="py-0.5 text-[10.5px] text-chalk-400"
+          className="py-0.5 text-meta text-chalk-400"
         >
           (more entries omitted)
         </li>

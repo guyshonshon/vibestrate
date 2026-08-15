@@ -405,7 +405,7 @@ export function Sidebar({
           overnight shows the version actually answering it, not the one it was
           built from. Silent when unreadable - not worth an error. */}
       {appVersion ? (
-        <div className="mt-2 pl-1 text-[10px] tabular-nums leading-none text-chalk-400/70">
+        <div className="mt-2 pl-1 text-meta tabular-nums leading-none text-chalk-400/70">
           build {appVersion}
         </div>
       ) : null}
@@ -469,7 +469,7 @@ function SubItem({
     >
       <span>{label}</span>
       {badge ? (
-        <span className={cn("rounded-[6px] px-1.5 py-px text-[11px] font-bold", badgeTone[badge.tone])}>
+        <span className={cn("rounded-[6px] px-1.5 py-px text-meta font-bold", badgeTone[badge.tone])}>
           {badge.n}
         </span>
       ) : null}

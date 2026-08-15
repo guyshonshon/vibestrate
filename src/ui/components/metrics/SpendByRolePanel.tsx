@@ -2,17 +2,44 @@ import type { MetricsOverview } from "../../lib/api.js";
 import { StatTile } from "../design/StatTile.js";
 import { fmtCost } from "../design/format.js";
 import { EmptyState } from "./EmptyState.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
 import { CSS } from "./panelChrome.js";
 
 export function SpendByRolePanel({ overview }: { overview: MetricsOverview | null }) {
-  const data = overview?.spendByRole ?? [];
+  // A missing overview is the fetch, not a project that has never spent.
+  if (!overview) {
+    return (
+      <Skeleton label="Loading spend by agent">
+        <div className="mb-3 flex flex-col gap-1.5">
+          <SkeletonBlock h={13} w={112} />
+          <SkeletonBlock h={26} w={84} />
+        </div>
+        <div className="flex flex-col gap-3">
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="grid grid-cols-[140px_1fr_72px] items-center gap-3"
+            >
+              <div className="flex items-center gap-2">
+                <SkeletonBlock w={28} h={28} radius={9} />
+                <SkeletonBlock tone="text" h={12} w={`${[64, 48, 72, 56][i]}%`} />
+              </div>
+              <SkeletonBlock h={28} w={`${[88, 62, 41, 24][i]}%`} bordered />
+              <SkeletonBlock tone="text" h={12} w={52} className="justify-self-end" />
+            </div>
+          ))}
+        </div>
+      </Skeleton>
+    );
+  }
+  const data = overview.spendByRole;
   const max = Math.max(...data.map((d) => d.dollars), 0.001);
   const total = data.reduce((a, d) => a + d.dollars, 0);
   const cap = overview?.totals.spendCapDailyUsd ?? null;
   const weeklyCap = cap !== null ? cap * 7 : null;
   return (
     <div>
-      <div className="mb-4 flex items-end justify-between gap-3">
+      <div className="mb-3 flex items-end justify-between gap-3">
         <div>
           <h3 className="mb-1.5 text-[13.5px] font-semibold text-violet-soft">
             Spend by agent
@@ -30,7 +57,7 @@ export function SpendByRolePanel({ overview }: { overview: MetricsOverview | nul
         ) : null}
       </div>
       {data.length === 0 ? (
-        <EmptyState text="No spend recorded yet." />
+        <EmptyState text="No spend yet. Cost per agent lands here once a metered provider runs - local CLI providers report none." />
       ) : (
         <div className="space-y-3">
           {data.map((d) => {
@@ -57,7 +84,7 @@ export function SpendByRolePanel({ overview }: { overview: MetricsOverview | nul
                       borderRight: `1.5px solid ${CSS.violet}`,
                     }}
                   />
-                  <div className="mono absolute inset-y-0 left-2.5 flex items-center text-[10.5px] text-chalk-300">
+                  <div className="mono absolute inset-y-0 left-2.5 flex items-center text-meta text-chalk-300">
                     {d.dollars > 0
                       ? `${Math.round((d.dollars / total) * 100)}% of spend`
                       : "idle"}

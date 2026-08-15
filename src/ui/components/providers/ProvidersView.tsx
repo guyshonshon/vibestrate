@@ -15,6 +15,7 @@ import type { EditorProviderConfig } from "../../lib/provider-yaml.js";
 import { Button } from "../design/Button.js";
 import { StatTile } from "../design/StatTile.js";
 import { cn } from "../design/cn.js";
+import { Skeleton, SkeletonBlock, SkeletonText } from "../design/Skeleton.js";
 import { useToast, ToastView } from "../design/useToast.js";
 import { Section } from "../layout/PageShell.js";
 import { ErrorView } from "../../lib/error-view.js";
@@ -131,21 +132,21 @@ export function ProvidersView() {
                 {p.label}
               </span>
               {p.recommended ? (
-                <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-violet-soft">
+                <span className="inline-flex shrink-0 items-center gap-1 text-meta font-semibold text-violet-soft">
                   <Star size={11} />
                   recommended
                 </span>
               ) : null}
               <span
                 className={cn(
-                  "shrink-0 text-[11px] font-semibold",
+                  "shrink-0 text-meta font-semibold",
                   statusChip.textClass,
                 )}
               >
                 {statusChip.label}
               </span>
             </div>
-            <div className="mono mt-0.5 flex items-center gap-1.5 text-[11px] text-chalk-400">
+            <div className="mono mt-0.5 flex items-center gap-1.5 text-meta text-chalk-400">
               <span className="truncate">{p.command}</span>
               {p.version ? (
                 <span className="shrink-0 text-chalk-300">v{p.version}</span>
@@ -179,7 +180,7 @@ export function ProvidersView() {
           </div>
         ) : null}
         {p.configured && p.profilesUsing.length > 0 ? (
-          <p className="mt-2 text-[11.5px] text-chalk-300">
+          <p className="mt-2 text-meta text-chalk-300">
             Used by{" "}
             {p.profilesUsing.map((id, i) => (
               <span key={id}>
@@ -279,7 +280,28 @@ export function ProvidersView() {
 
       {!rows ? (
         <Section>
-          <div className="text-[13px] text-chalk-300">Detecting providers…</div>
+          <Skeleton
+            label="Loading providers"
+            className="grid grid-cols-1 gap-3 lg:grid-cols-2"
+          >
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="flex flex-col gap-3 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4"
+              >
+                <div className="flex items-center gap-2.5">
+                  <SkeletonBlock w={28} h={28} radius={9} />
+                  <SkeletonBlock tone="text" h={13} w={`${[38, 30, 46, 34][i]}%`} />
+                  <SkeletonBlock h={18} w={68} radius={8} className="ml-auto" />
+                </div>
+                <SkeletonText lines={2} size={11} gap={7} />
+                <div className="flex gap-1.5">
+                  <SkeletonBlock w={72} h={26} />
+                  <SkeletonBlock w={56} h={26} />
+                </div>
+              </div>
+            ))}
+          </Skeleton>
         </Section>
       ) : (
         <>

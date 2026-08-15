@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
-import { Download, Save } from "lucide-react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { Download } from "lucide-react";
 import { api, type MetricsOverview, type OverviewRange } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
-import { PageShell, Section } from "../../components/layout/PageShell.js";
-import { Deck, Cell, Stack } from "../../components/layout/Deck.js";
+import { PageShell } from "../../components/layout/PageShell.js";
+import { Deck, Cell } from "../../components/layout/Deck.js";
 import { PageHero } from "../../components/layout/PageHero.js";
+import { HeroNumber } from "./page-skeletons.js";
+import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { cn } from "../../components/design/cn.js";
 import { CARD } from "../../components/metrics/panelChrome.js";
-import { KpiStrip } from "../../components/metrics/KpiStrip.js";
+import { KpiStrip, SPEND_CAP_ANCHOR } from "../../components/metrics/KpiStrip.js";
 import { BudgetControl } from "../../components/metrics/BudgetControl.js";
 import { RunsPanel } from "../../components/metrics/RunsPanel.js";
 import { OutcomesDonut } from "../../components/metrics/OutcomesDonut.js";
@@ -20,6 +22,19 @@ import { TokensByRolePanel } from "../../components/metrics/TokensByRolePanel.js
 import { LeaderboardTable } from "../../components/metrics/LeaderboardTable.js";
 
 const RANGES: OverviewRange[] = ["24h", "7d", "30d", "90d"];
+
+/**
+ * The card a board panel lives in. The board hands every panel a sized box, so
+ * the card has to fill it (a short card in a tall frame reads as a rendering
+ * bug) and content that outgrows the box scrolls inside the card rather than
+ * spilling past its border.
+ *
+ * Panels that already carry their own card - the spend cap and the leaderboard -
+ * skip this and stretch themselves.
+ */
+function BoardCard({ children }: { children: ReactNode }) {
+  return <div className={cn(CARD, "h-full overflow-auto")}>{children}</div>;
+}
 
 export function MetricsPage() {
   const [range, setRange] = useState<OverviewRange>("7d");
@@ -77,20 +92,148 @@ export function MetricsPage() {
       ? Math.round(totals.successRate * 100)
       : null;
 
+  // Every metric is a board panel: same registration shape the Dashboard and the
+  // run detail board use, so drag, resize, hide/show and reset come from the one
+  // system. Defaults reproduce the reading order the page had before it became
+  // rearrangeable.
+  const panels: RegisteredPanel[] = [
+    {
+      id: "kpis",
+      title: "Headline numbers",
+      defaultLayout: { id: "kpis", x: 0, y: 0, w: 12, h: 2 },
+      minW: 4,
+      minH: 2,
+      render: () => <KpiStrip overview={overview} />,
+    },
+    {
+      id: "runs",
+      title: "Runs over time",
+      defaultLayout: { id: "runs", x: 0, y: 2, w: 8, h: 5 },
+      minW: 4,
+      minH: 3,
+      render: () => (
+        <BoardCard>
+          <RunsPanel overview={overview} />
+        </BoardCard>
+      ),
+    },
+    {
+      id: "outcomes",
+      title: "Outcomes",
+      defaultLayout: { id: "outcomes", x: 8, y: 2, w: 4, h: 5 },
+      minW: 3,
+      minH: 3,
+      render: () => (
+        <BoardCard>
+          <OutcomesDonut overview={overview} />
+        </BoardCard>
+      ),
+    },
+    {
+      id: "spend",
+      title: "Spend by agent",
+      defaultLayout: { id: "spend", x: 0, y: 7, w: 8, h: 5 },
+      minW: 4,
+      minH: 3,
+      render: () => (
+        <BoardCard>
+          <SpendByRolePanel overview={overview} />
+        </BoardCard>
+      ),
+    },
+    {
+      id: "latency",
+      title: "Latency by phase",
+      defaultLayout: { id: "latency", x: 8, y: 7, w: 4, h: 3 },
+      minW: 3,
+      minH: 2,
+      render: () => (
+        <BoardCard>
+          <LatencyByPhasePanel overview={overview} />
+        </BoardCard>
+      ),
+    },
+    {
+      id: "budget",
+      title: "Spend cap and ceilings",
+      defaultLayout: { id: "budget", x: 8, y: 10, w: 4, h: 4 },
+      minW: 3,
+      minH: 3,
+      render: () => (
+        <div id={SPEND_CAP_ANCHOR} className="h-full">
+          <BudgetControl />
+        </div>
+      ),
+    },
+    {
+      id: "activity",
+      title: "Activity",
+      defaultLayout: { id: "activity", x: 0, y: 14, w: 12, h: 7 },
+      minW: 4,
+      minH: 3,
+      render: () => (
+        <BoardCard>
+          <ActivityHeatmapPanel overview={overview} />
+        </BoardCard>
+      ),
+    },
+    {
+      id: "per-model",
+      title: "Per model",
+      defaultLayout: { id: "per-model", x: 0, y: 21, w: 8, h: 5 },
+      minW: 4,
+      minH: 3,
+      render: () => (
+        <BoardCard>
+          <PerModelPanel overview={overview} />
+        </BoardCard>
+      ),
+    },
+    {
+      id: "tokens",
+      title: "Tokens by role",
+      defaultLayout: { id: "tokens", x: 8, y: 21, w: 4, h: 5 },
+      minW: 3,
+      minH: 3,
+      render: () => (
+        <BoardCard>
+          <TokensByRolePanel overview={overview} />
+        </BoardCard>
+      ),
+    },
+    {
+      id: "leaderboard",
+      title: "Leaderboard",
+      defaultLayout: { id: "leaderboard", x: 0, y: 26, w: 12, h: 6 },
+      minW: 6,
+      minH: 3,
+      render: () => <LeaderboardTable overview={overview} />,
+    },
+  ];
+
   return (
     <PageShell>
       <Deck>
         <Cell size="full" reason="masthead">
           <PageHero
             state={{
-              value: successPct === null ? "-" : `${successPct}%`,
+              // "-" plus "not enough finished runs" is a verdict, and it was
+              // being asserted before the window had been read at all.
+              value: !overview ? (
+                <HeroNumber w={72} />
+              ) : successPct === null ? (
+                "-"
+              ) : (
+                `${successPct}%`
+              ),
               caption: "Success rate",
-              note:
-                successPct === null
+              note: !overview
+                ? undefined
+                : successPct === null
                   ? "Not enough finished runs in this window."
                   : "Merged, over every run that reached a verdict.",
               tone:
-                successPct === null
+                !overview || successPct === null
                   ? "neutral"
                   : successPct >= 70
                     ? "emerald"
@@ -130,7 +273,6 @@ export function MetricsPage() {
                 </Button>
               </>
             }
-            footer={`Last ${range}, refreshed every 8 seconds. Export saves what is on screen.`}
           />
         </Cell>
 
@@ -140,87 +282,15 @@ export function MetricsPage() {
           </Cell>
         ) : null}
 
-        {/* The KPI strip carries sparklines, which the hero's metric strip
-         * cannot - so it stays as its own register rather than being folded in
-         * and losing the trend. */}
-        <Cell size="full" reason="masthead">
-          <KpiStrip overview={overview} />
-        </Cell>
-
+        {/* The board owns its own layout - panels are dragged and resized - so
+         * it is one Cell, not a set of them. */}
         <Cell size="full" reason="nested-deck">
-          <Section flush title="Runs and outcomes">
-            <Deck>
-              <Cell size="wide" className={CARD}>
-                <RunsPanel overview={overview} />
-              </Cell>
-              <Cell size="card" className={CARD}>
-                <OutcomesDonut overview={overview} />
-              </Cell>
-            </Deck>
-          </Section>
-        </Cell>
-
-        <Cell size="full" reason="nested-deck">
-          <Section flush title="Spend and latency">
-            <Deck>
-              <Cell size="wide" className={CARD}>
-                <SpendByRolePanel overview={overview} />
-              </Cell>
-              {/* Columns of stacks: the spend chart is much taller than the
-               * latency panel, and the spend cap is the control that acts on
-               * what this section reports - so it rides underneath rather than
-               * leaving a void beside it. */}
-              <Cell size="card">
-                <Stack>
-                  <div className={CARD}>
-                    <LatencyByPhasePanel overview={overview} />
-                  </div>
-                  <BudgetControl />
-                </Stack>
-              </Cell>
-            </Deck>
-          </Section>
-        </Cell>
-
-        <Cell size="full" reason="timeline">
-          <Section flush title="Activity">
-            <div className={CARD}>
-              <ActivityHeatmapPanel overview={overview} />
-            </div>
-          </Section>
-        </Cell>
-
-        <Cell size="full" reason="nested-deck">
-          <Section flush title="Token ledger">
-            <Deck>
-              <Cell size="wide" className={CARD}>
-                <PerModelPanel overview={overview} />
-              </Cell>
-              <Cell size="card" className={CARD}>
-                <TokensByRolePanel overview={overview} />
-              </Cell>
-            </Deck>
-          </Section>
-        </Cell>
-
-        <Cell size="full" reason="wide-table">
-          <Section
-            flush
-            title="Leaderboard"
-            action={
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={exportCsv}
-                disabled={!overview}
-                iconLeft={<Save className="h-3.5 w-3.5" strokeWidth={1.9} />}
-              >
-                Export CSV
-              </Button>
-            }
-          >
-            <LeaderboardTable overview={overview} />
-          </Section>
+          <PanelBoard
+            storageKey="metrics-board"
+            variant="bare"
+            label="Metrics layout"
+            panels={panels}
+          />
         </Cell>
       </Deck>
     </PageShell>

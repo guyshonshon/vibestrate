@@ -444,7 +444,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Dashboard",
         blurb:
-          "What is happening right now. Every panel can be moved or hidden.",
+          "Your runs, live.",
         commands: [
           { cmd: "vibe runs", note: "the same list on the CLI" },
           { cmd: "vibe status", note: "the current project's run state" },

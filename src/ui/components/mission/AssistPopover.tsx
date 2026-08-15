@@ -83,7 +83,7 @@ export function AssistPopover({
           <ConsultOrb size={26} />
           <div className="min-w-0 flex-1">
             <div className="text-[13px] font-bold text-chalk-100">Need a starting point?</div>
-            <div className="text-[11px] text-chalk-400">Here&apos;s what I&apos;d pick up.</div>
+            <div className="text-meta text-chalk-400">Here&apos;s what I&apos;d pick up.</div>
           </div>
           <IconBtn variant="plain" title="Close" onClick={onClose}>
             <X className="h-3.5 w-3.5" />
@@ -121,7 +121,7 @@ export function AssistPopover({
                     <span className="block truncate text-[12.5px] text-chalk-100">
                       You worked on {name(r)}
                     </span>
-                    <span className="block text-[11px] text-chalk-400">Run a review on it?</span>
+                    <span className="block text-meta text-chalk-400">Run a review on it?</span>
                   </span>
                 </button>
               ))}
@@ -147,7 +147,7 @@ export function AssistPopover({
                   <ListTodo className="mt-0.5 h-3.5 w-3.5 shrink-0 text-chalk-400" strokeWidth={1.8} />
                   <span className="min-w-0">
                     <span className="block truncate text-[12.5px] text-chalk-100">{t.title}</span>
-                    <span className="block truncate text-[11px] text-chalk-400">{t.reason}</span>
+                    <span className="block truncate text-meta text-chalk-400">{t.reason}</span>
                   </span>
                 </button>
               ))}

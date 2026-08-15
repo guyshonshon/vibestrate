@@ -5,6 +5,7 @@ import type { ConsultResult, ProviderCatalog } from "../../lib/types.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
 import { getViewContext } from "../../lib/view-context.js";
 import { navigate } from "../../app/App.js";
+import { AttachButton, AttachmentStrip, useAttachments } from "../design/Attachments.js";
 import { Button } from "../design/Button.js";
 import { Select } from "../design/Select.js";
 import { ConsultOrb } from "./ConsultOrb.js";
@@ -20,6 +21,7 @@ import { ConsultAnswerView, type ProposalState } from "./ConsultAnswerView.js";
 export function ConsultDock() {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
+  const attachments = useAttachments();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ConsultResult | null>(null);
@@ -102,7 +104,9 @@ export function ConsultDock() {
     setProposalState("open");
     try {
       const res = await api.consult({
-        question: q,
+        // Attachments are named in the question itself; consult reads the repo,
+        // so a name is what lets it open the file.
+        question: `${q}${attachments.note}`,
         providerId: providerId || undefined,
         model: providerId && models.includes(model) ? model : undefined,
         effort: providerId && efforts.includes(effort) ? effort : undefined,
@@ -146,7 +150,7 @@ export function ConsultDock() {
             <ConsultOrb state={busy ? "thinking" : "idle"} size={28} />
             <div className="min-w-0">
               <div className="text-[13px] font-semibold text-chalk-100">Consult</div>
-              <div className="truncate text-[10.5px] font-medium text-violet-soft">
+              <div className="truncate text-meta font-medium text-violet-soft">
                 read-only project advisor
               </div>
             </div>
@@ -167,12 +171,12 @@ export function ConsultDock() {
                 <ConsultOrb state="thinking" size={148} />
                 <div>
                   <div className="text-[13px] text-chalk-100">Thinking…</div>
-                  <div className="mt-1 max-w-[28ch] text-[11.5px] text-chalk-300">
+                  <div className="mt-1 max-w-[28ch] text-meta text-chalk-300">
                     reading your project context to answer
                   </div>
                 </div>
                 {asked ? (
-                  <div className="max-w-[34ch] truncate text-[11px] italic text-chalk-400" title={asked}>
+                  <div className="max-w-[34ch] truncate text-meta italic text-chalk-400" title={asked}>
                     "{asked}"
                   </div>
                 ) : null}
@@ -183,7 +187,7 @@ export function ConsultDock() {
                   {error}
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[11px] text-chalk-300">
+                  <p className="text-meta text-chalk-300">
                     Tip: model and effort options are per-provider suggestions, not probed
                     from your install - if your CLI rejects one, pick the provider default or
                     test the connection.
@@ -230,8 +234,14 @@ export function ConsultDock() {
               disabled={busy}
               className="w-full resize-none rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50 disabled:opacity-60"
             />
+            <AttachmentStrip
+              items={attachments.items}
+              onRemove={attachments.remove}
+              className="mt-2"
+            />
             <div className="mt-2 flex items-center justify-between gap-2">
-              <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] text-chalk-300">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-meta text-chalk-300">
+                <AttachButton onAdd={attachments.add} disabled={busy} />
                 <Cpu className="h-3 w-3 shrink-0 text-violet-soft" strokeWidth={1.9} />
                 <Select
                   value={providerId}

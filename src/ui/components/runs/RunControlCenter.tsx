@@ -26,8 +26,8 @@ function Metric({
   return (
     <div className="min-w-0 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-800 px-3.5 py-2.5">
       <div className="truncate text-[17px] font-bold text-chalk-100">{value}</div>
-      <div className="truncate text-[11px] font-semibold text-violet-soft">{label}</div>
-      {sub ? <div className="truncate text-[11px] text-chalk-300">{sub}</div> : null}
+      <div className="truncate text-meta font-semibold text-violet-soft">{label}</div>
+      {sub ? <div className="truncate text-meta text-chalk-300">{sub}</div> : null}
     </div>
   );
 }
@@ -67,7 +67,7 @@ function Level({
         <div className="mb-2 flex items-center gap-2">
           <span className="text-violet-soft">{icon}</span>
           <span className="text-[12.5px] font-semibold text-chalk-100">{title}</span>
-          {meta ? <span className="text-[11.5px] text-chalk-300">{meta}</span> : null}
+          {meta ? <span className="text-meta text-chalk-300">{meta}</span> : null}
         </div>
         {children}
       </div>
@@ -160,7 +160,7 @@ export function RunControlCenter({
           would imply a liveness it does not have. */}
       {(metrics?.roles?.length ?? 0) > 0 ? (
         <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-800 px-3.5 py-2.5">
-          <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-violet-soft">
+          <span className="inline-flex items-center gap-1.5 text-meta font-semibold text-violet-soft">
             <Users className="h-3.5 w-3.5" strokeWidth={2} />
             Crew
           </span>
@@ -249,7 +249,7 @@ export function RunControlCenter({
                             {e.title}
                           </div>
                           {e.detail ? (
-                            <div className="mt-0.5 text-[11.5px] leading-snug text-chalk-300">
+                            <div className="mt-0.5 text-meta leading-snug text-chalk-300">
                               {e.detail}
                             </div>
                           ) : null}
@@ -257,7 +257,7 @@ export function RunControlCenter({
                       ))}
                     </ul>
                   )}
-                  <p className="mt-2 text-[11px] text-chalk-400">
+                  <p className="mt-2 text-meta text-chalk-400">
                     Reconstructed from what the run recorded. The supervisor and the agent
                     do not literally talk; these are the decisions it took around this step.
                   </p>

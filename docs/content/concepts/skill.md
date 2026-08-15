@@ -71,5 +71,6 @@ vibe run "Refund a stuck transaction" --skills payments,oncall-runbook
 ## Going deeper
 
 - A skill can also declare MCP servers (Model Context Protocol) for the agent to connect to during its turn, for the times the context it needs is live rather than written down.
+- Assigning or unassigning a skill from the dashboard crosses the Action Broker as a `file.write` against `project.yml`, so a policy that denies file writes refuses it with the policy's own message and the decision lands in `.vibestrate/runs/roles/actions.ndjson`. The request names the Role's instruction file alongside the config, because a skill is instructions replayed into that Role's turns and can hand it new tools - so a path-scoped rule aimed at either file refuses the assignment. That gate is on the HTTP surface: `vibe skills assign` and the terminal shell write the same field with no gate. **Installing** a skill from a URL is not gated either - `vibe skills fetch` and the dashboard's fetch both write a new file into `.vibestrate/skills/` behind their own guards (private hosts refused, 256 KB cap, secret-shaped content redacted, no overwrite unless you ask), and nothing reads it until it is assigned to a Role, which is gated. See [[safety]].
 - [Attach skills (getting started)](/docs/getting-started/skills).
 - [Extending: add a skill](/docs/extending/add-skill).

@@ -31,7 +31,7 @@ export function ValidationCommandResult({ item }: { item: Item }) {
       className={`flex items-center gap-3 rounded-[10px] border px-2.5 py-1.5 ${tone.box}`}
     >
       <span
-        className={`mono text-[11px] font-semibold ${tone.text}`}
+        className={`mono text-meta font-semibold ${tone.text}`}
         title={
           item.status === "environment"
             ? "Toolchain missing in the worktree - the command could not run; nothing was validated and nothing failed."
@@ -43,7 +43,7 @@ export function ValidationCommandResult({ item }: { item: Item }) {
       <span className="mono flex-1 truncate text-[12px] text-chalk-100">
         {item.command}
       </span>
-      <span className="mono text-[11px] text-chalk-400">
+      <span className="mono text-meta text-chalk-400">
         exit {item.exitCode} · {item.durationMs}ms
       </span>
     </div>

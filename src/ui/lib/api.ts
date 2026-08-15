@@ -32,6 +32,7 @@ export { ApiError } from "./api/http.js";
 export type {
   OverviewRange,
   CrewPresetView,
+  PresetBlockView,
   DailyOutcomeBucket,
   SpendByRoleEntry,
   PhaseLatencyEntry,

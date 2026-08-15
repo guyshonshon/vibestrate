@@ -39,7 +39,7 @@ export function FreshnessIndicator({ freshness, onRefresh }: Props) {
 
   return (
     <span
-      className={`num-tabular inline-flex items-center gap-1 rounded-[10px] border px-2 py-1 text-[11px] font-semibold ${tone}`}
+      className={`num-tabular inline-flex items-center gap-1 rounded-[10px] border px-2 py-1 text-meta font-semibold ${tone}`}
       title={
         freshness.lastUpdatedAt
           ? `Last update: ${new Date(freshness.lastUpdatedAt).toLocaleTimeString()}`

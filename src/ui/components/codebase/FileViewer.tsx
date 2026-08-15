@@ -18,6 +18,7 @@ import { ApiError, api } from "../../lib/api.js";
 import type { FileView } from "../../lib/types.js";
 import { highlightLines } from "../../lib/syntax-highlight.js";
 import { Button } from "../design/Button.js";
+import { Skeleton, SkeletonBlock, SkeletonText } from "../design/Skeleton.js";
 import { cn } from "../design/cn.js";
 
 type Props = {
@@ -99,7 +100,22 @@ export function FileViewer({
 
   if (loading) {
     return (
-      <div className="px-4 py-6 text-[12.5px] text-chalk-400">Loading file.</div>
+      <Skeleton label="Loading the file" className="flex h-full flex-col">
+        <div className="flex items-center gap-2 border-b border-[color:var(--line-soft)] px-3 py-2">
+          <SkeletonBlock tone="text" h={12} w="42%" />
+          <SkeletonBlock h={18} w={64} radius={7} />
+        </div>
+        <div className="flex min-h-0 flex-1">
+          <div className="flex flex-col gap-[8px] border-r border-[color:var(--line-soft)] px-2 py-2">
+            {Array.from({ length: 18 }, (_, i) => (
+              <SkeletonBlock key={i} tone="text" h={9} w={18} />
+            ))}
+          </div>
+          <div className="min-w-0 flex-1 px-3 py-2">
+            <SkeletonText lines={18} size={9} gap={8} />
+          </div>
+        </div>
+      </Skeleton>
     );
   }
   if (error) {
@@ -130,13 +146,13 @@ export function FileViewer({
         <span className="num-tabular truncate text-[12px] font-semibold text-chalk-100">
           {view.path}
         </span>
-        <span className="shrink-0 rounded-[7px] bg-coal-500 px-1.5 py-0.5 text-[10px] font-medium text-chalk-300">
+        <span className="shrink-0 rounded-[7px] bg-coal-500 px-1.5 py-0.5 text-meta font-medium text-chalk-300">
           {view.rootKind}
         </span>
-        <span className="shrink-0 rounded-[7px] bg-coal-500 px-1.5 py-0.5 text-[10px] font-medium text-violet-soft">
+        <span className="shrink-0 rounded-[7px] bg-coal-500 px-1.5 py-0.5 text-meta font-medium text-violet-soft">
           {view.language}
         </span>
-        <span className="num-tabular shrink-0 text-[10.5px] text-chalk-400">
+        <span className="num-tabular shrink-0 text-meta text-chalk-400">
           {view.totalLines !== null
             ? `${view.totalLines} lines / ${(view.size / 1024).toFixed(1)} KB`
             : `${(view.size / 1024).toFixed(1)} KB`}
@@ -160,12 +176,12 @@ export function FileViewer({
         </div>
       </header>
       {openMsg ? (
-        <div className="border-b border-[color:var(--line-soft)] bg-coal-600/60 px-3 py-1.5 text-[11px] text-chalk-300">
+        <div className="border-b border-[color:var(--line-soft)] bg-coal-600/60 px-3 py-1.5 text-meta text-chalk-300">
           {openMsg}
         </div>
       ) : null}
       {view.notice ? (
-        <div className="border-b border-amber-soft/40 bg-amber-soft/10 px-3 py-1.5 text-[11.5px] text-amber-soft">
+        <div className="border-b border-amber-soft/40 bg-amber-soft/10 px-3 py-1.5 text-meta text-amber-soft">
           {view.notice}
         </div>
       ) : null}
@@ -181,21 +197,21 @@ export function FileViewer({
         ) : (
           <>
           {view.lines.length > RENDER_LINE_CAP && !showAllLines ? (
-            <div className="flex flex-wrap items-center gap-x-1 gap-y-1.5 border-b border-amber-soft/40 bg-amber-soft/10 px-3 py-1.5 text-[11px] text-amber-soft">
+            <div className="flex flex-wrap items-center gap-x-1 gap-y-1.5 border-b border-amber-soft/40 bg-amber-soft/10 px-3 py-1.5 text-meta text-amber-soft">
               Showing first {RENDER_LINE_CAP.toLocaleString()} of{" "}
               {view.lines.length.toLocaleString()} lines - rendering the rest can make the
               page sluggish.
               <button
                 type="button"
                 onClick={() => setShowAllLines(true)}
-                className="ml-1 rounded-[8px] bg-amber-soft/15 px-2 py-0.5 text-[10.5px] font-semibold text-amber-soft transition hover:bg-amber-soft/25"
+                className="ml-1 rounded-[8px] bg-amber-soft/15 px-2 py-0.5 text-meta font-semibold text-amber-soft transition hover:bg-amber-soft/25"
               >
                 Show all {view.lines.length.toLocaleString()}
               </button>
             </div>
           ) : null}
           {view.lines.length > HIGHLIGHT_LINE_CAP ? (
-            <div className="border-b border-[color:var(--line-soft)] px-3 py-1 text-[10.5px] text-chalk-400">
+            <div className="border-b border-[color:var(--line-soft)] px-3 py-1 text-meta text-chalk-400">
               Syntax highlighting skipped for files over{" "}
               {HIGHLIGHT_LINE_CAP.toLocaleString()} lines.
             </div>
@@ -213,7 +229,7 @@ export function FileViewer({
               >
                 <button
                   type="button"
-                  className="num-tabular inline-flex w-14 shrink-0 select-none items-center justify-end gap-0.5 border-r border-[color:var(--line-soft)] px-2 py-0.5 text-[10.5px] text-chalk-400 transition hover:text-chalk-100"
+                  className="num-tabular inline-flex w-14 shrink-0 select-none items-center justify-end gap-0.5 border-r border-[color:var(--line-soft)] px-2 py-0.5 text-meta text-chalk-400 transition hover:text-chalk-100"
                   title="Copy file:line reference"
                   onClick={() => {
                     const ref = `${view.path}:${l.number}${
@@ -231,7 +247,7 @@ export function FileViewer({
                 {onAnnotateLine && !view.isSecretLike ? (
                   <button
                     type="button"
-                    className="inline-flex w-5 shrink-0 select-none items-center justify-center text-[11px] text-chalk-400 opacity-0 transition hover:text-violet-soft group-hover:opacity-100"
+                    className="inline-flex w-5 shrink-0 select-none items-center justify-center text-meta text-chalk-400 opacity-0 transition hover:text-violet-soft group-hover:opacity-100"
                     title={`Annotate line ${l.number}`}
                     onClick={() => onAnnotateLine(l.number)}
                   >

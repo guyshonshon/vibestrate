@@ -3,11 +3,22 @@ import { Cpu, Send } from "lucide-react";
 import { api, type ProviderRow } from "../../lib/api.js";
 import type { ConsultResult, ProviderCatalog } from "../../lib/types.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
+import {
+  AttachButton,
+  AttachmentStrip,
+  useAttachments,
+} from "../../components/design/Attachments.js";
 import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
 import { PageShell } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
 import { PageHero } from "../../components/layout/PageHero.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+  SkeletonText,
+} from "../../components/design/Skeleton.js";
 import { ErrorView } from "../../lib/error-view.js";
 import {
   ConsultAnswerView,
@@ -22,6 +33,7 @@ export function ConsultPage({
   onOpenTask: (taskId: string) => void;
 }) {
   const [question, setQuestion] = useState("");
+  const attachments = useAttachments();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ConsultResult | null>(null);
@@ -71,7 +83,9 @@ export function ConsultPage({
     setProposalState("open");
     try {
       const res = await api.consult({
-        question: q,
+        // Attachments are named in the question itself; consult reads the repo,
+        // so a name is what lets it open the file.
+        question: `${q}${attachments.note}`,
         taskId: taskId ?? undefined,
         // Ad-hoc provider/model/effort; fail closed - only send a model/effort the
         // provider's catalog actually supports.
@@ -144,8 +158,14 @@ export function ConsultPage({
           rows={3}
           className="w-full resize-y rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 outline-none focus:border-violet-soft/50"
         />
+        <AttachmentStrip
+          items={attachments.items}
+          onRemove={attachments.remove}
+          className="mt-2.5"
+        />
         <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] text-chalk-300">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-meta text-chalk-300">
+            <AttachButton onAdd={attachments.add} disabled={busy} />
             <span className="flex items-center gap-1.5">
               <Cpu className="h-3 w-3 text-violet-soft" strokeWidth={1.9} /> Model
             </span>
@@ -173,7 +193,7 @@ export function ConsultPage({
                   ]}
                 />
               ) : (
-                <span className="text-[10.5px] text-chalk-400">model: provider default</span>
+                <span className="text-meta text-chalk-400">model: provider default</span>
               )
             ) : null}
             {providerId && efforts.length > 0 ? (
@@ -190,7 +210,7 @@ export function ConsultPage({
             ) : null}
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[11px] text-chalk-400">⌘/Ctrl + Enter to ask</span>
+            <span className="text-meta text-chalk-400">⌘/Ctrl + Enter to ask</span>
             <Button
               variant="primary"
               size="sm"
@@ -211,7 +231,25 @@ export function ConsultPage({
         </Cell>
       ) : null}
 
-      {answer && result ? (
+      {/* A consult is a model call, so the wait is long enough that a page with
+       * nothing under the composer reads as a button that did nothing. */}
+      {busy ? (
+        <Cell size="full" reason="nested-deck">
+          <Skeleton label="Waiting for the answer" className="flex flex-col gap-4">
+            <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
+              <div className="mb-2.5 flex items-center justify-between gap-3">
+                <SkeletonBlock h={13} w={72} />
+                <SkeletonBlock h={18} w={112} radius={8} bordered />
+              </div>
+              <SkeletonText lines={5} size={13} />
+            </div>
+            <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
+              <SkeletonBlock h={13} w={96} />
+              <SkeletonRows className="mt-2" rows={3} lead="icon" />
+            </div>
+          </Skeleton>
+        </Cell>
+      ) : answer && result ? (
         <Cell size="full" reason="nested-deck">
           <ConsultAnswerView
             result={result}

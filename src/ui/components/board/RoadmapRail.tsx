@@ -84,11 +84,11 @@ function RoadmapChip({
         <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", TONE_SWATCH[tone])} />
       )}
       <span className="max-w-[160px] truncate text-[12px] font-medium text-chalk-100">{label}</span>
-      <span className="shrink-0 text-[10.5px] text-chalk-400">{meta}</span>
+      <span className="shrink-0 text-meta text-chalk-400">{meta}</span>
       {priority ? (
         <span
           className={cn(
-            "shrink-0 text-[10px] font-semibold",
+            "shrink-0 text-meta font-semibold",
             priority === "high"
               ? "text-amber-soft"
               : priority === "medium"

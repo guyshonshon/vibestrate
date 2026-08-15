@@ -27,7 +27,7 @@ export function LaneCell({
         {label}
       </div>
       <div className={`mt-0.5 text-[12.5px] font-semibold ${tone}`}>{value}</div>
-      {sub ? <div className="mt-0.5 text-[10.5px] leading-snug text-chalk-400">{sub}</div> : null}
+      {sub ? <div className="mt-0.5 text-meta leading-snug text-chalk-400">{sub}</div> : null}
     </div>
   );
 }

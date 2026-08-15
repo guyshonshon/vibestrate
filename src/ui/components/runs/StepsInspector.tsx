@@ -2,6 +2,7 @@ import { Check, Coins, Cpu, FileDiff, Hash, Timer, X } from "lucide-react";
 import type { RoleMetrics, RuntimeMetrics } from "../../lib/types.js";
 import { StatTile } from "../design/StatTile.js";
 import { Chip } from "../design/Chip.js";
+import { Skeleton, SkeletonBlock, SkeletonStats } from "../design/Skeleton.js";
 
 /**
  * Per-step inspector - one card per agent invocation from the run's runtime
@@ -11,7 +12,32 @@ import { Chip } from "../design/Chip.js";
  * the metrics endpoint the page already loads.
  */
 export function StepsInspector({ metrics }: { metrics: RuntimeMetrics | null }) {
-  const agents = metrics?.roles ?? [];
+  // Null metrics is the fetch; an empty roles array is a run that has not
+  // invoked an agent yet. Only the second is worth a sentence.
+  if (!metrics) {
+    return (
+      <Skeleton label="Loading steps" className="flex flex-col gap-2">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-3.5 py-3"
+          >
+            <div className="flex items-center gap-2">
+              <SkeletonBlock tone="text" h={11} w={16} />
+              <SkeletonBlock w={14} h={14} radius={4} />
+              <SkeletonBlock tone="text" h={13} w={`${[26, 20, 30][i]}%`} />
+              <SkeletonBlock tone="text" h={11} w={72} />
+              <SkeletonBlock h={18} w={104} radius={8} className="ml-auto" />
+            </div>
+            <div className="mt-2 pl-[28px]">
+              <SkeletonStats count={4} />
+            </div>
+          </div>
+        ))}
+      </Skeleton>
+    );
+  }
+  const agents = metrics.roles;
   if (agents.length === 0) {
     return (
       <div className="text-[12.5px] text-chalk-400">
@@ -38,12 +64,12 @@ function StepCard({ index, a }: { index: number; a: RoleMetrics }) {
   return (
     <li className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-3.5 py-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="mono num-tabular w-5 shrink-0 text-right text-[11px] text-chalk-400">
+        <span className="mono num-tabular w-5 shrink-0 text-right text-meta text-chalk-400">
           {index}
         </span>
         <Cpu className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.9} />
         <span className="text-[13.5px] font-medium text-chalk-100">{a.roleId}</span>
-        <span className="mono text-[11px] text-chalk-400">{a.stageId}</span>
+        <span className="mono text-meta text-chalk-400">{a.stageId}</span>
         <Chip contained tone="neutral" className="mono">
           {a.providerId}
           {a.model ? `/${a.model}` : ""}

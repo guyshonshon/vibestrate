@@ -284,9 +284,11 @@ async function cmdDraft(
 /**
  * The half of the draft that is not the config block: one JSON role file per
  * role, path and full contents, ready to save. A crew block installed without
- * these points every role at a file that is not there, and the run stops in
- * `loadRolePrompt` before a single agent starts - so this prints in every
- * non-JSON mode, including `--yaml`.
+ * these points every role at a file that is not there. There is no preflight
+ * over the crew's roles, so the failure lands on the FIRST TURN that needs the
+ * missing file (`loadRolePrompt`, from `runRoleTurn`) - every earlier role has
+ * already run and billed by then. That is why this prints in every non-JSON
+ * mode, including `--yaml`.
  */
 export function printRoleFiles(
   files: DraftedRoleFile[],

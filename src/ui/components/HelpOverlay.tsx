@@ -69,7 +69,7 @@ export function HelpOverlay() {
             <h2 className="text-[13px] font-semibold text-chalk-100">
               Keyboard shortcuts
             </h2>
-            <div className="text-[10.5px] font-medium text-violet-soft">
+            <div className="text-meta font-medium text-violet-soft">
               press ? to toggle · Esc to close
             </div>
           </div>

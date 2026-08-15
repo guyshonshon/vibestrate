@@ -19,7 +19,8 @@ import { readText, writeTextAtomic, pathExists } from "../utils/fs.js";
 import { ConfigError } from "../utils/errors.js";
 import {
   projectConfigPath,
-  projectRolesDir,
+  ROLES_DIRNAME,
+  VIBESTRATE_DIR,
 } from "../utils/paths.js";
 import { projectConfigSchema, type ProjectConfig } from "../project/config-schema.js";
 import { builtinRoleIds } from "../agents/role-schema.js";
@@ -29,6 +30,7 @@ import { assertModelExists } from "../providers/provider-model-validation.js";
 import {
   planPreset,
   CREW_PRESETS,
+  type PresetBlock,
   type PresetTier,
   type ProviderInfo,
 } from "../agents/crew-presets.js";
@@ -398,8 +400,12 @@ export async function setValidationCommands(
   await writeDocument(projectRoot, doc);
 }
 
-export function relativeRolesDir(projectRoot: string): string {
-  return path.relative(projectRoot, projectRolesDir(projectRoot));
+/** The roles directory as it is spelled INSIDE `project.yml` (a preset's role
+ *  `prompt` is built on it). Posix, and composed rather than derived from
+ *  `path.relative`, so a preset installed on Windows does not commit
+ *  `.vibestrate\roles\...` that no other platform can resolve. */
+export function relativeRolesDir(): string {
+  return path.posix.join(VIBESTRATE_DIR, ROLES_DIRNAME);
 }
 
 /** The provider a preset crew should run on: the provider the project's default
@@ -460,6 +466,9 @@ export type PresetListing = {
   available: boolean;
   /** Why it can't be built (set only when `available` is false). */
   reason?: string;
+  /** The same refusal as a case, so the dashboard can attach a route forward to
+   *  it instead of printing the sentence. Set whenever `reason` is. */
+  block?: PresetBlock;
   /** What installing it would produce (set only when `available`). */
   effect?: PresetEffect;
 };
@@ -478,13 +487,21 @@ export async function listCrewPresets(projectRoot: string): Promise<PresetListin
   const ctx = {
     defaultProviderRef: deriveProviderRef(config),
     providers: providerInfos(config),
-    rolesDirRel: relativeRolesDir(projectRoot),
+    rolesDirRel: relativeRolesDir(),
   };
   return CREW_PRESETS.map((p) => {
     const installed = Boolean(config.crews[p.id]);
     const plan = planPreset(p.id, ctx);
     if (!plan.ok) {
-      return { id: p.id, label: p.label, description: p.description, installed, available: false, reason: plan.reason };
+      return {
+        id: p.id,
+        label: p.label,
+        description: p.description,
+        installed,
+        available: false,
+        reason: plan.reason,
+        block: plan.block,
+      };
     }
     return {
       id: p.id,
@@ -527,7 +544,7 @@ export async function installCrewPreset(
   const plan = planPreset(tier, {
     defaultProviderRef: deriveProviderRef(config),
     providers: providerInfos(config),
-    rolesDirRel: relativeRolesDir(projectRoot),
+    rolesDirRel: relativeRolesDir(),
   });
   if (!plan.ok) throw new ConfigError(plan.reason);
   if (doc.hasIn(["crews", plan.crewId])) {

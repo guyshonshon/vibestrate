@@ -23,6 +23,12 @@ import { Deck, Cell } from "../../components/layout/Deck.js";
 import { PageHero } from "../../components/layout/PageHero.js";
 import { StatTile, type StatTileTone } from "../../components/design/StatTile.js";
 import { Button } from "../../components/design/Button.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+} from "../../components/design/Skeleton.js";
+import { PageHeroSkeleton } from "./page-skeletons.js";
 import { navigate } from "../App.js";
 
 type Props = {
@@ -108,11 +114,44 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
         </div>
       </PageShell>
     );
+  // The whole page hangs off one metadata read, so it is one loading region:
+  // hero, the at-a-glance row, then the two columns of detail panels.
   if (!meta)
     return (
       <PageShell>
-        <PageHeader title="Project" />
-        <div className="text-[13px] text-chalk-300">Loading project…</div>
+        <Skeleton label="Loading project">
+          <Deck>
+            <Cell size="full" reason="masthead">
+              <PageHeroSkeleton metrics={5} />
+            </Cell>
+            <Cell size="full" reason="masthead">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {Array.from({ length: 4 }, (_, i) => (
+                  <div
+                    key={i}
+                    className="rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-4 py-3"
+                  >
+                    <SkeletonBlock tone="text" h={12} w={72} />
+                    <SkeletonBlock className="mt-2" h={14} w="62%" radius={6} />
+                  </div>
+                ))}
+              </div>
+            </Cell>
+            {[0, 1].map((col) => (
+              <Cell key={col} size="half" className="flex flex-col gap-4">
+                {Array.from({ length: 2 }, (_, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col gap-3 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4"
+                  >
+                    <SkeletonBlock h={14} w={96} />
+                    <SkeletonRows rows={4} trailing />
+                  </div>
+                ))}
+              </Cell>
+            ))}
+          </Deck>
+        </Skeleton>
       </PageShell>
     );
 
@@ -317,7 +356,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
                 {meta.validationCommands.map((c) => (
                   <li
                     key={c}
-                    className="mono rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5 text-[11.5px] text-chalk-100"
+                    className="mono rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5 text-meta text-chalk-100"
                   >
                     {c}
                   </li>
@@ -352,11 +391,11 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
                     className="flex items-center gap-2 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-1.5 text-[12px]"
                   >
                     <span className="font-semibold text-chalk-100">{p.id}</span>
-                    <span className="mono rounded-[8px] border border-[color:var(--line)] px-1.5 py-0.5 text-[10.5px] text-chalk-300">
+                    <span className="mono rounded-[8px] border border-[color:var(--line)] px-1.5 py-0.5 text-meta text-chalk-300">
                       {p.type}
                     </span>
                     {p.command ? (
-                      <span className="mono ml-auto truncate text-[11px] text-chalk-300">
+                      <span className="mono ml-auto truncate text-meta text-chalk-300">
                         {p.command}
                       </span>
                     ) : null}
@@ -387,19 +426,19 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
                     {a.seats.map((s) => (
                       <span
                         key={s}
-                        className="mono rounded-[8px] border border-[color:var(--line)] px-1.5 py-0.5 text-[10.5px] text-chalk-300"
+                        className="mono rounded-[8px] border border-[color:var(--line)] px-1.5 py-0.5 text-meta text-chalk-300"
                       >
                         {s}
                       </span>
                     ))}
-                    <span className="mono rounded-[8px] border border-[color:var(--line)] px-1.5 py-0.5 text-[10.5px] text-chalk-300">
+                    <span className="mono rounded-[8px] border border-[color:var(--line)] px-1.5 py-0.5 text-meta text-chalk-300">
                       {a.profile}
                     </span>
-                    <span className="mono rounded-[8px] border border-[color:var(--line)] px-1.5 py-0.5 text-[10.5px] text-chalk-300">
+                    <span className="mono rounded-[8px] border border-[color:var(--line)] px-1.5 py-0.5 text-meta text-chalk-300">
                       {a.permissions}
                     </span>
                     {a.skills.length > 0 ? (
-                      <span className="text-[11px] text-chalk-300">
+                      <span className="text-meta text-chalk-300">
                         skills: {a.skills.join(", ")}
                       </span>
                     ) : null}
@@ -442,7 +481,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
                   </Button>
                 </form>
                 {skillError ? (
-                  <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-[11.5px] text-rose-300">
+                  <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-meta text-rose-300">
                     {skillError}
                   </div>
                 ) : null}
@@ -461,7 +500,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
                       aria-hidden
                     />
                     <span className="text-chalk-100">{s.name}</span>
-                    <span className="mono ml-auto text-[10.5px] text-chalk-300">
+                    <span className="mono ml-auto text-meta text-chalk-300">
                       {s.source}
                     </span>
                   </li>
@@ -528,7 +567,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
                     >
                       <RunStatusBadge status={r.status} compact />
                       <span className="truncate text-chalk-100">{r.task}</span>
-                      <span className="mono ml-auto text-[10.5px] text-chalk-300">
+                      <span className="mono ml-auto text-meta text-chalk-300">
                         {r.runId}
                       </span>
                     </button>
@@ -591,7 +630,7 @@ function StatusCardView({ card }: { card: StatusCard }) {
   const Icon = card.icon;
   return (
     <div className="rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-4 py-3">
-      <div className="flex items-center gap-1.5 text-[11px] font-medium text-violet-soft">
+      <div className="flex items-center gap-1.5 text-meta font-medium text-violet-soft">
         <Icon
           className="h-3.5 w-3.5"
           strokeWidth={1.9}
@@ -656,7 +695,7 @@ function CopyButton({ text, title }: { text: string; title: string }) {
           // ignore
         }
       }}
-      className="inline-flex shrink-0 items-center gap-1 text-[10.5px] font-semibold text-chalk-300 transition hover:text-chalk-100"
+      className="inline-flex shrink-0 items-center gap-1 text-meta font-semibold text-chalk-300 transition hover:text-chalk-100"
       title={title}
     >
       {copied ? (

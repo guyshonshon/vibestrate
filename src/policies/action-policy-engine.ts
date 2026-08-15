@@ -16,6 +16,7 @@ import {
   globToRegex,
   loadPolicySnapshot,
 } from "./policy-store.js";
+import { toPosixPath } from "../utils/paths.js";
 import type { ActionPolicy } from "./policy-types.js";
 import type {
   ActionDecision,
@@ -54,7 +55,15 @@ export function actionPolicyMatches(
   if (m.pathGlob !== undefined) {
     const re = globToRegex(m.pathGlob);
     const paths = collectPaths(subject);
-    if (!paths.some((p) => re.test(p))) return false;
+    // A glob is always authored with `/`, but a `file.write` subject carries a
+    // NATIVE absolute path - `\`-separated on Windows, where a `/` glob would
+    // then match nothing and every pathGlob policy would silently protect
+    // nothing. Both spellings are tested rather than the raw path replaced,
+    // because `\` is a legal POSIX filename character: an action policy's
+    // effect is only ever deny / require_approval, so widening the candidate
+    // set can add a refusal but can never let a write through that the raw
+    // path already caught.
+    if (!paths.some((p) => re.test(p) || re.test(toPosixPath(p)))) return false;
   }
   return true;
 }

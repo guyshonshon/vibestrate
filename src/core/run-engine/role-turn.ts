@@ -199,17 +199,26 @@ export async function runRoleTurn(
     // Resolve the Role from the Crew the run's flow snapshot was built against.
     const { crew } = getCrew(deps.config, deps.activeCrewId);
     const agent = getCrewRole(crew, roleId);
-    // A `codebaseMapRoles` entry naming a role this crew does not have never
-    // matches, and the map simply never arrives. Left silent, a typo reads
-    // exactly like the feature being switched off. Not fatal - the crew is only
-    // known per-run, so this cannot be a load-time error, and a prompt
-    // enrichment is not worth failing a run over.
-    if (!deps.turnState.warnedUnknownMapRoles) {
-      const unknown = deps.config.codebaseMapRoles.filter((r) => !crew.roles[r]);
-      if (unknown.length > 0) {
-        deps.turnState.warnedUnknownMapRoles = true;
+    // A `codebaseMapRoles` or `methodologyRoles` entry naming a role this crew
+    // does not have never matches, and the block simply never arrives. Left
+    // silent, a typo reads exactly like the feature being switched off. Not
+    // fatal - the crew is only known per-run, so this cannot be a load-time
+    // error, and a prompt enrichment is not worth failing a run over. The knob
+    // is named in the message because the two lists usually differ.
+    if (!deps.turnState.warnedUnknownPromptRoles) {
+      const problems: string[] = [];
+      for (const [knob, roles] of [
+        ["codebaseMapRoles", deps.config.codebaseMapRoles],
+        ["methodologyRoles", deps.config.methodologyRoles],
+      ] as const) {
+        const unknown = [...new Set(roles)].filter((r) => !crew.roles[r]);
+        if (unknown.length === 0) continue;
+        problems.push(`${knob} names ${unknown.map((r) => `"${r}"`).join(", ")}`);
+      }
+      if (problems.length > 0) {
+        deps.turnState.warnedUnknownPromptRoles = true;
         deps.onProgress(
-          `codebaseMapRoles names ${unknown.map((r) => `"${r}"`).join(", ")}, which this crew does not define - the codebase map will not reach ${unknown.length > 1 ? "those roles" : "that role"}.`,
+          `${problems.join("; ")} - this crew defines no such role, so the block never reaches it.`,
         );
       }
     }

@@ -9,13 +9,13 @@
 // `[a-z][a-z0-9-]*` (flowTokenSchema), which is what keeps the `<id>/flow.yml`
 // target path inside the flows dir.
 //
-// Under that sits `writeFlowYamlAudited` - the single point where flow YAML
-// reaches disk. Every flow writer in the repo (here, plus fork and builder
-// patch in flow-patch.ts) goes through it, so the Action Broker sees a
-// `file.write` for each one and a project policy that denies file writes stops
-// flow authoring the same way it stops every other write. Anything that wrote
-// a flow.yml with its own fs call would be outside the audit trail, so there
-// is deliberately no second write path.
+// Under that sit `writeFlowYamlAudited` and `deleteFlowFileAudited` - the only
+// two points where a flow.yml is created or destroyed. Every flow writer in the
+// repo (here, plus fork, builder patch, and delete in flow-patch.ts) goes
+// through one of them, so the Action Broker sees a `file.write` for each and a
+// project policy that denies file writes stops flow authoring the same way it
+// stops every other write. Anything that touched a flow.yml with its own fs
+// call would be outside the audit trail, so there is deliberately no third path.
 
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -24,6 +24,7 @@ import net from "node:net";
 import YAML from "yaml";
 import { isPathInside, projectFlowsDir } from "../../utils/paths.js";
 import { pathExists, readText } from "../../utils/fs.js";
+import { findControlCharIssue } from "../../utils/text-guards.js";
 import { scanTextForSecrets } from "../../core/diff-service.js";
 import {
   createActionBroker,
@@ -84,28 +85,6 @@ export async function exportFlowYaml(input: {
 
 // ─── content guards ────────────────────────────────────────────────────────
 
-/**
- * Reject NUL bytes and disallowed control characters in fetched/imported text.
- * Tab, newline, and carriage return are fine (YAML uses them); every other
- * C0 control char (and DEL) is a sign of binary content or an injection
- * attempt and gets refused before we parse or persist anything.
- */
-function findControlCharIssue(text: string): string | null {
-  for (let i = 0; i < text.length; i += 1) {
-    const code = text.charCodeAt(i);
-    // Allow tab (0x09), LF (0x0a), CR (0x0d). Refuse every other C0 control
-    // char and DEL (0x7f).
-    const isAllowed = code === 0x09 || code === 0x0a || code === 0x0d;
-    if ((code <= 0x1f && !isAllowed) || code === 0x7f) {
-      const hex = code.toString(16).padStart(2, "0");
-      return code === 0
-        ? "contains a NUL byte"
-        : `contains a disallowed control character (0x${hex})`;
-    }
-  }
-  return null;
-}
-
 /** Scan flow text for high-precision vendor secret shapes. A shared flow that
  *  smuggles a live API key must be refused, not silently written to disk. */
 function findSecretIssues(text: string): string[] {
@@ -148,9 +127,38 @@ export function validateFlowText(text: string): ValidateResult {
   return validateFlowObject(raw);
 }
 
+/**
+ * Every string inside a parsed definition, keys included.
+ *
+ * Control-char screening has to walk these rather than the serialized form:
+ * `YAML.stringify` turns a real ESC into the two characters `\e`, so scanning
+ * the canonical YAML reports clean on the exact bytes the CLI printers later
+ * echo raw to a terminal. It also closes the same hole on the text path, where
+ * a `\e` escape in the source survives the pre-parse scan and decodes into a
+ * live control character.
+ */
+function* stringsIn(value: unknown): Generator<string> {
+  if (typeof value === "string") {
+    yield value;
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) yield* stringsIn(item);
+    return;
+  }
+  if (value !== null && typeof value === "object") {
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      yield key;
+      yield* stringsIn(item);
+    }
+  }
+}
+
 /** Schema-validate an already-parsed definition object (the create API path).
- *  Also secret-scans the canonical YAML we'd persist, so a structured POST
- *  can't bypass the guard a raw-text import is held to. */
+ *  Runs the same control-char and secret guards a raw-text import is held to,
+ *  so a structured POST - including a model-authored draft accepted straight
+ *  from `runAssist` - can't bypass them. Labels and descriptions are
+ *  unconstrained strings that the CLI printers echo verbatim. */
 export function validateFlowObject(raw: unknown): ValidateResult {
   const parsed = flowDefinitionSchema.safeParse(raw);
   if (!parsed.success) {
@@ -161,6 +169,12 @@ export function validateFlowObject(raw: unknown): ValidateResult {
         (issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`,
       ),
     };
+  }
+  for (const text of stringsIn(parsed.data)) {
+    const ctrl = findControlCharIssue(text);
+    if (ctrl) {
+      return { ok: false, status: 400, reasons: [`Flow definition ${ctrl}.`] };
+    }
   }
   const secrets = findSecretIssues(YAML.stringify(parsed.data));
   if (secrets.length > 0) {
@@ -177,12 +191,36 @@ export function validateFlowObject(raw: unknown): ValidateResult {
 const FLOW_AUDIT_RUN = "flows";
 
 /** Why a flow file is being written, recorded on the broker request so an audit
- *  reader can tell an import from a fork from a builder edit. */
+ *  reader can tell an import from a fork from a builder edit. `flow-delete`
+ *  rides the same `file.write` kind: removing the YAML is the same authority
+ *  over the same path, and a policy that denies flow writes has to stop it. */
 export type FlowWritePurpose =
   | "flow-import"
   | "flow-create"
   | "flow-fork"
-  | "flow-patch";
+  | "flow-patch"
+  | "flow-delete";
+
+/** The broker request every flow-file effect is gated and recorded under.
+ *  One builder, so a new effect site cannot describe itself differently. */
+function flowFileRequest(input: {
+  flowId: string;
+  targetPath: string;
+  purpose: FlowWritePurpose;
+}): ActionRequest {
+  return {
+    runId: FLOW_AUDIT_RUN,
+    kind: "file.write",
+    subject: {
+      path: input.targetPath,
+      flowId: input.flowId,
+      purpose: input.purpose,
+    },
+    // "system": flow writes arrive from the CLI, the HTTP API, and the TUI
+    // alike, and this seam cannot tell them apart - so it does not claim to.
+    proposedBy: "system",
+  };
+}
 
 /**
  * The one place flow YAML reaches disk: Action Broker gate (`file.write`),
@@ -207,41 +245,98 @@ export async function writeFlowYamlAudited(input: {
   purpose: FlowWritePurpose;
 }): Promise<{ ok: true } | FlowPortabilityError> {
   const broker = createActionBroker(input.projectRoot, FLOW_AUDIT_RUN);
-  // "system": flow writes arrive from the CLI, the HTTP API, and the TUI alike,
-  // and this seam cannot tell them apart - so it does not claim to.
-  const request: ActionRequest = {
-    runId: FLOW_AUDIT_RUN,
-    kind: "file.write",
-    subject: {
-      path: input.targetPath,
-      flowId: input.flowId,
-      purpose: input.purpose,
-    },
-    proposedBy: "system",
-  };
+  const request = flowFileRequest(input);
   const gate = await gateAction(broker, request);
   if (!gate.allowed) {
     return {
       ok: false,
       status: 403,
       reasons: [
-        `Action broker ${gate.effect} the flow write for "${input.flowId}": ${gate.reason}`,
+        `Action broker refused the flow write for "${input.flowId}": ${gate.reason}`,
       ],
     };
   }
 
-  await fs.mkdir(path.dirname(input.targetPath), { recursive: true });
-  const tmp = `${input.targetPath}.tmp-${process.pid}-${Date.now()}`;
-  await fs.writeFile(tmp, input.yaml, { encoding: "utf8", mode: 0o600 });
+  // An allowed action that then fails is still a terminal state the audit
+  // trail owes an entry for; without this the log shows a decision and no
+  // outcome, which reads as a write that landed.
   try {
-    await fs.rename(tmp, input.targetPath);
+    await fs.mkdir(path.dirname(input.targetPath), { recursive: true });
+    const tmp = `${input.targetPath}.tmp-${process.pid}-${Date.now()}`;
+    await fs.writeFile(tmp, input.yaml, { encoding: "utf8", mode: 0o600 });
+    try {
+      await fs.rename(tmp, input.targetPath);
+    } catch (err) {
+      await fs.rm(tmp, { force: true }).catch(() => undefined);
+      throw err;
+    }
   } catch (err) {
-    await fs.rm(tmp, { force: true }).catch(() => undefined);
+    await broker.record(request, gate.decision, {
+      ok: false,
+      summary: `flow "${input.flowId}" (${input.purpose}) failed to write: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    });
     throw err;
   }
   await broker.record(request, gate.decision, {
     ok: true,
     summary: `wrote flow "${input.flowId}" (${input.purpose})`,
+  });
+  return { ok: true };
+}
+
+/**
+ * The delete counterpart of {@link writeFlowYamlAudited}: same gate, same audit
+ * bucket, same refusal shape. Removing a flow is as consequential as writing
+ * one, and an ungated `fs.rm` would let a project policy that denies flow
+ * writes still lose every project flow with no record of the loss.
+ *
+ * The empty parent directory goes with the file: `<flows dir>/<id>/` exists
+ * only to hold it, and leaving the husk behind makes the flow look present to
+ * anything listing the directory.
+ */
+export async function deleteFlowFileAudited(input: {
+  projectRoot: string;
+  flowId: string;
+  /** Already path-guarded absolute target (`<flows dir>/<id>/flow.yml`). */
+  targetPath: string;
+}): Promise<{ ok: true } | FlowPortabilityError> {
+  const broker = createActionBroker(input.projectRoot, FLOW_AUDIT_RUN);
+  const request = flowFileRequest({ ...input, purpose: "flow-delete" });
+  const gate = await gateAction(broker, request);
+  if (!gate.allowed) {
+    return {
+      ok: false,
+      status: 403,
+      reasons: [
+        `Action broker refused the flow delete for "${input.flowId}": ${gate.reason}`,
+      ],
+    };
+  }
+
+  try {
+    await fs.rm(input.targetPath, { force: true });
+  } catch (err) {
+    await broker.record(request, gate.decision, {
+      ok: false,
+      summary: `flow "${input.flowId}" (flow-delete) failed to delete: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    });
+    throw err;
+  }
+  const parent = path.dirname(input.targetPath);
+  try {
+    const remaining = await fs.readdir(parent);
+    if (remaining.length === 0) await fs.rmdir(parent);
+  } catch {
+    // A non-empty or already-gone parent is not a failed delete; the file is
+    // the artifact, and the record below reports on that.
+  }
+  await broker.record(request, gate.decision, {
+    ok: true,
+    summary: `deleted flow "${input.flowId}" (flow-delete)`,
   });
   return { ok: true };
 }

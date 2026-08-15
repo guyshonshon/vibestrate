@@ -161,6 +161,18 @@ export type PresetPlanCtx = {
   rolesDirRel: string;
 };
 
+/** Why a preset cannot be built here, as a case rather than prose. The dashboard
+ *  offers a different route forward per case (add a provider, pin a cheaper
+ *  model, edit the crew), so it has to branch on the case; matching the sentence
+ *  would break the moment the wording is retuned. `reason` stays alongside for
+ *  the CLI, which has no buttons to offer. */
+export type PresetBlock =
+  | { code: "provider_missing"; provider: string }
+  | { code: "no_effort_levels"; provider: string }
+  | { code: "no_cheap_model"; provider: string }
+  | { code: "already_local"; provider: string }
+  | { code: "no_local_provider" };
+
 export type PresetPlan =
   | {
       ok: true;
@@ -172,7 +184,7 @@ export type PresetPlan =
       /** Per-crew review-loop override, when the tier tunes it. */
       maxReviewLoops?: number;
     }
-  | { ok: false; reason: string };
+  | { ok: false; block: PresetBlock; reason: string };
 
 /** Decide what a preset would install, or why it can't - pure. The caller
  *  applies the result (additively, validated) or surfaces the refusal. */
@@ -180,17 +192,28 @@ export function planPreset(tier: PresetTier, ctx: PresetPlanCtx): PresetPlan {
   const byId = new Map(ctx.providers.map((p) => [p.id, p]));
   const def = byId.get(ctx.defaultProviderRef);
   if (!def) {
-    return { ok: false, reason: `Provider "${ctx.defaultProviderRef}" is not configured.` };
+    return {
+      ok: false,
+      block: { code: "provider_missing", provider: ctx.defaultProviderRef },
+      reason: `Provider "${ctx.defaultProviderRef}" is not configured.`,
+    };
   }
 
   // local: a local provider distinct from the default crew's - else it adds nothing.
   if (tier === "local") {
     const candidate = ctx.providers.find((p) => p.isLocal && p.id !== def.id);
     if (!candidate) {
-      const reason = def.isLocal
-        ? `Your default crew already runs on a local provider ("${def.id}"), so a local crew would be identical to it.`
-        : `No local (non-cloud) provider is configured to build a local crew on.`;
-      return { ok: false, reason };
+      return def.isLocal
+        ? {
+            ok: false,
+            block: { code: "already_local", provider: def.id },
+            reason: `Your default crew already runs on a local provider ("${def.id}"), so a local crew would be identical to it.`,
+          }
+        : {
+            ok: false,
+            block: { code: "no_local_provider" },
+            reason: `No local (non-cloud) provider is configured to build a local crew on.`,
+          };
     }
     return finish(tier, candidate, { model: null, power: null }, ctx);
   }
@@ -200,6 +223,7 @@ export function planPreset(tier: PresetTier, ctx: PresetPlanCtx): PresetPlan {
     if (!def.modelEnabled || !def.cheapModel) {
       return {
         ok: false,
+        block: { code: "no_cheap_model", provider: def.id },
         reason: `Provider "${def.id}" has no designated cheap model, so a cheap crew can't be built (no model selection to economise on).`,
       };
     }
@@ -210,6 +234,7 @@ export function planPreset(tier: PresetTier, ctx: PresetPlanCtx): PresetPlan {
   if (def.powerLevels.length < 2) {
     return {
       ok: false,
+      block: { code: "no_effort_levels", provider: def.id },
       reason: `Provider "${def.id}" exposes no distinct effort levels, so a "${tier}" crew would be identical to your default crew. Effort presets need a provider with effort control (e.g. claude, codex).`,
     };
   }

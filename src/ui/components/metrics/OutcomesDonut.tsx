@@ -2,15 +2,30 @@ import type { MetricsOverview } from "../../lib/api.js";
 import { DonutChart } from "./DonutChart.js";
 import { StatTile, type StatTileTone } from "../design/StatTile.js";
 import { EmptyState } from "./EmptyState.js";
+import { Skeleton, SkeletonBlock, SkeletonChart } from "../design/Skeleton.js";
 import { CSS } from "./panelChrome.js";
 
 export function OutcomesDonut({ overview }: { overview: MetricsOverview | null }) {
-  const totals = overview?.totals ?? {
-    merged: 0,
-    changes: 0,
-    failed: 0,
-    runs: 0,
-  };
+  // Loading is not "no verdicts": the empty sentence used to fire on first paint.
+  if (!overview) {
+    return (
+      <Skeleton label="Loading outcomes">
+        <SkeletonBlock className="mb-3" h={13} w={88} />
+        <div className="flex items-center gap-5">
+          <SkeletonChart variant="donut" height={168} className="shrink-0" />
+          <div className="flex flex-1 flex-col gap-2.5">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex flex-col gap-1">
+                <SkeletonBlock tone="text" h={12} w={`${[62, 78, 48][i]}%`} />
+                <SkeletonBlock h={4} w="100%" radius={999} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </Skeleton>
+    );
+  }
+  const totals = overview.totals;
   const sum = totals.merged + totals.changes + totals.failed;
   const segs: {
     key: string;
@@ -48,7 +63,7 @@ export function OutcomesDonut({ overview }: { overview: MetricsOverview | null }
         Outcomes
       </h3>
       {sum === 0 ? (
-        <EmptyState text="No outcomes in this range." />
+        <EmptyState text="No verdicts in this window. Merged, changes requested and failed split here once runs finish." />
       ) : (
         <>
           <div className="flex items-center gap-5">
@@ -64,7 +79,7 @@ export function OutcomesDonut({ overview }: { overview: MetricsOverview | null }
               <div className="num-tabular font-display text-[34px] font-bold leading-none tracking-tight text-chalk-100">
                 {Math.round((totals.merged / sum) * 100)}%
               </div>
-              <div className="mt-1 text-[11px] font-medium text-violet-soft">
+              <div className="mt-1 text-meta font-medium text-violet-soft">
                 merged
               </div>
             </DonutChart>

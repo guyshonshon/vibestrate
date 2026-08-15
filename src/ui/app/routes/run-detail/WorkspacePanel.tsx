@@ -49,7 +49,7 @@ export function WorkspacePanel({
           {worktreePath}
         </div>
       </div>
-      <div className="mt-1.5 text-[11px] text-chalk-400">
+      <div className="mt-1.5 text-meta text-chalk-400">
         The run's isolated git worktree. Run <span className="mono">vibe path</span> for the same from the CLI.
       </div>
     </div>

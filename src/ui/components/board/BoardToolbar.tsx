@@ -51,7 +51,7 @@ export function BoardToolbar({
         ) : null}
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-[11px] font-medium text-chalk-400">Priority</span>
+        <span className="text-meta font-medium text-chalk-400">Priority</span>
         <div className="inline-flex items-center gap-0.5 rounded-[10px] border border-[color:var(--line)] bg-coal-800 p-0.5">
           {priorities.map((p) => (
             <button
@@ -70,7 +70,7 @@ export function BoardToolbar({
           ))}
         </div>
       </div>
-      <span className="ml-auto text-[11.5px] text-chalk-400">
+      <span className="ml-auto text-meta text-chalk-400">
         showing <span className="tabular-nums text-chalk-100">{tasksShown}</span>/{totalTasks}
       </span>
     </div>

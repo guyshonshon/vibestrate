@@ -11,6 +11,7 @@ import { Button } from "../design/Button.js";
 import { FormField } from "../design/FormField.js";
 import { Select, type SelectOption } from "../design/Select.js";
 import { useToast, ToastView } from "../design/useToast.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
 import { cn } from "../design/cn.js";
 
 // Must match MANUAL_ENTRY_TAG in src/core/context/project-ledger.ts - the UI
@@ -139,6 +140,32 @@ export function LedgerView({ onOpenRun }: { onOpenRun: (runId: string) => void }
           <div className="mb-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
             {error}
           </div>
+        ) : null}
+
+        {!state && !error ? (
+          // The six sections are all derived from `state`, so a null state
+          // rendered a page with nothing on it at all.
+          <Skeleton label="Loading the ledger" className="flex flex-col gap-5">
+            {[0, 1, 2].map((s) => (
+              <div key={s}>
+                <div className="mb-2 flex items-center gap-2">
+                  <SkeletonBlock h={14} w={[112, 88, 132][s]} />
+                  <SkeletonBlock h={16} w={26} radius={8} />
+                </div>
+                <div className="flex flex-col gap-2">
+                  {[0, 1].map((r) => (
+                    <div
+                      key={r}
+                      className="rounded-[14px] border border-[color:var(--line-soft)] bg-coal-600 px-3.5 py-2.5"
+                    >
+                      <SkeletonBlock tone="text" h={12} w={`${[74, 56][r]}%`} />
+                      <SkeletonBlock className="mt-1.5" tone="text" h={11} w={`${[42, 58][r]}%`} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </Skeleton>
         ) : null}
 
         {state && total === 0 && !error ? (
@@ -338,21 +365,21 @@ function LedgerRow({
         {entry.status !== "open" && entry.status !== "shipped" ? (
           <Chip tone={entry.status === "abandoned" ? "rose" : "neutral"}>{entry.status}</Chip>
         ) : null}
-        <span className="ml-auto shrink-0 text-[10.5px] text-chalk-400">{date}</span>
+        <span className="ml-auto shrink-0 text-meta text-chalk-400">{date}</span>
       </div>
       {entry.kind === "flag" && entry.relatesTo ? (
-        <p className="mt-1 text-[11px] text-chalk-400">
+        <p className="mt-1 text-meta text-chalk-400">
           linked to: <span className="text-chalk-300">{linkedTitle ?? entry.relatesTo}</span>
         </p>
       ) : null}
       {entry.detail ? (
-        <p className="mt-1 whitespace-pre-wrap text-[11.5px] text-chalk-300">{entry.detail}</p>
+        <p className="mt-1 whitespace-pre-wrap text-meta text-chalk-300">{entry.detail}</p>
       ) : null}
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         {entry.tags
           .filter((t) => t !== MANUAL_TAG)
           .map((t) => (
-            <span key={t} className="text-[10.5px] text-chalk-400">
+            <span key={t} className="text-meta text-chalk-400">
               #{t}
             </span>
           ))}
@@ -360,7 +387,7 @@ function LedgerRow({
           <button
             type="button"
             onClick={() => onOpenRun(entry.sourceRunId!)}
-            className="ml-auto inline-flex items-center gap-1 text-[10.5px] text-chalk-300 transition hover:text-violet-soft"
+            className="ml-auto inline-flex items-center gap-1 text-meta text-chalk-300 transition hover:text-violet-soft"
           >
             open run <ArrowRight className="h-3 w-3" strokeWidth={1.7} />
           </button>

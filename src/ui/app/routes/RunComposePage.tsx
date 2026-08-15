@@ -22,6 +22,11 @@ import { PageShell } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
 import { PageHero } from "../../components/layout/PageHero.js";
 import { StatTile } from "../../components/design/StatTile.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonStats,
+} from "../../components/design/Skeleton.js";
 import { EntityIcon, FlowIcon, type EntityKind } from "../../components/design/EntityIcon.js";
 import { FlowBars } from "../../components/design/FlowBars.js";
 import { FlowCard } from "../../components/design/FlowCard.js";
@@ -53,6 +58,9 @@ export function RunComposePage() {
   const [personas, setPersonas] = useState<PersonaSummary[]>([]);
   const [suggestions, setSuggestions] = useState<TaskSuggestion[]>([]);
   const [todaySpend, setTodaySpend] = useState<number | null>(null);
+  // The composer's pickers all start empty, so before this flips the page tells
+  // the user there are no flows and no work in flight.
+  const [loaded, setLoaded] = useState(false);
 
   const [brief, setBrief] = useState("");
   const [flowId, setFlowId] = useState("");
@@ -109,6 +117,7 @@ export function RunComposePage() {
       }
       setSuggestions(s);
       setTodaySpend(b?.todaySpendUsd ?? null);
+      setLoaded(true);
     })();
     return () => {
       cancelled = true;
@@ -322,7 +331,7 @@ export function RunComposePage() {
                 <Terminal className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.8} />
                 <span className="select-none text-chalk-400">$</span>
                 <code className="mono min-w-0 flex-1 truncate text-[12px] text-chalk-300">{runCmd}</code>
-                <span className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-chalk-400 group-hover:text-chalk-300">
+                <span className="flex shrink-0 items-center gap-1 text-meta font-medium text-chalk-400 group-hover:text-chalk-300">
                   {cmdCopied ? <Check className="h-3 w-3" strokeWidth={2.2} /> : <Copy className="h-3 w-3" strokeWidth={1.8} />}
                   {cmdCopied ? "copied" : "copy"}
                 </span>
@@ -357,7 +366,7 @@ export function RunComposePage() {
                     <button
                       type="button"
                       onClick={() => navigate({ kind: "board" })}
-                      className="ml-auto flex items-center gap-1 text-[11.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
+                      className="ml-auto flex items-center gap-1 text-meta font-semibold text-violet-soft transition hover:text-violet-soft/80"
                     >
                       <LayoutGrid className="h-3.5 w-3.5" strokeWidth={1.9} /> Board
                     </button>
@@ -373,7 +382,7 @@ export function RunComposePage() {
                         className="flex items-center gap-2 rounded-[10px] border border-[color:var(--line)] bg-coal-600 px-2.5 py-1.5 transition hover:bg-coal-500 disabled:opacity-50"
                       >
                         <span className="max-w-[220px] truncate text-[12px] text-chalk-100">{s.title}</span>
-                        <span className={cn("mono text-[10px] font-semibold", s.ready ? "text-emerald-400" : "text-amber-soft")}>
+                        <span className={cn("mono text-meta font-semibold", s.ready ? "text-emerald-400" : "text-amber-soft")}>
                           {s.ready ? "ready" : `${s.openBlockers.length}b`}
                         </span>
                       </button>
@@ -385,7 +394,23 @@ export function RunComposePage() {
 
             {/* Flow */}
             <ComposerSection title="Flow" entity="flow">
-              {flows.length === 0 ? (
+              {!loaded ? (
+                <Skeleton
+                  label="Loading flows"
+                  className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2.5"
+                >
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="flex flex-col gap-2 rounded-[14px] border border-[color:var(--line)] bg-coal-800 p-3"
+                    >
+                      <SkeletonBlock tone="text" h={12} w="62%" />
+                      <SkeletonBlock className="my-1" h={22} w="100%" radius={6} />
+                      <SkeletonBlock tone="text" h={10} w="48%" />
+                    </div>
+                  ))}
+                </Skeleton>
+              ) : flows.length === 0 ? (
                 <p className="px-1 py-1 text-[12.5px] text-chalk-400">No flows discovered.</p>
               ) : (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2.5">
@@ -413,7 +438,7 @@ export function RunComposePage() {
                         title={f.definition.label}
                         badge={
                           f.id === defaultFlow ? (
-                            <span className="ml-auto shrink-0 text-[10px] font-bold text-chalk-400">default</span>
+                            <span className="ml-auto shrink-0 text-meta font-bold text-chalk-400">default</span>
                           ) : null
                         }
                         stats={[
@@ -432,7 +457,7 @@ export function RunComposePage() {
                   <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2.5 text-[12px] text-chalk-300 transition hover:text-chalk-100 [&::-webkit-details-marker]:hidden">
                     <ChevronRight className="h-3.5 w-3.5 shrink-0 text-chalk-400 transition-transform group-open:rotate-90" strokeWidth={1.9} />
                     <span className="font-semibold">Steps &amp; seats</span>
-                    <span className="mono text-[10.5px] text-chalk-400">
+                    <span className="mono text-meta text-chalk-400">
                       {selectedFlow.definition.label} · {(selectedFlow.definition.steps ?? []).length} steps
                     </span>
                   </summary>
@@ -456,7 +481,7 @@ export function RunComposePage() {
                     const set = (v: string) => setParamValues((c) => ({ ...c, [name]: v }));
                     return (
                       <label key={name} className="flex flex-col gap-1.5">
-                        <span className="flex flex-wrap items-center gap-1.5 text-[11.5px]">
+                        <span className="flex flex-wrap items-center gap-1.5 text-meta">
                           <span className="font-semibold text-chalk-100">{name}</span>
                           {def.required ? <span className="text-violet-soft">*</span> : null}
                           {def.shared ? <span className="text-sky-glow" title="Project-global">· shared</span> : null}
@@ -522,7 +547,7 @@ export function RunComposePage() {
                         title={c.label}
                         badge={
                           c.id === meta?.defaultCrew ? (
-                            <span className="ml-auto shrink-0 text-[10px] font-bold text-chalk-400">default</span>
+                            <span className="ml-auto shrink-0 text-meta font-bold text-chalk-400">default</span>
                           ) : null
                         }
                         stats={[{ value: c.roles.length, label: c.roles.length === 1 ? "role" : "roles" }]}
@@ -532,13 +557,13 @@ export function RunComposePage() {
                           {c.roles.slice(0, 4).map((r) => (
                             <span
                               key={r.id}
-                              className="rounded-[6px] bg-coal-500 px-1.5 py-px text-[10px] font-medium text-chalk-300"
+                              className="rounded-[6px] bg-coal-500 px-1.5 py-px text-meta font-medium text-chalk-300"
                             >
                               {r.label}
                             </span>
                           ))}
                           {c.roles.length > 4 ? (
-                            <span className="text-[10px] text-chalk-400">+{c.roles.length - 4}</span>
+                            <span className="text-meta text-chalk-400">+{c.roles.length - 4}</span>
                           ) : null}
                         </div>
                       </FlowCard>
@@ -552,7 +577,7 @@ export function RunComposePage() {
             <ComposerSection title="Configuration">
               <div className="flex flex-col gap-4">
                 <div>
-                  <div className="mb-2 text-[11.5px] font-semibold text-chalk-300">Permission</div>
+                  <div className="mb-2 text-meta font-semibold text-chalk-300">Permission</div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {(["auto", "ask", "accept-edits", "read-only"] as const).map((m) => (
                       <MiniToggle
@@ -567,7 +592,7 @@ export function RunComposePage() {
                     <span className="mx-1 h-5 w-px bg-[color:var(--line)]" aria-hidden />
                     <MiniToggle on={unattended} set={setUnattended} label="Unattended" title="The run never pauses for a human" />
                   </div>
-                  <div className="mt-2.5 text-[11.5px] leading-[1.55] text-chalk-300">
+                  <div className="mt-2.5 text-meta leading-[1.55] text-chalk-300">
                     {readOnly || unattended || permissionMode === "ask" || permissionMode === "accept-edits" ? (
                       <ul className="space-y-1.5">
                         {readOnly ? (
@@ -600,7 +625,7 @@ export function RunComposePage() {
                 </div>
 
                 <div className="border-t border-[color:var(--line-soft)] pt-3.5">
-                  <div className="mb-2 text-[11.5px] font-semibold text-chalk-300">Tuning</div>
+                  <div className="mb-2 text-meta font-semibold text-chalk-300">Tuning</div>
                   <div className="flex flex-wrap gap-1.5">
                     <MiniToggle on={concise} set={setConcise} label="Concise" title="Ask agents to keep output short" />
                     <MiniToggle on={forceSelect} set={setForceSelect} label="Auto-pick flow" title="Let the orchestrator choose the flow when none is pinned" />
@@ -609,7 +634,7 @@ export function RunComposePage() {
 
                 {personas.length > 0 ? (
                   <div className="border-t border-[color:var(--line-soft)] pt-3.5">
-                    <div className="mb-2 flex items-center gap-1.5 text-[11.5px] font-semibold text-chalk-300">
+                    <div className="mb-2 flex items-center gap-1.5 text-meta font-semibold text-chalk-300">
                       <EntityIcon entity="persona" size={14} className="text-violet-soft" /> Supervisor
                     </div>
                     <div className="flex flex-wrap gap-1.5">
@@ -660,11 +685,11 @@ export function RunComposePage() {
                 Plan first
               </Button>
               {missingRequired.length > 0 ? (
-                <span className="text-[11.5px] text-amber-soft">
+                <span className="text-meta text-amber-soft">
                   Required input{missingRequired.length > 1 ? "s" : ""}: {missingRequired.join(", ")}
                 </span>
               ) : (
-                <span className="text-[11.5px] text-chalk-400">
+                <span className="text-meta text-chalk-400">
                   Nothing pushes or merges. The run stops at merge-ready, blocked, or failed.
                 </span>
               )}
@@ -697,15 +722,15 @@ export function RunComposePage() {
               <Button variant="secondary" size="sm" disabled={!askQ.trim() || askBusy} onClick={ask}>
                 {askBusy ? "Asking…" : "Ask"}
               </Button>
-              <span className="mono text-[10.5px] text-chalk-300">read-only · ⌘↵</span>
+              <span className="mono text-meta text-chalk-300">read-only · ⌘↵</span>
             </div>
-            {askErr ? <p className="mt-2 text-[11.5px] text-rose-300">{askErr}</p> : null}
+            {askErr ? <p className="mt-2 text-meta text-rose-300">{askErr}</p> : null}
             {askResult ? (
               <div className="mt-3 border-t border-[color:var(--line-soft)] pt-3">
                 <div className="mb-2 flex items-center gap-2">
                   <span
                     className={cn(
-                      "mono text-[10.5px] font-semibold",
+                      "mono text-meta font-semibold",
                       askResult.answer.confidence === "high"
                         ? "text-emerald-400"
                         : askResult.answer.confidence === "medium"
@@ -718,7 +743,7 @@ export function RunComposePage() {
                   <button
                     type="button"
                     onClick={() => setAskResult(null)}
-                    className="ml-auto text-[11px] font-medium text-chalk-400 transition hover:text-chalk-100"
+                    className="ml-auto text-meta font-medium text-chalk-400 transition hover:text-chalk-100"
                   >
                     clear
                   </button>
@@ -729,10 +754,10 @@ export function RunComposePage() {
                 {askResult.answer.recommendedActions.length > 0 ? (
                   <ul className="mt-2.5 space-y-1.5 border-t border-[color:var(--line-soft)] pt-2.5">
                     {askResult.answer.recommendedActions.slice(0, 4).map((a, i) => (
-                      <li key={i} className="flex items-start gap-1.5 text-[11.5px] text-chalk-300">
+                      <li key={i} className="flex items-start gap-1.5 text-meta text-chalk-300">
                         <ArrowRight className="mt-0.5 h-3 w-3 shrink-0 text-violet-soft" strokeWidth={1.9} />
                         <span>
-                          <span className="mono text-[10.5px] font-semibold text-violet-soft">{a.kind}</span> {a.detail}
+                          <span className="mono text-meta font-semibold text-violet-soft">{a.kind}</span> {a.detail}
                         </span>
                       </li>
                     ))}
@@ -748,11 +773,17 @@ export function RunComposePage() {
             icon={<Gauge className="h-4 w-4 text-violet-soft" strokeWidth={1.9} />}
             action={{ label: "Open", onClick: () => navigate({ kind: "metrics" }) }}
           >
-            <div className="flex flex-wrap items-stretch gap-1">
-              <StatTile value={todaySpend == null ? "-" : `$${todaySpend.toFixed(2)}`} label="today" />
-              <StatTile value={counts?.runningTaskIds.length ?? 0} label="active" />
-              <StatTile value={counts?.queueLength ?? 0} label="queue" />
-            </div>
+            {loaded ? (
+              <div className="flex flex-wrap items-stretch gap-1">
+                <StatTile value={todaySpend == null ? "-" : `$${todaySpend.toFixed(2)}`} label="today" />
+                <StatTile value={counts?.runningTaskIds.length ?? 0} label="active" />
+                <StatTile value={counts?.queueLength ?? 0} label="queue" />
+              </div>
+            ) : (
+              <Skeleton label="Loading metrics">
+                <SkeletonStats count={3} />
+              </Skeleton>
+            )}
           </RailCard>
 
           {recent.length > 0 ? (
@@ -830,7 +861,7 @@ function MiniToggle({
       title={title}
       onClick={() => set(!on)}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-1 text-[11.5px] font-medium transition",
+        "inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-1 text-meta font-medium transition",
         on
           ? "border-violet-soft/55 bg-violet-soft/[0.14] text-violet-vivid"
           : "border-[color:var(--line)] text-chalk-400 hover:border-[color:var(--line-strong)] hover:text-chalk-100",
@@ -892,14 +923,14 @@ function FlowSteps({ flow }: { flow: DiscoveredFlow }) {
   return (
     <div className="p-3">
       {flow.definition.description ? (
-        <p className="mb-2.5 px-1 text-[11.5px] leading-[1.5] text-chalk-300">{flow.definition.description}</p>
+        <p className="mb-2.5 px-1 text-meta leading-[1.5] text-chalk-300">{flow.definition.description}</p>
       ) : null}
       <ol className="flex flex-col gap-1">
         {steps.map((s) => (
           <li key={s.id} className="flex items-center gap-2.5 px-1.5 py-1">
             <StepKindDot kind={s.kind} />
             <span className="flex-1 truncate text-[12px] text-chalk-300">{s.label}</span>
-            <span className="mono text-[10px] text-chalk-400">{s.seat || s.kind}</span>
+            <span className="mono text-meta text-chalk-400">{s.seat || s.kind}</span>
           </li>
         ))}
       </ol>
@@ -941,7 +972,7 @@ function RailCard({
           <button
             type="button"
             onClick={action.onClick}
-            className="ml-auto text-[11.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
+            className="ml-auto text-meta font-semibold text-violet-soft transition hover:text-violet-soft/80"
           >
             {action.label}
           </button>

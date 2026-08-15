@@ -89,14 +89,14 @@ export function BoardColumn({
             {column.label}
           </span>
         </div>
-        <span className={cn("tabular-nums text-[11px] font-semibold", column.tone.text)}>
+        <span className={cn("tabular-nums text-meta font-semibold", column.tone.text)}>
           {tasks.length}
         </span>
       </header>
 
       <ol className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2">
         {tasks.length === 0 ? (
-          <li className="select-none py-6 text-center text-[11px] text-chalk-400">
+          <li className="select-none py-6 text-center text-meta text-chalk-400">
             empty
           </li>
         ) : (

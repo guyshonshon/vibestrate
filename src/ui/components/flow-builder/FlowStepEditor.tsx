@@ -101,7 +101,7 @@ export function StepList({
                       : "border-[color:var(--line-soft)] bg-coal-700/50 hover:border-[color:var(--line-strong)]",
                 )}
               >
-                <span className="num-tabular w-5 shrink-0 text-[11px] font-bold text-chalk-300">
+                <span className="num-tabular w-5 shrink-0 text-meta font-bold text-chalk-300">
                   {i + 1}
                 </span>
                 <Circle
@@ -131,7 +131,7 @@ export function StepList({
                   </span>
                 </span>
                 {issues.length > 0 ? (
-                  <span className="num-tabular shrink-0 rounded-[7px] bg-rose-400/14 px-1.5 py-0.5 text-[10px] font-semibold text-rose-300">
+                  <span className="num-tabular shrink-0 rounded-[7px] bg-rose-400/14 px-1.5 py-0.5 text-meta font-semibold text-rose-300">
                     {issues.length}
                   </span>
                 ) : null}
@@ -203,7 +203,7 @@ export function StepFields({
     <EditorCard
       title="Step"
       action={
-        <span className="text-[11px] text-chalk-300">
+        <span className="text-meta text-chalk-300">
           {kind.title} runs at {kind.phase}
         </span>
       }
@@ -231,7 +231,7 @@ export function StepFields({
 
         <div>
           <div className="mb-1 flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold text-violet-soft">Kind</span>
+            <span className="text-meta font-semibold text-violet-soft">Kind</span>
             <HelpHint slug="extending/add-flow" label="Step kinds" />
           </div>
           <Select
@@ -249,12 +249,12 @@ export function StepFields({
               hint: KIND_INFO[k].phase,
             }))}
           />
-          <p className="mt-1 text-[11px] leading-[1.45] text-chalk-300">{kind.blurb}</p>
+          <p className="mt-1 text-meta leading-[1.45] text-chalk-300">{kind.blurb}</p>
         </div>
 
         {gate.seat ? (
           <div>
-            <div className="mb-1 text-[11px] font-semibold text-violet-soft">Seat</div>
+            <div className="mb-1 text-meta font-semibold text-violet-soft">Seat</div>
             <Select
               className="w-full"
               ariaLabel="Step seat"
@@ -273,7 +273,7 @@ export function StepFields({
         {earlier.length > 0 ? (
           <div>
             <div className="mb-1 flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold text-violet-soft">Needs</span>
+              <span className="text-meta font-semibold text-violet-soft">Needs</span>
               <HelpHint slug="extending/add-flow" label="Step dependencies" />
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -292,14 +292,14 @@ export function StepFields({
                       })
                     }
                     title={s.label}
-                    className="mono !text-[11px]"
+                    className="mono !text-meta"
                   >
                     {s.id}
                   </Button>
                 );
               })}
             </div>
-            <p className="mt-1 text-[11px] leading-[1.45] text-chalk-300">
+            <p className="mt-1 text-meta leading-[1.45] text-chalk-300">
               Steps that share the same Needs run at the same time. Leaving this
               empty everywhere keeps the flow linear.
             </p>
@@ -347,7 +347,7 @@ export function StepFields({
         ) : null}
 
         <div>
-          <div className="mb-1 text-[11px] font-semibold text-violet-soft">Stage</div>
+          <div className="mb-1 text-meta font-semibold text-violet-soft">Stage</div>
           <Select
             className="w-full"
             ariaLabel="Resume stage"
@@ -363,7 +363,7 @@ export function StepFields({
 
         {gate.approval ? (
           <div className="space-y-2.5 rounded-[12px] border border-amber-soft/25 bg-amber-soft/5 p-2.5">
-            <div className="text-[11px] font-semibold text-amber-soft">
+            <div className="text-meta font-semibold text-amber-soft">
               Approval gate
             </div>
             <TextField
@@ -407,7 +407,7 @@ export function StepFields({
               }
             />
             <div>
-              <div className="mb-1 text-[11px] font-semibold text-violet-soft">
+              <div className="mb-1 text-meta font-semibold text-violet-soft">
                 Risk level
               </div>
               <Select

@@ -171,24 +171,55 @@ describe("flow-assist: drafting never creates a flow", () => {
     expect(await projectFlowIds(project)).toEqual(idsBefore);
   });
 
-  it("imports no writer from the flow portability module", async () => {
-    // Structural guard for the invariant above: a draft service that cannot
-    // reach a writer cannot write, whatever a future edit does to its body.
+  // An allowlist, not a denylist: a hand-written list of forbidden names is
+  // only ever as current as the last person who remembered to extend it, and
+  // the previous version of this guard had already gone stale on
+  // `writeFlowYamlAudited`. Reaching for any module not named here fails.
+  it("imports only from modules that cannot write", async () => {
     const source = await fs.readFile(
       path.join(import.meta.dirname, "..", "src", "flows", "authoring", "flow-assist.ts"),
       "utf8",
     );
-    expect(source).not.toMatch(
-      /writeProjectFlowDefinition|createProjectFlow|importFlowFrom|fs\.writeFile|writeTextAtomic/,
+    const allowed = new Set([
+      "node:path",
+      "zod",
+      "yaml",
+      "../../utils/errors.js",
+      "../../utils/fs.js",
+      "../../utils/paths.js",
+      "../../core/assist/assist-runner.js",
+      "../../project/config-loader.js",
+      "../../agents/crew-registry.js",
+      "../../agents/crew-schema.js",
+      "../catalog/flow-discovery.js",
+      "../schemas/flow-schema.js",
+      "../runtime/flow-portability.js",
+      "../runtime/seat-coverage.js",
+    ]);
+    const specs = [...source.matchAll(/\bfrom\s+"([^"]+)"/g)].map((m) => m[1]!);
+    expect(specs.length).toBeGreaterThan(0);
+    expect(specs.filter((s) => !allowed.has(s))).toEqual([]);
+
+    // flow-portability is on the list for its validator alone - it is also
+    // where every flow writer lives, so this pins the names, not the module.
+    const portability = source.match(
+      /import\s*\{([^}]*)\}\s*from\s*"\.\.\/runtime\/flow-portability\.js"/,
     );
+    expect(portability).not.toBeNull();
+    expect(
+      portability![1]!.split(",").map((n) => n.trim()).filter(Boolean),
+    ).toEqual(["validateFlowObject"]);
   });
 
-  it("redacts the description before it reaches the model", async () => {
+  // What this proves is the END STATE: nothing secret-shaped reaches the
+  // provider. `prompts` is what the runner was handed, so the assertion holds
+  // wherever the redaction lives - today that is `runAssist`, the single funnel.
+  it("nothing secret-shaped in the description reaches the provider", async () => {
     const project = await makeProject();
     const { runner, prompts } = scriptedRunner([validDraftJson()]);
     await draftFlowFromDescription({
       projectRoot: project,
-      description: 'review any diff adding AKIAIOSFODNN7EXAMPLE to the repo',
+      description: "review any diff adding AKIAIOSFODNN7EXAMPLE to the repo",
       runner,
     });
     expect(prompts).toHaveLength(1);

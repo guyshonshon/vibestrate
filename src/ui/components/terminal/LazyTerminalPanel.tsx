@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { ErrorBoundary } from "../layout/ErrorBoundary.js";
+import { Skeleton, SkeletonBlock, SkeletonText } from "../design/Skeleton.js";
 
 /**
  * Lazy wrapper around TerminalPanel.
@@ -24,11 +25,14 @@ export function LazyTerminalPanel({ runId }: { runId: string }) {
     // rejected lazy() import, so this boundary's "Try again" can't recover
     // the chunk by itself - its Reload path is what actually fixes it.
     <ErrorBoundary resetKey={runId}>
+      {/* Same bones the panel shows while it checks availability, so the chunk
+          arriving is not a second visible step. */}
       <Suspense
         fallback={
-          <div className="text-[11.5px] text-chalk-400">
-            Loading terminal…
-          </div>
+          <Skeleton label="Loading the terminal" className="flex flex-col gap-2">
+            <SkeletonText lines={3} size={11} gap={8} />
+            <SkeletonBlock h={28} w={196} />
+          </Skeleton>
         }
       >
         <TerminalPanelLazy runId={runId} />

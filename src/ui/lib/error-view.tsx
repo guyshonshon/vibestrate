@@ -89,6 +89,7 @@ export function ErrorView({
   actions = [],
   onRetry,
   compact,
+  inset,
   className,
   override,
 }: {
@@ -96,6 +97,8 @@ export function ErrorView({
   actions?: ErrorAction[];
   onRetry?: () => void;
   compact?: boolean;
+  /** Compact only: nested inside a surface that already paints a fill. */
+  inset?: boolean;
   className?: string;
   override?: Partial<ErrorDescription>;
 }) {
@@ -119,6 +122,7 @@ export function ErrorView({
       hint={d.hint}
       actions={[...actions, ...retry]}
       compact={compact}
+      inset={inset}
       className={className}
     />
   );

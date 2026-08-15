@@ -97,7 +97,7 @@ export function RunActions({
         {busy === "abort" ? "Aborting…" : "Abort"}
       </button>
       {error ? (
-        <div className="w-full rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+        <div className="w-full rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-meta text-rose-300">
           {error}
         </div>
       ) : null}

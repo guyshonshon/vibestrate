@@ -99,7 +99,7 @@ export function RunSwitcher({
             style={{ outline: "none" }}
             className="w-full bg-transparent text-[14px] text-chalk-100 outline-none placeholder:text-chalk-400"
           />
-          <span className="mono text-[11px] text-chalk-400">esc</span>
+          <span className="mono text-meta text-chalk-400">esc</span>
         </div>
         <div className="max-h-[46vh] overflow-y-auto py-1">
           {error ? (
@@ -127,7 +127,7 @@ export function RunSwitcher({
                 <span className="min-w-0 flex-1 truncate text-[13px] text-chalk-100">
                   {r.task}
                 </span>
-                <span className="mono shrink-0 text-[11px] text-chalk-400">
+                <span className="mono shrink-0 text-meta text-chalk-400">
                   {relTime(r.updatedAt)}
                 </span>
               </button>

@@ -5,6 +5,12 @@ import type { CodebaseMapResult } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
 import { Chip } from "../design/Chip.js";
 import { StatTile } from "../design/StatTile.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonStats,
+  SkeletonText,
+} from "../design/Skeleton.js";
 import { Section } from "../layout/PageShell.js";
 
 /**
@@ -97,7 +103,7 @@ export function CodebaseMapPanel() {
           {refreshing ? "Refreshing" : "Generate map"}
         </Button>
         {error ? (
-          <p className="max-w-xs text-[11px] leading-snug text-rose-300">{error}</p>
+          <p className="max-w-xs text-meta leading-snug text-rose-300">{error}</p>
         ) : null}
       </div>
     );
@@ -158,7 +164,7 @@ export function CodebaseMapPanel() {
         </div>
       ) : null}
 
-      <p className="mb-4 text-[11px] text-chalk-300">
+      <p className="mb-4 text-meta text-chalk-300">
         Generated {new Date(map.generatedAt).toLocaleString()}
         {map.rev ? ` at ${map.rev.slice(0, 12)}` : ""}.
       </p>
@@ -220,7 +226,7 @@ export function CodebaseMapPanel() {
             ))}
           </ul>
           {map.httpRoutes.truncated ? (
-            <p className="mt-1.5 text-[11px] text-chalk-300">
+            <p className="mt-1.5 text-meta text-chalk-300">
               More routes may exist - detection was capped.
             </p>
           ) : null}
@@ -252,30 +258,21 @@ export function CodebaseMapPanel() {
   );
 }
 
-/** Static (no pulse) placeholder that echoes the ready-state geometry: a stat
- *  tile row + refresh button, then a few section-shaped blocks. */
+/** Echoes the ready-state geometry: a stat tile row + refresh button, then a
+ *  few section-shaped blocks. */
 function MapSkeleton() {
   return (
-    <div className="flex h-full flex-col gap-4 p-4">
+    <Skeleton label="Loading the codebase map" className="flex h-full flex-col gap-4 p-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex gap-1.5">
-          {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-[52px] w-[92px] rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/40"
-            />
-          ))}
-        </div>
-        <div className="h-7 w-28 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/40" />
+        <SkeletonStats count={4} />
+        <SkeletonBlock w={112} h={28} bordered />
       </div>
       {[0, 1, 2].map((i) => (
-        <div key={i} className="space-y-2">
-          <div className="h-4 w-24 rounded-[6px] bg-coal-500/40" />
-          <div className="h-3 w-full rounded-[6px] bg-coal-500/25" />
-          <div className="h-3 w-5/6 rounded-[6px] bg-coal-500/25" />
-          <div className="h-3 w-2/3 rounded-[6px] bg-coal-500/25" />
+        <div key={i} className="flex flex-col gap-2">
+          <SkeletonBlock h={16} w={96} />
+          <SkeletonText lines={3} size={12} gap={8} />
         </div>
       ))}
-    </div>
+    </Skeleton>
   );
 }

@@ -92,7 +92,7 @@ export function PruneSnapshotsButton() {
       {msg ? (
         <span
           className={
-            phase === "error" ? "text-[11.5px] text-rose-300" : "text-[11.5px] text-chalk-400"
+            phase === "error" ? "text-meta text-rose-300" : "text-meta text-chalk-400"
           }
         >
           {msg}

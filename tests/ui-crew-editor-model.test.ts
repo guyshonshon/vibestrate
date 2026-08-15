@@ -405,4 +405,18 @@ describe("validateEditorState", () => {
     state.roles[0]!.seats = [];
     expect(validateEditorState(state, ctx).map((p) => p.code)).toContain("role-seats");
   });
+
+  // The crew saves fine and then every flow asking for that seat refuses to
+  // start, which is the worst place to find out.
+  it("refuses two roles claiming one seat, which the flow resolver throws on", () => {
+    const state = loaded();
+    state.roles[1]!.seats = ["implementer"];
+    const seatDupes = validateEditorState(state, ctx).filter(
+      (p) => p.code === "role-seat-dupe",
+    );
+    expect(seatDupes).toHaveLength(1);
+    expect(seatDupes[0]!.message).toContain("implementer");
+    expect(seatDupes[0]!.message).toContain("executor");
+    expect(seatDupes[0]!.message).toContain("reviewer");
+  });
 });

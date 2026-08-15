@@ -47,7 +47,7 @@ export function Chip({
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1 whitespace-nowrap rounded-[7px] px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+          "inline-flex items-center gap-1 whitespace-nowrap rounded-[7px] px-1.5 py-0.5 text-meta font-semibold leading-none",
           CONTAINED[tone],
           className,
         )}
@@ -59,7 +59,7 @@ export function Chip({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 font-mono text-[11px] font-medium whitespace-nowrap",
+        "inline-flex items-center gap-1 font-mono text-meta font-medium whitespace-nowrap",
         TONE[tone],
         className,
       )}
@@ -101,7 +101,7 @@ export function ToneDot({ tone = "violet" }: { tone?: ChipTone }) {
 
 export function KBD({ children }: { children: ReactNode }) {
   return (
-    <kbd className="mono inline-flex items-center justify-center rounded-[6px] border border-[color:var(--line)] bg-coal-500 px-1.5 py-[1px] text-[10.5px] text-chalk-300 leading-none h-[18px] min-w-[18px]">
+    <kbd className="mono inline-flex items-center justify-center rounded-[6px] border border-[color:var(--line)] bg-coal-500 px-1.5 py-[1px] text-meta text-chalk-300 leading-none h-[18px] min-w-[18px]">
       {children}
     </kbd>
   );

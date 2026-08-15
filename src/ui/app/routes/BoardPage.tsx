@@ -37,6 +37,10 @@ import { Button } from "../../components/design/Button.js";
 import { ErrorState } from "../../components/design/ErrorState.js";
 import { Select } from "../../components/design/Select.js";
 import { MetricCard } from "../../components/design/MetricCard.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+} from "../../components/design/Skeleton.js";
 import { SegmentedControl } from "../../components/design/SegmentedControl.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
 import { LedgerView } from "../../components/ledger/LedgerView.js";
@@ -79,6 +83,9 @@ export function BoardPage({
   // Scoped to the roadmap rail so an unreadable roadmap.json cannot blank the
   // board; `error` stays reserved for a failure that really does mean no board.
   const [roadmapError, setRoadmapError] = useState<string | null>(null);
+  // `tasks` starts empty, so the first paint of a real project claimed the
+  // board was empty and told the owner to create their first task.
+  const [loaded, setLoaded] = useState(false);
   const { toast, showToast } = useToast(4000);
 
   const [showRoadmapForm, setShowRoadmapForm] = useState(false);
@@ -125,6 +132,8 @@ export function BoardPage({
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
@@ -491,7 +500,7 @@ export function BoardPage({
           toast={toast}
           variant="inline"
           iconStrokeWidth={2}
-          className="mt-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-[11.5px]"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-meta"
         />
       </PageHeader>
 
@@ -500,39 +509,80 @@ export function BoardPage({
         <MetricCard
           icon={<Activity className="h-3 w-3" strokeWidth={2} />}
           label="Active"
-          value={counts.active}
+          value={loaded ? counts.active : <SkeletonBlock h={26} w={40} radius={8} />}
           hint="in flight"
           tone="violet"
-          share={counts.active / total}
+          share={loaded ? counts.active / total : 0}
         />
         <MetricCard
           icon={<Hourglass className="h-3 w-3" strokeWidth={2} />}
           label="Awaiting"
-          value={counts.waiting}
-          hint={counts.waiting > 0 ? "your turn" : "nothing"}
+          value={loaded ? counts.waiting : <SkeletonBlock h={26} w={40} radius={8} />}
+          hint={!loaded ? "your turn" : counts.waiting > 0 ? "your turn" : "nothing"}
           tone="amber"
-          share={counts.waiting / total}
+          share={loaded ? counts.waiting / total : 0}
         />
         <MetricCard
           icon={<Ban className="h-3 w-3" strokeWidth={2} />}
           label="Blocked"
-          value={counts.blocked}
-          hint={counts.blocked > 0 ? "attention" : "all clear"}
+          value={loaded ? counts.blocked : <SkeletonBlock h={26} w={40} radius={8} />}
+          hint={!loaded ? "attention" : counts.blocked > 0 ? "attention" : "all clear"}
           tone="rose"
-          share={counts.blocked / total}
+          share={loaded ? counts.blocked / total : 0}
         />
         <MetricCard
           icon={<CircleCheck className="h-3 w-3" strokeWidth={2} />}
           label="Done"
-          value={counts.done}
+          value={loaded ? counts.done : <SkeletonBlock h={26} w={40} radius={8} />}
           hint="shipped"
           tone="emerald"
-          share={counts.done / total}
+          share={loaded ? counts.done / total : 0}
         />
       </div>
 
       {/* ── Board: one filter container (roadmap + search + priority) + kanban ── */}
-      {tasks.length === 0 ? (
+      {!loaded ? (
+        <Skeleton
+          label="Loading board"
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <div className="mb-3 shrink-0 rounded-[14px] border border-[color:var(--line)] bg-coal-650 p-2.5">
+            <SkeletonBlock h={30} w="100%" radius={10} />
+          </div>
+          <div className="min-h-0 flex-1 overflow-x-auto pb-4">
+            <div
+              className="grid h-full gap-2.5"
+              style={{
+                gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(196px, 1fr))`,
+                minWidth: COLUMNS.length * 204,
+              }}
+            >
+              {COLUMNS.map((col, i) => (
+                <div
+                  key={col.id}
+                  className="flex flex-col gap-2 rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-2.5"
+                >
+                  <div className="flex items-center gap-2">
+                    <SkeletonBlock w={8} h={8} radius={999} />
+                    <SkeletonBlock tone="text" h={11} w={72} />
+                  </div>
+                  {/* Fewer cards further right, the way a board actually
+                   * fills, so the columns do not read as a striped grid. */}
+                  {Array.from({ length: Math.max(1, 4 - i) }, (_, c) => (
+                    <div
+                      key={c}
+                      className="flex flex-col gap-2 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-500/40 p-2.5"
+                    >
+                      <SkeletonBlock tone="text" h={12} w="86%" />
+                      <SkeletonBlock tone="text" h={10} w="44%" />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </Skeleton>
+      ) : tasks.length === 0 ? (
         <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-12 text-center">
           <div className="text-[15px] font-semibold text-chalk-100">No tasks yet.</div>
           <p className="mt-1 text-[12.5px] text-chalk-300">

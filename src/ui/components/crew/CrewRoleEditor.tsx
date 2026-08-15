@@ -14,8 +14,8 @@ import { ErrorState } from "../design/ErrorState.js";
 import { Select } from "../design/Select.js";
 import { StatTile } from "../design/StatTile.js";
 import { cn } from "../design/cn.js";
+import { RoleInstructions } from "./RoleInstructions.js";
 import {
-  MAX_PROMPT_CHARS,
   defaultPromptPath,
   roleChangeCount,
   type EditorProblem,
@@ -62,7 +62,6 @@ export function CrewRoleEditor({
   const availableSkills = skills.map((s) => s.name).filter((n) => !role.skills.includes(n));
   const initials = (role.label || role.id || "??").slice(0, 2);
   const promptPath = role.promptPath || defaultPromptPath(role.id || "role");
-  const overCap = role.prompt.length > MAX_PROMPT_CHARS;
 
   return (
     <div className="overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600">
@@ -109,11 +108,6 @@ export function CrewRoleEditor({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <StatTile value={role.seats.length} label={role.seats.length === 1 ? "seat" : "seats"} />
-          <StatTile
-            value={role.prompt.length.toLocaleString()}
-            label="characters"
-            tone={overCap ? "rose" : "default"}
-          />
           {changes === -1 ? (
             <StatTile value="new" label="not on disk" tone="amber" />
           ) : changes > 0 ? (
@@ -166,7 +160,7 @@ export function CrewRoleEditor({
                       })
                     }
                     className={cn(
-                      "inline-flex items-center gap-1 rounded-[10px] border px-2 py-1 text-[11.5px] transition disabled:opacity-50",
+                      "inline-flex items-center gap-1 rounded-[10px] border px-2 py-1 text-meta transition disabled:opacity-50",
                       on
                         ? contested
                           ? "border-amber-soft/40 bg-amber-soft/10 text-amber-soft"
@@ -208,7 +202,7 @@ export function CrewRoleEditor({
                   : []),
               ]}
             />
-            <span className="mt-1 block text-[11.5px] text-chalk-300">
+            <span className="mt-1 block text-meta text-chalk-300">
               {profile
                 ? `${profile.provider}${profile.model ? ` - ${profile.model}` : ""}${profile.power ? ` - ${profile.power}` : ""}`
                 : role.profile
@@ -216,7 +210,7 @@ export function CrewRoleEditor({
                   : "Every role runs on a profile."}
             </span>
             {profile?.modelIssue ? (
-              <span className="mt-1 block text-[11.5px] text-amber-soft">
+              <span className="mt-1 block text-meta text-amber-soft">
                 {profile.modelIssue}
               </span>
             ) : null}
@@ -237,7 +231,7 @@ export function CrewRoleEditor({
                 hint: PERMISSION_LABEL[p] ? undefined : "project profile",
               }))}
             />
-            <span className="mt-1 block text-[11.5px] text-chalk-300">
+            <span className="mt-1 block text-meta text-chalk-300">
               {role.permissions === "code_write"
                 ? "This role writes files inside the run's worktree."
                 : "This role reads. It cannot change your files."}
@@ -251,7 +245,7 @@ export function CrewRoleEditor({
             {role.skills.map((s) => (
               <span
                 key={s}
-                className="inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line)] bg-coal-500/50 px-2 py-0.5 text-[11px] text-chalk-200"
+                className="inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line)] bg-coal-500/50 px-2 py-0.5 text-meta text-chalk-200"
               >
                 {s}
                 <button
@@ -276,7 +270,7 @@ export function CrewRoleEditor({
                 options={availableSkills.map((n) => ({ value: n, label: n }))}
               />
             ) : role.skills.length === 0 ? (
-              <span className="text-[11.5px] text-chalk-300">
+              <span className="text-meta text-chalk-300">
                 This project has no skills to attach.
               </span>
             ) : null}
@@ -284,51 +278,18 @@ export function CrewRoleEditor({
         </div>
 
         <div className="border-t border-[color:var(--line-soft)] pt-3.5">
-          <div className="mb-1.5 flex flex-wrap items-baseline gap-2">
-            <span className="text-[12px] font-semibold text-violet-vivid">
-              Instructions
-            </span>
-            <span className="text-[11.5px] text-chalk-300">
-              the text this role works from
-            </span>
-            <span className="mono ml-auto truncate text-[11.5px] text-chalk-300">
-              {promptPath}
-            </span>
-          </div>
-          {role.loadError ? (
-            <ErrorState
-              compact
-              className="mb-2"
-              title="This role's file could not be read"
-              detail={role.loadError}
-              hint="Write the instructions below and save. That rewrites the file through the same check the loader uses."
-            />
-          ) : null}
-          <textarea
+          {/* This page saves every role at once from the header, so the
+              instructions carry no save control of their own. */}
+          <RoleInstructions
+            roleId={role.id || role.key}
+            promptPath={promptPath}
             value={role.prompt}
             disabled={disabled}
-            spellCheck={false}
+            defaultMode="edit"
+            loadError={role.loadError}
             rows={14}
-            placeholder="You review a diff against the plan it claims to implement. You name what is wrong and where, and you do not edit files."
-            onChange={(e) => onChange({ prompt: e.target.value })}
-            className={cn(
-              "mono w-full resize-y rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2.5 text-[12px] leading-[1.6] text-chalk-100 outline-none placeholder:text-chalk-300/60 focus:border-violet-soft/50",
-              overCap && "border-rose-400/50",
-            )}
+            onChange={(next) => onChange({ prompt: next })}
           />
-          <div className="mt-1.5 flex flex-wrap items-center justify-between gap-3">
-            <span
-              className={cn(
-                "num-tabular text-[11px]",
-                overCap ? "text-rose-300" : "text-chalk-300",
-              )}
-            >
-              {role.prompt.length.toLocaleString()} / {MAX_PROMPT_CHARS.toLocaleString()}
-            </span>
-            <span className="text-[11.5px] text-chalk-300">
-              Stored as JSON in the role file. The editor holds the text.
-            </span>
-          </div>
         </div>
       </div>
     </div>

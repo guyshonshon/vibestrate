@@ -406,7 +406,7 @@ export function GitDag({ graph, selectedHash, onSelectCommit, source, target }: 
                 <span
                   key={n}
                   className={cn(
-                    "mono shrink-0 rounded-[6px] px-1.5 py-px text-[10px] font-semibold",
+                    "mono shrink-0 rounded-[6px] px-1.5 py-px text-meta font-semibold",
                     n === mainBranch
                       ? "bg-violet-soft text-coal-900"
                       : n === source
@@ -435,22 +435,22 @@ export function GitDag({ graph, selectedHash, onSelectCommit, source, target }: 
                 {c.subject || c.shortHash}
               </span>
               {isLanded && c.hash !== selectedHash ? (
-                <span className="shrink-0 rounded-[6px] bg-emerald-500/15 px-1.5 py-px text-[10px] font-semibold text-emerald-400">
+                <span className="shrink-0 rounded-[6px] bg-emerald-500/15 px-1.5 py-px text-meta font-semibold text-emerald-400">
                   merged here
                 </span>
               ) : null}
               <span className="ml-auto flex shrink-0 items-center gap-2 pl-2">
                 {c.stats ? (
-                  <span className="num-tabular text-[11px] font-semibold">
+                  <span className="num-tabular text-meta font-semibold">
                     <span className="text-emerald-400">+{c.stats.insertions}</span>{" "}
                     <span className="text-rose-300">-{c.stats.deletions}</span>
                   </span>
                 ) : isMerge ? (
-                  <span className="text-[10.5px] font-medium text-chalk-400">merge</span>
+                  <span className="text-meta font-medium text-chalk-400">merge</span>
                 ) : null}
               </span>
             </span>
-            <span className="flex min-w-0 items-center gap-2 text-[10.5px]">
+            <span className="flex min-w-0 items-center gap-2 text-meta">
               <span className="mono shrink-0 text-violet-soft/90">{c.shortHash}</span>
               <span className="truncate text-chalk-300">{c.author}</span>
               <span className="shrink-0 text-chalk-400">{relTime(c.date)}</span>

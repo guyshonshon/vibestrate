@@ -9,6 +9,12 @@ import type {
 } from "../../lib/types.js";
 import { serializeRoute, type ReplayFocus } from "../../app/App.js";
 import { Button } from "../design/Button.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+  SkeletonText,
+} from "../design/Skeleton.js";
 import { useConfirm } from "../design/ConfirmDialog.js";
 import { filterReplayEvents } from "./replay-filter.js";
 
@@ -208,14 +214,11 @@ export function ReplayPanel({
 
   if (error)
     return (
-      <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-rose-300 text-[11.5px]">
+      <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-rose-300 text-meta">
         {error}
       </div>
     );
-  if (!replay)
-    return (
-      <div className="text-chalk-400 text-[11.5px]">Loading replay…</div>
-    );
+  if (!replay) return <ReplaySkeleton />;
 
   function togglePhase(key: ReplayPhaseKey) {
     setCollapsed((prev) => {
@@ -229,21 +232,21 @@ export function ReplayPanel({
   return (
     <div className="flex h-full flex-col gap-2 text-[12px]">
       <header className="space-y-1">
-        <div className="flex flex-wrap items-baseline gap-2 text-[11.5px]">
+        <div className="flex flex-wrap items-baseline gap-2 text-meta">
           <span className="font-medium text-chalk-100">{replay.task || replay.runId}</span>
-          <span className="mono text-[10px] text-chalk-400">
+          <span className="mono text-meta text-chalk-400">
             {replay.finalStatus}
           </span>
           {replay.branchName ? (
-            <span className="mono text-[10px] text-chalk-400">
+            <span className="mono text-meta text-chalk-400">
               branch {replay.branchName}
             </span>
           ) : null}
-          <span className="mono text-[10px] text-chalk-400">
+          <span className="mono text-meta text-chalk-400">
             {replay.events.length} event(s)
           </span>
           {replay.flow ? (
-            <span className="mono text-[10px] text-violet-soft">
+            <span className="mono text-meta text-violet-soft">
               flow {replay.flow.label}
               {currentReplayFlowStep(replay)
                 ? ` · ${currentReplayFlowStep(replay)!.label} (${currentReplayFlowStep(replay)!.status})`
@@ -260,19 +263,19 @@ export function ReplayPanel({
           ) : null}
         </div>
         {replay.truncation.truncated ? (
-          <div className="rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-3 py-1.5 text-[10.5px] text-amber-soft">
+          <div className="rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-3 py-1.5 text-meta text-amber-soft">
             {replay.truncation.note}
           </div>
         ) : null}
         {focusUnresolved ? (
-          <div className="rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-3 py-1.5 text-[10.5px] text-amber-soft">
+          <div className="rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-3 py-1.5 text-meta text-amber-soft">
             Couldn't locate <span className="mono">{focusUnresolved}</span>{" "}
             in this run's timeline. The row may have been truncated, or the
             link points at a different run.
           </div>
         ) : null}
         {replay.missingOrMalformed.length > 0 ? (
-          <details className="rounded-[10px] border border-[color:var(--line)] bg-coal-600 px-3 py-1.5 text-[10.5px]">
+          <details className="rounded-[10px] border border-[color:var(--line)] bg-coal-600 px-3 py-1.5 text-meta">
             <summary className="cursor-pointer text-chalk-400">
               {replay.missingOrMalformed.length} file(s) skipped while building
               replay - click for details
@@ -312,7 +315,7 @@ export function ReplayPanel({
 
       <div className="grid flex-1 grid-cols-[200px_1fr] gap-2 overflow-hidden">
         {/* Left: phase + event timeline */}
-        <aside className="overflow-y-auto rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-2 text-[10.5px]">
+        <aside className="overflow-y-auto rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-2 text-meta">
           {replay.phases
             .filter((p) =>
               p.eventIndices.some((i) => visibleIndices.has(i)),
@@ -332,7 +335,7 @@ export function ReplayPanel({
                     <span className="font-semibold">
                       {phase.label}
                     </span>
-                    <span className="mono text-[9.5px] text-chalk-400">
+                    <span className="mono text-meta text-chalk-400">
                       {filterActive
                         ? `${visibleInPhase.length}/${phase.eventIndices.length}`
                         : phase.eventIndices.length}
@@ -361,7 +364,7 @@ export function ReplayPanel({
                               }`}
                               title={`${ev.timestamp} · ${ev.type}`}
                             >
-                              <span className="mono text-[9.5px] text-chalk-400">
+                              <span className="mono text-meta text-chalk-400">
                                 {formatShortTime(ev.timestamp)}
                               </span>{" "}
                               <span className="mono">{ev.type}</span>
@@ -396,6 +399,29 @@ export function ReplayPanel({
   );
 }
 
+/** The panel's own frame: header line, filter bar, then the phase aside beside
+ *  the event pane, so the two columns do not appear only once data lands. */
+function ReplaySkeleton() {
+  return (
+    <Skeleton label="Loading the replay" className="flex h-full flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <SkeletonBlock tone="text" h={12} w={168} />
+        <SkeletonBlock tone="text" h={11} w={76} />
+        <SkeletonBlock tone="text" h={11} w={104} />
+      </div>
+      <SkeletonBlock h={30} w="100%" bordered />
+      <div className="grid min-h-0 flex-1 grid-cols-[200px_1fr] gap-2">
+        <div className="rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-2">
+          <SkeletonRows rows={7} meta />
+        </div>
+        <div className="rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-3">
+          <SkeletonText lines={9} size={11} gap={9} />
+        </div>
+      </div>
+    </Skeleton>
+  );
+}
+
 function currentReplayFlowStep(replay: RunReplay) {
   if (!replay.flow) return null;
   return (
@@ -419,7 +445,7 @@ function SelectedEventCard({
 }) {
   if (!event) {
     return (
-      <div className="rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-3 text-chalk-400 text-[11px]">
+      <div className="rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-3 text-chalk-400 text-meta">
         Select an event from the timeline to see its detail.
       </div>
     );
@@ -429,16 +455,16 @@ function SelectedEventCard({
   return (
     <section className="rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-3">
       <div className="flex items-center gap-2">
-        <div className="mono flex-1 text-[10.5px] text-chalk-400">
+        <div className="mono flex-1 text-meta text-chalk-400">
           {event.timestamp} · {event.source === "synthetic" ? "synthetic" : "event"} ·{" "}
           {phaseLabel}
         </div>
         <CopyPermalinkButton runId={runId} eventIndex={event.index} />
       </div>
       <div className="mono mt-1 text-[12px] text-chalk-100">{event.type}</div>
-      <p className="mt-1 text-[11.5px] text-chalk-300">{event.message}</p>
+      <p className="mt-1 text-meta text-chalk-300">{event.message}</p>
       {snapshotAtSelected ? (
-        <div className="mono mt-1 text-[10.5px] text-chalk-400">
+        <div className="mono mt-1 text-meta text-chalk-400">
           run state at this timestamp:{" "}
           <span className="text-chalk-100">{snapshotAtSelected.status}</span>
           {snapshotAtSelected.previousStatus ? (
@@ -454,7 +480,7 @@ function SelectedEventCard({
         </div>
       ) : null}
       {event.artifactRefs.length > 0 ? (
-        <div className="mt-1 text-[10.5px] text-chalk-400">
+        <div className="mt-1 text-meta text-chalk-400">
           referenced artifacts:{" "}
           {event.artifactRefs.map((a) => (
             <span key={a} className="mono mr-1">
@@ -465,10 +491,10 @@ function SelectedEventCard({
       ) : null}
       {event.data ? (
         <details className="mt-1">
-          <summary className="cursor-pointer text-[10.5px] text-chalk-400">
+          <summary className="cursor-pointer text-meta text-chalk-400">
             event data
           </summary>
-          <pre className="mono mt-1 overflow-x-auto rounded-[8px] bg-coal-800 px-2 py-1 text-[10px] text-chalk-300">
+          <pre className="mono mt-1 overflow-x-auto rounded-[8px] bg-coal-800 px-2 py-1 text-meta text-chalk-300">
             {JSON.stringify(event.data, null, 2)}
           </pre>
         </details>
@@ -487,14 +513,14 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
           <ul className="space-y-1">
             {replay.approvals.map((a) => (
               <li key={a.id} className="rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-3 py-2">
-                <div className="mono text-[10.5px] text-chalk-300">
+                <div className="mono text-meta text-chalk-300">
                   {a.stageId} · {a.roleId} · risk {a.riskLevel} · source {a.source}
                 </div>
-                <div className="text-[11px]">
+                <div className="text-meta">
                   {a.status} {a.resolvedAt ? `· ${formatShortTime(a.resolvedAt)}` : ""}
                 </div>
                 {a.reason ? (
-                  <div className="text-[10.5px] text-chalk-400">{a.reason}</div>
+                  <div className="text-meta text-chalk-400">{a.reason}</div>
                 ) : null}
               </li>
             ))}
@@ -509,14 +535,14 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
           <ul className="space-y-1">
             {replay.suggestions.map((s) => (
               <li key={s.id} className="rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-3 py-2">
-                <div className="text-[11px]">{s.title}</div>
-                <div className="mono text-[10.5px] text-chalk-400">
+                <div className="text-meta">{s.title}</div>
+                <div className="mono text-meta text-chalk-400">
                   {s.status} · {s.source}
                   {s.file ? ` · ${s.file}` : ""}
                   {s.validationProfile ? ` · profile ${s.validationProfile}` : ""}
                 </div>
                 {s.errorMessage ? (
-                  <div className="text-[10.5px] text-rose-300">{s.errorMessage}</div>
+                  <div className="text-meta text-rose-300">{s.errorMessage}</div>
                 ) : null}
               </li>
             ))}
@@ -531,13 +557,13 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
           <ul className="space-y-1">
             {replay.bundles.map((b) => (
               <li key={b.id} className="rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-3 py-2">
-                <div className="text-[11px]">{b.title}</div>
-                <div className="mono text-[10.5px] text-chalk-400">
+                <div className="text-meta">{b.title}</div>
+                <div className="mono text-meta text-chalk-400">
                   {b.status} · {b.suggestionIds.length} suggestion(s)
                   {b.validationProfile ? ` · profile ${b.validationProfile}` : ""}
                 </div>
                 {b.errorMessage ? (
-                  <div className="text-[10.5px] text-rose-300">{b.errorMessage}</div>
+                  <div className="text-meta text-rose-300">{b.errorMessage}</div>
                 ) : null}
               </li>
             ))}
@@ -558,11 +584,11 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
                 key={`${p.timestamp}-${i}`}
                 className="rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-3 py-2"
               >
-                <div className="mono text-[10.5px] text-amber-soft">
+                <div className="mono text-meta text-amber-soft">
                   {p.surface} · rule {p.ruleId}
                 </div>
-                <div className="text-[10.5px] text-chalk-300">{p.message}</div>
-                <div className="mono text-[10px] text-chalk-400">
+                <div className="text-meta text-chalk-300">{p.message}</div>
+                <div className="mono text-meta text-chalk-400">
                   {p.timestamp}
                 </div>
               </li>
@@ -578,8 +604,8 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
           <ul className="space-y-1">
             {replay.notifications.map((n) => (
               <li key={n.id} className="rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-3 py-2">
-                <div className="text-[11px]">{n.title}</div>
-                <div className="mono text-[10.5px] text-chalk-400">
+                <div className="text-meta">{n.title}</div>
+                <div className="mono text-meta text-chalk-400">
                   {n.severity} · {n.category} · {formatShortTime(n.createdAt)}
                 </div>
               </li>
@@ -598,11 +624,11 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
           <ul className="space-y-1">
             {replay.terminalSessions.map((s) => (
               <li key={s.id} className="rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-3 py-2">
-                <div className="mono text-[10.5px] text-chalk-300">{s.id}</div>
-                <div className="mono text-[10px] text-chalk-400">
+                <div className="mono text-meta text-chalk-300">{s.id}</div>
+                <div className="mono text-meta text-chalk-400">
                   {s.shell} · {s.cwd}
                 </div>
-                <div className="mono text-[10px] text-chalk-400">
+                <div className="mono text-meta text-chalk-400">
                   opened {formatShortTime(s.createdAt)}
                   {s.closedAt
                     ? ` · closed ${formatShortTime(s.closedAt)} · exit ${s.exitCode ?? "?"}`
@@ -612,7 +638,7 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
             ))}
           </ul>
         )}
-        <p className="mt-1 text-[10px] text-chalk-400">
+        <p className="mt-1 text-meta text-chalk-400">
           Terminal output (stdout/stderr) is never persisted by Vibestrate, so replay
           cannot show it. Only session lifecycle metadata is available.
         </p>
@@ -620,7 +646,7 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
 
       {replay.metrics ? (
         <SummaryCard title="Metrics" count={null}>
-          <ul className="mono space-y-0.5 text-[10.5px] text-chalk-300">
+          <ul className="mono space-y-0.5 text-meta text-chalk-300">
             <li>duration: {replay.metrics.totalDurationMs} ms</li>
             <li>provider calls: {replay.metrics.totalProviderCalls}</li>
             <li>review loops: {replay.metrics.reviewLoopCount}</li>
@@ -645,7 +671,7 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
         {replay.artifacts.length === 0 ? (
           <Empty />
         ) : (
-          <ul className="mono space-y-0.5 text-[10.5px] text-chalk-300">
+          <ul className="mono space-y-0.5 text-meta text-chalk-300">
             {replay.artifacts.map((a) => (
               <li key={a.path}>{a.path}</li>
             ))}
@@ -672,18 +698,18 @@ function SummaryCard({
           {title}
         </h3>
         {count !== null ? (
-          <span className="mono text-[10px] text-chalk-400">
+          <span className="mono text-meta text-chalk-400">
             {count}
           </span>
         ) : null}
       </div>
-      <div className="mt-1 text-[11px]">{children}</div>
+      <div className="mt-1 text-meta">{children}</div>
     </section>
   );
 }
 
 function Empty() {
-  return <div className="text-chalk-400 text-[10.5px]">None.</div>;
+  return <div className="text-chalk-400 text-meta">None.</div>;
 }
 
 function CopyPermalinkButton({
@@ -777,7 +803,7 @@ function FilterBar({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Filter events by type or message…"
-          className="mono flex-1 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2 py-1 text-[11px] text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50"
+          className="mono flex-1 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2 py-1 text-meta text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50"
         />
         {active ? (
           <Button
@@ -790,7 +816,7 @@ function FilterBar({
             Clear
           </Button>
         ) : null}
-        <span className="mono text-[10px] text-chalk-400">
+        <span className="mono text-meta text-chalk-400">
           {active ? `${visibleCount}/${totalCount}` : `${totalCount}`}
         </span>
       </div>
@@ -802,7 +828,7 @@ function FilterBar({
               key={p.key}
               type="button"
               onClick={() => onTogglePhase(p.key)}
-              className={`rounded-[10px] border px-2 py-0.5 text-[10px] ${
+              className={`rounded-[10px] border px-2 py-0.5 text-meta ${
                 on
                   ? "border-violet-soft/60 bg-violet-soft/12 text-chalk-100"
                   : "border-[color:var(--line)] bg-coal-500 text-chalk-300 hover:bg-coal-400"

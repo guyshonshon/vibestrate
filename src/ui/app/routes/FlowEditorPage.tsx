@@ -16,13 +16,19 @@ import { ArrowLeft, Copy, Save } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { Button } from "../../components/design/Button.js";
-import { LoadingState } from "../../components/design/ErrorState.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+  SkeletonStats,
+} from "../../components/design/Skeleton.js";
 import { StatTile } from "../../components/design/StatTile.js";
 import { ToastView, useToast } from "../../components/design/useToast.js";
 import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { Breadcrumbs } from "../../components/layout/Breadcrumbs.js";
-import { Cell, Deck, Stack } from "../../components/layout/Deck.js";
+import { Stack } from "../../components/layout/Deck.js";
 import { PageHeader, PageShell } from "../../components/layout/PageShell.js";
+import { EditorSplit } from "../../components/flow-builder/EditorSplit.js";
 import {
   IdentityCard,
   LoopCard,
@@ -246,7 +252,32 @@ export function FlowEditorPage({
     return (
       <PageShell className="fade-up">
         {crumbs}
-        <LoadingState title="Opening the flow" detail="Reading the flow catalog." />
+        <Skeleton label="Loading flow" className="flex flex-col gap-4">
+          <SkeletonBlock h={26} w="30%" radius={8} />
+          <div className="flex flex-wrap items-center gap-3 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+            <SkeletonStats count={4} size="lg" />
+            <div className="ml-auto flex gap-1.5 rounded-[14px] border border-[color:var(--line)] p-1.5">
+              <SkeletonBlock w={72} h={30} />
+              <SkeletonBlock w={104} h={30} />
+            </div>
+          </div>
+          {/* The editor's two panes: identity + step list on the left, the
+           * selected step's fields and the seats card on the right. */}
+          <div className="mt-2 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {[0, 1].map((pane) => (
+              <div key={pane} className="flex flex-col gap-4">
+                <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+                  <SkeletonBlock h={16} w={112} />
+                  <SkeletonRows className="mt-3" rows={3} meta />
+                </div>
+                <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+                  <SkeletonBlock h={16} w={88} />
+                  <SkeletonRows className="mt-3" rows={6} lead="icon" meta trailing />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Skeleton>
       </PageShell>
     );
   }
@@ -318,10 +349,14 @@ export function FlowEditorPage({
   const problems = validation.issues.length;
   const conflict = isConflict(saveError);
 
+  // `fill` rather than the scrolling page canvas: the editor is a two-pane app
+  // view, so the flow header and the save action stay put and each pane scrolls
+  // its own contents.
   return (
-    <PageShell className="fade-up">
+    <PageShell variant="fill" className="fade-up">
       {crumbs}
       <PageHeader
+        className="mb-4"
         title={
           editingExisting ? (
             <span className="flex items-baseline gap-2.5">
@@ -336,7 +371,7 @@ export function FlowEditorPage({
         }
       />
 
-      <section className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+      <section className="shrink-0 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex flex-wrap items-stretch gap-2">
             <StatTile size="lg" value={draft.steps.length} label="steps" />
@@ -422,8 +457,10 @@ export function FlowEditorPage({
         className="mt-4 rounded-[12px] border px-3 py-2 text-[12.5px]"
       />
 
-      <Deck className="mt-6">
-        <Cell size="wide">
+      <EditorSplit
+        storageKey="vibestrate.flowEditor.split"
+        className="mt-6 pb-5"
+        left={
           <Stack>
             <IdentityCard
               id={draft.id}
@@ -444,8 +481,8 @@ export function FlowEditorPage({
               onAdd={addStep}
             />
           </Stack>
-        </Cell>
-        <Cell size="card">
+        }
+        right={
           <Stack>
             {activeStep ? (
               <StepFields
@@ -473,8 +510,8 @@ export function FlowEditorPage({
               onChange={(loop) => patchDraft({ loop })}
             />
           </Stack>
-        </Cell>
-      </Deck>
+        }
+      />
     </PageShell>
   );
 }

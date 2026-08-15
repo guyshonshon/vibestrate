@@ -43,7 +43,7 @@ export function TextField({
 }) {
   return (
     <label className="block">
-      <div className="mb-1 text-[11px] font-semibold text-violet-soft">{label}</div>
+      <div className="mb-1 text-meta font-semibold text-violet-soft">{label}</div>
       {multiline ? (
         <textarea
           rows={3}
@@ -62,7 +62,7 @@ export function TextField({
           className={cn(fieldClass(invalid === true), mono && "mono")}
         />
       )}
-      {hint ? <p className="mt-1 text-[11px] text-chalk-300">{hint}</p> : null}
+      {hint ? <p className="mt-1 text-meta text-chalk-300">{hint}</p> : null}
     </label>
   );
 }
@@ -86,7 +86,7 @@ export function NumberField({
 }) {
   return (
     <label className="block">
-      <div className="mb-1 text-[11px] font-semibold text-violet-soft">{label}</div>
+      <div className="mb-1 text-meta font-semibold text-violet-soft">{label}</div>
       <input
         type="number"
         min={min}
@@ -134,7 +134,7 @@ export function ToggleField({
       <span className="min-w-0">
         <span className="block text-[12px] font-semibold text-chalk-100">{label}</span>
         {note ? (
-          <span className="mt-0.5 block text-[11px] leading-[1.45] text-chalk-300">
+          <span className="mt-0.5 block text-meta leading-[1.45] text-chalk-300">
             {note}
           </span>
         ) : null}
@@ -177,13 +177,13 @@ export function TokenListField({
   };
   return (
     <div>
-      <div className="mb-1 text-[11px] font-semibold text-violet-soft">{label}</div>
+      <div className="mb-1 text-meta font-semibold text-violet-soft">{label}</div>
       {values.length > 0 ? (
         <div className="mb-1.5 flex flex-wrap gap-1.5">
           {values.map((token) => (
             <span
               key={token}
-              className="inline-flex items-center gap-1 rounded-[7px] bg-violet-soft/14 py-0.5 pl-2 pr-0.5 text-[11px] font-semibold text-violet-soft"
+              className="inline-flex items-center gap-1 rounded-[7px] bg-violet-soft/14 py-0.5 pl-2 pr-0.5 text-meta font-semibold text-violet-soft"
             >
               <span className="mono">{token}</span>
               <IconBtn
@@ -222,7 +222,7 @@ export function TokenListField({
           <Plus className="h-3.5 w-3.5" strokeWidth={1.9} />
         </Button>
       </div>
-      {hint ? <p className="mt-1 text-[11px] text-chalk-300">{hint}</p> : null}
+      {hint ? <p className="mt-1 text-meta text-chalk-300">{hint}</p> : null}
     </div>
   );
 }
@@ -245,7 +245,7 @@ export function IssueList({
       {issues.map((issue, i) => (
         <li
           key={i}
-          className="flex items-start gap-1.5 rounded-[10px] bg-rose-500/10 px-2.5 py-1.5 text-[11.5px] leading-[1.45] text-rose-300"
+          className="flex items-start gap-1.5 rounded-[10px] bg-rose-500/10 px-2.5 py-1.5 text-meta leading-[1.45] text-rose-300"
         >
           <AlertTriangle
             className="mt-[2px] h-3.5 w-3.5 shrink-0"

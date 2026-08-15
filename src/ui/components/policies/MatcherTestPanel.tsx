@@ -59,13 +59,12 @@ export function MatcherTestPanel({
 
   return (
     <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-700 p-3">
-      <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-violet-soft">
+      <div className="flex items-center gap-1.5 text-meta font-semibold text-violet-soft">
         <FlaskConical className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
         Test this matcher
       </div>
-      <p className="mt-1 text-[11px] leading-snug text-chalk-300">
-        Read-only dry-run through the merge-gate engine. Paste a diff or code, or test
-        against recent runs. Nothing is written; matched lines are redacted.
+      <p className="mt-1 text-meta leading-[1.55] text-chalk-400">
+        Nothing is written; matched lines are redacted.
       </p>
       <textarea
         value={snippet}
@@ -73,7 +72,7 @@ export function MatcherTestPanel({
         placeholder={"Paste a diff or code snippet...\n+const x = 1;"}
         rows={4}
         spellCheck={false}
-        className="mt-2 w-full resize-none rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-2 font-mono text-[11px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+        className="mt-2 w-full resize-none rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-2 font-mono text-meta text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
       />
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <Button
@@ -94,13 +93,13 @@ export function MatcherTestPanel({
         </Button>
       </div>
       {error ? (
-        <div className="mt-2 rounded-[8px] border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-[11px] text-rose-300">
+        <div className="mt-2 rounded-[8px] border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-meta text-rose-300">
           {error}
         </div>
       ) : null}
       {result ? (
         <div className="mt-2 rounded-[10px] border border-[color:var(--line)] bg-coal-600 px-2.5 py-2">
-          <div className="text-[11px] text-chalk-300">
+          <div className="text-meta text-chalk-300">
             Evaluated {result.evaluatedCount} source(s) -{" "}
             {result.matches.length === 0 ? (
               <span className="text-emerald-400">no matches</span>
@@ -113,7 +112,7 @@ export function MatcherTestPanel({
           {result.matches.length > 0 ? (
             <ul className="mt-1.5 space-y-1">
               {result.matches.map((m, i) => (
-                <li key={i} className="text-[11px]">
+                <li key={i} className="text-meta">
                   <span className="text-chalk-300">
                     {m.runId ? `${m.runId} · ` : ""}
                     {m.file ?? "(file)"}

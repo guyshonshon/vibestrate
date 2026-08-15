@@ -58,6 +58,32 @@ function issuesFor(draft: FlowEditorDraft, index: number): string[] {
   return (validateDraft(draft).stepIssues.get(index) ?? []).map((i) => i.message);
 }
 
+/**
+ * Schema messages for a candidate with `patch` forced onto the step at `index`,
+ * bypassing `draftToCandidate`'s own gating. The gate-vs-schema probes below
+ * need this: the candidate builder drops a field the gate closes, so asking it
+ * to carry one would only ever re-measure the gate against itself.
+ */
+/** The candidate step at `index`, as the object the schema would parse. */
+function candidateStep(draft: FlowEditorDraft, index: number): Record<string, unknown> {
+  const candidate = draftToCandidate(draft) as { steps: Record<string, unknown>[] };
+  return candidate.steps[index]!;
+}
+
+function schemaIssuesFor(
+  draft: FlowEditorDraft,
+  index: number,
+  patch: Record<string, unknown>,
+): string[] {
+  const candidate = draftToCandidate(draft) as { steps: Record<string, unknown>[] };
+  candidate.steps[index] = { ...candidate.steps[index], ...patch };
+  const parsed = flowDefinitionSchema.safeParse(candidate);
+  if (parsed.success) return [];
+  return parsed.error.issues
+    .filter((i) => i.path[0] === "steps" && i.path[1] === index)
+    .map((i) => i.message);
+}
+
 describe("the editor's baseline drafts parse", () => {
   it("a blank new flow is one edit away from valid: only id and name are missing", () => {
     const draft = emptyDraft();
@@ -101,9 +127,11 @@ describe("stepFieldGate matches the schema's refinements", () => {
   it.each(STEP_KINDS)("offers skipWhen on %s exactly when the schema allows it", (kind) => {
     const draft = draftWith([
       stepOfKind("agent-turn", "build"),
-      { ...stepOfKind(kind, "probe"), skipWhen: "inert_diff" },
+      stepOfKind(kind, "probe"),
     ]);
-    const rejected = issuesFor(draft, 1).some((m) => m.includes("skipWhen"));
+    const rejected = schemaIssuesFor(draft, 1, { skipWhen: "inert_diff" }).some((m) =>
+      m.includes("skipWhen"),
+    );
     expect(rejected).toBe(!stepFieldGate(kind, { graphMode: false }).skipWhen);
   });
 
@@ -114,9 +142,9 @@ describe("stepFieldGate matches the schema's refinements", () => {
 
     const draft = draftWith([
       stepOfKind("agent-turn", "build"),
-      { ...stepOfKind("agent-turn", "probe"), continueOnError: true, retries: 2 },
+      stepOfKind("agent-turn", "probe"),
     ]);
-    const messages = issuesFor(draft, 1);
+    const messages = schemaIssuesFor(draft, 1, { continueOnError: true, retries: 2 });
     expect(messages.some((m) => m.includes("continueOnError"))).toBe(true);
     expect(messages.some((m) => m.includes("retries"))).toBe(true);
   });
@@ -141,6 +169,52 @@ describe("stepFieldGate matches the schema's refinements", () => {
   it("hides repeat in graph mode and on an approval gate, matching the schema", () => {
     expect(stepFieldGate("agent-turn", { graphMode: true }).repeat).toBe(false);
     expect(stepFieldGate("approval-gate", { graphMode: false }).repeat).toBe(false);
+  });
+});
+
+describe("flipping between linear and graph does not strand a hidden value", () => {
+  // A `needs` edit flips the whole flow's mode, and nothing scrubs the steps.
+  // If the candidate still carried the value whose control just disappeared,
+  // the save would be refused forever with an error anchored to a field the
+  // form no longer renders.
+  it("drops skipWhen and repeat once a needs edit turns the flow into a graph", () => {
+    const linear = draftWith([
+      stepOfKind("agent-turn", "build"),
+      { ...stepOfKind("review-turn", "review"), skipWhen: "inert_diff" },
+      { ...stepOfKind("agent-turn", "fix"), repeatTimes: 2 },
+    ]);
+    expect(validateDraft(linear).issues).toEqual([]);
+
+    const graph: FlowEditorDraft = {
+      ...linear,
+      steps: linear.steps.map((s) =>
+        s.id === "review" ? { ...s, needs: ["build"] } : s,
+      ),
+    };
+    expect(candidateStep(graph, 1).skipWhen).toBeUndefined();
+    expect(candidateStep(graph, 2).repeat).toBeUndefined();
+    expect(validateDraft(graph).issues).toEqual([]);
+  });
+
+  it("drops continueOnError and retries once the last needs edge is removed", () => {
+    const graph = draftWith([
+      stepOfKind("agent-turn", "build"),
+      {
+        ...stepOfKind("agent-turn", "probe"),
+        needs: ["build"],
+        continueOnError: true,
+        retries: 2,
+      },
+    ]);
+    expect(validateDraft(graph).issues).toEqual([]);
+
+    const linear: FlowEditorDraft = {
+      ...graph,
+      steps: graph.steps.map((s) => (s.id === "probe" ? { ...s, needs: [] } : s)),
+    };
+    expect(candidateStep(linear, 1).continueOnError).toBeUndefined();
+    expect(candidateStep(linear, 1).retries).toBeUndefined();
+    expect(validateDraft(linear).issues).toEqual([]);
   });
 });
 

@@ -32,7 +32,13 @@ import {
 } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { useConfirm } from "../../components/design/ConfirmDialog.js";
-import { LoadingState } from "../../components/design/ErrorState.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+  SkeletonStats,
+  SkeletonText,
+} from "../../components/design/Skeleton.js";
 import { PageShell } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
 import { ErrorView } from "../../lib/error-view.js";
@@ -290,12 +296,52 @@ export function RunDetailPage({
         onRetry={() => setRetryTick((t) => t + 1)}
       />
     );
+  // The run page's own shape while the first read is in flight: header, brief,
+  // supervisor block, then the 8/4 board. A centred headline and two sentences
+  // of prose was a different screen that jumped to this one on arrival.
   if (!run)
     return (
-      <LoadingState
-        title="Starting run"
-        detail="Creating the worktree and launching the first step. This usually takes a few seconds."
-      />
+      <Skeleton
+        label="Loading run"
+        className="deep-scene relative z-10 mx-auto flex max-w-[1520px] flex-col gap-5 px-10 py-7"
+      >
+        <div className="flex items-center gap-3 rounded-[20px] border border-[color:var(--line)] bg-coal-600 px-5 py-4">
+          <SkeletonBlock w={28} h={28} radius={999} />
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <SkeletonBlock h={20} w="38%" radius={8} />
+            <SkeletonBlock tone="text" h={12} w="22%" />
+          </div>
+          <SkeletonBlock w={88} h={30} bordered />
+          <SkeletonBlock w={72} h={30} bordered />
+        </div>
+
+        <div className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+          <SkeletonStats count={5} size="lg" />
+          <SkeletonText className="mt-4" lines={2} size={13} />
+        </div>
+
+        <div className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+          <SkeletonBlock h={16} w={168} />
+          <SkeletonRows className="mt-3" rows={3} lead="dot" meta trailing />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          <div className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5 xl:col-span-2">
+            <SkeletonBlock h={16} w={132} />
+            <SkeletonRows className="mt-3" rows={7} lead="icon" meta trailing />
+          </div>
+          <div className="flex flex-col gap-4">
+            <div className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+              <SkeletonBlock h={16} w={112} />
+              <SkeletonStats className="mt-3" count={4} />
+            </div>
+            <div className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+              <SkeletonBlock h={16} w={96} />
+              <SkeletonRows className="mt-3" rows={4} meta />
+            </div>
+          </div>
+        </div>
+      </Skeleton>
     );
 
   const handlePauseToggle = async () => {

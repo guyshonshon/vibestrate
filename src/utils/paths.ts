@@ -273,6 +273,21 @@ export function welcomeStatePath(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), "welcome-state.json");
 }
 
+/**
+ * A path respelled with `/` separators.
+ *
+ * Windows path math (`path.join`, `path.relative`) yields `\`, and two things
+ * downstream can only ever be written with `/`: a policy `pathGlob`, and any
+ * path that lands in the committed `project.yml`. Node accepts `/` on Windows,
+ * so posix is the portable spelling on both platforms.
+ *
+ * A `\` is a LEGAL character in a POSIX filename, so a matcher must test the raw
+ * path as well as this form rather than replace it - see action-policy-engine.
+ */
+export function toPosixPath(p: string): string {
+  return p.replace(/\\/g, "/");
+}
+
 export function isPathInside(parent: string, candidate: string): boolean {
   const rel = path.relative(parent, candidate);
   if (!rel) return true;

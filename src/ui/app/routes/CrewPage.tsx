@@ -15,6 +15,13 @@ import { PageHero, type HeroTone } from "../../components/layout/PageHero.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
 import { SegmentedControl } from "../../components/design/SegmentedControl.js";
 import { ErrorState } from "../../components/design/ErrorState.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+  SkeletonStats,
+} from "../../components/design/Skeleton.js";
+import { HeroNumber, PageHeroSkeleton } from "./page-skeletons.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { ProvidersView } from "../../components/providers/ProvidersView.js";
 import { computeCoverage } from "../../components/crew/helpers.js";
@@ -196,11 +203,13 @@ export function CrewPage({
           <Cell size="full" reason="masthead">
             <PageHero
               state={{
-                value: crews?.length ?? "-",
+                value: crews ? crews.length : <HeroNumber />,
                 caption: (crews?.length ?? 0) === 1 ? "Crew" : "Crews",
-                note: defaultCrew
-                  ? `"${defaultCrew}" is cast for every run unless one names another.`
-                  : "None set as default yet.",
+                note: !crews
+                  ? undefined
+                  : defaultCrew
+                    ? `"${defaultCrew}" is cast for every run unless one names another.`
+                    : "None set as default yet.",
                 tone: "violet",
               }}
               title="Crew"
@@ -213,8 +222,11 @@ export function CrewPage({
                 />
               }
               metrics={[
-                { value: crews?.length ?? "-", label: "crews" },
-                { value: flows?.length ?? "-", label: "flows they can run" },
+                { value: crews ? crews.length : <HeroNumber />, label: "crews" },
+                {
+                  value: flows ? flows.length : <HeroNumber />,
+                  label: "flows they can run",
+                },
               ]}
               footer="Installing a preset just saves it. Nothing runs until you pick one."
             />
@@ -239,10 +251,34 @@ export function CrewPage({
           </Cell>
         </Deck>
       ) : !crews ? (
-        <>
-          <PageHeader title="Crew" />
-          <div className="text-[13px] text-chalk-300">Loading crew…</div>
-        </>
+        // The crew detail page in bones: hero, seat coverage, then the two-up
+        // grid of role cards.
+        <Skeleton label="Loading crew">
+          <Deck>
+            <Cell size="full" reason="masthead">
+              <PageHeroSkeleton metrics={3} />
+            </Cell>
+            <Cell size="full" reason="masthead">
+              <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+                <SkeletonBlock h={16} w={148} />
+                <SkeletonStats className="mt-3" count={5} />
+              </div>
+            </Cell>
+            <Cell size="full" reason="nested-deck">
+              <SkeletonBlock h={18} w={72} />
+              <Deck className="mt-3">
+                {[0, 1, 2, 3].map((i) => (
+                  <Cell key={i} size="half">
+                    <div className="flex flex-col gap-3 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+                      <SkeletonBlock h={16} w="46%" />
+                      <SkeletonRows rows={4} meta trailing />
+                    </div>
+                  </Cell>
+                ))}
+              </Deck>
+            </Cell>
+          </Deck>
+        </Skeleton>
       ) : !crew ? (
         // ── Stage 2 (missing): the requested crew doesn't exist ─────────────
         <>

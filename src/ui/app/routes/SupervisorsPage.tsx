@@ -12,6 +12,12 @@ import { StatTile } from "../../components/design/StatTile.js";
 import { PageShell } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
 import { PageHero } from "../../components/layout/PageHero.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonText,
+} from "../../components/design/Skeleton.js";
+import { HeroNumber } from "./page-skeletons.js";
 import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
 
@@ -98,11 +104,13 @@ export function SupervisorsPage({ onAddSupervisor }: { onAddSupervisor: () => vo
         <Cell size="full" reason="masthead">
           <PageHero
             state={{
-              value: personas.length,
+              value: loaded ? personas.length : <HeroNumber />,
               caption: personas.length === 1 ? "Supervisor" : "Supervisors",
-              note: defaultLabel
-                ? `${defaultLabel} judges every run unless one is picked per run.`
-                : "One judges every run unless you pick another per run.",
+              note: !loaded
+                ? undefined
+                : defaultLabel
+                  ? `${defaultLabel} judges every run unless one is picked per run.`
+                  : "One judges every run unless you pick another per run.",
               tone: "violet",
             }}
             title="Supervisors"
@@ -129,15 +137,26 @@ export function SupervisorsPage({ onAddSupervisor }: { onAddSupervisor: () => vo
               </>
             }
             metrics={[
-              { value: personas.length, label: "available" },
-              { value: builtIns, label: "built-in" },
-              { value: projectOwned, label: "project" },
-              { value: archetypes ? archetypes.length : "-", label: "archetypes" },
+              { value: loaded ? personas.length : <HeroNumber />, label: "available" },
+              { value: loaded ? builtIns : <HeroNumber />, label: "built-in" },
+              { value: loaded ? projectOwned : <HeroNumber />, label: "project" },
+              {
+                value: !loaded ? (
+                  <HeroNumber />
+                ) : archetypes ? (
+                  archetypes.length
+                ) : (
+                  "-"
+                ),
+                label: "archetypes",
+              },
             ]}
             footer={
-              defaultLabel
-                ? `Default: ${defaultLabel}. Pick a different one per run on the compose page.`
-                : "No default set - the built-in staff engineer judges every run."
+              !loaded
+                ? "Pick a different supervisor per run on the compose page."
+                : defaultLabel
+                  ? `Default: ${defaultLabel}. Pick a different one per run on the compose page.`
+                  : "No default set - the built-in staff engineer judges every run."
             }
           />
         </Cell>
@@ -149,10 +168,25 @@ export function SupervisorsPage({ onAddSupervisor }: { onAddSupervisor: () => vo
         ) : null}
 
         {!loaded && !error ? (
-          <Cell size="full" reason="masthead">
-            <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4 py-6 text-[13px] text-chalk-300">
-              Loading supervisors…
-            </div>
+          <Cell size="full" reason="nested-deck">
+            <Skeleton label="Loading supervisors">
+              <Deck align="stretch">
+                {[0, 1, 2].map((i) => (
+                  <Cell key={i} size="card">
+                    {/* min-h matches PersonaCard, so the row keeps its height
+                     * when the real cards replace these. */}
+                    <div className="flex min-h-[188px] flex-col gap-3 rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-5 py-6">
+                      <SkeletonBlock h={18} w="52%" />
+                      <SkeletonText lines={3} size={13} />
+                      <div className="mt-auto flex gap-2">
+                        <SkeletonBlock w={88} h={28} bordered />
+                        <SkeletonBlock w={64} h={28} bordered />
+                      </div>
+                    </div>
+                  </Cell>
+                ))}
+              </Deck>
+            </Skeleton>
           </Cell>
         ) : (
           <>
@@ -235,7 +269,7 @@ function PersonaCard({
             <span className="text-[15px] font-bold text-chalk-100">
               {p.label}
             </span>
-            <span className="mono text-[11px] text-chalk-400">{p.id}</span>
+            <span className="mono text-meta text-chalk-400">{p.id}</span>
           </div>
           {p.description ? (
             <p className="mt-1 line-clamp-2 max-w-[60ch] text-[12.5px] text-chalk-300">
@@ -243,7 +277,7 @@ function PersonaCard({
             </p>
           ) : null}
         </div>
-        <div className="flex shrink-0 items-center gap-2.5 text-[11px] font-semibold">
+        <div className="flex shrink-0 items-center gap-2.5 text-meta font-semibold">
           {isDefault ? (
             <span className="text-emerald-400">default</span>
           ) : null}
@@ -261,7 +295,7 @@ function PersonaCard({
 
       {p.specUpPosture ? (
         <details className="mt-3">
-          <summary className="cursor-pointer list-none text-[11.5px] font-semibold text-chalk-300 transition hover:text-chalk-100">
+          <summary className="cursor-pointer list-none text-meta font-semibold text-chalk-300 transition hover:text-chalk-100">
             Spec-up posture (aims the planning agents)
           </summary>
           <p className="mt-1.5 whitespace-pre-wrap border-l border-violet-soft/30 pl-3 text-[12px] text-chalk-300">
@@ -272,7 +306,7 @@ function PersonaCard({
 
       <div className="mt-4 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
         {isDefault ? (
-          <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-emerald-400">
+          <span className="inline-flex items-center gap-1.5 text-meta font-semibold text-emerald-400">
             <Check className="h-3.5 w-3.5" strokeWidth={2.2} />
             Runs by default
           </span>

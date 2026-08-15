@@ -65,6 +65,7 @@ export function ErrorState({
   hint,
   actions,
   compact = false,
+  inset = false,
   className,
 }: {
   /** Small rose label above the headline (e.g. "Error 404"). Full mode only. */
@@ -77,6 +78,15 @@ export function ErrorState({
   /** Recovery forks. First primary, second secondary, rest ghost. */
   actions?: ErrorAction[];
   compact?: boolean;
+  /**
+   * Compact only: the strip is nested inside a surface that already paints a
+   * fill, such as a row in an alternating list. The default card surface is one
+   * of the colours such a container alternates BETWEEN, so it lands invisible on
+   * one rung and raised on the next - the same strip reading two ways. The
+   * recessed well (the ground form controls sit on) is below every card rung, so
+   * it reads inset against all of them.
+   */
+  inset?: boolean;
   className?: string;
 }) {
   const lines = hint ? sentences(hint) : [];
@@ -86,7 +96,10 @@ export function ErrorState({
       <div
         role="alert"
         className={cn(
-          "rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-4 py-3.5",
+          "rounded-[14px] border px-4 py-3.5",
+          inset
+            ? "border-[color:var(--line-strong)] bg-coal-800"
+            : "border-[color:var(--line)] bg-coal-600",
           className,
         )}
       >
@@ -97,7 +110,7 @@ export function ErrorState({
           </p>
         ))}
         {detail ? (
-          <p className="mono mt-1 break-words text-[11px] text-chalk-400">{detail}</p>
+          <p className="mono mt-1 break-words text-meta text-chalk-400">{detail}</p>
         ) : null}
         {actions && actions.length > 0 ? (
           <div className="mt-2.5">

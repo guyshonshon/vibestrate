@@ -73,7 +73,7 @@ function LayerStack({ layers }: { layers: FlowGraphStep[][] }) {
             }
           >
             {layerSteps.length > 1 ? (
-              <span className="self-center px-1 text-[10px] font-medium text-chalk-400">
+              <span className="self-center px-1 text-meta font-medium text-chalk-400">
                 parallel x{layerSteps.length}
               </span>
             ) : null}
@@ -113,7 +113,7 @@ export function FlowGraph({
               ) : null}
               {zone.repeats ? (
                 <div className="rounded-[12px] border border-violet-soft/30 bg-violet-soft/[0.06] p-1.5">
-                  <div className="mb-1 px-1 text-[10px] font-medium text-violet-soft">
+                  <div className="mb-1 px-1 text-meta font-medium text-violet-soft">
                     Per checklist item - repeats
                   </div>
                   <LayerStack layers={zone.layers} />
@@ -148,13 +148,13 @@ function Node({ step }: { step: FlowGraphStep }) {
       <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
         <Chip tone={STEP_GROUP_TONE[stepKindGroup(step.kind)]}>{step.kind}</Chip>
         {step.seat ? (
-          <span className="font-mono text-[10.5px] text-chalk-400">@{step.seat}</span>
+          <span className="font-mono text-meta text-chalk-400">@{step.seat}</span>
         ) : null}
         {status ? <Chip tone={STATUS_TONE[status]}>{status}</Chip> : null}
       </div>
       {step.instructions ? (
         <div
-          className="mt-0.5 truncate text-[10.5px] text-chalk-300"
+          className="mt-0.5 truncate text-meta text-chalk-300"
           title={step.instructions}
         >
           {step.instructions}

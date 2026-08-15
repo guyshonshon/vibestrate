@@ -5,8 +5,12 @@ import type { PhaseLatencyEntry } from "../../lib/api.js";
 const C = {
   violet: "var(--color-violet-soft, #a78bfa)",
   track: "var(--line-soft, rgba(255,255,255,0.08))",
-  axis: "var(--color-chalk-400, #8e8e96)",
+  axis: "var(--color-chalk-400)",
 };
+
+// SVG `font-size` is an attribute and cannot inherit the app's secondary-text
+// tier through a class, so the value labels read it as CSS instead.
+const VALUE_LABEL = { fontSize: "var(--text-meta)" } as const;
 
 const ROW_H = 34;
 const LABEL_W = 88;
@@ -69,7 +73,7 @@ function Chart({ data, width }: { data: PhaseLatencyEntry[]; width: number }) {
             <text
               x={width - VAL_W + 6}
               y={cy + 4}
-              fontSize={11}
+              style={VALUE_LABEL}
               fill={C.axis}
               fontFamily="Geist Mono, monospace"
             >

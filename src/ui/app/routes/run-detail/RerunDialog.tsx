@@ -6,6 +6,11 @@ import {
   type RestorePreview,
 } from "../../../lib/api.js";
 import { Button } from "../../../components/design/Button.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+} from "../../../components/design/Skeleton.js";
 import { navigate, type ReplayFocus } from "../../App.js";
 import type {
   VibestrateEvent,
@@ -177,7 +182,7 @@ export function RerunDialog({
             Close
           </Button>
         </div>
-        <p className="mt-2 text-[11.5px] text-chalk-300">
+        <p className="mt-2 text-meta text-chalk-300">
           {startFrom === "scratch"
             ? "Starts a fresh run (new worktree) with the task below and your adjusted settings - e.g. uncheck read-only so the executor can write. The original run is untouched."
             : startFrom === "architecting"
@@ -241,7 +246,7 @@ export function RerunDialog({
             );
           })()}
           {!canArchitecting && !canExecuting ? (
-            <p className="mt-1 text-[11px] text-chalk-400">
+            <p className="mt-1 text-meta text-chalk-400">
               This flow has no resumable stage (or the upstream artifacts
               weren't captured) - re-runs start from the beginning.
             </p>
@@ -252,16 +257,19 @@ export function RerunDialog({
                 Restore preview (dry run)
               </div>
               {previewState === "loading" ? (
-                <p className="text-[11px] text-chalk-300">Computing the overwrite/remove set…</p>
+                <Skeleton label="Computing the restore preview" className="flex flex-col gap-2">
+                  <SkeletonBlock tone="text" h={11} w="84%" />
+                  <SkeletonRows rows={4} />
+                </Skeleton>
               ) : previewState === "none" ? (
-                <p className="text-[11px] text-amber-soft">
+                <p className="text-meta text-amber-soft">
                   No code snapshot for this stage - this run can't be rewound to{" "}
                   {startFrom}. Pick another stage.
                 </p>
               ) : previewState === "error" ? (
-                <p className="text-[11px] text-chalk-300">Couldn't load the preview.</p>
+                <p className="text-meta text-chalk-300">Couldn't load the preview.</p>
               ) : preview ? (
-                <div className="text-[11px] text-chalk-300">
+                <div className="text-meta text-chalk-300">
                   <p>
                     Restores the <b>{preview.stage}</b> snapshot over{" "}
                     <b>{preview.baseRef}</b>:{" "}
@@ -269,7 +277,7 @@ export function RerunDialog({
                     <span className="text-emerald-400">+{preview.insertions}</span>{" "}
                     <span className="text-rose-300">-{preview.deletions}</span>.
                   </p>
-                  <ul className="mt-1 max-h-32 overflow-y-auto font-mono text-[10.5px] leading-relaxed">
+                  <ul className="mt-1 max-h-32 overflow-y-auto font-mono text-meta leading-relaxed">
                     {preview.files.slice(0, 50).map((f) => (
                       <li key={f.path}>
                         <span
@@ -311,7 +319,7 @@ export function RerunDialog({
             className="w-full resize-y rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-2 text-[13px] text-chalk-100 outline-none focus:border-violet-soft/50 disabled:opacity-50"
           />
           {startFrom !== "scratch" ? (
-            <p className="mt-1 text-[11px] text-chalk-400">
+            <p className="mt-1 text-meta text-chalk-400">
               Locked - the reused plan was written for this task.
             </p>
           ) : null}
@@ -364,7 +372,7 @@ export function RerunDialog({
                 ? "Start re-run"
                 : "Start rewind"}
           </Button>
-          <span className="text-[11px] text-chalk-400">
+          <span className="text-meta text-chalk-400">
             {readOnly ? "read-only" : "writes enabled"}
             {startFrom === "scratch"
               ? run.flow

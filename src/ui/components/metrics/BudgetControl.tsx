@@ -4,6 +4,7 @@ import { api, type BudgetSettings } from "../../lib/api.js";
 import { Button } from "../design/Button.js";
 import { Select } from "../design/Select.js";
 import { StatTile } from "../design/StatTile.js";
+import { Skeleton, SkeletonBlock, SkeletonStats } from "../design/Skeleton.js";
 import { cn } from "../design/cn.js";
 import { Section } from "../layout/PageShell.js";
 import { ErrorView } from "../../lib/error-view.js";
@@ -111,7 +112,12 @@ export function BudgetControl() {
   const meterTone = pct >= 90 ? CSS.amber : CSS.violet;
 
   return (
+    // Fills the box the layout board hands it: the card stretches and the form
+    // (much taller than the read-only summary) scrolls inside it, so a resized
+    // panel never shows a short card stranded in a tall frame.
     <Section
+      flush
+      className="flex h-full flex-col"
       title="Spend cap and ceilings"
       action={
         !editing && budget ? (
@@ -126,7 +132,7 @@ export function BudgetControl() {
         ) : undefined
       }
     >
-      <div className={CARD}>
+      <div className={cn(CARD, "min-h-0 flex-1 overflow-auto")}>
         {editing ? (
           <BudgetForm
             capInput={capInput}
@@ -170,7 +176,17 @@ export function BudgetControl() {
             }}
           />
         ) : (
-          <div className="h-24 animate-none rounded-[12px] bg-coal-500/30" />
+          <Skeleton
+            label="Loading the spend cap"
+            className="flex flex-col gap-4"
+          >
+            <div className="flex flex-col gap-2">
+              <SkeletonBlock tone="text" h={11} w={96} />
+              <SkeletonBlock h={30} w={168} />
+              <SkeletonBlock h={8} w="100%" radius={999} />
+            </div>
+            <SkeletonStats count={6} />
+          </Skeleton>
         )}
       </div>
     </Section>
@@ -233,7 +249,7 @@ function BudgetSummary({
         <div>
           <div className="flex items-end justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[11.5px] font-semibold text-chalk-200">
+              <div className="text-meta font-semibold text-chalk-200">
                 Today&apos;s spend
               </div>
               <div className="mt-1 font-display num-tabular text-[30px] font-bold leading-none tracking-tight text-chalk-100">
@@ -250,7 +266,7 @@ function BudgetSummary({
               >
                 {pct}%
               </div>
-              <div className="mt-1 text-[10.5px] font-medium text-violet-soft">
+              <div className="mt-1 text-meta font-medium text-violet-soft">
                 of cap used
               </div>
             </div>
@@ -398,7 +414,7 @@ function BudgetForm(props: {
         </div>
       </div>
 
-      <p className="text-[11.5px] leading-relaxed text-chalk-300">
+      <p className="text-meta leading-relaxed text-chalk-300">
         Checked before each agent turn. <b>Stop the run</b> blocks it;{" "}
         <b>Downgrade model</b> switches to the cheaper fallback Profile;{" "}
         <b>Reduce effort</b> drops to the provider&apos;s minimum effort.
@@ -425,7 +441,7 @@ function BudgetForm(props: {
           Cancel
         </Button>
         {props.msg ? (
-          <span className="text-[11.5px] text-rose-300">{props.msg}</span>
+          <span className="text-meta text-rose-300">{props.msg}</span>
         ) : null}
       </div>
     </div>
@@ -441,7 +457,7 @@ function FieldLabel({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[10.5px] font-medium text-chalk-400">{label}</span>
+      <span className="text-meta font-medium text-chalk-400">{label}</span>
       {children}
     </label>
   );

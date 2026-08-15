@@ -192,55 +192,65 @@ export function SeatCoverage({
               );
             })}
           </svg>
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-            {hovered ? (
-              <>
-                <span className="max-w-[110px] truncate font-mono text-[12.5px] font-semibold text-chalk-100">
-                  {hovered.seat}
-                </span>
-                <span
-                  className={cn(
-                    "text-[10.5px]",
-                    hovered.status === "uncovered"
-                      ? "text-rose-300"
-                      : hovered.status === "ambiguous"
-                        ? "text-amber-soft"
-                        : "text-chalk-400",
-                  )}
-                >
-                  {hovered.status === "covered" ? "→ " : ""}
-                  {hovered.roleLabel}
-                </span>
-              </>
-            ) : hoveredGroup ? (
-              <>
-                <span className="max-w-[110px] truncate text-[13px] font-bold text-chalk-100">
-                  {hoveredGroup.groupKey === "__amb"
-                    ? "Several takers"
-                    : hoveredGroup.groupKey === "__unc"
-                      ? "Unassigned"
-                      : hoveredGroup.roleLabel}
-                </span>
-                <span className="text-[10.5px] text-chalk-400">
-                  {arcs.filter((x) => x.groupKey === hoveredGroup.groupKey).length}{" "}
-                  seat
-                  {arcs.filter((x) => x.groupKey === hoveredGroup.groupKey)
-                    .length === 1
-                    ? ""
-                    : "s"}
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="text-[24px] font-extrabold leading-none text-chalk-100">
-                  {filled}
-                  <span className="text-chalk-400">/{seats.length}</span>
-                </span>
-                <span className="mt-1 text-[10.5px] text-chalk-400">
-                  seats filled
-                </span>
-              </>
-            )}
+          {/* The label belongs to the HOLE, not to the 180px box. Centring on
+           * the box let a long role name ("Backend Implementer") run out over
+           * the ring itself, unreadable against the arc colours. The hole is
+           * 2*ri wide, so the stack is bounded to it and every child wraps or
+           * clips inside that. */}
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div
+              className="flex flex-col items-center text-center"
+              style={{ width: 2 * ri - 12 }}
+            >
+              {hovered ? (
+                <>
+                  <span className="w-full truncate font-mono text-[12.5px] font-semibold text-chalk-100">
+                    {hovered.seat}
+                  </span>
+                  <span
+                    className={cn(
+                      "line-clamp-2 w-full text-meta leading-snug",
+                      hovered.status === "uncovered"
+                        ? "text-rose-300"
+                        : hovered.status === "ambiguous"
+                          ? "text-amber-soft"
+                          : "text-chalk-300",
+                    )}
+                  >
+                    {hovered.status === "covered" ? "→ " : ""}
+                    {hovered.roleLabel}
+                  </span>
+                </>
+              ) : hoveredGroup ? (
+                <>
+                  <span className="line-clamp-2 w-full text-[13px] font-bold leading-snug text-chalk-100">
+                    {hoveredGroup.groupKey === "__amb"
+                      ? "Several takers"
+                      : hoveredGroup.groupKey === "__unc"
+                        ? "Unassigned"
+                        : hoveredGroup.roleLabel}
+                  </span>
+                  <span className="text-meta text-chalk-300">
+                    {arcs.filter((x) => x.groupKey === hoveredGroup.groupKey).length}{" "}
+                    seat
+                    {arcs.filter((x) => x.groupKey === hoveredGroup.groupKey)
+                      .length === 1
+                      ? ""
+                      : "s"}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-[24px] font-extrabold leading-none text-chalk-100">
+                    {filled}
+                    <span className="text-chalk-400">/{seats.length}</span>
+                  </span>
+                  <span className="mt-1 text-meta text-chalk-300">
+                    seats filled
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -261,11 +271,11 @@ export function SeatCoverage({
                 <span className="truncate font-medium text-chalk-100">
                   {role.label}
                 </span>
-                <span className="ml-auto shrink-0 text-[10px] text-chalk-400">
+                <span className="ml-auto shrink-0 text-meta text-chalk-400">
                   {WORKTYPE_LABEL[role.permissions] ??
                     role.permissions.replace(/_/g, " ")}
                 </span>
-                <span className="w-3 shrink-0 text-right font-mono text-[11px] text-chalk-400">
+                <span className="w-3 shrink-0 text-right font-mono text-meta text-chalk-400">
                   {count}
                 </span>
               </div>
@@ -281,7 +291,7 @@ export function SeatCoverage({
               <span className="truncate font-medium text-amber-soft">
                 Several takers
               </span>
-              <span className="ml-auto shrink-0 font-mono text-[11px] text-chalk-400">
+              <span className="ml-auto shrink-0 font-mono text-meta text-chalk-400">
                 {ambiguous.length}
               </span>
             </div>
@@ -296,7 +306,7 @@ export function SeatCoverage({
               <span className="truncate font-medium text-rose-300">
                 Unassigned - assign below
               </span>
-              <span className="ml-auto shrink-0 font-mono text-[11px] text-rose-300">
+              <span className="ml-auto shrink-0 font-mono text-meta text-rose-300">
                 {uncovered.length}
               </span>
             </div>
@@ -326,7 +336,7 @@ function SeatPyramid({
     <div className="flex w-[196px] shrink-0 flex-col rounded-[14px] border border-[color:var(--line)] bg-coal-800/50 p-3">
       {!group ? (
         <div className="flex flex-1 items-center justify-center">
-          <span className="text-center text-[11px] leading-[1.5] text-chalk-400">
+          <span className="text-center text-meta leading-[1.5] text-chalk-400">
             Hover a role to see
             <br />
             the seats it takes
@@ -341,18 +351,18 @@ function SeatPyramid({
             )}
           >
             <ToneDot tone={group.tone} />
-            <span className="truncate text-[11.5px] font-semibold text-chalk-100">
+            <span className="truncate text-meta font-semibold text-chalk-100">
               {group.label}
             </span>
           </div>
           {group.seats.length === 0 ? (
-            <div className="mt-2 pl-1 text-[11px] italic text-chalk-400">
+            <div className="mt-2 pl-1 text-meta italic text-chalk-400">
               no seats
             </div>
           ) : (
             <div className="mt-2">
               {group.workType ? (
-                <div className="mb-1 pl-1 text-[10.5px] font-semibold text-chalk-400">
+                <div className="mb-1 pl-1 text-meta font-semibold text-chalk-400">
                   {group.workType}
                 </div>
               ) : null}
@@ -372,7 +382,7 @@ function SeatPyramid({
                     />
                     <span
                       className={cn(
-                        "rounded-[7px] px-2 py-[3px] font-mono text-[11px]",
+                        "rounded-[7px] px-2 py-[3px] font-mono text-meta",
                         seat === activeSeat
                           ? "bg-coal-500 text-chalk-100"
                           : "bg-coal-600 text-chalk-200",

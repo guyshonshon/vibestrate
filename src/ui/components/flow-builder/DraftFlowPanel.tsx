@@ -16,15 +16,21 @@ import { useEffect, useState } from "react";
 import { Check, Copy, Wand2 } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { ErrorView } from "../../lib/error-view.js";
-import { LoadingState } from "../design/ErrorState.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+  SkeletonStats,
+  SkeletonText,
+} from "../design/Skeleton.js";
 import type { AssistCurrency, FlowDraft } from "../../lib/types/flows.js";
 import type { CrewView, SeatCoverage } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
 import { Chip, type ChipTone } from "../design/Chip.js";
 import { FlowBars } from "../design/FlowBars.js";
+import { FlowCard } from "../design/FlowCard.js";
 import { FormField } from "../design/FormField.js";
 import { Select } from "../design/Select.js";
-import { StatTile } from "../design/StatTile.js";
 import { STEP_GROUP_TONE, stepKindGroup } from "../design/stepKind.js";
 import { cn } from "../design/cn.js";
 
@@ -141,14 +147,14 @@ export function DraftFlowPanel({
           <div className="mt-1.5 flex items-center justify-between gap-3">
             <span
               className={cn(
-                "num-tabular text-[11px]",
+                "num-tabular text-meta",
                 tooLong ? "text-rose-300" : "text-chalk-300",
               )}
             >
               {trimmed.length} / {MAX_DESCRIPTION}
             </span>
             {tooLong ? (
-              <span className="text-[11.5px] text-rose-300">
+              <span className="text-meta text-rose-300">
                 Over the cap by {trimmed.length - MAX_DESCRIPTION}. Drafting needs a
                 shorter description.
               </span>
@@ -172,7 +178,7 @@ export function DraftFlowPanel({
               ]}
             />
             {crewsFailed ? (
-              <p className="mt-1.5 text-[11.5px] text-amber-soft">
+              <p className="mt-1.5 text-meta text-amber-soft">
                 The crew list did not load. Coverage falls back to the project default.
               </p>
             ) : null}
@@ -187,19 +193,28 @@ export function DraftFlowPanel({
           >
             {busy ? "Drafting…" : "Draft"}
           </Button>
-          <p className="text-[11.5px] leading-[1.45] text-chalk-300">
+          <p className="text-meta leading-[1.45] text-chalk-300">
             Drafting reads the project and writes nothing.
           </p>
         </div>
       </div>
 
       {busy ? (
-        <LoadingState
-          compact
-          className="mt-4"
-          title="Drafting a flow"
-          detail="The supervisor is shaping steps and seats from your description. It reads the project and cannot write."
-        />
+        // Shaped like the FlowCard review the draft resolves into.
+        <Skeleton
+          label="Drafting a flow"
+          className="mt-4 rounded-[16px] border border-[color:var(--line)] bg-coal-700 p-4"
+        >
+          <div className="flex items-start gap-3">
+            <SkeletonBlock w={40} h={40} radius={12} />
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <SkeletonBlock h={15} w="46%" />
+              <SkeletonText lines={2} size={11} gap={7} />
+            </div>
+          </div>
+          <SkeletonStats className="mt-3" count={4} />
+          <SkeletonRows className="mt-3.5" rows={4} lead="dot" meta />
+        </Skeleton>
       ) : null}
 
       {error ? (
@@ -259,32 +274,26 @@ function DraftReview({
 
   return (
     <div className="mt-4 rounded-[16px] border border-[color:var(--line)] bg-coal-700 p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-[15px] font-bold text-chalk-100">
-            {draft.flow.label}
-          </h3>
-          <p className="mono mt-0.5 text-[11.5px] text-violet-soft">{draft.flow.id}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <StatTile value={steps.length} label={steps.length === 1 ? "step" : "steps"} />
-          <StatTile value={seats.length} label={seats.length === 1 ? "seat" : "seats"} />
-          {gates > 0 ? (
-            <StatTile value={gates} label={gates === 1 ? "gate" : "gates"} tone="amber" />
-          ) : null}
-          {gaps.length > 0 ? (
-            <StatTile value={gaps.length} label="seats open" tone="rose" />
-          ) : (
-            <StatTile value="all" label="seats filled" tone="emerald" />
-          )}
-        </div>
-      </div>
+      {/* A drafted flow is a flow, so it wears the catalog's card rather than
+          a hand-built copy of its anatomy. Everything below is review material
+          the card has no slot for. */}
+      <FlowCard
+        entity="flow"
+        title={draft.flow.label}
+        badge={<span className="mono shrink-0 text-meta text-violet-soft">{draft.flow.id}</span>}
+        description={draft.flow.description}
+        stats={[
+          { value: steps.length, label: steps.length === 1 ? "step" : "steps" },
+          { value: seats.length, label: seats.length === 1 ? "seat" : "seats" },
+          ...(gates > 0 ? [{ value: gates, label: gates === 1 ? "gate" : "gates" }] : []),
+          gaps.length > 0
+            ? { value: gaps.length, label: "seats open" }
+            : { value: "all", label: "seats filled" },
+        ]}
+      >
+        <FlowBars steps={steps} />
+      </FlowCard>
 
-      <FlowBars steps={steps} />
-
-      <p className="max-w-[80ch] text-[13px] leading-[1.55] text-chalk-300">
-        {draft.flow.description}
-      </p>
       {draft.rationale ? (
         <p className="mt-2 max-w-[80ch] text-[12.5px] leading-[1.5] text-chalk-300">
           <span className="font-semibold text-violet-vivid">Why this shape: </span>
@@ -301,7 +310,7 @@ function DraftReview({
                 key={s.id}
                 className="flex items-center gap-2.5 border-b border-[color:var(--line-soft)] py-1.5 last:border-0"
               >
-                <span className="num-tabular w-4 shrink-0 text-right text-[11px] text-chalk-300">
+                <span className="num-tabular w-4 shrink-0 text-right text-meta text-chalk-300">
                   {i + 1}
                 </span>
                 <Chip contained tone={STEP_GROUP_TONE[stepKindGroup(s.kind)]}>
@@ -311,7 +320,7 @@ function DraftReview({
                   {s.label}
                 </span>
                 {s.seat ? (
-                  <span className="mono shrink-0 text-[11px] text-violet-soft">{s.seat}</span>
+                  <span className="mono shrink-0 text-meta text-violet-soft">{s.seat}</span>
                 ) : null}
               </li>
             ))}
@@ -321,7 +330,7 @@ function DraftReview({
         <div>
           <div className="mb-1.5 flex items-baseline gap-2">
             <span className="text-[12px] font-semibold text-violet-vivid">Seats</span>
-            <span className="text-[11.5px] text-chalk-300">
+            <span className="text-meta text-chalk-300">
               against {draft.coverage.crewId}
             </span>
           </div>
@@ -335,7 +344,7 @@ function DraftReview({
                   {s.seatId}
                 </span>
                 {s.resolvedRoleId ? (
-                  <span className="truncate text-[11.5px] text-chalk-300">
+                  <span className="truncate text-meta text-chalk-300">
                     {s.resolvedRoleId}
                   </span>
                 ) : null}
@@ -344,12 +353,12 @@ function DraftReview({
             ))}
           </ul>
           {gaps.length > 0 ? (
-            <p className="mt-1.5 text-[11.5px] leading-[1.45] text-amber-soft">
+            <p className="mt-1.5 text-meta leading-[1.45] text-amber-soft">
               A run needs a role for every seat a step uses. Saving the flow is still
               safe; running it is what the gap blocks.
             </p>
           ) : ambiguous.length > 0 ? (
-            <p className="mt-1.5 text-[11.5px] leading-[1.45] text-amber-soft">
+            <p className="mt-1.5 text-meta leading-[1.45] text-amber-soft">
               Two roles can take the same seat, so a run cannot pick one on its own.
             </p>
           ) : null}
@@ -400,7 +409,7 @@ function DraftReview({
         <Button variant="ghost" size="sm" disabled={creating} onClick={onDiscard}>
           Discard
         </Button>
-        <span className="text-[11.5px] text-chalk-300">
+        <span className="text-meta text-chalk-300">
           Saving validates it again and refuses anything secret-shaped.
         </span>
       </div>
@@ -440,7 +449,7 @@ export function AssistCurrencyReport({
           empty="The draft claims it checked nothing."
         />
       </div>
-      <p className="mt-1.5 max-w-[80ch] text-[11.5px] leading-[1.45] text-chalk-300">
+      <p className="mt-1.5 max-w-[80ch] text-meta leading-[1.45] text-chalk-300">
         Vibestrate makes no network call. Both lists are the agent&apos;s own report
         from inside its provider CLI, and nothing here verifies them.
       </p>
@@ -468,12 +477,12 @@ function CurrencyList({
     <div className={cn("rounded-[12px] border px-3 py-2.5", frame)}>
       <div className={cn("flex items-baseline gap-2 text-[12px] font-semibold", accent)}>
         {title}
-        <span className="num-tabular text-[11px] font-medium text-chalk-300">
+        <span className="num-tabular text-meta font-medium text-chalk-300">
           {items.length}
         </span>
       </div>
       {items.length === 0 ? (
-        <p className="mt-1 text-[11.5px] leading-[1.45] text-chalk-300">{empty}</p>
+        <p className="mt-1 text-meta leading-[1.45] text-chalk-300">{empty}</p>
       ) : (
         <ul className="mt-1.5 space-y-1">
           {items.map((it, i) => (
@@ -506,7 +515,7 @@ export function YamlBlock({
     <div className={className}>
       <div className="mb-1.5 flex flex-wrap items-baseline gap-2">
         <span className="text-[12px] font-semibold text-violet-vivid">{title}</span>
-        {path ? <span className="mono text-[11.5px] text-chalk-300">{path}</span> : null}
+        {path ? <span className="mono text-meta text-chalk-300">{path}</span> : null}
         <Button
           variant="ghost"
           size="sm"
@@ -535,7 +544,7 @@ export function YamlBlock({
           {copied ? "Copied" : "Copy"}
         </Button>
       </div>
-      <pre className="mono max-h-[320px] overflow-auto rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2.5 text-[11.5px] leading-[1.55] text-chalk-100">
+      <pre className="mono max-h-[320px] overflow-auto rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2.5 text-meta leading-[1.55] text-chalk-100">
         {yaml}
       </pre>
     </div>

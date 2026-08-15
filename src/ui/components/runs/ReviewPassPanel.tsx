@@ -35,7 +35,7 @@ type Props = {
 // `design/Button`, since Button has no per-status (affirm/warn/fail) color
 // variant. Same shape as the Approve/Reject decision pair on Mission Control.
 const INTENT_BTN =
-  "inline-flex items-center gap-1 rounded-[10px] px-1.5 py-0.5 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center gap-1 rounded-[10px] px-1.5 py-0.5 text-meta font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
 /**
  * Panel for review passes (suggestion bundles). Mounted by
@@ -288,7 +288,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
         <span className="text-[12px] font-medium text-chalk-100">
           Review passes
         </span>
-        <span className="font-mono text-[10.5px] text-chalk-400">
+        <span className="font-mono text-meta text-chalk-400">
           {bundles.length}
         </span>
         <IconBtn variant="plain" title="Refresh" onClick={() => void load()}>
@@ -296,12 +296,12 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
         </IconBtn>
       </header>
       {error ? (
-        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2 py-1 text-[11.5px] text-rose-300">
+        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2 py-1 text-meta text-rose-300">
           {error}
         </div>
       ) : null}
       {bundles.length === 0 ? (
-        <div className="rounded-[14px] border border-dashed border-[color:var(--line)] px-3 py-3 text-center text-[11.5px] text-chalk-400">
+        <div className="rounded-[14px] border border-dashed border-[color:var(--line)] px-3 py-3 text-center text-meta text-chalk-400">
           No review passes yet. Use the{" "}
           <span className="font-mono text-[12.5px]">Select</span> mode above
           to group suggestions into a pass.
@@ -325,7 +325,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                 <div className="flex flex-wrap items-center gap-2">
                   <BundleStatusBadge status={b.status} />
                   <span className="font-medium text-chalk-100">{b.title}</span>
-                  <span className="font-mono text-[10.5px] text-chalk-400">
+                  <span className="font-mono text-meta text-chalk-400">
                     {b.suggestionIds.length} suggestion
                     {b.suggestionIds.length === 1 ? "" : "s"}
                   </span>
@@ -339,20 +339,20 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                   </Button>
                 </div>
                 {b.errorMessage ? (
-                  <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-rose-300">
+                  <div className="mt-1 inline-flex items-center gap-1 text-meta text-rose-300">
                     <AlertTriangle className="h-3 w-3" strokeWidth={1.5} />
                     {b.errorMessage}
                   </div>
                 ) : null}
                 {b.sameFileWarnings.length > 0 ? (
-                  <div className="mt-1 rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-2 py-1 text-[11px] text-amber-soft">
+                  <div className="mt-1 rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-2 py-1 text-meta text-amber-soft">
                     {b.sameFileWarnings.length} same-file warning
                     {b.sameFileWarnings.length === 1 ? "" : "s"} - patches in
                     this pass touch overlapping files.
                   </div>
                 ) : null}
                 {expanded ? (
-                  <div className="mt-2 space-y-1.5 text-[11.5px]">
+                  <div className="mt-2 space-y-1.5 text-meta">
                     {b.description ? (
                       <p className="whitespace-pre-wrap text-chalk-300">
                         {b.description}
@@ -372,7 +372,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                     {validations[b.id] ? (
                       <ValidationBlock result={validations[b.id]!} />
                     ) : b.validationResultPath ? (
-                      <div className="font-mono text-[10.5px] text-chalk-400">
+                      <div className="font-mono text-meta text-chalk-400">
                         last validation: {b.validationResultPath}
                       </div>
                     ) : null}
@@ -384,7 +384,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                     ) : null}
                   </div>
                 ) : null}
-                <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+                <div className="mt-1.5 flex flex-wrap gap-1.5 text-meta">
                   {b.status === "draft" ? (
                     <>
                       <Button
@@ -478,7 +478,7 @@ function PreflightBlock({ result }: { result: BundlePreflightResult }) {
   const failures = result.findings.filter((f) => f.reason !== null);
   return (
     <div
-      className={`rounded-[10px] border px-2 py-1 text-[11px] ${
+      className={`rounded-[10px] border px-2 py-1 text-meta ${
         result.ok
           ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-400"
           : "border-rose-400/40 bg-rose-500/10 text-rose-300"
@@ -492,14 +492,14 @@ function PreflightBlock({ result }: { result: BundlePreflightResult }) {
       {failures.length > 0 ? (
         <ul className="mt-1 space-y-0.5">
           {failures.map((f, i) => (
-            <li key={i} className="font-mono text-[10.5px]">
+            <li key={i} className="font-mono text-meta">
               {f.suggestionId}: {f.reason}
             </li>
           ))}
         </ul>
       ) : null}
       {result.sameFileWarnings.length > 0 ? (
-        <div className="mt-1 font-mono text-[10.5px] text-amber-soft">
+        <div className="mt-1 font-mono text-meta text-amber-soft">
           {result.sameFileWarnings.length} same-file warning
           {result.sameFileWarnings.length === 1 ? "" : "s"}
         </div>
@@ -515,7 +515,7 @@ function ValidationBlock({
 }) {
   if (result.status === "no_commands_configured") {
     return (
-      <div className="rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-2 py-1 text-[11px] text-amber-soft">
+      <div className="rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-2 py-1 text-meta text-amber-soft">
         No <span className="font-mono text-[12.5px]">commands.validate</span>{" "}
         configured.
       </div>
@@ -524,7 +524,7 @@ function ValidationBlock({
   const ok = result.status === "passed";
   return (
     <div
-      className={`rounded-[10px] border px-2 py-1 text-[11px] ${
+      className={`rounded-[10px] border px-2 py-1 text-meta ${
         ok
           ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-400"
           : "border-rose-400/40 bg-rose-500/10 text-rose-300"
@@ -628,7 +628,7 @@ function SmartApplyControls({
           Smart apply
         </Button>
       </div>
-      <div className="flex flex-wrap gap-3 text-[10.5px] text-chalk-300">
+      <div className="flex flex-wrap gap-3 text-meta text-chalk-300">
         <label className="inline-flex items-center gap-1">
           <input
             type="checkbox"
@@ -691,21 +691,21 @@ function SmartApplyResultBlock({
   titleFor: (id: string) => string;
 }) {
   return (
-    <div className="rounded-[10px] border border-[color:var(--line)] bg-coal-600 px-2 py-1.5 text-[11px]">
+    <div className="rounded-[10px] border border-[color:var(--line)] bg-coal-600 px-2 py-1.5 text-meta">
       <div className="flex items-baseline gap-2">
         <span className="font-medium">Smart apply</span>
-        <span className="font-mono text-[10.5px] text-chalk-400">
+        <span className="font-mono text-meta text-chalk-400">
           {result.finalStatus}
         </span>
         {result.failedAt !== null && result.failedAt >= 0 ? (
-          <span className="font-mono text-[10.5px] text-amber-soft">
+          <span className="font-mono text-meta text-amber-soft">
             stopped at step {result.failedAt + 1}
           </span>
         ) : null}
       </div>
       <ol className="mt-1 ml-4 list-decimal space-y-0.5">
         {result.steps.map((step) => (
-          <li key={step.suggestionId} className="font-mono text-[10.5px]">
+          <li key={step.suggestionId} className="font-mono text-meta">
             <span className="text-chalk-300">{titleFor(step.suggestionId)}</span>
             {" - "}
             <span

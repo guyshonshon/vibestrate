@@ -35,6 +35,7 @@ import type {
 import { cn } from "../design/cn.js";
 import { relTime } from "../design/format.js";
 import { Button } from "../design/Button.js";
+import { Skeleton, SkeletonBlock, SkeletonRows } from "../design/Skeleton.js";
 import { HeroCard, type HeroTone } from "../design/HeroCard.js";
 import { GitDag } from "./GitDag.js";
 import { BranchesPanel } from "./BranchesPanel.js";
@@ -180,9 +181,34 @@ export function GitTreeView() {
       ) : null}
 
       {!graph ? (
-        <div className="flex min-h-0 flex-1 items-center justify-center rounded-[16px] border border-[color:var(--line)] bg-coal-700 text-[13px] text-chalk-300">
-          Loading the commit graph...
-        </div>
+        <Skeleton
+          label="Loading the commit graph"
+          className="grid min-h-0 flex-1 grid-cols-12 gap-4 pb-5"
+        >
+          {/* The same three regions the view resolves to, so the columns do not
+              appear only once git answers. */}
+          {[
+            { span: "lg:col-span-5", rows: 9, lead: "dot" as const },
+            { span: "lg:col-span-4", rows: 6, lead: "icon" as const },
+            { span: "lg:col-span-3", rows: 5, lead: undefined },
+          ].map((region, i) => (
+            <section
+              key={i}
+              className={cn(
+                "col-span-12 flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-700",
+                region.span,
+              )}
+            >
+              <div className="flex items-center gap-2 border-b border-[color:var(--line-soft)] px-3 py-2.5">
+                <SkeletonBlock tone="text" h={12} w={96} />
+                <SkeletonBlock tone="text" h={11} w={56} className="ml-auto" />
+              </div>
+              <div className="min-h-0 flex-1 p-3">
+                <SkeletonRows rows={region.rows} lead={region.lead} meta />
+              </div>
+            </section>
+          ))}
+        </Skeleton>
       ) : !graph.available ? (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 rounded-[16px] border border-[color:var(--line)] bg-coal-700 px-6 text-center">
           <div className="text-[15px] font-semibold text-chalk-100">
@@ -224,7 +250,7 @@ export function GitTreeView() {
                   count={branches?.branches.length}
                 />
               </div>
-              <span className="ml-auto text-[11.5px] font-semibold text-violet-soft tabular-nums">
+              <span className="ml-auto text-meta font-semibold text-violet-soft tabular-nums">
                 {leftTab === "graph" ? (
                   <>
                     {graph.commits.length} commit{graph.commits.length === 1 ? "" : "s"}
@@ -356,7 +382,7 @@ function TabButton({
       <span className={active ? "text-violet-soft" : ""}>{icon}</span>
       {label}
       {typeof count === "number" ? (
-        <span className="num-tabular text-[10.5px] text-chalk-400">{count}</span>
+        <span className="num-tabular text-meta text-chalk-400">{count}</span>
       ) : null}
     </button>
   );
@@ -443,10 +469,10 @@ function CommitInspector({
         >
           <GitMerge className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={1.9} />
           <span className="min-w-0 flex-1">
-            <span className="block text-[10.5px] font-medium text-emerald-400">
+            <span className="block text-meta font-medium text-emerald-400">
               landed on {mainBranch} at
             </span>
-            <span className="block truncate text-[11.5px] font-semibold text-chalk-100">
+            <span className="block truncate text-meta font-semibold text-chalk-100">
               <span className="mono">{landedAt.slice(0, 8)}</span>
               {landedCommit ? ` ${landedCommit.subject}` : ""}
             </span>
@@ -455,7 +481,7 @@ function CommitInspector({
         </button>
       ) : null}
       {!landedAt ? (
-        <div className="rounded-[12px] border border-amber-soft/25 bg-amber-500/[0.07] px-3 py-2 text-[11.5px] text-amber-soft">
+        <div className="rounded-[12px] border border-amber-soft/25 bg-amber-500/[0.07] px-3 py-2 text-meta text-amber-soft">
           Not reachable from {mainBranch} - merge its branch in the planner to
           land it.
         </div>
@@ -464,7 +490,7 @@ function CommitInspector({
       {/* Parents - jump the selection. */}
       {commit.parents.length > 0 ? (
         <div>
-          <div className="mb-1.5 text-[11px] font-semibold text-violet-soft">
+          <div className="mb-1.5 text-meta font-semibold text-violet-soft">
             {commit.parents.length > 1 ? "Parents" : "Parent"}
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -473,7 +499,7 @@ function CommitInspector({
                 key={p}
                 type="button"
                 onClick={() => onJump(p)}
-                className="mono rounded-[8px] border border-[color:var(--line)] bg-coal-500/60 px-2 py-1 text-[11px] text-chalk-100 transition hover:border-violet-soft/40 hover:text-violet-soft"
+                className="mono rounded-[8px] border border-[color:var(--line)] bg-coal-500/60 px-2 py-1 text-meta text-chalk-100 transition hover:border-violet-soft/40 hover:text-violet-soft"
               >
                 {p.slice(0, 8)}
               </button>
@@ -485,7 +511,7 @@ function CommitInspector({
       {/* Branch tips here - click selects the tip commit. */}
       {branches.length > 0 ? (
         <div>
-          <div className="mb-1.5 text-[11px] font-semibold text-violet-soft">
+          <div className="mb-1.5 text-meta font-semibold text-violet-soft">
             Branch tips here
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -497,7 +523,7 @@ function CommitInspector({
                   type="button"
                   onClick={() => onJump(b.hash)}
                   className={cn(
-                    "mono rounded-[8px] border px-2 py-1 text-[11px] transition",
+                    "mono rounded-[8px] border px-2 py-1 text-meta transition",
                     isMain
                       ? "border-violet-soft/25 bg-violet-soft/10 text-violet-soft hover:bg-violet-soft/20"
                       : b.mergedIntoMain
@@ -516,7 +542,7 @@ function CommitInspector({
                   {!isMain ? (
                     <span
                       className={cn(
-                        "ml-1.5 font-sans text-[9.5px] font-semibold",
+                        "ml-1.5 font-sans text-meta font-semibold",
                         b.mergedIntoMain ? "text-chalk-400" : "text-emerald-400",
                       )}
                     >
@@ -533,8 +559,8 @@ function CommitInspector({
       {/* Message body, when the commit has one. */}
       {detail?.body ? (
         <div className="rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500/50 px-2.5 py-2">
-          <div className="mb-1 text-[10.5px] font-medium text-violet-soft">message</div>
-          <pre className="mono max-h-40 overflow-auto whitespace-pre-wrap text-[10.5px] leading-[1.5] text-chalk-200">
+          <div className="mb-1 text-meta font-medium text-violet-soft">message</div>
+          <pre className="mono max-h-40 overflow-auto whitespace-pre-wrap text-meta leading-[1.5] text-chalk-200">
             {detail.body}
           </pre>
         </div>
@@ -543,17 +569,19 @@ function CommitInspector({
       {/* Files changed - per-file numstat from the detail endpoint. */}
       <div>
         <div className="mb-1.5 flex items-baseline justify-between">
-          <span className="text-[11px] font-semibold text-violet-soft">
+          <span className="text-meta font-semibold text-violet-soft">
             Files changed
           </span>
           {detail && detail.files.length > 0 ? (
-            <span className="num-tabular text-[10.5px] text-chalk-300">
+            <span className="num-tabular text-meta text-chalk-300">
               {detail.files.length}
             </span>
           ) : null}
         </div>
         {detailLoading && !detail ? (
-          <div className="text-[11.5px] text-chalk-300">Loading files…</div>
+          <Skeleton label="Loading the commit's files">
+            <SkeletonRows rows={4} trailing />
+          </Skeleton>
         ) : detailError ? (
           <ErrorView
             compact
@@ -565,7 +593,7 @@ function CommitInspector({
             }}
           />
         ) : !detail || detail.files.length === 0 ? (
-          <div className="text-[11.5px] text-chalk-300">
+          <div className="text-meta text-chalk-300">
             {isMerge
               ? "A merge commit - its changes live in the merged commits."
               : "No file changes recorded."}
@@ -578,10 +606,10 @@ function CommitInspector({
                 className="flex items-center gap-2 rounded-[8px] px-2 py-1 hover:bg-coal-500/60"
                 title={f.path}
               >
-                <span className="mono min-w-0 flex-1 truncate text-[11px] text-chalk-100">
+                <span className="mono min-w-0 flex-1 truncate text-meta text-chalk-100">
                   {f.path}
                 </span>
-                <span className="num-tabular shrink-0 text-[10.5px] font-semibold">
+                <span className="num-tabular shrink-0 text-meta font-semibold">
                   {f.insertions === null ? (
                     <span className="text-chalk-400">binary</span>
                   ) : (

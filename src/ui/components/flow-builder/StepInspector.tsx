@@ -194,7 +194,7 @@ export function StepRow({
           <GripVertical className="h-4 w-4" strokeWidth={1.7} />
         </span>
       ) : null}
-      <span className="mono text-[10.5px] text-chalk-400 num-tabular w-5 text-center">
+      <span className="mono text-meta text-chalk-400 num-tabular w-5 text-center">
         {String(idx + 1).padStart(2, "0")}
       </span>
       <div className="flex-1 min-w-0">
@@ -209,7 +209,7 @@ export function StepRow({
             </Chip>
           ) : null}
           {step.optional ? (
-            <span className="inline-flex items-center rounded-[6px] border border-[color:var(--line-soft)] bg-coal-600 px-1.5 py-px text-[10px] font-medium text-chalk-300">
+            <span className="inline-flex items-center rounded-[6px] border border-[color:var(--line-soft)] bg-coal-600 px-1.5 py-px text-meta font-medium text-chalk-300">
               optional
             </span>
           ) : null}
@@ -219,7 +219,7 @@ export function StepRow({
             </span>
           ) : null}
         </div>
-        <div className="text-[11.5px] text-chalk-300 mt-0.5 flex items-center gap-2 flex-wrap">
+        <div className="text-meta text-chalk-300 mt-0.5 flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1 whitespace-nowrap">
             <Cpu className="h-3 w-3 text-chalk-400" strokeWidth={1.7} />{" "}
             {step.seat ?? "-"}
@@ -340,7 +340,7 @@ export function PromptComposition({
         {layers.map((l, i) => (
           <Fragment key={l.label}>
             {i > 0 ? (
-              <div className="my-0.5 text-center text-[11px] font-bold leading-none text-chalk-400">
+              <div className="my-0.5 text-center text-meta font-bold leading-none text-chalk-400">
                 +
               </div>
             ) : null}
@@ -357,21 +357,21 @@ export function PromptComposition({
               <div className="flex items-center gap-1.5">
                 <span
                   className={cn(
-                    "text-[10px] font-semibold",
+                    "text-meta font-semibold",
                     l.accent ? "text-violet-soft" : "text-chalk-300",
                   )}
                 >
                   {l.label}
                 </span>
                 {l.runtime ? (
-                  <span className="rounded-[5px] bg-coal-500 px-1 py-px text-[10px] font-medium text-chalk-400">
+                  <span className="rounded-[5px] bg-coal-500 px-1 py-px text-meta font-medium text-chalk-400">
                     at run time
                   </span>
                 ) : null}
               </div>
               <div
                 className={cn(
-                  "mt-0.5 text-[11px] leading-snug",
+                  "mt-0.5 text-meta leading-snug",
                   l.empty
                     ? "italic text-chalk-400"
                     : l.accent
@@ -389,11 +389,11 @@ export function PromptComposition({
         <ChevronRight className="h-4 w-4 rotate-90" strokeWidth={2} aria-hidden />
       </div>
       <div className="rounded-[10px] border border-[color:var(--line-strong)] bg-coal-600 px-3 py-2">
-        <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-chalk-100">
+        <div className="flex items-center gap-1.5 text-meta font-semibold text-chalk-100">
           <Code className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} aria-hidden />
           The prompt {seatLabel ? `the ${seatLabel}` : "this step's agent"} receives
         </div>
-        <div className="mt-0.5 text-[10.5px] leading-snug text-chalk-400">
+        <div className="mt-0.5 text-meta leading-snug text-chalk-400">
           Assembled per run and saved as{" "}
           <span className="mono text-chalk-300">flows/{step.id}/prompt.md</span> -
           run a Dry-run or open a run to read the exact text.
@@ -475,7 +475,7 @@ export function StepInspector({
       </div>
 
       {warning ? (
-        <div className="mb-3 flex items-start gap-2 rounded-[10px] border border-amber-soft/30 bg-amber-soft/10 px-3 py-2 text-[11.5px] leading-[1.5] text-amber-soft">
+        <div className="mb-3 flex items-start gap-2 rounded-[10px] border border-amber-soft/30 bg-amber-soft/10 px-3 py-2 text-meta leading-[1.5] text-amber-soft">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.9} aria-hidden />
           <span>{warning}</span>
         </div>
@@ -505,7 +505,7 @@ export function StepInspector({
               title={`${KIND_INFO[k].title} - ${KIND_INFO[k].blurb}`}
               onClick={() => onPatchDraft({ kind: k })}
               className={cn(
-                "text-[11.5px] px-2 py-1 rounded-[10px] border whitespace-nowrap transition",
+                "text-meta px-2 py-1 rounded-[10px] border whitespace-nowrap transition",
                 k === kind
                   ? "border-violet-soft/45 bg-violet-soft/10 text-violet-soft"
                   : "border-[color:var(--line)] bg-coal-500 text-chalk-300 hover:text-chalk-100",
@@ -530,11 +530,11 @@ export function StepInspector({
             <span className="text-[12px] font-semibold text-chalk-100">
               {KIND_INFO[kind].title}
             </span>
-            <span className="rounded-[8px] bg-violet-soft/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-soft">
+            <span className="rounded-[8px] bg-violet-soft/10 px-1.5 py-0.5 text-meta font-medium text-violet-soft">
               {KIND_INFO[kind].phase}
             </span>
           </div>
-          <p className="mt-1.5 text-[11.5px] leading-[1.5] text-chalk-300">
+          <p className="mt-1.5 text-meta leading-[1.5] text-chalk-300">
             {KIND_INFO[kind].blurb}
           </p>
         </div>
@@ -562,13 +562,13 @@ export function StepInspector({
           ]}
         />
         {requiresSeat && !seatId ? (
-          <div className="text-[11px] text-amber-soft mt-1">
+          <div className="text-meta text-amber-soft mt-1">
             {kind} steps need a seat.
           </div>
         ) : null}
-        <div className="text-[11px] text-chalk-400 mt-1">
-          Which Role fills this seat - and on which Profile - is decided by the
-          Crew at run time, not here. Flows stay shareable.
+        <div className="text-meta text-chalk-400 mt-1">
+          The Crew picks the Role and Profile at run time, so the flow stays
+          shareable.
         </div>
       </Field>
 
@@ -588,7 +588,7 @@ export function StepInspector({
             if (all.length === 0) {
               return (
                 <div className="flex flex-col gap-2">
-                  <div className="text-[11px] text-chalk-400">
+                  <div className="text-meta text-chalk-400">
                     No skills found in this project (.vibestrate/skills or
                     .claude/skills). Fetch one from a URL:
                   </div>
@@ -601,18 +601,18 @@ export function StepInspector({
                       onChange={(e) => setSkillUrl(e.target.value)}
                       placeholder="https://…/skill.md"
                       disabled={skillBusy}
-                      className="w-full min-w-0 flex-1 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-1.5 text-[11.5px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none disabled:opacity-50"
+                      className="w-full min-w-0 flex-1 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-1.5 text-meta text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none disabled:opacity-50"
                     />
                     <button
                       type="submit"
                       disabled={skillBusy || !skillUrl.trim()}
-                      className="shrink-0 rounded-[10px] bg-coal-500 px-2.5 py-1.5 text-[11.5px] font-semibold text-chalk-100 transition hover:bg-coal-400 disabled:opacity-50"
+                      className="shrink-0 rounded-[10px] bg-coal-500 px-2.5 py-1.5 text-meta font-semibold text-chalk-100 transition hover:bg-coal-400 disabled:opacity-50"
                     >
                       {skillBusy ? "Fetching…" : "Fetch"}
                     </button>
                   </form>
                   {skillError ? (
-                    <div className="text-[10.5px] text-rose-300">{skillError}</div>
+                    <div className="text-meta text-rose-300">{skillError}</div>
                   ) : null}
                 </div>
               );
@@ -629,7 +629,7 @@ export function StepInspector({
                         disabled={!editable}
                         onClick={() => toggle(name)}
                         className={cn(
-                          "text-[11.5px] px-2 py-1 rounded-[10px] border whitespace-nowrap transition",
+                          "text-meta px-2 py-1 rounded-[10px] border whitespace-nowrap transition",
                           on
                             ? "border-violet-soft/45 bg-violet-soft/10 text-violet-soft"
                             : "border-[color:var(--line)] bg-coal-500 text-chalk-300 hover:text-chalk-100",
@@ -641,10 +641,9 @@ export function StepInspector({
                     );
                   })}
                 </div>
-                <div className="text-[11px] text-chalk-400 mt-1">
-                  Knowledge injected into this step's prompt (merged with run-level
-                  skills). Portable - the flow carries them, not a separate
-                  primitive.
+                <div className="text-meta text-chalk-400 mt-1">
+                  Added to this step's prompt on top of the run's skills. The
+                  flow carries them.
                 </div>
               </>
             );
@@ -676,7 +675,7 @@ export function StepInspector({
                       : "opacity-70 cursor-not-allowed",
                   )}
                 />
-                <div className="mt-1 flex items-center justify-between gap-2 text-[10.5px] text-chalk-400">
+                <div className="mt-1 flex items-center justify-between gap-2 text-meta text-chalk-400">
                   <span>
                     Folded into the step&apos;s prompt - preview the full
                     composition in Dry-run.
@@ -701,7 +700,7 @@ export function StepInspector({
           value={approval}
           onChange={(next) => onPatchDraft({ approval: next })}
         />
-        <div className="mt-2 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-800 px-3 py-2 text-[11px] leading-[1.5] text-chalk-400">
+        <div className="mt-2 rounded-[10px] border border-[color:var(--line-soft)] bg-coal-800 px-3 py-2 text-meta leading-[1.5] text-chalk-400">
           When the run reaches this step it pauses (no agent runs) and waits for a
           person. They see your reason and message, the risk level, and the prior
           step's output, and review the run's diff so far - then{" "}
@@ -792,7 +791,7 @@ function ApprovalEditor({
                 riskLevel: "medium",
               })
             }
-            className="text-[11.5px] text-violet-soft hover:text-violet-soft/80 flex items-center gap-1"
+            className="text-meta text-violet-soft hover:text-violet-soft/80 flex items-center gap-1"
           >
             <Plus className="h-3 w-3" strokeWidth={1.7} /> Add approval gate
           </button>
@@ -851,7 +850,7 @@ function ApprovalEditor({
       />
       <div className="flex items-center justify-between gap-2 pt-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-semibold text-violet-soft">
+          <span className="text-meta font-semibold text-violet-soft">
             Risk
           </span>
           {RISK_LEVELS.map((r) => (
@@ -861,7 +860,7 @@ function ApprovalEditor({
               disabled={!editable}
               onClick={() => onChange({ ...effective, riskLevel: r })}
               className={cn(
-                "text-[11.5px] px-2 py-0.5 rounded-[10px] border transition",
+                "text-meta px-2 py-0.5 rounded-[10px] border transition",
                 r === effective.riskLevel
                   ? r === "high"
                     ? "border-rose-400/40 bg-rose-500/10 text-rose-300"
@@ -880,7 +879,7 @@ function ApprovalEditor({
           <button
             type="button"
             onClick={() => onChange(null)}
-            className="text-[11.5px] text-rose-300/80 hover:text-rose-300"
+            className="text-meta text-rose-300/80 hover:text-rose-300"
           >
             Remove gate
           </button>
@@ -894,17 +893,17 @@ function ApprovalEditor({
 function Row({ label, items }: { label: string; items: string[] }) {
   return (
     <div className="flex items-start gap-2">
-      <span className="text-[10.5px] font-medium text-violet-soft w-16 shrink-0 pt-0.5">
+      <span className="text-meta font-medium text-violet-soft w-16 shrink-0 pt-0.5">
         {label}
       </span>
       <div className="flex flex-wrap gap-1.5 min-w-0">
         {items.length === 0 ? (
-          <span className="text-chalk-400 text-[11.5px]">-</span>
+          <span className="text-chalk-400 text-meta">-</span>
         ) : (
           items.map((it) => (
             <span
               key={it}
-              className="mono text-[11px] px-1.5 py-0.5 rounded-[8px] border border-[color:var(--line-soft)] bg-coal-500 text-chalk-300"
+              className="mono text-meta px-1.5 py-0.5 rounded-[8px] border border-[color:var(--line-soft)] bg-coal-500 text-chalk-300"
             >
               {it}
             </span>
@@ -930,7 +929,7 @@ export function Field({
   return (
     <div className="mb-3.5 last:mb-0">
       <div className="mb-1.5 flex items-center gap-1.5">
-        <span className="text-[11px] font-semibold text-violet-soft">{label}</span>
+        <span className="text-meta font-semibold text-violet-soft">{label}</span>
         {help ? <HelpHint slug={help.slug} label={help.label} /> : null}
       </div>
       {children}

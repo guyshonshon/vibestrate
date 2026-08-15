@@ -67,7 +67,7 @@ export function RunStatusBadge({ status, compact }: Props) {
   const tone = STATUS_TONE[status];
   if (compact) {
     return (
-      <span className={`inline-flex items-center gap-1.5 text-[11.5px] font-medium ${tone.text}`}>
+      <span className={`inline-flex items-center gap-1.5 text-meta font-medium ${tone.text}`}>
         <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
         {STATUS_LABEL[status]}
       </span>
@@ -75,7 +75,7 @@ export function RunStatusBadge({ status, compact }: Props) {
   }
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-[8px] border border-[color:var(--line)] bg-coal-600 px-2 py-0.5 text-[11.5px] font-medium ${tone.text}`}
+      className={`inline-flex items-center gap-1.5 rounded-[8px] border border-[color:var(--line)] bg-coal-600 px-2 py-0.5 text-meta font-medium ${tone.text}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
       {STATUS_LABEL[status]}

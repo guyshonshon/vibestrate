@@ -15,6 +15,13 @@ import {
 } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
 import { PageHero } from "../../components/layout/PageHero.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+  SkeletonText,
+} from "../../components/design/Skeleton.js";
+import { HeroNumber } from "./page-skeletons.js";
 
 const INPUT =
   "w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-3 text-[13px] text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50 disabled:opacity-60";
@@ -38,6 +45,9 @@ export function ProposalsPage({
   const [goal, setGoal] = useState("");
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
+  // An empty list before the first read is not "no proposals yet", and the
+  // zero-state told the user to describe a goal they may already have one for.
+  const [loaded, setLoaded] = useState(false);
 
   async function load() {
     try {
@@ -45,6 +55,8 @@ export function ProposalsPage({
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoaded(true);
     }
   }
 
@@ -90,11 +102,13 @@ export function ProposalsPage({
         <Cell size="full" reason="masthead">
           <PageHero
             state={{
-              value: drafts,
+              value: loaded ? drafts : <HeroNumber />,
               caption: drafts === 1 ? "Draft" : "Drafts",
-              note: drafts
-                ? "Waiting on a review before they become roadmap items."
-                : "Nothing waiting on you.",
+              note: !loaded
+                ? undefined
+                : drafts
+                  ? "Waiting on a review before they become roadmap items."
+                  : "Nothing waiting on you.",
               tone: drafts > 0 ? "amber" : "emerald",
             }}
             title="Roadmap proposals"
@@ -122,9 +136,13 @@ export function ProposalsPage({
               </div>
             }
             metrics={[
-              { value: proposals.length, label: "proposals" },
-              { value: drafts, label: "drafts", tone: drafts ? "warn" : "default" },
-              { value: accepted, label: "accepted", tone: "good" },
+              { value: loaded ? proposals.length : <HeroNumber />, label: "proposals" },
+              {
+                value: loaded ? drafts : <HeroNumber />,
+                label: "drafts",
+                tone: drafts ? "warn" : "default",
+              },
+              { value: loaded ? accepted : <HeroNumber />, label: "accepted", tone: "good" },
             ]}
             footer={
               genError ? (
@@ -143,7 +161,26 @@ export function ProposalsPage({
           />
         </Cell>
 
-        {proposals.length === 0 ? (
+        {!loaded ? (
+          <Cell size="full" reason="nested-deck">
+            <Skeleton label="Loading proposals">
+              <Deck align="stretch">
+                {[0, 1, 2].map((i) => (
+                  <Cell key={i} size="card">
+                    <div className="flex flex-col gap-2.5 rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
+                      <div className="flex items-center gap-2">
+                        <SkeletonBlock w={16} h={16} radius={6} />
+                        <SkeletonBlock tone="text" h={13} w="58%" />
+                      </div>
+                      <SkeletonText lines={2} size={12} />
+                      <SkeletonBlock tone="text" h={11} w={88} />
+                    </div>
+                  </Cell>
+                ))}
+              </Deck>
+            </Skeleton>
+          </Cell>
+        ) : proposals.length === 0 ? (
           <Cell size="full" reason="masthead">
             <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 px-6 py-10 text-center text-[13px] text-chalk-300">
               No proposals yet. Describe a goal above to make one.
@@ -177,7 +214,7 @@ export function ProposalsPage({
                     <span className="mono min-w-0 flex-1 truncate text-[13px] text-chalk-100">
                       {p.id}
                     </span>
-                    <span className="mono shrink-0 text-[11px] text-chalk-400">
+                    <span className="mono shrink-0 text-meta text-chalk-400">
                       {p.byteSize}b
                     </span>
                   </div>
@@ -333,7 +370,7 @@ export function ProposalDetailPage({
           </>
         }
       >
-        <label className="mt-2 inline-flex items-center gap-1.5 text-[11.5px] text-chalk-300">
+        <label className="mt-2 inline-flex items-center gap-1.5 text-meta text-chalk-300">
           <input
             type="checkbox"
             checked={allowUnresolved}
@@ -355,7 +392,17 @@ export function ProposalDetailPage({
         <section className="flex flex-col gap-3 overflow-y-auto rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-3">
           <div className="text-[12px] font-semibold text-chalk-300">Preview</div>
           {preview === null ? (
-            <div className="text-[12px] text-chalk-300">Loading…</div>
+            <Skeleton label="Loading proposal preview" className="flex flex-col gap-3">
+              <SkeletonBlock tone="text" h={13} w="82%" />
+              <div className="flex flex-col gap-1.5">
+                <SkeletonBlock tone="text" h={11} w={104} />
+                <SkeletonRows rows={3} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <SkeletonBlock tone="text" h={11} w={64} />
+                <SkeletonRows rows={5} />
+              </div>
+            </Skeleton>
           ) : (
             <>
               <div className="text-[12.5px] text-chalk-100">
@@ -368,7 +415,7 @@ export function ProposalDetailPage({
               </div>
               {preview.willCreate.roadmapItems.length > 0 ? (
                 <div>
-                  <div className="text-[11.5px] font-semibold text-chalk-300">
+                  <div className="text-meta font-semibold text-chalk-300">
                     Roadmap items
                   </div>
                   <ul className="mt-1 space-y-0.5">
@@ -386,7 +433,7 @@ export function ProposalDetailPage({
               ) : null}
               {preview.willCreate.tasks.length > 0 ? (
                 <div>
-                  <div className="text-[11.5px] font-semibold text-chalk-300">
+                  <div className="text-meta font-semibold text-chalk-300">
                     Tasks
                   </div>
                   <ul className="mt-1 space-y-0.5">
@@ -414,7 +461,7 @@ export function ProposalDetailPage({
               ) : null}
               {warnList.length > 0 ? (
                 <div className="rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 p-2 text-[12px] text-amber-soft">
-                  <div className="text-[11.5px] font-semibold">
+                  <div className="text-meta font-semibold">
                     Warnings ({warnList.length})
                   </div>
                   <ul className="mt-1 space-y-0.5">
@@ -426,7 +473,7 @@ export function ProposalDetailPage({
               ) : null}
               {errorList.length > 0 ? (
                 <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 p-2 text-[12px] text-rose-300">
-                  <div className="text-[11.5px] font-semibold">
+                  <div className="text-meta font-semibold">
                     Errors ({errorList.length})
                   </div>
                   <ul className="mt-1 space-y-0.5">
@@ -434,7 +481,7 @@ export function ProposalDetailPage({
                       <li key={i}>· {e.message}</li>
                     ))}
                   </ul>
-                  <div className="mt-2 text-[11px]">
+                  <div className="mt-2 text-meta">
                     Accept is disabled until errors are fixed in the proposal
                     Markdown.
                   </div>

@@ -3,6 +3,7 @@ import { Copy, ExternalLink, FolderOpen, GitBranch } from "lucide-react";
 import { ApiError, api } from "../../lib/api.js";
 import type { FileDiff } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
+import { Skeleton, SkeletonText } from "../design/Skeleton.js";
 import { SecretDiffWarning } from "./SecretDiffWarning.js";
 
 type Line = { kind: "context" | "add" | "del" | "hunk" | "header"; text: string };
@@ -71,7 +72,18 @@ export function DiffViewer({
   }
 
   if (!diff) {
-    return <div className="text-[12px] text-chalk-400">Loading diff…</div>;
+    return (
+      <div className="overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600">
+        {/* The path and its controls are already resolved; only the hunks are
+            still on the way. */}
+        <header className="flex items-center gap-1.5 border-b border-[color:var(--line-soft)] bg-coal-500/60 px-3 py-1.5 text-meta text-chalk-300">
+          <span className="mono truncate">{filePath}</span>
+        </header>
+        <Skeleton label="Loading the diff" className="px-3 py-2">
+          <SkeletonText lines={12} width="full" size={11} gap={8} />
+        </Skeleton>
+      </div>
+    );
   }
 
   if (diff.redacted) {
@@ -82,7 +94,7 @@ export function DiffViewer({
 
   return (
     <div className="overflow-auto rounded-[18px] border border-[color:var(--line)] bg-coal-600">
-      <header className="flex items-center gap-1.5 border-b border-[color:var(--line-soft)] bg-coal-500/60 px-3 py-1.5 text-[11.5px] text-chalk-300">
+      <header className="flex items-center gap-1.5 border-b border-[color:var(--line-soft)] bg-coal-500/60 px-3 py-1.5 text-meta text-chalk-300">
         <span className="mono truncate">{diff.path}</span>
         <div className="ml-auto flex items-center gap-1">
           {onOpenInProject ? (

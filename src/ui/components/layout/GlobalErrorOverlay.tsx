@@ -52,7 +52,7 @@ export function GlobalErrorOverlay() {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className="flex items-start gap-2 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[11.5px] text-rose-300 shadow-xl"
+          className="flex items-start gap-2 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-meta text-rose-300 shadow-xl"
         >
           <span className="mt-px shrink-0 text-rose-400">!</span>
           <span className="min-w-0 flex-1 break-words">{t.msg}</span>

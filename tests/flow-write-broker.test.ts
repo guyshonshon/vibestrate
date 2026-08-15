@@ -18,6 +18,7 @@ import {
 } from "../src/flows/runtime/flow-portability.js";
 import {
   applyFlowPatch,
+  deleteProjectFlow,
   forkFlowToProject,
 } from "../src/flows/runtime/flow-patch.js";
 import { readActionLog } from "../src/safety/action-broker.js";
@@ -151,7 +152,7 @@ describe("createProjectFlow crosses the Action Broker", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.status).toBe(403);
-    expect(result.reasons.join("\n")).toMatch(/Action broker deny/);
+    expect(result.reasons.join("\n")).toMatch(/Action broker refused/);
 
     expect(await exists(flowFile(root, "made-up-flow"))).toBe(false);
     const writes = await flowWriteRecords(root);
@@ -247,6 +248,71 @@ describe("forkFlowToProject crosses the Action Broker", () => {
     expect(result.status).toBe(403);
 
     expect(await exists(flowFile(root, "quality-arbitration"))).toBe(false);
+    const writes = await flowWriteRecords(root);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!.decision.effect).toBe("deny");
+  });
+});
+
+describe("an allowed write that then fails still reaches a terminal record", () => {
+  // Without this, a gate decision with no outcome sits in the log and reads
+  // exactly like a write that landed.
+  it("records ok:false when the write throws after the gate allowed it", async () => {
+    const root = await makeRoot();
+    // A plain file where the flow's directory belongs: the writer's mkdir
+    // fails, after the broker has already allowed the action.
+    await fs.writeFile(path.join(root, ".vibestrate", "flows", "made-up-flow"), "");
+
+    await expect(
+      createProjectFlow({ projectRoot: root, definition: NEW_FLOW }),
+    ).rejects.toThrow();
+
+    const writes = await flowWriteRecords(root);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!.decision.effect).toBe("allow");
+    expect(writes[0]!.evidence?.ok).toBe(false);
+    expect(writes[0]!.evidence?.summary).toMatch(/failed to write/);
+  });
+});
+
+describe("deleteProjectFlow crosses the Action Broker", () => {
+  it("records the delete with the removed path on success", async () => {
+    const root = await makeRoot();
+    const result = await deleteProjectFlow({
+      projectRoot: root,
+      flowId: "project-review",
+    });
+    if (!result.ok) throw new Error(result.reasons.join(", "));
+
+    expect(await exists(flowFile(root, "project-review"))).toBe(false);
+    const writes = await flowWriteRecords(root);
+    expect(writes).toHaveLength(1);
+    const rec = writes[0]!;
+    expect(rec.decision.effect).toBe("allow");
+    expect(rec.request.subject.path).toBe(flowFile(root, "project-review"));
+    expect(rec.request.subject.purpose).toBe("flow-delete");
+    expect(rec.evidence?.ok).toBe(true);
+  });
+
+  // Deleting a flow destroys it as thoroughly as an overwrite would. A policy
+  // that stops flow authoring has to stop this too, or "no flow writes" means
+  // "no flow writes, but you may still lose them all".
+  it("refuses the delete and leaves the flow in place when a policy denies file.write", async () => {
+    const root = await makeRoot();
+    await denyFileWrites(root);
+    const target = flowFile(root, "project-review");
+    const before = await fs.readFile(target, "utf8");
+
+    const result = await deleteProjectFlow({
+      projectRoot: root,
+      flowId: "project-review",
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.status).toBe(403);
+    expect(result.reasons.join("\n")).toMatch(/Action broker refused/);
+
+    expect(await fs.readFile(target, "utf8")).toBe(before);
     const writes = await flowWriteRecords(root);
     expect(writes).toHaveLength(1);
     expect(writes[0]!.decision.effect).toBe("deny");

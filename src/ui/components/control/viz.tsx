@@ -70,7 +70,7 @@ export function StageTimeline({ status }: { status: RunStatus }) {
                 {done ? <Check className="h-3.5 w-3.5" strokeWidth={2.6} /> : i + 1}
               </span>
               <span
-                className="text-[11px]"
+                className="text-meta"
                 style={{ color: done || here ? "var(--color-chalk-300)" : "var(--color-chalk-400)" }}
               >
                 {p}
@@ -139,7 +139,7 @@ export function ActivityList({ events, max = 6 }: { events: VibestrateEvent[]; m
     <div className="flex flex-col gap-1.5">
       {evs.map((e, i) => (
         <div key={i} className="flex items-center gap-3 rounded-[12px] bg-coal-500/40 px-3.5 py-2.5">
-          <span className="shrink-0 font-mono text-[10.5px] text-chalk-400">{clock(e.timestamp)}</span>
+          <span className="shrink-0 font-mono text-meta text-chalk-400">{clock(e.timestamp)}</span>
           {/* Event type is a kind word, not free text - the contained Chip
            * recipe (primitives-contract §3/§10) replaces the hand-rolled
            * bg-coal-500 pill; mono stays since the type is a literal

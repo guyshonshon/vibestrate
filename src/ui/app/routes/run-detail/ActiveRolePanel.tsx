@@ -66,7 +66,7 @@ export function ActiveRolePanel({
               run.profileOverride ?? run.crewId ??
               "auto"}
           </div>
-          <div className="truncate text-[11.5px] text-chalk-300">
+          <div className="truncate text-meta text-chalk-300">
             {agent?.flowSeat ?? agent?.stageId ?? "-"}
           </div>
         </div>

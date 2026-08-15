@@ -48,12 +48,12 @@ export function ContextSourcesSection({
   return (
     <div>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <span className="text-[11px] font-medium text-violet-soft">Grounding</span>
+        <span className="text-meta font-medium text-violet-soft">Grounding</span>
         {hasSources ? (
           sources.map((s, i) => (
             <span
               key={`${s.kind}-${s.ref}-${i}`}
-              className="group inline-flex items-center gap-1.5 rounded-[8px] bg-coal-500/70 py-1 pl-2 pr-1.5 text-[11px]"
+              className="group inline-flex items-center gap-1.5 rounded-[8px] bg-coal-500/70 py-1 pl-2 pr-1.5 text-meta"
             >
               {s.kind === "url" ? (
                 <ExternalLink className="h-3 w-3 shrink-0 text-amber-soft" strokeWidth={1.9} />
@@ -79,13 +79,13 @@ export function ContextSourcesSection({
             </span>
           ))
         ) : (
-          <span className="text-[11px] text-chalk-400">none</span>
+          <span className="text-meta text-chalk-400">none</span>
         )}
         {!adding ? (
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-chalk-300 transition hover:text-violet-soft"
+            className="inline-flex items-center gap-1 text-meta font-medium text-chalk-300 transition hover:text-violet-soft"
           >
             <Plus className="h-3 w-3" strokeWidth={1.9} /> Add
           </button>
@@ -133,13 +133,13 @@ export function ContextSourcesSection({
         </form>
       ) : null}
       {adding ? (
-        <p className="mt-1.5 text-[10.5px] text-chalk-400">
+        <p className="mt-1.5 text-meta text-chalk-400">
           Files or URLs injected into every run (path-guarded, SSRF-guarded,
           secrets redacted).
         </p>
       ) : null}
       {error ? (
-        <div className="mt-1.5 text-[11px] text-rose-300">{error}</div>
+        <div className="mt-1.5 text-meta text-rose-300">{error}</div>
       ) : null}
     </div>
   );

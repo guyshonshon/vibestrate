@@ -263,7 +263,7 @@ export function MergePlannerPanel({
       <div className="space-y-2 rounded-[12px] border border-[color:var(--line)] bg-coal-600 p-2.5">
         <div className="flex items-center gap-2">
           <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.9} />
-          <span className="flex-1 text-[11.5px] font-semibold text-chalk-100">
+          <span className="flex-1 text-meta font-semibold text-chalk-100">
             Ask the supervisor
           </span>
           <Button
@@ -277,10 +277,10 @@ export function MergePlannerPanel({
         </div>
         {advice ? (
           <div className="space-y-1.5 border-t border-[color:var(--line-soft)] pt-2">
-            <p className="max-h-48 overflow-auto whitespace-pre-wrap text-[11.5px] leading-[1.5] text-chalk-200">
+            <p className="max-h-48 overflow-auto whitespace-pre-wrap text-meta leading-[1.5] text-chalk-200">
               {advice.answer}
             </p>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px]">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-meta">
               <span
                 className={cn(
                   "font-semibold",
@@ -301,7 +301,7 @@ export function MergePlannerPanel({
             </div>
           </div>
         ) : (
-          <p className="text-[10.5px] leading-[1.45] text-chalk-300">
+          <p className="text-meta leading-[1.45] text-chalk-300">
             Advice only - which open branch to merge next, and whether your
             picked pair is safe. It never merges for you.
           </p>
@@ -349,7 +349,7 @@ export function MergePlannerPanel({
           </Button>
         </div>
         {predictHint ? (
-          <div className="text-[11.5px] text-chalk-300">{predictHint}</div>
+          <div className="text-meta text-chalk-300">{predictHint}</div>
         ) : null}
       </div>
 
@@ -371,7 +371,7 @@ export function MergePlannerPanel({
       {/* Undo */}
       {target ? (
         <div className="space-y-2 border-t border-[color:var(--line-soft)] pt-3">
-          <div className="text-[11.5px] font-semibold text-violet-soft">
+          <div className="text-meta font-semibold text-violet-soft">
             Undo last merge on target
           </div>
           <Button
@@ -437,7 +437,7 @@ function BranchSelect({
     }));
   return (
     <div>
-      <div className="mb-1 text-[10.5px] font-semibold text-violet-soft">{label}</div>
+      <div className="mb-1 text-meta font-semibold text-violet-soft">{label}</div>
       <Select
         ariaLabel={label}
         value={value ?? ""}
@@ -482,14 +482,14 @@ function PredictionResult({
           Clean merge - no conflicts predicted.
         </div>
         {applyResult ? (
-          <div className="text-[11.5px] text-emerald-400/90">
+          <div className="text-meta text-emerald-400/90">
             Merged. New commit:{" "}
             <span className="mono">{applyResult.mergedSha.slice(0, 8)}</span>
           </div>
         ) : (
           <>
             {guided ? (
-              <div className="text-[11px] text-chalk-300">
+              <div className="text-meta text-chalk-300">
                 Supervisor: clean to merge. Review, then apply - nothing is
                 written until you click.
               </div>
@@ -506,7 +506,7 @@ function PredictionResult({
           </>
         )}
         {prediction.note ? (
-          <div className="text-[10.5px] text-chalk-300">{prediction.note}</div>
+          <div className="text-meta text-chalk-300">{prediction.note}</div>
         ) : null}
       </div>
     );
@@ -522,12 +522,12 @@ function PredictionResult({
         {prediction.conflictedFiles.length === 1 ? "" : "s"} - resolve below to merge.
       </div>
       {guided ? (
-        <div className="text-[10.5px] text-chalk-300">
+        <div className="text-meta text-chalk-300">
           Guided: the supervisor is proposing a resolution below. Review each
           file before applying.
         </div>
       ) : prediction.note ? (
-        <div className="text-[10.5px] text-chalk-300">{prediction.note}</div>
+        <div className="text-meta text-chalk-300">{prediction.note}</div>
       ) : null}
       <ConflictResolver
         source={prediction.source}

@@ -17,8 +17,10 @@
 //   1. NO WRITE, AND NO WRITER IN SCOPE. Nothing here touches `project.yml` or
 //      the roles directory. Installing a drafted crew is a separate, explicit
 //      owner action.
-//   2. REDACTION BEFORE THE MODEL. The owner's description is redacted at the
-//      source, before `runAssist` sees it.
+//   2. REDACTION BEFORE THE MODEL. `runAssist` redacts the whole assembled
+//      prompt and is the single funnel for it. A second call here would only
+//      cover the description, and a test pinned to it would pass with the real
+//      guard deleted.
 //   3. REFUSE, NEVER REDACT, ON THE WAY BACK. Scanned over the crew block AND
 //      every role file, because a role's instructions are model-authored free
 //      text and all of it would be committed.
@@ -31,10 +33,10 @@ import { z } from "zod";
 import YAML from "yaml";
 import { VibestrateError } from "../utils/errors.js";
 import { runAssist, type AssistProviderRunner } from "../core/assist/assist-runner.js";
-import { redactSecretsInText, scanTextForSecrets } from "../core/diff-service.js";
+import { scanTextForSecrets } from "../core/diff-service.js";
 import { loadConfig } from "../project/config-loader.js";
 import { pathExists, readDirSafe } from "../utils/fs.js";
-import { projectRolesDir } from "../utils/paths.js";
+import { projectRolesDir, ROLES_DIRNAME, VIBESTRATE_DIR } from "../utils/paths.js";
 import { buildProjectRoots, resolveSafePath, PathGuardError } from "../core/path-guard.js";
 import { builtinPermissionProfiles } from "../safety/permission-profiles.js";
 import {
@@ -78,8 +80,13 @@ const MAX_PROMPT_CHARS = 20_000;
  * schema, minus the `prompt` pointer, plus the instructions themselves. Omitting
  * `prompt` is the fix for the whole bug class - the model cannot name a file,
  * so it cannot name a stale one.
+ *
+ * `mcpServers` is omitted for the same reason, one step further: an entry there
+ * carries a `command` and `args` the provider CLI later spawns, and the review
+ * surface does not render it - the owner would be approving a subprocess they
+ * were never shown. Wiring MCP onto a role stays a deliberate config edit.
  */
-const draftedRoleSchema = crewRoleConfigSchema.omit({ prompt: true }).extend({
+const draftedRoleSchema = crewRoleConfigSchema.omit({ prompt: true, mcpServers: true }).extend({
   promptText: z
     .string()
     .min(1, "Write the role's instructions here; this is the text, not a file name.")
@@ -222,9 +229,6 @@ export async function draftCrewFromDescription(input: {
   if (description.length > MAX_DESCRIPTION) {
     throw new CrewAssistError(`Description exceeds ${MAX_DESCRIPTION} characters.`);
   }
-  // INVARIANT 2: redact the owner's free text before it reaches the model.
-  const safe = redactSecretsInText(description).redacted;
-
   const loaded = await loadConfig(input.projectRoot);
   const profileIds = Object.keys(loaded.config.profiles).sort();
   const permissionIds = permissionProfileIds(loaded.config.permissions.profiles);
@@ -245,7 +249,8 @@ export async function draftCrewFromDescription(input: {
     "\nCrew ids already taken (pick a different one): " +
     (crewIds.join(", ") || "none") +
     "\n\nThe owner describes the crew they want:\n" +
-    `"""${safe}"""\n\n` +
+    // Raw here on purpose: runAssist redacts the assembled prompt (INVARIANT 2).
+    `"""${description}"""\n\n` +
     "Produce ONE crew definition capturing it.";
 
   const res = await runAssist({
@@ -275,12 +280,12 @@ export async function draftCrewFromDescription(input: {
       roles: Object.fromEntries(
         Object.entries(draftedRoles).map(([roleId, { promptText: _text, ...role }]) => [
           roleId,
-          { ...role, prompt: roleFileRelPath(input.projectRoot, roleId) },
+          { ...role, prompt: roleFileRelPath(roleId) },
         ]),
       ),
     });
     for (const [roleId, role] of Object.entries(draftedRoles)) {
-      const relPath = roleFileRelPath(input.projectRoot, roleId);
+      const relPath = roleFileRelPath(roleId);
       const json = `${JSON.stringify(
         { schemaVersion: ROLE_FILE_SCHEMA_VERSION, id: roleId, prompt: role.promptText },
         null,
@@ -332,9 +337,14 @@ export async function draftCrewFromDescription(input: {
 }
 
 /** Where a role id's file goes, as the project-relative value that lands in
- *  `project.yml`. The one place a role file path is built. */
-function roleFileRelPath(projectRoot: string, roleId: string): string {
-  return path.relative(projectRoot, path.join(projectRolesDir(projectRoot), `${roleId}.json`));
+ *  `project.yml`. The one place a role file path is built.
+ *
+ *  Spelled with `/`, and composed rather than derived from `path.relative`:
+ *  this string is committed and read on every platform, so a Windows draft
+ *  would otherwise write `.vibestrate\roles\x.json` into the config and resolve
+ *  to nothing on a teammate's machine. Node accepts `/` on Windows. */
+function roleFileRelPath(roleId: string): string {
+  return path.posix.join(VIBESTRATE_DIR, ROLES_DIRNAME, `${roleId}.json`);
 }
 
 /** Configured permission profiles plus the built-in ids, which

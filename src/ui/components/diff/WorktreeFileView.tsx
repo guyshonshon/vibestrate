@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
+import { Skeleton, SkeletonBlock, SkeletonText } from "../design/Skeleton.js";
 import type { FileView } from "../../lib/types.js";
 
 /**
@@ -58,7 +59,23 @@ export function WorktreeFileView({
     );
   if (!view)
     return (
-      <div className="px-4 py-6 text-[12.5px] text-chalk-400">Loading file…</div>
+      <div className="overflow-hidden rounded-[18px] border border-[color:var(--line)]">
+        {/* The path is known from the selection; the gutter and the source are
+            what is still arriving. */}
+        <div className="flex items-center gap-2 border-b border-[color:var(--line-soft)] bg-coal-500/60 px-3 py-1.5">
+          <span className="mono truncate text-meta text-chalk-300">{filePath}</span>
+        </div>
+        <Skeleton label="Loading the file" className="flex bg-coal-700">
+          <div className="flex flex-col gap-[7px] border-r border-[color:var(--line-soft)] px-2 py-2">
+            {Array.from({ length: 14 }, (_, i) => (
+              <SkeletonBlock key={i} tone="text" h={9} w={16} />
+            ))}
+          </div>
+          <div className="min-w-0 flex-1 px-3 py-2">
+            <SkeletonText lines={14} size={9} gap={7} />
+          </div>
+        </Skeleton>
+      </div>
     );
   if (view.isSecretLike)
     return (
@@ -76,8 +93,8 @@ export function WorktreeFileView({
   return (
     <div className="overflow-hidden rounded-[18px] border border-[color:var(--line)]">
       <div className="flex items-center gap-2 border-b border-[color:var(--line-soft)] bg-coal-500/60 px-3 py-1.5">
-        <span className="mono truncate text-[11px] text-chalk-300">{view.path}</span>
-        <span className="mono ml-auto shrink-0 text-[10.5px] text-chalk-400">
+        <span className="mono truncate text-meta text-chalk-300">{view.path}</span>
+        <span className="mono ml-auto shrink-0 text-meta text-chalk-400">
           {view.rootLabel}
           {view.totalLines != null ? ` · ${view.totalLines} lines` : ""}
           {view.isTruncated ? " · truncated" : ""}
@@ -88,7 +105,7 @@ export function WorktreeFileView({
           <tbody>
             {view.lines.map((l) => (
               <tr key={l.number}>
-                <td className="mono w-[1%] select-none whitespace-nowrap border-r border-[color:var(--line-soft)] px-2 py-0 text-right text-[11px] leading-[1.7] text-chalk-400">
+                <td className="mono w-[1%] select-none whitespace-nowrap border-r border-[color:var(--line-soft)] px-2 py-0 text-right text-meta leading-[1.7] text-chalk-400">
                   {l.number}
                 </td>
                 <td className="mono whitespace-pre px-3 py-0 text-[12px] leading-[1.7] text-chalk-200">

@@ -29,10 +29,10 @@ export const STEP_GROUP_LABEL: Record<StepKindGroup, string> = {
 };
 
 export const STEP_GROUP_DESC: Record<StepKindGroup, string> = {
-  build: "an agent produces or changes the work (agent-turn, response-turn)",
-  review: "an agent judges the work, no new changes (review-turn, summary-turn)",
-  check: "automated commands, pass/fail (validation)",
-  gate: "a human decides whether to continue (approval-gate)",
+  build: "produces or changes work (agent-turn, response-turn)",
+  review: "judges the work (review-turn, summary-turn)",
+  check: "automated pass/fail (validation)",
+  gate: "a human decides (approval-gate)",
 };
 
 /** Chip/dot tone (Tailwind token) per group. */

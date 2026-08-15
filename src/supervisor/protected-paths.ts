@@ -18,6 +18,7 @@
 //     (over-protection), never less - mirroring validation-scope.ts.
 
 import { globToRegex } from "../policies/policy-store.js";
+import { toPosixPath } from "../utils/paths.js";
 
 /**
  * Built-in protected globs. Conservative, ecosystem-generic. Matched against
@@ -82,7 +83,7 @@ export type ProtectedDiffDecision = {
 };
 
 function normalize(p: string): string {
-  let out = p.replace(/\\/g, "/");
+  let out = toPosixPath(p);
   while (out.startsWith("./")) out = out.slice(2);
   return out.replace(/^\/+/, "");
 }

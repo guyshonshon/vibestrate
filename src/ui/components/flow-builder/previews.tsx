@@ -24,7 +24,7 @@ export function PolicyCard() {
             <span className="text-chalk-300">{p.label}</span>
             <span
               className={cn(
-                "text-[11px] mono px-2 py-0.5 rounded-[8px] border",
+                "text-meta mono px-2 py-0.5 rounded-[8px] border",
                 p.on
                   ? "bg-emerald-500/10 text-emerald-300 border-emerald-400/25"
                   : "bg-coal-500 text-chalk-400 border-[color:var(--line-soft)]",
@@ -43,7 +43,7 @@ export function PreviewCard({ steps }: { steps: FlowStepDefinition[] }) {
   return (
     <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4 fade-up fade-up-delay-3">
       <div className="mb-3 text-[12px] font-semibold text-violet-vivid">Flow preview</div>
-      <div className="flex flex-wrap items-center gap-1.5 mono text-[11px]">
+      <div className="flex flex-wrap items-center gap-1.5 mono text-meta">
         {steps.map((s, i) => (
           <Fragment key={s.id}>
             <span
@@ -119,12 +119,12 @@ export function LoopCard({
           <button
             type="button"
             onClick={() => (loop ? onChange(null) : enable())}
-            className="text-[11px] font-semibold text-violet-soft hover:text-violet-soft/80"
+            className="text-meta font-semibold text-violet-soft hover:text-violet-soft/80"
           >
             {loop ? "remove loop" : "+ add loop"}
           </button>
         ) : loop ? (
-          <span className="text-[11px] text-chalk-400">on</span>
+          <span className="text-meta text-chalk-400">on</span>
         ) : null}
       </div>
       {!loop ? (
@@ -192,14 +192,14 @@ export function LoopCard({
             />
           </Field>
           {!rangeOk || !decisionOk ? (
-            <p className="text-[11px] text-amber-soft">
+            <p className="text-meta text-amber-soft">
               {!rangeOk ? "“From” must come at or before “To”. " : ""}
               {!decisionOk
                 ? "Pick a review-turn inside the range as the decision step."
                 : ""}
             </p>
           ) : (
-            <p className="text-[11px] text-chalk-400">
+            <p className="text-meta text-chalk-400">
               Repeats {loop.from} → {loop.to} until {loop.decisionStep} isn’t
               “changes requested”, up to {loop.maxIterations}×.
             </p>

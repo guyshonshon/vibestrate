@@ -42,10 +42,18 @@ import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { PageShell } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
 import { PageHero } from "../../components/layout/PageHero.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+} from "../../components/design/Skeleton.js";
+import { HeroNumber } from "./page-skeletons.js";
 
 type Props = {
   /** Open a flow in the Flow Builder (customize slots/steps, then run). */
   onOpenInFlow: (flowId: string) => void;
+  /** Open a flow in the Flow Editor (edit the definition itself, then save).
+   *  null starts a blank flow - the editor creates it on the first save. */
+  onOpenInEditor: (flowId: string | null) => void;
 };
 
 type Busy = { id: string; action: "fork" | "delete" | "export" } | null;
@@ -65,21 +73,6 @@ function downloadText(filename: string, text: string): void {
   URL.revokeObjectURL(url);
 }
 
-/** Minimal valid flow used by "New blank flow" - a single seat + one step,
- *  which the user then shapes in the Flow Builder. */
-function blankFlow(id: string) {
-  return {
-    id,
-    version: 1,
-    label: "New flow",
-    description: "A new flow - customize its seats and steps.",
-    seats: { worker: { label: "Worker" } },
-    steps: [
-      { id: "do", label: "Do the work", kind: "agent-turn", seat: "worker" },
-    ],
-  };
-}
-
 /**
  * Flows - the dashboard catalog of run recipes, independent of the Flow
  * Builder. Discover builtin + project flows, inspect each one's flow (slots,
@@ -87,7 +80,7 @@ function blankFlow(id: string) {
  * it, or delete a project flow. All over the audited `/api/flows` routes -
  * the browser never shells out.
  */
-export function FlowsPage({ onOpenInFlow }: Props) {
+export function FlowsPage({ onOpenInFlow, onOpenInEditor }: Props) {
   const { confirm } = useConfirm();
   const [flows, setFlows] = useState<DiscoveredFlow[] | null>(null);
   const [invalid, setInvalid] = useState<{ path: string; message: string }[]>([]);
@@ -103,7 +96,6 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   const [importUrl, setImportUrl] = useState("");
   const [importOverwrite, setImportOverwrite] = useState(false);
   const [importBusy, setImportBusy] = useState(false);
-  const [creating, setCreating] = useState(false);
 
   async function load() {
     try {
@@ -224,21 +216,6 @@ export function FlowsPage({ onOpenInFlow }: Props) {
     }
   }
 
-  // Create a fresh project flow and jump into the builder. Ids must be unique,
-  // so we suffix with a short timestamp to avoid clobbering an existing flow.
-  async function createBlank() {
-    setCreating(true);
-    try {
-      const id = `new-flow-${Date.now().toString(36)}`;
-      const r = await api.createFlow(blankFlow(id));
-      onOpenInFlow(r.flowId);
-    } catch (err) {
-      flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
-    } finally {
-      setCreating(false);
-    }
-  }
-
   // The built-in default flow is rendered as its own "runs by default" card,
   // sourced from the real definition; the rest list below it.
   const defaultFlow = flows?.find((g) => g.id === "default") ?? null;
@@ -253,7 +230,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       <Cell size="full" reason="masthead">
         <PageHero
           state={{
-            value: flows ? defaultFlowCount + otherFlows.length : "-",
+            value: flows ? defaultFlowCount + otherFlows.length : <HeroNumber />,
             caption: "Flows",
             note: effectiveDefault
               ? `"${effectiveDefault}" runs unless a run picks another.`
@@ -268,10 +245,9 @@ export function FlowsPage({ onOpenInFlow }: Props) {
                 variant="primary"
                 size="sm"
                 iconLeft={<Plus size={13} />}
-                disabled={creating}
-                onClick={() => void createBlank()}
+                onClick={() => onOpenInEditor(null)}
               >
-                {creating ? "Creating…" : "New flow"}
+                New flow
               </Button>
               <Button
                 variant="secondary"
@@ -284,9 +260,16 @@ export function FlowsPage({ onOpenInFlow }: Props) {
             </>
           }
           metrics={[
-            { value: flows ? defaultFlowCount + otherFlows.length : "-", label: "flows" },
             {
-              value: (flows ?? []).filter((f) => f.source.kind === "project").length,
+              value: flows ? defaultFlowCount + otherFlows.length : <HeroNumber />,
+              label: "flows",
+            },
+            {
+              value: flows ? (
+                flows.filter((f) => f.source.kind === "project").length
+              ) : (
+                <HeroNumber />
+              ),
               label: "project-owned",
             },
             ...(invalid.length
@@ -302,7 +285,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
         <section className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4 py-3.5">
           <div className="flex items-center gap-3">
             <div className="text-[12px] font-semibold text-violet-vivid">Import a flow</div>
-            <div className="ml-auto inline-flex rounded-[10px] border border-[color:var(--line)] p-0.5 text-[11.5px]">
+            <div className="ml-auto inline-flex rounded-[10px] border border-[color:var(--line)] p-0.5 text-meta">
               {(["yaml", "url"] as ImportMode[]).map((m) => (
                 <button
                   key={m}
@@ -364,7 +347,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
               </Button>
             </div>
           </div>
-          <p className="mt-2 text-[11px] text-chalk-400">
+          <p className="mt-2 text-meta text-chalk-400">
             Validated against the flow schema; refused if it carries secrets.
             URL fetches are size- and time-bounded.
           </p>
@@ -396,7 +379,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
           </div>
           <ul className="mt-1.5 space-y-1">
             {invalid.map((bad) => (
-              <li key={bad.path} className="text-[11.5px]">
+              <li key={bad.path} className="text-meta">
                 <span className="mono text-amber-soft">{bad.path}</span>
                 <span className="text-chalk-300"> - {bad.message}</span>
               </li>
@@ -407,8 +390,26 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       ) : null}
 
       {!flows ? (
-        <Cell size="full" reason="masthead">
-          <div className="text-[13px] text-chalk-400">Loading flows…</div>
+        // The same card grid the catalog resolves to, so the page does not
+        // collapse to one line and then push the hub section down.
+        <Cell size="full" reason="nested-deck">
+          <Skeleton label="Loading flows">
+            <Deck align="stretch">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <Cell key={i} size="card">
+                  <div className="flex min-h-[172px] flex-col gap-3 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-4">
+                    <SkeletonBlock h={16} w="52%" />
+                    <SkeletonBlock tone="text" h={12} w="76%" />
+                    <SkeletonBlock h={10} w="100%" radius={999} />
+                    <div className="mt-auto flex gap-1.5">
+                      <SkeletonBlock w={64} h={26} bordered />
+                      <SkeletonBlock w={52} h={26} bordered />
+                    </div>
+                  </div>
+                </Cell>
+              ))}
+            </Deck>
+          </Skeleton>
         </Cell>
       ) : (
         <>
@@ -419,6 +420,11 @@ export function FlowsPage({ onOpenInFlow }: Props) {
                 variant={effectiveDefault === "default" ? "selected" : "violet"}
                 busy={busy?.id === "default" ? busy.action : null}
                 onOpen={() => onOpenInFlow("default")}
+                onEdit={
+                  defaultFlow.source.kind === "project"
+                    ? () => onOpenInEditor("default")
+                    : null
+                }
                 onUseAsDefault={() => void useAsDefault("default")}
                 onExport={() => void exportFlow("default")}
                 onFork={() => void forkAndEdit("default")}
@@ -441,6 +447,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
                   variant={variant}
                   busy={busy?.id === g.id ? busy.action : null}
                   onOpen={() => onOpenInFlow(g.id)}
+                  onEdit={isProject ? () => onOpenInEditor(g.id) : null}
                   onUseAsDefault={() => void useAsDefault(g.id)}
                   onExport={() => void exportFlow(g.id)}
                   onFork={isProject ? null : () => void fork(g.id)}
@@ -641,8 +648,14 @@ function HubSection({
             {open ? "Hide hub" : "Browse hub"}
           </Button>
           {open ? (
-            <span className="mono text-[11.5px] text-chalk-400 whitespace-nowrap">
-              {hubError ? "hub unavailable" : rows ? `${rows.length} ${rows.length === 1 ? "flow" : "flows"}` : "loading…"}
+            <span className="mono text-meta text-chalk-400 whitespace-nowrap">
+              {hubError ? (
+                "hub unavailable"
+              ) : rows ? (
+                `${rows.length} ${rows.length === 1 ? "flow" : "flows"}`
+              ) : (
+                <SkeletonBlock tone="text" h={10} w={48} />
+              )}
             </span>
           ) : null}
         </div>
@@ -673,11 +686,25 @@ function HubSection({
             onRetry={() => setRetryTick((t) => t + 1)}
           />
         ) : loading && rows === null ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-[150px] rounded-[14px] border border-[color:var(--line)] bg-coal-600/40" aria-hidden />
+          <Skeleton
+            label="Loading hub flows"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          >
+            {Array.from({ length: 6 }, (_, i) => (
+              <div
+                key={i}
+                className="flex h-[150px] flex-col gap-3 rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-4"
+              >
+                <SkeletonBlock h={15} w="58%" />
+                <SkeletonBlock tone="text" h={11} w="42%" />
+                <SkeletonBlock h={10} w="100%" radius={999} />
+                <div className="mt-auto flex gap-1.5">
+                  <SkeletonBlock w={60} h={24} bordered />
+                  <SkeletonBlock w={44} h={24} bordered />
+                </div>
+              </div>
             ))}
-          </div>
+          </Skeleton>
         ) : rows && rows.length === 0 ? (
           <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-10 text-center text-[13px] text-chalk-300">
             No hub flows match these filters.
@@ -710,15 +737,15 @@ function HubSection({
                   badge={
                     <div className="flex shrink-0 items-center gap-2">
                       {typeof row.installs === "number" ? (
-                        <span className="flex items-center gap-1 text-[11px] font-semibold text-chalk-300">
+                        <span className="flex items-center gap-1 text-meta font-semibold text-chalk-300">
                           <Download className="h-3 w-3 text-violet-soft" strokeWidth={2.2} aria-hidden />
                           {row.installs.toLocaleString()}
                         </span>
                       ) : null}
                       {row.verified ? (
-                        <span className="text-[10px] font-bold text-emerald-400">curated</span>
+                        <span className="text-meta font-bold text-emerald-400">curated</span>
                       ) : row.author ? (
-                        <span className="mono text-[10.5px] text-violet-soft">@{row.author}</span>
+                        <span className="mono text-meta text-violet-soft">@{row.author}</span>
                       ) : null}
                     </div>
                   }
@@ -778,7 +805,7 @@ function HubSection({
                 <div className="space-y-3 rounded-[16px] border border-[color:var(--line)] bg-coal-800 px-4 py-4">
                   {/* Flow picker */}
                   <div>
-                    <label className="mb-1 block text-[11px] font-semibold text-violet-vivid">
+                    <label className="mb-1 block text-meta font-semibold text-violet-vivid">
                       Flow
                     </label>
                     {projectFlows.length === 0 ? (
@@ -804,7 +831,7 @@ function HubSection({
 
                   {/* Name */}
                   <div>
-                    <label className="mb-1 block text-[11px] font-semibold text-violet-vivid">
+                    <label className="mb-1 block text-meta font-semibold text-violet-vivid">
                       Name
                     </label>
                     <input
@@ -818,7 +845,7 @@ function HubSection({
 
                   {/* Version */}
                   <div>
-                    <label className="mb-1 block text-[11px] font-semibold text-violet-vivid">
+                    <label className="mb-1 block text-meta font-semibold text-violet-vivid">
                       Version
                     </label>
                     <input
@@ -833,7 +860,7 @@ function HubSection({
 
                   {/* Handle */}
                   <div>
-                    <label className="mb-1 block text-[11px] font-semibold text-violet-vivid">
+                    <label className="mb-1 block text-meta font-semibold text-violet-vivid">
                       Handle
                     </label>
                     <input
@@ -925,6 +952,7 @@ function LocalFlowCard({
   variant,
   busy,
   onOpen,
+  onEdit,
   onUseAsDefault,
   onExport,
   onFork,
@@ -934,12 +962,14 @@ function LocalFlowCard({
   variant: "selected" | "violet" | "white";
   busy: "fork" | "delete" | "export" | null;
   onOpen: () => void;
+  /** Only project flows can be edited in place - a builtin must be forked
+   *  first, which is what "Customize" does. */
+  onEdit: (() => void) | null;
   onUseAsDefault: () => void;
   onExport: () => void;
   onFork: (() => void) | null;
   onDelete: (() => void) | null;
 }) {
-  const isProject = flow.source.kind === "project";
   const isSelected = variant === "selected";
   const steps = flow.definition.steps ?? [];
   const seats = Object.keys(flow.definition.seats ?? {}).length;
@@ -951,9 +981,9 @@ function LocalFlowCard({
     ...(flow.version != null ? [{ value: `v${flow.version}`, label: "version" }] : []),
   ];
   // The shared FlowCard (components/design/FlowCard.js) renders the chrome;
-  // this composes it with the local catalog's actions (Edit/Open + the
-  // management overflow menu) and the emerald default mark. The hub uses the
-  // same FlowCard (in HubSection above) so the two can't drift.
+  // this composes it with the local catalog's actions (Open + the management
+  // overflow menu) and the emerald default mark. The hub uses the same
+  // FlowCard (in HubSection above) so the two can't drift.
   return (
     <FlowCard
       title={flow.label}
@@ -961,7 +991,7 @@ function LocalFlowCard({
       selected={isSelected}
       badge={
         isSelected ? (
-          <span className="shrink-0 text-[10px] font-bold text-emerald-400">default</span>
+          <span className="shrink-0 text-meta font-bold text-emerald-400">default</span>
         ) : null
       }
       description={flow.definition.description}
@@ -969,12 +999,13 @@ function LocalFlowCard({
       footer={
         <>
           <Button variant="secondary" size="sm" onClick={onOpen}>
-            {isProject ? "Edit" : "Open"}
+            Open
           </Button>
           <div className="ml-auto">
             <FlowCardMenu
               busy={busy !== null}
               items={[
+                onEdit ? { label: "Edit definition", onClick: onEdit } : null,
                 isSelected ? null : { label: "Set as default", onClick: onUseAsDefault },
                 onFork ? { label: busy === "fork" ? "Copying…" : "Customize", onClick: onFork } : null,
                 { label: busy === "export" ? "Exporting…" : "Export", onClick: onExport },
@@ -999,7 +1030,7 @@ function DiagnosisBadge({ label }: { label: string }) {
     <div
       title={label}
       className={cn(
-        "flex max-w-[180px] items-center rounded-[10px] border px-2 text-[11px] font-semibold",
+        "flex max-w-[180px] items-center rounded-[10px] border px-2 text-meta font-semibold",
         positive
           ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
           : "border-amber-soft/25 bg-amber-soft/10 text-amber-soft",

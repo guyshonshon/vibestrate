@@ -4,6 +4,8 @@ import { api } from "../../lib/api.js";
 import { navigate } from "../../app/App.js";
 import { Button } from "../design/Button.js";
 import { StatTile } from "../design/StatTile.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
+import { cn } from "../design/cn.js";
 import { ErrorView } from "../../lib/error-view.js";
 import type {
   ConflictWarning,
@@ -96,7 +98,7 @@ export function SchedulerQueuePanel({
           <span className="font-semibold text-chalk-100">Scheduler</span>
           {state ? (
             <span
-              className={`inline-flex items-center gap-1.5 text-[11.5px] font-medium ${
+              className={`inline-flex items-center gap-1.5 text-meta font-medium ${
                 state.paused ? "text-amber-soft" : "text-emerald-400"
               }`}
             >
@@ -116,7 +118,7 @@ export function SchedulerQueuePanel({
           )}
         </div>
         {state ? (
-          <span className="mono whitespace-nowrap text-[11px] text-chalk-400">
+          <span className="mono whitespace-nowrap text-meta text-chalk-400">
             max {state.maxConcurrentRuns} · {state.queuePolicy} · conflict:{" "}
             {state.conflictPolicy}
           </span>
@@ -131,6 +133,24 @@ export function SchedulerQueuePanel({
             onRetry={() => setRetryTick((t) => t + 1)}
           />
         </div>
+      ) : !state ? (
+        // Before the first poll answers, `running` and `queue` are both empty,
+        // which is indistinguishable from idle - and idle offers a Start CTA.
+        <Skeleton label="Loading the queue" className="mt-4 grid grid-cols-12 gap-4">
+          {[
+            { span: "xl:col-span-5", rows: 2 },
+            { span: "xl:col-span-7", rows: 4 },
+          ].map((col, i) => (
+            <div key={i} className={cn("col-span-12", col.span)}>
+              <SkeletonBlock className="mb-2" tone="text" h={11} w={96} />
+              <div className="flex flex-col gap-1.5">
+                {Array.from({ length: col.rows }, (_, r) => (
+                  <SkeletonBlock key={r} h={34} w="100%" radius={14} bordered />
+                ))}
+              </div>
+            </div>
+          ))}
+        </Skeleton>
       ) : idle ? (
         <div className="mt-3 flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -160,7 +180,7 @@ export function SchedulerQueuePanel({
             </div>
           </div>
           {startError ? (
-            <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-[11.5px] text-rose-300">
+            <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-meta text-rose-300">
               {startError}
             </div>
           ) : null}
@@ -168,7 +188,7 @@ export function SchedulerQueuePanel({
       ) : (
         <div className="mt-4 grid grid-cols-12 gap-4">
           <div className="col-span-12 xl:col-span-5">
-            <div className="mono mb-2 text-[11px] text-chalk-400">
+            <div className="mono mb-2 text-meta text-chalk-400">
               Running · {running.length}
             </div>
             {running.length === 0 ? (
@@ -184,7 +204,7 @@ export function SchedulerQueuePanel({
                     >
                       <Play className="h-3.5 w-3.5" strokeWidth={1.9} />
                       <span className="flex-1 truncate">{titleFor(id)}</span>
-                      <span className="mono text-[11px] text-emerald-400/80">
+                      <span className="mono text-meta text-emerald-400/80">
                         {id.slice(0, 14)}
                       </span>
                     </button>
@@ -194,7 +214,7 @@ export function SchedulerQueuePanel({
             )}
           </div>
           <div className="col-span-12 xl:col-span-7">
-            <div className="mono mb-2 text-[11px] text-chalk-400">
+            <div className="mono mb-2 text-meta text-chalk-400">
               Queued · {queue.length}
             </div>
             {queue.length === 0 ? (
@@ -208,12 +228,12 @@ export function SchedulerQueuePanel({
                       onClick={() => onOpenTask(e.taskId)}
                       className="flex w-full items-center gap-2 rounded-[14px] border border-[color:var(--line)] bg-coal-500/60 px-3 py-2 text-left text-[12.5px] text-chalk-100 transition hover:bg-coal-500"
                     >
-                      <span className={`mono text-[11px] font-medium ${priorityTone(e.priority)}`}>
+                      <span className={`mono text-meta font-medium ${priorityTone(e.priority)}`}>
                         {e.priority}
                       </span>
-                      <span className="mono text-[11px] text-chalk-400">{e.source}</span>
+                      <span className="mono text-meta text-chalk-400">{e.source}</span>
                       <span className="flex-1 truncate">{titleFor(e.taskId)}</span>
-                      <span className="mono whitespace-nowrap text-[11px] text-chalk-400">
+                      <span className="mono whitespace-nowrap text-meta text-chalk-400">
                         {new Date(e.enqueuedAt).toLocaleTimeString()}
                       </span>
                     </button>
@@ -227,7 +247,7 @@ export function SchedulerQueuePanel({
 
       {conflicts.length > 0 ? (
         <div className="mt-4 rounded-[14px] border border-amber-soft/25 bg-amber-soft/10 p-3">
-          <div className="mono mb-2 flex items-center gap-1.5 text-[11px] text-amber-soft">
+          <div className="mono mb-2 flex items-center gap-1.5 text-meta text-amber-soft">
             <AlertTriangle className="h-3.5 w-3.5" strokeWidth={1.9} />
             Conflict warnings · {conflicts.length}
           </div>
@@ -257,7 +277,7 @@ export function SchedulerQueuePanel({
                     </button>
                   ))}
                 </div>
-                <div className="mono mt-1 text-[11px] text-chalk-400">
+                <div className="mono mt-1 text-meta text-chalk-400">
                   on {w.overlappingFiles.length} file(s) · policy: {w.policy}{" "}
                   {w.blocked ? (
                     <span className="text-amber-soft">(blocked second task)</span>

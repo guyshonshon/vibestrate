@@ -45,7 +45,7 @@ export function ConsultAnswerView({
       <div className={cn(CARD, pad)}>
         <div className="mb-2.5 flex items-center justify-between gap-3">
           <span className="text-[12.5px] font-semibold text-violet-vivid">Answer</span>
-          <span className={cn("rounded-[8px] border px-2 py-0.5 text-[11px]", CONFIDENCE_TONE[answer.confidence])}>
+          <span className={cn("rounded-[8px] border px-2 py-0.5 text-meta", CONFIDENCE_TONE[answer.confidence])}>
             confidence: {answer.confidence}
           </span>
         </div>
@@ -57,7 +57,7 @@ export function ConsultAnswerView({
 
         {answer.caveats.length ? (
           <div className="mt-3.5 rounded-[12px] border border-amber-soft/40 bg-amber-soft/10 p-3">
-            <div className="mb-1 flex items-center gap-1.5 text-[11.5px] text-amber-soft">
+            <div className="mb-1 flex items-center gap-1.5 text-meta text-amber-soft">
               <AlertTriangle className="h-3 w-3" strokeWidth={1.9} /> Could not verify
             </div>
             <ul className="space-y-1 text-[12.5px] text-chalk-300">
@@ -79,7 +79,7 @@ export function ConsultAnswerView({
               <li key={i} className="flex items-start gap-2 text-[12.5px] text-chalk-200">
                 <ArrowRight className="mt-0.5 h-3 w-3 shrink-0 text-violet-soft" strokeWidth={1.9} />
                 <span>
-                  <span className="mono text-[11.5px] text-violet-soft">{a.kind}</span> {a.detail}
+                  <span className="mono text-meta text-violet-soft">{a.kind}</span> {a.detail}
                 </span>
               </li>
             ))}
@@ -92,10 +92,10 @@ export function ConsultAnswerView({
           <div className="mb-1.5 flex items-center gap-1.5">
             <FileText className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.7} />
             <span className="text-[12.5px] font-semibold text-violet-vivid">Proposed VIBESTRATE.md update</span>
-            <span className="text-[10.5px] text-chalk-400">(proposal - not applied)</span>
+            <span className="text-meta text-chalk-400">(proposal - not applied)</span>
           </div>
           <p className="text-[12px] text-chalk-400">{answer.proposedManualUpdate.rationale}</p>
-          <p className="mt-0.5 text-[11.5px] text-chalk-400">evidence: {answer.proposedManualUpdate.evidence}</p>
+          <p className="mt-0.5 text-meta text-chalk-400">evidence: {answer.proposedManualUpdate.evidence}</p>
           <pre className="mt-2 overflow-x-auto rounded-[10px] border border-[color:var(--line)] bg-coal-800 p-3 text-[12px] text-chalk-200 whitespace-pre-wrap">
             {answer.proposedManualUpdate.suggestedText.trim()}
           </pre>
@@ -120,7 +120,7 @@ export function ConsultAnswerView({
         </div>
       ) : null}
 
-      <p className="text-[11px] text-chalk-400">
+      <p className="text-meta text-chalk-400">
         Grounded in: {(answer.usedContext.length ? answer.usedContext : result.usedSources).join(", ") || "no project context"}
         {" · answered by "}
         {result.providerId}
@@ -129,7 +129,7 @@ export function ConsultAnswerView({
         {result.profileId && result.profileId !== "(ad-hoc)" ? ` · ${result.profileId}` : ""}
       </p>
       {result.notes.length ? (
-        <ul className="space-y-0.5 text-[11px] text-chalk-400">
+        <ul className="space-y-0.5 text-meta text-chalk-400">
           {result.notes.map((n, i) => (
             <li key={i}>! {n}</li>
           ))}
@@ -153,7 +153,7 @@ export function ComputedSections({ sections }: { sections: ConsultSections }) {
   if (groups.length === 0 && housekeeping.length === 0) return null;
   return (
     <div className="mt-3.5 rounded-[12px] border border-[color:var(--line)] bg-coal-500 p-3">
-      <div className="mb-2 text-[11px] font-semibold text-violet-vivid">Project state · computed</div>
+      <div className="mb-2 text-meta font-semibold text-violet-vivid">Project state · computed</div>
       {groups.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2">
           {groups.map((g) => (

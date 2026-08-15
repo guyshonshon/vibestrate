@@ -84,12 +84,17 @@ All three write to `.vibestrate/flows/<id>/flow.yml` through one guarded path:
 - **Overwrite policy** - an existing *project* flow is replaced only with
   `overwrite: true` (a builtin of the same id is always shadowable, like
   `fork`). New writes return `201`; replacements return `200`.
-- **Action Broker gate** - every one of them (plus fork and the builder's
-  patch) raises a `file.write` the broker decides on, so a policy that denies
-  file writes stops flow authoring too. A refusal comes back as `403` with the
+- **Action Broker gate** - every one of them (plus fork, the builder's patch,
+  and `DELETE`) raises a `file.write` the broker decides on, so a policy that
+  denies file writes stops flow authoring too. Delete rides the same kind on
+  purpose: losing a flow is the same authority over the same path as
+  overwriting it, and gating only the writes would let a locked-down project
+  still lose every project flow. A refusal comes back as `403` with the
   broker's reasons, not as a thrown error. Flow edits happen outside any run,
   so the evidence lands in `runs/flows/actions.ndjson`, tagged with which
-  writer it was (`flow-import`, `flow-create`, `flow-fork`, `flow-patch`).
+  writer it was (`flow-import`, `flow-create`, `flow-fork`, `flow-patch`,
+  `flow-delete`). A write that fails after being allowed still records its
+  failure, so a decision never sits in the log without an outcome.
 
 CLI equivalents: `vibe flows export <id> [--out file]` and
 `vibe flows import <file-or-url> [--overwrite]`. In the dashboard: the **Flows**

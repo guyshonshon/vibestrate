@@ -151,7 +151,7 @@ export function ConflictResolver({ source, target, conflictedFiles, autoPropose,
     <div className="space-y-3">
       {/* Conflict file list */}
       <div>
-        <div className="mb-2 text-[11.5px] font-semibold text-violet-soft">
+        <div className="mb-2 text-meta font-semibold text-violet-soft">
           {conflictedFiles.length} conflicted file
           {conflictedFiles.length === 1 ? "" : "s"}
         </div>
@@ -159,7 +159,7 @@ export function ConflictResolver({ source, target, conflictedFiles, autoPropose,
           {conflictedFiles.map((f) => (
             <li
               key={f}
-              className="mono rounded-[8px] border border-rose-400/20 bg-rose-500/10 px-2 py-1 text-[11.5px] text-rose-300"
+              className="mono rounded-[8px] border border-rose-400/20 bg-rose-500/10 px-2 py-1 text-meta text-rose-300"
             >
               {f}
             </li>
@@ -170,7 +170,7 @@ export function ConflictResolver({ source, target, conflictedFiles, autoPropose,
       {/* Proposal controls */}
       {!proposal ? (
         <div className="space-y-2">
-          <p className="text-[11.5px] text-chalk-300">
+          <p className="text-meta text-chalk-300">
             Ask the supervisor to propose resolutions. Proposals are advisory - nothing is written until you apply.
           </p>
           <Button
@@ -186,7 +186,7 @@ export function ConflictResolver({ source, target, conflictedFiles, autoPropose,
       ) : (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-[11.5px] font-semibold text-violet-soft">
+            <span className="text-meta font-semibold text-violet-soft">
               {proposal.files.length} file{proposal.files.length === 1 ? "" : "s"} in proposal
             </span>
             <Button
@@ -226,7 +226,7 @@ export function ConflictResolver({ source, target, conflictedFiles, autoPropose,
           ) : (
             <div className="space-y-1.5">
               {blockedFiles.length > 0 ? (
-                <div className="rounded-[10px] border border-amber-soft/25 bg-amber-soft/10 px-3 py-2 text-[11.5px] text-amber-soft">
+                <div className="rounded-[10px] border border-amber-soft/25 bg-amber-soft/10 px-3 py-2 text-meta text-amber-soft">
                   {blockedFiles.length} file
                   {blockedFiles.length === 1 ? "" : "s"} can't be resolved here
                   (secret / binary / unparseable). Resolve the whole merge with
@@ -293,10 +293,10 @@ function FileResolutionCard({
           onClick={() => setExpanded((x) => !x)}
           className="flex min-w-0 flex-1 items-center gap-2 text-left"
         >
-          <span className="mono truncate text-[11.5px] text-chalk-100">{resolution.file}</span>
-          <span className={cn("mono text-[10.5px] font-semibold", s.tone)}>{s.label}</span>
+          <span className="mono truncate text-meta text-chalk-100">{resolution.file}</span>
+          <span className={cn("mono text-meta font-semibold", s.tone)}>{s.label}</span>
           {resolution.note ? (
-            <span className="truncate text-[10.5px] text-chalk-300">{resolution.note}</span>
+            <span className="truncate text-meta text-chalk-300">{resolution.note}</span>
           ) : null}
         </button>
         {resolution.status === "proposed" ? (
@@ -307,14 +307,14 @@ function FileResolutionCard({
               onChange={onToggleAccepted}
               className="h-3.5 w-3.5 accent-violet-500"
             />
-            <span className="text-[11px] font-medium text-chalk-300">include</span>
+            <span className="text-meta font-medium text-chalk-300">include</span>
           </label>
         ) : null}
       </div>
 
       {/* Content for non-proposed files */}
       {resolution.status !== "proposed" ? (
-        <div className="border-t border-[color:var(--line-soft)] px-3 py-2 text-[11.5px] text-chalk-300">
+        <div className="border-t border-[color:var(--line-soft)] px-3 py-2 text-meta text-chalk-300">
           {resolution.status === "refusedSecret"
             ? "Contains secret-like content - resolve manually."
             : resolution.status === "binary"
@@ -333,7 +333,7 @@ function FileResolutionCard({
           {resolution.hunks.length > 0 ? (
             <div className="mb-3 space-y-2">
               {resolution.hunks.map((h) => (
-                <div key={h.index} className="mono overflow-hidden rounded-[10px] border border-[color:var(--line-soft)] bg-coal-800 text-[10.5px]">
+                <div key={h.index} className="mono overflow-hidden rounded-[10px] border border-[color:var(--line-soft)] bg-coal-800 text-meta">
                   <div className="grid grid-cols-3 border-b border-[color:var(--line-soft)]">
                     <div className="border-r border-[color:var(--line-soft)] px-2 py-1">
                       <div className="mb-0.5 font-semibold text-sky-glow">ours</div>
@@ -349,7 +349,7 @@ function FileResolutionCard({
                     </div>
                   </div>
                   {h.rationale ? (
-                    <div className="px-2 py-1 text-[10px] italic text-chalk-300">{h.rationale}</div>
+                    <div className="px-2 py-1 text-meta italic text-chalk-300">{h.rationale}</div>
                   ) : null}
                 </div>
               ))}
@@ -358,18 +358,18 @@ function FileResolutionCard({
 
           {/* Editable whole-file textarea */}
           <div>
-            <div className="mb-1 text-[10.5px] font-medium text-violet-soft">
+            <div className="mb-1 text-meta font-medium text-violet-soft">
               edit the merged content before applying
             </div>
             <textarea
               value={content}
               onChange={(e) => onContentChange(e.target.value)}
               rows={8}
-              className="mono w-full resize-y rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-2 text-[11px] text-chalk-100 focus:border-violet-soft/50 focus:outline-none"
+              className="mono w-full resize-y rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-2 text-meta text-chalk-100 focus:border-violet-soft/50 focus:outline-none"
               spellCheck={false}
             />
           </div>
-          <p className="text-[10.5px] text-chalk-300">
+          <p className="text-meta text-chalk-300">
             Proposals are advisory. Nothing is written until you click "Apply resolved merge".
           </p>
         </div>

@@ -143,6 +143,27 @@ describe("validateFlowText / validateFlowObject", () => {
     const v = validateFlowObject(obj);
     expect(v.ok).toBe(false);
   });
+
+  // The object path is what a model-authored draft arrives on, and the CLI
+  // printers echo label/description straight to a terminal.
+  it("validateFlowObject refuses a control character in a label", () => {
+    const obj = YAML.parse(VALID_FLOW);
+    obj.label = `Imported${String.fromCharCode(0x1b)}[31m Flow`;
+    const v = validateFlowObject(obj);
+    expect(v.ok).toBe(false);
+    if (v.ok) return;
+    expect(v.status).toBe(400);
+    expect(v.reasons.join(" ")).toMatch(/control character/i);
+  });
+
+  // Scanning the serialized form instead would pass this: YAML.stringify
+  // re-escapes the ESC back into the two characters `\e`.
+  it("refuses a control character a YAML escape decodes into", () => {
+    const v = validateFlowText(VALID_FLOW.replace("Imported Flow", '"Imported\\e[31m Flow"'));
+    expect(v.ok).toBe(false);
+    if (v.ok) return;
+    expect(v.reasons.join(" ")).toMatch(/control character/i);
+  });
 });
 
 describe("writeProjectFlowDefinition / import", () => {

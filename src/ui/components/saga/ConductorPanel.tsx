@@ -3,6 +3,12 @@ import { api } from "../../lib/api.js";
 import type { TaskRunStatus, EngagementEntry } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
 import { StatTile } from "../design/StatTile.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+  SkeletonStats,
+} from "../design/Skeleton.js";
 import { cn } from "../design/cn.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { settle, errorOf } from "../../lib/settled.js";
@@ -112,7 +118,25 @@ export function ConductorPanel({ taskId }: { taskId: string }) {
     }
   }
 
-  if (!status) return null;
+  // Rendering nothing while the first status request is open made the whole
+  // card appear late on a task that has a conductor.
+  if (!status)
+    return (
+      <Skeleton
+        label="Loading the conductor"
+        className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-baseline gap-2">
+            <SkeletonBlock h={15} w={92} />
+            <SkeletonBlock tone="text" h={12} w={64} />
+          </div>
+          <SkeletonBlock h={28} w={104} />
+        </div>
+        <SkeletonStats className="mt-3" count={3} />
+        <SkeletonRows className="mt-3" rows={4} lead="dot" meta />
+      </Skeleton>
+    );
 
   const live = status.liveRunId !== null;
   const { done, total } = status.progress;
@@ -208,7 +232,7 @@ export function ConductorPanel({ taskId }: { taskId: string }) {
                 {i + 1}. {s.text}
               </div>
               {s.outcomeSummary ? (
-                <div className="mt-0.5 line-clamp-2 text-[11.5px] text-chalk-300">
+                <div className="mt-0.5 line-clamp-2 text-meta text-chalk-300">
                   {s.outcomeSummary}
                 </div>
               ) : null}
@@ -232,7 +256,7 @@ export function ConductorPanel({ taskId }: { taskId: string }) {
 
       {engagement.length > 0 ? (
         <div className="mt-3">
-          <div className="mb-1.5 font-mono text-[11px] text-chalk-300">supervisor</div>
+          <div className="mb-1.5 font-mono text-meta text-chalk-300">supervisor</div>
           <div className="flex flex-col gap-1">
             {engagement.slice(-6).map((e) => (
               <div key={e.seq} className="flex items-baseline gap-2 text-[12px]">
@@ -248,7 +272,7 @@ export function ConductorPanel({ taskId }: { taskId: string }) {
 
       {status.supervisedInvariants.length > 0 ? (
         <div className="mt-3">
-          <div className="mb-1.5 font-mono text-[11px] text-chalk-300">invariants ledger</div>
+          <div className="mb-1.5 font-mono text-meta text-chalk-300">invariants ledger</div>
           <ul className="flex flex-col gap-1">
             {status.supervisedInvariants.map((inv, i) => (
               <li key={i} className="flex gap-2 text-[12px] text-chalk-100">

@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { Plus, Check, X, Trash2, Wand2, Sparkles, ChevronDown, ChevronRight, FlaskConical } from "lucide-react";
+import { Plus, Check, X, Trash2, Wand2, FlaskConical } from "lucide-react";
 import { api, ApiError } from "../../lib/api.js";
 import type { ProjectPolicy, PolicyDraft } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
+import { IconBtn } from "../design/IconBtn.js";
+import { Chip } from "../design/Chip.js";
 import { Select } from "../design/Select.js";
+import { Section } from "../layout/PageShell.js";
 import { cn } from "../design/cn.js";
+import { GROUP_CARD } from "./AdvancedSafetySection.js";
 import { MatcherTestPanel } from "./MatcherTestPanel.js";
 
 const INPUT =
@@ -15,24 +19,29 @@ const INPUT =
  * reviewer checks, or a `block` rule with a deterministic matcher that caps the
  * merge.
  *
- * Powerful authoring, safe by construction:
- *  - "Draft with the supervisor" turns an English rule into a PREFILLED, editable
- *    add-form. The owner still clicks Save - the draft is only a suggestion.
- *  - "Suggested policies" proposes candidates from recent runs (on demand); Adopt
- *    prefills the same form. Never auto-saved.
- *  - A read-only Test panel (in the form and per matcher-bearing policy) dry-runs a
- *    matcher through the merge-gate engine so the owner sees what it would flag.
- * A model may SUGGEST a tier/matcher, but committing a block is always the owner's
- * explicit Save (addProjectPolicy) - the load-bearing owner-only-block invariant.
+ * ONE authoring surface, opened by the page's single "New policy" action. The
+ * page used to carry three simultaneous ways to create the same object (a
+ * button, an always-open supervisor draft box, and a collapsible suggestion
+ * scanner), which is what made an empty project open on twenty-three controls.
+ * All three paths survive as affordances of this one form:
+ *  - type a rule and Add it;
+ *  - type it in English and Draft prefills tier + matcher from the supervisor;
+ *  - Suggest from recent runs proposes candidates, and Adopt prefills the form.
+ * A model may SUGGEST a tier/matcher, but committing a block is always the
+ * owner's explicit Add (addProjectPolicy) - the load-bearing owner-only-block
+ * invariant.
  */
 export function ProjectPoliciesSection({
   policies,
+  adding,
+  onAdding,
   onChanged,
 }: {
   policies: ProjectPolicy[];
+  adding: boolean;
+  onAdding: (v: boolean) => void;
   onChanged: () => void;
 }) {
-  const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,7 +73,7 @@ export function ProjectPoliciesSection({
     }
   }
 
-  /** Prefill the add-form from a model draft. Editable; nothing is saved yet. */
+  /** Prefill the form from a model draft. Editable; nothing is saved yet. */
   function adoptDraft(d: PolicyDraft) {
     setStatement(d.statement);
     setFix(d.suggestedTier === "advise" ? d.message || "" : "");
@@ -73,7 +82,7 @@ export function ProjectPoliciesSection({
     setMatcherFlags(d.matcher?.flags ?? "");
     setPrefilled(true);
     setShowTest(!!d.matcher);
-    setAdding(true);
+    onAdding(true);
     setError(null);
   }
 
@@ -103,7 +112,7 @@ export function ProjectPoliciesSection({
         matcher: tier === "block" ? matcher.trim() : null,
       });
       resetForm();
-      setAdding(false);
+      onAdding(false);
     });
   }
 
@@ -111,141 +120,60 @@ export function ProjectPoliciesSection({
   const active = policies.filter((p) => p.confirmedAt);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <p className="max-w-[60ch] text-[12.5px] leading-snug text-chalk-300">
-          Owner-authored rules enforced under any supervisor.{" "}
-          <span className="text-chalk-100">Advise</span> rules the reviewer checks;{" "}
-          <span className="text-chalk-100">block</span> rules cap the merge with a
-          deterministic matcher.
-        </p>
-        {!adding ? (
-          <Button
-            variant="primary"
-            size="sm"
-            iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />}
-            onClick={() => {
-              setError(null);
-              resetForm();
-              setAdding(true);
-            }}
-          >
-            New policy
-          </Button>
-        ) : null}
-      </div>
-
-      {!adding ? (
-        <DraftWithSupervisor
-          onDraft={adoptDraft}
-          onError={(m) => setError(m)}
+    <Section flush title="Your policies">
+      {adding ? (
+        <PolicyForm
+          statement={statement}
+          setStatement={setStatement}
+          fix={fix}
+          setFix={setFix}
+          tier={tier}
+          setTier={setTier}
+          matcher={matcher}
+          setMatcher={setMatcher}
+          matcherFlags={matcherFlags}
+          setMatcherFlags={setMatcherFlags}
+          prefilled={prefilled}
+          showTest={showTest}
+          setShowTest={setShowTest}
+          busy={busy}
+          onAdd={() => void add()}
+          onAdopt={adoptDraft}
+          onError={setError}
+          onCancel={() => {
+            onAdding(false);
+            resetForm();
+            setError(null);
+          }}
         />
       ) : null}
 
-      {adding ? (
-        <div className="space-y-2.5 rounded-[16px] border border-[color:var(--line)] bg-coal-700 p-3.5">
-          {prefilled ? (
-            <div className="flex items-center gap-1.5 rounded-[10px] border border-violet-soft/25 bg-violet-soft/10 px-2.5 py-1.5 text-[11px] text-violet-soft">
-              <Wand2 className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-              Supervisor draft - review and edit; nothing is saved until you click Add.
-            </div>
-          ) : null}
-          <div className="flex items-center gap-2">
-            <input
-              autoFocus
-              value={statement}
-              onChange={(e) => setStatement(e.target.value)}
-              placeholder="Rule, e.g. use a hyphen, not an em-dash"
-              className={cn(INPUT, "flex-1")}
-            />
-            <Select
-              value={tier}
-              ariaLabel="policy tier"
-              onChange={(v) => setTier(v as "advise" | "block")}
-              options={[
-                { value: "advise", label: "advise" },
-                { value: "block", label: "block" },
-              ]}
-            />
-          </div>
-          {tier === "advise" ? (
-            <input
-              value={fix}
-              onChange={(e) => setFix(e.target.value)}
-              placeholder="Fix the reviewer should name (optional)"
-              className={INPUT}
-            />
-          ) : (
-            <>
-              <div className="flex items-center gap-2">
-                <input
-                  value={matcher}
-                  onChange={(e) => setMatcher(e.target.value)}
-                  placeholder="Matcher regex, e.g. — (required for block)"
-                  className={cn(INPUT, "flex-1 font-mono")}
-                />
-                <input
-                  value={matcherFlags}
-                  onChange={(e) => setMatcherFlags(e.target.value)}
-                  placeholder="flags"
-                  aria-label="regex flags"
-                  className={cn(INPUT, "w-[84px] font-mono")}
-                />
-              </div>
-              <div className="flex items-center gap-1.5 rounded-[10px] border border-amber-soft/25 bg-amber-soft/10 px-2.5 py-1.5 text-[11px] text-amber-soft">
-                Hard gate - a block deterministically caps the merge at fork-point when
-                this matcher hits an added line. Owner-committed only.
-              </div>
-            </>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setShowTest((v) => !v)}
-            className="flex items-center gap-1.5 text-[11.5px] font-medium text-violet-soft hover:text-violet-vivid"
-          >
-            <FlaskConical className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-            {showTest ? "Hide test" : "Test this rule before saving"}
-          </button>
-          {showTest ? (
-            <MatcherTestPanel regex={tier === "block" ? matcher : undefined} flags={matcherFlags} />
-          ) : null}
-
-          <div className="flex items-center gap-2">
-            <Button variant="primary" size="sm" disabled={busy || !statement.trim()} onClick={() => void add()}>
-              Add policy
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={busy}
-              onClick={() => {
-                setAdding(false);
-                resetForm();
-                setError(null);
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
       {error ? (
-        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+        <div className="mb-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-meta text-rose-300">
           {error}
         </div>
       ) : null}
 
-      {policies.length === 0 && !adding ? (
-        <div className="rounded-[16px] border border-dashed border-[color:var(--line)] px-4 py-8 text-center">
-          <p className="text-[13px] text-chalk-300">No project policies yet.</p>
-          <p className="mt-1 text-[12px] text-chalk-400">
-            Optional - a plain run needs none.
-          </p>
-        </div>
+      {policies.length === 0 ? (
+        adding ? null : (
+          <div className="flex items-center justify-between gap-3 rounded-[18px] border border-dashed border-[color:var(--line)] px-4 py-4">
+            <span className="text-[13px] text-chalk-300">No policies yet.</span>
+            <Button
+              variant="primary"
+              size="sm"
+              iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />}
+              onClick={() => {
+                setError(null);
+                resetForm();
+                onAdding(true);
+              }}
+            >
+              New policy
+            </Button>
+          </div>
+        )
       ) : (
-        <div className="space-y-1.5">
+        <div className={cn(GROUP_CARD, adding && "mt-3")}>
           {pending.map((p) => (
             <PolicyRow
               key={p.id}
@@ -265,74 +193,179 @@ export function ProjectPoliciesSection({
           ))}
         </div>
       )}
-
-      {!adding ? <SuggestedPolicies onAdopt={adoptDraft} onError={(m) => setError(m)} /> : null}
-    </div>
+    </Section>
   );
 }
 
-/** English-rule -> editable draft. Prefills the add-form; never saves. */
-function DraftWithSupervisor({
-  onDraft,
+/** The single authoring surface. Draft and Suggest both prefill it; nothing saves without Add. */
+function PolicyForm({
+  statement,
+  setStatement,
+  fix,
+  setFix,
+  tier,
+  setTier,
+  matcher,
+  setMatcher,
+  matcherFlags,
+  setMatcherFlags,
+  prefilled,
+  showTest,
+  setShowTest,
+  busy,
+  onAdd,
+  onAdopt,
   onError,
+  onCancel,
 }: {
-  onDraft: (d: PolicyDraft) => void;
+  statement: string;
+  setStatement: (v: string) => void;
+  fix: string;
+  setFix: (v: string) => void;
+  tier: "advise" | "block";
+  setTier: (v: "advise" | "block") => void;
+  matcher: string;
+  setMatcher: (v: string) => void;
+  matcherFlags: string;
+  setMatcherFlags: (v: string) => void;
+  prefilled: boolean;
+  showTest: boolean;
+  setShowTest: (v: boolean) => void;
+  busy: boolean;
+  onAdd: () => void;
+  onAdopt: (d: PolicyDraft) => void;
   onError: (m: string) => void;
+  onCancel: () => void;
 }) {
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [drafting, setDrafting] = useState(false);
 
   async function draft() {
-    const d = text.trim();
+    const d = statement.trim();
     if (!d) return;
-    setBusy(true);
+    setDrafting(true);
     try {
       const res = await api.draftPolicy(d);
-      onDraft(res.draft);
-      setText("");
+      onAdopt(res.draft);
     } catch (err) {
       onError(err instanceof ApiError || err instanceof Error ? err.message : String(err));
     } finally {
-      setBusy(false);
+      setDrafting(false);
     }
   }
 
   return (
-    <div className="rounded-[16px] border border-violet-soft/20 bg-violet-soft/[0.06] p-3.5">
-      <div className="flex items-center gap-1.5 text-[12px] font-semibold text-violet-soft">
-        <Wand2 className="h-4 w-4" strokeWidth={2} aria-hidden />
-        Draft with the supervisor
-      </div>
-      <p className="mt-1 text-[11.5px] leading-snug text-chalk-300">
-        Describe a rule in plain English. The supervisor drafts an editable policy -
-        you review, tweak, and save it. Nothing is committed automatically.
-      </p>
-      <div className="mt-2.5 flex items-center gap-2">
+    <div className="space-y-3 rounded-[18px] border border-[color:var(--line)] bg-coal-700 p-4">
+      {prefilled ? (
+        <Chip tone="violet">
+          <Wand2 className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          Supervisor draft
+        </Chip>
+      ) : null}
+
+      <div className="flex items-center gap-2">
         <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
+          autoFocus
+          value={statement}
+          onChange={(e) => setStatement(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !busy) void draft();
+            if (e.key === "Enter" && !busy && !drafting) onAdd();
           }}
-          placeholder="e.g. never commit a raw AWS access key"
+          placeholder="Rule in plain English, e.g. use a hyphen, not an em-dash"
           className={cn(INPUT, "flex-1")}
         />
         <Button
           variant="secondary"
           size="sm"
-          disabled={busy || !text.trim()}
+          disabled={drafting || !statement.trim()}
           iconLeft={<Wand2 className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />}
           onClick={() => void draft()}
         >
-          {busy ? "Drafting…" : "Draft"}
+          {drafting ? "Drafting…" : "Draft"}
+        </Button>
+        <Select
+          value={tier}
+          ariaLabel="policy tier"
+          onChange={(v) => setTier(v as "advise" | "block")}
+          options={[
+            { value: "advise", label: "advise" },
+            { value: "block", label: "block" },
+          ]}
+        />
+      </div>
+
+      {tier === "advise" ? (
+        <input
+          value={fix}
+          onChange={(e) => setFix(e.target.value)}
+          placeholder="Fix the reviewer should name (optional)"
+          className={INPUT}
+        />
+      ) : (
+        <>
+          {/* Widths live on the wrappers, not the inputs: the shared INPUT recipe
+            * carries `w-full`, and cn() is clsx without twMerge, so a `w-[84px]`
+            * bolted onto it fought `w-full` in the stylesheet and won - which
+            * collapsed the matcher field to a 20px stub and stretched the flags
+            * field across the row. */}
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <input
+                value={matcher}
+                onChange={(e) => setMatcher(e.target.value)}
+                // The example matcher IS an em-dash, and this repo bans the
+                // literal character in source - so it is escaped, not typed.
+                placeholder={"Matcher regex, e.g. \u2014 (required for block)"}
+                className={cn(INPUT, "font-mono")}
+              />
+            </div>
+            <div className="w-[96px] shrink-0">
+              <input
+                value={matcherFlags}
+                onChange={(e) => setMatcherFlags(e.target.value)}
+                placeholder="flags"
+                aria-label="regex flags"
+                className={cn(INPUT, "font-mono")}
+              />
+            </div>
+          </div>
+          <p className="text-meta leading-[1.55] text-amber-soft">
+            Caps the merge when this matcher hits an added line.
+          </p>
+        </>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="primary" size="sm" disabled={busy || !statement.trim()} onClick={onAdd}>
+          Add policy
+        </Button>
+        <Button variant="ghost" size="sm" disabled={busy} onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          iconLeft={<FlaskConical className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />}
+          onClick={() => setShowTest(!showTest)}
+        >
+          {showTest ? "Hide test" : "Test"}
         </Button>
       </div>
+
+      {showTest ? (
+        <MatcherTestPanel regex={tier === "block" ? matcher : undefined} flags={matcherFlags} />
+      ) : null}
+
+      <SuggestedPolicies onAdopt={onAdopt} onError={onError} />
     </div>
   );
 }
 
-/** On-demand candidate policies from recent runs. Collapsed by default (hits the
- *  model). Adopt prefills the add-form; never auto-saved. */
+/**
+ * On-demand candidates from recent runs. Demoted into the authoring form: it
+ * hits the model, so it stays a deliberate click, and it is only reachable
+ * while the owner is actually writing a policy. Adopt prefills the form above;
+ * never auto-saved.
+ */
 function SuggestedPolicies({
   onAdopt,
   onError,
@@ -340,7 +373,6 @@ function SuggestedPolicies({
   onAdopt: (d: PolicyDraft) => void;
   onError: (m: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [drafts, setDrafts] = useState<PolicyDraft[] | null>(null);
   const [scanned, setScanned] = useState(0);
@@ -359,94 +391,57 @@ function SuggestedPolicies({
   }
 
   return (
-    <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-700">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left"
-      >
-        {open ? (
-          <ChevronDown className="h-3.5 w-3.5 text-chalk-400" strokeWidth={2} aria-hidden />
-        ) : (
-          <ChevronRight className="h-3.5 w-3.5 text-chalk-400" strokeWidth={2} aria-hidden />
-        )}
-        <Sparkles className="h-3.5 w-3.5 text-violet-soft" strokeWidth={2} aria-hidden />
-        <span className="text-[12.5px] font-semibold text-chalk-100">Suggested policies</span>
-        <span className="text-[11px] text-chalk-400">from recent runs</span>
-      </button>
-      {open ? (
-        <div className="border-t border-[color:var(--line)] px-3.5 py-3">
-          {drafts == null ? (
-            <div className="flex flex-col items-start gap-2">
-              <p className="text-[11.5px] text-chalk-300">
-                Scan recent runs and let the supervisor propose reusable policies. Read-only;
-                nothing is saved.
-              </p>
-              <Button variant="secondary" size="sm" disabled={busy} onClick={() => void load()}>
-                {busy ? "Scanning…" : "Suggest from recent runs"}
-              </Button>
-            </div>
-          ) : drafts.length === 0 ? (
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[12px] text-chalk-300">
-                No suggestions ({scanned} run{scanned === 1 ? "" : "s"} scanned).
-              </p>
-              <Button variant="ghost" size="sm" disabled={busy} onClick={() => void load()}>
-                {busy ? "Scanning…" : "Rescan"}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {drafts.map((d, i) => (
-                <div
-                  key={i}
-                  className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2.5"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <TierChip tier={d.suggestedTier} />
-                        <span className="truncate text-[12.5px] font-medium text-chalk-100">
-                          {d.statement}
-                        </span>
-                      </div>
-                      {d.matcher ? (
-                        <p className="mt-0.5 truncate font-mono text-[11px] text-chalk-400">
-                          /{d.matcher.regex}/{d.matcher.flags}
-                        </p>
-                      ) : d.message ? (
-                        <p className="mt-0.5 truncate text-[11.5px] text-chalk-300">{d.message}</p>
-                      ) : null}
-                    </div>
-                    <Button variant="secondary" size="sm" onClick={() => onAdopt(d)}>
-                      Adopt
-                    </Button>
-                  </div>
+    <div className="border-t border-[color:var(--line-soft)] pt-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="ghost" size="sm" disabled={busy} onClick={() => void load()}>
+          {busy ? "Scanning…" : drafts ? "Rescan recent runs" : "Suggest from recent runs"}
+        </Button>
+        {drafts && drafts.length === 0 ? (
+          <span className="text-meta text-chalk-400">
+            No suggestions in {scanned} run{scanned === 1 ? "" : "s"}.
+          </span>
+        ) : null}
+      </div>
+
+      {drafts && drafts.length > 0 ? (
+        <div className="mt-2 space-y-1.5">
+          {drafts.map((d, i) => (
+            <div
+              key={i}
+              className="flex items-start justify-between gap-3 rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2.5"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <TierChip tier={d.suggestedTier} />
+                  <span className="min-w-0 truncate text-[13px] font-medium text-chalk-100">
+                    {d.statement}
+                  </span>
                 </div>
-              ))}
-              <Button variant="ghost" size="sm" disabled={busy} onClick={() => void load()}>
-                {busy ? "Scanning…" : "Rescan"}
+                {d.matcher ? (
+                  <p className="mt-1 truncate font-mono text-meta text-chalk-400">
+                    /{d.matcher.regex}/{d.matcher.flags}
+                  </p>
+                ) : d.message ? (
+                  <p className="mt-1 truncate text-meta text-chalk-300">{d.message}</p>
+                ) : null}
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => onAdopt(d)}>
+                Adopt
               </Button>
             </div>
-          )}
+          ))}
         </div>
       ) : null}
     </div>
   );
 }
 
+/** Flat tinted mono label - the tier is a rank, and a rank does not need a pill. */
 function TierChip({ tier }: { tier: "advise" | "block" }) {
   return (
-    <span
-      className={cn(
-        "shrink-0 rounded-[8px] px-2 py-0.5 text-[10.5px] font-semibold",
-        tier === "block"
-          ? "bg-amber-soft/12 text-amber-soft"
-          : "bg-violet-soft/12 text-violet-soft",
-      )}
-    >
+    <Chip tone={tier === "block" ? "amber" : "violet"} className="shrink-0">
       {tier}
-    </span>
+    </Chip>
   );
 }
 
@@ -467,42 +462,34 @@ function PolicyRow({
   const [showTest, setShowTest] = useState(false);
   const hasMatcher = p.tier === "block" && !!p.matcher;
   return (
-    <div className="rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-3.5 py-2.5">
-      <div className="flex items-center gap-3">
-        <TierChip tier={p.tier} />
+    <div className="px-4 py-3">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
+          {/* The tier label aligns to the statement's own line, not to the middle
+           * of the whole row: centred against a multi-line stack it floated away
+           * from the sentence it labels. */}
           <div className="flex items-center gap-2">
-            <span className="truncate text-[13px] font-medium text-chalk-100">{p.statement}</span>
+            <TierChip tier={p.tier} />
+            <span className="min-w-0 truncate text-[13px] font-medium text-chalk-100">
+              {p.statement}
+            </span>
             {proposed ? (
-              <span className="shrink-0 text-[11px] font-medium text-amber-soft">proposed</span>
+              <Chip tone="amber" className="shrink-0">
+                proposed
+              </Chip>
             ) : null}
           </div>
           {hasMatcher ? (
-            <p className="mt-0.5 truncate font-mono text-[11px] text-chalk-400">/{p.matcher}/</p>
+            <p className="mt-1 truncate font-mono text-meta text-chalk-400">/{p.matcher}/</p>
           ) : p.correction ? (
-            <p className="mt-0.5 truncate text-[11.5px] text-chalk-300">Fix: {p.correction}</p>
+            <p className="mt-1 truncate text-meta text-chalk-300">Fix: {p.correction}</p>
           ) : null}
-          {p.tier === "block" ? (
-            <p className="mt-1 text-[10.5px] text-amber-soft/90">
-              Hard gate - deterministic, caps the merge at fork-point; owner-only.
-            </p>
-          ) : (
-            <p className="mt-1 text-[10.5px] text-chalk-400">Reviewer-checked; advisory.</p>
-          )}
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1.5">
           {hasMatcher ? (
-            <button
-              type="button"
-              onClick={() => setShowTest((v) => !v)}
-              aria-label={`Test ${p.id}`}
-              className={cn(
-                "rounded-[8px] p-1.5 transition hover:bg-violet-soft/10",
-                showTest ? "text-violet-soft" : "text-chalk-400 hover:text-violet-soft",
-              )}
-            >
+            <IconBtn title={`Test ${p.id}`} onClick={() => setShowTest(!showTest)}>
               <FlaskConical className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
-            </button>
+            </IconBtn>
           ) : null}
           {onConfirm ? (
             <Button
@@ -529,15 +516,9 @@ function PolicyRow({
             </Button>
           ) : null}
           {onRemove ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={onRemove}
-              aria-label={`Remove ${p.id}`}
-              className="rounded-[8px] p-1.5 text-chalk-400 transition hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-50"
-            >
+            <IconBtn danger disabled={busy} title={`Remove ${p.id}`} onClick={onRemove}>
               <Trash2 className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
-            </button>
+            </IconBtn>
           ) : null}
         </div>
       </div>

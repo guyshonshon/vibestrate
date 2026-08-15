@@ -146,7 +146,7 @@ export function SpecUpReview({ runId, flowId }: { runId: string; flowId: string 
                 />
                 <span className="text-[13px] font-semibold">{d.label}</span>
                 {d.frozen ? (
-                  <span className="text-[11px] text-chalk-400">approved (frozen)</span>
+                  <span className="text-meta text-chalk-400">approved (frozen)</span>
                 ) : null}
               </Button>
               {!d.frozen && !isEditing ? (

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, ChevronsUpDown, ExternalLink, FolderTree, GitBranch } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { cn } from "../design/cn.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
 
 type Entry = {
   root: string;
@@ -136,10 +137,20 @@ export function ProjectSwitcher({
           </div>
 
           {entries == null ? (
-            <p className="px-3 py-3 text-[13px] text-chalk-300">Loading projects…</p>
+            <Skeleton label="Loading projects" className="flex flex-col py-1">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-2 px-3 py-2">
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <SkeletonBlock tone="text" h={12} w={`${[62, 46, 74][i]}%`} />
+                    <SkeletonBlock tone="text" h={11} w={`${[38, 52, 30][i]}%`} />
+                  </div>
+                  <SkeletonBlock w={14} h={14} radius={4} />
+                </div>
+              ))}
+            </Skeleton>
           ) : others.length === 0 ? (
             <p className="px-3 py-3 text-[13px] text-chalk-300">
-              No other projects registered yet.
+              No other projects.
             </p>
           ) : (
             <div className="max-h-[280px] overflow-y-auto py-1">
@@ -161,7 +172,7 @@ export function ProjectSwitcher({
                         ? "Starting…"
                         : e.live
                           ? `Running on port ${e.lastPort ?? "?"}`
-                          : "Not running - opening will start it"}
+                          : "Not running"}
                     </span>
                   </span>
                   <ExternalLink

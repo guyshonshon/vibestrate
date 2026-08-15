@@ -11,6 +11,7 @@ import {
 import { fmtElapsed } from "../design/format.js";
 import { Button } from "../design/Button.js";
 import { Chip, ToneDot, type ChipTone } from "../design/Chip.js";
+import { Skeleton, SkeletonBlock, SkeletonText } from "../design/Skeleton.js";
 import { LiveOutputPanel } from "./LiveOutputPanel.js";
 import { ErrorView } from "../../lib/error-view.js";
 
@@ -155,6 +156,27 @@ export function LiveTimeline({
   const anyWorking = cards.some((c) => c.state === "working");
   const now = useNowTick(anyWorking);
 
+  // No flow object is the run record still arriving; an empty board with a flow
+  // present is the honest "this run recorded no steps".
+  if (!flow) {
+    return (
+      <Skeleton
+        label="Loading the timeline"
+        className="flex h-full flex-col gap-1 overflow-hidden"
+      >
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="flex items-center gap-2.5 px-2 py-1.5">
+            <SkeletonBlock w={14} h={14} radius={4} />
+            <SkeletonBlock w={8} h={8} radius={999} />
+            <SkeletonBlock tone="text" h={12} w={`${[34, 26, 42, 30, 38, 24][i]}%`} />
+            <SkeletonBlock tone="text" h={11} w={56} className="ml-auto" />
+            <SkeletonBlock h={18} w={64} radius={8} />
+          </div>
+        ))}
+      </Skeleton>
+    );
+  }
+
   if (cards.length === 0) {
     return (
       <div className="text-[12.5px] text-chalk-400">
@@ -245,12 +267,12 @@ function TimelineRow({
               parallel
             </Chip>
           ) : null}
-          <span className="truncate text-[11px] text-chalk-400">
+          <span className="truncate text-meta text-chalk-400">
             {card.roleLabel ?? card.seat ?? card.kind}
             {card.profileId ? ` · ${card.profileId}` : ""}
           </span>
         </span>
-        <span className="ml-auto flex shrink-0 items-baseline gap-3 text-[11px] num-tabular">
+        <span className="ml-auto flex shrink-0 items-baseline gap-3 text-meta num-tabular">
           {card.tokens ? (
             <span>
               <span className="font-semibold text-chalk-100">
@@ -270,12 +292,12 @@ function TimelineRow({
         </span>
       </button>
       {tail ? (
-        <div className="ml-[34px] truncate border-l border-[color:var(--line)] pl-3 mono text-[11px] leading-relaxed text-chalk-400">
+        <div className="ml-[34px] truncate border-l border-[color:var(--line)] pl-3 mono text-meta leading-relaxed text-chalk-400">
           {tail}
         </div>
       ) : null}
       {card.error && !expanded ? (
-        <div className="ml-[34px] truncate pl-3 text-[11px] text-rose-300">
+        <div className="ml-[34px] truncate pl-3 text-meta text-rose-300">
           {card.error}
         </div>
       ) : null}
@@ -357,7 +379,7 @@ function SeatDetail({
       {/* The timeline row right above already names the step, role, and
        * state - the pane only adds what the row can't: pin status + error. */}
       {pinned || card.error ? (
-        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+        <div className="flex flex-wrap items-center gap-2 text-meta">
           {pinned ? (
             <>
               <Chip contained tone="violet">
@@ -391,9 +413,18 @@ function SeatDetail({
             prompt this seat received
           </Button>
           {promptOpen ? (
-            <pre className="mt-1 max-h-[240px] overflow-auto whitespace-pre-wrap rounded-[12px] border border-[color:var(--line)] bg-coal-900 p-2.5 text-[11px] leading-relaxed text-chalk-300">
-              {prompt ?? "Loading prompt…"}
-            </pre>
+            prompt === null ? (
+              <Skeleton
+                label="Loading the prompt"
+                className="mt-1 rounded-[12px] border border-[color:var(--line)] bg-coal-900 p-2.5"
+              >
+                <SkeletonText lines={6} width="full" size={10} gap={9} />
+              </Skeleton>
+            ) : (
+              <pre className="mt-1 max-h-[240px] overflow-auto whitespace-pre-wrap rounded-[12px] border border-[color:var(--line)] bg-coal-900 p-2.5 text-meta leading-relaxed text-chalk-300">
+                {prompt}
+              </pre>
+            )
           ) : null}
         </div>
       ) : null}
@@ -406,7 +437,7 @@ function SeatDetail({
             focusStream={card.streamName}
           />
         ) : output !== null ? (
-          <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap rounded-[12px] border border-[color:var(--line)] bg-coal-900 p-2.5 text-[11.5px] leading-relaxed text-chalk-300">
+          <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap rounded-[12px] border border-[color:var(--line)] bg-coal-900 p-2.5 text-meta leading-relaxed text-chalk-300">
             {output}
           </pre>
         ) : outputError ? (
@@ -420,7 +451,7 @@ function SeatDetail({
             }}
           />
         ) : (
-          <p className="text-[11.5px] text-chalk-400">
+          <p className="text-meta text-chalk-400">
             {card.state === "waiting"
               ? "This seat hasn't started yet."
               : card.state === "skipped"

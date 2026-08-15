@@ -12,7 +12,7 @@ In Vibestrate that doorway is the **Action Broker**. Every side-effecting operat
 
 <div class="docs-callout warn">
 
-**One guarded doorway.** Every side-effecting operation crosses the single Action Broker. For each request the broker decides against an ordered chain of evaluators (first `deny` wins, otherwise the first `require_approval`, otherwise `allow`) and records the decision plus post-execution evidence as one line in `.vibestrate/runs/<runId>/actions.ndjson`. Every decision is **honored fail-closed**: anything short of an explicit `allow` refuses the effect at the call site. There is no surface that skips the boundary.
+**One guarded doorway.** Every side-effecting operation crosses the single Action Broker. For each request the broker decides against an ordered chain of evaluators (first `deny` wins, otherwise the first `require_approval`, otherwise `allow`) and records the decision plus post-execution evidence as one line in `.vibestrate/runs/<runId>/actions.ndjson`. Every decision is **honored fail-closed**: anything short of an explicit `allow` refuses the effect at the call site. What crosses the boundary is what a *run* does. Editing your own configuration - from the dashboard or the CLI - does not, and [the list is below](#what-does-not-cross-the-boundary).
 
 </div>
 
@@ -77,6 +77,10 @@ In plain words: the first action `deny`s any `npm install` / `pip install` comma
 | `pathGlob` | `file.write`, `file.patch` | glob over the written/touched path(s) |
 | `status` | `run.complete` | exact terminal verdict (`merge_ready` / `blocked`) |
 
+Write a `pathGlob` with `/` separators on every platform, Windows included. The path a write is matched against is the native one vibestrate is about to open, so it is checked in both its native and its `/` spelling - a rule like `**/*.env` bites the same on Windows as it does on macOS and Linux.
+
+**Start a `pathGlob` with `**/`.** The path it matches is absolute and the glob is anchored, so a project-relative pattern like `.vibestrate/project.yml` matches nothing and the rule silently protects nothing. Write `**/.vibestrate/project.yml`. A glob is tested against every path an action declares, not only the one it opens. Most writes declare one. Where one action in your head is two writes to two files - a Role's prompt and a Role's wiring, say - both writes declare **both** paths, so one path-scoped rule naming either file covers the pair. That keeps a rule from refusing the harmless half and landing the dangerous one, and it means such a rule is wider than its glob reads.
+
 An action with no `match` applies to **every** request of the listed `on:` kinds. Effects default to `deny`. Policies can only *refuse or hold* an effect - they never permit something the built-in safety checks already refused.
 
 The seven kinds above are exactly the effects vibestrate actually raises. There is deliberately **no `network.request` or `mcp.tool` kind**: a provider CLI's own HTTP calls and tool invocations happen inside an opaque subprocess that vibestrate cannot intercept, so a policy kind for them would advertise a checkpoint that does not exist. Network confinement is enforced a layer down, at the container boundary - see [egress allowlist](concepts/sandbox).
@@ -89,7 +93,22 @@ Every other kind is refused at load with an error naming the offending kinds. Th
 
 One honest edge: `file.patch` holds at the diff gate, but the suggestion/bundle **apply** surfaces have no seam either, so a hold there refuses the apply. When that happens the action log records the policy's `require_approval` decision *plus* evidence saying it was refused rather than held, so the audit trail never implies you were asked.
 
-Because every effect is constructed through the same broker, the same policy set reaches every effect site - there is no surface that quietly skips the boundary, and the `actions.ndjson` log is the audit trail the Run Assurance artifact and replay read from, including refused attempts.
+Every effect that is constructed as a broker request goes through the same policy set, and `actions.ndjson` is the audit trail the Run Assurance artifact and replay read from, refused attempts included.
+
+### What does not cross the boundary
+
+Not every byte written under `.vibestrate/` crosses it. A policy reaches a write only when some code path raises that write as an action.
+
+**Gated** - the effects of a run, plus the authoring surfaces: flow files, a Role's prompt, a Role's wiring and its skill *assignments*, `VIBESTRATE.md`, `mcp.json`, terminal creation, the guided merge.
+
+**Not gated** - you editing your own settings:
+
+- `POST /api/config/set`, the policies config panel, installing a Crew preset, changing the default Crew, adopting a supervisor persona, and editing a Profile all write `project.yml` directly.
+- `POST /api/skills/fetch` writes `.vibestrate/skills/<name>.md`. Assigning a skill to a Role is gated; *installing* one is not.
+- `POST /api/composer/presets` writes your saved composer presets.
+- `vibe init` and every config command on the CLI.
+
+A gate on these could refuse a first-time `init` before the project has any policy to consult. The practical consequence is worth stating plainly: **a rule that denies `file.write` is not a lock on your config file.**
 
 ### A policy set that didn't fully load stops the run
 

@@ -26,7 +26,7 @@ function LineRow({ line, dim = false }: { line: TerminalLine; dim?: boolean }) {
     >
       <span
         className={cn(
-          "uppercase tracking-[0.1em] w-[76px] shrink-0 text-[10px] pt-[2px]",
+          "uppercase tracking-[0.1em] w-[76px] shrink-0 text-meta pt-[2px]",
           TAG[line.color ?? "fog"] ?? "text-chalk-400",
         )}
       >
@@ -83,7 +83,7 @@ export function MiniTerminal({
       <div className="absolute inset-x-0 top-0 h-px bg-violet-soft/25" />
       <div className="space-y-[3px]">
         {buf.length === 0 ? (
-          <div className="text-[11px] font-medium text-chalk-300">
+          <div className="text-meta font-medium text-chalk-300">
             No recent events
           </div>
         ) : (
@@ -124,13 +124,13 @@ export function LiveTerminal({
             <span className="w-2 h-2 rounded-full bg-amber-300/70" />
             <span className="w-2 h-2 rounded-full bg-emerald-400/70" />
           </span>
-          <span className="text-[11px] font-semibold text-chalk-300 ml-2">{title}</span>
+          <span className="text-meta font-semibold text-chalk-300 ml-2">{title}</span>
         </div>
         {/* One contained control, not a loose dot beside a loose word: the
             state reads as a single object with its own surface. */}
         <span
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-[11.5px] font-semibold",
+            "inline-flex items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-meta font-semibold",
             paused
               ? "bg-amber-soft/15 text-amber-soft"
               : "bg-emerald-500/15 text-emerald-400",

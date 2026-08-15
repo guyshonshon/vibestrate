@@ -4,11 +4,12 @@ import { api, type ProjectParamsView } from "../../lib/api.js";
 import type { DiscoveredFlow, FlowParam } from "../../lib/types.js";
 import { Select } from "../design/Select.js";
 import { Button } from "../design/Button.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
 
 const INPUT =
   "rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50";
 const TAG =
-  "mono rounded-[6px] bg-coal-500 px-1.5 py-0.5 text-[10px] text-chalk-300";
+  "mono rounded-[6px] bg-coal-500 px-1.5 py-0.5 text-meta text-chalk-300";
 
 /**
  * Project parameters (durable param memory). The explicit editor for the typed
@@ -22,6 +23,9 @@ const TAG =
  */
 export function ProjectParamsPanel() {
   const [flows, setFlows] = useState<DiscoveredFlow[]>([]);
+  // An empty flow list only means "no flow declares params" once the listing
+  // has actually come back.
+  const [loaded, setLoaded] = useState(false);
   const [stored, setStored] = useState<ProjectParamsView | null>(null);
   const [flowId, setFlowId] = useState<string>("");
   const [edits, setEdits] = useState<Record<string, string>>({});
@@ -44,6 +48,7 @@ export function ProjectParamsPanel() {
           (fl) => fl.definition.params && Object.keys(fl.definition.params).length > 0,
         );
         setFlows(withParams);
+        setLoaded(true);
         setStored(p);
         if (withParams[0]) setFlowId(withParams[0].id);
       } catch (err) {
@@ -143,23 +148,41 @@ export function ProjectParamsPanel() {
       <header className="flex items-center gap-2 text-[13px] font-semibold text-chalk-100">
         <Database className="h-3.5 w-3.5" strokeWidth={1.6} />
         Project parameters
-        <span className="text-[11px] font-normal text-chalk-400">
+        <span className="text-meta font-normal text-chalk-400">
           · durable param memory (filled once, reused across runs)
         </span>
       </header>
 
       {error ? (
-        <div className="mt-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+        <div className="mt-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-meta text-rose-300">
           {error}
         </div>
       ) : null}
       {notice ? (
-        <div className="mt-2 rounded-[10px] border border-emerald/30 bg-emerald/10 px-3 py-1.5 text-[11.5px] text-emerald">
+        <div className="mt-2 rounded-[10px] border border-emerald/30 bg-emerald/10 px-3 py-1.5 text-meta text-emerald">
           {notice}
         </div>
       ) : null}
 
-      {flows.length === 0 ? (
+      {!loaded ? (
+        <Skeleton
+          label="Loading project parameters"
+          className="mt-3 rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4"
+        >
+          <div className="flex items-center gap-2">
+            <SkeletonBlock tone="text" h={12} w={34} />
+            <SkeletonBlock h={30} w={188} bordered />
+          </div>
+          <div className="mt-3 flex flex-col gap-2.5">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex flex-col gap-1.5">
+                <SkeletonBlock tone="text" h={11} w={[96, 132, 76][i]} />
+                <SkeletonBlock h={36} w="100%" bordered />
+              </div>
+            ))}
+          </div>
+        </Skeleton>
+      ) : flows.length === 0 ? (
         <div className="mt-3 rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-4 py-3 text-[12.5px] text-chalk-300">
           No flow declares parameters yet. A flow's{" "}
           <span className="mono rounded-[6px] bg-coal-500 px-1 py-0.5 text-chalk-300">
@@ -195,12 +218,12 @@ export function ProjectParamsPanel() {
                       </span>
                     ) : null}
                     {def.secret ? (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-soft" title="Stored as an env var reference, never the raw secret">
+                      <span className="inline-flex items-center gap-0.5 text-meta text-amber-soft" title="Stored as an env var reference, never the raw secret">
                         <KeyRound className="h-2.5 w-2.5" strokeWidth={1.6} /> secret
                       </span>
                     ) : null}
                     {def.description ? (
-                      <span className="text-[11px] text-chalk-300">· {def.description}</span>
+                      <span className="text-meta text-chalk-300">· {def.description}</span>
                     ) : null}
                   </div>
                   <div className="flex items-center gap-2">
@@ -251,7 +274,7 @@ export function ProjectParamsPanel() {
                     ) : null}
                   </div>
                   {stored ? (
-                    <div className="text-[10.5px] text-chalk-400">
+                    <div className="text-meta text-chalk-400">
                       stored: {stored.secret ? <span className="mono">{stored.value || "env ref"}</span> : <span className="mono">{stored.value}</span>}{" "}
                       <span className="text-chalk-300">({stored.setBy})</span>
                     </div>
@@ -271,7 +294,7 @@ export function ProjectParamsPanel() {
             >
               Save
             </Button>
-            <span className="text-[10.5px] text-chalk-400">
+            <span className="text-meta text-chalk-400">
               Editing here overwrites a stored value (supersedes). Secrets store an env var NAME only.
             </span>
           </div>
@@ -287,14 +310,14 @@ export function ProjectParamsPanel() {
             {storedEntries.map(([key, entry]) => (
               <li
                 key={key}
-                className="flex items-center gap-2 rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-3 py-1.5 text-[11.5px]"
+                className="flex items-center gap-2 rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-3 py-1.5 text-meta"
               >
                 <span className="mono text-chalk-100">{key}</span>
                 <span className="text-chalk-400">=</span>
                 <span className="mono truncate text-chalk-300">
                   {entry.secret ? `[secret -> ${entry.value}]` : entry.value}
                 </span>
-                <span className="ml-auto text-[10px] text-chalk-400">{entry.setBy}</span>
+                <span className="ml-auto text-meta text-chalk-400">{entry.setBy}</span>
                 <button
                   type="button"
                   disabled={busy}

@@ -20,7 +20,13 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Wand2 } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { ErrorView } from "../../lib/error-view.js";
-import { LoadingState } from "../design/ErrorState.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+  SkeletonStats,
+  SkeletonText,
+} from "../design/Skeleton.js";
 import type { CrewDraft } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
 import { Chip } from "../design/Chip.js";
@@ -102,14 +108,14 @@ export function DraftCrewPanel({ className }: { className?: string }) {
               <div className="mt-1.5 flex items-center justify-between gap-3">
                 <span
                   className={cn(
-                    "num-tabular text-[11px]",
+                    "num-tabular text-meta",
                     tooLong ? "text-rose-300" : "text-chalk-300",
                   )}
                 >
                   {trimmed.length} / {MAX_DESCRIPTION}
                 </span>
                 {tooLong ? (
-                  <span className="text-[11.5px] text-rose-300">
+                  <span className="text-meta text-rose-300">
                     Over the cap by {trimmed.length - MAX_DESCRIPTION}. Drafting needs a
                     shorter description.
                   </span>
@@ -128,19 +134,29 @@ export function DraftCrewPanel({ className }: { className?: string }) {
               >
                 {busy ? "Drafting…" : "Draft"}
               </Button>
-              <p className="text-[11.5px] leading-[1.45] text-chalk-300">
+              <p className="text-meta leading-[1.45] text-chalk-300">
                 The draft uses profiles and permissions this project already has.
               </p>
             </div>
           </div>
 
           {busy ? (
-            <LoadingState
-              compact
-              className="mt-4"
-              title="Drafting a crew"
-              detail="The supervisor is matching roles to the seats your flows use. It reads the project and cannot write."
-            />
+            // Shaped like the review card the draft resolves into, so the
+            // answer replaces bones in place instead of pushing the page.
+            <Skeleton
+              label="Drafting a crew"
+              className="mt-4 rounded-[16px] border border-[color:var(--line)] bg-coal-700 p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <SkeletonBlock h={17} w={168} />
+                  <SkeletonBlock tone="text" h={11} w={104} />
+                </div>
+                <SkeletonStats count={3} />
+              </div>
+              <SkeletonText className="mt-2.5" lines={2} size={12} gap={7} />
+              <SkeletonRows className="mt-3.5" rows={4} lead="dot" />
+            </Skeleton>
           ) : null}
 
           {error ? (
@@ -177,7 +193,7 @@ function CrewDraftReview({
           <h3 className="truncate text-[15px] font-bold text-chalk-100">
             {draft.crew.label || draft.crewId}
           </h3>
-          <p className="mono mt-0.5 text-[11.5px] text-violet-soft">{draft.crewId}</p>
+          <p className="mono mt-0.5 text-meta text-violet-soft">{draft.crewId}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <StatTile value={roles.length} label={roles.length === 1 ? "role" : "roles"} />
@@ -224,7 +240,7 @@ function CrewDraftReview({
                 <span className="text-[12.5px] font-semibold text-chalk-100">
                   {role.label || roleId}
                 </span>
-                <span className="mono text-[11px] text-violet-soft">{roleId}</span>
+                <span className="mono text-meta text-violet-soft">{roleId}</span>
                 <div className="ml-auto flex flex-wrap items-center gap-1.5">
                   {(role.seats ?? []).map((s) => (
                     <Chip key={s} contained tone="violet">
@@ -233,7 +249,7 @@ function CrewDraftReview({
                   ))}
                 </div>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11.5px]">
+              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-meta">
                 <span className="text-chalk-300">
                   <span className="font-semibold text-violet-vivid">profile </span>
                   <span className="mono text-chalk-100">{role.profile}</span>
@@ -262,7 +278,7 @@ function CrewDraftReview({
         <div className="text-[12px] font-semibold text-violet-vivid">
           The role files ({draft.roleFiles.length})
         </div>
-        <p className="mt-0.5 max-w-[80ch] text-[11.5px] leading-[1.45] text-chalk-300">
+        <p className="mt-0.5 max-w-[80ch] text-meta leading-[1.45] text-chalk-300">
           A role&apos;s instructions live in its own file, and the crew block points at
           these paths. They are saved first - a role file that is not there stops the
           first run before any agent starts.

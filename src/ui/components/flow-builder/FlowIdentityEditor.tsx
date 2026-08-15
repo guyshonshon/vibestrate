@@ -119,7 +119,7 @@ export function SeatsCard({
         </Button>
       }
     >
-      <p className="mb-3 text-[11.5px] leading-[1.45] text-chalk-300">
+      <p className="mb-3 text-meta leading-[1.45] text-chalk-300">
         A seat is a job the flow needs filled. The crew you run with supplies the
         role, so the flow stays portable.
       </p>
@@ -244,14 +244,14 @@ export function LoopCard({
     >
       <IssueList issues={issues} className="mb-3" />
       {!loop ? (
-        <p className="text-[11.5px] leading-[1.45] text-chalk-300">
+        <p className="text-meta leading-[1.45] text-chalk-300">
           A loop repeats a run of steps while a review keeps asking for changes.
         </p>
       ) : (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <div className="mb-1 text-[11px] font-semibold text-violet-soft">
+              <div className="mb-1 text-meta font-semibold text-violet-soft">
                 From
               </div>
               <Select
@@ -263,7 +263,7 @@ export function LoopCard({
               />
             </div>
             <div>
-              <div className="mb-1 text-[11px] font-semibold text-violet-soft">To</div>
+              <div className="mb-1 text-meta font-semibold text-violet-soft">To</div>
               <Select
                 className="w-full"
                 ariaLabel="Loop last step"
@@ -274,7 +274,7 @@ export function LoopCard({
             </div>
           </div>
           <div>
-            <div className="mb-1 text-[11px] font-semibold text-violet-soft">
+            <div className="mb-1 text-meta font-semibold text-violet-soft">
               Decision step
             </div>
             <Select
@@ -285,7 +285,7 @@ export function LoopCard({
               onChange={(v) => onChange({ ...loop, decisionStep: v })}
               options={decisionOptions}
             />
-            <p className="mt-1 text-[11px] text-chalk-300">
+            <p className="mt-1 text-meta text-chalk-300">
               The loop exits when this review stops requesting changes.
             </p>
           </div>

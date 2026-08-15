@@ -1,10 +1,16 @@
 // Skill routes: list and read the discovered skills, assign or unassign one to
 // a role, and install one from a URL.
 //
-// Four of the five are thin wiring over skill-discovery and
-// skill-assignment-service. `POST /api/skills/fetch` is not: it is a
-// browser-reachable route that makes an outbound network request and then
-// writes a file into the project. Its guards all live in
+// The two read routes are thin wiring over skill-discovery. The other three
+// each write something and each carry their own guard.
+//
+// Assign and unassign reach the config through agents/role-skills-write, which
+// owns the Action Broker gate and the write; this file resolves the skill id to
+// a name and rejects an unknown one. No route here writes bytes itself.
+//
+// `POST /api/skills/fetch` is the third: a browser-reachable route that makes
+// an outbound network request and then writes a file into the project. Its
+// guards all live in
 // agents/skill-fetch.ts - the fetch goes through `fetchGuardedText` (which
 // refuses private hosts, so a page cannot use this to reach the local network),
 // the body is passed through `redactSecretsInText` before it is stored, the
@@ -21,11 +27,11 @@ import {
   discoverSkills,
   findSkillById,
 } from "../../agents/skill-discovery.js";
+import { listRoleSkillAssignments } from "../../agents/skill-assignment-service.js";
 import {
-  assignSkillToRole,
-  listRoleSkillAssignments,
-  unassignSkillFromRole,
-} from "../../agents/skill-assignment-service.js";
+  setRoleSkillAudited,
+  type RoleSkillMode,
+} from "../../agents/role-skills-write.js";
 import { HttpError } from "../security.js";
 
 const assignBody = z.object({ roleId: z.string().min(1) });
@@ -115,53 +121,44 @@ export async function registerSkillsRoutes(
     return skill.name;
   }
 
+  // Assign and unassign are one handler because they are one effect with a
+  // direction. Both write `crews.<defaultCrew>.roles.<roleId>.skills` in
+  // project.yml - the same field the Crew editor's role PATCH writes - so both
+  // go through setRoleSkillAudited, which owns the Action Broker gate and the
+  // write. Without it this page was a second, ungated door onto a field the
+  // Crew editor's gate protects, and the door that grants a role new
+  // instructions and new tools at that.
+  async function applySkillAssignment(
+    mode: RoleSkillMode,
+    skillId: string,
+    body: unknown,
+  ) {
+    const parsed = assignBody.safeParse(body);
+    if (!parsed.success) {
+      throw new HttpError(400, "Body must be { roleId: string }.");
+    }
+    const skillName = await ensureSkillExists(skillId);
+    const written = await setRoleSkillAudited({
+      projectRoot,
+      roleId: parsed.data.roleId,
+      skillName,
+      mode,
+    });
+    if (!written.ok) {
+      throw new HttpError(written.status, written.reasons.join(" "));
+    }
+    const assignments = await listRoleSkillAssignments(projectRoot);
+    return { roleId: parsed.data.roleId, skills: written.skills, assignments };
+  }
+
   app.post<{ Params: { skillId: string }; Body: unknown }>(
     "/api/skills/:skillId/assign",
-    async (req) => {
-      const parsed = assignBody.safeParse(req.body);
-      if (!parsed.success) {
-        throw new HttpError(400, "Body must be { roleId: string }.");
-      }
-      const skillName = await ensureSkillExists(req.params.skillId);
-      try {
-        const result = await assignSkillToRole(
-          projectRoot,
-          parsed.data.roleId,
-          skillName,
-        );
-        const assignments = await listRoleSkillAssignments(projectRoot);
-        return { roleId: parsed.data.roleId, skills: result.skills, assignments };
-      } catch (err) {
-        throw new HttpError(
-          400,
-          err instanceof Error ? err.message : String(err),
-        );
-      }
-    },
+    async (req) => applySkillAssignment("assign", req.params.skillId, req.body),
   );
 
   app.post<{ Params: { skillId: string }; Body: unknown }>(
     "/api/skills/:skillId/unassign",
-    async (req) => {
-      const parsed = assignBody.safeParse(req.body);
-      if (!parsed.success) {
-        throw new HttpError(400, "Body must be { roleId: string }.");
-      }
-      const skillName = await ensureSkillExists(req.params.skillId);
-      try {
-        const result = await unassignSkillFromRole(
-          projectRoot,
-          parsed.data.roleId,
-          skillName,
-        );
-        const assignments = await listRoleSkillAssignments(projectRoot);
-        return { roleId: parsed.data.roleId, skills: result.skills, assignments };
-      } catch (err) {
-        throw new HttpError(
-          400,
-          err instanceof Error ? err.message : String(err),
-        );
-      }
-    },
+    async (req) =>
+      applySkillAssignment("unassign", req.params.skillId, req.body),
   );
 }

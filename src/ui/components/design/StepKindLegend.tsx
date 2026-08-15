@@ -22,7 +22,7 @@ export function StepKindLegend({ className }: { className?: string }) {
       {GROUPS.map((g) => (
         <span
           key={g}
-          className="inline-flex items-center gap-1.5 text-[10.5px] text-chalk-400"
+          className="inline-flex items-center gap-1.5 text-meta text-chalk-400"
           title={STEP_GROUP_DESC[g]}
         >
           <span className={cn("h-2 w-2 rounded-full", DOT_CLASS[g])} aria-hidden />

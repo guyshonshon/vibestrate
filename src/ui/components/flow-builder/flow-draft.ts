@@ -310,7 +310,16 @@ export function draftToCandidate(draft: FlowEditorDraft): Record<string, unknown
     seats[seat.id] = value;
   }
 
+  // Whether the flow is linear or a DAG decides which per-step fields are
+  // legal at all, and adding or clearing a `needs` flips it under a step whose
+  // value was set while the other mode was in force. `applyKindChange` only
+  // scrubs on a kind change, so the gate is re-applied here: a field the form
+  // no longer shows never reaches the schema, which would otherwise reject the
+  // flow at a control the user cannot see.
+  const graphMode = isGraphDraft(draft);
+
   const steps = draft.steps.map((s) => {
+    const gate = stepFieldGate(s.kind, { graphMode });
     const out: Record<string, unknown> = {
       id: s.id,
       label: s.label,
@@ -321,15 +330,15 @@ export function draftToCandidate(draft: FlowEditorDraft): Record<string, unknown
       optional: s.optional,
       skipWhenReadOnly: s.skipWhenReadOnly,
       cleanRoom: s.cleanRoom,
-      continueOnError: s.continueOnError,
-      retries: s.retries,
       skills: s.skills,
     };
+    if (gate.continueOnError) out.continueOnError = s.continueOnError;
+    if (gate.retries) out.retries = s.retries;
     if (s.seat) out.seat = s.seat;
     if (s.instructions) out.instructions = s.instructions;
     if (s.stage) out.stage = s.stage;
-    if (s.skipWhen) out.skipWhen = s.skipWhen;
-    if (s.repeatTimes !== null) out.repeat = { times: s.repeatTimes };
+    if (gate.skipWhen && s.skipWhen) out.skipWhen = s.skipWhen;
+    if (gate.repeat && s.repeatTimes !== null) out.repeat = { times: s.repeatTimes };
     if (s.approval) {
       const approval: Record<string, unknown> = {
         reason: s.approval.reason,

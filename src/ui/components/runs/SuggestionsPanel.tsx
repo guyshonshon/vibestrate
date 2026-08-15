@@ -63,7 +63,7 @@ const INPUT =
 // framed `design/Button`, since Button has no per-status (affirm/warn/fail)
 // color variant.
 const INTENT_BTN =
-  "inline-flex items-center gap-1 rounded-[10px] px-1.5 py-0.5 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center gap-1 rounded-[10px] px-1.5 py-0.5 text-meta font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
 type Props = {
   runId: string;
@@ -332,7 +332,7 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
       <header className="flex items-center gap-2">
         <Lightbulb className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.5} />
         <span className="text-[12px] font-medium text-chalk-100">Suggestions</span>
-        <span className="font-mono text-[10.5px] text-chalk-400">
+        <span className="font-mono text-meta text-chalk-400">
           {items.length}
         </span>
         <button
@@ -373,7 +373,7 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
       </header>
 
       {selectMode && selectedIds.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-1.5 rounded-[10px] border border-violet-soft/30 bg-violet-soft/10 px-2 py-1.5 text-[11px]">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-[10px] border border-violet-soft/30 bg-violet-soft/10 px-2 py-1.5 text-meta">
           <span className="text-chalk-100">
             Group {selectedIds.length} suggestion
             {selectedIds.length === 1 ? "" : "s"} into a review pass.
@@ -391,7 +391,7 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
       ) : null}
 
       {error ? (
-        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2 py-1 text-[11.5px] text-rose-300">
+        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2 py-1 text-meta text-rose-300">
           {error}
         </div>
       ) : null}
@@ -399,7 +399,7 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
       {creating ? (
         <form
           onSubmit={submitDraft}
-          className="space-y-2 rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-3 text-[11.5px]"
+          className="space-y-2 rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-3 text-meta"
         >
           <FormField label="Title">
             <input
@@ -468,7 +468,7 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
               }
               placeholder="Optional unified diff (will require approval before apply)"
               rows={4}
-              className={`resize-none font-mono text-[11px] ${INPUT}`}
+              className={`resize-none font-mono text-meta ${INPUT}`}
             />
           </FormField>
           <div className="flex gap-1.5">
@@ -492,7 +492,7 @@ export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
       ) : null}
 
       {items.length === 0 ? (
-        <div className="rounded-[14px] border border-dashed border-[color:var(--line)] px-3 py-4 text-center text-[11.5px] text-chalk-400">
+        <div className="rounded-[14px] border border-dashed border-[color:var(--line)] px-3 py-4 text-center text-meta text-chalk-400">
           No suggestions yet. Reviewer/verifier `VIBESTRATE_SUGGESTION` blocks
           land here, plus anything you create manually.
         </div>
@@ -597,12 +597,12 @@ function Row({
           </IconBtn>
         ) : null}
         <StatusBadge status={s.status} />
-        <span className="rounded-[6px] border border-[color:var(--line)] px-1 font-mono text-[10px] text-chalk-400">
+        <span className="rounded-[6px] border border-[color:var(--line)] px-1 font-mono text-meta text-chalk-400">
           {s.source}
         </span>
         {s.bundleId ? (
           <span
-            className="rounded-[6px] border border-violet-soft/40 px-1 font-mono text-[10px] text-violet-soft"
+            className="rounded-[6px] border border-violet-soft/40 px-1 font-mono text-meta text-violet-soft"
             title={`Part of review pass ${s.bundleId}`}
           >
             review pass
@@ -610,7 +610,7 @@ function Row({
         ) : null}
         <span className="font-medium text-chalk-100">{s.title}</span>
         {s.file ? (
-          <span className="ml-auto truncate font-mono text-[10.5px] text-chalk-400">
+          <span className="ml-auto truncate font-mono text-meta text-chalk-400">
             {s.file}
             {s.lineStart ? `:${s.lineStart}` : ""}
             {s.lineEnd ? `-${s.lineEnd}` : ""}
@@ -618,22 +618,22 @@ function Row({
         ) : null}
       </div>
       {s.body ? (
-        <p className="mt-1 whitespace-pre-wrap text-[11.5px] text-chalk-300">
+        <p className="mt-1 whitespace-pre-wrap text-meta text-chalk-300">
           {s.body}
         </p>
       ) : null}
       {s.proposedPatch ? (
         <details className="mt-1.5">
-          <summary className="cursor-pointer text-[10.5px] text-chalk-400">
+          <summary className="cursor-pointer text-meta text-chalk-400">
             proposed patch ({s.proposedPatch.split("\n").length} lines)
           </summary>
-          <pre className="mt-1 max-h-48 overflow-auto rounded-[10px] border border-[color:var(--line)] bg-coal-800 px-2 py-1.5 font-mono text-[10.5px] text-chalk-100">
+          <pre className="mt-1 max-h-48 overflow-auto rounded-[10px] border border-[color:var(--line)] bg-coal-800 px-2 py-1.5 font-mono text-meta text-chalk-100">
             {s.proposedPatch}
           </pre>
         </details>
       ) : null}
       {s.errorMessage ? (
-        <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-rose-300">
+        <div className="mt-1 inline-flex items-center gap-1 text-meta text-rose-300">
           <AlertTriangle className="h-3 w-3" strokeWidth={1.5} />
           {s.errorMessage}
         </div>
@@ -658,16 +658,16 @@ function Row({
                 : null
             }
           />
-          <p className="text-[10px] text-chalk-400">
+          <p className="text-meta text-chalk-400">
             Editing only changes future validation runs. It does not re-run
             validation.
           </p>
         </div>
       ) : null}
-      <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+      <div className="mt-1.5 flex flex-wrap gap-1.5 text-meta">
         {readOnly ? (
           <span
-            className="inline-flex items-center gap-1 rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-1.5 py-0.5 text-[10.5px] text-amber-soft"
+            className="inline-flex items-center gap-1 rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-1.5 py-0.5 text-meta text-amber-soft"
             title="This run is read-only. Apply / Validate / Revert are disabled. Start a non-read-only run on the same task to act on this suggestion."
           >
             read-only run - actions disabled
@@ -753,7 +753,7 @@ function Row({
 function ValidationBlock({ result }: { result: SuggestionValidationResult }) {
   if (result.status === "no_commands_configured") {
     return (
-      <div className="mt-1.5 rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-2 py-1 text-[11px] text-amber-soft">
+      <div className="mt-1.5 rounded-[10px] border border-amber-soft/40 bg-amber-soft/10 px-2 py-1 text-meta text-amber-soft">
         No `commands.validate` configured. It's a shell command, so it's set
         from the CLI only, never the browser:{" "}
         <span className="font-mono text-[12.5px]">
@@ -766,7 +766,7 @@ function ValidationBlock({ result }: { result: SuggestionValidationResult }) {
   const ok = result.status === "passed";
   return (
     <div
-      className={`mt-1.5 rounded-[10px] border px-2 py-1 text-[11px] ${
+      className={`mt-1.5 rounded-[10px] border px-2 py-1 text-meta ${
         ok
           ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-400"
           : "border-rose-400/40 bg-rose-500/10 text-rose-300"
@@ -781,7 +781,7 @@ function ValidationBlock({ result }: { result: SuggestionValidationResult }) {
           {result.commands
             .filter((c) => c.status === "failed")
             .map((c, i) => (
-              <li key={i} className="font-mono text-[10.5px]">
+              <li key={i} className="font-mono text-meta">
                 {c.command} → exit {c.exitCode}
               </li>
             ))}
@@ -912,7 +912,7 @@ function ApplyMenu({
               type="button"
               role="menuitem"
               onClick={() => choose(item.mode)}
-              className={`block w-full px-3 py-1.5 text-left text-[11.5px] transition hover:bg-coal-500 ${
+              className={`block w-full px-3 py-1.5 text-left text-meta transition hover:bg-coal-500 ${
                 // A border sets the destructive revert option apart from the
                 // two non-destructive ones above it.
                 i > 0 && item.warn ? "border-t border-[color:var(--line)]" : ""
@@ -920,7 +920,7 @@ function ApplyMenu({
             >
               <div className="font-medium text-chalk-100">{item.label}</div>
               <div
-                className={`text-[10.5px] ${item.warn ? "text-amber-soft" : "text-chalk-400"}`}
+                className={`text-meta ${item.warn ? "text-amber-soft" : "text-chalk-400"}`}
               >
                 {item.description}
               </div>

@@ -8,6 +8,7 @@
 import { ArrowDown, ArrowUp, Check, GitBranch } from "lucide-react";
 import type { GitBranchOverview, GitBranchesOverview } from "../../lib/types.js";
 import { cn } from "../design/cn.js";
+import { Skeleton, SkeletonBlock, SkeletonRows } from "../design/Skeleton.js";
 import { relTime } from "../design/format.js";
 
 type Props = {
@@ -27,7 +28,14 @@ export function BranchesPanel({
 }: Props) {
   if (loading && !overview) {
     return (
-      <div className="px-3 py-6 text-[12.5px] text-chalk-300">Loading branches…</div>
+      <Skeleton label="Loading branches" className="flex flex-col">
+        <div className="flex items-center gap-3 border-b border-[color:var(--line-soft)] px-3 py-2">
+          <SkeletonBlock tone="text" h={11} w={72} />
+          <SkeletonBlock tone="text" h={11} w={52} />
+          <SkeletonBlock tone="text" h={11} w={60} />
+        </div>
+        <SkeletonRows rows={6} lead="icon" meta trailing divided className="px-3" />
+      </Skeleton>
     );
   }
   if (!overview || !overview.available) {
@@ -55,7 +63,7 @@ export function BranchesPanel({
   return (
     <div className="flex flex-col">
       {/* A one-line ledger of what's out there. */}
-      <div className="flex items-center gap-3 border-b border-[color:var(--line-soft)] px-3 py-2 text-[11px]">
+      <div className="flex items-center gap-3 border-b border-[color:var(--line-soft)] px-3 py-2 text-meta">
         <span className="font-semibold text-chalk-100">
           {branches.length} branch{branches.length === 1 ? "" : "es"}
         </span>
@@ -115,7 +123,7 @@ function BranchRow({
           {b.name}
         </span>
         {/* State as flat tinted text, never a pill. */}
-        <span className={cn("shrink-0 text-[10.5px] font-semibold", stateTone)}>
+        <span className={cn("shrink-0 text-meta font-semibold", stateTone)}>
           {state === "merged" ? (
             <span className="inline-flex items-center gap-0.5">
               <Check className="h-3 w-3" strokeWidth={2.2} /> merged
@@ -125,7 +133,7 @@ function BranchRow({
           )}
         </span>
       </div>
-      <div className="flex min-w-0 items-center gap-2.5 pl-[22px] text-[10.5px]">
+      <div className="flex min-w-0 items-center gap-2.5 pl-[22px] text-meta">
         {b.isMain ? (
           <span className="text-chalk-400">base branch</span>
         ) : (

@@ -94,7 +94,7 @@ export function InstallWizard({
               2 - Authenticate
             </div>
             {p.loginCommand ? <CopyLine cmd={p.loginCommand} /> : null}
-            <p className="mt-1 text-[11.5px] text-chalk-400">{p.loginNote}</p>
+            <p className="mt-1 text-meta text-chalk-400">{p.loginNote}</p>
           </li>
           <li>
             <div className="text-[12.5px] font-medium text-chalk-200">
@@ -113,7 +113,7 @@ export function InstallWizard({
           </li>
         </ol>
 
-        <p className="mt-4 text-[11px] text-chalk-400">
+        <p className="mt-4 text-meta text-chalk-400">
           Install and login run entirely on your machine - Vibestrate never runs
           them for you and never sees your credentials.
         </p>
@@ -139,7 +139,7 @@ function CopyLine({ cmd }: { cmd: string }) {
             /* ignore */
           }
         }}
-        className="inline-flex shrink-0 items-center gap-1 text-[10.5px] font-semibold text-chalk-400 transition hover:text-chalk-100"
+        className="inline-flex shrink-0 items-center gap-1 text-meta font-semibold text-chalk-400 transition hover:text-chalk-100"
       >
         <Copy size={12} /> {copied ? "copied" : "copy"}
       </button>

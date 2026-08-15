@@ -7,6 +7,8 @@ import type {
   SupervisorThreadView,
 } from "../../lib/api/supervisors.js";
 import { ErrorView } from "../../lib/error-view.js";
+import { AttachButton, AttachmentStrip, useAttachments } from "../design/Attachments.js";
+import { Skeleton, SkeletonBlock, SkeletonText } from "../design/Skeleton.js";
 
 // The supervisor conversation for one run.
 //
@@ -85,7 +87,7 @@ function Turn({ message }: { message: SupervisorMessageView }) {
   }
   return (
     <div className={MEASURE}>
-      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-violet-soft">
+      <div className="mb-1 text-meta font-semibold uppercase tracking-wide text-violet-soft">
         Supervisor
       </div>
       <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-chalk-200">
@@ -112,6 +114,7 @@ export function SupervisorControl({
   const [thread, setThread] = useState<SupervisorThreadView | null>(null);
   const [pause, setPause] = useState<SupervisorPauseView | null>(null);
   const [draft, setDraft] = useState("");
+  const attachments = useAttachments();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -164,11 +167,15 @@ export function SupervisorControl({
   const send = async () => {
     const text = draft.trim();
     if (!text || !thread || busy) return;
+    // Attachments belong to the message that carries them, so they leave the
+    // composer with the draft rather than lingering into the next turn.
+    const message = `${text}${attachments.note}`;
     setBusy(true);
     setDraft("");
+    attachments.clear();
     autoGrow(inputRef.current);
     try {
-      const { thread: updated } = await api.supervisorTurn(thread.id, text);
+      const { thread: updated } = await api.supervisorTurn(thread.id, message);
       setThread(updated);
       setError(null);
     } catch (err) {
@@ -226,6 +233,20 @@ export function SupervisorControl({
         <div className="mx-auto flex w-full max-w-[760px] flex-col gap-7">
           {error ? <ErrorView compact err={error} onRetry={() => void load()} /> : null}
 
+          {!thread && !error ? (
+            // The thread is fetched (or created) on mount, so the transcript
+            // area was blank until it answered.
+            <Skeleton label="Loading the conversation" className="flex flex-col gap-7">
+              <div className="flex justify-end">
+                <SkeletonBlock h={44} w="56%" radius={14} />
+              </div>
+              <div className="max-w-full">
+                <SkeletonBlock className="mb-1.5" tone="text" h={11} w={84} />
+                <SkeletonText lines={4} size={13} gap={9} />
+              </div>
+            </Skeleton>
+          ) : null}
+
           {empty ? (
             <div className={compact ? "text-center" : "pt-10 text-center"}>
               <p className="text-[15px] font-semibold text-chalk-100">
@@ -245,7 +266,7 @@ export function SupervisorControl({
 
           {busy ? (
             <div className={MEASURE}>
-              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-violet-soft">
+              <div className="mb-1 text-meta font-semibold uppercase tracking-wide text-violet-soft">
                 Supervisor
               </div>
               <span className="inline-block h-3.5 w-[7px] animate-[vibestrate-caret_1s_steps(1)_infinite] bg-chalk-300 align-middle" />
@@ -260,42 +281,50 @@ export function SupervisorControl({
           dead space; it now appears only while you are actually typing. */}
       <div className="shrink-0 px-5 pb-4">
         <div className="mx-auto w-full max-w-[760px]">
-          <div className="flex items-end gap-2 rounded-[16px] border border-[color:var(--line-soft)] bg-coal-800 px-3 py-2.5 focus-within:border-violet-soft/50">
-            <textarea
-              ref={inputRef}
-              value={draft}
-              rows={1}
-              onChange={(e) => {
-                setDraft(e.target.value);
-                autoGrow(e.currentTarget);
-              }}
-              onKeyDown={(e) => {
-                // Enter sends, Shift+Enter is a newline. What both reference
-                // chats do, and what fingers already expect.
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void send();
-                }
-              }}
-              placeholder={
-                runId
-                  ? "Ask about this run, or say what you want done"
-                  : "Ask anything, or say what you want built"
-              }
-              className="max-h-[200px] flex-1 resize-none bg-transparent py-1 text-[13.5px] leading-relaxed text-chalk-100 placeholder:text-chalk-400 focus:outline-none"
+          <div className="rounded-[16px] border border-[color:var(--line-soft)] bg-coal-800 px-3 py-2.5 focus-within:border-violet-soft/50">
+            <AttachmentStrip
+              items={attachments.items}
+              onRemove={attachments.remove}
+              className="mb-2"
             />
-            <button
-              type="button"
-              onClick={() => void send()}
-              disabled={busy || !draft.trim()}
-              aria-label="Send"
-              className="mb-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-vivid text-white transition-opacity disabled:opacity-30"
-            >
-              <ArrowUp className="h-4 w-4" strokeWidth={2.2} />
-            </button>
+            <div className="flex items-end gap-2">
+              <AttachButton onAdd={attachments.add} disabled={busy} className="mb-0.5 shrink-0" />
+              <textarea
+                ref={inputRef}
+                value={draft}
+                rows={1}
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  autoGrow(e.currentTarget);
+                }}
+                onKeyDown={(e) => {
+                  // Enter sends, Shift+Enter is a newline. What both reference
+                  // chats do, and what fingers already expect.
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void send();
+                  }
+                }}
+                placeholder={
+                  runId
+                    ? "Ask about this run, or say what you want done"
+                    : "Ask anything, or say what you want built"
+                }
+                className="max-h-[200px] flex-1 resize-none bg-transparent py-1 text-[13.5px] leading-relaxed text-chalk-100 placeholder:text-chalk-400 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => void send()}
+                disabled={busy || !draft.trim()}
+                aria-label="Send"
+                className="mb-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-vivid text-white transition-opacity disabled:opacity-30"
+              >
+                <ArrowUp className="h-4 w-4" strokeWidth={2.2} />
+              </button>
+            </div>
           </div>
           {draft.trim() ? (
-            <p className="mt-1.5 text-center text-[11px] text-chalk-300">
+            <p className="mt-1.5 text-center text-meta text-chalk-300">
               Enter to send, Shift+Enter for a new line
             </p>
           ) : null}

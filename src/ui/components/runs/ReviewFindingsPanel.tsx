@@ -7,6 +7,7 @@ import {
 } from "../../../flows/runtime/review-findings.js";
 import { Scale, X } from "lucide-react";
 import { Chip, type ChipTone } from "../design/Chip.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
 import { ErrorView } from "../../lib/error-view.js";
 
 const DECISION_TONE: Record<string, ChipTone> = {
@@ -156,7 +157,21 @@ export function ReviewFindingsPanel({
               step may not have run. The Events tab has the full timeline.
             </p>
           ) : raw === null ? (
-            <p className="mt-2 text-[12.5px] text-chalk-400">Loading review…</p>
+            <Skeleton
+              label="Loading the review findings"
+              className="mt-2.5 flex flex-col gap-1.5"
+            >
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 rounded-[12px] bg-coal-500/40 px-3 py-2"
+                >
+                  <SkeletonBlock w={52} h={16} radius={6} />
+                  <SkeletonBlock tone="text" h={12} w={`${[54, 68, 46][i]}%`} />
+                  <SkeletonBlock tone="text" h={11} w={92} className="ml-auto" />
+                </div>
+              ))}
+            </Skeleton>
           ) : (
             <>
               {parsed && parsed.structured ? (
@@ -165,7 +180,7 @@ export function ReviewFindingsPanel({
                     <li key={i} className="rounded-[12px] bg-coal-500/40 px-3 py-2">
                       <div className="flex items-baseline gap-2">
                         <span
-                          className={`shrink-0 rounded-[6px] px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.06em] ${
+                          className={`shrink-0 rounded-[6px] px-1.5 py-0.5 text-meta font-semibold uppercase tracking-[0.06em] ${
                             SEV_TAG[f.severity ?? ""] ?? SEV_TAG.note
                           }`}
                         >
@@ -175,7 +190,7 @@ export function ReviewFindingsPanel({
                           {f.title}
                         </span>
                         {f.file ? (
-                          <span className="mono shrink-0 text-[11px] text-chalk-400">{f.file}</span>
+                          <span className="mono shrink-0 text-meta text-chalk-400">{f.file}</span>
                         ) : null}
                       </div>
                       {f.detail ? (
@@ -185,7 +200,7 @@ export function ReviewFindingsPanel({
                   ))}
                 </ul>
               ) : (
-                <p className="mt-2 text-[11.5px] text-chalk-400">
+                <p className="mt-2 text-meta text-chalk-400">
                   No structured findings block - showing the reviewer's full
                   output below.
                 </p>
@@ -194,7 +209,7 @@ export function ReviewFindingsPanel({
                 <button
                   type="button"
                   onClick={() => setShowRaw((v) => !v)}
-                  className="mt-2 text-[11.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
+                  className="mt-2 text-meta font-semibold text-violet-soft transition hover:text-violet-soft/80"
                 >
                   {showRaw ? "Hide full review output" : "Show full review output"}
                 </button>

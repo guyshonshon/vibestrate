@@ -218,7 +218,7 @@ export function RunGapQuestions({
           The CTO has what it needs from your answers (round {round}). Build the spec, architecture, and risks.
         </p>
         {error ? (
-          <div className="mb-4 w-full rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+          <div className="mb-4 w-full rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-meta text-rose-300">
             {error}
           </div>
         ) : null}
@@ -275,7 +275,7 @@ export function RunGapQuestions({
               </span>
               <span
                 className={cn(
-                  "font-mono text-[11.5px]",
+                  "font-mono text-meta",
                   done || current ? "text-violet-vivid" : "text-chalk-300",
                 )}
               >

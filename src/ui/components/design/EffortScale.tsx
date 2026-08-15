@@ -26,7 +26,7 @@ export function EffortScale({
 
   const pill = (level: string, ultra = false) =>
     cn(
-      "flex-1 rounded-[8px] px-1.5 py-1 text-[11px] leading-none transition-colors text-center",
+      "flex-1 rounded-[8px] px-1.5 py-1 text-meta leading-none transition-colors text-center",
       value === level
         ? "bg-violet-soft text-coal-900"
         : ultra
@@ -37,7 +37,7 @@ export function EffortScale({
 
   return (
     <div>
-      <div className="flex items-center justify-between px-0.5 text-[9.5px] font-medium text-violet-soft">
+      <div className="flex items-center justify-between px-0.5 text-meta font-medium text-violet-soft">
         <span>Faster</span>
         <span>Smarter</span>
       </div>
@@ -68,15 +68,11 @@ export function EffortScale({
           </>
         ) : null}
       </div>
-      <div className="mt-1 text-[10px] text-chalk-400">
-        {value === ULTRA
-          ? "ultracode = xhigh + workflows"
-          : offLadder
-            ? `custom: ${value}`
-            : value
-              ? `effort: ${value}`
-              : "no effort set"}
-      </div>
+      {/* Only an off-ladder value earns a line: every level the provider exposes
+          is already a pill, and the selected one is already highlighted. */}
+      {offLadder ? (
+        <div className="mt-1 text-meta text-chalk-400">custom: {value}</div>
+      ) : null}
     </div>
   );
 }

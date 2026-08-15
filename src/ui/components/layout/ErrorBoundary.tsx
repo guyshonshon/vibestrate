@@ -48,9 +48,8 @@ export class ErrorBoundary extends Component<Props, State> {
       <div className="m-6">
         <ErrorState
           compact
-          title="Something broke while rendering this view."
+          title="This view failed to render."
           detail={error.message}
-          hint="Try again, or reload the page if the problem persists."
           actions={[
             { label: "Try again", onClick: this.reset },
             { label: "Reload", variant: "secondary", onClick: () => window.location.reload() },
@@ -59,7 +58,7 @@ export class ErrorBoundary extends Component<Props, State> {
         {hasDebugInfo ? (
           <div className="mt-3 rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-4 py-3.5">
             {error.stack ? (
-              <details className="text-[10.5px] text-chalk-400">
+              <details className="text-meta text-chalk-400">
                 <summary className="cursor-pointer select-none">stack trace</summary>
                 <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-words">
                   {error.stack}
@@ -67,7 +66,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </details>
             ) : null}
             {info?.componentStack ? (
-              <details className="mt-2 text-[10.5px] text-chalk-400">
+              <details className="mt-2 text-meta text-chalk-400">
                 <summary className="cursor-pointer select-none">component stack</summary>
                 <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-words">
                   {info.componentStack}

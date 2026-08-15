@@ -195,7 +195,7 @@ export function StepDetailDrawer({
           />
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <div className="mb-1.5 flex items-center gap-2 text-[11px] font-medium">
+              <div className="mb-1.5 flex items-center gap-2 text-meta font-medium">
                 <span className={statusTextTone(item.status)}>
                   {item.status.replace(/_/g, " ")}
                 </span>
@@ -265,7 +265,7 @@ export function StepDetailDrawer({
                   />
                 </>
               ) : (
-                <p className="text-[11.5px] leading-relaxed text-chalk-300">
+                <p className="text-meta leading-relaxed text-chalk-300">
                   Objective, acceptance check and file hints apply to supervised
                   tasks - switch this task to supervised to author per-step detail.
                 </p>
@@ -273,7 +273,7 @@ export function StepDetailDrawer({
               {/* Status is RUN-DERIVED (a run drives in_progress / blocked); the
                   only manual transition is marking the step done. */}
               <div className="flex items-center gap-2 pt-0.5">
-                <span className="text-[11.5px] font-medium text-violet-soft">
+                <span className="text-meta font-medium text-violet-soft">
                   status
                 </span>
                 <span className={cn("text-[12px] font-medium", statusTextTone(item.status))}>
@@ -316,7 +316,7 @@ export function StepDetailDrawer({
                   </p>
                 ) : null}
                 {item.commitSha ? (
-                  <div className="font-mono text-[11px] text-chalk-400">
+                  <div className="font-mono text-meta text-chalk-400">
                     commit {item.commitSha.slice(0, 10)}
                   </div>
                 ) : null}
@@ -356,7 +356,7 @@ export function StepDetailDrawer({
                 tone={blockers.length > 0 ? "amber" : "default"}
               />
             </div>
-            <p className="mt-3 text-[11px] leading-relaxed text-chalk-300">
+            <p className="mt-3 text-meta leading-relaxed text-chalk-300">
               The parent task owns context, crew, git and blockers; every step
               inherits them. Edit them on the parent.
             </p>
@@ -389,7 +389,7 @@ export function StepDetailDrawer({
                 </Button>
               </div>
               {stepComments.length === 0 ? (
-                <div className="text-[11.5px] text-chalk-300">
+                <div className="text-meta text-chalk-300">
                   No comments on this step yet.
                 </div>
               ) : (
@@ -402,7 +402,7 @@ export function StepDetailDrawer({
                         c.resolved && "opacity-60",
                       )}
                     >
-                      <div className="flex items-center gap-2 text-[10.5px] text-chalk-400">
+                      <div className="flex items-center gap-2 text-meta text-chalk-400">
                         <span className="font-medium text-chalk-300">{c.author}</span>
                         <span>{new Date(c.createdAt).toLocaleString()}</span>
                         {c.resolved ? (
@@ -432,7 +432,7 @@ export function StepDetailDrawer({
           </DrawerSection>
 
           {error ? (
-            <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+            <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-meta text-rose-300">
               {error}
             </div>
           ) : null}
@@ -440,7 +440,7 @@ export function StepDetailDrawer({
 
         {/* ── Footer - the detach escape hatch, distinct from "open" ── */}
         <div className="flex shrink-0 items-center gap-3 border-t border-[color:var(--line)] px-6 py-3">
-          <span className="text-[11.5px] text-chalk-300">
+          <span className="text-meta text-chalk-300">
             {item.promotedTaskId
               ? "Detached to its own card."
               : "Need this to stand alone?"}

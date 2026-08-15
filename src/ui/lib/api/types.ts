@@ -6,6 +6,18 @@ import type { FlowLoop, RunState } from "../types.js";
 
 export type OverviewRange = "24h" | "7d" | "30d" | "90d";
 
+/** Why a preset can't be built here, as a case. Mirrors `PresetBlock` in
+ *  src/agents/crew-presets.ts; the dashboard build can't import src/, so the two
+ *  are kept in step by hand. The preset surface renders its own copy and its own
+ *  recovery buttons per case, which is why the server's prose `reason` is not
+ *  what it shows. */
+export type PresetBlockView =
+  | { code: "provider_missing"; provider: string }
+  | { code: "no_effort_levels"; provider: string }
+  | { code: "no_cheap_model"; provider: string }
+  | { code: "already_local"; provider: string }
+  | { code: "no_local_provider" };
+
 export type CrewPresetView = {
   id: string;
   label: string;
@@ -13,6 +25,7 @@ export type CrewPresetView = {
   installed: boolean;
   available: boolean;
   reason?: string;
+  block?: PresetBlockView;
   effect?: {
     provider: string;
     model: string | null;

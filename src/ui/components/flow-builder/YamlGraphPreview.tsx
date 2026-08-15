@@ -47,7 +47,7 @@ export function YamlGraphPreview({ yamlText }: { yamlText: string }) {
           >
             <span className="mono text-chalk-400">{i + 1}.</span>
             <span className="text-chalk-100">{s.label}</span>
-            <span className="mono text-[10.5px] text-chalk-400">{s.kind}</span>
+            <span className="mono text-meta text-chalk-400">{s.kind}</span>
           </li>
         ))}
       </ol>

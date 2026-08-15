@@ -3,6 +3,12 @@ import { ChevronRight, Cpu, GitBranch, Wrench, Bot, ShieldQuestion } from "lucid
 import type { RunAudit, AuditStep, EngagementEntry, PerItemVerdict } from "../../lib/types.js";
 import { Chip, ToneDot, type ChipTone } from "../design/Chip.js";
 import { StatTile } from "../design/StatTile.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+  SkeletonStats,
+} from "../design/Skeleton.js";
 
 // ── Live run node-tree ───────────────────────────────────────────────────────
 // The supervisor + agents, as a tree, refreshed on the run-detail poll. The flow
@@ -108,7 +114,7 @@ function depthMap(steps: AuditStep[]): Map<string, number> {
 
 function TelemetryCell({ value, unit }: { value: string | null; unit: string }) {
   return (
-    <div className="min-w-[58px] text-right text-[11.5px] num-tabular">
+    <div className="min-w-[58px] text-right text-meta num-tabular">
       {value ? (
         <>
           <span className="font-semibold text-chalk-100">{value}</span>
@@ -165,15 +171,15 @@ function StepRow({
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
             <span className="text-[13px] font-semibold text-chalk-100">{step.label}</span>
-            {step.seat ? <span className="text-[11.5px] text-chalk-400">{step.seat}</span> : null}
+            {step.seat ? <span className="text-meta text-chalk-400">{step.seat}</span> : null}
             {step.decision ? (
               <Chip contained tone={KIND_TONE[kind]}>
                 {step.decision}
               </Chip>
             ) : null}
-            {step.fellBack ? <span className="text-[10.5px] text-amber-soft">fell back</span> : null}
+            {step.fellBack ? <span className="text-meta text-amber-soft">fell back</span> : null}
           </div>
-          <div className="mt-px text-[11px] text-chalk-400">
+          <div className="mt-px text-meta text-chalk-400">
             {step.roleLabel ?? step.roleId ?? step.kind}
             {step.model ? ` · ${step.model}` : ""}
             {step.retries > 0 ? ` · ${step.retries} retr${step.retries === 1 ? "y" : "ies"}` : ""}
@@ -191,7 +197,7 @@ function StepRow({
           style={{ paddingLeft: 10 + depth * 18 + 26 }}
         >
           {step.internalsOpaque ? (
-            <div className="flex items-center gap-1.5 text-[11.5px] italic text-chalk-400">
+            <div className="flex items-center gap-1.5 text-meta italic text-chalk-400">
               <ShieldQuestion size={13} /> provider streamed no internals - what the agent
               did inside this turn is opaque.
             </div>
@@ -214,7 +220,7 @@ function StepRow({
               <Leaf icon={<Bot size={12} />} label="Sub-agents" />
               <div className="mt-[5px] flex flex-col gap-[3px]">
                 {step.subAgents.map((a, i) => (
-                  <div key={`${a.name}-${i}`} className="text-[11.5px] text-chalk-300">
+                  <div key={`${a.name}-${i}`} className="text-meta text-chalk-300">
                     <span className="font-semibold text-chalk-100">{a.name}</span>
                     {a.description ? <span className="text-chalk-400"> - {a.description}</span> : null}
                   </div>
@@ -227,7 +233,7 @@ function StepRow({
               <Leaf icon={<GitBranch size={12} />} label="Attempts" />
               <div className="mt-[5px] flex flex-wrap gap-1.5">
                 {step.attempts.map((at) => (
-                  <span key={at.index} className="text-[11px] text-chalk-400">
+                  <span key={at.index} className="text-meta text-chalk-400">
                     {at.index + 1}. {at.outcome}
                     {at.detail ? ` (${at.detail})` : ""}
                   </span>
@@ -238,7 +244,7 @@ function StepRow({
           {engagement.length > 0 ? (
             <div className="flex flex-col gap-[3px]">
               {engagement.map((e) => (
-                <div key={e.seq} className={`text-[11.5px] ${TONE_TEXT[e.tone]}`}>
+                <div key={e.seq} className={`text-meta ${TONE_TEXT[e.tone]}`}>
                   <span className="font-semibold">{e.title}</span>
                   {e.detail ? <span className="text-chalk-400"> - {e.detail}</span> : null}
                 </div>
@@ -253,7 +259,7 @@ function StepRow({
 
 function Leaf({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="flex items-center gap-[5px] text-[11px] text-chalk-400">
+    <div className="flex items-center gap-[5px] text-meta text-chalk-400">
       <span className="text-chalk-300">{icon}</span>
       {label}
     </div>
@@ -276,19 +282,19 @@ function ChecklistVerdictsPanel({ verdicts }: { verdicts: PerItemVerdict[] }) {
   if (verdicts.length === 0) return null;
   return (
     <div className="mt-2.5 border-t border-[color:var(--line)] pt-2">
-      <div className="mb-1.5 text-[10.5px] font-bold tracking-[0.3px] text-chalk-400">
+      <div className="mb-1.5 text-meta font-bold tracking-[0.3px] text-chalk-400">
         Per-item review verdicts
       </div>
       <div className="flex flex-col gap-1">
         {verdicts.map((v) => (
-          <div key={v.itemIndex} className="flex items-center gap-2 text-[11.5px]">
+          <div key={v.itemIndex} className="flex items-center gap-2 text-meta">
             <ToneDot tone={VERDICT_TONE[v.verdict]} />
             <span className="min-w-[60px] text-chalk-300">Item {v.itemIndex + 1}</span>
             <Chip contained tone={VERDICT_TONE[v.verdict]}>
               {VERDICT_LABEL[v.verdict]}
             </Chip>
             {v.fixIterations > 0 ? (
-              <span className="text-[10.5px] text-chalk-400">
+              <span className="text-meta text-chalk-400">
                 {v.fixIterations} fix {v.fixIterations === 1 ? "iteration" : "iterations"}
               </span>
             ) : null}
@@ -327,11 +333,34 @@ export function RunTree({
     [engagement],
   );
 
+  // A null audit is the trail still loading. The tree's own shape - supervisor
+  // root, then phase groups of step rows - stands in for it.
   if (!audit) {
     return (
-      <div className="p-6 text-center text-[13px] text-chalk-400">
-        No activity yet.
-      </div>
+      <Skeleton label="Loading the run tree" className="flex flex-col gap-3">
+        <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3.5 py-3">
+          <div className="flex items-center gap-2.5">
+            <SkeletonBlock w={16} h={16} radius={5} />
+            <SkeletonBlock tone="text" h={13} w="34%" />
+            <SkeletonBlock h={18} w={72} radius={8} className="ml-auto" />
+          </div>
+          <div className="mt-3">
+            <SkeletonStats count={3} />
+          </div>
+        </div>
+        {[0, 1].map((g) => (
+          <div
+            key={g}
+            className="overflow-hidden rounded-[12px] border border-[color:var(--line)] bg-coal-600"
+          >
+            <div className="flex items-center justify-between bg-coal-500 px-3 py-2">
+              <SkeletonBlock tone="text" h={11} w={72} />
+              <SkeletonBlock tone="text" h={11} w={28} />
+            </div>
+            <SkeletonRows rows={3} lead="icon" trailing divided className="px-3" />
+          </div>
+        ))}
+      </Skeleton>
     );
   }
 
@@ -376,7 +405,7 @@ export function RunTree({
         {supervisorLane.length > 0 ? (
           <div className="mt-2.5 flex flex-col gap-[3px]">
             {supervisorLane.slice(0, 6).map((e) => (
-              <div key={e.seq} className={`text-[11.5px] ${TONE_TEXT[e.tone]}`}>
+              <div key={e.seq} className={`text-meta ${TONE_TEXT[e.tone]}`}>
                 <span className="font-semibold">{e.title}</span>
                 {e.detail ? <span className="text-chalk-400"> - {e.detail}</span> : null}
               </div>
@@ -395,10 +424,10 @@ export function RunTree({
             className="overflow-hidden rounded-[12px] border border-[color:var(--line)] bg-coal-600"
           >
             <div className="flex items-center justify-between bg-coal-500 px-3 py-2">
-              <span className="text-[11.5px] font-bold tracking-[0.2px] text-chalk-300">
+              <span className="text-meta font-bold tracking-[0.2px] text-chalk-300">
                 {STAGE_LABEL[g.stage] ?? g.stage}
               </span>
-              <span className="text-[11px] num-tabular text-chalk-400">
+              <span className="text-meta num-tabular text-chalk-400">
                 {done}/{g.steps.length}
               </span>
             </div>

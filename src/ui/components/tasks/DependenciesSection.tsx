@@ -69,7 +69,7 @@ export function DependenciesSection({
       }
     >
       <div className={CARD}>
-        <div className="mb-2.5 text-[11px] text-chalk-400">
+        <div className="mb-2.5 text-meta text-chalk-400">
           What must finish before this can run, and what finishing this unblocks.
         </div>
         {adding ? (
@@ -88,14 +88,14 @@ export function DependenciesSection({
           </div>
         ) : null}
         {error ? (
-          <div className="mb-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+          <div className="mb-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-meta text-rose-300">
             {error}
           </div>
         ) : null}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <div className="text-[11px] font-medium text-violet-soft">
+            <div className="text-meta font-medium text-violet-soft">
               Blocked by ({blockers.length + missingBlockers.length})
             </div>
             {blockers.length === 0 && missingBlockers.length === 0 ? (
@@ -109,7 +109,7 @@ export function DependenciesSection({
                       setError(null);
                       setAdding(true);
                     }}
-                    className="text-[11.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
+                    className="text-meta font-semibold text-violet-soft transition hover:text-violet-soft/80"
                   >
                     + Add a blocker
                   </button>
@@ -136,7 +136,7 @@ export function DependenciesSection({
                         </span>
                         <span
                           className={cn(
-                            "text-[10.5px] font-medium",
+                            "text-meta font-medium",
                             open ? "text-amber-soft" : "text-emerald-400",
                           )}
                         >
@@ -160,7 +160,7 @@ export function DependenciesSection({
                   <li key={id} className="flex items-center gap-1">
                     <span className="flex min-w-0 flex-1 items-center gap-2 rounded-[10px] border border-rose-400/30 bg-rose-500/[0.07] px-2.5 py-1.5 text-[12px] text-rose-300">
                       <span className="flex-1 truncate font-mono">{id}</span>
-                      <span className="text-[10.5px]">missing</span>
+                      <span className="text-meta">missing</span>
                     </span>
                     <button
                       title="Remove this blocker"
@@ -178,7 +178,7 @@ export function DependenciesSection({
             )}
           </div>
           <div>
-            <div className="text-[11px] font-medium text-violet-soft">
+            <div className="text-meta font-medium text-violet-soft">
               Unlocks ({unlocks.length})
             </div>
             {unlocks.length === 0 ? (
@@ -198,7 +198,7 @@ export function DependenciesSection({
                       </span>
                       <span
                         className={cn(
-                          "text-[10.5px] font-medium",
+                          "text-meta font-medium",
                           isDone(u.status) ? "text-emerald-400" : "text-amber-soft",
                         )}
                       >

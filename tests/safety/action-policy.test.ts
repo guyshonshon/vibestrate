@@ -107,6 +107,44 @@ describe("actionPolicyMatches", () => {
     ).toBe(false);
   });
 
+  // Globs are authored with `/`; a `file.write` subject carries the NATIVE
+  // absolute path the writer is about to open, which is `\`-separated on
+  // Windows. Without normalisation at the matching boundary this returns false
+  // and every pathGlob policy a user wrote protects nothing on Windows - a hole
+  // no POSIX run can see unless the path is spelled the Windows way, which is
+  // what these cases do. Mutation check: drop the toPosixPath test in
+  // actionPolicyMatches and the first two expectations fail here, on POSIX.
+  it("matches a `/` glob against a `\\`-separated native path", () => {
+    const flows = policy({
+      on: ["file.write"],
+      match: { pathGlob: "**/.vibestrate/flows/**" },
+    });
+    expect(
+      actionPolicyMatches(
+        flows,
+        req({
+          kind: "file.write",
+          subject: { path: "C:\\Users\\ci\\proj\\.vibestrate\\flows\\x\\flow.yml" },
+        }),
+      ),
+    ).toBe(true);
+    // files[] takes the same route as path.
+    expect(
+      actionPolicyMatches(
+        policy({ on: ["file.patch"], match: { pathGlob: "**/*.env" } }),
+        req({ kind: "file.patch", subject: { files: ["src\\config\\prod.env"] } }),
+      ),
+    ).toBe(true);
+    // Testing both spellings widens the candidate set; it must not turn an
+    // unrelated path into a match.
+    expect(
+      actionPolicyMatches(
+        flows,
+        req({ kind: "file.write", subject: { path: "C:\\Users\\ci\\proj\\src\\a.ts" } }),
+      ),
+    ).toBe(false);
+  });
+
   it("matches exact run.complete status", () => {
     const p = policy({
       on: ["run.complete"],

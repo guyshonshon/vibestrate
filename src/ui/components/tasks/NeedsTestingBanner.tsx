@@ -61,7 +61,7 @@ export function NeedsTestingBanner({
             </Button>
           </div>
           {error ? (
-            <div className="mt-1.5 text-[11px] text-rose-300">{error}</div>
+            <div className="mt-1.5 text-meta text-rose-300">{error}</div>
           ) : null}
         </div>
       </div>

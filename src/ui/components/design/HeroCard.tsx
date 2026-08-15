@@ -102,7 +102,7 @@ export function HeroCard({
           )}
         >
           {overline ? (
-            <span className="text-[10px] font-medium text-chalk-400">{overline}</span>
+            <span className="text-meta font-medium text-chalk-400">{overline}</span>
           ) : null}
           <span
             className={cn(
@@ -114,9 +114,7 @@ export function HeroCard({
             {status}
           </span>
           {statusSub ? (
-            <span className={cn("text-chalk-400", lg ? "text-[11px]" : "text-[10.5px]")}>
-              {statusSub}
-            </span>
+            <span className="text-meta text-chalk-400">{statusSub}</span>
           ) : null}
         </div>
 
@@ -140,7 +138,7 @@ export function HeroCard({
                 {title}
               </h3>
               {sub ? (
-                <p className={cn("mt-0.5 text-chalk-300", lg ? "text-[12px]" : "text-[11.5px]")}>
+                <p className={cn("mt-0.5 text-chalk-300", lg ? "text-[12px]" : "text-meta")}>
                   {sub}
                 </p>
               ) : null}
@@ -171,7 +169,7 @@ export function HeroCard({
                   >
                     {m.value}
                   </div>
-                  <div className={cn("mt-1 font-medium text-violet-soft", lg ? "text-[11px]" : "text-[10.5px]")}>
+                  <div className="mt-1 text-meta font-medium text-violet-soft">
                     {m.label}
                   </div>
                 </div>

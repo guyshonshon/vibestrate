@@ -37,6 +37,7 @@ import type {
 import { Button } from "../design/Button.js";
 import { Chip } from "../design/Chip.js";
 import { cn } from "../design/cn.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
 import { relTime } from "../design/format.js";
 import { Section } from "../layout/PageShell.js";
 import { ChangedFilesList } from "../diff/ChangedFilesList.js";
@@ -168,14 +169,25 @@ export function GitChangesView({ onSelectRun }: Props) {
                 Changes since the last commit
               </span>
               {projectStatus ? (
-                <span className="mono text-[11px] text-chalk-400">
+                <span className="mono text-meta text-chalk-400">
                   {projectStatus.changedFiles.length} file
                   {projectStatus.changedFiles.length === 1 ? "" : "s"}
                 </span>
               ) : null}
             </div>
             {!projectStatus ? (
-              <div className="text-[12.5px] text-chalk-300">Loading…</div>
+              <Skeleton label="Loading changed files" className="flex flex-col gap-1.5">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2.5 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-1.5"
+                  >
+                    <SkeletonBlock w={22} h={14} radius={5} />
+                    <SkeletonBlock w={12} h={12} radius={3} />
+                    <SkeletonBlock tone="text" h={12} w={`${[72, 54, 84, 46, 66][i]}%`} />
+                  </div>
+                ))}
+              </Skeleton>
             ) : projectStatus.changedFiles.length === 0 ? (
               <div className="text-[12.5px] text-chalk-300">
                 Nothing changed. Your working tree matches the last commit.
@@ -195,7 +207,7 @@ export function GitChangesView({ onSelectRun }: Props) {
                   </li>
                 ))}
                 {projectStatus.changedFiles.length > 50 ? (
-                  <li className="text-[11.5px] text-chalk-400 mono pl-1">
+                  <li className="text-meta text-chalk-400 mono pl-1">
                     …{projectStatus.changedFiles.length - 50} more
                   </li>
                 ) : null}
@@ -209,13 +221,26 @@ export function GitChangesView({ onSelectRun }: Props) {
                 Recent commits
               </span>
               {projectHistory ? (
-                <span className="mono text-[11px] text-chalk-400">
+                <span className="mono text-meta text-chalk-400">
                   {projectHistory.commits.length}
                 </span>
               ) : null}
             </div>
             {!projectHistory ? (
-              <div className="text-[12.5px] text-chalk-300">Loading…</div>
+              <Skeleton label="Loading recent commits" className="flex flex-col gap-2">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-2 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-500 px-2.5 py-2"
+                  >
+                    <SkeletonBlock w={12} h={12} radius={3} className="mt-0.5" />
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <SkeletonBlock tone="text" h={12} w={`${[86, 62, 74, 54][i]}%`} />
+                      <SkeletonBlock tone="text" h={10} w={`${[52, 44, 58, 40][i]}%`} />
+                    </div>
+                  </div>
+                ))}
+              </Skeleton>
             ) : projectHistory.commits.length === 0 ? (
               <div className="text-[12.5px] text-chalk-300">No commits yet.</div>
             ) : (
@@ -234,7 +259,7 @@ export function GitChangesView({ onSelectRun }: Props) {
                         <div className="text-[12px] text-chalk-100 leading-snug truncate">
                           {c.subject}
                         </div>
-                        <div className="text-[10.5px] text-chalk-300 mono mt-0.5 truncate">
+                        <div className="text-meta text-chalk-300 mono mt-0.5 truncate">
                           {c.shortHash} · {c.author} · {relTime(c.date)}
                         </div>
                       </div>
@@ -251,7 +276,7 @@ export function GitChangesView({ onSelectRun }: Props) {
       <Section
         title="What each run changed"
         action={
-          <span className="text-[11.5px] text-chalk-400 mono">
+          <span className="text-meta text-chalk-400 mono">
             click a worktree to open it in Codebase
           </span>
         }
@@ -281,7 +306,7 @@ export function GitChangesView({ onSelectRun }: Props) {
 
 function ProjectStateChips({ status }: { status: GitStatus }) {
   return (
-    <div className="flex items-center gap-2 flex-wrap text-[11.5px]">
+    <div className="flex items-center gap-2 flex-wrap text-meta">
       {status.isDirty ? (
         <Chip tone="amber">
           <CircleDot className="h-2.5 w-2.5" strokeWidth={1.7} /> uncommitted
@@ -315,7 +340,7 @@ function ChangeKindBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "mono text-[10px] w-5 h-5 rounded-[8px] border flex items-center justify-center shrink-0",
+        "mono text-meta w-5 h-5 rounded-[8px] border flex items-center justify-center shrink-0",
         m.cls,
       )}
       title={status}
@@ -375,12 +400,12 @@ function WorktreeCard({
         <span className="hidden md:inline text-[12.5px] text-chalk-300 truncate min-w-0 flex-1">
           {run.task}
         </span>
-        <span className="mono text-[10.5px] text-chalk-400 flex items-center gap-1 shrink-0">
+        <span className="mono text-meta text-chalk-400 flex items-center gap-1 shrink-0">
           <History className="h-2.5 w-2.5" strokeWidth={1.7} />
           {run.status}
         </span>
         {diff ? (
-          <span className="mono text-[10.5px] shrink-0">
+          <span className="mono text-meta shrink-0">
             <span className="text-emerald-300/90">+{diff.totals.insertions}</span>{" "}
             <span className="text-rose-300/90">−{diff.totals.deletions}</span>{" "}
             <span className="text-chalk-400">
@@ -388,7 +413,7 @@ function WorktreeCard({
             </span>
           </span>
         ) : (
-          <span className="mono text-[10.5px] text-chalk-400 shrink-0">
+          <span className="mono text-meta text-chalk-400 shrink-0">
             no diff yet
           </span>
         )}
@@ -397,7 +422,7 @@ function WorktreeCard({
             e.stopPropagation();
             onOpenRun(run.runId);
           }}
-          className="ml-1 inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-500 hover:bg-coal-400 px-2 py-0.5 text-[10.5px] text-chalk-300 hover:text-chalk-100 shrink-0 cursor-pointer"
+          className="ml-1 inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line-strong)] bg-coal-500 hover:bg-coal-400 px-2 py-0.5 text-meta text-chalk-300 hover:text-chalk-100 shrink-0 cursor-pointer"
           title="Open this run"
         >
           Open run
@@ -408,7 +433,7 @@ function WorktreeCard({
       {open ? (
         <div className="border-t border-[color:var(--line-soft)] grid grid-cols-12 gap-0">
           <div className="col-span-12 border-b md:col-span-4 md:border-b-0 md:border-r border-[color:var(--line-soft)] p-3">
-            <div className="mb-2 text-[11px] font-semibold text-violet-soft">
+            <div className="mb-2 text-meta font-semibold text-violet-soft">
               Changed files
             </div>
             {hasChanges ? (

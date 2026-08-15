@@ -266,7 +266,7 @@ export function ChecklistSection({
           Checklist
           {items.length > 0 ? (
             <>
-              <span className="font-mono text-[11px] font-medium tabular-nums text-chalk-300">
+              <span className="font-mono text-meta font-medium tabular-nums text-chalk-300">
                 {done}/{items.length}
               </span>
               <span className="h-1 w-24 overflow-hidden rounded-full bg-coal-500">
@@ -290,7 +290,7 @@ export function ChecklistSection({
               : "Propose a checklist with an AI assist (read-only - you choose whether to add the items)"
           }
           className={cn(
-            "inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11.5px] font-semibold transition disabled:opacity-50",
+            "inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-meta font-semibold transition disabled:opacity-50",
             busy === "enhance"
               ? "bg-rose-500/10 text-rose-300 hover:bg-rose-500/15"
               : "bg-violet-soft/10 text-violet-soft hover:bg-violet-soft/15",
@@ -309,14 +309,14 @@ export function ChecklistSection({
         {proposed ? (
           <div className="mb-2.5 rounded-[12px] border border-violet-soft/25 bg-violet-soft/10 p-2.5">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold text-violet-soft">
+              <span className="text-meta font-semibold text-violet-soft">
                 Proposed ({proposed.length}) - not added yet
               </span>
               <button
                 type="button"
                 onClick={acceptProposed}
                 disabled={busy !== null || proposed.length === 0}
-                className="ml-auto rounded-[8px] bg-violet-soft/15 px-2 py-0.5 text-[11px] font-semibold text-violet-soft transition hover:bg-violet-soft/25 disabled:opacity-50"
+                className="ml-auto rounded-[8px] bg-violet-soft/15 px-2 py-0.5 text-meta font-semibold text-violet-soft transition hover:bg-violet-soft/25 disabled:opacity-50"
               >
                 {busy === "accept" ? "Adding…" : "Add all"}
               </button>
@@ -324,7 +324,7 @@ export function ChecklistSection({
                 type="button"
                 onClick={() => setProposed(null)}
                 disabled={busy !== null}
-                className="rounded-[8px] bg-coal-600 px-2 py-0.5 text-[11px] text-chalk-300 transition hover:text-chalk-100 disabled:opacity-50"
+                className="rounded-[8px] bg-coal-600 px-2 py-0.5 text-meta text-chalk-300 transition hover:text-chalk-100 disabled:opacity-50"
               >
                 Dismiss
               </button>
@@ -347,7 +347,7 @@ export function ChecklistSection({
               <span className="text-[12px] font-semibold text-chalk-100">
                 A few questions before I break this down
               </span>
-              <span className="text-[10.5px] text-chalk-400">
+              <span className="text-meta text-chalk-400">
                 answer what you can - skip the rest
               </span>
             </div>
@@ -356,7 +356,7 @@ export function ChecklistSection({
                 <div key={q.id}>
                   <div className="text-[12px] font-medium text-chalk-100">{q.question}</div>
                   {q.why ? (
-                    <div className="text-[10.5px] text-chalk-400">{q.why}</div>
+                    <div className="text-meta text-chalk-400">{q.why}</div>
                   ) : null}
                   {q.kind === "choice" && q.options.length > 0 ? (
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -380,7 +380,7 @@ export function ChecklistSection({
                               )
                             }
                             className={cn(
-                              "rounded-[9px] border px-2.5 py-1 text-[11.5px] transition",
+                              "rounded-[9px] border px-2.5 py-1 text-meta transition",
                               active
                                 ? "border-violet-soft/50 bg-violet-soft/15 text-violet-soft"
                                 : "border-[color:var(--line-soft)] bg-coal-500 text-chalk-300 hover:text-chalk-100",
@@ -534,7 +534,7 @@ export function ChecklistSection({
                 ? "Starting…"
                 : `Run checklist (${pending} item${pending === 1 ? "" : "s"})`}
             </button>
-            <label className="flex items-center gap-1.5 text-[11.5px] text-chalk-300">
+            <label className="flex items-center gap-1.5 text-meta text-chalk-300">
               <input
                 type="checkbox"
                 checked={stepMode}
@@ -544,9 +544,9 @@ export function ChecklistSection({
               step-by-step
             </label>
             {launched ? (
-              <span className="text-[10.5px] text-emerald-400">{launched}</span>
+              <span className="text-meta text-emerald-400">{launched}</span>
             ) : (
-              <span className="ml-auto text-[10.5px] text-chalk-400">
+              <span className="ml-auto text-meta text-chalk-400">
                 one worktree · a commit per item · summaries carried forward
               </span>
             )}
@@ -621,7 +621,7 @@ export function ChecklistSection({
         ) : null}
 
         {error ? (
-          <div className="mt-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+          <div className="mt-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-meta text-rose-300">
             {error}
           </div>
         ) : null}
@@ -752,30 +752,30 @@ function ChecklistRow({
             {item.text}
           </span>
           {runState ? (
-            <span className={cn("shrink-0 text-[10px] font-medium", runState.tone)}>
+            <span className={cn("shrink-0 text-meta font-medium", runState.tone)}>
               {runState.label}
             </span>
           ) : null}
           {item.promotedTaskId ? (
-            <span className="shrink-0 text-[10px] font-medium text-chalk-300">
+            <span className="shrink-0 text-meta font-medium text-chalk-300">
               detached
             </span>
           ) : null}
         </div>
         {isSaga && item.objective ? (
-          <div className="mt-0.5 truncate text-[10.5px]">
+          <div className="mt-0.5 truncate text-meta">
             <span className="font-medium text-violet-soft">objective</span>{" "}
             <span className="text-chalk-300">{item.objective}</span>
           </div>
         ) : null}
         {isSaga && item.acceptanceCheck ? (
-          <div className="truncate text-[10.5px]">
+          <div className="truncate text-meta">
             <span className="font-medium text-violet-soft">accept</span>{" "}
             <span className="text-chalk-300">{item.acceptanceCheck}</span>
           </div>
         ) : null}
         {isSaga && item.fileHints?.length ? (
-          <div className="truncate text-[10.5px]">
+          <div className="truncate text-meta">
             <span className="font-medium text-violet-soft">files</span>{" "}
             <span className="text-chalk-300">{item.fileHints.join(", ")}</span>
           </div>

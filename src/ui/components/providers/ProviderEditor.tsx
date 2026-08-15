@@ -11,6 +11,7 @@ import {
 import { Button } from "../design/Button.js";
 import { Chip } from "../design/Chip.js";
 import { FormField } from "../design/FormField.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
 import { cn } from "../design/cn.js";
 
 export type TestResult = Awaited<ReturnType<typeof api.testProvider>>;
@@ -359,7 +360,7 @@ export function ProviderEditor({
             </h2>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               {!isNew ? (
-                <span className="mono text-[11px] text-chalk-400">{p!.id}</span>
+                <span className="mono text-meta text-chalk-400">{p!.id}</span>
               ) : null}
               {kind === "cli" ? (
                 <Chip tone={p?.available ? "emerald" : "amber"} contained>
@@ -384,7 +385,14 @@ export function ProviderEditor({
         </div>
 
         {loading ? (
-          <div className="mt-5 text-[13px] text-chalk-300">Loading config…</div>
+          <Skeleton label="Loading the provider config" className="mt-4 grid grid-cols-1 gap-2.5">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex flex-col gap-1.5">
+                <SkeletonBlock tone="text" h={11} w={[68, 52, 84, 60][i]} />
+                <SkeletonBlock h={32} w="100%" bordered />
+              </div>
+            ))}
+          </Skeleton>
         ) : (
           <>
             <div className="mt-4 grid grid-cols-1 gap-2.5">
@@ -425,7 +433,7 @@ export function ProviderEditor({
                           type="button"
                           onClick={() => setInput(mode)}
                           className={cn(
-                            "mono h-[26px] rounded-[8px] px-3 text-[11.5px] font-medium transition",
+                            "mono h-[26px] rounded-[8px] px-3 text-meta font-medium transition",
                             input === mode
                               ? "bg-coal-500 text-chalk-100"
                               : "text-chalk-300 hover:text-chalk-100",
@@ -447,7 +455,7 @@ export function ProviderEditor({
                           type="button"
                           onClick={() => onApiChange(opt)}
                           className={cn(
-                            "mono h-[26px] rounded-[8px] px-3 text-[11.5px] font-medium transition",
+                            "mono h-[26px] rounded-[8px] px-3 text-meta font-medium transition",
                             apiName === opt
                               ? "bg-coal-500 text-chalk-100"
                               : "text-chalk-300 hover:text-chalk-100",
@@ -483,7 +491,7 @@ export function ProviderEditor({
                       placeholder="env:ANTHROPIC_API_KEY"
                       className={inputCls}
                     />
-                    <p className="mt-1 text-[10.5px] text-chalk-400">
+                    <p className="mt-1 text-meta text-chalk-400">
                       An <span className="text-chalk-300">env reference</span> like{" "}
                       <code className="text-violet-soft">env:NAME</code> - the key
                       stays in your environment, never in config.
@@ -536,9 +544,9 @@ export function ProviderEditor({
                     onChange={(e) => setYamlText(e.target.value)}
                     spellCheck={false}
                     rows={Math.min(22, Math.max(8, yamlText.split("\n").length + 1))}
-                    className="mono w-full resize-y rounded-[12px] border border-violet-soft/40 bg-coal-800 px-3 py-2.5 text-[11.5px] text-chalk-100 focus:border-violet-soft/60 focus:outline-none"
+                    className="mono w-full resize-y rounded-[12px] border border-violet-soft/40 bg-coal-800 px-3 py-2.5 text-meta text-chalk-100 focus:border-violet-soft/60 focus:outline-none"
                   />
-                  <div className="mt-1.5 text-[11px] leading-relaxed text-chalk-400">
+                  <div className="mt-1.5 text-meta leading-relaxed text-chalk-400">
                     Edit the whole block, so anything the form doesn't surface is
                     still yours to set here:{" "}
                     <span className="mono text-chalk-300">env</span>, claude-code{" "}
@@ -552,12 +560,12 @@ export function ProviderEditor({
                   </div>
                 </>
               ) : (
-                <pre className="mono overflow-x-auto whitespace-pre rounded-[12px] border border-[color:var(--line)] bg-coal-800 px-3 py-2.5 text-[11.5px] text-chalk-200">
+                <pre className="mono overflow-x-auto whitespace-pre rounded-[12px] border border-[color:var(--line)] bg-coal-800 px-3 py-2.5 text-meta text-chalk-200">
                   {yamlPreview}
                 </pre>
               )}
               {profilesUsing.length > 0 ? (
-                <div className="mt-2 text-[11px] text-chalk-400">
+                <div className="mt-2 text-meta text-chalk-400">
                   Used by role{profilesUsing.length === 1 ? "" : "s"}:{" "}
                   <span className="mono text-chalk-300">
                     {profilesUsing.join(", ")}
@@ -596,7 +604,7 @@ export function ProviderEditor({
                 {!isNew && p!.configured ? (
                   confirmRemove ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-[11.5px] text-rose-300">
+                      <span className="text-meta text-rose-300">
                         {profilesUsing.length > 0
                           ? `In use by ${profilesUsing.length} role(s)`
                           : "Remove?"}
@@ -693,7 +701,7 @@ export function TestResultRow({
         <div className="mt-1 text-rose-300">{result.hint}</div>
       ) : null}
       {result.stderr ? (
-        <pre className="mono mt-1.5 max-h-24 overflow-x-auto whitespace-pre-wrap break-all rounded-[10px] bg-coal-800 px-2 py-1 text-[11px] text-rose-300/80">
+        <pre className="mono mt-1.5 max-h-24 overflow-x-auto whitespace-pre-wrap break-all rounded-[10px] bg-coal-800 px-2 py-1 text-meta text-rose-300/80">
           {result.stderr.slice(0, 400)}
         </pre>
       ) : null}

@@ -7,12 +7,14 @@ import type {
   ProviderCatalog,
   DiscoveredSkill,
 } from "../../lib/types.js";
+import { ErrorView } from "../../lib/error-view.js";
 import { Button } from "../design/Button.js";
 import { ToneDot, toneForId } from "../design/Chip.js";
 import type { Toast } from "../design/useToast.js";
 import { Select } from "../design/Select.js";
 import { cn } from "../design/cn.js";
 import { NewProfileInline } from "./NewProfileInline.js";
+import { RoleInstructions } from "./RoleInstructions.js";
 import {
   TONE_WASH,
   TONE_AVATAR,
@@ -88,7 +90,7 @@ export function RoleCard({
                 the duplicate line is noise, so we drop it. */}
             {role.id.toLowerCase() !==
             role.label.toLowerCase().replace(/[^a-z0-9]+/g, "") ? (
-              <div className="mono truncate text-[11px] text-chalk-300">
+              <div className="mono truncate text-meta text-chalk-300">
                 {role.id}
               </div>
             ) : null}
@@ -98,7 +100,7 @@ export function RoleCard({
             token (a code slug is not a label). */}
         <span
           className={cn(
-            "inline-flex shrink-0 items-center gap-1 text-[11.5px] font-semibold",
+            "inline-flex shrink-0 items-center gap-1 text-meta font-semibold",
             role.permissions === "code_write"
               ? "text-amber-soft"
               : "text-chalk-300",
@@ -149,7 +151,7 @@ export function RoleCard({
                   );
                 }}
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-[10px] border px-2 py-1 text-[11.5px] transition disabled:opacity-50",
+                  "inline-flex items-center gap-1 rounded-[10px] border px-2 py-1 text-meta transition disabled:opacity-50",
                   on
                     ? ambiguous
                       ? "border-amber-soft/40 bg-amber-soft/10 text-amber-soft"
@@ -191,7 +193,7 @@ export function RoleCard({
             ]}
           />
           {profile ? (
-            <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-[color:var(--line)] bg-coal-500/60 px-2.5 py-1.5 text-[11.5px] text-chalk-300">
+            <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-[color:var(--line)] bg-coal-500/60 px-2.5 py-1.5 text-meta text-chalk-300">
               <Cpu className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
               <span
                 className={cn(
@@ -210,7 +212,7 @@ export function RoleCard({
               ) : null}
             </span>
           ) : (
-            <span className="text-[11.5px] text-rose-300">
+            <span className="text-meta text-rose-300">
               profile not found - pick or create one
             </span>
           )}
@@ -271,7 +273,7 @@ export function RoleCard({
               promptOpen ? "" : "-rotate-90",
             )}
           />
-          <PenLine className="h-3.5 w-3.5" /> Instructions (prompt)
+          <PenLine className="h-3.5 w-3.5" /> Instructions
         </button>
         {promptOpen ? (
           <PromptEditor crewId={crewId} role={role} onFlash={onFlash} />
@@ -312,12 +314,12 @@ function SkillsRow({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line)] px-2 py-1 text-[11px] font-medium text-chalk-300 transition hover:border-[color:var(--line-strong)] hover:text-chalk-100"
+              className="inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line)] px-2 py-1 text-meta font-medium text-chalk-300 transition hover:border-[color:var(--line-strong)] hover:text-chalk-100"
             >
               <Plus className="h-2.5 w-2.5" /> Attach a skill
             </button>
           ) : (
-            <span className="text-[11.5px] text-chalk-400">
+            <span className="text-meta text-chalk-400">
               no skills available to attach
             </span>
           )
@@ -325,7 +327,7 @@ function SkillsRow({
           role.skills.map((s) => (
             <span
               key={s}
-              className="inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line)] bg-coal-500/50 px-2 py-0.5 text-[11px] text-chalk-200"
+              className="inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line)] bg-coal-500/50 px-2 py-0.5 text-meta text-chalk-200"
             >
               {s}
               <button
@@ -365,7 +367,7 @@ function SkillsRow({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line)] px-2 py-0.5 text-[11px] text-chalk-300 transition hover:border-[color:var(--line-strong)] hover:text-chalk-100"
+              className="inline-flex items-center gap-1 rounded-[10px] border border-[color:var(--line)] px-2 py-0.5 text-meta text-chalk-300 transition hover:border-[color:var(--line-strong)] hover:text-chalk-100"
             >
               <Plus className="h-2.5 w-2.5" /> skill
             </button>
@@ -386,37 +388,39 @@ function PromptEditor({
   onFlash: (t: Toast) => void;
 }) {
   const [content, setContent] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
+  // The text as the file holds it. Dirtiness is the difference from it, so
+  // typing a change and typing it back is not a pending save.
+  const [baseline, setBaseline] = useState("");
   const [saving, setSaving] = useState(false);
   const [path, setPath] = useState<string>("");
+  const [loadFailure, setLoadFailure] = useState<unknown>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let alive = true;
+    setLoadFailure(null);
     void api
       .getCrewRoleContext(crewId, role.id)
       .then((r) => {
         if (!alive) return;
         setContent(r.content);
+        setBaseline(r.content);
         setPath(r.promptPath);
       })
       .catch((err) => {
-        if (alive)
-          onFlash({
-            kind: "err",
-            text: err instanceof Error ? err.message : String(err),
-          });
+        if (alive) setLoadFailure(err);
       });
     return () => {
       alive = false;
     };
-  }, [crewId, role.id, onFlash]);
+  }, [crewId, role.id, reloadKey]);
 
   async function save() {
     if (content === null) return;
     setSaving(true);
     try {
       await api.setCrewRoleContext(crewId, role.id, content);
-      setDirty(false);
+      setBaseline(content);
       onFlash({ kind: "ok", text: `Saved ${role.label} instructions.` });
     } catch (err) {
       onFlash({
@@ -428,33 +432,54 @@ function PromptEditor({
     }
   }
 
-  if (content === null) {
-    return <div className="mt-2 text-[11.5px] text-chalk-400">Loading…</div>;
-  }
-  return (
-    <div className="mt-2">
-      <textarea
-        value={content}
-        onChange={(e) => {
-          setContent(e.target.value);
-          setDirty(true);
-        }}
-        spellCheck={false}
-        rows={8}
-        className="mono w-full resize-y rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-2 text-[11.5px] leading-[1.55] text-chalk-200 outline-none focus:border-violet-soft/50"
+  if (loadFailure !== null) {
+    // A role file that does not parse is not retryable in the classifier's
+    // sense, but re-reading IS the loop once it has been fixed - so the action
+    // is stated outright rather than left to `onRetry`, which a 422 drops.
+    return (
+      <ErrorView
+        err={loadFailure}
+        compact
+        className="mt-2"
+        override={{ title: `${role.label}'s instructions could not be read` }}
+        actions={[
+          {
+            label: "Read it again",
+            onClick: () => setReloadKey((k) => k + 1),
+            variant: "primary",
+          },
+        ]}
       />
-      <div className="mt-1.5 flex items-center justify-between gap-2">
-        <span className="mono truncate text-[10px] text-chalk-400">{path}</span>
-        <Button
-          size="sm"
-          variant={dirty ? "primary" : "ghost"}
-          disabled={!dirty || saving}
-          onClick={() => void save()}
-          iconLeft={<Save className="h-3 w-3" />}
-        >
-          {saving ? "Saving…" : "Save"}
-        </Button>
-      </div>
+    );
+  }
+  if (content === null) {
+    return (
+      <div className="mt-2 text-[12px] text-chalk-300">Reading the role file.</div>
+    );
+  }
+
+  const dirty = content !== baseline;
+  return (
+    <div className="mt-2.5">
+      <RoleInstructions
+        roleId={role.id}
+        promptPath={path}
+        value={content}
+        disabled={saving}
+        rows={10}
+        onChange={setContent}
+        action={
+          <Button
+            size="md"
+            variant="primary"
+            disabled={!dirty || saving}
+            onClick={() => void save()}
+            iconLeft={<Save className="h-4 w-4" strokeWidth={2} aria-hidden />}
+          >
+            {saving ? "Saving…" : "Save instructions"}
+          </Button>
+        }
+      />
     </div>
   );
 }

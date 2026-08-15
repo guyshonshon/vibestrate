@@ -65,7 +65,7 @@ export function DryRunModal({
                 {snapshot.seats.map((s) => (
                   <span
                     key={s.id}
-                    className="rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 px-2 py-1 text-[11.5px] text-chalk-300"
+                    className="rounded-[10px] border border-[color:var(--line-soft)] bg-coal-500 px-2 py-1 text-meta text-chalk-300"
                     title={s.description ?? undefined}
                   >
                     <span className="text-chalk-100">{s.label}</span>{" "}
@@ -122,24 +122,24 @@ export function DryRunModal({
                         }
                         title={canPreview ? "Show how this step's prompt is composed" : undefined}
                       >
-                        <span className="mono w-5 shrink-0 text-right text-[11px] text-chalk-400">{i + 1}</span>
+                        <span className="mono w-5 shrink-0 text-right text-meta text-chalk-400">{i + 1}</span>
                         <span className="truncate text-chalk-100">{s.label}</span>
-                        <span className="mono text-[10.5px] text-chalk-400">{s.kind}</span>
+                        <span className="mono text-meta text-chalk-400">{s.kind}</span>
                         {s.resolvedRoleLabel ? (
-                          <span className="mono text-[10.5px] text-chalk-300">
+                          <span className="mono text-meta text-chalk-300">
                             → {s.resolvedRoleLabel}
                           </span>
                         ) : null}
                         {s.profileId ? (
-                          <span className="mono text-[10.5px] text-violet-soft">
+                          <span className="mono text-meta text-violet-soft">
                             {s.profileId}
                             {s.providerId ? ` · ${s.providerId}` : ""}
                           </span>
                         ) : null}
                         {!s.enabled ? (
-                          <span className="ml-auto text-[10.5px] text-chalk-400">skipped</span>
+                          <span className="ml-auto text-meta text-chalk-400">skipped</span>
                         ) : s.approval ? (
-                          <span className="ml-auto text-[10.5px] text-amber-soft">approval gate</span>
+                          <span className="ml-auto text-meta text-amber-soft">approval gate</span>
                         ) : null}
                         {canPreview ? (
                           <ChevronRight
@@ -163,7 +163,7 @@ export function DryRunModal({
                 })}
               </ol>
             </div>
-            <p className="mt-3 text-[11.5px] text-chalk-400">
+            <p className="mt-3 text-meta text-chalk-400">
               No run started. This is what{" "}
               <code className="text-chalk-300">vibe run "…" --flow {flowId}</code>{" "}
               would instantiate (reflects the saved flow).

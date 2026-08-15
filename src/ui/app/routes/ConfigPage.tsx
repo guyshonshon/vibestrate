@@ -8,6 +8,12 @@ import { Select } from "../../components/design/Select.js";
 import { PageShell, Section } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
 import { PageHero } from "../../components/layout/PageHero.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+} from "../../components/design/Skeleton.js";
+import { HeroNumber } from "./page-skeletons.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { cn } from "../../components/design/cn.js";
 
@@ -113,7 +119,7 @@ export function ConfigPage() {
         <Cell size="full" reason="masthead">
           <PageHero
             state={{
-              value: fields ? fields.length : "-",
+              value: fields ? fields.length : <HeroNumber />,
               caption: "Settings",
               note: "Every one of them editable here, in place.",
               tone: "violet",
@@ -131,8 +137,8 @@ export function ConfigPage() {
               </Button>
             }
             metrics={[
-              { value: groups.length, label: "groups" },
-              { value: fields ? fields.length : "-", label: "settings" },
+              { value: fields ? groups.length : <HeroNumber />, label: "groups" },
+              { value: fields ? fields.length : <HeroNumber />, label: "settings" },
             ]}
             footer={
               <>
@@ -158,8 +164,26 @@ export function ConfigPage() {
         ) : null}
 
         {!fields ? (
-          <Cell size="full" reason="masthead">
-            <div className="text-[13px] text-chalk-300">Loading config…</div>
+          // Two columns of grouped field stacks, the shape the schema always
+          // resolves to, so the page does not reflow around the fold.
+          <Cell size="full" reason="nested-deck">
+            <Skeleton
+              label="Loading config"
+              className="grid grid-cols-1 gap-4 lg:grid-cols-2"
+            >
+              {[0, 1].map((col) => (
+                <div key={col} className="flex flex-col gap-4">
+                  {[0, 1].map((group) => (
+                    <div key={group} className="flex flex-col gap-3">
+                      <SkeletonBlock h={18} w={132} />
+                      <div className="overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4">
+                        <SkeletonRows rows={5} meta trailing divided />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </Skeleton>
           </Cell>
         ) : (
           columns.map((column, i) => (
@@ -280,7 +304,7 @@ function FieldRow({ field }: { field: ConfigFieldDto }) {
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {saved ? (
-            <span className="inline-flex items-center gap-1 text-[11.5px] text-emerald-400">
+            <span className="inline-flex items-center gap-1 text-meta text-emerald-400">
               <Check className="h-3.5 w-3.5" strokeWidth={2} />
               saved
             </span>
@@ -297,7 +321,7 @@ function FieldRow({ field }: { field: ConfigFieldDto }) {
       </div>
       {dest ? (
         <div className="flex items-center gap-2 pt-0.5">
-          <span className="text-[11.5px] text-chalk-300">
+          <span className="text-meta text-chalk-300">
             {summarize(field.current)} - edit on the dedicated page.
           </span>
           <Button
@@ -311,7 +335,7 @@ function FieldRow({ field }: { field: ConfigFieldDto }) {
         </div>
       ) : field.execGuarded ? (
         <div className="pt-0.5">
-          <span className="text-[11.5px] text-chalk-400">
+          <span className="text-meta text-chalk-400">
             Runs shell commands - set with{" "}
             <code className="mono text-chalk-300">
               vibe config set {field.fullKey}
@@ -321,7 +345,7 @@ function FieldRow({ field }: { field: ConfigFieldDto }) {
         </div>
       ) : null}
       {rowError ? (
-        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-meta text-rose-300">
           {rowError}
         </div>
       ) : null}
@@ -410,7 +434,7 @@ function Toggle({
 }) {
   return (
     <div className="flex items-center justify-end gap-2">
-      <span className="text-[11.5px] text-chalk-300">{checked ? "on" : "off"}</span>
+      <span className="text-meta text-chalk-300">{checked ? "on" : "off"}</span>
       <button
         type="button"
         role="switch"
@@ -532,7 +556,7 @@ function JsonField({
         )}
       />
       {parseError ? (
-        <span className="text-[11px] text-rose-300">{parseError}</span>
+        <span className="text-meta text-rose-300">{parseError}</span>
       ) : null}
     </div>
   );

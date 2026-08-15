@@ -7,6 +7,12 @@ import { PageShell } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
 import { PageHero } from "../../components/layout/PageHero.js";
 import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelBoard.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonCards,
+} from "../../components/design/Skeleton.js";
+import { HeroNumber } from "./page-skeletons.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { navigate } from "../App.js";
 import { isActiveStatus } from "../../lib/run-filter.js";
@@ -30,6 +36,10 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
   // this is the page you glance at: the run that would have failed on one of
   // these has not started yet, and this is the moment to catch it.
   const [brokenProfiles, setBrokenProfiles] = useState<ProfileView[]>([]);
+  // Every count on this page derives from `runs`, which starts empty: without a
+  // load flag the first paint asserts zero active runs and "Nothing finished
+  // yet" before the fetch has answered.
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +72,8 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
         if (!cancelled) setDiffByRun(diffs);
       } catch (err) {
         if (!cancelled) setError(err);
+      } finally {
+        if (!cancelled) setLoaded(true);
       }
     };
     void load();
@@ -90,19 +102,36 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
       defaultLayout: { id: "overview", x: 0, y: 0, w: 12, h: 3 },
       minW: 4,
       minH: 2,
-      render: () => (
-        <div className="grid h-full grid-cols-3 gap-4">
-          <StatCard label="Active runs" value={activeRuns.length} hint="in flight" tone="violet" />
-          <StatCard label="Merge-ready" value={mergeReady} hint="ready to ship" tone="emerald" />
-          <StatCard
-            label="Runs this week"
-            value={week.total}
-            hint="last 7 days"
-            tone="violet"
-            spark={week.counts}
-          />
-        </div>
-      ),
+      render: () =>
+        loaded ? (
+          <div className="grid h-full grid-cols-3 gap-4">
+            <StatCard label="Active runs" value={activeRuns.length} hint="in flight" tone="violet" />
+            <StatCard label="Merge-ready" value={mergeReady} hint="ready to ship" tone="emerald" />
+            <StatCard
+              label="Runs this week"
+              value={week.total}
+              hint="last 7 days"
+              tone="violet"
+              spark={week.counts}
+            />
+          </div>
+        ) : (
+          <Skeleton label="Loading run counts" className="grid h-full grid-cols-3 gap-4">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5"
+              >
+                <SkeletonBlock tone="text" h={13} w={84} />
+                <div className="mt-2 flex items-end justify-between">
+                  <SkeletonBlock h={34} w={56} />
+                  <SkeletonBlock h={36} w={120} radius={6} />
+                </div>
+                <SkeletonBlock className="mt-2" tone="text" h={12} w={72} />
+              </div>
+            ))}
+          </Skeleton>
+        ),
     },
     {
       id: "active",
@@ -113,9 +142,18 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
       render: () => (
         <div className="flex h-full flex-col">
           <h2 className="mb-3 text-[18px] font-bold text-violet-vivid">Active</h2>
-          {activeRuns.length === 0 ? (
-            <div className="rounded-[22px] border border-[color:var(--line)] bg-coal-600 px-6 py-10 text-center text-[13.5px] text-chalk-400">
-              No runs in flight. Launch one with <span className="font-semibold text-chalk-100">New run</span>.
+          {!loaded ? (
+            <Skeleton label="Loading active runs">
+              <SkeletonCards count={2} columns={2} height={150} />
+            </Skeleton>
+          ) : activeRuns.length === 0 ? (
+            // "Launch one with New run" pointed at a button somewhere else on
+            // the page. The empty state carries the real control instead.
+            <div className="flex flex-col items-center gap-3 rounded-[22px] border border-[color:var(--line)] bg-coal-600 px-6 py-10 text-center">
+              <span className="text-[13.5px] text-chalk-300">Nothing running.</span>
+              <Button variant="primary" size="md" onClick={onCompose}>
+                New run
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
@@ -146,7 +184,11 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
               All runs <ArrowRight className="h-3.5 w-3.5" />
             </button>
           </div>
-          {completed.length === 0 ? (
+          {!loaded ? (
+            <Skeleton label="Loading recent runs">
+              <SkeletonCards count={3} columns={1} height={126} />
+            </Skeleton>
+          ) : completed.length === 0 ? (
             <div className="rounded-[22px] border border-[color:var(--line)] bg-coal-600 px-6 py-8 text-center text-[13.5px] text-chalk-400">
               Nothing finished yet.
             </div>
@@ -170,26 +212,35 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
         <Cell size="full" reason="masthead">
           <PageHero
             state={{
-              value: active,
+              value: loaded ? active : <HeroNumber />,
               caption: active === 1 ? "Run active" : "Runs active",
-              note: active
-                ? "In flight, or stopped somewhere waiting on you."
-                : "Nothing in flight right now.",
+              note: !loaded
+                ? undefined
+                : active
+                  ? "In flight, or stopped somewhere waiting on you."
+                  : "Nothing in flight right now.",
               tone: active > 0 ? "violet" : "neutral",
             }}
             title="Dashboard"
-            purpose="What is running right now. Every panel can be moved or hidden."
+            // The hero's own number already reads "N runs active", and the note
+            // beneath it says whether anything is in flight. Saying "what is
+            // running right now" a third time was the page describing itself.
+            purpose="Your runs, live."
             actions={
-              <Button variant="primary" size="sm" onClick={onCompose}>
+              <Button variant="primary" size="lg" onClick={onCompose}>
                 New run
               </Button>
             }
-            metrics={[
-              { value: runs.length, label: "runs on disk" },
-              { value: active, label: "active" },
-              { value: week.total, label: "this week" },
-            ]}
-            footer="Drag a panel by its title to rearrange the board."
+            metrics={(
+              [
+                { value: runs.length, label: "runs on disk" },
+                { value: active, label: "active" },
+                { value: week.total, label: "this week" },
+              ] as const
+            ).map((m) => ({
+              value: loaded ? m.value : <HeroNumber />,
+              label: m.label,
+            }))}
           />
         </Cell>
 
@@ -211,9 +262,10 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
                   ? "A profile points at a model its provider does not have"
                   : `${brokenProfiles.length} profiles point at models their providers do not have`}
               </span>
+              {/* Names the profiles and stops. "any run using it fails at
+                  launch" restated the headline in different words. */}
               <span className="min-w-0 flex-1 text-[13px] text-chalk-300">
-                {brokenProfiles.map((p) => p.id).join(", ")} - any run using{" "}
-                {brokenProfiles.length === 1 ? "it" : "them"} fails at launch.
+                {brokenProfiles.map((p) => p.id).join(", ")}
               </span>
               <Button
                 variant="secondary"

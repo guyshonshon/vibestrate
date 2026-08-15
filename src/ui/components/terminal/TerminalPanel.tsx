@@ -9,6 +9,7 @@ import type {
   TerminalSession,
 } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
+import { Skeleton, SkeletonBlock, SkeletonText } from "../design/Skeleton.js";
 import { navigate } from "../../app/App.js";
 
 /**
@@ -188,16 +189,19 @@ export function TerminalPanel({ runId }: { runId: string }) {
 
   if (error)
     return (
-      <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2 py-1 text-[11.5px] text-rose-300">
+      <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-2 py-1 text-meta text-rose-300">
         {error}
       </div>
     );
 
   if (!availability)
     return (
-      <div className="text-[11.5px] text-chalk-400">
-        Checking terminal availability…
-      </div>
+      // Every resolved shape here - the off note, the open-terminal CTA - is a
+      // short paragraph over a control, so the bones are that.
+      <Skeleton label="Loading the terminal" className="flex flex-col gap-2">
+        <SkeletonText lines={3} size={11} gap={8} />
+        <SkeletonBlock h={28} w={196} />
+      </Skeleton>
     );
 
   if (!availability.policyEnabled || !availability.driverAvailable) {
@@ -205,7 +209,7 @@ export function TerminalPanel({ runId }: { runId: string }) {
     return (
       <div
         role="note"
-        className="flex items-start gap-2 rounded-[16px] border border-[color:var(--line)] bg-coal-600/40 p-3 text-[11.5px]"
+        className="flex items-start gap-2 rounded-[16px] border border-[color:var(--line)] bg-coal-600/40 p-3 text-meta"
       >
         <Lock
           className="mt-0.5 h-3.5 w-3.5 shrink-0 text-chalk-400"
@@ -258,7 +262,7 @@ export function TerminalPanel({ runId }: { runId: string }) {
 
   if (!session) {
     return (
-      <div className="space-y-2 text-[11.5px]">
+      <div className="space-y-2 text-meta">
         <p className="text-chalk-400">
           Open an interactive shell inside this run's worktree. The session
           runs locally on your machine, scoped to the worktree directory.
@@ -279,7 +283,7 @@ export function TerminalPanel({ runId }: { runId: string }) {
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <div className="flex items-center justify-between text-[11px] text-chalk-400">
+      <div className="flex items-center justify-between text-meta text-chalk-400">
         <span className="truncate font-mono text-[12.5px]">
           {session.shell} · {session.cwd}
         </span>

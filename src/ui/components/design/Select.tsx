@@ -168,7 +168,7 @@ export function Select({
                 />
                 <span className="truncate">{o.label}</span>
                 {o.hint ? (
-                  <span className="ml-auto shrink-0 truncate pl-3 text-[11px] text-chalk-400">
+                  <span className="ml-auto shrink-0 truncate pl-3 text-meta text-chalk-400">
                     {o.hint}
                   </span>
                 ) : null}

@@ -82,9 +82,13 @@ const BANNED: Array<{ name: string; re: RegExp; why: string }> = [
 const DECKLESS_PAGES: Record<string, string> = {
   "BoardPage.tsx": "fill archetype - the kanban owns the viewport and scrolls its own columns",
   "CodebasePage.tsx": "fill archetype - a two-pane search tool that owns its own height",
+  "FlowBuilderPage.tsx":
+    "fill archetype - a draggable two-pane editor whose panes scroll themselves, so a Deck's shared width would fight the divider",
   "SourcePage.tsx": "fill archetype - a wrapper that swaps three full-height git views",
   "PoliciesPage.tsx": "9-line route wrapper; the Deck is in PoliciesPanel, which it renders",
   "CanvasPage.tsx": "gitignored local-only styleguide, not part of the product",
+  "page-skeletons.tsx":
+    "not a page - shared loading shapes the routes import, so it mirrors each page's Deck rather than owning one",
 };
 
 describe("UI design drift", () => {

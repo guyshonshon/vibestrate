@@ -114,7 +114,7 @@ export function ProviderCatalogPanel() {
         {data.overlay.present ? (
           <span className="inline-flex items-center gap-2">
             <Chip tone="violet">overlay active</Chip>
-            <code className="mono text-[11.5px] text-chalk-400">
+            <code className="mono text-meta text-chalk-400">
               {data.overlay.path}
             </code>
           </span>

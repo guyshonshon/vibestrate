@@ -85,7 +85,7 @@ export function PhaseRail({
         ))}
       </div>
       {showLabels ? (
-        <div className="mt-1.5 flex justify-between text-[10px] font-medium text-chalk-400">
+        <div className="mt-1.5 flex justify-between text-meta font-medium text-chalk-400">
           {RUN_STAGES.map((s, i) => (
             <span key={s} className={i === stage ? "text-chalk-100" : ""}>
               {s}

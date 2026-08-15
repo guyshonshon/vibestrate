@@ -88,7 +88,7 @@ export function ApprovalBanner({ runId, approval, onResolved, onDiscuss, default
       title={approval.requestedAction || `Approve continuing past ${approval.stageId}.`}
       sub={describeSource(approval)}
       actions={
-        <span className="mono text-[11px] text-chalk-400">{approval.stageId}</span>
+        <span className="mono text-meta text-chalk-400">{approval.stageId}</span>
       }
       footer={
         mode === "changes" ? (
@@ -162,34 +162,34 @@ export function ApprovalBanner({ runId, approval, onResolved, onDiscuss, default
           <p className="text-[12.5px] leading-snug text-chalk-300">{approval.reason}</p>
         ) : null}
         {approval.sourceArtifactPath ? (
-          <p className="mt-2 text-[11px] text-chalk-400">
+          <p className="mt-2 text-meta text-chalk-400">
             from <span className="mono text-chalk-300">{approval.sourceArtifactPath}</span>
           </p>
         ) : null}
         {approval.files.length > 0 ? (
           <div className="mt-3">
             <div className="flex items-baseline gap-2">
-              <span className="text-[11px] font-semibold text-violet-soft">
+              <span className="text-meta font-semibold text-violet-soft">
                 {approval.files.length} file{approval.files.length === 1 ? "" : "s"} changed
               </span>
               {/* Hash route, not a bare query string: a plain `?tab=diff` drops
                   the hash and navigates away from the run entirely. */}
               <a
                 href={`#/runs/${runId}?tab=diff`}
-                className="text-[11px] font-medium text-violet-soft hover:underline"
+                className="text-meta font-medium text-violet-soft hover:underline"
               >
                 Read the diff
               </a>
             </div>
             <ul className="mt-1.5 space-y-0.5">
               {approval.files.slice(0, FILES_SHOWN).map((f) => (
-                <li key={f} className="mono truncate text-[11.5px] text-chalk-300">
+                <li key={f} className="mono truncate text-meta text-chalk-300">
                   {f}
                 </li>
               ))}
             </ul>
             {approval.files.length > FILES_SHOWN ? (
-              <p className="mt-1 text-[11px] text-chalk-300">
+              <p className="mt-1 text-meta text-chalk-300">
                 +{approval.files.length - FILES_SHOWN} more
               </p>
             ) : null}

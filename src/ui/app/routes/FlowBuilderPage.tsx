@@ -54,11 +54,12 @@ import { Button } from "../../components/design/Button.js";
 import { StatTile } from "../../components/design/StatTile.js";
 import { Select } from "../../components/design/Select.js";
 import { StepKindLegend } from "../../components/design/StepKindLegend.js";
+import { Skeleton, SkeletonText } from "../../components/design/Skeleton.js";
 import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
 import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
-import { Deck, Cell } from "../../components/layout/Deck.js";
+import { EditorSplit } from "../../components/flow-builder/EditorSplit.js";
 import { Breadcrumbs } from "../../components/layout/Breadcrumbs.js";
 import { extractFlowFromYaml, renderFlowYaml } from "../../lib/flow-yaml.js";
 import { DryRunModal } from "../../components/flow-builder/DryRunModal.js";
@@ -559,8 +560,11 @@ export function FlowBuilderPage({
     setDraftLoop(selected.definition.loop ?? null);
   }
 
+  // `fill` rather than the scrolling page canvas: this is a two-pane app view,
+  // so the flow picker and the save toolbar stay put while each pane scrolls its
+  // own contents.
   return (
-    <PageShell className="fade-up">
+    <PageShell variant="fill" className="fade-up">
       <Breadcrumbs
         className="mb-3"
         items={[
@@ -569,6 +573,7 @@ export function FlowBuilderPage({
         ]}
       />
       <PageHeader
+        className="mb-4"
         title={
           selected ? (
             <span className="flex items-baseline gap-2.5">
@@ -587,7 +592,7 @@ export function FlowBuilderPage({
           read-only state, and a carded action toolbar - one framed block, so no
           fact reads as a grey meta line and no action is stranded at the far
           right of the page. */}
-      <section className="rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
+      <section className="shrink-0 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
         <div className="flex flex-wrap items-center gap-3">
           <Select
             value={selected?.id ?? ""}
@@ -604,7 +609,7 @@ export function FlowBuilderPage({
             }))}
           />
           {selected && !isProjectFlow ? (
-            <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-amber-soft/25 bg-amber-soft/10 px-2.5 py-1 text-[11.5px] font-medium text-amber-soft">
+            <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-amber-soft/25 bg-amber-soft/10 px-2.5 py-1 text-meta font-medium text-amber-soft">
               <Lock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} aria-hidden />
               Read-only - fork into the project to edit it.
             </span>
@@ -735,7 +740,7 @@ export function FlowBuilderPage({
              * back - it set nothing. This one performs the real action (same
              * API as the Flows page) or honestly reports it's already done. */}
             {selected && selected.id === (defaultFlowId ?? "default") ? (
-              <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11.5px] font-semibold text-emerald-400">
+              <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-meta font-semibold text-emerald-400">
                 <Flag className="h-3 w-3" strokeWidth={1.9} aria-hidden /> Runs by default
               </span>
             ) : (
@@ -797,7 +802,7 @@ export function FlowBuilderPage({
       />
 
       {selected && yamlMode ? (
-        <section className="mt-8">
+        <section className="mt-6 min-h-0 flex-1 overflow-y-auto pb-5">
           <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-5 fade-up">
             <div className="mb-3">
               <div className="text-[12px] font-semibold text-violet-vivid">Raw YAML</div>
@@ -818,9 +823,14 @@ export function FlowBuilderPage({
               >
                 <Suspense
                   fallback={
-                    <div className="px-3 py-2.5 text-[11.5px] text-chalk-400">
-                      Loading editor…
-                    </div>
+                    <Skeleton
+                      label="Loading the YAML editor"
+                      className="flex flex-col gap-2 px-3 py-2.5"
+                    >
+                      {/* Mono lines at the editor's own rhythm, so the pane does
+                       * not collapse to one row and snap open on arrival. */}
+                      <SkeletonText lines={12} width="full" size={11} gap={7} />
+                    </Skeleton>
                   }
                 >
                   <YamlEditor
@@ -844,8 +854,10 @@ export function FlowBuilderPage({
       ) : null}
 
       {selected && !yamlMode ? (
-        <Deck className="mt-8">
-          <Cell size="wide">
+        <EditorSplit
+          storageKey="vibestrate.flowBuilder.split"
+          className="mt-6 pb-5"
+          left={
             <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-5 fade-up">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-[12px] bg-violet-soft/15 text-violet-soft ring-1 ring-violet-soft/20 flex items-center justify-center shrink-0">
@@ -913,34 +925,33 @@ export function FlowBuilderPage({
                 ) : null}
               </ol>
             </div>
-          </Cell>
-
-          <Cell size="card" className="space-y-4">
-            <StepInspector
-              step={activeStep}
-              flow={selected}
-              editable={isProjectFlow}
-              warning={stepOrderWarning(
-                displayedSteps,
-                Math.min(activeStepIdx, displayedSteps.length - 1),
-              )}
-              draft={
-                activeStep ? draftSteps[activeStep.id] ?? {} : {}
-              }
-              onPatchDraft={(patch) =>
-                activeStep && patchStepDraft(activeStep.id, patch)
-              }
-            />
-            <LoopCard
-              steps={displayedSteps}
-              loop={draftLoop}
-              editable={isProjectFlow}
-              onChange={setDraftLoop}
-            />
-            <PolicyCard />
-            <PreviewCard steps={displayedSteps} />
-          </Cell>
-        </Deck>
+          }
+          right={
+            <div className="space-y-4">
+              <StepInspector
+                step={activeStep}
+                flow={selected}
+                editable={isProjectFlow}
+                warning={stepOrderWarning(
+                  displayedSteps,
+                  Math.min(activeStepIdx, displayedSteps.length - 1),
+                )}
+                draft={activeStep ? draftSteps[activeStep.id] ?? {} : {}}
+                onPatchDraft={(patch) =>
+                  activeStep && patchStepDraft(activeStep.id, patch)
+                }
+              />
+              <LoopCard
+                steps={displayedSteps}
+                loop={draftLoop}
+                editable={isProjectFlow}
+                onChange={setDraftLoop}
+              />
+              <PolicyCard />
+              <PreviewCard steps={displayedSteps} />
+            </div>
+          }
+        />
       ) : null}
 
       {dryRun || dryRunBusy || dryRunErr ? (

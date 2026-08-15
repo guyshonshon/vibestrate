@@ -32,11 +32,13 @@
 /* "bare" variant: the frame is just a positioning/drag container - the panel's
  * own card (themed by index.css) is the visible surface, so nothing double-cards
  * and the panel keeps its light/dark styling. */
-.layout.is-bare .widget-frame {
+.layout.is-bare .widget-frame,
+.board-flow.is-bare > .widget-frame {
   background: transparent;
   border: 0;
 }
-.layout.is-bare .widget-frame > .widget-body {
+.layout.is-bare .widget-frame > .widget-body,
+.board-flow.is-bare > .widget-frame > .widget-body {
   padding: 0;
 }
 .layout.is-bare.is-editing .widget-frame {
@@ -50,6 +52,41 @@
   /* Content taller than the panel scrolls (unlike guify's fixed charts). */
   overflow: auto;
   padding: 10px 12px 12px;
+}
+
+/* View mode is a content-flow grid, not the fixed-row board.
+ *
+ * The board reserves each panel's authored height whether or not the content
+ * fills it, which on a quiet project left a 175px empty state sitting in a
+ * 390px box - roughly 1400px of reserved void down the Metrics page. Panels
+ * keep the column span the layout gave them, so the arrangement still reads as
+ * the one you set, but rows size to their content. The fixed grid comes back
+ * the moment you open the layout editor, which is where exact geometry
+ * matters. */
+.board-flow {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  gap: 12px;
+  /* A short panel sits at its own height rather than stretching to match the
+   * tallest one beside it. */
+  align-items: start;
+}
+.board-flow > .widget-frame {
+  height: auto;
+}
+.board-flow > .widget-frame > .widget-body {
+  height: auto;
+  /* Nothing to clip against once the panel is content-sized, and an `auto` here
+   * would trap wide tables in a nested scroller instead of letting the page
+   * scroll. */
+  overflow: visible;
+}
+/* Narrow containers stack. The stored spans are authored against 24 columns, so
+ * honouring them below this width produces unreadable slivers. */
+@media (max-width: 899px) {
+  .board-flow > .widget-frame {
+    grid-column: 1 / -1 !important;
+  }
 }
 
 /* Edit mode: lift the panel + soft ring instead of a hard outline. */
@@ -160,7 +197,7 @@
 }
 .widget-chrome-title {
   flex: 1;
-  font-size: 10px;
+  font-size: var(--text-meta);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;

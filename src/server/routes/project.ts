@@ -13,9 +13,16 @@
 //
 // Rules that hold across the file:
 //   - Config edits go through setup/config-update-service (createProfile,
-//     setProfileFields, deleteProfile, setCrewRoleFields, installCrewPreset,
-//     setConfigValue) rather than writing project.yml here - that service is
-//     the same writer the CLI's config and crew commands use.
+//     setProfileFields, deleteProfile, installCrewPreset, setConfigValue)
+//     rather than writing project.yml here - that service is the same writer
+//     the CLI's config and crew commands use.
+//   - Both halves of a Crew Role edit cross the Action Broker as a `file.write`,
+//     and neither is gated in the shared config writer, which `vibe init` also
+//     uses: the prompt through agents/role-file-write (writeRolePromptAudited)
+//     and the config fields through agents/role-fields-write
+//     (setCrewRoleFieldsAudited). The Crew editor saves both in one click, so
+//     gating only the prompt would let a denying policy refuse the instructions
+//     while a read_only -> code_write flip landed. No route writes bytes itself.
 //   - A route that reads or writes one named file resolves that path through
 //     buildProjectRoots + resolveSafePath before touching it, and re-throws a
 //     PathGuardError as an HttpError carrying the guard's own status code. The
@@ -28,7 +35,6 @@
 //     git pathspecs after `--`, which git itself bounds to the repo.
 
 import fs from "node:fs/promises";
-import path from "node:path";
 import type { FastifyInstance } from "fastify";
 import {
   buildProjectRoots,
@@ -55,7 +61,6 @@ import { runStateSchema } from "../../core/state-machine.js";
 import { configExists, loadConfig } from "../../project/config-loader.js";
 import { setConfigValue } from "../../setup/config-update-service.js";
 import {
-  setCrewRoleFields,
   setProfileFields,
   createProfile,
   deleteProfile,
@@ -68,7 +73,9 @@ import {
   CrewAssistError,
 } from "../../agents/crew-assist.js";
 import { profileUsage, rolesUsingProfile } from "../../agents/profile-usage.js";
-import { parseRoleFile, ROLE_FILE_SCHEMA_VERSION } from "../../agents/role-schema.js";
+import { parseRoleFile } from "../../agents/role-schema.js";
+import { writeRolePromptAudited } from "../../agents/role-file-write.js";
+import { setCrewRoleFieldsAudited } from "../../agents/role-fields-write.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 import { z } from "zod";
 
@@ -376,7 +383,12 @@ export async function registerProjectRoutes(
     return { crew: serializeCrew(config, crewId, crew) };
   });
 
-  // Edit a Crew Role: profile, seats filled, permissions, label, skills.
+  // Edit a Crew Role: profile, seats filled, permissions, label, skills. This
+  // route owns the field allow-list; setCrewRoleFieldsAudited owns the Action
+  // Broker gate and the config write. Gated because `permissions` decides
+  // whether this Role's provider may edit the repo, and the Crew editor sends
+  // this alongside the prompt write below on one Save - a policy that stops one
+  // and not the other stops the wrong one.
   app.patch<{ Params: { crewId: string; roleId: string }; Body: unknown }>(
     "/api/crews/:crewId/roles/:roleId",
     async (req) => {
@@ -393,11 +405,13 @@ export async function registerProjectRoutes(
       if (Object.keys(patch).length === 0) {
         throw new HttpError(400, `Body must include at least one of: ${allowed.join(", ")}.`);
       }
-      try {
-        await setCrewRoleFields(projectRoot, crewId, roleId, patch);
-      } catch (err) {
-        throw new HttpError(400, err instanceof Error ? err.message : String(err));
-      }
+      const written = await setCrewRoleFieldsAudited({
+        projectRoot,
+        crewId,
+        roleId,
+        patch,
+      });
+      if (!written.ok) throw new HttpError(written.status, written.reasons.join(" "));
       return { ok: true, crewId, roleId };
     },
   );
@@ -458,8 +472,11 @@ export async function registerProjectRoutes(
     },
   );
 
-  // Write a Role's context (prompt) into its JSON role file. Path-guarded;
-  // creates the file if missing.
+  // Write a Role's context (prompt) into its JSON role file. This route owns
+  // the path guard; writeRolePromptAudited owns the content screens, the Action
+  // Broker gate, and the bytes - so a project policy that denies `file.write`
+  // refuses a prompt edit the same way it refuses a flow edit, and the refusal
+  // arrives here as a 403 to pass on rather than an exception.
   app.put<{ Params: { crewId: string; roleId: string }; Body: unknown }>(
     "/api/crews/:crewId/roles/:roleId/context",
     async (req) => {
@@ -470,9 +487,6 @@ export async function registerProjectRoutes(
       const body = (req.body ?? {}) as { content?: unknown };
       if (typeof body.content !== "string") {
         throw new HttpError(400, "Body must include a string `content`.");
-      }
-      if (body.content.length > 100_000) {
-        throw new HttpError(400, "Prompt is too large (100k character max).");
       }
       if (!(await configExists(projectRoot))) {
         throw new HttpError(404, "Vibestrate is not initialized here.");
@@ -490,22 +504,15 @@ export async function registerProjectRoutes(
         }
         throw err;
       }
-      // The role file is named after the role it defines, so its `id` comes
-      // from the file name the config points at - not from `roleId`, which is
-      // the crew's key for it and may differ (several crews share one file).
-      const fileRoleId = path.basename(role.prompt, path.extname(role.prompt));
-      const serialized = `${JSON.stringify(
-        { schemaVersion: ROLE_FILE_SCHEMA_VERSION, id: fileRoleId, prompt: body.content },
-        null,
-        2,
-      )}\n`;
-      try {
-        parseRoleFile(serialized, role.prompt);
-      } catch (err) {
-        throw new HttpError(400, err instanceof Error ? err.message : String(err));
-      }
-      await fs.mkdir(path.dirname(resolved.absolutePath), { recursive: true });
-      await fs.writeFile(resolved.absolutePath, serialized, "utf8");
+      const written = await writeRolePromptAudited({
+        projectRoot,
+        crewId,
+        roleId,
+        promptPath: role.prompt,
+        targetPath: resolved.absolutePath,
+        content: body.content,
+      });
+      if (!written.ok) throw new HttpError(written.status, written.reasons.join(" "));
       return { ok: true, crewId, roleId, promptPath: role.prompt };
     },
   );

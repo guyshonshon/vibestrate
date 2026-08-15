@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
 import { CodeReferenceText } from "../codebase/CodeReferenceText.js";
+import { Skeleton, SkeletonText } from "../design/Skeleton.js";
 import type { CodeReference } from "../../lib/types.js";
 
 type Props = {
@@ -48,7 +49,18 @@ export function ArtifactViewer({ runId, path, onOpenReference }: Props) {
       </div>
     );
   if (content === null)
-    return <div className="text-[12px] text-chalk-400">Loading…</div>;
+    return (
+      <div className="overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-600">
+        {/* The path is already known, so it stays real type - only the body it
+            names is still arriving. */}
+        <header className="border-b border-[color:var(--line-soft)] bg-coal-500/60 px-3 py-1.5">
+          <span className="mono text-meta text-chalk-300">{path}</span>
+        </header>
+        <Skeleton label="Loading the artifact" className="p-3">
+          <SkeletonText lines={10} width="full" size={11} gap={9} />
+        </Skeleton>
+      </div>
+    );
 
   // Pretty-print JSON for readability while keeping the original text in the
   // raw `content` state. The reference parser runs against the prettified
@@ -67,7 +79,7 @@ export function ArtifactViewer({ runId, path, onOpenReference }: Props) {
   return (
     <div className="overflow-auto rounded-[16px] border border-[color:var(--line)] bg-coal-600">
       <header className="border-b border-[color:var(--line-soft)] bg-coal-500/60 px-3 py-1.5">
-        <span className="mono text-[11.5px] text-chalk-300">{path}</span>
+        <span className="mono text-meta text-chalk-300">{path}</span>
       </header>
       <pre className="mono whitespace-pre-wrap p-3 text-[12.5px] leading-[1.55] text-chalk-300">
         <CodeReferenceText

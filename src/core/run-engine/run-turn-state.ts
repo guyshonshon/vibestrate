@@ -35,10 +35,11 @@ export type RunTurnState = {
   /** Roles already handed the methodology guidance. Same per-role shape as the
    *  map, and off `ledgerInjected` for the same reason. */
   readonly methodologySentTo: Set<string>;
-  /** One-shot so a `codebaseMapRoles` entry naming a role the crew does not
-   *  have is reported once, not once per turn. Silence was the alternative and
-   *  a typo would then read exactly like the feature being off. */
-  warnedUnknownMapRoles: boolean;
+  /** One-shot so a `codebaseMapRoles` or `methodologyRoles` entry naming a role
+   *  the crew does not have is reported once, not once per turn. Silence was
+   *  the alternative and a typo would then read exactly like the feature being
+   *  off. */
+  warnedUnknownPromptRoles: boolean;
   /** Dedupe keys for the "effort won't take effect" warning (provider+effort)
    *  and the "isolation requested but no provider sandbox" warning (provider),
    *  so a long run warns once rather than once per turn. Mutated in place. */
@@ -53,7 +54,7 @@ export function createRunTurnState(): RunTurnState {
     ledgerInjected: false,
     codebaseMapSentTo: new Set<string>(),
     methodologySentTo: new Set<string>(),
-    warnedUnknownMapRoles: false,
+    warnedUnknownPromptRoles: false,
     warnedEffort: new Set<string>(),
     warnedSandbox: new Set<string>(),
   };

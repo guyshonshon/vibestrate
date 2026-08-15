@@ -40,6 +40,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { streamAllEvents } from "../../lib/aggregateEvents.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
 import type {
   NotificationCategory,
   NotificationRecord,
@@ -215,6 +216,8 @@ export function NotificationsSidebar({
   onOpenSettings,
 }: Props) {
   const [items, setItems] = useState<NotificationRecord[]>([]);
+  // Until the first list lands, an empty feed is unknown rather than empty.
+  const [loaded, setLoaded] = useState(false);
   const [filter, setFilter] = useState<FilterId>("all");
   const [busy, setBusy] = useState<Record<string, true>>({});
   const [busyAll, setBusyAll] = useState(false);
@@ -229,6 +232,7 @@ export function NotificationsSidebar({
         const r = await api.listNotifications();
         if (!cancelled) {
           setItems(r.notifications);
+          setLoaded(true);
           setError(null);
         }
       } catch (err) {
@@ -443,7 +447,7 @@ export function NotificationsSidebar({
                     "All caught up"
                   )}
                 </h2>
-                <div className="mt-1 text-[11.5px] text-chalk-400">
+                <div className="mt-1 text-meta text-chalk-400">
                   {items.length} total
                 </div>
               </div>
@@ -486,7 +490,7 @@ export function NotificationsSidebar({
                     {f.label}
                     <span
                       className={cn(
-                        "mono text-[10px] tabular-nums",
+                        "mono text-meta tabular-nums",
                         active ? "text-chalk-300" : "text-chalk-400",
                       )}
                     >
@@ -501,7 +505,7 @@ export function NotificationsSidebar({
           {/* ── Body ─ */}
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5">
             {error ? (
-              <div className="mx-2 mb-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+              <div className="mx-2 mb-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-meta text-rose-300">
                 {error}
               </div>
             ) : null}
@@ -544,14 +548,37 @@ export function NotificationsSidebar({
                 onRetry={(n) => void handleRetry(n)}
               />
             ) : null}
-            {filtered.length === 0 && !error ? (
+            {!loaded && !error ? (
+              <Skeleton label="Loading notifications">
+                <div className="mb-2 flex items-center gap-3 px-2">
+                  <SkeletonBlock tone="text" h={11} w={48} />
+                  <div className="h-px flex-1 bg-[color:var(--line-soft)]" />
+                  <SkeletonBlock tone="text" h={10} w={18} />
+                </div>
+                <div className="flex flex-col gap-2">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="flex gap-2.5 rounded-[14px] border border-[color:var(--line)] bg-coal-600 px-3 py-2.5"
+                    >
+                      <SkeletonBlock w={16} h={16} radius={5} />
+                      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                        <SkeletonBlock tone="text" h={12} w={`${[72, 54, 84, 62][i]}%`} />
+                        <SkeletonBlock tone="text" h={11} w={`${[46, 62, 38, 52][i]}%`} />
+                      </div>
+                      <SkeletonBlock tone="text" h={10} w={40} />
+                    </div>
+                  ))}
+                </div>
+              </Skeleton>
+            ) : filtered.length === 0 && !error ? (
               <EmptyState filter={filter} />
             ) : null}
           </div>
 
           {/* ── Footer ─ */}
           <div className="flex shrink-0 items-center justify-between border-t border-[color:var(--line)] px-5 py-3">
-            <span className="inline-flex items-center gap-1.5 rounded-[8px] bg-coal-600 px-2 py-1 text-[11.5px] text-chalk-300">
+            <span className="inline-flex items-center gap-1.5 rounded-[8px] bg-coal-600 px-2 py-1 text-meta text-chalk-300">
               <span
                 className={cn(
                   "h-1.5 w-1.5 rounded-full",
@@ -606,7 +633,7 @@ function BucketGroup({
       <div className="mb-2 flex items-center gap-3 px-2">
         <span className="text-[12px] font-semibold text-chalk-300">{title}</span>
         <span className="h-px flex-1 bg-[color:var(--line-soft)]" />
-        <span className="mono text-[10.5px] text-chalk-400">{items.length}</span>
+        <span className="mono text-meta text-chalk-400">{items.length}</span>
       </div>
       <div className="space-y-2">
         {items.map((n) => (
@@ -778,7 +805,7 @@ function NotificationItem({
             >
               {n.title}
             </h3>
-            <span className="mono ml-auto shrink-0 whitespace-nowrap text-[10.5px] text-chalk-400">
+            <span className="mono ml-auto shrink-0 whitespace-nowrap text-meta text-chalk-400">
               {relShort(n.createdAt)}
             </span>
           </div>
@@ -788,7 +815,7 @@ function NotificationItem({
             </p>
           ) : null}
           {hasMeta ? (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[10.5px] text-chalk-400">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-meta text-chalk-400">
               {n.runId ? <span className="mono">{n.runId}</span> : null}
               {n.taskId && !n.runId ? (
                 <span className="mono">{n.taskId}</span>
@@ -819,7 +846,7 @@ function NotificationItem({
                   e.stopPropagation();
                   onDismiss(n);
                 }}
-                className="ml-auto px-1.5 py-1 text-[10.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
+                className="ml-auto px-1.5 py-1 text-meta font-semibold text-violet-soft transition hover:text-violet-soft/80"
               >
                 Dismiss
               </button>
@@ -835,7 +862,7 @@ function NotificationItem({
                   e.stopPropagation();
                   onDismiss(n);
                 }}
-                className="px-1.5 py-1 text-[10.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
+                className="px-1.5 py-1 text-meta font-semibold text-violet-soft transition hover:text-violet-soft/80"
               >
                 Dismiss
               </button>

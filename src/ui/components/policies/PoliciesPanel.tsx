@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { ErrorView } from "../../lib/error-view.js";
 import type {
@@ -6,27 +7,38 @@ import type {
   SafetyPoliciesConfig,
   ProjectPolicy,
 } from "../../lib/types.js";
-import { AdvancedSafetySection } from "./AdvancedSafetySection.js";
+import {
+  AdvancedSafetySection,
+  GROUP_FRAME,
+  SAFETY_GROUPS,
+} from "./AdvancedSafetySection.js";
 import { ProjectPoliciesSection } from "./ProjectPoliciesSection.js";
-import { EngineToolsPanel } from "./EngineToolsPanel.js";
-import { PageShell } from "../layout/PageShell.js";
-import { Deck, Cell, Stack } from "../layout/Deck.js";
-import { PageHero } from "../layout/PageHero.js";
+import { EnginePanel, PatchCheckPanel } from "./EngineToolsPanel.js";
+import { Button } from "../design/Button.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
+import { PageShell, Section } from "../layout/PageShell.js";
+import { Deck, Cell } from "../layout/Deck.js";
+import { PageHero, type HeroTone } from "../layout/PageHero.js";
 
 /**
- * The project's rule surface, laid out on the Deck.
+ * The project's rule surface.
  *
- * This page used to hide two thirds of itself behind tabs, which existed only
- * because a single full-width column had nowhere else to put anything: the
- * safety toggles in particular rendered a label and a switch at opposite ends
- * of a 1610px row. On the grid all three regions are visible at once, so the
- * tabs are gone rather than restyled.
+ * The page is FOR the owner's own policies; everything else is the frame those
+ * policies run inside. So the left column leads with them and the deterministic
+ * engine that backs a block, and the right column carries the gates and the
+ * read-only patch checker. Two `half` cells rather than `wide` + `card`: `wide`
+ * collapses to a full span below a 1360px content width, which turned the whole
+ * two-column design into one very long column on a 1600px laptop.
+ *
+ * Every region is a `Section` heading over one bordered card, so a section
+ * heading is never the same size as a row inside it.
  */
 export function PoliciesPanel() {
   const [policies, setPolicies] = useState<ProjectPolicy[] | null>(null);
   const [snap, setSnap] = useState<PolicyStoreSnapshot | null>(null);
   const [safety, setSafety] = useState<SafetyPoliciesConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
 
   // The one path both the initial mount and manual retry share, so a retry
   // after a failed load re-runs exactly what mount would have done.
@@ -53,7 +65,7 @@ export function PoliciesPanel() {
         if (!cancelled) setSnap(s);
       })
       .catch(() => undefined);
-    // Safe to degrade silently: see above - the safety section stays unrendered
+    // Safe to degrade silently: see above - the safety section stays a skeleton
     // rather than showing every gate as disabled.
     api
       .getSafetyConfig()
@@ -86,39 +98,69 @@ export function PoliciesPanel() {
   const advise = list.filter((p) => p.confirmedAt && p.tier === "advise").length;
   const block = list.filter((p) => p.confirmedAt && p.tier === "block").length;
   const pending = list.filter((p) => !p.confirmedAt).length;
-  const guards = safety
-    ? [safety.forbidMainBranchWrites, safety.forbidSecretsAccess, safety.forbidAutoPush, safety.forbidAutoMerge].filter(Boolean).length
-    : 0;
 
-  const engineCount = snap ? snap.rules.length + snap.actions.length : 0;
+  // Unknown renders as unknown. Counting an unfetched config as zero live guards
+  // put the hero on its alarm branch for the length of every load, telling the
+  // owner a fail-closed gate was off while it was in fact still arriving.
+  const guards = safety
+    ? [
+        safety.forbidMainBranchWrites,
+        safety.forbidSecretsAccess,
+        safety.forbidAutoPush,
+        safety.forbidAutoMerge,
+      ].filter(Boolean).length
+    : null;
+
+  const state: { value: string; caption: string; tone: HeroTone } =
+    guards === null
+      ? { value: "-", caption: "Checking guards", tone: "neutral" }
+      : guards === 4
+        ? { value: "4/4", caption: "Guards on", tone: "emerald" }
+        : { value: `${guards}/4`, caption: "Guards off", tone: "amber" };
 
   return (
     <PageShell className="fade-up">
       <Deck>
         <Cell size="full" reason="masthead">
           <PageHero
-            state={{
-              value: safety ? `${guards}/4` : "-",
-              caption: guards === 4 ? "Guards on" : "Guards off",
-              note:
-                guards === 4
-                  ? "Every fail-closed gate is active. No policy can weaken one."
-                  : "A fail-closed gate is off. Policies cannot make up the difference.",
-              tone: guards === 4 ? "emerald" : "amber",
-            }}
+            state={state}
             title="Policies"
-            purpose="Your own rules, enforced by the reviewer and the merge gate. A plain run needs none."
+            purpose="Your own rules, enforced by the reviewer and the merge gate."
+            actions={
+              adding ? null : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />}
+                  onClick={() => setAdding(true)}
+                >
+                  New policy
+                </Button>
+              )
+            }
             metrics={[
-              { value: advise, label: "advise" },
-              { value: block, label: "block", tone: block > 0 ? "warn" : "default" },
-              { value: pending, label: "pending", tone: pending > 0 ? "warn" : "default" },
-              { value: engineCount, label: "engine rules" },
-              { value: safety ? `${guards}/4` : "-", label: "guards", tone: guards === 4 ? "good" : "warn" },
+              { value: policies ? advise : "-", label: "advise" },
+              {
+                value: policies ? block : "-",
+                label: "block",
+                tone: block > 0 ? "warn" : "default",
+              },
+              {
+                value: policies ? pending : "-",
+                label: "pending",
+                tone: pending > 0 ? "warn" : "default",
+              },
+              { value: snap ? snap.rules.length + snap.actions.length : "-", label: "engine rules" },
             ]}
             footer={
-              list.length === 0
-                ? "No policies yet. The reviewer still runs every fail-closed guard on every diff."
-                : `${list.length} policy${list.length === 1 ? "" : "s"} enforced on every run.`
+              <>
+                <code className="mono min-w-0 truncate text-chalk-100">
+                  .vibestrate/policies/
+                </code>
+                <code className="mono shrink-0 rounded-[6px] bg-coal-500 px-1.5 py-0.5 text-chalk-300">
+                  vibe policies list
+                </code>
+              </>
             }
           />
         </Cell>
@@ -131,27 +173,30 @@ export function PoliciesPanel() {
 
         {error ? null : (
           <>
-            {/* Columns of stacks, not a row of cells: the toggle panel is ~800px
-             * tall against a ~350px policy list, and a grid row is as tall as
-             * its tallest cell with no backfill - so as sibling cells they left
-             * a 455px void and pushed the engine panel 471px down the page. */}
-            <Cell size="wide">
-              <Stack>
-                {policies == null ? (
-                  <Loading />
-                ) : (
-                  <ProjectPoliciesSection policies={policies} onChanged={() => void loadPolicies()} />
-                )}
-                {snap == null ? <Loading /> : <EngineToolsPanel snap={snap} />}
-              </Stack>
+            <Cell size="half" className="flex flex-col gap-4">
+              {policies == null ? (
+                <PolicyListSkeleton />
+              ) : (
+                <ProjectPoliciesSection
+                  policies={policies}
+                  adding={adding}
+                  onAdding={setAdding}
+                  onChanged={() => void loadPolicies()}
+                />
+              )}
+              {snap == null ? <EngineSkeleton /> : <EnginePanel snap={snap} />}
             </Cell>
 
-            <Cell size="card">
+            <Cell size="half" className="flex flex-col gap-4">
               {safety == null ? (
-                <Loading />
+                <SafetySkeleton />
               ) : (
-                <AdvancedSafetySection safety={safety} onToggle={(k, v) => void toggleSafety(k, v)} />
+                <AdvancedSafetySection
+                  safety={safety}
+                  onToggle={(k, v) => void toggleSafety(k, v)}
+                />
               )}
+              <PatchCheckPanel />
             </Cell>
           </>
         )}
@@ -160,6 +205,91 @@ export function PoliciesPanel() {
   );
 }
 
-function Loading() {
-  return <div className="px-1 py-6 text-[12.5px] text-chalk-400">Loading…</div>;
+/** One policy row's bones: tier label, statement, and the matcher line under it. */
+function PolicyListSkeleton() {
+  return (
+    <Section flush title="Your policies">
+      <Skeleton label="Loading policies" className={GROUP_FRAME}>
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className={
+              i > 0
+                ? "flex items-start justify-between gap-3 border-t border-[color:var(--line-soft)] px-4 py-3"
+                : "flex items-start justify-between gap-3 px-4 py-3"
+            }
+          >
+            <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+              <div className="flex items-center gap-2">
+                <SkeletonBlock tone="text" h={12} w={38} />
+                <SkeletonBlock tone="text" h={14} w={`${[54, 42, 62, 48][i]}%`} />
+              </div>
+              <SkeletonBlock tone="text" h={13} w={`${[30, 44, 26, 36][i]}%`} />
+            </div>
+            <SkeletonBlock w={24} h={24} />
+          </div>
+        ))}
+      </Skeleton>
+    </Section>
+  );
+}
+
+function EngineSkeleton() {
+  return (
+    <Section flush title="Deterministic engine">
+      <Skeleton label="Loading the deterministic engine" className={GROUP_FRAME}>
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className={
+              i > 0
+                ? "flex flex-col gap-2 border-t border-[color:var(--line-soft)] px-4 py-3"
+                : "flex flex-col gap-2 px-4 py-3"
+            }
+          >
+            <div className="flex items-center gap-2">
+              <SkeletonBlock tone="text" h={14} w={`${[34, 28, 40][i]}%`} />
+              <SkeletonBlock tone="text" h={13} w={96} />
+            </div>
+            <SkeletonBlock tone="text" h={13} w={`${[78, 64, 70][i]}%`} />
+            {/* Third bar: an engine rule always prints its matcher or glob under
+              * the description, so a two-line bone would under-reserve the row. */}
+            <SkeletonBlock tone="text" h={13} w={`${[36, 30, 44][i]}%`} />
+          </div>
+        ))}
+      </Skeleton>
+    </Section>
+  );
+}
+
+/** Mirrors the real groups and their real row counts, so nothing reflows on arrival. */
+function SafetySkeleton() {
+  return (
+    <>
+      {SAFETY_GROUPS.map((group) => (
+        <Section flush key={group.title} title={group.title}>
+          <Skeleton label={`Loading ${group.title.toLowerCase()}`} className={GROUP_FRAME}>
+            {group.rows.map((row, i) => (
+              <div
+                key={row.key}
+                className={
+                  i > 0
+                    ? "flex items-start justify-between gap-4 border-t border-[color:var(--line-soft)] px-4 py-3"
+                    : "flex items-start justify-between gap-4 px-4 py-3"
+                }
+              >
+                <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+                  <SkeletonBlock tone="text" h={14} w={`${[52, 44, 58, 48][i % 4]}%`} />
+                  {row.hint ? (
+                    <SkeletonBlock tone="text" h={13} w={`${[74, 66, 80][i % 3]}%`} />
+                  ) : null}
+                </div>
+                <SkeletonBlock w={44} h={24} radius={999} />
+              </div>
+            ))}
+          </Skeleton>
+        </Section>
+      ))}
+    </>
+  );
 }

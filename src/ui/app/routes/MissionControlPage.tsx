@@ -32,6 +32,7 @@ import { PanelBoard, type RegisteredPanel } from "../../components/layout/PanelB
 import { PageShell } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
 import { PageHero } from "../../components/layout/PageHero.js";
+import { HeroNumber } from "./page-skeletons.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { settle } from "../../lib/settled.js";
 import { PhaseRail, statusMessage } from "../../components/mission/runPhase.js";
@@ -114,6 +115,10 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
   // while one sat blocked on their approval. Kept as a value so the section can
   // say it does not know.
   const [approvalsError, setApprovalsError] = useState<unknown>(null);
+  // The hero's headline fact is "is anything waiting on me". An empty
+  // `approvals` before the fetch answers is not "Clear", it is not-yet-known,
+  // and the two must not look the same.
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,6 +163,8 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
         setApprovalsError(aprError);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (!cancelled) setLoaded(true);
       }
     };
     void load();
@@ -251,14 +258,22 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
                say it, in both tones. "Clear / Nothing blocked / Nothing is
                waiting on you" is one fact written three times. */
             state={{
-              value: approvals.length > 0 ? approvals.length : "Clear",
-              caption:
-                approvals.length > 0
-                  ? approvals.length === 1
-                    ? "Waiting on you"
-                    : "Waiting on you"
+              // A bare bone rather than a Skeleton region: the composer and the
+              // dashboard button beside it are already usable, so a sheen across
+              // the header would overstate what is actually pending.
+              value: !loaded ? (
+                <HeroNumber w={72} />
+              ) : approvals.length > 0 ? (
+                approvals.length
+              ) : (
+                "Clear"
+              ),
+              caption: !loaded
+                ? "Approvals"
+                : approvals.length > 0
+                  ? "Waiting on you"
                   : "Nothing blocked",
-              tone: approvals.length > 0 ? "amber" : "emerald",
+              tone: !loaded ? "neutral" : approvals.length > 0 ? "amber" : "emerald",
             }}
             title="Mission control"
             purpose="Your starting point for anything you want built."
@@ -339,7 +354,7 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
                     <span className="min-w-0 truncate text-[12px] font-medium text-chalk-400">
                       {a.roleId} · {a.stageId.replace(/_/g, " ")}
                     </span>
-                    <span className="ml-auto shrink-0 text-[11px] text-chalk-400">{relTime(a.createdAt)}</span>
+                    <span className="ml-auto shrink-0 text-meta text-chalk-400">{relTime(a.createdAt)}</span>
                   </div>
                   <p className="mt-2 line-clamp-2 text-[13.5px] text-chalk-100">
                     {a.reason ?? a.requestedAction ?? "Approval requested"}
@@ -418,14 +433,14 @@ export function RunCard({
       <div className="flex items-center gap-2.5">
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: TONE_COLOR[meta.tone] }} />
         <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-chalk-100">{label}</span>
-        <span className="shrink-0 text-[11.5px] text-chalk-400">{relTime(run.updatedAt)}</span>
+        <span className="shrink-0 text-meta text-chalk-400">{relTime(run.updatedAt)}</span>
       </div>
       {active ? (
         <div className="mt-2.5">
           <div className="mb-1.5 text-[12.5px] font-medium text-chalk-300">{statusMessage(run.status)}</div>
           <PhaseRail status={run.status} />
           {run.branchName || diff ? (
-            <div className="mt-2 flex items-center gap-2 text-[11px] text-chalk-400">
+            <div className="mt-2 flex items-center gap-2 text-meta text-chalk-400">
               {run.branchName ? <span className="truncate font-mono">{run.branchName}</span> : null}
               {diff ? (
                 <span className="ml-auto shrink-0 font-mono">
@@ -437,15 +452,15 @@ export function RunCard({
           ) : null}
         </div>
       ) : (
-        <div className="mt-2.5 flex items-center gap-2 text-[11.5px] text-chalk-400">
+        <div className="mt-2.5 flex items-center gap-2 text-meta text-chalk-400">
           <span className="rounded-[6px] bg-coal-500 px-2 py-0.5 font-medium" style={{ color: TONE_COLOR[meta.tone] }}>
             {meta.label}
           </span>
           {run.branchName ? (
-            <span className="truncate font-mono text-[11px]">{run.branchName}</span>
+            <span className="truncate font-mono text-meta">{run.branchName}</span>
           ) : null}
           {diff ? (
-            <span className="ml-auto shrink-0 font-mono text-[11px]">
+            <span className="ml-auto shrink-0 font-mono text-meta">
               <span className="text-emerald-400">+{diff.insertions}</span>{" "}
               <span className="text-rose-300">-{diff.deletions}</span>
             </span>

@@ -125,14 +125,14 @@ export function AssuranceBadge({
               <div className="text-[12px] font-semibold text-rose-300">
                 Cause{b.stepId ? ` · ${b.stepId}` : ""}{b.class ? ` · ${b.class}` : ""}
               </div>
-              <div className="mt-0.5 text-[11.5px] text-chalk-300">{b.detail}</div>
+              <div className="mt-0.5 text-meta text-chalk-300">{b.detail}</div>
             </div>
           ))}
         </div>
       ) : null}
 
       {(a.caps?.length ?? 0) > 0 || (a.notes?.length ?? 0) > 0 ? (
-        <div className="mt-2 flex flex-col gap-1 text-[10.5px] text-chalk-400">
+        <div className="mt-2 flex flex-col gap-1 text-meta text-chalk-400">
           {(a.caps?.length ?? 0) > 0 ? (
             <div>
               <span className="font-semibold">Caps</span> {a.caps.join(", ")}

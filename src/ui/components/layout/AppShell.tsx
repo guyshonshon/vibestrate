@@ -133,13 +133,10 @@ function ServerHealthBanner() {
       <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
       <span className="font-medium">vibe ui is unreachable.</span>
       <span className="text-rose-300/80">
-        The server at this origin stopped answering /api/health
-        {" "}
-        - restart it with{" "}
         <code className="mono rounded bg-rose-500/15 px-1">vibe ui</code>
-        {" "}from the project root and refresh.
+        {" "}in the project root restarts it.
       </span>
-      <span className="mono ml-auto text-[10.5px] opacity-70">
+      <span className="mono ml-auto text-meta opacity-70">
         last checked {lastCheckedAt.toLocaleTimeString()}
       </span>
     </div>

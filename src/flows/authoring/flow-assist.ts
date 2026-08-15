@@ -9,10 +9,10 @@
 //      - a pure validator - and nothing else from the portability module. It
 //      cannot create a flow file; accepting a draft is a separate, explicit
 //      owner action (POST /api/flows or `vibe flows import`).
-//   2. REDACTION BEFORE THE MODEL. The owner's description is run through
-//      `redactSecretsInText` here, at the source. (`runAssist` also redacts the
-//      assembled prompt as a backstop, but the invariant callers reason about is
-//      that nothing secret-shaped leaves this function.)
+//   2. REDACTION BEFORE THE MODEL. `runAssist` redacts the whole assembled
+//      prompt - description, rules, schema hint, retry text - and is the single
+//      funnel for it. A second call here would only cover the description, and
+//      a test pinned to it would pass with the real guard deleted.
 //   3. REFUSE, NEVER REDACT, ON THE WAY BACK. A drafted flow whose YAML carries
 //      a secret shape is refused outright. A flow file is committed and its text
 //      lands in agent prompts, so silently redacting it would ship a broken flow
@@ -27,7 +27,6 @@ import { z } from "zod";
 import YAML from "yaml";
 import { ConfigError, VibestrateError } from "../../utils/errors.js";
 import { runAssist, type AssistProviderRunner } from "../../core/assist/assist-runner.js";
-import { redactSecretsInText } from "../../core/diff-service.js";
 import { loadConfig } from "../../project/config-loader.js";
 import { getCrew } from "../../agents/crew-registry.js";
 import type { CrewConfig } from "../../agents/crew-schema.js";
@@ -202,9 +201,6 @@ export async function draftFlowFromDescription(input: {
   if (description.length > MAX_DESCRIPTION) {
     throw new FlowAssistError(`Description exceeds ${MAX_DESCRIPTION} characters.`);
   }
-  // INVARIANT 2: redact the owner's free text before it reaches the model.
-  const safe = redactSecretsInText(description).redacted;
-
   // Read config once and reuse it for the assist target, the crew check, and
   // the coverage computation.
   const loaded = await loadConfig(input.projectRoot);
@@ -227,7 +223,8 @@ export async function draftFlowFromDescription(input: {
     "\n\nIds already taken (pick a different one): " +
     (takenIds.join(", ") || "none") +
     "\n\nThe owner describes the flow they want:\n" +
-    `"""${safe}"""\n\n` +
+    // Raw here on purpose: runAssist redacts the assembled prompt (INVARIANT 2).
+    `"""${description}"""\n\n` +
     "Produce ONE flow definition capturing it.";
 
   const res = await runAssist({

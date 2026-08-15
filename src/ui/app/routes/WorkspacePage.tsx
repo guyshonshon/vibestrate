@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   ExternalLink,
@@ -22,6 +22,13 @@ import { HeroCard, type HeroMetric, type HeroTone } from "../../components/desig
 import { PageShell } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
 import { PageHero } from "../../components/layout/PageHero.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+  SkeletonStats,
+} from "../../components/design/Skeleton.js";
+import { HeroNumber } from "./page-skeletons.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { cn } from "../../components/design/cn.js";
 import { fmtTokensShort } from "../../components/design/format.js";
@@ -78,10 +85,11 @@ export function WorkspacePage() {
         <Cell size="full" reason="masthead">
       <PageHero
         state={{
-          value: totals?.projects ?? 0,
+          value: totals ? totals.projects : <HeroNumber />,
           caption: (totals?.projects ?? 0) === 1 ? "Project" : "Projects",
-          note:
-            totals && totals.activeRuns > 0
+          note: !totals
+            ? undefined
+            : totals.activeRuns > 0
               ? `${totals.activeRuns} run${totals.activeRuns === 1 ? "" : "s"} live across them right now.`
               : "Nothing running right now.",
           tone: totals && totals.activeRuns > 0 ? "violet" : "neutral",
@@ -146,38 +154,60 @@ export function WorkspacePage() {
        * folded in and losing half of what each number means. */}
       <Cell size="full" reason="masthead">
       <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Kpi label="Projects" value={(totals?.projects ?? 0).toLocaleString()} sub="registered" />
+        <Kpi
+          label="Projects"
+          value={totals ? totals.projects.toLocaleString() : <KpiBone />}
+          sub="registered"
+        />
         <Kpi
           label="Active runs"
-          value={(totals?.activeRuns ?? 0).toLocaleString()}
+          value={totals ? totals.activeRuns.toLocaleString() : <KpiBone />}
           sub="live right now"
           tone={totals && totals.activeRuns > 0 ? "violet" : "muted"}
         />
         <Kpi
           label={`Runs · ${range}`}
-          value={(totals?.windowRuns ?? 0).toLocaleString()}
+          value={totals ? totals.windowRuns.toLocaleString() : <KpiBone />}
           sub="in this window"
         />
         <Kpi
           label="Merged"
-          value={(totals?.merged ?? 0).toLocaleString()}
-          sub={`${totals?.failed ?? 0} failed`}
+          value={totals ? totals.merged.toLocaleString() : <KpiBone />}
+          sub={totals ? `${totals.failed} failed` : "against failed"}
           tone="emerald"
         />
         <Kpi
           label="Needs testing"
-          value={(totals?.needsTesting ?? 0).toLocaleString()}
+          value={totals ? totals.needsTesting.toLocaleString() : <KpiBone />}
           sub="flagged for review"
           tone={totals && totals.needsTesting > 0 ? "amber" : "muted"}
         />
         <Kpi
           label="Spend"
-          value={`$${(totals?.costUsd ?? 0).toFixed(2)}`}
-          sub={`${fmtTokensShort(totals?.tokens ?? 0)} tok`}
+          value={totals ? `$${totals.costUsd.toFixed(2)}` : <KpiBone />}
+          sub={totals ? `${fmtTokensShort(totals.tokens)} tok` : "tokens"}
           tone="amber"
         />
       </section>
       </Cell>
+
+      {!overview
+        ? // Project cards, at the same size and count the grid usually holds,
+          // instead of a KPI strip floating over an empty page.
+          [0, 1, 2].map((i) => (
+            <Cell key={i} size="card">
+              <Skeleton
+                label="Loading projects"
+                className="flex flex-col gap-3 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4"
+              >
+                <SkeletonBlock h={16} w="52%" />
+                <SkeletonBlock tone="text" h={11} w="72%" />
+                <SkeletonStats count={3} />
+                <SkeletonRows rows={3} meta trailing />
+              </Skeleton>
+            </Cell>
+          ))
+        : null}
 
       {(overview?.projects ?? []).map((p) => (
         <Cell key={p.root} size="card">
@@ -229,6 +259,11 @@ export function WorkspacePage() {
   );
 }
 
+/** The KPI value before the overview lands. Sized to the 26px number it stands in for. */
+function KpiBone() {
+  return <SkeletonBlock h={24} w={64} radius={8} />;
+}
+
 function Kpi({
   label,
   value,
@@ -236,7 +271,8 @@ function Kpi({
   tone = "default",
 }: {
   label: string;
-  value: string;
+  /** A node, so a KPI can render its bone in the number's own slot. */
+  value: ReactNode;
   sub: string;
   tone?: "default" | "violet" | "emerald" | "amber" | "muted";
 }) {
@@ -252,11 +288,11 @@ function Kpi({
             : "text-chalk-100";
   return (
     <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
-      <div className="text-[11px] font-semibold text-violet-soft">{label}</div>
+      <div className="text-meta font-semibold text-violet-soft">{label}</div>
       <div className={cn("mt-2 num-tabular text-[26px] font-semibold tracking-tight", valueTone)}>
         {value}
       </div>
-      <div className="mt-0.5 text-[11.5px] text-chalk-300">{sub}</div>
+      <div className="mt-0.5 text-meta text-chalk-300">{sub}</div>
     </div>
   );
 }
@@ -338,20 +374,20 @@ function ProjectCard({
       metrics={metrics}
       footer={
         <div className="flex w-full items-center justify-between gap-2">
-          <span className="truncate text-[10.5px] text-chalk-400">
+          <span className="truncate text-meta text-chalk-400">
             {project.lastActivityAt
               ? `last active ${relTime(project.lastActivityAt)}`
               : "no activity"}
           </span>
           {project.current ? (
-            <span className="text-[10.5px] text-chalk-400">you are here</span>
+            <span className="text-meta text-chalk-400">you are here</span>
           ) : (
             <div className="flex items-center gap-3">
               {project.live ? (
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex items-center gap-1.5 text-[11.5px] text-chalk-300 hover:text-rose-300"
+                  className="flex items-center gap-1.5 text-meta text-chalk-300 hover:text-rose-300"
                   title="Shut down this project's dashboard + scheduler"
                 >
                   <Power className="h-3 w-3" strokeWidth={1.7} />
@@ -366,18 +402,18 @@ function ProjectCard({
     >
       {/* Recent runs - the project's live feel, between headline and metrics. */}
       <div className="border-b border-[color:var(--line-soft)] px-4 py-3">
-        <div className="mb-2 text-[11px] font-medium text-violet-soft">
+        <div className="mb-2 text-meta font-medium text-violet-soft">
           Recent runs
         </div>
         {project.recentRuns.length === 0 ? (
-          <div className="text-[11.5px] text-chalk-400">No runs yet.</div>
+          <div className="text-meta text-chalk-400">No runs yet.</div>
         ) : (
           <ul className="space-y-1.5">
             {project.recentRuns.map((r) => (
-              <li key={r.runId} className="flex items-center gap-2 text-[11.5px]">
+              <li key={r.runId} className="flex items-center gap-2 text-meta">
                 <span
                   className={cn(
-                    "mono w-[92px] shrink-0 truncate text-[10px]",
+                    "mono w-[92px] shrink-0 truncate text-meta",
                     STATUS_TONE[r.status] ?? "text-chalk-300",
                   )}
                 >
@@ -558,7 +594,10 @@ function CloseDialog({
         {/* busy status */}
         <div className="mt-3 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-500/60 p-3">
           {loadingStatus ? (
-            <div className="text-[12px] text-chalk-300">Checking activity…</div>
+            <Skeleton label="Checking project activity" className="flex flex-col gap-2">
+              <SkeletonBlock tone="text" h={12} w="58%" />
+              <SkeletonBlock tone="text" h={11} w="38%" />
+            </Skeleton>
           ) : busy ? (
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0 text-amber-soft mt-0.5" strokeWidth={1.9} />
@@ -633,12 +672,12 @@ function OpenButton({ project }: { project: WorkspaceProjectSummary }) {
   const disabled = busy || !project.initialized;
   return (
     <div className="flex items-center gap-2">
-      {err ? <span className="text-[10px] text-rose-300 max-w-[120px] truncate">{err}</span> : null}
+      {err ? <span className="text-meta text-rose-300 max-w-[120px] truncate">{err}</span> : null}
       <button
         type="button"
         disabled={disabled}
         onClick={() => void open()}
-        className="flex items-center gap-1.5 text-[11.5px] text-violet-soft hover:text-violet-soft/80 disabled:text-chalk-400"
+        className="flex items-center gap-1.5 text-meta text-violet-soft hover:text-violet-soft/80 disabled:text-chalk-400"
         title={
           !project.initialized
             ? "Project not initialized"

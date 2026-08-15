@@ -4,6 +4,11 @@ import { api } from "../../lib/api.js";
 import type { SupervisorArchetypeView } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
 import { FormField } from "../../components/design/FormField.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonText,
+} from "../../components/design/Skeleton.js";
 import { PageShell } from "../../components/layout/PageShell.js";
 import { Deck, Cell, Stack } from "../../components/layout/Deck.js";
 import { PageHero } from "../../components/layout/PageHero.js";
@@ -30,6 +35,9 @@ const POSTURES = [
 export function SupervisorNewPage({ onDone }: { onDone: () => void }) {
   const [mode, setMode] = useState<Mode>("archetype");
   const [archetypes, setArchetypes] = useState<SupervisorArchetypeView[]>([]);
+  // "No archetypes available" is a real, actionable verdict - it must not be
+  // what the page says while the catalog is still being read.
+  const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
 
@@ -47,6 +55,8 @@ export function SupervisorNewPage({ onDone }: { onDone: () => void }) {
         setArchetypes(r.archetypes);
       } catch (e) {
         setError(e);
+      } finally {
+        setLoaded(true);
       }
     })();
   }, []);
@@ -146,7 +156,25 @@ export function SupervisorNewPage({ onDone }: { onDone: () => void }) {
         </Cell>
 
         {mode === "archetype" ? (
-          archetypes.length === 0 ? (
+          !loaded ? (
+            [0, 1, 2].map((i) => (
+              <Cell key={i} size="card">
+                <Skeleton
+                  label="Loading supervisor archetypes"
+                  className="flex h-full flex-col rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4"
+                >
+                  <div className="mb-2 flex items-center gap-2">
+                    <SkeletonBlock w={16} h={16} radius={6} />
+                    <SkeletonBlock h={16} w="52%" />
+                  </div>
+                  <SkeletonText className="mb-3 flex-1" lines={3} size={13} />
+                  <div className="border-t border-[color:var(--line-soft)] pt-3">
+                    <SkeletonBlock w={80} h={28} bordered />
+                  </div>
+                </Skeleton>
+              </Cell>
+            ))
+          ) : archetypes.length === 0 ? (
             <Cell size="full" reason="masthead">
               <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-5 py-6 text-[13px] text-chalk-300">
                 No archetypes available.

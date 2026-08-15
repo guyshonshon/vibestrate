@@ -7,6 +7,7 @@ import { Select } from "../design/Select.js";
 import { SegmentedControl } from "../design/SegmentedControl.js";
 import { Button } from "../design/Button.js";
 import { Chip } from "../design/Chip.js";
+import { Skeleton, SkeletonText } from "../design/Skeleton.js";
 import { cn } from "../design/cn.js";
 
 type Line = {
@@ -40,7 +41,7 @@ const TERMINAL_STATUSES = new Set<RunStatus>([
 // has no variant for, so it stays a bare button on this base rather than
 // fighting cn.ts's un-merged classnames for a size override.
 const FOLLOW_BTN =
-  "inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-[11px] font-semibold transition";
+  "inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-meta font-semibold transition";
 
 /**
  * Live tail of the provider CLI's stdout/stderr for each agent
@@ -69,6 +70,9 @@ export function LiveOutputPanel({
   focusStream?: string | null;
 }) {
   const [streams, setStreams] = useState<StreamMeta[]>([]);
+  // `streams` starts empty, so without this the panel asserted "no provider CLI
+  // output recorded" during the very first list request on every live run.
+  const [streamsLoaded, setStreamsLoaded] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
   const [followLatest, setFollowLatest] = useState(true);
@@ -93,6 +97,7 @@ export function LiveOutputPanel({
         if (cancelled) return;
         consecutive404 = 0;
         setStreams(r.streams);
+        setStreamsLoaded(true);
         setRouteMissing(false);
         setActive((cur) => {
           // Pinned mode (seat board): always the focused stream when present.
@@ -115,6 +120,12 @@ export function LiveOutputPanel({
             window.clearInterval(timer);
           }
         }
+      } finally {
+        // A failed listing is still an answer: without this the panel sits on
+        // its skeleton forever, because the 404 banner needs three strikes and
+        // a terminal run only ever polls once. Marking the attempt done falls
+        // through to the empty-streams copy, which is a state the user can read.
+        if (!cancelled) setStreamsLoaded(true);
       }
     };
     void load();
@@ -209,7 +220,7 @@ export function LiveOutputPanel({
             strokeWidth={1.9}
             aria-hidden
           />
-          <span className="text-[11.5px] font-semibold text-violet-soft">
+          <span className="text-meta font-semibold text-violet-soft">
             active CLI
           </span>
           <Chip contained tone="neutral">
@@ -266,7 +277,7 @@ export function LiveOutputPanel({
             wrong shape here - three little boxes in a panel header read as
             cards that lost their panel. Inline, with the labels carrying the
             colour so they never become faint grey meta text. */}
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px]">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-meta">
           <span>
             <span className="mono text-chalk-100">{lines.length}</span>{" "}
             <span className="font-medium text-violet-soft">
@@ -288,15 +299,17 @@ export function LiveOutputPanel({
         </div>
       </header>
       {routeMissing ? (
-        <p className="border-t border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[11.5px] text-rose-300">
+        <p className="border-t border-rose-400/30 bg-rose-500/10 px-3 py-2 text-meta text-rose-300">
           The streams endpoint returned 404. Your{" "}
           <code className="mono rounded-[4px] bg-coal-800 px-1">vibe ui</code>{" "}
           server bundle predates live streaming. Restart it after a
           rebuild to enable. Polling stopped to keep the dev console
           clean.
         </p>
+      ) : !streamsLoaded ? (
+        <TerminalBones />
       ) : streams.length === 0 ? (
-        <div className="border-t border-[color:var(--line-soft)] bg-coal-900 px-3 py-3 text-[11.5px] text-chalk-400">
+        <div className="border-t border-[color:var(--line-soft)] bg-coal-900 px-3 py-3 text-meta text-chalk-400">
           {isTerminal
             ? "This run finished without recording any provider CLI output."
             : "No provider CLI output recorded yet for this run."}{" "}
@@ -307,13 +320,11 @@ export function LiveOutputPanel({
           .
         </div>
       ) : lines.length === 0 || !active ? (
-        <div className="min-h-[220px] border-t border-[color:var(--line-soft)] bg-coal-900 px-3 py-3 text-[11.5px] text-chalk-400">
-          Waiting for provider stdout/stderr…
-        </div>
+        <TerminalBones label="Loading provider output" />
       ) : (
         <div className="bg-coal-900">
           <div className="flex items-center gap-2 border-t border-[color:var(--line-soft)] px-3 py-1.5">
-            <span className="mono truncate text-[11px] text-chalk-300">
+            <span className="mono truncate text-meta text-chalk-300">
               {activeStream?.promptName ?? active}
             </span>
             {hasKinds && view === "transcript" ? (
@@ -332,19 +343,26 @@ export function LiveOutputPanel({
           {hasKinds && view === "transcript" ? (
             <TranscriptView lines={lines} showThinking={showThinking} />
           ) : (
-            <Suspense
-              fallback={
-                <div className="min-h-[220px] border-t border-[color:var(--line-soft)] px-3 py-3 text-[11.5px] text-chalk-400">
-                  Opening terminal view…
-                </div>
-              }
-            >
+            <Suspense fallback={<TerminalBones label="Loading the terminal" />}>
               <ProviderCliTerminal lines={lines} streamName={active} />
             </Suspense>
           )}
         </div>
       )}
     </section>
+  );
+}
+
+/** The terminal body's own shape: the same dark well, filled with line bones at
+ *  mono width, so the panel keeps its height while output is on the way. */
+function TerminalBones({ label = "Loading provider streams" }: { label?: string }) {
+  return (
+    <Skeleton
+      label={label}
+      className="min-h-[220px] border-t border-[color:var(--line-soft)] bg-coal-900 px-3 py-3"
+    >
+      <SkeletonText lines={8} width="full" size={10} gap={9} />
+    </Skeleton>
   );
 }
 
@@ -390,7 +408,7 @@ function TranscriptView({
     <div className="max-h-[420px] min-h-[220px] overflow-auto border-t border-[color:var(--line-soft)] px-3 py-2">
       {blocks.map((b, i) =>
         b.kind === "tool" || b.kind === "subagent" ? (
-          <div key={i} className="my-0.5 flex items-center gap-1.5 text-[11px]">
+          <div key={i} className="my-0.5 flex items-center gap-1.5 text-meta">
             <Chip contained tone={b.kind === "subagent" ? "violet" : "neutral"}>
               {b.kind === "subagent" ? "agent" : "tool"}
             </Chip>
@@ -400,7 +418,7 @@ function TranscriptView({
           showThinking ? (
             <pre
               key={i}
-              className="mono my-1 whitespace-pre-wrap border-l-2 border-[color:var(--line)] pl-2 text-[11px] italic leading-relaxed text-chalk-300"
+              className="mono my-1 whitespace-pre-wrap border-l-2 border-[color:var(--line)] pl-2 text-meta italic leading-relaxed text-chalk-300"
             >
               {b.text}
             </pre>
@@ -408,14 +426,14 @@ function TranscriptView({
         ) : (
           <pre
             key={i}
-            className="mono my-1 whitespace-pre-wrap text-[11.5px] leading-relaxed text-chalk-100"
+            className="mono my-1 whitespace-pre-wrap text-meta leading-relaxed text-chalk-100"
           >
             {b.text}
           </pre>
         ),
       )}
       {!showThinking && thinkingChars > 0 ? (
-        <p className="mt-1 text-[11px] text-chalk-400">
+        <p className="mt-1 text-meta text-chalk-400">
           {thinkingChars.toLocaleString()} chars of thinking hidden - use
           "show thinking" above.
         </p>

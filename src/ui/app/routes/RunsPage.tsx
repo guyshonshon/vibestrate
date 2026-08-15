@@ -24,6 +24,11 @@ import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { PageShell } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
 import { PageHero, type HeroTone } from "../../components/layout/PageHero.js";
+import {
+  Skeleton,
+  SkeletonTable,
+} from "../../components/design/Skeleton.js";
+import { HeroNumber } from "./page-skeletons.js";
 import { navigate } from "../App.js";
 
 /** The hero's tonal column takes its wash from what the filter is showing. */
@@ -54,6 +59,10 @@ export function RunsPage({
   const [runs, setRuns] = useState<RunState[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  // `runs` starts empty, so without this an in-flight first fetch is
+  // indistinguishable from a project with no runs: the zero-state CTA and a
+  // hero reading 0 flashed on every visit.
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -62,6 +71,8 @@ export function RunsPage({
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
@@ -88,11 +99,13 @@ export function RunsPage({
         <Cell size="full" reason="masthead">
           <PageHero
             state={{
-              value: byStatus.length,
+              value: loaded ? byStatus.length : <HeroNumber />,
               caption: status ? RUN_FILTER_LABEL[status] : "Runs",
-              note: status
-                ? `Filtered from ${runs.length} on disk.`
-                : "Every run this project has recorded.",
+              note: !loaded
+                ? undefined
+                : status
+                  ? `Filtered from ${runs.length} on disk.`
+                  : "Every run this project has recorded.",
               tone: status ? FILTER_TONE[status] : "violet",
             }}
             title={status ? `${RUN_FILTER_LABEL[status]} runs` : "All runs"}
@@ -121,24 +134,35 @@ export function RunsPage({
                 />
               </>
             }
-            metrics={[
-              { value: runs.length, label: "total" },
-              { value: countByFilter(runs, "active"), label: "active" },
-              {
-                value: countByFilter(runs, "merge-ready"),
-                label: "merge-ready",
-                tone: "good",
-              },
-              {
-                value: countByFilter(runs, "failed"),
-                label: "failed",
-                tone: countByFilter(runs, "failed") > 0 ? "bad" : "default",
-              },
-            ]}
+            metrics={
+              loaded
+                ? [
+                    { value: runs.length, label: "total" },
+                    { value: countByFilter(runs, "active"), label: "active" },
+                    {
+                      value: countByFilter(runs, "merge-ready"),
+                      label: "merge-ready",
+                      tone: "good",
+                    },
+                    {
+                      value: countByFilter(runs, "failed"),
+                      label: "failed",
+                      tone: countByFilter(runs, "failed") > 0 ? "bad" : "default",
+                    },
+                  ]
+                : [
+                    { value: <HeroNumber />, label: "total" },
+                    { value: <HeroNumber />, label: "active" },
+                    { value: <HeroNumber />, label: "merge-ready" },
+                    { value: <HeroNumber />, label: "failed" },
+                  ]
+            }
             footer={
-              query
-                ? `Showing ${filtered.length} of ${byStatus.length} matching "${query}".`
-                : "Open a run for its diff, review and terminal. Replay is read-only."
+              !loaded
+                ? "Open a run for its diff, review and terminal. Replay is read-only."
+                : query
+                  ? `Showing ${filtered.length} of ${byStatus.length} matching "${query}".`
+                  : "Open a run for its diff, review and terminal. Replay is read-only."
             }
           />
         </Cell>
@@ -165,7 +189,14 @@ export function RunsPage({
 
         <Cell size="full" reason="wide-table">
           <div className="overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600">
-        {filtered.length === 0 && !error ? (
+        {!loaded && !error ? (
+          <Skeleton label="Loading runs">
+            <SkeletonTable
+              columns={["2.4fr", "1fr", "1fr", "1fr", "0.8fr", "0.9fr", "1.1fr", 32]}
+              rows={6}
+            />
+          </Skeleton>
+        ) : filtered.length === 0 && !error ? (
           runs.length === 0 ? (
             <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
               <p className="text-[13px] text-chalk-300">No runs yet.</p>
@@ -177,7 +208,7 @@ export function RunsPage({
               >
                 New run
               </Button>
-              <p className="text-[11px] text-chalk-400">
+              <p className="text-meta text-chalk-400">
                 or from this project: <span className="mono">vibe run "your task"</span>
               </p>
             </div>
@@ -198,7 +229,7 @@ export function RunsPage({
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="text-left text-[11px] font-semibold text-chalk-300">
+              <tr className="text-left text-meta font-semibold text-chalk-300">
                 <th className="px-4 py-2.5 font-semibold">Task</th>
                 <th className="px-3 py-2.5 font-semibold">Status</th>
                 <th className="px-3 py-2.5 font-semibold">Review</th>
@@ -224,7 +255,7 @@ export function RunsPage({
                   </td>
                   <td className="px-3 py-3">
                     {isSpecUpRun(r) ? (
-                      <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-violet-soft">
+                      <span className="inline-flex items-center gap-1.5 text-meta font-medium text-violet-soft">
                         <span className="h-1.5 w-1.5 rounded-full bg-violet-soft" />
                         spec-up
                       </span>
@@ -232,10 +263,10 @@ export function RunsPage({
                       <RunStatusBadge status={r.status} compact />
                     )}
                   </td>
-                  <td className="mono px-3 py-3 text-[11.5px] text-chalk-300">
+                  <td className="mono px-3 py-3 text-meta text-chalk-300">
                     {r.finalDecision ?? <span className="text-chalk-400">-</span>}
                   </td>
-                  <td className="mono px-3 py-3 text-[11.5px] text-chalk-300">
+                  <td className="mono px-3 py-3 text-meta text-chalk-300">
                     {r.verification ?? <span className="text-chalk-400">-</span>}
                   </td>
                   <td className="mono num-tabular whitespace-nowrap px-3 py-3 text-right text-[12px] text-chalk-300">
@@ -250,11 +281,11 @@ export function RunsPage({
                       ),
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-right text-[11.5px] text-chalk-400">
+                  <td className="whitespace-nowrap px-3 py-3 text-right text-meta text-chalk-400">
                     {relTime(r.updatedAt)}
                   </td>
                   <td
-                    className="mono whitespace-nowrap px-3 py-3 text-[11px] text-chalk-400"
+                    className="mono whitespace-nowrap px-3 py-3 text-meta text-chalk-400"
                     title={r.runId}
                   >
                     {shortRunId(r.runId)}
@@ -267,7 +298,7 @@ export function RunsPage({
                           e.stopPropagation();
                           onOpenReplay(r.runId);
                         }}
-                        className="inline-flex items-center gap-1 rounded-[8px] bg-coal-500 px-2 py-1 text-[10.5px] font-medium text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
+                        className="inline-flex items-center gap-1 rounded-[8px] bg-coal-500 px-2 py-1 text-meta font-medium text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
                         title="Open the read-only Replay timeline"
                       >
                         <History className="h-3 w-3" strokeWidth={1.9} />
@@ -366,16 +397,16 @@ function IntegrationPanel() {
           <span className="text-[13px] font-semibold text-chalk-100">
             Integrate merge-ready runs
           </span>
-          <span className="mono num-tabular text-[11px] text-chalk-400">{ready.length}</span>
+          <span className="mono num-tabular text-meta text-chalk-400">{ready.length}</span>
         </div>
         <a
           href="#/merge"
-          className="text-[11.5px] font-semibold text-violet-soft transition hover:text-violet-soft/80 whitespace-nowrap"
+          className="text-meta font-semibold text-violet-soft transition hover:text-violet-soft/80 whitespace-nowrap"
         >
           Merge window with advice
         </a>
       </div>
-      <div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-chalk-400">
+      <div className="mt-1.5 flex items-center gap-1.5 text-meta text-chalk-400">
         <span className="rounded-[6px] bg-coal-500 px-1.5 py-0.5">never main</span>
         <span className="rounded-[6px] bg-coal-500 px-1.5 py-0.5">never push</span>
       </div>
@@ -403,10 +434,10 @@ function IntegrationPanel() {
                 }}
               />
               <span className="min-w-0 flex-1 truncate text-chalk-100">{r.task}</span>
-              <span className="mono shrink-0 text-[10.5px] text-chalk-400">{r.branchName}</span>
+              <span className="mono shrink-0 text-meta text-chalk-400">{r.branchName}</span>
               {p ? (
                 <span
-                  className={`shrink-0 rounded-[6px] px-1.5 py-0.5 text-[10px] font-semibold ${
+                  className={`shrink-0 rounded-[6px] px-1.5 py-0.5 text-meta font-semibold ${
                     p.clean ? "bg-emerald-500/15 text-emerald-400" : "bg-rose-500/10 text-rose-300"
                   }`}
                 >
@@ -419,7 +450,7 @@ function IntegrationPanel() {
       </ul>
 
       {preview && !preview.allClean ? (
-        <div className="mt-2 rounded-[10px] border border-rose-400/25 bg-rose-500/[0.06] px-3 py-1.5 text-[11px] text-rose-300">
+        <div className="mt-2 rounded-[10px] border border-rose-400/25 bg-rose-500/[0.06] px-3 py-1.5 text-meta text-rose-300">
           {preview.results
             .filter((x) => !x.clean)
             .map((x) => `${x.branch}: ${x.conflictedFiles.join(", ") || x.note}`)
@@ -442,7 +473,7 @@ function IntegrationPanel() {
           value={into}
           onChange={(e) => setInto(e.target.value)}
           placeholder="integration/branch"
-          className="mono h-8 w-[200px] rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 text-[11.5px] text-chalk-100 focus:border-violet-soft/50 focus:outline-none"
+          className="mono h-8 w-[200px] rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 text-meta text-chalk-100 focus:border-violet-soft/50 focus:outline-none"
         />
         <button
           type="button"
@@ -493,8 +524,8 @@ function IntegrationPanel() {
             {busy === "finish" ? "Merging…" : "Complete merge to main"}
           </button>
         ) : null}
-        {msg ? <span className="text-[11px] text-emerald-400">{msg}</span> : null}
-        {error ? <span className="text-[11px] text-rose-300">{error}</span> : null}
+        {msg ? <span className="text-meta text-emerald-400">{msg}</span> : null}
+        {error ? <span className="text-meta text-rose-300">{error}</span> : null}
       </div>
     </section>
   );

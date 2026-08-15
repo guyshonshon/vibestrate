@@ -179,6 +179,27 @@ export function PanelBoard({
 
   const hiddenList = panels.filter((p) => hidden.includes(p.id));
 
+  // View-mode reading order: the layout's own top-to-bottom, left-to-right.
+  // Column start and span carry over from the stored geometry so the flow grid
+  // reproduces the arrangement horizontally; only the row heights are given
+  // back to the content.
+  const byId = new Map(panels.map((p) => [p.id, p]));
+  const flowOrder = resolved
+    .filter((l) => !hidden.includes(l.id))
+    .slice()
+    .sort((a, b) => a.y - b.y || a.x - b.x)
+    .flatMap((l) => {
+      const panel = byId.get(l.id);
+      if (!panel) return [];
+      return [
+        {
+          panel,
+          start: Math.min(COLS, Math.max(1, l.x + 1)),
+          span: Math.min(COLS, Math.max(1, l.w)),
+        },
+      ];
+    });
+
   return (
     <section data-screen-label="Run dashboard">
       <div className="mb-2 flex items-center justify-between">
@@ -191,7 +212,7 @@ export function PanelBoard({
         )}
         <div className="flex items-center gap-2">
           {editMode && !atBase ? (
-            <span className="text-[11px] text-chalk-400">Widen the window to rearrange</span>
+            <span className="text-meta text-chalk-400">Widen the window to rearrange</span>
           ) : null}
           <BoardEditChrome
             editMode={editMode}
@@ -210,6 +231,20 @@ export function PanelBoard({
                 key={p.id}
                 className="h-32 rounded-[18px] border border-[color:var(--line)] bg-[color:var(--card)]"
               />
+            ))}
+          </div>
+        ) : !editMode ? (
+          // Content-flow view: same panels, same column spans, rows sized to
+          // what is actually in them. See .board-flow in grid.css for why.
+          <div className={`board-flow ${variant === "bare" ? "is-bare" : ""}`}>
+            {flowOrder.map(({ panel, span, start }) => (
+              <div
+                key={panel.id}
+                className="widget-frame"
+                style={{ gridColumn: `${start} / span ${span}` }}
+              >
+                <div className="widget-body">{panel.render()}</div>
+              </div>
             ))}
           </div>
         ) : (
@@ -297,32 +332,32 @@ function BoardEditChrome({
       </Button>
     );
   }
+  // Composed from design/Button rather than hand-styled: the editor toolbar was
+  // the last place on the board still carrying its own button recipe, so it
+  // drifted from the rest of the app's controls.
   return (
     <div
       role="toolbar"
       aria-label="Layout editor"
-      className="inline-flex h-7 items-center gap-0.5 rounded-[10px] bg-violet-soft/[0.06] p-0.5 ring-1 ring-violet-soft/30"
+      className="inline-flex items-center gap-1.5 rounded-[12px] border border-[color:var(--line-strong)] bg-coal-500 p-1"
     >
       <AddPanelPicker hiddenList={hiddenList} onAdd={onShow} />
-      {/* Reset/Done stay hand-styled: they nest inside this h-7 p-0.5 pill, so
-          the h-6 they need is shorter than design/Button's smallest size
-          (sm = h-7), and Done's violet ghost tint has no matching Button
-          variant (same gap as the intent-tinted-ghost recipe elsewhere). */}
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={onReset}
-        className="inline-flex h-6 items-center gap-1 rounded-[9px] px-2 text-[11px] text-chalk-400 transition-colors hover:bg-coal-600 hover:text-chalk-100"
+        iconLeft={<RotateCcw className="h-3.5 w-3.5" />}
       >
-        <RotateCcw className="h-3 w-3" /> Reset
-      </button>
-      <span className="mx-0.5 h-4 w-px bg-[color:var(--line-strong)]" aria-hidden />
-      <button
-        type="button"
+        Reset
+      </Button>
+      <Button
+        variant="primary"
+        size="sm"
         onClick={() => onToggle(false)}
-        className="inline-flex h-6 items-center gap-1 rounded-[9px] bg-violet-soft/15 px-2 text-[11px] font-medium text-violet-soft transition-colors hover:bg-violet-soft/25"
+        iconLeft={<Check className="h-3.5 w-3.5" />}
       >
-        <Check className="h-3 w-3" /> Done
-      </button>
+        Done
+      </Button>
     </div>
   );
 }
@@ -347,20 +382,21 @@ function AddPanelPicker({
   const disabled = hiddenList.length === 0;
   return (
     <div ref={ref} className="relative">
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="sm"
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
-        className="inline-flex h-6 items-center gap-1 rounded-[9px] px-2 text-[11px] text-chalk-400 transition-colors hover:bg-coal-600 hover:text-chalk-100 disabled:opacity-40 disabled:hover:bg-transparent"
+        iconLeft={<Plus className="h-3.5 w-3.5" />}
       >
-        <Plus className="h-3 w-3" /> {disabled ? "No hidden panels" : "Add panel"}
-      </button>
+        {disabled ? "No hidden panels" : "Add panel"}
+      </Button>
       {open ? (
         <div
           role="menu"
           className="absolute right-0 top-full z-30 mt-1.5 min-w-[200px] rounded-[12px] border border-[color:var(--line)] bg-coal-700 p-1 shadow-xl"
         >
-          <div className="mono px-2.5 py-1.5 text-[11px] text-chalk-400">
+          <div className="mono px-2.5 py-1.5 text-meta text-chalk-400">
             Hidden panels
           </div>
           {hiddenList.map((p) => (
@@ -372,7 +408,7 @@ function AddPanelPicker({
                 onAdd(p.id);
                 setOpen(false);
               }}
-              className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-[11.5px] text-chalk-300 hover:bg-coal-600"
+              className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-meta text-chalk-300 hover:bg-coal-600"
             >
               <Plus className="h-3 w-3 text-chalk-400" />
               {p.title}

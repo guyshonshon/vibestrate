@@ -102,7 +102,7 @@ export function SagaCard({
       </div>
       <div className="mt-2 flex items-center gap-1" aria-label={`${done} of ${total} steps done`}>
         {total === 0 ? (
-          <span className="text-[10px] text-chalk-300">no steps yet</span>
+          <span className="text-meta text-chalk-300">no steps yet</span>
         ) : (
           checklist.map((c) => (
             <span
@@ -120,7 +120,7 @@ export function SagaCard({
         )}
       </div>
       {total > 0 ? (
-        <div className="mt-1 tabular-nums text-[10px] text-chalk-400">{pct}%</div>
+        <div className="mt-1 tabular-nums text-meta text-chalk-400">{pct}%</div>
       ) : null}
     </div>
   );
@@ -250,7 +250,7 @@ export function TaskCard({
       )}
     >
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className={cn("text-[10.5px] font-semibold", prio.cls)}>{prio.label}</span>
+        <span className={cn("text-meta font-semibold", prio.cls)}>{prio.label}</span>
         {isWaiting ? (
           <Chip tone="amber" contained>
             <Hourglass className="h-2.5 w-2.5" strokeWidth={1.9} /> approval
@@ -267,7 +267,7 @@ export function TaskCard({
             <FlaskConical className="h-2.5 w-2.5" strokeWidth={1.9} /> testing
           </Chip>
         ) : null}
-        <span className="ml-auto shrink-0 font-display text-[10px] font-bold tabular-nums text-chalk-400">
+        <span className="ml-auto shrink-0 font-display text-meta font-bold tabular-nums text-chalk-400">
           {task.currentRunId
             ? task.currentRunId.slice(0, 8)
             : task.runIds.length > 0
@@ -342,7 +342,7 @@ export function TaskCard({
       </div>
 
       {roadmap && rmTone ? (
-        <div className="mt-1.5 flex items-center gap-1.5 truncate text-[10.5px] text-chalk-200">
+        <div className="mt-1.5 flex items-center gap-1.5 truncate text-meta text-chalk-200">
           <span className={cn("h-1 w-1 shrink-0 rounded-full", TONE_SWATCH[rmTone])} />
           <span className="truncate">{roadmap.title}</span>
         </div>
@@ -356,7 +356,7 @@ export function TaskCard({
             </Chip>
           ))}
           {task.requiredSkills.length > 2 ? (
-            <span className="text-[10px] text-chalk-400">+{task.requiredSkills.length - 2}</span>
+            <span className="text-meta text-chalk-400">+{task.requiredSkills.length - 2}</span>
           ) : null}
         </div>
       ) : null}
@@ -371,9 +371,9 @@ export function TaskCard({
           {task.assignedRoles.length > 0 ? (
             <RoleStack roleIds={task.assignedRoles} />
           ) : (
-            <span className="text-[10px] text-chalk-400">unassigned</span>
+            <span className="text-meta text-chalk-400">unassigned</span>
           )}
-          <div className="flex items-center gap-1.5 tabular-nums text-[10px] text-chalk-300">
+          <div className="flex items-center gap-1.5 tabular-nums text-meta text-chalk-300">
             {(task.checklist?.length ?? 0) > 0 ? (
               <span
                 className="inline-flex items-center gap-0.5"
@@ -442,7 +442,7 @@ function RoleStack({ roleIds }: { roleIds: string[] }) {
         return (
           <span
             key={id}
-            className="flex h-[18px] w-[18px] items-center justify-center rounded-full text-[10px] leading-none text-white ring-2 ring-coal-600"
+            className="flex h-[18px] w-[18px] items-center justify-center rounded-full text-meta leading-none text-white ring-2 ring-coal-600"
             style={{ background: solid[tone] }}
             title={id}
           >
@@ -451,7 +451,7 @@ function RoleStack({ roleIds }: { roleIds: string[] }) {
         );
       })}
       {extra > 0 ? (
-        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-coal-400 text-[8.5px] tabular-nums text-chalk-300 ring-2 ring-coal-600">
+        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-coal-400 text-meta tabular-nums text-chalk-300 ring-2 ring-coal-600">
           +{extra}
         </span>
       ) : null}

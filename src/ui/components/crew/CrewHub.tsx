@@ -8,6 +8,12 @@ import {
   type HeroTone,
 } from "../design/HeroCard.js";
 import { EntityIcon } from "../design/EntityIcon.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonStats,
+  SkeletonText,
+} from "../design/Skeleton.js";
 import { Section } from "../layout/PageShell.js";
 import { DraftCrewPanel } from "./DraftCrewPanel.js";
 import { computeCoverage } from "./helpers.js";
@@ -62,7 +68,25 @@ export function CrewHub({
       </p>
 
       {!crews ? (
-        <div className="text-[13px] text-chalk-300">Loading crews…</div>
+        <Skeleton
+          label="Loading crews"
+          className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3"
+        >
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="flex gap-4 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4"
+              style={{ height: 176 }}
+            >
+              <SkeletonBlock w={64} h={64} radius={14} />
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <SkeletonBlock h={15} w={`${[54, 42, 62, 48][i]}%`} />
+                <SkeletonText lines={2} size={11} gap={7} />
+                <SkeletonStats count={3} className="mt-auto" />
+              </div>
+            </div>
+          ))}
+        </Skeleton>
       ) : crews.length === 0 ? (
         // Empty state is a CTA, not a dead end - a preset below installs one.
         <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-6 py-8 text-center">

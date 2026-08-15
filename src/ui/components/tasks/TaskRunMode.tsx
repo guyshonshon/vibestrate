@@ -63,7 +63,7 @@ export function TaskRunMode({
     <div className="flex flex-col gap-3 rounded-[14px] border border-[color:var(--line)] bg-coal-600 p-3">
       <label className="flex flex-col gap-1.5">
         <span
-          className="text-[11px] font-medium text-violet-soft"
+          className="text-meta font-medium text-violet-soft"
           title="Pin every agent in runs spawned from this task to a specific configured profile. Wins over effort."
         >
           Provider
@@ -98,7 +98,7 @@ export function TaskRunMode({
       </label>
 
       {error ? (
-        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+        <div className="rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-meta text-rose-300">
           {error}
         </div>
       ) : null}

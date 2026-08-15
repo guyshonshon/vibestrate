@@ -39,6 +39,13 @@ import { CARD, INPUT } from "../../components/tasks/sectionChrome.js";
 import { Breadcrumbs } from "../../components/layout/Breadcrumbs.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip } from "../../components/design/Chip.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+  SkeletonStats,
+  SkeletonText,
+} from "../../components/design/Skeleton.js";
 import { cn } from "../../components/design/cn.js";
 import { PageShell, PageHeader, Section } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
@@ -182,10 +189,50 @@ export function TaskDetailPage({
         />
       </PageShell>
     );
+  // Breadcrumbs, title and overview panel all read off the task, so the whole
+  // page is one loading region: crumbs, header, overview, then the wide/card
+  // split of sections.
   if (!data)
     return (
       <PageShell>
-        <div className="text-[13px] text-chalk-300">Loading task…</div>
+        <Skeleton label="Loading task">
+          <div className="mb-3 flex items-center gap-2">
+            <SkeletonBlock tone="text" h={12} w={52} />
+            <SkeletonBlock tone="text" h={12} w={96} />
+          </div>
+          <div className="mb-6">
+            <SkeletonBlock h={26} w="42%" radius={8} />
+          </div>
+          <div className="mb-4 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+            <SkeletonStats count={4} />
+            <div className="mt-4 flex gap-2">
+              <SkeletonBlock w={96} h={30} bordered />
+              <SkeletonBlock w={72} h={30} bordered />
+            </div>
+          </div>
+          <Deck>
+            <Cell size="wide" className="flex flex-col gap-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex flex-col gap-3">
+                  <SkeletonBlock h={18} w={112} />
+                  <div className={CARD}>
+                    <SkeletonText lines={3} size={13} />
+                  </div>
+                </div>
+              ))}
+            </Cell>
+            <Cell size="card" className="flex flex-col gap-4">
+              {[0, 1].map((i) => (
+                <div key={i} className="flex flex-col gap-3">
+                  <SkeletonBlock h={18} w={96} />
+                  <div className={CARD}>
+                    <SkeletonRows rows={4} meta />
+                  </div>
+                </div>
+              ))}
+            </Cell>
+          </Deck>
+        </Skeleton>
       </PageShell>
     );
 
@@ -352,7 +399,7 @@ export function TaskDetailPage({
             </form>
             {open.length > 0 ? (
               <div className="mt-3 space-y-1.5">
-                <div className="text-[11px] font-medium text-violet-soft">
+                <div className="text-meta font-medium text-violet-soft">
                   Open ({open.length})
                 </div>
                 {open.map((c) => (
@@ -361,7 +408,7 @@ export function TaskDetailPage({
                     className="rounded-[12px] border border-[color:var(--line-soft)] bg-coal-500 p-2.5 text-[12.5px] text-chalk-100"
                   >
                     <div>{c.body}</div>
-                    <div className="mt-1 flex items-center gap-2 text-[10.5px] text-chalk-400">
+                    <div className="mt-1 flex items-center gap-2 text-meta text-chalk-400">
                       <span className="font-mono">{c.target}</span>
                       <span className="font-mono">
                         {new Date(c.createdAt).toLocaleString()}
@@ -369,7 +416,7 @@ export function TaskDetailPage({
                       <button
                         onClick={() => resolveComment(c.id)}
                         disabled={busy === c.id}
-                        className="ml-auto inline-flex items-center gap-1 rounded-[7px] bg-coal-600 px-1.5 py-0.5 text-[10.5px] text-chalk-300 transition hover:text-chalk-100 disabled:opacity-50"
+                        className="ml-auto inline-flex items-center gap-1 rounded-[7px] bg-coal-600 px-1.5 py-0.5 text-meta text-chalk-300 transition hover:text-chalk-100 disabled:opacity-50"
                       >
                         <Check className="h-3 w-3" strokeWidth={1.9} /> resolve
                       </button>
@@ -380,7 +427,7 @@ export function TaskDetailPage({
             ) : null}
             {resolved.length > 0 ? (
               <div className="mt-3 space-y-1.5 opacity-60">
-                <div className="text-[11px] font-medium text-violet-soft">
+                <div className="text-meta font-medium text-violet-soft">
                   Resolved ({resolved.length})
                 </div>
                 {resolved.map((c) => (
@@ -438,7 +485,7 @@ export function TaskDetailPage({
                   <button
                     type="button"
                     onClick={() => onOpenTask(task.derivedFrom!.taskId)}
-                    className="inline-flex items-center gap-1 font-mono text-[11px] text-violet-soft transition hover:text-violet-soft/80"
+                    className="inline-flex items-center gap-1 font-mono text-meta text-violet-soft transition hover:text-violet-soft/80"
                     title="Promoted from a checklist item on another card."
                   >
                     <ArrowUpRight className="h-3 w-3" strokeWidth={1.9} />
@@ -454,9 +501,9 @@ export function TaskDetailPage({
               task={task}
               onPatched={(next) => setData((d) => (d ? { ...d, task: next } : d))}
             />
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-chalk-300">
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-meta text-chalk-300">
               Run from CLI:
-              <code className="break-all rounded-[7px] bg-coal-500 px-1.5 py-0.5 font-mono text-[11px] text-chalk-200">
+              <code className="break-all rounded-[7px] bg-coal-500 px-1.5 py-0.5 font-mono text-meta text-chalk-200">
                 vibe tasks run {task.id}
               </code>
             </div>

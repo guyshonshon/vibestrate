@@ -53,6 +53,16 @@ You want one step to always run on a specific model, like the reviewer on a diff
 
 If you only want to nudge the default a little, a clearer task description or a [skill](/docs/concepts/skill) usually does the job with less effort.
 
+## Editing a Flow from the dashboard
+
+The Flows page has a **Flow Editor**: **New flow** starts a blank one, and any project Flow opens in it from its card menu under **Edit definition**. Built-in Flows are read-only - **Customize** copies one into your project first, and the copy is what you edit.
+
+Every keystroke re-runs the real Flow schema over the whole draft, and each violation is pinned to the step, seat, or field that caused it. Save stays disabled while one stands, and what it saves is the schema's own parsed output - so a Flow that looked valid in the form cannot be refused on the way to disk.
+
+Fields the schema only allows in one shape of Flow appear only there. Adding a step dependency turns the Flow into a graph, which retires `skipWhen` and repeat counts and offers `continueOnError` and retries instead; clearing the last dependency swaps them back. Values belonging to the shape you left are dropped rather than carried into a save the schema would reject.
+
+Saving goes through the same guarded writer as `vibe flows import`: the Action Broker sees a `file.write`, so a project policy that denies file writes stops the editor too.
+
 ## Going deeper
 
 - [Built-in Flows reference](/docs/reference/flows) - every shipped Flow, step by step, plus parallel review panels and parameters.

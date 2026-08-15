@@ -21,7 +21,13 @@ import type {
 } from "../../lib/types.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { Button } from "../../components/design/Button.js";
-import { ErrorState, LoadingState } from "../../components/design/ErrorState.js";
+import { ErrorState } from "../../components/design/ErrorState.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+} from "../../components/design/Skeleton.js";
+import { PageHeroSkeleton } from "./page-skeletons.js";
 import { Select } from "../../components/design/Select.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
@@ -273,10 +279,27 @@ export function CrewEditorPage({
   if (phase === "loading") {
     return (
       <PageShell>
-        <LoadingState
-          title={crewId === null ? "Opening the crew editor" : `Loading ${crewId}`}
-          detail="Reading the crew, its roles, and the instructions each one works from."
-        />
+        <Skeleton label="Loading crew editor">
+          <Deck>
+            <Cell size="full" reason="masthead">
+              <PageHeroSkeleton metrics={0} />
+            </Cell>
+            {/* One card per role, each an instruction pane - the shape the
+             * editor always resolves to. */}
+            {[0, 1, 2].map((i) => (
+              <Cell key={i} size="half">
+                <div className="flex flex-col gap-3 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+                  <div className="flex items-center gap-2">
+                    <SkeletonBlock w={16} h={16} radius={6} />
+                    <SkeletonBlock h={16} w="42%" />
+                  </div>
+                  <SkeletonRows rows={3} meta trailing />
+                  <SkeletonBlock h={92} w="100%" bordered />
+                </div>
+              </Cell>
+            ))}
+          </Deck>
+        </Skeleton>
       </PageShell>
     );
   }
@@ -311,7 +334,7 @@ export function CrewEditorPage({
   // One fact in the status column, and the tone follows it - an amber column
   // over "nothing pending" reads as a rendering fault. Order is severity: a
   // crew that will not load, then a flow that cannot start, then unsaved work.
-  const status: { value: string | number; caption: string; note: string; tone: HeroTone } =
+  const status: { value: string | number; caption: string; note?: string; tone: HeroTone } =
     problems.length > 0
       ? {
           value: problems.length,
@@ -336,9 +359,8 @@ export function CrewEditorPage({
               tone: "violet",
             }
           : {
-              value: "Set",
+              value: "Clear",
               caption: "Nothing pending",
-              note: "Everything on this page matches what is on disk.",
               tone: "emerald",
             };
 
@@ -383,19 +405,26 @@ export function CrewEditorPage({
                     Discard
                   </Button>
                 ) : null}
-                <Button
-                  variant="primary"
-                  size="sm"
-                  disabled={saving || problems.length > 0 || plan.writable.length === 0}
-                  iconLeft={<Save className="h-3.5 w-3.5" strokeWidth={2} />}
-                  onClick={() => void save()}
-                >
-                  {saving
-                    ? "Saving…"
-                    : plan.writable.length === 0
-                      ? "Nothing to save"
-                      : `Save ${plan.writable.length} change${plan.writable.length === 1 ? "" : "s"}`}
-                </Button>
+                {/* A crew that does not exist yet has nothing this page can
+                    write: `planCrewSave` puts every part of creating it in the
+                    manual bucket. Rendering Save there would put a control that
+                    can never fire in the loudest slot on the page. The footer
+                    and the paste blocks below carry that story instead. */}
+                {creating ? null : (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={saving || problems.length > 0 || plan.writable.length === 0}
+                    iconLeft={<Save className="h-3.5 w-3.5" strokeWidth={2} />}
+                    onClick={() => void save()}
+                  >
+                    {saving
+                      ? "Saving…"
+                      : plan.writable.length === 0
+                        ? "Nothing to save"
+                        : `Save ${plan.writable.length} change${plan.writable.length === 1 ? "" : "s"}`}
+                  </Button>
+                )}
               </>
             }
             metrics={[
@@ -459,7 +488,7 @@ export function CrewEditorPage({
                     }
                     className="mono w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-1.5 text-[12.5px] text-chalk-100 outline-none placeholder:text-chalk-300/70 focus:border-violet-soft/50 disabled:opacity-60"
                   />
-                  <span className="mt-1 block text-[11.5px] text-chalk-300">
+                  <span className="mt-1 block text-meta text-chalk-300">
                     {creating
                       ? "How runs name this crew."
                       : "A crew's id is its key in the config and cannot be changed here."}
@@ -478,7 +507,7 @@ export function CrewEditorPage({
                     }
                     className="w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-1.5 text-[13px] text-chalk-100 outline-none placeholder:text-chalk-300/70 focus:border-violet-soft/50"
                   />
-                  <span className="mt-1 block text-[11.5px] text-chalk-300">
+                  <span className="mt-1 block text-meta text-chalk-300">
                     What you see in the crew list.
                   </span>
                 </label>
@@ -506,7 +535,7 @@ export function CrewEditorPage({
                       })),
                     ]}
                   />
-                  <span className="mt-1 block text-[11.5px] text-chalk-300">
+                  <span className="mt-1 block text-meta text-chalk-300">
                     How many review-and-fix cycles a run on this crew takes.
                   </span>
                 </label>

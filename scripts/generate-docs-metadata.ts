@@ -19,7 +19,8 @@
  *
  * Run: `pnpm docs:generate`
  */
-import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { dirname, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -398,26 +399,19 @@ function generatePolicies() {
 // ─── Meta ────────────────────────────────────────────────────────────────
 
 function generateMeta() {
+  // Ask git rather than reading .git/HEAD: in a worktree .git is a FILE
+  // pointing at .git/worktrees/<name>/, so the file read silently produced
+  // null and every regeneration from a feature branch committed a revision-less
+  // meta.json. The catch covers a git-less source tarball, which is the only
+  // case where null is the honest answer.
   let gitRev: string | null = null;
-  const headPath = resolve(repoRoot, ".git/HEAD");
   try {
-    if (existsSync(headPath)) {
-      const head = readFileSync(headPath, "utf8").trim();
-      if (head.startsWith("ref: ")) {
-        const refPath = resolve(repoRoot, ".git", head.slice(5));
-        if (existsSync(refPath)) {
-          gitRev = readFileSync(refPath, "utf8").trim();
-        }
-      } else {
-        gitRev = head;
-      }
-    } else {
-      // Worktrees keep HEAD inside .git/worktrees/<name>/HEAD; .git is a
-      // file pointing there. The marketing build doesn't strictly need a
-      // revision, so we don't sweat resolving it here.
-    }
+    gitRev = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    }).trim();
   } catch {
-    /* ignore */
+    gitRev = null;
   }
 
   const pkgPath = resolve(repoRoot, "package.json");

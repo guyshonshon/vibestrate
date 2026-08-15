@@ -47,6 +47,11 @@ import {
 import { Button } from "../../components/design/Button.js";
 import { Select } from "../../components/design/Select.js";
 import { StatTile } from "../../components/design/StatTile.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonText,
+} from "../../components/design/Skeleton.js";
 import { cn } from "../../components/design/cn.js";
 import { IconBtn } from "../../components/design/IconBtn.js";
 import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
@@ -290,7 +295,7 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
             </div>
 
             {searchMode === "map" ? (
-              <p className="px-0.5 text-[11px] leading-snug text-chalk-300">
+              <p className="px-0.5 text-meta leading-snug text-chalk-300">
                 Deterministic snapshot of stack, layout, entry points, and best-effort
                 routes - shown on the right.
               </p>
@@ -354,7 +359,7 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
                 }}
               />
             ) : error ? (
-              <div className="m-2.5 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[11.5px] text-rose-300">
+              <div className="m-2.5 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-meta text-rose-300">
                 {error}
                 <button
                   type="button"
@@ -375,11 +380,24 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
                 }}
               />
             ) : source === "worktree" && !runId ? (
-              <div className="m-2.5 rounded-[10px] border border-[color:var(--line)] bg-coal-600 px-3 py-3 text-[11.5px] text-chalk-300">
+              <div className="m-2.5 rounded-[10px] border border-[color:var(--line)] bg-coal-600 px-3 py-3 text-meta text-chalk-300">
                 Pick a run above to inspect its worktree.
               </div>
             ) : (
-              <div className="px-3 py-2 text-[11.5px] text-chalk-400">Loading tree.</div>
+              /* Indented rows at the tree's own rhythm - the aside is a fixed
+               * column, so a one-line stub left it visibly empty. */
+              <Skeleton label="Loading the file tree" className="flex flex-col gap-2 px-3 py-2">
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2"
+                    style={{ paddingLeft: (i % 3) * 12 }}
+                  >
+                    <SkeletonBlock w={12} h={12} radius={4} />
+                    <SkeletonBlock tone="text" h={11} w={`${[72, 54, 66, 46, 60][i % 5]}%`} />
+                  </div>
+                ))}
+              </Skeleton>
             )}
           </div>
         </aside>
@@ -488,7 +506,7 @@ function ModeChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1 rounded-[7px] px-2 py-1 text-[11px] font-semibold transition",
+        "flex items-center gap-1 rounded-[7px] px-2 py-1 text-meta font-semibold transition",
         active
           ? "bg-coal-600 text-chalk-100 shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
           : "text-chalk-400 hover:text-chalk-100",
@@ -542,7 +560,7 @@ function MiniInput({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       spellCheck={false}
-      className="mono w-full rounded-[8px] border border-[color:var(--line-strong)] bg-coal-800 px-2 py-1 text-[11px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+      className="mono w-full rounded-[8px] border border-[color:var(--line-strong)] bg-coal-800 px-2 py-1 text-meta text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
     />
   );
 }
@@ -557,7 +575,7 @@ function Toggle({
   label: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-chalk-300">
+    <label className="flex cursor-pointer items-center gap-1.5 text-meta text-chalk-300">
       <input
         type="checkbox"
         checked={checked}
@@ -689,7 +707,7 @@ function AnnotationsPanel(props: {
         ) : null}
         {view ? (
           <>
-            <div className="mt-2.5 truncate text-[11.5px] font-medium text-chalk-300">
+            <div className="mt-2.5 truncate text-meta font-medium text-chalk-300">
               <span className="num-tabular">{view.path}</span>
             </div>
             <div className="mt-2 flex flex-wrap items-stretch gap-1">
@@ -713,7 +731,7 @@ function AnnotationsPanel(props: {
           <MessageSquarePlus className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.9} aria-hidden />
           <h2 className="text-[13px] font-bold text-violet-vivid">Annotations</h2>
         </div>
-        <p className="mb-3 text-[11.5px] leading-snug text-chalk-300">
+        <p className="mb-3 text-meta leading-snug text-chalk-300">
           Notes pinned to this file. Ones marked{" "}
           <span className="font-semibold text-violet-soft">visible to agents</span> are
           added to every agent's prompt during runs - your guidance, acknowledged by the
@@ -721,18 +739,18 @@ function AnnotationsPanel(props: {
         </p>
 
         {err ? (
-          <div className="mb-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11.5px] text-rose-300">
+          <div className="mb-2 rounded-[10px] border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-meta text-rose-300">
             {err}
           </div>
         ) : null}
 
         {source !== "project" ? (
-          <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2.5 text-[11.5px] text-chalk-300">
+          <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2.5 text-meta text-chalk-300">
             Switch to <span className="font-semibold text-chalk-100">Project</span> to read
             or add annotations - they're pinned to the project codebase.
           </div>
         ) : !path ? (
-          <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2.5 text-[11.5px] text-chalk-300">
+          <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2.5 text-meta text-chalk-300">
             Select a file from the tree to see and add its annotations.
           </div>
         ) : (
@@ -740,8 +758,8 @@ function AnnotationsPanel(props: {
             {canAnnotate ? (
               <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 p-2.5">
                 <div className="mb-2 flex items-center gap-1.5">
-                  <span className="text-[11px] font-medium text-violet-soft">Anchor</span>
-                  <span className="rounded-[8px] bg-coal-500 px-1.5 py-0.5 text-[11px] font-semibold text-chalk-100">
+                  <span className="text-meta font-medium text-violet-soft">Anchor</span>
+                  <span className="rounded-[8px] bg-coal-500 px-1.5 py-0.5 text-meta font-semibold text-chalk-100">
                     {anchorLabel(props.draftLine, props.draftEndLine)}
                   </span>
                   <input
@@ -753,7 +771,7 @@ function AnnotationsPanel(props: {
                     onChange={(e) =>
                       props.setDraftLine(e.target.value ? Number(e.target.value) : null)
                     }
-                    className="ml-auto w-14 rounded-[8px] border border-[color:var(--line-strong)] bg-coal-800 px-1.5 py-0.5 text-[11px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
+                    className="ml-auto w-14 rounded-[8px] border border-[color:var(--line-strong)] bg-coal-800 px-1.5 py-0.5 text-meta text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
                   />
                   <span className="text-chalk-400">-</span>
                   <input
@@ -766,7 +784,7 @@ function AnnotationsPanel(props: {
                     onChange={(e) =>
                       props.setDraftEndLine(e.target.value ? Number(e.target.value) : null)
                     }
-                    className="w-14 rounded-[8px] border border-[color:var(--line-strong)] bg-coal-800 px-1.5 py-0.5 text-[11px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none disabled:opacity-40"
+                    className="w-14 rounded-[8px] border border-[color:var(--line-strong)] bg-coal-800 px-1.5 py-0.5 text-meta text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none disabled:opacity-40"
                   />
                 </div>
                 <textarea
@@ -777,7 +795,7 @@ function AnnotationsPanel(props: {
                   className="w-full resize-y rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-2 text-[12px] text-chalk-100 placeholder:text-chalk-400 focus:border-violet-soft/50 focus:outline-none"
                 />
                 <div className="mt-2 flex items-center justify-between gap-2">
-                  <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-chalk-300">
+                  <label className="flex cursor-pointer items-center gap-1.5 text-meta text-chalk-300">
                     <input
                       type="checkbox"
                       checked={share}
@@ -798,16 +816,29 @@ function AnnotationsPanel(props: {
                 </div>
               </div>
             ) : (
-              <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2.5 text-[11.5px] text-chalk-300">
+              <div className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2.5 text-meta text-chalk-300">
                 Annotations are disabled for secret-like files.
               </div>
             )}
 
             <div className="mt-3 flex flex-col gap-2">
               {loading ? (
-                <div className="text-[11.5px] text-chalk-400">Loading annotations.</div>
+                <Skeleton label="Loading annotations" className="flex flex-col gap-2">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="flex flex-col gap-2 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-600/60 px-3 py-2.5"
+                    >
+                      <div className="flex items-center gap-2">
+                        <SkeletonBlock w={8} h={8} radius={999} />
+                        <SkeletonBlock tone="text" h={11} w={96} />
+                      </div>
+                      <SkeletonText lines={2} size={11} gap={6} />
+                    </div>
+                  ))}
+                </Skeleton>
               ) : anns.length === 0 ? (
-                <div className="rounded-[12px] border border-[color:var(--line-soft)] bg-coal-600/60 px-3 py-2.5 text-[11.5px] text-chalk-300">
+                <div className="rounded-[12px] border border-[color:var(--line-soft)] bg-coal-600/60 px-3 py-2.5 text-meta text-chalk-300">
                   {canAnnotate
                     ? "No annotations yet. Add the first note above to guide the crew on this file."
                     : "No annotations on this file yet."}
@@ -856,7 +887,7 @@ function AnnotationCard({
       )}
     >
       <div className="flex items-center gap-1.5">
-        <span className="num-tabular rounded-[8px] bg-coal-500 px-1.5 py-0.5 text-[10px] font-semibold text-chalk-200">
+        <span className="num-tabular rounded-[8px] bg-coal-500 px-1.5 py-0.5 text-meta font-semibold text-chalk-200">
           {anchorLabel(a.line, a.endLine)}
         </span>
         <button
@@ -865,7 +896,7 @@ function AnnotationCard({
           disabled={busy}
           title={a.shareWithRoles ? "Shared with agents - click to make private" : "Private - click to share with agents"}
           className={cn(
-            "inline-flex items-center gap-1 rounded-[8px] px-1.5 py-0.5 text-[10px] font-semibold transition disabled:opacity-50",
+            "inline-flex items-center gap-1 rounded-[8px] px-1.5 py-0.5 text-meta font-semibold transition disabled:opacity-50",
             a.shareWithRoles
               ? "bg-violet-soft/12 text-violet-soft hover:bg-violet-soft/20"
               : "text-chalk-400 hover:bg-coal-500 hover:text-chalk-200",

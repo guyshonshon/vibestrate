@@ -112,6 +112,36 @@ describe("role context API", () => {
     expect(bad.status).toBe(400);
   });
 
+  // The prompt is injected verbatim into every turn this role takes, so a
+  // pasted token would reach a provider on each one.
+  it("refuses a prompt carrying a secret, and leaves the file on disk untouched", async () => {
+    const project = await makeProject();
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    const before = (await fetch(
+      `${server.url}/api/crews/default/roles/planner/context`,
+    ).then((r) => r.json())) as { content: string; promptPath: string };
+
+    const write = await fetch(`${server.url}/api/crews/default/roles/planner/context`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        content: "Call the API with AKIAIOSFODNN7EXAMPLE when you need it.\n",
+      }),
+    });
+    expect(write.status).toBe(400);
+    const body = (await write.json()) as { error?: string; message?: string };
+    const text = JSON.stringify(body);
+    expect(text).toMatch(/secret/i);
+    // The refusal reports the shape, never the token itself.
+    expect(text).not.toContain("AKIAIOSFODNN7EXAMPLE");
+
+    const after = (await fetch(
+      `${server.url}/api/crews/default/roles/planner/context`,
+    ).then((r) => r.json())) as { content: string };
+    expect(after.content).toBe(before.content);
+  });
+
   it("does not leak prompt contents in the bulk roles list", async () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });

@@ -193,7 +193,7 @@ export function TaskOverviewPanel({
       {/* Segmented step track - one segment per step; the live step fades. */}
       {stepsTotal > 0 ? (
         <div className="border-b border-[color:var(--line-soft)] px-5 py-3">
-          <div className="mb-1.5 flex items-baseline justify-between text-[11px]">
+          <div className="mb-1.5 flex items-baseline justify-between text-meta">
             <span className="font-medium text-violet-soft">Steps</span>
             <span className="num-tabular text-chalk-300">
               {stepsDone}/{stepsTotal} done · {pct}%

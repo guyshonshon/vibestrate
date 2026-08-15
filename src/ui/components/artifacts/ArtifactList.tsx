@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
 import type { ArtifactEntry } from "../../lib/types.js";
 
 // ── Curated artifact browser ────────────────────────────
@@ -50,6 +51,9 @@ export function ArtifactList({
   onSelect: (path: string) => void;
 }) {
   const [items, setItems] = useState<ArtifactEntry[]>([]);
+  // The list starts empty, so the "no artifacts yet" sentence used to fire on
+  // every mount before the first listing came back.
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Persisted per browser; default off.
   const [showInternals, setShowInternals] = usePersistedState(
@@ -65,6 +69,7 @@ export function ArtifactList({
         const list = await api.listArtifacts(runId);
         if (!cancelled) {
           setItems(list);
+          setLoaded(true);
           setError(null);
         }
       } catch (err) {
@@ -100,6 +105,35 @@ export function ArtifactList({
       </div>
     );
 
+  if (!loaded) {
+    return (
+      <Skeleton label="Loading artifacts">
+        <div className="mb-1.5 flex items-center justify-between">
+          <SkeletonBlock tone="text" h={11} w={62} />
+          <SkeletonBlock tone="text" h={11} w={88} />
+        </div>
+        <div className="flex flex-col gap-2.5">
+          {[0, 1].map((g) => (
+            <div key={g}>
+              <div className="mb-0.5 flex items-center gap-1 px-1 py-0.5">
+                <SkeletonBlock w={12} h={12} radius={3} />
+                <SkeletonBlock tone="text" h={11} w={96} />
+              </div>
+              <div className="flex flex-col gap-px">
+                {[0, 1, 2].map((r) => (
+                  <div key={r} className="flex items-center gap-2 px-2 py-1">
+                    <SkeletonBlock tone="text" h={12} w={`${[68, 54, 76][r]}%`} />
+                    <SkeletonBlock tone="text" h={10} w={32} className="ml-auto" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Skeleton>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="text-[12px] text-chalk-400">
@@ -112,13 +146,13 @@ export function ArtifactList({
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-[11.5px] font-semibold text-chalk-100">
+        <span className="text-meta font-semibold text-chalk-100">
           Artifacts
         </span>
         <button
           type="button"
           onClick={() => setShowInternals((v) => !v)}
-          className="text-[11px] font-semibold text-violet-soft transition hover:text-violet-soft/80"
+          className="text-meta font-semibold text-violet-soft transition hover:text-violet-soft/80"
           title="Prompts, context packets, diff snapshots and validation output."
         >
           {showInternals
@@ -143,7 +177,7 @@ export function ArtifactList({
                   return next;
                 })
               }
-              className="mb-0.5 flex w-full items-center gap-1 rounded-[8px] px-1 py-0.5 text-[10.5px] text-chalk-300 transition hover:bg-coal-500/60 hover:text-chalk-100"
+              className="mb-0.5 flex w-full items-center gap-1 rounded-[8px] px-1 py-0.5 text-meta text-chalk-300 transition hover:bg-coal-500/60 hover:text-chalk-100"
             >
               {isCollapsed ? (
                 <ChevronRight className="h-3 w-3 text-chalk-400" strokeWidth={2} aria-hidden />
@@ -173,7 +207,7 @@ export function ArtifactList({
                     <span className="mono flex-1 truncate text-[12px] text-chalk-100">
                       {entry.path.replace(/^flows\/[^/]+\//, "")}
                     </span>
-                    <span className="mono num-tabular text-[11px] text-chalk-400">
+                    <span className="mono num-tabular text-meta text-chalk-400">
                       {entry.size}b
                     </span>
                   </button>

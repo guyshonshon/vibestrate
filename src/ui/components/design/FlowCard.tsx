@@ -105,7 +105,7 @@ export function FlowCard({
           {statusBadge}
         </div>
       ) : null}
-      {caption ? <div className="mt-1 text-[11px] text-chalk-400">{caption}</div> : null}
+      {caption ? <div className="mt-1 text-meta text-chalk-400">{caption}</div> : null}
       {footer ? (
         <div className="mt-3.5 flex items-center gap-1.5 border-t border-[color:var(--line-soft)] pt-3">
           {footer}

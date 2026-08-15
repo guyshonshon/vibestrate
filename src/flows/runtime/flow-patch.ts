@@ -4,16 +4,17 @@
 // out of project source control, which is exactly the trap the
 // builtin/project distinction exists to avoid.
 //
-// Fork and patch do not write their own bytes: both hand the YAML to
-// `writeFlowYamlAudited` (flow-portability.ts) so every flow write in the repo
-// crosses the Action Broker as a `file.write` and lands in the evidence log.
+// Fork, patch, and delete do not touch the file themselves: they go through
+// `writeFlowYamlAudited` / `deleteFlowFileAudited` (flow-portability.ts) so
+// every flow file effect crosses the Action Broker as a `file.write` and lands
+// in the evidence log.
 
 import path from "node:path";
 import fs from "node:fs/promises";
 import YAML from "yaml";
 import { z } from "zod";
 import { isPathInside, projectFlowsDir } from "../../utils/paths.js";
-import { writeFlowYamlAudited } from "./flow-portability.js";
+import { deleteFlowFileAudited, writeFlowYamlAudited } from "./flow-portability.js";
 import {
   flowApprovalGateSchema,
   flowDefinitionSchema,
@@ -259,9 +260,9 @@ export async function forkFlowToProject(input: {
 }
 
 /**
- * Delete a project-local flow entirely. Refuses if it's not a
- * project flow. Removes the flow.yml and (if empty) the containing
- * directory.
+ * Delete a project-local flow entirely. Refuses if it's not a project flow.
+ * The removal itself goes through the same audited seam as every flow write,
+ * so a policy that denies flow writes denies this too.
  */
 export type DeleteFlowResult =
   | { ok: true; flowId: string }
@@ -299,14 +300,12 @@ export async function deleteProjectFlow(input: {
       ],
     };
   }
-  await fs.rm(flow.definitionPath, { force: true });
-  const parent = path.dirname(flow.definitionPath);
-  try {
-    const remaining = await fs.readdir(parent);
-    if (remaining.length === 0) await fs.rmdir(parent);
-  } catch {
-    /* ignore */
-  }
+  const removed = await deleteFlowFileAudited({
+    projectRoot,
+    flowId,
+    targetPath: flow.definitionPath,
+  });
+  if (!removed.ok) return removed;
   return { ok: true, flowId };
 }
 

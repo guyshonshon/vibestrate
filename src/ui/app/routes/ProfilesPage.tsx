@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { Copy, Cpu, Plus, Save, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Copy, Cpu, Plus, Save, Trash2, Wrench } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { ErrorView } from "../../lib/error-view.js";
 import type {
   ProfileView,
   ProviderCatalog,
@@ -14,6 +15,12 @@ import { useConfirm } from "../../components/design/ConfirmDialog.js";
 import { PageShell, Section } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
 import { PageHero } from "../../components/layout/PageHero.js";
+import {
+  Skeleton,
+  SkeletonBlock,
+  SkeletonRows,
+} from "../../components/design/Skeleton.js";
+import { HeroNumber } from "./page-skeletons.js";
 import { cn } from "../../components/design/cn.js";
 import {
   useToast,
@@ -38,13 +45,13 @@ function EffortField({
 }) {
   return (
     <div className="mt-3">
-      <span className="mb-1.5 block text-[11px] font-semibold text-violet-soft">
+      <span className="mb-1.5 block text-meta font-semibold text-violet-soft">
         Effort
       </span>
       {levels.length ? (
         <EffortScale levels={levels} value={value} onChange={onChange} />
       ) : (
-        <span className="text-[11.5px] text-chalk-300">
+        <span className="text-meta text-chalk-300">
           This provider exposes no effort control.
         </span>
       )}
@@ -124,6 +131,24 @@ function providerTone(name: string): string {
   return PROVIDER_TONES[h % PROVIDER_TONES.length]!;
 }
 
+// One surface for every healthy profile, so the amber below is the only thing
+// that changes a card's background.
+//
+// Zebra striping was tried here and removed: these cards sit in a `Deck`, whose
+// `card` cell packs 2 -> 3 -> 4 -> 6 per row as the page widens, so shading by
+// list index tints COLUMNS, not rows. At two columns that painted the whole
+// right-hand column a step lighter than the left at every row, which reads as
+// "these ones are disabled". Zebra is a single-column list device (the crew
+// preset list is one, and stripes correctly); on a responsive grid it cannot be
+// made row-accurate without restating the Deck's breakpoint ladder here, where
+// it would silently drift the day the ladder changes.
+const CARD_SURFACE = "bg-coal-600";
+
+// A profile whose model its provider does not have. Warn, not danger: nothing
+// is broken until a run launches on it, and it is one dropdown away from fixed.
+// Same wash the crew fit rows use, so "needs attention" looks the same app-wide.
+const CARD_BROKEN = "border-amber-soft/30 bg-amber-soft/[0.06]";
+
 // A Profile's editable shape (strings for form inputs; "" = null).
 type Draft = {
   provider: string;
@@ -161,9 +186,13 @@ export function ProfilesPage() {
   // an id we merely have no record of would block every new model on release
   // day.
   const [sources, setSources] = useState<ModelListSources>({});
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const { toast, showToast: flash } = useToast();
   const [creating, setCreating] = useState(false);
+  // Id of the profile the header's fix action is sending the user to. The card
+  // owns the scroll and the focus (it knows where its own model control is) and
+  // clears this once it has taken them, so the same button works twice.
+  const [fixTarget, setFixTarget] = useState<string | null>(null);
 
   async function load() {
     try {
@@ -184,7 +213,9 @@ export function ProfilesPage() {
       setProviders([...new Set([...fromMeta, ...fromProfiles])].sort());
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      // Kept raw, not flattened to a message: describeError classifies the
+      // thrown ApiError into a title, a fix and a Retry the string cannot carry.
+      setError(err);
     }
   }
 
@@ -193,7 +224,7 @@ export function ProfilesPage() {
   }, []);
 
 
-  // Group by provider so "claude" presets (claude, claude-cheap, …) sit together.
+  // Group by provider so "claude" profiles (claude, claude-cheap, …) sit together.
   const groups = new Map<string, ProfileView[]>();
   for (const p of profiles ?? []) {
     const list = groups.get(p.provider) ?? [];
@@ -206,6 +237,13 @@ export function ProfilesPage() {
   // it can appear without anyone touching the config, when a provider ships a
   // build that drops a model.
   const broken = (profiles ?? []).filter((p) => p.modelStatus === "unknown-model");
+  const first = broken[0];
+  // Name the profiles, not the failure. Two ids fit; past that the header is a
+  // pointer to the amber cards, not a list.
+  const brokenNames =
+    broken.length <= 2
+      ? broken.map((p) => p.id).join(" and ")
+      : `${broken[0]!.id}, ${broken[1]!.id} and ${broken.length - 2} more`;
 
   return (
     <PageShell className="fade-up">
@@ -213,7 +251,13 @@ export function ProfilesPage() {
         <Cell size="full" reason="masthead">
           <PageHero
             state={{
-              value: broken.length > 0 ? broken.length : profiles ? total : "-",
+              value: !profiles ? (
+                <HeroNumber />
+              ) : broken.length > 0 ? (
+                broken.length
+              ) : (
+                total
+              ),
               caption:
                 broken.length > 0
                   ? broken.length === 1
@@ -222,27 +266,50 @@ export function ProfilesPage() {
                   : total === 1
                     ? "Profile"
                     : "Profiles",
-              note:
-                broken.length > 0
-                  ? `${broken.map((p) => p.id).join(", ")} ${broken.length === 1 ? "points" : "point"} at a model the provider does not have. Runs using ${broken.length === 1 ? "it" : "them"} fail at launch.`
+              note: !profiles
+                ? undefined
+                : first
+                  ? broken.length === 1
+                    ? `${first.id} points at a model ${first.provider} does not have.`
+                    : `${brokenNames} point at models their providers do not have.`
                   : `Across ${groupedProviders.length} provider${groupedProviders.length === 1 ? "" : "s"}. Crew roles point at one.`,
               tone: broken.length > 0 ? "amber" : "violet",
             }}
             title="Profiles"
             purpose="A profile is a model plus effort, saved to reuse. Keep a strong one and a cheap one."
             actions={
-              <Button
-                variant="primary"
-                size="sm"
-                iconLeft={<Plus size={13} />}
-                onClick={() => setCreating((v) => !v)}
-              >
-                New profile
-              </Button>
+              <>
+                {/* The repair, not a restatement of the fault: the fix is
+                    choosing a model the provider actually has, and this puts the
+                    cursor in that dropdown. It outranks "New profile" while a
+                    profile is unusable, and renames itself to the next one as
+                    each is fixed. */}
+                {first ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    iconLeft={<Wrench size={13} />}
+                    onClick={() => setFixTarget(first.id)}
+                  >
+                    Pick a model for {first.id}
+                  </Button>
+                ) : null}
+                <Button
+                  variant={first ? "secondary" : "primary"}
+                  size="sm"
+                  iconLeft={<Plus size={13} />}
+                  onClick={() => setCreating((v) => !v)}
+                >
+                  New profile
+                </Button>
+              </>
             }
             metrics={[
-              { value: profiles ? total : "-", label: "presets" },
-              { value: groupedProviders.length, label: "providers" },
+              { value: profiles ? total : <HeroNumber />, label: "profiles" },
+              {
+                value: profiles ? groupedProviders.length : <HeroNumber />,
+                label: "providers",
+              },
               ...(broken.length
                 ? [
                     {
@@ -259,9 +326,7 @@ export function ProfilesPage() {
 
       {error ? (
         <Cell size="full" reason="masthead">
-        <div className="rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[13px] text-rose-300">
-          {error} - reload the page, or check that the provider config is readable.
-        </div>
+          <ErrorView err={error} compact onRetry={() => void load()} />
         </Cell>
       ) : null}
 
@@ -283,8 +348,30 @@ export function ProfilesPage() {
       ) : null}
 
       {!profiles ? (
-        <Cell size="full" reason="masthead">
-        <div className="text-[13px] text-chalk-300">Loading profiles…</div>
+        // Two provider groups of cards - the shape every non-empty project
+        // resolves to - rather than one line of text under a full-height hero.
+        <Cell size="full" reason="nested-deck">
+          <Skeleton label="Loading profiles" className="flex flex-col gap-4">
+            {[0, 1].map((group) => (
+              <div key={group} className="flex flex-col gap-3">
+                <SkeletonBlock h={18} w={148} />
+                <Deck align="stretch">
+                  {[0, 1, 2].map((i) => (
+                    <Cell key={i} size="card">
+                      <div className="flex min-h-[168px] flex-col gap-3 rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+                        <SkeletonBlock h={16} w="56%" />
+                        <SkeletonRows rows={3} meta />
+                        <div className="mt-auto flex gap-2">
+                          <SkeletonBlock w={72} h={26} bordered />
+                          <SkeletonBlock w={56} h={26} bordered />
+                        </div>
+                      </div>
+                    </Cell>
+                  ))}
+                </Deck>
+              </div>
+            ))}
+          </Skeleton>
         </Cell>
       ) : profiles.length === 0 ? (
         <Cell size="full" reason="masthead">
@@ -311,9 +398,9 @@ export function ProfilesPage() {
           const list = groups.get(prov)!;
           const tone = providerTone(prov);
           return (
-            /* One provider per full-width row, its presets as cards inside a
+            /* One provider per full-width row, its profiles as cards inside a
              * nested deck - so profiles pack 3-4 across instead of two, and a
-             * provider with one preset does not strand half a row. */
+             * provider with one profile does not strand half a row. */
             <Cell key={prov} size="full" reason="nested-deck">
               <Section
                 flush
@@ -322,7 +409,7 @@ export function ProfilesPage() {
                     <Cpu className={cn("h-4 w-4", tone)} strokeWidth={1.9} aria-hidden />
                     <span>{prov}</span>
                     <span className="num-tabular text-[12px] font-medium text-chalk-400">
-                      {list.length} preset{list.length === 1 ? "" : "s"}
+                      {list.length} profile{list.length === 1 ? "" : "s"}
                     </span>
                   </span>
                 }
@@ -332,6 +419,9 @@ export function ProfilesPage() {
                     <Cell key={p.id} size="card">
                       <ProfileCard
                         profile={p}
+                        surface={CARD_SURFACE}
+                        focusModel={fixTarget === p.id}
+                        onFocused={() => setFixTarget(null)}
                         providers={providers}
                         catalog={catalog}
                         sources={sources}
@@ -471,7 +561,7 @@ function CreateProfile({
               onChange={(v) => set("model", v)}
             />
           ) : (
-            <span className="text-[11.5px] text-chalk-300">set in the provider config</span>
+            <span className="text-meta text-chalk-300">set in the provider config</span>
           )}
         </FormField>
       </div>
@@ -496,6 +586,9 @@ function CreateProfile({
 
 function ProfileCard({
   profile,
+  surface,
+  focusModel,
+  onFocused,
   providers,
   catalog,
   sources,
@@ -503,6 +596,11 @@ function ProfileCard({
   onFlash,
 }: {
   profile: ProfileView;
+  /** Card background for a healthy profile; a broken one overrides it. */
+  surface: string;
+  /** The header sent the user here to repair the model. */
+  focusModel: boolean;
+  onFocused: () => void;
   providers: string[];
   catalog: ProviderCatalog;
   sources: ModelListSources;
@@ -521,6 +619,18 @@ function ProfileCard({
   const savedIssue = profile.modelIssue;
   const savedBad = profile.modelStatus === "unknown-model";
   const { confirm, promptText } = useConfirm();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const modelRef = useRef<HTMLDivElement>(null);
+
+  // The model control is a <select> when the provider gave us its list and a
+  // text input otherwise, so the field is queried rather than ref-threaded
+  // through ModelField - one lookup here beats a ref prop on two primitives.
+  useEffect(() => {
+    if (!focusModel) return;
+    cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    modelRef.current?.querySelector<HTMLElement>("select, input")?.focus();
+    onFocused();
+  }, [focusModel, onFocused]);
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -593,7 +703,15 @@ function ProfileCard({
     usedBy.map((u) => `${u.crewId}/${u.roleId}`).join(", ") || "not used by any role";
 
   return (
-    <div className="flex h-full flex-col rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-4">
+    <div
+      ref={cardRef}
+      className={cn(
+        "flex h-full flex-col rounded-[18px] border p-4",
+        // State outranks the stripe: an unusable profile keeps the amber wash
+        // wherever it lands in the alternation.
+        savedBad ? CARD_BROKEN : cn("border-[color:var(--line)]", surface),
+      )}
+    >
       {/* Header row: the profile id + a used-by fact toned by whether any role
           points at it (emerald = in use, neutral = unused). */}
       <div className="flex items-center gap-2">
@@ -603,7 +721,7 @@ function ProfileCard({
         <span
           title={usedByTitle}
           className={cn(
-            "shrink-0 text-[11px] font-semibold",
+            "shrink-0 text-meta font-semibold",
             usedBy.length > 0 ? "text-emerald-400" : "text-chalk-400",
           )}
         >
@@ -643,7 +761,10 @@ function ProfileCard({
         <p
           className={cn(
             "mt-2 text-[12px] leading-[1.45]",
-            savedBad ? "text-amber-soft" : "text-chalk-300",
+            // The wash and the amber model tile already carry the state, so the
+            // sentence stays reading text - a third amber signal turns the card
+            // monotone and the detail becomes the hardest part to read.
+            savedBad ? "text-chalk-200" : "text-chalk-300",
           )}
         >
           {savedIssue}
@@ -674,16 +795,18 @@ function ProfileCard({
           />
         </FormField>
         <FormField label="Model">
-          {caps.modelEnabled ? (
-            <ModelField
-              models={caps.models}
-              derived={modelsDerived}
-              value={draft.model}
-              onChange={(v) => set("model", v)}
-            />
-          ) : (
-            <span className="text-[11.5px] text-chalk-300">set in the provider config</span>
-          )}
+          <div ref={modelRef}>
+            {caps.modelEnabled ? (
+              <ModelField
+                models={caps.models}
+                derived={modelsDerived}
+                value={draft.model}
+                onChange={(v) => set("model", v)}
+              />
+            ) : (
+              <span className="text-meta text-chalk-300">set in the provider config</span>
+            )}
+          </div>
         </FormField>
         <FormField label="Max tokens">
           <input
@@ -756,9 +879,9 @@ function FormField({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-semibold text-violet-soft">{label}</span>
+      <span className="text-meta font-semibold text-violet-soft">{label}</span>
       {children}
-      {hint ? <span className="text-[10.5px] text-chalk-300">{hint}</span> : null}
+      {hint ? <span className="text-meta text-chalk-300">{hint}</span> : null}
     </label>
   );
 }

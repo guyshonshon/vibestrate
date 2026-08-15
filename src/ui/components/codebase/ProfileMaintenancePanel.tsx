@@ -8,10 +8,11 @@ import type {
   ValidationProfileUsageEntry,
 } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
 import { useConfirm } from "../design/ConfirmDialog.js";
 
 const FIELD =
-  "mono rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2 py-1 text-[11px] text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50";
+  "mono rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2 py-1 text-meta text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50";
 
 /**
  * Lightweight maintenance panel for validation profiles. Reads:
@@ -28,6 +29,9 @@ export function ProfileMaintenancePanel() {
   const [profiles, setProfiles] = useState<ValidationProfileSummary[]>([]);
   const [usage, setUsage] = useState<ValidationProfileUsageEntry[]>([]);
   const [history, setHistory] = useState<ProfileMigrationAudit[]>([]);
+  // Profiles, usage and history land in one `load`, so this gates all three
+  // lists: an empty array before it means unknown, not none.
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const { confirm } = useConfirm();
@@ -60,6 +64,7 @@ export function ProfileMaintenancePanel() {
           (b.appliedAt ?? b.createdAt).localeCompare(a.appliedAt ?? a.createdAt),
         ),
       );
+      setLoaded(true);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -195,7 +200,7 @@ export function ProfileMaintenancePanel() {
         <h2 className="text-[18px] font-bold text-violet-vivid">
           Validation profiles
         </h2>
-        <p className="mt-1 text-[11px] text-chalk-300">
+        <p className="mt-1 text-meta text-chalk-300">
           Migrations update future suggestion / bundle assignments only.
           Historical validation results keep the profile metadata they ran
           with.
@@ -232,35 +237,35 @@ export function ProfileMaintenancePanel() {
                   <span className="font-medium text-chalk-100">
                     {p.profileName}
                   </span>
-                  <span className="mono text-[10px] text-chalk-400">
+                  <span className="mono text-meta text-chalk-400">
                     {p.source}
                   </span>
                   {p.hasCommands ? (
-                    <span className="mono text-[10px] text-chalk-400">
+                    <span className="mono text-meta text-chalk-400">
                       {p.commands.length} command{p.commands.length === 1 ? "" : "s"}
                     </span>
                   ) : (
-                    <span className="mono text-[10px] text-amber-soft">
+                    <span className="mono text-meta text-amber-soft">
                       empty
                     </span>
                   )}
                   {u ? (
-                    <span className="mono ml-auto text-[10px] text-chalk-400">
+                    <span className="mono ml-auto text-meta text-chalk-400">
                       {u.totalUses} use{u.totalUses === 1 ? "" : "s"} ·{" "}
                       last {u.lastUsedAt ?? "-"}
                     </span>
                   ) : (
-                    <span className="mono ml-auto text-[10px] text-chalk-400">
+                    <span className="mono ml-auto text-meta text-chalk-400">
                       never used
                     </span>
                   )}
                 </div>
                 {p.description ? (
-                  <p className="text-[10.5px] text-chalk-300">
+                  <p className="text-meta text-chalk-300">
                     {p.description}
                   </p>
                 ) : null}
-                <p className="mono mt-0.5 truncate text-[10px] text-chalk-400">
+                <p className="mono mt-0.5 truncate text-meta text-chalk-400">
                   {p.commands.length === 0
                     ? "(no commands)"
                     : `→ ${p.commands.join("  ·  ")}`}
@@ -275,11 +280,11 @@ export function ProfileMaintenancePanel() {
         <h3 className="text-[12px] font-semibold text-chalk-300">
           Migrate profile references
         </h3>
-        <p className="mt-0.5 text-[10.5px] text-chalk-300">
+        <p className="mt-0.5 text-meta text-chalk-300">
           Preview first. Apply requires confirmation.
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1 text-[10.5px] text-chalk-300">
+          <label className="flex items-center gap-1 text-meta text-chalk-300">
             from
             <input
               type="text"
@@ -292,7 +297,7 @@ export function ProfileMaintenancePanel() {
               className={FIELD}
             />
           </label>
-          <label className="flex items-center gap-1 text-[10.5px] text-chalk-300">
+          <label className="flex items-center gap-1 text-meta text-chalk-300">
             to
             <input
               type="text"
@@ -306,7 +311,7 @@ export function ProfileMaintenancePanel() {
               className={`${FIELD} disabled:opacity-50`}
             />
           </label>
-          <label className="flex items-center gap-1 text-[10.5px] text-chalk-300">
+          <label className="flex items-center gap-1 text-meta text-chalk-300">
             <input
               type="checkbox"
               checked={clear}
@@ -340,12 +345,12 @@ export function ProfileMaintenancePanel() {
         </div>
         {preview ? (
           <div className="mt-2 rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-3 py-2">
-            <div className="mono text-[10.5px] text-chalk-300">
+            <div className="mono text-meta text-chalk-300">
               {preview.fromProfile} →{" "}
               {preview.toProfile ?? "default (clear)"} · scanned{" "}
               {preview.scannedRuns} run(s)
             </div>
-            <div className="mono mt-1 text-[10.5px] text-chalk-300">
+            <div className="mono mt-1 text-meta text-chalk-300">
               suggestions: {preview.affectedSuggestions.length} · bundles:{" "}
               {preview.affectedBundles.length} · malformed:{" "}
               {preview.malformedFiles.length}
@@ -357,7 +362,7 @@ export function ProfileMaintenancePanel() {
                 {preview.fromProfile}” in the scanned runs.
               </p>
             ) : (
-              <ul className="mono mt-1 max-h-32 overflow-y-auto text-[10px] text-chalk-300">
+              <ul className="mono mt-1 max-h-32 overflow-y-auto text-meta text-chalk-300">
                 {[
                   ...preview.affectedSuggestions.map(
                     (r) => `suggestion ${r.runId}/${r.id}`,
@@ -380,7 +385,7 @@ export function ProfileMaintenancePanel() {
         <h3 className="text-[12px] font-semibold text-chalk-300">
           Rename profile
         </h3>
-        <p className="mt-0.5 text-[10.5px] text-chalk-300">
+        <p className="mt-0.5 text-meta text-chalk-300">
           Renames a profile key in{" "}
           <code className="mono rounded-[6px] bg-coal-500 px-1 py-0.5 text-chalk-200">
             commands.validationProfiles
@@ -389,7 +394,7 @@ export function ProfileMaintenancePanel() {
           Preview first; apply requires confirmation.
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1 text-[10.5px] text-chalk-300">
+          <label className="flex items-center gap-1 text-meta text-chalk-300">
             from
             <input
               type="text"
@@ -402,7 +407,7 @@ export function ProfileMaintenancePanel() {
               className={FIELD}
             />
           </label>
-          <label className="flex items-center gap-1 text-[10.5px] text-chalk-300">
+          <label className="flex items-center gap-1 text-meta text-chalk-300">
             to
             <input
               type="text"
@@ -436,24 +441,24 @@ export function ProfileMaintenancePanel() {
         </div>
         {renamePreview ? (
           <div className="mt-2 rounded-[10px] border border-[color:var(--line)] bg-coal-500 px-3 py-2">
-            <div className="mono text-[10.5px] text-chalk-300">
+            <div className="mono text-meta text-chalk-300">
               {renamePreview.fromProfile} → {renamePreview.toProfile} · scanned{" "}
               {renamePreview.scannedRuns} run(s)
             </div>
-            <div className="mono mt-1 text-[10.5px] text-chalk-300">
+            <div className="mono mt-1 text-meta text-chalk-300">
               preserves {renamePreview.preservedCommandCount} command
               {renamePreview.preservedCommandCount === 1 ? "" : "s"}
               {renamePreview.preservedDescription
                 ? ` · description "${renamePreview.preservedDescription}"`
                 : ""}
             </div>
-            <div className="mono mt-1 text-[10.5px] text-chalk-300">
+            <div className="mono mt-1 text-meta text-chalk-300">
               references: {renamePreview.affectedSuggestions.length} suggestion(s),{" "}
               {renamePreview.affectedBundles.length} bundle(s),{" "}
               {renamePreview.malformedFiles.length} malformed
             </div>
             {renamePreview.warnings.length > 0 ? (
-              <ul className="mt-1 text-[10.5px] text-amber-soft">
+              <ul className="mt-1 text-meta text-amber-soft">
                 {renamePreview.warnings.map((w) => (
                   <li key={w}>! {w}</li>
                 ))}
@@ -467,19 +472,30 @@ export function ProfileMaintenancePanel() {
         <h3 className="text-[12px] font-semibold text-chalk-300">
           Migration history
         </h3>
-        <p className="mt-0.5 text-[10.5px] text-chalk-300">
+        <p className="mt-0.5 text-meta text-chalk-300">
           Every rename/migrate/clear writes a single audit JSON under{" "}
           <code className="mono rounded-[6px] bg-coal-500 px-1 py-0.5 text-chalk-200">
             .vibestrate/validation-profile-migrations/
           </code>
           .
         </p>
-        {history.length === 0 ? (
-          <p className="mt-1 text-[10.5px] text-chalk-400">
+        {!loaded ? (
+          <Skeleton label="Loading migration history" className="mt-2 flex flex-col gap-1">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2"
+              >
+                <SkeletonBlock tone="text" h={11} w={`${[68, 52, 76][i]}%`} />
+              </div>
+            ))}
+          </Skeleton>
+        ) : history.length === 0 ? (
+          <p className="mt-1 text-meta text-chalk-400">
             No migrations recorded yet.
           </p>
         ) : (
-          <ul className="mono mt-2 max-h-48 space-y-1 overflow-y-auto text-[10.5px]">
+          <ul className="mono mt-2 max-h-48 space-y-1 overflow-y-auto text-meta">
             {history.map((m) => {
               const kind = m.kind ?? "migrate_references";
               const tagClass =
@@ -507,11 +523,11 @@ export function ProfileMaintenancePanel() {
                     <span className="text-chalk-400">
                       {total} reference{total === 1 ? "" : "s"}
                     </span>
-                    <span className="ml-auto text-[10px] text-chalk-400">
+                    <span className="ml-auto text-meta text-chalk-400">
                       {stamp}
                     </span>
                   </div>
-                  <div className="text-[10px] text-chalk-400">
+                  <div className="text-meta text-chalk-400">
                     {m.id}
                     {m.renamedProfile &&
                     typeof m.preservedCommandCount === "number"

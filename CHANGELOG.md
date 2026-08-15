@@ -22,6 +22,25 @@
 > as-is. Markdown stays where a human writes it: `VIBESTRATE.md`, `rules.md`, the
 > docs.
 
+- **The dashboard reads properly now.** Secondary text was a faint grey at a
+  size hardcoded in ~920 places across 147 files, which is why it never got
+  fixed: there was nothing to fix it in. There is now one size token and one
+  colour tier behind every label, caption and meta row, and both were turned up.
+  Nothing renders below 12px anywhere, and captions read at full strength rather
+  than fading out - hierarchy comes from size, weight and the violet label
+  accent instead of from making half the screen hard to read.
+- **Loading looks like the thing that is loading.** Every fetch that used to
+  show a "Loading..." label or an empty gap now shows a skeleton shaped like the
+  content it stands in for: a table skeleton has the table's columns, a chart
+  skeleton has the chart's box. No pulsing, and it falls back to static under
+  `prefers-reduced-motion`.
+- **Panels size to their content again.** The Metrics and Dashboard boards
+  reserved every panel's full height whether or not anything filled it, which on
+  a quiet project left roughly 1400px of empty box down the page. Viewing a board
+  now flows to content; the fixed grid comes back when you open the layout
+  editor, which is where exact geometry actually matters.
+- **Empty states carry the button instead of naming it.** "Launch one with New
+  run" pointed at a control somewhere else on the page. It is a button now.
 - **Describe a Flow or a Crew and get a draft back.** `vibe flows draft "review
   every change to payment code twice"`, `vibe crew draft "cheap planner, strong
   reviewer"`, and a draft panel on both the Flows and the Crew page. A flow draft
@@ -36,16 +55,104 @@
   checked using its own tools and what it could not, and both lists print even
   when empty - Vibestrate opens no connection of its own to verify a draft, so
   "nothing unverified" has to read as a claim the agent made, not as silence.
+- **Edit a Flow or a Crew from the dashboard.** Two new editors. The **Flow
+  Editor** (Flows page: "New flow", or "Edit definition" on any project flow)
+  re-runs the real flow schema on every keystroke and pins each violation to the
+  step, seat, or field that caused it - Save is disabled while one stands, and
+  what it posts is the schema's own parsed output, so a flow that looked valid
+  in the form cannot be rejected on the way to disk. The **Crew Editor** (Crew
+  page) is honest about a split you should know before you open it: role
+  parameters and instructions save from the page, but adding, removing, or
+  renaming a role, changing a crew label, or touching review loops is a
+  `project.yml` edit - the editor hands you the exact bytes to paste. Composing
+  a brand-new crew writes nothing at all; every part of it is in the paste
+  bucket, which is why that page shows no Save button.
 - **A policy that denies file writes now covers flow authoring too.** Flow YAML
   reached disk on four paths - import, create, fork, and the builder's patch -
   and not one of them crossed the Action Broker. So the single directory that
   decides how every future run is shaped was the one directory your policies did
-  not reach. All four go through one writer now: it gates a `file.write`, writes
-  atomically, and records the effect in `runs/flows/actions.ndjson` tagged with
-  which writer it was, so an audit reader can tell an import from a fork. A
-  denial comes back as a refusal you can read rather than a thrown error.
-  Deleting a flow is still ungated - the broker has no `file.delete` verb yet,
-  and a verb gets added together with the site that raises it.
+  not reach. All five paths go through one seam now - delete included, since
+  losing a flow is as consequential as overwriting one. It gates a `file.write`,
+  writes atomically, and records the effect in `runs/flows/actions.ndjson`
+  tagged with which writer it was, so an audit reader can tell an import from a
+  fork from a deletion. A denial comes back as a refusal you can read rather
+  than a thrown error, and a write that fails after being allowed still lands a
+  record saying so.
+- **And a Role, both halves of it.** Saving a Role's instructions from the
+  dashboard wrote the file straight out: path-guarded, but with no gate, no
+  record, and no atomicity. It goes through one audited writer now, so the same
+  policy that stops a flow edit stops a prompt edit, the decision lands in
+  `runs/roles/actions.ndjson`, and a refusal comes back as a 403 you can read
+  instead of a server error. A prompt carrying a NUL byte or an escape sequence
+  is refused rather than stored - it is text that gets replayed into another
+  model's prompt and echoed to your terminal - and the save is atomic, so a save
+  that collides with a reader can no longer fail silently or leave the file
+  half-written. The Role's **other half** is gated too, and that one matters
+  more: its profile, seats, skills and `permissions` land in `project.yml`, and
+  `permissions` is what decides whether that Role's provider may edit your repo.
+  One Save in the Crew editor is two requests, so gating only the prompt would
+  have been worse than gating neither - under a deny policy the harmless edit
+  came back refused while a `read_only` -> `code_write` flip went through, and
+  the message you got said the write was stopped. Both now answer a denying
+  policy with a 403 and leave their file untouched, and the audit log tells them
+  apart: `role-prompt` against the role file, `role-fields` against
+  `project.yml` with the fields the patch touched. Assigning a skill from the
+  Skills page goes through the same gate, as `role-skills`, because it writes
+  one of those same fields from another page - and a skill is instruction text
+  replayed into every turn a Role takes, and can carry MCP servers, so an
+  assignment hands a Role new instructions and new tools. **New refusal to know
+  about:** a prompt that reads as carrying a secret is now rejected on save,
+  naming the pattern and the line and echoing only a redacted snippet. It is
+  refused, not redacted, because a silently rewritten prompt is a role that no
+  longer says what its author wrote - but it does mean a prompt that trips the
+  scanner can be read and not re-saved until you take the token out. Four things
+  worth stating plainly. The character screen covers NUL and the C0 range, not
+  the Unicode direction overrides, which still save. The screens run on the
+  prompt only - a field patch is gated and schema-checked, but its values are
+  not scanned. **A path-scoped rule now covers a whole Role, and is therefore
+  wider than it reads**: all three writes declare the same pair of paths, so a
+  rule naming `**/.vibestrate/roles/**` and a rule naming `**/project.yml` each
+  refuse the prompt, the fields and a skill assignment alike. That is a
+  behavior change if you already run a path-scoped `file.write` policy - a rule
+  written to freeze instructions will now also refuse a label rename, and
+  `require_approval` is not accepted on `file.write`, so the only outcome is a
+  refusal. The alternative was worse: the split let a deny stop the harmless
+  half and land the `permissions` flip while telling you the write was stopped.
+  The pair is resolved from the validated config, so a `prompt:` written as a
+  YAML alias or reached through a merge key names the same file a plain string
+  does. And this is the authoring surface only. `vibe init`, the config commands
+  and `vibe skills assign` write the same config with no gate, since a gate
+  there could refuse a first-time init and those are you at your own keyboard.
+  So do the dashboard's own settings routes - and that list is longer than it
+  looks: `POST /api/config/set`, the whole policies panel (including adding and
+  deleting policy rules themselves), creating, editing and deleting Profiles,
+  installing a Crew preset, changing the default Crew, adopting a supervisor
+  persona, and composer presets. Installing a skill from a URL is not gated
+  either - it lands a file in `.vibestrate/skills/` behind its own guards, and
+  nothing reads it until it is assigned to a Role, which is; note that fetching
+  with `overwrite` can replace the text of a skill that is already assigned. A
+  rule that denies `file.write` is a lock on authoring, not on `project.yml`.
+  What keeps that surface bounded is that the server binds to loopback and
+  checks `Origin` / `Sec-Fetch-Site`, not a policy.
+- **`pathGlob` policies were silently protecting nothing on Windows.** A glob is
+  always authored with `/`, and the path a write is matched against is the
+  native one Vibestrate is about to open - so on Windows every `pathGlob` rule
+  compared a `/` pattern against a `\` path, matched nothing, and allowed the
+  write. No run on macOS or Linux could see it. Matching now tests both
+  spellings of the path. The raw path is still tested rather than replaced,
+  because `\` is a legal character in a POSIX filename; since an action policy's
+  effect is only ever `deny` or `require_approval`, widening the candidate set
+  can add a refusal but can never let through a write the raw path already
+  caught. One thing has not changed and is easy to get wrong: **a `pathGlob` is
+  anchored and the path it matches is absolute**, so a project-relative pattern
+  like `.vibestrate/project.yml` still matches nothing. Write `**/`.
+- **You can choose which roles see the methodology.** `methodologyRoles` is the
+  sibling of `codebaseMapRoles` below, and it fixes the same shape of bug: the
+  methodology you set rode the planner's channel, so the `express`, `scaffold`
+  and `quality-arbitration` flows - which have no planner seat - never saw it.
+  Each listed role is handed it once per run. Naming a role your crew does not
+  define is now reported on the first turn instead of passing for the feature
+  being switched off.
 - **You can choose which roles see the codebase map.** `vibe learn` builds a map
   of your project, and until now only the planner ever read it. That is the right
   default: every other role works inside the worktree with a plan that already

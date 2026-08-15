@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
 import { ValidationCommandResult } from "./ValidationCommandResult.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
 
 type Item = {
   command: string;
@@ -24,6 +25,9 @@ type ValidationFile = {
 
 export function ValidationSummary({ runId }: { runId: string }) {
   const [data, setData] = useState<ValidationFile | null>(null);
+  // Null data means both "still listing artifacts" and "no validation artifact
+  // exists", and only the second is the claim that validation has not run.
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,6 +43,7 @@ export function ValidationSummary({ runId }: { runId: string }) {
         if (candidates.length === 0) {
           if (!cancelled) {
             setData(null);
+            setLoaded(true);
             setError(null);
           }
           return;
@@ -48,6 +53,7 @@ export function ValidationSummary({ runId }: { runId: string }) {
         const parsed = JSON.parse(raw) as ValidationFile;
         if (!cancelled) {
           setData(parsed);
+          setLoaded(true);
           setError(null);
         }
       } catch (err) {
@@ -73,11 +79,11 @@ export function ValidationSummary({ runId }: { runId: string }) {
   return (
     <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-3">
       <div className="flex items-center justify-between">
-        <div className="text-[11.5px] font-semibold text-chalk-300">
+        <div className="text-meta font-semibold text-chalk-300">
           Validation
         </div>
         {data ? (
-          <span className="mono text-[11px] text-chalk-300">
+          <span className="mono text-meta text-chalk-300">
             {data.summary.passed}/{data.summary.total} passed
             {(data.summary.environment ?? 0) > 0
               ? ` · ${data.summary.environment} env-unavailable`
@@ -85,7 +91,20 @@ export function ValidationSummary({ runId }: { runId: string }) {
           </span>
         ) : null}
       </div>
-      {!data ? (
+      {!loaded ? (
+        <Skeleton label="Loading validation results" className="mt-2 flex flex-col gap-1.5">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 rounded-[10px] border border-[color:var(--line-soft)] px-2.5 py-1.5"
+            >
+              <SkeletonBlock tone="text" h={11} w={34} />
+              <SkeletonBlock tone="text" h={12} w={`${[58, 44, 66][i]}%`} />
+              <SkeletonBlock tone="text" h={10} w={72} className="ml-auto" />
+            </div>
+          ))}
+        </Skeleton>
+      ) : !data ? (
         <div className="mt-2 text-[12px] text-chalk-400">
           Validation has not run yet.
         </div>

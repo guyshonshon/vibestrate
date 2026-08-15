@@ -41,7 +41,7 @@ export function StatTile({
         <span className={cn("num-tabular max-w-[160px] truncate text-[22px] font-bold leading-none", valueTone)}>
           {value}
         </span>
-        <span className="text-[11.5px] font-medium text-violet-soft">{label}</span>
+        <span className="text-meta font-medium text-violet-soft">{label}</span>
       </div>
     );
   }
@@ -58,7 +58,7 @@ export function StatTile({
         {icon ? <span className="text-violet-soft">{icon}</span> : null}
         {value}
       </span>
-      <span className="text-[10.5px] font-medium text-violet-soft">{label}</span>
+      <span className="text-meta font-medium text-violet-soft">{label}</span>
     </div>
   );
 }

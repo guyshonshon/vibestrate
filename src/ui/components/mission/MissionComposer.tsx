@@ -17,10 +17,11 @@
 //     what swaps the Run summary for `LaunchPanel` and what drives the status
 //     poll; "Start another run" clears it back to the launcher.
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, Check, Loader2, Lock, Paperclip, Plus } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { ArrowRight, Check, Loader2, Lock, Plus } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { usePublishViewContext } from "../../lib/view-context.js";
+import { AttachButton, AttachmentStrip, useAttachments } from "../design/Attachments.js";
 import { Button } from "../design/Button.js";
 import { navigate } from "../../app/App.js";
 import { EntityIcon, FlowIcon, type EntityKind } from "../design/EntityIcon.js";
@@ -64,62 +65,6 @@ function Section({
 
 // Compact run-option toggle: a small inline switch + label. Several fit on one
 // row, so run options stay tiny under the task brief.
-/**
- * Attach files to a brief.
- *
- * These are REFERENCES, not uploads: the picker records what you chose and the
- * paths ride along with the task text, so the agent opens them from the repo it
- * is already working in. Nothing is copied into .vibestrate, which keeps a
- * screenshot or a spec out of the run's artifacts and out of anything that gets
- * replayed later.
- */
-function AttachButton({
-  files,
-  onAdd,
-  onClear,
-}: {
-  files: string[];
-  onAdd: (names: string[]) => void;
-  onClear: () => void;
-}) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  return (
-    <>
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        accept="image/*,.pdf,.md,.txt,.json,.csv"
-        className="hidden"
-        onChange={(e) => {
-          const picked = Array.from(e.target.files ?? []).map((f) => f.name);
-          if (picked.length) onAdd(picked);
-          e.target.value = "";
-        }}
-      />
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        title="Attach a screenshot, spec or file for the run to read"
-        className="inline-flex items-center gap-1.5 rounded-[10px] border border-[color:var(--line-soft)] px-3 py-1.5 text-[12px] font-semibold text-chalk-200 transition hover:border-violet-soft/50 hover:text-chalk-100"
-      >
-        <Paperclip className="h-3.5 w-3.5" strokeWidth={2} />
-        {files.length > 0 ? `${files.length} attached` : "Attach"}
-      </button>
-      {files.length > 0 ? (
-        <button
-          type="button"
-          onClick={onClear}
-          title="Remove attachments"
-          className="text-[11.5px] font-medium text-chalk-400 hover:text-chalk-200"
-        >
-          clear
-        </button>
-      ) : null}
-    </>
-  );
-}
-
 function MiniToggle({
   on,
   set,
@@ -176,12 +121,12 @@ function SummaryRow({
         {entity ? <EntityIcon entity={entity} size={15} /> : icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-semibold text-violet-vivid">
+        <span className="block text-meta font-semibold text-violet-vivid">
           {label}
         </span>
         <span className="block truncate text-[13px] font-semibold text-chalk-100">{value}</span>
       </span>
-      {hint ? <span className="shrink-0 text-[11px] text-chalk-400">{hint}</span> : null}
+      {hint ? <span className="shrink-0 text-meta text-chalk-400">{hint}</span> : null}
     </div>
   );
 }
@@ -287,7 +232,7 @@ function PatchBay({
         {/* Roles - input plug on the left edge */}
         <div className="flex min-w-0 flex-1 flex-col">
           {roles.length === 0 ? (
-            <div className="flex items-center px-2 text-[11px] text-chalk-400" style={{ height: PB_ROWH }}>
+            <div className="flex items-center px-2 text-meta text-chalk-400" style={{ height: PB_ROWH }}>
               default crew
             </div>
           ) : (
@@ -302,10 +247,10 @@ function PatchBay({
                         : "border-[color:var(--line)] bg-coal-600 opacity-55"
                     }`}
                   >
-                    <span className="block truncate text-[11.5px] font-medium leading-tight text-chalk-100">
+                    <span className="block truncate text-meta font-medium leading-tight text-chalk-100">
                       {r.label}
                     </span>
-                    <span className="block truncate text-[9.5px] leading-tight text-chalk-400">{r.profile}</span>
+                    <span className="block truncate text-meta leading-tight text-chalk-400">{r.profile}</span>
                     <span
                       className="absolute left-[-5px] top-1/2 h-[10px] w-[10px] -translate-y-1/2 rounded-full"
                       style={{ background: used ? "var(--color-violet-soft)" : "var(--color-coal-400)" }}
@@ -318,7 +263,7 @@ function PatchBay({
         </div>
       </div>
       {linkedSeats.size < seats.length ? (
-        <p className="mt-2 max-w-[360px] text-[11px] leading-[1.4] text-amber-soft">
+        <p className="mt-2 max-w-[360px] text-meta leading-[1.4] text-amber-soft">
           Some seats aren&apos;t filled by this crew - the run will pause to ask which role takes them.
         </p>
       ) : null}
@@ -353,7 +298,7 @@ function LaunchPanel({
       <div className="flex items-start gap-3">
         <ConsultOrb size={38} state={terminal ? "idle" : "thinking"} />
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold text-violet-vivid">
+          <div className="text-meta font-semibold text-violet-vivid">
             {terminal ? `Run ${status.replace(/_/g, " ")}` : "Launching run"}
           </div>
           <div className="text-[15px] font-bold text-chalk-100">{statusMessage(status)}</div>
@@ -408,17 +353,10 @@ export function MissionComposer() {
   const [crewId, setCrewId] = useState<string>("");
   const [flowId, setFlowId] = useState<string>("");
   const [personaId, setPersonaId] = useState<string>("");
-  const [attachments, setAttachments] = useState<string[]>([]);
-  const addAttachments = (names: string[]) =>
-    setAttachments((prev) => [...new Set([...prev, ...names])]);
-  const clearAttachments = () => setAttachments([]);
-  /** Attachments ride in the brief as an explicit list of paths, so the agent
+  const attachments = useAttachments();
+  /** Attachments ride in the brief as an explicit list of names, so the agent
    *  opens them from the repo rather than us copying bytes into run state. */
-  const briefWithAttachments = () => {
-    const base = task.trim();
-    if (attachments.length === 0) return base;
-    return `${base}\n\nAttached for reference: ${attachments.join(", ")}`;
-  };
+  const briefWithAttachments = () => `${task.trim()}${attachments.note}`;
 
   const [concise, setConcise] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
@@ -716,8 +654,16 @@ export function MissionComposer() {
                 />
               ) : null}
 
+              {/* Above the toolbar, under the brief it belongs to: what is
+                  attached is part of the brief, not a run option. */}
+              <AttachmentStrip
+                items={attachments.items}
+                onRemove={attachments.remove}
+                className="px-2.5 pb-2"
+              />
+
               <div className="flex flex-wrap items-center gap-1.5 border-t border-[color:var(--line-soft)] px-2.5 py-2">
-                <AttachButton files={attachments} onAdd={addAttachments} onClear={clearAttachments} />
+                <AttachButton onAdd={attachments.add} />
                 <span className="mx-0.5 h-4 w-px bg-[color:var(--line-soft)]" />
               <MiniToggle on={concise} set={setConcise} label="Concise" title="Terser supervisor output" />
               <MiniToggle on={readOnly} set={setReadOnly} label="Read-only" title="No file writes" />
@@ -764,7 +710,7 @@ export function MissionComposer() {
                     <div key={q.id}>
                       <div className="text-[12.5px] font-medium text-chalk-100">{q.question}</div>
                       {q.why ? (
-                        <div className="mt-0.5 text-[11.5px] text-chalk-300">{q.why}</div>
+                        <div className="mt-0.5 text-meta text-chalk-300">{q.why}</div>
                       ) : null}
                       {q.kind === "choice" && q.options.length > 0 ? (
                         <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -856,7 +802,7 @@ export function MissionComposer() {
                     title={f.definition.label}
                     badge={
                       f.id === defaultFlow ? (
-                        <span className="ml-auto shrink-0 text-[10px] font-bold text-chalk-400">default</span>
+                        <span className="ml-auto shrink-0 text-meta font-bold text-chalk-400">default</span>
                       ) : null
                     }
                     stats={[
@@ -888,7 +834,7 @@ export function MissionComposer() {
                       title={c.label}
                       badge={
                         c.id === meta?.defaultCrew ? (
-                          <span className="ml-auto shrink-0 text-[10px] font-bold text-chalk-400">default</span>
+                          <span className="ml-auto shrink-0 text-meta font-bold text-chalk-400">default</span>
                         ) : null
                       }
                       stats={[{ value: c.roles.length, label: c.roles.length === 1 ? "role" : "roles" }]}
@@ -897,12 +843,12 @@ export function MissionComposer() {
                         {c.roles.slice(0, 4).map((r) => (
                           <span
                             key={r.id}
-                            className="rounded-[6px] bg-coal-500 px-1.5 py-px text-[10px] font-medium text-chalk-300"
+                            className="rounded-[6px] bg-coal-500 px-1.5 py-px text-meta font-medium text-chalk-300"
                           >
                             {r.label}
                           </span>
                         ))}
-                        {c.roles.length > 4 ? <span className="text-[10px] text-chalk-400">+{c.roles.length - 4}</span> : null}
+                        {c.roles.length > 4 ? <span className="text-meta text-chalk-400">+{c.roles.length - 4}</span> : null}
                       </div>
                     </FlowCard>
                   );
@@ -917,7 +863,7 @@ export function MissionComposer() {
               <div className="flex flex-col gap-2.5">
                 {Object.entries(flowParams).map(([name, def]) => (
                   <div key={name}>
-                    <div className="mb-1 text-[11.5px] text-chalk-400">
+                    <div className="mb-1 text-meta text-chalk-400">
                       {def.label ?? name}
                       {def.required ? <span className="text-violet-soft"> *</span> : null}
                     </div>
@@ -984,7 +930,7 @@ export function MissionComposer() {
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-coal-800 text-chalk-300">
                       <EntityIcon entity="persona" size={15} />
                     </span>
-                    <span className="text-[10px] font-semibold text-violet-vivid">
+                    <span className="text-meta font-semibold text-violet-vivid">
                       Supervisor
                     </span>
                   </div>
@@ -1050,7 +996,7 @@ export function MissionComposer() {
               </div>
             ) : null}
 
-            <div className="mt-3.5 border-t border-[color:var(--line)] pt-3 text-[11.5px] leading-[1.55] text-chalk-400">
+            <div className="mt-3.5 border-t border-[color:var(--line)] pt-3 text-meta leading-[1.55] text-chalk-400">
               Nothing pushes or merges. The run stops at merge-ready, blocked, or failed - you review the diff before
               anything ships.
             </div>

@@ -70,7 +70,7 @@ export function StartupPanel({
   return (
     <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 px-4 py-3">
       <div
-        className={`mono mb-2 text-[11px] ${
+        className={`mono mb-2 text-meta ${
           progress.failedStage ? "text-rose-300" : "text-chalk-400"
         }`}
       >
@@ -96,7 +96,7 @@ export function StartupPanel({
               {s.label}
             </span>
             {s.detail ? (
-              <span className="truncate text-[11px] text-chalk-400">{s.detail}</span>
+              <span className="truncate text-meta text-chalk-400">{s.detail}</span>
             ) : null}
           </li>
         ))}

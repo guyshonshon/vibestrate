@@ -6,6 +6,7 @@ import type { ApprovalRequest, RunState, RunStatus, VibestrateEvent } from "../.
 import { ActivityList, DiffBar, RadialStat, StageTimeline, StatusLabel } from "./viz.js";
 import { statusMessage } from "../mission/runPhase.js";
 import { Button } from "../design/Button.js";
+import { Skeleton, SkeletonBlock, SkeletonRows } from "../design/Skeleton.js";
 import { ErrorView } from "../../lib/error-view.js";
 import { settle, errorOf, valueOr } from "../../lib/settled.js";
 
@@ -121,8 +122,40 @@ export function RunControlPage({ runId }: { runId: string }) {
         </div>
       );
     return (
-      <div className="font-jakarta flex min-h-screen items-center justify-center bg-coal-800 text-chalk-400">
-        Loading run…
+      <div className="font-jakarta min-h-screen bg-coal-900 text-chalk-100">
+        <Skeleton label="Loading the run" className="mx-auto max-w-[1080px] px-10 py-7">
+          <div className="mb-5 flex items-center justify-between">
+            <SkeletonBlock h={28} w={148} />
+            <SkeletonBlock tone="text" h={12} w={108} />
+          </div>
+          <div className={card}>
+            <div className="flex items-start justify-between gap-5">
+              <div className="flex min-w-0 flex-col gap-2">
+                <SkeletonBlock tone="text" h={12} w={92} />
+                <SkeletonBlock h={28} w={360} />
+                <SkeletonBlock tone="text" h={12} w={220} />
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <SkeletonBlock h={42} w={124} radius={12} />
+                <SkeletonBlock h={42} w={110} radius={12} />
+              </div>
+            </div>
+            <SkeletonBlock className="mt-7" h={40} w="100%" />
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div className={tile}>
+              <SkeletonBlock tone="text" h={12} w={44} />
+              <SkeletonBlock className="mt-3" h={22} w="72%" />
+            </div>
+            <div className={`${tile} flex items-center justify-center`}>
+              <SkeletonBlock w={104} h={104} radius={999} />
+            </div>
+          </div>
+          <div className={`${tile} mt-4`}>
+            <SkeletonBlock tone="text" h={12} w={72} />
+            <SkeletonRows className="mt-3" rows={5} lead="dot" trailing />
+          </div>
+        </Skeleton>
       </div>
     );
   }
@@ -223,7 +256,7 @@ export function RunControlPage({ runId }: { runId: string }) {
               </h1>
               <div className="mt-1 text-[13px] text-chalk-300">{statusMessage(run.status)}</div>
               {run.branchName ? (
-                <div className="mt-1 truncate font-mono text-[11.5px] text-chalk-400">{run.branchName}</div>
+                <div className="mt-1 truncate font-mono text-meta text-chalk-400">{run.branchName}</div>
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2">{controls}</div>

@@ -253,6 +253,7 @@ export type EditorProblem = {
     | "no-roles"
     | "role-id"
     | "role-id-dupe"
+    | "role-seat-dupe"
     | "role-seats"
     | "role-profile"
     | "role-permissions"
@@ -345,6 +346,25 @@ export function validateEditorState(
         message: `The prompt is ${role.prompt.length - MAX_PROMPT_CHARS} characters over the ${MAX_PROMPT_CHARS.toLocaleString()} cap.`,
       });
     }
+  }
+
+  // Two roles claiming one seat is not a style problem: the flow resolver
+  // throws FlowResolutionError on an ambiguous seat, so the crew would save
+  // cleanly and then refuse to start every flow that asks for it. The drafter
+  // already refuses this; the editor has to as well.
+  const seatOwners = new Map<string, string[]>();
+  for (const role of state.roles) {
+    for (const seat of role.seats) {
+      seatOwners.set(seat, [...(seatOwners.get(seat) ?? []), role.id]);
+    }
+  }
+  for (const [seat, owners] of seatOwners) {
+    if (owners.length < 2) continue;
+    problems.push({
+      code: "role-seat-dupe",
+      roleKey: null,
+      message: `Seat "${seat}" is filled by more than one role (${owners.join(", ")}); a run refuses to start on an ambiguous seat.`,
+    });
   }
 
   return problems;

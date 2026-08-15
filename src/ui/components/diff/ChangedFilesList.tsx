@@ -3,6 +3,7 @@ import { Lock } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { ChangedFile, DiffSnapshot } from "../../lib/types.js";
 import { StatTile } from "../design/StatTile.js";
+import { Skeleton, SkeletonBlock, SkeletonStats } from "../design/Skeleton.js";
 
 // Tone per git status word. FilesSection.tsx mirrors this six-way mapping
 // for the same statuses - keep new statuses colored in both places.
@@ -90,9 +91,20 @@ export function ChangedFilesList({
           {error}
         </div>
       ) : snapshot === null ? (
-        <div className="mt-2 text-[12px] text-chalk-300">
-          Worktree not available yet.
-        </div>
+        // A missing snapshot is the diff request still open, not a worktree
+        // that does not exist; a failed read lands on the error branch above.
+        <Skeleton label="Loading changed files" className="mt-2">
+          <SkeletonStats count={3} className="mb-2" />
+          <div className="flex flex-col gap-px">
+            {[0, 1, 2, 3, 4].map((r) => (
+              <div key={r} className="flex items-center gap-2 px-3 py-2">
+                <SkeletonBlock w={10} h={10} radius={3} />
+                <SkeletonBlock tone="text" h={12} w={`${[72, 54, 84, 46, 66][r]}%`} />
+                <SkeletonBlock tone="text" h={10} w={56} className="ml-auto" />
+              </div>
+            ))}
+          </div>
+        </Skeleton>
       ) : snapshot.files.length === 0 ? (
         <div className="mt-2 text-[12px] text-chalk-300">
           No changes detected.
@@ -108,7 +120,7 @@ export function ChangedFilesList({
                 }`}
               >
                 <span
-                  className={`mono w-4 text-[11px] ${STATUS_COLORS[f.status]}`}
+                  className={`mono w-4 text-meta ${STATUS_COLORS[f.status]}`}
                 >
                   {STATUS_GLYPH[f.status]}
                 </span>
@@ -122,7 +134,7 @@ export function ChangedFilesList({
                     aria-hidden
                   />
                 ) : null}
-                <span className="mono num-tabular text-[11px] text-chalk-300">
+                <span className="mono num-tabular text-meta text-chalk-300">
                   <span className="text-emerald-400">+{f.insertions}</span>{" "}
                   <span className="text-rose-300">-{f.deletions}</span>
                 </span>

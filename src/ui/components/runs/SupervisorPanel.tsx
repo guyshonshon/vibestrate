@@ -136,7 +136,7 @@ export function SupervisorPanel({
             <span className="truncate text-[13px] font-semibold text-chalk-100">{persona}</span>
             {independence ? (
               <span
-                className="mono shrink-0 text-[10.5px] text-chalk-400"
+                className="mono shrink-0 text-meta text-chalk-400"
                 title="Review independence is honest, not a confidence source - single-profile is a same-model self-check that can only lower confidence."
               >
                 {independence}
@@ -147,7 +147,7 @@ export function SupervisorPanel({
         <button
           type="button"
           onClick={() => setFeedOpen((v) => !v)}
-          className="flex shrink-0 items-center gap-1 text-[11.5px] text-chalk-400 hover:text-chalk-100"
+          className="flex shrink-0 items-center gap-1 text-meta text-chalk-400 hover:text-chalk-100"
         >
           {feedOpen ? (
             <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.9} />
@@ -165,7 +165,7 @@ export function SupervisorPanel({
             <button
               type="button"
               onClick={() => setWhyOpen((v) => !v)}
-              className="flex shrink-0 items-center gap-1 text-[11px] text-violet-soft hover:text-violet-soft/80"
+              className="flex shrink-0 items-center gap-1 text-meta text-violet-soft hover:text-violet-soft/80"
               aria-expanded={whyOpen}
               title="The full flow-selection reasoning the orchestrator recorded"
             >
@@ -181,12 +181,12 @@ export function SupervisorPanel({
       ) : null}
 
       {whyOpen && selection && hasWhy ? (
-        <div className="mt-2 rounded-[14px] border border-violet-soft/25 bg-violet-soft/[0.05] px-3 py-2 text-[11.5px]">
+        <div className="mt-2 rounded-[14px] border border-violet-soft/25 bg-violet-soft/[0.05] px-3 py-2 text-meta">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-chalk-300">
-            <span className="mono text-[11px] font-semibold text-violet-soft">Flow &amp; why</span>
+            <span className="mono text-meta font-semibold text-violet-soft">Flow &amp; why</span>
             <span className="mono text-chalk-300">{selection.flowId}</span>
             {selection.crewId ? (
-              <span className="mono text-[10.5px] text-chalk-300">crew: {selection.crewId}</span>
+              <span className="mono text-meta text-chalk-300">crew: {selection.crewId}</span>
             ) : null}
             <span className="text-chalk-400">·</span>
             <span className="text-chalk-300">{selection.source}</span>
@@ -216,7 +216,7 @@ export function SupervisorPanel({
           ) : null}
           {selection.risks.length > 0 ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              <span className="text-[11.5px] font-semibold text-amber-soft">Risks</span>
+              <span className="text-meta font-semibold text-amber-soft">Risks</span>
               {selection.risks.map((r, i) => (
                 <Chip key={i} tone="amber">
                   {r}
@@ -271,7 +271,7 @@ export function SupervisorPanel({
               className="flex items-start gap-2.5 rounded-[10px] bg-coal-500/40 px-3 py-2"
             >
               <span
-                className={`mt-px shrink-0 rounded-[6px] px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.06em] ${CLS_TAG[e.cls] ?? CLS_TAG.structural}`}
+                className={`mt-px shrink-0 rounded-[6px] px-1.5 py-0.5 text-meta font-semibold uppercase tracking-[0.06em] ${CLS_TAG[e.cls] ?? CLS_TAG.structural}`}
               >
                 {e.cls}
               </span>
@@ -280,17 +280,17 @@ export function SupervisorPanel({
                   {e.title}
                 </div>
                 {e.detail ? (
-                  <div className="mt-0.5 text-[11px] text-chalk-400">{e.detail}</div>
+                  <div className="mt-0.5 text-meta text-chalk-400">{e.detail}</div>
                 ) : null}
               </div>
-              <span className="mt-px ml-auto shrink-0 mono text-[10px] text-chalk-400">
+              <span className="mt-px ml-auto shrink-0 mono text-meta text-chalk-400">
                 {relTime(e.timestamp)}
               </span>
             </li>
           ))}
         </ul>
       ) : feedOpen && engagement.length === 0 ? (
-        <p className="mt-2 text-[11.5px] text-chalk-400">
+        <p className="mt-2 text-meta text-chalk-400">
           No supervisor decisions recorded yet - they appear here the moment
           the orchestrator selects, gates, or judges something.
         </p>

@@ -56,14 +56,14 @@ export function MetricCard({
         <span className={cn("flex h-5 w-5 items-center justify-center rounded-[7px]", iconBg[tone], text[tone])}>
           {icon}
         </span>
-        <span className="text-[11.5px] font-semibold text-chalk-200">{label}</span>
+        <span className="text-meta font-semibold text-chalk-200">{label}</span>
       </div>
       <div className="mt-1.5 flex items-end justify-between gap-2">
         <div className="flex items-baseline gap-1.5">
           <span className={cn("font-display text-[26px] font-bold leading-none tabular-nums", text[tone])}>
             {value}
           </span>
-          <span className="text-[11px] text-chalk-400">{hint}</span>
+          <span className="text-meta text-chalk-400">{hint}</span>
         </div>
         <span className="flex h-3.5 items-end gap-[3px]" aria-hidden>
           {heights.map((h, i) => (

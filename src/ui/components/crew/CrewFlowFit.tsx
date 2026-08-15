@@ -69,6 +69,14 @@ export function CrewFlowFit({ fits }: { fits: FlowFit[] }) {
             return (
               <div
                 key={fit.flowId}
+                // The seats a healthy flow asks for are context, not news: the
+                // status word already says it runs. On hover, not as a second
+                // line every clean row carries.
+                title={
+                  fit.required.length > 0
+                    ? `Seats: ${fit.required.join(", ")}`
+                    : "Asks for no seats"
+                }
                 className={cn(
                   "flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-[12px] border px-3 py-2",
                   s.row,
@@ -78,10 +86,10 @@ export function CrewFlowFit({ fits }: { fits: FlowFit[] }) {
                   <ToneDot tone={s.tone} />
                   {fit.flowLabel}
                 </span>
-                <span className="mono text-[11px] text-chalk-300">{fit.flowId}</span>
+                <span className="mono text-meta text-chalk-300">{fit.flowId}</span>
                 <span
                   className={cn(
-                    "ml-auto text-[11.5px] font-semibold",
+                    "ml-auto text-meta font-semibold",
                     fit.status === "blocked"
                       ? "text-rose-300"
                       : fit.status === "contested"
@@ -92,7 +100,7 @@ export function CrewFlowFit({ fits }: { fits: FlowFit[] }) {
                   {s.label}
                 </span>
                 {fit.missing.length > 0 ? (
-                  <p className="w-full text-[11.5px] leading-[1.45] text-chalk-200">
+                  <p className="w-full text-meta leading-[1.45] text-chalk-200">
                     <span className="font-semibold text-rose-300">
                       No role takes{" "}
                     </span>
@@ -103,7 +111,7 @@ export function CrewFlowFit({ fits }: { fits: FlowFit[] }) {
                   </p>
                 ) : null}
                 {fit.contested.length > 0 ? (
-                  <p className="w-full text-[11.5px] leading-[1.45] text-chalk-200">
+                  <p className="w-full text-meta leading-[1.45] text-chalk-200">
                     <span className="font-semibold text-amber-soft">
                       Several roles take{" "}
                     </span>
@@ -111,13 +119,6 @@ export function CrewFlowFit({ fits }: { fits: FlowFit[] }) {
                     <span className="text-chalk-300">
                       . The run needs a role override, or it stops on the ambiguity.
                     </span>
-                  </p>
-                ) : null}
-                {fit.status === "ready" ? (
-                  <p className="w-full text-[11.5px] leading-[1.45] text-chalk-300">
-                    {fit.required.length === 0
-                      ? "This flow asks for no seats."
-                      : `Every seat it asks for has one taker: ${fit.required.join(", ")}.`}
                   </p>
                 ) : null}
               </div>

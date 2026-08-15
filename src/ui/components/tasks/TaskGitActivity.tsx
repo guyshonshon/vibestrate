@@ -3,6 +3,7 @@ import { GitBranch, GitCommit } from "lucide-react";
 import { ApiError, api } from "../../lib/api.js";
 import type { DiffSnapshot, GitStatus } from "../../lib/types.js";
 import { cn } from "../design/cn.js";
+import { Skeleton, SkeletonBlock } from "../design/Skeleton.js";
 import { describeError } from "../../lib/error-view.js";
 import { settle, errorOf } from "../../lib/settled.js";
 
@@ -17,7 +18,7 @@ function gone(err: unknown): boolean {
 function RowError({ err, label }: { err: unknown; label: string }) {
   return (
     <span
-      className="rounded-[7px] bg-rose-500/14 px-1.5 py-0.5 text-[10px] font-semibold text-rose-300"
+      className="rounded-[7px] bg-rose-500/14 px-1.5 py-0.5 text-meta font-semibold text-rose-300"
       title={describeError(err).title}
     >
       {label}
@@ -98,9 +99,27 @@ export function TaskGitActivity({
           <div className="text-[12px] text-chalk-400">
             No runs yet.
           </div>
+        ) : Object.keys(rows).length === 0 ? (
+          // Every row lands in one `setRows`, so an empty map is the first
+          // fetch - during which each row otherwise claimed "worktree
+          // unavailable" about a worktree nobody had looked at yet.
+          <Skeleton label="Loading git activity" className="flex flex-col gap-1.5">
+            <SkeletonBlock tone="text" h={11} w="58%" className="mb-1" />
+            {runIds.map((rid) => (
+              <div
+                key={rid}
+                className="flex items-center gap-2 rounded-[12px] bg-coal-500/60 px-3 py-2"
+              >
+                <SkeletonBlock tone="text" h={11} w={132} />
+                <SkeletonBlock h={18} w={88} radius={7} />
+                <SkeletonBlock h={18} w={62} radius={7} />
+                <SkeletonBlock h={22} w={48} radius={8} className="ml-auto" />
+              </div>
+            ))}
+          </Skeleton>
         ) : (
           <>
-            <div className="text-[11px] text-chalk-400">
+            <div className="text-meta text-chalk-400">
               Scoped to this task's worktrees - nothing from the rest of the repo.
             </div>
             <ul className="mt-2.5 space-y-1.5">
@@ -111,25 +130,25 @@ export function TaskGitActivity({
                 return (
                   <li
                     key={rid}
-                    className="rounded-[12px] bg-coal-500/60 px-3 py-2 text-[11.5px]"
+                    className="rounded-[12px] bg-coal-500/60 px-3 py-2 text-meta"
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         onClick={() => onOpenRun(rid)}
-                        className="font-mono text-[11px] text-violet-soft transition hover:text-violet-soft/80"
+                        className="font-mono text-meta text-violet-soft transition hover:text-violet-soft/80"
                       >
                         {rid}
                       </button>
                       {status?.upstream || status?.headHash ? (
                         <>
-                          <span className="inline-flex items-center gap-1 rounded-[7px] bg-coal-500 px-1.5 py-0.5 text-[10px] text-chalk-300">
+                          <span className="inline-flex items-center gap-1 rounded-[7px] bg-coal-500 px-1.5 py-0.5 text-meta text-chalk-300">
                             <GitBranch className="h-3 w-3" strokeWidth={1.9} aria-hidden />
                             {status.upstream ?? status.headHash}
                           </span>
                           <span
                             className={cn(
-                              "rounded-[7px] px-1.5 py-0.5 text-[10px] font-semibold",
+                              "rounded-[7px] px-1.5 py-0.5 text-meta font-semibold",
                               status.isDirty
                                 ? "bg-amber-soft/14 text-amber-soft"
                                 : "bg-emerald-400/14 text-emerald-400",
@@ -143,7 +162,7 @@ export function TaskGitActivity({
                       ) : row?.statusError ? (
                         <RowError err={row.statusError} label="git status failed" />
                       ) : (
-                        <span className="text-[10px] text-chalk-400">
+                        <span className="text-meta text-chalk-400">
                           (worktree unavailable)
                         </span>
                       )}
@@ -151,7 +170,7 @@ export function TaskGitActivity({
                         <RowError err={row.diffError} label="diff failed" />
                       ) : diff && diff.totals.files > 0 ? (
                         <span
-                          className="inline-flex items-center gap-1 rounded-[7px] bg-coal-500 px-1.5 py-0.5 text-[10px]"
+                          className="inline-flex items-center gap-1 rounded-[7px] bg-coal-500 px-1.5 py-0.5 text-meta"
                           title={`${diff.totals.files} file(s) changed`}
                         >
                           <span className="text-emerald-400">+{diff.totals.insertions}</span>
@@ -161,7 +180,7 @@ export function TaskGitActivity({
                       <button
                         type="button"
                         onClick={() => onOpenGit(rid)}
-                        className="ml-auto inline-flex items-center gap-1 rounded-[8px] bg-coal-500 px-2 py-1 text-[10px] text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
+                        className="ml-auto inline-flex items-center gap-1 rounded-[8px] bg-coal-500 px-2 py-1 text-meta text-chalk-300 transition hover:bg-coal-400 hover:text-chalk-100"
                         title="Open git inspector for this run"
                       >
                         <GitCommit className="h-3 w-3" strokeWidth={1.9} aria-hidden />
@@ -169,7 +188,7 @@ export function TaskGitActivity({
                       </button>
                     </div>
                     {status?.headHash && status.headSubject ? (
-                      <div className="mt-1 truncate text-[10.5px] text-chalk-400">
+                      <div className="mt-1 truncate text-meta text-chalk-400">
                         <span className="font-mono">{status.headHash}</span> -{" "}
                         {status.headSubject}
                       </div>
