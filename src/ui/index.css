@@ -9,7 +9,6 @@
 @import "@fontsource-variable/geist-mono/wght.css";
 @import "@fontsource-variable/bricolage-grotesque/wght.css";
 @import "@fontsource-variable/space-grotesk/wght.css";
-@import "@fontsource-variable/jetbrains-mono/wght.css";
 @import "@fontsource-variable/plus-jakarta-sans/wght.css";
 
 @theme {
@@ -72,8 +71,8 @@
     "Geist Variable", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
     Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono:
-    "Geist Mono Variable", "JetBrains Mono Variable", "SFMono-Regular", "Menlo",
-    Consolas, ui-monospace, monospace;
+    "Geist Mono Variable", "SFMono-Regular", "Menlo", Consolas, ui-monospace,
+    monospace;
   --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
   /* Editorial display: headlines, card titles, phase labels. */
   --font-display:
@@ -82,9 +81,6 @@
   /* Wordmark + powertype objects only. */
   --font-wordmark:
     "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
-  /* The terminal / command lines. */
-  --font-term:
-    "JetBrains Mono Variable", "Geist Mono Variable", ui-monospace, monospace;
   /* ── Soft-dark "coal / chalk" design language (approved 2026-06-27): big bold
    * type, airy soft cards, restrained violet accent. ADDITIVE - the existing
    * ink/fog tokens are untouched so current screens don't shift while the new
@@ -177,7 +173,6 @@
   --fail: #fb7185;
   --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
   --font-wordmark: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-term: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, monospace;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
