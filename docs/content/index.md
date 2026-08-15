@@ -4,11 +4,11 @@ description: Vibestrate is where your AI coding agents work together - one share
 slug: index
 ---
 
-Vibestrate is where your AI coding agents work together. You already have the models; what you don't have is somewhere to run them as a team. Vibestrate gives them one plan, one set of rules, and a place to hand work to each other, so you stop carrying context between tools by hand.
+You already have the models. What you don't have is somewhere to run them as a team - one plan, one set of rules, and a place to hand work between them, so you stop carrying context from tool to tool by hand.
 
-Hand it a task, even one you could not write yourself - a security fix, a piece of WebGL you have never touched. It breaks the work down, runs it across several models, and supervises the whole thing.
+Hand Vibestrate a task, including one you could not write yourself: a security fix, a piece of WebGL you have never touched. It breaks the work down, runs it across several models, and supervises the whole thing.
 
-Because AI can write that code. AI also gets it wrong, and it tends to agree with whatever you said - see [why a human stays in the loop](/docs/getting-started/why-a-human).
+AI can write that code. It also gets things wrong, and it tends to agree with whatever you said last. That is why the final call stays yours - see [why a human stays in the loop](/docs/getting-started/why-a-human).
 
 ## The crew is the point
 
