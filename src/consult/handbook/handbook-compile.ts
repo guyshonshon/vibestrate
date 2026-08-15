@@ -320,7 +320,14 @@ export function distillMarkdown(body: string, maxBytes: number): string {
   const fits = (bs: Block[]): boolean => Buffer.byteLength(joinBlocks(bs), "utf8") <= maxBytes;
   const kept = [...blocks];
   for (const level of [3, 2] as const) {
-    for (let i = kept.length - 1; i >= 0 && !fits(kept); i -= 1) {
+    // `kept.length > 1` is the floor that makes this a TRIM rather than a
+    // delete. Without it a page whose whole body is one over-budget block -
+    // exactly the shape of a generated CLI reference - lost that block and
+    // distilled to "", so retrieval ranked the page first and handed the model
+    // a heading with nothing under it. The model then said, accurately, that
+    // the docs contain no such command. Something over budget must come back
+    // shortened; it must never come back missing.
+    for (let i = kept.length - 1; i >= 0 && kept.length > 1 && !fits(kept); i -= 1) {
       if (kept[i]?.keep === level) kept.splice(i, 1);
     }
   }
@@ -328,7 +335,7 @@ export function distillMarkdown(body: string, maxBytes: number): string {
   // under it is noise in the prompt, so drop it - unless it is the only block
   // left, where dropping it would empty the entry.
   const isHeading = (b: Block | undefined): boolean => !!b && b.keep === 1 && b.text.startsWith("#");
-  for (let i = kept.length - 1; i >= 0; i -= 1) {
+  for (let i = kept.length - 1; i >= 0 && kept.length > 1; i -= 1) {
     if (isHeading(kept[i]) && (i === kept.length - 1 || isHeading(kept[i + 1]))) kept.splice(i, 1);
   }
   return truncateBytes(joinBlocks(kept), maxBytes);

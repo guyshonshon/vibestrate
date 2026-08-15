@@ -2,3 +2,30 @@ Vibestrate
 Copyright 2026 Vibestrate Contributors
 
 This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Bundled fonts
+-------------
+
+The dashboard ships its typefaces as woff2 files inside the package and loads
+them from disk. It requests no font, stylesheet or script from a third party at
+runtime, so the dashboard works with no network at all - and does not tell
+anyone else when you open it.
+
+Each of these is licensed under the SIL Open Font License 1.1, which permits
+bundling and commercial use and requires that this notice travel with the fonts.
+The full text of each licence is in LICENSES/.
+
+  Bricolage Grotesque  Copyright 2022 The Bricolage Grotesque Project Authors
+                       https://github.com/ateliertriay/bricolage
+  Geist                Copyright 2024 The Geist Project Authors
+                       https://github.com/vercel/geist-font
+  Geist Mono           Copyright 2024 The Geist Project Authors
+                       https://github.com/vercel/geist-font
+  JetBrains Mono       Copyright 2020 The JetBrains Mono Project Authors
+                       https://github.com/JetBrains/JetBrainsMono
+  Plus Jakarta Sans    Copyright 2020 The Plus Jakarta Sans Project Authors
+                       https://github.com/tokotype/PlusJakartaSans
+  Space Grotesk        Copyright 2020 The Space Grotesk Project Authors
+                       https://github.com/floriankarsten/space-grotesk
+
+None of the fonts has been modified, so no Reserved Font Name applies.
