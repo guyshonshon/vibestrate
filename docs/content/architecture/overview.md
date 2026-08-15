@@ -94,7 +94,7 @@ The Fastify server in `src/server/` exposes read-only routes over the persisted 
 Some things are missing on purpose. Each absence is a choice about where Vibestrate stops.
 
 - **No global daemon.** When you close the terminal, Vibestrate's process ends. Runs that are mid-stage end with it (most cleanly at the next stage boundary because of how pause works under the hood).
-- **No remote.** No relay, no telemetry beacon, no automatic update check.
+- **No remote by default.** No relay, no telemetry beacon, no automatic update check, nothing running between you and your models. The two exceptions are both things you trigger by hand: the flow hub, when you search or install, and `vibe telemetry export`, which sends one finished run's metrics to a collector you name and run.
 - **No model API.** Vibestrate doesn't hold tokens. The local provider CLIs do that themselves.
 - **No OS sandboxing.** Path guards and permission profiles refuse risky operations, but they're enforced by Vibestrate itself, not by the OS.
 

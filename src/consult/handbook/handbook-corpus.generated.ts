@@ -811,7 +811,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "source": "Vibestrate docs: architecture/overview",
       "summary": "How Vibestrate's pieces fit together, from the orchestrator down to the local CLI binary.",
       "titleTerms": "architectur overview",
-      "terms": "6 agent aider an api approv architectur artifact assert binary by claud cli cod code_writ codex command commander component control cor daemon deliberately doe down driv executor fastify fit for from gemini glob how id in invocat loc machin miss model mor no not ollama only orchestrator os overview own piec planner program project provider react read relat remot reviewer run s sandbox server src stag stage-by-stag stat the to together transit ts ui under validat vib vibestrat wait waiting_for_approv what workflow writ yml your",
+      "terms": "6 agent aider an api approv architectur artifact assert binary by claud cli cod code_writ codex command commander component control cor daemon default deliberately doe down driv executor export fastify fit for from gemini glob how id in invocat loc machin miss model mor no not ollama only orchestrator os overview own piec planner program project provider react read relat remot reviewer run s sandbox server src stag stage-by-stag stat telemetry the to together transit ts ui under validat vib vibestrat wait waiting_for_approv what workflow writ yml your",
       "body": "Vibestrate is a single Node process that orchestrates other local processes. There is no daemon, no service mesh, no cloud component."
     },
     {

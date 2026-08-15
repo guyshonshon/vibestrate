@@ -167,7 +167,7 @@ This is the part that matters, so it gets no asterisks:
 |---|---|
 | 🔑 **No APIs of ours** | Vibestrate never holds an API key. It spawns the vendor CLIs you already logged into and reads their output - your prompts and code go straight to those vendors. Vibestrate is not in the middle. |
 | 💸 **No payments, ever** | Vibestrate is free. You pay only for the models you choose to run, billed by the vendor, exactly as before. |
-| 📡 **No cloud, no telemetry** | Everything runs on your laptop. Nothing phones home. The only network calls are the ones your provider CLIs already make. |
+| 📡 **No cloud, no telemetry** | Everything runs on your laptop and nothing phones home. Beyond the calls your provider CLIs already make, Vibestrate reaches the network only when you ask it to: searching or installing from the flow hub, and `vibe telemetry export`, which is off by default and posts to a collector you run. |
 | 🔒 **Your code stays put** | Edits happen in an isolated worktree under your control. No auto-push, no auto-merge. |
 | 📖 **Genuinely open source** | Apache-2.0 licensed, all of it. Read it, fork it, run it offline. |
 
