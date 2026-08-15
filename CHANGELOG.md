@@ -22,6 +22,32 @@
 > as-is. Markdown stays where a human writes it: `VIBESTRATE.md`, `rules.md`, the
 > docs.
 
+- **The dashboard opens with no network, and opens straight away.** `index.html`
+  carried a stylesheet link to Google Fonts. It blocked the first paint on a
+  third-party request, fetched nothing that was used - every typeface is already
+  bundled in the package - and told Google each time you opened a local tool.
+  Offline it blocked until the request gave up. It is gone, the page now makes
+  zero external requests, and a test fails the build if a link to another origin
+  comes back. First contentful paint went from 900ms warm and 2.3s cold to 36ms.
+- **A loading screen instead of a page assembling in pieces.** It lives in the
+  HTML itself rather than in the app, so it is on screen before any JavaScript
+  parses, and it clears when the dashboard has actually rendered rather than
+  after a timer. If the app never loads at all, it says so and tells you what to
+  do instead of animating forever.
+- **Dropdowns stop getting cut off.** A menu near the bottom of the supervisor
+  panel or the consult dock was clipped at the panel edge whichever way it
+  opened, because the panel hides anything that overflows it. Option lists now
+  render above the page rather than inside their panel, so they open upward when
+  they are short of room and stay on screen.
+- **Consult stops saying a command does not exist.** Asking how to make a flow
+  returned advice to hand-edit `project.yml`, because the compiled documentation
+  it reads had emptied the pages it needed: a page whose whole body was one
+  oversized block was dropped rather than shortened. Those pages carry their real
+  commands again, and something over budget now comes back trimmed, never missing.
+- **Bundled fonts ship with their licences.** Six typefaces travel inside the
+  package under the SIL Open Font License, which asks that the notice travel with
+  them. It was not. Each licence is now included and every family is named in
+  `NOTICE` with its copyright line.
 - **Consult knows how Vibestrate works, not just what is in your project.** Ask
   "how do I make a crew" and the answer is grounded in the product's own
   documentation rather than improvised, so it stops naming buttons that do not
