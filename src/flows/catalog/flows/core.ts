@@ -29,7 +29,11 @@ export const defaultFlow = flowDefinitionSchema.parse({
   version: 1,
   label: "Default",
   description:
-    "The standard plan → architect → implement → validate → review workflow. Review loops back to fix and re-validate until it passes or the bound is hit, then a verify gate decides merge-readiness. Runs when no other flow is picked.",
+    // No claim about being the default here: `defaultFlow` is per-project and
+    // can name any flow, so a static description asserting "runs when no other
+    // flow is picked" is false the moment someone points it elsewhere. The UI
+    // reads the real value and says so next to the flow's name.
+    "The standard plan → architect → implement → validate → review workflow. Review loops back to fix and re-validate until it passes or the bound is hit, then a verify gate decides merge-readiness.",
   seats: {
     planner: {
       label: "Planner",

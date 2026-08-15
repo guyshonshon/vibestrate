@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ChevronRight, Cpu, GitBranch, Wrench, Bot, ShieldQuestion } from "lucide-react";
 import type { RunAudit, AuditStep, EngagementEntry, PerItemVerdict } from "../../lib/types.js";
 import { Chip, ToneDot, type ChipTone } from "../design/Chip.js";
+import { stepKindName } from "../design/stepKind.js";
 import { StatTile } from "../design/StatTile.js";
 import {
   Skeleton,
@@ -180,7 +181,7 @@ function StepRow({
             {step.fellBack ? <span className="text-meta text-amber-soft">fell back</span> : null}
           </div>
           <div className="mt-px text-meta text-chalk-400">
-            {step.roleLabel ?? step.roleId ?? step.kind}
+            {step.roleLabel ?? step.roleId ?? stepKindName(step.kind)}
             {step.model ? ` · ${step.model}` : ""}
             {step.retries > 0 ? ` · ${step.retries} retr${step.retries === 1 ? "y" : "ies"}` : ""}
           </div>

@@ -1,4 +1,5 @@
 import { FlowGraph, isGraphSteps } from "../workflow/FlowGraph.js";
+import { stepKindName } from "../design/stepKind.js";
 import { extractFlowFromYaml } from "../../lib/flow-yaml.js";
 
 /**
@@ -47,7 +48,7 @@ export function YamlGraphPreview({ yamlText }: { yamlText: string }) {
           >
             <span className="mono text-chalk-400">{i + 1}.</span>
             <span className="text-chalk-100">{s.label}</span>
-            <span className="mono text-meta text-chalk-400">{s.kind}</span>
+            <span className="text-meta text-chalk-300">{stepKindName(s.kind)}</span>
           </li>
         ))}
       </ol>

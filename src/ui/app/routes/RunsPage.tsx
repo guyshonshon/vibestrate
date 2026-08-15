@@ -109,7 +109,6 @@ export function RunsPage({
               tone: status ? FILTER_TONE[status] : "violet",
             }}
             title={status ? `${RUN_FILTER_LABEL[status]} runs` : "All runs"}
-            purpose="Every run, newest first, with the queue and what is ready to merge."
             actions={
               <>
                 {status && onClearStatus ? (

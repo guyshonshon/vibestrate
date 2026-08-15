@@ -28,6 +28,12 @@ import {
   SkeletonStats,
 } from "../../components/design/Skeleton.js";
 import { EntityIcon, FlowIcon, type EntityKind } from "../../components/design/EntityIcon.js";
+import { ToneDot } from "../../components/design/Chip.js";
+import {
+  STEP_GROUP_TONE,
+  stepKindGroup,
+  stepKindName,
+} from "../../components/design/stepKind.js";
 import { FlowBars } from "../../components/design/FlowBars.js";
 import { FlowCard } from "../../components/design/FlowCard.js";
 import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
@@ -928,26 +934,19 @@ function FlowSteps({ flow }: { flow: DiscoveredFlow }) {
       <ol className="flex flex-col gap-1">
         {steps.map((s) => (
           <li key={s.id} className="flex items-center gap-2.5 px-1.5 py-1">
-            <StepKindDot kind={s.kind} />
+            {/* Same build/review/check/gate colour the Flow Builder legend and
+                the flow cards use, so one flow does not change palette between
+                screens. */}
+            <ToneDot tone={STEP_GROUP_TONE[stepKindGroup(s.kind)]} />
             <span className="flex-1 truncate text-[12px] text-chalk-300">{s.label}</span>
-            <span className="mono text-meta text-chalk-400">{s.seat || s.kind}</span>
+            <span className="text-meta text-chalk-400">
+              {s.seat ? <span className="mono">{s.seat}</span> : stepKindName(s.kind)}
+            </span>
           </li>
         ))}
       </ol>
     </div>
   );
-}
-
-function StepKindDot({ kind }: { kind: string }) {
-  const tone =
-    kind === "review-turn"
-      ? "bg-violet-soft"
-      : kind === "validation"
-        ? "bg-sky-glow"
-        : kind === "approval-gate"
-          ? "bg-amber-soft"
-          : "bg-chalk-400";
-  return <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", tone)} aria-hidden />;
 }
 
 // A framed stat - bold value over a violet unit label, content-width. Same tile

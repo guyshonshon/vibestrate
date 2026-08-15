@@ -9,16 +9,10 @@ import {
   ChevronRight,
   Code,
   Cpu,
-  Eye,
-  FileCheck,
   GripVertical,
-  Lock,
   Plus,
-  ShieldCheck,
   Trash2,
-  Wrench,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import {
   api,
   type FlowApprovalGatePatch,
@@ -28,7 +22,13 @@ import {
 import { Chip } from "../design/Chip.js";
 import { HelpHint } from "../design/HelpHint.js";
 import { Select } from "../design/Select.js";
-import { STEP_GROUP_TONE, stepKindGroup } from "../design/stepKind.js";
+import {
+  STEP_GROUP_TONE,
+  STEP_KIND_INFO,
+  STEP_KIND_ORDER,
+  stepKindGroup,
+  stepKindName,
+} from "../design/stepKind.js";
 import { cn } from "../design/cn.js";
 import { IconBtn } from "../design/IconBtn.js";
 import type {
@@ -38,67 +38,6 @@ import type {
   ResolvedFlowStep,
 } from "../../lib/types.js";
 import { resolveNullable, type StepDraft } from "./transforms.js";
-
-const STEP_KINDS: FlowStepKind[] = [
-  "agent-turn",
-  "review-turn",
-  "response-turn",
-  "validation",
-  "approval-gate",
-  "summary-turn",
-];
-
-// What each step kind actually does, so the picker isn't six unexplained
-// labels. `phase` is the run status the step drives (the orchestrator maps each
-// kind to one); it's the clearest way to tell the turn kinds apart. Sourced from
-// docs/content/extending/add-flow.md + core/orchestrator.ts (flowStatusForStep).
-export const KIND_INFO: Record<
-  FlowStepKind,
-  { title: string; phase: string; blurb: string; icon: LucideIcon }
-> = {
-  "agent-turn": {
-    title: "Agent turn",
-    phase: "plan / architect / build",
-    icon: Cpu,
-    blurb:
-      "One seat plans, architects, or writes the change.",
-  },
-  "review-turn": {
-    title: "Review turn",
-    phase: "reviewing",
-    icon: Eye,
-    blurb:
-      "A different seat critiques an earlier step and raises findings.",
-  },
-  "response-turn": {
-    title: "Response turn",
-    phase: "fixing",
-    icon: Wrench,
-    blurb:
-      "The original seat answers the findings: fixes them, or pushes back.",
-  },
-  validation: {
-    title: "Validation",
-    phase: "validating",
-    icon: ShieldCheck,
-    blurb:
-      "Runs your build, test and lint. No agent, just pass or fail.",
-  },
-  "approval-gate": {
-    title: "Approval gate",
-    phase: "waiting for approval",
-    icon: Lock,
-    blurb:
-      "Pauses for a person to approve or reject the work so far.",
-  },
-  "summary-turn": {
-    title: "Summary turn",
-    phase: "verifying",
-    icon: FileCheck,
-    blurb:
-      "A final seat verifies the result and writes the summary.",
-  },
-};
 
 const RISK_LEVELS: FlowApprovalRiskLevel[] = ["low", "medium", "high"];
 
@@ -202,12 +141,10 @@ export function StepRow({
           <span className="text-[13.5px] font-medium text-chalk-100">
             {step.label}
           </span>
-          <Chip tone={tone}>{step.kind}</Chip>
-          {step.approval ? (
-            <Chip tone="amber">
-              <Lock className="h-3 w-3" strokeWidth={1.7} /> approval gate
-            </Chip>
-          ) : null}
+          {/* Only an approval-gate may carry approval metadata (the schema
+              rejects it anywhere else), so the kind name already says the step
+              is a gate - a second chip for it would say it twice. */}
+          <Chip tone={tone}>{stepKindName(step.kind)}</Chip>
           {step.optional ? (
             <span className="inline-flex items-center rounded-[6px] border border-[color:var(--line-soft)] bg-coal-600 px-1.5 py-px text-meta font-medium text-chalk-300">
               optional
@@ -302,7 +239,7 @@ export function PromptComposition({
     { label: "Your task", content: "The run brief you start with.", runtime: true },
     {
       label: "Step context",
-      content: `${snapshot.label} - ${step.label} (${step.kind})${
+      content: `${snapshot.label} - ${step.label} (${stepKindName(step.kind)})${
         step.outputs && step.outputs.length > 0
           ? `; expected output: ${step.outputs.join(", ")}`
           : ""
@@ -496,48 +433,11 @@ export function StepInspector({
       </Field>
 
       <Field label="Kind" help={{ slug: "extending/add-flow", label: "Step kinds" }}>
-        <div className="flex flex-wrap gap-1.5">
-          {STEP_KINDS.map((k) => (
-            <button
-              key={k}
-              type="button"
-              disabled={!editable}
-              title={`${KIND_INFO[k].title} - ${KIND_INFO[k].blurb}`}
-              onClick={() => onPatchDraft({ kind: k })}
-              className={cn(
-                "text-meta px-2 py-1 rounded-[10px] border whitespace-nowrap transition",
-                k === kind
-                  ? "border-violet-soft/45 bg-violet-soft/10 text-violet-soft"
-                  : "border-[color:var(--line)] bg-coal-500 text-chalk-300 hover:text-chalk-100",
-                !editable && "opacity-60 cursor-not-allowed",
-              )}
-            >
-              {k}
-            </button>
-          ))}
-        </div>
-        {/* What the selected kind actually does - so the picker isn't six
-            unexplained labels. The phase chip is the run status this kind drives,
-            the clearest way to tell the turn kinds apart. */}
-        <div className="mt-2 rounded-[12px] border border-[color:var(--line-soft)] bg-coal-800 px-3 py-2.5">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[8px] bg-violet-soft/15 text-violet-soft">
-              {(() => {
-                const KindIcon = KIND_INFO[kind].icon;
-                return <KindIcon className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />;
-              })()}
-            </span>
-            <span className="text-[12px] font-semibold text-chalk-100">
-              {KIND_INFO[kind].title}
-            </span>
-            <span className="rounded-[8px] bg-violet-soft/10 px-1.5 py-0.5 text-meta font-medium text-violet-soft">
-              {KIND_INFO[kind].phase}
-            </span>
-          </div>
-          <p className="mt-1.5 text-meta leading-[1.5] text-chalk-300">
-            {KIND_INFO[kind].blurb}
-          </p>
-        </div>
+        <KindPicker
+          value={kind}
+          editable={editable}
+          onChange={(k) => onPatchDraft({ kind: k })}
+        />
       </Field>
 
       <Field
@@ -563,7 +463,7 @@ export function StepInspector({
         />
         {requiresSeat && !seatId ? (
           <div className="text-meta text-amber-soft mt-1">
-            {kind} steps need a seat.
+            A {stepKindName(kind)} step needs a seat.
           </div>
         ) : null}
         <div className="text-meta text-chalk-400 mt-1">
@@ -742,6 +642,73 @@ export function StepInspector({
           <Row label="Outputs" items={step.outputs} />
         </div>
       </Field>
+    </div>
+  );
+}
+
+/**
+ * Pick what the step does. Every option carries its own one-line description,
+ * because the choice is only obvious once you can read the consequence - a row
+ * of stored ids ("response-turn") told you nothing about which one to take.
+ * The id is shown for the chosen kind only: it is what lands in the YAML, and
+ * that is the single place in this view where it is worth knowing.
+ */
+function KindPicker({
+  value,
+  editable,
+  onChange,
+}: {
+  value: FlowStepKind;
+  editable: boolean;
+  onChange: (kind: FlowStepKind) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label="Step kind" className="flex flex-col gap-1">
+      {STEP_KIND_ORDER.map((k) => {
+        const info = STEP_KIND_INFO[k];
+        const KindIcon = info.icon;
+        const on = k === value;
+        return (
+          <button
+            key={k}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            disabled={!editable}
+            onClick={() => onChange(k)}
+            className={cn(
+              "flex w-full items-baseline gap-2 rounded-[10px] border px-2.5 py-1.5 text-left transition",
+              on
+                ? "border-violet-soft/45 bg-violet-soft/10"
+                : "border-[color:var(--line)] bg-coal-500 hover:border-[color:var(--line-strong)]",
+              !editable && "cursor-not-allowed opacity-60",
+            )}
+          >
+            <KindIcon
+              className={cn(
+                "h-3.5 w-3.5 shrink-0 translate-y-0.5",
+                on ? "text-violet-soft" : "text-chalk-300",
+              )}
+              strokeWidth={1.9}
+              aria-hidden
+            />
+            <span
+              className={cn(
+                "shrink-0 text-[12.5px] font-semibold",
+                on ? "text-violet-soft" : "text-chalk-100",
+              )}
+            >
+              {info.name}
+            </span>
+            <span className="min-w-0 flex-1 text-meta leading-[1.45] text-chalk-300">
+              {info.does}
+            </span>
+            {on ? (
+              <span className="mono shrink-0 text-meta text-chalk-400">{k}</span>
+            ) : null}
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Fragment } from "react";
 import { HelpHint } from "../design/HelpHint.js";
 import { Select } from "../design/Select.js";
 import { cn } from "../design/cn.js";
+import { STEP_KIND_INFO } from "../design/stepKind.js";
 import type { FlowLoop, FlowStepDefinition } from "../../lib/types.js";
 import { Field } from "./StepInspector.js";
 
@@ -195,7 +196,7 @@ export function LoopCard({
             <p className="text-meta text-amber-soft">
               {!rangeOk ? "“From” must come at or before “To”. " : ""}
               {!decisionOk
-                ? "Pick a review-turn inside the range as the decision step."
+                ? `Pick a ${STEP_KIND_INFO["review-turn"].name} step inside the range as the decision step.`
                 : ""}
             </p>
           ) : (

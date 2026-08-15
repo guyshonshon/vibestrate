@@ -23,6 +23,7 @@ import {
 import { api } from "../../lib/api.js";
 import type { NotificationRecord, RunState, RunStatus } from "../../lib/types.js";
 import { EntityIcon } from "../design/EntityIcon.js";
+import { IconBtn } from "../design/IconBtn.js";
 import { ThemeToggle } from "../design/ThemeToggle.js";
 import { NotificationBell } from "../notifications/NotificationBell.js";
 import { cn } from "../design/cn.js";
@@ -278,18 +279,41 @@ export function Sidebar({
           </div>
         ) : null}
 
+        {/* The makers hang off the row that owns the concept rather than
+            standing as nav rows of their own: an editor is an action on Flows
+            and on Crew, not a destination beside them. The row still opens the
+            catalog, which is where an existing flow or crew is opened for
+            editing, so both making and editing are one hop from the shell. */}
         <NavItem
           icon={<EntityIcon entity="flow" size={18} />}
           label="Flows"
           selected={currentNav === "flows" || currentNav === "flow"}
           onClick={onShowFlows}
           tourId="nav-flows"
+          action={
+            <IconBtn
+              variant="plain"
+              title="New flow"
+              onClick={() => navigate({ kind: "flow-editor", flowId: null })}
+            >
+              <Plus className="h-4 w-4" strokeWidth={2} />
+            </IconBtn>
+          }
         />
         <NavItem
           icon={<EntityIcon entity="crew" size={18} />}
           label="Crew"
           selected={currentNav === "crew"}
           onClick={onShowCrew}
+          action={
+            <IconBtn
+              variant="plain"
+              title="New crew"
+              onClick={() => navigate({ kind: "crew-editor", crewId: null })}
+            >
+              <Plus className="h-4 w-4" strokeWidth={2} />
+            </IconBtn>
+          }
         />
         {/* Top-level, not inside More: policies are the one surface where the
             owner's rules outrank the model's judgment, so they must be findable
@@ -418,6 +442,7 @@ function NavItem({
   icon,
   label,
   trailing,
+  action,
   selected,
   onClick,
   tourId,
@@ -425,24 +450,35 @@ function NavItem({
   icon: ReactNode;
   label: string;
   trailing?: ReactNode;
+  /** A second control on the row, rendered as a sibling of the nav button so
+   *  the two clicks stay separable (a button inside a button is neither). */
+  action?: ReactNode;
   selected?: boolean;
   onClick?: () => void;
   tourId?: string;
 }) {
   return (
-    <button
-      type="button"
-      data-tour={tourId}
-      onClick={onClick}
+    <div
       className={cn(
-        "flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-left text-[14px] font-medium",
-        selected ? "bg-coal-500 font-semibold text-chalk-100" : "text-chalk-400 hover:text-chalk-100",
+        "flex items-center rounded-[11px]",
+        selected ? "bg-coal-500" : null,
       )}
     >
-      {icon}
-      <span>{label}</span>
-      {trailing ? <span className="ml-auto">{trailing}</span> : null}
-    </button>
+      <button
+        type="button"
+        data-tour={tourId}
+        onClick={onClick}
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-3 rounded-[11px] px-3 py-2.5 text-left text-[14px] font-medium",
+          selected ? "font-semibold text-chalk-100" : "text-chalk-400 hover:text-chalk-100",
+        )}
+      >
+        {icon}
+        <span className="truncate">{label}</span>
+        {trailing ? <span className="ml-auto">{trailing}</span> : null}
+      </button>
+      {action ? <span className="shrink-0 pr-2">{action}</span> : null}
+    </div>
   );
 }
 

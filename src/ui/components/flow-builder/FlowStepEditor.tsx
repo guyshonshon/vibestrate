@@ -16,9 +16,13 @@ import { HelpHint } from "../design/HelpHint.js";
 import { IconBtn } from "../design/IconBtn.js";
 import { Select } from "../design/Select.js";
 import { StepKindLegend } from "../design/StepKindLegend.js";
-import { STEP_GROUP_TONE, stepKindGroup } from "../design/stepKind.js";
+import {
+  STEP_GROUP_TONE,
+  STEP_KIND_INFO,
+  stepKindGroup,
+  stepKindName,
+} from "../design/stepKind.js";
 import { cn } from "../design/cn.js";
-import { KIND_INFO } from "./StepInspector.js";
 import {
   EditorCard,
   IssueList,
@@ -123,7 +127,7 @@ export function StepList({
                   </span>
                   <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                     <Chip tone={tone}>{step.id}</Chip>
-                    <Chip tone="neutral">{KIND_INFO[step.kind].title}</Chip>
+                    <Chip tone="neutral">{stepKindName(step.kind)}</Chip>
                     {step.seat ? <Chip tone="neutral">{step.seat}</Chip> : null}
                     {step.needs.length > 0 ? (
                       <Chip tone="neutral">after {step.needs.join(", ")}</Chip>
@@ -191,7 +195,7 @@ export function StepFields({
   onChange: (next: EditorStep) => void;
 }) {
   const gate = stepFieldGate(step.kind, { graphMode });
-  const kind = KIND_INFO[step.kind];
+  const kind = STEP_KIND_INFO[step.kind];
   const patch = (part: Partial<EditorStep>): void => onChange({ ...step, ...part });
 
   // `needs` may only point at steps declared EARLIER: the schema requires the
@@ -200,14 +204,7 @@ export function StepFields({
   const earlier = steps.slice(0, index).filter((s) => s.id.length > 0);
 
   return (
-    <EditorCard
-      title="Step"
-      action={
-        <span className="text-meta text-chalk-300">
-          {kind.title} runs at {kind.phase}
-        </span>
-      }
-    >
+    <EditorCard title="Step">
       <IssueList issues={issues} className="mb-3" />
 
       <div className="space-y-3">
@@ -234,6 +231,8 @@ export function StepFields({
             <span className="text-meta font-semibold text-violet-soft">Kind</span>
             <HelpHint slug="extending/add-flow" label="Step kinds" />
           </div>
+          {/* The option hint is the stored value: this editor writes the YAML
+              the user reads back, so the name-to-id mapping has to be here. */}
           <Select
             className="w-full"
             ariaLabel="Step kind"
@@ -245,11 +244,11 @@ export function StepFields({
             }
             options={STEP_KINDS.map((k) => ({
               value: k,
-              label: KIND_INFO[k].title,
-              hint: KIND_INFO[k].phase,
+              label: STEP_KIND_INFO[k].name,
+              hint: k,
             }))}
           />
-          <p className="mt-1 text-meta leading-[1.45] text-chalk-300">{kind.blurb}</p>
+          <p className="mt-1 text-meta leading-[1.45] text-chalk-300">{kind.does}</p>
         </div>
 
         {gate.seat ? (

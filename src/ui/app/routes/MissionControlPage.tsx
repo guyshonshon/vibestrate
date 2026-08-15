@@ -276,7 +276,6 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
               tone: !loaded ? "neutral" : approvals.length > 0 ? "amber" : "emerald",
             }}
             title="Mission control"
-            purpose="Your starting point for anything you want built."
             actions={
               <Button variant="secondary" size="sm" onClick={onShowDashboard}>
                 Open dashboard

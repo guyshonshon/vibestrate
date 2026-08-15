@@ -112,7 +112,6 @@ export function ProposalsPage({
               tone: drafts > 0 ? "amber" : "emerald",
             }}
             title="Roadmap proposals"
-            purpose="Every roadmap draft, waiting for you. Accepting one creates its tasks."
             actions={
               <div className="flex w-[440px] max-w-full items-center gap-2">
                 <input

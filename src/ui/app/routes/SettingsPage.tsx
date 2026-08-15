@@ -21,7 +21,7 @@ export function SettingsPage() {
         <Cell size="full" reason="masthead">
           <PageHero
             title="Settings"
-            purpose="Project settings, notifications, permissions and validation. Policies have their own page."
+            purpose="Policies have their own page."
             footer="Nothing here leaves this machine, or reaches a prompt."
           />
         </Cell>

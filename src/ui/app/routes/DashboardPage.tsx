@@ -225,7 +225,6 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
             // The hero's own number already reads "N runs active", and the note
             // beneath it says whether anything is in flight. Saying "what is
             // running right now" a third time was the page describing itself.
-            purpose="Your runs, live."
             actions={
               <Button variant="primary" size="lg" onClick={onCompose}>
                 New run
@@ -252,7 +251,12 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
 
         {brokenProfiles.length > 0 ? (
           <Cell size="full" reason="masthead">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[16px] border border-amber-soft/30 bg-amber-soft/[0.07] px-4 py-3">
+            {/* Sized to its content, not to the page. A full-bleed alert in a
+                grid cell stretches to the viewport and strands its action a
+                screen away from the sentence it belongs to. `inline-flex` plus
+                `w-fit` keeps the button beside the text at any width, and
+                `max-w-full` still lets it wrap on a narrow one. */}
+            <div className="inline-flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-[16px] border border-amber-soft/30 bg-amber-soft/[0.07] px-4 py-3">
               <AlertTriangle
                 className="h-4 w-4 shrink-0 text-amber-soft"
                 strokeWidth={1.9}
@@ -264,7 +268,7 @@ export function DashboardPage({ onCompose }: { onCompose: () => void }) {
               </span>
               {/* Names the profiles and stops. "any run using it fails at
                   launch" restated the headline in different words. */}
-              <span className="min-w-0 flex-1 text-[13px] text-chalk-300">
+              <span className="min-w-0 text-[13px] text-chalk-300">
                 {brokenProfiles.map((p) => p.id).join(", ")}
               </span>
               <Button

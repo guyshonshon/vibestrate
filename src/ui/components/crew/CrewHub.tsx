@@ -1,6 +1,6 @@
 import { PenLine, Plus } from "lucide-react";
 import type { CrewView, DiscoveredFlow } from "../../lib/types.js";
-import { serializeRoute } from "../../app/route.js";
+import { navigate } from "../../app/App.js";
 import { Button } from "../design/Button.js";
 import {
   HeroCard,
@@ -18,12 +18,11 @@ import { Section } from "../layout/PageShell.js";
 import { DraftCrewPanel } from "./DraftCrewPanel.js";
 import { computeCoverage } from "./helpers.js";
 
-/** The hub is rendered from the crew page, which has no navigate callback to
- *  spare for a surface it does not own. Setting the hash is how ConfigPage
- *  crosses the same gap, and it goes through the shared serializer so the URL
- *  shape stays in one place. */
+/** null opens the maker on a blank crew; an id opens that crew's roster in it.
+ *  The hub is rendered from the crew page, which owns no route to the maker, so
+ *  it goes straight to the shell's router. */
 function openEditor(crewId: string | null): void {
-  window.location.hash = serializeRoute({ kind: "crew-editor", crewId });
+  navigate({ kind: "crew-editor", crewId });
 }
 
 export function CrewHub({

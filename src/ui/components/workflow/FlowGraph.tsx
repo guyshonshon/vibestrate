@@ -13,7 +13,11 @@ import {
   zonedLayersOf,
 } from "../../../flows/runtime/flow-graph-layout.js";
 import { Chip, type ChipTone } from "../design/Chip.js";
-import { STEP_GROUP_TONE, stepKindGroup } from "../design/stepKind.js";
+import {
+  STEP_GROUP_TONE,
+  stepKindGroup,
+  stepKindName,
+} from "../design/stepKind.js";
 
 export { isGraphSteps, layersOf, zonedLayersOf };
 
@@ -146,7 +150,9 @@ function Node({ step }: { step: FlowGraphStep }) {
           matches the leading dot's colour. The seat stays a plain mono
           identifier since it names an entity, not a state. */}
       <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-        <Chip tone={STEP_GROUP_TONE[stepKindGroup(step.kind)]}>{step.kind}</Chip>
+        <Chip tone={STEP_GROUP_TONE[stepKindGroup(step.kind)]}>
+          {stepKindName(step.kind)}
+        </Chip>
         {step.seat ? (
           <span className="font-mono text-meta text-chalk-400">@{step.seat}</span>
         ) : null}

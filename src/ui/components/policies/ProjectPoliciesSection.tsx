@@ -297,7 +297,11 @@ function PolicyForm({
         <input
           value={fix}
           onChange={(e) => setFix(e.target.value)}
-          placeholder="Fix the reviewer should name (optional)"
+          // Pairs with the rule field's own example above it, so the two read
+          // as one sentence: "use a hyphen, not an em-dash" / "replace it with
+          // a hyphen". The schema calls this `correction` - what the reviewer
+          // suggests when it flags the rule.
+          placeholder="Suggested fix, e.g. replace it with a hyphen (optional)"
           className={INPUT}
         />
       ) : (

@@ -125,7 +125,7 @@ export function ConfigPage() {
               tone: "violet",
             }}
             title="Project config"
-            purpose="Your whole project config, editable here. Same file `vibe config set` writes."
+            purpose="The same file `vibe config set` writes."
             actions={
               <Button
                 variant="secondary"

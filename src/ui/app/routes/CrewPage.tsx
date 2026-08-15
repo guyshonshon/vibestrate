@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, PenLine } from "lucide-react";
 import { api } from "../../lib/api.js";
+// The crew maker is not one of this page's own stages, so it arrives through
+// the shell's router rather than a prop App would have to thread down.
+import { navigate } from "../App.js";
 import type {
   CrewView,
   ProfileView,
@@ -356,6 +359,21 @@ export function CrewPage({
                           onClick={onBackToCrews}
                         >
                           All crews
+                        </Button>
+                        {/* This page tunes an existing roster; adding or
+                            removing a role is the maker's job, so it opens
+                            from the crew you are already looking at. */}
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          iconLeft={
+                            <PenLine className="h-3.5 w-3.5" strokeWidth={1.9} />
+                          }
+                          onClick={() =>
+                            navigate({ kind: "crew-editor", crewId: crew.id })
+                          }
+                        >
+                          Edit roles
                         </Button>
                         {!isDefault ? (
                           <Button

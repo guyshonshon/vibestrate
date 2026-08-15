@@ -31,7 +31,11 @@ import { FlowBars } from "../design/FlowBars.js";
 import { FlowCard } from "../design/FlowCard.js";
 import { FormField } from "../design/FormField.js";
 import { Select } from "../design/Select.js";
-import { STEP_GROUP_TONE, stepKindGroup } from "../design/stepKind.js";
+import {
+  STEP_GROUP_TONE,
+  stepKindGroup,
+  stepKindName,
+} from "../design/stepKind.js";
 import { cn } from "../design/cn.js";
 
 /** The route caps the description at 1,000 characters. Mirrored here so the
@@ -314,7 +318,7 @@ function DraftReview({
                   {i + 1}
                 </span>
                 <Chip contained tone={STEP_GROUP_TONE[stepKindGroup(s.kind)]}>
-                  {s.kind}
+                  {stepKindName(s.kind)}
                 </Chip>
                 <span className="min-w-0 flex-1 truncate text-[12.5px] text-chalk-100">
                   {s.label}

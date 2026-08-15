@@ -156,9 +156,13 @@
 }
 
 :root {
-  --line-soft: rgba(255, 255, 255, 0.06);
-  --line: rgba(255, 255, 255, 0.09);
-  --line-strong: rgba(255, 255, 255, 0.14);
+  /* Container edges. These were 0.06/0.09/0.14, which on a near-black ground
+   * meant a card's border was a rounding error - the containers were there in
+   * the DOM and invisible on screen, so every "containerize this" fix looked
+   * like it had not been applied. An edge has to be seen to do its job. */
+  --line-soft: rgba(255, 255, 255, 0.11);
+  --line: rgba(255, 255, 255, 0.2);
+  --line-strong: rgba(255, 255, 255, 0.32);
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
     0 24px 60px -28px rgba(8, 6, 22, 0.7);
   /* Crisp directional contact shadow for an elevated slab sitting ON a surface
@@ -309,9 +313,10 @@
   --color-vibestrate-diff-del-fg: #b91c1c;
 
   /* hairlines + shadows invert */
-  --line-soft: rgba(20, 18, 30, 0.06);
-  --line: rgba(20, 18, 30, 0.1);
-  --line-strong: rgba(20, 18, 30, 0.16);
+  /* Mirrors the dark-theme decision: a visible edge, not a hint of one. */
+  --line-soft: rgba(20, 18, 30, 0.11);
+  --line: rgba(20, 18, 30, 0.2);
+  --line-strong: rgba(20, 18, 30, 0.3);
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
     0 18px 44px -26px rgba(40, 30, 90, 0.28);
   --shadow-contact: 0 1px 0 rgba(255, 255, 255, 0.6) inset,

@@ -24,6 +24,7 @@ import {
   ChevronDown,
   ChevronRight,
   Download,
+  Flag,
   Plus,
   Search,
   Upload,
@@ -990,8 +991,18 @@ function LocalFlowCard({
       onClick={onOpen}
       selected={isSelected}
       badge={
+        // Which flow runs by default is a property of the flow, drawn as the
+        // flag it is marked with everywhere else (the builder's hero mark),
+        // never as a word sitting beside the name.
         isSelected ? (
-          <span className="shrink-0 text-meta font-bold text-emerald-400">default</span>
+          <span
+            role="img"
+            aria-label="Runs by default"
+            title="Runs by default"
+            className="shrink-0 text-emerald-400"
+          >
+            <Flag className="h-3.5 w-3.5" strokeWidth={2.2} aria-hidden />
+          </span>
         ) : null
       }
       description={flow.definition.description}

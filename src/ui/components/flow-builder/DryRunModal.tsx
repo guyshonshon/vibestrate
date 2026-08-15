@@ -6,6 +6,7 @@ import { ChevronRight, X } from "lucide-react";
 import { cn } from "../design/cn.js";
 import { Button } from "../design/Button.js";
 import { FlowGraph, isGraphSteps } from "../workflow/FlowGraph.js";
+import { stepKindName } from "../design/stepKind.js";
 import type { ResolvedFlowSnapshot } from "../../lib/types.js";
 import { PromptComposition } from "./StepInspector.js";
 
@@ -124,7 +125,7 @@ export function DryRunModal({
                       >
                         <span className="mono w-5 shrink-0 text-right text-meta text-chalk-400">{i + 1}</span>
                         <span className="truncate text-chalk-100">{s.label}</span>
-                        <span className="mono text-meta text-chalk-400">{s.kind}</span>
+                        <span className="text-meta text-chalk-300">{stepKindName(s.kind)}</span>
                         {s.resolvedRoleLabel ? (
                           <span className="mono text-meta text-chalk-300">
                             → {s.resolvedRoleLabel}

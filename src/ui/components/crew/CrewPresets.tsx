@@ -196,8 +196,13 @@ export function CrewPresets({
             ))}
           </Skeleton>
         ) : (
-          <div className="flex flex-col divide-y divide-[color:var(--line-soft)] overflow-hidden rounded-[18px] border border-[color:var(--line)]">
-            {presets.map((p, i) => {
+          // Each preset is its own container, not a row in a divided list, and
+          // the track is sized so a card stays card-shaped. A two-column grid
+          // on a wide page gave 584px cards, which read as slabs however they
+          // were bordered - auto-fill packs as many ~270px cards as fit and
+          // stops them growing past 340px on an ultrawide screen.
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(250px,340px))]">
+            {presets.map((p) => {
               // `already_local` is the one refusal that is really a satisfied
               // state - the user has what the preset offers - so it reads as
               // covered rather than as a problem with a button on it.
@@ -206,63 +211,71 @@ export function CrewPresets({
               const blocked = !p.installed && !p.available && covered === null;
               const panel = blocked ? blockPanel(p.block, p.reason) : null;
               return (
-                <div key={p.id} className={`${ROW_SURFACE[i % 2]!} px-4 py-3.5`}>
-                  <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2.5">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <EntityIcon
-                          entity="crew"
-                          size={16}
-                          className="shrink-0 text-violet-soft"
-                        />
-                        <span className="min-w-0 truncate text-[13.5px] font-bold text-chalk-100">
-                          {p.label}
-                        </span>
-                        {p.installed ? (
-                          <span className="shrink-0 text-meta font-semibold text-emerald-400">
-                            installed
-                          </span>
-                        ) : covered !== null ? (
-                          <span className="shrink-0 text-meta font-semibold text-emerald-400">
-                            covered
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-chalk-300">
-                        {covered !== null
-                          ? `Your default crew already runs on ${covered}, which is local.`
-                          : p.description}
-                      </p>
-                      {p.available && p.effect ? (
-                        <div className="mt-2.5 flex flex-wrap items-stretch gap-1">
-                          {effectStats(p.effect).map((s, n) => (
-                            <StatTile key={n} value={s.value} label={s.label} />
-                          ))}
-                        </div>
-                      ) : null}
+                <div
+                  key={p.id}
+                  className={`flex flex-col rounded-[16px] border p-4 transition ${
+                    p.installed || covered !== null
+                      ? "border-emerald-400/25 bg-emerald-400/[0.05]"
+                      : blocked
+                        ? "border-amber-soft/25 bg-amber-soft/[0.05]"
+                        : "border-[color:var(--line)] bg-coal-600 hover:border-violet-soft/25"
+                  }`}
+                >
+                  {/* Stacked, not a row with the action shoved to the right
+                      edge: at card width the button belongs under what it acts
+                      on. An installed or covered preset says so with its green
+                      wash and its button ("Open crew" vs "Add to crews"), so it
+                      carries no status word. */}
+                  <div className="flex items-center gap-2">
+                    <EntityIcon
+                      entity="crew"
+                      size={16}
+                      className="shrink-0 text-violet-soft"
+                    />
+                    <span className="min-w-0 truncate text-[13.5px] font-bold text-chalk-100">
+                      {p.label}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 line-clamp-3 text-[12.5px] leading-snug text-chalk-300">
+                    {covered !== null
+                      ? `Your default crew already runs on ${covered}, which is local.`
+                      : p.description}
+                  </p>
+                  {p.available && p.effect ? (
+                    <div className="mt-2.5 flex flex-wrap items-stretch gap-1">
+                      {effectStats(p.effect).map((s, n) => (
+                        <StatTile key={n} value={s.value} label={s.label} />
+                      ))}
                     </div>
-                    <div className="shrink-0">
+                  ) : null}
+                  {p.installed || p.available ? (
+                    // mt-auto pins the action to the card's floor so a short
+                    // description does not leave the button floating mid-card
+                    // while its neighbour's sits lower.
+                    <div className="mt-auto pt-3">
                       {p.installed ? (
                         <Button
                           variant="secondary"
                           size="sm"
+                          className="w-full"
                           onClick={() => navTo({ kind: "crew", crewId: p.id })}
                         >
                           Open crew
                         </Button>
-                      ) : p.available ? (
+                      ) : (
                         <Button
                           variant="secondary"
                           size="sm"
+                          className="w-full"
                           disabled={busy === p.id}
                           iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={2} />}
                           onClick={() => void install(p.id)}
                         >
                           {busy === p.id ? "Adding…" : "Add to crews"}
                         </Button>
-                      ) : null}
+                      )}
                     </div>
-                  </div>
+                  ) : null}
 
                   {panel ? (
                     <ErrorState

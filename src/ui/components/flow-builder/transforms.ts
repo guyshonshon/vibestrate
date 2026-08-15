@@ -8,6 +8,7 @@ import type {
   FlowStepPatch,
 } from "../../lib/api.js";
 import type { FlowLoop, FlowStepDefinition } from "../../lib/types.js";
+import { STEP_KIND_INFO, stepKindName } from "../design/stepKind.js";
 
 /**
  * Per-step draft. Each field mirrors the YAML's optional shape with the
@@ -69,15 +70,9 @@ export function stepOrderWarning(
     .slice(0, index)
     .some((s) => s.kind === "agent-turn");
   if (hasPriorWork) return null;
-  const what =
-    kind === "approval-gate"
-      ? "An approval gate here has nothing to approve"
-      : kind === "summary-turn"
-        ? "A summary-turn here has nothing to summarize"
-        : kind === "response-turn"
-          ? "A response-turn here has no findings to answer"
-          : "A review-turn here has nothing to review";
-  return `${what} - no agent-turn produces work before it. Add an agent-turn first.`;
+  return `A ${stepKindName(kind)} step acts on earlier work, and no ${
+    STEP_KIND_INFO["agent-turn"].name
+  } step comes before it. Add one first.`;
 }
 
 /**

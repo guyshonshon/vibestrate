@@ -242,7 +242,6 @@ export function MetricsPage() {
                       : "rose",
             }}
             title="Metrics"
-            purpose="What your runs cost, and how long they took."
             actions={
               <>
                 <div className="inline-flex items-center gap-1 rounded-[12px] border border-[color:var(--line-strong)] bg-coal-500 p-[3px]">

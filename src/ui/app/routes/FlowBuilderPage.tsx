@@ -24,26 +24,7 @@
 // definition without changing its id (the raw-YAML save does exactly that) has
 // to resync the drafts by hand or the form view shows stale fields.
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Book,
-  Bug,
-  Code,
-  Copy,
-  Eye,
-  Flag,
-  Layers,
-  Lock,
-  Plus,
-  Redo2,
-  Rocket,
-  RotateCcw,
-  Save,
-  Scale,
-  Shuffle,
-  Trash2,
-  Undo2,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { ArrowLeft, Code, Copy, Eye, Flag, Plus, Save } from "lucide-react";
 import {
   api,
   type FlowPatch,
@@ -51,16 +32,18 @@ import {
   type FlowStepPatch,
 } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
-import { StatTile } from "../../components/design/StatTile.js";
+import { EntityIcon } from "../../components/design/EntityIcon.js";
+import { FlowCardMenu } from "../../components/design/FlowCard.js";
 import { Select } from "../../components/design/Select.js";
 import { StepKindLegend } from "../../components/design/StepKindLegend.js";
 import { Skeleton, SkeletonText } from "../../components/design/Skeleton.js";
 import { cn } from "../../components/design/cn.js";
 import { useToast, ToastView } from "../../components/design/useToast.js";
 import { useConfirm } from "../../components/design/ConfirmDialog.js";
-import { PageShell, PageHeader } from "../../components/layout/PageShell.js";
+import { PageShell } from "../../components/layout/PageShell.js";
+import { PageHero } from "../../components/layout/PageHero.js";
+import { PageHeroSkeleton } from "./page-skeletons.js";
 import { EditorSplit } from "../../components/flow-builder/EditorSplit.js";
-import { Breadcrumbs } from "../../components/layout/Breadcrumbs.js";
 import { extractFlowFromYaml, renderFlowYaml } from "../../lib/flow-yaml.js";
 import { DryRunModal } from "../../components/flow-builder/DryRunModal.js";
 import { StepInspector, StepRow } from "../../components/flow-builder/StepInspector.js";
@@ -97,18 +80,39 @@ import type {
   ResolvedFlowSnapshot,
 } from "../../lib/types.js";
 
-const ICON_FOR_NAME: { match: RegExp; icon: LucideIcon }[] = [
-  { match: /quality|arbitr/i, icon: Scale },
-  { match: /ship.?fast/i, icon: Rocket },
-  { match: /deep|refactor/i, icon: Layers },
-  { match: /bug|loop/i, icon: Bug },
-  { match: /doc/i, icon: Book },
-  { match: /migr|move|shuffle/i, icon: Shuffle },
-];
-
-function flowIcon(label: string): LucideIcon {
-  for (const row of ICON_FOR_NAME) if (row.match.test(label)) return row.icon;
-  return Layers;
+/**
+ * The flow's identity mark: the shared flow glyph (the same one the catalog
+ * cards and the sidebar draw, so a flow looks the same everywhere) carrying the
+ * flag that marks the flow a task gets when it names none.
+ *
+ * The flag is the entire indicator. Being the default is a property of the
+ * flow, and it used to be spelled out as a word in the breadcrumb, the title,
+ * the picker and a pill - five renderings of one boolean.
+ */
+function FlowMark({
+  runsByDefault,
+  className,
+}: {
+  runsByDefault: boolean;
+  className?: string;
+}) {
+  return (
+    <span className="relative inline-flex">
+      <EntityIcon entity="flow" size={40} className={className} />
+      {runsByDefault ? (
+        // Top-left: the glyph's bars ascend to the right, so that corner is the
+        // one the badge can sit in without covering a bar.
+        <span
+          role="img"
+          aria-label="Runs by default"
+          title="Runs by default"
+          className="absolute -left-2.5 -top-2 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-coal-600 text-emerald-400 ring-1 ring-emerald-400/45"
+        >
+          <Flag className="h-3 w-3" strokeWidth={2.4} aria-hidden />
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 export function FlowBuilderPage({
@@ -560,234 +564,259 @@ export function FlowBuilderPage({
     setDraftLoop(selected.definition.loop ?? null);
   }
 
+  // The YAML view reads the *saved* definition, so unsaved structured edits
+  // would be silently dropped by the flip. The refusal says which two controls
+  // clear it rather than leaving a control that does nothing.
+  function openYaml(): void {
+    if (!yamlMode && dirty) {
+      showToast({
+        kind: "err",
+        text: "Save or restore your edits first - the YAML view reads the saved flow.",
+      });
+      return;
+    }
+    toggleYamlMode();
+  }
+
+  const isDefaultFlow = !!selected && selected.id === (defaultFlowId ?? "default");
+  // Counted off the draft list, so the header tracks what a save would write
+  // rather than what is currently on disk.
+  const gateCount = displayedSteps.filter(
+    (s) => s.kind === "approval-gate" || !!s.approval,
+  ).length;
+  const seatIds = selected ? Object.keys(selected.definition.seats) : [];
+  // Switching flow is a jump, not a value: offering the flow already open would
+  // restate the title in a control that then does nothing.
+  const otherFlowOptions = flows
+    .filter((g) => g.id !== selected?.id)
+    .map((g) => ({ value: g.id, label: g.label }));
+
+  // One fact in the state column, in severity order: a flow this page cannot
+  // save, then work that is not on disk yet, then which flow a task gets when
+  // it names none. The mark carries the default flag in every case.
+  const heroState = !selected
+    ? undefined
+    : !isProjectFlow
+      ? {
+          value: <FlowMark runsByDefault={isDefaultFlow} className="text-amber-soft" />,
+          caption: "Built in",
+          note: "Its steps are fixed. Forking makes a copy you can edit.",
+          tone: "amber" as const,
+        }
+      : dirty
+        ? {
+            value: <FlowMark runsByDefault={isDefaultFlow} className="text-violet-vivid" />,
+            caption: "Unsaved edits",
+            tone: "violet" as const,
+          }
+        : isDefaultFlow
+          ? {
+              value: <FlowMark runsByDefault className="text-emerald-400" />,
+              caption: "The one that runs",
+              note: "Runs unless a task picks another flow.",
+              tone: "emerald" as const,
+            }
+          : {
+              value: <FlowMark runsByDefault={false} className="text-violet-vivid" />,
+              caption: "Runs when picked",
+              tone: "violet" as const,
+            };
+
   // `fill` rather than the scrolling page canvas: this is a two-pane app view,
-  // so the flow picker and the save toolbar stay put while each pane scrolls its
-  // own contents.
+  // so the header and the save action stay put while each pane scrolls its own
+  // contents.
   return (
     <PageShell variant="fill" className="fade-up">
-      <Breadcrumbs
-        className="mb-3"
-        items={[
-          { label: "Flows", onClick: onBack },
-          { label: selected?.label ?? "Editor", muted: true },
-        ]}
-      />
-      <PageHeader
-        className="mb-4"
-        title={
-          selected ? (
-            <span className="flex items-baseline gap-2.5">
-              {selected.label}
-              <span className="mono text-[12px] font-medium text-chalk-400">
-                {selected.id}
-              </span>
-            </span>
-          ) : (
-            "Flow Builder"
-          )
-        }
-      />
-
-      {/* Contained flow header: the picker, the flow's facts as stat tiles, the
-          read-only state, and a carded action toolbar - one framed block, so no
-          fact reads as a grey meta line and no action is stranded at the far
-          right of the page. */}
-      <section className="shrink-0 rounded-[20px] border border-[color:var(--line)] bg-coal-600 p-5">
-        <div className="flex flex-wrap items-center gap-3">
-          <Select
-            value={selected?.id ?? ""}
-            ariaLabel="Select flow"
-            className="max-w-[320px]"
-            onChange={(v) => {
-              setSelectedId(v);
-              setActiveStepIdx(0);
-            }}
-            options={flows.map((g) => ({
-              value: g.id,
-              label: g.label,
-              hint: g.source.kind === "project" ? "project" : g.source.kind,
-            }))}
-          />
-          {selected && !isProjectFlow ? (
-            <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-amber-soft/25 bg-amber-soft/10 px-2.5 py-1 text-meta font-medium text-amber-soft">
-              <Lock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} aria-hidden />
-              Read-only - fork into the project to edit it.
-            </span>
-          ) : null}
-
-          {/* Carded action toolbar - the page's flow actions, contained in one
-              framed group instead of floating buttons. */}
-          <div className="ml-auto flex flex-wrap items-center gap-1.5 rounded-[14px] border border-[color:var(--line)] bg-coal-700 p-1.5">
-            {/* Edit history - undo / redo / restore the draft (project flows). */}
-            {isProjectFlow ? (
-              <div className="flex items-center gap-1.5 border-r border-[color:var(--line)] pr-1.5">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={!canUndo}
-                  onClick={undo}
-                  title="Undo the last edit"
-                  aria-label="Undo"
-                  className="!px-2"
-                >
-                  <Undo2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={!canRedo}
-                  onClick={redo}
-                  title="Redo"
-                  aria-label="Redo"
-                  className="!px-2"
-                >
-                  <Redo2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={!dirty}
-                  onClick={() => void askRestore()}
-                  title="Discard all unsaved edits and restore the saved flow"
-                  iconLeft={<RotateCcw className="h-3.5 w-3.5" strokeWidth={1.8} />}
-                >
-                  Restore
-                </Button>
-              </div>
-            ) : null}
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!selected || dryRunBusy}
-              iconLeft={<Eye className="h-3 w-3" strokeWidth={1.7} />}
-              onClick={() => void runDryRun()}
-              title="Resolve this flow into the run it would create - no run starts"
-            >
-              {dryRunBusy ? "Resolving…" : "Dry-run preview"}
-            </Button>
-            {selected && !isProjectFlow ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={forking}
-                iconLeft={<Copy className="h-3 w-3" strokeWidth={1.7} />}
-                onClick={() => void handleFork()}
-                title="Copy this flow into .vibestrate/flows/<id>/flow.yml so you can edit it"
-              >
-                {forking ? "Forking…" : "Fork to project"}
-              </Button>
-            ) : null}
-            {selected && isProjectFlow ? (
+      {/* One header: the flow's mark and its state on the left, the name itself
+          as the page title (it is the editable field, so the title is the
+          input), the facts as one divided strip, and the actions on the title
+          row. The name is printed once - the picker, the breadcrumb leaf and
+          the slug all restated it. */}
+      {selected ? (
+        <PageHero
+          className="shrink-0"
+          state={heroState}
+          title={
+            <>
+              {/* The title is the name field, so the heading itself has no text
+                  of its own - this gives the h1 back its accessible name. */}
+              <span className="sr-only">{selected.label}</span>
+              <input
+                value={draftLabel}
+                onChange={(e) => setDraftLabel(e.target.value)}
+                readOnly={!isProjectFlow || yamlMode}
+                aria-label="Flow name"
+                spellCheck={false}
+                title={
+                  !isProjectFlow
+                    ? "Fork this flow into your project to rename it"
+                    : yamlMode
+                      ? "The YAML below is the source while it is open"
+                      : "Rename this flow"
+                }
+                className={cn(
+                  "t-page w-[420px] min-w-0 max-w-full border-b border-transparent bg-transparent text-chalk-100 outline-none transition",
+                  isProjectFlow && !yamlMode
+                    ? "hover:border-[color:var(--line-strong)] focus:border-violet-soft/60"
+                    : "cursor-default",
+                )}
+              />
+            </>
+          }
+          purpose={
+            selected.definition.description ||
+            "A flow is the steps a run follows, and who runs each one."
+          }
+          actions={
+            <>
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={deleting}
-                iconLeft={<Trash2 className="h-3 w-3" strokeWidth={1.7} />}
-                onClick={() => void askDelete()}
-                title="Delete this project flow"
-                className="!text-rose-300/90 hover:!text-rose-200"
+                iconLeft={<ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                onClick={onBack}
               >
-                {deleting ? "Deleting…" : "Delete"}
+                All flows
               </Button>
-            ) : null}
-            {selected ? (
+              {otherFlowOptions.length > 0 ? (
+                <Select
+                  value=""
+                  placeholder="Switch flow"
+                  ariaLabel="Open another flow"
+                  /* The trigger is a jump control, not a filled field, so its
+                   * text reads at label weight instead of placeholder grey. */
+                  className="w-[128px] [&>button>span]:text-chalk-300"
+                  options={otherFlowOptions}
+                  onChange={(v) => {
+                    setSelectedId(v);
+                    setActiveStepIdx(0);
+                  }}
+                />
+              ) : null}
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={!yamlMode && dirty}
-                title={
-                  yamlMode
-                    ? "Back to the structured editor"
-                    : dirty
-                      ? "Save or discard your structured edits first"
-                      : "Edit the flow's raw YAML"
-                }
-                iconLeft={<Code className="h-3 w-3" strokeWidth={1.7} />}
-                onClick={toggleYamlMode}
+                disabled={dryRunBusy}
+                iconLeft={<Eye className="h-3.5 w-3.5" strokeWidth={1.8} />}
+                onClick={() => void runDryRun()}
+                title="Resolve this flow into the run it would create - no run starts"
               >
-                {yamlMode ? "Form view" : "Edit as YAML"}
+                {dryRunBusy ? "Resolving…" : "Dry run"}
               </Button>
-            ) : null}
-            {/* Read-only builtins get no Save button at all - a permanently
-             * disabled Save next to "Fork to project" just restated the card's
-             * own "read-only" note. */}
-            {!isProjectFlow ? null : yamlMode ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={yamlSaving}
-                title="Validate + save this YAML to .vibestrate/flows/"
-                iconLeft={<Save className="h-3 w-3" strokeWidth={1.7} />}
-                onClick={() => void handleSaveYaml()}
-              >
-                {yamlSaving ? "Saving…" : "Save YAML"}
-              </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={!dirty || saving}
-                title={
-                  !dirty ? "No changes to save" : "Save changes to .vibestrate/flows/"
-                }
-                iconLeft={<Save className="h-3 w-3" strokeWidth={1.7} />}
-                onClick={() => void handleSave()}
-              >
-                {saving ? "Saving…" : "Save changes"}
-              </Button>
-            )}
-            {/* "Use this flow" used to be a primary button that only navigated
-             * back - it set nothing. This one performs the real action (same
-             * API as the Flows page) or honestly reports it's already done. */}
-            {selected && selected.id === (defaultFlowId ?? "default") ? (
-              <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-meta font-semibold text-emerald-400">
-                <Flag className="h-3 w-3" strokeWidth={1.9} aria-hidden /> Runs by default
-              </span>
-            ) : (
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={!selected || settingDefault}
-                iconLeft={<Flag className="h-3 w-3" strokeWidth={1.7} />}
-                title="Make this the project's default flow"
-                onClick={() => {
-                  if (!selected) return;
-                  setSettingDefault(true);
-                  void api
-                    .setDefaultFlow(selected.id)
-                    .then(() => {
-                      setDefaultFlowId(selected.id);
-                      showToast({
-                        kind: "ok",
-                        text: `"${selected.label}" now runs by default.`,
-                      });
-                    })
-                    .catch((err) =>
-                      showToast({
-                        kind: "err",
-                        text: err instanceof Error ? err.message : String(err),
-                      }),
-                    )
-                    .finally(() => setSettingDefault(false));
-                }}
-              >
-                {settingDefault ? "Setting…" : "Use as default"}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* The flow's facts as stat tiles - full width below the picker row, so
-            they read horizontally instead of stacking when the toolbar is wide. */}
-        {selected ? (
-          <div className="mt-4 flex flex-wrap items-stretch gap-2">
-            <StatTile size="lg" value={selected.definition.steps.length} label="steps" />
-            <StatTile size="lg" value={Object.keys(selected.definition.seats).length} label="seats" />
-            <StatTile size="lg" value={`v${selected.version}`} label="version" />
-            <StatTile size="lg" value={selected.source.kind} label="source" />
-          </div>
-        ) : null}
-      </section>
+              {yamlMode ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  iconLeft={<Code className="h-3.5 w-3.5" strokeWidth={1.8} />}
+                  onClick={openYaml}
+                  title="Back to the structured editor"
+                >
+                  Form view
+                </Button>
+              ) : null}
+              {/* A builtin has nothing this page can write, so the fork - the
+                  action that makes it writable - takes the primary slot. */}
+              {isProjectFlow ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={yamlMode ? yamlSaving : !dirty || saving}
+                  iconLeft={<Save className="h-3.5 w-3.5" strokeWidth={2} />}
+                  title={
+                    yamlMode
+                      ? "Validate + save this YAML to .vibestrate/flows/"
+                      : !dirty
+                        ? "No changes to save"
+                        : "Save changes to .vibestrate/flows/"
+                  }
+                  onClick={() => void (yamlMode ? handleSaveYaml() : handleSave())}
+                >
+                  {yamlMode
+                    ? yamlSaving
+                      ? "Saving…"
+                      : "Save YAML"
+                    : saving
+                      ? "Saving…"
+                      : "Save changes"}
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={forking}
+                  iconLeft={<Copy className="h-3.5 w-3.5" strokeWidth={1.9} />}
+                  onClick={() => void handleFork()}
+                  title="Copy this flow into .vibestrate/flows/<id>/flow.yml so you can edit it"
+                >
+                  {forking ? "Forking…" : "Fork to project"}
+                </Button>
+              )}
+              {/* Edit history, the YAML escape hatch, the default and the
+                  destructive action are demoted, not dropped: each stays one
+                  click away and is offered only while it can do something. The
+                  action that SETS the default keeps its verb (the same one the
+                  catalog card's menu uses); the flag on the mark is what says
+                  it is already done, so no control reports its own success. */}
+              <FlowCardMenu
+                items={[
+                  canUndo ? { label: "Undo", onClick: undo } : null,
+                  canRedo ? { label: "Redo", onClick: redo } : null,
+                  dirty && isProjectFlow
+                    ? { label: "Restore saved flow", onClick: () => void askRestore() }
+                    : null,
+                  yamlMode ? null : { label: "Edit as YAML", onClick: openYaml },
+                  isDefaultFlow
+                    ? null
+                    : {
+                        label: settingDefault ? "Setting…" : "Use as default",
+                        onClick: () => {
+                          setSettingDefault(true);
+                          void api
+                            .setDefaultFlow(selected.id)
+                            .then(() => {
+                              setDefaultFlowId(selected.id);
+                              showToast({
+                                kind: "ok",
+                                text: `"${selected.label}" now runs by default.`,
+                              });
+                            })
+                            .catch((err) =>
+                              showToast({
+                                kind: "err",
+                                text: err instanceof Error ? err.message : String(err),
+                              }),
+                            )
+                            .finally(() => setSettingDefault(false));
+                        },
+                      },
+                  isProjectFlow
+                    ? {
+                        label: deleting ? "Deleting…" : "Delete flow",
+                        onClick: () => void askDelete(),
+                        danger: true,
+                      }
+                    : null,
+                ]}
+              />
+            </>
+          }
+          metrics={[
+            {
+              value: displayedSteps.length,
+              label: displayedSteps.length === 1 ? "step" : "steps",
+            },
+            { value: seatIds.length, label: seatIds.length === 1 ? "seat" : "seats" },
+            { value: gateCount, label: gateCount === 1 ? "gate" : "gates" },
+            { value: `v${selected.version}`, label: "version" },
+          ]}
+          footer={
+            <span className="mono min-w-0 truncate text-chalk-300">
+              {seatIds.join(" · ")}
+            </span>
+          }
+        />
+      ) : (
+        <PageHeroSkeleton label="Loading the flow" />
+      )}
 
       {error ? (
         <div className="mt-4 rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12.5px] text-rose-300">
@@ -859,28 +888,12 @@ export function FlowBuilderPage({
           className="mt-6 pb-5"
           left={
             <div className="rounded-[18px] border border-[color:var(--line)] bg-coal-600 p-5 fade-up">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-[12px] bg-violet-soft/15 text-violet-soft ring-1 ring-violet-soft/20 flex items-center justify-center shrink-0">
-                  {(() => {
-                    const Icon = flowIcon(selected.label);
-                    return <Icon className="h-4 w-4" strokeWidth={1.7} />;
-                  })()}
-                </div>
-                <input
-                  value={draftLabel}
-                  onChange={(e) => setDraftLabel(e.target.value)}
-                  disabled={!isProjectFlow}
-                  aria-label="Flow name"
-                  className={
-                    "min-w-0 flex-1 bg-transparent border-b border-transparent transition outline-none text-[20px] font-semibold tracking-tight text-chalk-100 " +
-                    (isProjectFlow
-                      ? "hover:border-[color:var(--line-strong)] focus:border-violet-soft/40"
-                      : "opacity-70 cursor-not-allowed")
-                  }
-                />
+              {/* The flow's name is the page title now; this card owns the
+                  steps, so its header is the step legend. */}
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <div className="text-[12px] font-semibold text-violet-vivid">Steps</div>
+                <StepKindLegend />
               </div>
-
-              <StepKindLegend className="mb-3" />
 
               <ol className="relative space-y-2.5 pl-8">
                 <span className="absolute left-[14px] top-3 bottom-3 w-px bg-[color:var(--line-soft)]" />
