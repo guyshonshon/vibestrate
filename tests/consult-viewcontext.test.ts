@@ -49,6 +49,7 @@ describe("consult screen-aware viewContext", () => {
     const sink = { prompt: "" };
     await runConsult({
       projectRoot: root,
+      surface: "cli",
       question: "what should I put for auth?",
       viewContext: {
         screen: "Spec-up questions",
@@ -67,6 +68,7 @@ describe("consult screen-aware viewContext", () => {
     const sink = { prompt: "" };
     const res = await runConsult({
       projectRoot: root,
+      surface: "cli",
       question: "hello?",
       runner: capturingRunner(okAnswer, sink),
     });

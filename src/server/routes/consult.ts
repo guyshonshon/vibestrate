@@ -69,6 +69,11 @@ export async function registerConsultRoutes(
     try {
       const result = await runConsult({
         projectRoot,
+        // Fixed here, never read off the request body. The surface decides what
+        // reference material the answerer is allowed to see, so letting a client
+        // declare its own would let it opt back into the terminal instructions
+        // this route exists to keep out of the browser.
+        surface: "dashboard",
         question,
         taskId: taskId ?? null,
         runId: runId ?? null,

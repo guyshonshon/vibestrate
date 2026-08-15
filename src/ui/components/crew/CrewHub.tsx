@@ -69,7 +69,7 @@ export function CrewHub({
       {!crews ? (
         <Skeleton
           label="Loading crews"
-          className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3"
+          className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(320px,420px))]"
         >
           {[0, 1, 2, 3].map((i) => (
             <div
@@ -116,7 +116,15 @@ export function CrewHub({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(320px,420px))]">
+          {/* auto-fill rather than a fixed column count: at 1440px two columns
+              gave 559px cards, and a HeroCard that wide reads as a slab however
+              it is bordered - the same shape the presets grid was already fixed
+              for. The 320px floor is what a HeroCard md needs for its status
+              column and metrics row; the 420px ceiling stops them stretching on
+              an ultrawide screen instead of packing another card in. The
+              skeleton above uses the same track so the layout does not jump
+              when data lands. */}
           {crews.map((c) => {
             const { knownSeats, coverage } = computeCoverage(c, flows);
             const uncovered = knownSeats.filter(

@@ -395,3 +395,71 @@ export function matchGuide(text: string): Guide | null {
   }
   return null;
 }
+
+/**
+ * Phrases that mean "take me there", as opposed to "tell me".
+ *
+ * The catalog's own {@link Guide.asks} name the five things it can walk; this
+ * list is the shape of the question rather than its subject, which is what a
+ * surface needs to decide whether to offer a walkthrough for a question NOBODY
+ * authored a guide for. A phrase here says the user wants to be stood in front
+ * of the thing, and that is all it says - what the walkthrough turns out to be
+ * is decided later, by a validator, against the real screens.
+ *
+ * Deliberately narrow at the "what" end: "what is a crew" is a concept being
+ * explained and a screen that explains it better, while "what is the status of
+ * this run" is a question about state and gets prose. Deliberately quiet on
+ * complaints - "the run failed, what do i do" is not in here, for the same
+ * reason {@link matchGuide} refuses it.
+ *
+ * Apostrophes are written as they are typed. {@link normalize} flattens
+ * punctuation on both sides, so "what's a" and the phrase below meet in the
+ * middle; the second spelling covers people who leave it out.
+ */
+const WALKTHROUGH_ASKS: readonly string[] = [
+  // The procedure itself.
+  "how do i",
+  "how do you",
+  "how can i",
+  "how would i",
+  "how to",
+  // Asked for outright.
+  "show me how",
+  "walk me through",
+  "walk through",
+  "guide me",
+  "teach me",
+  "step by step",
+  "steps to",
+  "what are the steps",
+  // The place it happens.
+  "where do i",
+  "where can i",
+  // The concept, when the concept has a screen.
+  "what is a",
+  "what is an",
+  "what's a",
+  "what's an",
+  "whats a",
+  "whats an",
+];
+
+/**
+ * Whether an answer to this question should carry a "Show me how".
+ *
+ * An OFFER, exactly like {@link matchGuide}: the answer is already on screen
+ * and stands on its own, so a miss costs a button that does not appear and a
+ * false positive costs a button that builds a walkthrough for a question that
+ * did not need one - which either lands on real screens or is refused with its
+ * reason. Neither outcome touches the project.
+ *
+ * A question the catalog already matches always qualifies: an authored
+ * walkthrough exists for it, and the surface should dispatch that rather than
+ * ask a model to reinvent it.
+ */
+export function wantsWalkthrough(text: string): boolean {
+  if (typeof text !== "string" || text.trim().length === 0) return false;
+  if (matchGuide(text)) return true;
+  const haystack = normalize(text);
+  return WALKTHROUGH_ASKS.some((ask) => haystack.includes(normalize(ask)));
+}

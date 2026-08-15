@@ -80,7 +80,7 @@ describe("assembleConsultContext", () => {
   });
 
   it("includes the project config summary and notes a missing manual", async () => {
-    const ctx = await assembleConsultContext({ projectRoot });
+    const ctx = await assembleConsultContext({ projectRoot, surface: "cli" });
     expect(ctx.usedSources).toContain("project config");
     expect(ctx.text).toMatch(/Validation commands|Providers|Default crew/);
     expect(ctx.notes.some((n) => /No VIBESTRATE\.md/.test(n))).toBe(true);
@@ -88,13 +88,17 @@ describe("assembleConsultContext", () => {
 
   it("includes VIBESTRATE.md when present", async () => {
     await fs.writeFile(path.join(projectRoot, "VIBESTRATE.md"), "# VIBESTRATE.md\n\nUnique marker XYZZY.\n");
-    const ctx = await assembleConsultContext({ projectRoot });
+    const ctx = await assembleConsultContext({ projectRoot, surface: "cli" });
     expect(ctx.usedSources).toContain("VIBESTRATE.md");
     expect(ctx.text).toContain("XYZZY");
   });
 
   it("notes an unknown task instead of throwing", async () => {
-    const ctx = await assembleConsultContext({ projectRoot, taskId: "does-not-exist" });
+    const ctx = await assembleConsultContext({
+      projectRoot,
+      surface: "cli",
+      taskId: "does-not-exist",
+    });
     expect(ctx.notes.some((n) => /not found/.test(n))).toBe(true);
   });
 });
@@ -108,6 +112,7 @@ describe("runConsult", () => {
   it("returns a validated, structured answer", async () => {
     const res = await runConsult({
       projectRoot,
+      surface: "cli",
       question: "Should this use a heavier review?",
       runner: fakeRunner(GOOD_ANSWER),
     });
@@ -129,6 +134,7 @@ describe("runConsult", () => {
 
     const res = await runConsult({
       projectRoot,
+      surface: "cli",
       question: "stop using em-dashes",
       runner: fakeRunner(
         JSON.stringify({
@@ -153,7 +159,12 @@ describe("runConsult", () => {
 
   it("rejects an empty question", async () => {
     await expect(
-      runConsult({ projectRoot, question: "   ", runner: fakeRunner(GOOD_ANSWER) }),
+      runConsult({
+        projectRoot,
+        surface: "cli",
+        question: "   ",
+        runner: fakeRunner(GOOD_ANSWER),
+      }),
     ).rejects.toBeInstanceOf(ConsultError);
   });
 });

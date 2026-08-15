@@ -25,36 +25,11 @@ import { RunControlPage } from "../components/control/RunControlPage.js";
 import { CliHintOverlay } from "../components/layout/CliHintOverlay.js";
 import { ErrorBoundary } from "../components/layout/ErrorBoundary.js";
 import { GlobalErrorOverlay } from "../components/layout/GlobalErrorOverlay.js";
-import { RunsPage } from "./routes/RunsPage.js";
 import { MissionControlPage } from "./routes/MissionControlPage.js";
-import { RunComposePage } from "./routes/RunComposePage.js";
-import { RunDetailPage } from "./routes/RunDetailPage.js";
-import { BoardPage } from "./routes/BoardPage.js";
-import { TaskDetailPage } from "./routes/TaskDetailPage.js";
-import { WorkspacePage } from "./routes/WorkspacePage.js";
-import { ProjectPage } from "./routes/ProjectPage.js";
-import { CodebasePage } from "./routes/CodebasePage.js";
-import { SourcePage } from "./routes/SourcePage.js";
 import { ConsultDock } from "../components/consult/ConsultDock.js";
 import { TourOverlay } from "../components/onboarding/TourOverlay.js";
-import { FlowBuilderPage } from "./routes/FlowBuilderPage.js";
-import { FlowEditorPage } from "./routes/FlowEditorPage.js";
-import { FlowsPage } from "./routes/FlowsPage.js";
-import { MetricsPage } from "./routes/MetricsPage.js";
-import { CrewPage } from "./routes/CrewPage.js";
-import { CrewEditorPage } from "./routes/CrewEditorPage.js";
-import { ProfilesPage } from "./routes/ProfilesPage.js";
-import { ConsultPage } from "./routes/ConsultPage.js";
-import { SupervisorsPage } from "./routes/SupervisorsPage.js";
-import { SupervisorNewPage } from "./routes/SupervisorNewPage.js";
-import { DashboardPage } from "./routes/DashboardPage.js";
-import { PoliciesPage } from "./routes/PoliciesPage.js";
-import { ConfigPage } from "./routes/ConfigPage.js";
 import { RunSwitcher } from "../components/runs/RunSwitcher.js";
-import {
-  ProposalsPage,
-  ProposalDetailPage,
-} from "./routes/ProposalsPage.js";
+
 import type { NotificationRecord, CodeReference } from "../lib/types.js";
 import {
   type ReplayFocus,
@@ -72,6 +47,95 @@ export type { ReplayFocus, Route };
 // keeps the wrapper-per-page boilerplate down.
 const SettingsPage = lazy(() =>
   import("./routes/SettingsPage.js").then((m) => ({ default: m.SettingsPage })),
+);
+
+
+/**
+ * Routes load on demand.
+ *
+ * Mission Control stays eager because it is the landing page - the boot gate in
+ * index.html uncovers it, and making the first screen wait on a second request
+ * would put the blank moment back where the gate exists to remove it. Everything
+ * else is a page you navigate TO, so it can arrive when you ask for it. The
+ * shared Suspense boundary is around the route switch below.
+ *
+ * RunControlPage is also eager, and not by oversight: it lives under
+ * components/control rather than routes/, and it is the surface a run's own
+ * control links open, so it is reached from a live run rather than navigated to
+ * cold. Everything under routes/ except Mission Control is split.
+ */
+const RunsPage = lazy(() =>
+  import("./routes/RunsPage.js").then((m) => ({ default: m.RunsPage })),
+);
+const RunComposePage = lazy(() =>
+  import("./routes/RunComposePage.js").then((m) => ({ default: m.RunComposePage })),
+);
+const RunDetailPage = lazy(() =>
+  import("./routes/RunDetailPage.js").then((m) => ({ default: m.RunDetailPage })),
+);
+const BoardPage = lazy(() =>
+  import("./routes/BoardPage.js").then((m) => ({ default: m.BoardPage })),
+);
+const TaskDetailPage = lazy(() =>
+  import("./routes/TaskDetailPage.js").then((m) => ({ default: m.TaskDetailPage })),
+);
+const WorkspacePage = lazy(() =>
+  import("./routes/WorkspacePage.js").then((m) => ({ default: m.WorkspacePage })),
+);
+const ProjectPage = lazy(() =>
+  import("./routes/ProjectPage.js").then((m) => ({ default: m.ProjectPage })),
+);
+const CodebasePage = lazy(() =>
+  import("./routes/CodebasePage.js").then((m) => ({ default: m.CodebasePage })),
+);
+const SourcePage = lazy(() =>
+  import("./routes/SourcePage.js").then((m) => ({ default: m.SourcePage })),
+);
+const FlowBuilderPage = lazy(() =>
+  import("./routes/FlowBuilderPage.js").then((m) => ({ default: m.FlowBuilderPage })),
+);
+const FlowEditorPage = lazy(() =>
+  import("./routes/FlowEditorPage.js").then((m) => ({ default: m.FlowEditorPage })),
+);
+const FlowsPage = lazy(() =>
+  import("./routes/FlowsPage.js").then((m) => ({ default: m.FlowsPage })),
+);
+const MetricsPage = lazy(() =>
+  import("./routes/MetricsPage.js").then((m) => ({ default: m.MetricsPage })),
+);
+const CrewPage = lazy(() =>
+  import("./routes/CrewPage.js").then((m) => ({ default: m.CrewPage })),
+);
+const CrewEditorPage = lazy(() =>
+  import("./routes/CrewEditorPage.js").then((m) => ({ default: m.CrewEditorPage })),
+);
+const ProfilesPage = lazy(() =>
+  import("./routes/ProfilesPage.js").then((m) => ({ default: m.ProfilesPage })),
+);
+const ConsultPage = lazy(() =>
+  import("./routes/ConsultPage.js").then((m) => ({ default: m.ConsultPage })),
+);
+const SupervisorsPage = lazy(() =>
+  import("./routes/SupervisorsPage.js").then((m) => ({ default: m.SupervisorsPage })),
+);
+const SupervisorNewPage = lazy(() =>
+  import("./routes/SupervisorNewPage.js").then((m) => ({ default: m.SupervisorNewPage })),
+);
+const DashboardPage = lazy(() =>
+  import("./routes/DashboardPage.js").then((m) => ({ default: m.DashboardPage })),
+);
+const PoliciesPage = lazy(() =>
+  import("./routes/PoliciesPage.js").then((m) => ({ default: m.PoliciesPage })),
+);
+const ConfigPage = lazy(() =>
+  import("./routes/ConfigPage.js").then((m) => ({ default: m.ConfigPage })),
+);
+
+const ProposalsPage = lazy(() =>
+  import("./routes/ProposalsPage.js").then((m) => ({ default: m.ProposalsPage })),
+);
+const ProposalDetailPage = lazy(() =>
+  import("./routes/ProposalsPage.js").then((m) => ({ default: m.ProposalDetailPage })),
 );
 
 function parseRoute(): Route {
@@ -364,6 +428,19 @@ export function App() {
       onOpenSwitcher={() => setSwitcherOpen(true)}
     >
       <ErrorBoundary resetKey={pageKey}>
+      {/* ONE boundary for the whole switch rather than one per route. Every
+          page below Mission Control is loaded on demand, and a Suspense per
+          branch would be twenty-odd wrappers threaded through a single ternary
+          chain - easy to get subtly wrong and impossible to keep consistent.
+          The fallback is deliberately quiet: the shell, sidebar and header are
+          already painted by this point, so only the page body is pending. */}
+      <Suspense
+        fallback={
+          <div className="px-4 py-6 text-meta text-chalk-300" role="status">
+            Loading…
+          </div>
+        }
+      >
       {route.kind === "dashboard" ? (
         <DashboardPage onCompose={() => navigate({ kind: "compose" })} />
       ) : route.kind === "mission" ? (
@@ -568,6 +645,7 @@ export function App() {
           onBack={() => navigate({ kind: "proposals" })}
         />
       )}
+      </Suspense>
       </ErrorBoundary>
       <CliHintOverlay route={route} />
       <GlobalErrorOverlay />

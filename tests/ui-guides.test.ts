@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { GUIDES, matchGuide } from "../src/ui/lib/guides/guides.js";
+import { GUIDES, matchGuide, wantsWalkthrough } from "../src/ui/lib/guides/guides.js";
+import { WALKTHROUGH_ANCHORS } from "../src/ui/lib/guides/generated.js";
 import { parseHashRoute, serializeRoute } from "../src/ui/app/route.js";
 
 /**
@@ -86,6 +87,105 @@ describe("guide catalog", () => {
   it("has unique guide ids", () => {
     const ids = GUIDES.map((g) => g.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("offers a model no anchor this repo does not contain", () => {
+    // The vocabulary a generated walkthrough may name is a hand-written table
+    // in generated.ts, and its comment says it is asserted against this grep.
+    // It was not. An anchor renamed with its page would leave the model being
+    // offered a control that rings nothing, and the step would pass every
+    // runtime check on the way there.
+    const unregistered = WALKTHROUGH_ANCHORS.filter((a) => !ANCHORS.has(a)).sort();
+    expect({ unregistered }).toEqual({ unregistered: [] });
+  });
+});
+
+describe("wantsWalkthrough", () => {
+  it("offers on a question that asked to be shown", () => {
+    for (const ask of [
+      "how do i add a review step",
+      "How do I make a *new flow*?",
+      "show me how to wire up a policy",
+      "walk me through the merge gate",
+      "where do i change the default provider",
+      "what is a seat",
+      "what's an effort level",
+      "teach me the board",
+      "what are the steps to get a run reviewed",
+    ]) {
+      expect({ ask, offered: wantsWalkthrough(ask) }).toEqual({ ask, offered: true });
+    }
+  });
+
+  it("stays quiet on a question about state, a complaint, or nothing", () => {
+    // The cost of a false positive is a button offering to walk somebody
+    // through their own broken run, under the answer explaining why it broke.
+    for (const ask of [
+      "why did the last run block",
+      "the run failed, what do i do",
+      "is the reviewer done yet",
+      "summarise the diff",
+      "did it push anything",
+      "",
+      "   ",
+    ]) {
+      expect({ ask, offered: wantsWalkthrough(ask) }).toEqual({ ask, offered: false });
+    }
+  });
+
+  it("offers on everything the authored catalog already matches", () => {
+    // The surface dispatches an authored walkthrough when one exists, so a
+    // phrase the catalog matches but this gate refuses would hide a tested
+    // walkthrough behind a button that never appears.
+    for (const guide of GUIDES) {
+      for (const ask of guide.asks) {
+        expect({ ask, offered: wantsWalkthrough(ask) }).toEqual({ ask, offered: true });
+      }
+    }
+  });
+
+  it("takes non-strings without throwing", () => {
+    for (const raw of [null, undefined, 42, {}, []]) {
+      expect(wantsWalkthrough(raw as unknown as string)).toBe(false);
+    }
+  });
+});
+
+describe("the surfaces that can open a walkthrough", () => {
+  /**
+   * The failure this exists for, measured rather than imagined: the whole
+   * generated-walkthrough machinery shipped with exactly one importer, on the
+   * consult answer view. The owner asks their questions in the SUPERVISOR
+   * panel, so the button they asked for could not appear for them, and nothing
+   * failed - every unit test passed, both typecheck legs passed, and the
+   * feature was simply unreachable from the screen it was for.
+   *
+   * A grep is the only thing that catches that class of bug, because "nobody
+   * renders this" is not a type error.
+   */
+  it("keeps the supervisor panel wired to the walkthrough engine", () => {
+    const src = readFileSync(
+      fileURLToPath(new URL("../src/ui/components/supervisor/SupervisorControl.tsx", import.meta.url)),
+      "utf8",
+    );
+    expect(src).toMatch(/wantsWalkthrough\(/);
+    expect(src).toMatch(/<ShowMeHow\b/);
+    expect(src).toMatch(/launchGuide\(/);
+  });
+
+  it("keeps every walkthrough launch behind the one engine", () => {
+    // launchGeneratedWalkthrough takes the branded result of the runtime gate
+    // and nothing else. A surface that built a Guide by hand and dispatched the
+    // event itself would bypass every check in generated.ts, so the event name
+    // is spelled in exactly two places: the catalog that defines it and the
+    // overlay pair that fires and listens for it.
+    const dispatchers = sourceFiles(UI_DIR).filter((f) =>
+      readFileSync(f, "utf8").includes("GUIDE_LAUNCH_EVENT"),
+    );
+    expect(dispatchers.map((f) => f.slice(UI_DIR.length + 1).replace(/\\/g, "/")).sort()).toEqual([
+      "components/onboarding/TourOverlay.tsx",
+      "lib/guides/guides.ts",
+    ]);
   });
 });
 

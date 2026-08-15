@@ -19,17 +19,13 @@ import {
 import { loadConfig } from "../../project/config-loader.js";
 import type { LoadedConfig } from "../../project/config-loader.js";
 import { MetricsStore } from "../../core/metrics/metrics-store.js";
-import { runStateSchema } from "../../core/state-machine.js";
+import { loadRunsWithMetrics } from "../../core/metrics/run-spend.js";
 import {
   buildProvidersOverview,
   buildMetricsOverview,
   type OverviewRange,
   type ProviderLookup,
 } from "../../core/metrics/overview-aggregator.js";
-import type { RuntimeMetrics } from "../../core/metrics/runtime-metrics.js";
-import { projectRunsDir, runStatePath } from "../../utils/paths.js";
-import { readDirSafe, pathExists } from "../../utils/fs.js";
-import { readJson } from "../../utils/json.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 
 export type MetricsRoutesDeps = {
@@ -39,33 +35,6 @@ export type MetricsRoutesDeps = {
 const rangeSchema = z
   .enum(["24h", "7d", "30d", "90d"])
   .default("7d");
-
-/**
- * Iterate every run state on disk. Mirrors the loader in
- * `/api/runs` - runs that fail schema validation are silently skipped
- * so a single corrupt file can't take the whole overview down.
- */
-async function loadAllRuns(projectRoot: string) {
-  const runsDir = projectRunsDir(projectRoot);
-  const ids = (await readDirSafe(runsDir)).sort();
-  const runs = [];
-  const metricsByRun = new Map<string, RuntimeMetrics | null>();
-  for (const id of ids) {
-    const stateFile = runStatePath(projectRoot, id);
-    if (!(await pathExists(stateFile))) continue;
-    try {
-      const raw = await readJson<unknown>(stateFile);
-      const parsed = runStateSchema.safeParse(raw);
-      if (!parsed.success) continue;
-      runs.push(parsed.data);
-      const store = new MetricsStore(projectRoot, id);
-      metricsByRun.set(id, await store.read().catch(() => null));
-    } catch {
-      // skip
-    }
-  }
-  return { runs, metricsByRun };
-}
 
 async function loadProviderLookup(
   projectRoot: string,
@@ -162,7 +131,7 @@ export async function registerMetricsRoutes(
       // while still running the disk/detection work concurrently.
       const configPromise = loadConfig(projectRoot).catch(() => null);
       const [{ runs, metricsByRun }, { lookup }, loaded] = await Promise.all([
-        loadAllRuns(projectRoot),
+        loadRunsWithMetrics(projectRoot),
         configPromise.then((cfg) => loadProviderLookup(projectRoot, cfg)),
         configPromise,
       ]);
@@ -183,7 +152,7 @@ export async function registerMetricsRoutes(
   app.get("/api/providers/overview", async () => {
     const [{ runs, metricsByRun }, { detected, configuredIds }] =
       await Promise.all([
-        loadAllRuns(projectRoot),
+        loadRunsWithMetrics(projectRoot),
         loadProviderLookup(projectRoot),
       ]);
     const providers = detected.map((d) => ({

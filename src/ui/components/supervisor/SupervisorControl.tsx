@@ -4,6 +4,7 @@ import {
   ArrowUp,
   Check,
   CheckCircle2,
+  Compass,
   Copy,
   Plus,
   Reply,
@@ -24,6 +25,9 @@ import type {
 import { navigate } from "../../app/App.js";
 import type { Route } from "../../app/route.js";
 import { ErrorView } from "../../lib/error-view.js";
+import { matchGuide, wantsWalkthrough } from "../../lib/guides/guides.js";
+import { launchGuide } from "../onboarding/TourOverlay.js";
+import { ShowMeHow } from "../consult/ShowMeHow.js";
 import { AttachButton, AttachmentStrip, useAttachments } from "../design/Attachments.js";
 import { Button } from "../design/Button.js";
 import { IconBtn } from "../design/IconBtn.js";
@@ -135,6 +139,36 @@ export function withQuotedReply(
     "",
     text,
   ].join("\n");
+}
+
+/**
+ * What the user said, with any quoted-reply block dropped.
+ *
+ * A reply-with-context turn carries the message it answers inside its own text
+ * ({@link withQuotedReply}), with the user's own words last. That quote is
+ * model-written, and handing it to a walkthrough builder would spend the ask on
+ * a paraphrase of an answer instead of the question. The closing fence is a
+ * line of its own that no quoted line can equal, because every quoted line is
+ * prefixed - so the split is exact rather than a guess.
+ */
+export function spokenAsk(text: string): string {
+  const lines = text.split("\n");
+  const close = lines.lastIndexOf(QUOTE_FENCE);
+  return (close === -1 ? text : lines.slice(close + 1).join("\n")).trim();
+}
+
+/**
+ * The question an answer replied to: the nearest user message above it.
+ *
+ * Nearest rather than "the one before", because a turn that acted can leave a
+ * second assistant message between the question and the answer being read.
+ */
+function askAnsweredBy(messages: readonly SupervisorMessageView[], index: number): string {
+  for (let i = index - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m?.role === "user") return spokenAsk(m.text);
+  }
+  return "";
 }
 
 /**
@@ -256,6 +290,44 @@ function AnswerActions({
   );
 }
 
+/**
+ * "Show me how", beside the answer that explained it.
+ *
+ * The answer says what to do in words; this stands the user in front of it.
+ * WHICH walkthrough runs is decided here and nowhere else: a question the
+ * catalog already covers gets the AUTHORED one - every target a source literal
+ * the compiler checks, covered by a test, and no model call to wait for - and
+ * everything else gets one built for that question, whose every step is checked
+ * against the real route table and the real list of ringable controls before
+ * anything opens (lib/guides/generated.ts). A step that does not survive is
+ * dropped, and a walkthrough with no steps left is refused with the reason on
+ * screen.
+ *
+ * Both run the same overlay at the same privilege, which is the navigate
+ * action's ceiling and not a millimetre more (core/assist/answer-actions.ts): a
+ * step is a DESTINATION. It lands you on the screen, rings the control and says
+ * what it is for. Pressing, filling, saving and starting stay yours - "would you
+ * like me to help fill this?" is a line of copy on the card, not a step that can
+ * type.
+ */
+function WalkthroughOffer({ ask, answer }: { ask: string; answer: string }) {
+  const authored = matchGuide(ask);
+  if (authored) {
+    return (
+      <Button
+        className="mt-3"
+        size="sm"
+        variant="secondary"
+        onClick={() => launchGuide(authored.id)}
+        iconLeft={<Compass className="h-3.5 w-3.5" strokeWidth={1.9} />}
+      >
+        Show me how
+      </Button>
+    );
+  }
+  return <ShowMeHow className="mt-3" ask={ask} answer={answer} />;
+}
+
 /** Everything in a turn that is not the answer itself. Text chunks are the
  *  answer and are rendered as prose; folding them in here replays the reply a
  *  second time, in mono, mislabelled as tool calls. */
@@ -375,6 +447,7 @@ function SupervisorSaid({ children }: { children: ReactNode }) {
 
 function Turn({
   message,
+  ask,
   trail,
   trailOpen,
   onToggleTrail,
@@ -384,6 +457,9 @@ function Turn({
   onReply,
 }: {
   message: SupervisorMessageView;
+  /** The question this answer replied to, for the walkthrough offer. Empty on a
+   *  user message, and on an answer with no question above it. */
+  ask: string;
   /** The live transcript this answer was streamed from, when the turn happened
    *  in this session. Reasoning is not persisted, so on a reloaded thread there
    *  is nothing to disclose and the control is absent. */
@@ -409,10 +485,25 @@ function Turn({
       {trail && trail.length > 0 ? (
         <ThinkingTrail chunks={trail} open={trailOpen} onToggle={onToggleTrail} />
       ) : null}
-      <p className="whitespace-pre-wrap text-[14.5px] leading-relaxed text-chalk-100">
-        {message.text}
-      </p>
+      {/* Defence in depth against an empty message. The turn service is the
+          funnel and no longer stores one, but a thread written by an older
+          build still can, and rendering "" produced a full card - header, copy,
+          reply - wrapped around nothing, which reads as the supervisor
+          answering with silence. Say what actually happened instead. */}
+      {message.text.trim() ? (
+        <p className="whitespace-pre-wrap text-[14.5px] leading-relaxed text-chalk-100">
+          {message.text}
+        </p>
+      ) : (
+        <p className="text-[14.5px] leading-relaxed text-chalk-300">
+          This turn ended without an answer.
+        </p>
+      )}
       {message.action ? <ActionNote action={message.action} /> : null}
+      {/* Offered on a question that asked to be SHOWN, not on every answer: a
+          button under "yes, that run failed on the type check" points at
+          nothing anyone asked for. */}
+      {wantsWalkthrough(ask) ? <WalkthroughOffer ask={ask} answer={message.text} /> : null}
       <AnswerActions message={message} onPrompt={onPrompt} />
       {actions}
     </SupervisorSaid>
@@ -913,10 +1004,11 @@ export function SupervisorControl({
             </div>
           ) : null}
 
-          {thread?.messages.map((m) => (
+          {thread?.messages.map((m, i) => (
             <Turn
               key={m.id}
               message={m}
+              ask={m.role === "user" ? "" : askAnsweredBy(thread.messages, i)}
               trail={trails[m.id]}
               trailOpen={openTrails[m.id] ?? false}
               onToggleTrail={() =>

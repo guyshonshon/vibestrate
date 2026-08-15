@@ -330,7 +330,17 @@ export async function runSupervisorTurn(input: SupervisorTurnInput): Promise<voi
     finished = true;
     const thread = await store.append(threadId, {
       role: "supervisor",
-      text: opts.text || (opts.stopped ? "" : "I had nothing to add."),
+      // Never store an empty message. A stopped turn that had not said
+      // anything yet used to persist "", and the panel drew its full card -
+      // header, copy, reply - around nothing, which reads as the supervisor
+      // answering with silence rather than as a turn that was cut off. A turn
+      // stops whenever the response socket closes, so this fires on a reload
+      // or a server restart mid-answer, not only on the Stop button.
+      text:
+        opts.text ||
+        (opts.stopped
+          ? "Stopped before I got to an answer."
+          : "I had nothing to add."),
       action: opts.action,
       stopped: opts.stopped,
     });
@@ -427,6 +437,10 @@ export async function runSupervisorTurn(input: SupervisorTurnInput): Promise<voi
       emit({ kind: "phase", phase: "answering" });
       const consulted = await runConsult({
         projectRoot,
+        // A supervisor turn only ever arrives over /api/supervisor, from the
+        // dashboard's chat. Its answer is read in a browser, so it gets the
+        // dashboard's screens and not the terminal's commands.
+        surface: "dashboard",
         question,
         runId: current?.runId ?? null,
         loaded,

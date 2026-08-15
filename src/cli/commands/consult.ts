@@ -61,6 +61,9 @@ export function buildConsultCommand(): Command {
         try {
           result = await runConsult({
             projectRoot,
+            // The terminal, including `vibe shell`'s consult page, which shells
+            // this command rather than reimplementing it.
+            surface: "cli",
             question,
             taskId: opts.task ?? null,
             runId: opts.run ?? null,

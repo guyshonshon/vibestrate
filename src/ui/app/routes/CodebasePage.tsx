@@ -28,7 +28,7 @@
 // unstable callback from the parent would re-fire it every render and stomp the
 // URL back to `#/codebase`, trapping the user on the page.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { Bot, Check, FolderTree, Map as MapIcon, MessageSquarePlus, RotateCcw, Search, Sparkles, Trash2 } from "lucide-react";
 import { ApiError, api, type CodebaseAnnotation } from "../../lib/api.js";
 import type {
@@ -37,7 +37,6 @@ import type {
   RunState,
 } from "../../lib/types.js";
 import { FileTreeView } from "../../components/codebase/FileTreeView.js";
-import { FileViewer } from "../../components/codebase/FileViewer.js";
 import { FreshnessIndicator } from "../../components/codebase/FreshnessIndicator.js";
 import { CodebaseMapPanel } from "../../components/codebase/CodebaseMapPanel.js";
 import {
@@ -68,6 +67,18 @@ type Props = {
 };
 
 type Source = "project" | "worktree";
+
+// highlight.js and its language grammars are ~283kB of the entry chunk, and the
+// only thing that imports them is this viewer (lib/syntax-highlight.ts has
+// exactly one consumer). Splitting here rather than inside the highlighter
+// keeps `highlightLines` a synchronous call at its own call site, which is what
+// render wants, and takes the grammars off every dashboard load instead of only
+// the one screen that reads code.
+const FileViewer = lazy(() =>
+  import("../../components/codebase/FileViewer.js").then((m) => ({
+    default: m.FileViewer,
+  })),
+);
 
 export function CodebasePage({ initial, onUrlChange }: Props) {
   const [runs, setRuns] = useState<RunState[]>([]);
@@ -411,6 +422,16 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
           <>
             {/* ── File viewer ─────────────────────────────────────────── */}
             <main className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[16px] border border-[color:var(--line)] bg-coal-700">
+              <Suspense
+                fallback={
+                  <Skeleton
+                    label="Loading the file viewer"
+                    className="flex flex-1 flex-col gap-2 px-3 py-2.5"
+                  >
+                    <SkeletonText lines={14} />
+                  </Skeleton>
+                }
+              >
               <FileViewer
                 view={view}
                 loading={loadingFile}
@@ -426,6 +447,7 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
                     : undefined
                 }
               />
+              </Suspense>
             </main>
 
             {/* ── Inspector + annotations ─────────────────────────────── */}

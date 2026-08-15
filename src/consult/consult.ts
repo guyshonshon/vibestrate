@@ -12,11 +12,15 @@ import { VibestrateError } from "../utils/errors.js";
 import { loadConfig, type LoadedConfig } from "../project/config-loader.js";
 import { runAssist, type AssistProviderRunner } from "../core/assist/assist-runner.js";
 import { assembleConsultContext } from "./consult-context.js";
+import { surfaceInstruction, type ConsultSurface } from "./consult-surface.js";
 import type { ConsultSections } from "./consult-sections.js";
 import { saveManualProposal } from "../project/manual-proposals.js";
 import { proposePolicy } from "../project/project-policy-service.js";
 import { redactSecretsInText } from "../core/diff-service.js";
 import type { ProviderStreamChunk } from "../providers/provider-types.js";
+
+/** Re-exported so a caller building a `ConsultRequest` needs one import, not two. */
+export type { ConsultSurface };
 
 export class ConsultError extends VibestrateError {
   constructor(message: string, cause?: unknown) {
@@ -36,6 +40,16 @@ export const consultActionKindSchema = z.enum([
   "other",
 ]);
 export type ConsultActionKind = z.infer<typeof consultActionKindSchema>;
+
+/**
+ * What "short" means, stated once so the instruction and the schema hint cannot
+ * drift apart. It is a BUDGET IN THE PROMPT, not a `z.string().max()`: the assist
+ * runner re-prompts on a schema failure and then gives up, so a hard cap turns
+ * one long-but-correct answer into no answer at all. Length is a quality goal;
+ * failing closed on it would trade a real answer for a stylistic one.
+ */
+const ANSWER_BUDGET =
+  "at most 3 sentences (roughly 60 words) for a how-do-I question, and never more than 6";
 
 export const consultAnswerSchema = z
   .object({
@@ -80,7 +94,7 @@ export const consultAnswerSchema = z
 export type ConsultAnswer = z.infer<typeof consultAnswerSchema>;
 
 const CONSULT_SCHEMA_HINT = `{
-  "answer": "string - plain-language answer grounded ONLY in the project context",
+  "answer": "string - the answer, grounded ONLY in the project context, ${ANSWER_BUDGET}",
   "confidence": "low | medium | high",
   "caveats": ["string - what you could NOT verify from the context"],
   "usedContext": ["string - which context labels you actually used"],
@@ -105,6 +119,13 @@ export type ConsultViewContext = {
 export type ConsultRequest = {
   projectRoot: string;
   question: string;
+  /**
+   * Where the answer will be read. REQUIRED, with no default anywhere in the
+   * chain, so a new caller has to state its surface instead of silently
+   * inheriting whichever one happened to be typed first. It changes the ANSWER,
+   * not the wording: see consult-surface.ts and handbook-retrieval.ts.
+   */
+  surface: ConsultSurface;
   taskId?: string | null;
   runId?: string | null;
   files?: string[];
@@ -150,13 +171,17 @@ function buildInstruction(
   contextText: string,
   usedSources: string[],
   screen: ConsultViewContext | null,
+  surface: ConsultSurface,
 ): string {
   const lines = [
     "You are Vibestrate's project consult - a project-aware engineering advisor.",
     "Answer the user's question about THIS project using ONLY the project context below. You are READ-ONLY: recommend actions, never assume any were taken.",
+    surfaceInstruction(surface),
+    `Be short. Lead with the answer, ${ANSWER_BUDGET}. No preamble, no restating the question, no closing summary.`,
+    "Never narrate your own evidence. A sentence of the form \"the supplied context confirms X but does not include Y\" is you describing the prompt; put the genuine part of it in `caveats` as one line and leave it out of `answer`.",
     "Be honest about your verification boundary: only deterministic evidence (validation results, config, run outcomes, annotations) is reliable. Where the context is insufficient to be sure, say so in `caveats` and lower `confidence`. Never invent facts or fake authority.",
     "If a `Project state (computed - authoritative...)` block is present, it was computed deterministically from the ledger + roadmap + run history. Narrate and rank those items - do NOT contradict them or invent open intents / next steps that aren't there.",
-    "If a `Vibestrate product documentation` block is present, it is Vibestrate's own shipped documentation, selected for this question. Answer product questions (commands, config keys, concepts) from it and quote the exact command or key. Never invent a command, flag or config key that is not there; if it does not cover the question, say so in `caveats`. If the block is absent, the question did not match Vibestrate's documentation - do not guess Vibestrate's surface from memory.",
+    "If a `Vibestrate product documentation` block is present, it is Vibestrate's own shipped documentation, selected for this question AND for the surface above. Answer product questions (config keys, concepts, and on the terminal surface commands) from it and quote the exact key or command. Never invent a command, flag or config key that is not there; if it does not cover the question, say so in `caveats`. If the block is absent, the question did not match Vibestrate's documentation - do not guess Vibestrate's surface from memory.",
     "Cite which context you actually used in `usedContext`" +
       (usedSources.length ? ` (available: ${usedSources.join(", ")})` : "") +
       ".",
@@ -191,6 +216,7 @@ export async function runConsult(req: ConsultRequest): Promise<ConsultResult> {
 
   const context = await assembleConsultContext({
     projectRoot: req.projectRoot,
+    surface: req.surface,
     question,
     taskId: req.taskId,
     runId: req.runId,
@@ -211,7 +237,13 @@ export async function runConsult(req: ConsultRequest): Promise<ConsultResult> {
     projectRoot: req.projectRoot,
     label: "consult",
     auditBucket: "consult",
-    instruction: buildInstruction(question, context.text, context.usedSources, screen),
+    instruction: buildInstruction(
+      question,
+      context.text,
+      context.usedSources,
+      screen,
+      req.surface,
+    ),
     schema: consultAnswerSchema,
     schemaHint: CONSULT_SCHEMA_HINT,
     // Suppress assist's own rules.md injection - our context already includes it,

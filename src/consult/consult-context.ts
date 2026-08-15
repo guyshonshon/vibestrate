@@ -31,6 +31,8 @@ import {
   type ConsultSections,
 } from "./consult-sections.js";
 import { retrieveHandbook, renderHandbookSection } from "./handbook/handbook-retrieval.js";
+import { renderSurfaceScreens, type ConsultSurface } from "./consult-surface.js";
+import { loadRunsWithMetrics, spendByProvider } from "../core/metrics/run-spend.js";
 
 /** Keep the whole context block well-bounded; consult is a one-shot question. */
 const CONTEXT_MAX_BYTES = 96 * 1024;
@@ -38,6 +40,10 @@ const RECENT_RUNS = 8;
 
 export type ConsultContextRequest = {
   projectRoot: string;
+  /** Where the answer will be read. Required and undefaulted: it decides which
+   *  product documentation is eligible at all, and which surface's controls the
+   *  answer is given to point at. See consult-surface.ts. */
+  surface: ConsultSurface;
   /** The question being asked. Drives handbook retrieval only - omitting it
    *  simply leaves the product-documentation section out. */
   question?: string | null;
@@ -70,6 +76,30 @@ function truncate(s: string, max: number): string {
 function clampBytes(text: string, maxBytes: number): string {
   if (Buffer.byteLength(text, "utf8") <= maxBytes) return text;
   return `${text.slice(0, maxBytes)}\n…[context truncated]`;
+}
+
+/** How far back a spend question looks. Seven days is what "this week" means
+ *  to someone asking, and it matches the window the Agents page rolls up. */
+const SPEND_WINDOW_DAYS = 7;
+
+/**
+ * Does this question ask what something cost?
+ *
+ * Deterministic and narrow on purpose. A false positive costs one extra read of
+ * the run metrics; a false negative sends the model to answer a money question
+ * with no figures, which is how "how much did claude cost me this week" came
+ * back empty. Erring toward loading is the cheaper mistake.
+ */
+function asksAboutSpend(question: string): boolean {
+  // `\$` is matched OUTSIDE the \b group on purpose: \b$\b can never match a
+  // dollar sign preceded by a space, because neither side is a word boundary.
+  // Written the obvious way it was a branch that could not fire.
+  return (
+    /\$/.test(question) ||
+    /\b(cost|costs|costing|spend|spent|spending|price|pricing|bill|billed|billing|budget|usd|dollars?|burn|burned|expensive)\b/i.test(
+      question,
+    )
+  );
 }
 
 function renderRun(r: RunState): string {
@@ -162,6 +192,50 @@ export async function assembleConsultContext(
     sections.push(`## Project configuration & status\n${lines.join("\n")}`);
     usedSources.push("project config");
 
+    // 3b. Spend, when the question is about money.
+    //
+    // Gated on the question rather than always-on: this reads every run's
+    // metrics file off disk, and paying that on "why did the reviewer block
+    // this" would be a latency cost for nothing. Same shape as the command
+    // check in handbook-retrieval - a deterministic keyword gate, not a model
+    // deciding what to load.
+    //
+    // Retrieval could never answer this. "How much did claude cost me this
+    // week" does not want a page about spend, it wants a number computed from
+    // the run records, which is why it is a computed section next to Recent
+    // runs rather than something the handbook looks up.
+    if (asksAboutSpend(req.question ?? "")) {
+      const spend = await loadRunsWithMetrics(projectRoot)
+        .then((d) => spendByProvider({ ...d, days: SPEND_WINDOW_DAYS }))
+        .catch(() => null);
+      if (spend && !spend.byProvider.length) {
+        // Say so rather than omitting the section. Silence here is what made
+        // "how much did claude cost me this week" come back with nothing: the
+        // model had no figures AND no statement that there were none, so it had
+        // nothing honest to say.
+        sections.push(
+          `## Spend, last ${SPEND_WINDOW_DAYS} days\nNo cost was recorded for any run in this window. Say that plainly rather than estimating one.`,
+        );
+        usedSources.push("spend (none recorded)");
+      } else if (spend) {
+        const rows = spend.byProvider.map(
+          (p) =>
+            `${p.providerId}: $${p.costUsd.toFixed(2)} across ${p.runs} run${p.runs === 1 ? "" : "s"}`,
+        );
+        // The estimate wording is load-bearing, not a hedge: `costEstimated`
+        // means the figure was tokens times a list price, not something a
+        // provider invoiced. Reporting it as fact would overstate what the
+        // product knows.
+        const basis = spend.estimated
+          ? "Estimated from token counts and published list prices, not from a provider invoice. Say so when you quote it."
+          : "Reported by the provider CLIs.";
+        sections.push(
+          `## Spend, last ${spend.days} days\n${rows.join("\n")}\ntotal: $${spend.totalUsd.toFixed(2)}\n${basis}`,
+        );
+        usedSources.push(`spend (${spend.days}d)`);
+      }
+    }
+
     // 4. Recent runs (status + review/verify evidence).
     const recent = meta.recentRuns.slice(0, RECENT_RUNS);
     if (recent.length) {
@@ -227,12 +301,22 @@ export async function assembleConsultContext(
     notes.push(...materialized.notes);
   }
 
-  // 9. Vibestrate's own documentation, narrowed to the question. Deterministic
-  // and offline: the corpus is compiled into the bundle, so this reads no files
-  // and calls no model. Silent unless the question names Vibestrate vocabulary,
-  // which is what keeps an unrelated question ("why did my React build fail")
-  // from pulling product pages into the prompt.
-  const handbookHits = retrieveHandbook(req.question ?? "");
+  // 9. The surface's own controls, so the answer has somewhere real to point.
+  // Before this block the dashboard answer had no screen names in its context
+  // at all, which is why it fell back to "edit .vibestrate/project.yml" for a
+  // thing the product has a dedicated editor for.
+  const screens = renderSurfaceScreens(req.surface);
+  if (screens) {
+    sections.push(screens);
+    usedSources.push("dashboard screens");
+  }
+
+  // 10. Vibestrate's own documentation, narrowed to the question AND to the
+  // surface. Deterministic and offline: the corpus is compiled into the bundle,
+  // so this reads no files and calls no model. Silent unless the question names
+  // Vibestrate vocabulary, which is what keeps an unrelated question ("why did
+  // my React build fail") from pulling product pages into the prompt.
+  const handbookHits = retrieveHandbook(req.question ?? "", { surface: req.surface });
   const handbookSection = renderHandbookSection(handbookHits);
   if (handbookSection) {
     sections.push(handbookSection);

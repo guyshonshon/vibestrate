@@ -32,7 +32,7 @@ import type { ProviderDetectionRunner } from "../src/providers/provider-detectio
 const noProvider: ProviderDetectionRunner = async () => ({ exitCode: 127, stdout: "", stderr: "" });
 
 const ids = (question: string): string[] =>
-  retrieveHandbook(question).map((h) => h.entry.id);
+  retrieveHandbook(question, { surface: "cli" }).map((h) => h.entry.id);
 
 describe("handbook corpus", () => {
   it("is compiled from the real docs and has not drifted", async () => {
@@ -60,22 +60,22 @@ describe("handbook corpus", () => {
 describe("handbook retrieval is deterministic", () => {
   it("returns the same entries, in the same order, for the same question", () => {
     const question = "how do I make a crew and attach a role to a seat";
-    const first = retrieveHandbook(question);
+    const first = retrieveHandbook(question, { surface: "cli" });
     for (let i = 0; i < 5; i += 1) {
-      const again = retrieveHandbook(question);
+      const again = retrieveHandbook(question, { surface: "cli" });
       expect(again.map((h) => `${h.entry.id}:${h.score}`)).toEqual(
         first.map((h) => `${h.entry.id}:${h.score}`),
       );
     }
     // The rendered prompt section is what actually reaches the model, so pin
     // that byte-for-byte too, not just the ranking behind it.
-    expect(renderHandbookSection(retrieveHandbook(question))).toBe(
+    expect(renderHandbookSection(retrieveHandbook(question, { surface: "cli" }))).toBe(
       renderHandbookSection(first),
     );
   });
 
   it("breaks score ties by id, so equal-scoring pages never swap places", () => {
-    const hits = retrieveHandbook("how do I make a crew");
+    const hits = retrieveHandbook("how do I make a crew", { surface: "cli" });
     for (let i = 1; i < hits.length; i += 1) {
       const prev = hits[i - 1]!;
       const cur = hits[i]!;
@@ -119,8 +119,8 @@ describe("handbook retrieval is relevant", () => {
     "write me a haiku",
   ])("finds no product vocabulary in: %s", (question) => {
     expect(productTerms(question)).toEqual([]);
-    expect(retrieveHandbook(question)).toEqual([]);
-    expect(renderHandbookSection(retrieveHandbook(question))).toBeNull();
+    expect(retrieveHandbook(question, { surface: "cli" })).toEqual([]);
+    expect(renderHandbookSection(retrieveHandbook(question, { surface: "cli" }))).toBeNull();
   });
 
   // Layer 2 - the question brushes a word Vibestrate happens to use ("model",
@@ -133,13 +133,13 @@ describe("handbook retrieval is relevant", () => {
     "my tests are failing in jest",
     "how do I write a unit test for my reducer",
   ])("stays quiet on an incidental word match: %s", (question) => {
-    expect(retrieveHandbook(question)).toEqual([]);
-    expect(renderHandbookSection(retrieveHandbook(question))).toBeNull();
+    expect(retrieveHandbook(question, { surface: "cli" })).toEqual([]);
+    expect(renderHandbookSection(retrieveHandbook(question, { surface: "cli" }))).toBeNull();
   });
 
   it("retrieves nothing for an empty question", () => {
-    expect(retrieveHandbook("")).toEqual([]);
-    expect(retrieveHandbook("   ")).toEqual([]);
+    expect(retrieveHandbook("", { surface: "cli" })).toEqual([]);
+    expect(retrieveHandbook("   ", { surface: "cli" })).toEqual([]);
   });
 });
 
@@ -148,7 +148,7 @@ describe("handbook retrieval is bounded", () => {
     // Worst case on purpose: a question stuffed with product vocabulary.
     const greedy =
       "crew role seat flow workflow provider profile policy run task skill supervisor worktree sandbox spec-up approval config policies validation replay ledger annotation";
-    const hits = retrieveHandbook(greedy);
+    const hits = retrieveHandbook(greedy, { surface: "cli" });
     expect(hits.length).toBeLessThanOrEqual(HANDBOOK_MAX_ENTRIES);
     const section = renderHandbookSection(hits)!;
     expect(Buffer.byteLength(section, "utf8")).toBeLessThanOrEqual(
@@ -261,7 +261,7 @@ describe("distillation never deletes what it was asked to trim", () => {
 // needs". Asserting on ids or counts is what let an empty body through.
 describe("a user asking how to do something gets the real command", () => {
   const section = (question: string): string =>
-    renderHandbookSection(retrieveHandbook(question)) ?? "";
+    renderHandbookSection(retrieveHandbook(question, { surface: "cli" })) ?? "";
 
   it.each([
     // The owner's question, verbatim in intent. `flows draft` is the supervisor-
@@ -304,7 +304,11 @@ describe("handbook in the consult context", () => {
   }, 60_000);
 
   it("adds the product section for a product question", async () => {
-    const ctx = await assembleConsultContext({ projectRoot, question: "how do I make a crew" });
+    const ctx = await assembleConsultContext({
+      projectRoot,
+      surface: "cli",
+      question: "how do I make a crew",
+    });
     expect(ctx.text).toContain("Vibestrate product documentation");
     expect(ctx.usedSources.some((s) => s.startsWith("vibestrate docs"))).toBe(true);
   });
@@ -312,6 +316,7 @@ describe("handbook in the consult context", () => {
   it("leaves the product section out for an unrelated question", async () => {
     const ctx = await assembleConsultContext({
       projectRoot,
+      surface: "cli",
       question: "why did my React build fail",
     });
     expect(ctx.text).not.toContain("Vibestrate product documentation");
@@ -323,7 +328,7 @@ describe("handbook in the consult context", () => {
     // handbook deliberately is not - it is a statically imported module, so
     // there is no path to plant anything in. Prove it by planting files in
     // every plausible location and asserting the retrieved bytes do not move.
-    const before = renderHandbookSection(retrieveHandbook("how do I make a crew"));
+    const before = renderHandbookSection(retrieveHandbook("how do I make a crew", { surface: "cli" }));
     for (const dir of ["skills", "handbook", "docs"]) {
       const target = path.join(projectRoot, ".vibestrate", dir);
       await fs.mkdir(target, { recursive: true });
@@ -335,11 +340,15 @@ describe("handbook in the consult context", () => {
       "---\ntitle: Crew\n---\n\nSHADOWED-BY-PROJECT\n",
     );
 
-    const after = renderHandbookSection(retrieveHandbook("how do I make a crew"));
+    const after = renderHandbookSection(retrieveHandbook("how do I make a crew", { surface: "cli" }));
     expect(after).toBe(before);
     expect(after).not.toContain("SHADOWED-BY-PROJECT");
 
-    const ctx = await assembleConsultContext({ projectRoot, question: "how do I make a crew" });
+    const ctx = await assembleConsultContext({
+      projectRoot,
+      surface: "cli",
+      question: "how do I make a crew",
+    });
     expect(ctx.text).not.toContain("SHADOWED-BY-PROJECT");
   });
 });

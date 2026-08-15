@@ -210,9 +210,12 @@ export type GeneratedWalkthroughResult =
 /**
  * THE ENTRY POINT for a model-authored walkthrough object.
  *
- * Never throws: a hostile payload is a refusal with a reason, not a broken
- * surface. Each step is validated inside its own boundary, so one bad entry
- * costs that step and not the itinerary.
+ * Never throws for a JSON value, which is what both callers pass: a hostile
+ * payload is a refusal with a reason, not a broken surface. Each step is
+ * validated inside its own boundary, so one bad entry costs that step and not
+ * the itinerary. (An object with a throwing getter is not a JSON value and is
+ * not defended against here - JSON.parse cannot produce one, and the surfaces
+ * that call this already show a thrown error as a refusal.)
  */
 export function validateWalkthrough(raw: unknown): GeneratedWalkthroughResult {
   if (!isRecord(raw)) return { ok: false, reason: "not-an-object", dropped: 0 };
@@ -339,6 +342,21 @@ function anchorVocabulary(): string {
 }
 
 /**
+ * The output contract, restated LAST.
+ *
+ * Load-bearing, and measured rather than assumed. This question rides on the
+ * ordinary consult instruction, which tells the model to be short and lead with
+ * the answer - and against a live provider that instruction beat an output
+ * contract stated only at the top: 2 asks out of 2 came back as prose and were
+ * refused `no-json`, so the whole generated half always failed. With the same
+ * contract repeated here, after the question and the answer excerpt, 2 out of 2
+ * returned a valid itinerary. Moving this back up the prompt puts the feature
+ * back to always refusing.
+ */
+const OUTPUT_CONTRACT =
+  "\n\nYour entire `answer` field is that JSON object and nothing else - no prose, no preamble, no explanation. An answer that does not start with { is discarded.";
+
+/**
  * The question that asks for a walkthrough.
  *
  * It goes to the ordinary read-only consult endpoint, which is the point: the
@@ -366,10 +384,14 @@ export function buildWalkthroughRequest(input: { ask: string; answer?: string })
     "- `body` is one declarative line about the screen. `todo` is one line about the next move.",
   ].join("\n");
 
+  // The contract is reserved out of the budget rather than trimmed to fit it:
+  // an excerpt long enough to push it off the end would silently restore the
+  // prose-only behaviour it exists to prevent.
+  const budget = QUESTION_MAX - OUTPUT_CONTRACT.length;
   const answer = (input.answer ?? "").trim();
-  if (!answer) return head.slice(0, QUESTION_MAX);
+  if (!answer) return `${head.slice(0, budget)}${OUTPUT_CONTRACT}`;
   const tail = "\n\nThe answer this walkthrough should carry out:\n";
-  const room = QUESTION_MAX - head.length - tail.length;
-  if (room <= 0) return head.slice(0, QUESTION_MAX);
-  return `${head}${tail}${answer.slice(0, room)}`;
+  const room = budget - head.length - tail.length;
+  if (room <= 0) return `${head.slice(0, budget)}${OUTPUT_CONTRACT}`;
+  return `${head}${tail}${answer.slice(0, room)}${OUTPUT_CONTRACT}`;
 }
