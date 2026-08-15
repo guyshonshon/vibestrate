@@ -7,6 +7,7 @@ import type {
 } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
 import { cn } from "../design/cn.js";
+import { ShowMeHow } from "./ShowMeHow.js";
 
 /** Hash route a computed item opens: run -> run detail, task -> board card. */
 function refHref(ref: ConsultRef): string {
@@ -37,11 +38,15 @@ export function ConsultAnswerView({
   result,
   proposalState,
   onDecideProposal,
+  question,
   compact = false,
 }: {
   result: ConsultResult;
   proposalState: ProposalState;
   onDecideProposal: (action: "apply" | "reject") => void;
+  /** What was asked, so a walkthrough built from this answer knows the goal.
+   *  Optional: the answer alone is enough to build one from. */
+  question?: string;
   /** Tighter spacing for the narrow dock panel. */
   compact?: boolean;
 }) {
@@ -74,6 +79,17 @@ export function ConsultAnswerView({
             ) : null}
           </div>
         ) : null}
+
+        {/* An answer says what to do; this walks it. The sequence is built for
+            this question and checked against the real screens before it opens,
+            so a question outside the five authored walkthroughs still gets one
+            rather than a paragraph. */}
+        <ShowMeHow
+          className="mt-3.5"
+          ask={question ?? ""}
+          answer={answer.answer}
+          label="Show me how"
+        />
       </div>
 
       {answer.recommendedActions.length ? (

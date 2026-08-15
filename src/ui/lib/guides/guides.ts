@@ -13,6 +13,11 @@ import type { Route } from "../../app/route.js";
  * untrusted input at runtime; running authored steps through that gate would
  * be theatre.
  *
+ * That other problem now has a surface: `generated.ts` beside this file builds
+ * a walkthrough per question for everything the catalog does not cover, and
+ * runs every target through the runtime gate. The two produce the same
+ * {@link Guide} shape and the same overlay walks both.
+ *
  * A guide navigates and points. It never writes config and never starts a run.
  *
  * This file holds zero React and zero browser-only imports at module scope so
@@ -61,6 +66,12 @@ export type Guide = {
    */
   asks: readonly string[];
   steps: readonly GuideStep[];
+  /**
+   * Set only by `generated.ts`, on a walkthrough a model wrote for one question.
+   * The overlay says so on the card: an itinerary built a moment ago carries
+   * different weight from one that was written down and tested.
+   */
+  generated?: boolean;
 };
 
 /**
@@ -68,8 +79,11 @@ export type Guide = {
  * `stepId` starts it at one named step, which is what consult's "Take me there"
  * sends so the walkthrough opens on the step you asked about rather than at the
  * beginning of a tour you did not ask for.
+ *
+ * `guide` carries a walkthrough that is not in the catalog to look up, which is
+ * the generated case. It is the whole reason the event takes an object.
  */
-export type GuideLaunchDetail = { guideId?: string; stepId?: string };
+export type GuideLaunchDetail = { guideId?: string; stepId?: string; guide?: Guide };
 
 export const GUIDE_LAUNCH_EVENT = "vibestrate:tour";
 export const DEFAULT_GUIDE_ID = "dashboard-tour";

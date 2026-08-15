@@ -124,6 +124,31 @@ export type AnswerRoute =
   | { kind: "crew-editor"; crewId: string | null };
 
 /**
+ * Every kind a model-authored destination may name, in one place.
+ *
+ * Exported because a second surface now states this vocabulary in a prompt (the
+ * generated walkthrough in ui/lib/guides/generated.ts). A hand-copied list there
+ * is exactly the drift that offers a model a page this table will then drop.
+ */
+export const ANSWER_ROUTE_KINDS = [
+  ...PARAMETERLESS_KINDS,
+  "runs",
+  "source",
+  "codebase",
+  "task",
+  "run",
+  "control",
+  "proposal",
+  "consult",
+  "flow",
+  "flow-editor",
+  "crew",
+  "crew-editor",
+] as const;
+
+export type AnswerRouteKind = (typeof ANSWER_ROUTE_KINDS)[number];
+
+/**
  * Compile-time proof that every route this module can emit is a route the app
  * actually has. Delete a kind from the app's table, rename a param, or make an
  * optional param required, and this line stops compiling - which is the whole
@@ -326,6 +351,28 @@ function parseAnswerRoute(raw: unknown, ids: AnswerActionIds | null): AnswerRout
   }
 }
 
+/**
+ * THE ENTRY POINT for a model-authored DESTINATION on its own, for a caller
+ * whose surrounding shape is not a button. A generated walkthrough step is a
+ * place to stand plus a control to ring, not a label and a click, so it needs
+ * the route gate without the action wrapper.
+ *
+ * Same table, same drop-on-mismatch rule, same server-built id allowlists. The
+ * point of exposing it is that there stays exactly ONE route table: a caller
+ * that re-implemented "is this a real page" would be the first place a dead
+ * destination could get through.
+ */
+export function parseNavigateRoute(raw: unknown, ids: AnswerActionIds): AnswerRoute | null {
+  try {
+    return parseAnswerRoute(raw, ids);
+  } catch {
+    // A candidate that throws is a candidate that is dropped, exactly as it is
+    // inside parseAnswerActions. A caller mapping over model output must never
+    // lose the whole batch to one hostile entry.
+    return null;
+  }
+}
+
 function parseLabel(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   const label = raw.trim();
@@ -431,20 +478,6 @@ export const answerActionsField = z
 /** The JSON sketch to embed in a prompt, and the destinations it may name. */
 export const ANSWER_ACTIONS_SCHEMA_HINT = `[
   { "kind": "prompt", "label": "string - <=${ANSWER_ACTION_LABEL_MAX} chars, one line", "text": "string - the follow-up to put in the composer" },
-  { "kind": "navigate", "label": "string", "route": { "kind": "one of: ${[
-    ...PARAMETERLESS_KINDS,
-    "runs",
-    "source",
-    "codebase",
-    "task",
-    "run",
-    "control",
-    "proposal",
-    "consult",
-    "flow",
-    "flow-editor",
-    "crew",
-    "crew-editor",
-  ].join(", ")}" } }
+  { "kind": "navigate", "label": "string", "route": { "kind": "one of: ${ANSWER_ROUTE_KINDS.join(", ")}" } }
 ]
 At most ${ANSWER_ACTIONS_MAX}. Routes that name a task/run/flow/crew/proposal must use an id from the list given above; any other id is discarded. Neither kind writes anything or starts a run.`;

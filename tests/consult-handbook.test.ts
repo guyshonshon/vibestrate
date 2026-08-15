@@ -18,7 +18,14 @@ import {
   HANDBOOK_MAX_ENTRIES,
 } from "../src/consult/handbook/handbook-retrieval.js";
 import { HANDBOOK_CORPUS } from "../src/consult/handbook/handbook-corpus.generated.js";
-import { compileHandbook, HANDBOOK_SCHEMA_VERSION } from "../src/consult/handbook/handbook-compile.js";
+import {
+  compileHandbook,
+  distillMarkdown,
+  fitFencedTree,
+  HANDBOOK_BODY_MAX_BYTES,
+  HANDBOOK_BODY_MIN_BYTES,
+  HANDBOOK_SCHEMA_VERSION,
+} from "../src/consult/handbook/handbook-compile.js";
 import { readHandbookSources } from "../src/consult/handbook/handbook-sources.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
@@ -151,8 +158,134 @@ describe("handbook retrieval is bounded", () => {
 
   it("caps every compiled entry, so no single page can dominate", () => {
     for (const entry of HANDBOOK_CORPUS.entries) {
-      expect(Buffer.byteLength(entry.body, "utf8")).toBeLessThanOrEqual(1800);
+      expect(Buffer.byteLength(entry.body, "utf8")).toBeLessThanOrEqual(HANDBOOK_BODY_MAX_BYTES);
     }
+  });
+});
+
+// ── The gap that shipped ────────────────────────────────────────────────────
+//
+// The owner asked consult "how can I make a new flow" and was told to hand-edit
+// project.yml, because "the supplied docs do not include ... a concrete vibe
+// command for creating a flow". The answer was honest: `cli/flows` retrieved
+// FIRST and its body was zero bytes. Eight entries were empty, including
+// `cli/policies`, `cli/tasks` and `config/policies`.
+//
+// The cause was distillMarkdown being handed something that is not a markdown
+// page. A generated command tree is one fenced block, so the trimmer scored it
+// as a single droppable unit and deleted every row rather than the least useful
+// ones, the moment the tree crossed the budget (`vibe flows` is 1447 bytes
+// against a 1400 cap).
+//
+// The tests above pinned determinism, silence and byte caps. None of them
+// looked at whether a retrieved entry SAYS anything, so all of them passed.
+// These do.
+
+describe("every handbook entry has something to say", () => {
+  it("has no empty body", () => {
+    const empty = HANDBOOK_CORPUS.entries.filter((e) => e.body.trim() === "").map((e) => e.id);
+    expect(empty).toEqual([]);
+  });
+
+  it("has no body below the floor where an entry is a defect", () => {
+    // An entry renders as `### title` over its body, so a body that is empty or
+    // pure scaffolding reaches the model as a heading over nothing - and it
+    // displaces a page that had the answer, because the four-entry cap counts
+    // it. Below the floor an entry must not be compiled at all.
+    const thin = HANDBOOK_CORPUS.entries
+      .filter((e) => Buffer.byteLength(e.body, "utf8") < HANDBOOK_BODY_MIN_BYTES)
+      .map((e) => `${e.id}:${Buffer.byteLength(e.body, "utf8")}`);
+    expect(thin).toEqual([]);
+  });
+
+  it("carries at least one line that is not a fence marker", () => {
+    // The byte floor alone would pass a body padded with blank lines and
+    // backticks. This is the invariant the floor is a cheap proxy for.
+    for (const entry of HANDBOOK_CORPUS.entries) {
+      const substance = entry.body
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l && !l.startsWith("```") && !l.startsWith("…"));
+      expect(substance.length, `${entry.id} has no content line`).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("distillation never deletes what it was asked to trim", () => {
+  it("truncates a single oversized block instead of dropping it", () => {
+    // Exactly the shape of a generated CLI body: one fence, over budget. The
+    // trimmer used to remove it and return "".
+    const oneFence = ["```text", "x".repeat(4000), "```"].join("\n");
+    const out = distillMarkdown(oneFence, 200);
+    expect(out).not.toBe("");
+    expect(Buffer.byteLength(out, "utf8")).toBeLessThanOrEqual(200);
+  });
+
+  it("keeps a page that is a lone heading rather than emptying it", () => {
+    expect(distillMarkdown("# Only a heading\n", 500).trim()).not.toBe("");
+  });
+
+  it("keeps the whole tree when it fits, with no trim marker", () => {
+    const rows = [
+      { depth: 0, text: "vibe flows - list flows" },
+      { depth: 1, text: "  vibe flows draft - draft a flow" },
+    ];
+    const out = fitFencedTree(rows, "text", 1800);
+    expect(out).toContain("vibe flows draft");
+    expect(out).not.toContain("trimmed");
+    expect(out.startsWith("```text")).toBe(true);
+    expect(out.endsWith("```")).toBe(true);
+  });
+
+  it("drops the deepest rows first and says so, keeping the root", () => {
+    const rows = [
+      { depth: 0, text: "vibe tasks - manage tasks" },
+      { depth: 1, text: `  vibe tasks run - ${"r".repeat(120)}` },
+      { depth: 2, text: `    vibe tasks checklist add - ${"c".repeat(120)}` },
+    ];
+    const out = fitFencedTree(rows, "text", 220);
+    expect(out).toContain("vibe tasks run");
+    expect(out).not.toContain("checklist add");
+    expect(out).toContain("trimmed");
+    expect(Buffer.byteLength(out, "utf8")).toBeLessThanOrEqual(220);
+  });
+
+  it("never returns an empty tree, even under an absurd budget", () => {
+    const out = fitFencedTree([{ depth: 0, text: "vibe tasks - manage tasks" }], "text", 8);
+    expect(out.trim()).not.toBe("");
+  });
+});
+
+// The end of the chain that failed: not "did the right entry rank first" (it
+// always did) but "does the text the model receives contain the command a user
+// needs". Asserting on ids or counts is what let an empty body through.
+describe("a user asking how to do something gets the real command", () => {
+  const section = (question: string): string =>
+    renderHandbookSection(retrieveHandbook(question)) ?? "";
+
+  it.each([
+    // The owner's question, verbatim in intent. `flows draft` is the supervisor-
+    // assisted creation path and `flows import` is how a draft is adopted;
+    // neither reached the model before.
+    ["how can I make a new flow", ["vibe flows draft", "vibe flows import"]],
+    ["how do I make a crew", ["vibe crew draft", "vibe crew presets add"]],
+    ["how do I set a policy", ["vibe policies add", "vibe policies draft"]],
+    ["how do I run a task", ["vibe run", "vibe tasks run"]],
+  ])("%s", (question, commands) => {
+    const text = section(question as string);
+    expect(text).not.toBe("");
+    for (const command of commands as string[]) {
+      expect(text, `"${question}" never surfaced \`${command}\``).toContain(command);
+    }
+  });
+
+  it("does not answer a flow question with an editorless config instruction", () => {
+    // The shipped answer told the owner to hand-edit .vibestrate/project.yml
+    // because the real command was missing. The command is the fix; this pins
+    // that it is present rather than pinning the absence of any config mention.
+    const text = section("how can I make a new flow");
+    const firstCommand = text.indexOf("vibe flows draft");
+    expect(firstCommand).toBeGreaterThan(-1);
   });
 });
 

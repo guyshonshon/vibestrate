@@ -14,6 +14,7 @@ import {
   type GuideLaunchDetail,
   type GuideStep,
 } from "../../lib/guides/guides.js";
+import type { GeneratedWalkthrough } from "../../lib/guides/generated.js";
 
 /**
  * Open a walkthrough from anywhere. Fires the event this overlay listens for,
@@ -30,6 +31,21 @@ import {
 export function launchGuide(guideId: string = DEFAULT_GUIDE_ID, stepId?: string): void {
   window.dispatchEvent(
     new CustomEvent<GuideLaunchDetail>(GUIDE_LAUNCH_EVENT, { detail: { guideId, stepId } }),
+  );
+}
+
+/**
+ * Open a walkthrough a model just wrote. Same event, same overlay, same steps -
+ * the only difference is that this one was not in the catalog to look up.
+ *
+ * The parameter type is the branded result of the runtime gate
+ * (lib/guides/generated.ts), so an unvalidated itinerary cannot reach the
+ * overlay: there is no second door, and the door that exists only accepts
+ * something that has already been through the gate.
+ */
+export function launchGeneratedWalkthrough(guide: GeneratedWalkthrough): void {
+  window.dispatchEvent(
+    new CustomEvent<GuideLaunchDetail>(GUIDE_LAUNCH_EVENT, { detail: { guide } }),
   );
 }
 
@@ -282,6 +298,12 @@ export function TourOverlay() {
   useEffect(() => {
     const onLaunch = (e: Event) => {
       const detail = (e as CustomEvent<GuideLaunchDetail>).detail;
+      // A carried walkthrough is one that was built for the question just
+      // asked, so there is nothing to look up.
+      if (detail?.guide) {
+        open(detail.guide, detail.stepId);
+        return;
+      }
       const id = detail?.guideId ?? DEFAULT_GUIDE_ID;
       const g = findGuide(id);
       if (!g) {
@@ -448,6 +470,12 @@ export function TourOverlay() {
               </span>{" "}
               {guide.title}
             </div>
+            {/* Provenance, because an itinerary written a moment ago for one
+                question carries different weight from one that was written
+                down and is covered by a test. */}
+            {guide.generated ? (
+              <div className="text-meta text-chalk-300">Made for what you asked.</div>
+            ) : null}
           </div>
           <button
             type="button"

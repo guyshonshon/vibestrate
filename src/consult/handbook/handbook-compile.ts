@@ -33,11 +33,35 @@
 /** Bumped when the corpus shape changes, so a stale generated module fails loudly. */
 export const HANDBOOK_SCHEMA_VERSION = 1;
 
-/** Per-entry body budgets. Big enough for a concept page's lead plus its command
- *  examples, small enough that the whole corpus stays a bundled constant. */
-export const DOC_BODY_MAX_BYTES = 1800;
-export const CLI_BODY_MAX_BYTES = 1400;
-export const CONFIG_BODY_MAX_BYTES = 900;
+/**
+ * Per-entry body budget. Big enough for a concept page's lead plus its command
+ * examples, small enough that the whole corpus stays a bundled constant, and
+ * sized against the retrieval budget: HANDBOOK_MAX_ENTRIES (4) x 1800 = 7200,
+ * under the 8 KB section cap even before the per-entry accounting in
+ * retrieveHandbook kicks in.
+ *
+ * One budget for all three kinds, deliberately. The CLI and config trees used to
+ * get 1400 and 900, and every byte under the doc budget bought nothing: the
+ * generated `vibe flows` tree is 1447 bytes, so its entry compiled to NOTHING
+ * (see fitFencedTree) and consult answered "how do I make a flow" by saying the
+ * docs do not contain a command for it.
+ */
+export const HANDBOOK_BODY_MAX_BYTES = 1800;
+
+/**
+ * Floor below which an entry is a defect, not a short page.
+ *
+ * An entry retrieves as a heading plus its body, so a body that is empty or
+ * pure scaffolding renders as a heading with nothing under it - strictly worse
+ * than not retrieving at all, because it displaces a page that had something to
+ * say and reads to the model as "the docs cover this and it is blank".
+ *
+ * 24 is measured, not guessed: the smallest legitimate entry in the corpus is
+ * `config/ponytail` at 39 bytes (one boolean key inside its yaml fence), and an
+ * empty fence alone is 12. The floor sits between the two, so it trips on
+ * scaffolding and clears every genuine one-line config leaf with room to spare.
+ */
+export const HANDBOOK_BODY_MIN_BYTES = 24;
 
 export type HandbookEntryKind = "doc" | "cli" | "config";
 
@@ -282,8 +306,15 @@ export function truncateBytes(text: string, maxBytes: number): string {
   return `${cut.endsWith("�") ? cut.slice(0, -1) : cut}${marker}`;
 }
 
-/** Distill a page to at most `maxBytes`, dropping the least load-bearing blocks
- *  from the end first. Deterministic for a given input. */
+/**
+ * Distill a page to at most `maxBytes`, dropping the least load-bearing blocks
+ * from the end first. Deterministic for a given input.
+ *
+ * Trimming never empties a page that had content. Dropping the LAST surviving
+ * block is not a trim, it is a deletion: the entry still retrieves, and renders
+ * as a heading over nothing. When one block is all that is left it is kept and
+ * truncateBytes cuts it to the budget instead.
+ */
 export function distillMarkdown(body: string, maxBytes: number): string {
   const blocks = blocksOf(body);
   const fits = (bs: Block[]): boolean => Buffer.byteLength(joinBlocks(bs), "utf8") <= maxBytes;
@@ -294,12 +325,58 @@ export function distillMarkdown(body: string, maxBytes: number): string {
     }
   }
   // Trimming a section's prose can strand its heading. A heading with nothing
-  // under it is noise in the prompt, so drop it.
+  // under it is noise in the prompt, so drop it - unless it is the only block
+  // left, where dropping it would empty the entry.
   const isHeading = (b: Block | undefined): boolean => !!b && b.keep === 1 && b.text.startsWith("#");
   for (let i = kept.length - 1; i >= 0; i -= 1) {
     if (isHeading(kept[i]) && (i === kept.length - 1 || isHeading(kept[i + 1]))) kept.splice(i, 1);
   }
   return truncateBytes(joinBlocks(kept), maxBytes);
+}
+
+// ── Generated trees (CLI commands, config keys) ─────────────────────────────
+
+/** Says the list is partial, so the model does not read a trimmed tree as the
+ *  complete set and tell the user a real command does not exist. */
+const TREE_TRIM_MARKER = "… (deeper entries trimmed to fit)";
+
+/**
+ * Render an indented tree of rows as one fenced block within `maxBytes`.
+ *
+ * The generated CLI and config bodies are a single fence, and distillMarkdown
+ * scores a fence as one droppable block - so any tree over the budget lost
+ * EVERY row rather than its least useful ones. That is what emptied `cli/flows`,
+ * `cli/tasks`, `config/resilience` and five others: the compiler was handing a
+ * markdown-page distiller something that is not a markdown page.
+ *
+ * Rows are the answer here, so trimming works on rows: deepest first, last
+ * first within a depth, because a third-level sub-verb is the least load-bearing
+ * line on the page and the root command the most. Byte-truncating the blob
+ * instead would cut mid-row and drop the closing fence. The root row always
+ * survives, so the result is never empty.
+ */
+export function fitFencedTree(
+  rows: Array<{ depth: number; text: string }>,
+  language: string,
+  maxBytes: number,
+): string {
+  const kept = [...rows];
+  const render = (): string => {
+    const lines = kept.map((r) => r.text);
+    if (kept.length < rows.length) lines.push(TREE_TRIM_MARKER);
+    return [`\`\`\`${language}`, ...lines, "```"].join("\n");
+  };
+  const fits = (): boolean => Buffer.byteLength(render(), "utf8") <= maxBytes;
+
+  const deepest = kept.reduce((max, r) => Math.max(max, r.depth), 0);
+  for (let depth = deepest; depth > 0 && !fits(); depth -= 1) {
+    for (let i = kept.length - 1; i >= 1 && !fits(); i -= 1) {
+      if (kept[i]?.depth === depth) kept.splice(i, 1);
+    }
+  }
+  // Backstop for a root row that alone blows the budget. Not reachable on the
+  // current tree, and here so the function cannot return an over-budget body.
+  return truncateBytes(render(), maxBytes);
 }
 
 // ── Sources ─────────────────────────────────────────────────────────────────
@@ -375,8 +452,10 @@ function commandLine(cmd: CliCommand, depth: number): string {
   return `${indent}${name}${flags.length ? ` [${flags.join(" ")}]` : ""}${desc ? ` - ${desc}` : ""}`;
 }
 
-function walkCommands(cmd: CliCommand, depth: number, out: string[]): void {
-  out.push(commandLine(cmd, depth));
+type TreeRow = { depth: number; text: string };
+
+function walkCommands(cmd: CliCommand, depth: number, out: TreeRow[]): void {
+  out.push({ depth, text: commandLine(cmd, depth) });
   const subs = Array.isArray(cmd.subcommands) ? cmd.subcommands : [];
   for (const sub of subs as CliCommand[]) walkCommands(sub, depth + 1, out);
 }
@@ -390,9 +469,8 @@ function cliEntries(cli: unknown): { entries: HandbookEntry[]; areas: string[] }
     const name = typeof raw.name === "string" ? raw.name : null;
     if (!name) continue;
     areas.push(name);
-    const lines: string[] = [];
-    walkCommands(raw, 0, lines);
-    const body = ["```text", ...lines, "```"].join("\n");
+    const rows: TreeRow[] = [];
+    walkCommands(raw, 0, rows);
     const summary = typeof raw.description === "string" ? raw.description : `The \`vibe ${name}\` commands.`;
     entries.push({
       id: `cli/${name}`,
@@ -400,13 +478,15 @@ function cliEntries(cli: unknown): { entries: HandbookEntry[]; areas: string[] }
       title: `vibe ${name}`,
       source: "CLI reference (generated from the command tree)",
       summary,
+      // Indexed from every row, including ones the body may trim: a question
+      // naming a deep sub-verb should still find the page it lives on.
       titleTerms: termString(tokenize(name)),
       terms: termString([
         ...tokenize(name),
         ...tokenize(summary),
-        ...lines.flatMap((l) => tokenize(l.split(" - ")[0] ?? "")),
+        ...rows.flatMap((r) => tokenize(r.text.split(" - ")[0] ?? "")),
       ]),
-      body: distillMarkdown(body, CLI_BODY_MAX_BYTES),
+      body: fitFencedTree(rows, "text", HANDBOOK_BODY_MAX_BYTES),
     });
   }
   entries.sort((a, b) => a.id.localeCompare(b.id));
@@ -422,12 +502,12 @@ type ConfigField = {
   children?: unknown;
 };
 
-function configLines(field: ConfigField, depth: number, out: string[]): void {
+function configLines(field: ConfigField, depth: number, out: TreeRow[]): void {
   const key = typeof field.fullKey === "string" ? field.fullKey : String(field.key ?? "");
   const type = typeof field.type === "string" ? field.type : "unknown";
   const req = field.required === true ? " (required)" : "";
   const def = field.default === undefined ? "" : ` default: ${JSON.stringify(field.default)}`;
-  out.push(`${"  ".repeat(Math.max(0, depth))}${key}: ${type}${req}${def}`);
+  out.push({ depth, text: `${"  ".repeat(Math.max(0, depth))}${key}: ${type}${req}${def}` });
   const children = Array.isArray(field.children) ? field.children : [];
   for (const child of children as ConfigField[]) configLines(child, depth + 1, out);
 }
@@ -440,10 +520,9 @@ function configEntries(config: unknown): { entries: HandbookEntry[]; keys: strin
   for (const raw of fields as ConfigField[]) {
     const key = typeof raw.key === "string" ? raw.key : null;
     if (!key) continue;
-    const lines: string[] = [];
-    configLines(raw, 0, lines);
-    for (const line of lines) keys.push((line.trim().split(":")[0] ?? "").trim());
-    const body = ["```yaml", ...lines, "```"].join("\n");
+    const rows: TreeRow[] = [];
+    configLines(raw, 0, rows);
+    for (const row of rows) keys.push((row.text.trim().split(":")[0] ?? "").trim());
     const summary = `Keys under \`${key}\` in .vibestrate/project.yml.`;
     entries.push({
       id: `config/${key}`,
@@ -452,8 +531,8 @@ function configEntries(config: unknown): { entries: HandbookEntry[]; keys: strin
       source: "Configuration schema (generated from the Zod schema)",
       summary,
       titleTerms: termString(tokenize(key)),
-      terms: termString([...tokenize(key), ...lines.flatMap((l) => tokenize(l.split(":")[0] ?? ""))]),
-      body: distillMarkdown(body, CONFIG_BODY_MAX_BYTES),
+      terms: termString([...tokenize(key), ...rows.flatMap((r) => tokenize(r.text.split(":")[0] ?? ""))]),
+      body: fitFencedTree(rows, "yaml", HANDBOOK_BODY_MAX_BYTES),
     });
   }
   entries.sort((a, b) => a.id.localeCompare(b.id));
@@ -491,6 +570,23 @@ function fenceTerms(body: string): string[] {
   return out;
 }
 
+/**
+ * An entry with nothing to say must not exist.
+ *
+ * Retrieval renders `### title` above the body, so an empty or scaffolding-only
+ * body reaches the model as a heading over nothing - and it displaces a page
+ * that had the answer, because the entry cap counts it. Dropping it here is the
+ * one funnel: every entry the compiler emits passes through this filter, so no
+ * future source can add a kind that skips the check.
+ */
+function hasContent(entry: HandbookEntry): boolean {
+  if (Buffer.byteLength(entry.body, "utf8") < HANDBOOK_BODY_MIN_BYTES) return false;
+  // Byte count alone would pass a body that is only fence markers and blanks.
+  return entry.body
+    .split(/\r?\n/)
+    .some((line) => line.trim() && !/^```/.test(line.trim()) && line.trim() !== TREE_TRIM_MARKER);
+}
+
 export function compileHandbook(sources: HandbookSources): HandbookCorpus {
   const labels = navLabels(sources.nav);
   const lexicon = new Set<string>();
@@ -501,7 +597,7 @@ export function compileHandbook(sources: HandbookSources): HandbookCorpus {
     const title = meta.title?.trim() || doc.slug;
     const summary = meta.description?.trim() || "";
     const section = labels.get(doc.slug) ?? "";
-    entries.push({
+    const entry: HandbookEntry = {
       id: `docs/${doc.slug}`,
       kind: "doc",
       title,
@@ -517,15 +613,19 @@ export function compileHandbook(sources: HandbookSources): HandbookCorpus {
         ...fenceTerms(body),
         ...boldHeadTerms(body),
       ]),
-      body: distillMarkdown(body, DOC_BODY_MAX_BYTES),
-    });
+      body: distillMarkdown(body, HANDBOOK_BODY_MAX_BYTES),
+    };
+    // A page with no prose must not widen the lexicon either: its title would
+    // qualify a question as being about Vibestrate with no page to answer it.
+    if (!hasContent(entry)) continue;
+    entries.push(entry);
     for (const t of lexicalTerms(`${title} ${doc.slug} ${section}`)) lexicon.add(t);
     for (const t of lexicalTerms(boldHeadTerms(body).join(" "))) lexicon.add(t);
   }
 
   const cli = cliEntries(sources.cli);
   const config = configEntries(sources.config);
-  entries.push(...cli.entries, ...config.entries);
+  entries.push(...cli.entries.filter(hasContent), ...config.entries.filter(hasContent));
 
   // Only TOP-LEVEL command names widen the lexicon. Sub-verbs are generic by
   // nature (`test`, `list`, `build`) and would let any software question in;

@@ -75,11 +75,6 @@ export function IdentityCard({
             onChange={(v) => onChange({ id: v })}
             onBlur={() => touch("id")}
             placeholder="deep-review"
-            hint={
-              idLocked
-                ? "Fixed once saved. It names the folder under .vibestrate/flows/."
-                : "Names the folder under .vibestrate/flows/ and how you launch the flow."
-            }
           />
           <TextField
             label="Name"

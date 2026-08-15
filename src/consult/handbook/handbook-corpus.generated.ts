@@ -22,7 +22,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Mark a run as aborted (does not delete the worktree).",
       "titleTerms": "abort",
       "terms": "a abort as delet doe mark not run the vib worktre",
-      "body": "```\nvibe abort - Mark a run as aborted (does not delete the worktree).\n```"
+      "body": "```text\nvibe abort - Mark a run as aborted (does not delete the worktree).\n```"
     },
     {
       "id": "cli/approvals",
@@ -32,7 +32,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Inspect and resolve human-approval requests for a paused run.",
       "titleTerms": "approv",
       "terms": "a and approv chang for guidanc human human-approv inspect json list not paus reject request request-chang resolv run show vib",
-      "body": "```\nvibe approvals - Inspect and resolve human-approval requests for a paused run.\n  vibe approvals list [--json] - Show all approval requests for a run.\n  vibe approvals show [--json] - Show a single approval request in detail.\n  vibe approvals approve [--note] - Approve a pending approval. Resumes the run if it is waiting.\n  vibe approvals reject [--note] - Reject a pending approval. The run will be marked `blocked`.\n  vibe approvals request-changes [--guidance] - Return an agent-requested gate with guidance; the stage re-runs with it.\n```"
+      "body": "```text\nvibe approvals - Inspect and resolve human-approval requests for a paused run.\n  vibe approvals list [--json] - Show all approval requests for a run.\n  vibe approvals show [--json] - Show a single approval request in detail.\n  vibe approvals approve [--note] - Approve a pending approval. Resumes the run if it is waiting.\n  vibe approvals reject [--note] - Reject a pending approval. The run will be marked `blocked`.\n  vibe approvals request-changes [--guidance] - Return an agent-requested gate with guidance; the stage re-runs with it.\n```"
     },
     {
       "id": "cli/assurance",
@@ -42,7 +42,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Show a run's Run Assurance verdict (evidence-backed; from the Action Broker log + review/verification).",
       "titleTerms": "assuranc",
       "terms": "a act assuranc back broker evidenc evidence-back from json log review run s show the verdict verificat vib",
-      "body": "```\nvibe assurance [--json] - Show a run's Run Assurance verdict (evidence-backed; from the Action Broker log + review/verification).\n```"
+      "body": "```text\nvibe assurance [--json] - Show a run's Run Assurance verdict (evidence-backed; from the Action Broker log + review/verification).\n```"
     },
     {
       "id": "cli/audit",
@@ -52,7 +52,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Show a run's audit tree (flow steps, per-step attempts incl. retries/fallbacks, control events).",
       "titleTerms": "audit",
       "terms": "a attempt audit control event fallback flow incl json per per-step retry run s show step tre vib",
-      "body": "```\nvibe audit [--json] - Show a run's audit tree (flow steps, per-step attempts incl. retries/fallbacks, control events).\n```"
+      "body": "```text\nvibe audit [--json] - Show a run's audit tree (flow steps, per-step attempts incl. retries/fallbacks, control events).\n```"
     },
     {
       "id": "cli/budget",
@@ -62,7 +62,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "View or configure the daily spend cap (and what happens when it's hit).",
       "titleTerms": "budget",
       "terms": "act and budget cap configur daily day fallback happen hit it limit max max-time-day max-time-run max-turns-day max-turns-run off on on-limit or run s set show spend the tim turn vib view warn what when",
-      "body": "```\nvibe budget - View or configure the daily spend cap (and what happens when it's hit).\n  vibe budget show - Show the configured cap, action, and today's spend so far.\n  vibe budget set [--cap --action --warn --fallback --max-turns-run --max-time-run --max-turns-day --max-time-day --on-limit] - Set the daily spend cap and/or the action taken when it's reached.\n  vibe budget off - Remove the daily spend cap.\n```"
+      "body": "```text\nvibe budget - View or configure the daily spend cap (and what happens when it's hit).\n  vibe budget show - Show the configured cap, action, and today's spend so far.\n  vibe budget set [--cap --action --warn --fallback --max-turns-run --max-time-run --max-turns-day --max-time-day --on-limit] - Set the daily spend cap and/or the action taken when it's reached.\n  vibe budget off - Remove the daily spend cap.\n```"
     },
     {
       "id": "cli/bundles",
@@ -72,7 +72,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Group reviewed suggestions into a review pass that applies, validates, and reverts as a unit.",
       "titleTerms": "bundl",
       "terms": "a add and apply approv as auto auto-revert-fail auto-revert-on-fail bundl clear creat descript fail group into json list not on pass preflight profil reject remov revert review set show smart smart-apply stop stop-on-validation-fail suggest that titl unit use use-suggestion-profil validat vib",
-      "body": ""
+      "body": "```text\nvibe bundles - Group reviewed suggestions into a review pass that applies, validates, and reverts as a unit.\n  vibe bundles list [--json] - List every bundle (review pass) attached to a run.\n  vibe bundles create [--title --description --suggestion] - Create a new review pass (bundle) for a run.\n  vibe bundles add - Add a suggestion to a draft bundle.\n  vibe bundles remove - Remove a suggestion from a draft bundle.\n  vibe bundles approve [--note] - Approve a review pass (gate before apply).\n  vibe bundles reject [--note] - Reject a review pass.\n  vibe bundles apply [--validate --auto-revert-on-fail --profile] - Apply every suggestion in the review pass to the run worktree (all-or-nothing with rollback).\n  vibe bundles smart-apply [--stop-on-validation-fail --auto-revert-failing --profile --use-suggestion-profiles] - Apply suggestions one-by-one in order. Earlier successes stay applied if a later step fails.\n  vibe bundles validate [--profile] - Run commands.validate against the run worktree, attached to a bundle.\n  vibe bundles revert - Revert every suggestion in the review pass via git apply -R (worktree only).\n  vibe bundles preflight - Run a static-only preflight without modifying the worktree.\n  vibe bundles profile - Read or edit a review pass's validation profile metadata.\n    vibe bundles profile show - Print the bundle's current validation profile (if any).\n    vibe bundles profile set - Set the bundle's validation profile. Future validation runs use this profile. Does NOT re-run validation.\n    vibe bundles profile clear - Clear the bundle's validation profile back to default (commands.validate).\n```"
     },
     {
       "id": "cli/config",
@@ -82,7 +82,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Show and edit .vibestrate/project.yml without hand-editing YAML.",
       "titleTerms": "config",
       "terms": "and config edit get hand hand-edit json key project set show validat vib vibestrat view without yaml yml",
-      "body": "```\nvibe config - Show and edit .vibestrate/project.yml without hand-editing YAML.\n  vibe config view [--json] - Readable, grouped view of the config - each section shows where it's editable.\n  vibe config show [--json] - Print the raw config YAML and validate it.\n  vibe config get [--json] - Print a single config value (dot-path, e.g. commands.validate).\n  vibe config set - Set a config value. Booleans/numbers/strings parsed automatically; arrays/objects via JSON (e.g. 'vibe config set commands.validate \"[\\\"pnpm test\\\"]\"').\n  vibe config keys - List every settable config key with its type, allowed values, and default (from the schema).\n  vibe config validate [--json] - Validate the project.yml file against the Vibestrate schema.\n```"
+      "body": "```text\nvibe config - Show and edit .vibestrate/project.yml without hand-editing YAML.\n  vibe config view [--json] - Readable, grouped view of the config - each section shows where it's editable.\n  vibe config show [--json] - Print the raw config YAML and validate it.\n  vibe config get [--json] - Print a single config value (dot-path, e.g. commands.validate).\n  vibe config set - Set a config value. Booleans/numbers/strings parsed automatically; arrays/objects via JSON (e.g. 'vibe config set commands.validate \"[\\\"pnpm test\\\"]\"').\n  vibe config keys - List every settable config key with its type, allowed values, and default (from the schema).\n  vibe config validate [--json] - Validate the project.yml file against the Vibestrate schema.\n```"
     },
     {
       "id": "cli/consult",
@@ -92,7 +92,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Ask the project orchestrator a question, answered from controlled project context (read-only).",
       "titleTerms": "consult",
       "terms": "a answer ask consult context control effort fil from json model only orchestrator profil project provider quest read read-only run task the vib",
-      "body": "```\nvibe consult [--task --run --file --profile --provider --model --effort --json] - Ask the project orchestrator a question, answered from controlled project context (read-only).\n```"
+      "body": "```text\nvibe consult [--task --run --file --profile --provider --model --effort --json] - Ask the project orchestrator a question, answered from controlled project context (read-only).\n```"
     },
     {
       "id": "cli/crew",
@@ -102,7 +102,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "List crews, show a crew's roles, and set the default (\"active\") crew.",
       "titleTerms": "crew",
       "terms": "a activ add and crew default draft json list preset rol s set show the use vib yaml",
-      "body": "```\nvibe crew - List crews, show a crew's roles, and set the default (\"active\") crew.\n  vibe crew list [--json] - List configured crews (the default is marked).\n  vibe crew show [--json] - Show a crew's roles, profiles, and seats (default crew if omitted).\n  vibe crew use - Set the default (\"active\") crew - runs without --crew use it.\n  vibe crew draft [--yaml --json] - Turn an English description into an editable Crew draft (supervisor-assisted). Draft only - never writes; adopting it means saving the printed role files, then the block, into project.yml.\n  vibe crew presets - Ready-made crews (fast / thorough) tuned by provider effort.\n    vibe crew presets list [--json] - List available presets and whether they're installed.\n    vibe crew presets add - Install a preset crew (fast / thorough) into project.yml.\n```"
+      "body": "```text\nvibe crew - List crews, show a crew's roles, and set the default (\"active\") crew.\n  vibe crew list [--json] - List configured crews (the default is marked).\n  vibe crew show [--json] - Show a crew's roles, profiles, and seats (default crew if omitted).\n  vibe crew use - Set the default (\"active\") crew - runs without --crew use it.\n  vibe crew draft [--yaml --json] - Turn an English description into an editable Crew draft (supervisor-assisted). Draft only - never writes; adopting it means saving the printed role files, then the block, into project.yml.\n  vibe crew presets - Ready-made crews (fast / thorough) tuned by provider effort.\n    vibe crew presets list [--json] - List available presets and whether they're installed.\n    vibe crew presets add - Install a preset crew (fast / thorough) into project.yml.\n```"
     },
     {
       "id": "cli/doctor",
@@ -112,7 +112,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Check environment, config, providers, and recommend next steps.",
       "titleTerms": "doctor",
       "terms": "and check config doctor environment fix json next provider recommend step vib",
-      "body": "```\nvibe doctor [--json --fix] - Check environment, config, providers, and recommend next steps.\n```"
+      "body": "```text\nvibe doctor [--json --fix] - Check environment, config, providers, and recommend next steps.\n```"
     },
     {
       "id": "cli/editor",
@@ -122,7 +122,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Configure and test the local editor handoff used by the dashboard.",
       "titleTerms": "editor",
       "terms": "and arg by configur dashboard detect editor handoff lin loc set test the used vib",
-      "body": "```\nvibe editor - Configure and test the local editor handoff used by the dashboard.\n  vibe editor detect - Probe known editors (code, code-insiders, cursor) for availability.\n  vibe editor set [--args] - Enable editor handoff and store the command (default args use --goto path:line:column).\n  vibe editor test [--line] - Open a file (default: README.md) using the configured editor command.\n```"
+      "body": "```text\nvibe editor - Configure and test the local editor handoff used by the dashboard.\n  vibe editor detect - Probe known editors (code, code-insiders, cursor) for availability.\n  vibe editor set [--args] - Enable editor handoff and store the command (default args use --goto path:line:column).\n  vibe editor test [--line] - Open a file (default: README.md) using the configured editor command.\n```"
     },
     {
       "id": "cli/flows",
@@ -132,7 +132,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "List and inspect Flow run recipes from built-ins and .vibestrate/flows.",
       "titleTerms": "flow",
       "terms": "allow allow-token-to-custom-host and arbitrat bas base-url built built-in clear crew custom draft export export-arbitrat fil flow from handl host hub import ins inspect install json list nam out overwrit publish recip risk run show suggest to token url use vers vib vibestrat yaml yes",
-      "body": ""
+      "body": "```text\nvibe flows - List and inspect Flow run recipes from built-ins and .vibestrate/flows.\n  vibe flows list [--json] - Show every discovered Flow.\n  vibe flows show [--json --crew] - Print a Flow's seats, ordered steps, and crew seat-coverage.\n  vibe flows use [--clear] - Set the default Flow applied to runs without --flow (always shown), or --clear it.\n  vibe flows suggest [--file --risk --json] - Suggest a Flow from task risk signals and local Flow outcomes.\n  vibe flows draft [--crew --yaml --json] - Turn an English description into an editable Flow draft (supervisor-assisted). Draft only - never writes; adopt it with `flows import`.\n  vibe flows export [--out --json] - Export a Flow as canonical YAML (for sharing / backup).\n  vibe flows import [--overwrite --json] - Import a Flow from a local file path or an http(s) URL into .vibestrate/flows/.\n  vibe flows export-arbitration [--out] - Export a Quality Arbitration run as local JSON evidence for later evaluation.\n  vibe flows hub - Browse + install Flows from the community hub (vibestrate.com/api/hub).\n    vibe flows hub list [--base-url --json] - List (or search) Flows in the hub.\n    vibe flows hub install [--base-url --overwrite] - Pull + verify + install a hub Flow (by ref) into .vibestrate/flows/.\n    vibe flows hub publish [--version --name --handle --base-url --allow-token-to-custom-host --yes --json] - Publish a project flow to the hub (public, immutable).\n```"
     },
     {
       "id": "cli/gateways",
@@ -142,7 +142,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Inspect and toggle notification delivery gateways.",
       "titleTerms": "gateway",
       "terms": "and delivery disabl enabl gateway inspect json list notificat test toggl vib",
-      "body": "```\nvibe gateways - Inspect and toggle notification delivery gateways.\n  vibe gateways list [--json] - Show available gateways and their enabled/valid status.\n  vibe gateways test - Send a test message through a gateway (no real notification persisted).\n  vibe gateways enable - Enable a configured gateway.\n  vibe gateways disable - Disable a gateway. Existing config is preserved.\n```"
+      "body": "```text\nvibe gateways - Inspect and toggle notification delivery gateways.\n  vibe gateways list [--json] - Show available gateways and their enabled/valid status.\n  vibe gateways test - Send a test message through a gateway (no real notification persisted).\n  vibe gateways enable - Enable a configured gateway.\n  vibe gateways disable - Disable a gateway. Existing config is preserved.\n```"
     },
     {
       "id": "cli/guide",
@@ -152,7 +152,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Manage VIBESTRATE.md (the agent's operating guide for this project) and its proposals.",
       "titleTerms": "guid",
       "terms": "agent all and apply for guid init its manag md operat project propos reject s show the thi vib vibestrat",
-      "body": "```\nvibe guide - Manage VIBESTRATE.md (the agent's operating guide for this project) and its proposals.\n  vibe guide show - Print the project's VIBESTRATE.md (or note that there is none).\n  vibe guide init - Scaffold a starter VIBESTRATE.md at the project root (refuses if one exists).\n  vibe guide proposals [--all] - List open VIBESTRATE.md proposals (e.g. from consult).\n    vibe guide proposals show - Show a proposal's full suggested text.\n  vibe guide apply - Apply a proposal - append its text to VIBESTRATE.md (guarded write).\n  vibe guide reject - Reject a proposal (keeps it on record, marked rejected).\n```"
+      "body": "```text\nvibe guide - Manage VIBESTRATE.md (the agent's operating guide for this project) and its proposals.\n  vibe guide show - Print the project's VIBESTRATE.md (or note that there is none).\n  vibe guide init - Scaffold a starter VIBESTRATE.md at the project root (refuses if one exists).\n  vibe guide proposals [--all] - List open VIBESTRATE.md proposals (e.g. from consult).\n    vibe guide proposals show - Show a proposal's full suggested text.\n  vibe guide apply - Apply a proposal - append its text to VIBESTRATE.md (guarded write).\n  vibe guide reject - Reject a proposal (keeps it on record, marked rejected).\n```"
     },
     {
       "id": "cli/init",
@@ -162,7 +162,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Initialize Vibestrate in the current project (.vibestrate/ scaffold).",
       "titleTerms": "init",
       "terms": "current f git git-init in init initializ interactiv project scaffold the vib vibestrat yes",
-      "body": "```\nvibe init [-f --yes --interactive --git-init] - Initialize Vibestrate in the current project (.vibestrate/ scaffold).\n```"
+      "body": "```text\nvibe init [-f --yes --interactive --git-init] - Initialize Vibestrate in the current project (.vibestrate/ scaffold).\n```"
     },
     {
       "id": "cli/integrate",
@@ -172,7 +172,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Preview + integrate merge-ready run branches into a dedicated branch (never main, never push).",
       "titleTerms": "integrat",
       "terms": "a advis analyz apply branch confirm dedicat finish integrat into json list main merg merge-ready never preview push ready run vib",
-      "body": "```\nvibe integrate - Preview + integrate merge-ready run branches into a dedicated branch (never main, never push).\n  vibe integrate list - List merge-ready runs (integration candidates).\n  vibe integrate preview - Dry-run merge the selected (or all) merge-ready branches; show conflicts.\n  vibe integrate advise [--json] - Read-only merge advice for the selected (or all) merge-ready runs: risk flags, assurance lanes, topology, dry-run conflicts, and a deterministic recommendation. Mutates nothing.\n  vibe integrate analyze [--json] - Optional read-only LLM pass over the run's redacted diff vs main: semantic risk narrative (never a merge verdict). Spawns a local provider; caches markdown under the run.\n  vibe integrate apply [--into] - Integrate the selected (or all) merge-ready branches into --into <branch>.\n  vibe integrate finish [--confirm] - Merge a complete, clean integration branch into main - locally, with explicit confirmation, never pushed. Refuses partial integrations, dirty trees, and conflicts.\n```"
+      "body": "```text\nvibe integrate - Preview + integrate merge-ready run branches into a dedicated branch (never main, never push).\n  vibe integrate list - List merge-ready runs (integration candidates).\n  vibe integrate preview - Dry-run merge the selected (or all) merge-ready branches; show conflicts.\n  vibe integrate advise [--json] - Read-only merge advice for the selected (or all) merge-ready runs: risk flags, assurance lanes, topology, dry-run conflicts, and a deterministic recommendation. Mutates nothing.\n  vibe integrate analyze [--json] - Optional read-only LLM pass over the run's redacted diff vs main: semantic risk narrative (never a merge verdict). Spawns a local provider; caches markdown under the run.\n  vibe integrate apply [--into] - Integrate the selected (or all) merge-ready branches into --into <branch>.\n  vibe integrate finish [--confirm] - Merge a complete, clean integration branch into main - locally, with explicit confirmation, never pushed. Refuses partial integrations, dirty trees, and conflicts.\n```"
     },
     {
       "id": "cli/learn",
@@ -182,7 +182,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Regenerate .vibestrate/CODEBASE.md, an auto-derived map of the project's stack, layout, and routes.",
       "titleTerms": "learn",
       "terms": "an and auto auto-deriv codebas deriv layout learn map md of project regenerat rout s show stack the vib vibestrat",
-      "body": "```\nvibe learn - Regenerate .vibestrate/CODEBASE.md, an auto-derived map of the project's stack, layout, and routes.\n  vibe learn show - Print the current CODEBASE.md (run `vibe learn` first if there is none).\n```"
+      "body": "```text\nvibe learn - Regenerate .vibestrate/CODEBASE.md, an auto-derived map of the project's stack, layout, and routes.\n  vibe learn show - Print the current CODEBASE.md (run `vibe learn` first if there is none).\n```"
     },
     {
       "id": "cli/ledger",
@@ -192,7 +192,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Show the project continuity brief (what shipped, what's open).",
       "titleTerms": "ledger",
       "terms": "add brief continuity detail json kind ledger limit open project s ship show statu tag the titl vib what",
-      "body": "```\nvibe ledger [--json --limit] - Show the project continuity brief (what shipped, what's open).\n  vibe ledger add [--kind --title --detail --tags --status --json] - Hand-add a ledger entry - the same write path the dashboard's \"Add entry\" form uses.\n```"
+      "body": "```text\nvibe ledger [--json --limit] - Show the project continuity brief (what shipped, what's open).\n  vibe ledger add [--kind --title --detail --tags --status --json] - Hand-add a ledger entry - the same write path the dashboard's \"Add entry\" form uses.\n```"
     },
     {
       "id": "cli/logs",
@@ -202,7 +202,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Show the captured provider stdout/stderr stream for a run (the model's live CLI output).",
       "titleTerms": "log",
       "terms": "a captur cli follow for liv log model output provider run s show stderr stdout stream the vib",
-      "body": "```\nvibe logs [--follow --stream] - Show the captured provider stdout/stderr stream for a run (the model's live CLI output).\n```"
+      "body": "```text\nvibe logs [--follow --stream] - Show the captured provider stdout/stderr stream for a run (the model's live CLI output).\n```"
     },
     {
       "id": "cli/notifications",
@@ -212,7 +212,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Inspect and manage local Vibestrate notifications.",
       "titleTerms": "notificat",
       "terms": "all and attent attention-only inspect json list loc manag notificat only read read-all resolv set test unread unread-only vib vibestrat",
-      "body": "```\nvibe notifications - Inspect and manage local Vibestrate notifications.\n  vibe notifications list [--unread-only --attention-only --json] - Show notifications.\n  vibe notifications read - Mark a notification read.\n  vibe notifications resolve - Mark a notification resolved.\n  vibe notifications read-all - Mark every unread notification as read.\n  vibe notifications settings - Show current notification settings and configured gateways.\n  vibe notifications test - Send a tiny test notification through a configured gateway.\n```"
+      "body": "```text\nvibe notifications - Inspect and manage local Vibestrate notifications.\n  vibe notifications list [--unread-only --attention-only --json] - Show notifications.\n  vibe notifications read - Mark a notification read.\n  vibe notifications resolve - Mark a notification resolved.\n  vibe notifications read-all - Mark every unread notification as read.\n  vibe notifications settings - Show current notification settings and configured gateways.\n  vibe notifications test - Send a tiny test notification through a configured gateway.\n```"
     },
     {
       "id": "cli/params",
@@ -222,7 +222,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Durable project parameters: typed param answers persisted + reused across runs.",
       "titleTerms": "param",
       "terms": "accept across answer durabl flow generat get json list param parameter persist project reus run set typ unset vib",
-      "body": "```\nvibe params - Durable project parameters: typed param answers persisted + reused across runs.\n  vibe params list [--json] - List every stored param answer (secrets shown as env refs).\n  vibe params get - Print one stored value (secrets shown as env refs).\n  vibe params set [--flow] - Set one or more values: `vibe params set --flow <id> name=Acme niche=SaaS`. With --flow, keys are flow params (type-checked, secret-aware). Without it, keys are raw param keys (bare = project-global).\n  vibe params generate [--flow --accept] - Draft a value for a `generate`-enabled param via a provider (optional, user-initiated, reviewed). Prints a suggestion; --accept stores it.\n  vibe params unset - Remove stored values by key (explicit, never automatic).\n```"
+      "body": "```text\nvibe params - Durable project parameters: typed param answers persisted + reused across runs.\n  vibe params list [--json] - List every stored param answer (secrets shown as env refs).\n  vibe params get - Print one stored value (secrets shown as env refs).\n  vibe params set [--flow] - Set one or more values: `vibe params set --flow <id> name=Acme niche=SaaS`. With --flow, keys are flow params (type-checked, secret-aware). Without it, keys are raw param keys (bare = project-global).\n  vibe params generate [--flow --accept] - Draft a value for a `generate`-enabled param via a provider (optional, user-initiated, reviewed). Prints a suggestion; --accept stores it.\n  vibe params unset - Remove stored values by key (explicit, never automatic).\n```"
     },
     {
       "id": "cli/path",
@@ -232,7 +232,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Show a run's workspace (worktree path + branch) so you can cd into it.",
       "titleTerms": "path",
       "terms": "a branch can cd into it json path run s show so vib workspac worktre you",
-      "body": "```\nvibe path [--cd --json] - Show a run's workspace (worktree path + branch) so you can cd into it.\n```"
+      "body": "```text\nvibe path [--cd --json] - Show a run's workspace (worktree path + branch) so you can cd into it.\n```"
     },
     {
       "id": "cli/pause",
@@ -242,7 +242,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Request that an active run pause at the next stage boundary.",
       "titleTerms": "paus",
       "terms": "activ an at boundary next paus request run stag that the vib",
-      "body": "```\nvibe pause - Request that an active run pause at the next stage boundary.\n```"
+      "body": "```text\nvibe pause - Request that an active run pause at the next stage boundary.\n```"
     },
     {
       "id": "cli/policies",
@@ -252,7 +252,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "The project's rule surface: owner-authored tiered policies (advise = reviewer-checked; block = deterministic merge-cap) plus the hard, fail-closed security gates in .vibestrate/policies/.",
       "titleTerms": "policy",
       "terms": "add advis allow allow-termin apply author block cap check clos config confirm deterministic doctor draft fail fail-clos fix flag forbid forbid-main-writ forbid-merg forbid-push forbid-secret gat glob hard harden harden-read-only in json len limit list main matcher merg merge-cap migrat only owner owner-author plu policy project push read recent regex reject remov reviewer reviewer-check rul s secret security snippet strict strict-apply-only suggest surfac termin test the tier vib vibestrat writ",
-      "body": ""
+      "body": "```text\nvibe policies - The project's rule surface: owner-authored tiered policies (advise = reviewer-checked; block = deterministic merge-cap) plus the hard, fail-closed security gates in .vibestrate/policies/.\n  vibe policies add [--fix --lens --block --matcher] - Add a project policy (active immediately). advise by default; --block for a deterministic merge-cap.\n  vibe policies remove - Remove a project policy.\n  vibe policies confirm - Confirm a pending (supervisor-proposed) policy - it goes live.\n  vibe policies reject - Reject a pending (supervisor-proposed) policy - removes it.\n  vibe policies migrate - Lift legacy persona-scoped preferences into project policies and remove the old keys.\n  vibe policies draft [--json] - Turn an English rule into an editable policy draft (supervisor-assisted). Draft only - never writes; adopt it with `policies add`.\n  vibe policies suggest [--limit --json] - Propose candidate policies from recent runs' diffs (supervisor-assisted). Draft only - never writes.\n  vibe policies test [--regex --flags --glob --snippet --recent --limit --surface --json] - Dry-run a matcher against a diff snippet or recent runs (read-only). Give an existing block-policy id, or --regex.\n  vibe policies list [--json] - List the project's policies (owner-authored tiered rules) and the hard security gates in .vibestrate/policies/*.yml.\n  vibe policies check [--surface --json] - Apply the loaded policy rules to a patch file (unified diff). Read-only - never applies, never executes.\n  vibe policies doctor [--json] - Validate rule YAML, list malformed files, surface duplicate ids and empty-rule files.\n… (deeper entries trimmed to fit)\n```"
     },
     {
       "id": "cli/profile",
@@ -262,7 +262,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Runtime presets (provider + model/power) that Crew roles run on.",
       "titleTerms": "profil",
       "terms": "add crew duplicat forc json label list max max-token model on power preset profil provider remov rol run runtim set that timeout token vib",
-      "body": "```\nvibe profile - Runtime presets (provider + model/power) that Crew roles run on.\n  vibe profile list [--json] - List profiles, grouped by provider, with how many roles use each.\n  vibe profile add [--provider --label --model --power --max-tokens --timeout] - Create a new profile.\n  vibe profile set [--label --model --power --max-tokens --timeout --provider] - Edit an existing profile's fields.\n  vibe profile duplicate - Copy a profile under a new id (e.g. claude -> claude-cheap).\n  vibe profile remove [--force] - Delete a profile (refuses if a role uses it, unless --force).\n```"
+      "body": "```text\nvibe profile - Runtime presets (provider + model/power) that Crew roles run on.\n  vibe profile list [--json] - List profiles, grouped by provider, with how many roles use each.\n  vibe profile add [--provider --label --model --power --max-tokens --timeout] - Create a new profile.\n  vibe profile set [--label --model --power --max-tokens --timeout --provider] - Edit an existing profile's fields.\n  vibe profile duplicate - Copy a profile under a new id (e.g. claude -> claude-cheap).\n  vibe profile remove [--force] - Delete a profile (refuses if a role uses it, unless --force).\n```"
     },
     {
       "id": "cli/provider",
@@ -272,7 +272,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Inspect, configure, and test local coding-CLI providers.",
       "titleTerms": "provider",
       "terms": "and catalog cli cod coding-cli configur detect dry dry-run forc inspect json list loc provider refresh remov run set setup test vib yes",
-      "body": "```\nvibe provider - Inspect, configure, and test local coding-CLI providers.\n  vibe provider detect [--json] - Scan PATH for known local coding CLIs (claude/codex/opencode/aider/ollama).\n  vibe provider list [--json] - Show providers configured in this project.\n  vibe provider test [--yes] - Send a tiny no-op prompt to a configured provider and look for the magic token.\n  vibe provider set [--yes] - Assign every default agent to use the given provider.\n  vibe provider setup - Flowd provider setup wizard.\n  vibe provider remove [--yes] - Remove a provider from project.yml (refuses if a role still uses it).\n  vibe provider catalog [--json] - Show the provider capability catalog (built-in + your .vibestrate/providers-catalog.yml overlay).\n  vibe provider refresh [--force --dry-run] - Detect each provider's real models/efforts (codex `debug models` JSON, else --help scraping) and write them to the catalog overlay. Refreshes stale built-in lists; local only.\n```"
+      "body": "```text\nvibe provider - Inspect, configure, and test local coding-CLI providers.\n  vibe provider detect [--json] - Scan PATH for known local coding CLIs (claude/codex/opencode/aider/ollama).\n  vibe provider list [--json] - Show providers configured in this project.\n  vibe provider test [--yes] - Send a tiny no-op prompt to a configured provider and look for the magic token.\n  vibe provider set [--yes] - Assign every default agent to use the given provider.\n  vibe provider setup - Flowd provider setup wizard.\n  vibe provider remove [--yes] - Remove a provider from project.yml (refuses if a role still uses it).\n  vibe provider catalog [--json] - Show the provider capability catalog (built-in + your .vibestrate/providers-catalog.yml overlay).\n  vibe provider refresh [--force --dry-run] - Detect each provider's real models/efforts (codex `debug models` JSON, else --help scraping) and write them to the catalog overlay. Refreshes stale built-in lists; local only.\n```"
     },
     {
       "id": "cli/queue",
@@ -282,7 +282,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Manage the local task scheduler queue.",
       "titleTerms": "queu",
       "terms": "add drain exit exit-when-drain json list loc manag paus queu remov resum run scheduler sourc statu task the vib when",
-      "body": "```\nvibe queue - Manage the local task scheduler queue.\n  vibe queue list [--json] - Show the queue and running tasks.\n  vibe queue add [--source] - Add a task to the queue.\n  vibe queue remove - Remove a task from the queue.\n  vibe queue run [--exit-when-drained] - Start the local scheduler loop and process queued tasks.\n  vibe queue pause - Pause the scheduler (new tasks will not start).\n  vibe queue resume - Resume the scheduler.\n  vibe queue status [--json] - Print scheduler state and recent conflict warnings.\n```"
+      "body": "```text\nvibe queue - Manage the local task scheduler queue.\n  vibe queue list [--json] - Show the queue and running tasks.\n  vibe queue add [--source] - Add a task to the queue.\n  vibe queue remove - Remove a task from the queue.\n  vibe queue run [--exit-when-drained] - Start the local scheduler loop and process queued tasks.\n  vibe queue pause - Pause the scheduler (new tasks will not start).\n  vibe queue resume - Resume the scheduler.\n  vibe queue status [--json] - Print scheduler state and recent conflict warnings.\n```"
     },
     {
       "id": "cli/rename",
@@ -292,7 +292,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Give a run a friendly display name (the run id stays the same).",
       "titleTerms": "renam",
       "terms": "a display friendly giv id nam renam run sam stay the vib",
-      "body": "```\nvibe rename - Give a run a friendly display name (the run id stays the same).\n```"
+      "body": "```text\nvibe rename - Give a run a friendly display name (the run id stays the same).\n```"
     },
     {
       "id": "cli/replay",
@@ -302,7 +302,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Read-only inspector for a persisted run (mirrors the Replay tab in the dashboard).",
       "titleTerms": "replay",
       "terms": "a dashboard for in inspector json mirror only persist read read-only replay run tab the vib",
-      "body": "```\nvibe replay [--json] - Read-only inspector for a persisted run (mirrors the Replay tab in the dashboard).\n```"
+      "body": "```text\nvibe replay [--json] - Read-only inspector for a persisted run (mirrors the Replay tab in the dashboard).\n```"
     },
     {
       "id": "cli/resume",
@@ -312,7 +312,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Clear a pending pause request or resume a paused run.",
       "titleTerms": "resum",
       "terms": "a clear or paus pend request resum run vib",
-      "body": "```\nvibe resume - Clear a pending pause request or resume a paused run.\n```"
+      "body": "```text\nvibe resume - Clear a pending pause request or resume a paused run.\n```"
     },
     {
       "id": "cli/roadmap",
@@ -322,7 +322,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Manage local roadmap items (.vibestrate/roadmap/roadmap.json).",
       "titleTerms": "roadmap",
       "terms": "accept add allow allow-unresolved-dependency archiv d dependency descript dry dry-run id init item json list loc manag p pars plan priority propos provider roadmap run show statu titl unresolv updat vib vibestrat",
-      "body": "```\nvibe roadmap - Manage local roadmap items (.vibestrate/roadmap/roadmap.json).\n  vibe roadmap init - Create the .vibestrate/roadmap/ scaffold if missing.\n  vibe roadmap add [-d -p --json] - Add a roadmap item.\n  vibe roadmap list [--json] - List roadmap items.\n  vibe roadmap show [--json] - Show a single roadmap item.\n  vibe roadmap update [--title --description --status --priority] - Update a roadmap item.\n  vibe roadmap archive - Archive a roadmap item (keeps history).\n  vibe roadmap proposals [--json] - List roadmap proposals stored in .vibestrate/roadmap/proposals/.\n  vibe roadmap proposal - Inspect, parse, and accept individual proposals.\n    vibe roadmap proposal show - Print a proposal's raw Markdown body.\n    vibe roadmap proposal parse [--json] - Parse a proposal and print the typed preview.\n  vibe roadmap accept [--dry-run --allow-unresolved-dependencies --json] - Accept a parsed proposal (creates roadmap items + tasks atomically).\n  vibe roadmap plan [--id --provider] - Run the configured local planner provider on a broad goal and save the output as a proposal draft.\n```"
+      "body": "```text\nvibe roadmap - Manage local roadmap items (.vibestrate/roadmap/roadmap.json).\n  vibe roadmap init - Create the .vibestrate/roadmap/ scaffold if missing.\n  vibe roadmap add [-d -p --json] - Add a roadmap item.\n  vibe roadmap list [--json] - List roadmap items.\n  vibe roadmap show [--json] - Show a single roadmap item.\n  vibe roadmap update [--title --description --status --priority] - Update a roadmap item.\n  vibe roadmap archive - Archive a roadmap item (keeps history).\n  vibe roadmap proposals [--json] - List roadmap proposals stored in .vibestrate/roadmap/proposals/.\n  vibe roadmap proposal - Inspect, parse, and accept individual proposals.\n    vibe roadmap proposal show - Print a proposal's raw Markdown body.\n    vibe roadmap proposal parse [--json] - Parse a proposal and print the typed preview.\n  vibe roadmap accept [--dry-run --allow-unresolved-dependencies --json] - Accept a parsed proposal (creates roadmap items + tasks atomically).\n  vibe roadmap plan [--id --provider] - Run the configured local planner provider on a broad goal and save the output as a proposal draft.\n```"
     },
     {
       "id": "cli/run",
@@ -332,7 +332,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Run the default plan→architect→implement→review→verify workflow.",
       "titleTerms": "run",
       "terms": "architect brief checklist concis context context-fil context-url crew default fil flow flow-brief flow-context flow-skip from i implement mod only param permiss permission-mod plan port preview profil read read-only resum resume-from resume-stag review rol run seat seat-rol select skill skip stag step step-profil supervisor task the ui ui-port unattend url verify vib workflow",
-      "body": "```\nvibe run [--ui --ui-port --task --crew --profile --read-only --permission-mode --unattended --skills --concise --flow --supervisor --select --step-profile --seat-role --flow-brief --flow-context --flow-skip --param -i --resume-from --resume-stage --preview --checklist --context-file --context-url] - Run the default plan→architect→implement→review→verify workflow.\n```"
+      "body": "```text\nvibe run [--ui --ui-port --task --crew --profile --read-only --permission-mode --unattended --skills --concise --flow --supervisor --select --step-profile --seat-role --flow-brief --flow-context --flow-skip --param -i --resume-from --resume-stage --preview --checklist --context-file --context-url] - Run the default plan→architect→implement→review→verify workflow.\n```"
     },
     {
       "id": "cli/runs",
@@ -342,7 +342,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Manage runs and their rewind snapshots.",
       "titleTerms": "run",
       "terms": "and dry dry-run keep manag orphan prun rewind run snapshot their vib y",
-      "body": "```\nvibe runs - Manage runs and their rewind snapshots.\n  vibe runs prune [--keep --orphans --run --dry-run -y] - Delete rewind-snapshot refs you choose to drop: orphans (run dir gone), beyond a keep-N window, or one run. Shows the plan and confirms first; never purges on its own.\n```"
+      "body": "```text\nvibe runs - Manage runs and their rewind snapshots.\n  vibe runs prune [--keep --orphans --run --dry-run -y] - Delete rewind-snapshot refs you choose to drop: orphans (run dir gone), beyond a keep-N window, or one run. Shows the plan and confirms first; never purges on its own.\n```"
     },
     {
       "id": "cli/setup",
@@ -352,7 +352,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Flowd wizard for provider, validation commands, and run defaults.",
       "titleTerms": "setup",
       "terms": "and command default flowd for provider run setup validat vib wizard",
-      "body": "```\nvibe setup - Flowd wizard for provider, validation commands, and run defaults.\n```"
+      "body": "```text\nvibe setup - Flowd wizard for provider, validation commands, and run defaults.\n```"
     },
     {
       "id": "cli/shell",
@@ -362,7 +362,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Interactive terminal panel. For the full dashboard + scheduler + browser in one shot, use `vibe ui` instead.",
       "titleTerms": "shell",
       "terms": "browser dashboard for full in instead interactiv onc one panel refresh scheduler shell shot termin the ui use vib",
-      "body": "```\nvibe shell [--refresh --once] - Interactive terminal panel. For the full dashboard + scheduler + browser in one shot, use `vibe ui` instead.\n```"
+      "body": "```text\nvibe shell [--refresh --once] - Interactive terminal panel. For the full dashboard + scheduler + browser in one shot, use `vibe ui` instead.\n```"
     },
     {
       "id": "cli/skills",
@@ -372,7 +372,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "List, inspect, and assign skills (.vibestrate/skills and .claude/skills).",
       "titleTerms": "skill",
       "terms": "and assess assign claud fetch inspect json list nam overwrit show skill unassign vib vibestrat",
-      "body": "```\nvibe skills - List, inspect, and assign skills (.vibestrate/skills and .claude/skills).\n  vibe skills list [--json] - Show every discovered skill and which agents use it.\n  vibe skills show - Print a skill's full SKILL.md body.\n  vibe skills assign - Attach a skill to an agent (writes to .vibestrate/project.yml).\n  vibe skills unassign - Remove a skill from an agent.\n  vibe skills fetch [--name --assess --overwrite] - Fetch a skill markdown from an http(s) URL into .vibestrate/skills/ (guarded + secret-redacted).\n```"
+      "body": "```text\nvibe skills - List, inspect, and assign skills (.vibestrate/skills and .claude/skills).\n  vibe skills list [--json] - Show every discovered skill and which agents use it.\n  vibe skills show - Print a skill's full SKILL.md body.\n  vibe skills assign - Attach a skill to an agent (writes to .vibestrate/project.yml).\n  vibe skills unassign - Remove a skill from an agent.\n  vibe skills fetch [--name --assess --overwrite] - Fetch a skill markdown from an http(s) URL into .vibestrate/skills/ (guarded + secret-redacted).\n```"
     },
     {
       "id": "cli/spec-up",
@@ -382,7 +382,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Plan before you build: discovery -> spec -> architecture -> roadmap (a chain of read-only runs).",
       "titleTerms": "spec spec-up up",
       "terms": "a all answer approv architectur befor build chain developer discovery edit fil flow for for-non-developer json non of only persona plan proc quest read read-only roadmap run simplify spec spec-up start suggest up vib you",
-      "body": "```\nvibe spec-up - Plan before you build: discovery -> spec -> architecture -> roadmap (a chain of read-only runs).\n  vibe spec-up start [--persona --flow] - Start spec-up: launch the intake run that asks the gap questions.\n  vibe spec-up questions [--json] - Show the intake run's gap questions (and their ids).\n  vibe spec-up answer [--answer --proceed] - Answer a round's questions; loops to a gap-check round or builds the spec.\n  vibe spec-up simplify [--for-non-developer] - Explain a question in plain language (what it asks + what it affects).\n  vibe spec-up suggest [--all] - Draft an answer grounded in your prior answers (you still decide). --all for every blank.\n  vibe spec-up approve - Approve the spec-up draft and launch the roadmap synthesis run.\n  vibe spec-up build [--flow] - Approve the spec-up draft and BUILD it: run the chosen flow seeded with the approved spec.\n  vibe spec-up roadmap - Turn a finished spec-up-roadmap run into a reviewable proposal.\n  vibe spec-up edit [--file] - Edit a spec-up section (scope/spec/architecture/risks) before the build, via $EDITOR or --file. Guarded: secret-refusing, blocked after approve.\n```"
+      "body": "```text\nvibe spec-up - Plan before you build: discovery -> spec -> architecture -> roadmap (a chain of read-only runs).\n  vibe spec-up start [--persona --flow] - Start spec-up: launch the intake run that asks the gap questions.\n  vibe spec-up questions [--json] - Show the intake run's gap questions (and their ids).\n  vibe spec-up answer [--answer --proceed] - Answer a round's questions; loops to a gap-check round or builds the spec.\n  vibe spec-up simplify [--for-non-developer] - Explain a question in plain language (what it asks + what it affects).\n  vibe spec-up suggest [--all] - Draft an answer grounded in your prior answers (you still decide). --all for every blank.\n  vibe spec-up approve - Approve the spec-up draft and launch the roadmap synthesis run.\n  vibe spec-up build [--flow] - Approve the spec-up draft and BUILD it: run the chosen flow seeded with the approved spec.\n  vibe spec-up roadmap - Turn a finished spec-up-roadmap run into a reviewable proposal.\n  vibe spec-up edit [--file] - Edit a spec-up section (scope/spec/architecture/risks) before the build, via $EDITOR or --file. Guarded: secret-refusing, blocked after approve.\n```"
     },
     {
       "id": "cli/status",
@@ -392,7 +392,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "List Vibestrate runs in this project.",
       "titleTerms": "statu",
       "terms": "in json list project run statu thi vib vibestrat",
-      "body": "```\nvibe status [--json] - List Vibestrate runs in this project.\n```"
+      "body": "```text\nvibe status [--json] - List Vibestrate runs in this project.\n```"
     },
     {
       "id": "cli/suggestions",
@@ -402,7 +402,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Inspect and act on review suggestions captured for a run.",
       "titleTerms": "suggest",
       "terms": "a act and apply approv auto auto-revert-on-fail captur clear fail for inspect json list not on profil reject revert review run set show suggest validat vib",
-      "body": "```\nvibe suggestions - Inspect and act on review suggestions captured for a run.\n  vibe suggestions list [--json] - List every suggestion attached to a run.\n  vibe suggestions show - Show one suggestion in detail (including any proposed patch).\n  vibe suggestions approve [--note] - Approve a suggestion (creates and resolves an approval record).\n  vibe suggestions reject [--note] - Reject a suggestion. Records a rejection in approvals.json.\n  vibe suggestions apply [--validate --auto-revert-on-fail --profile] - Apply an approved suggestion's proposedPatch inside the run's worktree (git apply, never push/merge).\n  vibe suggestions validate [--profile] - Run the project's commands.validate inside the run's worktree against an applied suggestion.\n  vibe suggestions revert - Revert a previously-applied suggestion using the captured patch (git apply -R).\n  vibe suggestions profile - Read or edit a suggestion's validation profile metadata.\n    vibe suggestions profile show - Print the suggestion's current validation profile (if any).\n    vibe suggestions profile set - Set the suggestion's validation profile. Future validation runs use this profile. Does NOT re-run validation.\n    vibe suggestions profile clear - Clear the suggestion's validation profile back to default (commands.validate).\n```"
+      "body": "```text\nvibe suggestions - Inspect and act on review suggestions captured for a run.\n  vibe suggestions list [--json] - List every suggestion attached to a run.\n  vibe suggestions show - Show one suggestion in detail (including any proposed patch).\n  vibe suggestions approve [--note] - Approve a suggestion (creates and resolves an approval record).\n  vibe suggestions reject [--note] - Reject a suggestion. Records a rejection in approvals.json.\n  vibe suggestions apply [--validate --auto-revert-on-fail --profile] - Apply an approved suggestion's proposedPatch inside the run's worktree (git apply, never push/merge).\n  vibe suggestions validate [--profile] - Run the project's commands.validate inside the run's worktree against an applied suggestion.\n  vibe suggestions revert - Revert a previously-applied suggestion using the captured patch (git apply -R).\n  vibe suggestions profile - Read or edit a suggestion's validation profile metadata.\n    vibe suggestions profile show - Print the suggestion's current validation profile (if any).\n    vibe suggestions profile set - Set the suggestion's validation profile. Future validation runs use this profile. Does NOT re-run validation.\n    vibe suggestions profile clear - Clear the suggestion's validation profile back to default (commands.validate).\n```"
     },
     {
       "id": "cli/supervisor",
@@ -412,7 +412,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Supervisor personas (the orchestrator's judgment posture).",
       "titleTerms": "supervisor",
       "terms": "adopt archetyp default json judgment list orchestrator persona postur reason remov resum s statu stop supervisor the vib",
-      "body": "```\nvibe supervisor - Supervisor personas (the orchestrator's judgment posture).\n  vibe supervisor list [--json] - List the resolved supervisor personas (built-ins + project).\n  vibe supervisor archetypes [--json] - List the curated supervisor archetypes you can adopt.\n  vibe supervisor adopt - Adopt a curated archetype into this project's personas.\n  vibe supervisor default - Set the project's default supervisor (built-in or a project persona).\n  vibe supervisor remove - Remove a project persona (not a built-in or the active default).\n  vibe supervisor stop [--reason] - Stop the supervisor acting. It still answers.\n  vibe supervisor resume - Let the supervisor act again.\n  vibe supervisor status [--json] - Whether the supervisor may act right now.\n```"
+      "body": "```text\nvibe supervisor - Supervisor personas (the orchestrator's judgment posture).\n  vibe supervisor list [--json] - List the resolved supervisor personas (built-ins + project).\n  vibe supervisor archetypes [--json] - List the curated supervisor archetypes you can adopt.\n  vibe supervisor adopt - Adopt a curated archetype into this project's personas.\n  vibe supervisor default - Set the project's default supervisor (built-in or a project persona).\n  vibe supervisor remove - Remove a project persona (not a built-in or the active default).\n  vibe supervisor stop [--reason] - Stop the supervisor acting. It still answers.\n  vibe supervisor resume - Let the supervisor act again.\n  vibe supervisor status [--json] - Whether the supervisor may act right now.\n```"
     },
     {
       "id": "cli/tasks",
@@ -422,7 +422,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Manage local tasks: backlog → queued → running → done.",
       "titleTerms": "task",
       "terms": "acceptanc add all apply archiv backlog cancel check checklist comment d delet don edit enhanc fil flow json list loc manag mov objectiv only p paus pickup profil promot provider queu read read-only ready remov report resum roadmap run sequenc show skill statu step suggest supervis task unarchiv uncheck vib y",
-      "body": ""
+      "body": "```text\nvibe tasks - Manage local tasks: backlog → queued → running → done.\n  vibe tasks add [-d -p --roadmap --skills --files --provider --read-only --supervised --json] - Create a task.\n  vibe tasks list [--status --json] - List tasks.\n  vibe tasks suggest [--all --json] - Suggest which backlog card to pick up next (ready + priority).\n  vibe tasks show [--json] - Show a task with comments and run history.\n  vibe tasks comment - Add a comment to a task.\n  vibe tasks ready - Mark a task ready to run.\n  vibe tasks cancel - Cancel a task.\n  vibe tasks archive - Archive a task (files it into the board's Archived column).\n  vibe tasks unarchive - Un-archive a task.\n  vibe tasks delete [-y] - Permanently remove a task card (refuses while its run is live).\n  vibe tasks queue - Add a task to the scheduler queue.\n  vibe tasks run - Run this task now (foreground). A supervised task sequences its steps (the Conductor); a plain task runs the default flow once.\n  vibe tasks sequence [--json] - Sequence a supervised task's steps in order (the Conductor). The stable entry the scheduler spawns; `run` delegates here for supervised tasks.\n  vibe tasks status [--json] - Show a supervised task's live conductor status (lifecycle, steps, invariants, halt).\n  vibe tasks pause - Pause a supervised task's live run (between steps).\n  vibe tasks resume - Resume a paused supervised task, or re-sequence a halted one from the clean tip.\n  vibe tasks pickup [--step --flow] - Execute the task's checklist item-by-item (pick-up flow). Continuous by default; --step pauses between items.\n  vibe tasks checklist - Manage a task's in-card checklist (the ordered breakdown of items).\n… (deeper entries trimmed to fit)\n```"
     },
     {
       "id": "cli/telemetry",
@@ -432,7 +432,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Opt-in OpenTelemetry export of a run's metrics to your own collector (off by default).",
       "titleTerms": "telemetry",
       "terms": "a auth by collector default endpoint export in metric of off open opt opt-in own run s telemetry to trac vib your",
-      "body": "```\nvibe telemetry - Opt-in OpenTelemetry export of a run's metrics to your own collector (off by default).\n  vibe telemetry trace - Print the OTLP trace JSON for a run (no network - inspect before exporting).\n  vibe telemetry export [--endpoint --auth] - Export a run's metrics as an OTLP trace to a collector (Langfuse, Tempo, Jaeger…).\n```"
+      "body": "```text\nvibe telemetry - Opt-in OpenTelemetry export of a run's metrics to your own collector (off by default).\n  vibe telemetry trace - Print the OTLP trace JSON for a run (no network - inspect before exporting).\n  vibe telemetry export [--endpoint --auth] - Export a run's metrics as an OTLP trace to a collector (Langfuse, Tempo, Jaeger…).\n```"
     },
     {
       "id": "cli/terminal",
@@ -442,7 +442,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Inspect and close dashboard terminal sessions. Sessions are user-launched from the dashboard; this CLI never spawns one.",
       "titleTerms": "termin",
       "terms": "and are cli clos dashboard from inspect json launch list never one sess spawn termin the thi user user-launch vib",
-      "body": "```\nvibe terminal - Inspect and close dashboard terminal sessions. Sessions are user-launched from the dashboard; this CLI never spawns one.\n  vibe terminal list [--json] - List every terminal session ever opened in this project (live + closed).\n  vibe terminal close - Mark a terminal session as closed. Only affects live sessions in the running dashboard process; closed sessions are already terminal.\n```"
+      "body": "```text\nvibe terminal - Inspect and close dashboard terminal sessions. Sessions are user-launched from the dashboard; this CLI never spawns one.\n  vibe terminal list [--json] - List every terminal session ever opened in this project (live + closed).\n  vibe terminal close - Mark a terminal session as closed. Only affects live sessions in the running dashboard process; closed sessions are already terminal.\n```"
     },
     {
       "id": "cli/ui",
@@ -452,7 +452,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Start the local supervisor dashboard for this project.",
       "titleTerms": "ui",
       "terms": "dashboard for host loc no no-open no-scheduler open port project scheduler start supervisor the thi ui vib",
-      "body": "```\nvibe ui [--port --host --no-open --no-scheduler] - Start the local supervisor dashboard for this project.\n```"
+      "body": "```text\nvibe ui [--port --host --no-open --no-scheduler] - Start the local supervisor dashboard for this project.\n```"
     },
     {
       "id": "cli/validation",
@@ -462,7 +462,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Inspect validation profiles configured under commands.validationProfiles.",
       "titleTerms": "validat",
       "terms": "all clear clear-referenc command configur doctor dry dry-run inspect json migrat profil referenc renam run show under usag validat vib",
-      "body": ""
+      "body": "```text\nvibe validation - Inspect validation profiles configured under commands.validationProfiles.\n  vibe validation profiles [--json] - List the implicit default + every named validation profile.\n  vibe validation usage [--json] - Show how often each validation profile has actually run (`commands.validate` use counts as 'default').\n  vibe validation profile - Inspect, manage, and migrate validation profile references.\n    vibe validation profile show [--json] - Show the resolved commands for a named profile (or 'default').\n    vibe validation profile migrate [--dry-run --clear --all --run] - Rewrite suggestion and bundle records that reference <fromProfile> to point at <toProfile>. Use --clear to migrate to the default profile.\n    vibe validation profile clear-references [--dry-run --all --run] - Clear every suggestion/bundle that references <profileName> back to the default profile.\n    vibe validation profile rename [--dry-run --all --run] - Rename a validation profile in project.yml AND migrate every suggestion/bundle reference in one atomic operation. Preserves the profile's description and commands. Refuses if <toProfile> already exists.\n    vibe validation profile doctor [--all --run --json] - Audit every suggestion + bundle for stale validation-profile references. Default scope matches `vibe doctor` (recent 50 runs); use --all to lift the cap.\n    vibe validation profile migrations [--json] - List previously-applied profile migrations.\n```"
     },
     {
       "id": "cli/welcome",
@@ -472,7 +472,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Guided, resumable walkthrough: providers -> crew -> flows -> your first run.",
       "titleTerms": "welcom",
       "terms": "crew first flow guid provider reset resumabl run vib walkthrough welcom your",
-      "body": "```\nvibe welcome [--reset] - Guided, resumable walkthrough: providers -> crew -> flows -> your first run.\n```"
+      "body": "```text\nvibe welcome [--reset] - Guided, resumable walkthrough: providers -> crew -> flows -> your first run.\n```"
     },
     {
       "id": "cli/workspace",
@@ -482,7 +482,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Track + switch between multiple Vibestrate projects (a user-level registry).",
       "titleTerms": "workspac",
       "terms": "a add all between clos forc json level list multipl no no-open open overview project rang registry remov switch track user user-level vib vibestrat workspac",
-      "body": "```\nvibe workspace - Track + switch between multiple Vibestrate projects (a user-level registry).\n  vibe workspace list [--json] - List registered projects (live ● / dormant ○).\n  vibe workspace add - Register a project directory (default: the current directory).\n  vibe workspace remove - Remove a project from the workspace registry (leaves it on disk).\n  vibe workspace open [--all --no-open] - Open a project's dashboard, starting it (server + scheduler) if dormant.\n  vibe workspace close [--all --force] - Shut down a project's dashboard + scheduler (refuses if busy unless --force).\n  vibe workspace overview [--range --json] - Cross-project rollup: runs + cost across every registered project.\n```"
+      "body": "```text\nvibe workspace - Track + switch between multiple Vibestrate projects (a user-level registry).\n  vibe workspace list [--json] - List registered projects (live ● / dormant ○).\n  vibe workspace add - Register a project directory (default: the current directory).\n  vibe workspace remove - Remove a project from the workspace registry (leaves it on disk).\n  vibe workspace open [--all --no-open] - Open a project's dashboard, starting it (server + scheduler) if dormant.\n  vibe workspace close [--all --force] - Shut down a project's dashboard + scheduler (refuses if busy unless --force).\n  vibe workspace overview [--range --json] - Cross-project rollup: runs + cost across every registered project.\n```"
     },
     {
       "id": "config/adaptiveSpecUp",
@@ -492,7 +492,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `adaptiveSpecUp` in .vibestrate/project.yml.",
       "titleTerms": "adaptiv spec up",
       "terms": "adaptiv spec up",
-      "body": "```\nadaptiveSpecUp: enum default: \"auto\"\n```"
+      "body": "```yaml\nadaptiveSpecUp: enum default: \"auto\"\n```"
     },
     {
       "id": "config/budget",
@@ -502,7 +502,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `budget` in .vibestrate/project.yml.",
       "titleTerms": "budget",
       "terms": "act budget cap clock daily day fallback limit max min on pct per profil run spend threshold turn usd wall warn",
-      "body": "```\nbudget: object default: {\"spendCapDailyUsd\":null,\"capAction\":\"stop\",\"warnThresholdPct\":0.8,\"maxTurnsPerRun\":null,\"maxWallClockMinPerRun\":null,\"maxTurnsPerDay\":null,\"maxWallClockMinPerDay\":null,\"onLimit\":\"stop\"}\n  budget.spendCapDailyUsd: number | null default: null\n  budget.capAction: enum default: \"stop\"\n  budget.warnThresholdPct: number default: 0.8\n  budget.fallbackProfile: string\n  budget.maxTurnsPerRun: number | null default: null\n  budget.maxWallClockMinPerRun: number | null default: null\n  budget.maxTurnsPerDay: number | null default: null\n  budget.maxWallClockMinPerDay: number | null default: null\n  budget.onLimit: enum default: \"stop\"\n```"
+      "body": "```yaml\nbudget: object default: {\"spendCapDailyUsd\":null,\"capAction\":\"stop\",\"warnThresholdPct\":0.8,\"maxTurnsPerRun\":null,\"maxWallClockMinPerRun\":null,\"maxTurnsPerDay\":null,\"maxWallClockMinPerDay\":null,\"onLimit\":\"stop\"}\n  budget.spendCapDailyUsd: number | null default: null\n  budget.capAction: enum default: \"stop\"\n  budget.warnThresholdPct: number default: 0.8\n  budget.fallbackProfile: string\n  budget.maxTurnsPerRun: number | null default: null\n  budget.maxWallClockMinPerRun: number | null default: null\n  budget.maxTurnsPerDay: number | null default: null\n  budget.maxWallClockMinPerDay: number | null default: null\n  budget.onLimit: enum default: \"stop\"\n```"
     },
     {
       "id": "config/codebaseMapRoles",
@@ -512,7 +512,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `codebaseMapRoles` in .vibestrate/project.yml.",
       "titleTerms": "codebas map rol",
       "terms": "codebas map rol",
-      "body": "```\ncodebaseMapRoles: array<string> default: [\"planner\"]\n```"
+      "body": "```yaml\ncodebaseMapRoles: array<string> default: [\"planner\"]\n```"
     },
     {
       "id": "config/commands",
@@ -522,7 +522,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `commands` in .vibestrate/project.yml.",
       "titleTerms": "command",
       "terms": "by chang command profil scop validat",
-      "body": "```\ncommands: object default: {\"validate\":[],\"scopeValidationByChange\":true,\"validationProfiles\":{}}\n  commands.validate: array<string> default: []\n  commands.scopeValidationByChange: boolean default: true\n  commands.validationProfiles: record<string, object> default: {}\n```"
+      "body": "```yaml\ncommands: object default: {\"validate\":[],\"scopeValidationByChange\":true,\"validationProfiles\":{}}\n  commands.validate: array<string> default: []\n  commands.scopeValidationByChange: boolean default: true\n  commands.validationProfiles: record<string, object> default: {}\n```"
     },
     {
       "id": "config/commits",
@@ -532,7 +532,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `commits` in .vibestrate/project.yml.",
       "titleTerms": "commit",
       "terms": "author co commit email nam",
-      "body": "```\ncommits: object default: {\"coAuthor\":true,\"coAuthorName\":\"Vibestrate\",\"coAuthorEmail\":\"noreply@vibestrate.com\"}\n  commits.coAuthor: boolean default: true\n  commits.coAuthorName: string default: \"Vibestrate\"\n  commits.coAuthorEmail: string default: \"noreply@vibestrate.com\"\n```"
+      "body": "```yaml\ncommits: object default: {\"coAuthor\":true,\"coAuthorName\":\"Vibestrate\",\"coAuthorEmail\":\"noreply@vibestrate.com\"}\n  commits.coAuthor: boolean default: true\n  commits.coAuthorName: string default: \"Vibestrate\"\n  commits.coAuthorEmail: string default: \"noreply@vibestrate.com\"\n```"
     },
     {
       "id": "config/crews",
@@ -542,7 +542,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `crews` in .vibestrate/project.yml.",
       "titleTerms": "crew",
       "terms": "crew",
-      "body": "```\ncrews: record<string, object> default: {}\n```"
+      "body": "```yaml\ncrews: record<string, object> default: {}\n```"
     },
     {
       "id": "config/defaultCrew",
@@ -552,7 +552,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `defaultCrew` in .vibestrate/project.yml.",
       "titleTerms": "crew default",
       "terms": "crew default",
-      "body": "```\ndefaultCrew: string default: \"default\"\n```"
+      "body": "```yaml\ndefaultCrew: string default: \"default\"\n```"
     },
     {
       "id": "config/defaultFlow",
@@ -562,7 +562,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `defaultFlow` in .vibestrate/project.yml.",
       "titleTerms": "default flow",
       "terms": "default flow",
-      "body": "```\ndefaultFlow: string | null default: null\n```"
+      "body": "```yaml\ndefaultFlow: string | null default: null\n```"
     },
     {
       "id": "config/defaultPersona",
@@ -572,7 +572,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `defaultPersona` in .vibestrate/project.yml.",
       "titleTerms": "default persona",
       "terms": "default persona",
-      "body": "```\ndefaultPersona: string default: \"staff-engineer\"\n```"
+      "body": "```yaml\ndefaultPersona: string default: \"staff-engineer\"\n```"
     },
     {
       "id": "config/editor",
@@ -582,7 +582,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `editor` in .vibestrate/project.yml.",
       "titleTerms": "editor",
       "terms": "arg command editor enabl",
-      "body": "```\neditor: object default: {\"enabled\":false,\"command\":\"code\",\"args\":[\"--goto\",\"{file}:{line}:{column}\"]}\n  editor.enabled: boolean default: false\n  editor.command: string default: \"code\"\n  editor.args: array<string> default: [\"--goto\",\"{file}:{line}:{column}\"]\n```"
+      "body": "```yaml\neditor: object default: {\"enabled\":false,\"command\":\"code\",\"args\":[\"--goto\",\"{file}:{line}:{column}\"]}\n  editor.enabled: boolean default: false\n  editor.command: string default: \"code\"\n  editor.args: array<string> default: [\"--goto\",\"{file}:{line}:{column}\"]\n```"
     },
     {
       "id": "config/execution",
@@ -592,7 +592,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `execution` in .vibestrate/project.yml.",
       "titleTerms": "execut",
       "terms": "allow backend container egress execut imag isolat limit mod on pid readonly root unavailabl",
-      "body": ""
+      "body": "```yaml\nexecution: object default: {\"backend\":\"local-worktree\",\"isolation\":\"off\",\"container\":{\"image\":\"node:22-bookworm-slim\",\"onUnavailable\":\"fail\",\"readonlyRoot\":true,\"pidsLimit\":512,\"egress\":{\"mode\":\"open\",\"allow\":[]}}}\n  execution.backend: enum default: \"local-worktree\"\n  execution.isolation: enum default: \"off\"\n  execution.container: object default: {\"image\":\"node:22-bookworm-slim\",\"onUnavailable\":\"fail\",\"readonlyRoot\":true,\"pidsLimit\":512,\"egress\":{\"mode\":\"open\",\"allow\":[]}}\n    execution.container.image: string default: \"node:22-bookworm-slim\"\n    execution.container.onUnavailable: enum default: \"fail\"\n    execution.container.readonlyRoot: boolean default: true\n    execution.container.pidsLimit: number default: 512\n    execution.container.egress: object default: {\"mode\":\"open\",\"allow\":[]}\n      execution.container.egress.mode: enum default: \"open\"\n      execution.container.egress.allow: array<string> default: []\n```"
     },
     {
       "id": "config/flowSizing",
@@ -602,7 +602,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `flowSizing` in .vibestrate/project.yml.",
       "titleTerms": "flow siz",
       "terms": "flow siz",
-      "body": "```\nflowSizing: enum default: \"deterministic\"\n```"
+      "body": "```yaml\nflowSizing: enum default: \"deterministic\"\n```"
     },
     {
       "id": "config/git",
@@ -612,7 +612,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `git` in .vibestrate/project.yml.",
       "titleTerms": "git",
       "terms": "branch clean dir environment git link main prefix requir retent run snapshot worktre",
-      "body": "```\ngit: object default: {\"mainBranch\":\"main\",\"branchPrefix\":\"vibestrate/\",\"worktreeDir\":\"../.vibestrate-worktrees\",\"requireCleanMain\":false,\"linkEnvironment\":\"auto\",\"snapshotRetentionRuns\":0}\n  git.mainBranch: string default: \"main\"\n  git.branchPrefix: string default: \"vibestrate/\"\n  git.worktreeDir: string default: \"../.vibestrate-worktrees\"\n  git.requireCleanMain: boolean default: false\n  git.linkEnvironment: enum default: \"auto\"\n  git.snapshotRetentionRuns: number default: 0\n```"
+      "body": "```yaml\ngit: object default: {\"mainBranch\":\"main\",\"branchPrefix\":\"vibestrate/\",\"worktreeDir\":\"../.vibestrate-worktrees\",\"requireCleanMain\":false,\"linkEnvironment\":\"auto\",\"snapshotRetentionRuns\":0}\n  git.mainBranch: string default: \"main\"\n  git.branchPrefix: string default: \"vibestrate/\"\n  git.worktreeDir: string default: \"../.vibestrate-worktrees\"\n  git.requireCleanMain: boolean default: false\n  git.linkEnvironment: enum default: \"auto\"\n  git.snapshotRetentionRuns: number default: 0\n```"
     },
     {
       "id": "config/merge",
@@ -622,7 +622,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `merge` in .vibestrate/project.yml.",
       "titleTerms": "merg",
       "terms": "advisor behind branch fil integrat main merg path protect suggest touch when",
-      "body": "```\nmerge: object default: {\"advisor\":{\"suggestIntegrationBranchWhen\":{\"filesTouched\":25,\"protectedPaths\":true,\"behindMain\":50}}}\n  merge.advisor: object default: {\"suggestIntegrationBranchWhen\":{\"filesTouched\":25,\"protectedPaths\":true,\"behindMain\":50}}\n    merge.advisor.suggestIntegrationBranchWhen: object default: {\"filesTouched\":25,\"protectedPaths\":true,\"behindMain\":50}\n      merge.advisor.suggestIntegrationBranchWhen.filesTouched: number default: 25\n      merge.advisor.suggestIntegrationBranchWhen.protectedPaths: boolean default: true\n      merge.advisor.suggestIntegrationBranchWhen.behindMain: number default: 50\n```"
+      "body": "```yaml\nmerge: object default: {\"advisor\":{\"suggestIntegrationBranchWhen\":{\"filesTouched\":25,\"protectedPaths\":true,\"behindMain\":50}}}\n  merge.advisor: object default: {\"suggestIntegrationBranchWhen\":{\"filesTouched\":25,\"protectedPaths\":true,\"behindMain\":50}}\n    merge.advisor.suggestIntegrationBranchWhen: object default: {\"filesTouched\":25,\"protectedPaths\":true,\"behindMain\":50}\n      merge.advisor.suggestIntegrationBranchWhen.filesTouched: number default: 25\n      merge.advisor.suggestIntegrationBranchWhen.protectedPaths: boolean default: true\n      merge.advisor.suggestIntegrationBranchWhen.behindMain: number default: 50\n```"
     },
     {
       "id": "config/methodologyRoles",
@@ -632,7 +632,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `methodologyRoles` in .vibestrate/project.yml.",
       "titleTerms": "methodology rol",
       "terms": "methodology rol",
-      "body": "```\nmethodologyRoles: array<string> default: [\"planner\"]\n```"
+      "body": "```yaml\nmethodologyRoles: array<string> default: [\"planner\"]\n```"
     },
     {
       "id": "config/permissions",
@@ -642,7 +642,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `permissions` in .vibestrate/project.yml.",
       "titleTerms": "permiss",
       "terms": "permiss profil",
-      "body": "```\npermissions: object default: {\"profiles\":{}}\n  permissions.profiles: record<string, object> default: {}\n```"
+      "body": "```yaml\npermissions: object default: {\"profiles\":{}}\n  permissions.profiles: record<string, object> default: {}\n```"
     },
     {
       "id": "config/personas",
@@ -652,7 +652,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `personas` in .vibestrate/project.yml.",
       "titleTerms": "persona",
       "terms": "persona",
-      "body": "```\npersonas: record<string, object> default: {}\n```"
+      "body": "```yaml\npersonas: record<string, object> default: {}\n```"
     },
     {
       "id": "config/policies",
@@ -662,7 +662,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `policies` in .vibestrate/project.yml.",
       "titleTerms": "policy",
       "terms": "access allow apply approv artifact at auto branch chang default forbid harden interactiv main max merg mod ms only path permiss policy preserv protect push read requir round seat secret stag strict termin timeout unattend unprotect writ",
-      "body": ""
+      "body": "```yaml\npolicies: object default: {\"defaultPermissionMode\":\"auto\",\"forbidMainBranchWrites\":true,\"forbidSecretsAccess\":true,\"forbidAutoPush\":true,\"forbidAutoMerge\":true,\"preserveArtifacts\":true,\"requireApprovalAtStages\":[],\"allowInteractiveTerminal\":false,\"strictApplyOnly\":false,\"hardenReadOnlySeats\":false,\"unattendedApprovalTimeoutMs\":0,\"approvalMaxChangeRounds\":3,\"protectedPaths\":[],\"unprotectedPaths\":[]}\n  policies.defaultPermissionMode: enum default: \"auto\"\n  policies.forbidMainBranchWrites: boolean default: true\n  policies.forbidSecretsAccess: boolean default: true\n  policies.forbidAutoPush: boolean default: true\n  policies.forbidAutoMerge: boolean default: true\n  policies.preserveArtifacts: boolean default: true\n  policies.requireApprovalAtStages: array<enum> default: []\n  policies.allowInteractiveTerminal: boolean default: false\n  policies.strictApplyOnly: boolean default: false\n  policies.hardenReadOnlySeats: boolean default: false\n  policies.unattendedApprovalTimeoutMs: number default: 0\n  policies.approvalMaxChangeRounds: number default: 3\n  policies.protectedPaths: array<string> default: []\n  policies.unprotectedPaths: array<string> default: []\n```"
     },
     {
       "id": "config/ponytail",
@@ -672,7 +672,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `ponytail` in .vibestrate/project.yml.",
       "titleTerms": "ponytail",
       "terms": "ponytail",
-      "body": "```\nponytail: boolean default: true\n```"
+      "body": "```yaml\nponytail: boolean default: true\n```"
     },
     {
       "id": "config/posture",
@@ -682,7 +682,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `posture` in .vibestrate/project.yml.",
       "titleTerms": "postur",
       "terms": "apply approv auto postur sandbox",
-      "body": "```\nposture: object default: {\"autoApplySandbox\":false,\"autoApplyApproval\":false}\n  posture.autoApplySandbox: boolean default: false\n  posture.autoApplyApproval: boolean default: false\n```"
+      "body": "```yaml\nposture: object default: {\"autoApplySandbox\":false,\"autoApplyApproval\":false}\n  posture.autoApplySandbox: boolean default: false\n  posture.autoApplyApproval: boolean default: false\n```"
     },
     {
       "id": "config/profiles",
@@ -692,7 +692,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `profiles` in .vibestrate/project.yml.",
       "titleTerms": "profil",
       "terms": "profil",
-      "body": "```\nprofiles: record<string, unknown> default: {}\n```"
+      "body": "```yaml\nprofiles: record<string, unknown> default: {}\n```"
     },
     {
       "id": "config/project",
@@ -702,7 +702,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `project` in .vibestrate/project.yml.",
       "titleTerms": "project",
       "terms": "nam project typ",
-      "body": "```\nproject: object (required)\n  project.name: string (required)\n  project.type: string default: \"generic\"\n```"
+      "body": "```yaml\nproject: object (required)\n  project.name: string (required)\n  project.type: string default: \"generic\"\n```"
     },
     {
       "id": "config/projectPolicies",
@@ -712,7 +712,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `projectPolicies` in .vibestrate/project.yml.",
       "titleTerms": "policy project",
       "terms": "policy project",
-      "body": "```\nprojectPolicies: array<object> default: []\n```"
+      "body": "```yaml\nprojectPolicies: array<object> default: []\n```"
     },
     {
       "id": "config/providers",
@@ -722,7 +722,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `providers` in .vibestrate/project.yml.",
       "titleTerms": "provider",
       "terms": "provider",
-      "body": "```\nproviders: record<string, object | object | object | object> (required)\n```"
+      "body": "```yaml\nproviders: record<string, object | object | object | object> (required)\n```"
     },
     {
       "id": "config/resilience",
@@ -732,7 +732,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `resilience` in .vibestrate/project.yml.",
       "titleTerms": "resilienc",
       "terms": "act after auto bas delay enabl exhaust fallback limit max min ms on pattern profil rat resilienc respect retry transient usag wait",
-      "body": ""
+      "body": "```yaml\nresilience: object default: {\"enabled\":true,\"onExhausted\":\"fail\",\"autoFallback\":\"crew\",\"rateLimit\":{\"maxRetries\":5,\"baseDelayMs\":2000,\"maxDelayMs\":120000,\"patterns\":[],\"fallbackProfile\":null,\"respectRetryAfter\":true},\"transient\":{\"maxRetries\":4,\"baseDelayMs\":1000,\"maxDelayMs\":60000,\"patterns\":[],\"fallbackProfile\":null},\"usageLimit\":{\"action\":\"stop\",\"maxWaitMin\":60,\"maxWaits\":2,\"fallbackProfile\":null,\"patterns\":[]}}\n  resilience.enabled: boolean default: true\n  resilience.onExhausted: enum default: \"fail\"\n  resilience.autoFallback: enum default: \"crew\"\n  resilience.rateLimit: object default: {\"maxRetries\":5,\"baseDelayMs\":2000,\"maxDelayMs\":120000,\"patterns\":[],\"fallbackProfile\":null,\"respectRetryAfter\":true}\n    resilience.rateLimit.maxRetries: number (required)\n    resilience.rateLimit.baseDelayMs: number (required)\n    resilience.rateLimit.maxDelayMs: number (required)\n    resilience.rateLimit.patterns: array<string> default: []\n    resilience.rateLimit.fallbackProfile: string | null default: null\n    resilience.rateLimit.respectRetryAfter: boolean default: true\n  resilience.transient: object default: {\"maxRetries\":4,\"baseDelayMs\":1000,\"maxDelayMs\":60000,\"patterns\":[],\"fallbackProfile\":null}\n    resilience.transient.maxRetries: number (required)\n    resilience.transient.baseDelayMs: number (required)\n    resilience.transient.maxDelayMs: number (required)\n    resilience.transient.patterns: array<string> default: []\n    resilience.transient.fallbackProfile: string | null default: null\n  resilience.usageLimit: object default: {\"action\":\"stop\",\"maxWaitMin\":60,\"maxWaits\":2,\"fallbackProfile\":null,\"patterns\":[]}\n    resilience.usageLimit.action: enum default: \"stop\"\n    resilience.usageLimit.maxWaitMin: number default: 60\n… (deeper entries trimmed to fit)\n```"
     },
     {
       "id": "config/scheduler",
@@ -742,7 +742,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `scheduler` in .vibestrate/project.yml.",
       "titleTerms": "scheduler",
       "terms": "concurrency concurrent conflict default max policy queu quota rol run scheduler sourc writ",
-      "body": "```\nscheduler: object default: {\"maxConcurrentRuns\":1,\"maxConcurrentWriteRoles\":1,\"conflictPolicy\":\"warn\",\"queuePolicy\":\"fifo\",\"sourceQuotas\":{}}\n  scheduler.maxConcurrentRuns: number default: 1\n  scheduler.maxConcurrentWriteRoles: number default: 1\n  scheduler.conflictPolicy: enum default: \"warn\"\n  scheduler.queuePolicy: enum default: \"fifo\"\n  scheduler.sourceQuotas: record<string, number> default: {}\n  scheduler.defaultSourceConcurrency: number\n```"
+      "body": "```yaml\nscheduler: object default: {\"maxConcurrentRuns\":1,\"maxConcurrentWriteRoles\":1,\"conflictPolicy\":\"warn\",\"queuePolicy\":\"fifo\",\"sourceQuotas\":{}}\n  scheduler.maxConcurrentRuns: number default: 1\n  scheduler.maxConcurrentWriteRoles: number default: 1\n  scheduler.conflictPolicy: enum default: \"warn\"\n  scheduler.queuePolicy: enum default: \"fifo\"\n  scheduler.sourceQuotas: record<string, number> default: {}\n  scheduler.defaultSourceConcurrency: number\n```"
     },
     {
       "id": "config/session",
@@ -752,7 +752,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `session` in .vibestrate/project.yml.",
       "titleTerms": "sess",
       "terms": "max reus sess turn",
-      "body": "```\nsession: object default: {\"maxReuseTurns\":0}\n  session.maxReuseTurns: number default: 0\n```"
+      "body": "```yaml\nsession: object default: {\"maxReuseTurns\":0}\n  session.maxReuseTurns: number default: 0\n```"
     },
     {
       "id": "config/supervised",
@@ -762,7 +762,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `supervised` in .vibestrate/project.yml.",
       "titleTerms": "supervis",
       "terms": "enabl id max profil rol spend step supervis supervisor usd",
-      "body": "```\nsupervised: object default: {\"maxSpendUsd\":null,\"maxSteps\":20,\"supervisor\":{\"enabled\":true,\"profile\":null,\"roleId\":\"reviewer\"}}\n  supervised.maxSpendUsd: number | null default: null\n  supervised.maxSteps: number | null default: 20\n  supervised.supervisor: object default: {\"enabled\":true,\"profile\":null,\"roleId\":\"reviewer\"}\n    supervised.supervisor.enabled: boolean default: true\n    supervised.supervisor.profile: string | null default: null\n    supervised.supervisor.roleId: string default: \"reviewer\"\n```"
+      "body": "```yaml\nsupervised: object default: {\"maxSpendUsd\":null,\"maxSteps\":20,\"supervisor\":{\"enabled\":true,\"profile\":null,\"roleId\":\"reviewer\"}}\n  supervised.maxSpendUsd: number | null default: null\n  supervised.maxSteps: number | null default: 20\n  supervised.supervisor: object default: {\"enabled\":true,\"profile\":null,\"roleId\":\"reviewer\"}\n    supervised.supervisor.enabled: boolean default: true\n    supervised.supervisor.profile: string | null default: null\n    supervised.supervisor.roleId: string default: \"reviewer\"\n```"
     },
     {
       "id": "config/supervisorControl",
@@ -772,7 +772,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `supervisorControl` in .vibestrate/project.yml.",
       "titleTerms": "control supervisor",
       "terms": "autonomy control supervisor",
-      "body": "```\nsupervisorControl: object default: {\"autonomy\":\"advise\"}\n  supervisorControl.autonomy: enum default: \"advise\"\n```"
+      "body": "```yaml\nsupervisorControl: object default: {\"autonomy\":\"advise\"}\n  supervisorControl.autonomy: enum default: \"advise\"\n```"
     },
     {
       "id": "config/workflow",
@@ -782,7 +782,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Keys under `workflow` in .vibestrate/project.yml.",
       "titleTerms": "workflow",
       "terms": "human id loop max merg requir review workflow",
-      "body": "```\nworkflow: object default: {\"id\":\"default-plan-build-review\",\"maxReviewLoops\":null,\"requireHumanMerge\":true}\n  workflow.id: string default: \"default-plan-build-review\"\n  workflow.maxReviewLoops: number | null default: null\n  workflow.requireHumanMerge: boolean default: true\n```"
+      "body": "```yaml\nworkflow: object default: {\"id\":\"default-plan-build-review\",\"maxReviewLoops\":null,\"requireHumanMerge\":true}\n  workflow.id: string default: \"default-plan-build-review\"\n  workflow.maxReviewLoops: number | null default: null\n  workflow.requireHumanMerge: boolean default: true\n```"
     },
     {
       "id": "docs/architecture/directory-map",
