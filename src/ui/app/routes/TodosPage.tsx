@@ -97,12 +97,12 @@ export function TodosPage({ onOpenTask }: { onOpenTask: (taskId: string) => void
     });
   }
 
-  async function act(fn: () => Promise<unknown>, describe: (r: never) => string) {
+  async function act<T>(fn: () => Promise<T>, describe: (result: T) => string) {
     setBusy(true);
     setOutcome(null);
     try {
       const result = await fn();
-      setOutcome(describe(result as never));
+      setOutcome(describe(result));
       setSelected(new Set());
       setOverrides({});
       await load();
@@ -122,7 +122,7 @@ export function TodosPage({ onOpenTask }: { onOpenTask: (taskId: string) => void
             overrides: overrides[t.fingerprint],
           })),
         }),
-      (r: { promoted: unknown[]; skipped: unknown[]; failed: unknown[] }) => {
+      (r) => {
         // All three buckets, always. A partial promote that only reports its
         // successes reads as a clean run and hides the rest.
         const parts = [`${r.promoted.length} promoted`];

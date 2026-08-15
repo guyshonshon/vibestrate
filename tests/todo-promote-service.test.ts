@@ -200,6 +200,37 @@ describe("promote", () => {
     expect(await new RoadmapService(root).listTasks()).toHaveLength(1);
   });
 
+  // The board is read once for the batch, so the same fingerprint listed twice
+  // in one call has to be caught by the in-call claim rather than by re-reading
+  // the board. Without it a double-click would create two identical cards.
+  it("creates one card when the same fingerprint is selected twice in one call", async () => {
+    const svc = new TodoPromoteService(root);
+    const fp = (await fingerprintsOf(root))["rewrite the pagination logic"]!;
+
+    const result = await svc.promote({
+      selections: [{ fingerprint: fp }, { fingerprint: fp }],
+    });
+
+    expect(result.promoted).toHaveLength(1);
+    expect(result.skipped).toEqual([{ fingerprint: fp, reason: "already_on_board" }]);
+    expect(await new RoadmapService(root).listTasks()).toHaveLength(1);
+  });
+
+  // A failed create must not consume the claim, or one bad title would make the
+  // TODO look promoted and hide it from the review list forever.
+  it("leaves a fingerprint promotable when its create failed", async () => {
+    const svc = new TodoPromoteService(root);
+    const fp = (await fingerprintsOf(root))["rewrite the pagination logic"]!;
+
+    const result = await svc.promote({
+      selections: [{ fingerprint: fp, overrides: { title: "  " } }],
+    });
+    expect(result.failed).toHaveLength(1);
+
+    const view = await svc.overview();
+    expect(view.items.find((t) => t.fingerprint === fp)!.state).toBe("promotable");
+  });
+
   it("skips an unknown fingerprint", async () => {
     const result = await new TodoPromoteService(root).promote({
       selections: [{ fingerprint: "deadbeefdeadbeef" }],

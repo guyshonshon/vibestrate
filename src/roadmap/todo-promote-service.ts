@@ -260,6 +260,18 @@ export class TodoPromoteService {
       (await readDismissals(this.projectRoot)).dismissed.map((d) => d.fingerprint),
     );
 
+    // Read the board ONCE. `listTasks` opens every task file, so doing it per
+    // selection would be quadratic - fifty picks on a hundred-card board is five
+    // thousand reads - and it would not buy correctness anyway: there is still a
+    // gap between the read and the write, so a truly concurrent promote from
+    // another process can slip through either way. Closing that would need a
+    // lock around read-and-write, which `addTask` does not expose.
+    //
+    // What IS closed is the case that actually happens: the same fingerprint
+    // listed twice in one call, which `claimed` catches below.
+    const onBoard = boardFingerprintsOf(await this.roadmap.listTasks());
+    const claimed = new Set<string>();
+
     for (const selection of input.selections) {
       const todo = byFingerprint.get(selection.fingerprint);
       if (!todo) {
@@ -270,12 +282,7 @@ export class TodoPromoteService {
         skipped.push({ fingerprint: todo.fingerprint, reason: "dismissed" });
         continue;
       }
-
-      // Re-check the Board per item rather than once up front: two promotes
-      // racing on the same TODO must produce one card and one skip, not two
-      // duplicate cards.
-      const onBoard = boardFingerprintsOf(await this.roadmap.listTasks());
-      if (onBoard.has(todo.fingerprint)) {
+      if (onBoard.has(todo.fingerprint) || claimed.has(todo.fingerprint)) {
         skipped.push({ fingerprint: todo.fingerprint, reason: "already_on_board" });
         continue;
       }
@@ -301,6 +308,9 @@ export class TodoPromoteService {
             fingerprint: todo.fingerprint,
           },
         });
+        // Claimed only after the write succeeded: a failed create must leave the
+        // fingerprint promotable rather than marking it as taken.
+        claimed.add(todo.fingerprint);
         promoted.push({
           fingerprint: todo.fingerprint,
           taskId: task.id,
