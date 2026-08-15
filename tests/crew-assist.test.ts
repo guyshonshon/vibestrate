@@ -1,10 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
 import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
-import { draftCrewFromDescription, CrewAssistError } from "../src/agents/crew-assist.js";
+import {
+  draftCrewFromDescription,
+  reviseCrewFromInstruction,
+  CrewAssistError,
+} from "../src/agents/crew-assist.js";
+import { createProfile, setConfigValue } from "../src/setup/config-update-service.js";
+import { startServer, type StartedServer } from "../src/server/server.js";
 import { printRoleFiles } from "../src/cli/commands/crew.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import { projectConfigPath, projectRolesDir } from "../src/utils/paths.js";
@@ -215,6 +221,8 @@ describe("crew-assist: drafting never installs a crew", () => {
       "./role-schema.js",
       "./crew-schema.js",
       "../flows/authoring/flow-assist.js",
+      "../flows/catalog/flow-discovery.js",
+      "../flows/runtime/seat-coverage.js",
     ]);
     const specs = [...source.matchAll(/\bfrom\s+"([^"]+)"/g)].map((m) => m[1]!);
     expect(specs.length).toBeGreaterThan(0);
@@ -641,5 +649,647 @@ describe("crew-assist: input bounds", () => {
     await expect(
       draftCrewFromDescription({ projectRoot: project, description: "", runner }),
     ).rejects.toThrow(/description is required/i);
+  });
+
+  it("rejects an over-long revision instruction without calling the provider", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const { runner, prompts } = scriptedRunner(["{}"]);
+    await expect(
+      reviseCrewFromInstruction({
+        projectRoot: project,
+        crewId: "duo",
+        crew: editedCrew(profile),
+        instruction: "a".repeat(1001),
+        runner,
+      }),
+    ).rejects.toThrow(/exceeds 1000 characters/i);
+    expect(prompts).toHaveLength(0);
+  });
+});
+
+// The maker's assistant edits IN PLACE: the crew the owner is holding plus one
+// instruction, and what comes back is a proposal against that same crew. The
+// invariants under test:
+//  - the whole roster round-trips, so a role the revision does not mention
+//    survives byte-for-byte and a role it drops is NAMED as dropped,
+//  - a question is answered with no revision, which is a success,
+//  - seat coverage is COMPUTED from the flow catalog on both sides of the
+//    change, so the model never gets to claim a seat is covered,
+//  - a revision that cannot be read, or that carries a secret shape, is
+//    refused,
+//  - and, as with drafting, NOTHING is written.
+
+const REVIEWER_PROMPT =
+  "You review the diff against the plan it claims to implement.\n\n" +
+  "Name every problem you find and the file it is in. Say plainly when you found " +
+  "nothing, and never pad the list to look thorough.\n\n" +
+  "You do not edit files. You hand back findings and one verdict.";
+
+/** The crew as the editor holds it - role wiring plus each role's instructions
+ *  as text, the same shape a revision returns. */
+function editedCrew(profile: string, roles?: Record<string, unknown>): Record<string, unknown> {
+  return { label: "Duo", roles: roles ?? defaultRoles(profile) };
+}
+
+/** One canned assistant response. `crew` omitted = an answer with no edit. */
+function revisionJson(input: { crew?: unknown; answer?: string; currency?: unknown }): string {
+  return JSON.stringify({
+    answer: input.answer ?? "Added a reviewer so the diff is judged by someone who did not write it.",
+    crew: input.crew ?? null,
+    currency: input.currency ?? { checked: [], unverified: [] },
+  });
+}
+
+function seatFill(
+  coverage: { seats: Array<{ seatId: string; roleIds: string[]; status: string; flowIds: string[] }> },
+  seatId: string,
+): { seatId: string; roleIds: string[]; status: string; flowIds: string[] } {
+  const found = coverage.seats.find((s) => s.seatId === seatId);
+  if (!found) throw new Error(`no coverage entry for seat "${seatId}"`);
+  return found;
+}
+
+describe("crew-assist: revising the crew the owner is holding", () => {
+  it("adds a role, carries the untouched ones through, and names what it added", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const revised = {
+      label: "Duo",
+      roles: {
+        ...defaultRoles(profile),
+        "duo-reviewer": role({
+          label: "Reviewer",
+          seats: ["reviewer"],
+          profile,
+          permissions: "read_only",
+          promptText: REVIEWER_PROMPT,
+        }),
+      },
+    };
+    const { runner } = scriptedRunner([revisionJson({ crew: revised })]);
+
+    const result = await reviseCrewFromInstruction({
+      projectRoot: project,
+      crewId: "duo",
+      crew: editedCrew(profile),
+      instruction: "add a reviewer",
+      runner,
+    });
+
+    const revision = result.revision!;
+    expect(revision.addedRoleIds).toEqual(["duo-reviewer"]);
+    expect(revision.removedRoleIds).toEqual([]);
+    expect(Object.keys(revision.crew.roles).sort()).toEqual([
+      "duo-builder",
+      "duo-planner",
+      "duo-reviewer",
+    ]);
+    // The instructions of a role the revision never mentioned come back intact:
+    // the roster is whole, so applying it cannot silently blank a prompt.
+    expect(revision.crew.roles["duo-planner"]!.promptText).toBe(PLANNER_PROMPT);
+    // The revision comes back in the shape it was sent in - instructions as
+    // TEXT, no file pointer - so the editor applies it role by role and can
+    // hand it straight back as the next revision's input.
+    expect(revision.crew.roles["duo-reviewer"]).toMatchObject({
+      seats: ["reviewer"],
+      permissions: "read_only",
+      promptText: REVIEWER_PROMPT,
+    });
+    expect(JSON.stringify(revision.crew)).not.toMatch(/\.json\b/);
+    expect(result.answer).toContain("reviewer");
+
+    // Only the file the revision INTRODUCES is work the owner has to do. The
+    // two roles they were already holding are the editor's business, and
+    // reporting them here would describe their own crew as a pile of problems.
+    const todo = revision.problems.find((p) => p.startsWith("Still to write"));
+    expect(todo).toContain(".vibestrate/roles/duo-reviewer.json");
+    expect(todo).not.toContain("duo-planner");
+    expect(todo).not.toContain("duo-builder");
+
+    // Before and after, both computed: the seat was empty and now it is not.
+    expect(seatFill(result.coverage, "reviewer")).toMatchObject({
+      roleIds: [],
+      status: "gap",
+    });
+    expect(seatFill(revision.coverage, "reviewer")).toMatchObject({
+      roleIds: ["duo-reviewer"],
+      status: "filled",
+    });
+  });
+
+  it("names a role the revision drops, so a removal is not read as an oversight", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const { runner } = scriptedRunner([
+      revisionJson({
+        crew: { label: "Duo", roles: { "duo-planner": role({ profile }) } },
+        answer: "Dropped the builder; this crew only plans now.",
+      }),
+    ]);
+
+    const result = await reviseCrewFromInstruction({
+      projectRoot: project,
+      crewId: "duo",
+      crew: editedCrew(profile),
+      instruction: "drop the builder",
+      runner,
+    });
+
+    expect(result.revision!.removedRoleIds).toEqual(["duo-builder"]);
+    expect(result.revision!.addedRoleIds).toEqual([]);
+    expect(seatFill(result.revision!.coverage, "implementer")).toMatchObject({
+      roleIds: [],
+      status: "gap",
+    });
+  });
+
+  it("changes a role's profile and leaves the rest of the roster alone", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const { config } = await loadConfig(project);
+    const provider = Object.keys(config.providers)[0]!;
+    await createProfile(project, "cheap", { provider, label: "Cheap" });
+
+    const revised = {
+      label: "Duo",
+      roles: {
+        ...defaultRoles(profile),
+        "duo-builder": role({
+          label: "Builder",
+          seats: ["implementer"],
+          profile: "cheap",
+          permissions: "code_write",
+          promptText: BUILDER_PROMPT,
+        }),
+      },
+    };
+    const { runner } = scriptedRunner([
+      revisionJson({ crew: revised, answer: "Moved the builder onto the cheap profile." }),
+    ]);
+
+    const result = await reviseCrewFromInstruction({
+      projectRoot: project,
+      crewId: "duo",
+      crew: editedCrew(profile),
+      instruction: "make this cheaper",
+      runner,
+    });
+
+    const revision = result.revision!;
+    expect(revision.crew.roles["duo-builder"]!.profile).toBe("cheap");
+    expect(revision.crew.roles["duo-planner"]!.profile).toBe(profile);
+    expect(revision.addedRoleIds).toEqual([]);
+    expect(revision.removedRoleIds).toEqual([]);
+    // "cheap" exists now, so it is not a problem - the check reads the config,
+    // it does not take the model's word for which profiles are real.
+    expect(revision.problems.join(" ")).not.toContain("cheap");
+  });
+
+  it("reports a role moved onto a profile this project does not define", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const revised = {
+      label: "Duo",
+      roles: {
+        ...defaultRoles(profile),
+        "duo-builder": role({
+          label: "Builder",
+          seats: ["implementer"],
+          profile: "gpt-omni-turbo",
+          permissions: "code_write",
+          promptText: BUILDER_PROMPT,
+        }),
+      },
+    };
+    const { runner } = scriptedRunner([revisionJson({ crew: revised })]);
+
+    const result = await reviseCrewFromInstruction({
+      projectRoot: project,
+      crewId: "duo",
+      crew: editedCrew(profile),
+      instruction: "run the builder on something stronger",
+      runner,
+    });
+    // Reported, not thrown: the owner may be about to add that profile.
+    expect(result.revision!.problems.join(" ")).toContain("gpt-omni-turbo");
+  });
+
+  it("answers a question with no revision at all", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const { runner } = scriptedRunner([
+      revisionJson({
+        answer: "Nothing takes the architect seat; the default flow asks for it.",
+      }),
+    ]);
+
+    const result = await reviseCrewFromInstruction({
+      projectRoot: project,
+      crewId: "duo",
+      crew: editedCrew(profile),
+      instruction: "why is the architect seat uncovered?",
+      runner,
+    });
+
+    // An answer with nothing to apply is a success, not a failure - and the
+    // coverage the question was about comes back regardless, so the answer can
+    // be checked against something computed.
+    expect(result.revision).toBeNull();
+    expect(result.answer).toContain("architect");
+    expect(seatFill(result.coverage, "architect")).toMatchObject({
+      roleIds: [],
+      status: "gap",
+    });
+  });
+
+  // "No revision" has to be SAID, not inferred from a missing key: a model that
+  // meant to revise and mangled the field would otherwise come back as a
+  // confident answer with nothing behind it, and the owner would read "added a
+  // reviewer" next to an unchanged crew.
+  it("re-prompts a response that omits the crew key instead of reading it as an answer", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const { runner, prompts } = scriptedRunner([
+      JSON.stringify({ answer: "Added a reviewer.", currency: { checked: [], unverified: [] } }),
+      revisionJson({ crew: editedCrew(profile) }),
+    ]);
+
+    const result = await reviseCrewFromInstruction({
+      projectRoot: project,
+      crewId: "duo",
+      crew: editedCrew(profile),
+      instruction: "add a reviewer",
+      runner,
+    });
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1]).toContain("Your previous response was rejected");
+    expect(prompts[1]).toContain("crew");
+    expect(result.revision).not.toBeNull();
+  });
+
+  it("refuses a revision whose role instructions carry a secret shape", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const revised = {
+      label: "Duo",
+      roles: {
+        "duo-planner": role({
+          profile,
+          promptText: `${PLANNER_PROMPT}\n\nAuthenticate with AKIAIOSFODNN7EXAMPLE first.`,
+        }),
+      },
+    };
+    const { runner } = scriptedRunner([revisionJson({ crew: revised })]);
+
+    await expect(
+      reviseCrewFromInstruction({
+        projectRoot: project,
+        crewId: "duo",
+        crew: editedCrew(profile),
+        instruction: "tell the planner how to authenticate",
+        runner,
+      }),
+    ).rejects.toThrow(CrewAssistError);
+  });
+
+  it("refuses a crew it cannot read, before any provider call", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const { permissions: _dropped, ...noPermissions } = role({ profile });
+    const { runner, prompts } = scriptedRunner(["{}"]);
+
+    await expect(
+      reviseCrewFromInstruction({
+        projectRoot: project,
+        crewId: "duo",
+        crew: editedCrew(profile, { "duo-planner": noPermissions }),
+        instruction: "add a reviewer",
+        runner,
+      }),
+    ).rejects.toThrow(/not a shape the assistant can read[\s\S]*permissions/i);
+    // Bad input costs nothing: the spawn is the expensive part and it never
+    // happened.
+    expect(prompts).toHaveLength(0);
+  });
+
+  it("re-prompts a shape-invalid revision with the schema's own issues", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const { permissions: _dropped, ...noPermissions } = role({ profile });
+    const { runner, prompts } = scriptedRunner([
+      revisionJson({ crew: { label: "Duo", roles: { "duo-planner": noPermissions } } }),
+      revisionJson({ crew: editedCrew(profile) }),
+    ]);
+
+    const result = await reviseCrewFromInstruction({
+      projectRoot: project,
+      crewId: "duo",
+      crew: editedCrew(profile),
+      instruction: "tidy the roster",
+      runner,
+    });
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1]).toContain("Your previous response was rejected");
+    expect(prompts[1]).toContain("crew.roles.duo-planner.permissions");
+    expect(Object.keys(result.revision!.crew.roles).sort()).toEqual([
+      "duo-builder",
+      "duo-planner",
+    ]);
+  });
+
+  // INVARIANT 1, end-state: the assistant proposes and the owner's existing
+  // save path is still the only writer. A revision that adds a role, moves a
+  // profile and rewrites a prompt must leave every byte where it was.
+  it("writes nothing", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const before = await readConfig(project);
+    const rolesBefore = await listRoles(project);
+    const roleBytesBefore = await Promise.all(
+      rolesBefore.map((name) =>
+        fs.readFile(path.join(projectRolesDir(project), name), "utf8"),
+      ),
+    );
+
+    const revised = {
+      label: "Duo, revised",
+      roles: {
+        "duo-planner": role({ profile, promptText: `${PLANNER_PROMPT}\n\nAlso name the risks.` }),
+        "duo-reviewer": role({
+          label: "Reviewer",
+          seats: ["reviewer"],
+          profile,
+          permissions: "read_only",
+          promptText: REVIEWER_PROMPT,
+        }),
+      },
+    };
+    const { runner } = scriptedRunner([revisionJson({ crew: revised })]);
+
+    await reviseCrewFromInstruction({
+      projectRoot: project,
+      crewId: "default",
+      crew: editedCrew(profile),
+      instruction: "swap the builder for a reviewer and sharpen the planner",
+      runner,
+    });
+
+    expect(await readConfig(project)).toBe(before);
+    expect(await listRoles(project)).toEqual(rolesBefore);
+    expect(
+      await Promise.all(
+        rolesBefore.map((name) =>
+          fs.readFile(path.join(projectRolesDir(project), name), "utf8"),
+        ),
+      ),
+    ).toEqual(roleBytesBefore);
+    // The crew whose id the revision carries is untouched too.
+    const { config } = await loadConfig(project);
+    expect(Object.keys(config.crews.default!.roles)).not.toContain("duo-reviewer");
+  });
+
+  // The crew being edited is a NEW carrier into the prompt - a role's
+  // instructions are free text the owner typed. What this proves is the end
+  // state: nothing secret-shaped reaches the provider, wherever the redaction
+  // lives (today `runAssist`, the single funnel).
+  it("nothing secret-shaped in the crew being edited reaches the provider", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const { runner, prompts } = scriptedRunner([revisionJson({})]);
+
+    await reviseCrewFromInstruction({
+      projectRoot: project,
+      crewId: "duo",
+      crew: editedCrew(profile, {
+        "duo-planner": role({
+          profile,
+          promptText: `${PLANNER_PROMPT}\n\nThe deploy key is AKIAIOSFODNN7EXAMPLE.`,
+        }),
+      }),
+      instruction: "is this planner well written?",
+      runner,
+    });
+    expect(prompts[0]).not.toContain("AKIAIOSFODNN7EXAMPLE");
+    expect(prompts[0]).toContain("[REDACTED");
+  });
+});
+
+describe("crew-assist: seat coverage is computed, never claimed", () => {
+  /** Coverage of a crew, with no revision in the way. */
+  async function coverageOf(
+    project: string,
+    roles: Record<string, unknown>,
+  ): Promise<Awaited<ReturnType<typeof reviseCrewFromInstruction>>["coverage"]> {
+    const { runner } = scriptedRunner([revisionJson({ answer: "Nothing to change." })]);
+    const result = await reviseCrewFromInstruction({
+      projectRoot: project,
+      crewId: "duo",
+      crew: { label: "Duo", roles },
+      instruction: "which seats are uncovered?",
+      runner,
+    });
+    return result.coverage;
+  }
+
+  it("reports who takes each seat this project's flows ask for", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const coverage = await coverageOf(project, defaultRoles(profile));
+
+    // Hand-computed against the built-in `default` flow, which seats planner,
+    // architect, implementer, reviewer, fixer and verifier. This crew has one
+    // role on `planner` and one on `implementer`, and nothing else.
+    expect(seatFill(coverage, "planner")).toMatchObject({
+      roleIds: ["duo-planner"],
+      status: "filled",
+    });
+    expect(seatFill(coverage, "implementer")).toMatchObject({
+      roleIds: ["duo-builder"],
+      status: "filled",
+    });
+    for (const uncovered of ["architect", "reviewer", "fixer", "verifier"]) {
+      expect(seatFill(coverage, uncovered)).toMatchObject({ roleIds: [], status: "gap" });
+    }
+    // Each seat names the flows that ask for it, which is what makes "why is
+    // this seat uncovered?" answerable rather than a matter of opinion.
+    expect(seatFill(coverage, "architect").flowIds).toContain("default");
+    expect(coverage.idleRoleSeats).toEqual([]);
+  });
+
+  it("reports a seat two roles fight over as ambiguous", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const coverage = await coverageOf(project, {
+      "duo-planner": role({ profile }),
+      "duo-second-planner": role({ profile, label: "Second planner" }),
+    });
+    expect(seatFill(coverage, "planner")).toMatchObject({
+      roleIds: ["duo-planner", "duo-second-planner"],
+      status: "ambiguous",
+    });
+  });
+
+  it("names a seat a role claims that no flow asks for", async () => {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    // A near-miss on a seat name is silent everywhere else: the role validates,
+    // the crew saves, and it simply never runs.
+    const coverage = await coverageOf(project, {
+      "duo-planner": role({ profile, seats: ["planner", "implementor"] }),
+    });
+    expect(coverage.idleRoleSeats).toEqual(["implementor"]);
+    expect(coverage.seats.map((s) => s.seatId)).not.toContain("implementor");
+  });
+});
+
+// Route-level cover. The service tests above inject a fake runner; nothing can
+// inject one over HTTP, so these drive the real provider path through a fake
+// CLI and assert what only the route owns: the body schema, the error mapping,
+// and that a revision leaves the project exactly as it found it.
+describe("POST /api/crews/revise", () => {
+  let server: StartedServer | null = null;
+  afterEach(async () => {
+    await server?.close();
+    server = null;
+  });
+
+  /** A fake provider CLI answering the crew-revise prompt. `runAssist` stamps
+   *  the label into the prompt header, so the branch is on that rather than on
+   *  any wording the test controls; a question and an edit are two different
+   *  right answers from one endpoint. */
+  function fakeCliSource(profile: string): string {
+    const revised = revisionJson({
+      crew: {
+        label: "Duo",
+        roles: {
+          ...defaultRoles(profile),
+          "duo-reviewer": role({
+            label: "Reviewer",
+            seats: ["reviewer"],
+            profile,
+            permissions: "read_only",
+            promptText: REVIEWER_PROMPT,
+          }),
+        },
+      },
+    });
+    const question = revisionJson({ answer: "No role in this crew takes that seat." });
+    return `#!/usr/bin/env node
+let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
+  console.log(i.includes('why is') ? ${JSON.stringify(question)} : ${JSON.stringify(revised)});
+});
+`;
+  }
+
+  async function serveProject(): Promise<{ project: string; profile: string }> {
+    const project = await makeProject();
+    const profile = await firstProfileId(project);
+    const fakeJs = path.join(project, "fake.js");
+    await fs.writeFile(fakeJs, fakeCliSource(profile), { mode: 0o755 });
+    await fs.chmod(fakeJs, 0o755);
+    await setConfigValue(
+      project,
+      "providers.fake",
+      JSON.stringify({ type: "cli", command: "node", args: [fakeJs], input: "stdin" }),
+    );
+    // The assist resolves its provider from the crew planner's profile.
+    await setConfigValue(project, `profiles.${profile}.provider`, "fake");
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+    return { project, profile };
+  }
+
+  async function post(body: unknown): Promise<Response> {
+    return fetch(`${server!.url}/api/crews/revise`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("returns a revision, its coverage, and changes nothing on disk", async () => {
+    const { project, profile } = await serveProject();
+    const before = await readConfig(project);
+    const rolesBefore = await listRoles(project);
+
+    const res = await post({
+      crewId: "duo",
+      crew: editedCrew(profile),
+      instruction: "add a reviewer",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      revision: {
+        crew: { roles: Record<string, { promptText?: string }> };
+        addedRoleIds: string[];
+        removedRoleIds: string[];
+        coverage: { seats: Array<{ seatId: string; status: string; roleIds: string[] }> };
+        problems: string[];
+      } | null;
+      answer: string;
+      coverage: { seats: Array<{ seatId: string; status: string }> };
+    };
+    expect(body.revision!.addedRoleIds).toEqual(["duo-reviewer"]);
+    // Over the wire in the shape the editor sent, instructions included.
+    expect(Object.keys(body.revision!.crew.roles).sort()).toEqual([
+      "duo-builder",
+      "duo-planner",
+      "duo-reviewer",
+    ]);
+    expect(body.revision!.crew.roles["duo-reviewer"]!.promptText).toBe(REVIEWER_PROMPT);
+    expect(
+      body.revision!.coverage.seats.find((s) => s.seatId === "reviewer"),
+    ).toMatchObject({ status: "filled", roleIds: ["duo-reviewer"] });
+    expect(body.answer.length).toBeGreaterThan(0);
+
+    expect(await readConfig(project)).toBe(before);
+    expect(await listRoles(project)).toEqual(rolesBefore);
+  });
+
+  it("returns the answer alone when the instruction was a question", async () => {
+    const { profile } = await serveProject();
+    const res = await post({
+      crewId: "duo",
+      crew: editedCrew(profile),
+      instruction: "why is the architect seat uncovered?",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      revision: unknown;
+      answer: string;
+      coverage: { seats: Array<{ seatId: string; status: string }> };
+    };
+    // A question is a 200 with nothing to apply, never an error.
+    expect(body.revision).toBeNull();
+    expect(body.answer).toContain("seat");
+    expect(body.coverage.seats.find((s) => s.seatId === "architect")).toMatchObject({
+      status: "gap",
+    });
+  });
+
+  it("rejects a body the route does not recognise", async () => {
+    const { profile } = await serveProject();
+    expect(
+      (await post({ crewId: "duo", crew: editedCrew(profile), instruction: "hi", extra: 1 }))
+        .status,
+    ).toBe(400);
+    expect((await post({ crewId: "duo", crew: editedCrew(profile) })).status).toBe(400);
+    expect(
+      (await post({ crewId: "duo", crew: editedCrew(profile), instruction: "a".repeat(1001) }))
+        .status,
+    ).toBe(400);
+  });
+
+  it("maps a crew it cannot read to a 400 that names the field", async () => {
+    const { profile } = await serveProject();
+    const { permissions: _dropped, ...noPermissions } = role({ profile });
+    const res = await post({
+      crewId: "duo",
+      crew: editedCrew(profile, { "duo-planner": noPermissions }),
+      instruction: "add a reviewer",
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { message?: string; error?: string };
+    expect(JSON.stringify(body)).toContain("permissions");
   });
 });

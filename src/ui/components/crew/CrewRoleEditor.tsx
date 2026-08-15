@@ -5,12 +5,18 @@
 // wherever it is. The differences are the ones an editor needs: the id and label
 // are inputs, the role can be removed, and the prompt is a first-class editing
 // surface rather than a disclosure at the bottom.
+//
+// Every validator message lands ON the control that owns it, and only once that
+// control has been used or the owner has asked to save. A card that opens with
+// five red sentences about fields nobody has filled in yet is reporting the
+// obvious, and it buried the one message that arrived because of something the
+// owner actually did.
 
+import { useState } from "react";
 import { Trash2, X } from "lucide-react";
 import type { DiscoveredSkill, ProfileView } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
 import { ToneDot, toneForId } from "../design/Chip.js";
-import { ErrorState } from "../design/ErrorState.js";
 import { Select } from "../design/Select.js";
 import { StatTile } from "../design/StatTile.js";
 import { cn } from "../design/cn.js";
@@ -28,8 +34,32 @@ import {
   TONE_WASH,
 } from "./helpers.js";
 
+/** The border colour is applied separately from the rest of the field because
+ *  cn() is clsx, not tailwind-merge: two border-colour classes on one element
+ *  both ship, and the winner is whichever Tailwind emitted last. */
 const FIELD =
-  "w-full rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-2.5 py-1.5 text-[13px] text-chalk-100 outline-none placeholder:text-chalk-300/70 focus:border-violet-soft/50";
+  "w-full rounded-[10px] border bg-coal-800 px-2.5 py-1.5 text-[13px] text-chalk-100 outline-none placeholder:text-chalk-300/70";
+const FIELD_LINE = "border-[color:var(--line-strong)] focus:border-violet-soft/50";
+const FIELD_BAD = "border-rose-400/60";
+
+/** Which control each validator message belongs to. Branching on the code, not
+ *  the sentence, is what keeps a reworded message anchored. */
+type RoleField = "id" | "seats" | "profile" | "permissions" | "prompt";
+
+const FIELD_FOR: Partial<Record<EditorProblem["code"], RoleField>> = {
+  "role-id": "id",
+  "role-id-dupe": "id",
+  "role-seats": "seats",
+  "role-profile": "profile",
+  "role-permissions": "permissions",
+  "role-prompt": "prompt",
+  "role-prompt-long": "prompt",
+};
+
+function FieldError({ message }: { message: string | undefined }) {
+  if (!message) return null;
+  return <span className="mt-1 block text-meta leading-[1.45] text-rose-300">{message}</span>;
+}
 
 export function CrewRoleEditor({
   role,
@@ -39,6 +69,8 @@ export function CrewRoleEditor({
   permissions,
   skills,
   problems,
+  saveErrors,
+  showAllProblems,
   disabled,
   onChange,
   onRemove,
@@ -52,29 +84,52 @@ export function CrewRoleEditor({
   permissions: string[];
   skills: DiscoveredSkill[];
   problems: EditorProblem[];
+  /** Writes for this role the server refused, so a partial save reports on the
+   *  card that failed instead of in a banner listing role names. */
+  saveErrors: string[];
+  /** Save was pressed: report every problem, including on controls the owner
+   *  never opened. */
+  showAllProblems: boolean;
   disabled: boolean;
   onChange: (patch: Partial<EditorRole>) => void;
   onRemove: () => void;
 }) {
+  const [used, setUsed] = useState<ReadonlySet<RoleField>>(new Set());
+  const use = (field: RoleField) =>
+    setUsed((prev) => (prev.has(field) ? prev : new Set(prev).add(field)));
+
+  const errorFor = (field: RoleField): string | undefined => {
+    if (!showAllProblems && !used.has(field)) return undefined;
+    return problems.find((p) => FIELD_FOR[p.code] === field)?.message;
+  };
+
   const tone = toneForId(role.id || role.key);
   const profile = profiles.find((p) => p.id === role.profile) ?? null;
   const changes = roleChangeCount(role);
   const availableSkills = skills.map((s) => s.name).filter((n) => !role.skills.includes(n));
   const initials = (role.label || role.id || "??").slice(0, 2);
   const promptPath = role.promptPath || defaultPromptPath(role.id || "role");
+  const idError = errorFor("id");
+  const seatsError = errorFor("seats");
+  const profileError = errorFor("profile");
+  const permissionsError = errorFor("permissions");
+  const promptError = errorFor("prompt");
 
   return (
     <div className="overflow-hidden rounded-[18px] border border-[color:var(--line)] bg-coal-600">
       <div
         className={cn(
-          "flex flex-wrap items-end justify-between gap-3 border-b border-[color:var(--line-soft)] px-4 py-3",
+          "flex flex-wrap items-start justify-between gap-3 border-b border-[color:var(--line-soft)] px-4 py-3",
           TONE_WASH[tone],
         )}
       >
-        <div className="flex min-w-0 flex-1 items-end gap-3">
+        {/* Top-aligned, with the avatar and the tiles dropped by one field
+            label, so the row stays level when a message appears under the id
+            input instead of shifting with the tallest column. */}
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           <span
             className={cn(
-              "flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] mono text-[15px] font-bold uppercase",
+              "mt-[22px] flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] mono text-[15px] font-bold uppercase",
               TONE_AVATAR[tone],
             )}
           >
@@ -89,7 +144,7 @@ export function CrewRoleEditor({
               disabled={disabled}
               placeholder="Reviewer"
               onChange={(e) => onChange({ label: e.target.value })}
-              className={FIELD}
+              className={cn(FIELD, FIELD_LINE)}
             />
           </label>
           <label className="block min-w-0 flex-1">
@@ -102,17 +157,15 @@ export function CrewRoleEditor({
               spellCheck={false}
               placeholder="reviewer"
               onChange={(e) => onChange({ id: e.target.value })}
-              className={cn(FIELD, "mono text-[12.5px]")}
+              onBlur={() => use("id")}
+              className={cn(FIELD, "mono text-[12.5px]", idError ? FIELD_BAD : FIELD_LINE)}
             />
+            <FieldError message={idError} />
           </label>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 pt-[22px]">
           <StatTile value={role.seats.length} label={role.seats.length === 1 ? "seat" : "seats"} />
-          {changes === -1 ? (
-            <StatTile value="new" label="not on disk" tone="amber" />
-          ) : changes > 0 ? (
-            <StatTile value={changes} label="edited" tone="violet" />
-          ) : null}
+          {changes > 0 ? <StatTile value={changes} label="changes" tone="violet" /> : null}
           <Button
             variant="danger"
             size="sm"
@@ -126,13 +179,11 @@ export function CrewRoleEditor({
       </div>
 
       <div className="flex flex-col gap-4 p-4">
-        {problems.length > 0 ? (
-          <ErrorState
-            compact
-            title={problems.length === 1 ? "This role is not ready" : `${problems.length} things to fix`}
-            hint={problems.map((p) => p.message).join(" ")}
-          />
-        ) : null}
+        {saveErrors.map((err, i) => (
+          <p key={i} className="text-meta leading-[1.45] text-rose-300">
+            {err}
+          </p>
+        ))}
 
         <div>
           <div className="mb-1.5 text-[12px] font-semibold text-violet-vivid">
@@ -152,13 +203,14 @@ export function CrewRoleEditor({
                     key={seat}
                     type="button"
                     disabled={disabled}
-                    onClick={() =>
+                    onClick={() => {
+                      use("seats");
                       onChange({
                         seats: on
                           ? role.seats.filter((s) => s !== seat)
                           : [...role.seats, seat],
-                      })
-                    }
+                      });
+                    }}
                     className={cn(
                       "inline-flex items-center gap-1 rounded-[10px] border px-2 py-1 text-meta transition disabled:opacity-50",
                       on
@@ -175,6 +227,7 @@ export function CrewRoleEditor({
               })}
             </div>
           )}
+          <FieldError message={seatsError} />
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -187,7 +240,10 @@ export function CrewRoleEditor({
               disabled={disabled}
               ariaLabel="Profile"
               placeholder={profiles.length === 0 ? "No profiles yet" : "Pick a profile"}
-              onChange={(v) => onChange({ profile: v })}
+              onChange={(v) => {
+                use("profile");
+                onChange({ profile: v });
+              }}
               options={[
                 ...profiles.map((p) => ({
                   value: p.id,
@@ -202,13 +258,17 @@ export function CrewRoleEditor({
                   : []),
               ]}
             />
-            <span className="mt-1 block text-meta text-chalk-300">
-              {profile
-                ? `${profile.provider}${profile.model ? ` - ${profile.model}` : ""}${profile.power ? ` - ${profile.power}` : ""}`
-                : role.profile
-                  ? "This profile is not in the project config."
-                  : "Every role runs on a profile."}
-            </span>
+            {profileError ? (
+              <FieldError message={profileError} />
+            ) : (
+              <span className="mt-1 block text-meta text-chalk-300">
+                {profile
+                  ? `${profile.provider}${profile.model ? ` - ${profile.model}` : ""}${profile.power ? ` - ${profile.power}` : ""}`
+                  : role.profile
+                    ? "This profile is not in the project config."
+                    : "Every role runs on a profile."}
+              </span>
+            )}
             {profile?.modelIssue ? (
               <span className="mt-1 block text-meta text-amber-soft">
                 {profile.modelIssue}
@@ -224,18 +284,25 @@ export function CrewRoleEditor({
               value={role.permissions}
               disabled={disabled}
               ariaLabel="Permissions"
-              onChange={(v) => onChange({ permissions: v })}
+              onChange={(v) => {
+                use("permissions");
+                onChange({ permissions: v });
+              }}
               options={permissions.map((p) => ({
                 value: p,
                 label: PERMISSION_LABEL[p] ?? p.replace(/_/g, " "),
                 hint: PERMISSION_LABEL[p] ? undefined : "project profile",
               }))}
             />
-            <span className="mt-1 block text-meta text-chalk-300">
-              {role.permissions === "code_write"
-                ? "This role writes files inside the run's worktree."
-                : "This role reads. It cannot change your files."}
-            </span>
+            {permissionsError ? (
+              <FieldError message={permissionsError} />
+            ) : (
+              <span className="mt-1 block text-meta text-chalk-300">
+                {role.permissions === "code_write"
+                  ? "This role writes files inside the run's worktree."
+                  : "This role reads. It cannot change your files."}
+              </span>
+            )}
           </label>
         </div>
 
@@ -288,8 +355,12 @@ export function CrewRoleEditor({
             defaultMode="edit"
             loadError={role.loadError}
             rows={14}
-            onChange={(next) => onChange({ prompt: next })}
+            onChange={(next) => {
+              use("prompt");
+              onChange({ prompt: next });
+            }}
           />
+          <FieldError message={promptError} />
         </div>
       </div>
     </div>

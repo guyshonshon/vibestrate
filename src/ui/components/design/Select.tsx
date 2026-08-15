@@ -8,6 +8,10 @@ import {
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "./cn.js";
 
+/** Tallest the option list gets, and the room it needs below the trigger before
+ *  it flips upwards. */
+const LIST_MAX_H = 260;
+
 export type SelectOption = {
   value: string;
   label: string;
@@ -42,6 +46,7 @@ export function Select({
   ariaLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [dropUp, setDropUp] = useState(false);
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const listId = useId();
@@ -65,6 +70,21 @@ export function Select({
     const i = options.findIndex((o) => o.value === value);
     setActive(i >= 0 ? i : 0);
   }, [open, value, options]);
+
+  // Open upwards when there is not enough room below. The consult dock sits on
+  // the bottom edge of the viewport, so its Selects opened straight off-screen;
+  // deciding here rather than taking a prop means no caller has to know where
+  // on the page it happens to be rendered.
+  useEffect(() => {
+    if (!open) {
+      setDropUp(false);
+      return;
+    }
+    const trigger = rootRef.current?.getBoundingClientRect();
+    if (!trigger) return;
+    const below = window.innerHeight - trigger.bottom;
+    setDropUp(below < LIST_MAX_H + 12 && trigger.top > below);
+  }, [open]);
 
   const choose = (i: number) => {
     const o = options[i];
@@ -143,7 +163,11 @@ export function Select({
         <div
           role="listbox"
           id={listId}
-          className="absolute left-0 z-30 mt-1 max-h-[260px] min-w-full overflow-auto rounded-[12px] border border-[color:var(--line)] bg-coal-800 py-1 shadow-2xl"
+          style={{ maxHeight: LIST_MAX_H }}
+          className={cn(
+            "absolute left-0 z-30 min-w-full overflow-auto rounded-[12px] border border-[color:var(--line)] bg-coal-800 py-1 shadow-2xl",
+            dropUp ? "bottom-full mb-1" : "top-full mt-1",
+          )}
         >
           {options.map((o, i) => {
             const isSel = o.value === value;

@@ -23,8 +23,10 @@ export function TextField({
   label,
   value,
   onChange,
+  onBlur,
   placeholder,
   hint,
+  error,
   mono,
   invalid,
   disabled,
@@ -33,9 +35,13 @@ export function TextField({
   label: string;
   value: string;
   onChange: (v: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   /** What the field is for. Omit when the label already says it. */
   hint?: string;
+  /** Takes the hint's slot rather than adding a row, so a field does not grow
+   *  when it goes invalid and the form stops reflowing under the cursor. */
+  error?: string;
   mono?: boolean;
   invalid?: boolean;
   disabled?: boolean;
@@ -51,6 +57,7 @@ export function TextField({
           disabled={disabled}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
           className={cn(fieldClass(invalid === true), "resize-y leading-[1.5]")}
         />
       ) : (
@@ -59,10 +66,15 @@ export function TextField({
           disabled={disabled}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
           className={cn(fieldClass(invalid === true), mono && "mono")}
         />
       )}
-      {hint ? <p className="mt-1 text-meta text-chalk-300">{hint}</p> : null}
+      {error ? (
+        <p className="mt-1 text-meta text-rose-300">{error}</p>
+      ) : hint ? (
+        <p className="mt-1 text-meta text-chalk-300">{hint}</p>
+      ) : null}
     </label>
   );
 }

@@ -13,10 +13,17 @@ function refHref(ref: ConsultRef): string {
   return ref.kind === "run" ? `#/runs/${ref.id}` : `#/tasks/${ref.id}`;
 }
 
-const CONFIDENCE_TONE: Record<ConsultResult["answer"]["confidence"], string> = {
-  high: "border-emerald/30 bg-emerald/10 text-emerald",
-  medium: "border-amber-soft/40 bg-amber-soft/10 text-amber-soft",
-  low: "border-[color:var(--line-strong)] bg-coal-500 text-chalk-300",
+/**
+ * Confidence used to be a tinted chip next to the "Answer" heading, whose only
+ * job was to name a state. It is folded into the verification block instead, so
+ * how much of the answer was inferred is read where the unverified parts are
+ * listed. `high` says nothing on its own - the block only appears when there is
+ * something to qualify.
+ */
+const VERIFICATION_TITLE: Record<ConsultResult["answer"]["confidence"], string> = {
+  high: "Could not verify",
+  medium: "Partly inferred",
+  low: "Mostly inferred",
 };
 
 const CARD = "rounded-[16px] border border-[color:var(--line)] bg-coal-600";
@@ -43,40 +50,38 @@ export function ConsultAnswerView({
   return (
     <div className={cn("space-y-3", compact ? "" : "space-y-4")}>
       <div className={cn(CARD, pad)}>
-        <div className="mb-2.5 flex items-center justify-between gap-3">
-          <span className="text-[12.5px] font-semibold text-violet-vivid">Answer</span>
-          <span className={cn("rounded-[8px] border px-2 py-0.5 text-meta", CONFIDENCE_TONE[answer.confidence])}>
-            confidence: {answer.confidence}
-          </span>
-        </div>
-        <p className="whitespace-pre-wrap text-[13px] leading-[1.6] text-chalk-100">
+        <div className="mb-2.5 text-[13.5px] font-semibold text-violet-vivid">Answer</div>
+        <p className="whitespace-pre-wrap text-[14.5px] leading-[1.6] text-chalk-100">
           {answer.answer.trim()}
         </p>
 
         {result.sections ? <ComputedSections sections={result.sections} /> : null}
 
-        {answer.caveats.length ? (
+        {answer.caveats.length || answer.confidence !== "high" ? (
           <div className="mt-3.5 rounded-[12px] border border-amber-soft/40 bg-amber-soft/10 p-3">
-            <div className="mb-1 flex items-center gap-1.5 text-meta text-amber-soft">
-              <AlertTriangle className="h-3 w-3" strokeWidth={1.9} /> Could not verify
+            <div className="flex items-center gap-1.5 text-meta text-amber-soft">
+              <AlertTriangle className="h-3 w-3" strokeWidth={1.9} aria-hidden />
+              {VERIFICATION_TITLE[answer.confidence]}
             </div>
-            <ul className="space-y-1 text-[12.5px] text-chalk-300">
-              {answer.caveats.map((c, i) => (
-                <li key={i} className="flex gap-1.5">
-                  <span className="text-chalk-400">·</span> {c}
-                </li>
-              ))}
-            </ul>
+            {answer.caveats.length ? (
+              <ul className="mt-1 space-y-1 text-[13.5px] text-chalk-100">
+                {answer.caveats.map((c, i) => (
+                  <li key={i} className="flex gap-1.5">
+                    <span className="text-chalk-400">·</span> {c}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         ) : null}
       </div>
 
       {answer.recommendedActions.length ? (
         <div className={cn(CARD, pad)}>
-          <span className="text-[12.5px] font-semibold text-violet-vivid">Recommended</span>
+          <span className="text-[13.5px] font-semibold text-violet-vivid">Recommended</span>
           <ul className="mt-2 space-y-1.5">
             {answer.recommendedActions.map((a, i) => (
-              <li key={i} className="flex items-start gap-2 text-[12.5px] text-chalk-200">
+              <li key={i} className="flex items-start gap-2 text-[13.5px] text-chalk-100">
                 <ArrowRight className="mt-0.5 h-3 w-3 shrink-0 text-violet-soft" strokeWidth={1.9} />
                 <span>
                   <span className="mono text-meta text-violet-soft">{a.kind}</span> {a.detail}
@@ -91,7 +96,7 @@ export function ConsultAnswerView({
         <div className={cn(CARD, pad)}>
           <div className="mb-1.5 flex items-center gap-1.5">
             <FileText className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.7} />
-            <span className="text-[12.5px] font-semibold text-violet-vivid">Proposed VIBESTRATE.md update</span>
+            <span className="text-[13.5px] font-semibold text-violet-vivid">Proposed VIBESTRATE.md update</span>
             <span className="text-meta text-chalk-400">(proposal - not applied)</span>
           </div>
           <p className="text-[12px] text-chalk-400">{answer.proposedManualUpdate.rationale}</p>
@@ -159,7 +164,7 @@ export function ComputedSections({ sections }: { sections: ConsultSections }) {
           {groups.map((g) => (
             <div key={g.title}>
               <div className="mb-1 text-[12px] font-semibold text-chalk-100">{g.title}</div>
-              <ul className="space-y-1 text-[12.5px] text-chalk-200">
+              <ul className="space-y-1 text-[13.5px] text-chalk-100">
                 {g.items.slice(0, 6).map((it, i) => (
                   <li key={i} className="flex gap-1.5">
                     <span className="mt-[1px] text-chalk-400">·</span>
@@ -184,7 +189,7 @@ export function ComputedSections({ sections }: { sections: ConsultSections }) {
       {housekeeping.length > 0 ? (
         <div className={groups.length > 0 ? "mt-3 border-t border-[color:var(--line-soft)] pt-2.5" : ""}>
           <div className="mb-1 text-[12px] font-semibold text-amber-soft">Housekeeping</div>
-          <ul className="space-y-1 text-[12.5px] text-chalk-300">
+          <ul className="space-y-1 text-[13.5px] text-chalk-100">
             {housekeeping.map((tip, i) => (
               <li key={i} className="flex gap-1.5">
                 <span className="text-amber-soft/70">·</span>

@@ -1,6 +1,7 @@
 /**
  * Mission control route - the page where work starts. Its body renders the
- * hero, the composer, and the "waiting on you" deck of pending approvals.
+ * hero, a rearrangeable board carrying the supervisor and the composer, and the
+ * "waiting on you" deck of pending approvals.
  *
  * The load loop re-fetches runs on an interval and whenever a
  * `vibestrate:runs-refresh` window event fires, then fans out per-active-run
@@ -239,6 +240,44 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
     return { counts, total: counts.reduce((a, b) => a + b, 0) };
   }, [runs]);
 
+  // The board holds the two ways into starting work, and nothing else on this
+  // page. Verified against the rest of the body rather than assumed: the
+  // masthead carries the headline fact the page exists to answer, and both
+  // error cells make a spatial claim ("without appearing below") about the
+  // approvals list, so a user who dragged them apart would be reading a lie.
+  // Those stay fixed; the supervisor and the composer are a preference.
+  //
+  // The supervisor is FIRST by default, above the composer. With autonomy on it
+  // can make the task and start the run itself, so saying what you want out loud
+  // is a real way in rather than a side channel - which is why it precedes the
+  // form rather than replacing it. The form stays for when you already know the
+  // flow and crew you want; a model should not be the only door into starting
+  // work. The order is a default now, not a verdict - the board is where you
+  // disagree with it.
+  const panels: RegisteredPanel[] = [
+    {
+      id: "supervisor",
+      title: "Supervisor",
+      defaultLayout: { id: "supervisor", x: 0, y: 0, w: 12, h: 6 },
+      // The compact control is a fixed 330px empty / 560px in conversation, so
+      // a shorter panel only ever crops it.
+      minW: 4,
+      minH: 5,
+      render: () => <SupervisorControl runId={null} compact />,
+    },
+    {
+      id: "composer",
+      title: "New run",
+      defaultLayout: { id: "composer", x: 0, y: 6, w: 12, h: 8 },
+      // The composer splits into brief + run options at `lg`, which is a
+      // VIEWPORT breakpoint: narrowed past half the deck it keeps two columns
+      // and squeezes both, so half-width is the floor.
+      minW: 6,
+      minH: 6,
+      render: () => <MissionComposer />,
+    },
+  ];
+
   const decide = async (a: ApprovalRow, approve: boolean) => {
     try {
       if (approve) await api.approveApproval({ runId: a.runId, approvalId: a.id });
@@ -253,6 +292,11 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
     <PageShell>
       <Deck>
         <Cell size="full" reason="masthead">
+          {/* The walkthrough rings the approvals fact from here. PageHero owns
+              the state column and takes no attribute passthrough, so the anchor
+              sits on the closest box that always renders - "Clear" is as much
+              an answer to "is anything waiting on me" as a number is. */}
+          <div data-tour="mission-approvals">
           <PageHero
             /* No third line under the state: the value and the caption already
                say it, in both tones. "Clear / Nothing blocked / Nothing is
@@ -283,20 +327,22 @@ export function MissionControlPage({ onSelectRun, onShowDashboard }: Props) {
             }
             footer="Runs, queue and spend live on the dashboard."
           />
+          </div>
         </Cell>
 
-        {/* The supervisor comes FIRST, above the composer.
-            With autonomy on it can make the task and start the run itself, so
-            saying what you want out loud is a real way in rather than a side
-            channel - which is why it precedes the form rather than replacing
-            it. The form stays for when you already know the flow and crew you
-            want; a model should not be the only door into starting work. */}
-        <Cell size="full" reason="masthead">
-          <SupervisorControl runId={null} compact />
-        </Cell>
-
-        <Cell size="full" reason="masthead">
-          <MissionComposer />
+        {/* The board owns its own layout - panels are dragged and resized - so
+         * it is one Cell, not a set of them. Its own storage key: the dashboard
+         * board saves under "mission-control-board", a name left over from when
+         * that board lived here, and sharing it would fuse two pages' layouts. */}
+        <Cell size="full" reason="nested-deck">
+          <PanelBoard
+            storageKey="mission-board"
+            variant="bare"
+            // No heading over the board: the page has never had one here, and a
+            // label would name the panels that already name themselves.
+            label=""
+            panels={panels}
+          />
         </Cell>
 
         {error ? (

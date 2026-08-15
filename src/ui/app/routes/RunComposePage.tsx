@@ -351,7 +351,7 @@ export function RunComposePage() {
         <Cell size="wide">
           <div className="flex flex-col gap-6 rounded-[22px] border border-[color:var(--line)] bg-coal-600 p-5 lg:p-6">
             {/* Task: brief + roadmap pickup, one unified source of intent */}
-            <div>
+            <div data-tour="compose-task">
               <h2 className="mb-2.5 text-[16px] font-bold text-chalk-100">Task</h2>
               <textarea
                 value={brief}
@@ -399,7 +399,7 @@ export function RunComposePage() {
             </div>
 
             {/* Flow */}
-            <ComposerSection title="Flow" entity="flow">
+            <ComposerSection title="Flow" entity="flow" tourId="compose-flow">
               {!loaded ? (
                 <Skeleton
                   label="Loading flows"
@@ -828,14 +828,18 @@ export function RunComposePage() {
 function ComposerSection({
   title,
   entity,
+  tourId,
   children,
 }: {
   title: string;
   entity?: EntityKind;
+  /** Walkthrough anchor, forwarded the way Sidebar's NavItem does it, so the
+   *  ring lands on the group's own box rather than on a wrapper around it. */
+  tourId?: string;
   children: ReactNode;
 }) {
   return (
-    <section>
+    <section data-tour={tourId}>
       <div className="mb-2 flex items-center gap-1.5">
         {entity ? <EntityIcon entity={entity} size={15} className="text-violet-vivid" /> : null}
         <span className="text-[12px] font-semibold text-violet-vivid">{title}</span>

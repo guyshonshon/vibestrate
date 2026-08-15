@@ -78,6 +78,67 @@ export type CrewDraft = {
   exists: boolean;
 };
 
+// ── Supervisor-assisted crew revision (inside the editor) ───────────────────
+// Hand-mirrored from the crew revision service, same convention as the draft
+// types above.
+//
+// A draft is ONE-SHOT: a description in, a whole new crew out. A revision is
+// INCREMENTAL: the draft the editor is holding goes out with an instruction,
+// and a proposed replacement for that same draft comes back. That difference is
+// the whole point - accepting a fresh draft would throw away the work the owner
+// has open.
+
+/** One role as a revision carries it: the crew-scoped wiring plus the
+ *  instructions AS TEXT. The `prompt` pointer a crew block needs is derived
+ *  from the role id server-side, so a revision can never aim a role at a file
+ *  nobody wrote. */
+export type CrewRevisionRole = {
+  label?: string;
+  seats: string[];
+  profile: string;
+  permissions: string;
+  skills?: string[];
+  promptText: string;
+};
+
+export type CrewRevisionCrew = {
+  label?: string;
+  maxReviewLoops?: number;
+  roles: Record<string, CrewRevisionRole>;
+};
+
+/** What the editor SENDS: the crew it is holding, in the same shape a revision
+ *  comes back in, so a revision can be fed straight back as the next one's
+ *  input. Posted flat as `{crewId, crew, instruction}`. */
+export type CrewRevisionDraft = {
+  crewId: string;
+  crew: CrewRevisionCrew;
+};
+
+/** What comes back. A whole roster rather than a patch, which is why the
+ *  service names what it dropped: absence is otherwise indistinguishable from
+ *  an oversight.
+ *
+ *  The service also returns computed seat `coverage`. It is deliberately not
+ *  mirrored: the editor derives coverage from the flow catalog for the draft in
+ *  front of it, and two sources for the same number is how they end up
+ *  disagreeing on screen. */
+export type CrewRevision = CrewRevisionDraft & {
+  addedRoleIds: string[];
+  removedRoleIds: string[];
+  /** What the schemas cannot check about what this revision introduces - an
+   *  unknown profile or permission id, two roles on one seat. */
+  problems: string[];
+};
+
+export type CrewRevisionResult = {
+  /** null when the instruction was a question. "Why is the architect seat
+   *  uncovered?" earns an answer and no edit, and that is a success. */
+  revision: CrewRevision | null;
+  answer: string;
+  currency: AssistCurrency;
+};
+
 export type WorkflowSelectionView = {
   flowId: string;
   crewId: string | null;

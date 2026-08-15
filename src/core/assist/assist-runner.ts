@@ -21,7 +21,7 @@ import { redactSecretsInText } from "../diff-service.js";
 import { failureExcerpt } from "../provider-resilience.js";
 import { resolveCatalog } from "../../providers/provider-catalog-overlay.js";
 import type { ProvidersConfigMap } from "../../providers/provider-schema.js";
-import type { ProviderRunInput } from "../../providers/provider-types.js";
+import type { ProviderRunInput, ProviderStreamChunk } from "../../providers/provider-types.js";
 import type { NormalizedMetrics } from "../../providers/output-adapter.js";
 
 export class AssistError extends VibestrateError {
@@ -74,6 +74,10 @@ export type AssistRequest<T> = {
   crewId?: string | null;
   /** Ad-hoc provider/model/effort override; wins over profileId/crew. */
   adHocProvider?: AdHocProvider | null;
+  /** Effort for THIS call only, applied after the target is resolved so it works
+   *  on a saved profile without touching it. Null/undefined = the profile's own
+   *  effort. Nothing here is persisted. */
+  effortOverride?: string | null;
   /** Pre-loaded config to avoid re-reading from disk. */
   loaded?: LoadedConfig;
   /** Max provider attempts (a parse failure re-prompts once). Default 2. */
@@ -82,6 +86,10 @@ export type AssistRequest<T> = {
    *  Consult passes "consult" so its evidence sits in its own bucket. */
   auditBucket?: string;
   signal?: AbortSignal;
+  /** Live provider output, forwarded verbatim as the CLI writes it. The caller
+   *  decides what to do with it (a live view, a transcript filter); the buffered
+   *  result is returned as before, so this is additive and never lossy. */
+  onChunk?: (chunk: ProviderStreamChunk) => void;
   /** Test seam - defaults to the real provider runner. */
   runner?: AssistProviderRunner;
 };
@@ -227,14 +235,22 @@ export function extractJson(text: string): string | null {
 
 export async function runAssist<T>(req: AssistRequest<T>): Promise<AssistResult<T>> {
   const loaded = req.loaded ?? (await loadConfig(req.projectRoot));
-  const { profileId, providerId, model, effort, maxTokens, timeoutMs } = resolveAssistTarget(
-    loaded,
-    {
-      profileId: req.profileId,
-      crewId: req.crewId,
-      adHoc: req.adHocProvider,
-    },
-  );
+  const {
+    profileId,
+    providerId,
+    model,
+    effort: targetEffort,
+    maxTokens,
+    timeoutMs,
+  } = resolveAssistTarget(loaded, {
+    profileId: req.profileId,
+    crewId: req.crewId,
+    adHoc: req.adHocProvider,
+  });
+  // Per-call effort, applied here rather than by editing a profile: one field,
+  // one spawn, nothing written. The result reports the effort that was really
+  // requested, so a caller cannot claim a level it did not ask for.
+  const effort = req.effortOverride ?? targetEffort;
   const runner = req.runner ?? runProvider;
   const maxAttempts = Math.max(1, req.maxAttempts ?? 2);
   // Resolve the capability catalog so the provider actually applies model/effort
@@ -293,9 +309,22 @@ export async function runAssist<T>(req: AssistRequest<T>): Promise<AssistResult<
       timeoutMs: timeoutMs ?? undefined,
       catalog,
       signal: req.signal,
+      onChunk: req.onChunk,
     });
     metrics = result.normalized.metrics;
     lastRaw = result.normalized.responseText;
+
+    // A stopped call must not re-spawn. An aborted provider comes back as
+    // exitCode -1 rather than throwing, so without this the retry below would
+    // launch a second CLI the instant the first one was killed.
+    if (req.signal?.aborted) {
+      await broker.record(request, gate.decision, {
+        ok: false,
+        summary: `assist:${req.label} stopped`,
+        data: { providerId, profileId },
+      });
+      throw new AssistError(`"${req.label}" was stopped before it finished.`);
+    }
 
     if (result.exitCode !== 0) {
       // Surface the provider's OWN error output (stderr first, then stdout,

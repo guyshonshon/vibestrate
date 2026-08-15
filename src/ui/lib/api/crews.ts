@@ -8,6 +8,14 @@ import type {
   CrewPresetView,
 } from "./types.js";
 
+/** Where the in-editor assistant sends the crew draft it is holding plus one
+ *  instruction, and gets back a PROPOSED revision of that same draft (or an
+ *  answer with no edit). Declared here with the rest of the crew surface, and
+ *  handed to `AssistantPanel`, which owns the request/proposal cycle for both
+ *  makers. Nothing behind it writes: the editor applies a revision in memory
+ *  and the existing save path stays the only writer. */
+export const CREW_REVISE_ENDPOINT = "/api/crews/revise";
+
 export const crewsApi = {
   /** Describe a crew in plain English; the supervisor returns an EDITABLE
    *  draft. Nothing here installs it - no route writes a drafted crew, so the

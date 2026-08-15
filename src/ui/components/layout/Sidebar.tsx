@@ -305,6 +305,7 @@ export function Sidebar({
           label="Crew"
           selected={currentNav === "crew"}
           onClick={onShowCrew}
+          tourId="nav-crew"
           action={
             <IconBtn
               variant="plain"

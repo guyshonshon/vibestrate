@@ -9,6 +9,7 @@ import {
   useAttachments,
 } from "../../components/design/Attachments.js";
 import { Button } from "../../components/design/Button.js";
+import { SegmentedControl } from "../../components/design/SegmentedControl.js";
 import { Select } from "../../components/design/Select.js";
 import { PageShell } from "../../components/layout/PageShell.js";
 import { Deck, Cell } from "../../components/layout/Deck.js";
@@ -24,7 +25,29 @@ import {
   ConsultAnswerView,
   type ProposalState,
 } from "../../components/consult/ConsultAnswerView.js";
+import { launchGuide } from "../../components/onboarding/TourOverlay.js";
+import { SupervisorControl } from "../../components/supervisor/SupervisorControl.js";
+import { findGuide, matchGuide } from "../../lib/guides/guides.js";
+import {
+  GuideDetail,
+  GuideList,
+  GuideOffer,
+} from "../../components/consult/ConsultGuides.js";
 
+type PageMode = "project" | "vibestrate";
+
+/**
+ * Consult, full size. Two sides, and what separates them is what each one may
+ * do: asking about THIS project is a read-only model call over your files,
+ * config and runs, and the most it leaves behind is a VIBESTRATE.md proposal
+ * you apply yourself. Working IN Vibestrate is authored walkthroughs
+ * (lib/guides/guides.ts) that move you to the control, plus the supervisor
+ * conversation, which can make a task, add TODOs or start a run - under its own
+ * permission switch, its pause, and the broker.
+ *
+ * The dock is the quick way in and shows one side at a time. This is where the
+ * whole catalog fits, itinerary and all.
+ */
 export function ConsultPage({
   taskId,
   onOpenTask,
@@ -32,7 +55,13 @@ export function ConsultPage({
   taskId: string | null;
   onOpenTask: (taskId: string) => void;
 }) {
+  const [mode, setMode] = usePersistedState<PageMode>(
+    "vibestrate.consult.pageMode",
+    "project",
+  );
   const [question, setQuestion] = useState("");
+  /** The walkthrough opened on the Vibestrate side, if any. */
+  const [guideId, setGuideId] = useState<string | null>(null);
   const attachments = useAttachments();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,35 +146,78 @@ export function ConsultPage({
   }
 
   const answer = result?.answer;
+  const offeredGuide = matchGuide(question);
+  const openedGuide = guideId ? findGuide(guideId) : null;
 
   return (
     <PageShell>
       <Deck>
       <Cell size="full" reason="masthead">
+      {/* One state register, not four. The hero used to say "read-only" as a
+          value, a caption, a note and a footer; the fact only needs saying once
+          - and only on the side it is true of. The Vibestrate side carries a
+          surface that can act, and its permission is a live control on that
+          panel, so the hero does not restate it and risk saying the opposite. */}
       <PageHero
-        state={{
-          value: "Read-only",
-          caption: "Advises, never acts",
-          note: "Nothing it says changes a file, a config, or a run.",
-          tone: "emerald",
-        }}
-        title="Ask the project orchestrator"
-        purpose="Ask about this project. It answers from your files, config and runs."
-        actions={
-          taskId ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onOpenTask(taskId)}
-            >
-              Scoped to task <span className="mono ml-1">{taskId}</span>
-            </Button>
-          ) : undefined
+        state={
+          mode === "project"
+            ? { value: "Advises", caption: "You apply the changes", tone: "emerald" }
+            : undefined
         }
-        footer="It says so when it had to guess."
+        title="Consult"
+        purpose={
+          mode === "project"
+            ? "Answers about this project, from your files, config and runs."
+            : "Walkthroughs of the product, and the supervisor that works the project with you."
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            {taskId ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => onOpenTask(taskId)}
+              >
+                Scoped to task <span className="mono ml-1">{taskId}</span>
+              </Button>
+            ) : null}
+            <SegmentedControl<PageMode>
+              value={mode}
+              onChange={(m) => setMode(m)}
+              options={[
+                { value: "project", label: "This project" },
+                { value: "vibestrate", label: "Work in Vibestrate" },
+              ]}
+            />
+          </div>
+        }
       />
       </Cell>
 
+      {mode === "vibestrate" ? (
+        // Walkthroughs and a conversation, side by side: the walkthrough moves
+        // you to the control, the supervisor does the work you ask it for. Two
+        // halves rather than a full row each, because they are read together -
+        // you take a walkthrough, then ask about the step you are standing on.
+        <>
+          <Cell size="half">
+            {openedGuide ? (
+              <GuideDetail
+                guide={openedGuide}
+                onBack={() => setGuideId(null)}
+                onGoToStep={(step) => launchGuide(openedGuide.id, step.id)}
+                onWalkThrough={() => launchGuide(openedGuide.id)}
+              />
+            ) : (
+              <GuideList onStart={(g) => setGuideId(g.id)} />
+            )}
+          </Cell>
+          <Cell size="half">
+            <SupervisorControl runId={null} />
+          </Cell>
+        </>
+      ) : (
+      <>
       <Cell size="full" reason="masthead">
       <section className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
         <textarea
@@ -158,6 +230,13 @@ export function ConsultPage({
           rows={3}
           className="w-full resize-y rounded-[10px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 outline-none focus:border-violet-soft/50"
         />
+        {offeredGuide && !busy ? (
+          <GuideOffer
+            className="mt-2.5"
+            guide={offeredGuide}
+            onStart={() => launchGuide(offeredGuide.id)}
+          />
+        ) : null}
         <AttachmentStrip
           items={attachments.items}
           onRemove={attachments.remove}
@@ -237,10 +316,7 @@ export function ConsultPage({
         <Cell size="full" reason="nested-deck">
           <Skeleton label="Waiting for the answer" className="flex flex-col gap-4">
             <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
-              <div className="mb-2.5 flex items-center justify-between gap-3">
-                <SkeletonBlock h={13} w={72} />
-                <SkeletonBlock h={18} w={112} radius={8} bordered />
-              </div>
+              <SkeletonBlock h={13} w={72} className="mb-2.5" />
               <SkeletonText lines={5} size={13} />
             </div>
             <div className="rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4">
@@ -258,6 +334,8 @@ export function ConsultPage({
           />
         </Cell>
       ) : null}
+      </>
+      )}
       </Deck>
     </PageShell>
   );

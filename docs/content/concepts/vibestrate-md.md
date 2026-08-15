@@ -44,7 +44,7 @@ It is distinct from `.vibestrate/rules.md`, and the precedence is explicit:
 
 ## Ask it questions
 
-You don't only write to VIBESTRATE.md. You can also ask the orchestrator about your project and get an answer grounded in it. That read-only advisor is [Consult](/docs/concepts/consult).
+You don't only write to VIBESTRATE.md. You can also ask the orchestrator about your project and get an answer grounded in it. That advisor is [Consult](/docs/concepts/consult); it answers from the manual and can propose an addition to it, but applying one is your call.
 
 ## The codebase map: machine-owned, not authored
 

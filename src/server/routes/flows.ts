@@ -1,8 +1,8 @@
 // HTTP routes for the Flow catalog: list / get / export, create / import /
 // patch / fork / delete of project-local flows, drafting one from an English
-// description, resolve, seat-coverage of a flow against a crew and flow
-// suggestion for a task, the default-flow setting, and the community hub
-// (browse, install, publish).
+// description, revising the one being edited, resolve, seat-coverage of a flow
+// against a crew and flow suggestion for a task, the default-flow setting, and
+// the community hub (browse, install, publish).
 //
 // The handlers are deliberately thin. A handler that takes a body parses it
 // with a zod schema before touching anything; the hub browse route forwards its
@@ -54,7 +54,12 @@ import {
 import { flowDefinitionSchema } from "../../flows/schemas/flow-schema.js";
 import {
   draftFlowFromDescription,
+  reviseFlowFromInstruction,
   FlowAssistError,
+  MAX_INSTRUCTION,
+  MAX_FLOW_JSON,
+  MAX_PROBLEMS,
+  MAX_PROBLEM_CHARS,
 } from "../../flows/authoring/flow-assist.js";
 import { computeFlowCoverageForConfig } from "../../flows/runtime/seat-coverage.js";
 import { setConfigValue } from "../../setup/config-update-service.js";
@@ -126,6 +131,26 @@ const draftFlowBody = z
     crewId: z.string().min(1).max(128).optional(),
   })
   .strict();
+
+// The flow the owner is editing plus one instruction, in; a proposed revision
+// of that same flow (or just an answer), out. `flow` is deliberately NOT
+// `flowDefinitionSchema`: a flow mid-edit is exactly what an owner asks for help
+// with, and refusing it here would make "this never validates - fix that"
+// unanswerable. The caps are the service's own, so an over-long body is refused
+// before a provider is ever resolved.
+const reviseFlowBody = z
+  .object({
+    instruction: z.string().min(1).max(MAX_INSTRUCTION),
+    flow: z.record(z.string(), z.unknown()),
+    /** Problems the editor already reports with the flow as it stands. */
+    problems: z.array(z.string().min(1).max(MAX_PROBLEM_CHARS)).max(MAX_PROBLEMS).optional(),
+    crewId: z.string().min(1).max(128).optional(),
+  })
+  .strict()
+  .refine(
+    (b) => JSON.stringify(b.flow).length <= MAX_FLOW_JSON,
+    `The flow exceeds ${MAX_FLOW_JSON} characters serialized.`,
+  );
 
 // Flow-creator API: a full FlowDefinition (validated by the portability layer)
 // plus an optional overwrite flag.
@@ -286,6 +311,27 @@ export async function registerFlowsRoutes(
       // config - is rethrown untouched so the server's error handler records it
       // and strips the absolute path out of the response body; an HttpError's
       // message is sent verbatim, so wrapping it here would leak that path.
+      if (err instanceof FlowAssistError) throw new HttpError(400, err.message);
+      throw err;
+    }
+  });
+
+  // SECURITY: same posture as /draft, and for the same reasons - this proposes,
+  // it does not apply. The revision comes back for the owner to accept into the
+  // draft they are holding; the only route that writes a project flow is still
+  // POST /api/flows. The instruction and the flow are redacted at the service
+  // source before they reach the model, and a revised flow carrying a
+  // secret shape is refused, not redacted.
+  app.post<{ Body: unknown }>("/api/flows/revise", async (req) => {
+    const parsed = reviseFlowBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    try {
+      return await reviseFlowFromInstruction({ projectRoot, ...parsed.data });
+    } catch (err) {
+      // Same split as /draft: bad input and a refused revision are the caller's
+      // problem and safe to echo; anything else is rethrown untouched so the
+      // generic handler strips the absolute project path an HttpError would
+      // send verbatim.
       if (err instanceof FlowAssistError) throw new HttpError(400, err.message);
       throw err;
     }

@@ -2,10 +2,17 @@
 //
 // Gathers the *controlled* project context the consult answer is allowed to draw
 // on. Consult is not a generic chatbot - it answers only from: VIBESTRATE.md,
-// project config/policies, recent run evidence, agent-visible annotations, and
-// (optionally) a named task/run or selected files. Every piece is read-only,
+// project config/policies, recent run evidence, agent-visible annotations,
+// (optionally) a named task/run or selected files, and the slice of Vibestrate's
+// own documentation the question actually asks about. Every piece is read-only,
 // bounded, secret-redacted, and non-fatal: a missing/failed source becomes a note
 // and is skipped, never an error.
+//
+// Two halves, deliberately separate: the PROJECT half (what is true about this
+// repo, read from disk) and the PRODUCT half (how Vibestrate works, compiled
+// into the bundle - see handbook/handbook-compile.ts). The product half is
+// retrieved deterministically and stays silent on questions that are not about
+// Vibestrate, so an unrelated question never drags reference pages in.
 
 import { getProjectMetadata } from "../core/context/project-context-service.js";
 import { loadProjectManual } from "../project/project-manual.js";
@@ -23,6 +30,7 @@ import {
   consultSectionsEmpty,
   type ConsultSections,
 } from "./consult-sections.js";
+import { retrieveHandbook, renderHandbookSection } from "./handbook/handbook-retrieval.js";
 
 /** Keep the whole context block well-bounded; consult is a one-shot question. */
 const CONTEXT_MAX_BYTES = 96 * 1024;
@@ -30,6 +38,9 @@ const RECENT_RUNS = 8;
 
 export type ConsultContextRequest = {
   projectRoot: string;
+  /** The question being asked. Drives handbook retrieval only - omitting it
+   *  simply leaves the product-documentation section out. */
+  question?: string | null;
   taskId?: string | null;
   runId?: string | null;
   /** Project-relative file paths to include (path-guarded + redacted). */
@@ -214,6 +225,18 @@ export async function assembleConsultContext(
     }
     if (materialized.artifacts.length) usedSources.push(`files (${materialized.artifacts.length})`);
     notes.push(...materialized.notes);
+  }
+
+  // 9. Vibestrate's own documentation, narrowed to the question. Deterministic
+  // and offline: the corpus is compiled into the bundle, so this reads no files
+  // and calls no model. Silent unless the question names Vibestrate vocabulary,
+  // which is what keeps an unrelated question ("why did my React build fail")
+  // from pulling product pages into the prompt.
+  const handbookHits = retrieveHandbook(req.question ?? "");
+  const handbookSection = renderHandbookSection(handbookHits);
+  if (handbookSection) {
+    sections.push(handbookSection);
+    usedSources.push(`vibestrate docs (${handbookHits.length})`);
   }
 
   // Deterministic computed project-state sections: folded from the ledger

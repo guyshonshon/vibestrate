@@ -116,12 +116,35 @@ describe("runConsult", () => {
     expect(res.usedSources).toContain("project config");
   });
 
-  it("stays read-only - the audit log has only provider.spawn", async () => {
-    await runConsult({
+  // The engine boundary, and only the engine boundary. `runConsult` returns a
+  // proposal; PERSISTING it is the caller's job (see
+  // persistConsultPreferenceProposal, called by the HTTP route), which is why
+  // this test is named for the engine and why the on-disk write boundary is
+  // covered where the write happens, in tests/consult-write-boundary.test.ts.
+  // Asserting the audit log alone would pass with a config write bolted onto
+  // runConsult, so assert project.yml is byte-identical as well.
+  it("the engine persists nothing - a proposed preference never reaches project.yml", async () => {
+    const configPath = path.join(projectRoot, ".vibestrate", "project.yml");
+    const before = await fs.readFile(configPath, "utf8");
+
+    const res = await runConsult({
       projectRoot,
-      question: "anything",
-      runner: fakeRunner(GOOD_ANSWER),
+      question: "stop using em-dashes",
+      runner: fakeRunner(
+        JSON.stringify({
+          ...JSON.parse(GOOD_ANSWER),
+          proposedPreference: {
+            statement: "Never use em-dashes",
+            correction: "Use a hyphen",
+            rationale: "Stated while asking.",
+          },
+        }),
+      ),
     });
+
+    expect(res.answer.proposedPreference?.statement).toBe("Never use em-dashes");
+    expect(await fs.readFile(configPath, "utf8")).toBe(before);
+
     const log = await readActionLog(projectRoot, "consult");
     expect(log.length).toBeGreaterThan(0);
     expect(log.every((r) => r.request.kind === "provider.spawn")).toBe(true);

@@ -22,6 +22,29 @@
 > as-is. Markdown stays where a human writes it: `VIBESTRATE.md`, `rules.md`, the
 > docs.
 
+- **Consult knows how Vibestrate works, not just what is in your project.** Ask
+  "how do I make a crew" and the answer is grounded in the product's own
+  documentation rather than improvised, so it stops naming buttons that do not
+  exist. The knowledge is compiled from the shipped docs at build time and
+  retrieved deterministically: the same question returns the same pages in the
+  same order, an unrelated question ("why did my React build fail") pulls in
+  nothing, and there is no way for a project to shadow or extend it.
+- **Consult has two sides now.** One asks about your codebase and answers
+  read-only. The other works on Vibestrate itself, and it is the supervisor
+  conversation, so it carries the autonomy gate, the pause switch and the audit
+  trail that acting requires. Both have a composer; neither can edit your code.
+- **Walkthroughs point at the thing they are describing.** "Make a crew" now
+  moves you to each screen and rings the actual section - the identity block, the
+  seats, the save control - instead of gesturing at a sidebar link. A step whose
+  target is not on screen says so rather than pointing at nothing.
+- **Consult is honest about the one thing it writes.** It never touches your
+  code, but if you state a durable rule while asking, it can leave a policy
+  proposal for you to confirm. That row lands inert - advise tier, no matcher,
+  unconfirmed - and enforces nothing until you run `vibe policies confirm`. The
+  docs said "never acts", which was not quite true; they say what happens now.
+- **Mission Control rearranges like every other board.** Edit layout moves and
+  resizes the supervisor and the new-run form, hides either one, and remembers
+  it. Reset puts the original arrangement back.
 - **The dashboard reads properly now.** Secondary text was a faint grey at a
   size hardcoded in ~920 places across 147 files, which is why it never got
   fixed: there was nothing to fix it in. There is now one size token and one

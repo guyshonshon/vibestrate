@@ -24,6 +24,7 @@ import { withFileMutex } from "../utils/file-mutex.js";
 import { supervisorThreadPath, supervisorThreadsDir } from "../utils/paths.js";
 import { safeIdSchema } from "../roadmap/roadmap-types.js";
 import { nowIso } from "../utils/time.js";
+import { answerActionsField, type AnswerAction } from "../core/assist/answer-actions.js";
 
 /** Who produced a message. `system` covers notes the product writes into the
  *  thread on the user's behalf (a run finished, an action was undone), which
@@ -67,6 +68,18 @@ export const supervisorMessageSchema = z.object({
   createdAt: z.string(),
   /** Set on the supervisor message that carried out an action. */
   action: supervisorActionRecordSchema.nullable().default(null),
+  /**
+   * Buttons offered under an answer: a follow-up to drop in the composer, or a
+   * page to open. Distinct from `action` above, which records what the
+   * supervisor ALREADY DID; these are offers the user has not taken, and
+   * taking one still writes nothing by itself (answer-actions.ts holds the
+   * invariant and the validation).
+   */
+  answerActions: answerActionsField,
+  /** True when the turn was stopped before the supervisor finished. The text is
+   *  whatever had genuinely arrived by then, so a reopened conversation cannot
+   *  read a half answer as a complete one. */
+  stopped: z.boolean().default(false),
 });
 export type SupervisorMessage = z.infer<typeof supervisorMessageSchema>;
 
@@ -179,6 +192,10 @@ export class SupervisorConversationStore {
       text: string;
       /** Present only on a supervisor message that carried out an action. */
       action?: SupervisorActionRecord | null;
+      /** Already validated by parseAnswerActions; re-checked structurally here. */
+      answerActions?: AnswerAction[];
+      /** Set when the turn was cut short; the text is how far it got. */
+      stopped?: boolean;
       id?: string;
       createdAt?: string;
     },
@@ -200,6 +217,8 @@ export class SupervisorConversationStore {
         text: message.text,
         createdAt: message.createdAt ?? nowIso(),
         action: message.action ?? null,
+        answerActions: message.answerActions ?? [],
+        stopped: message.stopped ?? false,
       });
       const messages = [...current.messages, full];
       const title =

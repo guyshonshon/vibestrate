@@ -6,7 +6,7 @@
       "id": "default",
       "version": 1,
       "label": "Default",
-      "description": "The standard plan → architect → implement → validate → review workflow. Review loops back to fix and re-validate until it passes or the bound is hit, then a verify gate decides merge-readiness. Runs when no other flow is picked.",
+      "description": "The standard plan → architect → implement → validate → review workflow. Review loops back to fix and re-validate until it passes or the bound is hit, then a verify gate decides merge-readiness.",
       "seats": [
         {
           "id": "planner",

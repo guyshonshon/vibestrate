@@ -37,6 +37,7 @@
 import { z } from "zod";
 import { runAssist } from "../core/assist/assist-runner.js";
 import { loadConfig } from "../project/config-loader.js";
+import type { ProviderStreamChunk } from "../providers/provider-types.js";
 
 /**
  * What the supervisor may propose.
@@ -110,6 +111,13 @@ export async function proposeIntent(input: {
   targets: RouterTarget[];
   /** Profile/provider overrides, same shape the rest of the assist family takes. */
   profileId?: string;
+  /** Effort for this call only; never persisted to the profile. */
+  effort?: string | null;
+  /** Stops the routing call, killing the provider CLI with it. Without this the
+   *  routing leg is the one part of a turn that cannot be stopped. */
+  signal?: AbortSignal;
+  /** Live provider output, so a stopped or slow route is not silent. */
+  onChunk?: (chunk: ProviderStreamChunk) => void;
 }): Promise<SupervisorProposal> {
   const targetBlock = input.targets.length
     ? input.targets.map((t) => `- ${t.id}: ${t.title}`).join("\n")
@@ -151,6 +159,9 @@ export async function proposeIntent(input: {
       "}",
     ].join("\n"),
     profileId: input.profileId ?? null,
+    effortOverride: input.effort ?? null,
+    signal: input.signal,
+    onChunk: input.onChunk,
   });
   return result.parsed;
 }

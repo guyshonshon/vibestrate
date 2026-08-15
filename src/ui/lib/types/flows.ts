@@ -19,6 +19,58 @@ export type AssistCurrency = {
   unverified: string[];
 };
 
+/** One field that differs between the flow as it stands and the revision.
+ *  `null` means the key was absent on that side, which is not the same as
+ *  present-but-empty. */
+export type FlowFieldChange = {
+  name: string;
+  before: string | null;
+  after: string | null;
+};
+
+/** One difference, anchored where the editor already pins messages: a top-level
+ *  flow field, a step, a seat, or the loop. */
+export type FlowRevisionChange = {
+  target: "flow" | "step" | "seat" | "loop";
+  op: "added" | "removed" | "edited" | "moved";
+  /** Step id, seat id, or the flow field's name. Null for the loop. */
+  id: string | null;
+  /** Position in the REVISED steps array. Null for a removed step and for every
+   *  non-step change. */
+  index: number | null;
+  fields: FlowFieldChange[];
+  summary: string;
+};
+
+/**
+ * What one instruction to the supervisor did to the flow the owner is HOLDING
+ * in the editor. Unlike a draft, this starts from the work already on screen:
+ * the editor sends the flow as it stands, and what comes back is that same flow
+ * revised.
+ *
+ * `flow` is null when the instruction was a question ("why is the architect seat
+ * uncovered?"). An answer with no edit is a valid outcome, not a failure, so a
+ * caller must render `answer` rather than treat a null flow as an error.
+ *
+ * `changes` is computed from the two definitions server-side, never model
+ * self-report - an assistant claiming it added a review step while adding none
+ * is the failure this surface exists to prevent.
+ *
+ * Nothing here touches disk. Applying a revision replaces the editor's draft;
+ * the editor's own Save is still the only writer.
+ */
+export type FlowRevision = {
+  flow: FlowDefinition | null;
+  /** Canonical YAML of the revision. Null when there is no revision. */
+  yaml: string | null;
+  answer: string;
+  changes: FlowRevisionChange[];
+  currency: AssistCurrency;
+  /** Seat gaps for whichever flow this describes - the revision when there is
+   *  one, otherwise the flow as it stands. Null when neither parses. */
+  coverage: FlowCoverage | null;
+};
+
 /**
  * A model-proposed, EDITABLE flow. Nothing is on disk: `targetPath` is where
  * accepting it WOULD write, and accepting is a separate createFlow() call the

@@ -42,7 +42,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit && tsc -p tsconfig.ui.json --noEmit",
-    "docs:generate": "tsx scripts/generate-docs-metadata.ts",
+    "docs:generate": "tsx scripts/generate-docs-metadata.ts && tsx src/consult/handbook/build-handbook.ts",
     "demo": "tsx scripts/demo-simulation.ts",
     "release": "bash scripts/release.sh",
     "update-deps": "bash scripts/update-deps.sh",

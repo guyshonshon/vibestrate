@@ -1,6 +1,7 @@
 // The Flow Editor's non-step surfaces: the flow's identity, its seats, and the
 // adaptive loop. Same contract as the step editor - controls are affordances,
 // `flowDefinitionSchema` is the judge, and every violation arrives anchored.
+import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "../design/Button.js";
 import { HelpHint } from "../design/HelpHint.js";
@@ -42,26 +43,52 @@ export function IdentityCard({
     description?: string;
   }) => void;
 }) {
-  const field = (name: string): boolean =>
-    issues.some((i) => i.anchor.kind === "flow" && i.anchor.field === name);
+  // A field complains only once you have left it. Opening a new flow used to
+  // greet you with three failures for not having filled in a form you had just
+  // opened; the Save action is what reports the ones you never touched.
+  const [touched, setTouched] = useState<ReadonlySet<string>>(new Set());
+  const touch = (name: string) =>
+    setTouched((prev) => (prev.has(name) ? prev : new Set(prev).add(name)));
+
+  // The message goes ON the field. It used to be stated twice - once in a
+  // stacked banner above the form, once as the field's own rose border - which
+  // put ~215px of chrome above the first input to repeat what the border said.
+  const errorFor = (name: string): string | undefined => {
+    if (!touched.has(name)) return undefined;
+    return issues.find((i) => i.anchor.kind === "flow" && i.anchor.field === name)
+      ?.message;
+  };
+  const field = (name: string): boolean => errorFor(name) !== undefined;
+
   return (
     <EditorCard title="Flow">
-      <IssueList issues={issues} className="mb-3" />
       <div className="space-y-3">
-        <div className="grid grid-cols-[1fr_88px] gap-2.5">
+        {/* None of these three needs a full row to itself. */}
+        <div className="grid grid-cols-[1fr_1fr_88px] gap-2.5">
           <TextField
             label="Flow id"
             mono
             disabled={idLocked}
             value={id}
             invalid={field("id")}
+            error={errorFor("id")}
             onChange={(v) => onChange({ id: v })}
+            onBlur={() => touch("id")}
             placeholder="deep-review"
             hint={
               idLocked
                 ? "Fixed once saved. It names the folder under .vibestrate/flows/."
                 : "Names the folder under .vibestrate/flows/ and how you launch the flow."
             }
+          />
+          <TextField
+            label="Name"
+            value={label}
+            invalid={field("label")}
+            error={errorFor("label")}
+            onChange={(v) => onChange({ label: v })}
+            onBlur={() => touch("label")}
+            placeholder="Deep review"
           />
           <NumberField
             label="Version"
@@ -73,18 +100,13 @@ export function IdentityCard({
           />
         </div>
         <TextField
-          label="Name"
-          value={label}
-          invalid={field("label")}
-          onChange={(v) => onChange({ label: v })}
-          placeholder="Deep review"
-        />
-        <TextField
           label="Description"
           multiline
           value={description}
           invalid={field("description")}
+          error={errorFor("description")}
           onChange={(v) => onChange({ description: v })}
+          onBlur={() => touch("description")}
           placeholder="Plans, builds, then puts the change through a two-reviewer panel."
         />
       </div>

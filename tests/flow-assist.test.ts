@@ -7,10 +7,11 @@ import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
 import {
   draftFlowFromDescription,
+  reviseFlowFromInstruction,
   FlowAssistError,
 } from "../src/flows/authoring/flow-assist.js";
 import { discoverFlowCatalog } from "../src/flows/catalog/flow-discovery.js";
-import { projectFlowsDir } from "../src/utils/paths.js";
+import { projectFlowsDir, projectRunsDir } from "../src/utils/paths.js";
 import type { AssistProviderRunner } from "../src/core/assist/assist-runner.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
@@ -78,6 +79,35 @@ async function snapshotFlowsDir(projectRoot: string): Promise<string[]> {
     }
   }
   await walk(projectFlowsDir(projectRoot), "");
+  return out;
+}
+
+/** Every file in the project, content-hashed, EXCEPT the assist's own broker
+ *  audit trail under `.vibestrate/runs/`. That trail is the evidence a provider
+ *  was spawned - the thing the security posture requires, not an artifact the
+ *  assist produced. Everything else must come back byte-identical. */
+async function snapshotProject(projectRoot: string): Promise<string[]> {
+  const runsDir = projectRunsDir(projectRoot);
+  const out: string[] = [];
+  async function walk(dir: string, rel: string): Promise<void> {
+    if (dir === runsDir) return;
+    let entries;
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      const abs = path.join(dir, entry.name);
+      const next = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) await walk(abs, next);
+      else {
+        const hash = createHash("sha256").update(await fs.readFile(abs)).digest("hex");
+        out.push(`${next}:${hash}`);
+      }
+    }
+  }
+  await walk(projectRoot, "");
   return out;
 }
 
@@ -327,6 +357,340 @@ describe("flow-assist: what comes back is held to the writer's own checks", () =
     // honesty of the draft rests on the owner seeing exactly what was not
     // checked, so it must never be summarized or dropped in transit.
     expect(draft.currency).toEqual(currency);
+  });
+});
+
+// ── revision ────────────────────────────────────────────────────────────────
+//
+// A revision edits the flow the owner is holding, so the invariants differ from
+// the drafter's:
+//  - what changed is DERIVED from the two definitions, never the model's claim,
+//  - an instruction that is a question is answered with no revision at all,
+//  - a revision that fails the writer's checks is refused, not shown,
+//  - the whole path still writes nothing.
+
+/** The revision answer as the model returns it. `flow: undefined` omits the key
+ *  entirely, which is the question case as a real model would send it. */
+function revisionJson(input: { flow?: unknown; answer?: string; currency?: unknown }): string {
+  return JSON.stringify({
+    ...(input.flow === undefined ? {} : { flow: input.flow }),
+    answer: input.answer ?? "Added the step you asked for.",
+    currency: input.currency ?? { checked: [], unverified: [] },
+  });
+}
+
+const VALIDATE_STEP = {
+  id: "validate",
+  label: "Validate",
+  kind: "validation",
+  inputs: ["diff"],
+  outputs: ["validation"],
+};
+
+describe("flow-assist: revising the flow the owner is editing", () => {
+  it("reports an added step as exactly one change, and touches nothing else", async () => {
+    const project = await makeProject();
+    const revised = { ...VALID_FLOW, steps: [...VALID_FLOW.steps, VALIDATE_STEP] };
+    const { runner } = scriptedRunner([revisionJson({ flow: revised })]);
+
+    const { revision } = await reviseFlowFromInstruction({
+      projectRoot: project,
+      flow: VALID_FLOW,
+      instruction: "this flow never validates - fix that",
+      runner,
+    });
+
+    expect(revision.flow?.steps.map((s) => s.id)).toEqual([
+      "plan",
+      "implement",
+      "review",
+      "validate",
+    ]);
+    expect(revision.yaml).toContain("id: validate");
+    // The three untouched steps must not appear. The before side arrives without
+    // the schema's defaults and the after side comes back with them applied, so
+    // a naive comparison would report all four steps as changed.
+    expect(revision.changes).toHaveLength(1);
+    expect(revision.changes[0]).toMatchObject({
+      target: "step",
+      op: "added",
+      id: "validate",
+      index: 3,
+    });
+    expect(revision.changes[0]!.summary).toBe('Added step "Validate".');
+  });
+
+  // The failure this whole derivation exists to prevent: the model says it added
+  // a reviewer, and added nothing.
+  it("reports no change when the model claims one it did not make", async () => {
+    const project = await makeProject();
+    const { runner } = scriptedRunner([
+      revisionJson({ flow: VALID_FLOW, answer: "I added a second reviewer." }),
+    ]);
+
+    const { revision } = await reviseFlowFromInstruction({
+      projectRoot: project,
+      flow: VALID_FLOW,
+      instruction: "add a second reviewer",
+      runner,
+    });
+
+    expect(revision.answer).toBe("I added a second reviewer.");
+    expect(revision.changes).toEqual([]);
+  });
+
+  it("names both seats when a step moves seat", async () => {
+    const project = await makeProject();
+    const revised = {
+      ...VALID_FLOW,
+      seats: { ...VALID_FLOW.seats, challenger: { label: "Challenger" } },
+      steps: VALID_FLOW.steps.map((step) =>
+        step.id === "review" ? { ...step, seat: "challenger" } : step,
+      ),
+    };
+    const { runner } = scriptedRunner([revisionJson({ flow: revised })]);
+
+    const { revision } = await reviseFlowFromInstruction({
+      projectRoot: project,
+      flow: VALID_FLOW,
+      instruction: "let the challenger do the review instead",
+      runner,
+    });
+
+    expect(revision.changes.map((c) => `${c.target}:${c.op}:${c.id}`)).toEqual([
+      "seat:added:challenger",
+      "step:edited:review",
+    ]);
+    const stepChange = revision.changes[1]!;
+    expect(stepChange.fields).toEqual([
+      { name: "seat", before: "reviewer", after: "challenger" },
+    ]);
+    expect(stepChange.summary).toBe(
+      'Step "Review" moved from the reviewer seat to the challenger seat.',
+    );
+    // Coverage is recomputed for the REVISION, locally: the seat the edit just
+    // introduced is in it, so the owner learns whether the revision is runnable
+    // before accepting it.
+    expect(
+      revision.coverage?.seats.find((s) => s.seatId === "challenger")?.status,
+    ).toBe("filled");
+    expect(revision.coverage?.runnable).toBe(true);
+  });
+
+  it("reports a dropped key the form never shows, rather than losing it quietly", async () => {
+    const project = await makeProject();
+    // `complexity` is a real schema key the flow form does not surface; the
+    // editor round-trips it untouched. A revision that drops it has to say so.
+    const standing = { ...VALID_FLOW, complexity: "medium" };
+    const { runner } = scriptedRunner([revisionJson({ flow: VALID_FLOW })]);
+
+    const { revision } = await reviseFlowFromInstruction({
+      projectRoot: project,
+      flow: standing,
+      instruction: "make this cheaper",
+      runner,
+    });
+
+    expect(revision.changes).toEqual([
+      {
+        target: "flow",
+        op: "removed",
+        id: "complexity",
+        index: null,
+        fields: [{ name: "complexity", before: "medium", after: null }],
+        summary: "Dropped complexity (was medium).",
+      },
+    ]);
+  });
+
+  it("answers a question with no revision, and calls that a success", async () => {
+    const project = await makeProject();
+    const standing = {
+      ...VALID_FLOW,
+      seats: { ...VALID_FLOW.seats, prototyper: { label: "Prototyper" } },
+      steps: [
+        VALID_FLOW.steps[0]!,
+        {
+          id: "prototype",
+          label: "Prototype",
+          kind: "agent-turn",
+          seat: "prototyper",
+          inputs: ["plan"],
+          outputs: ["execution"],
+        },
+        ...VALID_FLOW.steps.slice(1),
+      ],
+    };
+    const { runner, prompts } = scriptedRunner([
+      revisionJson({ answer: "No role in this crew declares the prototyper seat." }),
+    ]);
+
+    const { revision } = await reviseFlowFromInstruction({
+      projectRoot: project,
+      flow: standing,
+      instruction: "why is the prototyper seat uncovered?",
+      runner,
+    });
+
+    expect(revision.flow).toBeNull();
+    expect(revision.yaml).toBeNull();
+    expect(revision.changes).toEqual([]);
+    expect(revision.answer).toContain("prototyper seat");
+    // The question is answerable from fact because the locally-computed coverage
+    // of the flow as it stands is in the prompt. Mutation check: drop that block
+    // and the model is left guessing at who is in the crew.
+    expect(prompts[0]).toContain("Seat coverage against crew");
+    expect(prompts[0]).toContain("prototyper: no role in this crew fills it");
+    expect(revision.coverage?.seats.find((s) => s.seatId === "prototyper")?.status).toBe(
+      "gap",
+    );
+  });
+
+  it("writes nothing anywhere in the project", async () => {
+    const project = await makeProject();
+    const before = await snapshotProject(project);
+    const revised = { ...VALID_FLOW, steps: [...VALID_FLOW.steps, VALIDATE_STEP] };
+    const { runner } = scriptedRunner([revisionJson({ flow: revised })]);
+
+    await reviseFlowFromInstruction({
+      projectRoot: project,
+      flow: VALID_FLOW,
+      instruction: "add a validation step",
+      runner,
+    });
+
+    // INVARIANT: the assistant proposes; the broker-gated save path is the only
+    // writer. Not just the flows directory - the config, the roles, the flow
+    // files and everything else come back byte-identical.
+    expect(await snapshotProject(project)).toEqual(before);
+    expect(await projectFlowIds(project)).toEqual([]);
+  });
+
+  it("nothing secret-shaped in the flow being edited reaches the provider", async () => {
+    const project = await makeProject();
+    const standing = {
+      ...VALID_FLOW,
+      steps: VALID_FLOW.steps.map((step) =>
+        step.id === "implement"
+          ? { ...step, instructions: "deploy with AKIAIOSFODNN7EXAMPLE" }
+          : step,
+      ),
+    };
+    const { runner, prompts } = scriptedRunner([revisionJson({ flow: VALID_FLOW })]);
+
+    await reviseFlowFromInstruction({
+      projectRoot: project,
+      flow: standing,
+      instruction: "drop the deploy instruction",
+      runner,
+    });
+
+    // The end state, wherever the redaction lives: the whole assembled prompt
+    // goes through one funnel, so the serialized flow is covered too.
+    expect(prompts[0]).not.toContain("AKIAIOSFODNN7EXAMPLE");
+    expect(prompts[0]).toContain("[REDACTED");
+  });
+});
+
+describe("flow-assist: a revision is held to the writer's own checks", () => {
+  it("refuses a revision carrying a secret shape, and writes nothing", async () => {
+    const project = await makeProject();
+    const before = await snapshotProject(project);
+    const revised = {
+      ...VALID_FLOW,
+      steps: VALID_FLOW.steps.map((step) =>
+        step.id === "implement"
+          ? { ...step, instructions: "use the key AKIAIOSFODNN7EXAMPLE when calling out" }
+          : step,
+      ),
+    };
+    const { runner } = scriptedRunner([revisionJson({ flow: revised })]);
+
+    await expect(
+      reviseFlowFromInstruction({
+        projectRoot: project,
+        flow: VALID_FLOW,
+        instruction: "make the implement step talk to AWS",
+        runner,
+      }),
+    ).rejects.toThrow(/refusing to return this revised flow/i);
+    expect(await snapshotProject(project)).toEqual(before);
+  });
+
+  it("re-prompts a shape-invalid revision, then refuses rather than showing it", async () => {
+    const project = await makeProject();
+    const broken = {
+      ...VALID_FLOW,
+      steps: [{ ...VALID_FLOW.steps[0]!, id: "plan_step" }, ...VALID_FLOW.steps.slice(1)],
+    };
+    // The same broken answer every attempt: the model never corrects, so the
+    // owner must end up with nothing rather than with an unsaveable flow.
+    const { runner, prompts } = scriptedRunner([revisionJson({ flow: broken })]);
+
+    await expect(
+      reviseFlowFromInstruction({
+        projectRoot: project,
+        flow: VALID_FLOW,
+        instruction: "rename the first step",
+        runner,
+      }),
+    ).rejects.toThrow();
+    expect(prompts).toHaveLength(3);
+    expect(prompts[1]).toContain("Your previous response was rejected");
+    expect(prompts[1]).toContain("lowercase letters, digits, and dashes");
+  });
+});
+
+describe("flow-assist: revision input bounds", () => {
+  it("rejects an over-long instruction without calling the provider", async () => {
+    const project = await makeProject();
+    const { runner, prompts } = scriptedRunner([revisionJson({ flow: VALID_FLOW })]);
+
+    await expect(
+      reviseFlowFromInstruction({
+        projectRoot: project,
+        flow: VALID_FLOW,
+        instruction: "a".repeat(1001),
+        runner,
+      }),
+    ).rejects.toThrow(/exceeds 1000 characters/i);
+    expect(prompts).toHaveLength(0);
+  });
+
+  it("rejects an empty instruction and a non-object flow", async () => {
+    const project = await makeProject();
+    const { runner } = scriptedRunner([revisionJson({ flow: VALID_FLOW })]);
+    await expect(
+      reviseFlowFromInstruction({
+        projectRoot: project,
+        flow: VALID_FLOW,
+        instruction: "   ",
+        runner,
+      }),
+    ).rejects.toThrow(/instruction is required/i);
+    await expect(
+      reviseFlowFromInstruction({
+        projectRoot: project,
+        flow: "not a flow",
+        instruction: "add a step",
+        runner,
+      }),
+    ).rejects.toThrow(/flow object is required/i);
+  });
+
+  it("rejects an unknown crew id before spending a provider call", async () => {
+    const project = await makeProject();
+    const { runner, prompts } = scriptedRunner([revisionJson({ flow: VALID_FLOW })]);
+    await expect(
+      reviseFlowFromInstruction({
+        projectRoot: project,
+        flow: VALID_FLOW,
+        instruction: "add a step",
+        crewId: "no-such-crew",
+        runner,
+      }),
+    ).rejects.toThrow(FlowAssistError);
+    expect(prompts).toHaveLength(0);
   });
 });
 

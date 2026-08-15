@@ -16,6 +16,7 @@ import type { ConsultSections } from "./consult-sections.js";
 import { saveManualProposal } from "../project/manual-proposals.js";
 import { proposePolicy } from "../project/project-policy-service.js";
 import { redactSecretsInText } from "../core/diff-service.js";
+import type { ProviderStreamChunk } from "../providers/provider-types.js";
 
 export class ConsultError extends VibestrateError {
   constructor(message: string, cause?: unknown) {
@@ -120,6 +121,9 @@ export type ConsultRequest = {
   effort?: string | null;
   loaded?: LoadedConfig | null;
   signal?: AbortSignal;
+  /** Live provider output as the CLI writes it, for a caller that shows the
+   *  answer arriving. Forwarded verbatim; the buffered answer is unchanged. */
+  onChunk?: (chunk: ProviderStreamChunk) => void;
   /** Test seam - forwarded to the assist primitive. */
   runner?: AssistProviderRunner;
 };
@@ -152,6 +156,7 @@ function buildInstruction(
     "Answer the user's question about THIS project using ONLY the project context below. You are READ-ONLY: recommend actions, never assume any were taken.",
     "Be honest about your verification boundary: only deterministic evidence (validation results, config, run outcomes, annotations) is reliable. Where the context is insufficient to be sure, say so in `caveats` and lower `confidence`. Never invent facts or fake authority.",
     "If a `Project state (computed - authoritative...)` block is present, it was computed deterministically from the ledger + roadmap + run history. Narrate and rank those items - do NOT contradict them or invent open intents / next steps that aren't there.",
+    "If a `Vibestrate product documentation` block is present, it is Vibestrate's own shipped documentation, selected for this question. Answer product questions (commands, config keys, concepts) from it and quote the exact command or key. Never invent a command, flag or config key that is not there; if it does not cover the question, say so in `caveats`. If the block is absent, the question did not match Vibestrate's documentation - do not guess Vibestrate's surface from memory.",
     "Cite which context you actually used in `usedContext`" +
       (usedSources.length ? ` (available: ${usedSources.join(", ")})` : "") +
       ".",
@@ -186,6 +191,7 @@ export async function runConsult(req: ConsultRequest): Promise<ConsultResult> {
 
   const context = await assembleConsultContext({
     projectRoot: req.projectRoot,
+    question,
     taskId: req.taskId,
     runId: req.runId,
     files: req.files,
@@ -216,7 +222,12 @@ export async function runConsult(req: ConsultRequest): Promise<ConsultResult> {
     adHocProvider: req.providerId
       ? { providerId: req.providerId, model: req.model ?? null, effort: req.effort ?? null }
       : null,
+    // Effort used to apply only inside the ad-hoc branch above, so `{ effort }`
+    // on its own was accepted and silently dropped. As an override it lands
+    // whichever way the target was resolved, and still writes nothing.
+    effortOverride: req.effort ?? null,
     signal: req.signal,
+    onChunk: req.onChunk,
     runner: req.runner,
   });
 

@@ -131,6 +131,9 @@ export function PoliciesPanel() {
                 <Button
                   variant="primary"
                   size="sm"
+                  // The walkthrough rings the way IN to authoring a rule, not the
+                  // form: the form does not exist until this is pressed.
+                  data-tour="policies-new"
                   iconLeft={<Plus className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />}
                   onClick={() => setAdding(true)}
                 >

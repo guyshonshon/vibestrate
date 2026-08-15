@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Cpu, Send, X } from "lucide-react";
+import { ArrowLeft, Cpu, Send, X } from "lucide-react";
 import { api, type ProviderRow } from "../../lib/api.js";
 import type { ConsultResult, ProviderCatalog } from "../../lib/types.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
@@ -7,19 +7,63 @@ import { getViewContext } from "../../lib/view-context.js";
 import { navigate } from "../../app/App.js";
 import { AttachButton, AttachmentStrip, useAttachments } from "../design/Attachments.js";
 import { Button } from "../design/Button.js";
+import { IconBtn } from "../design/IconBtn.js";
 import { Select } from "../design/Select.js";
+import { launchGuide } from "../onboarding/TourOverlay.js";
+import { SupervisorControl } from "../supervisor/SupervisorControl.js";
+import { findGuide, matchGuide } from "../../lib/guides/guides.js";
 import { ConsultOrb } from "./ConsultOrb.js";
 import { ConsultAnswerView, type ProposalState } from "./ConsultAnswerView.js";
+import {
+  ConsultModeChooser,
+  GuideDetail,
+  GuideList,
+  GuideOffer,
+  type ConsultMode,
+} from "./ConsultGuides.js";
+
+const MODE_TITLE: Record<ConsultMode, string> = {
+  choose: "Consult",
+  project: "Ask about this project",
+  vibestrate: "Work in Vibestrate",
+};
+
+/** Questions only this project can answer, which is the line between the two
+ *  sides: none of these has an authored walkthrough, and none ever will. */
+const PROJECT_EXAMPLES = [
+  "Why did the last run block?",
+  "What is waiting on me?",
+  "Does this change need a heavier review?",
+];
 
 /**
  * Floating consult dock. A resting orb at the bottom-right of every screen
- * expands into a large chat panel; while a consult runs, the orb takes center
- * stage and morphs ("AI thinking"). Reuses the same read-only consult API and
- * answer rendering as the full Consult page - this is just a quicker way in
- * from anywhere, with no nav button.
+ * opens two different conversations, and the difference between them is what
+ * each one is ALLOWED to do:
+ *
+ *   project     the read-only consult. A model call over your files, config and
+ *               runs. It answers, and the one thing it can leave behind is a
+ *               VIBESTRATE.md proposal that does nothing until you apply it.
+ *   vibestrate  working in Vibestrate itself rather than in your codebase:
+ *               authored walkthroughs (lib/guides/guides.ts) that land you on
+ *               the control, and the SUPERVISOR conversation, which can make a
+ *               task, add TODOs or start a run when you ask it to.
+ *
+ * The supervisor half is `SupervisorControl` mounted as-is, not a second chat
+ * client of our own. That is deliberate: it already carries the autonomy switch,
+ * the pause kill-switch, the router/executor split and a broker-gated
+ * `run.start`. A second composer wired straight to a model would be a second
+ * privilege path with none of that, which is exactly the thing this product
+ * exists to not have.
  */
 export function ConsultDock() {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = usePersistedState<ConsultMode>(
+    "vibestrate.consult.mode",
+    "choose",
+  );
+  /** The walkthrough opened on the Vibestrate side, if any. */
+  const [guideId, setGuideId] = useState<string | null>(null);
   const [question, setQuestion] = useState("");
   const attachments = useAttachments();
   const [busy, setBusy] = useState(false);
@@ -73,7 +117,12 @@ export function ConsultDock() {
     const onOpen = (e: Event) => {
       setOpen(true);
       const q = (e as CustomEvent<{ question?: string }>).detail?.question;
-      if (typeof q === "string" && q.trim()) setQuestion(q.trim());
+      if (typeof q === "string" && q.trim()) {
+        // A seeded question is a project question by definition, so land on the
+        // side that can ask it rather than on the chooser holding the text.
+        setMode("project");
+        setQuestion(q.trim());
+      }
     };
     window.addEventListener("vibestrate:consult-open", onOpen);
     return () => window.removeEventListener("vibestrate:consult-open", onOpen);
@@ -122,6 +171,17 @@ export function ConsultDock() {
     }
   }
 
+  // The walkthrough rings and navigates to real elements, and a panel in the
+  // corner covers them, so starting one closes the dock. `stepId` is what makes
+  // "Take me there" land on the step you pressed rather than at step one.
+  function startGuide(id: string, stepId?: string) {
+    setOpen(false);
+    launchGuide(id, stepId);
+  }
+
+  const offeredGuide = matchGuide(question);
+  const openedGuide = guideId ? findGuide(guideId) : null;
+
   async function decideProposal(action: "apply" | "reject") {
     const id = result?.proposalId;
     if (!id) return;
@@ -136,35 +196,68 @@ export function ConsultDock() {
     }
   }
 
+  const showPanel = open && mode !== "choose";
+
   return (
     <div className="fixed bottom-5 right-5 z-40 print:hidden">
-      {open ? (
+      {showPanel ? (
         <div
           className="flex w-[min(440px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-[20px] border border-[color:var(--line)] bg-coal-700 shadow-2xl shadow-black/50 fade-up"
+          // Anchored `bottom-5`, so the panel grows UP out of the orb and can
+          // never be cut off by the bottom of the window.
           style={{ height: "min(78vh, 720px)" }}
           role="dialog"
-          aria-label="Consult the project orchestrator"
+          aria-label={MODE_TITLE[mode]}
         >
-          {/* Header */}
+          {/* Header. The title names the side you are on, and the arrow is the
+              way back to the other one - the mode is carried by a control and a
+              heading, never by a chip. */}
           <div className="flex items-center gap-2.5 border-b border-[color:var(--line)] px-4 py-3">
-            <ConsultOrb state={busy ? "thinking" : "idle"} size={28} />
-            <div className="min-w-0">
-              <div className="text-[13px] font-semibold text-chalk-100">Consult</div>
-              <div className="truncate text-meta font-medium text-violet-soft">
-                read-only project advisor
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="ml-auto grid h-7 w-7 place-items-center rounded-[9px] text-chalk-400 transition hover:bg-coal-500 hover:text-chalk-100"
-              aria-label="Close consult"
+            <IconBtn
+              variant="plain"
+              title="Back to consult"
+              disabled={busy}
+              onClick={() => setMode("choose")}
             >
-              <X className="h-4 w-4" strokeWidth={1.8} />
-            </button>
+              <ArrowLeft className="h-4 w-4" strokeWidth={1.8} aria-hidden />
+            </IconBtn>
+            <ConsultOrb state={busy ? "thinking" : "idle"} size={28} />
+            <div className="min-w-0 truncate text-[13px] font-semibold text-chalk-100">
+              {MODE_TITLE[mode]}
+            </div>
+            <div className="ml-auto">
+              <IconBtn variant="plain" title="Close consult" onClick={() => setOpen(false)}>
+                <X className="h-4 w-4" strokeWidth={1.8} aria-hidden />
+              </IconBtn>
+            </div>
           </div>
 
-          {/* Body (scrolls) */}
+          {mode === "vibestrate" ? (
+            <div className="flex min-h-0 flex-1 flex-col">
+              {/* Walkthroughs sit above the conversation rather than replacing
+                  it: the buttons here move you, the box below can act. */}
+              <div className="max-h-[200px] shrink-0 overflow-y-auto border-b border-[color:var(--line)] px-4 py-3">
+                {openedGuide ? (
+                  <GuideDetail
+                    guide={openedGuide}
+                    onBack={() => setGuideId(null)}
+                    onGoToStep={(step) => startGuide(openedGuide.id, step.id)}
+                    onWalkThrough={() => startGuide(openedGuide.id)}
+                  />
+                ) : (
+                  <GuideList onStart={(g) => setGuideId(g.id)} />
+                )}
+              </div>
+              {/* SupervisorControl sizes itself for a page column, where it is
+                  the tallest thing on screen. In the dock it is a region of a
+                  panel that already has a height, so the child is made to fill
+                  it and drop the card edge it would otherwise draw inside one. */}
+              <div className="min-h-0 flex-1 [&>section]:h-full [&>section]:min-h-0 [&>section]:rounded-none [&>section]:border-0">
+                <SupervisorControl runId={null} compact />
+              </div>
+            </div>
+          ) : (
+          /* Body (scrolls) */
           <div className="flex-1 overflow-y-auto px-4 py-3">
             {busy ? (
               <div className="flex h-full flex-col items-center justify-center gap-5 py-8 text-center">
@@ -210,17 +303,36 @@ export function ConsultDock() {
                 compact
               />
             ) : (
-              <div className="flex h-full flex-col items-center justify-center gap-4 py-10 text-center">
-                <ConsultOrb state="idle" size={96} />
-                <p className="max-w-[30ch] text-[12.5px] text-chalk-300">
-                  Ask about this project - why a run blocked, whether a change needs a heavier
-                  review, what to do next. It answers only from your project context and never acts.
-                </p>
+              // Examples rather than a paragraph about the surface: each one is
+              // a control that fills the box, so the empty state teaches by
+              // being usable. Same idiom as the maker's assistant panel.
+              <div className="flex h-full flex-col items-center justify-center gap-4 py-8">
+                <ConsultOrb state="idle" size={88} />
+                <div className="flex w-full flex-col gap-1.5">
+                  {PROJECT_EXAMPLES.map((ex) => (
+                    <Button
+                      key={ex}
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        setQuestion(ex);
+                        textRef.current?.focus();
+                      }}
+                    >
+                      {ex}
+                    </Button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
+          )}
 
-          {/* Composer */}
+          {/* The project side's composer. The Vibestrate side has one too - the
+              supervisor's, mounted above with the permissions that belong to a
+              box that can act. */}
+          {mode === "project" ? (
           <div className="border-t border-[color:var(--line)] p-3">
             <textarea
               ref={textRef}
@@ -234,6 +346,13 @@ export function ConsultDock() {
               disabled={busy}
               className="w-full resize-none rounded-[12px] border border-[color:var(--line-strong)] bg-coal-800 px-3 py-2 text-[13px] text-chalk-100 placeholder:text-chalk-400 outline-none focus:border-violet-soft/50 disabled:opacity-60"
             />
+            {offeredGuide && !busy ? (
+              <GuideOffer
+                className="mt-2"
+                guide={offeredGuide}
+                onStart={() => startGuide(offeredGuide.id)}
+              />
+            ) : null}
             <AttachmentStrip
               items={attachments.items}
               onRemove={attachments.remove}
@@ -296,21 +415,38 @@ export function ConsultDock() {
               </Button>
             </div>
           </div>
+          ) : null}
         </div>
       ) : (
-        <button
-          type="button"
-          data-tour="consult-orb"
-          onClick={() => setOpen(true)}
-          className="group flex items-center gap-0 rounded-full border border-violet-soft/30 bg-coal-600 p-1.5 shadow-xl shadow-black/40 transition-all hover:border-violet-soft/50"
-          aria-label="Open consult"
-          title="Consult the project orchestrator"
-        >
-          <ConsultOrb state="idle" size={48} />
-          <span className="max-w-0 overflow-hidden whitespace-nowrap text-[12.5px] font-medium text-chalk-100 transition-all duration-300 group-hover:ml-2.5 group-hover:mr-1.5 group-hover:max-w-[120px]">
-            Consult
-          </span>
-        </button>
+        <div className="relative">
+          {/* The chooser is not a panel: it is the two cards, hanging off the
+              orb that was pressed. `bottom-full` pins them to the TOP edge of
+              the button, so they can only ever open upward - at any window
+              height, there is nothing below the orb for them to be cut off by. */}
+          {open ? (
+            <div
+              className="absolute bottom-full right-0 mb-2.5 w-[320px] max-w-[calc(100vw-2.5rem)] fade-up"
+              role="dialog"
+              aria-label="Consult"
+            >
+              <ConsultModeChooser elevated onChoose={(m) => setMode(m)} />
+            </div>
+          ) : null}
+          <button
+            type="button"
+            data-tour="consult-orb"
+            onClick={() => setOpen((v) => !v)}
+            className="group flex items-center gap-0 rounded-full border border-violet-soft/30 bg-coal-600 p-1.5 shadow-xl shadow-black/40 transition-all hover:border-violet-soft/50"
+            aria-label="Open consult"
+            aria-expanded={open}
+            title="Ask about this project, or work in Vibestrate"
+          >
+            <ConsultOrb state="idle" size={48} />
+            <span className="max-w-0 overflow-hidden whitespace-nowrap text-[12.5px] font-medium text-chalk-100 transition-all duration-300 group-hover:ml-2.5 group-hover:mr-1.5 group-hover:max-w-[120px]">
+              Consult
+            </span>
+          </button>
+        </div>
       )}
     </div>
   );

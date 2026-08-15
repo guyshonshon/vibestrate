@@ -15,7 +15,13 @@ import type {
   FlowPatch,
   ComposerPreset,
 } from "./types.js";
-import type { FlowDraft } from "../types/flows.js";
+import type { FlowDraft, FlowRevision } from "../types/flows.js";
+
+/** The revise route caps the instruction (flow-assist.ts MAX_INSTRUCTION).
+ *  Mirrored here so the editor shows the limit while typing instead of taking a
+ *  400 after a round-trip, the same way DraftFlowPanel mirrors the description
+ *  cap. */
+export const MAX_REVISE_INSTRUCTION = 1000;
 
 export const flowsApi = {
   /** Describe a flow in plain English; the supervisor returns an EDITABLE
@@ -26,6 +32,23 @@ export const flowsApi = {
     crewId?: string;
   }): Promise<{ draft: FlowDraft }> {
     return jsonPost("/api/flows/draft", input);
+  },
+  /** Revise the flow the owner is currently editing. `flow` is the editor's
+   *  candidate object (`draftToCandidate`), the shape `flowDefinitionSchema`
+   *  parses - and it is sent whether or not it currently parses, which is the
+   *  point: "this flow never validates, fix that" is a supported instruction.
+   *  `problems` forwards what the editor already reports, so the model fixes
+   *  the stated fault instead of guessing at it.
+   *
+   *  Like drafting, this writes nothing. What comes back is a proposal the
+   *  editor applies to its in-memory draft; Save is still the only writer. */
+  async reviseFlow(input: {
+    instruction: string;
+    flow: unknown;
+    problems?: string[];
+    crewId?: string;
+  }): Promise<{ revision: FlowRevision }> {
+    return jsonPost("/api/flows/revise", input);
   },
   async listSkills(): Promise<{
     skills: DiscoveredSkill[];

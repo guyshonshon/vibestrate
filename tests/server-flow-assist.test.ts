@@ -11,7 +11,7 @@ import { loadConfig } from "../src/project/config-loader.js";
 import { projectConfigPath, projectFlowsDir } from "../src/utils/paths.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
-// Route-level cover for the two drafting endpoints. The services have their own
+// Route-level cover for the assisted-authoring endpoints. The services have their own
 // tests (tests/flow-assist.test.ts, tests/crew-assist.test.ts) with a fake
 // runner injected; nothing can inject a runner over HTTP, so these drive the
 // real provider path through a fake CLI and assert the properties only the
@@ -99,20 +99,50 @@ function crewFor(profile: string, opts: { secret?: boolean } = {}) {
   };
 }
 
+/** The revised flow the fake returns: the same flow with a validation step
+ *  appended, so the route's change summary has exactly one thing to report. */
+const REVISED_FLOW = {
+  ...VALID_FLOW,
+  steps: [
+    ...VALID_FLOW.steps,
+    {
+      id: "validate",
+      label: "Validate",
+      kind: "validation",
+      inputs: ["diff"],
+      outputs: ["validation"],
+    },
+  ],
+};
+
 /** One fake CLI standing in for the provider, answering whichever draft the
  *  prompt asks for. `runAssist` labels the prompt, so the branch is on the
- *  label it stamps in the header, not on any wording we control. */
+ *  label it stamps in the header, not on any wording we control. The revision
+ *  branch splits again on the owner's own instruction, because a question and
+ *  an edit are two different right answers from one endpoint. */
 function fakeCliSource(profile: string, opts: { secretCrew?: boolean } = {}): string {
   const flowAnswer = JSON.stringify({
     flow: VALID_FLOW,
     rationale: "A linear plan/implement/review shape is the simplest fit.",
     currency: { checked: [], unverified: ["assumed the toolchain is current"] },
   });
+  const reviseAnswer = JSON.stringify({
+    flow: REVISED_FLOW,
+    answer: "Added a validation step after the review.",
+    currency: { checked: [], unverified: [] },
+  });
+  const questionAnswer = JSON.stringify({
+    flow: null,
+    answer: "No role in this crew declares that seat.",
+    currency: { checked: [], unverified: [] },
+  });
   const crewAnswer = JSON.stringify(crewFor(profile, { secret: opts.secretCrew }));
   return `#!/usr/bin/env node
 let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
-  console.log(i.includes('Assist - flow-draft')
-    ? ${JSON.stringify(flowAnswer)}
+  console.log(
+    i.includes('Assist - flow-draft') ? ${JSON.stringify(flowAnswer)}
+    : i.includes('Assist - flow-revise')
+      ? (i.includes('why is') ? ${JSON.stringify(questionAnswer)} : ${JSON.stringify(reviseAnswer)})
     : ${JSON.stringify(crewAnswer)});
 });
 `;
@@ -300,6 +330,123 @@ describe("POST /api/flows/draft", () => {
     // The failure is rethrown rather than wrapped in an HttpError, whose message
     // the error handler sends verbatim. Mutation check: wrap it and this fails.
     expect(JSON.stringify(await res.json())).not.toContain(project);
+  });
+});
+
+describe("POST /api/flows/revise", () => {
+  it("returns a revision of the flow it was given, and creates no flow", async () => {
+    const project = await makeProject();
+    const before = await snapshotFlowsDir(project);
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    const res = await postJson(server, "/api/flows/revise", {
+      flow: VALID_FLOW,
+      instruction: "this flow never validates - fix that",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      revision: {
+        flow: { steps: { id: string }[] } | null;
+        yaml: string | null;
+        answer: string;
+        changes: { target: string; op: string; id: string | null; summary: string }[];
+        coverage: { runnable: boolean } | null;
+      };
+    };
+    expect(body.revision.flow?.steps.map((s) => s.id)).toEqual([
+      "plan",
+      "implement",
+      "review",
+      "validate",
+    ]);
+    expect(body.revision.yaml).toContain("id: validate");
+    // Derived over the wire, not restated from the model's answer: the route
+    // carries the same one change the service computed.
+    expect(body.revision.changes).toHaveLength(1);
+    expect(body.revision.changes[0]).toMatchObject({
+      target: "step",
+      op: "added",
+      id: "validate",
+    });
+    expect(body.revision.coverage?.runnable).toBe(true);
+
+    // Applying a revision is the owner's separate action; proposing one writes
+    // nothing.
+    expect(await snapshotFlowsDir(project)).toEqual(before);
+  });
+
+  it("answers a question with a null revision and a 200", async () => {
+    const project = await makeProject();
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    const res = await postJson(server, "/api/flows/revise", {
+      flow: VALID_FLOW,
+      instruction: "why is the reviewer seat the one judging the diff?",
+    });
+    // No edit is a valid outcome. A 400 here would teach the UI to treat every
+    // question as a failed request.
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      revision: { flow: unknown; yaml: unknown; answer: string; changes: unknown[] };
+    };
+    expect(body.revision.flow).toBeNull();
+    expect(body.revision.yaml).toBeNull();
+    expect(body.revision.changes).toEqual([]);
+    expect(body.revision.answer).toContain("crew");
+  });
+
+  it("accepts a flow that does not parse", async () => {
+    const project = await makeProject();
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    const res = await postJson(server, "/api/flows/revise", {
+      // Mid-edit: an underscore in a step id, which the schema rejects. Refusing
+      // this at the body schema would make "fix what is broken" unanswerable.
+      flow: {
+        ...VALID_FLOW,
+        steps: [{ ...VALID_FLOW.steps[0], id: "plan_step" }, ...VALID_FLOW.steps.slice(1)],
+      },
+      instruction: "the first step id is not valid - fix it",
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("rejects an over-long instruction and an unknown field with 400", async () => {
+    const project = await makeProject();
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    expect(
+      (
+        await postJson(server, "/api/flows/revise", {
+          flow: VALID_FLOW,
+          instruction: "a".repeat(1001),
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await postJson(server, "/api/flows/revise", {
+          flow: VALID_FLOW,
+          instruction: "add a step",
+          overwrite: true,
+        })
+      ).status,
+    ).toBe(400);
+  });
+
+  it("surfaces a provider failure as 500 and leaves the flows directory untouched", async () => {
+    const project = await makeProject({ failing: true });
+    const before = await snapshotFlowsDir(project);
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    const res = await postJson(server, "/api/flows/revise", {
+      flow: VALID_FLOW,
+      instruction: "add a validation step",
+    });
+    // Same split as /draft: a provider that never answered is a server-side
+    // failure, not the caller's bad input.
+    expect(res.status).toBe(500);
+    expect(await snapshotFlowsDir(project)).toEqual(before);
   });
 });
 

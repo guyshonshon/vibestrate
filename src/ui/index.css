@@ -288,6 +288,21 @@
   --color-violet-mid: #6243e6;
   --color-violet-deep: #5a3fd6;
   --color-violet-vivid: #7c3aed;
+
+  /* Status colours deepen too.
+   *
+   * These are Tailwind's own palette entries, which the dark theme never had to
+   * touch. On paper they were unreadable: the "vibe ui is unreachable" banner
+   * is rose-300 text on a rose-500/10 wash, and pale pink on white is close to
+   * invisible - the one message that has to survive the backend going down.
+   * Tailwind v4 compiles `text-rose-300` to `var(--color-rose-300)`, so
+   * redefining the scale here fixes every site at once rather than 456 of them
+   * one at a time. Only the light tiers move; dark keeps Tailwind's defaults. */
+  --color-rose-300: #b42342;
+  --color-rose-400: #a81d3a;
+  --color-rose-500: #97102c;
+  --color-fail: #b42342;
+  --color-emerald-400: #067a55;
   --color-sky-glow: #2f6fd6;
   --color-amber-soft: #c2510c;
   --color-emerald: #0f9d63;

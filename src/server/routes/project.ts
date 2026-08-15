@@ -70,6 +70,7 @@ import {
 import { CREW_PRESETS, type PresetTier } from "../../agents/crew-presets.js";
 import {
   draftCrewFromDescription,
+  reviseCrewFromInstruction,
   CrewAssistError,
 } from "../../agents/crew-assist.js";
 import { profileUsage, rolesUsingProfile } from "../../agents/profile-usage.js";
@@ -105,6 +106,19 @@ const duplicateProfileBody = z
 // body is refused before a provider is ever resolved.
 const draftCrewBody = z
   .object({ description: z.string().min(1).max(1000) })
+  .strict();
+
+// The crew being edited plus one instruction in, a proposed revision out. The
+// 1000-character cap is the service's own MAX_INSTRUCTION, so an over-long body
+// never reaches a provider. `crew` stays `unknown` on purpose: its shape has one
+// owner, `reviseCrewFromInstruction`, and a second copy of it here is how the
+// two drift apart. A missing or malformed crew comes back as a 400 from there.
+const reviseCrewBody = z
+  .object({
+    crewId: z.string().min(1).max(60),
+    crew: z.unknown(),
+    instruction: z.string().min(1).max(1000),
+  })
   .strict();
 
 export type ProjectRoutesDeps = { projectRoot: string };
@@ -366,6 +380,37 @@ export async function registerProjectRoutes(
       // error handler records it and strips the absolute path out of the
       // response body; an HttpError's message is sent verbatim, so wrapping it
       // here would leak that path.
+      if (err instanceof CrewAssistError) throw new HttpError(400, err.message);
+      throw err;
+    }
+  });
+
+  // The same guarantees as /draft, aimed at a crew the owner is already
+  // editing: the crew and the instruction are redacted at the assist funnel
+  // before the model sees them, the revised crew is Zod-validated against the
+  // real crew schema and secret-scanned (refused, never redacted), and NOTHING
+  // is written - the returned revision is applied to the owner's editor, and
+  // their existing broker-gated Save is still the only thing that touches disk.
+  // An instruction that was a question comes back with `revision: null`, which
+  // is a success.
+  app.post<{ Body: unknown }>("/api/crews/revise", async (req) => {
+    const parsed = reviseCrewBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    if (!(await configExists(projectRoot))) {
+      throw new HttpError(404, "Vibestrate is not initialized here.");
+    }
+    try {
+      return await reviseCrewFromInstruction({
+        projectRoot,
+        crewId: parsed.data.crewId,
+        crew: parsed.data.crew,
+        instruction: parsed.data.instruction,
+      });
+    } catch (err) {
+      // Same split as /draft: a bad crew, a refused revision and an over-long
+      // instruction are the caller's problem and safe to echo. Anything else is
+      // rethrown untouched so the generic handler strips the absolute project
+      // path an HttpError message would carry verbatim.
       if (err instanceof CrewAssistError) throw new HttpError(400, err.message);
       throw err;
     }

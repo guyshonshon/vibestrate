@@ -30,12 +30,16 @@ export async function jsonGet<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+// Exported for the streamed supervisor turn, which reads its own Response
+// rather than going through jsonPost and still has to raise the same
+// classified error the rest of the client raises.
+//
 // Parse a failed Response into an ApiError, RETAINING the server's structured
 // { kind, title, hint } (setErrorHandler in src/server/server.ts sends them) so
 // the UI can render a headline + a fix + kind-aware recovery instead of a
 // flattened string. `message` stays the one-line human string for Error.message
 // / logs. Falls back to `error`, then body text, then the status line.
-async function apiError(res: Response): Promise<ApiError> {
+export async function apiError(res: Response): Promise<ApiError> {
   let message = "";
   let fields: { kind?: string; title?: string; hint?: string } | undefined;
   try {
