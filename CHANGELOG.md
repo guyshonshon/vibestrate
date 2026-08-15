@@ -22,6 +22,29 @@
 > as-is. Markdown stays where a human writes it: `VIBESTRATE.md`, `rules.md`, the
 > docs.
 
+- **Answers fit the screen you are on.** Asked how to make a flow, the dashboard
+  used to recommend four terminal commands and tell you to hand-edit
+  `project.yml`. It had no way to know it was answering into a browser. It does
+  now, and it is enforced in what the answer is allowed to read, not just in
+  what it is asked to say: the dashboard gets your real screens, the terminal
+  still gets its commands, and asking outright about a command works on either.
+- **Show me how, on any answer that warrants it.** The supervisor can build a
+  walkthrough for what you just asked, not only for the handful written in
+  advance, and it runs through the same overlay: it moves you to each screen and
+  rings the actual section. A step it cannot verify is dropped rather than
+  pointed at nothing, and a walkthrough can only ever navigate - it never clicks,
+  saves, or starts a run for you.
+- **It knows what things cost.** "How much did Claude cost me this week" used to
+  come back empty, because nothing in the answer's context knew about money. Now
+  it reads your runs: per provider, last seven days. It says when a figure is an
+  estimate, which is most of the time - costs are worked out from token counts
+  and published prices, not from anyone's invoice.
+- **The supervisor stops answering with silence.** A turn cut off mid-answer -
+  by a reload, or by restarting `vibe ui` - stored an empty message, and the
+  panel drew a full card around nothing. It now says it was cut off.
+- **Pages load when you open them.** The dashboard shipped every screen up front;
+  it now ships the one you are looking at, cutting the first download by roughly
+  two thirds. Mission Control stays immediate.
 - **The dashboard opens with no network, and opens straight away.** `index.html`
   carried a stylesheet link to Google Fonts. It blocked the first paint on a
   third-party request, fetched nothing that was used - every typeface is already
