@@ -253,7 +253,14 @@ export function validateWalkthrough(raw: unknown): GeneratedWalkthroughResult {
     asks: [],
     steps,
     generated: true,
-  } as GeneratedWalkthrough;
+    // The brand is a phantom - `validated` is `declare const`, so it exists in
+    // the type system and never at runtime. This double cast is where it is
+    // minted, and it is the ONLY place allowed to do it: every step above has
+    // already been through parseStep, so a value reaching here is validated by
+    // construction. Widening this cast, or repeating it elsewhere, throws away
+    // the guarantee that launchGeneratedWalkthrough can only be handed checked
+    // steps.
+  } as unknown as GeneratedWalkthrough;
   return { ok: true, walkthrough, dropped };
 }
 

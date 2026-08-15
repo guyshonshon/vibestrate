@@ -37,6 +37,18 @@ export const Z_LAYER = {
   dialog: 100,
   /** Confirmations, which can be raised on top of another dialog. */
   confirmDialog: 110,
+  /**
+   * An open Select's option list, which renders in a portal on `document.body`
+   * rather than beside its trigger.
+   *
+   * It outranks every surface above because it is a child control OF whichever
+   * surface is on top - a select inside a confirmation has to draw over that
+   * confirmation or it cannot be used. `menu: 30` is the rung for a list that
+   * stays inside its parent's stacking context; this one has deliberately left
+   * it, because an ancestor with `overflow: hidden` clips an absolutely
+   * positioned list no matter which direction it opens.
+   */
+  anchoredMenu: 115,
   /** Unhandled-error surface. Nothing may cover this. */
   globalError: 120,
 } as const;

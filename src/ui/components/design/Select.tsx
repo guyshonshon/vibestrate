@@ -5,12 +5,47 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "./cn.js";
+import { Z_LAYER } from "../../lib/z-layers.js";
 
 /** Tallest the option list gets, and the room it needs below the trigger before
  *  it flips upwards. */
 const LIST_MAX_H = 260;
+/** Breathing room between the trigger and the list, and between the list and
+ *  the edge of the window. */
+const GAP = 6;
+
+/** Where an open list is drawn, in viewport coordinates. */
+type ListBox = { left: number; width: number; maxHeight: number } & (
+  | { top: number; bottom?: undefined }
+  | { bottom: number; top?: undefined }
+);
+
+/**
+ * Measure the trigger and decide where the list goes.
+ *
+ * Returns FIXED coordinates because the list is portaled to `document.body`.
+ * That is not a detail: this control is used inside the supervisor panel and
+ * the consult dock, both of which are `overflow-hidden`, and an absolutely
+ * positioned child of those is CLIPPED at the panel edge whichever way it
+ * opens. Flipping the list up was treating the symptom - the list has to leave
+ * the clipping ancestor entirely. Once it has, the viewport really is the only
+ * constraint, so measuring against `innerHeight` is finally correct rather
+ * than merely plausible.
+ */
+function measure(trigger: DOMRect): ListBox {
+  const below = window.innerHeight - trigger.bottom - GAP;
+  const above = trigger.top - GAP;
+  const base = { left: trigger.left, width: trigger.width };
+  // Only flip when going up genuinely buys room, so a list near the bottom of a
+  // short window does not jump to an even tighter space above.
+  if (below < Math.min(LIST_MAX_H, above) && above > below) {
+    return { ...base, bottom: window.innerHeight - trigger.top + GAP, maxHeight: Math.min(LIST_MAX_H, above) };
+  }
+  return { ...base, top: trigger.bottom + GAP, maxHeight: Math.min(LIST_MAX_H, below) };
+}
 
 export type SelectOption = {
   value: string;
@@ -46,19 +81,22 @@ export function Select({
   ariaLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [dropUp, setDropUp] = useState(false);
+  const [box, setBox] = useState<ListBox | null>(null);
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const listId = useId();
   const selected = options.find((o) => o.value === value) ?? null;
 
-  // Close on a click outside the component.
+  // Close on a click outside the component. The list is portaled, so it is NOT
+  // inside rootRef any more - testing only the root would close the list on the
+  // very click that picks an option.
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const t = e.target as Node;
+      if (rootRef.current?.contains(t) || listRef.current?.contains(t)) return;
+      setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
@@ -71,19 +109,27 @@ export function Select({
     setActive(i >= 0 ? i : 0);
   }, [open, value, options]);
 
-  // Open upwards when there is not enough room below. The consult dock sits on
-  // the bottom edge of the viewport, so its Selects opened straight off-screen;
-  // deciding here rather than taking a prop means no caller has to know where
-  // on the page it happens to be rendered.
+  // Position the list, and keep it on the trigger while it is open. Scroll and
+  // resize both move the trigger under a fixed-position list, so a measurement
+  // taken once on open goes stale the moment the page moves - which reads as
+  // the menu detaching from its own button.
   useEffect(() => {
     if (!open) {
-      setDropUp(false);
+      setBox(null);
       return;
     }
-    const trigger = rootRef.current?.getBoundingClientRect();
-    if (!trigger) return;
-    const below = window.innerHeight - trigger.bottom;
-    setDropUp(below < LIST_MAX_H + 12 && trigger.top > below);
+    const place = () => {
+      const trigger = rootRef.current?.getBoundingClientRect();
+      if (trigger) setBox(measure(trigger));
+    };
+    place();
+    // `capture` so a scroll inside any ancestor is seen, not just the window's.
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
+    };
   }, [open]);
 
   const choose = (i: number) => {
@@ -159,14 +205,22 @@ export function Select({
           strokeWidth={1.7}
         />
       </button>
-      {open ? (
+      {open && box
+        ? createPortal(
         <div
+          ref={listRef}
           role="listbox"
           id={listId}
-          style={{ maxHeight: LIST_MAX_H }}
+          style={{
+            position: "fixed",
+            left: box.left,
+            minWidth: box.width,
+            maxHeight: box.maxHeight,
+            zIndex: Z_LAYER.anchoredMenu,
+            ...(box.top !== undefined ? { top: box.top } : { bottom: box.bottom }),
+          }}
           className={cn(
-            "absolute left-0 z-30 min-w-full overflow-auto rounded-[12px] border border-[color:var(--line)] bg-coal-800 py-1 shadow-2xl",
-            dropUp ? "bottom-full mb-1" : "top-full mt-1",
+            "overflow-auto rounded-[12px] border border-[color:var(--line)] bg-coal-800 py-1 shadow-2xl",
           )}
         >
           {options.map((o, i) => {
@@ -199,8 +253,10 @@ export function Select({
               </div>
             );
           })}
-        </div>
-      ) : null}
+        </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

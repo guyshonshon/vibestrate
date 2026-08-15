@@ -22,18 +22,112 @@
         } catch (e) {
           document.documentElement.classList.add("dark");
         }
+        // NOTE: nothing here shows the boot gate. The gate is visible by
+        // DEFAULT in CSS and JavaScript only takes it away, so it paints even
+        // when a script never runs at all. Doing it the other way round - a
+        // script adding the attribute that reveals it - looked equivalent and
+        // was not: it made the gate depend on the very thing it exists to wait
+        // for.
       })();
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
-      rel="stylesheet"
-    />
+    <!--
+      No webfont <link> here on purpose. Every family this app renders is
+      self-hosted through @fontsource-variable and imported by index.css, so a
+      stylesheet from fonts.googleapis.com fetched nothing that was used - it
+      only blocked the first paint on a third-party request, and phoned Google
+      on every load of a tool whose whole promise is that it runs locally.
+      (It also asked for Instrument Serif, whose only token, --font-serif, is
+      declared in index.css and consumed nowhere.)
+    -->
+    <style>
+      /* The boot gate. Inline and self-contained because index.css and the
+         1.6MB bundle are exactly what it exists to cover: at this point in the
+         document nothing else has loaded, so a class, a CSS variable or an
+         <img> would all still be pending. Colours are the literal ink-0 and
+         chalk values from index.css; they must be edited together. */
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background: #06070b;
+        z-index: 9999;
+      }
+      html.light #boot { background: #f5f4f8; }
+      /* Visible by DEFAULT. JavaScript only ever takes the gate away, so it is on
+         screen even if a script never runs - the gate cannot depend on the very
+         thing it exists to wait for. */
+      html[data-booted] #boot { display: none; }
+      #boot-name {
+        font: 600 15px/1.2 ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #eeeef1;
+      }
+      html.light #boot-name { color: #2a2a31; }
+      #boot-track {
+        position: relative;
+        width: 132px;
+        height: 2px;
+        overflow: hidden;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.11);
+      }
+      html.light #boot-track { background: rgba(20, 18, 30, 0.11); }
+      /* A bar that travels, not a pulse: the design law bans breathing
+         animation everywhere except the consult orb. */
+      #boot-track::after {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 40%;
+        border-radius: 2px;
+        background: #a78bfa;
+        animation: boot-slide 1.1s ease-in-out infinite;
+      }
+      html.light #boot-track::after { background: #6951f0; }
+      @keyframes boot-slide {
+        0%   { transform: translateX(-100%); }
+        100% { transform: translateX(330%); }
+      }
+      #boot-failed { display: none; max-width: 34ch; text-align: center; }
+      html[data-boot-failed] #boot-track { display: none; }
+      html[data-boot-failed] #boot-failed {
+        display: block;
+        font: 400 13px/1.5 ui-sans-serif, system-ui, sans-serif;
+        color: #eeeef1;
+      }
+      html.light[data-boot-failed] #boot-failed { color: #2a2a31; }
+      @media (prefers-reduced-motion: reduce) {
+        #boot-track::after { animation: none; width: 100%; }
+      }
+    </style>
   </head>
   <body class="bg-ink-0 text-fog-100 font-sans antialiased">
     <div class="vibestrate-backdrop" aria-hidden="true"></div>
+    <div id="boot" role="status" aria-live="polite">
+      <div id="boot-name">Vibestrate</div>
+      <div id="boot-track" aria-hidden="true"></div>
+      <div id="boot-failed">
+        The dashboard did not finish loading. Reload the page, and if it keeps
+        happening restart <code>vibe ui</code>.
+      </div>
+    </div>
     <div id="root"></div>
+    <script>
+      // The gate is removed by a real mount signal. This only covers the case
+      // where that signal never arrives - a bundle that failed to parse, say -
+      // so the user gets a way out instead of an animation forever. It never
+      // hides the gate; it only changes what the gate says.
+      setTimeout(function () {
+        if (!document.documentElement.hasAttribute("data-booted")) {
+          document.documentElement.setAttribute("data-boot-failed", "");
+        }
+      }, 12000);
+    </script>
     <script type="module" src="./main.tsx"></script>
   </body>
 </html>
