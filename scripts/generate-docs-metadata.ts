@@ -119,16 +119,28 @@ function dumpCommand(cmd: ReturnType<typeof buildVibestrateProgram>, parentPath:
     negated: o.negate === true,
   }));
 
-  const rawArgs = (cmd as unknown as { _args?: unknown[] })._args ?? [];
-  const args: DocArgument[] = (rawArgs as Array<Record<string, unknown>>).map((a) => ({
-    name: String(a.name ?? a._name ?? ""),
-    description: String(a.description ?? ""),
+  // `registeredArguments` is commander's public, typed accessor for the same
+  // array the private `_args` holds (commander 15: identical reference).
+  //
+  // Read it through the type rather than an `unknown` cast. On `Argument`,
+  // `description`/`required`/`variadic` are plain properties but the name is a
+  // *method*, and the previous untyped walk did `String(a.name ?? a._name)` -
+  // `a.name` is the function, `??` keeps it, and `String()` serialized the
+  // method's own body into all 207 arguments of the published CLI reference.
+  //
+  // The type is documentation here, not a gate: `scripts/` is outside
+  // tsconfig.json's `include`, so nothing typechecks this file, and `String()`
+  // takes `any` regardless. What actually fails when this regresses is
+  // tests/docs-generated-data-not-source.test.ts, which reads the emitted JSON.
+  const args: DocArgument[] = cmd.registeredArguments.map((a) => ({
+    name: a.name(),
+    description: a.description ?? "",
     required: a.required === true,
     variadic: a.variadic === true,
     defaultValue:
       a.defaultValue !== undefined
         ? typeof a.defaultValue === "string"
-          ? (a.defaultValue as string)
+          ? a.defaultValue
           : JSON.stringify(a.defaultValue)
         : undefined,
   }));

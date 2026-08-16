@@ -141,7 +141,7 @@
           "usage": "[options] [providerId]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "providerId",
               "description": "",
               "required": false,
               "variadic": false
@@ -169,7 +169,7 @@
           "usage": "[options] <providerId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "providerId",
               "description": "",
               "required": true,
               "variadic": false
@@ -210,7 +210,7 @@
           "usage": "[options] <providerId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "providerId",
               "description": "",
               "required": true,
               "variadic": false
@@ -259,7 +259,7 @@
           "usage": "[options] [providerId]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "providerId",
               "description": "",
               "required": false,
               "variadic": false
@@ -349,7 +349,7 @@
           "usage": "[options] <path>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "path",
               "description": "",
               "required": true,
               "variadic": false
@@ -377,13 +377,13 @@
           "usage": "[options] <path> <value>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "path",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "value",
               "description": "",
               "required": true,
               "variadic": false
@@ -403,7 +403,7 @@
           "usage": "[options] [filter]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "filter",
               "description": "",
               "required": false,
               "variadic": false
@@ -478,7 +478,7 @@
           "usage": "[options] <name>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "name",
               "description": "",
               "required": true,
               "variadic": false
@@ -498,13 +498,13 @@
           "usage": "[options] <agent> <skill>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "agent",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "skill",
               "description": "",
               "required": true,
               "variadic": false
@@ -524,13 +524,13 @@
           "usage": "[options] <agent> <skill>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "agent",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "skill",
               "description": "",
               "required": true,
               "variadic": false
@@ -550,7 +550,7 @@
           "usage": "[options] <url>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "url",
               "description": "",
               "required": true,
               "variadic": false
@@ -626,7 +626,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -661,7 +661,7 @@
           "usage": "[options] [id]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": false,
               "variadic": false
@@ -689,7 +689,7 @@
           "usage": "[options] <task...>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "task",
               "description": "",
               "required": true,
               "variadic": true
@@ -732,7 +732,7 @@
           "usage": "[options] <description>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "description",
               "description": "",
               "required": true,
               "variadic": false
@@ -774,7 +774,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -809,7 +809,7 @@
           "usage": "[options] <source>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "source",
               "description": "",
               "required": true,
               "variadic": false
@@ -844,7 +844,7 @@
           "usage": "[options] <runId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
@@ -885,7 +885,7 @@
               "usage": "[options] [query...]",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "query",
                   "description": "",
                   "required": false,
                   "variadic": true
@@ -921,7 +921,7 @@
               "usage": "[options] <ref>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "ref",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -957,7 +957,7 @@
               "usage": "[options] <flowId>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "flowId",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -1084,7 +1084,7 @@
           "usage": "[options] <archetypeId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "archetypeId",
               "description": "",
               "required": true,
               "variadic": false
@@ -1104,7 +1104,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -1124,7 +1124,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -1234,7 +1234,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -1297,7 +1297,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -1360,13 +1360,13 @@
           "usage": "[options] <id> <newId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "newId",
               "description": "",
               "required": true,
               "variadic": false
@@ -1386,7 +1386,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -1448,7 +1448,7 @@
           "usage": "[options] <key>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "key",
               "description": "",
               "required": true,
               "variadic": false
@@ -1468,7 +1468,7 @@
           "usage": "[options] <assignments...>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "assignments",
               "description": "",
               "required": true,
               "variadic": true
@@ -1496,7 +1496,7 @@
           "usage": "[options] <param>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "param",
               "description": "",
               "required": true,
               "variadic": false
@@ -1531,7 +1531,7 @@
           "usage": "[options] <keys...>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "keys",
               "description": "",
               "required": true,
               "variadic": true
@@ -1585,7 +1585,7 @@
           "usage": "[options] [id]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": false,
               "variadic": false
@@ -1613,7 +1613,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -1633,7 +1633,7 @@
           "usage": "[options] <description>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "description",
               "description": "",
               "required": true,
               "variadic": false
@@ -1703,7 +1703,7 @@
               "usage": "[options] <id>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "id",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -1738,7 +1738,7 @@
           "usage": "[options] <runId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
@@ -1766,13 +1766,13 @@
           "usage": "[options] <runId> <approvalId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "approvalId",
               "description": "",
               "required": true,
               "variadic": false
@@ -1800,13 +1800,13 @@
           "usage": "[options] <runId> <approvalId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "approvalId",
               "description": "",
               "required": true,
               "variadic": false
@@ -1834,13 +1834,13 @@
           "usage": "[options] <runId> <approvalId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "approvalId",
               "description": "",
               "required": true,
               "variadic": false
@@ -1868,13 +1868,13 @@
           "usage": "[options] <runId> <approvalId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "approvalId",
               "description": "",
               "required": true,
               "variadic": false
@@ -1928,7 +1928,7 @@
           "usage": "[options] <title>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "title",
               "description": "",
               "required": true,
               "variadic": false
@@ -1992,7 +1992,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2020,7 +2020,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2069,7 +2069,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2123,7 +2123,7 @@
               "usage": "[options] <id>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "id",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -2144,7 +2144,7 @@
               "usage": "[options] <id>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "id",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -2174,7 +2174,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2216,7 +2216,7 @@
           "usage": "[options] <goal...>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "goal",
               "description": "",
               "required": true,
               "variadic": true
@@ -2264,7 +2264,7 @@
           "usage": "[options] <brief...>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "brief",
               "description": "",
               "required": true,
               "variadic": true
@@ -2299,7 +2299,7 @@
           "usage": "[options] <runId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
@@ -2327,7 +2327,7 @@
           "usage": "[options] <runId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
@@ -2363,13 +2363,13 @@
           "usage": "[options] <runId> <questionId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "questionId",
               "description": "",
               "required": true,
               "variadic": false
@@ -2397,13 +2397,13 @@
           "usage": "[options] <runId> [questionId]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "questionId",
               "description": "",
               "required": false,
               "variadic": false
@@ -2431,7 +2431,7 @@
           "usage": "[options] <specUpRunId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "specUpRunId",
               "description": "",
               "required": true,
               "variadic": false
@@ -2451,7 +2451,7 @@
           "usage": "[options] <specUpRunId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "specUpRunId",
               "description": "",
               "required": true,
               "variadic": false
@@ -2479,7 +2479,7 @@
           "usage": "[options] <runId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
@@ -2499,13 +2499,13 @@
           "usage": "[options] <runId> <section>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "section",
               "description": "",
               "required": true,
               "variadic": false
@@ -2546,7 +2546,7 @@
           "usage": "[options] <title>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "title",
               "description": "",
               "required": true,
               "variadic": false
@@ -2687,7 +2687,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2715,13 +2715,13 @@
           "usage": "[options] <id> <body>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "body",
               "description": "",
               "required": true,
               "variadic": false
@@ -2741,7 +2741,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2761,7 +2761,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2781,7 +2781,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2801,7 +2801,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2821,7 +2821,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2849,7 +2849,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2869,7 +2869,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2889,7 +2889,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2917,7 +2917,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2945,7 +2945,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2965,7 +2965,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -2985,7 +2985,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -3033,7 +3033,7 @@
               "usage": "[options] <taskId>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "taskId",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -3062,13 +3062,13 @@
               "usage": "[options] <taskId> <text...>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "taskId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "text",
                   "description": "",
                   "required": true,
                   "variadic": true
@@ -3111,13 +3111,13 @@
               "usage": "[options] <taskId> <itemId>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "taskId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "itemId",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -3138,13 +3138,13 @@
               "usage": "[options] <taskId> <itemId>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "taskId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "itemId",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -3165,19 +3165,19 @@
               "usage": "[options] <taskId> <itemId> <status>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "taskId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "itemId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "status",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -3198,19 +3198,19 @@
               "usage": "[options] <taskId> <itemId> <text...>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "taskId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "itemId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "text",
                   "description": "",
                   "required": true,
                   "variadic": true
@@ -3231,13 +3231,13 @@
               "usage": "[options] <taskId> <itemId>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "taskId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "itemId",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -3258,19 +3258,19 @@
               "usage": "[options] <taskId> <itemId> <position>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "taskId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "itemId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "position",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -3291,13 +3291,13 @@
               "usage": "[options] <taskId> <itemId>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "taskId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "itemId",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -3319,7 +3319,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -3361,7 +3361,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -3407,7 +3407,7 @@
           "usage": "[options] [runIds...]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runIds",
               "description": "",
               "required": false,
               "variadic": true
@@ -3427,7 +3427,7 @@
           "usage": "[options] [runIds...]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runIds",
               "description": "",
               "required": false,
               "variadic": true
@@ -3455,7 +3455,7 @@
           "usage": "[options] <runId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
@@ -3483,7 +3483,7 @@
           "usage": "[options] [runIds...]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runIds",
               "description": "",
               "required": false,
               "variadic": true
@@ -3511,7 +3511,7 @@
           "usage": "[options] <integrationBranch>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "integrationBranch",
               "description": "",
               "required": true,
               "variadic": false
@@ -3573,7 +3573,7 @@
           "usage": "[options] <taskId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "taskId",
               "description": "",
               "required": true,
               "variadic": false
@@ -3601,7 +3601,7 @@
           "usage": "[options] <taskId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "taskId",
               "description": "",
               "required": true,
               "variadic": false
@@ -3690,7 +3690,7 @@
       "usage": "[options] <runId>",
       "arguments": [
         {
-          "name": "name() {\n    return this._name;\n  }",
+          "name": "runId",
           "description": "Run id (see `vibe status`)",
           "required": true,
           "variadic": false
@@ -3736,7 +3736,7 @@
           "usage": "[options] <runId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
@@ -3756,7 +3756,7 @@
           "usage": "[options] <runId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
@@ -3825,7 +3825,7 @@
           "usage": "[options] [path]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "path",
               "description": "",
               "required": false,
               "variadic": false
@@ -3845,7 +3845,7 @@
           "usage": "[options] <pathOrLabel>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "pathOrLabel",
               "description": "",
               "required": true,
               "variadic": false
@@ -3865,7 +3865,7 @@
           "usage": "[options] [pathOrLabel]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "pathOrLabel",
               "description": "",
               "required": false,
               "variadic": false
@@ -3900,7 +3900,7 @@
           "usage": "[options] [pathOrLabel]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "pathOrLabel",
               "description": "",
               "required": false,
               "variadic": false
@@ -4012,7 +4012,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -4032,7 +4032,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -4078,7 +4078,7 @@
           "usage": "[options] <gatewayId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "gatewayId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4132,7 +4132,7 @@
           "usage": "[options] <gatewayId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "gatewayId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4152,7 +4152,7 @@
           "usage": "[options] <gatewayId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "gatewayId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4172,7 +4172,7 @@
           "usage": "[options] <gatewayId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "gatewayId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4218,7 +4218,7 @@
           "usage": "[options] <command>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "command",
               "description": "",
               "required": true,
               "variadic": false
@@ -4246,7 +4246,7 @@
           "usage": "[options] [file]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "file",
               "description": "",
               "required": false,
               "variadic": false
@@ -4287,7 +4287,7 @@
           "usage": "[options] <runId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4315,13 +4315,13 @@
           "usage": "[options] <runId> <suggestionId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "suggestionId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4341,13 +4341,13 @@
           "usage": "[options] <runId> <suggestionId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "suggestionId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4375,13 +4375,13 @@
           "usage": "[options] <runId> <suggestionId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "suggestionId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4409,13 +4409,13 @@
           "usage": "[options] <runId> <suggestionId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "suggestionId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4457,13 +4457,13 @@
           "usage": "[options] <runId> <suggestionId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "suggestionId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4491,13 +4491,13 @@
           "usage": "[options] <runId> <suggestionId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "suggestionId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4530,13 +4530,13 @@
               "usage": "[options] <runId> <suggestionId>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "runId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "suggestionId",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -4557,19 +4557,19 @@
               "usage": "[options] <runId> <suggestionId> <profileName>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "runId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "suggestionId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "profileName",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -4590,13 +4590,13 @@
               "usage": "[options] <runId> <suggestionId>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "runId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "suggestionId",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -4631,7 +4631,7 @@
           "usage": "[options] <runId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4659,7 +4659,7 @@
           "usage": "[options] <runId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4701,19 +4701,19 @@
           "usage": "[options] <runId> <bundleId> <suggestionId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "bundleId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "suggestionId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4733,19 +4733,19 @@
           "usage": "[options] <runId> <bundleId> <suggestionId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "bundleId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "suggestionId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4765,13 +4765,13 @@
           "usage": "[options] <runId> <bundleId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "bundleId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4799,13 +4799,13 @@
           "usage": "[options] <runId> <bundleId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "bundleId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4833,13 +4833,13 @@
           "usage": "[options] <runId> <bundleId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "bundleId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4881,13 +4881,13 @@
           "usage": "[options] <runId> <bundleId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "bundleId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4936,13 +4936,13 @@
           "usage": "[options] <runId> <bundleId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "bundleId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4970,13 +4970,13 @@
           "usage": "[options] <runId> <bundleId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "bundleId",
               "description": "",
               "required": true,
               "variadic": false
@@ -4996,13 +4996,13 @@
           "usage": "[options] <runId> <bundleId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "runId",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "bundleId",
               "description": "",
               "required": true,
               "variadic": false
@@ -5035,13 +5035,13 @@
               "usage": "[options] <runId> <bundleId>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "runId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "bundleId",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -5062,19 +5062,19 @@
               "usage": "[options] <runId> <bundleId> <profileName>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "runId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "bundleId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "profileName",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -5095,13 +5095,13 @@
               "usage": "[options] <runId> <bundleId>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "runId",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "bundleId",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -5191,7 +5191,7 @@
               "usage": "[options] <name>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "name",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -5220,13 +5220,13 @@
               "usage": "[options] <fromProfile> <toProfile>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "fromProfile",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "toProfile",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -5276,7 +5276,7 @@
               "usage": "[options] <profileName>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "profileName",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -5319,13 +5319,13 @@
               "usage": "[options] <fromProfile> <toProfile>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "fromProfile",
                   "description": "",
                   "required": true,
                   "variadic": false
                 },
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "toProfile",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -5461,7 +5461,7 @@
           "usage": "[options] <sessionId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "sessionId",
               "description": "",
               "required": true,
               "variadic": false
@@ -5494,13 +5494,13 @@
           "usage": "[options] <id> <statement>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
             },
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "statement",
               "description": "",
               "required": true,
               "variadic": false
@@ -5549,7 +5549,7 @@
           "usage": "[options] <policyId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "policyId",
               "description": "",
               "required": true,
               "variadic": false
@@ -5569,7 +5569,7 @@
           "usage": "[options] <policyId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "policyId",
               "description": "",
               "required": true,
               "variadic": false
@@ -5589,7 +5589,7 @@
           "usage": "[options] <policyId>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "policyId",
               "description": "",
               "required": true,
               "variadic": false
@@ -5622,7 +5622,7 @@
           "usage": "[options] <description>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "description",
               "description": "",
               "required": true,
               "variadic": false
@@ -5678,7 +5678,7 @@
           "usage": "[options] [policyId]",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "policyId",
               "description": "",
               "required": false,
               "variadic": false
@@ -5777,7 +5777,7 @@
           "usage": "[options] <patchFile>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "patchFile",
               "description": "",
               "required": true,
               "variadic": false
@@ -5905,7 +5905,7 @@
       "usage": "[options] <run>",
       "arguments": [
         {
-          "name": "name() {\n    return this._name;\n  }",
+          "name": "run",
           "description": "the run id or display name (see `vibe status`)",
           "required": true,
           "variadic": false
@@ -5932,7 +5932,7 @@
       "usage": "[options] <run>",
       "arguments": [
         {
-          "name": "name() {\n    return this._name;\n  }",
+          "name": "run",
           "description": "the run id or display name (see `vibe status`)",
           "required": true,
           "variadic": false
@@ -5959,7 +5959,7 @@
       "usage": "[options] <runId>",
       "arguments": [
         {
-          "name": "name() {\n    return this._name;\n  }",
+          "name": "runId",
           "description": "the run id (see `vibe status`)",
           "required": true,
           "variadic": false
@@ -5993,13 +5993,13 @@
       "usage": "[options] <runId> <name...>",
       "arguments": [
         {
-          "name": "name() {\n    return this._name;\n  }",
+          "name": "runId",
           "description": "the run id (see `vibe status`)",
           "required": true,
           "variadic": false
         },
         {
-          "name": "name() {\n    return this._name;\n  }",
+          "name": "name",
           "description": "the new display name",
           "required": true,
           "variadic": true
@@ -6102,7 +6102,7 @@
       "usage": "[options] <question>",
       "arguments": [
         {
-          "name": "name() {\n    return this._name;\n  }",
+          "name": "question",
           "description": "the question to ask about this project",
           "required": true,
           "variadic": false
@@ -6238,7 +6238,7 @@
               "usage": "[options] <id>",
               "arguments": [
                 {
-                  "name": "name() {\n    return this._name;\n  }",
+                  "name": "id",
                   "description": "",
                   "required": true,
                   "variadic": false
@@ -6260,7 +6260,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -6280,7 +6280,7 @@
           "usage": "[options] <id>",
           "arguments": [
             {
-              "name": "name() {\n    return this._name;\n  }",
+              "name": "id",
               "description": "",
               "required": true,
               "variadic": false
@@ -6443,7 +6443,7 @@
       "usage": "[options] <runId>",
       "arguments": [
         {
-          "name": "name() {\n    return this._name;\n  }",
+          "name": "runId",
           "description": "id of the run to replay",
           "required": true,
           "variadic": false
@@ -6470,7 +6470,7 @@
       "usage": "[options] <runId>",
       "arguments": [
         {
-          "name": "name() {\n    return this._name;\n  }",
+          "name": "runId",
           "description": "id of the run to pause",
           "required": true,
           "variadic": false
@@ -6489,7 +6489,7 @@
       "usage": "[options] <runId>",
       "arguments": [
         {
-          "name": "name() {\n    return this._name;\n  }",
+          "name": "runId",
           "description": "id of the run to resume",
           "required": true,
           "variadic": false
@@ -6535,7 +6535,7 @@
       "usage": "[options] [task...]",
       "arguments": [
         {
-          "name": "name() {\n    return this._name;\n  }",
+          "name": "task",
           "description": "",
           "required": false,
           "variadic": true
@@ -6804,7 +6804,7 @@
       "usage": "[options] <runId>",
       "arguments": [
         {
-          "name": "name() {\n    return this._name;\n  }",
+          "name": "runId",
           "description": "",
           "required": true,
           "variadic": false
