@@ -18,20 +18,17 @@ name: Release
 # Setup this expects, once (see .github/MAINTAINING.md):
 #   1. npmjs.com -> vibestrate -> Settings -> Trusted Publisher -> GitHub Actions
 #      -> repo guyshonshon/vibestrate, workflow release.yml
-# Without (1) the publish step fails closed on auth and nothing ships.
+#   2. Settings -> Environments -> `release`. The environment itself is required
+#      for auth, because npm's trusted-publisher entry pins it - see the comment
+#      on the job. Its REQUIRED REVIEWERS are the separate, optional part: with
+#      them, a tag push pauses for a click; without them it publishes unattended.
+# Without (1) or the environment in (2), the publish step fails closed on auth
+# and nothing ships.
 #
-# A `release` environment with required reviewers used to pause a tag push for a
-# click. Removed on the owner's instruction: that click is unreachable from the
-# GitHub mobile app, which offers only "Cancel workflow", so a release could not
-# be approved away from a desktop. A tag push now publishes unattended.
-#
-# What still stands between a tag and npm, and why that was judged enough: the
-# full gate below - typecheck, build, the whole suite, the packed-artifact
-# verify - runs first, and a failure stops the publish; the tag name must equal
-# package.json's version; and the tag is a deliberate act made in the repo,
-# never manufactured by re-running a job. npm's trusted publisher is keyed on
-# repo + workflow, NOT on the environment, so removing the environment does not
-# change how the OIDC credential is minted.
+# Note for anyone trying to remove the pause: the click is unreachable from the
+# GitHub mobile app, which renders only "Cancel workflow". Clear the reviewers in
+# the environment's settings. Deleting `environment: release` from the job looks
+# like it does the same thing and instead breaks publishing outright.
 
 on:
   push:
@@ -44,6 +41,17 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # LOAD-BEARING FOR AUTH, not only for the approval gate. Removing this line
+    # made `npm publish` fail with `404 Not Found - PUT .../vibestrate`, which is
+    # how npm reports a rejected credential rather than leaking whether a package
+    # exists. npm's trusted-publisher entry for this package pins the GitHub
+    # environment, so a token minted outside `release` carries no matching claim
+    # and nothing can publish. Verified the hard way on 2026-08-16: this was
+    # removed, the release failed closed, and 0.2.0 did not ship.
+    #
+    # To publish without pausing for a click, clear the required reviewers on
+    # Settings -> Environments -> release. Do NOT delete this line to achieve it.
+    environment: release
     permissions:
       contents: read
       # Required for trusted publishing: lets the job request the OIDC token npm
