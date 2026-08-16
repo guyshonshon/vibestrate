@@ -2,15 +2,6 @@
 
 ## 0.2.0
 
-> **Breaking: role prompts are JSON files, not Markdown.**
-> `.vibestrate/roles/planner.md` becomes `planner.json`, holding
-> `{"schemaVersion": 1, "id": "planner", "prompt": "..."}`. Your wording goes into
-> `prompt` unchanged. Then point every `prompt:` under `crews:` in
-> `.vibestrate/project.yml` at the new path. A config still naming a `.md` is
-> refused when it loads, with the file named and the edit spelled out, and
-> `vibe doctor --fix` writes the built-in role files back if you never customised
-> them. Nothing rewrites your own prompts for you.
-
 - **The supervisor chat streams again.** The answer appears as it is written
   instead of after the whole turn, the reasoning trail shows where a provider
   reports one, and a turn that fails now names the reason instead of saying it
@@ -74,6 +65,20 @@
   on a loading screen instead of assembling in pieces, and secondary text is no
   longer a faint grey hardcoded in 920 places. Menus near an edge open upward
   instead of being clipped.
+
+*Upgrading from 0.1.x: role prompts are JSON now.
+`.vibestrate/roles/planner.md` becomes `planner.json` holding
+`{"schemaVersion": 1, "id": "planner", "prompt": "..."}`, with your wording in
+`prompt` unchanged, and every `prompt:` under `crews:` repointed. A config still
+naming a `.md` is refused at load with the edit spelled out.*
+
+## Earlier releases
+
+Everything below shipped before anyone was using Vibestrate. The versions are on
+npm and stay there, but they reached registry mirrors rather than people, so
+their notes are kept as a record rather than as something to read: the changelog
+page starts at 0.2.0. If you want the older entries, they are in `CHANGELOG.md`
+in the repository.
 
 ## 0.1.1
 
