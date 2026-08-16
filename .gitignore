@@ -75,6 +75,7 @@ docs/archive/
 # else dropped into scripts/ is local scratch and stays ignored by default.
 /scripts/*
 !/scripts/generate-docs-metadata.ts
+!/scripts/generate-third-party-licenses.mjs
 !/scripts/prepublish-trim.mjs
 !/scripts/release.sh
 !/scripts/verify-pack.sh

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **The dashboard bundle now carries its licences.** Vibestrate ships the
+  dashboard pre-built, which inlines about sixty third-party libraries and
+  minifies their copyright notices away. `LICENSES/third-party-browser.txt`
+  reproduces every one of them in full, generated from the build's own
+  sourcemaps so it lists the code that is actually in the bundle. A library that
+  arrives without attribution now fails the build.
+
 ## 0.2.0
 
 - **The supervisor chat streams again.** The answer appears as it is written

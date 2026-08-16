@@ -63,6 +63,11 @@ require "package.json"
 require "dist/index.js"
 require "README.md"
 require "LICENSE"
+require "NOTICE"
+# The attribution for the third-party code inlined into the dashboard bundle.
+# `files` ships the whole LICENSES directory, so this file rides along with no
+# entry of its own - and would leave silently if someone narrowed that entry.
+require "LICENSES/third-party-browser.txt"
 # The entries below are resolved BY PATH at runtime, not imported, so a bundler
 # or `files` change can drop one without breaking the build or any test. Each
 # absence is silent and total: no detached runs, no container egress, no default

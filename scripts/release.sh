@@ -57,6 +57,18 @@ echo "→ Audit (prod)…"; pnpm audit --prod
 # before we tag. CI runs this too, so the two gates cannot drift apart.
 echo "→ Verify packed artifact…"; bash scripts/verify-pack.sh
 
+# ── Generated attribution is current ──────────────────────────────────
+# The clean-tree check above ran BEFORE the build, and `pnpm build:ui`
+# regenerates LICENSES/third-party-browser.txt. A stale committed copy leaves
+# the tree dirty right here, and `npm version` below would refuse with a
+# generic "Git working directory not clean" that says nothing about why.
+if ! git diff --quiet -- LICENSES; then
+  echo "✗ The build regenerated the third-party licence notice, so the copy in"
+  echo "  git was out of date. Commit the regenerated file, then re-run."
+  git status --short -- LICENSES
+  exit 1
+fi
+
 # ── Bump + tag ────────────────────────────────────────────────────────
 echo "→ Bumping version ($BUMP)…"
 NEW_VERSION="$(npm version "$BUMP" -m "release: v%s")"

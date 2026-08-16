@@ -55,6 +55,14 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # The build regenerates LICENSES/third-party-browser.txt from the bundle's
+      # sourcemaps. If a dependency changed and nobody re-ran the build, the
+      # committed notice under-attributes the code we publish - and no test can
+      # see it, because the build has already rewritten the file the test reads.
+      # Git is the only witness that the committed copy was stale.
+      - name: Third-party licence notice is current
+        run: git diff --exit-code -- LICENSES
+
       - name: Test
         run: pnpm test
 

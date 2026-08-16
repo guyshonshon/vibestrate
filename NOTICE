@@ -27,3 +27,20 @@ The full text of each licence is in LICENSES/.
                        https://github.com/floriankarsten/space-grotesk
 
 None of the fonts has been modified, so no Reserved Font Name applies.
+
+Bundled browser code
+--------------------
+
+The dashboard also ships as a pre-built bundle, and that bundle inlines its
+third-party libraries - React, CodeMirror, xterm.js, highlight.js, visx,
+Tailwind and their dependencies. The package carries no node_modules, so unlike
+the CLI's dependencies these licences do not arrive with the code, and
+minification strips the copyright comments the sources carry.
+
+Every one of them is reproduced in full, with its version and copyright line,
+in LICENSES/third-party-browser.txt. That file is generated from the build's
+own sourcemaps, so it lists the code that is actually in the bundle rather than
+what the manifest implies. The licences are MIT, ISC, BSD-3-Clause and OFL-1.1.
+
+The CLI is a separate case: its dependencies stay external and are installed
+from npm with their own licence files intact.

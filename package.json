@@ -37,7 +37,7 @@
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "pnpm clean && pnpm build:cli && pnpm build:ui",
     "build:cli": "tsup",
-    "build:ui": "vite build",
+    "build:ui": "vite build && node scripts/generate-third-party-licenses.mjs",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.ui.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
