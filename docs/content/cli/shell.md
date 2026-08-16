@@ -4,13 +4,13 @@ description: The terminal panel vibe opens with no arguments, with a live status
 slug: cli/shell
 ---
 
-Running `vibe` with no arguments opens the interactive shell: a terminal panel that keeps the project's context in front of you and gives you a prompt to drive Vibestrate without leaving the keyboard. It is built on Ink.
+Running `vibe` with no arguments opens the interactive shell: a terminal panel that keeps the project's context in front of you and gives you a prompt to drive Vibestrate without leaving the keyboard. Press **`i`** to focus the prompt and run any `vibe …` command, **`:`** for the command palette, **`1`-`9`/`0`** to switch tabs, **`d`** for the docs, **`B`** to open Mission Control in a browser, **`?`** for help, **`q`** to quit.
 
 ```bash
 vibe
 ```
 
-It runs full-screen in the terminal's alternate screen buffer, the same way `vim` or `htop` do. The canvas is fixed: it never grows or scrolls as you type, and your previous terminal contents come back when you quit. It needs an interactive terminal. In a pipe or CI it prints a notice and exits.
+It is built on Ink and runs full-screen in the terminal's alternate screen buffer, the same way `vim` or `htop` do. The canvas is fixed: it never grows or scrolls as you type, and your previous terminal contents come back when you quit. It needs an interactive terminal. In a pipe or CI it prints a notice and exits.
 
 ## Layout
 
@@ -29,7 +29,7 @@ A context strip sits at the top at all times, so you always know where you are a
 - **activity.** Live from the snapshot: `idle`, `running · N active`, and a `· N queued` suffix when the scheduler has work waiting.
 - **approvals.** A `⏳ N approvals` chip (yellow) appears only when runs are blocked waiting on you, so a decision you owe is visible from any page. It is hidden when there is nothing to approve.
 - **budget.** Today's spend against the daily cap, for example `budget $2.30 / $10.00`. It tracks `budget.spendCapDailyUsd`: gray under the warn threshold, **yellow** past it, **red** once exceeded. With no cap configured it shows today's spend only (`$2.30 today`), and nothing at all when that is still `$0`. Spend is summed across all of today's runs, using real cost where the CLI reports it and estimated otherwise, and refreshes a few seconds behind live.
-- **crew** and **flow.** The session's selected Crew and Flow. These seed the next run you launch from the prompt. Press **`c`** to pick a Crew, **`f`** to pick a Flow (a `↑↓ / Enter` selector). They default to the project's default crew and the `default` flow until you choose.
+- **crew** and **flow.** The session's selected Crew and Flow. These seed the next run you launch from the prompt. Press **`c`** to pick a Crew, **`f`** to pick a Flow (a `↑↓ / Enter` selector). Until you pick one, nothing is seeded: the run falls back to the project's `defaultCrew` and `defaultFlow`, and `defaultFlow` is unset by default, so the orchestrator chooses a Flow per task.
 - **task.** The task text of the most-recently-active run, when one is running.
 
 ## The prompt
@@ -52,7 +52,7 @@ As you type, a ghost list opens under the prompt with what fits the token at the
 
 What it completes depends on what you have typed:
 
-- A word completes **subcommands**: `config ` -> `view` / `show` / `get` / `set` / `validate`.
+- A word completes **subcommands**: `config ` -> `view` / `show` / `get` / `set` / `keys` / `validate`.
 - A dash completes **flags**: `config show -` -> `--json`.
 - After a value-taking flag it completes **values**: enums like `--effort low|medium|high`, and live ids for `--crew`, `--flow`, `--profile`, and `--task` (also `--effort=hi` -> `--effort=high`).
 - Id-typed positional arguments complete too: `replay ` -> your run ids; `tasks show ` -> task ids; `flows show ` -> flow ids.
@@ -61,7 +61,7 @@ Free-text arguments like a `run "…"` description never complete.
 
 **Tab** accepts the highlighted candidate, **↑ / ↓** move the selection, **Esc** dismisses the list (and history stays on ↑ / ↓ while the prompt is empty).
 
-**Config keys show their value and what they do.** For `config set` and `config get`, the list enumerates every settable key from the schema with its current value inline (`git.mainBranch = main`) and a one-line description of the highlighted key beneath the list, so you do not have to remember the keys or look up their state. The descriptions come from one source, the schema's field docs, shared with the published [config reference](/docs/cli/overview), so they never drift.
+**Config keys show their value and what they do.** For `config set` and `config get`, the list enumerates every settable key from the schema with its current value inline (`git.mainBranch = main`) and a one-line description of the highlighted key beneath the list, so you do not have to remember the keys or look up their state. The descriptions come from one source, the schema's field docs, shared with the published [config reference](/docs/reference/config), so they never drift.
 
 When you run a `run …` command from the prompt, the shell seeds it with your session selections: it appends `--crew`, `--flow`, and `--read-only` to match the status bar. Anything you type explicitly always wins.
 
@@ -70,11 +70,11 @@ When you run a `run …` command from the prompt, the shell seeds it with your s
     › git.mainBranch             = main
       git.branchPrefix           = vibestrate/
       git.snapshotRetentionRuns  = 0
-    Branch the run merges into (default main).
+    Name of the main/trunk branch (default main).
     ⇥ complete · ↑↓ select · esc dismiss
 ```
 
-Command output streams into a scrollable pane on the right (about 30% of the width), not the prompt, so long `--help` text or a `status` dump stays readable. It follows the tail by default. While the prompt is focused, **Tab** / **Shift+Tab** scroll it. When a command's output is verbose (many lines, or wide YAML or tables like `config show`), the shell automatically opens the full-width readable view so it is not mangled by the narrow pane. Press **`O`** or **Esc** to collapse back.
+Command output streams into a scrollable pane on the right, not the prompt, so long `--help` text or a `status` dump stays readable. It follows the tail by default. While the prompt is focused, **Tab** / **Shift+Tab** scroll it. The pane is narrow and truncates, so when output runs past 16 lines or 64 columns - wide YAML or tables like `config show` - the shell opens the full-width view for you, which wraps and scrolls instead. Press **`O`** to toggle it yourself, or **Esc** to collapse back.
 
 ## Docs browser
 
@@ -92,7 +92,7 @@ The pages are the same ones published at the docs site, bundled with the CLI.
 
 These are single-key, and work when the prompt is not focused.
 
-- **`1`–`9`, `0`** switch tabs (Dashboard, Flow, Crew, Profiles, Runs, Approvals, Suggestions, Skills, Roadmap, Doctor).
+- **`1`-`9`, `0`** switch tabs (Dashboard, Flow, Crew, Profiles, Runs, Approvals, Suggestions, Skills, Roadmap, Doctor).
 - **`:`** opens the command palette (fuzzy search every action).
 - **`Esc`** goes back to the previous page.
 - **`d`** opens the in-terminal docs browser.

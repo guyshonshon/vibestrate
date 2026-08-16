@@ -19,6 +19,11 @@ Each step carries:
 - an **acceptance check** - a plain-language done-when description,
 - optional **file hints** - paths or globs that are primary context for that step.
 
+`vibe tasks sequence` runs one. It works in a single worktree and commits one
+step at a time to one feature branch. A step that cannot pass its review halts
+the task cleanly instead of pressing on, and re-running skips the steps that
+already finished. Nothing is ever auto-merged.
+
 ## Plain vs supervised
 
 A plain task with a checklist is a lightweight to-do list run in one pass.
@@ -37,19 +42,30 @@ check, and file hints. The same authoring is available in Mission Control: a
 supervised task renders as a container card on the Board, and the task detail
 view lets you add, edit, and reorder steps.
 
-Commands and a worked example: [vibe tasks](/docs/cli/supervised-tasks).
+```bash
+vibe tasks add "Add audit logging" --supervised
+vibe tasks checklist add <id> "Write the log writer" \
+  --objective "..." --acceptance "..." --files "src/audit/*.ts"
+vibe tasks sequence <id>   # run the steps in order
+vibe tasks status <id>     # steps, invariants, halt reason
+vibe tasks pause <id>      # takes effect between steps
+vibe tasks resume <id>     # or re-sequence a halted task
+```
 
-## What is available now
+`vibe tasks run <id>` works too - it delegates to `sequence` for a supervised
+task. Full command reference and a worked example:
+[vibe tasks](/docs/cli/supervised-tasks).
 
-A supervised task runs with `vibe tasks run <id>` (or `vibe tasks sequence <id>`),
-which sequences the steps in order through a per-item-review flow in one worktree:
+## How a sequence goes
+
+The steps run in order, through a per-item-review flow, in one worktree:
 
 - each step is planned, implemented, and reviewed - with a bounded self-heal loop - before the next step starts, so a later step never builds on a broken earlier one,
 - each step starts a **fresh model context** grounded by a **curated packet**: the feature goal, a compact ledger of prior-step outcomes, the accumulated diff so far, and a fresh read of the step's file hints,
 - the supervised task commits one step at a time to a single feature branch,
 - it is bounded by a per-supervised task budget (`maxSteps`, `maxSpendUsd`), checked between steps, and protected by a per-task run lock. A new supervised task inherits a default step ceiling (`maxSteps: 20`) so a runaway always halts; set project-wide defaults under `supervised` in `project.yml` (the per-task budget overrides them where set).
 
-If a step cannot pass its review after self-heal, the supervised task **halts cleanly**: the failed step's work is discarded (the branch stays reviewable), the step is left pending, and the run ends blocked with a reason. Fix the cause and re-run `vibe tasks run` - finished steps are skipped, so it resumes from the clean tip. A finished supervised task lands as one reviewable branch; it is never auto-merged.
+If a step cannot pass its review after self-heal, the supervised task **halts cleanly**: the failed step's work is discarded (the branch stays reviewable), the step is left pending, and the run ends blocked with a reason. Fix the cause and re-sequence - finished steps are skipped, so it picks up from the clean tip.
 
 ## The supervisor and the invariants ledger
 
@@ -71,9 +87,9 @@ The revised plan is held in a supervised-run overlay and applied atomically, so 
 
 Mission Control's task detail view shows a live **Conductor** panel for a supervised task: its lifecycle, step progress with per-step outcomes, the supervisor's decisions, the Enhance re-ground events, the invariants ledger, and an escalation banner when it halts. The controls reach full parity with the CLI - **Sequence** to launch (or **Re-sequence** to resume a halted supervised task from the clean tip), and **Pause** / **Resume** while a run is live. A dashboard launch goes through the same audited path as the CLI, so it inherits the supervised flow, budget, supervisor, run lock, and clean-halt semantics.
 
-## What is coming next
+## What it does not do yet
 
-The Conductor and its autonomous Enhance pass are complete. Still to come is a **manual** Enhance trigger - a way to run the re-ground pass on demand between sequences (and add a step the autonomous pass would escalate), with a dry-run diff to review before it applies.
+Enhance runs only when the supervisor calls for it, between steps. There is no way to trigger a re-ground pass on demand between sequences, and no dry-run diff of a proposed revision before it applies. Adding a step the autonomous pass would escalate is a manual edit to the checklist.
 
 ## Related
 

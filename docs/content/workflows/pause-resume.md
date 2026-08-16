@@ -4,9 +4,11 @@ description: How to safely stop a run, bring it back later, or end it for good.
 slug: workflows/pause-resume
 ---
 
-Sometimes you want to stop a run, look at where it got to, and pick it back up later. Pausing does exactly that, and it sticks. The run state is saved to disk, so even if you kill Vibestrate's process and start it again, the pause is still there waiting for you.
+Sometimes you want to stop a run, look at where it got to, and pick it back up later. Pausing does exactly that, and it sticks: the flag is written to your project, not held in memory, so it survives anything restarting.
 
-There are three things you can do to a running run: pause it, resume it, or abort it.
+There are three things you can do to a running run: pause it, resume it, or abort it. Only `vibe abort` is final, and even that keeps the run's worktree on disk for you to read. `vibe pause` and `vibe resume` just set a flag - the process doing the work is what reads it, so neither one starts or stops anything by itself.
+
+A run that stops itself at a policy gate is a different thing, and `vibe resume` will not move it. Its status is `waiting_for_approval`, and the command that decides it is `vibe approvals`.
 
 ## Pause
 
@@ -16,7 +18,7 @@ To pause a run, give Vibestrate the run's ID:
 vibe pause <runId>
 ```
 
-Vibestrate works in stages, and it checks for a pause flag between them. When it spots one, it moves the run to the `paused` state and writes down which stage it was about to start. Nothing gets cut off halfway. A pause always lands cleanly at the gap between two stages.
+Vibestrate works in stages and checks for the flag between them. When it spots one, it moves the run to the `paused` state and writes down which stage it was about to start. Nothing gets cut off halfway.
 
 ## Resume
 
@@ -26,7 +28,7 @@ To pick the run back up:
 vibe resume <runId>
 ```
 
-This clears the pause flag. Vibestrate starts the run again from the stage it had written down in `pausedAtStatus`, which is the spot where it stopped.
+This clears the flag and the run continues from the stage in `pausedAtStatus`. If the process running it is gone, clearing the flag will not bring it back - start a fresh run and reuse the work with [`--resume-from`](/docs/workflows/debug-failed).
 
 ## Cancel a pause request before it fires
 
@@ -59,7 +61,7 @@ vibe approvals reject <runId> <approvalId>
 vibe approvals request-changes <runId> <approvalId> --guidance "what to change"
 ```
 
-When an agent asks for your approval (it emitted a `HUMAN_APPROVAL` request, not a policy gate), you have a third option: **request changes**. Instead of a dead-end reject, you return free-form guidance and the run re-runs that stage with it, then pauses again for your call - bounded by `policies.approvalMaxChangeRounds` (default 3). Policy gates have no agent turn to re-run, so they stay approve-or-reject.
+When an agent asks for your approval (it emitted a `HUMAN_APPROVAL` request, not a policy gate), you have a third option: **request changes**. Instead of a dead-end reject, you return free-form guidance and the run carries on into that stage's next turn with your guidance attached, then pauses again for your call - bounded by `policies.approvalMaxChangeRounds` (default 3). A policy gate has no agent turn to send guidance to, so requesting changes there fails closed and blocks the run, same as a reject.
 
 Each of these stopping points (`paused`, `waiting_for_approval`, `blocked`, `aborted`) has its own status, so you always know why a run is sitting still.
 
@@ -74,3 +76,4 @@ Not every stuck run should be aborted. Abort means you end it; block means it st
 ## Next
 
 - [Flow](/docs/concepts/flow) - the steps a run works through, and where the pauses fall.
+- [Run state](/docs/concepts/state) - every status a run can hold, and which ones are final.

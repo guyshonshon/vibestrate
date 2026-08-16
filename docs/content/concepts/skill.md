@@ -8,7 +8,7 @@ A **skill** is a markdown file you write once, and any agent can read it. Use it
 
 Think of it as the note you'd hand a careful new colleague on their first day. You don't repeat the house rules every time you give them a task. You write them down once, point to them, and trust they'll be remembered.
 
-Vibestrate discovers skills by filename. The filename minus `.md` is the skill id, and its contents load into an agent's prompt as extra context. So `auth-conventions.md` is the skill `auth-conventions`.
+Skills live in `.vibestrate/skills/` (committed with your project) or `.claude/skills/` (picked up if you already use Claude Code). Each one is either a folder holding a `SKILL.md` or a single flat `.md` file, and its name is that folder or file name - so `.vibestrate/skills/auth-conventions/SKILL.md` gives you the skill `auth-conventions`. A `name:` in the frontmatter overrides that. Prefer the folder shape: only a folder can sit beside a `.mcp.json` and bring MCP servers with it.
 
 ## Why it helps
 
@@ -19,24 +19,16 @@ Most "the agent did the wrong thing" problems trace back to context the agent di
 There's no required format. It's markdown. Write it like documentation for a careful colleague.
 
 ```markdown
-# .vibestrate/skills/payments.md
+# .vibestrate/skills/payments/SKILL.md
 
 This codebase handles real money. When touching `src/payments/`:
 
 - Always idempotent. Every external POST must include an idempotency key.
 - Currency is stored as integer cents. Never floats.
 - Refunds must go through `RefundService.process()` - never inline.
-- Log errors with `paymentLogger`, not the default logger (different sink).
 ```
 
 That's the whole skill. No frontmatter required.
-
-## Where skills live
-
-Drop a skill in either of two folders:
-
-- `.vibestrate/skills/` - committed with your project. Travels with the repo.
-- `.claude/skills/` - picked up if you're already using Claude Code's skill discovery.
 
 ## Attaching a skill to an agent
 
@@ -70,7 +62,7 @@ vibe run "Refund a stuck transaction" --skills payments,oncall-runbook
 
 ## Going deeper
 
-- A skill can also declare MCP servers (Model Context Protocol) for the agent to connect to during its turn, for the times the context it needs is live rather than written down.
+- A folder-shaped skill can declare MCP servers (Model Context Protocol) in a `.mcp.json` beside its `SKILL.md`, for the times the context an agent needs is live rather than written down. Attaching the skill attaches the servers. A flat `.md` skill has no folder of its own, so it can never carry them.
 - Assigning or unassigning a skill from the dashboard crosses the Action Broker as a `file.write` against `project.yml`, so a policy that denies file writes refuses it with the policy's own message and the decision lands in `.vibestrate/runs/roles/actions.ndjson`. The request names the Role's instruction file alongside the config, because a skill is instructions replayed into that Role's turns and can hand it new tools - so a path-scoped rule aimed at either file refuses the assignment. That gate is on the HTTP surface: `vibe skills assign` and the terminal shell write the same field with no gate. **Installing** a skill from a URL is not gated either - `vibe skills fetch` and the dashboard's fetch both write a new file into `.vibestrate/skills/` behind their own guards (private hosts refused, 256 KB cap, secret-shaped content redacted, no overwrite unless you ask), and nothing reads it until it is assigned to a Role, which is gated. See [[safety]].
 - [Attach skills (getting started)](/docs/getting-started/skills).
 - [Extending: add a skill](/docs/extending/add-skill).

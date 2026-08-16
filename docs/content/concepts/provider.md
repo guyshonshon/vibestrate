@@ -1,22 +1,22 @@
 ---
 title: Provider
-description: A local coding-agent CLI Vibestrate can drive. Vibestrate supplies the prompt; the provider supplies the model.
+description: What actually runs a model - a coding-agent CLI on your machine, or an HTTP endpoint. Vibestrate supplies the prompt.
 slug: concepts/provider
 ---
 
-A provider is the AI model you're using, wrapped so Vibestrate can talk to it. Claude Code, Codex, Ollama - Vibestrate doesn't care which, as long as it's installed on your machine.
+A provider is what actually runs a model. Vibestrate writes the prompt; the provider runs the model and hands back the response, and the file changes too when it can edit files. Everything model-specific - login, billing, context limits - stays on the provider's side of that line.
 
-Think of Vibestrate as the manager and the provider as the worker it hands tasks to. Vibestrate writes the prompt; the provider runs the model and hands back the response (and, for providers that edit files, the file changes too). That's the whole contract - everything model-specific stays on the provider's side of that line.
+Most providers are coding-agent CLIs already installed on your machine, but not all of them are. There are four kinds, declared under `providers:` in `project.yml`: `claude-code` (Claude Code, the integration Vibestrate understands most deeply), `cli` (any other coding-agent CLI - a command, its args, and how the prompt is fed in), `http-api` (a cloud model API on your own key, https only), and `localhost-proxy` (a model server on this machine, loopback only, so no egress).
 
-Providers are declared under `providers:` in `project.yml`. You declare each one either as a `cli` invocation (a command, its args, and how the prompt is fed in) or as a `claude-code` integration, which Vibestrate understands more deeply. Each provider advertises what it can do - reuse a session, report token usage, or hand back a session id - and Vibestrate drives them all through one uniform interface.
+Eleven CLIs ship with Vibestrate. Five are configured for you the moment they are detected - `claude`, `codex`, `gemini`, `aider` and `ollama`. The other six - `opencode`, `qwen`, `crush`, `goose`, `cursor` and `amp` - are detected but need `vibe provider setup` once, because their flags are not stable enough across versions for Vibestrate to guess.
 
-> **Use `claude-code`, not `cli`, for Claude.** The deeper integration is what makes Vibestrate *permission-aware*: when a write-capable seat (`permissions: code_write`) runs on a `claude-code` provider, Vibestrate injects `--permission-mode acceptEdits` so the headless `claude -p` can actually apply its edits in the worktree. A seat's `code_write` only governs Vibestrate's own broker; the underlying CLI has its *own* permission gate, and a generic `cli` provider can't be granted through it (the flag is claude-specific). Read-only seats - and any read-only / strict-apply-only run - get no grant. Set your own `settings.permissionMode` to override the default.
+> **Use `claude-code`, not `cli`, for Claude.** A write-capable seat (`permissions: code_write`) on a `claude-code` provider gets `--permission-mode acceptEdits`, so the headless `claude -p` can actually apply its edits in the worktree. A seat's `code_write` only governs Vibestrate's own broker; the underlying CLI has its *own* permission gate, and a generic `cli` provider can't be granted through it. Read-only seats get no write grant. Set `settings.permissionMode` to override the default.
 
-> **Provider vs [[profile]] vs [[role]]:** a *Provider* is the installed **CLI**; a *Profile* names a Provider plus how strong/expensive to run it; a *Role* runs on a Profile. Roles never point at a Provider directly - they go through a Profile. One Provider backs many Profiles; one Profile backs many Roles.
+> **Provider vs [[profile]] vs [[role]]:** a Provider is the tool; a Profile names a Provider plus how strong to run it; a Role runs on a Profile. Roles never name a Provider directly.
 
 ## Why it matters
 
-A provider is the line between Vibestrate and "the model." Vibestrate stays provider-agnostic: it builds the prompt, captures the output, and routes the result. Anything model-specific - login, billing, context limits - is the provider's job.
+A provider is the line between Vibestrate and "the model." Vibestrate stays provider-agnostic: it builds the prompt, captures the output, and routes the result. Swapping one provider for another changes nothing about how a Flow, a Crew or a run behaves.
 
 This is what keeps the tool *local-first*, where local-first means **sovereignty, not zero-egress**: there's no Vibestrate-operated backend or relay, so you run an independent tool you fully control. Most providers are local CLIs that own their own auth and egress. You *may* also point a provider at a model API with your own key (see **Non-CLI providers** below). That's your sovereign choice and doesn't change the local-first guarantee, because nothing ever flows through a service *we* run.
 
@@ -24,9 +24,9 @@ This is what keeps the tool *local-first*, where local-first means **sovereignty
 
 Every built-in provider lands in one of three states on your machine. The first two are detected installs; the third is just absent:
 
-<div class="docs-outcomes"><div class="docs-outcome ok"><b>ready</b><span>preset-ready: installed and Vibestrate already knows the flags, so it works out of the box (this is claude)</span></div><div class="docs-outcome warn"><b>detected, needs setup</b><span>installed but Vibestrate won't guess the flags; run vibe provider setup once to pick them</span></div><div class="docs-outcome stop"><b>missing</b><span>the CLI isn't installed, so there's nothing to drive until you install it</span></div></div>
+<div class="docs-outcomes"><div class="docs-outcome ok"><b>ready</b><span>preset-ready: installed, and Vibestrate already knows the flags, so it works out of the box</span></div><div class="docs-outcome warn"><b>detected, needs setup</b><span>installed but Vibestrate won't guess the flags; run vibe provider setup once to pick them</span></div><div class="docs-outcome stop"><b>missing</b><span>the CLI isn't installed, so there's nothing to drive until you install it</span></div></div>
 
-Five providers are preset-ready out of the box - Vibestrate already knows their flags:
+These five are preset-ready - Vibestrate already knows their flags:
 
 | Id | Status | Notes |
 |---|---|---|
@@ -59,7 +59,7 @@ Coding-agent CLIs disagree on flags - `--prompt` here, `-p` there, `exec` for so
 
 If a preset is wrong for your installed version (say, a flag the CLI removed), you can correct `command`/`args`/`input` directly - with `vibe provider setup`, by hand-editing `.vibestrate/project.yml`, or on the Crew page's **Providers** tab, which has an inline editor with a Save & test loop and a Remove action. The CLI and the dashboard can do exactly the same things.
 
-On the Providers tab you can also drag the CLI rows by their handle to reorder them, and lock a row to pin it out of the shuffle. This is a personal view preference kept in your browser - purely how the list is arranged for you. It never changes project config or how a run picks a provider (a run binds providers through its [Profiles](./profile.md), not list position).
+On the Providers tab you can also drag the CLI rows by their handle to reorder them, and lock a row to pin it out of the shuffle. This is a personal view preference kept in your browser - purely how the list is arranged for you. It never changes project config or how a run picks a provider (a run binds providers through its [[profile]]s, not list position).
 
 For anything the form doesn't surface, the editor has an **Advanced - raw YAML** mode (the toggle on the YAML block). It opens the provider's full `project.yml` block for direct editing - environment variables (`env`), claude-code `settings`, `extraArgs`, custom headers - seeded from the real saved config and validated on save. So fixing or setting up a provider is always fully doable in the dashboard; you never have to drop to `vibe provider setup`. (Authentication is the one exception by design: when a provider isn't logged in, the UI shows the login command for you to run in your own terminal - Vibestrate never logs you in.)
 
@@ -100,26 +100,28 @@ A Provider is a raw tool. A [[profile]] wraps it with model/power, and a [[role]
 
 ```yaml
 providers:
-  claude: { type: cli, command: claude, args: ["-p"], input: stdin }
+  claude: { type: claude-code, command: claude, args: ["-p"], input: stdin }
   codex:  { type: cli, command: codex, args: ["exec"], input: stdin }
 
 profiles:
-  claude-sonnet-deep: { provider: claude, model: sonnet, power: deep }
-  codex-balanced:      { provider: codex, power: balanced }
+  claude-high: { provider: claude, model: sonnet, power: high }
+  codex-low:   { provider: codex, power: low }
 
 crews:
   default:
     roles:
-      reviewer: { seats: [reviewer], profile: codex-balanced, prompt: .vibestrate/roles/reviewer.json, permissions: read_only }
+      reviewer: { seats: [reviewer], profile: codex-low, prompt: .vibestrate/roles/reviewer.json, permissions: read_only }
 ```
 
-Read it bottom-up: the `reviewer` Role runs on the `codex-balanced` Profile, which names the `codex` Provider at `balanced` power; the `codex` Provider is the raw `codex exec` CLI. Roles never name a Provider directly - the Profile is the link.
+Read it bottom-up: the `reviewer` Role runs on the `codex-low` Profile, which names the `codex` Provider at `low` effort; the `codex` Provider is the raw `codex exec` CLI. Roles never name a Provider directly - the Profile is the link.
+
+Effort levels come from the provider, so `high` is a real `claude` level and `low` a real `codex` one. See [[profile]] for the full sets.
 
 To run a whole run on a different Profile, or one Step on a stronger one:
 
 ```bash
-vibe run "..." --profile claude-sonnet-deep            # run-wide
-vibe run "..." --flow default --step-profile implement=opus-deep   # one step
+vibe run "..." --profile claude-high                   # run-wide
+vibe run "..." --step-profile implement=claude-high    # one step
 ```
 
 (Provider commands - `vibe provider list/setup/test` - manage the raw tools only. Profiles and Crews are edited in `project.yml`, the dashboard, or the API.)
@@ -146,7 +148,7 @@ http:
     models: [my-finetune]        # add a model suggestion to the openai api family
 ```
 
-In plain words: `mycli` gets two models (`turbo`, `eco`), its model is set with a `--model` flag, and its effort levels (`eco`, `turbo`) are applied as `--set reasoning=<level>`. The `gemini` entry sets `effort: null` to wipe a built-in knob, and the `http.openai` entry just adds a model suggestion to the existing `openai` API family.
+In plain words: `mycli` gets two models (`turbo`, `eco`), its model is set with a `--model` flag, and its effort levels (`eco`, `turbo`) are applied as `--set reasoning=turbo`. The `gemini` entry sets `effort: null` to wipe a built-in knob, and the `http.openai` entry just adds a model suggestion to the existing `openai` API family.
 
 Rules: a knob still only exists where it maps to a real flag/field (no advisory dials); omit a field to keep the built-in value, set it to `null` to clear it. See the merged result and where each entry came from with:
 

@@ -4,22 +4,22 @@ description: A short note you hand an agent so it knows your codebase's rules be
 slug: getting-started/skills
 ---
 
-A **skill** is a short note, written in plain markdown, that gets added to an agent's instructions before it starts work. It's how you teach an agent something about your project: how login works, the conventions you actually follow, the right way to handle a certain kind of change.
-
-Think of it as the briefing you'd give a new contractor on their first day. Instead of repeating "we do it this way here" every single time, you write it down once and hand it over.
+A **skill** is a markdown note that gets added to an agent's instructions before it starts work. Write it into `.vibestrate/skills/`, attach it to a role with `vibe skills assign`, and every run that seats that role reads it. It's how you teach an agent something about your project - how login works, the conventions you actually follow - once, instead of retyping it into every task. Think of it as the briefing you'd give a new contractor on their first day.
 
 ## Write one
 
-A skill is just a markdown file. Drop it in one of two folders:
+A skill is a markdown file, in either of two shapes:
 
-- `.vibestrate/skills/` - travels with your project, so anyone who clones the repo gets it too. Use this one by default.
-- `.claude/skills/` - picked up automatically if you already use Claude Code's skills locally.
+```text
+.vibestrate/skills/auth-conventions.md          # a flat file
+.vibestrate/skills/auth-conventions/SKILL.md    # or a folder
+```
 
-The file name (without the `.md`) becomes the skill's name, so `auth-conventions.md` is the skill `auth-conventions`. Inside, just write plain prose. Agents read it the same way a person would:
+Both of those are the skill `auth-conventions` - the name comes from the file stem or the folder name, unless a `name:` in frontmatter says otherwise. Vibestrate reads two roots: `.vibestrate/skills/`, which travels with your repo so anyone who clones it gets the skill, and `.claude/skills/`, picked up automatically if you already use Claude Code's skills. Prefer the first. Only the folder shape can carry a sibling `.mcp.json`; attaching such a skill attaches its MCP servers too.
+
+Inside, write plain prose. Agents read it the way a person would:
 
 ```markdown
-# .vibestrate/skills/auth-conventions.md
-
 This codebase uses Lucia for sessions. When touching auth:
 
 - Don't create session middleware inline - use `requireSession` from `src/server/auth.ts`.
@@ -29,31 +29,33 @@ This codebase uses Lucia for sessions. When touching auth:
 
 ## Hand it to an agent
 
-Name the skills you want in `project.yml`, per role. Roles live under `crews.<crewId>.roles`, not a top-level `agents:` key:
+See what you have, then attach one to a role:
+
+```bash
+vibe skills list
+vibe skills show auth-conventions
+vibe skills assign planner auth-conventions
+vibe skills unassign planner auth-conventions
+```
+
+`assign` writes the id into that role's `skills` list in `.vibestrate/project.yml`, at `crews.<crewId>.roles.<roleId>.skills`. You can edit the list by hand instead - it sits alongside the role's other keys, which must all stay present:
 
 ```yaml
 crews:
   default:
     roles:
       planner:
+        seats: [planner]
+        profile: claude-balanced
+        prompt: .vibestrate/roles/planner.json
+        permissions: read_only
         skills: [auth-conventions, error-handling]
-      executor:
-        skills: [auth-conventions]
 ```
 
-Or attach one for a single run with `--skills`:
+Or attach skills for a single run. These are merged with whatever each agent already has, never a replacement:
 
 ```bash
 vibe run "Add 2FA enrollment" --skills auth-conventions,security-review
-```
-
-Skills you pass with `--skills` are added on top of whatever each agent already has. They don't replace them.
-
-To see what's available:
-
-```bash
-vibe skills list
-vibe skills show auth-conventions
 ```
 
 ## When a skill is worth it
@@ -64,7 +66,7 @@ vibe skills show auth-conventions
 You keep typing the same context into task after task. The agent keeps making the same wrong guess that you have to correct. There's a rule that isn't written down anywhere else in the project.
 
 **Skip it when**
-It's already in CLAUDE.md or your README, since agents read those on their own as part of the project rules. It's a one-off, so just say it in the task description. It's about one file, where a comment in that file works better.
+It belongs in `.vibestrate/rules.md`, the project instructions every agent reads on every turn. It's a one-off, so just say it in the task description. It's about one file, where a comment in that file works better.
 
 </div>
 

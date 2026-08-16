@@ -1,80 +1,126 @@
 ---
 title: Consult
-description: An advisor that knows your real project. Ask it anything - it answers, and the most it can leave behind is a proposal waiting on you.
+description: Ask one question about your project and get an answer grounded in what is really there, and in Vibestrate's own documentation.
 slug: concepts/consult
 ---
 
-**Consult** is the senior voice you can pull aside mid-build. Ask the orchestrator a question and get an answer grounded only in your project's real context. It never touches your code: no run starts, no file in your repository changes, nothing merges. It reads your project, weighs the trade-offs, and tells you what it would do, then stops - the decision stays yours.
+**Consult** answers one question about your project. It reads your files, your config and your recent runs. It also reads Vibestrate's own documentation, compiled into the package, so an answer about the product quotes a real command or config key instead of a remembered one.
 
-There is one exception, and it is inert by design: if you state a durable rule while you're asking, consult can write down a **proposal** for you to confirm. **What consult can leave behind**, below, is the whole list.
+You reach it two ways: `vibe consult "..."` in a terminal, and the orb at the bottom right of every dashboard screen. It answers for **where you asked from** - screens to open in the browser, commands to run in the terminal. That is not a tone setting. On the dashboard the command reference pages are dropped from the answer's source material before the model sees them, so there is nothing left to copy a terminal instruction out of.
 
-For a conversation that persists, and that can act on what you say when you allow it, see [Supervisor Control](concepts/supervisor-control). Consult stays the one-shot way in.
+Consult is read-only. No run starts, no file in your repository changes, nothing merges, and the model is given no permission to write. One thing outlives the question, and it does nothing on its own: say a durable review rule while asking and consult writes it into `.vibestrate/project.yml` as a pending **policy proposal**. The code that writes it forces the advise tier and no matcher, whatever the answer asked for, and the rule enforces nothing until you confirm it.
 
-## Ask it anything
+Every answer states a **confidence** and lists **caveats** - what it could not verify. The orchestrator is a model too, and an answer with neither would be model confidence dressed as fact.
 
-```bash
-vibe consult "Should this auth refactor use a heavier review flow?"
-vibe consult "Why did the last run block?" --run <runId>
-vibe consult "What's left here?" --task <taskId>
-vibe consult "..." --file src/server/routes/consult.ts
+For a conversation that persists, and that can act when you allow it, see [Supervisor Control](/docs/concepts/supervisor-control). Consult is the one-shot way in.
+
+```text
+   your question
+        │
+        ├─▶ your project: files, config, runs, spend
+        │
+        └─▶ Vibestrate's own documentation
+                │
+                ├─ asked in a browser  ─▶ screens
+                └─ asked in a terminal ─▶ commands
 ```
 
-In the dashboard, the orb at the bottom-right opens the same thing from any screen.
+## Ask it
 
-## What it knows about your project
+```bash
+vibe consult "Does this auth refactor need a heavier flow?"
+vibe consult "Why did the last run block?" --run <runId>
+vibe consult "What is left here?" --task <taskId>
+vibe consult "What does this file do?" --file src/consult/consult.ts
+```
 
-Consult is not a generic chatbot. What it knows about your work is *controlled* context and nothing more: your `VIBESTRATE.md`, your `project.yml` (providers, profiles, crews, policies), recent run outcomes and validation evidence, agent-visible annotations, and, when you pass them, a task, a run, or selected files. All of it is read-only, path-guarded, secret-redacted, and bounded.
+`--file` repeats. `--profile`, or `--provider` with `--model` and `--effort`, answers this one question on a model of your choosing without editing anything.
 
-## It knows Vibestrate itself
+In `vibe shell`, type `consult "..."` at the prompt. That is a terminal, so it answers with commands.
 
-Alongside your project, consult carries Vibestrate's own documentation: these pages, the command tree, and the `project.yml` schema, compiled into the build. Ask "how do I make a crew" and it answers from the Crew page and the real `vibe crew` commands rather than from a model's memory of some other tool.
+## What it reads
 
-The lookup is deterministic keyword retrieval, not a model call and not a search service, so the same question always brings back the same pages and it works offline. It only fires when your question uses Vibestrate's own vocabulary: ask why a React build failed and no product pages are pulled in at all. The pages are part of the build and are not configurable - there is nothing to install, point at, or keep in sync.
-
-## It can see the screen you asked from
-
-Some screens hand the orb a snapshot of what you are looking at, so you can ask about the thing in front of you instead of describing it again. The **New run** composer publishes the brief you have typed, the flow and crew you picked, the run options, and any planner questions still on screen; the spec-up questions screen publishes the round and your answers so far.
-
-The snapshot is a typed projection of state the dashboard already holds, never a screenshot or a scrape of the page, and its text is secret-redacted server-side before it reaches a provider. Screens that publish nothing leave the orb exactly as it was: grounded in the project alone.
-
-## It is honest about what it can't verify
-
-Because the orchestrator is itself a model, an answer states a **confidence** and lists **caveats** - the things it could not verify from the evidence - instead of presenting model confidence as fact.
-
-It may recommend actions (start a run, pick a flow, request sandbox mode) and, when it has an evidence-backed improvement, **propose** a `VIBESTRATE.md` update.
-
-## What consult can leave behind
-
-Two kinds of proposal, and nothing else. Both wait for you.
-
-A **`VIBESTRATE.md` update** is saved for review and never auto-applied. A human applies it explicitly (`vibe guide apply <id>`, or the **Apply** button on the consult card). Applying appends the reviewed text to the manual through a guarded writer (Action Broker `file.write`, path-guarded, and refused if the content carries secret-shaped tokens), so you review the diff before committing.
-
-A **policy proposal** is the one thing consult writes on its own. If you state a durable review rule while asking ("stop using em-dashes"), consult appends it to `projectPolicies` in `.vibestrate/project.yml` as a pending row. That row is a real edit to a tracked file, so it shows up in `git diff` - and it is inert until you confirm it:
-
-<div class="docs-callout">
-
-**A proposed policy changes nothing until you confirm it.** It is written with `confirmedAt: null`, which is the gate both consumers check: the reviewer never injects it and the merge gate never enforces it. It is also forced to `tier: advise` with no matcher, whatever the model asked for, so a model cannot author a rule that blocks a merge. Confirm it with `vibe policies confirm <id>` (or the Policies page), or drop it with `vibe policies reject <id>`.
-
-</div>
-
-Everything else is off the table. Consult starts no run, edits no file in your repository, changes no setting that governs a run, and merges nothing. It goes through the same **assist** path as the rest of Vibestrate: broker-gated, no worktree, no agent turn that can reach your codebase. Its evidence is audited under `runs/consult/`.
-
-## Surfaces
+Two halves, kept apart.
 
 <div class="docs-cards">
 
-**CLI**
-`vibe consult "<question>" [--task <id>] [--run <id>] [--file <path>] [--json]`. Manage the guide with `vibe guide init | show | proposals | apply <id> | reject <id>`.
+**Your project.** `VIBESTRATE.md`, `.vibestrate/project.yml` (providers, profiles, crews, policies), recent run outcomes with their review and validation evidence, the codebase map, agent-visible annotations, and - when you pass them - a task, a run, or named files. Read-only, path-guarded, secret-redacted and bounded.
 
-**Shell**
-Type `consult "<question>"` at the command prompt.
-
-**API**
-`POST /api/consult`; `GET /api/vibestrate`, `POST /api/vibestrate/init`, `GET /api/vibestrate/proposals`, `POST /api/vibestrate/proposals/:id/apply|reject`.
-
-**Web**
-The **Consult** top-bar button, with Apply or Dismiss on a proposed update.
+**Vibestrate's documentation.** These pages, the command tree and the config schema, compiled into the build. The lookup is keyword matching, not a model call and not a search service, so it works offline and the same question brings back the same pages.
 
 </div>
 
-Related: [[vibestrate-md]], [[supervisor]], [[safety]].
+The product half stays quiet unless your question uses Vibestrate's own vocabulary. Ask why a React build failed and no product pages are pulled in at all.
+
+Two things this is not. It is not a sandbox: the provider runs as a CLI in your project directory, so a tool-capable model can go and read files itself. And the documentation is part of the build, so a file in your project cannot shadow it, extend it, or put words in it.
+
+## Some screens hand it what you are looking at
+
+The **New run** composer publishes the brief you have typed, the flow and crew you picked, the run options, and any planner questions still on screen. The [Spec-up](/docs/concepts/spec-up) questions screen publishes the round and your answers so far. Everywhere else the orb is grounded in the project alone.
+
+What it gets is a typed projection of state the dashboard already holds, never a screenshot or a scrape of the page, and its text is secret-redacted on the server before it reaches a provider.
+
+## What things cost
+
+Ask about money and consult rolls up the last seven days of spend per provider, from the metrics your runs recorded.
+
+It says when a figure is an **estimate**. A cost a provider CLI reported is quoted as fact. A turn priced here from token counts times a published list price is not, and one estimated turn makes the whole total an estimate. If nothing was recorded in the window, the answer says that rather than producing a number.
+
+## Two questions
+
+<div class="docs-cards">
+
+**"Why did the last run block?"** - answerable. The status, the review decision and the validation evidence are all on disk, so the answer points at what actually happened.
+
+**"What did Claude cost me this week?"** - answerable when the runs recorded metrics, and when they did not, consult says nothing was recorded. It will not price a week it cannot see.
+
+</div>
+
+The same line holds on the product half. Ask about a flag that does not exist and the answer is instructed to say the documentation does not cover it and to lower its confidence, rather than filling the gap from memory. That one is an instruction to the model, not a gate in code - which is why the answer also shows you its caveats.
+
+## What it can leave behind
+
+Two proposals, and nothing else. Both wait for you.
+
+A **`VIBESTRATE.md` update** is saved for review, never auto-applied. A human applies it explicitly, with the Apply button on the answer or from the CLI. Applying appends the reviewed text through a guarded writer - Action Broker `file.write`, path-guarded, refused if the content carries secret-shaped tokens - so you read the diff before you commit it.
+
+```bash
+vibe guide proposals
+vibe guide apply <id>
+vibe guide reject <id>
+```
+
+A **policy proposal** is the one thing consult writes on its own. It is a real edit to a tracked file, so it shows up in `git diff`.
+
+<div class="docs-callout">
+
+**A proposed policy changes nothing until you confirm it.** It is written with `confirmedAt: null`, which is the gate both consumers check: the reviewer never injects it and the merge gate never enforces it. Tier and matcher are forced by the code that writes it, so a model cannot author a rule that blocks a merge. See [Policies](/docs/concepts/policies).
+
+</div>
+
+```bash
+vibe policies list
+vibe policies confirm <policyId>
+vibe policies reject <policyId>
+```
+
+Everything else is off the table. Consult starts no run, changes no setting that governs a run, and merges nothing. It runs on the same **assist** path as the rest of Vibestrate: the provider spawn crosses the Action Broker, there is no worktree, and no run lifecycle. Its record is audited under `.vibestrate/runs/consult/`.
+
+## Where you drive it
+
+<div class="docs-cards">
+
+**Terminal.** `vibe consult`, and the same command behind `vibe shell`'s consult page.
+
+**Dashboard.** The orb at the bottom right of every screen. It offers two things: asking about your project, which is consult, and working in Vibestrate itself, which is guided walkthroughs and the [Supervisor](/docs/concepts/supervisor-control) conversation.
+
+**API.** `POST /api/consult` asks. `GET /api/vibestrate`, `/api/vibestrate/init` and `/api/vibestrate/proposals` read and apply the manual side. The surface is fixed to the dashboard on this route and never read off the request body, so a client cannot ask its way back into terminal instructions.
+
+</div>
+
+## Related
+
+- [VIBESTRATE.md](/docs/concepts/vibestrate-md) - the manual consult reads, and proposes updates to.
+- [Policies](/docs/concepts/policies) - the tiers, and what confirming a proposal turns on.
+- [Supervisor Control](/docs/concepts/supervisor-control) - the conversation that remembers, and can act.
+- [Safety](/docs/concepts/safety) - the Action Broker, and what does not cross it.

@@ -8,9 +8,9 @@ Short, plain definitions for the words Vibestrate's docs use.
 
 <div class="docs-glossary">
 
-**Action Broker.** The one checkpoint every real effect has to pass through, whether that's starting a provider, running a command, or writing a file. For each effect it decides allow, deny, or ask a human first, then writes down what it decided and why in `.vibestrate/runs/<runId>/actions.ndjson`. This is where **Policy** actually gets enforced in the running code. It is default-allow with a policy veto - an effect nobody wrote a rule about proceeds - so it's where you impose limits, not a whitelist you have to satisfy. See [Safety](/docs/concepts/safety).
+**Action Broker.** The one checkpoint every real effect has to pass through, whether that's starting a provider, running a command, or writing a file. For each effect it decides allow, deny, or ask a human first, then writes down what it decided and why in an `actions.ndjson` in that run's folder under `.vibestrate/runs/`. This is where **Policy** actually gets enforced in the running code. It is default-allow with a policy veto - an effect nobody wrote a rule about proceeds - so it's where you impose limits, not a whitelist you have to satisfy. See [Safety](/docs/concepts/safety).
 
-**Crew.** Your local team of Roles. A run picks one Crew (default: `defaultCrew`) and matches the Flow's Seats to the Roles in it. See [Crew](/docs/concepts/crew).
+**Crew.** Your local team of Roles. A run uses one Crew - the one named by `defaultCrew` in `project.yml` unless you pass another - and matches the Flow's Seats to the Roles in it. See [Crew](/docs/concepts/crew).
 
 **Role.** One teammate inside a Crew. It carries instructions (a prompt), permissions, skills, the Profile it runs on, and the Seats it's allowed to fill. See [Role](/docs/concepts/role).
 
@@ -18,15 +18,15 @@ Short, plain definitions for the words Vibestrate's docs use.
 
 **Profile.** How strong and how expensive a Role runs: its provider, model, power, and timeout. Power is specific to each provider. See [Profile](/docs/concepts/profile).
 
-**Approval gate.** A spot in a workflow or Flow where Vibestrate stops and waits for a person to say yes before going on. You set it with `policies.requireApprovalAtStages`, or with a step of `kind: approval-gate` inside a Flow.
+**Approval gate.** A spot where Vibestrate stops and waits for a person to say yes before going on. Three things can raise one: a stage listed under `policies.requireApprovalAtStages` (which fires once per run, on the first pass through that stage), a step of `kind: approval-gate` inside a Flow, or an agent emitting `HUMAN_APPROVAL: REQUIRED` in its own output. The run sits at `waiting_for_approval` until `vibe approvals approve`, `reject`, or `request-changes`.
 
 **Context source.** A file or URL you hand to a run or task so its contents get pasted into **every** agent's prompt (`vibe run --context-file/--context-url`, or a task's context panel). Files are checked first so secret files are refused and secret-looking text is hidden; URLs are fetched safely, size-capped, and cleaned before any prompt sees them. A source that fails is quietly skipped with a note rather than breaking the run.
 
-**Artifact.** Any file a run makes or saves along the way - the plan, the architecture notes, the diff, the validation output, review findings, the verification summary. They all live under `.vibestrate/runs/<runId>/`.
+**Artifact.** Any file a run makes or saves along the way - each step's prompt and reply, the validation output, review findings, the verification summary. They all live in that run's folder under `.vibestrate/runs/`.
 
 **CLI.** The `vibe` command-line tool. The main way you drive Vibestrate, alongside Mission Control.
 
-**Effort.** A rough how-hard-is-this hint - `low | medium | high` - saved to help with planning. It doesn't pick a provider anymore; how strong a worker actually runs is the [Profile](/docs/concepts/profile)'s job.
+**Effort.** A rough how-hard-is-this reading of a task's text - `low | medium | high` - worked out by a keyword heuristic, with the reasons shown so you can disagree. It is a hint the flow selector weighs, not a setting: how strong a worker actually runs is the [Profile](/docs/concepts/profile)'s job. Not the same as a Profile's `power`, which is the reasoning level a provider is asked for.
 
 **Flow.** A saved recipe for a run. Like the default workflow, but with named Seats, your own step order, optional pause points, and limited repeats. See [Flow](/docs/concepts/flow).
 
@@ -42,11 +42,13 @@ Short, plain definitions for the words Vibestrate's docs use.
 
 **Plan.** The structured output the planner agent produces. The first stage of the default workflow makes it.
 
+**Ponytail.** The minimalism posture injected into the agents that write code, so their default is the smallest change that works. On by default; `vibe config set ponytail false` turns it off. Only the implementer and fixer see it - the agents that judge or plan the work never do. See [Ponytail](/docs/concepts/ponytail).
+
 **Policy.** A gate enforced by code, not just a line in a prompt. Policies live in `.vibestrate/policies/*.yml` (and as approval gates via `policies.requireApprovalAtStages`); the **Action Broker** checks them and can `deny` a real effect or flag it as `require_approval` (accepted only on `run.complete` and `file.patch`, the two effects that can actually pause). A rule the model can't sweet-talk its way around. A run refuses to start while any policy file is malformed or an id is defined twice, since a rule that didn't load protects nothing. Contrast with **Instructions** (`rules.md`), which only get pasted into prompts as advice.
 
 **Project root.** The git repository where `vibe init` was run. It's where `.vibestrate/` lives.
 
-**Provider.** Whatever Vibestrate uses to talk to a model: a local **CLI** (Claude Code, Codex, Aider, Ollama, OpenCode), a **cloud API** (`http-api` → Anthropic/OpenAI with your own env-ref key, marked external), or a **local model server** (`localhost-proxy` → Ollama/LM Studio/vLLM, no egress). See [Provider](/docs/concepts/provider).
+**Provider.** Whatever Vibestrate uses to talk to a model: a local **CLI** (Claude Code, Codex, Gemini CLI, Aider, Ollama and several more - `vibe provider detect` lists them), a **cloud API** (`http-api` → Anthropic/OpenAI with your own env-ref key, marked external), or a **local model server** (`localhost-proxy` → Ollama/LM Studio/vLLM, no egress). See [Provider](/docs/concepts/provider).
 
 **Replay.** A look-only viewer for a run that's already saved. `vibe replay <runId>`.
 
@@ -62,19 +64,31 @@ Short, plain definitions for the words Vibestrate's docs use.
 
 **Status.** Where a run is right now, drawn from a fixed enum: `created`, `planning`, `planned`, ... `merge_ready`, `blocked`, `failed`, `aborted`. See [Run state](/docs/concepts/state).
 
+**Spec-up.** The planning chain that runs *before* any code: it reads a brief, asks the gap questions it left unanswered, then drafts a scope, a spec, an architecture, a risks register, and a roadmap of cards. Every step is a read-only run. `vibe spec-up start`, or let the supervisor route a plan-worthy brief there. See [Spec-up](/docs/concepts/spec-up).
+
+**Supervisor.** One word, two things. The **setting** (`persona` in `project.yml`) is the judgment a run brings - how hard it looks and what the reviewers aim at; `vibe supervisor list / adopt / default` manage it. The **Supervisor panel** in Mission Control is a conversation with your project that can, when you allow it, act; `vibe supervisor stop / resume / status` govern that. See [Supervisor](/docs/concepts/supervisor) and [Supervisor Control](/docs/concepts/supervisor-control).
+
+**Consult.** One read-only question about your project, answered from your real files, config and runs plus Vibestrate's own docs. It starts nothing and changes nothing. `vibe consult "..."` in a terminal, or the orb on any dashboard screen. See [Consult](/docs/concepts/consult).
+
 **Task.** A description of what you want done, submitted to Vibestrate. It kicks off a run. See [Task](/docs/concepts/task).
 
-**Assist.** A single, **read-only** ask with a structured answer: Vibestrate puts one question to a provider and gets back validated JSON - no worktree, no fix loop, no run lifecycle. It's logged like any other effect, with evidence under `.vibestrate/runs/assist/`. It's the building block for **Enhance** (and later overview/suggest).
+**Assist.** A single, **read-only** ask with a structured answer: Vibestrate puts one question to a provider and gets back validated JSON - no worktree, no fix loop, no run lifecycle. It's logged like any other effect, with evidence under `.vibestrate/runs/assist/`. It's the building block **Enhance** is made of.
 
-**Enhance.** An [Assist](#) that *breaks* a task/card into an ordered **Checklist** - e.g. "Add a health endpoint" → `1. define the route`, `2. return json`, `3. add a test`. It only **proposes**; you accept. The model never writes to the board on its own. Run it with `vibe tasks enhance <id>` (add `--apply` to append) or the "Enhance" button on a task. Different from macro **Proposals**, which create *separate* cards.
+**Enhance.** An Assist that *breaks* a task/card into an ordered **Checklist** - e.g. "Add a health endpoint" → `1. define the route`, `2. return json`, `3. add a test`. It only **proposes**; you accept. The model never writes to the board on its own. Run it with `vibe tasks enhance <id>` (add `--apply` to append) or the "Enhance" button on a task. Different from macro **Proposals**, which create *separate* cards. (The Conductor's Enhance pass is a different thing - see **Conductor**.)
 
-**Board columns (coarse).** The planning board sorts cards into five broad columns - **Planned · In-progress · Needs testing · Completed · Archived** - worked out from a card's status plus its needs-testing / archived overlays. They shift on their own as the run status changes. They're a kanban for humans, kept on purpose simpler than the orchestrator's fine run stages (planning/executing/reviewing/…), which live in [Mission Control](#). **Archived** is a card you've filed away (a flag, independent of run status).
+**Board columns.** The planning board sorts cards into five broad columns - **Planned · In-progress · Needs testing · Completed · Archived** - worked out from a card's status plus its needs-testing / archived overlays. They shift on their own as the run status changes. They're a kanban for humans, kept on purpose simpler than the orchestrator's fine run stages (planning/executing/reviewing/…). **Archived** is a card you've filed away (a flag, independent of run status).
 
-**Needs testing.** A heads-up that doesn't block anything, raised by a reviewer/verifier (`HUMAN_REVIEW: ADVISORY`) when a run finished fine but a person should *eyeball* something the model can't perceive - visual layout, animation, 3D, UX feel. The run keeps its verdict (it isn't stuck waiting, unlike an [Approval gate](#)); the linked card is flagged, and a human verdict routes it - "looks good" → Done, "needs work" → reopened. It shows up as a banner on the task and a badge on the board card.
+**Needs testing.** A heads-up that doesn't block anything, raised by a reviewer/verifier (`HUMAN_REVIEW: ADVISORY`) when a run finished fine but a person should *eyeball* something the model can't perceive - visual layout, animation, 3D, UX feel. The run keeps its verdict, so unlike an approval gate it isn't stuck waiting; the linked card is flagged, and a human verdict routes it - "looks good" → Done, "needs work" → reopened. It shows up as a banner on the task and a badge on the board card.
 
-**Pick-up execution.** Running a card's [Checklist](#) one item at a time inside one run and one worktree: the flow's `checklistSegment` repeats once per item (micro-plan → implement), committing each item and carrying a compact summary forward to the next, with one holistic plan before and one review after. **Continuous** runs items back-to-back; **step-by-step** pauses between them. Start it with `vibe tasks pickup <id>` or the "Run checklist" button. An instant task is just the one-item version of this.
+**Pick-up execution.** Running a card's Checklist one item at a time inside one run and one worktree: the flow's `checklistSegment` repeats once per item (micro-plan → implement), committing each item and carrying a compact summary forward to the next, with one holistic plan before and one review after. **Continuous** runs items back-to-back; **step-by-step** pauses between them. Start it with `vibe tasks pickup <id>` (add `--step` to pause between items) or the "Run checklist" button. An instant task is just the one-item version of this.
 
 **Checklist.** An ordered list of **items** (todos) that lives *inside* a task/card - the concrete breakdown of what the card involves (e.g. `1. /health returns json`, `2. test the endpoint`). Kept on the task on purpose, so the context isn't scattered across many cards. Each item has a status (`pending`/`in_progress`/`done`/`blocked`). Manage it with `vibe tasks checklist …` or on the task detail page. (Different from a Flow **Step**, which is a workflow phase.)
+
+**Run mode.** How a task runs: `plain` (the default flow, one holistic pass) or `supervised` (the Conductor sequences the steps). It's a field on the task, not a different kind of task.
+
+**Supervised task.** A task in `supervised` run mode. Its checklist items become **steps**, each carrying an objective, an acceptance check, and optional file hints, and each gets its own executor turn and its own review before the next one starts. Bounded by `supervised.maxSteps` (20 by default) and `supervised.maxSpendUsd`. `vibe tasks sequence <id>`. See [Supervised tasks](/docs/concepts/supervised-tasks).
+
+**Conductor.** What sequences a supervised task's steps. Between steps it runs a cheap read-only **supervisor** turn that returns PROCEED, ENHANCE, or ESCALATE, and maintains an **invariants ledger** - an append-only list of cross-cutting decisions ("all API responses use snake_case") re-injected into every later step. ENHANCE triggers a plan-only pass that may refine, reorder, or remove *pending* steps; adding a step, or removing one you authored, escalates to you instead.
 
 **Terminal status.** One of `merge_ready`, `blocked`, `failed`, `aborted`. Once a run reaches one of these, it can't transition out.
 
@@ -89,5 +103,13 @@ Short, plain definitions for the words Vibestrate's docs use.
 **Worktree.** A separate git working directory bound to its own branch. Vibestrate creates one per run under `git.worktreeDir`. See [Worktree](/docs/concepts/worktree).
 
 **Workflow.** The static, ordered description of the stages a run progresses through. See [Workflow](/docs/concepts/workflow).
+
+**Container isolation.** Running each provider turn inside a throwaway Docker container instead of on your machine, so the blast radius is the container. Off by default (`execution.backend: local-worktree`); turn it on with `vibe config set execution.backend docker`. See [Container isolation](/docs/concepts/sandbox).
+
+**Annotation.** A short note you pin to a file so agents read it before they start - "don't refactor this", "match the pattern in `x.ts`". It never touches your source; annotations live in `.vibestrate/annotations.json`. See [Annotations](/docs/concepts/annotation).
+
+**Project parameters.** Typed answers a Flow needs before it can run - a project name, a framework - filled once and reused by every later run, saved in `.vibestrate/project-params.json`. A `secret: true` param stores only the name of an environment variable, never the value. See [Project parameters](/docs/concepts/project-params).
+
+**VIBESTRATE.md.** A committed file at your project root telling the orchestrator what this project is and how you like it run. Read before every task. Advisory, like **Instructions** - it shapes planning but can never override a **Policy**. See [VIBESTRATE.md](/docs/concepts/vibestrate-md).
 
 </div>

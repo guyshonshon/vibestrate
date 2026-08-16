@@ -61,6 +61,10 @@
           "label": "Consult"
         },
         {
+          "slug": "concepts/walkthroughs",
+          "label": "Walkthroughs"
+        },
+        {
           "slug": "concepts/spec-up",
           "label": "Spec-up (plan before you build)"
         },
@@ -195,6 +199,10 @@
         {
           "slug": "cli/supervised-tasks",
           "label": "vibe tasks"
+        },
+        {
+          "slug": "cli/supervisor",
+          "label": "vibe supervisor"
         }
       ]
     },

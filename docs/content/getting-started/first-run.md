@@ -4,11 +4,28 @@ description: Give Vibestrate one small task and watch it go from idea to a finis
 slug: getting-started/first-run
 ---
 
-This walks you through a single task from start to finish: you describe what you want, Vibestrate does the work, and it stops with a finished change waiting for your approval.
+One task, start to finish. You describe what you want, Vibestrate does the work in a git worktree beside your project, and it stops with a finished change on its own branch. It never merges and never pushes, so the last step is always yours.
+
+A run ends in one of four states, and the state is the whole answer to "what do I do next":
+
+<div class="docs-outcomes">
+<div class="docs-outcome ok"><b>merge_ready</b><span>The change is finished. Read the diff and keep it or drop it.</span></div>
+<div class="docs-outcome warn"><b>blocked</b><span>The reviewer or verifier flagged something you should decide.</span></div>
+<div class="docs-outcome stop"><b>failed</b><span>Something broke mid-run.</span></div>
+<div class="docs-outcome stop"><b>aborted</b><span>You stopped the run yourself with vibe abort.</span></div>
+</div>
 
 ## Pick a small, well-scoped task
 
-Vibestrate works best on the kind of task you'd hand a careful colleague: clear scope, a part of the code you can point to, and a way to tell when it's done. Don't open with "refactor the whole login system." Start with something like "add structured logging to the settings save handler."
+Vibestrate works best on the kind of task you'd hand a careful colleague: clear scope, a part of the code you can point to, and a way to tell when it's done.
+
+<div class="docs-cards">
+
+**Too big** - "Refactor the whole login system." No boundary, no finish line, and the reviewer has nothing to check the result against.
+
+**About right** - "Add structured logging to the settings save handler." One handler, one behavior, and your existing tests say whether it worked.
+
+</div>
 
 ## Start the run
 
@@ -16,44 +33,49 @@ Vibestrate works best on the kind of task you'd hand a careful colleague: clear 
 vibe run "Add structured logging to the settings save handler"
 ```
 
-To watch it work as it goes, add `--ui`:
+To watch it work as it goes, add `--ui`. The dashboard starts alongside the run, on port 4317 by default.
 
 ```bash
 vibe run "Add structured logging to the settings save handler" --ui
 ```
 
-From here, Vibestrate does the rest on its own:
+## What happens next
 
 <div class="docs-flow">
 <div><b>Look</b><span>Reads your project to learn its language, its tools, and how you run your tests.</span></div>
-<div><b>Copy</b><span>Makes a separate working copy of your code (a git worktree), off to the side, under ../.vibestrate-worktrees/&lt;runId&gt;/.</span></div>
-<div><b>Build</b><span>Plans the change, builds it, runs your tests, then reviews and verifies the result.</span></div>
-<div><b>Fix loop</b><span>If the review finds a problem, it loops back, fixes it, and checks again.</span></div>
-<div><b>Stop</b><span>Stops at one of three outcomes and leaves the call to you.</span></div>
+<div><b>Copy</b><span>Creates a git worktree beside your project, under ../.vibestrate-worktrees/, in a folder named after the run.</span></div>
+<div><b>Build</b><span>Plans the change, designs the approach, writes it, then runs your validation commands.</span></div>
+<div><b>Check</b><span>A reviewer reads the diff cold. If it asks for changes, a fixer makes them and validation runs again.</span></div>
+<div><b>Verify</b><span>A separate verifier seat takes a final pass and decides whether the result is merge-ready.</span></div>
 </div>
 
-The run ends in one of three states:
+The default flow wires that into eight steps. The review loop runs at most three passes - one review plus up to two fix cycles:
 
-<div class="docs-outcomes">
-<div class="docs-outcome ok"><b>merge_ready</b><span>The change is ready for you.</span></div>
-<div class="docs-outcome warn"><b>blocked</b><span>It needs your call.</span></div>
-<div class="docs-outcome stop"><b>failed</b><span>Something went wrong.</span></div>
-</div>
+```text
+  plan ─▶ architecture ─▶ implement ─▶ validation ─▶ review
+                                                       │
+   ┌──── changes requested ────────────────────────────┤
+   │                                                   │
+   └─▶ fix ─▶ revalidation ─▶ review                   ▼
+                                                    verify
+```
+
+Those step names are also the folder names under the run's artifacts, so `review` above is the same `review` in `artifacts/flows/review/output.md`.
 
 ## What you'll see
 
-The terminal prints each step as it happens: a header, a short status, and any output. With `--ui`, the same thing shows up as a live board you can watch.
-
-When the run finishes, you'll see something like:
+The terminal prints each step as it happens: a header, a short status, and any output. The last thing it prints is the summary.
 
 ```text
-Run bold-lovelace → merge_ready
-  worktree: ../.vibestrate-worktrees/bold-lovelace
-  branch:   vibestrate/bold-lovelace
-  artifacts: .vibestrate/runs/bold-lovelace/
+Final status: merge_ready
+  Review decision: APPROVED
+  Verification: PASSED
+  Artifacts: .vibestrate/runs/bold-lovelace/artifacts
+  Worktree: /Users/you/.vibestrate-worktrees/bold-lovelace
+  Branch: vibestrate/bold-lovelace
 ```
 
-Run ids are docker-style `<adjective>-<noun>` handles like `bold-lovelace` - no slug is ever appended to the worktree or branch name.
+`bold-lovelace` is the run id. Vibestrate gives every run a docker-style `adjective-noun` handle and uses it verbatim as the worktree folder name and the branch suffix - no task slug is appended.
 
 ## Look at what it changed
 
@@ -79,8 +101,11 @@ The branch is yours to:
 
 ## When it doesn't finish clean
 
-- **`blocked`** - the reviewer or verifier flagged something that needs a human decision. Read `.vibestrate/runs/<runId>/artifacts/flows/review/output.md` (or `artifacts/flows/verify/output.md` if verification is what blocked). `events.ndjson` carries the matching `review.decision` or `verification.decision` event with the actual verdict.
-- **`failed`** - something broke partway through. Check `.vibestrate/runs/<runId>/events.ndjson` for the last event before the failure, and the step's own output under `artifacts/flows/<step-id>/output.md`.
+Every run keeps its full record on disk, whichever state it ended in.
+
+- **`blocked`** - the reviewer or verifier flagged something that needs a human decision. Read `artifacts/flows/review/output.md` in the run's folder, or `artifacts/flows/verify/output.md` if verification is what blocked. `events.ndjson` carries the matching `review.decision` or `verification.decision` event with the actual verdict.
+- **`failed`** - something broke partway through. Check `events.ndjson` for the last event before the failure, and the step's own output under `artifacts/flows/`, in the folder named for that step.
+- **`aborted`** - you stopped it. `vibe abort` marks the run aborted and leaves the worktree in place, so any half-finished work is still there to read.
 
 See [Debug a failed run](/docs/workflows/debug-failed) for the step-by-step playbook.
 

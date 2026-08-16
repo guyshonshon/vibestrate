@@ -14,6 +14,11 @@ take payments? how many products? do you ship physical goods?), asks you those
 gap questions, and only then drafts the plan. Nothing it does touches your code:
 every step is a read-only run.
 
+What comes back is a scope (in, out, assumptions), a spec, an architecture with
+a provisioning checklist, a risks register, and a roadmap of dependency-ordered
+board cards. Start it with `vibe spec-up start` and your brief, or start an
+ordinary run and let the supervisor route a plan-worthy brief here on its own.
+
 ## What you get
 
 1. **Gap questions, in rounds.** It reads the brief and asks for the decisions
@@ -43,7 +48,8 @@ Spec-up is a chain of short, read-only runs you step between, not one long proce
 that holds open:
 
 ```
-intake  ->  (answer round 1)  ->  gap-check  ->  (answer round 2) ... ->  spec-up  ->  (you approve)  ->  roadmap
+intake  ->  answer round  ->  gap-check  ->  answer round
+        ...  ->  spec-up  ->  (you approve)  ->  roadmap
 ```
 
 Each link is a fresh run. Because none of them write code, each is clamped
@@ -57,7 +63,7 @@ answers in view (redacted before the model sees them).
 
 ## Where to find it
 
-Spec-up is not a separate screen - it is a run outcome. Just start a run (the
+Spec-up is not a separate screen - it is a run outcome. Start a run (the
 dashboard's New-run card, or `vibe run "<brief>"`): when the supervisor judges
 the brief plan-worthy, the run opens on its gap-questions; answer them and the
 spec-up run drafts the spec / architecture / risks for you to review, then the
@@ -66,26 +72,41 @@ trigger biases to execute - a targeted change ("add X to foo.ts") just runs.
 
 - Force spec-up on a brief the heuristic skips: `vibe run --flow spec-up-intake "<brief>"`.
 - Disable auto spec-up entirely: set `adaptiveSpecUp: off` in `project.yml`.
-- CLI parity for the chain: `vibe spec-up questions <runId>`,
-  `vibe spec-up answer <runId> --answer <id>="..."` (add `--proceed` to build the
-  spec now), `vibe spec-up simplify <runId> <id>` / `vibe spec-up suggest <runId> <id>`
-  (`--all` for the round), `vibe spec-up approve <runId>`, and
-  `vibe spec-up roadmap <runId>` to turn a finished roadmap run into a proposal.
 
-## Honest limits (v1)
+Every step of the chain has a command, so you can drive the whole thing from a
+terminal:
 
-Spec-up v1 is an educated draft and a scope-decision tool, not a novice autopilot.
-Its job is to make you an informed decision-maker about *scope and direction* -
-which you can judge - while technical correctness is guarded downstream by
-execution-time review, not by you nodding at an architecture doc.
+```bash
+vibe spec-up start "a mini ecommerce store"
+vibe spec-up questions <runId>              # the round's questions, with ids
+vibe spec-up answer <runId> --answer <id>=<value>
+vibe spec-up answer <runId> --proceed       # stop asking, draft the spec now
+vibe spec-up simplify <runId> <questionId>  # re-explain one question
+vibe spec-up suggest <runId> --all          # draft answers you then edit
+vibe spec-up edit <runId> scope             # or spec | architecture | risks
+vibe spec-up approve <runId>                # approve, then synthesize a roadmap
+vibe spec-up build <runId>                  # approve, then build it
+vibe spec-up roadmap <runId>                # roadmap run -> a proposal
+```
 
-When a card runs, its acceptance criteria are now a **real gate**: they are
-carried into the run (so the agent builds to them) and the verifier must confirm
-each one before the run can pass - the prose criteria are judged by the verifier
-against the artifacts, and a card can also carry `acceptanceCommands` (shell
-checks you author) that run as an extra validation pass, so a failed acceptance
-check blocks merge-readiness like a failed test. See [Safety](concepts/safety) for
-the validation gate. The completeness loop (multi-round questioning) now ships;
-what's still deferred is one continuous "brief it and walk away" run (the chain
-stays a set of short runs you step between, not one long process that pauses
-mid-flight).
+`edit` opens the section in `$EDITOR` (or reads `--file`), refuses content that
+looks like a secret, and is closed once you approve. `approve` and `build` are
+the two ways out of the draft: one turns the spec into board cards, the other
+runs the flow you picked seeded with the approved spec.
+
+## Honest limits
+
+Spec-up drafts. It is a scope-decision tool, not a novice autopilot: its job is
+to make you an informed decision-maker about *scope and direction* - the part you
+can judge - while technical correctness is caught downstream by execution-time
+review, not by you nodding at an architecture doc.
+
+A card's acceptance criteria are a real gate once it runs. They are carried into
+the run so the agent builds to them, and the verifier has to confirm each one
+against the artifacts before the run can pass. A card can also carry
+`acceptanceCommands` - shell checks you author, run as an extra validation pass -
+so a failed acceptance check blocks merge-readiness the way a failed test does.
+See [Safety](/docs/concepts/safety) for the validation gate.
+
+The chain is a set of short runs you step between, not one continuous "brief it
+and walk away" process. Every link waits for you to submit the next round.

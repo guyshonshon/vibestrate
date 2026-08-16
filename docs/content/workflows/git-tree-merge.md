@@ -13,6 +13,22 @@ you drive it from a graph instead of a list.
 Open it from the **Source** page's **Tree** tab. Nothing on this page touches a real
 branch until you click Apply.
 
+Every prediction runs in a throwaway worktree, so it can tell you one of three
+things - clean, already up to date, or the exact files that would conflict -
+without touching either branch. Apply then merges for real with `--no-ff`, on
+the target branch only. It never moves your HEAD and never pushes, and **Undo
+last merge** puts the branch back on the sha it recorded before merging.
+
+On a conflict you can ask the supervisor to propose a resolution. It stays a
+proposal: you review ours / theirs / proposed and edit before anything is
+written, and applying it is your click. A file whose path looks secret-like, a
+`.env` or a key file, is refused outright and never reaches a provider, and
+conflict text is redacted of secret-shaped tokens before it is sent.
+
+Merging from the dashboard needs `VIBESTRATE_API_TOKEN` set on the `vibe ui`
+process. A local API with no token is reachable by any process on your machine,
+so the write actions stay behind a bearer token.
+
 ## See the shape of your history
 
 The left panel is the commit graph: a lane rail next to rich commit rows - each
@@ -103,9 +119,9 @@ tree or a target that is not checked out, and **never moves your HEAD or pushes*
 
 Changed your mind? **Undo last merge** resets the branch back to the recorded
 pre-merge sha. Undo is guarded - it refuses once anything has been built on top of
-the merge, once the merge has reached an upstream (best-effort push detection), or
-if the recorded point has drifted - so it can only reverse a merge that is still
-safe to reverse.
+the merge, once the merge has reached an upstream (best-effort push detection), if
+the recorded point has drifted, or if uncommitted work would be discarded - so it
+can only reverse a merge that is still safe to reverse.
 
 ## What it does not do
 
@@ -114,7 +130,3 @@ auto-apply, no push. The interactive canvas is UI-only by design (there is no CL
 equivalent for the graph); the underlying operations are plain git, so the CLI
 [merge advisor](/docs/getting-started/merging) and `vibe integrate` remain the
 terminal path for the per-run flow.
-
-Merging from the dashboard requires `VIBESTRATE_API_TOKEN` to be set: a tokenless
-local API is reachable by any process on your machine, so the write actions stay
-behind a bearer token.

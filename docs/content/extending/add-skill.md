@@ -4,13 +4,11 @@ description: Write a markdown file, save it under .vibestrate/skills/, and attac
 slug: extending/add-skill
 ---
 
-A skill is just a markdown file you write to teach your agents your project's conventions. There's no scaffold to run and no metadata form to fill in. You write the file, save it under `.vibestrate/skills/`, and Vibestrate's discovery picks it up on its own. There are two shapes: a flat file (this page's default) and a directory form for a skill that also needs an MCP server - see [Pointing a skill at an MCP server](#optional-pointing-a-skill-at-an-mcp-server) below.
-
-Here are the steps, in order.
+A skill is a markdown file you write to teach your agents your project's conventions. Save it under `.vibestrate/skills/` and discovery picks it up on its own - there is no scaffold to run and no metadata form. Vibestrate reads `.claude/skills/` too, so skills you already keep for Claude Code work as they are. A skill has two possible shapes: a flat `.md` file, which is this page's default, and a directory holding `SKILL.md` for a skill that also needs an MCP server - see [Pointing a skill at an MCP server](#optional-pointing-a-skill-at-an-mcp-server) below.
 
 ## 1. Create the file
 
-Make a file at `.vibestrate/skills/<id>.md`. The filename, minus the `.md`, becomes the skill's id, so pick something short and kebab-case (lowercase words joined by hyphens), like `auth-conventions`, `payment-rules`, or `oncall-runbook`.
+Make a file in `.vibestrate/skills/` named for the skill, like `auth-conventions.md`. The filename minus the `.md` is the name you refer to it by everywhere else, so keep it short and kebab-case (lowercase words joined by hyphens): `auth-conventions`, `payment-rules`, `oncall-runbook`. A `name:` in the file's frontmatter overrides the filename if you set one.
 
 ## 2. Write the body
 
@@ -39,7 +37,7 @@ Run these two commands to confirm Vibestrate found your file. The first lists ev
 
 ```bash
 vibe skills list
-vibe skills show <id>
+vibe skills show <name>
 ```
 
 ## 4. Attach it

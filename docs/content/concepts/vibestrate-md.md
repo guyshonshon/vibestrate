@@ -1,10 +1,14 @@
 ---
 title: VIBESTRATE.md
-description: A committed manual at your project root that the orchestrator reads before every task, so you never re-explain your project.
+description: A committed manual at your project root that Consult reads when you ask about your project, so you never re-explain it.
 slug: concepts/vibestrate-md
 ---
 
-`VIBESTRATE.md` is a committed file at your project root that tells the orchestrator what this project is and how you like it run. It reads the file before every task, so you never re-explain your project. It is durable, project-aware guidance the orchestrator leans on - advisory, not a hard rule: it shapes how a run is planned, but it can never override a code-enforced [policy](/docs/concepts/safety).
+`VIBESTRATE.md` is a committed file at your project root that says what this project is and how you like it run: its domains, its commands, the conventions you keep having to repeat. It is durable, project-aware guidance, and it is advisory rather than a hard rule - it can never override a code-enforced [policy](/docs/concepts/safety).
+
+Today one surface reads it: [Consult](/docs/concepts/consult), the advisor you ask questions. Ask "should this use a heavier review?" and the answer is grounded in your manual instead of guesswork. Runs themselves do not read it, so a rule you need every agent to follow belongs in `.vibestrate/rules.md`, which is loaded on every turn.
+
+`vibe guide init` scaffolds a starter file, `vibe guide show` prints the current one, and `vibe guide proposals` lists additions Consult has suggested for you to apply or reject.
 
 ## What goes in it
 
@@ -34,17 +38,17 @@ or secret/credential paths.")
 
 It is distinct from `.vibestrate/rules.md`, and the precedence is explicit:
 
-| Layer | What it is | Enforced? |
-| --- | --- | --- |
-| **Policy** (`.vibestrate/policies/`) | Hard, code-enforced gates | Yes - code |
-| **`VIBESTRATE.md`** | The orchestrator's operating manual | No - advisory |
-| **`.vibestrate/rules.md`** | Per-turn prompt guidance for roles | No - advisory |
+| Layer | What it is | Enforced? | Read when |
+| --- | --- | --- | --- |
+| **Policy** (`.vibestrate/policies/`) | Hard, code-enforced gates | Yes - code | Every run |
+| **`.vibestrate/rules.md`** | Prompt guidance for roles | No - advisory | Every agent turn |
+| **`VIBESTRATE.md`** | Your durable project model | No - advisory | You ask Consult |
 
-`VIBESTRATE.md` is advisory to the orchestrator, its durable project model. It can never override a code-enforced gate.
+The rightmost column is the one people get wrong. A rule that must reach the agents doing the work goes in `rules.md`. `VIBESTRATE.md` is what you want the advisor to know when you ask it something.
 
 ## Ask it questions
 
-You don't only write to VIBESTRATE.md. You can also ask the orchestrator about your project and get an answer grounded in it. That advisor is [Consult](/docs/concepts/consult); it answers from the manual and can propose an addition to it, but applying one is your call.
+You don't only write to VIBESTRATE.md. You can also ask about your project and get an answer grounded in it. That advisor is [Consult](/docs/concepts/consult); it answers from the manual and can propose an addition to it, but applying one is your call - via `vibe guide apply <id>` or the dashboard.
 
 ## The codebase map: machine-owned, not authored
 
@@ -59,7 +63,7 @@ vibe learn show                            # print the current CODEBASE.md
 
 ### Who gets the map
 
-The planner, by default, and only the planner. That is deliberate rather than a limitation: every other role is standing *in* the worktree, holding a plan that already names the files, running an agent CLI that opens them natively. Handing those roles a generated summary costs tokens on every turn and gives them a second, staler account of a repo they can simply read.
+The planner, by default, and only the planner. That is deliberate rather than a limitation: every other role is standing *in* the worktree, holding a plan that already names the files, running an agent CLI that opens them natively. Handing those roles a generated summary costs tokens on every turn and gives them a second, staler account of a repo they can already read.
 
 The planner is the exception because it has to name real files *before* it has read anything.
 

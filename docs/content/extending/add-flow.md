@@ -4,7 +4,7 @@ description: Write your own run recipe with seats, steps, and an optional pause 
 slug: extending/add-flow
 ---
 
-A custom [Flow](/docs/concepts/flow) is written in YAML. Drop the file under `.vibestrate/flows/<id>/flow.yml` and Vibestrate finds it on its own. It checks the file against the schema when it loads, so a broken Flow fails loudly at the start instead of quietly partway through a run.
+A custom [Flow](/docs/concepts/flow) is written in YAML, in a `flow.yml` inside a directory named for the flow id, under `.vibestrate/flows/`. Vibestrate finds it on its own and checks it against the schema when it loads, so a broken Flow fails loudly at the start instead of quietly partway through a run. A Flow declares `seats` (the kind of worker each step needs) and `steps`. Every step has a `kind`, one of `agent-turn`, `review-turn`, `response-turn`, `validation`, `approval-gate` or `summary-turn`.
 
 ## Steps
 
@@ -86,15 +86,16 @@ Each step has a `kind` that says what happens in it. Here is what each one is fo
 
 A Seat is the slot a step needs filled, named by the kind of worker it wants: `planner`, `builder`, `challenger`, `prototyper`. The Flow only names Seats. It never names your local Roles or Providers, and that is what keeps it shareable. (A Role is one of your configured workers; a Provider is the AI vendor behind it.)
 
-When a run starts, Vibestrate matches each Seat to a Role in your Crew, the set of workers on the job. Each Role declares the Seats it `fills`.
+When a run starts, Vibestrate matches each Seat to a Role in your Crew, the set of workers on the job. Each Role lists the Seats it can take under its own `seats:` key in `project.yml`.
 
 If a step needs the same Role behavior but more horsepower, you can override its Profile for that one step. A Profile is the runtime settings a Role runs on, like which model and how hard it thinks.
 
 ```bash
-vibe run "..." --flow spike-and-decide --step-profile prototype=opus-deep
+vibe profile list                    # the ids you can name below
+vibe run "..." --flow spike-and-decide --step-profile prototype=<profileId>
 ```
 
-That runs the `prototype` step on the `opus-deep` Profile without changing how the Role behaves. To choose *which* Role fills a Seat for a run, use `--seat-role prototyper=<roleId>`.
+That runs the `prototype` step on the Profile you name, without changing how the Role behaves. To choose *which* Role fills a Seat for a run, use `--seat-role prototyper=<roleId>`.
 
 ## Optional steps
 

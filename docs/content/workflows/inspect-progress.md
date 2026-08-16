@@ -6,13 +6,23 @@ slug: workflows/inspect-progress
 
 When Vibestrate is doing work for you, you can watch it as it goes. There are three places to look: the terminal for a quick glance while it runs, the dashboard for the full live picture, and the files on disk for the complete record you can read back at any time.
 
+Everything a run does is written under `.vibestrate/runs/` as it happens, and `events.ndjson` is the file to trust. One JSON line per event, only ever appended to, so it is the honest record of what happened even when you were not watching.
+
 ## The terminal
 
-If you start a run with the plain `vibe run` command, the terminal prints a header for each stage. The header shows the current status, the name of the agent doing the work, and any output it captured. When the checks run (the "validation" step that runs commands to confirm the work holds up), the output of those commands streams straight to your screen.
+A plain `vibe run` narrates itself: one line per flow step as it starts, any warnings as they come up, and a final block at the end with the run's status, the review and verification decisions, and the paths to its artifacts, worktree and branch.
+
+That is a summary, not the model's own output. To read what a provider actually wrote, tail its stream:
+
+```bash
+vibe logs <runId> --follow
+```
+
+Streams are recorded per step in the run's own `streams/` folder, so `vibe logs` works on a finished run too. Without `--follow` it prints the newest stream and exits, and `--stream` picks a specific one by name.
 
 ## The dashboard
 
-`vibe run "..." --ui` opens Mission Control, a web dashboard, next to the run. Submit a brief from Mission Control and it takes you straight to the run screen.
+`vibe run "..." --ui` opens Mission Control, a web dashboard, next to the run. Mission Control also has its own **New run** composer: submit a brief there and it launches in the background, then offers you an **Open** button through to the run screen.
 
 The main thing to watch on the run screen is the **Live timeline**. It shows one row per step in the flow. Each row gives you:
 
@@ -39,10 +49,11 @@ Everything is recorded at `.vibestrate/runs/<runId>/`:
 .vibestrate/runs/bold-lovelace/
   state.json                       current status, transitions
   events.ndjson                    every event, append-only
-  actions.ndjson                   every brokered action (writes, commands) + its verdict
+  actions.ndjson                   every brokered action + its verdict
   runtime-metrics.json             tokens, durations, costs (where reported)
   flow.json                        the resolved flow snapshot for this run
   participants.json                which role/profile filled each seat
+  streams/                         raw provider output, what `vibe logs` reads
   artifacts/
     flows/
       <step-id>/
@@ -57,17 +68,21 @@ Everything is recorded at `.vibestrate/runs/<runId>/`:
 Run ids are docker-style pairs like `bold-lovelace`, not sequential numbers;
 runs are listed in the order you started them, not by id.
 
-<div class="docs-callout">
-
-**`events.ndjson` is the source of truth.** Every event is one JSON line, and the file is append-only, so lines are only added, never changed. It is the record to trust when you want to know exactly what happened.
-
-</div>
-
-Use it to dig into a run after the fact:
+Every line in `events.ndjson` is one JSON object with a `timestamp`, a `type`, a human `message`, and sometimes a `data` payload. Pull out the run's whole status history with one filter:
 
 ```bash
-cat .vibestrate/runs/bold-lovelace/events.ndjson | jq -c 'select(.type == "state.changed")'
+jq -r 'select(.type == "state.changed") | .message' \
+  .vibestrate/runs/bold-lovelace/events.ndjson
 ```
+
+```text
+created → planning
+planning → planned
+...
+verifying → merge_ready
+```
+
+Swap the type for `review.decision`, `verification.decision` or `action.denied` to answer a different question off the same file.
 
 ## Read past runs
 

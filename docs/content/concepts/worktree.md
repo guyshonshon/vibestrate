@@ -8,7 +8,11 @@ Every time Vibestrate works on a task, it does that work in a separate copy of y
 
 That separate copy is a git **worktree**. Git can keep a second working folder of the same project, on its own branch, sitting right next to your main one. Picture it like a contractor building your new kitchen in a workshop down the street: same blueprints, but the mess stays out of your house until you choose to bring the finished work home.
 
-The copy is created when the run starts, lives under `../.vibestrate-worktrees/` by default, and gets its own branch named `<git.branchPrefix><runId>` - the run id itself, no slug appended.
+Inside the copy, Vibestrate writes the agents' file edits and one commit per stage. It refuses to write anywhere outside that folder, to secret-like files such as `.env` or `*.pem`, or any patch that adds something shaped like a leaked token.
+
+There is one honest exception, and it is worth knowing. `node_modules`, `.venv` and `venv` are symlinked in from your project so your tests can actually run in the copy. An agent with write permission can write back through those links into your project's installed dependencies. It never reaches your tracked source, and `git.linkEnvironment: off` turns the links off.
+
+The copy is created when the run starts, lives under `../.vibestrate-worktrees/` by default, and is named after the run id. Its branch is the `git.branchPrefix` setting followed by that same run id, with no task slug appended.
 
 ## Why this keeps you safe
 
@@ -18,31 +22,24 @@ It also means nothing is lost when a run goes wrong. If a run ends `blocked`, `f
 
 ## Where the copies live
 
-```text
-your-project/                  ← your real files
-../.vibestrate-worktrees/
-  bold-lovelace/                ← one run's copy
-  quiet-turing/                 ← another run's copy
-```
-
-You can move them in `project.yml`. Keep the location outside your project, never inside it, or it will shadow your real files:
+Three settings in `project.yml` control this. Keep `worktreeDir` outside your project, never inside it, or the copies will shadow your real files:
 
 ```yaml
 git:
   worktreeDir: ../.vibestrate-worktrees   # default
-  branchPrefix: vibestrate/                # default
-  linkEnvironment: auto                    # default; "off" for bare worktrees
+  branchPrefix: vibestrate/               # default
+  linkEnvironment: auto                   # default; "off" for bare worktrees
 ```
 
-## What can and can't be written
+Run ids look like `bold-lovelace` and `quiet-turing`, so with two runs going you get `../.vibestrate-worktrees/bold-lovelace/` and `../.vibestrate-worktrees/quiet-turing/` alongside your project.
 
-Inside the copy, Vibestrate writes file edits from the agents and one commit per stage. It refuses to write anywhere outside that folder, to known-secret files like `.env` or `*.pem`, or any patch that adds something shaped like a leaked token. Run records stay under your project root in `.vibestrate/runs/<runId>/`, never inside the copy.
+Run records stay under your project root, in the `.vibestrate/runs/` folder named after the run id. They are never written inside the copy.
 
 ## Bringing your tools along
 
 A fresh copy starts with only the files git tracks. That leaves out installed folders like `node_modules` or a Python `.venv`, so your tests would fail with "command not found" before they checked anything. With `linkEnvironment: auto` (the default), Vibestrate links those gitignored folders (`node_modules`, `.venv`, `venv`, and workspace-package `node_modules`) into each copy so it behaves like the real project.
 
-Two safety checks keep this honest. `node_modules` is linked only when the copy's lockfile is identical to your project's, so a branch with different dependencies is never tested against the wrong set. And a folder is linked only if git is ignoring it, so the link can never end up committed.
+Two safety checks keep this honest. `node_modules` is linked only when the copy's lockfile is byte-identical to your project's, so a branch with different dependencies is never tested against the wrong set. And a folder is linked only if git is ignoring it, so the link can never end up committed.
 
 If you'd rather skip linking, set `linkEnvironment: off` for bare copies. When a tool is missing because nothing was linked, those commands are recorded with the status `environment`, which is separate from `failed`: nothing was checked, but nothing failed, and a run is never blocked over it. The reviewer is told plainly that those commands could not run.
 

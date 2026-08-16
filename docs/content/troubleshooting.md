@@ -4,11 +4,11 @@ description: Concrete fixes for the issues people actually hit.
 slug: troubleshooting
 ---
 
-When something goes wrong, find the symptom that matches yours below, then run the fix. Each entry tells you what you'll see, what's usually behind it, the command that fixes it, and how to check it worked.
+Find the symptom that matches yours below, then run the fix. Read the failure message first - most now name themselves: a failed supervisor turn gives its reason, a cut-short one says it was stopped, and an effort level your provider does not have is refused with that provider's real ladder in the message.
 
 <div class="docs-callout">
 
-**Start with `vibe doctor`.** Before you dig through the list, run it once. It checks your install, your providers, and your config in one pass, and most of the fixes below begin from what it reports.
+**Start with `vibe doctor`.** It checks your install, your providers and your config in one pass, and most fixes below begin from what it reports.
 
 </div>
 
@@ -42,12 +42,17 @@ To check it worked, run `git rev-parse --is-inside-work-tree`. It should return 
 Doctor lists every provider as `missing` or `detected-needs-setup`: no coding-agent CLI is installed on your PATH, or none has a verified preset. Install at least one:
 
 ```bash
-# Claude Code: npm install -g @anthropic-ai/claude-code, then run `claude` once to sign in
-# Codex:       npm install -g @openai/codex, then run `codex login`
-# Gemini:      npm install -g @google/gemini-cli, then run `gemini` once to authenticate
-# Aider:       python -m pip install aider-install && aider-install
-# Ollama:      curl -fsSL https://ollama.com/install.sh | sh
+npm install -g @anthropic-ai/claude-code  # then: claude
+npm install -g @openai/codex              # then: codex login
+npm install -g @google/gemini-cli         # then: gemini
+python -m pip install aider-install && aider-install
+curl -fsSL https://ollama.com/install.sh | sh
 ```
+
+Run the CLI once afterwards to sign in - `codex login` for Codex, the bare
+command for the others. Aider and Ollama are different: Aider reads
+`OPENAI_API_KEY` or `ANTHROPIC_API_KEY` from your environment, and Ollama needs
+no login but does need a model pulled first.
 
 Then have Vibestrate find it and set it up:
 
@@ -79,13 +84,13 @@ If the flags are right but the output format changed, file an issue with the pro
 
 ## Runs that won't start or stall
 
-### Run fails right away: "validation command not configured"
+### Runs finish, but nothing was actually checked
 
-The run reaches `validating`, raises "no validation commands configured," and ends in `failed`. That means `commands.validate` in `project.yml` is empty. Set your validation commands:
+The run's validation section reads "No validation commands configured," and `vibe doctor` warns about it. That means `commands.validate` in `project.yml` is empty. The run does not fail - Vibestrate works without validation commands - but the review is much weaker, because nothing factual sits between the executor and the reviewer. Fill it in:
 
 ```bash
-vibe config set commands.validate '["pnpm typecheck"]'
-# or
+vibe doctor --fix    # adds the commands it detected for your project
+# or set them yourself:
 vibe config set commands.validate '["pnpm typecheck", "pnpm test"]'
 ```
 
@@ -126,6 +131,22 @@ vibe config set git.requireCleanMain false
 ```
 
 To check it worked, look for the worktree under `../.vibestrate-worktrees/`.
+
+## The Supervisor panel
+
+### The answer is a reason instead of an answer
+
+Two different messages, two different situations.
+
+**"I could not answer that:" plus a reason.** The turn reached the provider and failed - no provider installed, a policy refusing the effect, the daily spend cap, or a reply Vibestrate could not parse. The reason is the underlying error with your home directory path stripped out, stored in the thread, so it survives a reload. Fix what the reason names; `vibe doctor` covers the provider and config half of that list.
+
+**"Stopped before I got to an answer."** Nothing broke - the turn was cut short before it produced anything. You get this when you press Stop, and also when the connection to the panel closes, so reloading the page or restarting `vibe ui` mid-answer both do it. Whatever had already been written is kept. Ask again.
+
+### An effort level your provider does not have
+
+Asking the panel for one is refused before the turn starts, and the message lists that provider's real ladder: `claude` takes `low, medium, high, xhigh, max`; `codex` takes `minimal, low, medium, high, xhigh`; `gemini` has no effort levels at all, because its reasoning is a numeric thinking budget rather than a flag. Pick a level the message names, or run `vibe provider catalog` to see what each provider offers.
+
+Everywhere else an unknown level is passed through and quietly ignored rather than refused. In a run, a Profile whose `power` the provider will not honor does not stop the turn: Vibestrate records a `provider.effort_ignored` event once per provider and level - "Effort ... won't take effect on codex ... - the provider ignores it" - and carries on. `vibe consult --effort` behaves the same way, without the event. If an effort setting seems to make no difference, that is why.
 
 ## Notifications and dashboard
 

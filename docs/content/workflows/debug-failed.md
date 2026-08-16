@@ -8,6 +8,10 @@ When a task doesn't finish cleanly, this guide helps you find out why and decide
 
 A run can stop short for two different reasons. They feel similar, but they call for different responses: `failed` is a crash, `blocked` is a decision. One needs a fix; the other needs a call from you.
 
+Either way the evidence is already on disk, under `.vibestrate/runs/` in your project. `events.ndjson` says what happened and in what order, and each step's own folder under `artifacts/flows/` holds the prompt it was given and the answer it gave back. Nothing is deleted when a run stops.
+
+You rarely have to start from zero after a fix. A rewind reuses a finished run's earlier work and picks up from the stage you name, so a bad implementation does not cost you the planning again.
+
 ## Start with `replay`
 
 Open the read-only inspector for the run:
@@ -30,17 +34,13 @@ Common causes:
 
 <div class="docs-cards">
 
-**Provider not authenticated**
-The provider is the service running the AI model. Run `vibe provider test <id>` to confirm it's connected.
+**Provider not authenticated** - the provider is the service running the AI model. Run `vibe provider test <id>` to confirm it is connected.
 
-**Validation command missing**
-Check `commands.validate` in `project.yml`.
+**Validation command missing** - check `commands.validate` in `.vibestrate/project.yml`.
 
-**Worktree creation failed**
-A worktree is the isolated copy of your code the run works in. One common case: `requireCleanMain: true` is set and main has uncommitted changes.
+**Worktree creation failed** - a worktree is the isolated copy of your code the run works in. One common case: `git.requireCleanMain` is on and main has uncommitted changes.
 
-**Skill referenced doesn't exist**
-A skill is a reusable instruction the agent can pull in. Check `vibe skills list`.
+**Skill referenced doesn't exist** - a skill is a reusable instruction the agent can pull in. Check `vibe skills list`.
 
 </div>
 
@@ -57,17 +57,13 @@ Then act on what you find. The right answer is rarely "rerun and hope." Usually 
 
 <div class="docs-cards">
 
-**Sharpen the task**
-Edit the task description to be more specific.
+**Sharpen the task** - edit the task description to be more specific.
 
-**Teach a rule**
-Add a skill that encodes the rule you didn't realize the agent didn't know.
+**Teach a rule** - add a skill that encodes the rule you didn't realize the agent didn't know.
 
-**Tighten permissions**
-Adjust a permission profile if the agent was reaching for something it shouldn't.
+**Tighten permissions** - adjust a permission profile if the agent was reaching for something it shouldn't.
 
-**Drop the scope**
-Split the work into two smaller tasks.
+**Drop the scope** - split the work into two smaller tasks.
 
 </div>
 
@@ -95,7 +91,9 @@ vibe run "<same task>" --resume-from <oldRunId> --resume-stage architecting
 vibe run "<same task>" --resume-from <oldRunId> --resume-stage planning
 ```
 
-`--resume-stage` defaults to `executing`, and accepts `planning`, `architecting`, or `executing`. The flow runner finds the first step at that stage, **seeds the outputs of every earlier step from the source run** (marking them *skipped (resumed)* in the run's step ledger), and starts there. The forked run gets its own runId and a fresh worktree off your main branch. That's correct, because these stages regenerate the downstream code. The original run is untouched, and its lineage is recorded under `resumedFrom` in the run's `state.json`. This works with `--flow` too: any flow that declares the matching step `stage` can be resumed. In the dashboard, the run's **Re-run with changes** dialog has a **Start from** selector with the same choices.
+`--resume-stage` takes six values - `planning`, `architecting`, `executing`, `reviewing`, `fixing` or `verifying` - and defaults to `executing`. The three above regenerate the code, so they behave as described here; the three below need the earlier code back, which is the next section.
+
+The flow runner finds the first step at the stage you named, **seeds the outputs of every earlier step from the source run** (marking them *skipped (resumed)* in the run's step ledger), and starts there. The forked run gets its own runId and a fresh worktree off your main branch. The original run is untouched, and its lineage is recorded under `resumedFrom` in the run's `state.json`. This works with `--flow` too: any flow that declares the matching step `stage` can be resumed. In the dashboard, the run's **Re-run with changes** dialog has a **Start from** selector with the same choices.
 
 ### Rewinding to review, fix, or verify (restores the run's code)
 

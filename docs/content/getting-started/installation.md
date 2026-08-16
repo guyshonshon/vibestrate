@@ -4,24 +4,16 @@ description: Install Vibestrate and check your environment in two commands.
 slug: getting-started/installation
 ---
 
-Vibestrate runs natively on macOS, Linux, and Windows. The full core loop works the same on every platform; the one Windows-only exception is the in-app terminal tab. See [Native Windows support](/docs/getting-started/windows) for the details.
+Vibestrate needs **Node.js 24 or newer** and a git repository. Install it globally with `npm install -g vibestrate`, then run `vibe init` inside your project and `vibe doctor` to check the environment. It runs natively on macOS, Linux, and Windows. The one Windows-only exception is the in-app terminal tab - see [Native Windows support](/docs/getting-started/windows).
 
 ## Requirements
 
-- **Node.js 22 or newer.** Check with `node --version`.
+- **Node.js 24 or newer.** Check with `node --version`.
 - **git 2.5 or newer.** Vibestrate creates and tears down worktrees, which need a modern git.
-- **pnpm or npm**, to install the package.
-- **At least one coding-agent CLI** on your PATH: Claude Code, Codex, Gemini, Aider, Ollama, OpenCode, or another supported provider. You can add one later. `vibe doctor` tells you what is missing.
+- **npm or pnpm**, to install the package.
+- **At least one coding-agent CLI** on your PATH: Claude Code, Codex, Gemini, Aider, Ollama, OpenCode, or another supported provider. You can add one later, and `vibe doctor` tells you what is missing.
 
 ## Install
-
-One line, macOS or Linux:
-
-```bash
-curl -fsSL get.vibestrate.com | sh
-```
-
-Or with npm or pnpm, on any platform including Windows:
 
 ```bash
 npm install -g vibestrate
@@ -29,10 +21,19 @@ npm install -g vibestrate
 pnpm add -g vibestrate
 ```
 
-Pin a version through npm with `npm install -g vibestrate@<version>` - `npm view
-vibestrate versions` lists what is published. Then check it:
+The `-g` matters. Vibestrate is a command-line tool, not a library: a plain `npm install vibestrate` adds it as a dependency of whatever project you are standing in and never puts `vibe` on your PATH.
+
+On macOS or Linux there is an install script that does the same global install. It is plain text you can read before running it:
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/install.sh | sh
+```
+
+To pin a version, or to check which one you have:
+
+```bash
+npm view vibestrate versions     # what is published
+npm install -g vibestrate@<version>
 vibe --version
 ```
 
@@ -42,17 +43,10 @@ From the root of any git repository:
 
 ```bash
 vibe init
-```
-
-This creates a `.vibestrate/` directory with your project config, agent prompt templates, and the runs folder. It touches none of your existing files.
-
-Then run the environment check:
-
-```bash
 vibe doctor
 ```
 
-Doctor checks everything needed before your first run: git state, project config, available providers, validation commands, and permissions. Anything red comes with the fix.
+`vibe init` creates a `.vibestrate/` directory and changes nothing else in your repo. `vibe doctor` then checks what a run needs: git state, project config, available providers, validation commands, and permissions. Anything red comes with the fix.
 
 ## What got created
 
@@ -67,7 +61,11 @@ Doctor checks everything needed before your first run: git state, project config
   runs/            run state, artifacts, metrics, events
 ```
 
-Commit `project.yml`, `rules.md`, `rules/`, `roles/`, `skills/`, and `flows/`. Leave `runs/` untracked. Vibestrate adds it to your `.gitignore` automatically.
+Commit all of it except `runs/`, which is local run history. Add that to your `.gitignore` yourself - `vibe init` does not edit the file:
+
+```text
+.vibestrate/runs/
+```
 
 ## Next
 

@@ -10,6 +10,8 @@ It works like a sticky note stuck to a page. The page stays exactly as it was, b
 
 You pin annotations from Mission Control's **Codebase** page. They never touch your source. They live in their own file, `.vibestrate/annotations.json`, off to the side. Annotations are entirely optional, and Vibestrate works exactly the same with none.
 
+Because a shared note goes straight into agent prompts, it obeys the same no-secrets rule as everything else. You can't annotate a secret-like file such as `.env` or `*.key`, a note body is refused if it contains something shaped like a vendor token, paths are project-relative with no traversal, and a note stops at 4000 characters.
+
 ## What a note pins to
 
 Every note targets a file, and you can point it at a precise spot:
@@ -34,8 +36,18 @@ You can flip the toggle off any time, or **resolve** a note to drop it from futu
 2. In the right panel, set the anchor (blank for the whole file, or a line or range), type the note, and choose whether it's visible to agents.
 3. **Add note.** It shows up in the list, and if it's shared, in the next agent prompt.
 
-## What's kept safe
+## What an agent actually reads
 
-Notes only ever live in `.vibestrate/annotations.json`, and your source files are never modified.
+A shared, open note reaches the prompt as one line under `# Human Annotations`, carrying its anchor and your text:
 
-Because notes get added straight into agent prompts, they follow the same no-secrets rule as everything else. You can't annotate secret-like files (`.env`, `*.key`, …), and note bodies are scanned for secret-shaped tokens and refused if any turn up. Paths are guarded too: project-relative only, no traversal.
+```text
+# Human Annotations
+
+The user pinned these notes to the codebase. Treat them as
+authoritative guidance for this task:
+
+- **src/auth/session.ts:40-58** - don't refactor this; the
+  ordering here is load-bearing.
+```
+
+A whole-file note shows as `src/auth/session.ts`, a single line as `src/auth/session.ts:40`.

@@ -33,7 +33,7 @@ Your Crew fills the `implementer` seat with a worker (a [Role](/docs/concepts/ro
 
 ## Which steps need a Seat
 
-Not every step does. A step that just runs your tests, or one that pauses for your approval, needs no Seat - nobody is sitting down to think. Steps where an AI does a turn of work do: `agent-turn`, `review-turn`, `response-turn`, and `summary-turn`.
+Not every step does. A `validation` step that runs your tests, or an `approval-gate` that waits for you, needs no Seat - nobody is sitting down to think. The four kinds where an AI takes a turn do: `agent-turn`, `review-turn`, `response-turn` and `summary-turn`.
 
 ## Going deeper
 

@@ -7,15 +7,39 @@ slug: architecture/http-api
 `vibe ui` starts a Fastify server (default `http://127.0.0.1:4317`) that backs
 the dashboard. The same endpoints are a stable, scriptable contract: every
 dashboard action is an HTTP call, so anything the UI does, an external caller
-can do too.
+can do too. Pin `/api/v1` in scripts - it is rewritten to `/api` before routing,
+so both prefixes reach the same handlers. The server binds loopback and auth is
+off by default. Set `VIBESTRATE_API_TOKEN` and every `/api` request must then
+carry `Authorization: Bearer` with that token; binding a non-loopback host
+without a token is refused at startup.
+
+## Endpoints at a glance
+
+```text
+GET  /api/v1/health
+GET  /api/v1/flows
+GET  /api/v1/flows/:flowId/export  as canonical YAML
+POST /api/v1/flows/import          { yaml } or { url }
+POST /api/v1/flows                 write a project flow
+POST /api/v1/flows/draft           English -> flow draft
+POST /api/v1/crews/draft           English -> crew draft
+GET  /api/integration/overview     merge-ready runs
+POST /api/integration/advice       deterministic merge advice
+POST /api/integration/analyze      optional model risk pass
+POST /api/integration/finish       guarded merge to main
+GET  /api/supervisor/threads       list conversations
+POST /api/supervisor/threads/:threadId/turn
+     one turn, SSE over POST. Seven event kinds:
+     message, phase, thinking, tool, answer, done, error
+```
 
 ## Base URL and versioning
 
 - **Unversioned:** `/api/...` - what the bundled dashboard calls.
 - **Versioned:** `/api/v1/...` - the canonical contract for external callers.
 
-`/api/v1/<path>` is rewritten to `/api/<path>` before routing, so the two are
-the same handlers. Pin `/api/v1` in scripts; a future breaking payload change
+A versioned path is rewritten to its unversioned form before routing, so the
+two are the same handlers. Pin `/api/v1` in scripts; a future breaking payload change
 ships under a new prefix while `/api/v1` keeps working for a deprecation
 window. `/api/v1/health` and `/api/v1/flows` behave identically to their
 unversioned forms.
@@ -25,7 +49,7 @@ unversioned forms.
 The server binds loopback (`127.0.0.1`) by default and refuses cross-origin
 requests from anything but `localhost` / `127.0.0.1` / the configured host (a
 malformed `Origin` is refused too). To expose it on another interface, pass
-`vibe ui --host <host>` - but a non-loopback bind **requires a token** (below) or
+`--host` to `vibe ui` - but a non-loopback bind **requires a token** (below) or
 the server refuses to start.
 
 **CSRF.** State-changing methods (POST/PUT/PATCH/DELETE) additionally reject any
@@ -67,11 +91,12 @@ resolves against whatever Crew the importing project has.
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/api/v1/flows/:id/export` | Export a flow as canonical YAML. `?format=yaml` returns the raw file as a download; default is JSON `{ flowId, source, yaml }`. |
+| `GET` | `/api/v1/flows/:flowId/export` | Export a flow as canonical YAML. `?format=yaml` returns the raw file as a download; default is JSON `{ flowId, source, yaml }`. |
 | `POST` | `/api/v1/flows/import` | Import one flow from `{ yaml }` **or** `{ url }` (exactly one) + optional `overwrite`. |
 | `POST` | `/api/v1/flows` | **Flow creator** - write a brand-new project flow from `{ flow: <FlowDefinition>, overwrite? }`. |
 
-All three write to `.vibestrate/flows/<id>/flow.yml` through one guarded path:
+All three write the flow's own `flow.yml` under `.vibestrate/flows/`, through
+one guarded path:
 
 - **Schema validation** against the full Flow schema.
 - **Secret refusal** - a flow carrying a high-precision token shape (AWS, GitHub,
@@ -133,6 +158,56 @@ CLI equivalents: `vibe flows draft "<description>" [--crew <id>] [--yaml|--json]
 and `vibe crew draft "<description>" [--yaml|--json]`. In the dashboard: the
 **Flows** page and the **Crew** page each have a draft panel.
 
+## Supervisor turns (SSE over POST)
+
+The supervisor's conversation endpoints are inert storage - list threads, open
+one, append a message - except the turn, which is the only one that reaches a
+model.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/supervisor/threads` | List threads. With `?runId=` the run's thread; without it, the project thread. |
+| `POST` | `/api/supervisor/threads` | Open a thread from `{ runId? }`. |
+| `GET` | `/api/supervisor/threads/:threadId` | Read one thread in full. |
+| `POST` | `/api/supervisor/threads/:threadId/messages` | Append the user's message from `{ text }`. |
+| `POST` | `/api/supervisor/threads/:threadId/turn` | Take a turn, streamed as it happens. |
+| `GET` / `POST` | `/api/supervisor/pause` | Read or set the kill switch. No model on this path. |
+
+The turn is **SSE over POST**, not GET. It carries the user's message, up to
+20 000 characters, so it cannot go in a query string - and `EventSource` has no
+way to send a body. The framing is ordinary SSE (`event:` then `data:`), so a
+client reads it over `fetch(...).body` instead. Body is
+`{ text, effort?, profileId? }`; an effort the chosen provider does not have is
+refused with `400` before any provider is resolved, and an unknown thread is
+`404`. Both checks run before the stream opens, because a hijacked reply can no
+longer carry a status code.
+
+Seven event kinds stream, each sent under its own SSE name and also carrying
+`kind`, so you can listen by name or switch on the parsed payload:
+
+```text
+message   the user's message as persisted, with id + time
+phase     which leg runs: routing | acting | answering
+thinking  provider reasoning, where the provider exposes it
+tool      one tool or sub-agent the provider invoked
+answer    answer prose as it is written
+done      terminal; carries the stored message + the thread
+error     terminal, nothing was answered
+```
+
+`thinking` and `tool` appear only when the provider actually emits them. A
+provider that exposes no reasoning produces none, and nothing is substituted -
+an invented "thinking" trace would be worse than honest silence. Treat
+`done.message.text` as authoritative and replace your streamed buffer with it,
+because an executed action's reply is prepended when the message is written.
+
+**Stopping is aborting the fetch.** There is no stop endpoint: the socket
+closing aborts the turn's signal, which sends `SIGTERM` to the process group of
+whichever provider CLI is in flight and records a stopped message in the thread.
+What that cannot retract is an action that already ran - a created task or a
+started run outlives the request and is recorded as having happened. A heartbeat
+comment goes out every 15 seconds so idle proxies don't close the stream.
+
 ## Integration: merge advice + guided merge-to-main
 
 These four endpoints back the dashboard's Merge page: a cheap read to list merge-ready runs, an optional deeper analysis, deterministic advice, and the guarded merge itself.
@@ -151,8 +226,8 @@ It is broker-gated through the assist primitive, the same exposure class as
 only a cached markdown artifact under the run's own dir. Secret-like files are
 suppressed and secret-shaped tokens redacted before the provider sees the
 diff. The deterministic recommendation and flags are computed elsewhere and
-are never changed by this pass. CLI equivalent: `vibe integrate analyze
-<runId>`.
+are never changed by this pass.
+CLI equivalent: `vibe integrate analyze <runId>`.
 
 `POST /api/integration/advice` (`{ runIds? }`) returns **read-only,
 deterministic** merge advice for the selected (or all) merge-ready runs:

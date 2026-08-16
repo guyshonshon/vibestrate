@@ -4,23 +4,23 @@ description: What Git is in one minute, and how to take a finished run from its 
 slug: getting-started/merging
 ---
 
-A run finishes at `merge_ready` with the change sitting on its own branch, in a separate copy of your project. This page is the last step: getting that change into your real code. New to Git? Start here. Otherwise, skip to taking the change.
+A run never edits your project folder. It works in its own copy - a git worktree under `../.vibestrate-worktrees/`, on a branch named `vibestrate/` plus the run id - and stops at `merge_ready` with the change waiting on that branch. Folding it into `main` is the one step Vibestrate always leaves to you. New to Git? Start with the next section. Otherwise skip ahead to taking the change.
 
 ## Git in one minute
 
-Vibestrate is built on **Git**, the standard tool for tracking versions of code. Three ideas are all you need.
+Three ideas are all you need.
 
 <div class="docs-cards">
 
-**A branch** is a parallel line of work. Your real code lives on a branch (usually `main`). A new change can grow on its own branch without disturbing `main`, until you decide to combine them.
+**A branch** is a parallel line of work. Your real code lives on a branch, usually `main`. A new change can grow on its own branch without disturbing `main`, until you decide to combine them.
 
-**A worktree** is a separate folder checked out to a branch. Vibestrate gives every run its own worktree under `../.vibestrate-worktrees/`, so the AI edits files there, never in your real project folder.
+**A worktree** is a separate folder checked out to a branch. Every run gets its own, so the agent edits files there rather than in your project folder.
 
-**A merge** is folding one branch into another. Merging the run's branch into `main` is how a finished change actually becomes part of your project. It is the one step Vibestrate leaves entirely to you.
+**A merge** is folding one branch into another. Merging the run's branch into `main` is how a finished change becomes part of your project.
 
 </div>
 
-So a run never touches your files. It works in its own worktree, on a branch named `vibestrate/<runId>` (run ids are docker-style handles like `bold-lovelace`), and waits for you.
+Run ids are short docker-style handles like `bold-lovelace`, so that run's branch is `vibestrate/bold-lovelace`.
 
 ## Look at what changed
 
@@ -35,17 +35,17 @@ Or open the **Source** page in [Mission Control](/docs/cli/dashboard), on its **
 
 ## Ask the merge advisor
 
-You don't have to judge the risk alone. The advisor is read-only and lays out the facts before you merge:
+You don't have to judge the risk alone:
 
 ```bash
 vibe integrate advise <runId>
 ```
 
-It reports risk flags first (did your checks actually run? does the change touch protected files?), then a dry-run conflict report and a recommendation: finish now, stage on an integration branch, or resolve conflicts first. Nothing is merged and no branch is touched. The same view is the Source page's **Merge** tab. For a deeper, semantic read, `vibe integrate analyze <runId>` has a local model look for risks a textual check can't see, like concurrency, error handling, or missing tests. It is advisory only.
+It reports risk flags first - did your checks actually run, does the change touch protected files - then a dry-run conflict report, then one of three recommendations: finish now, stage on an integration branch, or resolve conflicts first. Nothing is merged and no branch is touched. The same view is the Source page's **Merge** tab.
 
 ## Take the change
 
-The branch is yours. Three ways to keep it:
+The branch is yours. Two ways to keep it:
 
 ```bash
 # Open a pull request for review (best on a shared project)
@@ -57,15 +57,15 @@ git checkout main
 git merge --ff-only vibestrate/<runId>
 ```
 
-Or `git push` the branch to share it as is. To throw the change away, just ignore the branch. Nothing ever reached `main`.
+To throw the change away, ignore the branch. Nothing ever reached `main`.
 
 ## Why is merging always manual?
 
-A run stops at `merge_ready` and hands you the diff - see [the safety guarantees](/docs/concepts/safety) for the rule. Folding it into `main` is always a decision you make.
+Merging is the point of commitment - it joins your shared history and can ship from there. You can revert a bad merge, but only after the wrong code was already trusted and built on. A model that cannot fully vouch for its own work is the wrong thing to make that call for you. See [the safety guarantees](/docs/concepts/safety) for the rule.
 
-Merging is the point of commitment - it joins your shared history and can ship from there. You can revert a bad merge, but only after the wrong code was already trusted and built on. A model that cannot fully vouch for its own work is the wrong thing to make that call on your behalf.
+Is the advisor just another AI opinion, then? No. `vibe integrate advise` is **deterministic**: it reports git facts and computes the recommendation from them, so the same inputs always give the same advice, and no [supervisor](/docs/concepts/supervisor) persona colors it.
 
-A fair question is whether the merge advisor is just another AI opinion dressed up as a recommendation. It is not. `vibe integrate advise` is **deterministic**: it reports facts - did your checks actually run, does the change touch protected paths, are there conflicts - and a recommendation computed from them. The same inputs always give the same advice, and no persona or [supervisor](/docs/concepts/supervisor) "voice" colors it. A model only enters if you explicitly ask for the deeper read with `vibe integrate analyze`, and even then it is advisory: it never merges, never relaxes the recommendation, and never pushes.
+A model only enters when you ask for the deeper read with `vibe integrate analyze`. That sends the run's redacted diff to a provider to look for risks a textual check cannot see, like concurrency, error handling, or missing tests. It is advisory prose only: it never merges, never pushes, and can never change the advisor's recommendation or risk flags.
 
 ## Keep going
 

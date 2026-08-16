@@ -6,7 +6,7 @@ slug: concepts/project-params
 
 Some Flows need a few answers before they can do their job, like a project name, a brand color, or which framework to use. **Project parameters** let you give those answers once. Every later run reuses them, so Vibestrate stops asking you the same things over and over.
 
-The [Flow](./flow.md) says what it needs (typed values like `projectName` or `framework`), you fill them in a single time, and the values are saved in `.vibestrate/project-params.json` (gitignored) and reused from then on.
+The [Flow](/docs/concepts/flow) says what it needs (typed values like `projectName` or `framework`), you fill them in a single time, and the values are saved in `.vibestrate/project-params.json` and reused from then on. Nothing adds that file to your `.gitignore` for you, but a `secret: true` param stores only the name of an environment variable, never the secret itself.
 
 ## Fill once, then run
 
@@ -43,13 +43,22 @@ Param names aren't unique across Flows, so by default a stored value is keyed pe
 
 ## Secrets
 
-A `secret: true` param **never** stores the raw secret. You give it an environment variable **name**, and the store keeps an `env:NAME` reference:
+A `secret: true` param **never** stores the raw secret. You give it an environment variable **name**, and the store keeps an `env:NAME` reference. Say a Flow of yours declares one:
 
-```
-vibe params set --flow deploy api_key=OPENAI_API_KEY   # stores env:OPENAI_API_KEY
+```yaml
+params:
+  apiKey:
+    type: string
+    secret: true
 ```
 
-A run that needs it **fails fast** if that env var isn't set, rather than starting with a non-functional secret. Bare-key writes without `--flow` are non-secret-only, and a best-effort scan still refuses an obvious pasted vendor key.
+You then set it by naming the variable, not by pasting the key:
+
+```bash
+vibe params set --flow my-deploy apiKey=OPENAI_API_KEY   # stores env:OPENAI_API_KEY
+```
+
+A run that needs it **fails fast** if that env var isn't set, rather than starting with a non-functional secret. None of the built-in Flows declare a secret param, so this only comes up in a Flow you write. Bare-key writes without `--flow` are non-secret-only, and a best-effort scan still refuses an obvious pasted vendor key.
 
 ## Generate a default (optional)
 
@@ -77,7 +86,7 @@ vibe params set methodology=tdd          # or: bdd, incremental
 - `bdd` - plan as Given-When-Then behaviors, then derive the implementation.
 - `incremental` - smallest safe vertical slices, green at every step.
 
-It's injected into the planning turn only (bounded, just the one block). An unrecognized value is ignored with a `methodology.unknown` run event, so it never breaks a run. The advisor never sets it for you. Methodology is yours to choose.
+By default it reaches the planner and nobody else, as one bounded block, once per run. `methodologyRoles` in `project.yml` widens that to other roles. An unrecognized value is ignored with a `methodology.unknown` run event, so it never breaks a run. The advisor never sets it for you. Methodology is yours to choose.
 
 ## Editing and removing
 
@@ -85,5 +94,5 @@ Editing a value in the Settings panel or via `vibe params set` **supersedes** th
 
 ## Going deeper
 
-- [Flow](./flow.md) - declares the typed `params:` the project params fill.
-- [Profile](./profile.md) - a different thing: how *strong* a Role runs (provider + model + effort), not project data. Set with `vibe profile`.
+- [Flow](/docs/concepts/flow) - declares the typed `params:` the project params fill.
+- [Profile](/docs/concepts/profile) - a different thing: how *strong* a Role runs (provider + model + effort), not project data. Set with `vibe profile`.

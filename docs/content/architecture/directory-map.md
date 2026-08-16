@@ -4,7 +4,36 @@ description: A tour of the source tree, showing what lives where and where to st
 slug: architecture/directory-map
 ---
 
-This is a tour of `src/`, the source tree. The list isn't exhaustive, since small helpers are omitted, but every top-level directory and stable extension point appears here.
+This is a tour of `src/`, the source tree. The list isn't exhaustive, since small helpers are omitted, but every top-level directory and stable extension point appears here. If you are looking for one thing: the run engine is `core/`, who runs a seat is `agents/`, the guardrails are `safety/` and `policies/`, and the dashboard is `server/` plus `ui/`.
+
+## The shape of `src/`
+
+```text
+cli/          command-line entry point (the vibe program)
+server/       local HTTP/SSE API behind `vibe ui`
+ui/           React dashboard (Mission Control)
+shell/        Ink TUI behind `vibe shell`
+core/         the run engine: orchestrator, state machine,
+              stores, metrics, validation, context
+supervisor/   picks persona, lens, flow and posture
+flows/        Flow schema, builtin catalog, runtime, hub
+agents/       crew -> role -> profile -> skills chain
+providers/    local provider CLIs, adapters, MCP config
+project/      .vibestrate/project.yml schema + loader
+safety/       Action Broker, apply gateway, permissions
+policies/     owner-taught project rules
+git/          worktrees, merges, gated merge-preview
+roadmap/      tasks, planner, proposals, dependencies
+reviews/      review suggestions and suggestion bundles
+scheduler/    background run queue
+setup/        onboarding, doctor, provider setup
+notifications/  rules, routing and delivery
+consult/      read-only project Q&A + the handbook
+spec-up/      the Spec-up phase
+terminal/     PTY terminal sessions
+workspace/    multi-project navigator
+utils/        fs, json, paths, time, run ids, mutex
+```
 
 ## The frontends
 
@@ -21,9 +50,11 @@ The run engine and the surrounding plumbing. At the root live the hub
 modules everything shares: `orchestrator.ts` (drives a run through its flow
 steps), `state-machine.ts` (run statuses + transition allowlist),
 `diff-service.ts` (diffs + secret detection/redaction), `path-guard.ts`
-(refuses reads/writes outside known-safe roots), `guarded-fetch.ts`,
-`error-format.ts`, `run-entry.ts` (the headless build entry), and
-`detached-run.ts`.
+(refuses reads/writes outside known-safe roots), `policy-engine.ts` (the
+preflight gate that refuses a run whose config could write outside the
+worktree), `provider-resilience.ts` (classifies a provider failure and picks
+the backoff), `effort-heuristic.ts`, `guarded-fetch.ts`, `error-format.ts`,
+`run-entry.ts` (the headless build entry), and `detached-run.ts`.
 
 The domain clusters:
 
@@ -34,7 +65,7 @@ The domain clusters:
   phase snapshots, merge readiness, audits, replay, briefs.
 - `stores/` - append-only per-run persistence: artifacts, events, issues,
   provider streams, notes, control directives.
-- `metrics/` - the metrics stack: schemas, pricing, the store, spend caps,
+- `metrics/` - the metrics stack: token/cost schemas, pricing, the store, spend caps,
   the OTLP exporter, dashboard roll-ups.
 - `validation/` - validation execution + validation-profile management.
 - `context/` - what feeds the agents: prompt builder, context sources, the
@@ -62,6 +93,7 @@ The Flow system.
 - `catalog/builtin-flows.ts` - the built-in flow catalog.
 - `catalog/flow-discovery.ts` - project Flow discovery.
 - `runtime/` - the participant ledger, arbitration, context builder.
+- `authoring/` - `flow-assist.ts`, which drafts a flow from an English description or revises the one being edited.
 - `hub/` - the Flows Hub client (`vibe flows hub publish`) and its pre-publish secret/leak guards.
 
 Read first: `src/flows/catalog/builtin-flows.ts`.

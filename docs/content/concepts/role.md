@@ -8,9 +8,11 @@ A **Role** is one worker in your Crew, and it says how that worker behaves and w
 
 Think of a Role like a job description on a team. The description says what this person does and which tasks they are allowed to pick up. It doesn't name the actual person. A Role works the same way: it points at a **[[profile]]** (which decides the model), and lists the **[[seat]]s** (the kinds of step) it can fill in a [[flow]].
 
+**Permissions are the field that decides whether a Role can change your code.** `read_only` reads and reasons but never writes a file - the planner, architect, reviewer and verifier ship this way. `code_write` may edit files inside the run's [[worktree]] - the executor and fixer ship this way. That setting gates Vibestrate's own action broker. For the agent to actually write, the underlying CLI has to allow it too: on a `claude-code` [[provider]], a `code_write` seat's turn gets `--permission-mode acceptEdits` so the headless CLI can apply edits. Read-only seats get no write grant.
+
 ## What a Role carries
 
-A Role is one row inside a [[crew]], under `crews.<crewId>.roles`. There is no top-level `roles` map. Each Role carries:
+A Role is one row inside a [[crew]], under that crew's own `roles` map. There is no top-level `roles` map. Each Role carries:
 
 ```yaml
 crews:
@@ -19,32 +21,29 @@ crews:
       reviewer:
         label: Reviewer
         seats: [reviewer, challenger]
-        profile: opus-deep
+        profile: claude-balanced
         prompt: .vibestrate/roles/reviewer.json
         permissions: read_only
         skills: []
 ```
 
-- A `prompt` pointing at its JSON role file - `{"schemaVersion": 1, "id": "reviewer", "prompt": "..."}`, where `prompt` holds the instructions.
-- A `profile` it runs on (it points at a Profile, never directly at a provider).
-- A `seats` list of step kinds it can fill.
-- A `permissions` profile and any attached `skills`.
+A role file is **JSON, not Markdown**, and its `id` has to match its filename:
+
+```json
+{ "schemaVersion": 1, "id": "reviewer", "prompt": "You review diffs..." }
+```
+
+The `prompt` string is the instruction text, handed to the model verbatim. Everything else about the Role - which Profile it runs on, which Seats it fills, its permissions and skills - stays in `project.yml`, so several Crews can point at the same role file and differ only in the Profile they run it on.
 
 ## Role vs Profile vs Provider
 
 These three are easy to mix up:
 
 - A **Role** is the behavior - the Reviewer.
-- A **[[profile]]** is how strong or expensive it runs - `opus-deep`.
-- A **[[provider]]** is the installed CLI behind the Profile - `claude`.
+- A **[[profile]]** is how strong or expensive it runs - `claude-balanced`.
+- A **[[provider]]** is the tool behind the Profile - `claude`.
 
 One Profile can back many Roles, and one Provider can back many Profiles.
-
-## Permissions
-
-A Role's `permissions` profile gates Vibestrate's own action broker: `read_only` can read and reason but never writes files (reviewers and verifiers use this), while `code_write` may edit files in the worktree (executors use this).
-
-For the agent to actually write, the underlying CLI must also allow it. On a `claude-code` [[provider]], Vibestrate works this out for you: a `code_write` seat's turn gets `--permission-mode acceptEdits` so the headless CLI can apply edits, while read-only seats (and read-only or strict-apply-only runs) get no write grant. See [[provider]].
 
 ## Why split work into Roles
 
@@ -90,7 +89,7 @@ Vibestrate stacks these into one prompt before the Role runs:
 
 - The run records the resolved Role per Step (`resolvedRoleId`, `resolvedRoleLabel`) in `flow.json`.
 - `PATCH /api/crews/:crewId/roles/:roleId` edits a Role's `profile` / `seats` / `permissions` / `label` / `skills`. The role context (prompt) is read and written at `/api/crews/:crewId/roles/:roleId/context`. That endpoint works in the instruction *text*: `GET` hands back what's inside `prompt`, and `PUT` takes plain `content` and rebuilds the JSON envelope around it, so an edit can't produce a role file that only fails later, on the run that loads it. The file's `id` comes from the filename the config points at, not from the crew's key for the Role - several crews can share one role file. Both are gated: each crosses the Action Broker as a `file.write` and answers a denying policy with `403` and the policy's message, leaving its file untouched. They are told apart in the audit log by `purpose` - `PUT` records `role-prompt` against the role file, `PATCH` records `role-fields` against `project.yml` plus the field names it touched. Gating both is what makes a denying policy hold across one Save in the Crew editor, which issues the two as separate requests: with only `PUT` gated, a policy refused the instructions while a `read_only` -> `code_write` flip landed.
-- `POST /api/skills/:skillId/assign` and `/unassign` are gated the same way, and for the same reason. They write `crews.<defaultCrew>.roles.<roleId>.skills` - one of the fields the `PATCH` above gates - from a different page, so leaving them out would have kept a second door open onto a protected field. They record `role-skills` against `project.yml`, naming the skill and the direction. A skill is instruction text replayed into every turn the Role takes and can carry MCP servers, so an assignment hands a Role new instructions and new tools: the same class of authority as a prompt edit, not a lesser one.
+- `POST /api/skills/:skillId/assign` and `/unassign` are gated the same way, and for the same reason. They write a role's `skills` list in the default crew - one of the fields the `PATCH` above gates - from a different page, so leaving them out would have kept a second door open onto a protected field. They record `role-skills` against `project.yml`, naming the skill and the direction. A skill is instruction text replayed into every turn the Role takes and can carry MCP servers, so an assignment hands a Role new instructions and new tools: the same class of authority as a prompt edit, not a lesser one.
 - **A Role lives in two files, and one `pathGlob` rule covers both.** Every write to a Role - the prompt `PUT`, the fields `PATCH`, a skill assignment - presents the same pair of paths (`subject.path`, the file the bytes land in, plus `subject.files`, the pair the grant spans), and a `pathGlob` is tested against all of them. So a rule scoped to `**/.vibestrate/roles/**` and a rule scoped to `**/project.yml` each refuse all three. Splitting them would mean a rule that stops the instructions while a `read_only` -> `code_write` flip lands, with the refusal claiming the write was stopped. Two things follow. Such a rule is **wider than it reads** - one written to freeze a Role's instructions also refuses a label rename, and `require_approval` is not accepted on `file.write`, so there is no softer landing than a refusal. And the pair is resolved from the *validated* config, so a `prompt:` written as a YAML alias or reached through a merge key names the same file a plain string does.
 - **CLI and terminal shell are deliberately outside this.** `vibe init`, the `vibe config` / `vibe crew` commands and `vibe skills assign` write the same config through the same code with no gate - a gate there could refuse a first-time init before a project has any policy to consult, and those callers are you at your own keyboard rather than a page in a browser.
 - [[crew]] - the roster a Role belongs to.

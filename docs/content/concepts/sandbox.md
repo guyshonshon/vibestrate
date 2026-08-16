@@ -4,9 +4,11 @@ description: Run each agent turn inside a throwaway Docker container so the blas
 slug: concepts/sandbox
 ---
 
-By default a run executes on your machine, bounded by a git worktree and the [post-turn diff gate](concepts/safety). For an unattended run, or a task you don't fully trust, you can move the agent off your host entirely: set `execution.backend: docker` and each provider turn runs inside a **disposable Docker container**. The blast radius becomes the container, and it's the same wall no matter which provider runs - which a provider's own sandbox can't do (that only confines its own process).
+By default a run executes on your machine, bounded by a git worktree and the [post-turn diff gate](/docs/concepts/safety). For an unattended run, or a task you don't fully trust, you can move the agent off your host entirely: set `execution.backend: docker` and each provider turn runs inside a **disposable Docker container**. The blast radius becomes the container, and it's the same wall whichever provider runs - which a provider's own sandbox can't do, since that only confines its own process.
 
-The container backend is a deliberate choice for an unattended or lower-trust run, not a tax on every run - `execution.backend: local-worktree` stays the default and nothing changes until you opt in. Turn it on with `vibe config set execution.backend docker` or the dashboard config editor.
+It is opt-in. `execution.backend: local-worktree` stays the default; switch with `vibe config set execution.backend docker` or the dashboard config editor.
+
+Two things surprise people. The image must already carry the provider CLI, because `docker exec` runs that CLI inside the container and the default image `node:22-bookworm-slim` has none. And with the default `egress.mode: open` the container reaches the whole internet, so a credential readable inside it can be sent anywhere - run `vibe config set execution.container.egress.mode allowlist` before pointing this at anything you don't trust.
 
 ## You are not starting a VM per run
 
@@ -54,7 +56,7 @@ Both are configurable, and both are on top of the existing `--cap-drop=ALL --sec
 
 If `execution.backend` is `docker` but the Docker daemon isn't running, the run **refuses** with a message telling you to start (or install) Docker. It does **not** quietly fall back to running on your host while reporting a sandbox - a sandbox you didn't get is worse than an honest stop.
 
-If you genuinely want "use the container when Docker is up, otherwise run on the host," opt into it explicitly with `execution.container.onUnavailable: degrade`. Even then the run records honestly that it ran on the host, so the [isolation posture](concepts/safety) never claims a container that wasn't there.
+If you genuinely want "use the container when Docker is up, otherwise run on the host," opt into it explicitly with `execution.container.onUnavailable: degrade`. Even then the run records honestly that it ran on the host, so the [isolation posture](/docs/concepts/safety) never claims a container that wasn't there.
 
 ```yaml
 # .vibestrate/project.yml
@@ -139,4 +141,4 @@ docker rm -f $(docker ps -aqf label=vibestrate.managed=true)
 
 ## How it fits the rest of the safety model
 
-The container is the **hard wall**; it sits alongside, not instead of, the layers in [Safety](concepts/safety): the post-turn diff gate still checks every write, strict-apply-only still routes patches through the broker, and the run assurance verdict still summarizes what actually happened - now including whether the run really executed in a container. The provider-native OS sandbox (`execution.isolation`) is the cheaper, codex-only option for filesystem confinement on the host; the container backend is the model-agnostic one when you want the same wall around any provider.
+The container is the **hard wall**; it sits alongside, not instead of, the layers in [Safety](/docs/concepts/safety): the post-turn diff gate still checks every write, strict-apply-only still routes patches through the broker, and the run assurance verdict still summarizes what actually happened - now including whether the run really executed in a container. The provider-native OS sandbox (`execution.isolation`) is the cheaper, codex-only option for filesystem confinement on the host; the container backend is the model-agnostic one when you want the same wall around any provider.

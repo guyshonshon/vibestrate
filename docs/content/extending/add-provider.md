@@ -4,9 +4,9 @@ description: Tell Vibestrate how to run a local coding CLI it doesn't already kn
 slug: extending/add-provider
 ---
 
-A **provider** is the local command-line tool that actually runs an AI model on your machine. Vibestrate's built-in detector already knows about these eleven: Claude Code, Codex, Gemini, OpenCode, Aider, Ollama, Qwen Code, Crush, Goose, Cursor, and Amp.
+A **provider** is how Vibestrate reaches a model - almost always a command-line tool already installed on your machine. The built-in detector knows eleven: Claude Code, Codex CLI, Gemini CLI, OpenCode, Aider, Ollama, Qwen Code, Crush, Goose, Cursor CLI, and Amp. A provider's `type` is one of `cli`, `claude-code`, `localhost-proxy`, or `http-api`.
 
-If you want to use a CLI it doesn't know about, or you want to change the flags it passes to one it does know, you declare your own under `providers:` in `project.yml`. Any local CLI works: if a command takes a prompt and returns a change, Vibestrate can drive it. There is no plugin to write and no SDK to learn - you point at the binary, say how the prompt gets in, and that is the whole contract. This guide walks through that, start to finish.
+If you want to use a CLI it doesn't know about, or you want to change the flags it passes to one it does know, you declare your own under `providers:` in `project.yml`. Any local CLI works: if a command takes a prompt and returns a change, Vibestrate can drive it. There is no plugin to write and no SDK to learn - you point at the binary and say how the prompt gets in.
 
 ## Declare a custom CLI provider
 
@@ -78,6 +78,34 @@ providers:
 ```
 
 The `claude-code` type unlocks deeper integration: it can report a session id, track token usage, and resume a session.
+
+## Point at a server instead of a binary
+
+The other two types take an HTTP endpoint rather than a command.
+`localhost-proxy` is for a server on your own machine, like Ollama or any
+OpenAI-compatible local runtime. `http-api` calls a remote endpoint, and is the
+one type that leaves your machine.
+
+```yaml
+providers:
+  ollama-local:
+    type: localhost-proxy
+    api: ollama                     # or: openai
+    baseUrl: http://localhost:11434
+    model: qwen3.5
+
+  anthropic-api:
+    type: http-api
+    api: anthropic                  # or: openai
+    baseUrl: https://api.anthropic.com
+    model: claude-sonnet-4-6
+    apiKey: env:ANTHROPIC_API_KEY   # env reference only
+```
+
+The schema draws the line for you: a `localhost-proxy` `baseUrl` must resolve to
+localhost, and an `http-api` `baseUrl` must be `https` and must not be loopback.
+A literal `apiKey` is rejected outright, so a key can't reach your git history.
+[Provider (concept)](/docs/concepts/provider) has the full set of rules.
 
 ## What a provider can and can't do
 

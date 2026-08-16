@@ -4,31 +4,94 @@ description: How Vibestrate routes every real effect through one checkpoint, wri
 slug: concepts/safety
 ---
 
-Nothing a run *does* to your machine happens without passing one checkpoint, and that checkpoint writes down what it decided and what actually happened.
+Nothing a run does to your machine happens without passing one checkpoint. That checkpoint is the **Action Broker**. It decides each request against your rules, then writes down what it decided and what actually happened.
 
-Think of a single doorway with a guard. Every time a run wants to do something real to your computer - start an AI provider, run a command, change a file, finish the run - it has to pass through that one doorway. The guard checks each request against your rules, decides yes or no, and logs the decision and the outcome.
+Eight kinds of effect cross it, and this is the whole list:
 
-In Vibestrate that doorway is the **Action Broker**. Every side-effecting operation a run performs - spawning a provider, running a validation command, applying or reverting a patch, writing a config file, opening a terminal, completing a run - crosses it.
+<div class="docs-cards">
+
+**`provider.spawn`** - start an AI provider.
+
+**`command.run`** - run a validation command.
+
+**`file.patch`** - apply or revert a diff.
+
+**`file.write`** - write a flow file, a Role's prompt, `VIBESTRATE.md`, `mcp.json`, a spec-up artifact.
+
+**`terminal.create`** - open a terminal.
+
+**`run.complete`** - finish a run.
+
+**`run.start`** - the supervisor starts a run off a chat message.
+
+**`git.merge`** - the guided merge into your main branch.
+
+</div>
 
 <div class="docs-callout warn">
 
-**One guarded doorway.** Every side-effecting operation crosses the single Action Broker. For each request the broker decides against an ordered chain of evaluators (first `deny` wins, otherwise the first `require_approval`, otherwise `allow`) and records the decision plus post-execution evidence as one line in `.vibestrate/runs/<runId>/actions.ndjson`. Every decision is **honored fail-closed**: anything short of an explicit `allow` refuses the effect at the call site. What crosses the boundary is what a *run* does. Editing your own configuration - from the dashboard or the CLI - does not, and [the list is below](#what-does-not-cross-the-boundary).
+**Default-allow with a policy veto.** An effect no policy matches is allowed. A policy can only refuse (`deny`) or hold (`require_approval`); none of them can grant. Decisions are honored fail-closed - anything short of an explicit `allow` refuses the effect at the call site. Every decision, refusals included, is one line in the run's `actions.ndjson`.
 
 </div>
 
-<div class="docs-callout">
+<div class="docs-callout warn">
 
-**What the broker is not: a default-deny gate.** Resolution is **default-allow with a policy veto**. An effect that no policy matches is allowed, and policies can only *refuse* or *hold* - none of them can grant. So the broker is where you impose and record limits, not a whitelist you must satisfy to get anything done.
-
-What holds with **zero** policies configured is the layer underneath: the built-in patch-safety check (secret-bearing content, forbidden paths) refuses unsafe diffs on its own, the run is confined to its git worktree, and nothing is pushed or merged without you. Two things do fail closed inside the broker itself: a policy-loader error denies every write/outcome effect (`file.write`, `file.patch`, `run.complete`, `git.merge`) rather than waving them through, and a policy set that did not fully load refuses to start the run at all (below).
+**Editing your own settings does not cross it.** `vibe init`, the config commands, `POST /api/config/set`, the Policies panel, installing a Crew preset, adopting a supervisor persona and editing a Profile all write `project.yml` directly. So **a rule that denies `file.write` is not a lock on your config file.** Two supervisor effects are ungated as well: in `act` mode a chat message that creates a task or adds checklist items writes straight to the roadmap, and a consult answer that proposes a policy writes a pending entry into `project.yml`. Only `run.start` is gated. [The full list is below](#what-does-not-cross-the-boundary).
 
 </div>
 
-**Policies** are how you supply those evaluators - the rules that block or pause specific actions.
+## What crosses, and what does not
+
+```text
+   a run's own effects            you, configuring
+   ───────────────────            ────────────────
+   provider.spawn                 vibe init
+   command.run                    vibe config set
+   file.patch                     POST /api/config/set
+   file.write                     Policies panel
+   terminal.create                Crew presets, Profiles
+   run.complete                   skill install
+   run.start                      task + checklist adds
+   git.merge                      pending policy proposals
+           │                              │
+           ▼                              │
+   ┌───────────────┐                      │ no policy
+   │ Action Broker │                      │ is consulted
+   └───────┬───────┘                      │
+           ▼                              ▼
+   actions.ndjson                    project.yml
+   decision + outcome                and friends
+```
+
+The broker is one doorway with a guard. Each request is decided against an ordered chain of evaluators - the first `deny` wins, otherwise the first `require_approval`, otherwise `allow` - and the decision plus post-execution evidence is appended to `actions.ndjson` in the run's folder under `.vibestrate/runs/`. That file is what the Run Assurance artifact and replay read from.
+
+What holds with **zero** policies configured is the layer underneath: the built-in patch-safety check (secret-bearing content, forbidden paths) refuses unsafe diffs on its own, the run is confined to its git worktree, and nothing is pushed or merged without you. Two things do fail closed inside the broker itself: a policy-loader error denies seven of the eight kinds rather than waving them through - every one except `provider.spawn`, which is refused a layer down where the provider is actually launched - and a policy set that did not fully load refuses to start the run at all (below).
+
+There is deliberately **no `network.request` or `mcp.tool` kind**. A provider CLI's own HTTP calls and tool invocations happen inside an opaque subprocess that Vibestrate cannot intercept, so a policy kind for them would advertise a checkpoint that does not exist. Network confinement is enforced a layer down, at the container boundary - see [egress allowlist](/docs/concepts/sandbox).
+
+### What does not cross the boundary
+
+Not every byte written under `.vibestrate/` crosses it. A policy reaches a write only when some code path raises that write as an action.
+
+**Gated** - the effects of a run, plus the authoring surfaces: flow files, a Role's prompt, a Role's wiring and its skill *assignments*, `VIBESTRATE.md`, `mcp.json`, a spec-up artifact edit, terminal creation, the guided merge.
+
+**Not gated** - you editing your own settings:
+
+- `POST /api/config/set`, the policies config panel, installing a Crew preset, changing the default Crew, adopting a supervisor persona, and editing a Profile all write `project.yml` directly.
+- `POST /api/skills/fetch` writes `.vibestrate/skills/<name>.md`. Assigning a skill to a Role is gated; *installing* one is not.
+- `POST /api/composer/presets` writes your saved composer presets.
+- `vibe init` and every config command on the CLI.
+
+**Not gated** - two things the supervisor does:
+
+- With `supervisorControl.autonomy: act`, a chat message that creates a task or appends checklist items writes them to the roadmap with no broker call. There is no action kind for either. They are bounded by shape instead: a title, or a list of strings, both length-capped, onto a task that was already on offer. Starting a run from that same chat message *is* gated, as `run.start`.
+- A consult answer can propose a project policy, which writes a pending entry into `project.yml` with no broker call. A pending policy is inert - it changes no review and blocks no merge until you confirm it. See [Policies](/docs/concepts/policies).
+
+The config surfaces are ungated on purpose: a gate there could refuse a first-time `vibe init`, before the project has any policy to consult.
 
 ## Two kinds of policy
 
-Policy files live in `.vibestrate/policies/*.yml`. A file may carry two lists:
+**Policies** are how you supply the broker's evaluators - the rules that block or pause specific actions. Policy files live in `.vibestrate/policies/*.yml`. A file may carry two lists:
 
 <div class="docs-cards">
 
@@ -77,13 +140,13 @@ In plain words: the first action `deny`s any `npm install` / `pip install` comma
 | `pathGlob` | `file.write`, `file.patch` | glob over the written/touched path(s) |
 | `status` | `run.complete` | exact terminal verdict (`merge_ready` / `blocked`) |
 
-Write a `pathGlob` with `/` separators on every platform, Windows included. The path a write is matched against is the native one vibestrate is about to open, so it is checked in both its native and its `/` spelling - a rule like `**/*.env` bites the same on Windows as it does on macOS and Linux.
+`run.start`, `terminal.create` and `git.merge` have no match field. A policy on those kinds carries no `match` and so applies to every one of them.
+
+Write a `pathGlob` with `/` separators on every platform, Windows included. The path a write is matched against is the native one Vibestrate is about to open, so it is checked in both its native and its `/` spelling - a rule like `**/*.env` bites the same on Windows as it does on macOS and Linux.
 
 **Start a `pathGlob` with `**/`.** The path it matches is absolute and the glob is anchored, so a project-relative pattern like `.vibestrate/project.yml` matches nothing and the rule silently protects nothing. Write `**/.vibestrate/project.yml`. A glob is tested against every path an action declares, not only the one it opens. Most writes declare one. Where one action in your head is two writes to two files - a Role's prompt and a Role's wiring, say - both writes declare **both** paths, so one path-scoped rule naming either file covers the pair. That keeps a rule from refusing the harmless half and landing the dangerous one, and it means such a rule is wider than its glob reads.
 
 An action with no `match` applies to **every** request of the listed `on:` kinds. Effects default to `deny`. Policies can only *refuse or hold* an effect - they never permit something the built-in safety checks already refused.
-
-The seven kinds above are exactly the effects vibestrate actually raises. There is deliberately **no `network.request` or `mcp.tool` kind**: a provider CLI's own HTTP calls and tool invocations happen inside an opaque subprocess that vibestrate cannot intercept, so a policy kind for them would advertise a checkpoint that does not exist. Network confinement is enforced a layer down, at the container boundary - see [egress allowlist](concepts/sandbox).
 
 ### `require_approval` only where something can pause
 
@@ -93,34 +156,17 @@ Every other kind is refused at load with an error naming the offending kinds. Th
 
 One honest edge: `file.patch` holds at the diff gate, but the suggestion/bundle **apply** surfaces have no seam either, so a hold there refuses the apply. When that happens the action log records the policy's `require_approval` decision *plus* evidence saying it was refused rather than held, so the audit trail never implies you were asked.
 
-Every effect that is constructed as a broker request goes through the same policy set, and `actions.ndjson` is the audit trail the Run Assurance artifact and replay read from, refused attempts included.
-
-### What does not cross the boundary
-
-Not every byte written under `.vibestrate/` crosses it. A policy reaches a write only when some code path raises that write as an action.
-
-**Gated** - the effects of a run, plus the authoring surfaces: flow files, a Role's prompt, a Role's wiring and its skill *assignments*, `VIBESTRATE.md`, `mcp.json`, terminal creation, the guided merge.
-
-**Not gated** - you editing your own settings:
-
-- `POST /api/config/set`, the policies config panel, installing a Crew preset, changing the default Crew, adopting a supervisor persona, and editing a Profile all write `project.yml` directly.
-- `POST /api/skills/fetch` writes `.vibestrate/skills/<name>.md`. Assigning a skill to a Role is gated; *installing* one is not.
-- `POST /api/composer/presets` writes your saved composer presets.
-- `vibe init` and every config command on the CLI.
-
-A gate on these could refuse a first-time `init` before the project has any policy to consult. The practical consequence is worth stating plainly: **a rule that denies `file.write` is not a lock on your config file.**
-
 ### A policy set that didn't fully load stops the run
 
 A policy file that fails to parse contributes **no rules**, and a rule id defined twice keeps only the first - so the stricter rule you just added can vanish while `vibe policies list` still looks healthy. Nothing downstream can catch this: the broker only ever sees the rules that *did* load, and a rule that never loaded leaves no trace in the action log or the assurance verdict.
 
 So a run **refuses to start** while `.vibestrate/policies/` contains a malformed file or a duplicate id, naming the file and the reason:
 
-```
-Refusing to start: the policy set in .vibestrate/policies/ did not fully load,
-so rules you think are active may not be.
+```text
+Refusing to start. The policy set in .vibestrate/policies/
+did not fully load, so rules you think are active may not be.
   safety.yml: YAML parse error: ...
-Fix them (details: `vibe policies doctor`), then start the run again.
+Fix them (details: `vibe policies doctor`), then try again.
 ```
 
 This is deliberately strict - a broken YAML file blocks even a docs-only run - because the alternative is running with protections you believe are on. `vibe policies doctor` prints the same detail and exits non-zero.
@@ -150,7 +196,7 @@ When a gate is about a **change**, the request carries the files it is asking ab
 
 A note on **ask** combined with `strictApplyOnly`: ask's "approve each change" runs on the post-turn diff gate (the direct-write path). With `strictApplyOnly` on, changes are routed through the apply gateway instead, which currently *refuses* a change pending approval rather than prompting for it - so a run lands blocked instead of pausing. Use one or the other for now (ask alone gives you the per-change prompt).
 
-What's **honest** about this: the modes gate the run-level effects Vibestrate owns - the agent's resulting **diff**, and run **completion** - not each shell command the agent runs inside an opaque provider (codex's subprocess can't be intercepted per-command, and claude's `tool_use` stream is display-only). So "ask" means "approve each change", not "approve each command". `read-only` is a real no-write guarantee because Vibestrate never grants write capability; for the strongest wall around a non-codex provider, combine it with the [container backend](concepts/sandbox).
+What's **honest** about this: the modes gate the run-level effects Vibestrate owns - the agent's resulting **diff**, and run **completion** - not each shell command the agent runs inside an opaque provider (codex's subprocess can't be intercepted per-command, and claude's `tool_use` stream is display-only). So "ask" means "approve each change", not "approve each command". `read-only` is a real no-write guarantee because Vibestrate never grants write capability; for the strongest wall around a non-codex provider, combine it with the [container backend](/docs/concepts/sandbox).
 
 The mode is the **soft policy**; the container backend is the **hard wall**. They layer: read-only mode + `execution.backend: docker` gives you "no writes" enforced by both the orchestrator and the container.
 
@@ -158,7 +204,7 @@ No permission mode pushes your branch or merges it anywhere - not even `auto`. A
 
 ## Run assurance
 
-When a run reaches a terminal state, Vibestrate derives a single honest verdict from the evidence above - the broker log plus the run's review and verification decisions - and writes it to `.vibestrate/runs/<runId>/assurance.json`:
+When a run reaches a terminal state, Vibestrate derives a single honest verdict from the evidence above - the broker log plus the run's review and verification decisions - and writes it to `assurance.json` alongside the action log:
 
 <div class="docs-outcomes"><div class="docs-outcome ok"><b>verified</b><span>Every applicable check passed - or nothing needed checking (see below).</span></div><div class="docs-outcome warn"><b>partially_verified</b><span>A check that was expected is missing, failed, or weak (see caps).</span></div><div class="docs-outcome warn"><b>unverified</b><span>The run reached merge_ready with no meaningful evidence.</span></div><div class="docs-outcome stop"><b>blocked</b><span>The run did not reach merge_ready.</span></div><div class="docs-outcome stop"><b>unsafe</b><span>A policy denied an action, or a rollback failed - don't trust the worktree.</span></div></div>
 
@@ -182,7 +228,7 @@ A `blocked` or `unsafe` verdict also carries **`blockers`** - the root causes, d
 
 ### The full step-by-step story
 
-For the flow's steps and, per step, what each turn did (succeeded, got **rate-limited then retried**, **fell back** to another model, paused, or failed-but-tolerated), plus run-level budget/spend/pause events, use the **run audit**: the "Run audit · what happened" tree on the run detail page (each step's attempt chain, color-coded), or `vibe audit <runId>` (add `--json`), or `GET /api/runs/:runId/audit`. It's derived from the recorded evidence (events + state + metrics), so it's exact for vibestrate's own orchestration. For providers that stream structured output (e.g. claude-code `stream-json`), each step also shows what happened *inside* the turn - the tool calls it made and any sub-agents it spawned. For providers that don't, the inside is honestly marked "opaque" (a spawned sub-agent's own internals always stay opaque - they run inside the tool, not in the parent stream).
+For the flow's steps and, per step, what each turn did (succeeded, got **rate-limited then retried**, **fell back** to another model, paused, or failed-but-tolerated), plus run-level budget/spend/pause events, use the **run audit**: the "Run audit · what happened" tree on the run detail page (each step's attempt chain, color-coded), or `vibe audit <runId>` (add `--json`), or `GET /api/runs/:runId/audit`. It's derived from the recorded evidence (events + state + metrics), so it's exact for Vibestrate's own orchestration. For providers that stream structured output (e.g. claude-code `stream-json`), each step also shows what happened *inside* the turn - the tool calls it made and any sub-agents it spawned. For providers that don't, the inside is honestly marked "opaque" (a spawned sub-agent's own internals always stay opaque - they run inside the tool, not in the parent stream).
 
 If a run used a **best-effort step** (a `continueOnError` reviewer, say) and that step failed but was tolerated, the run can still finish - but that step gave no scrutiny, so coverage is degraded. The verdict reflects this: a tolerated failure adds a `steps_failed_tolerated` cap and holds the verdict at `partially_verified` rather than `verified`. The count shows as `coverage.toleratedStepFailures`.
 
@@ -192,8 +238,8 @@ Three gates sit on the path between an agent and your files, each independently 
 
 - **Post-turn diff gate** - every write-capable turn is snapshotted before it runs. Afterward its diff is checked against secret/path safety and `file.patch` policies. A denied or unsafe diff is rolled back to the snapshot and the run is blocked.
 - **Strict apply-only mode** (`policies.strictApplyOnly`) - for the highest assurance, write roles run read-only and instead *propose* a unified diff that Vibestrate applies through the broker gateway. Nothing reaches disk without crossing the gate; a refused patch blocks the run.
-- **Provider-native OS sandbox** (`execution.isolation`, **off by default**) - an optional fourth layer that adds OS *prevention* on top of the diff gate's *detection*. The gates above bound your machine structurally already (worktree + diff gate + human-reviews-the-diff-before-merge), which is why a sandbox is opt-in, not a tax on every run - turn it on for an untrusted task or an unattended run. With `execution.isolation: sandboxed`, each turn is asked to run under the provider's own OS sandbox, scaled to the seat: a write-capable seat gets writes confined to the worktree, a read-only seat gets read-only. **Today this is real only for codex** (`codex exec --sandbox`, Apple Seatbelt / Linux Landlock - a write outside the worktree is refused by the OS). A provider with no OS sandbox flag (e.g. claude) **warns once and runs unsandboxed** rather than pretending - the worktree + diff gate still apply, and the run records only the sandbox that was actually enforced. Set it with `vibe config set execution.isolation sandboxed` or the dashboard config editor. For a wall that works the same around **any** provider (not just codex), move the run off your host entirely with the [container backend](concepts/sandbox) - `execution.backend: docker` runs each turn in a disposable Docker container.
-- **Egress allowlist** (`execution.container.egress.mode: allowlist`, **off by default**, container backend only) - the run container moves to a Docker network with no gateway, so its only route out is an allowlisting proxy that refuses any host you didn't name. See [the sandbox page](concepts/sandbox).
+- **Provider-native OS sandbox** (`execution.isolation`, **off by default**) - an optional fourth layer that adds OS *prevention* on top of the diff gate's *detection*. The gates above bound your machine structurally already (worktree + diff gate + human-reviews-the-diff-before-merge), which is why a sandbox is opt-in, not a tax on every run - turn it on for an untrusted task or an unattended run. With `execution.isolation: sandboxed`, each turn is asked to run under the provider's own OS sandbox, scaled to the seat: a write-capable seat gets writes confined to the worktree, a read-only seat gets read-only. **Today this is real only for codex** (`codex exec --sandbox`, Apple Seatbelt / Linux Landlock - a write outside the worktree is refused by the OS). A provider with no OS sandbox flag (e.g. claude) **warns once and runs unsandboxed** rather than pretending - the worktree + diff gate still apply, and the run records only the sandbox that was actually enforced. Set it with `vibe config set execution.isolation sandboxed` or the dashboard config editor. For a wall that works the same around **any** provider (not just codex), move the run off your host entirely with the [container backend](/docs/concepts/sandbox) - `execution.backend: docker` runs each turn in a disposable Docker container.
+- **Egress allowlist** (`execution.container.egress.mode: allowlist`, **off by default**, container backend only) - the run container moves to a Docker network with no gateway, so its only route out is an allowlisting proxy that refuses any host you didn't name. See [the sandbox page](/docs/concepts/sandbox).
 - **Run assurance** - the terminal verdict above summarizes what actually happened, from the evidence log.
 
 ## Budget ceilings (don't lose control)
@@ -204,6 +250,8 @@ Beyond the daily **dollar** cap (`budget.spendCapDailyUsd`), Vibestrate has **co
 - `budget.maxTurnsPerDay` / `budget.maxWallClockMinPerDay` - across all of today's runs.
 
 Checked before every agent turn. When one is hit the run **stops (blocked)**, logs a `budget.limit` event, and notifies you. All off by default. Set them with `vibe budget set --max-turns-run 40 --max-time-day 120` (use `off` to clear), `PATCH /api/budget`, or the dashboard's Budget control.
+
+One ceiling is not optional. `supervisorControl.autonomy: act` lets a chat message start a run, so the config refuses to load in `act` mode unless at least one budget ceiling is set.
 
 Because they're off by default, a `--unattended` run with **no ceiling and no confinement** says so before it starts - printed by `vibe run` while you're still at the keyboard, and recorded as an `UNBOUNDED_UNATTENDED_RUN` policy warning in the run's event log:
 
@@ -239,5 +287,3 @@ If retries run out, a **fallback** kicks in: the turn runs once on another Profi
 A **subscription usage limit** (a per-model quota that resets, often hours out) is handled separately from a per-minute rate limit - retrying it for seconds is pointless (Claude Code's "being rate limited... switch over?" prompt is detected as this class). `resilience.usageLimit.action` controls it: `wait` sleeps for the reset window (the parsed hint, capped at `maxWaitMin`) then retries - so an overnight run "runs until the window refills"; `fallback` switches to another model; `stop` (default) ends honestly - after trying the auto-derived fallback first, since switching providers is instant ("stop" opts out of waiting hours, not of using a model the run already trusts). Recorded as `provider.usage_limit`.
 
 When a provider failure does end the run, it ends **loudly with its cause**: the classified failure and a redacted excerpt of the provider's actual error ("usage-limit: This model is being rate limited...") travel into the step's error, the event log (`provider.retries_exhausted`), the Supervisor feed, and the Run Assurance verdict - not a bare "provider exited 1".
-</content>
-</invoke>

@@ -1,74 +1,95 @@
 ---
 title: Workflow
-description: The ordered sequence of stages a run moves through - plan, architect, execute, validate, review, fix, verify.
+description: The eight steps of the built-in default flow, the run status each one produces, and the review loop.
 slug: concepts/workflow
 ---
 
-A workflow is the ordered set of stages a single task moves through, from "submitted" to "ready to merge". Each stage knows the status it starts in, the status it finishes in, and (for the stages where a model does the work) which kind of worker is responsible.
+A workflow is the ordered set of steps one run works through, from submitted to a verdict. Every run executes a [Flow](/docs/concepts/flow) through one runner, so a run's workflow is the steps of whichever Flow it is running.
 
-Think of it like an assembly line. A part can't skip ahead to the end of the line and call itself finished. Vibestrate's [state machine](/docs/concepts/state) is the rail that keeps each run moving station by station, so a run can't jump from "planning" straight to "merge_ready" without doing the work in between. The orchestrator is what moves the part down the line.
-
-## The default workflow
-
-When you run a task without picking a different flow, you get the built-in **`default` flow**. It runs through seven stages, with a small loop in the middle that fixes problems and re-checks:
+This page is the canonical description of the built-in **`default`** flow. It has eight steps: plan, architecture, implement, validate, review, verify, plus **fix** and **re-validate**, which are loop-only - they run when review returns `CHANGES_REQUESTED`, and not otherwise.
 
 ```text
-planning → architecting → executing → validating → reviewing → verifying
-                                          ↑           ↓
-                                          └─ fixing ──┘
+ plan ▶ architecture ▶ implement ▶ validate ▶ review ▶ verify
+                                               ▲  │
+                        ┌──────────────────────┘  │
+                        │                         ▼
+                        └── re-validate ◀──────── fix
 ```
 
-Here is what each stage does and who does it:
+Review is the only branch. `CHANGES_REQUESTED` sends the run around the loop; any other decision goes on to verify. The default flow allows three review passes, so at most two fix rounds, and a third pass still asking for changes ends the run `blocked`.
 
-| Stage | Agent | Output |
-|---|---|---|
-| planning | planner | structured plan |
-| architecting | architect | module map, interfaces, data flow |
-| executing | executor | file edits in the worktree |
-| validating | - (commands) | typecheck / test / build / lint output |
-| reviewing | reviewer | findings + APPROVED / CHANGES_REQUESTED / BLOCKED |
-| fixing | fixer | patched diff + finding responses |
-| verifying | verifier | PASSED / FAILED / NEEDS_HUMAN + decision summary |
+**Architecture** is a full agent turn with its own `architect` seat, not a formality. **validate** and **re-validate** have no seat at all - they run your project's own commands.
 
-The fix loop is bounded by the flow's own loop budget (the built-in flows allow 3 rounds). You can set `workflow.maxReviewLoops` as an optional **global ceiling** that lowers every flow to at most that many rounds - omitted by default, so each flow keeps its own budget. If review keeps requesting changes past the budget, the run goes to `blocked` and calls you over.
+A run does not always take this flow. [Flow](/docs/concepts/flow) covers what gets picked when you do not name one.
+
+## What each step does
+
+| Step | Run status | Seat | Output |
+|---|---|---|---|
+| plan | `planning` | planner | a plan for the change |
+| architecture | `architecting` | architect | approach, implementer boundaries, risks |
+| implement | `executing` | implementer | file edits in the worktree |
+| validate | `validating` | none | your `commands.validate` output |
+| review | `reviewing` | reviewer | findings, and `APPROVED` / `CHANGES_REQUESTED` / `BLOCKED` |
+| fix | `fixing` | fixer | answers to the findings, and an updated diff |
+| re-validate | `validating` | none | your `commands.validate` output |
+| verify | `verifying` | verifier | `PASSED` / `FAILED` / `NEEDS_HUMAN` |
+
+Eight steps, seven statuses: `validating` happens twice.
+
+The [state machine](/docs/concepts/state) is the rail underneath. A run cannot jump from `planning` to `merge_ready` without passing through the steps in between.
+
+## What the architect adds
+
+The architect reads the plan and decides the approach: what fits the existing codebase, what the implementer may and may not touch, and which risks are worth calling out. It runs read-only in the crew `vibe init` writes.
+
+It can also stop the run. If the architect emits `HUMAN_APPROVAL: REQUIRED`, the run moves to `waiting_for_approval` before any code is written, and waits for your decision.
 
 ## Validation is the tie-breaker
 
-Notice that **validating** has no agent. It runs your project's `commands.validate` array (typecheck, tests, build, lint) and routes the result. That is on purpose: validation is the ground truth that settles a disagreement between the executor's claim ("I wrote it") and the reviewer's doubt ("I don't think it works").
+**validate** runs your project's `commands.validate` array (typecheck, tests, build, lint) and routes the result. That is why it has no seat: validation is the ground truth that settles a disagreement between the implementer's claim ("I wrote it") and the reviewer's doubt ("I don't think it works").
 
-If your `commands.validate` is empty, the workflow becomes a pure model-judgement loop with no facts underneath it. We strongly recommend filling it in. Even a single `pnpm typecheck` catches a huge class of regressions for free.
+`vibe init` fills `commands.validate` from the scripts it finds in your project, so on a typical Node project it is already set. If it found none, the workflow is a model-judgement loop with no facts underneath it. One `pnpm typecheck` entry catches a large class of regressions.
+
+## The review loop
+
+`review` is the decision step. Anything other than `CHANGES_REQUESTED` exits the loop immediately and goes to `verify`. `CHANGES_REQUESTED` runs `fix` and `re-validate`, then reviews again.
+
+`workflow.maxReviewLoops` is an optional global ceiling: set it and no flow's loop budget goes above that number. It is unset by default, so each flow keeps its own budget. A per-crew `maxReviewLoops` overrides both.
 
 ## One runner, many recipes
 
-There is only one execution model. Every run executes a **flow** through one runner. The default workflow above is the built-in `default` flow. A [Flow](/docs/concepts/flow) is just a different recipe with different roles, step order, optional approval gates, or looping steps. For example, the built-in `quality-arbitration` flow adds a builder, challenger, and arbiter crew for higher-risk feature work.
+There is only one execution model. A [Flow](/docs/concepts/flow) is a different recipe with different seats, step order, optional approval gates, or looping steps. The built-in `quality-arbitration` flow, for example, adds a builder, a challenger, and an arbiter for higher-risk feature work.
 
 They all share the same runner:
 
 ```bash
-vibe run "..."                  # the built-in default flow
-vibe run "..." --flow default   # the same flow, explicit
+vibe run "..."                             # Vibestrate picks
+vibe run "..." --flow default              # the eight steps above, explicitly
 vibe run "..." --flow quality-arbitration
 ```
 
 ### Fast tracks
 
-Not every task deserves the full seven-stage line. For small, low-risk work the built-in **`express`** flow runs one implementer turn behind two gates that only fire when the change demands it: a pure-prose, unprotected diff skips both review and verification and goes straight to merge-ready, while anything touching code or a protected path gets a real review turn *and* a real verify turn.
+Not every task deserves the full eight-step line. For small, low-risk work the built-in **`express`** flow runs one implementer turn behind two gates that only fire when the change demands it: a pure-prose, unprotected diff skips both review and verification and goes straight to merge-ready, while anything touching code or a protected path gets a real review turn *and* a real verify turn.
 
 That asymmetry is deliberate. Whatever routes a task to `express` is reading the task description, and a description can be wrong about what a change turns out to touch. The diff cannot. So the decision to skip a gate is never made from the task text - it is made from the files the run actually changed, after it changed them.
-
-You rarely have to ask for `express`. When you have not picked a flow and have not set a project default, Vibestrate sizes the task first (`flowSizing`, on by default, no model call). A short request that is not a build-a-system brief and does not mention sensitive ground - accounts, payments, checkout, admin, deploys, migrations, deletions - goes to `express`. Anything that proposes weakening a safeguard ("skip the email check", "make it visible to everyone", "hardcode it") never does, whatever else it says.
-
-Sizing only ever picks the leaner *front*. It cannot reduce a gate, its one possible target is `express`, and an explicit `--flow` or a configured default always beats it. Being wrong here costs a heavier flow, which is the direction it is allowed to be wrong in.
 
 ```bash
 vibe run "fix the typo in the seat concept page" --flow express
 ```
 
-To pick up a flow partway through, `vibe run --resume-from <runId> --resume-stage <stage>` rewinds any flow that declares the matching stage. The runner seeds the earlier steps' outputs from the source run and starts from there.
+To pick a flow up partway through, resume from an earlier run. The runner seeds the earlier steps' outputs from that run and starts at the stage you name.
+
+```bash
+# accepted stages: planning architecting executing reviewing fixing verifying
+# default: executing
+vibe run "..." --resume-from bold-lovelace --resume-stage reviewing
+```
 
 ## How the crew stays on the same page
 
-Each stage hands its work to the next, and Vibestrate keeps that through-line tidy two ways.
+Each step hands its work to the next, and Vibestrate keeps that through-line tidy two ways.
 
 A compact **run brief** is the story so far: the chosen flow and why, each step's outcome and decision, validation status, changed files, and open risks. There is no model call - it is assembled from facts the orchestrator already has, and the oldest entries fold to one line when it gets long. It goes into **every** role's prompt so the crew builds on each other without re-reading the full history, and it is written to `flows/run-brief.md` so you can read it too.
 
@@ -80,7 +101,7 @@ Each turn's context is rebuilt from the artifacts (the run brief plus the named 
 
 When a provider supports session reuse (for example `claude --resume`), Vibestrate reuses the session across a role's turns for speed and cost, sending just what changed instead of replaying everything. To keep even a reused session from ballooning on a marathon run, `session.maxReuseTurns` caps how many turns a session lives before Vibestrate opens a fresh one and re-grounds it from the artifacts (`0` means unlimited). That re-grounding is lossless, and the provider's own auto-compaction stays the safety net.
 
-Reuse is keyed on the **[Seat](concepts/seat)**, never on which model a step runs. That distinction matters: a writer and a reviewer can run the same model at the same effort, yet they are different seats, so the reviewer starts a **fresh** process and never inherits the writer's session. Independent context is the whole point of a review - a reviewer that resumed the writer's session would just rubber-stamp its own reasoning. Continuity follows the seat doing the work, not a coincidence of matching profiles.
+Reuse is keyed on the **[Seat](/docs/concepts/seat)**, never on which model a step runs. That distinction matters: a writer and a reviewer can run the same model at the same effort, yet they are different seats, so the reviewer starts a **fresh** process and never inherits the writer's session. Independent context is the whole point of a review - a reviewer that resumed the writer's session would just rubber-stamp its own reasoning. Continuity follows the seat doing the work, not a coincidence of matching profiles.
 
 ## When a step fails
 
@@ -89,12 +110,12 @@ A model turn only counts as success if its provider exits cleanly **and** return
 ## Common mistakes
 
 - **Skipping validation.** A workflow without real validation is a workflow without ground truth.
-- **Setting `maxReviewLoops` too high.** Three to five rounds is usually enough. Past that, the run is probably stuck and should `block` to call you over.
-- **Adding stages by editing the workflow array.** For now, prefer a custom Flow. That is the supported extension point.
+- **Setting `maxReviewLoops` too high.** Three to five passes is usually enough. Past that, the run is probably stuck and should `block` to call you over.
+- **Adding steps by editing the workflow array.** Prefer a custom Flow. That is the supported extension point.
 
 ## Going deeper
 
-- [Run state](/docs/concepts/state) - the statuses each stage entry and exit produces.
-- [Flow](/docs/concepts/flow) - alternate recipes and how the crew fills a flow's steps.
+- [Run state](/docs/concepts/state) - the statuses each step entry and exit produces.
+- [Flow](/docs/concepts/flow) - alternate recipes, and how a Flow gets chosen.
 - [Workflow reference](/docs/reference/workflow) - the canonical, generated stage list.
-- [Task lifecycle](/docs/task-lifecycle) - the same flow with the full status diagram.
+- [Task lifecycle](/docs/task-lifecycle) - the same path with the full status diagram.

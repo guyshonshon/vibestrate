@@ -6,6 +6,15 @@ slug: task-lifecycle
 
 Every task moves through a fixed sequence of statuses, and Vibestrate won't let it skip a step or jump backward. Think of it like a package working through delivery: it goes through sorted, in transit, and out for delivery in order, and each scan tells you exactly where it is right now.
 
+It comes to rest in one of four places, and which one is the whole answer to "what do I do next":
+
+```text
+merge_ready  the diff passed; read it and merge, or drop it
+blocked      review or verification says stop; read the findings
+failed       an error broke a stage mid-run
+aborted      you ran vibe abort; the worktree is kept
+```
+
 ## The happy path
 
 When nothing goes wrong, a task walks through every status once and finishes ready to merge.
@@ -29,13 +38,13 @@ reviewing → fixing → validating → reviewing → verifying → merge_ready
 
 <div class="docs-callout">
 
-**The fix loop has a budget.** The reviewer can return `CHANGES_REQUESTED`, sending the run back into `fixing`. The fixer addresses the findings, validation re-runs, and the reviewer re-evaluates. Each round counts against the flow's loop budget (3 in the built-in flows); an optional `workflow.maxReviewLoops` global ceiling can lower it. Past the budget, the run goes to `blocked`.
+**The fix loop has a budget.** A `CHANGES_REQUESTED` review sends the run back into `fixing`, validation re-runs, and the reviewer looks again. The default flow allows 3 passes - the first review plus 2 fix cycles. A run still asking for changes when the budget runs out ends `blocked`. `workflow.maxReviewLoops` can lower any flow's budget; a Crew's own `maxReviewLoops` overrides both.
 
 </div>
 
 ## When a stage needs your approval
 
-Some stages can be set to wait for you before they start. The task pauses at the gate and holds until you decide.
+A stage can be set to hold for you once its work is done, before the run moves past it.
 
 ```text
 ... → executing → waiting_for_approval → executing → ...
@@ -43,7 +52,7 @@ Some stages can be set to wait for you before they start. The task pauses at the
 
 <div class="docs-callout">
 
-**The gate holds until you decide.** If a stage is listed under `policies.requireApprovalAtStages`, the orchestrator pauses at the boundary into that stage. The run sits at `waiting_for_approval` until `vibe approvals decide` is invoked.
+**The gate holds until you decide.** List a stage under `policies.requireApprovalAtStages` and the run pauses there once, on the first pass through it, with the reason "project policy requires approval before continuing past the *stage* stage." An agent can also ask for a gate of its own by emitting `HUMAN_APPROVAL: REQUIRED`. Either way the run sits at `waiting_for_approval` until you run `vibe approvals approve`, `reject`, or `request-changes`, then continues from the status it paused in.
 
 </div>
 
@@ -59,28 +68,31 @@ You can stop a running task and start it again later, and it picks up from where
 
 ## Where a task can come to rest
 
-Four statuses are terminal. Once a run reaches one, it cannot transition out. What to read, and what each offers:
+The four terminal statuses in more detail - what each means and what it gives you:
 
 - **`merge_ready`** - Verifier passed. The diff is ready to ship.
-- **`blocked`** - Reviewer or verifier said the run should not continue. Read `review.md` and `verification.md`. On the dashboard, a run blocked by review offers **See review** (the reviewer's decision + findings, parsed from the review artifact) and **Re-run with fixes** (forks a new run that reuses this run's plan + architecture and re-implements); the shell run view lists the finding headlines under the `review` line.
-- **`failed`** - Unrecoverable error during a stage. Read `events.jsonl` and the provider stream log.
+- **`blocked`** - Reviewer or verifier said the run should not continue. On the dashboard, a run blocked by review offers **See review** (the reviewer's decision and findings) and **Re-run with fixes** (forks a new run that reuses this run's plan and architecture, then re-implements); the shell run view lists the first three finding headlines under the `review` line.
+- **`failed`** - Unrecoverable error during a stage. Read `events.ndjson` and the provider stream log.
 - **`aborted`** - User explicitly aborted. Worktree is preserved.
 
-## Where each status writes
+## What a run leaves on disk
 
-As a task moves, each status leaves something behind so you can see what happened.
+Each flow step writes its prompt and the provider's reply under the run folder, named after the step rather than the status. For the default flow the step ids are `plan`, `architecture`, `implement`, `validation`, `review`, `fix`, `revalidation`, and `verify`.
 
-| Status | Primary artifact |
-|---|---|
-| `planning` → `planned` | `plan.md` |
-| `architecting` → `architected` | `architecture.md` |
-| `executing` | file edits in the worktree + `execution.log` |
-| `validating` | `validation.json` |
-| `reviewing` | `review.md` |
-| `fixing` | new commits in the worktree + `finding-responses.md` |
-| `verifying` | `verification.md` |
+```text
+.vibestrate/runs/<runId>/
+  state.json                    current status, transitions
+  events.ndjson                 every event, append-only
+  actions.ndjson                every brokered action + its verdict
+  artifacts/flows/
+    <step-id>/prompt.md         what the provider was sent
+    <step-id>/output.md         what it replied
+    <step-id>/validation-results.json   commands run + exit codes
+    findings.json               the reviewer's findings
+    finding-responses.json      how the fixer answered each one
+```
 
-All under `.vibestrate/runs/<runId>/`. The `events.jsonl` file logs every transition, append-only.
+The code changes themselves are commits in the run's worktree, not files here. `events.ndjson` is the record to trust: one JSON line per event, append-only.
 
 ## Going deeper
 

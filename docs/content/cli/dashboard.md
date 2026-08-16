@@ -4,7 +4,7 @@ description: The local dashboard for inspecting runs, approving gates, reading d
 slug: cli/dashboard
 ---
 
-Mission Control is Vibestrate's web UI. A Fastify process serves it on demand, starting only when you ask for it. It runs on your machine and there is no backend of ours behind it. The one exception is the Flow Hub: searching, pulling or publishing a flow reaches vibestrate.com, and only when you ask for it.
+Mission Control is Vibestrate's web UI. A Fastify process serves it on demand from your own machine, and there is no backend of ours behind it. It reaches the network only on the paths you ask it to: the Flow Hub (searching, pulling or publishing a flow talks to vibestrate.com), fetching a skill from a URL, and importing a flow from a URL. It never pushes, never merges without a confirmation you send with the request, and never runs a shell command you type.
 
 ## Start it
 
@@ -18,7 +18,7 @@ The default port is `4317`. Pass `--port` to change it.
 
 It opens your browser by default. `--no-open` keeps it headless.
 
-First visit, a short guided tour points out Runs, Flows, Board, Consult, and New run. Skip it any time, or take it again later from the help overlay (press `?`).
+First visit, a short guided tour points out the six surfaces the rest of the app hangs off: Runs, Flows, Board, Policies, Consult, and New run. Skip it any time, or take it again later from the help overlay (press `?`).
 
 You can also start a run with the dashboard already attached:
 
@@ -68,11 +68,9 @@ Open a run to supervise it live. You get these panels.
 
 A few things stay out of the dashboard on purpose.
 
-- It does not execute arbitrary shell commands you type. The optional terminal panel is enrolled per project and binds to a known run's worktree.
+- It does not execute arbitrary shell commands you type. The optional terminal panel is off unless you turn it on for the project, and its working directory comes from the run's own recorded worktree, never from the request - a run with no worktree, or one pointing at your project root, is refused.
 - It never pushes. There is no push path in the dashboard at all.
-- It never merges on its own. The Source page can apply a merge, but only when
-  you ask for that exact merge: the request carries an explicit confirmation and
-  is refused without it, and every merge has an undo.
+- It never merges on its own. The Source page can apply a merge, but only for the exact merge you asked for: the request must carry a literal `merge-to-main` confirmation and is refused without it. Undo is the same shape, with its own `undo-merge` confirmation.
 - It does not access your `.env` or any secret-shape file. The path guard refuses those paths no matter where the request comes from.
 
 ## Stopping it

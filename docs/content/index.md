@@ -4,29 +4,30 @@ description: Vibestrate is where your AI coding agents work together - one share
 slug: index
 ---
 
-You already have the models. What you don't have is somewhere to run them as a team - one plan, one set of rules, and a place to hand work between them, so you stop carrying context from tool to tool by hand.
+You already have the models. What you do not have is a way to put several of them on one task without doing the logistics by hand: pasting the same context into each tool, keeping a spare checkout so a risky change cannot hurt you, carrying one model's output into the next one's prompt, and noticing when they quietly drift apart.
 
-Hand Vibestrate a task, including one you could not write yourself: a security fix, a piece of WebGL you have never touched. It breaks the work down, runs it across several models, and supervises the whole thing.
+Vibestrate is the frame they work inside. One plan, your rules, the gates you chose, one record of what happened. It drives the coding CLIs already installed on your machine, and the final call stays yours - see [why a human stays in the loop](/docs/getting-started/why-a-human).
 
-AI can write that code. It also gets things wrong, and it tends to agree with whatever you said last. That is why the final call stays yours - see [why a human stays in the loop](/docs/getting-started/why-a-human).
+A run works in a separate git worktree on its own branch, so it never edits your working tree. It never pushes and never merges. Every prompt, output, and decision is written under `.vibestrate/runs/`, one folder per run. The run then stops at one of four outcomes and hands the decision back to you:
+
+<div class="docs-outcomes">
+<div class="docs-outcome ok"><b>merge_ready</b><span>The change is finished and waiting for your call.</span></div>
+<div class="docs-outcome warn"><b>blocked</b><span>The reviewer or verifier found something you should decide.</span></div>
+<div class="docs-outcome stop"><b>failed</b><span>Something broke mid-run.</span></div>
+<div class="docs-outcome stop"><b>aborted</b><span>You stopped the run yourself.</span></div>
+</div>
+
+<div class="docs-callout">
+
+**Where the worktree boundary ends.** `node_modules`, `.venv` and `venv` are symlinked from your project into the worktree, so your tests can actually run there. An agent with write permission can write back through those links into your project's installed dependencies. It never reaches your tracked source, and `git.linkEnvironment: off` turns the links off.
+
+</div>
 
 ## The crew is the point
 
-Vibestrate's real edge is running several AIs, of different models, on one task. One plans. Another builds. A different one reviews the change cold. Each model reads the problem from its own angle, and the disagreement between them is a feature, not a bug. Together they produce something better than any single model working alone.
+Vibestrate's real edge is running several AIs, of different models, on one task. The default flow has six seats - planner, architect, implementer, reviewer, fixer and verifier - and you decide which model sits in each, or let Vibestrate pick a crew for you.
 
-You choose who does what, or let Vibestrate pick a sensible crew for you.
-
-## You stay in control
-
-It never gets ahead of you. Every task runs in a separate, throwaway copy of your project, so your real files are never touched. Your checks run. Every prompt, output, and decision is recorded. Then it stops at one of three outcomes and leaves the call to you:
-
-<div class="docs-outcomes">
-<div class="docs-outcome ok"><b>merge_ready</b><span>The change is ready for you to keep.</span></div>
-<div class="docs-outcome warn"><b>blocked</b><span>It needs a decision from you.</span></div>
-<div class="docs-outcome stop"><b>failed</b><span>Something went wrong mid-run.</span></div>
-</div>
-
-It never pushes your code and never merges for you - see [the safety guarantees](/docs/concepts/safety).
+Every seat gets the same plan and the same project context, so nobody starts over. The reviewer reads the diff cold, and a separate verifier seat takes the last look. Disagreement between them is the point: a model reviewing its own work can only lower its own confidence.
 
 ## Run one in a sentence
 
@@ -34,9 +35,11 @@ It never pushes your code and never merges for you - see [the safety guarantees]
 vibe run "Add audit logging to the settings flow"
 ```
 
-Vibestrate makes a safe copy, plans the change, writes it, runs your tests, reviews it, double-checks the result, and hands it back for your call. That is the whole loop. Everything else in these docs is detail on top of it.
+Vibestrate makes the worktree, plans the change, writes it, runs your validation commands, reviews it, verifies the result, and hands it back for your call. That is the whole loop. Everything else in these docs is detail on top of it.
 
-It works with the coding tools you already have: Claude Code, Codex, Gemini, Aider, Ollama, and OpenCode.
+It detects eleven providers by name. Five of them it can configure on its own - claude, codex, gemini, aider and ollama - and the rest it walks you through. See [the provider reference](/docs/reference/providers) for what each one needs:
+
+<div class="docs-chips"><span>Claude Code</span><span>Codex CLI</span><span>Gemini CLI</span><span>OpenCode</span><span>Aider</span><span>Ollama</span><span>Qwen Code</span><span>Crush</span><span>Goose</span><span>Cursor CLI</span><span>Amp</span></div>
 
 ## Where to start
 
@@ -49,7 +52,7 @@ The one short read that makes everything click - Task, Flow, and Crew, told as a
 Install it, point it at a model, run your first task.
 
 **[Understand the concepts](/docs/concepts/task)**
-Tasks, the crew of models, providers, Flows, skills, and the safe copies it works in.
+Tasks, the crew of models, providers, Flows, skills, and the worktrees runs work in.
 
 **[Look up the details](/docs/reference/cli)**
 Every command, every setting, every built-in Flow.
@@ -69,8 +72,8 @@ Add skills, add models, or write your own Flow.
 
 **Many models, one task.** Different AIs each bring their own view, and Vibestrate makes them check each other instead of rubber-stamping.
 
-**Yours, on your machine.** No cloud account, no server in the middle. Your coding tools make their own calls, and Vibestrate adds one of its own only when you browse the Flow Hub.
+**Yours, on your machine.** No cloud account, no server in the middle. Your coding tools make their own calls with the credentials they already hold. Nothing leaves your machine unless you ask it to: browsing the Flow Hub, importing a Flow by URL, fetching a skill, passing `--context-url`, exporting metrics to your own collector, or configuring an `http-api` provider that calls a model API directly.
 
-**Fully on the record.** Every run is saved under `.vibestrate/runs/<runId>/`. Read it back, replay it, or audit it.
+**Fully on the record.** Every run is saved under `.vibestrate/runs/`. Read it back, replay it, or audit it.
 
 </div>

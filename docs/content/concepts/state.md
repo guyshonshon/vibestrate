@@ -8,7 +8,9 @@ A run always has one status, and you can check it at any moment to know exactly 
 
 Think of it like a package you've shipped. At any point it's in one definite place - "out for delivery", "delivered" - never two at once, and never somewhere the tracking made up. A run's status works the same way. It's always a single value, saved so you can read it back, and never a guess.
 
-That saved value lives in `.vibestrate/runs/<runId>/state.json`. The `status` comes from a fixed set of values, and Vibestrate validates it before writing it down.
+That saved value lives in a `state.json` file under `.vibestrate/runs/`, in the folder named after the run id. The `status` comes from a fixed set of sixteen values, and Vibestrate validates it before writing it down.
+
+A run starts at `created`, works through `planning`, `architecting`, `executing`, `validating`, `reviewing`, `fixing` and `verifying`, and ends in one of four terminal statuses with no way back out: `merge_ready`, `blocked`, `failed` or `aborted`. Along the way it can sit at `waiting_for_approval` (a policy gate is holding it) or `paused` (you asked it to stop).
 
 ## The moves are enforced
 
@@ -36,7 +38,7 @@ The canonical, generated list lives in the [run-state reference](/docs/reference
 | `reviewing` | Reviewer is reading diff + validation output. |
 | `fixing` | Fixer is addressing review findings. |
 | `verifying` | Verifier is doing the final pass before merge. |
-| `waiting_for_approval` | Run is paused at a policy gate. Awaiting `vibe approvals decide`. |
+| `waiting_for_approval` | Run is paused at a policy gate, awaiting a human decision. |
 | `paused` | User-requested pause. Resume returns to `pausedAtStatus`. |
 | `merge_ready` | Verifier passed. Diff is ready for the user to merge. |
 | `blocked` | Reviewer or verifier flagged the run unsafe to continue. |
@@ -47,14 +49,25 @@ The canonical, generated list lives in the [run-state reference](/docs/reference
 
 A run can be paused for one of two reasons.
 
-- **Policy-gated:** the project says "always pause at the boundary into `executing`." When the orchestrator reaches that boundary, status becomes `waiting_for_approval` and the run sits until a human runs `vibe approvals decide`.
-- **User-requested:** at any point you run `vibe pause <runId>`, status becomes `paused` between stage boundaries, and `pausedAtStatus` remembers where to resume.
+- **Policy-gated:** the project says "always pause at the boundary into `executing`." When the orchestrator reaches that boundary, status becomes `waiting_for_approval` and the run sits until a human decides.
+- **User-requested:** at any point you run `vibe pause` with the run id, status becomes `paused` between stage boundaries, and `pausedAtStatus` remembers where to resume.
 
 Both kinds survive a restart. The pause flag is saved to disk, so killing and restarting Vibestrate does not lose the pause.
 
+Three commands decide a policy gate. Each wants the run id plus the approval id that `vibe approvals list` prints:
+
+```bash
+vibe approvals list <runId>
+vibe approvals approve <runId> <approvalId>
+vibe approvals reject <runId> <approvalId>           # the run is marked blocked
+vibe approvals request-changes <runId> <approvalId> --guidance "..."
+```
+
+`request-changes` is the middle answer: the stage re-runs with your guidance instead of being waved through or killed.
+
 ## Terminal statuses are sticky
 
-`merge_ready`, `blocked`, `failed`, `aborted` - once a run lands here, it can't transition out. To start over, run the task again as a new run. The previous run's artifacts remain.
+To start over from a terminal status, run the task again as a new run. The previous run's artifacts stay where they are.
 
 ## Inspecting state
 

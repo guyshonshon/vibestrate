@@ -8,26 +8,26 @@ A **Crew** is your set of AI workers. Each Flow lists the *kinds* of worker it n
 
 A Crew lets you put a different model in each seat, so the one that builds the change is not the one that reviews it - they read the problem from their own angle and check each other's work, instead of a single model rubber-stamping its own. The disagreement is the point.
 
-Think of a Flow as a recipe that says "you need a chef and a taster". The Crew is the people you hire for those jobs, and you decide whether the chef is a fast cook or a careful one. The same recipe works no matter who you hire, which is why a Flow someone else wrote still runs with your own people.
+Think of a Flow as a recipe that says "you need a chef and a taster". The Crew is who you hire for those jobs, which is why a Flow someone else wrote still runs with your own people.
 
-Each worker in a Crew is called a **Role**. A Role does two things: it says which steps it can cover, and it picks the actual AI model that does the work.
+Each worker in a Crew is called a **Role**. A Role does two things: it says which steps it can cover, and it picks the actual AI model that does the work. `vibe init` writes you a `default` Crew with six Roles - planner, architect, executor, fixer, reviewer, verifier - all on one Profile. Four more Crews are ready-made and installable with `vibe crew presets add`: `fast`, `thorough`, `cheap` and `local`.
 
 ```yaml
 crews:
   default:
     label: Default
     roles:
-      backend-implementer:
+      executor:
         label: Backend Implementer
         seats: [implementer, executor, builder]
-        profile: claude-sonnet-deep
+        profile: claude-balanced
         prompt: .vibestrate/roles/executor.json
         permissions: code_write
         skills: []
 defaultCrew: default
 ```
 
-This says: a Crew named `default` (set as `defaultCrew`, the one used when you do not pick another) has one Role, `backend-implementer`. The `seats` list is the kinds of step this Role can cover. The `profile` is the setting that names the actual model and provider, so a Role never points at a model directly. See [[profile]] for how that works.
+`defaultCrew` is the Crew a run uses when it does not pick one. `seats` is the kinds of step the Role covers; `profile` names its model and provider - see [[profile]].
 
 ## Picking who runs
 

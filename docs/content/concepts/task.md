@@ -1,6 +1,6 @@
 ---
 title: Task
-description: The plain-language brief you hand Vibestrate. One sentence kicks off a full plan, build, review, verify run.
+description: The plain-language brief you hand Vibestrate. One sentence is enough to start a run, and every run ends at one of four outcomes.
 slug: concepts/task
 ---
 
@@ -12,29 +12,30 @@ vibe run "Add structured logging to the settings save handler"
 
 That one line is a complete Task. You don't list files or set an order. The [Flow](/docs/concepts/flow) decides the steps and your [Crew](/docs/concepts/crew) does the work. The Task is just the brief.
 
+A Task becomes a *run*, and a run ends at one of four outcomes: `merge_ready`, `blocked`, `failed`, or `aborted`. It never pushes and never merges. The diff is yours to land.
+
 ## What happens when you submit one
 
-A Task becomes a *run*: one supervised process you can watch and audit. In order, the orchestrator:
+A run is one supervised process you can watch and audit. In order, the orchestrator:
 
 <div class="docs-flow">
 <div><b>Reads your project</b><span>Language, package manager, and the validation commands it will trust later.</span></div>
-<div><b>Picks Flow and Crew</b><span>The default Flow unless you choose another, with its seats matched to your Crew's roles.</span></div>
+<div><b>Picks Flow and Crew</b><span>Whichever Flow you named, or the one Vibestrate resolves, with its seats matched to your Crew's roles.</span></div>
 <div><b>Opens a clean workspace</b><span>A fresh git worktree, so nothing touches your real project until you say so.</span></div>
-<div><b>Drives the stages</b><span>Plan, build, validate, review, fix, verify, looping back through fix when the review asks, up to a limit.</span></div>
-<div><b>Stops at a verdict</b><span>It never pushes and never merges. The diff is yours to land.</span></div>
+<div><b>Drives the steps</b><span>On the default Flow: plan, architecture, implement, validate, review, verify, with fix and re-validate looping in when review asks for changes.</span></div>
+<div><b>Stops at a verdict</b><span>The run ends in its worktree with a diff. Landing it is a separate, deliberate step.</span></div>
 </div>
 
-That ends at one of three outcomes:
+### The four outcomes
 
 <div class="docs-outcomes">
 <div class="docs-outcome ok"><b>merge_ready</b><span>The change is ready for you to keep.</span></div>
 <div class="docs-outcome warn"><b>blocked</b><span>It needs a decision from you.</span></div>
 <div class="docs-outcome stop"><b>failed</b><span>Something went wrong mid-run.</span></div>
+<div class="docs-outcome stop"><b>aborted</b><span>You stopped it.</span></div>
 </div>
 
-Every prompt, output, metric, and decision is written under `.vibestrate/runs/<runId>/`, so a finished run reads back as a record, not a black box. See [Run state](/docs/concepts/state) for the status list and [Workflow](/docs/concepts/workflow) for the stage-by-stage path.
-
-You commit one thing, the Task. The orchestrator commits it to the whole flow. The clearer the Task, the cleaner everything downstream.
+Every prompt, output, metric, and decision is written under `.vibestrate/runs/`, in a directory named for the run (ids are `adjective-noun`, like `bold-lovelace`), so a finished run reads back as a record, not a black box. See [Run state](/docs/concepts/state) for the status list and [Workflow](/docs/concepts/workflow) for the step-by-step path.
 
 ## The Task is the yardstick
 
@@ -115,7 +116,7 @@ vibe tasks pickup <taskId>          # continuous: items back-to-back
 vibe tasks pickup <taskId> --step   # pause between items for review
 ```
 
-`--flow <id>` picks a different checklist-aware flow (default `pickup`). Only
+`--flow` picks a different checklist-aware flow (default `pickup`). Only
 flows that declare a per-item segment are accepted; anything else is rejected
 with the list of eligible flows.
 
@@ -149,7 +150,7 @@ Each item keeps its own arbitration ledger, so findings from item 3 never bleed 
 
 A reviewer or verifier can end a run with a non-blocking advisory: the change is fine to ship, but a human should eyeball something a model cannot perceive, like layout, animation, or UX feel. The run still reaches a normal verdict; it is not stuck like an [approval gate](/docs/glossary#approval-gate). The card is flagged Needs testing with a one-line reason. Resolve it with a verdict: "Looks good" marks the Task Done, "Needs work" reopens it. The flag shows as a banner on the task and a badge on the board.
 
-A checklist step is a piece of what to build - a unit of work inside the Task. It is not a Flow phase (plan, implement, review); a Flow phase is run by a [seat](/docs/concepts/workflow), and is a different concept. Same word, different layer: a checklist step is *what* to build, a Flow phase is *how* a run is structured.
+A checklist step is a piece of what to build - a unit of work inside the Task. It is not a Flow step (plan, implement, review); a Flow step is filled by a [seat](/docs/concepts/seat), and is a different concept. Same word, different layer: a checklist step is *what* to build, a Flow step is *how* a run is structured.
 
 ## Practical tips
 
@@ -161,6 +162,6 @@ A checklist step is a piece of what to build - a unit of work inside the Task. I
 ## Related
 
 - [Flow](/docs/concepts/flow) - the recipe a Task runs through.
-- [Workflow](/docs/concepts/workflow) - the stages a Task moves through.
+- [Workflow](/docs/concepts/workflow) - the default Flow's eight steps, in order.
 - [Run state](/docs/concepts/state) - the statuses a Task accumulates.
 - [Worktree](/docs/concepts/worktree) - where a Task's edits live before you merge.

@@ -12,7 +12,9 @@ A **Profile** decides how strong and expensive a Role runs. It is a saved preset
 
 </div>
 
-Think of it like the drive modes on a car. "Eco" and "Sport" don't change who is driving. They change how hard the engine works. A Profile is that setting for an AI worker, saved with a name so you can reuse it. Keep a few per provider.
+Think of it like the drive modes on a car. "Eco" and "Sport" don't change who is driving, they change how hard the engine works. A Profile is that setting for an AI worker, saved with a name so you can reuse it.
+
+A Profile sets the `provider`, the `model` id, the effort level (`power`), an optional per-turn output cap (`maxTokens`) and a per-turn `timeoutMs`. Effort levels are the provider's own: `claude` takes low, medium, high, xhigh, max; `codex` takes minimal, low, medium, high, xhigh; the Gemini CLI has no effort flag, so no effort knob is offered for it. Set a level a provider does not have and the run warns with a `provider.effort_ignored` event rather than dropping it quietly.
 
 ## A quick example
 
@@ -32,19 +34,17 @@ profiles:
 
 A Role points at one by its id, like `profile: claude-max`. Two Roles can share the same Profile. The same Role can also run on a stronger Profile for a single Step through a step override, without duplicating the Role.
 
-## What a Profile sets
+## How those settings reach the provider
 
-A Profile picks the **Provider** (where the work runs, and what the rest of the knobs are validated against), the **model** (the provider's model id, like `sonnet` or `opus`), the **effort** level (the `power` field, applied through the provider's own flag or field), an optional per-turn output cap (**`maxTokens`**), and a per-turn wall-clock **timeout** (`timeoutMs`). See the schema table under Advanced below for the exact fields.
+A Profile's knobs really take effect, on both CLI and HTTP providers: a CLI provider gets a real flag when one exists, an HTTP-API provider gets the equivalent request-body field. A Profile changes what is actually spawned or sent, not just what gets written down.
 
-These settings really take effect, on both CLI and HTTP providers: a CLI provider gets a real flag when one exists, an HTTP-API provider gets the equivalent request-body field. A Profile changes what is actually spawned or sent, not just what gets written down.
-
-Each knob shows up only where it is wired to a real flag or field. The editors offer just the levels and models a Provider supports and hide the rest. The effort levels are the provider's own:
+Each knob shows up only where it is wired to a real flag or field. The editors offer just the levels and models a Provider supports and hide the rest:
 
 <div class="docs-chips"><span>claude: low/medium/high/xhigh/max</span><span>codex: minimal/low/medium/high/xhigh</span><span>OpenAI HTTP: minimal/low/medium/high</span></div>
 
-Where reasoning is a numeric budget instead of a level (Gemini's CLI thinking budget, Anthropic's `budget_tokens`), no effort knob appears. Vibestrate never forces one global scale onto every provider.
+Where reasoning is a numeric budget instead of a level (the Gemini CLI's thinking budget, Anthropic's `budget_tokens`), no effort knob appears. Vibestrate never forces one global scale onto every provider.
 
-If a Profile sets an effort the provider won't honor (a level outside its real ones, or a provider with no effort knob, reachable by hand-editing `project.yml` or the overlay), the run **warns** with a `provider.effort_ignored` event instead of quietly sending a value the CLI drops.
+An effort the provider won't honor is still reachable by hand-editing `project.yml` or the overlay. That run **warns** with a `provider.effort_ignored` event instead of quietly sending a value the CLI drops.
 
 <div class="docs-outcomes"><div class="docs-outcome ok"><b>effort honored</b><span>level the provider supports, applied as a real flag or request field</span></div><div class="docs-outcome warn"><b>effort_ignored</b><span>level outside the provider's real ones, or a provider with no effort knob: run warns instead of dropping it quietly</span></div></div>
 
@@ -114,7 +114,7 @@ The schema fields:
 
 - **CLI:** `vibe profile list|add|set|duplicate|remove`; `vibe run "task" --profile claude-max` (run-wide), `--step-profile implement=claude-max` (one step).
 - **Shell:** the `[4] Profiles` page manages presets (e/E cycle effort, m/M model, n new, d duplicate, x delete), and the Crew page shows each role's model and effort.
-- **API:** `GET /api/profiles` (includes `usedBy`, `modelEnabled`, and a `modelStatus`/`modelIssue` verdict per profile), `POST /api/profiles`, `POST /api/profiles/:id/duplicate`, `PATCH /api/profiles/:id`, `DELETE /api/profiles/:id`; `GET /api/providers/catalog` feeds the model and effort options, and its `sources` map says whether each Provider's list came from the Provider (`detected`/`overlay`) or from the built-in fallback.
+- **API:** `GET /api/profiles` (each profile carries `usedBy`, `providerConfigured`, and a `modelStatus`/`modelIssue` verdict), `POST /api/profiles`, `POST /api/profiles/:id/duplicate`, `PATCH /api/profiles/:id`, `DELETE /api/profiles/:id`; `GET /api/providers/catalog` feeds the model and effort options, and its `sources` map says whether each Provider's list came from the Provider (`detected`/`overlay`) or from the built-in fallback.
 
 ## Going deeper
 

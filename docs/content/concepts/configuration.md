@@ -8,11 +8,13 @@ Almost everything you can tune about Vibestrate lives in one place: the `.vibest
 
 The heart of it is a single file, `.vibestrate/project.yml` - your providers, profiles, crews, flows, policies, and validation commands all live there. It is plain YAML sitting inside your repo, yours to commit - commit it and your whole team runs the same setup.
 
-You rarely need to open it by hand, though. Every setting has a place to view and edit it in both the dashboard and the CLI. That's a deliberate rule, not a coincidence (see [UI and CLI parity](#ui-and-cli-parity) below).
+You rarely need to open it by hand, though. Every setting has a place to view and edit it in both the dashboard and the CLI. That's a deliberate rule, not a coincidence (see [UI and CLI parity](#ui-and-cli-parity) below). `vibe config keys` lists every settable key with its type, allowed values and default; `vibe config get` reads one and `vibe config set` writes one.
+
+Configuration never holds secrets. An API key for an HTTP provider is given as an environment reference (`apiKey: env:ANTHROPIC_API_KEY`), resolved at run time and never written back to YAML, logged, or shown in the UI. A literal key in config is refused outright.
 
 ## What lives in `project.yml`
 
-The file is split into a handful of top-level sections. Each owns one slice of how a run behaves. The table below is the full top-level map - all 27 sections - with the concept page that explains each one where one exists:
+The file is split into top-level sections. Each owns one slice of how a run behaves. The table below is the full top-level map, with the concept page that explains each one where one exists:
 
 | Section | What it holds | Concept |
 |---|---|---|
@@ -33,7 +35,8 @@ The file is split into a handful of top-level sections. Each owns one slice of h
 | `codebaseMapRoles` | Which crew roles receive the `vibe learn` codebase map. Defaults to the planner alone. | [VIBESTRATE.md](/docs/concepts/vibestrate-md) |
 | `methodologyRoles` | Which crew roles receive the project's methodology guidance. Defaults to the planner alone. | - |
 | `ponytail` | Injects the "smallest solution that works" minimalism posture into code-writing agents. | [Ponytail](/docs/concepts/ponytail) |
-| `budget` | Daily spend cap and what happens when a run hits it. | - |
+| `budget` | Daily spend cap, per-run turn and wall-clock limits, and what happens when a run hits one. | - |
+| `supervisorControl` | What the supervisor may do from chat: `advise` (answers only) by default, or `act`. | [Supervisor control](/docs/concepts/supervisor-control) |
 | `supervised` | Defaults for supervised tasks: max steps/spend, the between-steps supervisor turn. | [Supervised tasks](/docs/concepts/supervised-tasks) |
 | `resilience` | Auto-retry policy (with backoff and optional fallback profile) for recoverable provider failures. | - |
 | `session` | Cap on consecutive provider-session reuses before a fresh session opens. | - |
@@ -60,17 +63,23 @@ The rest of `.vibestrate/` holds files you edit directly:
 - `skills/` - markdown [skills](/docs/concepts/skill) that load as extra context.
 - `flows/` - your project's own [Flow](/docs/concepts/flow) definitions.
 - `policies/` - the policy files the safety engine compiles.
-- `runs/` - per-run artifacts, state, and metrics. Best left untracked. Vibestrate gitignores it for you.
+- `runs/` - per-run artifacts, state, and metrics. Nothing adds this to your `.gitignore` for you, so add `.vibestrate/runs/` yourself unless you want run history in the repo.
 
 ## Viewing your configuration
 
 `vibe config view` prints a readable, grouped summary. Each section shows its live values and a pointer to where you'd change it:
 
 ```bash
-vibe config view          # grouped, human-readable
-vibe config view --json   # the same, machine-readable
-vibe config show          # the raw project.yml, untouched
+vibe config view                  # grouped, human-readable
+vibe config view --json           # the same, machine-readable
+vibe config show                  # the raw project.yml, untouched
+vibe config keys                  # every settable key: type, allowed values, default
+vibe config get commands.validate # one value, by dot-path
+vibe config set workflow.requireHumanMerge true
+vibe config validate              # check project.yml against the schema
 ```
+
+Arrays and objects go in as JSON, so setting the validation commands looks like `vibe config set commands.validate '["pnpm test"]'`.
 
 The dashboard has the same thing as a **Config** page (under More): every section laid out, each one deep-linking to the editor that owns it. The interactive shell has a **Config** page too. All three are fed by one builder, so they never disagree.
 
@@ -82,9 +91,7 @@ So when something needs fixing, the answer is never "go hand-edit `project.yml`"
 
 ## Secrets stay out
 
-Configuration never holds secrets. API keys for HTTP providers are given as environment references (`apiKey: env:ANTHROPIC_API_KEY`), resolved at run time and never written back to YAML, logged, or shown in the UI. A literal key in config is refused outright.
-
-Vibestrate also never reads your `.env` contents into a prompt, an artifact, or a report. See [Safety](/docs/concepts/safety) for the guarantees around what a run is allowed to touch.
+Beyond the `env:` rule for provider keys, Vibestrate never reads your `.env` contents into a prompt, an artifact, or a report. See [Safety](/docs/concepts/safety) for the guarantees around what a run is allowed to touch.
 
 ## Going deeper
 
