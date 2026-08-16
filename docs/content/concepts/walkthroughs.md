@@ -16,7 +16,7 @@ Two kinds exist. Both open the same overlay, with the same privilege.
 
 **Authored** - five walkthroughs for the five things most people do first. Every screen and every control they name is a literal the compiler checks and a test greps for, so they cannot drift into pointing at something the app no longer has.
 
-**Generated** - everything else. A model writes the steps for the question you actually asked, and every step is checked against the real screens before anything opens.
+**Generated** - everything else. A model writes the steps for the question you actually asked, every step is checked against the real screens before anything opens, and a step that fails is **dropped**.
 
 </div>
 
@@ -24,13 +24,29 @@ The five authored ones are **Tour the dashboard**, **Make a crew**, **Make a flo
 
 ## How a generated walkthrough is checked
 
-Nothing a model wrote opens on trust. Each step names a page and, optionally, one control to ring. Both are checked against the app's real route table and its real list of ringable controls. A step that fails is dropped, and the rest still run.
+Nothing a model wrote opens on trust. Each step names a page and, optionally, one control to ring. Both are checked against the app's real route table and its real list of ringable controls. A failing step goes, and the rest still run.
 
-```text
-  ask ──▶ answer ──▶ steps ──▶ checked ──▶ screen
-                                  │
-                                  └─▶ dropped
-```
+<svg viewBox="0 0 560 104" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A step a model wrote is checked against the app's real screens and controls. It either runs, or it is dropped.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="32" width="186" height="40" rx="8"/>
+    <rect x="222" y="32" width="110" height="40" rx="8"/>
+    <rect x="396" y="6" width="162" height="40" rx="8"/>
+    <rect x="396" y="58" width="162" height="40" rx="8"/>
+    <path d="M187 52 H215"/>
+    <path d="M332 52 H356 M356 26 V78 M356 26 H389 M356 78 H389"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.28">
+    <path d="M222 52 l-7 -4 v8 z"/>
+    <path d="M396 26 l-7 -4 v8 z"/>
+    <path d="M396 78 l-7 -4 v8 z"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="94" y="57">a step the model wrote</text>
+    <text x="277" y="57">checked</text>
+    <text x="477" y="31">it runs</text>
+    <text x="477" y="83">it is dropped</text>
+  </g>
+</svg>
 
 What gets a step dropped:
 

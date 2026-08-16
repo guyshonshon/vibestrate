@@ -20,6 +20,30 @@ It is a **fresh** container per run, on purpose. Disposability is the whole poin
 
 The container can touch exactly two things from your host, and nothing else:
 
+<svg viewBox="0 0 560 148" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Only two things reach the run container from your host: the run's worktree read-write, and the codex credential read-only. The Docker socket, your home directory, .ssh and .aws are never mounted.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="300" y="1" width="259" height="146" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M256 58 h88"/><path d="M339 53 l5 5 l-5 5"/>
+    <path d="M256 92 h88"/><path d="M339 87 l5 5 l-5 5"/>
+    <path d="M256 126 h30"/>
+    <path d="M291 119 l14 14"/><path d="M305 119 l-14 14"/>
+  </g>
+  <g fill="currentColor" font-size="12">
+    <text x="248" y="62" text-anchor="end">the run's worktree</text>
+    <text x="248" y="130" text-anchor="end">the Docker socket, HOME, .ssh, .aws</text>
+    <text x="314" y="24">the run container</text>
+  </g>
+  <text x="248" y="96" fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="end">~/.codex/auth.json</text>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="248" y="24" text-anchor="end">your host</text>
+    <text x="352" y="62">read-write</text>
+    <text x="352" y="96">read-only</text>
+    <text x="352" y="130">never mounted</text>
+  </g>
+</svg>
+
 <div class="docs-cards">
 
 **The run's worktree (read-write)**
@@ -61,12 +85,16 @@ If you genuinely want "use the container when Docker is up, otherwise run on the
 ```yaml
 # .vibestrate/project.yml
 execution:
-  backend: docker            # default: local-worktree
+  backend: docker   # default: local-worktree
   container:
-    image: my-org/vibestrate-agent:latest  # MUST carry the provider CLI
-    onUnavailable: fail       # default. "degrade" = fall back to host (not recommended)
-    readonlyRoot: true        # default. read-only root fs; writable: worktree, /tmp, HOME
-    pidsLimit: 512            # default. max processes in the container (fork-bomb guard)
+    # the image MUST carry the provider CLI
+    image: my-org/vibestrate-agent:latest
+    # default. "degrade" falls back to the host
+    onUnavailable: fail
+    # default. writable: worktree, /tmp, HOME
+    readonlyRoot: true
+    # default. max processes (fork-bomb guard)
+    pidsLimit: 512
 ```
 
 ## The image must carry the provider CLI
@@ -80,7 +108,8 @@ By default the container has normal networking and can reach the whole internet 
 Turn that off with an **egress allowlist**:
 
 ```
-vibe config set execution.container.egress.mode allowlist
+vibe config set \
+  execution.container.egress.mode allowlist
 ```
 
 The run container is then placed on a Docker network created with `--internal` - a network with **no gateway**, so there is no route off it at all. The only other member is a small proxy container that vibestrate starts alongside the run; it is attached to an outbound network as well, and it tunnels only to allowlisted hosts, refusing everything else with a 403 that names the host.
@@ -89,7 +118,12 @@ The run container is then placed on a Docker network created with `--internal` -
 
 **The enforcement is the network, not the proxy setting.** The run container also gets `HTTP_PROXY`/`HTTPS_PROXY` pointing at the proxy, but those only tell a well-behaved client where to go. Code that ignores them and opens a raw socket finds no route, because an internal network has no gateway. That is the whole point: an allowlist proxy on a *routable* network would be security theater that one raw socket defeats.
 
-Measured on the real thing, from inside a confined run container: no default route, public IPs unreachable (`ENETUNREACH`, even for code that ignores the proxy variables entirely), `169.254.169.254` (cloud metadata) unreachable, external DNS through Docker's embedded resolver returns SERVFAIL, and adding a route back out fails with `Operation not permitted` because `--cap-drop=ALL` removes `CAP_NET_ADMIN`.
+Measured on the real thing, from inside a confined run container:
+
+- No default route, and public IPs unreachable with `ENETUNREACH` - even for code that ignores the proxy variables entirely.
+- `169.254.169.254`, the cloud metadata address, unreachable.
+- External DNS through Docker's embedded resolver returns SERVFAIL.
+- Adding a route back out fails with `Operation not permitted`, because `--cap-drop=ALL` removes `CAP_NET_ADMIN`.
 
 **Your own localhost services are out of reach too.** `--internal` only filters *forwarded* traffic - the host normally keeps an address on the bridge, and packets to it take a different path - so a database or dev server bound to `0.0.0.0` would otherwise still be reachable from the "confined" container. The network is created with the host's address inhibited, so there is nothing on it to address the host by. This needs Docker Engine 25 or newer; on an older daemon the run is refused rather than started with the weaker network.
 
@@ -98,7 +132,8 @@ Measured on the real thing, from inside a confined run container: no default rou
 Allowed out of the box: the model API endpoints the supported provider CLIs need (`api.anthropic.com`, `api.openai.com` and their auth/telemetry siblings). Add your own - an exact host, or `.example.com` to include subdomains:
 
 ```
-vibe config set execution.container.egress.allow '["registry.npmjs.org", ".github.com"]'
+vibe config set execution.container.egress.allow \
+  '["registry.npmjs.org", ".github.com"]'
 ```
 
 If a run needs a host you didn't list, the proxy logs the exact refusal (`egress DENY connect <host>:443`) so you know precisely what to add. Only ports 80 and 443 are tunnelled: a `CONNECT` to an arbitrary port is a generic TCP tunnel, not web egress, and is refused even for an allowed host.
@@ -118,7 +153,8 @@ Setting up the network or the proxy is **fail-closed**. If either can't be creat
 Each run's network is disposable and labelled. If a vibestrate process is killed outright, its network can outlive it - and Docker's address pool is finite, so enough strays eventually block new runs. Vibestrate sweeps unused ones at run start; to do it by hand:
 
 ```
-docker network prune -f --filter label=vibestrate.managed=true
+docker network prune -f \
+  --filter label=vibestrate.managed=true
 ```
 
 ## Where it stops short (read this before trusting it)
@@ -136,7 +172,8 @@ Also deferred for now, and tracked: the container runs rootful (rootless/user-na
 If the host process is killed before a run finishes, its container can linger. They're labelled, so you can reap any strays:
 
 ```
-docker rm -f $(docker ps -aqf label=vibestrate.managed=true)
+docker rm -f \
+  $(docker ps -aqf label=vibestrate.managed=true)
 ```
 
 ## How it fits the rest of the safety model

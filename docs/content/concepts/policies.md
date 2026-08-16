@@ -32,12 +32,19 @@ until you confirm it.
 ## Capture (CLI or UI, your choice)
 
 ```
-vibe policies add no-em-dash "do not use em-dash characters" --fix "use a hyphen"
-vibe policies add no-eyebrow "no eyebrow labels" --block --matcher "SectionEyebrow"
-vibe policies test no-eyebrow --recent  # what would it block?
+vibe policies add no-em-dash \
+  "do not use em-dash characters" \
+  --fix "use a hyphen"
+
+vibe policies add no-eyebrow "no eyebrow labels" \
+  --block --matcher "SectionEyebrow"
+
+# what would it block?
+vibe policies test no-eyebrow --recent
+
 vibe policies list
-vibe policies confirm <id>     # confirm a supervisor-proposed rule
-vibe policies reject <id>      # reject a pending proposal
+vibe policies confirm <id>  # adopt a proposal
+vibe policies reject <id>   # discard a proposal
 vibe policies remove <id>
 ```
 
@@ -51,6 +58,33 @@ and `vibe policies suggest` reads recent runs' diffs for candidates. Both are dr
 only. Neither writes a policy; you adopt one with `policies add`.
 
 ## A rule the supervisor proposed
+
+A rule you write yourself is trusted immediately. A rule the supervisor proposes
+waits for you:
+
+<svg viewBox="0 0 560 132" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A rule you add yourself goes live on the next review with no confirm step. A rule the supervisor proposes lands pending and only goes live once you confirm it.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="1" width="170" height="36" rx="8"/>
+    <rect x="1" y="85" width="170" height="36" rx="8"/>
+    <rect x="213" y="85" width="110" height="36" rx="8"/>
+    <rect x="409" y="85" width="150" height="36" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M171 19 h308 v62"/><path d="M474 76 l5 5 l5 -5"/>
+    <path d="M171 103 h36"/><path d="M202 98 l5 5 l-5 5"/>
+    <path d="M323 103 h80"/><path d="M398 98 l5 5 l-5 5"/>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="86" y="23">you add a rule</text>
+    <text x="86" y="107">the supervisor proposes</text>
+    <text x="484" y="107">live on next review</text>
+  </g>
+  <text x="268" y="107" fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">pending</text>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="325" y="14">no confirm step</text>
+    <text x="363" y="96">you confirm</text>
+  </g>
+</svg>
 
 Ask about a habit and the answer can arrive with a rule attached:
 

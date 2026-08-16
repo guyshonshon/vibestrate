@@ -8,6 +8,35 @@ You already have the models. What you do not have is a way to put several of the
 
 Vibestrate is the frame they work inside. One plan, your rules, the gates you chose, one record of what happened. It drives the coding CLIs already installed on your machine, and the final call stays yours - see [why a human stays in the loop](/docs/getting-started/why-a-human).
 
+<svg viewBox="0 0 560 96" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A task goes in, the run plans, builds, reviews and verifies it inside a worktree on its own branch, and the decision comes back to you.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="26" width="88" height="30" rx="8"/>
+    <rect x="104" y="14" width="364" height="54" rx="10" stroke-dasharray="4 4"/>
+    <rect x="116" y="26" width="76" height="30" rx="6"/>
+    <rect x="204" y="26" width="76" height="30" rx="6"/>
+    <rect x="292" y="26" width="76" height="30" rx="6"/>
+    <rect x="380" y="26" width="76" height="30" rx="6"/>
+    <rect x="484" y="26" width="75" height="30" rx="8"/>
+    <path d="M89 41h9"/>
+    <path d="M468 41h9"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.28">
+    <path d="M98 37l6 4-6 4z"/>
+    <path d="M477 37l6 4-6 4z"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="45" y="45">your task</text>
+    <text x="154" y="45">plan</text>
+    <text x="242" y="45">build</text>
+    <text x="330" y="45">review</text>
+    <text x="418" y="45">verify</text>
+    <text x="521" y="45">your call</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="286" y="84">a worktree on its own branch</text>
+  </g>
+</svg>
+
 A run works in a separate git worktree on its own branch, so it never edits your working tree. It never pushes and never merges. Every prompt, output, and decision is written under `.vibestrate/runs/`, one folder per run. The run then stops at one of four outcomes and hands the decision back to you:
 
 <div class="docs-outcomes">

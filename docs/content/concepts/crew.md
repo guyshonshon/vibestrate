@@ -10,7 +10,9 @@ A Crew lets you put a different model in each seat, so the one that builds the c
 
 Think of a Flow as a recipe that says "you need a chef and a taster". The Crew is who you hire for those jobs, which is why a Flow someone else wrote still runs with your own people.
 
-Each worker in a Crew is called a **Role**. A Role does two things: it says which steps it can cover, and it picks the actual AI model that does the work. `vibe init` writes you a `default` Crew with six Roles - planner, architect, executor, fixer, reviewer, verifier - all on one Profile. Four more Crews are ready-made and installable with `vibe crew presets add`: `fast`, `thorough`, `cheap` and `local`.
+Each worker in a Crew is called a **Role**. A Role does two things: it says which steps it can cover, and it picks the actual AI model that does the work.
+
+`vibe init` writes you a `default` Crew with six Roles - planner, architect, executor, fixer, reviewer, verifier - all on one Profile. Four more Crews are ready-made and installable with `vibe crew presets add`: `fast`, `thorough`, `cheap` and `local`.
 
 ```yaml
 crews:
@@ -37,6 +39,39 @@ A task uses one Crew, defaulting to `defaultCrew`. You can keep more than one - 
 vibe run "task" --crew default
 ```
 
+One Role can cover several kinds of step, which is why six workers are enough to staff a Flow with more steps than that:
+
+<svg viewBox="0 0 560 114" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Three seats a Flow can ask for - implementer, executor and builder - are all covered by one Role in your Crew, the executor role.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="0.5" y="20.5" width="150" height="26" rx="7"/>
+    <rect x="0.5" y="52.5" width="150" height="26" rx="7"/>
+    <rect x="0.5" y="84.5" width="150" height="26" rx="7"/>
+    <rect x="290.5" y="42.5" width="269" height="46" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M151 33 H222 V65"/>
+    <path d="M151 97 H222 V65"/>
+    <path d="M151 65 H283"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5">
+    <polygon points="277.5,61.5 283,65 277.5,68.5"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="75.5" y="12">seats a Flow can ask for</text>
+  </g>
+  <g fill="currentColor" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="75.5" y="37">implementer</text>
+    <text x="75.5" y="69">executor</text>
+    <text x="75.5" y="101">builder</text>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="425" y="63">one Role in your Crew</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="425" y="79">executor</text>
+  </g>
+</svg>
+
 If a Flow needs a kind of worker that no Role in your Crew covers, the run stops with a clear message telling you to add that step to a Role. If two Roles both cover the same step, it asks you to pick one.
 
 ## Ready-made Crews (presets)
@@ -60,9 +95,12 @@ Runs on a provider on your own machine, off cloud APIs.
 </div>
 
 ```bash
-vibe crew presets           # list them and whether each fits your setup
-vibe crew presets add cheap # install one into project.yml
-vibe crew use cheap         # make it your default
+# list them, and whether each fits your setup
+vibe crew presets
+
+# install one into project.yml, then make it default
+vibe crew presets add cheap
+vibe crew use cheap
 ```
 
 A preset refuses rather than make a copy of your default Crew. `fast` and `thorough` need a provider with effort control (claude, codex), `cheap` needs a provider with a designated cheap model, and `local` needs a local provider separate from your default. The dashboard's Crew page shows the same presets with one-click **Add**.
@@ -82,21 +120,65 @@ The editor refuses the same things a run would: a Role with no seats, two Roles 
 
 ### What happens when you save
 
-Saving a Role is treated as an effect, not as a form submit. Both halves of the Save cross the Action Broker (see [[safety]]) as a `file.write`: the prompt, which is the text a model is handed verbatim on every turn it takes, and the Role's wiring - profile, seats, `permissions`, label, skills - which lands in `.vibestrate/project.yml`. A project policy that denies `file.write` refuses both, you get the policy's own message back, nothing on disk changes, and each decision is recorded in `.vibestrate/runs/roles/actions.ndjson` alongside the other effects that happen outside a run.
+Saving a Role is treated as an effect, not as a form submit. One Save is two writes - the prompt, which is the text a model is handed verbatim on every turn it takes, and the Role's wiring, which lands in `project.yml` - and both cross the Action Broker (see [[safety]]) together:
 
-The two are gated together on purpose. One Save is two requests, and `permissions` is the one that decides whether a Role's provider may edit your repo - gating only the prompt would have let a policy refuse the instructions while a `read_only` -> `code_write` flip went through, with the refusal message claiming the write was stopped. In the audit log the two are told apart by `purpose`: `role-prompt` names the role file, `role-fields` names `project.yml` and lists the fields the patch touched. Assigning a skill from the Skills page is gated too, as `role-skills` against `project.yml` - it writes one of the fields this page's Save writes, so a policy that stops one has to stop the other. The prompt write itself is atomic, so a save that collides with a reader can't leave a half-written file.
+<svg viewBox="0 0 560 104" width="100%" style="max-width:560px;height:auto" role="img" aria-label="One Save on the Crew page writes two files, the Role's prompt file and project.yml, and both cross the Action Broker as a single file.write decision.">
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="280" y="12">one Save on the Crew page</text>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M280 18 V27"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5">
+    <polygon points="276.5,27 283.5,27 280,32.5"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="0.5" y="36.5" width="559" height="66" rx="10"/>
+    <rect x="14.5" y="62.5" width="259" height="32" rx="7"/>
+    <rect x="286.5" y="62.5" width="259" height="32" rx="7"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="14" y="55">one file.write decision - a rule that stops one stops both</text>
+  </g>
+  <g fill="currentColor" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="144" y="82">roles/executor.json</text>
+    <text x="416" y="82">project.yml</text>
+  </g>
+</svg>
 
-Before the gate, the text is screened. A prompt is refused if it's past 100k characters, if it carries a NUL byte or a control character (a prompt is replayed into another model's prompt and echoed to your terminal, so an escape sequence has no business surviving a save), or if it reads as carrying a **secret** - the refusal names the pattern and the line and shows only a redacted snippet. Secrets are refused rather than scrubbed: a prompt Vibestrate quietly rewrote is a Role that no longer says what you wrote. The practical consequence is worth knowing - a Role whose prompt already contains something the scanner flags can be read but not re-saved until the token comes out.
+The wiring half is the Role's profile, seats, permissions, label and skills. A project policy that denies `file.write` refuses both halves, you get the policy's own message back, and nothing on disk changes. Each decision is recorded in `.vibestrate/runs/roles/actions.ndjson`, alongside the other effects that happen outside a run.
+
+The two are gated together on purpose. One Save is two requests, and `permissions` is the one that decides whether a Role's provider may edit your repo. Gating only the prompt would have let a policy refuse the instructions while a `read_only` -> `code_write` flip went through, with the refusal message claiming the write was stopped.
+
+In the audit log the two are told apart by `purpose`: `role-prompt` names the role file, `role-fields` names `project.yml` and lists the fields the patch touched.
+
+Assigning a skill from the Skills page is gated too, as `role-skills` against `project.yml`. It writes one of the fields this page's Save writes, so a policy that stops one has to stop the other. The prompt write itself is atomic, so a save that collides with a reader can't leave a half-written file.
+
+Before the gate, the text is screened. A prompt is refused in three cases:
+
+- it is past 100k characters,
+- it carries a NUL byte or a control character (a prompt is replayed into another model's prompt and echoed to your terminal, so an escape sequence has no business surviving a save),
+- it reads as carrying a **secret** - the refusal names the pattern and the line and shows only a redacted snippet.
+
+Secrets are refused rather than scrubbed: a prompt Vibestrate quietly rewrote is a Role that no longer says what you wrote. The practical consequence is worth knowing - a Role whose prompt already contains something the scanner flags can be read but not re-saved until the token comes out.
 
 Three behaviors worth stating rather than leaving you to discover them:
 
 - **The screens are on the prompt only.** The size cap, the character screen and the secret scan run before the prompt's gate. A field patch is gated and validated against the config schema, but its values are not scanned.
 - **The character screen is C0 and NUL only.** Unicode direction overrides pass it and are stored as written.
-- **A path-scoped rule covers the whole Save, not one half of it.** The prompt and the wiring live in two files, but each half of the Save presents *both* paths to the matcher, so a rule naming `**/.vibestrate/roles/**` and a rule naming `**/project.yml` each refuse both halves - and a skill assignment along with them. A Role's authority is not divisible by which file happens to hold it: a rule that stopped the prompt and let a `read_only` -> `code_write` flip through would be reporting a block it did not perform. The consequence to know is that such a rule is **broader than its glob looks** - one written to freeze instructions also refuses a label rename. There is no `match` that gates one of the two files alone.
+- **A path-scoped rule covers the whole Save, not one half of it.** The prompt and the wiring live in two files, but each half of the Save presents *both* paths to the matcher. So a rule naming `**/.vibestrate/roles/**` and a rule naming `**/project.yml` each refuse both halves - and a skill assignment along with them.
+
+  A Role's authority is not divisible by which file happens to hold it: a rule that stopped the prompt and let a `read_only` -> `code_write` flip through would be reporting a block it did not perform.
+
+  The consequence to know is that such a rule is **broader than its glob looks** - one written to freeze instructions also refuses a label rename. There is no `match` that gates one of the two files alone.
 
 ## Going deeper
 
 - [[role]] and [[seat]] - the workers in a Crew, and the steps they can cover.
 - [[profile]] - how a Role names its actual model and provider.
 - [[flow]] - the steps a Crew fills in.
-- A Crew can also set `maxReviewLoops` (0 to 10), setting exactly how many fix-and-review passes a run makes. It takes precedence over both the flow's own loop budget and the optional `workflow.maxReviewLoops` global ceiling for runs on this Crew. Roles can carry extra `permissions`, `skills`, and `mcpServers`. See [[configuration]] for the full set of keys. Related: [[provider]].
+- [[provider]] - the tool a Profile names.
+
+A Crew can also set `maxReviewLoops` (0 to 10), setting exactly how many fix-and-review passes a run makes. It takes precedence over both the flow's own loop budget and the optional `workflow.maxReviewLoops` global ceiling for runs on this Crew.
+
+Roles can carry extra `permissions`, `skills`, and `mcpServers`. See [[configuration]] for the full set of keys.

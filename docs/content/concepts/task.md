@@ -7,10 +7,11 @@ slug: concepts/task
 A Task is what you want done, written in plain language, the way you would brief a capable colleague. You say what you want. Vibestrate works out the steps.
 
 ```bash
-vibe run "Add structured logging to the settings save handler"
+vibe run "Add structured logging to the \
+settings save handler"
 ```
 
-That one line is a complete Task. You don't list files or set an order. The [Flow](/docs/concepts/flow) decides the steps and your [Crew](/docs/concepts/crew) does the work. The Task is just the brief.
+That one command is a complete Task. You don't list files or set an order. The [Flow](/docs/concepts/flow) decides the steps and your [Crew](/docs/concepts/crew) does the work. The Task is just the brief.
 
 A Task becomes a *run*, and a run ends at one of four outcomes: `merge_ready`, `blocked`, `failed`, or `aborted`. It never pushes and never merges. The diff is yours to land.
 
@@ -66,7 +67,11 @@ The planner guesses. The reviewer critiques its own guess. You get a diff that i
 A good Task:
 
 ```bash
-vibe run "Add structured logging to the settings save handler in src/server/routes/settings.ts. Use the existing logger from src/lib/logger.ts. Include the user id and the changed keys, but never the values."
+vibe run "Add structured logging to the settings \
+save handler in src/server/routes/settings.ts. \
+Use the existing logger from src/lib/logger.ts. \
+Include the user id and the changed keys, but \
+never the values."
 ```
 
 A weak Task:
@@ -80,12 +85,21 @@ vibe run "Improve logging"
 A Task can hold an ordered checklist of items, the concrete breakdown of the work. Items live inside the card, so the context stays in one place instead of scattering across small cards.
 
 ```bash
-vibe tasks checklist add  <taskId> "/health returns json"
-vibe tasks checklist add  <taskId> "test the endpoint"
+vibe tasks checklist add <taskId> \
+  "/health returns json"
+vibe tasks checklist add <taskId> \
+  "test the endpoint"
 vibe tasks checklist list <taskId>
-vibe tasks checklist check <taskId> <itemId>      # mark done
-vibe tasks checklist status <taskId> <itemId> in_progress
-vibe tasks checklist move <taskId> <itemId> 1     # reorder (1-based)
+
+# mark one done
+vibe tasks checklist check <taskId> <itemId>
+
+# or give it another status
+vibe tasks checklist status <taskId> <itemId> \
+  in_progress
+
+# reorder, 1-based
+vibe tasks checklist move <taskId> <itemId> 1
 ```
 
 The same actions live on the task detail page in [Mission Control](/docs/cli/dashboard): add, check off, edit, drag-reorder, remove. Each item carries a status: `pending`, `in_progress`, `done`, or `blocked`.
@@ -101,8 +115,11 @@ Opening a step is distinct from **detaching** it. Detach (the old "promote") spi
 To draft a checklist instead of writing one by hand, let an assist propose it:
 
 ```bash
-vibe tasks enhance <taskId>            # read-only: prints a proposed checklist
-vibe tasks enhance <taskId> --apply    # append the proposed items
+# read-only: prints a proposed checklist
+vibe tasks enhance <taskId>
+
+# append the proposed items
+vibe tasks enhance <taskId> --apply
 ```
 
 Enhance is a one-shot, read-only [assist](/docs/glossary#assist). It proposes an ordered breakdown; you decide whether to add it. The model never writes to the board on its own.
@@ -112,15 +129,51 @@ Enhance is a one-shot, read-only [assist](/docs/glossary#assist). It proposes an
 Once a Task has a checklist, pick it up to run every item in one worktree:
 
 ```bash
-vibe tasks pickup <taskId>          # continuous: items back-to-back
-vibe tasks pickup <taskId> --step   # pause between items for review
+# continuous: items back-to-back
+vibe tasks pickup <taskId>
+
+# pause between items for review
+vibe tasks pickup <taskId> --step
 ```
 
 `--flow` picks a different checklist-aware flow (default `pickup`). Only
 flows that declare a per-item segment are accepted; anything else is rejected
 with the list of eligible flows.
 
-"Run checklist" on the task does the same. Under the hood this runs the built-in `pickup` [flow](/docs/concepts/flow): one holistic plan, then a micro-plan and implement band per item, then one holistic review. Each item commits on its own, stamped with the item id so it can be reverted alone. A compact summary of each finished item carries forward, so later items have context without re-reading every diff. Status and commit sha are written back as the run goes. Execution is linear and stops on the first failing item.
+"Run checklist" on the task does the same. Under the hood this runs the built-in `pickup` [flow](/docs/concepts/flow):
+
+<svg viewBox="0 0 560 96" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A pickup run plans once for the whole checklist, then runs a micro-plan and implement band once per item with its own commit, then reviews once at the end.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="0.5" y="12.5" width="140" height="46" rx="8"/>
+    <rect x="180.5" y="12.5" width="200" height="46" rx="8"/>
+    <rect x="420.5" y="12.5" width="139" height="46" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M147 35 H165"/>
+    <path d="M387 35 H405"/>
+    <path d="M360 59 C360 82 200 82 200 59"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5">
+    <polygon points="165,31.5 170.5,35 165,38.5"/>
+    <polygon points="405,31.5 410.5,35 405,38.5"/>
+    <polygon points="195.5,67 204.5,67 200,59"/>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="70.5" y="31">plan</text>
+    <text x="280.5" y="31">micro-plan + implement</text>
+    <text x="490" y="31">review</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="70.5" y="46">once, holistic</text>
+    <text x="280.5" y="46">per item, own commit</text>
+    <text x="490" y="46">once, holistic</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="280" y="92">next item</text>
+  </g>
+</svg>
+
+Each item commits on its own, stamped with the item id so it can be reverted alone. A compact summary of each finished item carries forward, so later items have context without re-reading every diff. Status and commit sha are written back as the run goes. Execution is linear and stops on the first failing item.
 
 ### Per-item review: the `pickup-review` flow
 
@@ -133,12 +186,19 @@ vibe tasks pickup <taskId> --flow pickup-review
 The equivalent long form, if you want to set other run options at the same time:
 
 ```bash
-vibe run "<task title>" --task <taskId> --flow pickup-review --checklist continuous
+vibe run "<task title>" \
+  --task <taskId> \
+  --flow pickup-review \
+  --checklist continuous
 ```
 
 `pickup-review` adds a review panel and an arbiter inside the per-item band - after the implementer writes each item, the panel reviews that item's diff, and a bounded per-item fix loop runs before the item commits. This means each item is reviewed in isolation, with full context of only that item's change.
 
-**Configurable lenses.** The panel runs two lenses by default: `correctness` (logic, type-safety, edge cases) and `security-risk` (injection, auth gaps, data exposure), both aimed at the active persona if one is set. You can change which lenses review each item: set `checklistReview.lenses` on the flow, or `checklistReviewLenses` on a crew (precedence: crew > flow > default). The lens vocabulary is closed (`correctness`, `tests`, `security-risk`, `authz`, `secrets`, `injection`, `ux-ia`, `accessibility`, `visual-consistency`, `performance`); each selected lens becomes one read-only reviewer per item (up to the parallel fan-out limit of 4 lenses per panel), and the arbiter weighs them all.
+**Configurable lenses.** The panel runs two lenses by default: `correctness` (logic, type-safety, edge cases) and `security-risk` (injection, auth gaps, data exposure), both aimed at the active persona if one is set. You can change which lenses review each item: set `checklistReview.lenses` on the flow, or `checklistReviewLenses` on a crew (precedence: crew > flow > default). The lens vocabulary is closed:
+
+<div class="docs-chips"><span>correctness</span><span>tests</span><span>security-risk</span><span>authz</span><span>secrets</span><span>injection</span><span>ux-ia</span><span>accessibility</span><span>visual-consistency</span><span>performance</span></div>
+
+Each selected lens becomes one read-only reviewer per item (up to the parallel fan-out limit of 4 lenses per panel), and the arbiter weighs them all.
 
 **Cost.** Each item runs the panel independently: two reviewer turns and one arbiter turn per item, on top of the normal implement band. For a 10-item checklist that is 30 extra turns. Use `pickup-review` when correctness per item matters more than speed.
 

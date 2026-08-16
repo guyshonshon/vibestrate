@@ -8,13 +8,16 @@ Some Flows need a few answers before they can do their job, like a project name,
 
 The [Flow](/docs/concepts/flow) says what it needs (typed values like `projectName` or `framework`), you fill them in a single time, and the values are saved in `.vibestrate/project-params.json` and reused from then on. Nothing adds that file to your `.gitignore` for you, but a `secret: true` param stores only the name of an environment variable, never the secret itself.
 
+A value can arrive from several places, and the first one that has it wins: an explicit `--param` flag, then the matching `VIBESTRATE_PARAM_*` environment variable, then your stored project value, then the Flow's own default.
+
 ## Fill once, then run
 
-```
-# Fill once (the --flow form type-checks each value):
-vibe params set --flow scaffold projectName=Acme framework=astro
+```bash
+# Fill once - the --flow form type-checks values
+vibe params set --flow scaffold \
+  projectName=Acme framework=astro
 
-# Now a run just uses them - no prompts, no flags:
+# Every later run just uses them
 vibe run --flow scaffold
 
 vibe params list
@@ -22,24 +25,46 @@ vibe params list
 
 In the dashboard, the **Project parameters** panel on the Settings page does the same, and the Composer's parameter form prefills from the stored values.
 
-Each declared param has a type, and the form type-checks every value against it: `string`, `number`, `boolean`, `enum`, or `path`.
+Each declared param has a type, and the form type-checks every value against it:
+
+<div class="docs-chips"><span>string</span><span>number</span><span>boolean</span><span>enum</span><span>path</span></div>
 
 ## How a value is chosen
 
-At run start each declared param resolves in this order:
+At run start each declared param resolves top to bottom, stopping at the first source that has a value:
 
-```
-explicit --param / body.params   >   VIBESTRATE_PARAM_<NAME> env
-   >   project params   >   flow default   >   prompt (TTY) / fail-fast (CI)
-```
+<svg viewBox="0 0 560 234" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Precedence for a project parameter, highest first: an explicit --param flag, then VIBESTRATE_PARAM_NAME in the environment, then the stored project value, then the Flow's default, and only then a prompt or a fast failure in CI.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="1" width="306" height="32" rx="8"/>
+    <rect x="1" y="51" width="306" height="32" rx="8"/>
+    <rect x="1" y="101" width="306" height="32" rx="8"/>
+    <rect x="1" y="151" width="306" height="32" rx="8"/>
+    <rect x="1" y="201" width="306" height="32" rx="8"/>
+    <path d="M154 33v18M154 83v18M154 133v18M154 183v18"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+    <text x="17" y="22">--param</text>
+    <text x="17" y="72">VIBESTRATE_PARAM_&lt;NAME&gt;</text>
+    <text x="17" y="122">the stored project value</text>
+    <text x="17" y="172">the Flow's default</text>
+    <text x="17" y="222">prompt, or fail fast in CI</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="326" y="22">one-off override, or body.params</text>
+    <text x="326" y="72">the clean CI seed</text>
+    <text x="326" y="122">what you filled in once</text>
+    <text x="326" y="172">what the Flow itself declares</text>
+    <text x="326" y="222">only if it is still unset</text>
+  </g>
+</svg>
 
 - **Explicit** flags win, so a one-off override is easy. An empty `--param x=` means "not provided", so the stored value or default still fills it.
-- **`VIBESTRATE_PARAM_<NAME>`** is the clean CI seed: export the value, skip the interactive step, and the run never hangs unattended. `<NAME>` is the param name upper-snake-cased, so `colorTokens` becomes `VIBESTRATE_PARAM_COLOR_TOKENS`.
+- **`VIBESTRATE_PARAM_<NAME>`** is the clean CI seed: export the value, skip the interactive step, and the run never hangs unattended. The name part is the param name upper-snake-cased, so `colorTokens` becomes `VIBESTRATE_PARAM_COLOR_TOKENS`.
 - A **required** param still unset after all of that prompts on a TTY, or **fails fast** in CI with a message naming exactly what to set.
 
 ## Scope: per-flow by default
 
-Param names aren't unique across Flows, so by default a stored value is keyed per Flow (`<flowId>.<param>`). Two Flows that both call something `name` never cross-contaminate. Mark a param `shared: true` to store it under a project-global key (the bare name) that any Flow declaring a `shared` param of that name reuses. That's the "fill `niche` once, every Flow sees it" case.
+Param names aren't unique across Flows, so by default a stored value is keyed per Flow (`<flowId>.<param>`). Two Flows that both call something `name` never cross-contaminate. Mark a param `shared: true` to store it under a project-global key - the bare name - that any other Flow declaring it shared reuses. That's the "fill it once, every Flow sees it" case.
 
 ## Secrets
 
@@ -55,7 +80,9 @@ params:
 You then set it by naming the variable, not by pasting the key:
 
 ```bash
-vibe params set --flow my-deploy apiKey=OPENAI_API_KEY   # stores env:OPENAI_API_KEY
+# The store keeps env:OPENAI_API_KEY, not the key
+vibe params set --flow my-deploy \
+  apiKey=OPENAI_API_KEY
 ```
 
 A run that needs it **fails fast** if that env var isn't set, rather than starting with a non-functional secret. None of the built-in Flows declare a secret param, so this only comes up in a Flow you write. Bare-key writes without `--flow` are non-secret-only, and a best-effort scan still refuses an obvious pasted vendor key.
@@ -69,7 +96,9 @@ params:
   palette:
     type: string
     generate:
-      instruction: Generate a cohesive color palette for a {{params.niche}} brand
+      instruction: >
+        Generate a cohesive color palette
+        for a {{params.niche}} brand
 ```
 
 Then the Settings panel shows a **Generate** button (and `vibe params generate --flow <id> palette` on the CLI). It calls a provider once, read-only, with your other known param values interpolated in, and returns a suggestion you review, edit, or accept. It is strictly user-initiated and never auto-applied, so a model can't silently make a brand color your project's truth.
@@ -78,8 +107,9 @@ Then the Settings panel shows a **Generate** button (and `vibe params generate -
 
 One project-global key is special: `methodology`. Set it to a known value and the **planner** gets that methodology's concrete planning guidance, so plans follow it:
 
-```
-vibe params set methodology=tdd          # or: bdd, incremental
+```bash
+# Recognized values: tdd, bdd, incremental
+vibe params set methodology=tdd
 ```
 
 - `tdd` - plan test-first (failing test -> pass -> refactor).
@@ -90,7 +120,7 @@ By default it reaches the planner and nobody else, as one bounded block, once pe
 
 ## Editing and removing
 
-Editing a value in the Settings panel or via `vibe params set` **supersedes** the old one, and provenance (`user` or `generated`) is tracked. Remove a value explicitly with `vibe params unset <key>`. Vibestrate never purges your stored params on its own.
+Editing a value in the Settings panel or via `vibe params set` **supersedes** the old one, and the store records where it came from - you, or a generator. Remove a value explicitly with `vibe params unset <key>`. Vibestrate never purges your stored params on its own.
 
 ## Going deeper
 

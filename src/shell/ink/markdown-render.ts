@@ -90,6 +90,7 @@ export function renderMarkdown(md: string): MdLine[] {
   }
 
   let inFence = false;
+  let inSvg = false;
   for (const raw of lines) {
     const line = raw;
     const trimmed = line.trim();
@@ -105,6 +106,32 @@ export function renderMarkdown(md: string): MdLine[] {
         { text: "│ ", color: ACCENT_DIM },
         { text: line, color: CODE_COLOR },
       ]);
+      continue;
+    }
+
+    // Block HTML belongs to the docs website (diagrams, callouts, chips, cards).
+    // The terminal has no renderer for it and printing the markup raw is worse
+    // than printing nothing: one inline <svg> diagram is ~25 lines of XML, and
+    // the docs carry ~50 of them. An <svg> collapses to its aria-label, which is
+    // authored as a plain sentence describing the diagram - so a terminal reader
+    // gets exactly what a screen reader gets. Every other tag is dropped and its
+    // text kept, which is what makes a chips row read as its values.
+    // Checked after the fence branch on purpose: markup inside ``` is an example
+    // of markup and must stay literal.
+    if (inSvg) {
+      if (/<\/svg>/i.test(trimmed)) inSvg = false;
+      continue;
+    }
+    if (/^<svg[\s>]/i.test(trimmed)) {
+      const label = /aria-label="([^"]*)"/.exec(line)?.[1]?.trim();
+      if (label) out.push([{ text: label, color: ACCENT_DIM, italic: true }]);
+      if (!/<\/svg>/i.test(trimmed)) inSvg = true;
+      continue;
+    }
+    // Tag shape, not just a leading "<", so an autolink like <https://x> is prose.
+    if (/^<\/?[a-zA-Z][a-zA-Z0-9-]*(?:[\s/>]|$)/.test(trimmed)) {
+      const text = trimmed.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+      if (text) out.push(parseInline(text));
       continue;
     }
 

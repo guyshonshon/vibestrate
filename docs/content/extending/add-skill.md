@@ -8,7 +8,7 @@ A skill is a markdown file you write to teach your agents your project's convent
 
 ## 1. Create the file
 
-Make a file in `.vibestrate/skills/` named for the skill, like `auth-conventions.md`. The filename minus the `.md` is the name you refer to it by everywhere else, so keep it short and kebab-case (lowercase words joined by hyphens): `auth-conventions`, `payment-rules`, `oncall-runbook`. A `name:` in the file's frontmatter overrides the filename if you set one.
+Make a file in `.vibestrate/skills/` named for the skill, like `auth-conventions.md`. The filename minus the `.md` is the name you refer to it by everywhere else, so keep it short and kebab-case (lowercase words joined by hyphens), like auth-conventions, payment-rules or oncall-runbook. A `name:` in the file's frontmatter overrides the filename if you set one.
 
 ## 2. Write the body
 
@@ -19,7 +19,7 @@ The body is plain markdown, and there's no structure you're required to follow. 
 
 ## When to use this
 
-One or two sentences naming the surface this applies to.
+One or two sentences naming the surface.
 
 ## Rules
 
@@ -28,7 +28,8 @@ One or two sentences naming the surface this applies to.
 
 ## Examples
 
-Short examples of the right way to do the thing. Mark anti-patterns explicitly.
+Short examples of the right way.
+Mark anti-patterns explicitly.
 ```
 
 ## 3. Check that it was discovered
@@ -50,7 +51,8 @@ crews:
     roles:
       planner:
         skills: [auth-conventions]
-        # ...plus the role's other required fields: seats, profile, prompt, permissions
+        # plus seats, profile, prompt and
+        # permissions, which stay required
 ```
 
 Or attach it to a single run, just for that one task:
@@ -76,6 +78,24 @@ Write it like docs for a colleague, not a prompt: state what you'd tell a new en
 
 A skill can also declare an MCP server (an outside tool an agent connects to) that its agents should reach. The flat `.md` file this page starts with can't carry one - it has no directory of its own to hold a config file next to. For an MCP server, use the **directory form** instead: a folder named for the skill id, holding `SKILL.md` (or `skill.md`) plus a sibling `.mcp.json`.
 
+<svg viewBox="0 0 560 112" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A flat markdown file is the whole skill, and has no directory to hold an MCP config next to it. The directory form keeps SKILL.md beside a .mcp.json, which is what declares the servers.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="1" width="270" height="110" rx="8"/>
+    <rect x="289" y="1" width="270" height="110" rx="8"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+    <text x="20" y="54">auth-conventions.md</text>
+    <text x="308" y="54">postgres/SKILL.md</text>
+    <text x="308" y="78">postgres/.mcp.json</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="20" y="26">a flat file</text>
+    <text x="308" y="26">a folder</text>
+    <text x="20" y="100">no MCP server, and no room for one</text>
+    <text x="308" y="100">MCP servers, over stdio</text>
+  </g>
+</svg>
+
 ```text
 .vibestrate/skills/
   postgres/
@@ -88,15 +108,16 @@ A skill can also declare an MCP server (an outside tool an agent connects to) th
 ```markdown
 ---
 name: postgres
-description: Read-only Postgres access for query inspection.
+description: Read-only Postgres access.
 ---
 
 # Postgres MCP
 
-This skill grants agents read-only Postgres access for query inspection.
+This skill grants agents read-only Postgres
+access, for inspecting queries.
 ```
 
-`.mcp.json` declares the server itself - `command`, optional `args`, optional `env`. Only the stdio transport is supported (no network surface), and `command` is a plain argv[0], never passed through a shell:
+`.mcp.json` declares the server itself - the command to run, plus optional args and env. Only the stdio transport is supported (no network surface), and the command is a plain argv[0], never passed through a shell:
 
 ```json
 {

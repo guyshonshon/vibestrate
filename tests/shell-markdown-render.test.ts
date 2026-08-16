@@ -40,4 +40,36 @@ describe("renderMarkdown", () => {
     expect(flat.some((t) => t.includes("vibe run"))).toBe(true);
     expect(lines.find((l) => l.some((s) => s.text === "vibe run"))![0]!.text).toBe("│ ");
   });
+
+  it("shows an svg diagram as its aria-label, never as raw markup", () => {
+    const md = [
+      "before",
+      "",
+      '<svg viewBox="0 0 560 92" width="100%" role="img" aria-label="A flag beats a stored value.">',
+      '  <rect x="1" y="26" width="150" height="40" rx="8"/>',
+      '  <text x="76" y="51">--param flag</text>',
+      "</svg>",
+      "",
+      "after",
+    ].join("\n");
+    const flat = renderMarkdown(md).map((l) => l.map((s) => s.text).join(""));
+    expect(flat).toContain("A flag beats a stored value.");
+    expect(flat.some((t) => t.includes("<"))).toBe(false);
+    // the prose either side is untouched
+    expect(flat).toContain("before");
+    expect(flat).toContain("after");
+  });
+
+  it("keeps the text inside a docs html block and drops the tags", () => {
+    const md = '<div class="docs-chips"><span>string</span><span>number</span></div>';
+    const flat = renderMarkdown(md).map((l) => l.map((s) => s.text).join(""));
+    expect(flat.join(" ")).toContain("string number");
+    expect(flat.some((t) => t.includes("docs-chips"))).toBe(false);
+  });
+
+  it("leaves markup literal when it is the example inside a fence", () => {
+    const md = ["```html", '<svg role="img" aria-label="x">', "```"].join("\n");
+    const flat = renderMarkdown(md).map((l) => l.map((s) => s.text).join(""));
+    expect(flat.some((t) => t.includes("<svg"))).toBe(true);
+  });
 });

@@ -18,20 +18,26 @@ Keep it concise and prune it. Suggested sections, written in plain prose:
 # VIBESTRATE.md
 
 ## Project Model
-What this project is, its domains, architecture boundaries, critical flows.
+What this project is, its domains, architecture
+boundaries, critical flows.
 
 ## Development Commands
-Install, test, typecheck, lint, build, run locally - in order.
+Install, test, typecheck, lint, build, run
+locally - in order.
 
 ## Orchestration Preferences
-Preferred flows and crews; when to use heavier review; when to stay lean.
+Preferred flows and crews; when to use heavier
+review; when to stay lean.
 
 ## Risk Rules
-When to propose sandbox mode, approval gates, isolated execution, extra
-validation. (e.g. "propose sandbox mode when a task touches provider execution
-or secret/credential paths.")
+When to propose sandbox mode, approval gates,
+isolated execution, extra validation. (e.g.
+"propose sandbox mode when a task touches
+provider execution or secret/credential paths.")
 
-## Codebase Conventions · Known Constraints · Lessons Learned
+## Codebase Conventions
+## Known Constraints
+## Lessons Learned
 ```
 
 ## How it ranks against other guidance
@@ -54,11 +60,43 @@ You don't only write to VIBESTRATE.md. You can also ask about your project and g
 
 Next to VIBESTRATE.md sits a different kind of memory: `.vibestrate/CODEBASE.md` and `.vibestrate/codebase-map.json`, regenerated on demand by `vibe learn` (and best-effort by `vibe init`). Where VIBESTRATE.md is *your* intent - project model, conventions, lessons - the codebase map is a deterministic scan: stack, scripts, top-level layout, languages, entry points, best-effort HTTP routes, and tooling markers. Nobody writes it by hand; regenerating it (`vibe learn`) always produces the same map from the same repo state, so there is nothing to keep in sync.
 
+<svg viewBox="0 0 560 136" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Two memories with different authors and different readers: you write VIBESTRATE.md and Consult reads it, while vibe learn regenerates the codebase map, which Consult and the planner both read.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="1" width="260" height="48" rx="8"/>
+    <rect x="310" y="1" width="249" height="48" rx="8"/>
+    <rect x="1" y="79" width="260" height="48" rx="8"/>
+    <rect x="310" y="79" width="249" height="48" rx="8"/>
+    <path d="M261 25H310M261 103H310"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.28" stroke="none">
+    <path d="M304 21 310 25 304 29Z"/>
+    <path d="M304 99 310 103 304 107Z"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="131" y="26">VIBESTRATE.md</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="131" y="42">you write it, and commit it</text>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="434" y="30">Consult reads it</text>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="131" y="104">.vibestrate/CODEBASE.md</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="131" y="120">vibe learn regenerates it</text>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="434" y="108">Consult and the planner</text>
+  </g>
+</svg>
+
 The map grounds the planner - injected once per run alongside the project's ledger digest - and Consult, so both reason from the real shape of your project instead of asking you to describe it. Judges (review, verify) stay clean-room and never see it, the same isolation VIBESTRATE.md gets. It refreshes automatically whenever a run reaches a terminal outcome, and marks itself stale in `vibe learn show` when your `HEAD` has moved since it was generated.
 
 ```bash
-vibe learn                                 # regenerate the map
-vibe learn show                            # print the current CODEBASE.md
+vibe learn        # regenerate the map
+vibe learn show   # print CODEBASE.md
 ```
 
 ### Who gets the map

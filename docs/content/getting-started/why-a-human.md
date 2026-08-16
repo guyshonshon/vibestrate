@@ -14,6 +14,23 @@ AI can write code you could not write yourself - a security fix, a piece of WebG
 
 Vibestrate is built to catch that instead of trusting it. A run plans, builds, then reviews and verifies in separate steps that start from fresh context. It runs your real tests and validation commands against the result, so "it looks done" is not enough. And it never gets ahead of you: work happens in a throwaway copy of your project and the run stops at `merge_ready` instead of pushing or merging on your behalf - see [the safety guarantees](/docs/concepts/safety). You read the diff, or let the [merge advisor](/docs/getting-started/merging) flag the risks, and you decide.
 
+<svg viewBox="0 0 560 104" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The run decides everything up to merge ready - planning, writing, validating, reviewing and verifying. Taking the change or dropping it is decided by you.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="28" width="330" height="56" rx="8"/>
+    <rect x="393" y="28" width="166" height="56" rx="8"/>
+    <path d="M362 22v68" stroke-dasharray="4 4"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="362" y="16">merge_ready</text>
+    <text x="166" y="52">the run decides</text>
+    <text x="476" y="52">you decide</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="166" y="72">plan, write, validate, review, verify</text>
+    <text x="476" y="72">keep the change, or drop it</text>
+  </g>
+</svg>
+
 One part of that is not on by default.
 
 <div class="docs-callout">
@@ -29,7 +46,8 @@ Two steps make the review genuinely independent: add a Profile on a second provi
 The second provider has to exist before a Profile can name it. [Set up a provider](/docs/getting-started/providers) covers the wizard; the short version is:
 
 ```bash
-vibe provider setup                              # add codex alongside claude
+# add codex alongside claude
+vibe provider setup
 vibe profile add codex-review --provider codex
 ```
 
@@ -42,7 +60,8 @@ crews:
       reviewer:
         label: Reviewer
         seats: [reviewer, challenger]
-        profile: codex-review              # was claude-balanced
+        # was claude-balanced
+        profile: codex-review
         prompt: .vibestrate/roles/reviewer.json
         permissions: read_only
         skills: []
@@ -50,12 +69,11 @@ crews:
 
 Mission Control's Crew page does the same thing without the file: open the Reviewer role and pick the Profile from the dropdown.
 
-Now the builder and the reviewer are different models, and the run says so:
+Now the builder and the reviewer are different models, and the run says so. It prints a one-line summary - *Policy passed; review, validation, verification passed* - and then the lanes behind it:
 
 ```text
 $ vibe assurance bold-lovelace
 Run assurance bold-lovelace - verified
-Policy passed; review, validation, verification passed.
 
   policy:       passed
   validation:   passed (3/3 passed)
@@ -78,7 +96,8 @@ When you want to understand a run rather than read it cold, [Consult](/docs/conc
 
 ```bash
 vibe consult --run bold-lovelace \
-  "What did the reviewer object to, and did the fix step address it?"
+  "What did the reviewer object to, and did the \
+fix step address it?"
 ```
 
 What comes back is a short answer, a confidence level, and the part it could not check:
@@ -86,12 +105,14 @@ What comes back is a short answer, a confidence level, and the part it could not
 ```text
 Consult  · confidence: medium
 
-The reviewer flagged the settings handler for swallowing write
-errors. The fix step added a typed error return and re-validation
-passed, so the objection was addressed in code.
+The reviewer flagged the settings handler for
+swallowing write errors. The fix step added a
+typed error return and re-validation passed, so
+the objection was addressed in code.
 
 Caveats (not verified):
-  • No test covers the error branch, so the fix is unproven at runtime.
+  • No test covers the error branch, so the fix
+    is unproven at runtime.
 ```
 
 The caveats are the point. Consult states what it could not ground in evidence rather than filling the gap.

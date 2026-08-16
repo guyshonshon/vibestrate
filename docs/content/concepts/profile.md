@@ -14,7 +14,9 @@ A **Profile** decides how strong and expensive a Role runs. It is a saved preset
 
 Think of it like the drive modes on a car. "Eco" and "Sport" don't change who is driving, they change how hard the engine works. A Profile is that setting for an AI worker, saved with a name so you can reuse it.
 
-A Profile sets the `provider`, the `model` id, the effort level (`power`), an optional per-turn output cap (`maxTokens`) and a per-turn `timeoutMs`. Effort levels are the provider's own: `claude` takes low, medium, high, xhigh, max; `codex` takes minimal, low, medium, high, xhigh; the Gemini CLI has no effort flag, so no effort knob is offered for it. Set a level a provider does not have and the run warns with a `provider.effort_ignored` event rather than dropping it quietly.
+A Profile sets five things: the `provider`, the `model` id, the effort level (`power`), an optional per-turn output cap (`maxTokens`) and a per-turn `timeoutMs`.
+
+Effort levels are the provider's own. `claude` takes low, medium, high, xhigh, max; `codex` takes minimal, low, medium, high, xhigh; the Gemini CLI has no effort flag, so no effort knob is offered for it. Set a level a provider does not have and the run warns with a `provider.effort_ignored` event rather than dropping it quietly.
 
 ## A quick example
 
@@ -33,6 +35,46 @@ profiles:
 ```
 
 A Role points at one by its id, like `profile: claude-max`. Two Roles can share the same Profile. The same Role can also run on a stronger Profile for a single Step through a step override, without duplicating the Role.
+
+That makes a Profile the fourth link in the chain a run follows from a Flow step to a real model:
+
+<svg viewBox="0 0 560 52" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A Flow step names a Seat, your Crew's Role fills that Seat, the Role names a Profile, and the Profile names a Provider. The Profile is the fourth link, and the one that carries the model and the effort.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="0.5" y="0.5" width="88" height="45" rx="8"/>
+    <rect x="111.5" y="0.5" width="88" height="45" rx="8"/>
+    <rect x="222.5" y="0.5" width="88" height="45" rx="8"/>
+    <rect x="472.5" y="0.5" width="87" height="45" rx="8"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
+    <rect x="333.5" y="0.5" width="116" height="45" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M92.5 23 H102.5"/>
+    <path d="M203.5 23 H213.5"/>
+    <path d="M314.5 23 H324.5"/>
+    <path d="M453.5 23 H463.5"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5">
+    <polygon points="102.5,19.5 108,23 102.5,26.5"/>
+    <polygon points="213.5,19.5 219,23 213.5,26.5"/>
+    <polygon points="324.5,19.5 330,23 324.5,26.5"/>
+    <polygon points="463.5,19.5 469,23 463.5,26.5"/>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="44.5" y="19">Flow step</text>
+    <text x="155.5" y="19">Seat</text>
+    <text x="266.5" y="19">Role</text>
+    <text x="391.5" y="19">Profile</text>
+    <text x="516" y="19">Provider</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="44.5" y="35">review</text>
+    <text x="155.5" y="35">reviewer</text>
+    <text x="266.5" y="35">reviewer</text>
+    <text x="391.5" y="35">claude-balanced</text>
+    <text x="516" y="35">claude</text>
+  </g>
+</svg>
 
 ## How those settings reach the provider
 
@@ -88,7 +130,8 @@ profiles:
   strict-writer:
     provider: claude
     model: opus
-    disallowedTools: ["Task"]   # no nested sub-agent orchestration
+    # no nested sub-agent orchestration
+    disallowedTools: ["Task"]
 ```
 
 <div class="docs-callout warn">
@@ -112,9 +155,34 @@ The schema fields:
 | `disallowedTools` | string[] \| null | provider tool names this Role may not use (e.g. `["Task"]`); default none |
 | `providerOptions` | record | raw provider-specific escape hatch |
 
-- **CLI:** `vibe profile list|add|set|duplicate|remove`; `vibe run "task" --profile claude-max` (run-wide), `--step-profile implement=claude-max` (one step).
-- **Shell:** the `[4] Profiles` page manages presets (e/E cycle effort, m/M model, n new, d duplicate, x delete), and the Crew page shows each role's model and effort.
-- **API:** `GET /api/profiles` (each profile carries `usedBy`, `providerConfigured`, and a `modelStatus`/`modelIssue` verdict), `POST /api/profiles`, `POST /api/profiles/:id/duplicate`, `PATCH /api/profiles/:id`, `DELETE /api/profiles/:id`; `GET /api/providers/catalog` feeds the model and effort options, and its `sources` map says whether each Provider's list came from the Provider (`detected`/`overlay`) or from the built-in fallback.
+On the CLI. A run can be pointed at a Profile whole, or one step at a time:
+
+```bash
+vibe profile list
+vibe profile add <id>
+vibe profile set <id>
+vibe profile duplicate <id> <newId>
+vibe profile remove <id>
+
+vibe run "task" --profile claude-max
+vibe run "task" \
+  --step-profile implement=claude-max
+```
+
+In the shell, the `[4] Profiles` page manages presets (e/E cycle effort, m/M model, n new, d duplicate, x delete), and the Crew page shows each role's model and effort.
+
+Over HTTP:
+
+```text
+GET    /api/profiles
+POST   /api/profiles
+POST   /api/profiles/:id/duplicate
+PATCH  /api/profiles/:id
+DELETE /api/profiles/:id
+GET    /api/providers/catalog
+```
+
+Each profile in that list carries `usedBy`, `providerConfigured`, and a `modelStatus` / `modelIssue` verdict. The catalog feeds the model and effort options, and its `sources` map says whether each Provider's list came from the Provider (`detected`, `overlay`) or from the built-in fallback.
 
 ## Going deeper
 

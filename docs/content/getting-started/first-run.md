@@ -30,13 +30,15 @@ Vibestrate works best on the kind of task you'd hand a careful colleague: clear 
 ## Start the run
 
 ```bash
-vibe run "Add structured logging to the settings save handler"
+vibe run "Add structured logging to the \
+settings save handler"
 ```
 
 To watch it work as it goes, add `--ui`. The dashboard starts alongside the run, on port 4317 by default.
 
 ```bash
-vibe run "Add structured logging to the settings save handler" --ui
+vibe run "Add structured logging to the \
+settings save handler" --ui
 ```
 
 ## What happens next
@@ -51,14 +53,46 @@ vibe run "Add structured logging to the settings save handler" --ui
 
 The default flow wires that into eight steps. The review loop runs at most three passes - one review plus up to two fix cycles:
 
-```text
-  plan ─▶ architecture ─▶ implement ─▶ validation ─▶ review
-                                                       │
-   ┌──── changes requested ────────────────────────────┤
-   │                                                   │
-   └─▶ fix ─▶ revalidation ─▶ review                   ▼
-                                                    verify
-```
+<svg viewBox="0 0 560 100" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The default flow runs plan, architecture, implement, validation, review and verify in order; when review asks for changes it loops through fix and revalidation and back to review.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="3" y="6" width="64" height="30" rx="8"/>
+    <rect x="86" y="6" width="96" height="30" rx="8"/>
+    <rect x="201" y="6" width="80" height="30" rx="8"/>
+    <rect x="300" y="6" width="84" height="30" rx="8"/>
+    <rect x="403" y="6" width="68" height="30" rx="8"/>
+    <rect x="490" y="6" width="68" height="30" rx="8"/>
+    <rect x="201" y="62" width="80" height="30" rx="8"/>
+    <rect x="300" y="62" width="96" height="30" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M71 17l4 4-4 4"/>
+    <path d="M186 17l4 4-4 4"/>
+    <path d="M285 17l4 4-4 4"/>
+    <path d="M388 17l4 4-4 4"/>
+    <path d="M475 17l4 4-4 4"/>
+    <path d="M415 36v12h-174v8"/>
+    <path d="M281 77h14"/>
+    <path d="M396 77h59v-35"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5">
+    <path d="M237 56l4 6 4-6z"/>
+    <path d="M295 73l5 4-5 4z"/>
+    <path d="M451 42l4-6 4 6z"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="35" y="25">plan</text>
+    <text x="134" y="25">architecture</text>
+    <text x="241" y="25">implement</text>
+    <text x="342" y="25">validation</text>
+    <text x="437" y="25">review</text>
+    <text x="524" y="25">verify</text>
+    <text x="241" y="81">fix</text>
+    <text x="348" y="81">revalidation</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="end">
+    <text x="189" y="81">if review asks for changes</text>
+  </g>
+</svg>
 
 Those step names are also the folder names under the run's artifacts, so `review` above is the same `review` in `artifacts/flows/review/output.md`.
 
@@ -70,19 +104,19 @@ The terminal prints each step as it happens: a header, a short status, and any o
 Final status: merge_ready
   Review decision: APPROVED
   Verification: PASSED
-  Artifacts: .vibestrate/runs/bold-lovelace/artifacts
-  Worktree: /Users/you/.vibestrate-worktrees/bold-lovelace
-  Branch: vibestrate/bold-lovelace
+  Artifacts: .vibestrate/runs/zen-bohr/artifacts
+  Worktree: /home/you/.vibestrate-worktrees/zen-bohr
+  Branch: vibestrate/zen-bohr
 ```
 
-`bold-lovelace` is the run id. Vibestrate gives every run a docker-style `adjective-noun` handle and uses it verbatim as the worktree folder name and the branch suffix - no task slug is appended.
+`zen-bohr` is the run id. Vibestrate gives every run a docker-style `adjective-noun` handle and uses it verbatim as the worktree folder name and the branch suffix - no task slug is appended.
 
 ## Look at what it changed
 
 To see every change before you accept anything:
 
 ```bash
-cd ../.vibestrate-worktrees/bold-lovelace
+cd ../.vibestrate-worktrees/zen-bohr
 git diff main
 ```
 

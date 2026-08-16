@@ -28,7 +28,37 @@ vibe run "Add audit logging" --ui
 
 ## The pages
 
-Mission Control's left sidebar is the app shell. It lists:
+Mission Control's left sidebar is the app shell, and the page you open fills the rest of the window:
+
+<svg viewBox="0 0 560 200" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Mission Control's layout - a left sidebar listing every page, beside the page you opened, here a run detail with its status hero above the live execution panel.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="1" width="558" height="190" rx="10"/>
+    <rect x="13" y="13" width="156" height="166" rx="6"/>
+    <rect x="181" y="13" width="366" height="166" rx="6"/>
+    <rect x="193" y="45" width="342" height="36" rx="4"/>
+    <rect x="193" y="93" width="342" height="74" rx="4"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.18">
+    <rect x="27" y="50" width="104" height="6" rx="3"/>
+    <rect x="27" y="66" width="62" height="6" rx="3"/>
+    <rect x="27" y="82" width="74" height="6" rx="3"/>
+    <rect x="27" y="114" width="58" height="6" rx="3"/>
+    <rect x="27" y="130" width="86" height="6" rx="3"/>
+    <rect x="27" y="146" width="68" height="6" rx="3"/>
+  </g>
+  <rect x="27" y="98" width="94" height="6" rx="3" fill="currentColor" fill-opacity="0.45"/>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+    <text x="27" y="34">sidebar</text>
+    <text x="195" y="34">run detail</text>
+    <text x="205" y="68">status hero</text>
+    <text x="205" y="118">live execution</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="205" y="140">changed files · steps · events</text>
+  </g>
+</svg>
+
+The sidebar lists:
 
 - **Mission control** - the home overview.
 - **Runs** - Active, Merge-ready, and Failed run lists, with the scheduler queue (what's queued, what's running, policy, concurrency) folded into the top of the list.

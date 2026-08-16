@@ -8,6 +8,8 @@ Vibestrate runs the AI coding tools you already have. You write the job once, an
 
 Running several models on one job by hand is where the time goes: pasting the same context into a tool that has never seen the project, carrying the plan from one chat to the next, watching each one for drift. Vibestrate is the frame that work happens inside. Every worker starts from the same plan and the same [project instructions](/docs/concepts/configuration), which you write once.
 
+Each Task works in an isolated copy of your project (a [worktree](/docs/concepts/worktree)), runs your own checks, and ends at one of four outcomes: `merge_ready`, `blocked`, `failed`, or `aborted`. It never pushes and never merges. The diff is yours to land. See [the safety guarantees](/docs/concepts/safety).
+
 Six words carry the whole product.
 
 <div class="docs-glossary">
@@ -26,20 +28,47 @@ Six words carry the whole product.
 
 </div>
 
-```text
-  Task ─▶ Flow ─▶ Seat ─▶ Role ─▶ Profile ─▶ Provider
-   job     steps   which   your    model +    the tool
-                   worker  Crew    effort     or API
-```
-
-Each Task works in an isolated copy of your project (a [worktree](/docs/concepts/worktree)), runs your own checks, and ends at one of four outcomes: `merge_ready`, `blocked`, `failed`, or `aborted`. It never pushes and never merges. The diff is yours to land. See [the safety guarantees](/docs/concepts/safety).
+<svg viewBox="0 0 560 84" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A Task runs through a Flow, which reserves Seats, which your Crew's Roles fill, each Role running at a Profile, which names the Provider behind the model.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="3" y="24" width="84" height="34" rx="8"/>
+    <rect x="97" y="24" width="84" height="34" rx="8"/>
+    <rect x="191" y="24" width="84" height="34" rx="8"/>
+    <rect x="285" y="24" width="84" height="34" rx="8"/>
+    <rect x="379" y="24" width="84" height="34" rx="8"/>
+    <rect x="473" y="24" width="84" height="34" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M89 37l4 4-4 4"/>
+    <path d="M183 37l4 4-4 4"/>
+    <path d="M277 37l4 4-4 4"/>
+    <path d="M371 37l4 4-4 4"/>
+    <path d="M465 37l4 4-4 4"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="45" y="46">Task</text>
+    <text x="139" y="46">Flow</text>
+    <text x="233" y="46">Seat</text>
+    <text x="327" y="46">Role</text>
+    <text x="421" y="46">Profile</text>
+    <text x="515" y="46">Provider</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="45" y="74">job</text>
+    <text x="139" y="74">steps</text>
+    <text x="233" y="74">which worker</text>
+    <text x="327" y="74">your Crew</text>
+    <text x="421" y="74">model, effort</text>
+    <text x="515" y="74">tool or API</text>
+  </g>
+</svg>
 
 ## Task - the job you want done
 
 A **Task** is what you ask for, written the way you would brief a capable colleague:
 
 ```bash
-vibe run "Add structured logging to the settings save handler"
+vibe run "Add structured logging to the \
+settings save handler"
 ```
 
 You say *what* you want, not *how* to do it step by step. A Task that names the thing you mean - a file, a feature, a rule to respect - gets a better result than a vague one. It is the only thing you have to provide. Everything else has a default.
@@ -61,21 +90,24 @@ That is what makes a Flow shareable. A Flow someone else wrote only asks for a p
 When a Task starts, Vibestrate matches the Flow's seats to your Crew's roles. It never guesses. If nobody fills a seat, or if more than one role does, the run stops before any work starts and names the seat:
 
 ```text
-Crew "default" has more than one role filling the "reviewer" seat
-(reviewer, senior-reviewer). Pick one with a role override.
+Crew "default" has more than one role filling
+the "reviewer" seat (reviewer, senior-reviewer).
+Pick one with a role override.
 ```
 
 Pin the seat for that run and go again:
 
 ```bash
-vibe run "Tighten the auth checks" --seat-role reviewer=senior-reviewer
+vibe run "Tighten the auth checks" \
+  --seat-role reviewer=senior-reviewer
 ```
 
 An unfilled seat reads the same way and points at the fix:
 
 ```text
-This Flow needs the "architect" seat, but crew "default" has no role
-that fills it. Open Crew and add "architect" to a role's Seats.
+This Flow needs the "architect" seat, but crew
+"default" has no role that fills it. Open Crew
+and add "architect" to a role's Seats.
 ```
 
 ## Crew - your team of AI workers
@@ -86,7 +118,7 @@ A **Crew** is the team that fills those seats. Each member is a **Role**: a name
 
 <div class="docs-chips"><span>Planner</span><span>Architect</span><span>Backend Implementer</span><span>Fixer</span><span>Reviewer</span><span>Verifier</span></div>
 
-A Role can fill more than one seat. The Reviewer covers `reviewer` and `challenger`; the Backend Implementer covers `implementer`, `executor` and `builder`. Only the Backend Implementer and the Fixer can write files. The other four run read-only.
+A Role can fill more than one seat. The Reviewer sits in both the `reviewer` and `challenger` seats. The Backend Implementer covers three: `implementer`, `executor` and `builder`. Only the Backend Implementer and the Fixer can write files. The other four run read-only.
 
 You can keep more than one Crew and pick which one a Task uses with `--crew`.
 
@@ -104,7 +136,7 @@ A **Provider** is what actually runs the model. Vibestrate ships no model of its
 
 **A coding CLI on your machine** - Claude Code, Codex, Gemini, Aider, Ollama, OpenCode and others. Each handles its own authentication.
 
-**A model API you hold the key for** - `http-api`, over `https` only. The key lives in an environment variable, never in a file Vibestrate writes.
+**A model API you hold the key for** - `http-api`, over https only. The key lives in an environment variable, never in a file Vibestrate writes.
 
 **A model server on your own machine** - `localhost-proxy`, for Ollama, LM Studio or vLLM. Loopback addresses only, so nothing leaves your computer.
 

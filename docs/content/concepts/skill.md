@@ -8,7 +8,7 @@ A **skill** is a markdown file you write once, and any agent can read it. Use it
 
 Think of it as the note you'd hand a careful new colleague on their first day. You don't repeat the house rules every time you give them a task. You write them down once, point to them, and trust they'll be remembered.
 
-Skills live in `.vibestrate/skills/` (committed with your project) or `.claude/skills/` (picked up if you already use Claude Code). Each one is either a folder holding a `SKILL.md` or a single flat `.md` file, and its name is that folder or file name - so `.vibestrate/skills/auth-conventions/SKILL.md` gives you the skill `auth-conventions`. A `name:` in the frontmatter overrides that. Prefer the folder shape: only a folder can sit beside a `.mcp.json` and bring MCP servers with it.
+Skills live in `.vibestrate/skills/` (committed with your project) or `.claude/skills/` (picked up if you already use Claude Code). Each one is either a folder holding a `SKILL.md` or a single flat markdown file, and its name is that folder or file name - so `skills/auth-conventions/SKILL.md` gives you the skill `auth-conventions`. A `name:` in the frontmatter overrides that. Prefer the folder shape: only a folder can sit beside a `.mcp.json` and bring MCP servers with it.
 
 ## Why it helps
 
@@ -21,11 +21,15 @@ There's no required format. It's markdown. Write it like documentation for a car
 ```markdown
 # .vibestrate/skills/payments/SKILL.md
 
-This codebase handles real money. When touching `src/payments/`:
+This codebase handles real money.
+When touching `src/payments/`:
 
-- Always idempotent. Every external POST must include an idempotency key.
-- Currency is stored as integer cents. Never floats.
-- Refunds must go through `RefundService.process()` - never inline.
+- Always idempotent. Every external POST
+  must include an idempotency key.
+- Currency is stored as integer cents.
+  Never floats.
+- Refunds must go through
+  `RefundService.process()` - never inline.
 ```
 
 That's the whole skill. No frontmatter required.
@@ -47,12 +51,34 @@ crews:
 Or attach them just for one run, merged into every agent for that run:
 
 ```bash
-vibe run "Refund a stuck transaction" --skills payments,oncall-runbook
+vibe run "Refund a stuck transaction" \
+  --skills payments,oncall-runbook
 ```
 
 ## Skills vs project rules
 
-`.vibestrate/rules.md` is loaded for *every* agent on *every* run. Skills are loaded only for the agents and runs that ask for them. Use rules for the universal "this is how we work." Use skills for "this is what you need to know if you're touching X."
+`.vibestrate/rules.md` is loaded for *every* agent on *every* run. Skills are loaded only for the agents and runs that ask for them - a smaller circle inside the same one:
+
+<svg viewBox="0 0 560 130" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Project rules are loaded for every agent on every run; a skill is loaded only for the roles that name it, so a skill's audience sits inside the rules' audience.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="1" width="558" height="126" rx="10"/>
+    <rect x="16" y="56" width="528" height="56" rx="8"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+    <text x="16" y="26">.vibestrate/rules.md</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="16" y="44">every agent, every run</text>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+    <text x="32" y="82">.vibestrate/skills/payments</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="32" y="100">only the roles that name it</text>
+  </g>
+</svg>
+
+Use rules for the universal "this is how we work." Use skills for "this is what you need to know if you're touching X."
 
 ## Common mistakes
 

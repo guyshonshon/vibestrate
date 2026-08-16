@@ -41,14 +41,43 @@ You don't have to judge the risk alone:
 vibe integrate advise <runId>
 ```
 
-It reports risk flags first - did your checks actually run, does the change touch protected files - then a dry-run conflict report, then one of three recommendations: finish now, stage on an integration branch, or resolve conflicts first. Nothing is merged and no branch is touched. The same view is the Source page's **Merge** tab.
+It reports risk flags first - did your checks actually run, does the change touch protected files - then a dry-run conflict report, then one of three recommendations:
+
+<svg viewBox="0 0 560 132" width="100%" style="max-width:560px;height:auto" role="img" aria-label="vibe integrate advise ends on one of three recommendations: finish now, stage on an integration branch, or resolve conflicts first.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="46" width="180" height="40" rx="8"/>
+    <rect x="245" y="8" width="314" height="32" rx="8"/>
+    <rect x="245" y="50" width="314" height="32" rx="8"/>
+    <rect x="245" y="92" width="314" height="32" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M181 66 h32"/>
+    <path d="M213 24 V108"/>
+    <path d="M213 24 h27"/>
+    <path d="M213 66 h27"/>
+    <path d="M213 108 h27"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5">
+    <polygon points="240,20.5 245,24 240,27.5"/>
+    <polygon points="240,62.5 245,66 240,69.5"/>
+    <polygon points="240,104.5 245,108 240,111.5"/>
+  </g>
+  <text x="91" y="70" fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">integrate advise</text>
+  <g fill="currentColor" font-size="12">
+    <text x="261" y="28">finish now</text>
+    <text x="261" y="70">stage on an integration branch</text>
+    <text x="261" y="112">resolve conflicts first</text>
+  </g>
+</svg>
+
+Nothing is merged and no branch is touched. The same view is the Source page's **Merge** tab.
 
 ## Take the change
 
 The branch is yours. Two ways to keep it:
 
 ```bash
-# Open a pull request for review (best on a shared project)
+# Open a pull request (best on a shared project)
 cd ../.vibestrate-worktrees/<runId>
 gh pr create
 

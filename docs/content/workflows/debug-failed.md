@@ -8,6 +8,41 @@ When a task doesn't finish cleanly, this guide helps you find out why and decide
 
 A run can stop short for two different reasons. They feel similar, but they call for different responses: `failed` is a crash, `blocked` is a decision. One needs a fix; the other needs a call from you.
 
+<svg viewBox="0 0 560 170" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A run that stops short went one of two ways. Failed is a crash, and the failing step's own output.md holds the error. Blocked is a decision left to you, and the reviewer's output.md holds the findings.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="190" y="1" width="180" height="34" rx="8"/>
+    <rect x="1" y="62" width="270" height="42" rx="8"/>
+    <rect x="289" y="62" width="270" height="42" rx="8"/>
+    <rect x="1" y="122" width="270" height="44" rx="8"/>
+    <rect x="289" y="122" width="270" height="44" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M280 35 v13"/>
+    <path d="M136 48 h288"/>
+    <path d="M136 48 v10"/><path d="M424 48 v10"/>
+    <path d="M132 57 l4 5 l4 -5"/><path d="M420 57 l4 5 l4 -5"/>
+    <path d="M136 104 v14"/><path d="M424 104 v14"/>
+    <path d="M132 117 l4 5 l4 -5"/><path d="M420 117 l4 5 l4 -5"/>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="280" y="23">the run stopped short</text>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="136" y="82">failed</text>
+    <text x="424" y="82">blocked</text>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="136" y="142">output.md</text>
+    <text x="424" y="142">review/output.md</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="136" y="97">a crash - something to fix</text>
+    <text x="424" y="97">a decision - your call</text>
+    <text x="136" y="159">in the failing step's folder</text>
+    <text x="424" y="159">the reviewer's findings</text>
+  </g>
+</svg>
+
 Either way the evidence is already on disk, under `.vibestrate/runs/` in your project. `events.ndjson` says what happened and in what order, and each step's own folder under `artifacts/flows/` holds the prompt it was given and the answer it gave back. Nothing is deleted when a run stops.
 
 You rarely have to start from zero after a fix. A rewind reuses a finished run's earlier work and picks up from the stage you name, so a bad implementation does not cost you the planning again.
@@ -27,8 +62,14 @@ Read-only means you can look but not change anything. The status line tells you 
 A `failed` status means a stage raised an error it couldn't recover from. Three things to look at, in order:
 
 1. **`events.ndjson`** - the last event before the failure shows which transition triggered the error.
-2. **The step's output** at `.vibestrate/runs/<runId>/artifacts/flows/<step-id>/output.md` - this is the AI's response for that step (`<step-id>` is `plan`, `implement`, `review`, and so on, per the flow). It usually contains the model's last response and any tool-use error.
-3. **The validation output** at `.vibestrate/runs/<runId>/artifacts/flows/<step-id>/validation-results.json` - if the failure happened during validation, the exit codes are here; stdout/stderr for each command sit alongside it under `validation/`.
+
+2. **The step's output** at `.vibestrate/runs/<runId>/artifacts/flows/<step-id>/output.md` - the AI's response for that step. It usually contains the model's last response and any tool-use error.
+
+   The `<step-id>` is the step's own name in the flow, like `plan` or `review`.
+
+3. **The validation output** at `.vibestrate/runs/<runId>/artifacts/flows/<step-id>/validation-results.json` - if the failure happened during validation, the exit codes are here.
+
+   The `stdout` and `stderr` for each command sit alongside it under `validation/`.
 
 Common causes:
 
@@ -69,11 +110,12 @@ Then act on what you find. The right answer is rarely "rerun and hope." Usually 
 
 ## Re-run after fixing
 
-Each `vibe run` is a fresh run with a fresh runId. Past runs stay on disk at `.vibestrate/runs/`, so you can compare what the planner produced this time against last time:
+Each `vibe run` is a fresh run with a fresh `runId`. Past runs stay on disk at `.vibestrate/runs/`, so you can compare what the planner produced this time against last time:
 
 ```bash
-diff .vibestrate/runs/<oldRunId>/artifacts/flows/plan/output.md \
-     .vibestrate/runs/<newRunId>/artifacts/flows/plan/output.md
+cd .vibestrate/runs
+diff <oldRunId>/artifacts/flows/plan/output.md \
+     <newRunId>/artifacts/flows/plan/output.md
 ```
 
 ## Rewind instead of restarting
@@ -81,44 +123,58 @@ diff .vibestrate/runs/<oldRunId>/artifacts/flows/plan/output.md \
 Sometimes the plan and architecture were fine and only the implementation needs another pass. For example, the run was read-only and you now want the executor to actually write code. In that case you don't have to re-pay for planning and architecture. **Rewind** forks a fresh run that reuses the earlier artifacts and resumes from a stage you pick:
 
 ```bash
-# Reuse the plan + architecture, redo the implementation onward:
-vibe run "<same task>" --resume-from <oldRunId> --resume-stage executing
-
-# Reuse just the plan, redo from architecture onward:
-vibe run "<same task>" --resume-from <oldRunId> --resume-stage architecting
-
-# Re-run everything from scratch (seeds nothing):
-vibe run "<same task>" --resume-from <oldRunId> --resume-stage planning
+# executing     reuse plan + architecture
+# architecting  reuse just the plan
+# planning      seed nothing, start over
+vibe run "<same task>" --resume-from <oldRunId> \
+  --resume-stage executing
 ```
 
-`--resume-stage` takes six values - `planning`, `architecting`, `executing`, `reviewing`, `fixing` or `verifying` - and defaults to `executing`. The three above regenerate the code, so they behave as described here; the three below need the earlier code back, which is the next section.
+`--resume-stage` takes six values, and defaults to `executing`:
 
-The flow runner finds the first step at the stage you named, **seeds the outputs of every earlier step from the source run** (marking them *skipped (resumed)* in the run's step ledger), and starts there. The forked run gets its own runId and a fresh worktree off your main branch. The original run is untouched, and its lineage is recorded under `resumedFrom` in the run's `state.json`. This works with `--flow` too: any flow that declares the matching step `stage` can be resumed. In the dashboard, the run's **Re-run with changes** dialog has a **Start from** selector with the same choices.
+<div class="docs-chips"><span>planning</span><span>architecting</span><span>executing</span><span>reviewing</span><span>fixing</span><span>verifying</span></div>
+
+The first three regenerate the code, so they behave as described here. The last three need the earlier code back, which is the next section.
+
+The flow runner finds the first step at the stage you named, **seeds the outputs of every earlier step from the source run** (marking them *skipped (resumed)* in the run's step ledger), and starts there.
+
+The forked run gets its own `runId` and a fresh worktree off your main branch. The original run is untouched, and its lineage is recorded under `resumedFrom` in the run's `state.json`.
+
+This works with `--flow` too: any flow that declares the matching step `stage` can be resumed. In the dashboard, the run's **Re-run with changes** dialog has a **Start from** selector with the same choices.
 
 ### Rewinding to review, fix, or verify (restores the run's code)
 
-`reviewing`, `fixing`, and `verifying` are also resumable, but these stages need the executor's code already in place. So Vibestrate first **restores the source run's per-phase worktree snapshot** into the fresh worktree. A snapshot is a saved copy of the run's code at a point in time. Only runs that captured one (every run that produced code) can be rewound this way, and the CLI and dashboard tell you when there's none.
+`reviewing`, `fixing`, and `verifying` are also resumable, but these stages need the executor's code already in place. So Vibestrate first **restores the source run's per-phase worktree snapshot** into the fresh worktree.
+
+A snapshot is a saved copy of the run's code at a point in time. Only runs that captured one - every run that produced code - can be rewound this way, and the CLI and dashboard tell you when there's none.
 
 Because that restore overwrites and removes files, you can **dry-run it first** to see the exact blast radius - which files it would add, overwrite, or remove - before committing to it:
 
 ```bash
-vibe run "<same task>" --resume-from <oldRunId> --resume-stage reviewing --preview
+vibe run "<same task>" --resume-from <oldRunId> \
+  --resume-stage reviewing --preview
 ```
 
-`--preview` prints the overwrite/remove set and exits **without starting a run**. The same data is available at `GET /api/runs/<id>/restore-preview?stage=reviewing`, and the dashboard's **Re-run** dialog shows a live preview panel when you pick a downstream stage. The restore itself is bounded: it only ever runs against a real, isolated run worktree, never your own checkout, and a failed or refused restore marks the run **unsafe** in its assurance verdict instead of letting it pass as verified.
+`--preview` prints the overwrite/remove set and exits **without starting a run**. The same data is available at `GET /api/runs/<id>/restore-preview?stage=reviewing`, and the dashboard's **Re-run** dialog shows a live preview panel when you pick a downstream stage.
+
+The restore itself is bounded. It only ever runs against a real, isolated run worktree, never your own checkout. A failed or refused restore marks the run **unsafe** in its assurance verdict instead of letting it pass as verified.
 
 ### Housekeeping: pruning snapshots
 
 Each rewind-able run anchors its code as a git ref under `refs/vibestrate/snapshots/`, which slowly grows your `.git`. Vibestrate never deletes these on its own. To reclaim them yourself:
 
 ```bash
-vibe runs prune                 # drop snapshots for runs whose directory is gone (orphans)
-vibe runs prune --keep 20       # keep the 20 most-recent runs, prune the rest
-vibe runs prune --run <id>      # drop one run's snapshots
-vibe runs prune --orphans --dry-run   # preview without deleting
+vibe runs prune                # orphans
+vibe runs prune --keep 20      # keep newest 20
+vibe runs prune --run <id>     # just this run
+vibe runs prune --orphans --dry-run   # preview
 ```
 
-It prints the plan and asks before deleting (skip the prompt with `-y`). Only refs are removed. The runs' artifacts and branches are untouched. The dashboard's **Runs** page has a **Prune snapshots** button for the same orphan cleanup, and `POST /api/runs/snapshots/prune` (with `dryRun`) is the API. For hands-off trimming, set `git.snapshotRetentionRuns` to keep the last N runs automatically.
+Orphans are the runs whose directory is gone.
+
+It prints the plan and asks before deleting (skip the prompt with `-y`). Only refs are removed. The runs' artifacts and branches are untouched.
+
+The dashboard's **Runs** page has a **Prune snapshots** button for the same orphan cleanup, and `POST /api/runs/snapshots/prune` (with `dryRun`) is the API. For hands-off trimming, set `git.snapshotRetentionRuns` to keep the last N runs automatically.
 
 ## When to file a bug
 

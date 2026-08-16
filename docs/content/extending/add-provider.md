@@ -4,7 +4,9 @@ description: Tell Vibestrate how to run a local coding CLI it doesn't already kn
 slug: extending/add-provider
 ---
 
-A **provider** is how Vibestrate reaches a model - almost always a command-line tool already installed on your machine. The built-in detector knows eleven: Claude Code, Codex CLI, Gemini CLI, OpenCode, Aider, Ollama, Qwen Code, Crush, Goose, Cursor CLI, and Amp. A provider's `type` is one of `cli`, `claude-code`, `localhost-proxy`, or `http-api`.
+A **provider** is how Vibestrate reaches a model - almost always a command-line tool already installed on your machine. The built-in detector knows eleven: Claude Code, Codex CLI, Gemini CLI, OpenCode, Aider, Ollama, Qwen Code, Crush, Goose, Cursor CLI, and Amp. Every provider declares a type, and there are four of them:
+
+<div class="docs-chips"><span>cli</span><span>claude-code</span><span>localhost-proxy</span><span>http-api</span></div>
 
 If you want to use a CLI it doesn't know about, or you want to change the flags it passes to one it does know, you declare your own under `providers:` in `project.yml`. Any local CLI works: if a command takes a prompt and returns a change, Vibestrate can drive it. There is no plugin to write and no SDK to learn - you point at the binary and say how the prompt gets in.
 
@@ -21,7 +23,33 @@ providers:
     input: stdin           # stdin | arg
 ```
 
-That one field is worth a plain explanation: `input` is how the prompt reaches the CLI. `stdin` pipes it in; `arg` passes it as a command-line argument. There is no third option, and no `workingDir` to set - Vibestrate always runs the CLI in the run worktree, the isolated copy of your repo it works in.
+That one field is worth a plain explanation. `input` is how the prompt reaches the CLI, and it takes one of exactly two values:
+
+<svg viewBox="0 0 560 110" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The input field takes one of two values. With stdin, the prompt is written to the command's standard input. With arg, it is passed as a command-line argument. Both routes end at the same command.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="1" width="168" height="44" rx="8"/>
+    <rect x="1" y="65" width="168" height="44" rx="8"/>
+    <rect x="392" y="1" width="167" height="108" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M171 23 h213"/>
+    <path d="M384 19 l4 4 -4 4"/>
+    <path d="M171 87 h213"/>
+    <path d="M384 83 l4 4 -4 4"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="85" y="28">input: stdin</text>
+    <text x="85" y="92">input: arg</text>
+    <text x="475" y="52">my-coding-cli</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="280" y="17">written to its standard input</text>
+    <text x="280" y="81">passed as a command-line argument</text>
+    <text x="475" y="72">the command you named</text>
+  </g>
+</svg>
+
+There is no `workingDir` to set either - Vibestrate always runs the CLI in the run worktree, the isolated copy of your repo it works in.
 
 ## Assign the provider to a role
 
@@ -41,7 +69,11 @@ profiles:
 crews:
   default:
     roles:
-      reviewer: { seats: [reviewer], profile: my-model-default, prompt: .vibestrate/roles/reviewer.json, permissions: read_only }
+      reviewer:
+        seats: [reviewer]
+        profile: my-model-default
+        prompt: .vibestrate/roles/reviewer.json
+        permissions: read_only
 ```
 
 Or skip the config and use it for a single run by pointing at a Profile that names the provider:
@@ -55,8 +87,8 @@ vibe run "..." --profile my-model-default
 Check that Vibestrate sees the provider, then send it a test prompt:
 
 ```bash
-vibe provider list                 # confirms the provider is registered
-vibe provider test my-model        # sends a one-shot prompt
+vibe provider list
+vibe provider test my-model
 ```
 
 If the test fails, it's almost always one of these:
@@ -90,21 +122,22 @@ one type that leaves your machine.
 providers:
   ollama-local:
     type: localhost-proxy
-    api: ollama                     # or: openai
+    api: ollama                # or: openai
     baseUrl: http://localhost:11434
     model: qwen3.5
 
   anthropic-api:
     type: http-api
-    api: anthropic                  # or: openai
+    api: anthropic             # or: openai
     baseUrl: https://api.anthropic.com
     model: claude-sonnet-4-6
-    apiKey: env:ANTHROPIC_API_KEY   # env reference only
+    # an env reference, never a literal key
+    apiKey: env:ANTHROPIC_API_KEY
 ```
 
-The schema draws the line for you: a `localhost-proxy` `baseUrl` must resolve to
-localhost, and an `http-api` `baseUrl` must be `https` and must not be loopback.
-A literal `apiKey` is rejected outright, so a key can't reach your git history.
+The schema draws the line for you. A `localhost-proxy` needs a `baseUrl` that
+resolves to localhost; an `http-api` needs https, and must not be loopback. A
+key written out in full is rejected outright, so it can't reach your git history.
 [Provider (concept)](/docs/concepts/provider) has the full set of rules.
 
 ## What a provider can and can't do

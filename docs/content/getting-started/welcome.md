@@ -23,7 +23,33 @@ Each step opens with a short explanation, then asks: continue, skip, or quit. No
 
 ## It remembers where you left off
 
-Quit partway through and `vibe welcome` picks up at the first step you haven't finished. Progress is saved to `.vibestrate/welcome-state.json` - a small, disposable file that only tracks which steps you've been through. Deleting it, or running `--reset`, never touches your provider, crew, or flow configuration. Those changes live in `project.yml` as usual, and stay put.
+Quit partway through and `vibe welcome` picks up at the first step you haven't finished.
+
+<svg viewBox="0 0 560 70" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The tour has four steps - providers, crew, flows, and your first run. Quit after the first two and it picks up at flows.">
+  <g fill="currentColor" fill-opacity="0.07">
+    <rect x="2" y="8" width="127" height="34" rx="8"/>
+    <rect x="145" y="8" width="127" height="34" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="2" y="8" width="127" height="34" rx="8"/>
+    <rect x="145" y="8" width="127" height="34" rx="8"/>
+    <rect x="288" y="8" width="127" height="34" rx="8"/>
+    <rect x="431" y="8" width="127" height="34" rx="8"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="66" y="30">providers</text>
+    <text x="208" y="30">crew</text>
+    <text x="352" y="30">flows</text>
+    <text x="494" y="30">first run</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="66" y="60">done</text>
+    <text x="208" y="60">done</text>
+    <text x="352" y="60">picks up here</text>
+  </g>
+</svg>
+
+Progress is saved to `.vibestrate/welcome-state.json` - a small, disposable file that only tracks which steps you've been through. Deleting it, or running `--reset`, never touches your provider, crew, or flow configuration. Those changes live in `project.yml` as usual, and stay put.
 
 ```bash
 vibe welcome --reset
@@ -31,14 +57,20 @@ vibe welcome --reset
 
 ## If you're not initialized yet
 
-`vibe welcome` offers to run `vibe init` for you when the project has not been set up. Decline it and the tour stops with the two commands to run yourself: `vibe init`, then `vibe welcome` again.
+The tour offers to run `vibe init` for you when the project has not been set up. Decline it and the tour stops, leaving you the two commands to run yourself:
+
+```bash
+vibe init
+vibe welcome
+```
 
 ## Where to go from here
 
 The last step hands you a real task to try:
 
 ```bash
-vibe run "Add structured logging to the settings save handler"
+vibe run "Add structured logging to the \
+settings save handler"
 ```
 
 From there, three ways to work with Vibestrate day to day:

@@ -10,13 +10,46 @@ Think of it like a package you've shipped. At any point it's in one definite pla
 
 That saved value lives in a `state.json` file under `.vibestrate/runs/`, in the folder named after the run id. The `status` comes from a fixed set of sixteen values, and Vibestrate validates it before writing it down.
 
-A run starts at `created`, works through `planning`, `architecting`, `executing`, `validating`, `reviewing`, `fixing` and `verifying`, and ends in one of four terminal statuses with no way back out: `merge_ready`, `blocked`, `failed` or `aborted`. Along the way it can sit at `waiting_for_approval` (a policy gate is holding it) or `paused` (you asked it to stop).
+A run starts at `created` and ends in one of four terminal statuses:
+
+<svg viewBox="0 0 560 150" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A run starts at created, works through planning, architecting, executing, validating, reviewing, fixing and verifying, then ends in one of four terminal statuses: merge_ready, blocked, failed or aborted.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="6" width="110" height="38" rx="8"/>
+    <rect x="147" y="1" width="412" height="48" rx="8"/>
+    <rect x="1" y="106" width="132" height="38" rx="8"/>
+    <rect x="143" y="106" width="132" height="38" rx="8"/>
+    <rect x="285" y="106" width="132" height="38" rx="8"/>
+    <rect x="427" y="106" width="132" height="38" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M111 25 h30"/>
+    <path d="M136 21 l5 4 l-5 4"/>
+    <path d="M353 49 v22"/>
+    <path d="M67 71 h426"/>
+    <path d="M67 71 v30"/><path d="M209 71 v30"/><path d="M351 71 v30"/><path d="M493 71 v30"/>
+    <path d="M63 96 l4 5 l4 -5"/><path d="M205 96 l4 5 l4 -5"/><path d="M347 96 l4 5 l4 -5"/><path d="M489 96 l4 5 l4 -5"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="56" y="30">created</text>
+    <text x="353" y="21">planning, architecting, executing</text>
+    <text x="353" y="39">validating, reviewing, fixing, verifying</text>
+    <text x="67" y="130">merge_ready</text>
+    <text x="209" y="130">blocked</text>
+    <text x="351" y="130">failed</text>
+    <text x="493" y="130">aborted</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="369" y="66">no way back out</text>
+  </g>
+</svg>
+
+Along the way it can sit at `waiting_for_approval` (a policy gate is holding it) or `paused` (you asked it to stop).
 
 ## The moves are enforced
 
 What makes the status trustworthy is that Vibestrate controls how a run gets from one status to the next. Every allowed move is written into an explicit list, the `ALLOWED_TRANSITIONS` allowlist. If something tries a move that isn't on the list, Vibestrate raises a `StateTransitionError` and stops, instead of letting the bad move happen quietly.
 
-The four terminal states - `merge_ready`, `blocked`, `failed`, and `aborted` - have no way back out. Once a run reaches one of them, it stays there.
+The four terminal statuses in the diagram above have no way back out. Once a run reaches one of them, it stays there.
 
 ## Why it matters
 
@@ -59,8 +92,10 @@ Three commands decide a policy gate. Each wants the run id plus the approval id 
 ```bash
 vibe approvals list <runId>
 vibe approvals approve <runId> <approvalId>
-vibe approvals reject <runId> <approvalId>           # the run is marked blocked
-vibe approvals request-changes <runId> <approvalId> --guidance "..."
+# reject marks the run blocked
+vibe approvals reject <runId> <approvalId>
+vibe approvals request-changes \
+  <runId> <approvalId> --guidance "..."
 ```
 
 `request-changes` is the middle answer: the stage re-runs with your guidance instead of being waved through or killed.

@@ -6,9 +6,35 @@ slug: concepts/configuration
 
 Almost everything you can tune about Vibestrate lives in one place: the `.vibestrate/` folder at the root of your project, created by `vibe init`.
 
-The heart of it is a single file, `.vibestrate/project.yml` - your providers, profiles, crews, flows, policies, and validation commands all live there. It is plain YAML sitting inside your repo, yours to commit - commit it and your whole team runs the same setup.
+The heart of it is a single file, `.vibestrate/project.yml` - your providers, profiles, crews, flows, policies, and validation commands all live there. It is plain YAML sitting inside your repo, yours to commit - commit it and your whole team runs the same setup. The rest of the folder is files you write yourself:
 
-You rarely need to open it by hand, though. Every setting has a place to view and edit it in both the dashboard and the CLI. That's a deliberate rule, not a coincidence (see [UI and CLI parity](#ui-and-cli-parity) below). `vibe config keys` lists every settable key with its type, allowed values and default; `vibe config get` reads one and `vibe config set` writes one.
+<svg viewBox="0 0 560 120" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Inside the .vibestrate folder: project.yml holds the settings, and beside it sit the files you edit directly - rules.md, rules, roles, skills, flows, policies and runs.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="1" width="558" height="116" rx="10"/>
+    <rect x="16" y="34" width="190" height="72" rx="8"/>
+    <rect x="230" y="34" width="314" height="72" rx="8"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+    <text x="16" y="22">.vibestrate/</text>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="111" y="64">project.yml</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="111" y="84">settings live here</text>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="387" y="58">rules.md  rules/  roles/  skills/</text>
+    <text x="387" y="78">flows/  policies/  runs/</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="387" y="98">files you edit directly</text>
+  </g>
+</svg>
+
+You rarely need to open it by hand, though. Every setting has a place to view and edit it in both the dashboard and the CLI. That's a deliberate rule, not a coincidence (see [UI and CLI parity](#ui-and-cli-parity) below).
+
+`vibe config keys` lists every settable key with its type, allowed values and default. `vibe config get` reads one, and `vibe config set` writes one.
 
 Configuration never holds secrets. An API key for an HTTP provider is given as an environment reference (`apiKey: env:ANTHROPIC_API_KEY`), resolved at run time and never written back to YAML, logged, or shown in the UI. A literal key in config is refused outright.
 
@@ -49,34 +75,37 @@ The file is split into top-level sections. Each owns one slice of how a run beha
 | `commits` | Co-author attribution on commits Vibestrate authors or assists. | - |
 | `merge` | Thresholds that flip the merge advisor's recommendation to stage on an integration branch. | [Worktree](/docs/concepts/worktree) |
 
-The full, field-by-field schema is generated from the source, so it never drifts. You'll find it in the [project.yml reference](/docs/reference/config).
+The full, field-by-field schema is generated from the source, so it never drifts. You'll find it in the [`project.yml` reference](/docs/reference/config).
 
 ## Things that live next to it (not in `project.yml`)
 
 The rest of `.vibestrate/` holds files you edit directly:
 
 - `rules.md` - your **project instructions**: advisory guidance read on every agent turn. It's advisory, not enforced. The enforced rules are [policies](/docs/concepts/safety).
-- `rules/` - optional. Once one page of instructions isn't enough, drop more `*.md` files here and they compose onto `rules.md`, sorted by filename, each labelled with the file it came from. Name them so the order reads the way you want (`10-style.md`, `20-testing.md`).
+- `rules/` - optional. Once one page of instructions isn't enough, drop more markdown files here and they compose onto `rules.md`, sorted by filename, each labelled with the file it came from. Name them so the order reads the way you want: `10-style.md`, then `20-testing.md`.
 
-  Instructions are the most expensive text in the product - they go into every agent turn of every run - so the composed ruleset is size-bounded, and `vibe doctor` tells you if any of it is being truncated or refused rather than letting your rules quietly stop arriving.
+  Instructions are the most expensive text in the product - they go into every agent turn of every run - so the composed ruleset is size-bounded. `vibe doctor` tells you if any of it is being truncated or refused, rather than letting your rules quietly stop arriving.
+
 - `roles/` - one JSON role file per Role (`{schemaVersion, id, prompt}`), yours to edit.
 - `skills/` - markdown [skills](/docs/concepts/skill) that load as extra context.
 - `flows/` - your project's own [Flow](/docs/concepts/flow) definitions.
 - `policies/` - the policy files the safety engine compiles.
 - `runs/` - per-run artifacts, state, and metrics. Nothing adds this to your `.gitignore` for you, so add `.vibestrate/runs/` yourself unless you want run history in the repo.
 
-## Viewing your configuration
+## Viewing and editing your configuration
 
 `vibe config view` prints a readable, grouped summary. Each section shows its live values and a pointer to where you'd change it:
 
 ```bash
-vibe config view                  # grouped, human-readable
-vibe config view --json           # the same, machine-readable
-vibe config show                  # the raw project.yml, untouched
-vibe config keys                  # every settable key: type, allowed values, default
-vibe config get commands.validate # one value, by dot-path
+vibe config view          # grouped, readable
+vibe config view --json   # the same, as JSON
+vibe config show          # raw project.yml
+vibe config keys          # every settable key
+vibe config validate      # check the schema
+
+# one value at a time, by dot-path
+vibe config get commands.validate
 vibe config set workflow.requireHumanMerge true
-vibe config validate              # check project.yml against the schema
 ```
 
 Arrays and objects go in as JSON, so setting the validation commands looks like `vibe config set commands.validate '["pnpm test"]'`.
@@ -95,6 +124,6 @@ Beyond the `env:` rule for provider keys, Vibestrate never reads your `.env` con
 
 ## Going deeper
 
-- [project.yml reference](/docs/reference/config) - the generated, full schema.
+- [`project.yml` reference](/docs/reference/config) - the generated, full schema.
 - [Provider](/docs/concepts/provider), [Profile](/docs/concepts/profile), [Crew](/docs/concepts/crew) - the main things you'll configure.
 - [Safety](/docs/concepts/safety) - policies, the enforced half of configuration.

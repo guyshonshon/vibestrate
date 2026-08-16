@@ -35,9 +35,13 @@ Spec-up sits outside all four: it runs before whichever Flow was chosen, and tha
 ## Picking one yourself
 
 ```bash
-vibe flows list                            # what is available in this project
-vibe flows show quality-arbitration        # its steps and seats
-vibe run "Tighten the auth checks" --flow quality-arbitration
+# what this project has, and what a Flow contains
+vibe flows list
+vibe flows show quality-arbitration
+
+# run one
+vibe run "Tighten the auth checks" \
+  --flow quality-arbitration
 ```
 
 Vibestrate ships a handful of built-in Flows. You can also install one from the shared **hub**: `vibe flows hub list` browses it, and `vibe flows hub install` pulls a Flow into `.vibestrate/flows/`. [Browse the built-in Flows →](/docs/reference/flows)
@@ -46,18 +50,45 @@ Vibestrate ships a handful of built-in Flows. You can also install one from the 
 
 A Flow stops at the seat. Everything past that point is yours:
 
-```text
-  Flow step "review"
-        │  declares the seat it needs
-        ▼
-  seat "reviewer"
-        │  your Crew has a Role that fills it
-        ▼
-  Role "reviewer"
-        │  the Role names a Profile
-        ▼
-  Profile "codex-review"  ─▶  provider + model
-```
+<svg viewBox="0 0 560 52" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A Flow step names a Seat, your Crew's Role fills that Seat, the Role names a Profile, and the Profile names a Provider. The Flow decides only the first link.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="111.5" y="0.5" width="88" height="45" rx="8"/>
+    <rect x="222.5" y="0.5" width="88" height="45" rx="8"/>
+    <rect x="333.5" y="0.5" width="116" height="45" rx="8"/>
+    <rect x="472.5" y="0.5" width="87" height="45" rx="8"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
+    <rect x="0.5" y="0.5" width="88" height="45" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M92.5 23 H102.5"/>
+    <path d="M203.5 23 H213.5"/>
+    <path d="M314.5 23 H324.5"/>
+    <path d="M453.5 23 H463.5"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5">
+    <polygon points="102.5,19.5 108,23 102.5,26.5"/>
+    <polygon points="213.5,19.5 219,23 213.5,26.5"/>
+    <polygon points="324.5,19.5 330,23 324.5,26.5"/>
+    <polygon points="463.5,19.5 469,23 463.5,26.5"/>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="44.5" y="19">Flow step</text>
+    <text x="155.5" y="19">Seat</text>
+    <text x="266.5" y="19">Role</text>
+    <text x="391.5" y="19">Profile</text>
+    <text x="516" y="19">Provider</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="44.5" y="35">review</text>
+    <text x="155.5" y="35">reviewer</text>
+    <text x="266.5" y="35">reviewer</text>
+    <text x="391.5" y="35">claude-balanced</text>
+    <text x="516" y="35">claude</text>
+  </g>
+</svg>
+
+The Flow writes the first box and names the second. The last three are your Crew's.
 
 <div class="docs-cards">
 
@@ -70,11 +101,14 @@ Point the Role that fills the `reviewer` seat at a Profile on another vendor, an
 </div>
 
 ```bash
-# one-off: make the Profile first, then point one step at it
+# make the Profile first, then point one step at it
 vibe profile add codex-review --provider codex
 
-# review runs on codex-review; every other step keeps its Role's own profile
-vibe run "Tighten the auth checks" --flow default --step-profile review=codex-review
+# review runs on codex-review; every other step
+# keeps its Role's own profile
+vibe run "Tighten the auth checks" \
+  --flow default \
+  --step-profile review=codex-review
 ```
 
 `--step-profile` needs `--flow`, because step ids belong to a named Flow. An id that is not in that Flow is refused before the run starts: `Profile override references unknown Flow step "reveiw".`

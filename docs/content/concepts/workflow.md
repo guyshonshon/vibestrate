@@ -8,13 +8,45 @@ A workflow is the ordered set of steps one run works through, from submitted to 
 
 This page is the canonical description of the built-in **`default`** flow. It has eight steps: plan, architecture, implement, validate, review, verify, plus **fix** and **re-validate**, which are loop-only - they run when review returns `CHANGES_REQUESTED`, and not otherwise.
 
-```text
- plan ▶ architecture ▶ implement ▶ validate ▶ review ▶ verify
-                                               ▲  │
-                        ┌──────────────────────┘  │
-                        │                         ▼
-                        └── re-validate ◀──────── fix
-```
+<svg viewBox="0 0 560 124" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The default flow runs plan, architecture, implement, validate, review, then verify. A changes-requested review branches down to fix and re-validate, which lead back into review.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="1" width="50" height="36" rx="8"/>
+    <rect x="73" y="1" width="103" height="36" rx="8"/>
+    <rect x="198" y="1" width="83" height="36" rx="8"/>
+    <rect x="303" y="1" width="77" height="36" rx="8"/>
+    <rect x="402" y="1" width="64" height="36" rx="8"/>
+    <rect x="488" y="1" width="64" height="36" rx="8"/>
+    <rect x="250" y="85" width="97" height="36" rx="8"/>
+    <rect x="402" y="85" width="64" height="36" rx="8"/>
+    <path d="M51 19H73M176 19H198M281 19H303M380 19H402M466 19H488"/>
+    <path d="M450 37V85M402 103H347M298 85V61H418V37"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.28" stroke="none">
+    <path d="M67 15 73 19 67 23Z"/>
+    <path d="M192 15 198 19 192 23Z"/>
+    <path d="M297 15 303 19 297 23Z"/>
+    <path d="M396 15 402 19 396 23Z"/>
+    <path d="M482 15 488 19 482 23Z"/>
+    <path d="M446 79 450 85 454 79Z"/>
+    <path d="M353 99 347 103 353 107Z"/>
+    <path d="M414 43 418 37 422 43Z"/>
+  </g>
+  <g fill="currentColor" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="26" y="23">plan</text>
+    <text x="124" y="23">architecture</text>
+    <text x="239" y="23">implement</text>
+    <text x="341" y="23">validate</text>
+    <text x="434" y="23">review</text>
+    <text x="520" y="23">verify</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="458" y="57">changes requested</text>
+  </g>
+  <g fill="currentColor" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="434" y="107">fix</text>
+    <text x="298" y="107">re-validate</text>
+  </g>
+</svg>
 
 Review is the only branch. `CHANGES_REQUESTED` sends the run around the loop; any other decision goes on to verify. The default flow allows three review passes, so at most two fix rounds, and a third pass still asking for changes ends the run `blocked`.
 
@@ -64,8 +96,8 @@ There is only one execution model. A [Flow](/docs/concepts/flow) is a different 
 They all share the same runner:
 
 ```bash
-vibe run "..."                             # Vibestrate picks
-vibe run "..." --flow default              # the eight steps above, explicitly
+vibe run "..."                  # Vibestrate picks
+vibe run "..." --flow default   # the eight steps
 vibe run "..." --flow quality-arbitration
 ```
 
@@ -76,15 +108,18 @@ Not every task deserves the full eight-step line. For small, low-risk work the b
 That asymmetry is deliberate. Whatever routes a task to `express` is reading the task description, and a description can be wrong about what a change turns out to touch. The diff cannot. So the decision to skip a gate is never made from the task text - it is made from the files the run actually changed, after it changed them.
 
 ```bash
-vibe run "fix the typo in the seat concept page" --flow express
+vibe run "fix the typo in the seat concept page" \
+  --flow express
 ```
 
 To pick a flow up partway through, resume from an earlier run. The runner seeds the earlier steps' outputs from that run and starts at the stage you name.
 
 ```bash
-# accepted stages: planning architecting executing reviewing fixing verifying
+# accepted stages: planning architecting
+#   executing reviewing fixing verifying
 # default: executing
-vibe run "..." --resume-from bold-lovelace --resume-stage reviewing
+vibe run "..." --resume-from bold-lovelace \
+  --resume-stage reviewing
 ```
 
 ## How the crew stays on the same page

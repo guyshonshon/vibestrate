@@ -4,35 +4,56 @@ description: A tour of the source tree, showing what lives where and where to st
 slug: architecture/directory-map
 ---
 
-This is a tour of `src/`, the source tree. The list isn't exhaustive, since small helpers are omitted, but every top-level directory and stable extension point appears here. If you are looking for one thing: the run engine is `core/`, who runs a seat is `agents/`, the guardrails are `safety/` and `policies/`, and the dashboard is `server/` plus `ui/`.
+This is a tour of `src/`, the source tree. The list isn't exhaustive, since small helpers are omitted, but every top-level directory and stable extension point appears here.
+
+If you are looking for one thing, four questions cover most of the tree:
+
+<svg viewBox="0 0 560 68" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The run engine is core, who runs a seat is agents, the guardrails are safety and policies, and the dashboard is server plus ui.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="6" width="123" height="56" rx="8"/>
+    <rect x="129" y="6" width="129" height="56" rx="8"/>
+    <rect x="263" y="6" width="168" height="56" rx="8"/>
+    <rect x="436" y="6" width="123" height="56" rx="8"/>
+  </g>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="62" y="28" font-size="11" fill-opacity="0.5">the run engine</text>
+    <text x="62" y="48" font-size="12" font-family="ui-monospace,monospace">core/</text>
+    <text x="194" y="28" font-size="11" fill-opacity="0.5">who runs a seat</text>
+    <text x="194" y="48" font-size="12" font-family="ui-monospace,monospace">agents/</text>
+    <text x="347" y="28" font-size="11" fill-opacity="0.5">the guardrails</text>
+    <text x="347" y="48" font-size="12" font-family="ui-monospace,monospace">safety/ policies/</text>
+    <text x="497" y="28" font-size="11" fill-opacity="0.5">the dashboard</text>
+    <text x="497" y="48" font-size="12" font-family="ui-monospace,monospace">server/ ui/</text>
+  </g>
+</svg>
 
 ## The shape of `src/`
 
 ```text
-cli/          command-line entry point (the vibe program)
-server/       local HTTP/SSE API behind `vibe ui`
-ui/           React dashboard (Mission Control)
-shell/        Ink TUI behind `vibe shell`
-core/         the run engine: orchestrator, state machine,
-              stores, metrics, validation, context
-supervisor/   picks persona, lens, flow and posture
-flows/        Flow schema, builtin catalog, runtime, hub
-agents/       crew -> role -> profile -> skills chain
-providers/    local provider CLIs, adapters, MCP config
-project/      .vibestrate/project.yml schema + loader
-safety/       Action Broker, apply gateway, permissions
-policies/     owner-taught project rules
-git/          worktrees, merges, gated merge-preview
-roadmap/      tasks, planner, proposals, dependencies
-reviews/      review suggestions and suggestion bundles
-scheduler/    background run queue
-setup/        onboarding, doctor, provider setup
+cli/            the vibe command-line program
+server/         local HTTP/SSE API behind vibe ui
+ui/             React dashboard (Mission Control)
+shell/          Ink TUI behind vibe shell
+core/           run engine, state machine, stores,
+                metrics, validation, context
+supervisor/     picks persona, lens, flow, posture
+flows/          Flow schema, catalog, runtime, hub
+agents/         crew -> role -> profile -> skills
+providers/      local CLIs, adapters, MCP config
+project/        .vibestrate/project.yml schema
+safety/         Action Broker, apply gateway
+policies/       owner-taught project rules
+git/            worktrees, merges, merge-preview
+roadmap/        tasks, planner, proposals
+reviews/        review suggestions and bundles
+scheduler/      background run queue
+setup/          onboarding, doctor, provider setup
 notifications/  rules, routing and delivery
-consult/      read-only project Q&A + the handbook
-spec-up/      the Spec-up phase
-terminal/     PTY terminal sessions
-workspace/    multi-project navigator
-utils/        fs, json, paths, time, run ids, mutex
+consult/        read-only project Q&A + handbook
+spec-up/        the Spec-up phase
+terminal/       PTY terminal sessions
+workspace/      multi-project navigator
+utils/          fs, json, paths, time, run ids
 ```
 
 ## The frontends
@@ -46,15 +67,20 @@ Read first: `src/cli/index.ts`, `src/server/server.ts`.
 
 ## `src/core/`
 
-The run engine and the surrounding plumbing. At the root live the hub
-modules everything shares: `orchestrator.ts` (drives a run through its flow
-steps), `state-machine.ts` (run statuses + transition allowlist),
-`diff-service.ts` (diffs + secret detection/redaction), `path-guard.ts`
-(refuses reads/writes outside known-safe roots), `policy-engine.ts` (the
-preflight gate that refuses a run whose config could write outside the
-worktree), `provider-resilience.ts` (classifies a provider failure and picks
-the backoff), `effort-heuristic.ts`, `guarded-fetch.ts`, `error-format.ts`,
-`run-entry.ts` (the headless build entry), and `detached-run.ts`.
+The run engine and the surrounding plumbing. At the root live the hub modules
+everything shares:
+
+- `orchestrator.ts` - drives a run through its flow steps.
+- `state-machine.ts` - run statuses + transition allowlist.
+- `diff-service.ts` - diffs + secret detection/redaction.
+- `path-guard.ts` - refuses reads/writes outside known-safe roots.
+- `policy-engine.ts` - the preflight gate that refuses a run whose config
+  could write outside the worktree.
+- `provider-resilience.ts` - classifies a provider failure and picks the
+  backoff.
+- `run-entry.ts` - the headless build entry.
+- `effort-heuristic.ts`, `guarded-fetch.ts`, `error-format.ts` and
+  `detached-run.ts`.
 
 The domain clusters:
 

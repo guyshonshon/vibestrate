@@ -12,21 +12,47 @@ A turn runs in three phases. **Routing** decides what you meant. **Acting** does
 
 The control in the panel header is a **permission**, not a stop. It reads **Answers only** or **Answers and acts**, and it decides whether the supervisor may make a task, add TODOs or start a run. Stop is a different control: the red square that replaces Send while a turn is running.
 
-```text
-  you ──▶ routing ──▶ acting ──▶ answering ──▶ you
-             │                       ▲
-             └─── nothing to act on ─┘
-```
+<svg viewBox="0 0 560 112" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A turn goes from you to routing, then acting, then answering, and back to you. When there is nothing to act on, routing skips acting and goes straight to answering.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="48" y="20" width="130" height="40" rx="8"/>
+    <rect x="213" y="20" width="130" height="40" rx="8"/>
+    <rect x="378" y="20" width="130" height="40" rx="8"/>
+    <path d="M26 40 H41"/>
+    <path d="M178 40 H206"/>
+    <path d="M343 40 H371"/>
+    <path d="M508 40 H525"/>
+    <path d="M113 60 V92 H443 V67"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.28">
+    <path d="M48 40 l-7 -4 v8 z"/>
+    <path d="M213 40 l-7 -4 v8 z"/>
+    <path d="M378 40 l-7 -4 v8 z"/>
+    <path d="M532 40 l-7 -4 v8 z"/>
+    <path d="M443 60 l-4 7 h8 z"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="2" y="45">you</text>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="113" y="45">routing</text>
+    <text x="278" y="45">acting</text>
+    <text x="443" y="45">answering</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="558" y="45" text-anchor="end">you</text>
+    <text x="278" y="107" text-anchor="middle">nothing to act on</text>
+  </g>
+</svg>
 
 ## One turn
 
 **Routing** reads two things: your message, and a list of your open task ids. Nothing else goes in. Not `VIBESTRATE.md`, not the codebase map, not annotations, not file contents, not run output, and not one earlier turn of this conversation. It picks exactly one intent.
 
 ```text
-answer         a question, or discussion. Nothing is created.
-task.create    new work, not on a task you already have.
-checklist.add  work for an existing task, as TODO items.
-run.start      build it now, on a task that exists.
+answer         a question, or discussion.
+task.create    new work, not on an existing task.
+checklist.add  TODO items on an existing task.
+run.start      build it now, on an existing task.
 ```
 
 `answer` is the default, and the router is told to choose it whenever it is not certain you asked for work to happen. `checklist.add` and `run.start` both need a task id from that list, so a request that matches none of your tasks cannot become either.
@@ -127,7 +153,7 @@ Closing the socket is what stops a turn, so reloading the page or restarting the
 Stop is per-turn. It is not the permission switch, and it changes no setting. To take acting away from the supervisor, use the header control, or the CLI:
 
 ```bash
-vibe supervisor stop --reason "reviewing the last diff"
+vibe supervisor stop --reason "reviewing the diff"
 vibe supervisor status
 vibe supervisor resume
 ```
@@ -135,6 +161,40 @@ vibe supervisor resume
 ## Who answers, and how hard
 
 Two pickers sit on the composer, next to the attach button.
+
+<svg viewBox="0 0 560 212" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A sketch of the Supervisor panel. Along the top: the title, the permission control reading Answers only, and New conversation. Below it a message with its reply and Show me how actions. At the bottom the composer, carrying the attach button, the profile and effort pickers, and the Send button that becomes Stop while a turn is running.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="1" width="558" height="210" rx="10"/>
+    <path d="M1 41 H559"/>
+    <rect x="286" y="10" width="126" height="22" rx="6"/>
+    <rect x="424" y="10" width="124" height="22" rx="6"/>
+    <rect x="16" y="58" width="330" height="42" rx="8"/>
+    <rect x="16" y="110" width="62" height="20" rx="5"/>
+    <rect x="88" y="110" width="104" height="20" rx="5"/>
+    <rect x="16" y="142" width="528" height="54" rx="8"/>
+    <rect x="30" y="170" width="56" height="20" rx="5"/>
+    <rect x="94" y="170" width="76" height="20" rx="5"/>
+    <rect x="178" y="170" width="68" height="20" rx="5"/>
+    <rect x="442" y="170" width="88" height="20" rx="5"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+    <text x="16" y="26">Supervisor</text>
+  </g>
+  <g fill="currentColor" font-size="11" text-anchor="middle">
+    <text x="349" y="25">Answers only</text>
+    <text x="486" y="25">New conversation</text>
+    <text x="47" y="124">reply</text>
+    <text x="140" y="124">Show me how</text>
+    <text x="58" y="184">attach</text>
+    <text x="132" y="184">profile</text>
+    <text x="212" y="184">effort</text>
+    <text x="486" y="184">Send / Stop</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="30" y="83">a message</text>
+    <text x="30" y="163">Ask anything, or say what you want built</text>
+  </g>
+</svg>
 
 **Profile** chooses who replies to this turn. A profile is a provider plus a model, so changing it changes the effort ladder beside it: the levels always belong to whoever is about to answer.
 

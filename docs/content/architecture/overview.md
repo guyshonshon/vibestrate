@@ -4,7 +4,11 @@ description: How Vibestrate's pieces fit together, from the orchestrator down to
 slug: architecture/overview
 ---
 
-Vibestrate is a single Node process that orchestrates other local processes. There is no daemon, no service mesh, no cloud component. The `vibe` CLI hands work to the orchestrator in `src/core/orchestrator.ts`, which drives a run stage by stage, moves the run state machine, and writes every artifact under `.vibestrate/runs/`. Three siblings sit below it: agents in `src/agents`, validation in `src/core/validation/`, and Mission Control, a Fastify server in `src/server` plus a React dashboard in `src/ui`. Agents reach a model through the providers in `src/providers` (11 built in, including claude, codex, gemini and ollama), and a provider runs a CLI binary already installed on your machine. Vibestrate holds no model API tokens - the provider CLIs hold their own. Path guards and permission profiles are enforced by Vibestrate, not by the OS.
+Vibestrate is a single Node process that orchestrates other local processes. There is no daemon, no service mesh, no cloud component.
+
+The `vibe` CLI hands work to the orchestrator in `src/core/orchestrator.ts`, which drives a run stage by stage, moves the run state machine, and writes every artifact under `.vibestrate/runs/`. Three siblings sit below it: agents in `src/agents`, validation in `src/core/validation/`, and Mission Control - a Fastify server in `src/server` plus a React dashboard in `src/ui`.
+
+Agents reach a model through the providers in `src/providers` (11 built in, including claude, codex, gemini and ollama). A provider runs a CLI binary already installed on your machine. Vibestrate holds no model API tokens - the provider CLIs hold their own. Path guards and permission profiles are enforced by Vibestrate, not the OS.
 
 ## The components
 

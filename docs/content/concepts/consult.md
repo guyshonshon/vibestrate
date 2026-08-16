@@ -8,33 +8,56 @@ slug: concepts/consult
 
 You reach it two ways: `vibe consult "..."` in a terminal, and the orb at the bottom right of every dashboard screen. It answers for **where you asked from** - screens to open in the browser, commands to run in the terminal. That is not a tone setting. On the dashboard the command reference pages are dropped from the answer's source material before the model sees them, so there is nothing left to copy a terminal instruction out of.
 
+<svg viewBox="0 0 560 116" width="100%" style="max-width:560px;height:auto" role="img" aria-label="One question forks on where you asked it. Asked in the dashboard, the answer names screens to open. Asked in a terminal, it names commands to run.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="38" width="150" height="40" rx="8"/>
+    <rect x="210" y="8" width="130" height="40" rx="8"/>
+    <rect x="210" y="68" width="130" height="40" rx="8"/>
+    <rect x="380" y="8" width="178" height="40" rx="8"/>
+    <rect x="380" y="68" width="178" height="40" rx="8"/>
+    <path d="M151 58 H180 M180 28 V88 M180 28 H203 M180 88 H203"/>
+    <path d="M340 28 H373 M340 88 H373"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.28">
+    <path d="M210 28 l-7 -4 v8 z"/>
+    <path d="M210 88 l-7 -4 v8 z"/>
+    <path d="M380 28 l-7 -4 v8 z"/>
+    <path d="M380 88 l-7 -4 v8 z"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="76" y="63">your question</text>
+    <text x="275" y="33">dashboard</text>
+    <text x="469" y="33">screens to open</text>
+    <text x="275" y="93">terminal</text>
+    <text x="469" y="93">commands to run</text>
+  </g>
+</svg>
+
 Consult is read-only. No run starts, no file in your repository changes, nothing merges, and the model is given no permission to write. One thing outlives the question, and it does nothing on its own: say a durable review rule while asking and consult writes it into `.vibestrate/project.yml` as a pending **policy proposal**. The code that writes it forces the advise tier and no matcher, whatever the answer asked for, and the rule enforces nothing until you confirm it.
 
 Every answer states a **confidence** and lists **caveats** - what it could not verify. The orchestrator is a model too, and an answer with neither would be model confidence dressed as fact.
 
 For a conversation that persists, and that can act when you allow it, see [Supervisor Control](/docs/concepts/supervisor-control). Consult is the one-shot way in.
 
-```text
-   your question
-        │
-        ├─▶ your project: files, config, runs, spend
-        │
-        └─▶ Vibestrate's own documentation
-                │
-                ├─ asked in a browser  ─▶ screens
-                └─ asked in a terminal ─▶ commands
-```
-
 ## Ask it
 
 ```bash
-vibe consult "Does this auth refactor need a heavier flow?"
-vibe consult "Why did the last run block?" --run <runId>
+vibe consult "Should this use a heavier flow?"
+vibe consult "Why did the last run block?" \
+  --run <runId>
+vibe consult "What did this week's runs spend?"
 vibe consult "What is left here?" --task <taskId>
-vibe consult "What does this file do?" --file src/consult/consult.ts
+vibe consult "What does this file do?" \
+  --file src/consult/consult.ts
 ```
 
-`--file` repeats. `--profile`, or `--provider` with `--model` and `--effort`, answers this one question on a model of your choosing without editing anything.
+`--file` repeats. To answer one question on a model of your choosing, without editing anything:
+
+```bash
+vibe consult "..." --profile <id>
+vibe consult "..." --provider <id> \
+  --model <model> --effort <level>
+```
 
 In `vibe shell`, type `consult "..."` at the prompt. That is a terminal, so it answers with commands.
 
@@ -114,7 +137,7 @@ Everything else is off the table. Consult starts no run, changes no setting that
 
 **Dashboard.** The orb at the bottom right of every screen. It offers two things: asking about your project, which is consult, and working in Vibestrate itself, which is guided walkthroughs and the [Supervisor](/docs/concepts/supervisor-control) conversation.
 
-**API.** `POST /api/consult` asks. `GET /api/vibestrate`, `/api/vibestrate/init` and `/api/vibestrate/proposals` read and apply the manual side. The surface is fixed to the dashboard on this route and never read off the request body, so a client cannot ask its way back into terminal instructions.
+**API.** `POST /api/consult` asks. `GET /api/vibestrate`, plus its init and proposals routes, read and apply the manual side. The surface is fixed to the dashboard on this route and never read off the request body, so a client cannot ask its way back into terminal instructions.
 
 </div>
 

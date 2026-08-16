@@ -7,11 +7,17 @@ slug: cli/supervised-tasks
 `vibe tasks` manages this project's tasks. A **supervised** task is one you break into
 ordered steps first, with `vibe tasks add --supervised` and `vibe tasks checklist add`.
 Each step carries a scoped objective, a plain-language done-when check, and optional file
-hints. `vibe tasks run` then works through those steps in order, in a single git worktree,
+hints.
+
+`vibe tasks run` then works through those steps in order, in a single git worktree,
 committing after each one. It stops on its own when a step fails review, when the budget
-is reached, or when a between-steps supervisor judges the work has gone off-goal. Only a
-failing step's own work is discarded; every step that already committed stays on the
-branch. Nothing is ever auto-merged, so a finished supervised task lands as one branch
+is reached, or when a between-steps supervisor judges the work has gone off-goal.
+
+Each step is micro-planned, implemented and reviewed, with a bounded fix loop, then
+committed - and between steps the supervisor decides to proceed, enhance or escalate.
+
+Only a failing step's own work is discarded; every step that already committed stays on
+the branch. Nothing is ever auto-merged, so a finished supervised task lands as one branch
 for you to read.
 
 See [supervised tasks](/docs/concepts/supervised-tasks) for the concept.
@@ -20,20 +26,42 @@ See [supervised tasks](/docs/concepts/supervised-tasks) for the concept.
 
 One plan up front, then a small loop per step, then one review over the whole branch.
 
-```text
-  plan once
-    │
-    ▼
-  ┌─ step ───────────────────────────────────┐
-  │  micro-plan ─▶ implement ─▶ review       │
-  │                    ▲           │         │
-  │                    └─── fix ◀──┘         │
-  └──────────────┬───────────────────────────┘
-                 │ commit, then the supervisor decides:
-                 │ proceed · enhance · escalate
-                 ▼
-             next step  ...  then one holistic review
-```
+<svg viewBox="0 0 560 176" width="100%" style="max-width:560px;height:auto" role="img" aria-label="One plan up front, then a loop for each step - micro-plan, then implement, then review, with a fix loop back to implement - then a commit and the supervisor's decision: proceed, enhance or escalate.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="32" width="86" height="36" rx="8"/>
+    <rect x="106" y="8" width="452" height="100" rx="10"/>
+    <rect x="118" y="32" width="128" height="36" rx="8"/>
+    <rect x="268" y="32" width="128" height="36" rx="8"/>
+    <rect x="418" y="32" width="128" height="36" rx="8"/>
+    <rect x="106" y="126" width="452" height="40" rx="8"/>
+    <path d="M88 50 H98"/>
+    <path d="M248 50 H260"/>
+    <path d="M398 50 H410"/>
+    <path d="M482 68 V86 H332 V74"/>
+    <path d="M332 108 V118"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.28">
+    <path d="M104 50 L97 46.5 L97 53.5 Z"/>
+    <path d="M266 50 L259 46.5 L259 53.5 Z"/>
+    <path d="M416 50 L409 46.5 L409 53.5 Z"/>
+    <path d="M332 68 L328.5 75 L335.5 75 Z"/>
+    <path d="M332 124 L328.5 117 L335.5 117 Z"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="44" y="55">plan once</text>
+    <text x="182" y="55">micro-plan</text>
+    <text x="332" y="55">implement</text>
+    <text x="482" y="55">review</text>
+    <text x="332" y="145">commit, then the supervisor decides</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="118" y="26">each step</text>
+    <text x="407" y="100" text-anchor="middle">fix</text>
+    <text x="332" y="160" text-anchor="middle">proceed · enhance · escalate</text>
+  </g>
+</svg>
+
+Then the next step, and one holistic review over the whole branch at the end.
 
 This is the built-in `saga` flow, which is what `vibe flows list` calls "Saga". You do
 not pass `--flow` for a supervised task; the Conductor selects it.
@@ -43,15 +71,15 @@ not pass `--flow` for a supervised task; the Conductor selects it.
 A supervised task starts empty. Create it, then add steps one at a time.
 
 ```bash
-vibe tasks add --supervised "Migrate the settings schema"
+vibe tasks add --supervised "Settings v2"
 ```
 
 The output gives you the id every later command needs:
 
 ```text
 ✓ Task added.
-  id: task-migrate-the-settings-schema-7c1e
-  title: Migrate the settings schema
+  id: task-settings-v2-7c1e
+  title: Settings v2
 ```
 
 Ids are `task-` plus a slug of the title plus four random characters, so they are stable
@@ -61,25 +89,29 @@ Then add each step. The text can be unquoted; everything after the task id is jo
 into the step's display text.
 
 ```bash
-vibe tasks checklist add task-migrate-the-settings-schema-7c1e \
-  "Update the settings model" \
-  --objective "Replace the SettingsV1 type with SettingsV2 in src/models/settings.ts" \
-  --acceptance "pnpm typecheck passes with no errors in src/models/" \
-  --files "src/models/settings.ts,src/types/settings.ts"
+vibe tasks checklist add task-settings-v2-7c1e \
+  "Update the model" \
+  --objective "Replace the SettingsV1 type with \
+SettingsV2 in src/models/settings.ts" \
+  --acceptance "pnpm typecheck passes with no \
+errors in src/models/" \
+  --files "src/models/settings.ts"
 ```
 
 ```text
-✓ Added checklist item ci-update-the-settings-model-9b2d.
-  Update the settings model
+✓ Added checklist item ci-update-the-model-9b2d.
+  Update the model
 ```
 
 `vibe tasks checklist add` takes exactly three options:
 
 ```text
-  --objective <text>   the scoped brief the executor gets
-  --acceptance <text>  the plain-language done-when check
-  --files <list>       comma-separated file hints, re-read
-                       from the worktree at the step
+--objective <text>    the executor's scoped brief
+--acceptance <text>   the done-when check, in
+                      plain language
+--files <list>        comma-separated file hints,
+                      re-read from the worktree
+                      at the step
 ```
 
 ### What a good step looks like
@@ -89,31 +121,41 @@ type, and the constraint. The acceptance check is what makes a step verifiable r
 than an opinion.
 
 ```text
-  weak    objective:  "clean up settings"
-          acceptance: "it works"
+weak
+  objective:   "clean up settings"
+  acceptance:  "it works"
 
-  strong  objective:  "Replace SettingsV1 with SettingsV2 in
-                       src/models/settings.ts. Leave the
-                       route handlers to a later step."
-          acceptance: "pnpm typecheck passes with no errors
-                       in src/models/"
+strong
+  objective:   "Replace SettingsV1 with SettingsV2
+                in src/models/settings.ts. Leave the
+                route handlers to a later step."
+  acceptance:  "pnpm typecheck passes with no
+                errors in src/models/"
 ```
 
-A step gets a fresh model context, grounded by a curated packet: the feature goal, the
-invariants ledger, compact outcomes of the prior steps, the accumulated diff so far, and
-the current bytes of that step's file hints re-read from the worktree. Every section is
-secret-redacted before it reaches a provider.
+A step gets a fresh model context, grounded by a curated packet:
+
+- the feature goal,
+- the invariants ledger,
+- compact outcomes of the prior steps,
+- the accumulated diff so far,
+- the current bytes of that step's file hints, re-read from the worktree.
+
+Every section is secret-redacted before it reaches a provider.
 
 ### Editing and reordering
 
-`vibe tasks checklist edit` changes only a step's display text; the objective, acceptance
-check and file hints it already has are left untouched. The CLI has no flag for revising
-those three fields. Edit them in the step detail view in Mission Control, or remove the
-step and add it again.
+`vibe tasks checklist edit` changes only a step's display text. The objective,
+acceptance check and file hints it already has are left untouched.
+
+The CLI has no flag for revising those three fields. Edit them in the step detail view
+in Mission Control, or remove the step and add it again.
 
 ```bash
-vibe tasks checklist edit <taskId> <itemId> <text...>
-vibe tasks checklist move <taskId> <itemId> <position>
+vibe tasks checklist edit <taskId> <itemId> \
+  <text...>
+vibe tasks checklist move <taskId> <itemId> \
+  <position>
 ```
 
 `move` shifts one step at a time.
@@ -121,7 +163,7 @@ vibe tasks checklist move <taskId> <itemId> <position>
 ## Run it
 
 ```bash
-vibe tasks run task-migrate-the-settings-schema-7c1e
+vibe tasks run task-settings-v2-7c1e
 ```
 
 `vibe tasks run` runs any task: a supervised one sequences its steps, a plain one runs the
@@ -132,17 +174,17 @@ Re-running resumes. Steps already marked done are filtered out before the run st
 a halted task picks up from the clean tip rather than redoing finished work.
 
 ```bash
-vibe tasks sequence task-migrate-the-settings-schema-7c1e --json
+vibe tasks sequence task-settings-v2-7c1e --json
 ```
 
 ```text
 {
-  "taskId": "task-migrate-the-settings-schema-7c1e",
+  "taskId": "task-settings-v2-7c1e",
   "supervisedState": "halted",
   "supervisedHalt": {
     "reason": "self-heal-exhausted",
     "atStepId": "ci-migrate-the-write-path-4a08",
-    "summary": "Review still requested changes after the fix loop."
+    "summary": "Review still asked for changes."
   },
   "runExitCode": 3
 }
@@ -154,17 +196,12 @@ failure, so only a run that threw exits non-zero. In a script, branch on
 
 ## When it stops, and what happens to your code
 
-```text
-  a step failed review after its fix loop
-      -> that step's work is discarded, the step goes
-         back to pending, earlier commits stay
-  maxSteps or maxSpendUsd reached (between steps)
-      -> everything committed so far is kept
-  the supervisor returned escalate (work went off-goal)
-      -> everything committed so far is kept
-  enhance wants to add a step, or drop one you wrote
-      -> everything committed so far is kept
-```
+<div class="docs-outcomes">
+<div class="docs-outcome stop"><b>a step failed review after its fix loop</b><span>That step's work is discarded and the step goes back to pending. Earlier commits stay.</span></div>
+<div class="docs-outcome warn"><b>maxSteps or maxSpendUsd reached</b><span>Checked between steps. Everything committed so far is kept.</span></div>
+<div class="docs-outcome warn"><b>the supervisor returned escalate</b><span>The work went off-goal. Everything committed so far is kept.</span></div>
+<div class="docs-outcome warn"><b>enhance wants to add a step, or drop one you wrote</b><span>Everything committed so far is kept.</span></div>
+</div>
 
 The failed-review case is the only one that throws work away, and it throws away exactly
 one step's worth, so the branch always ends at a step boundary you can read.
@@ -176,21 +213,22 @@ the project daily spend cap as the mid-step backstop.
 ## Watch it
 
 ```bash
-vibe tasks status task-migrate-the-settings-schema-7c1e
+vibe tasks status task-settings-v2-7c1e
 ```
 
 ```text
-• task-migrate-the-settings-schema-7c1e Migrate the settings schema (halted)
+• task-settings-v2-7c1e Settings v2 (halted)
   Progress: 2/5 steps done
-  ✓ 1. Update the settings model [done] - added SettingsV2, kept V1 as an alias
-  ✓ 2. Migrate the read path [done] - routes now read through SettingsV2
+  ✓ 1. Update the model [done] - added V2
+  ✓ 2. Migrate the read path [done] - on V2
   • 3. Migrate the write path [pending]
 
 ! Halted self-heal-exhausted
   ...
 
 • Invariants (1)
-  - Settings types live in src/models/settings.ts; nothing else defines them
+  - Settings types live only in
+    src/models/settings.ts
 ```
 
 The lifecycle is `idle`, `sequencing`, `paused`, `halted`, or `done`. `--json` emits the
@@ -203,7 +241,7 @@ summaries fold.
 ### Pause and resume
 
 ```bash
-vibe tasks pause  <taskId>   # halt at the next step boundary
+vibe tasks pause  <taskId>   # at the next boundary
 vibe tasks resume <taskId>   # clear the pause
 ```
 
@@ -216,12 +254,19 @@ points at `vibe tasks sequence` to re-attempt from the clean tip.
 Both are project config, and `vibe config keys supervised` prints the live schema:
 
 ```text
-supervised.maxSpendUsd         number | null  ·  default null
-supervised.maxSteps            number | null  ·  default 20
-supervised.supervisor.enabled  boolean  ·  default true
-supervised.supervisor.profile  string | null  ·  default null
-supervised.supervisor.roleId   string  ·  default "reviewer"
+supervised.maxSpendUsd
+    number | null  ·  default null
+supervised.maxSteps
+    number | null  ·  default 20
+supervised.supervisor.enabled
+    boolean  ·  default true
+supervised.supervisor.profile
+    string | null  ·  default null
+supervised.supervisor.roleId
+    string  ·  default "reviewer"
 ```
+
+(Wrapped here to fit; the CLI prints each key and its type on one line.)
 
 So out of the box a supervised task is capped at 20 steps with no spend ceiling, and the
 between-steps supervisor is on, running on the crew's `reviewer` role.
@@ -240,17 +285,20 @@ kept.
 Every one of these is prefixed with `vibe tasks checklist`:
 
 ```text
-list     <taskId>                     [--json]
-add      <taskId> <text...>           [--objective]
-                                      [--acceptance] [--files]
-check    <taskId> <itemId>            mark done
-uncheck  <taskId> <itemId>            back to pending
-status   <taskId> <itemId> <status>   pending | in_progress |
-                                      done | blocked
-edit     <taskId> <itemId> <text...>  display text only
+list     <taskId>              [--json]
+add      <taskId> <text...>    [--objective]
+                               [--acceptance]
+                               [--files]
+check    <taskId> <itemId>     mark done
+uncheck  <taskId> <itemId>     back to pending
+status   <taskId> <itemId> <status>
+             pending | in_progress | done | blocked
+edit     <taskId> <itemId> <text...>
+             display text only
 move     <taskId> <itemId> <position>
 remove   <taskId> <itemId>
-promote  <taskId> <itemId>            split it into its own task
+promote  <taskId> <itemId>
+             split it into its own task
 ```
 
 `vibe tasks list` and `vibe tasks show` cover the tasks themselves and both accept
@@ -272,7 +320,9 @@ run.
 Supervised tasks appear as container cards on the **Board** page. The task detail view is
 where you author step objectives, acceptance checks and file hints - the same three
 fields `vibe tasks checklist add` writes, and the only place any of them can be revised
-after the fact. Reordering is available by drag there.
+after the fact.
+
+You can reorder steps there too, by dragging them.
 
 The detail view also carries the live **Conductor** panel, which mirrors `vibe tasks
 status`: step progress, the invariants ledger, and the controls. The primary button reads
@@ -280,9 +330,10 @@ status`: step progress, the invariants ledger, and the controls. The primary but
 **Resume** while a run is live.
 
 **Sequence** queues the task rather than starting it inline. The scheduler picks it up and
-spawns the same command the CLI runs, so the dashboard never shells out over HTTP. The
-practical difference is timing: the CLI starts the run in your terminal and blocks, while
-the dashboard hands it to the scheduler and returns straight away.
+spawns the same command the CLI runs, so the dashboard never shells out over HTTP.
+
+The practical difference is timing: the CLI starts the run in your terminal and blocks,
+while the dashboard hands it to the scheduler and returns straight away.
 
 ## What is coming next
 

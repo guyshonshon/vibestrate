@@ -15,32 +15,44 @@ The rest of the commands manage [personas](/docs/concepts/supervisor) - which ju
 ## Every subcommand
 
 ```text
-vibe supervisor                  same as list
-vibe supervisor list             resolved personas, built-in + project
-vibe supervisor archetypes       the catalog you can adopt
-vibe supervisor adopt <id>       copy an archetype into project.yml
-vibe supervisor default <id>     set this project's default
-vibe supervisor remove <id>      delete a project persona
-vibe supervisor stop             stop it acting; it still answers
-vibe supervisor resume           let it act again
-vibe supervisor status           whether it may act right now
+vibe supervisor <subcommand>   (bare: same as list)
+
+list          resolved personas, built-in + project
+archetypes    the catalog you can adopt
+adopt <id>    copy an archetype into project.yml
+default <id>  set this project's default
+remove <id>   delete a project persona
+stop          stop it acting; it still answers
+resume        let it act again
+status        whether it may act right now
 ```
 
-`--json` is accepted by `list`, `archetypes` and `status`. `--reason` only by `stop`. `list` and `archetypes` read the catalog and work anywhere; everything else needs a Vibestrate project in the current directory.
+Two flags, and the subcommands that take them:
+
+```text
+--json     list, archetypes, status
+--reason   stop
+```
+
+`list` and `archetypes` read the catalog and work anywhere; everything else needs a Vibestrate project in the current directory.
 
 ## Stop and resume
 
 ```bash
-vibe supervisor stop --reason "reviewing the last diff"
+vibe supervisor stop --reason "reviewing the diff"
 vibe supervisor resume
 ```
 
 `--reason` is optional and free text. It is what the supervisor says back when you ask a stopped one to do something, and `status` prints it. Resuming clears it.
 
 ```text
-! Supervisor stopped. It will answer, but it will not act. (reviewing the last diff)
-✓ Supervisor resumed. It can act again, within your autonomy setting.
+! Supervisor stopped. It will answer, but it
+  will not act. (reviewing the diff)
+✓ Supervisor resumed. It can act again, within
+  your autonomy setting.
 ```
+
+The CLI prints each of those whole. They are wrapped here to fit the page.
 
 ## Whether it may act right now
 
@@ -67,9 +79,32 @@ The `--json` form prints the flag as it is stored:
 
 "Within your autonomy setting" is doing real work in that sentence. Two independent controls have to agree before the supervisor acts: this flag, and `supervisorControl.autonomy` in your config. `status` reports the flag. A cleared flag with autonomy left on `advise` still means it answers and nothing more. See [Supervisor Control](/docs/concepts/supervisor-control).
 
+<svg viewBox="0 0 560 112" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The supervisor acts only when both controls agree: the pause flag says running, and autonomy in your config is set to act. Then it may create a task, add TODOs, or start a run.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="4" width="210" height="44" rx="8"/>
+    <rect x="1" y="60" width="210" height="44" rx="8"/>
+    <rect x="330" y="32" width="210" height="44" rx="8"/>
+    <path d="M211 26 H250 M211 82 H250 M250 26 V82 M250 54 H323"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.28">
+    <path d="M330 54 l-7 -4 v8 z"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+    <text x="16" y="24">pause flag: running</text>
+    <text x="16" y="80">autonomy: act</text>
+    <text x="435" y="52" text-anchor="middle">it may act</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+    <text x="16" y="40">what status reports</text>
+    <text x="16" y="96">what your config says</text>
+    <text x="286" y="48" text-anchor="middle">and</text>
+    <text x="435" y="70" text-anchor="middle">a task, TODOs, a run</text>
+  </g>
+</svg>
+
 <div class="docs-callout warn">
 
-**The neighbouring commands are about a run, not the supervisor.** Top-level `vibe pause`, `vibe resume` and `vibe abort` each take a run id. `vibe supervisor stop` takes none, because it is about every future action rather than one run.
+**The neighbouring commands are about a run, not the supervisor.** `vibe pause`, `vibe resume` and `vibe abort` are top-level and each takes a run id. Stopping the supervisor takes none, because it is about every future action rather than one run.
 
 </div>
 
@@ -91,10 +126,11 @@ Supervisor personas
   → security [built-in]
       Authorization, secrets, and injection first.
       lenses: authz, secrets, injection
-      posture: prefers sandbox-suggested for risky tasks
+      posture: prefers sandbox-suggested for
+        risky tasks
 ```
 
-Each description prints in full on one line; they are shortened above to fit this page.
+Each description prints in full on one line; they are shortened and wrapped above to fit this page.
 
 `archetypes` lists the curated catalog you can adopt, each marked when it is already in your config. Adopting one copies its definition into `project.yml` under `personas`, then you point the default at it:
 
@@ -104,7 +140,15 @@ vibe supervisor adopt security-hawk
 vibe supervisor default security-hawk
 ```
 
-The catalog ships with `security-hawk`, `performance-skeptic`, `correctness-purist`, `frontend-reviewer`, `data-migration-guardian` and `ship-fast-pragmatist`. Only the id travels: the definition is Vibestrate's own, so an id it does not know is refused rather than invented.
+The catalog ships with six:
+
+```text
+security-hawk             performance-skeptic
+correctness-purist        frontend-reviewer
+data-migration-guardian   ship-fast-pragmatist
+```
+
+Only the id travels: the definition is Vibestrate's own, so an id it does not know is refused rather than invented.
 
 `remove` deletes a persona from your config. It refuses three things, each with the reason: a built-in (it lives in code, so there is nothing to remove), the persona that is the current default (re-point the default first), and an id that is not in your config.
 

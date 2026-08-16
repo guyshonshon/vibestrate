@@ -8,19 +8,39 @@ A **supervisor** is the judgment Vibestrate brings to a run: how hard to look at
 
 Think of a building inspector. They do not pour the concrete or hang the drywall. They decide how hard to look, send the risky parts back for a second opinion, and record every call so you can trust the sign-off.
 
-One word covers two things in this product, so it is worth separating them up front. **This page is the setting.** `.vibestrate/project.yml` calls it a `persona`, you pick one per run, and it shapes how the work is reviewed. The **Supervisor** panel in the dashboard is something else: a *conversation* with your project, covered by [Supervisor Control](/docs/concepts/supervisor-control). They share a name and a command. `vibe supervisor list`, `archetypes`, `adopt`, `default` and `remove` manage the setting on this page; `stop`, `resume` and `status` belong to the conversation.
+One word covers two things in this product, so it is worth separating them up front. **This page is the setting.** `.vibestrate/project.yml` calls it a `persona`, you pick one per run, and it shapes how the work is reviewed. The **Supervisor** panel in the dashboard is something else: a *conversation* with your project, covered by [Supervisor Control](/docs/concepts/supervisor-control). They share a name and a command: under `vibe supervisor`, list, archetypes, adopt, default and remove manage the setting on this page, while stop, resume and status belong to the conversation.
 
 A supervisor is advisory, and the product says so out loud. Its choices only ever add scrutiny, never remove it, and its record labels each entry as its own judgment or as a gate that fired.
 
 One of its settings is worth knowing before the rest. `reviewerProfile` sends every review seat to a model you pick, so the code's author does not have to be its only reviewer.
 
-```text
-   task ──▶ supervisor ──▶ flow   (upgraded when risky)
-                 │
-                 ├─▶ lenses    what reviewers aim at
-                 ├─▶ posture   sandboxed? approve each change?
-                 └─▶ feed      every call, labelled
-```
+<svg viewBox="0 0 560 150" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A task goes through the supervisor to a flow, upgraded to a heavier one when the work looks risky. The supervisor also sets the lenses reviewers aim at, the posture a run executes under, and a feed that labels every call it made.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="8" width="110" height="40" rx="8"/>
+    <rect x="146" y="8" width="160" height="40" rx="8"/>
+    <rect x="341" y="8" width="110" height="40" rx="8"/>
+    <path d="M111 28 H139"/>
+    <path d="M306 28 H334"/>
+    <path d="M226 48 V134 M226 86 H250 M226 110 H250 M226 134 H250"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.28">
+    <path d="M146 28 l-7 -4 v8 z"/>
+    <path d="M341 28 l-7 -4 v8 z"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="56" y="33">task</text>
+    <text x="226" y="33">supervisor</text>
+    <text x="396" y="33">flow</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="396" y="63">upgraded when risky</text>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+    <text x="258" y="90">lenses<tspan x="330" font-size="11" fill-opacity="0.5">what reviewers aim at</tspan></text>
+    <text x="258" y="114">posture<tspan x="330" font-size="11" fill-opacity="0.5">sandboxed? approve each change?</tspan></text>
+    <text x="258" y="138">feed<tspan x="330" font-size="11" fill-opacity="0.5">every call, labelled</tspan></text>
+  </g>
+</svg>
 
 ## What it decides
 
@@ -46,7 +66,7 @@ Naming a lens is the only way a supervisor changes what a reviewer is asked to l
 
 <div class="docs-callout">
 
-**Turning a suggestion into a rule.** `posture.autoApplySandbox` makes a `sandbox-suggested` run actually sandboxed. `posture.autoApplyApproval` makes each change wait for your approval. Both default off. An explicit `--permission-mode` always wins, the approval gate is suppressed for `--unattended` runs, and a provider that cannot really sandbox degrades honestly instead of pretending. The default supervisor stays posture-neutral.
+**Turning a suggestion into a rule.** `posture.autoApplySandbox` makes a `sandbox-suggested` run actually sandboxed. `posture.autoApplyApproval` makes each change wait for your approval. Both default off. An explicit `--permission-mode` always wins, the approval gate is suppressed for unattended runs, and a provider that cannot really sandbox degrades honestly instead of pretending. The default supervisor stays posture-neutral.
 
 </div>
 
@@ -74,7 +94,7 @@ Point `reviewerProfile` at a [Profile](/docs/concepts/profile) and every review 
 personas:
   thrifty:
     label: Thrifty staff engineer
-    reviewerProfile: cheap-reviewer  # review seats use this
+    reviewerProfile: cheap-reviewer  # review seats
 profiles:
   cheap-reviewer:
     provider: claude
@@ -101,11 +121,11 @@ Two supervisors ship built in and need no setup: `staff-engineer`, the default, 
 <div class="docs-chips"><span>security-hawk</span><span>performance-skeptic</span><span>correctness-purist</span><span>frontend-reviewer</span><span>data-migration-guardian</span><span>ship-fast-pragmatist</span></div>
 
 ```bash
-vibe supervisor list          # what this project can pick from
-vibe supervisor archetypes    # the six presets, described
-vibe supervisor adopt security-hawk    # copy one into project.yml
-vibe supervisor default security-hawk  # make it the default
-vibe run "harden the login route" --supervisor security
+vibe supervisor list          # what you can pick
+vibe supervisor archetypes    # the six presets
+vibe supervisor adopt security-hawk    # copy it in
+vibe supervisor default security-hawk  # then use it
+vibe run "harden the login" --supervisor security
 ```
 
 In the dashboard, the composer's **Supervisor** picker does the same for one run.

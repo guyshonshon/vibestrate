@@ -23,15 +23,20 @@ Write the task description the way you'd brief a careful colleague. Name the fil
 Kick off the task with one command:
 
 ```bash
-vibe run "Add audit logging to the settings save handler..."
+vibe run "Add audit logging to the settings..."
 ```
 
 Three flags cover most of what you'll want to change about a run - the dashboard, a heavier [Flow](/docs/concepts/flow), or a different model:
 
 ```bash
-vibe run "..." --ui                        # dashboard alongside the terminal
-vibe run "..." --flow quality-arbitration  # a heavier flow than the default
-vibe run "..." --profile <id>              # a different model for this run
+# dashboard alongside the terminal
+vibe run "..." --ui
+
+# a heavier flow than the default
+vibe run "..." --flow quality-arbitration
+
+# a different model for this run
+vibe run "..." --profile <id>
 ```
 
 Profile ids are yours, not ours. Run `vibe profile list` to see the ones your project actually has.
@@ -69,8 +74,8 @@ When the run finishes, it lands in one of four states:
 See every run in the project, then dig into one:
 
 ```bash
-vibe status                  # every run here, oldest first
-vibe replay <runId>          # read-only inspector for one run
+vibe status            # every run, oldest first
+vibe replay <runId>    # read-only, one run
 ```
 
 Or open the dashboard's **Source** page, on its **Changes** tab, to read the diff inline.
@@ -87,23 +92,59 @@ vibe integrate advise <runId>
 
 It is read-only and deterministic: same run, same advice, and no model in the loop. For each run it prints a one-line headline, then the risk flags (does the change touch protected files? did any check actually run?), the branch's position against `main`, which checks passed, and finally its recommendation - `finish-now`, `stage-on-integration-branch` or `resolve-first` - with the reason. Nothing is merged, no branch is touched. Add `--json` to emit the full advice for scripts. The same window lives on the dashboard's Source page, on its **Merge** tab.
 
-When the advisor suggests staging is configurable. It is suggestion-only and never blocks:
+When the advisor suggests staging is configurable. It is suggestion-only and never blocks. Three thresholds decide it, and these are their defaults in `project.yml`:
 
-```bash
-vibe config set merge.advisor.suggestIntegrationBranchWhen.filesTouched 40
-# defaults: filesTouched 25, protectedPaths true, behindMain 50
+```yaml
+merge:
+  advisor:
+    suggestIntegrationBranchWhen:
+      filesTouched: 25
+      protectedPaths: true
+      behindMain: 50
 ```
+
+Change one with `vibe config set` and its full dotted key. `vibe config keys` prints every key in full.
 
 For a deeper look, run `vibe integrate analyze <runId>` (or click the **Analyze deeper** button on the Source page's Merge tab). This optional read-only pass has a local provider read the run's diff against main and report semantic risk that a textual merge check can't see: concurrency, error handling, missing tests. It is advisory prose, never a merge verdict, and it never changes the deterministic recommendation. Before the provider sees it, the diff is byte-capped and redacted (secret-like files suppressed, secret-shaped tokens removed), and the result is cached under the run.
 
-Then you decide. The branch is yours to take in one of three directions: share or review it, merge it locally, or abandon it.
+Then you decide. The branch is yours to take in one of three directions:
+
+<svg viewBox="0 0 560 146" width="100%" style="max-width:560px;height:auto" role="img" aria-label="When a run finishes, its branch is yours to take in one of three directions: open a pull request to share or review it, merge it locally with git merge, or abandon it with vibe abort.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="1" y="52" width="160" height="42" rx="8"/>
+    <rect x="290" y="2" width="269" height="42" rx="8"/>
+    <rect x="290" y="52" width="269" height="42" rx="8"/>
+    <rect x="290" y="102" width="269" height="42" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M161 73 h125"/>
+    <path d="M230 23 v100"/>
+    <path d="M230 23 h56"/>
+    <path d="M230 123 h56"/>
+    <path d="M281 19 l5 4 l-5 4"/>
+    <path d="M281 69 l5 4 l-5 4"/>
+    <path d="M281 119 l5 4 l-5 4"/>
+  </g>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="81" y="70">vibestrate/&lt;runId&gt;</text>
+    <text x="424" y="20">gh pr create</text>
+    <text x="424" y="70">git merge --ff-only</text>
+    <text x="424" y="120">vibe abort</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+    <text x="81" y="87">the run's branch</text>
+    <text x="424" y="37">share it, or get it reviewed</text>
+    <text x="424" y="87">merge it locally</text>
+    <text x="424" y="137">abandon it</text>
+  </g>
+</svg>
 
 To get a human review or just share the branch:
 
 ```bash
 cd ../.vibestrate-worktrees/<runId>
-gh pr create                  # if you want review by a human
-git push                       # if you just want to share the branch
+gh pr create      # review by a human
+git push          # just share the branch
 ```
 
 To merge it locally instead:
@@ -117,7 +158,8 @@ Or to abandon it:
 
 ```bash
 vibe abort <runId>
-# worktree is preserved for inspection; remove when you're done
+# the worktree is preserved for inspection;
+# remove it when you're done
 ```
 
 ## Related

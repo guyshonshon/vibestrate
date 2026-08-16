@@ -20,7 +20,8 @@ You ran `npm install -g vibestrate` and it worked, but `vibe --version` says "co
 
 ```bash
 npm config get prefix
-# Add <prefix>/bin to your PATH in ~/.zshrc or ~/.bashrc
+# then add <prefix>/bin to your PATH
+# in ~/.zshrc or ~/.bashrc
 ```
 
 To check it took, run `which vibe`. You should get a real path back.
@@ -42,9 +43,9 @@ To check it worked, run `git rev-parse --is-inside-work-tree`. It should return 
 Doctor lists every provider as `missing` or `detected-needs-setup`: no coding-agent CLI is installed on your PATH, or none has a verified preset. Install at least one:
 
 ```bash
-npm install -g @anthropic-ai/claude-code  # then: claude
-npm install -g @openai/codex              # then: codex login
-npm install -g @google/gemini-cli         # then: gemini
+npm install -g @anthropic-ai/claude-code
+npm install -g @openai/codex
+npm install -g @google/gemini-cli
 python -m pip install aider-install && aider-install
 curl -fsSL https://ollama.com/install.sh | sh
 ```
@@ -77,7 +78,7 @@ To check it worked, run `which claude` (or whichever CLI you're using). It shoul
 `vibe provider test` reports success, yet actual runs end with "could not parse provider output." Usually the provider's prompt-flag preset is producing output Vibestrate can't read, because the provider changed its output format between releases. Walk through the setup wizard again to confirm the flags:
 
 ```bash
-vibe provider setup    # walk the wizard again to confirm flags
+vibe provider setup
 ```
 
 If the flags are right but the output format changed, file an issue with the provider's version (`<cli> --version`) and a sample of the captured output, which you'll find under `.vibestrate/runs/<runId>/artifacts/flows/<step-id>/output.md`.
@@ -89,9 +90,12 @@ If the flags are right but the output format changed, file an issue with the pro
 The run's validation section reads "No validation commands configured," and `vibe doctor` warns about it. That means `commands.validate` in `project.yml` is empty. The run does not fail - Vibestrate works without validation commands - but the review is much weaker, because nothing factual sits between the executor and the reviewer. Fill it in:
 
 ```bash
-vibe doctor --fix    # adds the commands it detected for your project
-# or set them yourself:
-vibe config set commands.validate '["pnpm typecheck", "pnpm test"]'
+# adds the commands it detected for your project
+vibe doctor --fix
+
+# or set them yourself
+vibe config set commands.validate \
+  '["pnpm typecheck", "pnpm test"]'
 ```
 
 To check it worked, run `vibe config get commands.validate`. It should show your array.
@@ -102,7 +106,8 @@ Status sits at `waiting_for_approval` and nothing is happening. A policy gate at
 
 ```bash
 vibe approvals list <runId>
-vibe approvals approve <runId> <approvalId>   # or: reject / request-changes --guidance "..."
+vibe approvals approve <runId> <approvalId>
+# or: reject / request-changes --guidance "..."
 ```
 
 To check it worked, watch the status move back into the stage it was about to enter.
@@ -144,7 +149,15 @@ Two different messages, two different situations.
 
 ### An effort level your provider does not have
 
-Asking the panel for one is refused before the turn starts, and the message lists that provider's real ladder: `claude` takes `low, medium, high, xhigh, max`; `codex` takes `minimal, low, medium, high, xhigh`; `gemini` has no effort levels at all, because its reasoning is a numeric thinking budget rather than a flag. Pick a level the message names, or run `vibe provider catalog` to see what each provider offers.
+Asking the panel for one is refused before the turn starts, and the message lists that provider's real ladder:
+
+| Provider | Effort levels it accepts |
+|---|---|
+| `claude` | low, medium, high, xhigh, max |
+| `codex` | minimal, low, medium, high, xhigh |
+| `gemini` | none - its reasoning is a numeric thinking budget rather than a flag |
+
+Pick a level the message names, or run `vibe provider catalog` to see what each provider offers.
 
 Everywhere else an unknown level is passed through and quietly ignored rather than refused. In a run, a Profile whose `power` the provider will not honor does not stop the turn: Vibestrate records a `provider.effort_ignored` event once per provider and level - "Effort ... won't take effect on codex ... - the provider ignores it" - and carries on. `vibe consult --effort` behaves the same way, without the event. If an effort setting seems to make no difference, that is why.
 
