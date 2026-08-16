@@ -101,6 +101,22 @@
   proposal for you to confirm. That row lands inert - advise tier, no matcher,
   unconfirmed - and enforces nothing until you run `vibe policies confirm`. The
   docs said "never acts", which was not quite true; they say what happens now.
+- **Every documentation page was rewritten against the code that decides it.**
+  All 54 of them. The docs had drifted into describing an older product, and in
+  places into promising things it does not do: the front page said your real
+  files are never touched, which is not what the diff gate does or claims. Each
+  page was checked against the schema, the CLI definitions and the flow files
+  rather than against the previous version of itself, and an independent pass
+  went looking for claims that were merely plausible. Eighteen were wrong and
+  are fixed. The safety page no longer counts three gates above a list of four.
+- **The docs show you the shape instead of describing it.** A page that talks
+  about a branch, a boundary, or a decision now draws it: 53 diagrams across 49
+  pages, drawn in the page's own text colour so they work in either theme and on
+  a phone. Code samples were cut to fit a phone screen too, the widest was 129
+  characters, and lists of values that used to run through a sentence are laid
+  out where you can scan them. In the terminal a diagram reads as its
+  description, the same sentence a screen reader gets, instead of printing
+  twenty-five lines of markup.
 - **Mission Control rearranges like every other board.** Edit layout moves and
   resizes the supervisor and the new-run form, hides either one, and remembers
   it. Reset puts the original arrangement back.
