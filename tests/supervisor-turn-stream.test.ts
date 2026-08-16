@@ -62,6 +62,12 @@ process.stdin.on('end', () => {
 const FAKE_HANGING_ANSWERER = `#!/usr/bin/env node
 const fs = require('node:fs');
 const path = require('node:path');
+// The pid is the cross-platform evidence. Windows has no catchable SIGTERM -
+// killProcessTree there spawns \`taskkill /PID <pid> /T /F\`, a forced
+// termination that runs no handler - so the marker file below can only ever
+// prove anything on POSIX. Writing the pid first lets the test assert the thing
+// that is true everywhere: this process is gone.
+fs.writeFileSync(path.join(__dirname, 'provider.pid'), String(process.pid));
 process.on('SIGTERM', () => {
   fs.writeFileSync(path.join(__dirname, 'killed.txt'), 'sigterm');
   process.exit(143);
@@ -344,11 +350,42 @@ describe("POST /api/supervisor/threads/:threadId/turn (streamed)", () => {
     }
 
     // The provider CLI was killed, not merely abandoned.
-    const killed = path.join(project, "killed.txt");
-    for (let i = 0; i < 100 && !existsSync(killed); i++) {
+    //
+    // Asserted by pid rather than by the SIGTERM marker, because that marker is
+    // POSIX-only: on Windows the kill is `taskkill /T /F`, which terminates
+    // without delivering a catchable signal, so no handler runs and no file is
+    // written. Asserting the file made Windows CI red for seven consecutive
+    // runs while the behaviour it was checking worked correctly.
+    const pidFile = path.join(project, "provider.pid");
+    for (let i = 0; i < 100 && !existsSync(pidFile); i++) {
       await new Promise((r) => setTimeout(r, 100));
     }
-    expect(existsSync(killed), "the provider CLI should have been SIGTERMed").toBe(true);
+    expect(existsSync(pidFile), "the fake provider should have recorded its pid").toBe(true);
+    const providerPid = Number(await fs.readFile(pidFile, "utf8"));
+
+    /** `kill(pid, 0)` sends no signal; it only asks whether the process is
+     *  still there. ESRCH means gone, on every platform Node supports. */
+    const alive = (pid: number): boolean => {
+      try {
+        process.kill(pid, 0);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    for (let i = 0; i < 100 && alive(providerPid); i++) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    expect(alive(providerPid), "the provider CLI should have been killed").toBe(false);
+
+    // Where a signal exists, also prove it was the graceful one rather than an
+    // immediate SIGKILL - the 3s escalation window is the whole point of it.
+    if (process.platform !== "win32") {
+      expect(
+        existsSync(path.join(project, "killed.txt")),
+        "the provider CLI should have been SIGTERMed, not just killed",
+      ).toBe(true);
+    }
 
     let stored: StoredMessage[] = [];
     for (let i = 0; i < 100; i++) {
