@@ -2,643 +2,170 @@
 
 ## 0.2.0
 
-<!-- Work accumulates here during a sprint and is versioned ONCE at release.
-     Do not add a numbered heading per commit - see CLAUDE.md 10. -->
+> **Breaking: role prompts are JSON files, not Markdown.**
+> `.vibestrate/roles/planner.md` becomes `planner.json`, holding
+> `{"schemaVersion": 1, "id": "planner", "prompt": "..."}`. Your wording goes into
+> `prompt` unchanged. Then point every `prompt:` under `crews:` in
+> `.vibestrate/project.yml` at the new path. A config still naming a `.md` is
+> refused when it loads, with the file named and the edit spelled out, and
+> `vibe doctor --fix` writes the built-in role files back if you never customised
+> them. Nothing rewrites your own prompts for you.
 
-> **Breaking: role prompts are JSON files now, not Markdown.**
-> `.vibestrate/roles/planner.md` becomes `.vibestrate/roles/planner.json`, holding
-> `{"schemaVersion": 1, "id": "planner", "prompt": "..."}`. Everything that was in
-> the `.md` goes into `prompt` verbatim - none of your wording changes, it just
-> gets an envelope - and then every `prompt:` under `crews:` in
-> `.vibestrate/project.yml` points at the new `.json` path. A config still naming
-> a `.md` file is refused when it loads, with the file named and the edit spelled
-> out, and `vibe doctor` lists every role whose file the loader will not read. If
-> you never edited the defaults, change the paths and `vibe doctor --fix` writes
-> the built-in role files back. Nothing converts your own prompts for you: those
-> are your instructions, and a script quietly rewriting them is not a trade worth
-> making. Why the move: a role file is written and read by Vibestrate, so it
-> carries a version to reject on and an id that has to match its filename, and a
-> wrong one fails when it loads, naming the file, instead of reaching a model
-> as-is. Markdown stays where a human writes it: `VIBESTRATE.md`, `rules.md`, the
-> docs.
-
-- **The supervisor's answer arrives as it is written.** The chat was showing you
-  nothing until the whole turn finished, because the browser and the server had
-  drifted onto different names for the pieces of a streamed reply and five of
-  the seven were being dropped on arrival. The answer now appears as it is
-  typed, the reasoning trail shows up where a provider reports one, and your own
-  message settles into place instead of waiting.
-- **A failed turn says what went wrong.** If the provider is missing, or a policy
-  refuses, the answer used to read "I had nothing to
-  add." The reason was thrown away before anyone could see it. It now names the
-  failure, in the conversation and on screen.
-- **Answers fit the screen you are on.** Asked how to make a flow, the dashboard
-  used to recommend four terminal commands and tell you to hand-edit
-  `project.yml`. It had no way to know it was answering into a browser. It does
-  now, and it is enforced in what the answer is allowed to read, not just in
-  what it is asked to say: the dashboard gets your real screens, the terminal
-  still gets its commands, and asking outright about a command works on either.
-- **Show me how, on any answer that warrants it.** The supervisor can build a
-  walkthrough for what you just asked, not only for the handful written in
-  advance, and it runs through the same overlay: it moves you to each screen and
-  rings the actual section. A step it cannot verify is dropped rather than
-  pointed at nothing, and a walkthrough can only ever navigate - it never clicks,
-  saves, or starts a run for you.
-- **It knows what things cost.** "How much did Claude cost me this week" used to
-  come back empty, because nothing in the answer's context knew about money. Now
-  it reads your runs: per provider, last seven days. It says when a figure is an
-  estimate, which is most of the time - costs are worked out from token counts
-  and published prices, not from anyone's invoice.
-- **The supervisor stops answering with silence.** A turn cut off mid-answer -
-  by a reload, or by restarting `vibe ui` - stored an empty message, and the
-  panel drew a full card around nothing. It now says it was cut off.
-- **Pages load when you open them.** The dashboard shipped every screen up front;
-  it now ships the one you are looking at, roughly halving the first download.
-  Mission Control stays immediate.
-- **The dashboard opens with no network, and opens straight away.** `index.html`
-  carried a stylesheet link to Google Fonts. It blocked the first paint on a
-  third-party request, fetched nothing that was used - every typeface is already
-  bundled in the package - and told Google each time you opened a local tool.
-  Offline it blocked until the request gave up. It is gone, the page now makes
-  zero external requests, and a test fails the build if a link to another origin
-  comes back. First contentful paint went from 900ms warm and 2.3s cold to 36ms.
-- **A loading screen instead of a page assembling in pieces.** It lives in the
-  HTML itself rather than in the app, so it is on screen before any JavaScript
-  parses, and it clears when the dashboard has actually rendered rather than
-  after a timer. If the app never loads at all, it says so and tells you what to
-  do instead of animating forever.
-- **Dropdowns stop getting cut off.** A menu near the bottom of the supervisor
-  panel or the consult dock was clipped at the panel edge whichever way it
-  opened, because the panel hides anything that overflows it. Option lists now
-  render above the page rather than inside their panel, so they open upward when
-  they are short of room and stay on screen.
-- **Consult stops saying a command does not exist.** Asking how to make a flow
-  returned advice to hand-edit `project.yml`, because the compiled documentation
-  it reads had emptied the pages it needed: a page whose whole body was one
-  oversized block was dropped rather than shortened. Those pages carry their real
-  commands again, and something over budget now comes back trimmed, never missing.
-- **Bundled fonts ship with their licences.** Five typefaces travel inside the
-  package under the SIL Open Font License, which asks that the notice travel with
-  them. It was not. Each licence is now included and every family is named in
-  `NOTICE` with its copyright line.
-- **Consult knows how Vibestrate works, not just what is in your project.** Ask
-  "how do I make a crew" and the answer is grounded in the product's own
-  documentation rather than improvised, so it stops naming buttons that do not
-  exist. The knowledge is compiled from the shipped docs at build time and
-  retrieved deterministically: the same question returns the same pages in the
-  same order, an unrelated question ("why did my React build fail") pulls in
-  nothing, and there is no way for a project to shadow or extend it.
-- **Consult has two sides now.** One asks about your codebase and answers
-  read-only. The other works on Vibestrate itself, and it is the supervisor
-  conversation, so it carries the autonomy gate, the pause switch and the audit
-  trail that acting requires. Both have a composer; neither can edit your code.
-- **Walkthroughs point at the thing they are describing.** "Make a crew" now
-  moves you to each screen and rings the actual section - the identity block, the
-  seats, the save control - instead of gesturing at a sidebar link. A step whose
-  target is not on screen says so rather than pointing at nothing.
-- **Consult is honest about the one thing it writes.** It never touches your
-  code, but if you state a durable rule while asking, it can leave a policy
-  proposal for you to confirm. That row lands inert - advise tier, no matcher,
-  unconfirmed - and enforces nothing until you run `vibe policies confirm`. The
-  docs said "never acts", which was not quite true; they say what happens now.
-- **Consult stops handing you a command that no longer resolves.** When it
-  proposed a policy it told you to run `vibe preferences confirm <supervisor>
-  <id>`. That was the right command until 0.36.0 folded preferences into project
-  policies, and the message never moved with it. It now prints `vibe policies
-  confirm <id>`, which is what exists - a policy belongs to the project, so it
-  takes the policy id and nothing else.
-- **Every documentation page was rewritten against the code that decides it.**
-  All 54 of them. The docs had drifted into describing an older product, and in
-  places into promising things it does not do: the front page said your real
-  files are never touched, which is not what the diff gate does or claims. Each
-  page was checked against the schema, the CLI definitions and the flow files
-  rather than against the previous version of itself, and an independent pass
-  went looking for claims that were merely plausible. Eighteen were wrong and
-  are fixed. The safety page no longer counts three gates above a list of four.
-- **The docs show you the shape instead of describing it.** A page that talks
-  about a branch, a boundary, or a decision now draws it: 53 diagrams across 49
-  pages, drawn in the page's own text colour so they work in either theme and on
-  a phone. Code samples were cut to fit a phone screen too, the widest was 129
-  characters, and lists of values that used to run through a sentence are laid
-  out where you can scan them. In the terminal a diagram reads as its
-  description, the same sentence a screen reader gets, instead of printing
-  twenty-five lines of markup.
-- **Mission Control rearranges like every other board.** Edit layout moves and
-  resizes the supervisor and the new-run form, hides either one, and remembers
-  it. Reset puts the original arrangement back.
-- **The dashboard reads properly now.** Secondary text was a faint grey at a
-  size hardcoded in ~920 places across 147 files, which is why it never got
-  fixed: there was nothing to fix it in. There is now one size token and one
-  colour tier behind every label, caption and meta row, and both were turned up.
-  Nothing renders below 12px anywhere, and captions read at full strength rather
-  than fading out - hierarchy comes from size, weight and the violet label
-  accent instead of from making half the screen hard to read.
-- **Loading looks like the thing that is loading.** Every fetch that used to
-  show a "Loading..." label or an empty gap now shows a skeleton shaped like the
-  content it stands in for: a table skeleton has the table's columns, a chart
-  skeleton has the chart's box. No pulsing, and it falls back to static under
-  `prefers-reduced-motion`.
-- **Panels size to their content again.** The Metrics and Dashboard boards
-  reserved every panel's full height whether or not anything filled it, which on
-  a quiet project left roughly 1400px of empty box down the page. Viewing a board
-  now flows to content; the fixed grid comes back when you open the layout
-  editor, which is where exact geometry actually matters.
-- **Empty states carry the button instead of naming it.** "Launch one with New
-  run" pointed at a control somewhere else on the page. It is a button now.
+- **The supervisor chat streams again.** The answer appears as it is written
+  instead of after the whole turn, the reasoning trail shows where a provider
+  reports one, and a turn that fails now names the reason instead of saying it
+  had nothing to add.
+- **Answers fit the screen you are on.** Ask the dashboard how to make a flow and
+  it points at your real screens, not at four terminal commands. Enforced in what
+  the answer may read, not just in what it is asked to say.
+- **Show me how, on any answer that warrants it.** The supervisor builds a
+  walkthrough for what you just asked, moves you to each screen and rings the
+  actual section. It can only ever navigate: it never clicks, saves, or starts a
+  run, and a step it cannot verify is dropped rather than pointed at nothing.
+- **Consult is grounded in Vibestrate's own documentation.** Compiled from the
+  shipped docs at build time and retrieved deterministically, so the same
+  question returns the same pages and an unrelated one pulls in nothing. It stops
+  inventing buttons and commands that do not exist.
+- **Consult has two sides.** One asks about your codebase and answers read-only.
+  The other works on Vibestrate itself and is the supervisor conversation, so it
+  carries the autonomy gate, the pause switch and the audit trail. Neither can
+  edit your code.
+- **It knows what things cost.** "How much did Claude cost me this week" reads
+  your runs, per provider, last seven days. Figures are worked out from token
+  counts and published prices, so most are marked as estimates.
 - **Describe a Flow or a Crew and get a draft back.** `vibe flows draft "review
   every change to payment code twice"`, `vibe crew draft "cheap planner, strong
-  reviewer"`, and a draft panel on both the Flows and the Crew page. A flow draft
-  comes back as the canonical YAML that accepting it would write, with the seats
-  your crew cannot fill already marked. A crew draft comes back as both halves of
-  a crew - the `crews.<id>` block and one JSON role file per role, contents and
-  all - plus the problems no schema can catch: a profile id this project does not
-  define, two roles claiming the same seat, a role file already on disk that
-  saving the draft would replace. Neither one writes anything. Adopting a flow is
-  still `vibe flows import`; adopting a crew is still you saving those role files
-  and editing `project.yml`, in that order. Both finish with what the agent
-  checked using its own tools and what it could not, and both lists print even
-  when empty - Vibestrate opens no connection of its own to verify a draft, so
-  "nothing unverified" has to read as a claim the agent made, not as silence.
-- **Edit a Flow or a Crew from the dashboard.** Two new editors. The **Flow
-  Editor** (Flows page: "New flow", or "Edit definition" on any project flow)
-  re-runs the real flow schema on every keystroke and pins each violation to the
-  step, seat, or field that caused it - Save is disabled while one stands, and
-  what it posts is the schema's own parsed output, so a flow that looked valid
-  in the form cannot be rejected on the way to disk. The **Crew Editor** (Crew
-  page) is honest about a split you should know before you open it: role
-  parameters and instructions save from the page, but adding, removing, or
-  renaming a role, changing a crew label, or touching review loops is a
-  `project.yml` edit - the editor hands you the exact bytes to paste. Composing
-  a brand-new crew writes nothing at all; every part of it is in the paste
-  bucket, which is why that page shows no Save button.
-- **A policy that denies file writes now covers flow authoring too.** Flow YAML
-  reached disk on four paths - import, create, fork, and the builder's patch -
-  and not one of them crossed the Action Broker. So the single directory that
-  decides how every future run is shaped was the one directory your policies did
-  not reach. All five paths go through one seam now - delete included, since
-  losing a flow is as consequential as overwriting one. It gates a `file.write`,
-  writes atomically, and records the effect in `runs/flows/actions.ndjson`
-  tagged with which writer it was, so an audit reader can tell an import from a
-  fork from a deletion. A denial comes back as a refusal you can read rather
-  than a thrown error, and a write that fails after being allowed still lands a
-  record saying so.
-- **And a Role, both halves of it.** Saving a Role's instructions from the
-  dashboard wrote the file straight out: path-guarded, but with no gate, no
-  record, and no atomicity. It goes through one audited writer now, so the same
-  policy that stops a flow edit stops a prompt edit, the decision lands in
-  `runs/roles/actions.ndjson`, and a refusal comes back as a 403 you can read
-  instead of a server error. A prompt carrying a NUL byte or an escape sequence
-  is refused rather than stored - it is text that gets replayed into another
-  model's prompt and echoed to your terminal - and the save is atomic, so a save
-  that collides with a reader can no longer fail silently or leave the file
-  half-written. The Role's **other half** is gated too, and that one matters
-  more: its profile, seats, skills and `permissions` land in `project.yml`, and
-  `permissions` is what decides whether that Role's provider may edit your repo.
-  One Save in the Crew editor is two requests, so gating only the prompt would
-  have been worse than gating neither - under a deny policy the harmless edit
-  came back refused while a `read_only` -> `code_write` flip went through, and
-  the message you got said the write was stopped. Both now answer a denying
-  policy with a 403 and leave their file untouched, and the audit log tells them
-  apart: `role-prompt` against the role file, `role-fields` against
-  `project.yml` with the fields the patch touched. Assigning a skill from the
-  Skills page goes through the same gate, as `role-skills`, because it writes
-  one of those same fields from another page - and a skill is instruction text
-  replayed into every turn a Role takes, and can carry MCP servers, so an
-  assignment hands a Role new instructions and new tools. **New refusal to know
-  about:** a prompt that reads as carrying a secret is now rejected on save,
-  naming the pattern and the line and echoing only a redacted snippet. It is
-  refused, not redacted, because a silently rewritten prompt is a role that no
-  longer says what its author wrote - but it does mean a prompt that trips the
-  scanner can be read and not re-saved until you take the token out. Four things
-  worth stating plainly. The character screen covers NUL and the C0 range, not
-  the Unicode direction overrides, which still save. The screens run on the
-  prompt only - a field patch is gated and schema-checked, but its values are
-  not scanned. **A path-scoped rule now covers a whole Role, and is therefore
-  wider than it reads**: all three writes declare the same pair of paths, so a
-  rule naming `**/.vibestrate/roles/**` and a rule naming `**/project.yml` each
-  refuse the prompt, the fields and a skill assignment alike. That is a
-  behavior change if you already run a path-scoped `file.write` policy - a rule
-  written to freeze instructions will now also refuse a label rename, and
-  `require_approval` is not accepted on `file.write`, so the only outcome is a
-  refusal. The alternative was worse: the split let a deny stop the harmless
-  half and land the `permissions` flip while telling you the write was stopped.
-  The pair is resolved from the validated config, so a `prompt:` written as a
-  YAML alias or reached through a merge key names the same file a plain string
-  does. And this is the authoring surface only. `vibe init`, the config commands
-  and `vibe skills assign` write the same config with no gate, since a gate
-  there could refuse a first-time init and those are you at your own keyboard.
-  So do the dashboard's own settings routes - and that list is longer than it
-  looks: `POST /api/config/set`, the whole policies panel (including adding and
-  deleting policy rules themselves), creating, editing and deleting Profiles,
-  installing a Crew preset, changing the default Crew, adopting a supervisor
-  persona, and composer presets. Installing a skill from a URL is not gated
-  either - it lands a file in `.vibestrate/skills/` behind its own guards, and
-  nothing reads it until it is assigned to a Role, which is; note that fetching
-  with `overwrite` can replace the text of a skill that is already assigned. A
-  rule that denies `file.write` is a lock on authoring, not on `project.yml`.
-  What keeps that surface bounded is that the server binds to loopback and
-  checks `Origin` / `Sec-Fetch-Site`, not a policy.
+  reviewer"`, and a draft panel on both pages. A draft comes back as the exact
+  YAML and role files that accepting it would write, with the problems no schema
+  catches already marked. Neither one writes anything.
+- **Edit a Flow or a Crew from the dashboard.** The Flow Editor re-runs the real
+  schema on every keystroke and pins each violation to the step or field that
+  caused it. The Crew Editor saves role parameters and instructions from the
+  page, and hands you the exact bytes to paste for the parts that are a
+  `project.yml` edit.
+- **Flow, Role and skill authoring now crosses the Action Broker.** Flow YAML
+  reached disk on five paths and role prompts on another, none of them gated, so
+  the directories deciding how every future run is shaped were the ones your
+  policies could not reach. All of them go through one audited writer now: a
+  denial comes back as a refusal you can read, writes are atomic, and the
+  decision lands in the action log. A prompt that reads as carrying a secret is
+  refused rather than stored.
+  **Worth knowing:** a path-scoped `file.write` rule is now wider than it reads,
+  because a Role's prompt, its fields and a skill assignment all declare the same
+  pair of paths.
 - **`pathGlob` policies were silently protecting nothing on Windows.** A glob is
-  always authored with `/`, and the path a write is matched against is the
-  native one Vibestrate is about to open - so on Windows every `pathGlob` rule
-  compared a `/` pattern against a `\` path, matched nothing, and allowed the
-  write. No run on macOS or Linux could see it. Matching now tests both
-  spellings of the path. The raw path is still tested rather than replaced,
-  because `\` is a legal character in a POSIX filename; since an action policy's
-  effect is only ever `deny` or `require_approval`, widening the candidate set
-  can add a refusal but can never let through a write the raw path already
-  caught. One thing has not changed and is easy to get wrong: **a `pathGlob` is
-  anchored and the path it matches is absolute**, so a project-relative pattern
-  like `.vibestrate/project.yml` still matches nothing. Write `**/`.
-- **You can choose which roles see the methodology.** `methodologyRoles` is the
-  sibling of `codebaseMapRoles` below, and it fixes the same shape of bug: the
-  methodology you set rode the planner's channel, so the `express`, `scaffold`
-  and `quality-arbitration` flows - which have no planner seat - never saw it.
-  Each listed role is handed it once per run. Naming a role your crew does not
-  define is now reported on the first turn instead of passing for the feature
-  being switched off.
-- **You can choose which roles see the codebase map.** `vibe learn` builds a map
-  of your project, and until now only the planner ever read it. That is the right
-  default: every other role works inside the worktree with a plan that already
-  names the files, and an agent CLI would rather open the real thing than read a
-  summary of it. But a small or sandboxed model cannot go looking for itself, and
-  the `express`, `scaffold` and `quality-arbitration` flows have no planner seat
-  at all - so they were seeing no map whatever you configured. Set
-  `codebaseMapRoles: [planner, implementer]` to widen it. Each listed role is
-  oriented once per run, and clean-room judges still see nothing, so a reviewer
-  is never anchored to how the producer framed the work.
-- **Five frozen polyfills in the dependency tree now resolve to maintained
-  forks.** `object-assign`, `safe-buffer`, `safer-buffer`, `indent-string` and
-  `is-unicode-supported` are shims for things Node has had natively for years, or
-  utilities smaller than the cost of depending on them. They arrive transitively,
-  so they cannot simply be deleted; they are pinned to Socket's zero-dependency
-  replacements instead. Worth stating plainly because it changes what lands in
-  your `node_modules`: those five now come from `@socketregistry`.
+  authored with `/` and was compared against a native `\` path, so every rule
+  matched nothing and allowed the write. Both spellings are tested now. A
+  `pathGlob` is still anchored and absolute, so `.vibestrate/project.yml` matches
+  nothing; write `**/`.
+- **Choose which roles see the methodology and the codebase map.**
+  `methodologyRoles` and `codebaseMapRoles`. Both used to ride the planner's
+  channel, so `express`, `scaffold` and `quality-arbitration` - which have no
+  planner seat - saw neither, whatever you configured. Clean-room judges still
+  see nothing.
+- **Every documentation page was rewritten against the code that decides it.**
+  All 54, checked against the schema, the CLI definitions and the flow files
+  rather than against the previous version of themselves. Eighteen wrong claims
+  are fixed. Pages now draw the shape they used to describe: 53 diagrams, and
+  code samples that fit a phone.
+- **The dashboard opens straight away, and reads properly.** First paint went
+  from 900ms warm and 2.3s cold to 36ms, and the page now makes zero external
+  requests. It ships the screen you are looking at rather than all of them, opens
+  on a loading screen instead of assembling in pieces, and secondary text is no
+  longer a faint grey hardcoded in 920 places. Menus near an edge open upward
+  instead of being clipped.
 
 ## 0.1.1
 
-> **Breaking: Vibestrate now needs Node 24 or newer.** If `vibe` stops starting
-> after this upgrade, that is why. Node 24 is the Active LTS ("Krypton"); Node 22
-> is still supported by Node itself until April 2027, so if you are pinned there,
-> stay on `0.1.0` until you can move. `nvm install 24 && nvm use 24`, or your
-> platform's equivalent, is the whole migration. CI proves every release on both
-> 24 and 26 so the next line up is never a surprise.
+> **Breaking: Vibestrate needs Node 24 or newer.** If `vibe` stops starting after
+> an upgrade, check `node -v` first.
 
-- **A run waiting on your approval could fail over the approval landing.** The
-  gate polls `approvals.json` without a lock while the dashboard, CLI and shell
-  write it from other processes, and that write was not atomic - so a poll could
-  catch the file mid-rewrite, read it as empty, and kill the run with "approval
-  disappeared" at the exact moment a decision was being recorded. It is replaced
-  atomically now, which is what makes the unlocked reads correct.
-- **Windows is genuinely tested again.** The Windows job had been red on every
-  run for weeks; it is not a required check, so nothing blocked and nobody
-  looked. Three causes, none of them a product bug: frontmatter parsed with an
-  LF-only pattern against CRLF checkouts, and two tests building their
-  preconditions with `chmod`, which on Windows only sets the read-only attribute.
-  The fail-closed policy guard - an unreadable policies directory must never read
-  as "no policies configured" - is now covered on Windows too, by breaking the
-  directory a way Windows honours rather than skipping the case.
-- **Atomic writes survive a reader on Windows.** `rename` onto a file another
-  handle has open is refused there and allowed on POSIX, so the run state file
-  could fail to save whenever something was reading it. Retried briefly, keyed on
-  the error rather than the platform.
-- **TypeScript 7.** The typechecker is the Go-native compiler now, and the full
-  two-config `pnpm typecheck` drops from 14.6s to 3.4s. Three things had to go
-  first: a `?? null` in the profile-precedence chain that never changed a
-  result, a `baseUrl` and `@/*` alias nothing ever imported through, and the
-  `vite/client` types missing behind every `import "./index.css"`. Only the
-  first was ever visible, because `typecheck` chains its two configs with `&&`
-  and the second one never got to run.
+- **A run waiting on your approval could fail over the approval landing itself.**
+  Approving is what unblocks the run, so the one moment you were needed was the
+  one that could break.
+- **Windows is genuinely tested again**, and atomic writes survive a reader
+  holding the file open.
 
 ## 0.1.0
 
-> **The version number went down on purpose.** 1.0.0 shipped before the config
-> and policy schemas stopped moving, and a 1.x number quietly promises they have.
-> This is the same product as 1.1.7 wearing an honest number. The 1.x line is
-> retired and `latest` points at the 0.x line, so a plain install resolves here.
-> The entries below `0.1.0` in this file are kept on purpose: those versions
-> existed and people installed them, and deleting their notes would make this
-> file a tidier lie than the history is.
-
-- **Vibestrate says what it is for.** The README argued that one model gets
-  things wrong and the fix is a second model reviewing it. True, and not the
-  point. What actually eats the day is running several models on one job by hand:
-  pasting the same context into a tool that has never seen the project, carrying
-  the plan from one chat to the next, watching each one for drift. Vibestrate is
-  the frame that work happens inside - one plan every model reads, rules the run
-  enforces rather than advice a model can talk itself out of, and a throwaway
-  worktree per role. The three-minute read taught all six words without ever
-  saying what the arrangement was for; now it says so first.
-- **Beta means 0.x.** A patch is a merged branch, a minor is a big change, and
-  1.0.0 is what beta ending looks like: the config and policy schemas going a
-  release cycle without a breaking change. The number and the promise finally
-  agree, which is the whole reason for the renumber.
+First release on the 0.x line.
 
 ## 1.1.7
 
-- **Vibestrate says it is in beta, and says what that means.** Not a badge and a
-  shrug: the README now names which parts have settled and which have not. The
-  CLI surface, the run model and the on-disk layout are stable. The config and
-  policy schemas are not - `1.1.5` refused a policy effect that `1.0.1` accepted
-  at load, which is exactly the kind of change a 1.x number quietly promises not
-  to make. Reaching 1.0.0 before the schemas stopped moving was the mistake; the
-  honest fix is to describe the state rather than renumber history that npm
-  keeps a permanent record of either way.
-- **And what you get before something breaks.** Every breaking change leads its
-  release notes with the migration, and a config Vibestrate can no longer honour
-  is refused at load rather than skipped - a rule you believe is holding and
-  never fires is worse than an error. If you need it to stop moving, pin the
-  exact version instead of a caret range.
+- Beta status is stated plainly, with what it does and does not promise.
 
 ## 1.1.6
 
-- **The replay timeline works.** `state.changed` was read by the replay service
-  and the shell snapshot, and nothing anywhere emitted it, so a feature that
-  looked finished had never produced a single event. The emitter now lives in the run state store's `write` and `mutate`
-  rather than at the forty-odd places that change state, because a funnel is the
-  only version of this you cannot forget to call.
-- **The supervisor leads Mission Control.** It sits above the composer, with its
-  own project-level conversation: say what you want and it can make the task and
-  start the run. A run's own thread stays on that run's page and will not start a
-  second run from inside the first - it offers to add the work to the task
-  instead. Listing threads without a run id used to return every thread, so the
-  project panel could adopt whichever run you last talked to as its own
-  conversation.
-- **The chat opens where the conversation is.** The transcript did not scroll to
-  the end on load, so the newest messages - including the chip saying whether a
-  task or a run had just been created - sat below the fold. Your own message also
-  filled the whole column, which is what made it stop reading as a chat.
-- **Tests run in a random order now.** Nothing checked for order-dependence
-  before, and a third of these files drive a real orchestrator against real git,
-  so a fixed order let one file leave state the next quietly relied on. A failure
-  prints its seed and replays exactly. A nightly job draws three new seeds each
-  night, because one green run is one draw, not proof.
+- **The replay timeline works.** Scrub a finished run and watch it play back.
+- **The supervisor leads Mission Control**, and the chat opens where the
+  conversation already is rather than on a fresh panel.
 
 ## 1.1.5
 
-> **This is the next release after 1.0.1** - the numbers between were local
-> bumps, one per branch, that never reached npm. All of that work ships here,
-> which is why this section is long and the jump looks wide.
+> **Breaking: `effect: require_approval` is refused on any kind other than
+> `run.complete` or `file.patch`,** because only those two can actually wait for
+> a human. Elsewhere it was a hard block wearing a hold's label. **Migration:**
+> change those entries to `effect: deny`, which is what they already did.
+> A policy set that fails to load now blocks runs instead of being skipped.
+> `vibe policies list` names any file that will be refused.
 
-**Breaking, and it is the one thing to read before upgrading.** A policy with
-`effect: require_approval` on any kind other than `run.complete` or `file.patch`
-is now refused when the policy set loads, and a policy set that fails to load
-blocks runs from starting rather than being skipped. On 1.0.1 those policies
-loaded and quietly did nothing, which is the worse outcome - a rule you believe
-is holding, that never fires. **Migration:** change those entries to
-`effect: deny`, or narrow them to the two kinds that have a real approval seam.
-`vibe policies list` names any file that will be refused.
-
-- **Secrets no longer reach the run brief.** The brief carries each step's
-  outcome summary into `flows/run-brief.md` and back into every later turn's
-  prompt, and it was assembled from raw provider text with no redaction - so a
-  token-shaped string in one step's output was written to disk and re-sent on
-  every turn after it. Redaction moved into the brief itself rather than onto
-  each caller, because a caller that forgets is exactly how this happened.
-
-### Supervisor Control
-
-- **Supervisor Control: a conversation about a run that remembers.** The panel
-  sits on the run's page next to the control centre, and every run gets its own
-  thread - with runs genuinely concurrent, a shared one would leave "do that
-  again" without a referent. Consult answered one question and forgot it; this
-  keeps the thread, hands the recent turns back to the answerer, and is the
-  right place to ask "I do not know how to review this, what should I look at".
-- **And, when you allow it, acts.** `supervisorControl.autonomy: act` lets
-  "add a hero section to the landing page" become a task, a set of TODOs, or a
-  run, with the supervisor choosing where it belongs. Off by default: out of the
-  box it writes nothing.
-- **It will not turn on without a budget ceiling.** A chat-started run spends
-  money and its agent runs commands on your machine, and every ceiling ships
-  off, so `act` with no `budget.*` limit is refused at config load rather than
-  warned about. There are two settings, not three: an earlier "queue" tier was
-  dropped for being dishonest, since queueing starts the scheduler and runs the
-  work exactly like `act` does.
-- **A stop button that means it.** In the panel header and on the CLI
-  (`vibe supervisor stop | resume | status`), no config round-trip, survives a
-  restart, and fails closed - an unreadable flag reads as stopped. Talking still
-  works while stopped; only acting is off, and the routing model is not called
-  at all, so a stopped supervisor is not quietly spending on decisions it cannot
-  use.
-- **Harder to talk into things via your own repo.** The supervisor answers from
-  context that is not all written by you: a merged diff edits VIBESTRATE.md, a
-  dependency README reaches the codebase map, annotations arrive over HTTP. So
-  deciding what you meant and writing the reply are two separate calls that
-  never meet - the router's prompt holds your message and a list of task ids and
-  nothing else, not even the earlier turns. Then code, with no model involved,
-  checks the result: the task must be one that was offered, its echo of your
-  message must match what you typed, and a run's instructions are your words
-  verbatim rather than a summary of them. Stated plainly because it is the
-  limit: that covers what is put *into* the prompt. The model still runs as a
-  CLI in your project directory and can read files itself, so the deterministic
-  checks are the real barrier, not the prompt hygiene.
-- **A supervisor-started run now actually starts.** It never had: the launch
-  omitted the run id a task-linked run requires, the child was spawned with its
-  output discarded, and the thread had already said "started a run on that
-  task". The id is minted before the spawn, the launch waits for the run to
-  prove it exists, and a run that does not start says so instead.
-- **Task writes no longer lose each other.** Unrelated to the above and worth
-  its own line: every task mutation was a lock-free read-modify-write, so a run
-  marking a checklist item done with its commit sha could be silently undone by
-  an add from the board a moment later. All of them now go through one locked
-  path - status flips, run links, needs-testing flags, comment counters and the
-  checklist alike. It has been true for the dashboard, the CLI and the TUI all
-  along.
-
-**Drafted as 1.1.3, never published**
-
-**Two changes here can stop a project from starting a run, deliberately.** If
-`.vibestrate/policies/` holds a malformed file, a duplicate rule id, or an
-`effect: require_approval` on any kind other than `run.complete` / `file.patch`,
-nothing that spawns a model will run until it is fixed. `vibe policies doctor`
-names the file and the reason. For the `require_approval` case, change it to
-`effect: deny` - that is what it already did in practice.
-
-- **An unreadable policies directory used to fail open, silently.** A per-file
-  read error was recorded; a *directory* read error was not - and the checks
-  used to find it (`access` with `F_OK`, then a `readdir` whose error was
-  swallowed) both succeed on a directory you cannot actually read. The result
-  was byte-identical to "no policies configured": every rule evaporated with
-  nothing said, which is likelier under a container or CI mount than malformed
-  YAML is. It is now reported like any other unreadable file, so the gates below
-  catch it.
-- **A run stops if its policy set didn't fully load.** A policy file that fails
-  to parse contributed no rules, and a rule id defined twice kept only the first
-  one - so the stricter rule you just added could vanish while
-  `vibe policies list` still looked healthy. Nothing downstream could notice:
-  the broker only ever sees the rules that *did* load. Now a run refuses to start
-  while `.vibestrate/policies/` holds a malformed file or a duplicate id, and
-  names the file and the reason. Strict on purpose - the alternative is running
-  with protections you believe are on. The check sits at two layers so it can't
-  be walked around: run creation refuses early with a readable error, and
-  `runProvider` - the one thing every model turn passes through - refuses to
-  spawn at all. That second one is what covers the surfaces that reach a model
-  without creating a run: roadmap planning, provider self-test, the conductor's
-  supervisor turns, consult, and task enhancement. Reading and fixing your
-  policies never goes through either gate, so a broken file can't lock you out
-  of the message telling you what's wrong.
-- **`require_approval` now means a pause, or it isn't accepted.** Only
-  `run.complete` and `file.patch` have an effect site that can actually wait for
-  a human. On every other kind, a `require_approval` policy was a hard block
-  wearing a hold's label: the effect was refused and the step failed, with no gate
-  for anyone to answer. Those are refused at load now, with an error naming the
-  kinds. Where `file.patch` genuinely can't hold (the suggestion and bundle apply
-  surfaces), the action log records the refusal alongside the decision, so the
-  audit trail never implies you were asked when you weren't.
-- **Approval gates show you what changed.** A gate about a diff carried a reason
-  and a file *count*, which is not something you can approve. It now carries the
-  file list - shown under the buttons on the run page with a link to the diff, and
-  printed by `vibe approvals show`.
+- **Secrets no longer reach the run brief.** The brief is carried into every
+  later turn's prompt and was assembled from raw provider text, so a token-shaped
+  string in one step's output was written to disk and re-sent from then on.
+- **Supervisor Control: a conversation about a run that remembers.** Every run
+  gets its own thread, and the recent turns go back to the answerer. With
+  `supervisorControl.autonomy: act` it can turn "add a hero section" into a task,
+  a checklist or a run. Off by default, and refused at config load unless a
+  budget ceiling is set.
+- **A stop button that means it.** In the panel header and on the CLI, survives a
+  restart, and fails closed. Talking still works while stopped; the routing model
+  is not called at all.
+- **Harder to talk into things through your own repo.** Deciding what you meant
+  and writing the reply are separate calls that never meet, and code with no model
+  involved then checks the result: the task must be one that was offered, and a
+  run's instructions are your words verbatim.
+- **A supervisor-started run now actually starts.** It never had. The thread said
+  it had started one while the launch was missing the run id and the child's
+  output was discarded.
+- **Task writes no longer lose each other.** Every mutation was a lock-free
+  read-modify-write, so a run ticking off a checklist item could be silently
+  undone by an edit from the board a moment later.
+- **A run stops if its policy set did not fully load.** A file that fails to
+  parse contributed no rules and a duplicate id kept only the first, so the
+  stricter rule you just added could vanish while `vibe policies list` still
+  looked healthy. An unreadable policies directory used to be indistinguishable
+  from having none.
+- **Approval gates show you what changed.** A gate about a diff carried a file
+  count, which is not something you can approve. It carries the file list now.
 - **Confine the container's network, not just its filesystem.**
-  `execution.container.egress.mode: allowlist` (off by default) puts the run
-  container on a Docker network with **no gateway**, whose only reachable peer is
-  an allowlisting proxy - so the model APIs still work and everything else is
-  refused with the exact host logged, and code that ignores `HTTPS_PROXY` finds no
-  route rather than a way around. If the network or proxy can't be created, the
-  run is refused instead of quietly running with full egress. Your own localhost
-  services are out of reach as well: the network is created with the host's
-  address inhibited, because `--internal` alone only filters forwarded traffic
-  and would have left a database or dev server bound to `0.0.0.0` reachable from
-  inside the "confined" container. Verified end to end against real Docker - no
-  route out, cloud metadata unreachable, allowlisted hosts tunnelling, blocked
-  hosts refused, and every container and network removed on teardown. A TLS
-  tunnel to an allowed host stays opaque, so this narrows exfiltration to hosts
-  you named - it does not close it, and the docs say so.
-- **An unattended run with nothing bounding it says so.** No budget ceiling and
-  no confinement, launched with `--unattended`: `vibe run` prints that before it
-  starts, and the run records it. Advice, not a gate.
-- **The broker's vocabulary is honest again.** `network.request` and `mcp.tool`
-  were in the effect-kind type but nothing ever raised them - a provider's own
-  HTTP calls happen inside an opaque subprocess vibestrate can't intercept, so
-  they advertised a checkpoint that did not exist. Removed; network confinement
-  belongs to the container layer above. The docs also no longer describe the
-  broker as if it were default-deny: it is default-allow with a policy veto, and
-  saying otherwise invited exactly the wrong mental model.
-
-- **Break a brief into a checklist from the composer.** Item-by-item execution
-  existed, but the only way in was a task's checklist section, which hardcoded
-  one flow - so the New-run box could not launch the thing the rest of the
-  product is built around. It can now: describe the change, and **Break into
-  steps** turns it into a card plus an ordered checklist the run works through
-  one item at a time, pausing between them if you ask it to. The control appears
-  only for a flow that declares a per-item band, because sending the mode to a
-  flow without one is silent: the plan resolves to zero items and the run does a
-  single ordinary pass, having advertised item-by-item execution.
-- **The consult orb can see the screen you asked from.** Ask it from the New-run
-  composer and it answers about the brief you have typed, the flow and crew you
-  picked and the planner questions still on screen, on top of the project
-  context it always had. Previously it was asked from a screen it could not see,
-  so "is this specific enough to run?" got answered off repo state alone. The
-  snapshot is a typed projection of state the dashboard already holds, never a
-  screenshot or a page scrape, and its text is secret-redacted before it reaches
-  a provider.
-
-**Drafted as 1.1.2, never published**
-
-- **Project instructions can be more than one file.** Drop `*.md` files into
-  `.vibestrate/rules/` and they compose onto `rules.md`, sorted by filename and
-  each labelled with the file it came from, so a rule can be traced back to
-  where it lives instead of grepping one long page. `rules.md` alone still works
-  exactly as before.
-- **And they are now handled like everything else that reaches a prompt.**
-  `rules.md` was being read raw - no redaction, no size limit, no path guard -
-  while the operating manual next to it was already loaded properly. Instructions
-  go into every agent turn of every run, which makes them the most-copied text in
-  the product, so the composed ruleset is now redacted, bounded and path-guarded.
-  Truncation and refusals are reported by `vibe doctor`: an instruction that
-  stops reaching your agents should not be something you find out from a
-  confusing run.
-
-**Drafted as 1.1.1, never published**
-
-- **Small tasks stop paying for the full line.** The trivial-task sizer used to
-  require you to name a file, and to refuse if any file you named was not a
-  `.md`. That is close to the opposite of how these requests get written: "make
-  the font bigger" names nothing, so it drew the eight-step flow, and only a
-  markdown edit ever qualified for the fast track. It now sizes on the shape of
-  the request instead. Short, not a build-a-system brief, nothing sensitive
-  named - accounts, payments, checkout, admin, deploys, migrations, deletions -
-  and it goes to `express`. Anything proposing to weaken a safeguard ("skip the
-  email check", "make it visible to everyone", "hardcode it") never does. Still
-  deterministic, still zero model calls, and it still only picks a leaner front:
-  `--flow` and a configured default both beat it, and it can only ever target
-  `express`, whose gates are decided by the diff.
-
-- **`express` now verifies code changes, not just reviews them.** The fast-track
-  flow always had one deterministic safety net: a review turn that fires unless
-  the run's actual diff is prose-only and touches no protected path. It now has
-  two - the verify turn is gated the same way. A markdown tweak still costs a
-  single turn; anything that touches code gets reviewed *and* independently
-  verified. The point is that whatever decides a task is "small" is reading a
-  task description, and a description can be wrong about what the change turns
-  out to touch. The diff cannot, so the gates are decided from the files the run
-  actually changed, after it changed them.
-- **Flow authors can diff-floor their own verify step.** `skipWhen: "inert_diff"`
-  used to be valid on a review turn only; it now accepts a summary turn too, so a
-  project flow can carry the same net. Steps that produce the diff are still
-  refused - skipping a writing step on the strength of its own output is
-  circular, and the schema says so.
+  `execution.container.egress.mode: allowlist` puts the run on a Docker network
+  with no gateway whose only peer is an allowlisting proxy, so code that ignores
+  `HTTPS_PROXY` finds no way out either. Off by default.
+- **Small tasks stop paying for the full line.** `express` now verifies code
+  changes rather than only reviewing them, and flow authors can diff-floor their
+  own verify step.
+- **Project instructions can be more than one file**, and they are handled like
+  everything else that reaches a prompt.
 
 ## 1.0.1
 
-- **A fresh install says something.** `vibe` with no arguments opened the panel,
-  which is the right answer once a project is set up and an empty board before
-  that - and it is the first thing anyone types after installing. In a project
-  with no config it now introduces itself and lists the five commands worth
-  knowing. There is deliberately no postinstall hook doing this: a lifecycle
-  script is arbitrary code at install time, `--ignore-scripts` skips it, and it
-  fires when vibestrate is somebody's transitive dependency.
-- **The no-terminal message points somewhere.** Off a TTY - a pipe, a CI step,
-  an editor task runner - the panel said it needed an interactive terminal and
-  stopped there. It now names what still works, since that is the case where a
-  reader is least able to guess.
-- **The README says why `-g` matters.** A plain `npm install vibestrate` adds a
-  dependency to whatever project you are standing in and never puts `vibe` on
-  your PATH, silently. Nothing is published to `import`.
+- A fresh install, and the no-terminal message, now say something useful and
+  point somewhere.
 
 ## 1.0.0
 
-The first release you can install. Every version below this line was built in
-the open but never published, so if you are arriving now, 1.0.0 is all of it.
-
-Vibestrate is a local-first supervisor for the coding CLIs already on your
-machine. You give it a task in plain language; it opens a git worktree, walks a
-crew of specialists through the change, and runs your own validation commands as
-the referee. It does not push and it does not merge.
-
-- **A run is a flow you watch, not a chat you scroll.** A planner sketches the
-  change, an architect shapes it, an executor writes it in a throwaway worktree,
-  your tests decide whether it works, a reviewer - ideally on a different model,
-  so it does not share the executor's blind spots - tears into the diff, a fixer
-  answers the findings, a verifier signs off. Every handoff is visible and every
-  phase leaves a named artifact you can read afterwards.
-- **The models are yours, and so is the bill.** Vibestrate never holds an API
-  key. It spawns Claude Code, Codex, Gemini, Aider, OpenCode, Cursor, Amp or a
-  local Ollama model and reads their output, so your prompts go straight to the
-  vendor you already pay. Nothing runs on a server of ours and nothing phones
-  home.
-- **Swap the crew without rewriting the work.** A Flow names Seats rather than
-  your local setup, which is what makes one portable enough to export and hand
-  to someone else. When a model goes slow, unreliable or expensive, refill the
-  seats and the flow is unchanged.
-- **You hold the gates.** Approval gates wait for a human, a risky task is
-  deterministically upgraded to heavier review rather than talked past, and a
-  run ends at `merge_ready`, `blocked` or `failed` for you to decide. Merges are
-  human-initiated from a branch graph that predicts the conflicts before it
-  touches anything, and each one can be undone.
-- **Cost is a number, not a surprise.** Tokens and dollars are recorded per step
-  and per run, under a daily cap that can warn, downgrade the model, or stop the
-  run when you reach it.
-- **Reads stay inside the run.** File access is bounded to the project and the
-  run's own worktree, and proven against real paths rather than the shape of a
-  string. Secret-shaped files are refused rather than summarized, and the
-  dashboard binds to loopback unless you hand it a token.
-- **Everything twice.** Whatever the dashboard does, the CLI does, over a
-  versioned HTTP API you can script.
-
-From here the public surface is stable under SemVer: the CLI and its flags, the
-config schema, and `/api/v1`. Breaking any of them takes a major release.
-Modules under `src/` are internal and still move freely.
+- **A run is a flow you watch, not a chat you scroll.** Plan, architect,
+  implement, validate, review, fix, verify, in an isolated git worktree.
+- **The models are yours, and so is the bill.** Local agent CLIs, your own
+  accounts, nothing routed through us.
+- **Swap the crew without rewriting the work.** Roles, seats and profiles decide
+  who does what.
+- **You hold the gates.** Nothing merges, pushes or writes outside the worktree
+  without you.
+- **Cost is a number, not a surprise.** Budget ceilings, and spend you can read
+  per run.
+- **Everything twice.** A reviewer that did not write the code, and a verifier
+  that did not review it.
 
 Apache-2.0, all of it. Free to use, fork and ship.
 
