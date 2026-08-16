@@ -22,11 +22,29 @@ Free, open source, and light enough to drop into any repo.
 
 <br />
 
-<img src="./.github/assets/demo.gif" alt="A run where Sonnet implements a CLI and Opus reviews the diff, catching a crash the passing tests never reached" />
+<img src="./.github/assets/hero.gif" alt="A run reaching merge-ready: the flow's eight steps, the supervisor's decisions, a rate-limited model falling back to a backup, and the diff it produced" />
 
-<sub>A real run. Sonnet wrote the code and its tests; Opus reviewed the diff and found a crash on negative totals that the passing tests never reached.<br />
-Too fast to follow? <code>.github/assets/demo.cast</code> is the raw recording, and
-<code>docs/demo-player.html</code> replays it with pause, scrub and speed control.</sub>
+<sub>One run, end to end. Eight steps across five seats, a model that hit a rate limit and fell back to a backup mid-run, one reviewer that failed and was tolerated, and a diff you read before anything merges.<br />
+<a href="./.github/assets/hero-4k.mp4">Watch it in 4K</a>.</sub>
+
+<br />
+
+<table>
+<tr>
+<td width="33%" valign="top">
+<img src="./.github/assets/feature-audit.gif" alt="The run audit tree showing a step that was rate-limited twice, retried, then fell back to a backup model and succeeded" />
+<sub><b>It tells you what actually happened.</b> Rate-limited twice, retried, fell back to a backup, succeeded. Per attempt, not a summary.</sub>
+</td>
+<td width="33%" valign="top">
+<img src="./.github/assets/feature-flow.gif" alt="The Flow editor showing an eight-step review panel and the inspector for one step" />
+<sub><b>You decide the procedure.</b> Steps, seats, and which of them are gates. Edit it here or in YAML.</sub>
+</td>
+<td width="33%" valign="top">
+<img src="./.github/assets/feature-crew.gif" alt="The Crew page showing six roles filling ten seats, each with its own provider and profile" />
+<sub><b>You decide who does the work.</b> Each role runs on its own provider and profile, and which ones may write.</sub>
+</td>
+</tr>
+</table>
 
 <br />
 
@@ -35,7 +53,7 @@ Too fast to follow? <code>.github/assets/demo.cast</code> is the raw recording, 
 [![Downloads](https://img.shields.io/npm/dm/vibestrate?style=flat-square&labelColor=0e1118&color=8b7cff&label=downloads)](https://www.npmjs.com/package/vibestrate)
 [![Stars](https://img.shields.io/github/stars/guyshonshon/vibestrate?style=flat-square&labelColor=0e1118&color=8b7cff)](https://github.com/guyshonshon/vibestrate/stargazers)
 [![Node](https://img.shields.io/badge/Node-%E2%89%A5%2024-8b7cff?style=flat-square&labelColor=0e1118)](https://nodejs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-7cc5ff?style=flat-square&labelColor=0e1118)](https://www.typescriptlang.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-7.0-7cc5ff?style=flat-square&labelColor=0e1118)](https://www.typescriptlang.org)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-4ade80?style=flat-square&labelColor=0e1118)](#-contributing)
 
 <br />
