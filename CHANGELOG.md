@@ -22,6 +22,16 @@
 > as-is. Markdown stays where a human writes it: `VIBESTRATE.md`, `rules.md`, the
 > docs.
 
+- **The supervisor's answer arrives as it is written.** The chat was showing you
+  nothing until the whole turn finished, because the browser and the server had
+  drifted onto different names for the pieces of a streamed reply and five of
+  the seven were being dropped on arrival. The answer now appears as it is
+  typed, the reasoning trail shows up where a provider reports one, and your own
+  message settles into place instead of waiting.
+- **A failed turn says what went wrong.** If the provider is missing, a policy
+  refuses, or you hit your spend cap, the answer used to read "I had nothing to
+  add." The reason was thrown away before anyone could see it. It now names the
+  failure, in the conversation and on screen.
 - **Answers fit the screen you are on.** Asked how to make a flow, the dashboard
   used to recommend four terminal commands and tell you to hand-edit
   `project.yml`. It had no way to know it was answering into a browser. It does
