@@ -4,7 +4,7 @@ description: The local dashboard for inspecting runs, approving gates, reading d
 slug: cli/dashboard
 ---
 
-Mission Control is Vibestrate's web UI. A Fastify process serves it on demand, starting only when you ask for it. It's fully local and never connects to a remote backend.
+Mission Control is Vibestrate's web UI. A Fastify process serves it on demand, starting only when you ask for it. It runs on your machine and there is no backend of ours behind it. The one exception is the Flow Hub: searching, pulling or publishing a flow reaches vibestrate.com, and only when you ask for it.
 
 ## Start it
 

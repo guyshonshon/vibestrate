@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 <!-- Work accumulates here during a sprint and is versioned ONCE at release.
      Do not add a numbered heading per commit - see CLAUDE.md 10. -->
@@ -28,8 +28,8 @@
   the seven were being dropped on arrival. The answer now appears as it is
   typed, the reasoning trail shows up where a provider reports one, and your own
   message settles into place instead of waiting.
-- **A failed turn says what went wrong.** If the provider is missing, a policy
-  refuses, or you hit your spend cap, the answer used to read "I had nothing to
+- **A failed turn says what went wrong.** If the provider is missing, or a policy
+  refuses, the answer used to read "I had nothing to
   add." The reason was thrown away before anyone could see it. It now names the
   failure, in the conversation and on screen.
 - **Answers fit the screen you are on.** Asked how to make a flow, the dashboard
@@ -53,8 +53,8 @@
   by a reload, or by restarting `vibe ui` - stored an empty message, and the
   panel drew a full card around nothing. It now says it was cut off.
 - **Pages load when you open them.** The dashboard shipped every screen up front;
-  it now ships the one you are looking at, cutting the first download by roughly
-  two thirds. Mission Control stays immediate.
+  it now ships the one you are looking at, roughly halving the first download.
+  Mission Control stays immediate.
 - **The dashboard opens with no network, and opens straight away.** `index.html`
   carried a stylesheet link to Google Fonts. It blocked the first paint on a
   third-party request, fetched nothing that was used - every typeface is already
@@ -77,7 +77,7 @@
   it reads had emptied the pages it needed: a page whose whole body was one
   oversized block was dropped rather than shortened. Those pages carry their real
   commands again, and something over budget now comes back trimmed, never missing.
-- **Bundled fonts ship with their licences.** Six typefaces travel inside the
+- **Bundled fonts ship with their licences.** Five typefaces travel inside the
   package under the SIL Open Font License, which asks that the notice travel with
   them. It was not. Each licence is now included and every family is named in
   `NOTICE` with its copyright line.

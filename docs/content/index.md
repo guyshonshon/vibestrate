@@ -69,7 +69,7 @@ Add skills, add models, or write your own Flow.
 
 **Many models, one task.** Different AIs each bring their own view, and Vibestrate makes them check each other instead of rubber-stamping.
 
-**Yours, on your machine.** No cloud account, no server in the middle. The only network calls are the ones your coding tools already make.
+**Yours, on your machine.** No cloud account, no server in the middle. Your coding tools make their own calls, and Vibestrate adds one of its own only when you browse the Flow Hub.
 
 **Fully on the record.** Every run is saved under `.vibestrate/runs/<runId>/`. Read it back, replay it, or audit it.
 

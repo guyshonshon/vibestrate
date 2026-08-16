@@ -295,7 +295,7 @@ pnpm install && pnpm typecheck && pnpm test && pnpm build
 
 Vibestrate is in beta. Not a disclaimer - a description of which parts have settled and which have not, so you can decide what to build on.
 
-**Settled.** The CLI command names and their flags. The run model: a run works in its own git worktree, stops at merge-ready, and never pushes or merges on its own. Everything stays on your machine - no cloud, no relay, no telemetry. The `.vibestrate/` layout for runs, tasks and events.
+**Settled.** The CLI command names and their flags. The run model: a run works in its own git worktree, stops at merge-ready, and never pushes or merges on its own. Your code and your runs stay on your machine - no cloud backend, no relay, no telemetry. The one call out is the Flow Hub, when you go looking for a flow. The `.vibestrate/` layout for runs, tasks and events.
 
 **Not settled.** The config schema, and the policy schema in particular - one release refused a `require_approval` effect that the one before it accepted at load. Flow and crew YAML. The HTTP surface outside `/api/v1`. Internal modules under `src/` are not an API at all.
 
@@ -304,7 +304,7 @@ Vibestrate is in beta. Not a disclaimer - a description of which parts have sett
 **If you need it to stop moving,** pin an exact version rather than a caret range:
 
 ```json
-"vibestrate": "0.1.1"
+"vibestrate": "0.2.0"
 ```
 
 Beta ends at `1.0.0`, when the config and policy schemas go a release cycle without a breaking change.

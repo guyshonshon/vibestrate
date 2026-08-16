@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -76,5 +77,64 @@ describe("the supervisor turn stream has one vocabulary", () => {
     // meant every real reason was replaced by a hard-coded sentence.
     const fn = CLIENT.slice(CLIENT.indexOf('case "error":'), CLIENT.indexOf('case "phase":'));
     expect(fn).toContain("body.message");
+  });
+});
+
+/**
+ * The same comparison for every OTHER stream this server opens.
+ *
+ * The supervisor's was the only mismatch, but it was invisible for the same
+ * reason all of them would be: an SSE name is a string on one side and a string
+ * on the other, and nothing in the type system connects them. A name the server
+ * sends and nobody listens for is a feature that silently does nothing.
+ *
+ * Consumers are deliberately partial - LiveOutputPanel wants `raw`, the
+ * timeline wants `chunk`, neither wants both - so the invariant is "at least
+ * one listener somewhere in the UI", not "every consumer handles everything".
+ */
+describe("every SSE frame the server sends has a listener", () => {
+  const SERVER_FILES = [
+    "src/server/sse.ts",
+    "src/server/sse-aggregate.ts",
+    "src/server/routes/codebase-events.ts",
+  ];
+
+  /** Literal names passed to client.send(...). `event.kind` call sites are
+   *  dynamic and covered by the supervisor comparison above. */
+  function sentNames(): string[] {
+    const names: string[] = [];
+    for (const f of SERVER_FILES) {
+      for (const m of read(f).matchAll(/\bsend\(\s*"([a-z-]+)"/g)) names.push(m[1] ?? "");
+    }
+    return [...new Set(names)].sort();
+  }
+
+  function listenedNames(): string[] {
+    const dir = fileURLToPath(new URL("../src/ui", import.meta.url));
+    const names: string[] = [];
+    const walk = (d: string): void => {
+      for (const entry of readdirSync(d, { withFileTypes: true })) {
+        const full = join(d, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.tsx?$/.test(entry.name)) {
+          const src = readFileSync(full, "utf8");
+          for (const m of src.matchAll(/addEventListener\(\s*"([a-z-]+)"/g)) names.push(m[1] ?? "");
+          for (const m of src.matchAll(/case\s+"([a-z-]+)":/g)) names.push(m[1] ?? "");
+        }
+      }
+    };
+    walk(dir);
+    return [...new Set(names)];
+  }
+
+  it("finds names on both sides", () => {
+    expect(sentNames().length).toBeGreaterThanOrEqual(4);
+    expect(listenedNames().length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("leaves no frame with nobody listening", () => {
+    const listened = new Set(listenedNames());
+    const orphaned = sentNames().filter((n) => !listened.has(n));
+    expect({ orphaned }).toEqual({ orphaned: [] });
   });
 });

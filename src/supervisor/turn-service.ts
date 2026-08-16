@@ -525,12 +525,19 @@ export async function runSupervisorTurn(input: SupervisorTurnInput): Promise<voi
     // Terminal, and honest: the user's message is already in the thread, so the
     // failure is recorded next to it rather than leaving a question with no
     // answer under it.
-    const reason = err instanceof Error ? err.message : String(err);
+    const reason = relativizeRoot(
+      err instanceof Error ? err.message : String(err),
+      projectRoot,
+    ).slice(0, REASON_MAX);
+    // Emitted BEFORE the terminal record, for the same reason the inner failure
+    // branch does it: `finish` sends `done`, and the panel clears the in-flight
+    // turn on `done`, so an error after it lands on nothing and the failure
+    // renders as an ordinary answer bubble.
+    if (!signal.aborted) emit({ kind: "error", message: reason });
     await finish({
       stopped: signal.aborted,
       text: signal.aborted ? answered.trim() : `I could not answer that: ${reason}`,
       action: null,
     }).catch(() => undefined);
-    if (!signal.aborted) emit({ kind: "error", message: reason });
   }
 }
