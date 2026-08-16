@@ -174,6 +174,20 @@ export function RunDetailPage({
     const mapped = V3_TAB_FOR_DEEP_LINK[initialTab];
     if (mapped) setTab(mapped);
   }, [initialTab]);
+  // Opening a tab from a control ABOVE the Inspect section has to move the page
+  // too. The section sits roughly 2400px below the header, so `setTab` alone
+  // changed state off-screen and the button read as broken - "View diff" was
+  // the worst of them, since the thing it names is the reason you clicked.
+  // Controls inside the section (InspectorTabsV3) still call setTab directly:
+  // you are already looking at it, and scrolling under your own cursor is worse.
+  const inspectorRef = useRef<HTMLElement>(null);
+  const openInspector = (next: InspectorV3Tab) => {
+    setTab(next);
+    // After paint, so the panel is mounted and we scroll to its real height.
+    requestAnimationFrame(() => {
+      inspectorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileViewMode, setFileViewMode] = useState<"diff" | "file">("diff");
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
@@ -397,7 +411,7 @@ export function RunDetailPage({
         <RunHeaderV3
           run={run}
           onBack={() => navigate({ kind: "mission" })}
-          onOpenDiff={() => setTab("artifacts")}
+          onOpenDiff={() => openInspector("artifacts")}
           onOpenGit={() => navigate({ kind: "git", runId })}
           onRerun={() => {
             setRerunStart(null);
@@ -421,7 +435,7 @@ export function RunDetailPage({
       <RunHeaderV3
         run={run}
         onBack={() => navigate({ kind: "mission" })}
-        onOpenDiff={() => setTab("artifacts")}
+        onOpenDiff={() => openInspector("artifacts")}
         onOpenGit={() => navigate({ kind: "git", runId })}
         onRerun={() => {
           setRerunStart(null);
@@ -568,7 +582,7 @@ export function RunDetailPage({
           }}
           onViewValidation={
             assurance.validation.status === "failed"
-              ? () => setTab("validation")
+              ? () => openInspector("validation")
               : undefined
           }
         />
@@ -591,7 +605,7 @@ export function RunDetailPage({
             run={run}
             onRerun={() => setRerunOpen(true)}
             onOpenReview={() => setReviewOpen(true)}
-            onOpenTab={(t) => setTab(t)}
+            onOpenTab={(t) => openInspector(t)}
           />
         </div>
       ) : (
@@ -599,7 +613,7 @@ export function RunDetailPage({
           run={run}
           onRerun={() => setRerunOpen(true)}
           onOpenReview={() => setReviewOpen(true)}
-          onOpenTab={(t) => setTab(t)}
+          onOpenTab={(t) => openInspector(t)}
         />
       )}
 
@@ -731,7 +745,7 @@ export function RunDetailPage({
         </>
       ) : null}
 
-      <section data-screen-label="05 Inspector">
+      <section ref={inspectorRef} data-screen-label="05 Inspector">
         <div className="mb-2.5 flex items-center justify-between">
           <h2 className="text-[18px] font-bold text-violet-vivid">Inspect</h2>
           <InspectorTabsV3 current={tab} setCurrent={setTab} />
