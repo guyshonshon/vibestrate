@@ -311,13 +311,13 @@ The verdict reflects this: a tolerated failure adds a `steps_failed_tolerated` c
 
 ## Defense in depth
 
-Three gates sit on the path between an agent and your files, each independently honored:
+Only the first of these is always on. The other three are opt-in, and each is honored independently of the others:
 
 - **Post-turn diff gate** - every write-capable turn is snapshotted before it runs. Afterward its diff is checked against secret/path safety and `file.patch` policies. A denied or unsafe diff is rolled back to the snapshot and the run is blocked.
 
 - **Strict apply-only mode** (`policies.strictApplyOnly`) - for the highest assurance, write roles run read-only and instead *propose* a unified diff that Vibestrate applies through the broker gateway. Nothing reaches disk without crossing the gate; a refused patch blocks the run.
 
-- **Provider-native OS sandbox** (`execution.isolation`, **off by default**) - an optional fourth layer that adds OS *prevention* on top of the diff gate's *detection*.
+- **Provider-native OS sandbox** (`execution.isolation`, **off by default**) - adds OS *prevention* on top of the diff gate's *detection*.
 
   The gates above bound your machine structurally already (worktree + diff gate + human-reviews-the-diff-before-merge), which is why a sandbox is opt-in, not a tax on every run. Turn it on for an untrusted task or an unattended run.
 
