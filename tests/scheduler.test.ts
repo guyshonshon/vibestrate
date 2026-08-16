@@ -187,6 +187,20 @@ describe("scheduler loop", () => {
     let active = 0;
     let maxActive = 0;
 
+    // A task holds until the other one has also started, rather than sleeping a
+    // fixed span and hoping the second dispatch lands inside it. The old version
+    // slept 120ms and asserted the overlap it happened to observe, so a correct
+    // scheduler failed whenever a loaded runner took longer than that to pick up
+    // the second task - which is how this went red on the Node 26 job while the
+    // Node 24 job on the same commit passed. The barrier makes the concurrent
+    // case both deterministic and fast: both tasks arrive, release each other,
+    // and return. A scheduler that serialized would leave the first one waiting
+    // on the deadline and the assertion would fail for the real reason.
+    let bothStarted!: () => void;
+    const barrier = new Promise<void>((resolve) => {
+      bothStarted = resolve;
+    });
+
     const handle = await runSchedulerLoop({
       projectRoot,
       schedulerConfig: {
@@ -202,7 +216,15 @@ describe("scheduler loop", () => {
       runTask: async () => {
         active += 1;
         if (active > maxActive) maxActive = active;
-        await new Promise((r) => setTimeout(r, 120));
+        if (active >= 2) bothStarted();
+        let deadline: ReturnType<typeof setTimeout>;
+        await Promise.race([
+          barrier,
+          new Promise<void>((resolve) => {
+            deadline = setTimeout(resolve, 2_000);
+          }),
+        ]);
+        clearTimeout(deadline!);
         active -= 1;
         return { exitCode: 0 };
       },
