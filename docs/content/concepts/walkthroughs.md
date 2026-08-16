@@ -1,6 +1,6 @@
 ---
 title: Walkthroughs
-description: "Show me how" turns an answer into a guided tour - it moves you to the right screen and rings the control it is talking about.
+description: 'A walkthrough turns an answer into a guided tour. It moves you to the right screen and rings the control it is talking about.'
 slug: concepts/walkthroughs
 ---
 
