@@ -12,14 +12,17 @@ set -eu
 
 PKG="vibestrate"
 VERSION="${VIBESTRATE_VERSION:-latest}"
-MIN_NODE_MAJOR=22
+# Must track engines.node in package.json. It did not: this sat at 22 after the
+# floor moved to 24, so the installer green-lit a Node the package then refused
+# with EBADENGINE, after telling the user they were fine.
+MIN_NODE_MAJOR=24
 
 red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
 cyan() { printf '\033[36m%s\033[0m\n' "$*"; }
 
 if ! command -v node >/dev/null 2>&1; then
   red "Node.js is required but was not found."
-  red "Install Node >= 22 from https://nodejs.org and re-run this installer."
+  red "Install Node >= $MIN_NODE_MAJOR from https://nodejs.org and re-run this installer."
   exit 1
 fi
 

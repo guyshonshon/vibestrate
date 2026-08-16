@@ -42,24 +42,32 @@ especially valuable:
 
 ## Known false positives
 
-Automated supply‑chain scanners (e.g. Amazon Inspector) sometimes flag the
-published `dist/index.js` as a **Telegram exfiltration / C2** channel because
-the bundle contains `fetch` → POST → `api.telegram.org` alongside `process.env`
-access. **This is a false positive.** That code is the opt‑in **Telegram
-notification gateway** (`src/notifications/gateways/telegram-gateway.ts`) - one
-of several gateways (CLI, in‑app, webhook, Discord, Slack, Telegram) you wire up
-with `vibestrate gateways add`. Specifically:
+Automated supply-chain scanners (e.g. Amazon Inspector) sometimes flag the
+published `dist/index.js` as a **Telegram exfiltration / C2** channel on the
+strength of the string `api.telegram.org` appearing in the bundle. **This is a
+false positive**, and since June 2026 it is a false positive for a simpler
+reason than it used to be: there is no Telegram code left to misread.
 
-- There is **no hardcoded bot token** - the URL is `api.telegram.org/bot${token}/…`
-  where `${token}` comes from *your* gateway config (a literal or `env:NAME`).
-- `process.env` is read **only** as `process.env[NAME]` for the single var *you*
-  named via `env:NAME` (regex `^env:([A-Z][A-Z0-9_]*)$`). The bundle never
-  enumerates or serializes `process.env`.
-- The POST body is *your* notification text sent to *your* chat - never host
-  data or environment variables. Tokens are actively `redact()`‑ed from logs.
+- **The bundle makes no request to Telegram, or to any other notification
+  service.** The external notification gateways (webhook, Discord, Slack,
+  Telegram, WhatsApp) were removed in 2026-06 so that notifications involve no
+  external communication. Only two gateways ship, both local: `cli` (your
+  terminal) and `inapp` (the dashboard's notification centre). Run
+  `vibe gateways list` to see the whole set.
+- **The only occurrence of the string is a redaction rule.**
+  `src/notifications/gateways/secret-resolver.ts` carries
+  `text.replace(/(https?:\/\/api\.telegram\.org\/bot[^/]+\/[^\s"]+)/g,
+  "[redacted-telegram]")`, which exists to strip a bot URL out of logs if one
+  ever reaches them. A scanner matching on the domain sees the defence, not an
+  exfiltration path.
+- **`process.env` is never enumerated or serialized.** It is read only as
+  `process.env[NAME]`, for the single variable you name via `env:NAME`
+  (regex `^env:([A-Z][A-Z0-9_]*)$`).
 
-If you want to verify, diff a clean local build (`pnpm build`) against the
-published tarball (`npm pack vibestrate`), or read the gateway source above.
+To verify: `grep -a 'api\.telegram\.org' dist/index.js` on the published tarball
+returns nothing (the string is escaped inside the regex), `grep -aci telegram`
+returns 3, and none of the three is a request. You can also diff a clean local
+build (`pnpm build`) against the published tarball (`npm pack vibestrate`).
 
 ## Response
 
