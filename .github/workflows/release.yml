@@ -18,10 +18,20 @@ name: Release
 # Setup this expects, once (see .github/MAINTAINING.md):
 #   1. npmjs.com -> vibestrate -> Settings -> Trusted Publisher -> GitHub Actions
 #      -> repo guyshonshon/vibestrate, workflow release.yml
-#   2. Settings -> Environments -> `release` -> Required reviewers (you), so a
-#      tag push PAUSES for a click instead of publishing on its own.
-# Without (2) a tag publishes unattended; without (1) the publish step fails
-# closed on auth and nothing ships.
+# Without (1) the publish step fails closed on auth and nothing ships.
+#
+# A `release` environment with required reviewers used to pause a tag push for a
+# click. Removed on the owner's instruction: that click is unreachable from the
+# GitHub mobile app, which offers only "Cancel workflow", so a release could not
+# be approved away from a desktop. A tag push now publishes unattended.
+#
+# What still stands between a tag and npm, and why that was judged enough: the
+# full gate below - typecheck, build, the whole suite, the packed-artifact
+# verify - runs first, and a failure stops the publish; the tag name must equal
+# package.json's version; and the tag is a deliberate act made in the repo,
+# never manufactured by re-running a job. npm's trusted publisher is keyed on
+# repo + workflow, NOT on the environment, so removing the environment does not
+# change how the OIDC credential is minted.
 
 on:
   push:
@@ -34,8 +44,6 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # Gates the job behind the `release` environment's required reviewers.
-    environment: release
     permissions:
       contents: read
       # Required for trusted publishing: lets the job request the OIDC token npm
