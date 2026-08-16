@@ -84,3 +84,6 @@ docs/archive/
 
 # Branding canvas: a local-only styleguide surface, not part of the product.
 src/ui/app/routes/CanvasPage.tsx
+
+# ad-hoc diagram geometry screenshots
+svgcheck-*.png

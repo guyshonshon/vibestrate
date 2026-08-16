@@ -145,11 +145,13 @@ export function buildConsultCommand(): Command {
           if (prefId) {
             console.log("");
             console.log(
-              // `vibe preferences` has never existed, and the real command takes
-              // the policy id alone, not a supervisor and an id. Every consult
-              // answer that proposed a policy was telling the reader to run
-              // something that could only fail. See policies-rules.ts, where
-              // `confirm` and `reject` are registered onto `vibe policies`.
+              // `vibe preferences confirm <supervisor> <id>` was real until 0.36.0
+              // folded preferences into project policies; this message was never
+              // updated, so every consult answer proposing a policy told the
+              // reader to run a command that no longer resolves. The replacement
+              // takes the policy id alone - a policy belongs to the project, not
+              // to a supervisor. See policies-rules.ts: `.command("confirm
+              // <policyId>")`.
               `${symbol.arrow()} Confirm with ${color.bold(`vibe policies confirm ${prefId}`)}, or ${color.bold(`vibe policies reject ${prefId}`)}.`,
             );
           }

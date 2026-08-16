@@ -101,6 +101,12 @@
   proposal for you to confirm. That row lands inert - advise tier, no matcher,
   unconfirmed - and enforces nothing until you run `vibe policies confirm`. The
   docs said "never acts", which was not quite true; they say what happens now.
+- **Consult stops handing you a command that no longer resolves.** When it
+  proposed a policy it told you to run `vibe preferences confirm <supervisor>
+  <id>`. That was the right command until 0.36.0 folded preferences into project
+  policies, and the message never moved with it. It now prints `vibe policies
+  confirm <id>`, which is what exists - a policy belongs to the project, so it
+  takes the policy id and nothing else.
 - **Every documentation page was rewritten against the code that decides it.**
   All 54 of them. The docs had drifted into describing an older product, and in
   places into promising things it does not do: the front page said your real
