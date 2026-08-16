@@ -35,14 +35,68 @@ import type { ProviderDetectionRunner } from "../src/providers/provider-detectio
 const DIR = "/tmp/vibestrate-demo";
 const noProvider: ProviderDetectionRunner = async () => ({ exitCode: 127, stdout: "", stderr: "" });
 
+// A step that declares a handoff output puts the exact contract - including the
+// real stepId - into the prompt (see buildFlowContracts in flow-arbitration.ts).
+// A real model is asked to answer with that shape; these fakes read it back out
+// of their own prompt and fill it in, which is the smallest thing that satisfies
+// the same parser.
+//
+// Deriving it from the prompt rather than hardcoding a literal is the point: the
+// demo cannot drift from the contract, and it exercises the handoff path instead
+// of tripping it. Before this, every provider emitted bare markdown, so the run
+// carried three `unparsed` judgments and the dashboard's headline screen was a
+// wall of parse errors.
+const EMIT_HANDOFF = `
+const emitHandoff=(p,fill)=>{
+  const m=p.match(/^- (plan-handoff|architecture-handoff|execution-handoff): (.+)$/m);
+  if(!m)return;
+  let o;try{o=JSON.parse(m[2])}catch{return}
+  fill(m[1],o);
+  console.log("VIBESTRATE_FLOW_OUTPUT:");
+  console.log(JSON.stringify(o,null,2));
+  console.log("VIBESTRATE_FLOW_OUTPUT_END");
+};`;
+
 // Role-aware "happy" provider: plays planner / architect / reviewer / verifier.
 const OK = `#!/usr/bin/env node
+${EMIT_HANDOFF}
 let p="";process.stdin.on("data",c=>p+=c);process.stdin.on("end",()=>{
   const role=(p.match(/Vibestrate Agent: (\\w+)/)||[])[1]||"";
   if(role==="reviewer"){console.log("# Findings\\n\\nNo blocking issues from this lens.");return;}
   if(role==="verifier"){console.log("# Arbiter verdict\\n\\nDECISION: APPROVED");return;}
-  if(role==="planner"){console.log("# Plan\\n\\n1. Add the feature\\n2. Cover it with tests");return;}
-  if(role==="architect"){console.log("# Architecture\\n\\nDirect, well-bounded approach.");return;}
+  if(role==="planner"){
+    console.log("# Plan\\n\\n1. Add a rate limiter\\n2. Add POST /login behind it\\n3. Cover both with tests");
+    emitHandoff(p,(t,o)=>{
+      o.goal="Add a login endpoint that refuses more than 5 attempts a minute per IP.";
+      o.steps=[
+        {id:"step-1",title:"Add a fixed-window limiter",detail:"Keyed by IP, 5 requests per 60s."},
+        {id:"step-2",title:"Add POST /login",detail:"Verify the password, then issue a session."},
+        {id:"step-3",title:"Cover the limit",detail:"A test that trips the 6th attempt."},
+      ];
+      o.filesLikelyTouched=["src/routes/login.ts","src/middleware/rate-limit.ts"];
+      o.assumptions=["Sessions already exist and only need issuing."];
+      o.openQuestions=["Should the limit be per IP or per account?"];
+      o.risks=["A shared NAT would rate-limit unrelated users together."];
+    });
+    return;
+  }
+  if(role==="architect"){
+    console.log("# Architecture\\n\\nA fixed window in front of the handler, not inside it.");
+    emitHandoff(p,(t,o)=>{
+      o.approach="Put the limiter in middleware so the handler stays a pure credential check.";
+      o.decisions=[{
+        id:"decision-1",
+        decision:"Fixed window over a token bucket.",
+        rationale:"One counter and one expiry; nothing to tune under this load.",
+        alternatives:["Token bucket","Sliding log"],
+      }];
+      o.componentsTouched=["src/routes/login.ts","src/middleware/rate-limit.ts"];
+      o.interfaces=["rateLimit(opts: { max: number; windowMs: number }): Middleware"];
+      o.risks=["A fixed window lets a burst straddle the boundary."];
+      o.openQuestions=[];
+    });
+    return;
+  }
   console.log("# Done\\n\\nok");
 });`;
 
@@ -67,17 +121,68 @@ let p="";process.stdin.on("data",x=>p+=x);process.stdin.on("end",()=>{
 
 // Emits stream-json with tool calls + a sub-agent spawn (Agent) -> the audit's
 // inside-the-box view lights up (extractTurnInternals parses raw stdout).
+//
+// It also WRITES the files it claims to write. It used to emit an `Edit` event
+// and touch nothing, so the run finished at "0 files, +0 -0" - a demo of an
+// orchestrator that changed nothing. The turn runs in the run's worktree, so
+// writing here is what a real agent CLI does, and it gives the diff gate, the
+// diff view and the merge story something real to act on.
+//
+// The marker block goes to stdout as plain lines after the NDJSON. Safe on both
+// readers: turn-internals.ts skips any line that is not a JSON object, and the
+// handoff parser prefers a marker block over loose JSON.
 const STREAMJSON = `#!/usr/bin/env node
+const fs=require("node:fs");
+${EMIT_HANDOFF}
 let p="";process.stdin.on("data",x=>p+=x);process.stdin.on("end",()=>{
   const e=o=>console.log(JSON.stringify(o));
   e({type:"system",subtype:"init",session_id:"demo"});
-  e({type:"assistant",message:{content:[{type:"tool_use",name:"Read",input:{file_path:"src/app.ts"}}]}});
+  e({type:"assistant",message:{content:[{type:"tool_use",name:"Read",input:{file_path:"package.json"}}]}});
   e({type:"user",message:{content:[{type:"tool_result",content:"..."}]}});
-  e({type:"assistant",message:{content:[{type:"tool_use",name:"Read",input:{file_path:"src/auth.ts"}}]}});
   e({type:"assistant",message:{content:[{type:"tool_use",name:"Agent",input:{description:"audit the auth module for vulnerabilities",prompt:"..."}}]}});
-  e({type:"assistant",message:{content:[{type:"tool_use",name:"Edit",input:{file_path:"src/app.ts"}}]}});
-  e({type:"assistant",message:{content:[{type:"text",text:"# Implementation\\n\\nApplied the change and added a test."}]}});
+
+  fs.mkdirSync("src/middleware",{recursive:true});
+  fs.mkdirSync("src/routes",{recursive:true});
+  fs.writeFileSync("src/middleware/rate-limit.ts",
+    "const hits = new Map<string, { n: number; resetAt: number }>();\\n\\n"+
+    "export function rateLimit({ max, windowMs }: { max: number; windowMs: number }) {\\n"+
+    "  return (ip: string): boolean => {\\n"+
+    "    const now = Date.now();\\n"+
+    "    const seen = hits.get(ip);\\n"+
+    "    if (!seen || now > seen.resetAt) {\\n"+
+    "      hits.set(ip, { n: 1, resetAt: now + windowMs });\\n"+
+    "      return true;\\n"+
+    "    }\\n"+
+    "    seen.n += 1;\\n"+
+    "    return seen.n <= max;\\n"+
+    "  };\\n"+
+    "}\\n");
+  e({type:"assistant",message:{content:[{type:"tool_use",name:"Write",input:{file_path:"src/middleware/rate-limit.ts"}}]}});
+
+  fs.writeFileSync("src/routes/login.ts",
+    "import { rateLimit } from \\"../middleware/rate-limit.js\\";\\n\\n"+
+    "const allow = rateLimit({ max: 5, windowMs: 60_000 });\\n\\n"+
+    "export async function login(req: Request, ip: string) {\\n"+
+    "  if (!allow(ip)) return new Response(\\"Too many attempts\\", { status: 429 });\\n"+
+    "  return new Response(\\"ok\\");\\n"+
+    "}\\n");
+  e({type:"assistant",message:{content:[{type:"tool_use",name:"Write",input:{file_path:"src/routes/login.ts"}}]}});
+
+  e({type:"assistant",message:{content:[{type:"text",text:"# Implementation\\n\\nAdded the limiter and put the login route behind it."}]}});
   e({type:"result",subtype:"success",num_turns:3,total_cost_usd:0.042});
+
+  emitHandoff(p,(t,o)=>{
+    o.summary="Added a fixed-window limiter and put POST /login behind it.";
+    o.steps=[
+      {planStepId:"step-1",title:"Add a fixed-window limiter",status:"done",note:"5 requests per 60s, keyed by IP."},
+      {planStepId:"step-2",title:"Add POST /login",status:"done",note:"Refuses with 429 once the window is spent."},
+      {planStepId:"step-3",title:"Cover the limit",status:"skipped",note:"No test runner in this project yet."},
+    ];
+    o.filesChanged=["src/middleware/rate-limit.ts","src/routes/login.ts"];
+    o.commandsRun=[];
+    o.followUps=["Move the counter out of process memory before running more than one instance."];
+    o.risks=["A fixed window lets a burst straddle the boundary."];
+  });
 });`;
 
 async function writeProvider(name: string, body: string): Promise<string> {
