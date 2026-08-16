@@ -32,6 +32,7 @@ import { selectOutputAdapter } from "../providers/adapters/select.js";
 import { resolveAssistTarget } from "../core/assist/assist-runner.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
 import { runConsult } from "../consult/consult.js";
+import { relativizeRoot } from "../utils/redact-paths.js";
 import { startDetachedRun } from "../core/detached-run.js";
 import { makeUniqueRunId } from "../utils/run-id.js";
 import { runStatePath } from "../utils/paths.js";
@@ -277,6 +278,10 @@ export type SupervisorTurnInput = {
  * failure is an `error` event plus a recorded message, so the user's own turn is
  * never left in the thread with nothing answering it.
  */
+/** Cap on a stored failure reason. An AssistError can carry up to 800 chars of
+ *  raw provider output, and the thread is durable and rendered as prose. */
+const REASON_MAX = 600;
+
 export async function runSupervisorTurn(input: SupervisorTurnInput): Promise<void> {
   const { projectRoot, store, threadId, message, loaded, signal, emit } = input;
   const { config } = loaded;
@@ -336,11 +341,17 @@ export async function runSupervisorTurn(input: SupervisorTurnInput): Promise<voi
       // answering with silence rather than as a turn that was cut off. A turn
       // stops whenever the response socket closes, so this fires on a reload
       // or a server restart mid-answer, not only on the Stop button.
+      // A backstop that should be unreachable: `consultAnswerSchema.answer` is
+      // `z.string().min(1)`, so a successful answer cannot be empty, and every
+      // failing path names its own reason before calling this. It is kept
+      // because "unreachable" is an argument about today's schema, and it says
+      // the turn produced nothing rather than implying a considered decision
+      // not to speak.
       text:
         opts.text ||
         (opts.stopped
           ? "Stopped before I got to an answer."
-          : "I had nothing to add."),
+          : "That turn finished without producing an answer."),
       action: opts.action,
       stopped: opts.stopped,
     });
@@ -435,6 +446,12 @@ export async function runSupervisorTurn(input: SupervisorTurnInput): Promise<voi
         : message;
 
       emit({ kind: "phase", phase: "answering" });
+      // Settled, not swallowed. This used to end `.catch(() => null)`, which
+      // discarded every reason the answerer can fail - no provider installed, a
+      // broker veto, the spend cap, a schema failure that survived its retry -
+      // and then fell through to the empty-prose fallback. The user was told
+      // "I had nothing to add." over a refusal that had a name. A failure is a
+      // value here so the caller can branch on it rather than lose it.
       const consulted = await runConsult({
         projectRoot,
         // A supervisor turn only ever arrives over /api/supervisor, from the
@@ -448,8 +465,14 @@ export async function runSupervisorTurn(input: SupervisorTurnInput): Promise<voi
         profileId: input.profileId ?? null,
         signal,
         onChunk: makeSink(true),
-      }).catch(() => null);
+      }).then(
+        (result) => ({ ok: true as const, result }),
+        (error: unknown) => ({ ok: false as const, error }),
+      );
 
+      // Abort is checked BEFORE the failure branch on purpose: stopping kills
+      // the provider process, so the abort is the CAUSE of whatever error came
+      // back. Reporting it as a failure would blame the user's own Stop.
       if (signal.aborted) {
         return await finish({
           stopped: true,
@@ -457,7 +480,44 @@ export async function runSupervisorTurn(input: SupervisorTurnInput): Promise<voi
           action: outcome.action,
         });
       }
-      prose = [outcome.reply, consulted?.answer.answer ?? ""].filter(Boolean).join("\n\n");
+
+      if (!consulted.ok) {
+        // Fail closed and loudly.
+        //
+        // `outcome.action` is passed because this branch can hold a REFUSAL (it
+        // is gated on the action being absent or `ok === false`), and a refusal
+        // belongs in the thread. It is never a successful effect - those carry
+        // a reply and never reach here.
+        //
+        // The partial `answered` text is deliberately NOT included. The answer
+        // streamer is one stateful closure per turn while runAssist retries,
+        // so a failure on attempt 2 leaves `answered` holding attempt 1's text
+        // spliced onto the raw JSON of attempt 2. Storing that durably would be
+        // worse than storing only the reason.
+        //
+        // Paths are relativised for the same reason every other streamed error
+        // in this server is: provider stderr routinely carries an absolute home
+        // directory, and this string is written to disk and rendered in a page.
+        const raw =
+          consulted.error instanceof Error
+            ? consulted.error.message
+            : String(consulted.error);
+        const reason = relativizeRoot(raw, projectRoot).slice(0, REASON_MAX);
+        // Emitted BEFORE the terminal record: `finish` sends `done`, and the
+        // panel clears the in-flight turn on `done`, so an error arriving after
+        // it lands on nothing and is silently dropped.
+        emit({ kind: "error", message: reason });
+        await finish({
+          stopped: false,
+          text: [outcome.reply, `I could not answer that: ${reason}`]
+            .filter(Boolean)
+            .join("\n\n"),
+          action: outcome.action,
+        });
+        return;
+      }
+
+      prose = [outcome.reply, consulted.result.answer.answer].filter(Boolean).join("\n\n");
     }
 
     await finish({ stopped: false, text: prose, action: outcome.action });

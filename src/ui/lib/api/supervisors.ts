@@ -132,18 +132,44 @@ function toTurnEvent(event: string, data: string): SupervisorTurnEvent | null {
     return null;
   }
   const body = payload as Record<string, unknown>;
+  // The names on the wire are the server's event KINDS - the route sends each
+  // event under `event.kind` (routes/supervisor.ts) - so they are `message`,
+  // `phase`, `thinking`, `tool`, `answer`, `done`, `error`. This switch used to
+  // read a different vocabulary (`user`, `chunk`), which meant every frame
+  // except `done` fell through to `default` and was thrown away: no live answer
+  // text, no thinking trail, no phase, and the persisted user message never
+  // arriving to replace the optimistic echo. The turn still finished, because
+  // `done` carries the whole thread, so the failure looked like a chat that
+  // simply had no streaming rather than like a broken contract.
+  const text = typeof body.text === "string" ? body.text : "";
   switch (event) {
-    case "user":
+    // The PERSISTED user message. It replaces the optimistic echo rather than
+    // sitting beside it, so the id has to be the stored one.
+    case "message":
       return body.message ? { type: "user", message: body.message as never } : null;
-    case "chunk":
-      return body.chunk ? { type: "chunk", chunk: body.chunk as never } : null;
+    case "answer":
+      return text ? { type: "chunk", chunk: { kind: "text", text } } : null;
+    case "thinking":
+      return text ? { type: "chunk", chunk: { kind: "thinking", text } } : null;
+    case "tool":
+      return text ? { type: "chunk", chunk: { kind: "tool", text } } : null;
     case "done":
       return body.thread ? { type: "done", thread: body.thread as never } : null;
     case "error":
+      // The server sends `{kind:"error", message}`; reading `body.error` here
+      // meant the real reason was always replaced by the placeholder below.
       return {
         type: "error",
-        error: (body.error as never) ?? { message: "The turn failed." },
+        error:
+          (body.error as never) ??
+          ({ message: typeof body.message === "string" ? body.message : "The turn failed." } as never),
       };
+    // `phase` is routing/acting/answering. The panel shows its own progress
+    // from the chunks it receives, so the server's phase is not rendered - but
+    // it is a known frame, and returning null for it is correct rather than a
+    // gap. Kept explicit so it does not read as an oversight.
+    case "phase":
+      return null;
     default:
       return null;
   }

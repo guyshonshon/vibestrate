@@ -49,6 +49,16 @@ process.stdin.on('end', () => {
 /** Same router leg, but the answerer emits a partial answer and then refuses to
  *  finish - the shape a stop has to survive. Records the signal it was killed
  *  with, which is the only honest proof the process really died. */
+/** Exits non-zero with a nameable reason, the way a real CLI does when it is
+ *  not installed, refuses, or hits a cap. runConsult throws on this. */
+const FAKE_FAILING_ANSWERER = `#!/usr/bin/env node
+process.stdin.resume();
+process.stdin.on('end', () => {
+  process.stderr.write('provider refused: quota exhausted\\n');
+  process.exit(3);
+});
+`;
+
 const FAKE_HANGING_ANSWERER = `#!/usr/bin/env node
 const fs = require('node:fs');
 const path = require('node:path');
@@ -275,6 +285,42 @@ describe("POST /api/supervisor/threads/:threadId/turn (streamed)", () => {
     const stored = await readMessages(server, threadId);
     expect(stored.map((m) => m.role)).toEqual(["user", "supervisor"]);
     expect(stored[1]!.stopped).toBe(false);
+  }, 30_000);
+
+  it("records why the answerer failed instead of claiming it had nothing to say", async () => {
+    // The regression: runConsult ended `.catch(() => null)`, so a provider that
+    // refused, was missing, or hit a cap produced a null, empty prose, and the
+    // stored message "I had nothing to add." - a considered-sounding non-answer
+    // over a failure that had a name and was never shown anywhere.
+    const project = await makeProject(FAKE_FAILING_ANSWERER);
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+    const threadId = await openThread(server);
+
+    const res = await postTurn(server, threadId, { text: "why did that run block?" });
+    const frames: Frame[] = [];
+    for await (const f of sseFrames(res)) frames.push(f);
+
+    // The failure reaches the client, so the panel can show it rather than
+    // rendering a calm answer bubble.
+    const errors = frames.filter((f) => f.event === "error");
+    expect(errors.length).toBe(1);
+    // The REASON has to survive, not just the fact of a failure. Asserting only
+    // on the count, or on the "could not answer" prefix, would still pass if the
+    // reason were blanked - which is most of what was wrong before.
+    expect(String(errors[0]!.data.message)).toContain("quota exhausted");
+
+    const stored = await readMessages(server, threadId);
+    expect(stored.map((m) => m.role)).toEqual(["user", "supervisor"]);
+    const answer = stored[1]!;
+
+    // It is recorded as a failure, in the durable thread, with a reason.
+    expect(answer.text).toMatch(/could not answer/i);
+    expect(answer.text).toContain("quota exhausted");
+    // And it never passes itself off as a decision not to speak.
+    expect(answer.text).not.toMatch(/nothing to add/i);
+    expect(answer.text).not.toMatch(/without producing an answer/i);
+    // Not a stop: nobody pressed anything.
+    expect(answer.stopped).toBe(false);
   }, 30_000);
 
   it("stops the provider process and records the turn as stopped", async () => {
