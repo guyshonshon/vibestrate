@@ -37,6 +37,11 @@ Vibestrate is the frame they work inside. One plan, your rules, the gates you ch
   </g>
 </svg>
 
+<video controls preload="none" poster="/media/run-poster.jpg" width="100%" playsinline aria-label="A Vibestrate run reaching merge-ready, then the diff it produced">
+<source src="/media/run-1080.mp4" type="video/mp4" />
+A recorded run: eight steps across five seats, a model that hits a rate limit and falls back to a backup, and the diff it produced.
+</video>
+
 A run works in a separate git worktree on its own branch, so it never edits your working tree. It never pushes and never merges. Every prompt, output, and decision is written under `.vibestrate/runs/`, one folder per run. The run then stops at one of four outcomes and hands the decision back to you:
 
 <div class="docs-outcomes">
