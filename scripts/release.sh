@@ -70,9 +70,27 @@ if ! git diff --quiet -- LICENSES; then
 fi
 
 # ── Bump + tag ────────────────────────────────────────────────────────
+# The gate above ran at the OLD version, and some files are derived from the new
+# one: docs/generated/meta.json stamps it, and the README pins an exact version
+# in its "stop moving" example. Bumping and tagging in one step therefore tagged
+# a tree that failed its own tests/version-single-source.test.ts, and the
+# failure only showed up in CI after the tag was already pushed. Bump the
+# manifest first, resync what derives from it, and only then commit and tag.
 echo "→ Bumping version ($BUMP)…"
-NEW_VERSION="$(npm version "$BUMP" -m "release: v%s")"
+npm version "$BUMP" --no-git-tag-version >/dev/null
+NEW_VERSION="v$(node -p "require('./package.json').version")"
 echo "  → $NEW_VERSION"
+
+echo "→ Resyncing version-derived files…"
+sed -i.bak -E 's/("vibestrate": ")[0-9]+\.[0-9]+\.[0-9]+(")/\1'"${NEW_VERSION#v}"'\2/' README.md && rm -f README.md.bak
+pnpm docs:generate >/dev/null
+
+echo "→ Re-checking the version gate at $NEW_VERSION…"
+npx vitest run tests/version-single-source.test.ts
+
+git add -A
+git commit -q -m "release: $NEW_VERSION"
+git tag -a "$NEW_VERSION" -m "${NEW_VERSION#v}"
 
 echo "→ Pushing main + tag…"
 git push --follow-tags origin main
