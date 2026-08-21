@@ -51,7 +51,7 @@
         "vibe",
         "setup"
       ],
-      "description": "Flowd wizard for provider, validation commands, and run defaults.",
+      "description": "Guided wizard for provider, validation commands, and run defaults.",
       "usage": "[options]",
       "arguments": [],
       "options": [],
@@ -193,7 +193,7 @@
             "provider",
             "setup"
           ],
-          "description": "Flowd provider setup wizard.",
+          "description": "Guided provider setup wizard.",
           "usage": "[options]",
           "arguments": [],
           "options": [],

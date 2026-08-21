@@ -8,6 +8,25 @@
   reproduces every one of them in full, generated from the build's own
   sourcemaps so it lists the code that is actually in the bundle. A library that
   arrives without attribution now fails the build.
+- **Six commands the product told you to run did not exist.** `vibe doctor`
+  named `vibe policies set` in the fix hint for one of its own findings, and the
+  dashboard's CLI hints and the shell's command palette offered
+  `vibe approvals accept`, `vibe notifications gateways`, `vibe tasks comments`,
+  `vibe gateways add` and `vibe validation run`. Each is now the command that
+  actually exists, and the one that named a capability Vibestrate does not have
+  says what happens instead.
+- **The in-shell docs browser listed seven topics that could not open.** The
+  Reference pages are rendered by the website from generated JSON and have no
+  markdown file, so choosing one failed with a raw filesystem error. They are no
+  longer offered, and a test now reads every topic the browser lists rather than
+  one hand-picked slug.
+- **A botched rename reached `vibe --help`.** A global Guide-to-Flow pass
+  rewrote "Guided" into "Flowd" in two command descriptions, which then rode
+  into the generated CLI reference and the documentation the assistant answers
+  from.
+- **The README shows the product instead of a terminal recording**, and the run
+  page's "View diff" moves you to the diff rather than switching a tab far below
+  the fold.
 
 ## 0.2.0
 

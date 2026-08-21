@@ -272,7 +272,7 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "summary": "Inspect, configure, and test local coding-CLI providers.",
       "titleTerms": "provider",
       "terms": "and catalog cli cod coding-cli configur detect dry dry-run forc inspect json list loc provider refresh remov run set setup test vib yes",
-      "body": "```text\nvibe provider - Inspect, configure, and test local coding-CLI providers.\n  vibe provider detect [--json] - Scan PATH for known local coding CLIs (claude/codex/opencode/aider/ollama).\n  vibe provider list [--json] - Show providers configured in this project.\n  vibe provider test [--yes] - Send a tiny no-op prompt to a configured provider and look for the magic token.\n  vibe provider set [--yes] - Assign every default agent to use the given provider.\n  vibe provider setup - Flowd provider setup wizard.\n  vibe provider remove [--yes] - Remove a provider from project.yml (refuses if a role still uses it).\n  vibe provider catalog [--json] - Show the provider capability catalog (built-in + your .vibestrate/providers-catalog.yml overlay).\n  vibe provider refresh [--force --dry-run] - Detect each provider's real models/efforts (codex `debug models` JSON, else --help scraping) and write them to the catalog overlay. Refreshes stale built-in lists; local only.\n```"
+      "body": "```text\nvibe provider - Inspect, configure, and test local coding-CLI providers.\n  vibe provider detect [--json] - Scan PATH for known local coding CLIs (claude/codex/opencode/aider/ollama).\n  vibe provider list [--json] - Show providers configured in this project.\n  vibe provider test [--yes] - Send a tiny no-op prompt to a configured provider and look for the magic token.\n  vibe provider set [--yes] - Assign every default agent to use the given provider.\n  vibe provider setup - Guided provider setup wizard.\n  vibe provider remove [--yes] - Remove a provider from project.yml (refuses if a role still uses it).\n  vibe provider catalog [--json] - Show the provider capability catalog (built-in + your .vibestrate/providers-catalog.yml overlay).\n  vibe provider refresh [--force --dry-run] - Detect each provider's real models/efforts (codex `debug models` JSON, else --help scraping) and write them to the catalog overlay. Refreshes stale built-in lists; local only.\n```"
     },
     {
       "id": "cli/queue",
@@ -349,10 +349,10 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "kind": "cli",
       "title": "vibe setup",
       "source": "CLI reference (generated from the command tree)",
-      "summary": "Flowd wizard for provider, validation commands, and run defaults.",
+      "summary": "Guided wizard for provider, validation commands, and run defaults.",
       "titleTerms": "setup",
-      "terms": "and command default flowd for provider run setup validat vib wizard",
-      "body": "```text\nvibe setup - Flowd wizard for provider, validation commands, and run defaults.\n```"
+      "terms": "and command default for guid provider run setup validat vib wizard",
+      "body": "```text\nvibe setup - Guided wizard for provider, validation commands, and run defaults.\n```"
     },
     {
       "id": "cli/shell",

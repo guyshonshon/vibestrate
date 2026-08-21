@@ -114,7 +114,7 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     ],
     commonCli: [
       "vibe approvals list",
-      "vibe approvals accept <id>",
+      "vibe approvals approve <id>",
       'vibe approvals reject <id> --reason "needs migration"',
     ],
   },

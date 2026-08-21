@@ -173,7 +173,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     cli: "vibe approvals list",
     examples: [
       "vibe approvals show <id>",
-      "vibe approvals accept <id>",
+      "vibe approvals approve <id>",
       'vibe approvals reject <id> --reason "needs migration"',
     ],
     action: { kind: "goto", page: "approvals" },
@@ -200,7 +200,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     description:
       "Recent notifications across runs + the health of each configured gateway (CLI, in-app).",
     cli: "vibe notifications list",
-    examples: ["vibe notifications gateways"],
+    examples: ["vibe gateways list"],
     action: { kind: "goto", page: "notifications" },
   },
   {

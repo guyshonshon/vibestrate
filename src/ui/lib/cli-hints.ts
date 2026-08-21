@@ -116,7 +116,7 @@ export function hintForRoute(route: Route): CliHint {
         commands: [
           { cmd: `vibe tasks show ${route.taskId}`, note: "full task record" },
           { cmd: `vibe tasks report ${route.taskId}`, note: "rendered implementation report" },
-          { cmd: `vibe tasks comments ${route.taskId}`, note: "thread of comments" },
+          { cmd: `vibe tasks comment ${route.taskId}`, note: "thread of comments" },
           { cmd: `vibe tasks queue ${route.taskId}`, note: "enqueue this task for the runner" },
           { cmd: `vibe run --task ${route.taskId} "describe the slice"`, note: "run linked to this task" },
         ],
@@ -153,7 +153,7 @@ export function hintForRoute(route: Route): CliHint {
         blurb: "Inspect or accept a single proposal from the CLI.",
         commands: [
           { cmd: `vibe approvals show ${route.proposalId}`, note: "inspect the diff + metadata" },
-          { cmd: `vibe approvals accept ${route.proposalId}`, note: "accept the proposed change" },
+          { cmd: `vibe approvals approve ${route.proposalId}`, note: "accept the proposed change" },
           { cmd: `vibe approvals reject ${route.proposalId}`, note: "reject with a reason" },
         ],
       };
@@ -167,7 +167,7 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: "vibe provider list", note: "available providers + which CLI is detected" },
           { cmd: "vibe provider test <id>", note: "smoke-test that a provider works" },
           { cmd: "vibe doctor", note: "diagnose environment + config issues" },
-          { cmd: "vibe notifications gateways", note: "configure notification gateways" },
+          { cmd: "vibe gateways list", note: "notification gateways and their status" },
         ],
       };
     case "policies":
@@ -253,7 +253,7 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: "vibe bundles list", note: "validation bundles per run" },
           { cmd: "vibe bundles apply <bundleId>", note: "apply a bundle to the project root" },
           { cmd: "vibe bundles revert <bundleId>", note: "revert a previously applied bundle" },
-          { cmd: "vibe validation run", note: "execute the validation profile" },
+          { cmd: "vibe validation profile show", note: "the commands a profile runs" },
         ],
       };
     case "git":
@@ -265,7 +265,7 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: "vibe bundles list", note: "validation bundles per run" },
           { cmd: "vibe bundles apply <bundleId>", note: "apply a bundle to the project root" },
           { cmd: "vibe bundles revert <bundleId>", note: "revert a previously applied bundle" },
-          { cmd: "vibe validation run", note: "execute the validation profile" },
+          { cmd: "vibe validation profile show", note: "the commands a profile runs" },
         ],
       };
     case "git-tree":

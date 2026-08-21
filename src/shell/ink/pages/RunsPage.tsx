@@ -573,9 +573,8 @@ function ValidationSection({
   if (valEvents.length === 0) {
     return (
       <Text dimColor>
-        no validation events yet - they appear after{" "}
-        <Text color="cyan">vibe validation run</Text> or a post-apply
-        validate.
+        no validation events yet - they appear after a run reaches its
+        validate step, or after a post-apply validate.
       </Text>
     );
   }

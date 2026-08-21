@@ -747,7 +747,7 @@ export async function runDoctor(input: {
       "Merging to main always takes an explicit human confirmation regardless; this policy is what the supervisor and the merge gate are told.",
     fixHint: loaded.config.policies.forbidAutoMerge
       ? undefined
-      : "Run `vibe policies set forbidAutoMerge true` to declare the posture the code already enforces.",
+      : "Run `vibe config set policies.forbidAutoMerge true` to declare the posture the code already enforces.",
     fixable: false,
   });
 

@@ -178,7 +178,7 @@ export function buildVibestrateProgram(): Command {
 
   program
     .command("setup")
-    .description("Flowd wizard for provider, validation commands, and run defaults.")
+    .description("Guided wizard for provider, validation commands, and run defaults.")
     .action(async () => {
       const code = await runSetupCommand();
       process.exit(code);

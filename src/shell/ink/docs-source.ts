@@ -37,7 +37,10 @@ async function contentDir(): Promise<string> {
 }
 
 type Nav = {
-  sections?: Array<{ label: string; items?: Array<{ slug: string; label: string }> }>;
+  sections?: Array<{
+    label: string;
+    items?: Array<{ slug: string; label: string; generated?: boolean }>;
+  }>;
 };
 
 /** The ordered, labelled topic list from `_nav.json`. Throws if docs aren't
@@ -48,6 +51,11 @@ export async function listDocs(): Promise<DocTopic[]> {
   const topics: DocTopic[] = [];
   for (const sec of nav.sections ?? []) {
     for (const it of sec.items ?? []) {
+      // A `generated` entry is rendered by the website from docs/generated/*.json
+      // and has no markdown file, here or in the published package. Listing one
+      // offered a topic that could only fail: readDoc would ENOENT and the shell
+      // printed the raw absolute path at the reader.
+      if (it.generated) continue;
       topics.push({ slug: it.slug, label: it.label, section: sec.label });
     }
   }
