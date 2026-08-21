@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1
 
 - **The dashboard bundle now carries its licences.** Vibestrate ships the
   dashboard pre-built, which inlines about sixty third-party libraries and
