@@ -8,6 +8,7 @@ import { color, header, indent, isInteractiveTTY, symbol } from "../ui/format.js
 import { runInteractiveSetupWizard } from "../wizards/setup-wizard.js";
 import { isVibestrateError } from "../../utils/errors.js";
 import { runLearn } from "./learn.js";
+import { scaffoldedProviderInvocation } from "../../project/init-template.js";
 
 export type InitCommandOptions = {
   force?: boolean;
@@ -120,9 +121,11 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
         )}${plan.recommendedProvider.version ? ` (v${plan.recommendedProvider.version})` : ""}`,
       ),
     );
+    // Read from the same helper the generated project.yml is rendered from,
+    // so this line cannot claim an invocation that was not written.
     console.log(
       indent(
-        `Default agents will use: ${color.bold(`${plan.recommendedProvider.command} -p`)}`,
+        `Default agents will use: ${color.bold(scaffoldedProviderInvocation(plan))}`,
       ),
     );
   } else {

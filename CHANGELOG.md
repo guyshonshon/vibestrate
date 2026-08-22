@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- **`vibe init --yes` writes the provider it actually found.** The
+  non-interactive path hardcoded `claude` in both branches of its config
+  renderer, so a machine whose only installed CLI was codex was told "Codex CLI
+  detected" and handed a `project.yml` naming a binary that is not on PATH. The
+  first `vibe run` then failed for a reason the output had actively misdirected
+  about. The scaffolded provider now comes from the same preset table that
+  `vibe doctor --fix` and the setup wizard already use, so codex gets `exec`,
+  gemini gets no args, and aider gets its one-shot `--message` form with the
+  prompt as an argument rather than on stdin. The "Default agents will use:"
+  line is rendered from that same source, which is what stops it claiming an
+  invocation nobody wrote. With no CLI detected the placeholder stays `claude`,
+  which is what doctor then tells you to fix. Claude is still scaffolded as
+  `type: cli`: switching it to `claude-code` is what grants a write seat
+  `--permission-mode acceptEdits`, and that stays a decision you make rather
+  than one init makes for you.
+
+- **`vibe doctor` names your project type the way `vibe init` does.** It printed
+  the raw internal value (`node`) where init printed `Node.js`.
+
 - **A review can now stand itself down when the change never touched its
   subject.** `skipWhen` understood one condition - "the diff is prose" - and
   only worked in linear flows, so a derived flow (always a graph) could not use

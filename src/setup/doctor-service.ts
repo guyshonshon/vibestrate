@@ -46,7 +46,10 @@ import {
   loadRolePrompt,
 } from "../project/config-loader.js";
 import { rulesetWarnings } from "../project/project-rules.js";
-import { detectFullProject } from "../project/project-detector.js";
+import {
+  detectFullProject,
+  describeProjectType,
+} from "../project/project-detector.js";
 import { isWindows } from "../utils/platform.js";
 import {
   detectAllProviders,
@@ -244,7 +247,7 @@ export async function runDoctor(input: {
   findings.push({
     id: "project-detected",
     severity: "ok",
-    title: `Project detected: ${project.name} (${project.projectType}, ${project.packageManager})`,
+    title: `Project detected: ${project.name} (${describeProjectType(project.projectType)}, ${project.packageManager})`,
     fixable: false,
   });
 

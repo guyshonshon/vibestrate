@@ -191,7 +191,7 @@ Vibestrate Doctor v0.2.1
   /home/you/acme-api
 ✓ .vibestrate/project.yml is present
 ✓ Project config is valid
-✓ Project detected: acme-api (node, pnpm)
+✓ Project detected: acme-api (Node.js, pnpm)
 ✓ Provider "claude" is available (claude)
 ✓ All roles resolve to valid providers
 ✓ All agents have prompt files

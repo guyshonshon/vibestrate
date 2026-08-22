@@ -31,6 +31,8 @@ import {
   readDefaultPrompt,
 } from "../agents/default-roles.js";
 import { defaultProjectName } from "./project-detector.js";
+import { PROVIDER_PRESETS } from "../providers/provider-presets.js";
+import type { KnownProviderId } from "../providers/provider-detection.js";
 import type { SetupPlan } from "../setup/setup-service.js";
 
 const RULES_TEMPLATE = `# Project Instructions for Vibestrate
@@ -179,37 +181,73 @@ function renderValidationYaml(commands: readonly string[]): string {
 ${list}`;
 }
 
+/** The provider entry `vibe init` scaffolds into a fresh `project.yml`. */
+export type ScaffoldedProvider = {
+  id: KnownProviderId;
+  command: string;
+  args: string[];
+  input: "stdin" | "arg";
+};
+
+/**
+ * The single answer to "which provider does a fresh `project.yml` get?".
+ *
+ * `pickRecommendedProvider` only ever returns a preset-ready CLI, so the
+ * recommended id always has an entry in `PROVIDER_PRESETS` - that entry is
+ * where `args`/`input` come from, rather than being retyped here. Init used to
+ * hardcode `claude` in BOTH branches, so a machine whose only CLI was codex
+ * got told "codex detected" and handed a config pointing at a binary it did
+ * not have.
+ *
+ * With nothing detected the fallback stays `claude`, matching
+ * `SetupPlan.defaultProviderId`: the schema needs a provider, doctor warns
+ * that it is not on PATH, and `vibe provider setup` swaps it.
+ *
+ * Every scaffolded provider is written as `type: cli`, including claude, whose
+ * canonical preset is `type: claude-code`. That is deliberate and documented
+ * (docs/content/getting-started/quickstart.md): `claude-code` is what grants a
+ * write seat `--permission-mode acceptEdits`, and handing a fresh project
+ * write permission by default is an opt-in the user makes, not something init
+ * decides for them.
+ *
+ * Both the YAML writer and init's "Default agents will use:" line read this,
+ * so what is printed cannot drift from what is written.
+ */
+export function scaffoldedProvider(plan: SetupPlan | null): ScaffoldedProvider {
+  const recommended = plan?.recommendedProvider ?? null;
+  const id: KnownProviderId = recommended?.id ?? "claude";
+  const { preset } = PROVIDER_PRESETS[id];
+  return {
+    id,
+    command: recommended?.command || preset.command,
+    args: [...preset.args],
+    input: preset.input,
+  };
+}
+
+/** How that provider is invoked, for display (`codex exec`, `claude -p`). */
+export function scaffoldedProviderInvocation(plan: SetupPlan | null): string {
+  const p = scaffoldedProvider(plan);
+  return [p.command, ...p.args].join(" ");
+}
+
 function renderProvidersYaml(input: SetupPlan | null): {
   section: string;
   defaultRef: string;
 } {
-  // If recommended provider is Claude → ship a verified preset.
-  if (input?.recommendedProvider && input.recommendedProvider.id === "claude") {
-    const cmd = input.recommendedProvider.command || "claude";
-    return {
-      section: `providers:
-  claude:
-    type: cli
-    command: ${cmd}
-    args:
-      - "-p"
-    input: stdin`,
-      defaultRef: "claude",
-    };
-  }
-
-  // Otherwise, leave a placeholder claude provider so the schema validates;
-  // doctor will warn if the command is not on PATH and `vibe provider setup`
-  // can swap it.
+  const p = scaffoldedProvider(input);
+  const args =
+    p.args.length === 0
+      ? "    args: []"
+      : `    args:\n${p.args.map((a) => `      - "${yamlQuote(a)}"`).join("\n")}`;
   return {
     section: `providers:
-  claude:
+  ${p.id}:
     type: cli
-    command: claude
-    args:
-      - "-p"
-    input: stdin`,
-    defaultRef: "claude",
+    command: "${yamlQuote(p.command)}"
+${args}
+    input: ${p.input}`,
+    defaultRef: p.id,
   };
 }
 
