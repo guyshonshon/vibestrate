@@ -1,22 +1,22 @@
 ---
 title: Keep a change (Git and merging)
-description: What Git is in one minute, and how to take a finished run from its safe copy into your real project.
+description: Git in one minute, and how to move a finished change from the run's copy into your real project.
 slug: getting-started/merging
 ---
 
-A run never edits your project folder. It works in its own copy - a git worktree under `../.vibestrate-worktrees/`, on a branch named `vibestrate/` plus the run id - and stops at `merge_ready` with the change waiting on that branch. Folding it into `main` is the one step Vibestrate always leaves to you. New to Git? Start with the next section. Otherwise skip ahead to taking the change.
+A run never edits your project folder. It works in its own copy - a git worktree under `../.vibestrate-worktrees/`, on a branch named `vibestrate/` plus the run id - and it stops at `merge_ready` with the change waiting on that branch. Folding it into `main` is the one step Vibestrate always leaves to you. If Git is new to you, read the next section. Otherwise skip ahead to taking the change.
 
 ## Git in one minute
 
-Three ideas are all you need.
+Three ideas cover it.
 
 <div class="docs-cards">
 
-**A branch** is a parallel line of work. Your real code lives on a branch, usually `main`. A new change can grow on its own branch without disturbing `main`, until you decide to combine them.
+**A branch** is a parallel line of work. Your real code sits on a branch, usually `main`. A new change can grow on its own branch without disturbing `main`, until you decide to combine them.
 
-**A worktree** is a separate folder checked out to a branch. Every run gets its own, so the agent edits files there rather than in your project folder.
+**A worktree** is a second folder checked out to a branch. Every run gets one, so the agent edits files there instead of in your project folder.
 
-**A merge** is folding one branch into another. Merging the run's branch into `main` is how a finished change becomes part of your project.
+**A merge** folds one branch into another. Merging the run's branch into `main` is how a finished change becomes part of your project.
 
 </div>
 
@@ -24,24 +24,24 @@ Run ids are short docker-style handles like `bold-lovelace`, so that run's branc
 
 ## Look at what changed
 
-From the run's worktree, see every line it touched:
+Open the run's copy and read every line it touched:
 
 ```bash
 cd ../.vibestrate-worktrees/<runId>
 git diff main
 ```
 
-Or open the **Source** page in [Mission Control](/docs/cli/dashboard), on its **Changes** tab, which shows the same diff file by file.
+Or open the **Source** page in [Mission Control](/docs/cli/dashboard) and pick its **Changes** tab, which shows you the same diff file by file.
 
 ## Ask the merge advisor
 
-You don't have to judge the risk alone:
+You don't have to judge the risk on your own:
 
 ```bash
 vibe integrate advise <runId>
 ```
 
-It reports risk flags first - did your checks actually run, does the change touch protected files - then a dry-run conflict report, then one of three recommendations:
+It leads with risk flags - did your checks run at all, does the change touch protected files - then a dry-run conflict report, then one of three recommendations:
 
 <svg viewBox="0 0 560 132" width="100%" style="max-width:560px;height:auto" role="img" aria-label="vibe integrate advise ends on one of three recommendations: finish now, stage on an integration branch, or resolve conflicts first.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -70,7 +70,7 @@ It reports risk flags first - did your checks actually run, does the change touc
   </g>
 </svg>
 
-Nothing is merged and no branch is touched. The same view is the Source page's **Merge** tab.
+It merges nothing and touches no branch. The Source page's **Merge** tab shows you the same thing.
 
 ## Take the change
 
@@ -86,15 +86,15 @@ git checkout main
 git merge --ff-only vibestrate/<runId>
 ```
 
-To throw the change away, ignore the branch. Nothing ever reached `main`.
+To throw the change away, leave the branch alone. Nothing ever reached `main`.
 
-## Why is merging always manual?
+## Merging is always your call
 
-Merging is the point of commitment - it joins your shared history and can ship from there. You can revert a bad merge, but only after the wrong code was already trusted and built on. A model that cannot fully vouch for its own work is the wrong thing to make that call for you. See [the safety guarantees](/docs/concepts/safety) for the rule.
+Merging is the moment you commit to the change. It joins your shared history, and you can ship from there. You can revert a bad merge, but only after the wrong code was already trusted and built on. No model can vouch for its own work well enough to make that call for you. See [the safety guarantees](/docs/concepts/safety) for the rule.
 
-Is the advisor just another AI opinion, then? No. `vibe integrate advise` is **deterministic**: it reports git facts and computes the recommendation from them, so the same inputs always give the same advice, and no [supervisor](/docs/concepts/supervisor) persona colors it.
+`vibe integrate advise` is **deterministic**: it reports git facts and computes the recommendation from them, so the same inputs always give the same advice, and no [supervisor](/docs/concepts/supervisor) persona colors it.
 
-A model only enters when you ask for the deeper read with `vibe integrate analyze`. That sends the run's redacted diff to a provider to look for risks a textual check cannot see, like concurrency, error handling, or missing tests. It is advisory prose only: it never merges, never pushes, and can never change the advisor's recommendation or risk flags.
+A model only enters when you ask for the deeper read with `vibe integrate analyze`. That sends the run's redacted diff to a provider to look for risks a text check can't see, like concurrency or missing tests. It's advisory prose only: it never merges, never pushes, and can't change the advisor's recommendation or risk flags.
 
 ## Keep going
 

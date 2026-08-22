@@ -1,14 +1,14 @@
 ---
 title: Attach skills
-description: A short note you hand an agent so it knows your codebase's rules before it starts.
+description: A markdown note that carries your project's rules into an agent's prompt on every run.
 slug: getting-started/skills
 ---
 
-A **skill** is a markdown note that gets added to an agent's instructions before it starts work. Write it into `.vibestrate/skills/`, attach it to a role with `vibe skills assign`, and every run that seats that role reads it. It's how you teach an agent something about your project - how login works, the conventions you actually follow - once, instead of retyping it into every task. Think of it as the briefing you'd give a new contractor on their first day.
+A **skill** is a markdown note that Vibestrate pastes into an agent's prompt before it starts work. Write it into `.vibestrate/skills/`, attach it to a role with `vibe skills assign`, and every run that seats that role reads it. You teach an agent something about your project once - how login works, which conventions your team keeps to - instead of retyping it into every task. It's the briefing you'd hand a new contractor on their first day.
 
 ## Write one
 
-A skill is a markdown file, in either of two shapes:
+One skill is one markdown file, and it can sit on disk in two shapes:
 
 <svg viewBox="0 0 560 152" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A skill lives under .vibestrate/skills/, as either a flat markdown file or a folder holding SKILL.md, and only the folder shape can carry a sibling .mcp.json. The .claude/skills/ folder is read as well.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -43,9 +43,9 @@ A skill is a markdown file, in either of two shapes:
   </g>
 </svg>
 
-Both of those are the skill `auth-conventions` - the name comes from the file stem or the folder name, unless a `name:` in frontmatter says otherwise. Vibestrate reads two roots: `.vibestrate/skills/`, which travels with your repo so anyone who clones it gets the skill, and `.claude/skills/`, picked up automatically if you already use Claude Code's skills. Only the folder shape can carry a sibling `.mcp.json`; attaching such a skill attaches its MCP servers too.
+Both of those give you a skill named `auth-conventions`. The name comes from the file stem or the folder name, unless a `name:` line in the frontmatter says otherwise. Vibestrate looks in two places: `.vibestrate/skills/`, which travels with your repo so anyone who clones it gets the skill, and `.claude/skills/`, which it reads too if you already keep skills for Claude Code. Only the folder shape can sit next to an `.mcp.json`, the file that points an agent at an outside tool. Attach a skill like that and the agent gets those tools too.
 
-Inside, write plain prose. Agents read it the way a person would:
+Inside, write plain prose. An agent reads it the way you would:
 
 ```markdown
 This codebase uses Lucia for sessions.
@@ -61,7 +61,7 @@ When touching auth:
 
 ## Hand it to an agent
 
-See what you have, then attach one to a role:
+See what Vibestrate found, then attach one to a role:
 
 ```bash
 vibe skills list
@@ -70,7 +70,7 @@ vibe skills assign planner auth-conventions
 vibe skills unassign planner auth-conventions
 ```
 
-`assign` writes the id into that role's `skills` list in `.vibestrate/project.yml`, at `crews.<crewId>.roles.<roleId>.skills`. You can edit the list by hand instead - it sits alongside the role's other keys, which must all stay present:
+`assign` writes the id into that role's `skills` list in `.vibestrate/project.yml`, at `crews.<crewId>.roles.<roleId>.skills`. You can edit that list by hand instead. It sits alongside the role's other keys, and all of those have to stay:
 
 ```yaml
 crews:
@@ -84,7 +84,7 @@ crews:
         skills: [auth-conventions, error-handling]
 ```
 
-Or attach skills for a single run. These are merged with whatever each agent already has, never a replacement:
+Or attach a skill for one run only. Vibestrate merges whatever you pass here with what each agent already has, never replacing it:
 
 ```bash
 vibe run "Add 2FA enrollment" \
@@ -96,13 +96,13 @@ vibe run "Add 2FA enrollment" \
 <div class="docs-cards">
 
 **Write one when**
-You keep typing the same context into task after task. The agent keeps making the same wrong guess that you have to correct. There's a rule that isn't written down anywhere else in the project.
+You keep pasting the same context into task after task. The agent keeps making the same wrong guess and you keep correcting it. A rule your team follows isn't written down anywhere else.
 
 **Skip it when**
-It belongs in `.vibestrate/rules.md`, the project instructions every agent reads on every turn. It's a one-off, so just say it in the task description. It's about one file, where a comment in that file works better.
+It belongs in `.vibestrate/rules.md`, the house rules every agent reads on every turn. It's a one-off, so say it in the task description. It's about a single file, where a comment in that file does the job better.
 
 </div>
 
 ## Going deeper
 
-- [Skill discovery and schema reference](/docs/extending/add-skill) - the full folder layout and any optional metadata.
+- [Skill discovery and schema reference](/docs/extending/add-skill) - the full folder layout and the optional metadata.

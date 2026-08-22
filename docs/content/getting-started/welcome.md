@@ -1,25 +1,25 @@
 ---
 title: The guided walkthrough
-description: A resumable, skippable tour through providers, crew, flows, and your first run.
+description: A four-step tour of providers, crew, flows and your first run that you can skip or quit and pick up later.
 slug: getting-started/welcome
 ---
 
-`vibe welcome` walks you through setup in four steps - providers, crew, flows, your first run - and remembers where you stopped, so you can quit and pick it up later. Every step is skippable, and `--reset` starts the tour over. It needs an interactive terminal: in a script or CI it prints the equivalent commands and exits without changing anything.
+`vibe welcome` sets you up in four steps: providers, crew, flows, then your first run. Quit halfway and it picks up where you stopped. You can skip any step, and `--reset` starts the tour over. It asks you questions, so it needs a real terminal. In a script or in CI it prints the commands to run by hand and exits without touching anything.
 
 ```bash
 vibe welcome
 ```
 
-It is the guided version of the setup you would otherwise do by hand. Nothing here does anything new - it's a thin sequencer over `vibe provider setup`, the crew presets, and the same commands documented elsewhere in these pages.
+It's the guided version of the setup you'd otherwise do by hand, built on the same pieces: `vibe provider setup`, the crew presets, and the commands the rest of these pages cover.
 
-## What it walks through
+## The four steps
 
-- **Providers** - pick the coding CLI behind the work; reuses `vibe provider setup`.
-- **Crew** - optionally install a ready-made crew (Fast, Thorough, Cheap, or Local), or skip and build your own later.
-- **Flows** - how to list the flows you already have, and how to install more from the flows hub.
-- **Your first run** - a worked task to try next.
+- **Providers** - the coding CLI that runs the model doing the work, such as Claude Code or Ollama. This step runs `vibe provider setup` for you.
+- **Crew** - your team of AI workers. Install a ready-made one (Fast, Thorough, Cheap, or Local), or skip and build your own later.
+- **Flows** - a flow is the ordered list of steps a run works through. You'll see how to list the flows you already have, and how to install more from the flows hub, a shared collection you can browse.
+- **Your first run** - a small task to try next.
 
-Each step opens with a short explanation, then asks: continue, skip, or quit. Nothing is forced - skip anything you already know.
+Each step opens with a short explanation, then asks whether to continue, skip, or quit. Skip anything you already know.
 
 ## It remembers where you left off
 
@@ -49,7 +49,7 @@ Quit partway through and `vibe welcome` picks up at the first step you haven't f
   </g>
 </svg>
 
-Progress is saved to `.vibestrate/welcome-state.json` - a small, disposable file that only tracks which steps you've been through. Deleting it, or running `--reset`, never touches your provider, crew, or flow configuration. Those changes live in `project.yml` as usual, and stay put.
+Your progress lives in `.vibestrate/welcome-state.json`, a small file that records which steps you've been through and nothing else. Delete it, or run `--reset`, and your providers, crew, and flows stay as they are. Those settings live in `project.yml`.
 
 ```bash
 vibe welcome --reset
@@ -57,14 +57,14 @@ vibe welcome --reset
 
 ## If you're not initialized yet
 
-The tour offers to run `vibe init` for you when the project has not been set up. Decline it and the tour stops, leaving you the two commands to run yourself:
+The tour offers to run `vibe init` for you when the project isn't set up yet. Say no and the tour stops there, leaving you two commands to run yourself:
 
 ```bash
 vibe init
 vibe welcome
 ```
 
-## Where to go from here
+## From here
 
 The last step hands you a real task to try:
 
@@ -73,7 +73,7 @@ vibe run "Add structured logging to the \
 settings save handler"
 ```
 
-From there, three ways to work with Vibestrate day to day:
+After that, you have three ways to work with Vibestrate day to day:
 
 <div class="docs-flow">
 

@@ -21,6 +21,32 @@
       ]
     },
     {
+      "id": "getting-started",
+      "label": "Getting started",
+      "items": [
+        {
+          "slug": "getting-started/welcome",
+          "label": "The guided walkthrough"
+        },
+        {
+          "slug": "getting-started/first-run",
+          "label": "Your first run"
+        },
+        {
+          "slug": "getting-started/merging",
+          "label": "Keep a change (Git & merging)"
+        },
+        {
+          "slug": "getting-started/providers",
+          "label": "Set up a provider"
+        },
+        {
+          "slug": "getting-started/skills",
+          "label": "Attach skills"
+        }
+      ]
+    },
+    {
       "id": "at-a-glance",
       "label": "At a glance",
       "items": [
@@ -71,32 +97,6 @@
         {
           "slug": "concepts/supervised-tasks",
           "label": "Supervised tasks"
-        }
-      ]
-    },
-    {
-      "id": "getting-started",
-      "label": "Getting started",
-      "items": [
-        {
-          "slug": "getting-started/welcome",
-          "label": "The guided walkthrough"
-        },
-        {
-          "slug": "getting-started/first-run",
-          "label": "Your first run"
-        },
-        {
-          "slug": "getting-started/merging",
-          "label": "Keep a change (Git & merging)"
-        },
-        {
-          "slug": "getting-started/providers",
-          "label": "Set up a provider"
-        },
-        {
-          "slug": "getting-started/skills",
-          "label": "Attach skills"
         }
       ]
     },
