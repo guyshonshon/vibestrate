@@ -150,6 +150,8 @@ export type RunCommandOptions = {
   flowContextPolicy?: FlowContextPolicy;
   /** Optional Flow steps explicitly disabled for this run. */
   flowSkippedOptionalSteps?: string[];
+  /** Steps to run even when their condition would stand them down. */
+  flowForcedSteps?: string[];
   /** Open the terminal Flow setup flow before resolving the run. */
   flowInteractive?: boolean;
   /** Rewind: fork from a prior run, reusing its upstream artifacts and
@@ -705,6 +707,7 @@ export async function runRunCommand(
   }
 
   const orchestrator = new Orchestrator({
+    forcedSteps: options.flowForcedSteps ?? [],
     projectRoot: detected.projectRoot,
     config: loaded.config,
     rules: loaded.rules,

@@ -358,7 +358,7 @@ describe("skipWhen schema validation", () => {
     expect(r.success).toBe(false);
   });
 
-  it("rejects skipWhen in a graph flow", () => {
+  it("ACCEPTS skipWhen in a graph flow - the frontier evaluates conditions now", () => {
     const r = flowDefinitionSchema.safeParse({
       ...okBase,
       steps: [
@@ -373,6 +373,9 @@ describe("skipWhen schema validation", () => {
         },
       ],
     });
-    expect(r.success).toBe(false);
+    // The linear-only limit was an implementation gap (the graph frontier had no
+    // condition evaluation), not a safety property. It is evaluated there now,
+    // and a derived flow - always a graph - is the main consumer.
+    expect(r.success).toBe(true);
   });
 });

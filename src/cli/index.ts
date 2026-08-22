@@ -306,6 +306,12 @@ export function buildVibestrateProgram(): Command {
       "Flow context policy (balanced|compact|artifact-heavy).",
     )
     .option(
+      "--flow-force <step>",
+      "run a Flow step even when its condition would stand it down (e.g. --flow-force review-authz). Repeat for multiple steps. Only ever ADDS work back - there is no inverse that disarms a review.",
+      collectFlowStep,
+      [],
+    )
+    .option(
       "--flow-skip <step>",
       "skip an optional Flow step for this run. Repeat for multiple steps.",
       collectFlowStep,
@@ -371,6 +377,7 @@ export function buildVibestrateProgram(): Command {
           flowBrief?: string;
           flowContext?: string;
           flowSkip?: string[];
+          flowForce?: string[];
           param?: Record<string, string>;
           interactive?: boolean;
           resumeFrom?: string;
@@ -501,6 +508,7 @@ export function buildVibestrateProgram(): Command {
           flowBrief: opts.flowBrief ?? null,
           flowContextPolicy,
           flowSkippedOptionalSteps: opts.flowSkip ?? [],
+          flowForcedSteps: opts.flowForce ?? [],
           flowInteractive: opts.interactive ?? false,
           resumeFromRunId: opts.resumeFrom ?? null,
           resumeStage,

@@ -205,6 +205,7 @@ import {
   composeReviewerStepNotes,
 } from "../supervisor/review-lenses.js";
 import { drainGuidanceFor } from "./run/guidance-service.js";
+import { evaluateStepSkip } from "./run/step-gate.js";
 import {
   renderPolicyAdviseBlock,
   renderPolicyComplyBlock,
@@ -414,6 +415,10 @@ export class Orchestrator {
   /** The architect's declared path scope, rendered for code-writing turns.
    *  Populated mid-run, once the architecture step has produced its handoff. */
   private scopeBlock: string | null = null;
+  /** Steps the owner forced ON with --flow-force. A forced step always runs,
+   *  whatever its condition says. There is deliberately no inverse that could
+   *  disarm a review the condition wanted to keep. */
+  private forcedStepIds: ReadonlySet<string>;
   /** Pre-rendered ponytail minimalism block (ponytail-posture.ts), computed once
    *  at run start from `config.ponytail` and appended to code-WRITING turns only
    *  (implementer/fixer). null = the knob is off (write turns unchanged). */
@@ -463,6 +468,7 @@ export class Orchestrator {
     this.profileOverride = input.profileOverride ?? null;
     this.stepProfileOverrides = input.stepProfileOverrides ?? {};
     this.seatRoleOverrides = input.seatRoleOverrides ?? {};
+    this.forcedStepIds = new Set(input.forcedSteps ?? []);
     this.readOnly = input.readOnly ?? false;
     this.unattended = input.unattended ?? false;
     this.runtimeSkills = Array.from(new Set(input.runtimeSkills ?? []));
@@ -2093,14 +2099,57 @@ export class Orchestrator {
         );
       }
 
-      // Skip disabled / read-only-skipped ready steps first, marking them done
-      // so their dependents can proceed.
+      // Deterministic condition descent, evaluated HERE on the frontier so a
+      // graph flow gets it too - the linear walk had its own inline check and
+      // the frontier had none, which is why a derived flow (always a graph)
+      // could not use conditions at all. A checking step whose subject the diff
+      // never touched is a turn spent confirming an absence.
+      //
+      // Skipping needs positive evidence: an unreadable diff, a read-only run
+      // or an owner `--flow-force` all run the step (step-gate.ts).
+      const conditionSkips = new Map<string, { reason: string; files: string[]; message: string }>();
+      for (const s of ready) {
+        if (!s.skipWhen) continue;
+        const gate = await evaluateStepSkip({
+          step: s,
+          worktreePath: input.worktreePath,
+          projectRoot: this.projectRoot,
+          readOnly: this.readOnly,
+          policies: this.config.policies,
+          forcedStepIds: this.forcedStepIds,
+        });
+        if (gate.skip) {
+          conditionSkips.set(s.id, {
+            reason: gate.reason,
+            files: gate.files,
+            message: gate.message,
+          });
+        }
+      }
+
+      // Skip disabled / read-only-skipped / condition-skipped ready steps first,
+      // marking them done so their dependents can proceed.
       const skips = ready.filter(
-        (s) => !s.enabled || (this.readOnly && s.skipWhenReadOnly),
+        (s) => !s.enabled || (this.readOnly && s.skipWhenReadOnly) || conditionSkips.has(s.id),
       );
       if (skips.length > 0) {
         for (const step of skips) {
           const readOnlySkip = this.readOnly && step.skipWhenReadOnly;
+          const condition = conditionSkips.get(step.id);
+          if (condition) {
+            // Only a skipped REVIEW records review evidence. A skipped verify
+            // has no standing to satisfy the review requirement.
+            if (step.kind === "review-turn") {
+              state = {
+                ...state,
+                reviewSkipped: {
+                  reason: condition.reason,
+                  stepId: step.id,
+                  files: condition.files,
+                },
+              };
+            }
+          }
           state = patchFlowStep(
             state,
             step.id,
@@ -2110,13 +2159,16 @@ export class Orchestrator {
           await input.stateStore.write(state);
           await input.eventLog.append({
             type: "flow.step.skipped",
-            message: readOnlySkip
-              ? `Flow step ${step.id} skipped (read-only run).`
-              : `Flow step ${step.id} skipped.`,
+            message: condition
+              ? `Flow step ${step.id} skipped on diff evidence: ${condition.message}.`
+              : readOnlySkip
+                ? `Flow step ${step.id} skipped (read-only run).`
+                : `Flow step ${step.id} skipped.`,
             data: {
               flowId: snapshot.flowId,
               stepId: step.id,
               readOnly: readOnlySkip,
+              ...(condition ? { reason: condition.reason, files: condition.files } : {}),
             },
           });
           processed.add(step.id);

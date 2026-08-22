@@ -114,7 +114,12 @@ describe("skipWhen on a summary-turn", () => {
         },
       }).success,
     ).toBe(false);
-    // Graph flow (any `needs`).
+  });
+
+  it("ACCEPTS skipWhen in a graph flow - the linear-only limit was an implementation gap", () => {
+    // The frontier had no condition evaluation, so `needs` was rejected rather
+    // than supported. It is evaluated there now (step-gate.ts), and a derived
+    // flow - which is always a graph - is the main consumer.
     expect(
       flowDefinitionSchema.safeParse({
         ...okBase,
@@ -127,6 +132,43 @@ describe("skipWhen on a summary-turn", () => {
             seat: "verifier",
             needs: ["impl"],
             skipWhen: "inert_diff",
+          },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("accepts the widened condition vocabulary on a checking step", () => {
+    const parsed = flowDefinitionSchema.safeParse({
+      ...okBase,
+      steps: [
+        { id: "impl", label: "I", kind: "agent-turn", seat: "implementer" },
+        {
+          id: "review",
+          label: "R",
+          kind: "review-turn",
+          seat: "reviewer",
+          needs: ["impl"],
+          skipWhen: "no_auth_surface",
+        },
+      ],
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("still refuses a condition on a step that PRODUCES the diff", () => {
+    // Circular: skipping a producing step on diff evidence judges it by output
+    // it has not written yet.
+    expect(
+      flowDefinitionSchema.safeParse({
+        ...okBase,
+        steps: [
+          {
+            id: "impl",
+            label: "I",
+            kind: "agent-turn",
+            seat: "implementer",
+            skipWhen: "no_auth_surface",
           },
         ],
       }).success,

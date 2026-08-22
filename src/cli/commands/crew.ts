@@ -357,7 +357,7 @@ export function buildCrewCommand(): Command {
     );
   const presets = cmd
     .command("presets")
-    .description("Ready-made crews (fast / thorough) tuned by provider effort.");
+    .description("Ready-made crews (fast / thorough / cheap / local) tuned by provider effort.");
   presets
     .command("list", { isDefault: true })
     .description("List available presets and whether they're installed.")

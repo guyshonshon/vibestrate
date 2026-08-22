@@ -1720,7 +1720,7 @@
             "crew",
             "presets"
           ],
-          "description": "Ready-made crews (fast / thorough) tuned by provider effort.",
+          "description": "Ready-made crews (fast / thorough / cheap / local) tuned by provider effort.",
           "usage": "[options] [command]",
           "arguments": [],
           "options": [],
@@ -6748,6 +6748,14 @@
         {
           "flags": "--flow-context <policy>",
           "description": "Flow context policy (balanced|compact|artifact-heavy).",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--flow-force <step>",
+          "description": "run a Flow step even when its condition would stand it down (e.g. --flow-force review-authz). Repeat for multiple steps. Only ever ADDS work back - there is no inverse that disarms a review.",
+          "defaultValue": "[]",
           "required": true,
           "optional": false,
           "negated": false

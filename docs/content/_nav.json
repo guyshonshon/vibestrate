@@ -105,6 +105,10 @@
         {
           "slug": "concepts/supervised-tasks",
           "label": "Supervised tasks"
+        },
+        {
+          "slug": "concepts/derived-flows",
+          "label": "Derived flows"
         }
       ]
     },

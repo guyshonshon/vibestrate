@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **A review can now stand itself down when the change never touched its
+  subject.** `skipWhen` understood one condition - "the diff is prose" - and
+  only worked in linear flows, so a derived flow (always a graph) could not use
+  it at all. It now understands whether the run's real diff shows an auth
+  surface, caller-supplied input reaching a sink, a schema change, a change to
+  the rendered surface, or a dependency change, and the graph frontier evaluates
+  it too. Derived flows attach the right condition to each lens automatically, so
+  tagging a unit `auth` speculatively costs nothing when the finished code turns
+  out not to decide who may act. Correctness never stands down - there is no diff
+  safe to leave unread. Skipping requires positive evidence of absence: an
+  unreadable diff, an empty change set or a read-only run all run the step, so a
+  wrong call can only ever cause more review. `--flow-force <step>` runs a step
+  whatever its condition says; there is deliberately no inverse, because a lever
+  that turns reviews off is a hole rather than a control.
+
 - **`vibe flows derive` builds a flow around the task instead of picking one off
   the shelf.** A shaping turn decomposes the work - units, what depends on what,
   and what each unit is risky about from a closed tag set - and deterministic

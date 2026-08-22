@@ -158,7 +158,9 @@ export const runStateSchema = z.object({
   // skipped_inert_diff` + the merge-readiness predicate. Null everywhere else.
   reviewSkipped: z
     .object({
-      reason: z.literal("inert_diff"),
+      // Widened with the step-condition vocabulary: a review may now be
+      // skipped because its SUBJECT is absent, not only because the diff is prose.
+      reason: z.string().min(1).max(60),
       stepId: z.string().min(1),
       files: z.array(z.string()).max(500),
     })

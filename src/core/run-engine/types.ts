@@ -66,6 +66,10 @@ export type OrchestratorInput = {
   /** Pin a Role to a Seat (seat → roleId) - disambiguates a seat filled by
    *  more than one Crew role. Applied at resolve time. */
   seatRoleOverrides?: Record<string, string>;
+  /** Steps to run even when their skipWhen condition would stand them down
+   *  (`--flow-force`). Only ever ADDS work back - there is deliberately no
+   *  inverse here that could disarm a review a condition wanted to keep. */
+  forcedSteps?: string[];
   /** Investigation-only run: force readOnly permissions on every agent,
    * skip the executor / fix loop entirely, refuse write-side actions. */
   readOnly?: boolean;

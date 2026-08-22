@@ -59,16 +59,30 @@ describe("resolved snapshot re-asserts skipWhen constraints (ISSUE-003)", () => 
     expect(resolvedFlowSnapshotSchema.safeParse(tampered).success).toBe(false);
   });
 
-  it("rejects a tampered snapshot that adds `needs` (graph) under a skipWhen step", async () => {
+  it("ACCEPTS `needs` under a skipWhen step - graph flows are supported now", async () => {
+    // This was a tamper vector only while skipWhen was linear-only. The graph
+    // frontier evaluates conditions now (step-gate.ts), so adding `needs` is a
+    // legitimate shape rather than a bypass. The guard below shows the vectors
+    // that DO still bind.
     const snap = await resolvedExpress();
     const tampered = JSON.parse(JSON.stringify(snap));
     const review = tampered.steps.find(
       (s: { skipWhen: string | null }) => s.skipWhen === "inert_diff",
     );
-    const other = tampered.steps.find(
-      (s: { id: string }) => s.id !== review.id,
+    const other = tampered.steps.find((s: { id: string }) => s.id !== review.id);
+    review.needs = [other.id];
+    expect(resolvedFlowSnapshotSchema.safeParse(tampered).success).toBe(true);
+  });
+
+  it("still rejects a tampered snapshot that moves skipWhen onto a PRODUCING step", async () => {
+    // The load-bearing one: a step that writes the diff cannot be skipped on
+    // diff evidence, because its own output is what the evidence is made of.
+    const snap = await resolvedExpress();
+    const tampered = JSON.parse(JSON.stringify(snap));
+    const producer = tampered.steps.find(
+      (s: { kind: string }) => s.kind === "agent-turn",
     );
-    review.needs = [other.id]; // skipWhen is linear-only
+    producer.skipWhen = "no_auth_surface";
     expect(resolvedFlowSnapshotSchema.safeParse(tampered).success).toBe(false);
   });
 });

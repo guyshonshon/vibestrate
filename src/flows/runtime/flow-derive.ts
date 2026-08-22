@@ -86,6 +86,22 @@ const LENS_ORDER: DerivedLens[] = [
   "performance",
 ];
 
+/**
+ * The runtime condition each lens stands down on. The shaper's risk tag says
+ * this unit MIGHT touch the subject; the condition asks whether the finished
+ * diff actually does. A speculative tag therefore costs nothing when the code
+ * turns out not to touch it, which is the measured failure mode: over-tagging
+ * bought review turns that confirmed absences.
+ *
+ * correctness has no condition on purpose. It is the floor - there is no diff
+ * that is safe to leave entirely unread.
+ */
+const LENS_CONDITION: Partial<Record<DerivedLens, string>> = {
+  authz: "no_auth_surface",
+  injection: "no_untrusted_input",
+  accessibility: "no_ui_change",
+};
+
 const LENS_INSTRUCTION: Record<DerivedLens, string> = {
   correctness:
     "Your lens is CORRECTNESS only. Hunt for logic that is wrong under real inputs: off-by-one and boundary errors, lost updates, races between check and write, money handled in floats, invariants enforced in application code that the database would let through. Cite file:line.",
@@ -307,6 +323,7 @@ export function compileFlowFromShape(
       outputs: [`findings-${lens}`],
       needs: ["validation"],
       continueOnError: true,
+      ...(LENS_CONDITION[lens] ? { skipWhen: LENS_CONDITION[lens] } : {}),
       instructions: LENS_INSTRUCTION[lens],
     });
     notes.push(
@@ -314,6 +331,11 @@ export function compileFlowFromShape(
         ? `Review lens "${lens}" because a unit is tagged ${because.join(", ")}.`
         : `Review lens "${lens}" as the floor - no unit declared a risk.`,
     );
+    if (LENS_CONDITION[lens]) {
+      notes.push(
+        `  ...and stands down automatically if the finished diff shows ${LENS_CONDITION[lens]!.replace(/_/g, " ").replace(/^no /, "no ")}. Force it on with --flow-force review-${lens}.`,
+      );
+    }
   }
 
   // One reviewer needs no arbiter; several verdicts must be joined into one.

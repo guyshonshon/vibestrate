@@ -238,6 +238,23 @@ export const flowSeatSchema = z
   .strict();
 export type FlowSeat = z.infer<typeof flowSeatSchema>;
 
+/**
+ * Conditions a checking step may be skipped on. ONE definition, shared by the
+ * authored flow schema and the resolved snapshot, so a value can never be
+ * accepted at authoring time and rejected (or silently dropped) at resolve
+ * time. `inert_diff` is the original prose-only descent; the rest prove a
+ * SUBJECT absent from the run's real diff (step-conditions.ts).
+ */
+export const stepConditionSchema = z.enum([
+  "inert_diff",
+  "no_auth_surface",
+  "no_untrusted_input",
+  "no_schema_change",
+  "no_ui_change",
+  "no_dependency_change",
+]);
+export type StepSkipCondition = z.infer<typeof stepConditionSchema>;
+
 export const flowStepSchema = z
   .object({
     id: flowTokenSchema,
@@ -291,13 +308,21 @@ export const flowStepSchema = z
     // strict-prose (.md/.markdown/.txt/.rst) AND touches no protected path
     // (orchestrator/protected-paths.ts) - recorded evidence, never model
     // judgment or task text. Restricted by validation below: checking steps
-    // (review-turn / summary-turn) only, linear flows only, never inside an
-    // adaptive loop body (the loop's decision contract needs a real decision).
+    // (review-turn / summary-turn) only, never in a checklist flow, and never
+    // inside an adaptive loop body (the loop's decision contract needs a real
+    // decision). Graph flows ARE supported - the linear-only limit was an
+    // implementation gap, not a safety property, and a derived flow is a graph.
     //
     // Only the BACK gates may carry this. A step that produces work (agent-turn,
     // response-turn) must never be diff-skippable: its own output is what the
     // diff is made of, so skipping it on diff evidence is circular.
-    skipWhen: z.enum(["inert_diff"]).optional(),
+    // Widened past `inert_diff` with the conditions in step-conditions.ts, each
+    // of which proves an ABSENCE from the run's real diff: a review of a
+    // surface the change never touched is a turn spent confirming nothing.
+    // Every value here is a new way for a review not to happen, so the
+    // evaluator skips only on positive evidence of absence - an unreadable or
+    // empty diff runs the step.
+    skipWhen: stepConditionSchema.optional(),
     // Clean-room context: when true, this step's seat
     // does NOT get the producer's run-derived narrative - the run brief (the
     // "story so far") and the planner-only ledger/continuity - so a judge reasons
@@ -433,13 +458,6 @@ function addSkipWhenConstraintIssues(
         code: z.ZodIssueCode.custom,
         path: ["steps", index, "skipWhen"],
         message: `Flow step "${step.id}" of kind "${step.kind}" can't use skipWhen (review-turn / summary-turn steps only).`,
-      });
-    }
-    if (anyNeeds) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["steps", index, "skipWhen"],
-        message: `Flow step "${step.id}" uses skipWhen, which is only supported in linear flows (no \`needs\`).`,
       });
     }
     if (flow.checklistSegment) {
@@ -902,7 +920,7 @@ export const resolvedFlowStepSchema = z
     // Per-step skills (see flowStepSchema.skills): merged into this turn's prompt.
     skills: z.array(skillReferenceSchema).max(32).default([]),
     // Express deterministic review descent (see flowStepSchema.skipWhen).
-    skipWhen: z.enum(["inert_diff"]).nullable().default(null),
+    skipWhen: stepConditionSchema.nullable().default(null),
     // Best-effort turn: a hard runtime failure is tolerated by the
     // graph scheduler (mark failed + continue) instead of aborting the run.
     continueOnError: z.boolean().default(false),

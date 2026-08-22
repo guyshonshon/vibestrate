@@ -199,3 +199,33 @@ describe("compileFlowFromShape - the owner's cost guard", () => {
     expect(compileFlowFromShape(shape(four), { id: "x" }).flow.id).toBe("x");
   });
 });
+
+describe("derived flows are autonomous by construction", () => {
+  it("attaches a stand-down condition to each conditional lens", () => {
+    const { flow } = compile([{ id: "a", title: "x", risk: ["auth", "untrusted-input", "ui"] }]);
+    expect(stepById(flow, "review-authz").skipWhen).toBe("no_auth_surface");
+    expect(stepById(flow, "review-injection").skipWhen).toBe("no_untrusted_input");
+    expect(stepById(flow, "review-accessibility").skipWhen).toBe("no_ui_change");
+  });
+
+  it("never lets correctness stand down - there is no diff safe to leave unread", () => {
+    const { flow } = compile([{ id: "a", title: "x", risk: ["money"] }]);
+    expect(stepById(flow, "review-correctness").skipWhen).toBeUndefined();
+  });
+
+  it("tells the owner how to force a conditional lens back on", () => {
+    const r = compile([{ id: "a", title: "x", risk: ["auth"] }]);
+    expect(r.notes.some((n) => n.includes("--flow-force review-authz"))).toBe(true);
+  });
+
+  it("still compiles to a valid graph flow with conditions attached", () => {
+    // The linear-only restriction on skipWhen was an implementation gap, not a
+    // safety property; a derived flow is always a graph.
+    const { flow } = compile([
+      { id: "a", title: "x", risk: ["auth"] },
+      { id: "b", title: "y", dependsOn: ["a"], risk: ["ui"] },
+    ]);
+    expect(isGraphFlow(flow)).toBe(true);
+    expect(stepById(flow, "review-authz").skipWhen).toBe("no_auth_surface");
+  });
+});
