@@ -180,6 +180,35 @@ export const runStateSchema = z.object({
   // existing runs that predate pause/resume.
   pauseRequested: z.boolean().default(false),
   pausedAtStatus: runStatusSchema.nullable().default(null),
+  // ─── Human guidance ────────────────────────────────────────────────────
+  // pendingGuidance is a write-side signal, the same shape and for the same
+  // reason as pauseRequested/abortRequested: the orchestrator owns the
+  // injection point, so an outside writer queues a note instead of mutating a
+  // step. A human (CLI `vibe guide`, or the dashboard) appends here mid-run;
+  // the orchestrator drains the queue at the next STEP BOUNDARY into that
+  // step's guidance, which reaches the prompt through the same
+  // composeGuidedNotes seam an approval's change-request already uses.
+  //
+  // Draining at a boundary is what makes this safe. A code-writing seat holds
+  // an open worktree; interrupting it between two writes would leave half-
+  // written files for the re-run to reconcile. Landing the note at a boundary
+  // costs at most one step of latency and never corrupts the tree.
+  //
+  // Read-only advice was never the point: a human who can see the work and
+  // cannot redirect it is a spectator. `ownerPid` (below) tells the requester
+  // whether a live orchestrator is still there to honour the note.
+  pendingGuidance: z
+    .array(
+      z
+        .object({
+          note: z.string().min(1).max(4000),
+          at: z.string(),
+          /** Which step it is aimed at; null = whichever step runs next. */
+          stepId: z.string().nullable().default(null),
+        })
+        .strict(),
+    )
+    .default([]),
   // ─── Abort ─────────────────────────────────────────────────────────────
   // abortRequested is the same shape as pauseRequested, and for the same
   // reason: the orchestrator owns the terminal transition. Four processes used
@@ -514,6 +543,7 @@ export function createInitialState(input: {
     approvalRequestedFromStatus: null,
     taskId: null,
     pauseRequested: false,
+    pendingGuidance: [],
     pausedAtStatus: null,
     crewId: null,
     profileOverride: null,

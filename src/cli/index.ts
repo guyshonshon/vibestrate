@@ -70,10 +70,11 @@ import { buildLedgerCommand } from "./commands/ledger.js";
 import { buildBudgetCommand } from "./commands/budget.js";
 import { buildConsultCommand } from "./commands/consult.js";
 import { buildSpecUpCommand } from "./commands/spec-up.js";
-import { buildGuideCommand } from "./commands/guide.js";
 import { buildLearnCommand } from "./commands/learn.js";
 import { buildReplayCommand } from "./commands/replay.js";
 import { buildPauseCommand, buildResumeCommand } from "./commands/pause.js";
+import { buildGuideCommand } from "./commands/guide.js";
+import { buildSteerCommand } from "./commands/steer.js";
 import { buildShellCommand } from "./commands/shell.js";
 
 /** Shared coercer for every `<port>` option. Rejects at the flag boundary so a
@@ -226,11 +227,12 @@ export function buildVibestrateProgram(): Command {
   program.addCommand(buildRenameCommand());
   program.addCommand(buildLedgerCommand());
   program.addCommand(buildConsultCommand());
-  program.addCommand(buildGuideCommand());
+  program.addCommand(buildSteerCommand());
   program.addCommand(buildLearnCommand());
   program.addCommand(buildBudgetCommand());
   program.addCommand(buildReplayCommand());
   program.addCommand(buildPauseCommand());
+  program.addCommand(buildGuideCommand());
   program.addCommand(buildResumeCommand());
   program.addCommand(buildShellCommand());
 

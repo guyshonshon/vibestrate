@@ -204,6 +204,7 @@ import {
   isReviewerStep,
   composeReviewerStepNotes,
 } from "../supervisor/review-lenses.js";
+import { drainGuidanceFor } from "./run/guidance-service.js";
 import {
   renderPolicyAdviseBlock,
   renderPolicyComplyBlock,
@@ -1511,6 +1512,24 @@ export class Orchestrator {
             ? new Set(["diff"])
             : undefined,
       });
+      // Drain any human notes queued for this step (or for "whatever runs
+      // next") into the same guidance map an approval's change-request uses, so
+      // they reach the prompt through composeGuidedNotes. Done HERE, at the
+      // state write that flips the step to running, because runTurn is
+      // concurrency-safe by contract and must not write shared state.
+      {
+        const drained = drainGuidanceFor(state.pendingGuidance, step.id);
+        if (drained.text) {
+          const prior = stepGuidance.get(step.id);
+          stepGuidance.set(step.id, prior ? `${prior}\n\n${drained.text}` : drained.text);
+          state = { ...state, pendingGuidance: drained.remaining };
+          await input.eventLog.append({
+            type: "flow.step.guided",
+            message: `Human guidance applied to ${step.id}.`,
+            data: { flowId: snapshot.flowId, stepId: step.id },
+          });
+        }
+      }
       state = patchFlowStep(
         state,
         step.id,

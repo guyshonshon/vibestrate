@@ -4,6 +4,7 @@ import { makeEmptyMetrics } from "../src/core/metrics/runtime-metrics.js";
 import type { ApprovalRequest } from "../src/core/run/approval-types.js";
 
 const baseState = {
+  pendingGuidance: [],
   runId: "r1",
   task: "t",
   displayName: null,

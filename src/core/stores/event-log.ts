@@ -117,6 +117,10 @@ export type VibestrateEventType =
   | "flow.step.completed"
   | "flow.step.failed"
   | "flow.step.changes_requested"
+  // A human queued a note on the live run and the orchestrator applied it to
+  // this step at its boundary (guidance-service.ts). Auditable: the run record
+  // shows where a person redirected the work, not just what the agents chose.
+  | "flow.step.guided"
   | "flow.step.retried"
   | "flow.step.skipped"
   | "flow.loop.iteration"
