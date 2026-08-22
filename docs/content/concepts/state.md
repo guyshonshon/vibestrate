@@ -4,11 +4,13 @@ description: The status a run is in, what each one means, and the rules that kee
 slug: concepts/state
 ---
 
-A run always has one status, and you can check it at any moment to know exactly what the run is doing right now.
+Run state is the Status column on the dashboard's **All runs** page. Every run this project has recorded gets a row there, and that column carries the one value the run is at right now.
 
-Think of it like a package you've shipped. At any point it's in one definite place - "out for delivery", "delivered" - never two at once, and never somewhere the tracking made up. A run's status works the same way. It's always a single value, saved so you can read it back, and never a guess.
+![The All runs page in the dashboard. Four runs sit in a table with Task, Status, Review, Verify and Duration columns, one row reading merge-ready. Above it are a Filter by task or id box, a Prune snapshots control and a Scheduler strip offering Start the queue and Open the board.](/media/docs/runs-list.png)
 
-That saved value lives in a `state.json` file under `.vibestrate/runs/`, in the folder named after the run id. The `status` comes from a fixed set of sixteen values, and Vibestrate validates it before writing it down.
+A run holds one status at a time. Think of a package you've shipped: it's in one definite place, "out for delivery" or "delivered", never two at once and never somewhere the tracking made up.
+
+The column reads a saved value. It lives in a `state.json` file under `.vibestrate/runs/`, in the folder named after the run id. The `status` comes from a fixed set of sixteen values, and Vibestrate validates it before writing it down. The counts above the table roll those sixteen into total, active, merge-ready and failed.
 
 A run starts at `created` and ends in one of four terminal statuses:
 
@@ -43,17 +45,17 @@ A run starts at `created` and ends in one of four terminal statuses:
   </g>
 </svg>
 
-Along the way it can sit at `waiting_for_approval` (a policy gate is holding it) or `paused` (you asked it to stop).
+Along the way it can sit at `waiting_for_approval` (a gate is holding it) or `paused` (you asked it to stop).
 
 ## The moves are enforced
 
-What makes the status trustworthy is that Vibestrate controls how a run gets from one status to the next. Every allowed move is written into an explicit list, the `ALLOWED_TRANSITIONS` allowlist. If something tries a move that isn't on the list, Vibestrate raises a `StateTransitionError` and stops, instead of letting the bad move happen quietly.
+The status is trustworthy because Vibestrate controls how a run gets from one status to the next. Every allowed move is written into an explicit list, the `ALLOWED_TRANSITIONS` allowlist. If something tries a move that isn't on the list, Vibestrate raises a `StateTransitionError` and stops, instead of letting the bad move happen quietly.
 
 The four terminal statuses in the diagram above have no way back out. Once a run reaches one of them, it stays there.
 
 ## Why it matters
 
-The state machine is what makes runs replayable, pausable, and auditable. When a run says it's `verifying`, that's the truth. The verifier is running, the previous artifacts are committed, and there's no in-between fuzz. When it says `merge_ready`, the diff is real and the validation passed.
+The state machine is what makes runs replayable, pausable, and auditable. A run that reads `verifying` is verifying: the verifier is running, the previous artifacts are committed, and there's no in-between fuzz. A row that reads `merge-ready` has a real diff behind it and validation that passed.
 
 ## The statuses
 
@@ -71,7 +73,7 @@ The canonical, generated list lives in the [run-state reference](/docs/reference
 | `reviewing` | Reviewer is reading diff + validation output. |
 | `fixing` | Fixer is addressing review findings. |
 | `verifying` | Verifier is doing the final pass before merge. |
-| `waiting_for_approval` | Run is paused at a policy gate, awaiting a human decision. |
+| `waiting_for_approval` | Run is holding at a gate, awaiting a human decision. |
 | `paused` | User-requested pause. Resume returns to `pausedAtStatus`. |
 | `merge_ready` | Verifier passed. Diff is ready for the user to merge. |
 | `blocked` | Reviewer or verifier flagged the run unsafe to continue. |
@@ -80,39 +82,42 @@ The canonical, generated list lives in the [run-state reference](/docs/reference
 
 ## Two kinds of pause
 
-A run can be paused for one of two reasons.
+A stopped run is stopped for one of two reasons, and the Status column names which.
 
-- **Policy-gated:** the project says "always pause at the boundary into `executing`." When the orchestrator reaches that boundary, status becomes `waiting_for_approval` and the run sits until a human decides.
-- **User-requested:** at any point you run `vibe pause` with the run id, status becomes `paused` between stage boundaries, and `pausedAtStatus` remembers where to resume.
+- **A gate is open** (`waiting_for_approval`). Open the run and an approval banner sits at the top, offering Approve, Request changes and Reject. Two things raise a gate: a project policy that lists the stage in `requireApprovalAtStages`, or an agent asking for your call before it continues. Request changes is the middle answer, re-running the stage with your guidance. It belongs to agent-raised gates; a policy gate has no agent turn to re-run, so approve or reject that one.
+- **You asked for it** (`paused`). Press Pause on the run and the status flips at the next stage boundary. `pausedAtStatus` remembers where to resume.
 
 Both kinds survive a restart. The pause flag is saved to disk, so killing and restarting Vibestrate does not lose the pause.
 
-Three commands decide a policy gate. Each wants the run id plus the approval id that `vibe approvals list` prints:
+## Terminal statuses are sticky
+
+To start over from a terminal status, run the task again as a new run. The previous run's artifacts stay where they are.
+
+## Advanced: CLI and automation
+
+The same state and the same decisions are reachable from the terminal, for scripts and for work over SSH. See the [CLI overview](/docs/cli/overview) for the full surface.
+
+```bash
+vibe status
+vibe status --json
+vibe replay <runId>
+vibe pause <runId>
+vibe resume <runId>
+```
+
+`vibe replay` opens a read-only inspector for any saved run, the same view the Replay button on the runs table opens. It's useful for after-the-fact debugging, when something interesting happened and you want to retrace it.
+
+Deciding a gate takes the run id plus the approval id that `vibe approvals list` prints:
 
 ```bash
 vibe approvals list <runId>
 vibe approvals approve <runId> <approvalId>
 # reject marks the run blocked
 vibe approvals reject <runId> <approvalId>
+# agent-raised gates only
 vibe approvals request-changes \
   <runId> <approvalId> --guidance "..."
 ```
-
-`request-changes` is the middle answer: the stage re-runs with your guidance instead of being waved through or killed.
-
-## Terminal statuses are sticky
-
-To start over from a terminal status, run the task again as a new run. The previous run's artifacts stay where they are.
-
-## Inspecting state
-
-```bash
-vibe status
-vibe status --json
-vibe replay <runId>
-```
-
-`vibe replay` opens a read-only inspector for any saved run. It's useful for after-the-fact debugging, when something interesting happened and you want to retrace it.
 
 ## Going deeper
 

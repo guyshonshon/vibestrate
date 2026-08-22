@@ -9,6 +9,15 @@ A **policy** is a rule the project enforces on every run. Policies belong to the
 holds no matter which supervisor reviews the work. The active supervisor is the
 *enforcer*: it carries them into the review, but it does not own them.
 
+They live on the **Policies** page in the sidebar.
+
+![The Policies page. The header reads Policies over a New policy button, a 4/4 Guards on tile, and counters for advise, block, pending and engine rules that all read zero. The left column holds Your policies, empty with the line No policies yet, over a Deterministic engine card reading No rules in .vibestrate/policies/*.yml. The right column lists the Hard guards toggles - Forbid main-branch writes, Forbid secrets access, Forbid auto-push, Forbid auto-merge - each switched on.](/media/docs/policies.png)
+
+The header counts what the project carries: advise, block, pending, and engine
+rules. This one has none of its own yet, so every counter sits at zero and **Your
+policies** is empty. The four **Hard guards** on the right ship on for every
+project; the left column is the part you author.
+
 Each policy has a **tier** that decides how it is enforced:
 
 <div class="docs-cards">
@@ -25,42 +34,28 @@ until you confirm it.
 
 <div class="docs-callout warn">
 
-**A broken block matcher stops the project, not the merge.** No matcher, one over 256 characters, or one that is not a valid regular expression is refused when you write it and again every time `project.yml` loads - the config fails with the reason instead of shipping a gate that looks armed. One that reaches the gate anyway is skipped and recorded as a `supervisor.policy_block` event. Dry-run a matcher with `vibe policies test`.
+**A broken block matcher stops the project, not the merge.** No matcher, one over 256 characters, or one that is not a valid regular expression is refused when you write it and again every time `project.yml` loads - the config fails with the reason instead of shipping a gate that looks armed. One that reaches the gate anyway is skipped and recorded as a `supervisor.policy_block` event. Dry-run a matcher from **Test** in the form below, or with `vibe policies test`.
 
 </div>
 
-## Capture (CLI or UI, your choice)
+## Writing one
 
-```
-vibe policies add no-em-dash \
-  "do not use em-dash characters" \
-  --fix "use a hyphen"
+**New policy** opens the one authoring form. You type the rule in plain English
+and pick its tier beside it. An advise rule takes an optional suggested fix, the
+correction the reviewer names when it flags the diff. A block rule takes the
+matcher regex and its flags, and **Test** dry-runs that matcher against a diff
+snippet or recent runs first. **Add policy** writes it, live on the next review
+with no confirm step, since you authored it. Each row in the list underneath
+shows a rule's tier and either its matcher or its stated fix.
 
-vibe policies add no-eyebrow "no eyebrow labels" \
-  --block --matcher "SectionEyebrow"
-
-# what would it block?
-vibe policies test no-eyebrow --recent
-
-vibe policies list
-vibe policies confirm <id>  # adopt a proposal
-vibe policies reject <id>   # discard a proposal
-vibe policies remove <id>
-```
-
-The dashboard **Policies** page does the same: a create form for both tiers
-(including a block's matcher), the list of active and pending rules, and
-Confirm / Reject / Remove. An owner add is live on the next review - no confirm
-step (you authored it, so it is trusted).
-
-`vibe policies draft "<rule in English>"` turns a sentence into an editable draft,
-and `vibe policies suggest` reads recent runs' diffs for candidates. Both are drafts
-only. Neither writes a policy; you adopt one with `policies add`.
+Two shortcuts fill the same form: **Draft** turns your English sentence into a
+filled-in draft, and **Suggest from recent runs** reads recent diffs for
+candidates you can adopt into it. A model can propose a tier and a matcher, and
+committing a block stays your press of Add policy.
 
 ## A rule the supervisor proposed
 
-A rule you write yourself is trusted immediately. A rule the supervisor proposes
-waits for you:
+A rule the supervisor proposes waits for you:
 
 <svg viewBox="0 0 560 132" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A rule you add yourself goes live on the next review with no confirm step. A rule the supervisor proposes lands pending and only goes live once you confirm it.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -86,31 +81,16 @@ waits for you:
   </g>
 </svg>
 
-Ask about a habit and the answer can arrive with a rule attached:
+Ask the supervisor about a habit and the answer can arrive with a rule attached.
+It's written pending, so nothing changes until you say so. The rule sits at the
+top of your list tagged `proposed`, with **Confirm** and **Reject** on its row,
+and Confirm puts it in force on the next review. The tier is fixed for that path:
+a proposed rule is always `advise` with no matcher, whatever the answer
+suggested.
 
-```
-$ vibe consult "em-dashes keep slipping past review"
-```
+## Both sides of the change see an advise rule
 
-The rule is written pending, so nothing changes until you say so. Its id is made
-from the statement:
-
-```
-$ vibe policies list
-Project policies (owner-authored):
-avoid-em-dashes  advise  pending confirm
-  avoid em-dashes -> use a hyphen
-
-$ vibe policies confirm avoid-em-dashes
-```
-
-Once confirmed it is live on the next review. The tier is fixed for that path: a
-rule the supervisor proposes is always `advise` with no matcher, whatever the
-answer suggested.
-
-## Who sees an advise rule
-
-Both the writer and the reviewer, from one selection.
+The writer and the reviewer, from one selection.
 
 A code-writing seat - the implementer and the fixer, the turns that actually emit
 a diff - is told the rules bind the code it is about to write, and to comply with
@@ -126,9 +106,7 @@ sides: an unconfirmed rule is inert and its text reaches neither.
 
 This matters for what a run costs. A rule the writer is never shown is a rule that
 gets violated and then removed by a review, fix and re-review round trip - paying
-three model turns to delete something that would not have been written. On a
-measured benchmark run that round trip was 23% of the run's spend and 19% of its
-wall clock.
+three model turns to delete something that would not have been written.
 
 A rule with no lens scope goes into every run. A lens-scoped rule is opt-in
 targeting: it applies only when the run's active review lenses include one it
@@ -141,9 +119,50 @@ silently unless you read the event.
 Policies are the *soft* surface - owner conventions. They sit alongside, and are
 visibly distinct from, the **hard security gates** that are always on: the
 secret-leak refusal, the Action Broker's deny rules, and the deterministic content
-rules in `.vibestrate/policies/*.yml`. Those are not weakened by a policy and are
-not authored from the browser; they stay file-based. A soft policy can only *add* a
-check, never relax one. See [Safety](/docs/concepts/safety).
+rules the **Deterministic engine** card reads from `.vibestrate/policies/*.yml`.
+Those content rules stay file-based and are not authored from the browser. A soft
+policy can only *add* a check, never relax one. The Guards tile in the header
+tells you how many of the four hard guards are live. See
+[Safety](/docs/concepts/safety).
+
+## Advanced: CLI and automation
+
+Every action on the page has a `vibe policies` subcommand behind it, for scripting
+a rule into a setup or a repo template. See the
+[CLI overview](/docs/cli/overview).
+
+```
+vibe policies add no-em-dash \
+  "do not use em-dash characters" \
+  --fix "use a hyphen"
+
+vibe policies add no-eyebrow "no eyebrow labels" \
+  --block --matcher "SectionEyebrow"
+
+# what would it block?
+vibe policies test no-eyebrow --recent
+
+vibe policies list
+vibe policies confirm <id>  # adopt a proposal
+vibe policies reject <id>   # discard a proposal
+vibe policies remove <id>
+```
+
+`vibe policies draft "<rule in English>"` and `vibe policies suggest` are the two
+shortcuts from the form. Both are drafts only; you adopt one with `policies add`.
+
+A consult proposes from the terminal too, and the id comes from the statement:
+
+```
+$ vibe consult "em-dashes keep slipping past review"
+
+$ vibe policies list
+Project policies (owner-authored):
+avoid-em-dashes  advise  pending confirm
+  avoid em-dashes -> use a hyphen
+
+$ vibe policies confirm avoid-em-dashes
+```
 
 ## It stays optional
 

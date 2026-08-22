@@ -1,27 +1,28 @@
 ---
 title: Task
-description: The plain-language brief you hand Vibestrate. One sentence is enough to start a run, and every run ends at one of four outcomes.
+description: The plain-language brief you hand Vibestrate. You type it into the New run composer on Mission Control, and every run ends at one of four outcomes.
 slug: concepts/task
 ---
 
 A Task is what you want done, written in plain language, the way you would brief a capable colleague. You say what you want. Vibestrate works out the steps.
 
-```bash
-vibe run "Add structured logging to the \
-settings save handler"
-```
+You write one on Mission Control. `vibe ui` opens the dashboard on localhost, and the New run composer is the first thing on it.
 
-That one command is a complete Task. You don't list files or set an order. The [Flow](/docs/concepts/flow) decides the steps and your [Crew](/docs/concepts/crew) does the work. The Task is just the brief.
+![Mission Control. A sidebar of sections runs down the left. The header reads Mission control, with an approvals tile showing Clear under the caption Nothing blocked and an Edit layout button. A New run composer and a Run summary panel sit below, and the Supervisor chat fills the right column, its mode switch set between Answers only and Answers and acts.](/media/docs/mission-control.png)
+
+The box at the top of New run is the Task, and a sentence is enough to launch. Everything under it is optional: the flow, the crew, the supervisor persona, and toggles for a read-only or unattended run. The Run summary beside it reads back what's about to start, so you see the shape of the run before you commit, and the Supervisor panel answers questions about the project while you write, in either of its two tones, Answers only or Answers and acts.
+
+You don't list files or set an order. The [Flow](/docs/concepts/flow) decides the steps and your [Crew](/docs/concepts/crew) does the work. The Task is the brief.
 
 A Task becomes a *run*, and a run ends at one of four outcomes: `merge_ready`, `blocked`, `failed`, or `aborted`. It never pushes and never merges. The diff is yours to land.
 
-## What happens when you submit one
+## The path a Task takes
 
 A run is one supervised process you can watch and audit. In order, the orchestrator:
 
 <div class="docs-flow">
 <div><b>Reads your project</b><span>Language, package manager, and the validation commands it will trust later.</span></div>
-<div><b>Picks Flow and Crew</b><span>Whichever Flow you named, or the one Vibestrate resolves, with its seats matched to your Crew's roles.</span></div>
+<div><b>Picks Flow and Crew</b><span>The Flow you named, or the one Vibestrate resolves, with its seats matched to your Crew's roles.</span></div>
 <div><b>Opens a clean workspace</b><span>A fresh git worktree, so nothing touches your real project until you say so.</span></div>
 <div><b>Drives the steps</b><span>On the default Flow: plan, architecture, implement, validate, review, verify, with fix and re-validate looping in when review asks for changes.</span></div>
 <div><b>Stops at a verdict</b><span>The run ends in its worktree with a diff. Landing it is a separate, deliberate step.</span></div>
@@ -44,15 +45,15 @@ The description goes into every agent's prompt, at every stage. The planner plan
 
 <div class="docs-callout">
 
-**Plausible in, plausible-but-wrong out.** A vague Task does not just plan vaguely. The reviewer then approves that vague plan, because it is checking against the same vague brief. Tighten the Task and the whole chain sharpens.
+**Plausible in, plausible-but-wrong out.** A vague Task produces a vague plan, and the reviewer then approves that plan, because it's checking against the same vague brief. Tighten the Task and the whole chain sharpens.
 
 </div>
 
-A Task does not pick your model or set how hard it thinks. That belongs to your [Crew](/docs/concepts/crew) and its [Profiles](/docs/concepts/profile). A Task says what to build. The Crew decides who builds it and how much horsepower they get. Change the Task to change the goal; change the Crew to change the muscle.
+A Task says what to build, and it doesn't pick your model or set how hard it thinks. That belongs to your [Crew](/docs/concepts/crew) and its [Profiles](/docs/concepts/profile).
 
 ## A good Task vs a weak one
 
-The contrast is the whole lesson. Same goal, two briefs.
+Same goal, two briefs.
 
 <div class="docs-cards">
 
@@ -66,43 +67,26 @@ The planner guesses. The reviewer critiques its own guess. You get a diff that i
 
 A good Task:
 
-```bash
-vibe run "Add structured logging to the settings \
-save handler in src/server/routes/settings.ts. \
-Use the existing logger from src/lib/logger.ts. \
-Include the user id and the changed keys, but \
-never the values."
+```text
+Add structured logging to the settings save handler in
+src/server/routes/settings.ts. Use the existing logger from
+src/lib/logger.ts. Include the user id and the changed keys,
+but never the values.
 ```
 
 A weak Task:
 
-```bash
-vibe run "Improve logging"
+```text
+Improve logging
 ```
 
 ## Checklists: break a Task into items
 
 A Task can hold an ordered checklist of items, the concrete breakdown of the work. Items live inside the card, so the context stays in one place instead of scattering across small cards.
 
-```bash
-vibe tasks checklist add <taskId> \
-  "/health returns json"
-vibe tasks checklist add <taskId> \
-  "test the endpoint"
-vibe tasks checklist list <taskId>
+The checklist sits on the task detail page in [Mission Control](/docs/cli/dashboard): add an item, check it off, edit it, drag to reorder, remove it. Each item carries a status: `pending`, `in_progress`, `done`, or `blocked`.
 
-# mark one done
-vibe tasks checklist check <taskId> <itemId>
-
-# or give it another status
-vibe tasks checklist status <taskId> <itemId> \
-  in_progress
-
-# reorder, 1-based
-vibe tasks checklist move <taskId> <itemId> 1
-```
-
-The same actions live on the task detail page in [Mission Control](/docs/cli/dashboard): add, check off, edit, drag-reorder, remove. Each item carries a status: `pending`, `in_progress`, `done`, or `blocked`.
+To draft a checklist instead of writing one by hand, run the Enhance [assist](/docs/glossary#assist) from the card. It's one-shot and read-only: it proposes an ordered breakdown and you decide whether to add it. The model never writes to the board on its own.
 
 ### Open a step
 
@@ -112,35 +96,9 @@ The parent task owns the shared scaffolding - the [context](/docs/concepts/task#
 
 Opening a step is distinct from **detaching** it. Detach (the old "promote") spins a step off into its own independent card with `derivedFrom` pointing back - a separate, deliberate action for when a piece of work has outgrown the checklist.
 
-To draft a checklist instead of writing one by hand, let an assist propose it:
-
-```bash
-# read-only: prints a proposed checklist
-vibe tasks enhance <taskId>
-
-# append the proposed items
-vibe tasks enhance <taskId> --apply
-```
-
-Enhance is a one-shot, read-only [assist](/docs/glossary#assist). It proposes an ordered breakdown; you decide whether to add it. The model never writes to the board on its own.
-
 ## Pick up: run the whole checklist
 
-Once a Task has a checklist, pick it up to run every item in one worktree:
-
-```bash
-# continuous: items back-to-back
-vibe tasks pickup <taskId>
-
-# pause between items for review
-vibe tasks pickup <taskId> --step
-```
-
-`--flow` picks a different checklist-aware flow (default `pickup`). Only
-flows that declare a per-item segment are accepted; anything else is rejected
-with the list of eligible flows.
-
-"Run checklist" on the task does the same. Under the hood this runs the built-in `pickup` [flow](/docs/concepts/flow):
+Once a Task has a checklist, **Run checklist** on the card works every item in one worktree, labelled with the count of items still pending. Under the hood this runs the built-in `pickup` [flow](/docs/concepts/flow):
 
 <svg viewBox="0 0 560 96" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A pickup run plans once for the whole checklist, then runs a micro-plan and implement band once per item with its own commit, then reviews once at the end.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -177,22 +135,7 @@ Each item commits on its own, stamped with the item id so it can be reverted alo
 
 ### Per-item review: the `pickup-review` flow
 
-For higher-stakes checklists, use `pickup-review` instead of the default `pickup`:
-
-```bash
-vibe tasks pickup <taskId> --flow pickup-review
-```
-
-The equivalent long form, if you want to set other run options at the same time:
-
-```bash
-vibe run "<task title>" \
-  --task <taskId> \
-  --flow pickup-review \
-  --checklist continuous
-```
-
-`pickup-review` adds a review panel and an arbiter inside the per-item band - after the implementer writes each item, the panel reviews that item's diff, and a bounded per-item fix loop runs before the item commits. This means each item is reviewed in isolation, with full context of only that item's change.
+For higher-stakes checklists, pick `pickup-review` in place of the default `pickup`. It adds a review panel and an arbiter inside the per-item band: after the implementer writes each item, the panel reviews that item's diff in isolation, and a bounded per-item fix loop runs before the item commits.
 
 **Configurable lenses.** The panel runs two lenses by default: `correctness` (logic, type-safety, edge cases) and `security-risk` (injection, auth gaps, data exposure), both aimed at the active persona if one is set. You can change which lenses review each item: set `checklistReview.lenses` on the flow, or `checklistReviewLenses` on a crew (precedence: crew > flow > default). The lens vocabulary is closed:
 
@@ -202,7 +145,7 @@ Each selected lens becomes one read-only reviewer per item (up to the parallel f
 
 **Cost.** Each item runs the panel independently: two reviewer turns and one arbiter turn per item, on top of the normal implement band. For a 10-item checklist that is 30 extra turns. Use `pickup-review` when correctness per item matters more than speed.
 
-**Cap-and-continue.** If an item's fix loop ends with findings still open, the run continues (it never hard-aborts a checklist mid-stream), but that item is flagged as not merge-ready. The gap is surfaced item by item in `vibe assurance`, `vibe audit`, and the dashboard verdict panel. A run that ends with any open-findings item cannot reach `merge_ready` until the gap is resolved. Nothing passes silently.
+**Cap-and-continue.** If an item's fix loop ends with findings still open, the run continues (it never hard-aborts a checklist mid-stream), but that item is flagged as not merge-ready. The gap is surfaced item by item in the dashboard verdict panel, and in `vibe assurance` and `vibe audit`. A run that ends with any open-findings item cannot reach `merge_ready` until the gap is resolved. Nothing passes without a flag.
 
 Each item keeps its own arbitration ledger, so findings from item 3 never bleed into item 7.
 
@@ -210,7 +153,7 @@ Each item keeps its own arbitration ledger, so findings from item 3 never bleed 
 
 A reviewer or verifier can end a run with a non-blocking advisory: the change is fine to ship, but a human should eyeball something a model cannot perceive, like layout, animation, or UX feel. The run still reaches a normal verdict; it is not stuck like an [approval gate](/docs/glossary#approval-gate). The card is flagged Needs testing with a one-line reason. Resolve it with a verdict: "Looks good" marks the Task Done, "Needs work" reopens it. The flag shows as a banner on the task and a badge on the board.
 
-A checklist step is a piece of what to build - a unit of work inside the Task. It is not a Flow step (plan, implement, review); a Flow step is filled by a [seat](/docs/concepts/seat), and is a different concept. Same word, different layer: a checklist step is *what* to build, a Flow step is *how* a run is structured.
+A checklist step is a piece of what to build, a unit of work inside the Task. A Flow step (plan, implement, review) is filled by a [seat](/docs/concepts/seat) and structures the run. Same word, different layer: a checklist step is *what* to build, a Flow step is *how* a run is structured.
 
 ## Practical tips
 
@@ -218,6 +161,71 @@ A checklist step is a piece of what to build - a unit of work inside the Task. I
 - **Name the surface.** A file path, a module, a feature flag. Give the planner an anchor.
 - **State the constraint.** If "don't touch X" matters, say so in the Task, not after the diff lands.
 - **Put stable context in skills.** Conventions, security rules, and domain language belong in [skills](/docs/concepts/skill), not in every prompt.
+
+## Advanced: CLI and automation
+
+Every action above has a command behind it, for scripts, CI, and terminal habits. See the [CLI overview](/docs/cli/overview) for the full surface.
+
+Start a run from a brief:
+
+```bash
+vibe run "Add structured logging to the \
+settings save handler"
+```
+
+Work a checklist:
+
+```bash
+vibe tasks checklist add <taskId> \
+  "/health returns json"
+vibe tasks checklist list <taskId>
+
+# mark one done
+vibe tasks checklist check <taskId> <itemId>
+
+# or give it another status
+vibe tasks checklist status <taskId> <itemId> \
+  in_progress
+
+# reorder, 1-based
+vibe tasks checklist move <taskId> <itemId> 1
+```
+
+Draft the breakdown with an assist:
+
+```bash
+# read-only: prints a proposed checklist
+vibe tasks enhance <taskId>
+
+# append the proposed items
+vibe tasks enhance <taskId> --apply
+```
+
+Run the whole checklist:
+
+```bash
+# continuous: items back-to-back
+vibe tasks pickup <taskId>
+
+# pause between items for review
+vibe tasks pickup <taskId> --step
+
+# per-item review panel + arbiter
+vibe tasks pickup <taskId> --flow pickup-review
+```
+
+`--flow` accepts only checklist-aware flows, the ones that declare a per-item
+segment (default `pickup`). Anything else is rejected with the list of eligible
+flows.
+
+The long form, to set other run options at the same time:
+
+```bash
+vibe run "<task title>" \
+  --task <taskId> \
+  --flow pickup-review \
+  --checklist continuous
+```
 
 ## Related
 

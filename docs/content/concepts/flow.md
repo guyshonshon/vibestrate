@@ -4,23 +4,59 @@ description: The recipe a run follows - its ordered steps, and the kind of worke
 slug: concepts/flow
 ---
 
-A **Flow** is a recipe: the ordered steps a run works through, and the *kind* of worker each step needs. It names seats - "this step needs an implementer", "this one needs a reviewer" - and it never names an AI model. Your [Crew](/docs/concepts/crew) supplies the workers. That is what lets you run a Flow someone else wrote with your own models and your own budget.
+A **Flow** is a recipe: the ordered steps a run works through, and the *kind* of worker each step needs. It names seats, so one step calls for an implementer and the next calls for a reviewer, and it never names an AI model. Your [Crew](/docs/concepts/crew) supplies the workers. That is what lets you run a Flow someone else wrote with your own models and your own budget.
 
-**A Flow step has no model, provider, or profile field.** So "always review on a different vendor" is a Crew setting, not a Flow setting: point the Role that fills the `reviewer` seat at a Profile on another vendor. To change one step for one run only, pass `--step-profile review=` followed by a Profile id you have already defined. [Why a human stays in the loop](/docs/getting-started/why-a-human) walks through creating one on a second provider.
+The **Flows** page is where they live: one card per Flow this project can run.
+
+![The Flows page. Each flow is a card with a bar of its steps colour-coded by kind, counts of its steps and seats, and an Open button. The header reads Flows, with New flow and Import buttons, a project-owned count, and a legend naming the four step colours: Build, Review, Check and Gate. A Draft a flow panel sits below the header.](/media/docs/flows.png)
+
+The bar on a card is that Flow's steps in order, coloured by the job each one does, and the legend names the four: Build writes the change, Review judges it, Check runs commands that pass or fail, Gate stops for a person. So a card gives you a Flow's length and its makeup before you open it, and the counts beside the bar say it in numbers. Nothing on a card names a model, because no Flow step has one.
+
+**Open** takes a Flow into the Flow Builder, which lists every step with its seat. Built-ins load read-only.
 
 Vibestrate ships the `default` flow: plan, architecture, implement, validate, review, verify, with fix and re-validate looping in when review asks for changes. [Workflow](/docs/concepts/workflow) is the canonical description of it, step by step.
 
-There is no "the default one unless you choose another". `defaultFlow` is unset in a fresh project, so with no `--flow` Vibestrate decides per task: a short, low-risk task can be sized down to `express`, a risk-tagged one can be upgraded by your supervisor persona, and a brief that reads like "build me a whole system" runs the read-only [Spec-up](/docs/concepts/spec-up) chain first. Every run prints the Flow it resolved and where the choice came from.
+## Making one of your own
 
-## Which Flow a run picks
+Write one when the same review steps keep showing up across your tasks, when a kind of change should always pause for your approval at a set point, or when a step needs its own `instructions` - two steps sharing the `reviewer` seat can then read the same diff through different lenses, one on correctness, one on security. To nudge the default a little instead, a clearer task description or a [skill](/docs/concepts/skill) does the job with less effort.
+
+Every route into a new Flow starts on the same page.
+
+<div class="docs-cards">
+
+**Draft a flow**
+Describe the steps in plain English and the supervisor proposes a Flow. Drafting writes nothing; **Save this flow** is the step that writes.
+
+**New flow**
+A blank definition, straight into the Flow Editor.
+
+**Customize**
+On a built-in's card menu. It copies the Flow into your project, and the copy is what you edit.
+
+**Import**
+Paste YAML or point at a URL. Validated against the flow schema, refused if it carries secrets.
+
+</div>
+
+Any project Flow opens in the editor from its card menu under **Edit definition**. Every keystroke re-runs the real Flow schema over the whole draft, and each violation is pinned to the step, seat, or field that caused it. Save stays disabled while one stands, and what it saves is the schema's own parsed output, so a Flow that looked valid in the form cannot be refused on the way to disk.
+
+Fields the schema only allows in one shape of Flow appear only there. Adding a step dependency turns the Flow into a graph, which retires `skipWhen` and repeat counts and offers `continueOnError` and retries instead; clearing the last dependency swaps them back. Values belonging to the shape you left are dropped rather than carried into a save the schema would reject.
+
+Saving goes through the same guarded writer as `vibe flows import`: the Action Broker sees a `file.write`, so a project policy that denies file writes stops the editor too.
+
+**Pull a flow**, under the cards, browses the shared hub and installs a community Flow into `.vibestrate/flows/`.
+
+## Choosing the Flow for a run
+
+`defaultFlow` starts unset in a fresh project, so a run with no Flow named gets one decided per task: a short, low-risk task can be sized down to `express`, a risk-tagged one can be upgraded by your supervisor persona, and a brief that reads like "build me a whole system" runs the read-only [Spec-up](/docs/concepts/spec-up) chain first. Every run prints the Flow it resolved and where the choice came from.
 
 <div class="docs-cards">
 
 **You named one**
-`--flow` decides it. Sizing and the persona upgrade do not apply.
+Picking a Flow in Mission Control's **New run** composer, or passing `--flow`, decides it. Sizing and the persona upgrade do not apply.
 
 **You set a project default**
-`defaultFlow` in `project.yml`. Setting it also turns sizing off, though a persona can still upgrade the pick.
+`defaultFlow` in `project.yml`, or **Set as default** on a card. Setting it also turns sizing off, though a persona can still upgrade the pick.
 
 **You asked for a pick**
 `--select` hands the choice to the orchestrator, which reads the task against the available Flows and picks one. It costs a model call.
@@ -32,21 +68,9 @@ With none of the above, sizing reads the task text and may route it to `express`
 
 Spec-up sits outside all four: it runs before whichever Flow was chosen, and that Flow then runs seeded with the resulting spec. Set `adaptiveSpecUp: off` to stop that.
 
-## Picking one yourself
+## The model comes from your Crew
 
-```bash
-# what this project has, and what a Flow contains
-vibe flows list
-vibe flows show quality-arbitration
-
-# run one
-vibe run "Tighten the auth checks" \
-  --flow quality-arbitration
-```
-
-Vibestrate ships a handful of built-in Flows. You can also install one from the shared **hub**: `vibe flows hub list` browses it, and `vibe flows hub install` pulls a Flow into `.vibestrate/flows/`. [Browse the built-in Flows →](/docs/reference/flows)
-
-## Where the model actually comes from
+**A Flow step has no model, provider, or profile field.** So "always review on a different vendor" is a Crew setting, not a Flow setting: point the Role that fills the `reviewer` seat at a Profile on another vendor. [Why a human stays in the loop](/docs/getting-started/why-a-human) walks through creating one on a second provider.
 
 A Flow stops at the seat. Everything past that point is yours:
 
@@ -88,17 +112,25 @@ A Flow stops at the seat. Everything past that point is yours:
   </g>
 </svg>
 
-The Flow writes the first box and names the second. The last three are your Crew's.
+The Flow writes the first box and names the second. The last three belong to your Crew, and the [Crew](/docs/concepts/crew) page is where you set them. Pin the `reviewer` Role to a Profile there and every Flow you run gets that reviewer; to change one step for one run only, `--step-profile` does it.
 
-<div class="docs-cards">
+## Advanced: CLI and automation
 
-**Pinned in your Crew, for good**
-Point the Role that fills the `reviewer` seat at a Profile on another vendor, and every Flow you run gets that reviewer.
+Every Flow action has a command behind it, for scripts and CI. [The CLI overview](/docs/cli/overview) is the whole surface.
 
-**Pinned for one run, with `--step-profile`**
-`--step-profile stepId=profileId` swaps the Profile for a single step. Same Role, different runtime.
+```bash
+# what this project has, and what a Flow contains
+vibe flows list
+vibe flows show quality-arbitration
 
-</div>
+# run one
+vibe run "Tighten the auth checks" \
+  --flow quality-arbitration
+```
+
+`vibe flows hub list` browses the hub and `vibe flows hub install` pulls a Flow into `.vibestrate/flows/`, through the writer the page uses. `vibe flows draft` and `vibe flows derive` print a draft and write nothing; `vibe flows import` adopts one. `vibe flows use` sets the default Flow, `--clear` unsets it.
+
+`--step-profile` swaps the Profile for a single step of a single run. Same Role, different runtime.
 
 ```bash
 # make the Profile first, then point one step at it
@@ -112,33 +144,6 @@ vibe run "Tighten the auth checks" \
 ```
 
 `--step-profile` needs `--flow`, because step ids belong to a named Flow. An id that is not in that Flow is refused before the run starts: `Profile override references unknown Flow step "reveiw".`
-
-## When it's worth writing your own
-
-<div class="docs-cards">
-
-**A routine keeps repeating**
-The same review steps show up across your tasks, so you bottle them once.
-
-**A change needs a gate**
-A certain kind of change should always pause for your approval at a set point.
-
-**One step needs its own instruction**
-A step can carry `instructions`, so two steps sharing the `reviewer` seat read the same diff through different lenses - one on correctness, one on security.
-
-</div>
-
-If you only want to nudge the default a little, a clearer task description or a [skill](/docs/concepts/skill) usually does the job with less effort.
-
-## Editing a Flow from the dashboard
-
-The Flows page has a **Flow Editor**: **New flow** starts a blank one, and any project Flow opens in it from its card menu under **Edit definition**. Built-in Flows are read-only - **Customize** copies one into your project first, and the copy is what you edit.
-
-Every keystroke re-runs the real Flow schema over the whole draft, and each violation is pinned to the step, seat, or field that caused it. Save stays disabled while one stands, and what it saves is the schema's own parsed output - so a Flow that looked valid in the form cannot be refused on the way to disk.
-
-Fields the schema only allows in one shape of Flow appear only there. Adding a step dependency turns the Flow into a graph, which retires `skipWhen` and repeat counts and offers `continueOnError` and retries instead; clearing the last dependency swaps them back. Values belonging to the shape you left are dropped rather than carried into a save the schema would reject.
-
-Saving goes through the same guarded writer as `vibe flows import`: the Action Broker sees a `file.write`, so a project policy that denies file writes stops the editor too.
 
 ## Going deeper
 

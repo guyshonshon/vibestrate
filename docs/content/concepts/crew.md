@@ -4,79 +4,31 @@ description: Your set of AI workers, and which AI model each one uses.
 slug: concepts/crew
 ---
 
-A **Crew** is your set of AI workers. Each Flow lists the *kinds* of worker it needs - a builder, a reviewer, and so on. Your Crew is who actually shows up to fill those spots.
+A **Crew** is your set of AI workers. Each Flow lists the *kinds* of worker it needs - a builder, a reviewer, and so on. Your Crew is who shows up to fill those spots.
 
-A Crew lets you put a different model in each seat, so the one that builds the change is not the one that reviews it - they read the problem from their own angle and check each other's work, instead of a single model rubber-stamping its own. The disagreement is the point.
+You cast it on the Crew page. `vibe ui` opens the dashboard on localhost, and Crew is in the sidebar.
+
+![The Crew page, reached from Crew in the sidebar. The header counts the roles in this crew and the seats they cover. Under Roles, each worker is a card naming the Seats it takes and the Profile it runs on, with its write permission beside the name.](/media/docs/crew.png)
+
+Each worker on that page is a **Role**, and a Role does two things: it lists the Seats it can fill, which are the kinds of step a Flow asks for, and it names the Profile it runs on, which is its model and provider - see [[profile]]. Both are live on the card, and changing one saves against the Crew you're looking at.
+
+A Crew lets you put a different model in each Seat, so the worker that builds a change isn't the one that reviews it. They read the problem from their own angle and check each other's work instead of one model rubber-stamping itself.
 
 Think of a Flow as a recipe that says "you need a chef and a taster". The Crew is who you hire for those jobs, which is why a Flow someone else wrote still runs with your own people.
 
-Each worker in a Crew is called a **Role**. A Role does two things: it says which steps it can cover, and it picks the actual AI model that does the work.
-
-`vibe init` writes you a `default` Crew with six Roles - planner, architect, executor, fixer, reviewer, verifier - all on one Profile. Four more Crews are ready-made and installable with `vibe crew presets add`: `fast`, `thorough`, `cheap` and `local`.
-
-```yaml
-crews:
-  default:
-    label: Default
-    roles:
-      executor:
-        label: Backend Implementer
-        seats: [implementer, executor, builder]
-        profile: claude-balanced
-        prompt: .vibestrate/roles/executor.json
-        permissions: code_write
-        skills: []
-defaultCrew: default
-```
-
-`defaultCrew` is the Crew a run uses when it does not pick one. `seats` is the kinds of step the Role covers; `profile` names its model and provider - see [[profile]].
+`vibe init` writes you a `default` Crew with six Roles - planner, architect, executor, fixer, reviewer, verifier - all on one Profile. Four more Crews are ready-made as presets: `fast`, `thorough`, `cheap` and `local`.
 
 ## Picking who runs
 
-A task uses one Crew, defaulting to `defaultCrew`. You can keep more than one - say a fast Crew and a careful Crew - and choose at run time:
+A task uses one Crew. The crews list marks the one cast for every run, and each card carries **Configure**, **Edit roles** and **Set default**. Keep more than one - say a fast Crew and a careful Crew - and the New run composer sends a single task to either without touching the default, drawing the Flow's Seats against the Crew's Roles so you see the wiring first.
 
-```bash
-vibe run "task" --crew default
-```
+One Role can cover several kinds of step, which is why six workers are enough to staff a Flow with more steps than that. The executor Role in the scaffold takes `implementer`, `executor` and `builder`, and its card shows all three.
 
-One Role can cover several kinds of step, which is why six workers are enough to staff a Flow with more steps than that:
-
-<svg viewBox="0 0 560 114" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Three seats a Flow can ask for - implementer, executor and builder - are all covered by one Role in your Crew, the executor role.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="0.5" y="20.5" width="150" height="26" rx="7"/>
-    <rect x="0.5" y="52.5" width="150" height="26" rx="7"/>
-    <rect x="0.5" y="84.5" width="150" height="26" rx="7"/>
-    <rect x="290.5" y="42.5" width="269" height="46" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M151 33 H222 V65"/>
-    <path d="M151 97 H222 V65"/>
-    <path d="M151 65 H283"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5">
-    <polygon points="277.5,61.5 283,65 277.5,68.5"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
-    <text x="75.5" y="12">seats a Flow can ask for</text>
-  </g>
-  <g fill="currentColor" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="75.5" y="37">implementer</text>
-    <text x="75.5" y="69">executor</text>
-    <text x="75.5" y="101">builder</text>
-  </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
-    <text x="425" y="63">one Role in your Crew</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="425" y="79">executor</text>
-  </g>
-</svg>
-
-If a Flow needs a kind of worker that no Role in your Crew covers, the run stops with a clear message telling you to add that step to a Role. If two Roles both cover the same step, it asks you to pick one.
+If a Flow needs a Seat that no Role in your Crew covers, the run refuses to resolve and tells you to open Crew and add that Seat to a Role. If two Roles both claim the same Seat, it refuses the same way and asks you to name one, either from the composer or with a run override.
 
 ## Ready-made Crews (presets)
 
-Presets save you from writing a Crew by hand. They all use the same workers as your default Crew, so a Flow's steps stay covered. A preset changes *how* the team runs, not *who* is on it:
+Presets save you from writing a Crew by hand. They all use the same workers as your default Crew, so a Flow's Seats stay covered. A preset changes *how* the team runs, not *who* is on it:
 
 <div class="docs-cards">
 
@@ -94,27 +46,20 @@ Runs on a provider on your own machine, off cloud APIs.
 
 </div>
 
-```bash
-# list them, and whether each fits your setup
-vibe crew presets
+They sit further down the Crew page, one card each with **Add to crews**. Installing one adds a Crew and the Profile it runs on, and nothing runs until you pick it.
 
-# install one into project.yml, then make it default
-vibe crew presets add cheap
-vibe crew use cheap
-```
+A preset refuses rather than make a copy of your default Crew. `fast` and `thorough` need a provider with effort control (claude, codex), `cheap` needs a provider with a designated cheap model, and `local` needs a local provider separate from your default. A card that can't fit says which case it hit and offers the route forward.
 
-A preset refuses rather than make a copy of your default Crew. `fast` and `thorough` need a provider with effort control (claude, codex), `cheap` needs a provider with a designated cheap model, and `local` needs a local provider separate from your default. The dashboard's Crew page shows the same presets with one-click **Add**.
+## Editing a Crew
 
-## Editing a Crew from the dashboard
-
-The Crew page has a **Crew Editor**: one screen holding every Role's parameters (seats, profile, permissions, skills) and its instructions side by side, with a panel showing which of your Flows the Crew as edited can actually run.
+**Edit roles** opens the Crew Editor, and **New crew** opens it on a blank one. It's one screen holding every Role's parameters (seats, profile, permissions, skills) and its instructions side by side, with a panel showing which of your Flows the Crew as edited can run.
 
 Two kinds of change live on that screen, and the editor keeps them apart on purpose:
 
 - **Saves from the page.** A Role's instructions, and its parameters on a Crew that already exists. These write the Role's file and update the Crew in place.
 - **You paste by hand.** Adding a Role, removing one, renaming one, changing the Crew's label or its review loops - and everything about a Crew you are creating from scratch. The editor gives you the exact bytes for `.vibestrate/project.yml` and for each Role file; you save them yourself.
 
-The split is not an unfinished feature. Those edits reshape the file that decides how every future run resolves, and the page you review them on is not the place they should happen behind your back. A brand-new Crew is entirely in the second bucket, which is why that page shows no Save button at all - the blocks below it are the deliverable.
+The split is not an unfinished feature. Those edits reshape the file that decides how every future run resolves, and the page you review them on is not the place they should happen behind your back. A brand-new Crew sits in the second bucket, which is why that page shows no Save button at all - the blocks below it are the deliverable.
 
 The editor refuses the same things a run would: a Role with no seats, two Roles sharing an id, two Roles claiming the same seat, an empty or over-long prompt.
 
@@ -160,7 +105,7 @@ Before the gate, the text is screened. A prompt is refused in three cases:
 - it carries a NUL byte or a control character (a prompt is replayed into another model's prompt and echoed to your terminal, so an escape sequence has no business surviving a save),
 - it reads as carrying a **secret** - the refusal names the pattern and the line and shows only a redacted snippet.
 
-Secrets are refused rather than scrubbed: a prompt Vibestrate quietly rewrote is a Role that no longer says what you wrote. The practical consequence is worth knowing - a Role whose prompt already contains something the scanner flags can be read but not re-saved until the token comes out.
+Secrets are refused rather than scrubbed: a prompt Vibestrate rewrote on its own is a Role that no longer says what you wrote. The practical consequence is worth knowing - a Role whose prompt already contains something the scanner flags can be read but not re-saved until the token comes out.
 
 Three behaviors worth stating rather than leaving you to discover them:
 
@@ -168,9 +113,39 @@ Three behaviors worth stating rather than leaving you to discover them:
 - **The character screen is C0 and NUL only.** Unicode direction overrides pass it and are stored as written.
 - **A path-scoped rule covers the whole Save, not one half of it.** The prompt and the wiring live in two files, but each half of the Save presents *both* paths to the matcher. So a rule naming `**/.vibestrate/roles/**` and a rule naming `**/project.yml` each refuse both halves - and a skill assignment along with them.
 
-  A Role's authority is not divisible by which file happens to hold it: a rule that stopped the prompt and let a `read_only` -> `code_write` flip through would be reporting a block it did not perform.
+  A Role's authority is not divisible by which file holds it, so such a rule is **broader than its glob looks** - one written to freeze instructions also refuses a label rename. There is no `match` that gates one of the two files alone.
 
-  The consequence to know is that such a rule is **broader than its glob looks** - one written to freeze instructions also refuses a label rename. There is no `match` that gates one of the two files alone.
+## Advanced: CLI and automation
+
+Every Crew page action has a terminal path, for scripts and headless machines. See [the CLI overview](/docs/cli/overview).
+
+A Crew is a block in `.vibestrate/project.yml`, and the page above edits this:
+
+```yaml
+crews:
+  default:
+    label: Default
+    roles:
+      executor:
+        label: Backend Implementer
+        seats: [implementer, executor, builder]
+        profile: claude-balanced
+        prompt: .vibestrate/roles/executor.json
+        permissions: code_write
+        skills: []
+defaultCrew: default
+```
+
+`defaultCrew` is the Crew a run uses when it does not pick one.
+
+```bash
+vibe crew list                 # crews, with the default marked
+vibe crew show default         # its roles, profiles and seats
+vibe crew presets              # presets, and whether each fits
+vibe crew presets add cheap    # install one into project.yml
+vibe crew use cheap            # make it the default
+vibe run "task" --crew default # one run on a named crew
+```
 
 ## Going deeper
 

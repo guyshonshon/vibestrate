@@ -1,18 +1,20 @@
 ---
 title: Supervisor Control
-description: The chat panel on Mission Control. It remembers the conversation, answers from your real project, and - when you allow it - turns what you say into a task or a run.
+description: The Supervisor chat panel on Mission Control. It remembers the conversation, answers from your real project, and - once the switch reads Answers and acts - turns what you say into a task or a run.
 slug: concepts/supervisor-control
 ---
 
-**Supervisor Control** is the chat panel titled **Supervisor**. It sits on Mission Control, and on the page of any run that is still going. Type what you want. It answers from your real project, and it remembers what was said earlier in the thread.
+**Supervisor Control** is the chat panel titled **Supervisor**. It fills the right column of Mission Control, and it sits on the page of any run that is still going. Type what you want. It answers from your real project, and it remembers what was said earlier in the thread.
+
+![Mission Control in the dashboard. A sidebar of sections runs down the left. The header reads Mission control, beside an approvals tile showing Clear under the caption Nothing blocked and an Edit layout button. A New run composer and a Run summary panel sit in the middle column, and the Supervisor chat fills the right column, its header switch offering Answers only and Answers and acts.](/media/docs/mission-control.png)
+
+The switch in that panel header is the part to find first. It reads **Answers only** or **Answers and acts**, and it is a **permission**, not a stop: it decides whether the supervisor may make a task, add TODOs or start a run. Stop is a different control, the red square that replaces Send while a turn is running.
 
 [Consult](/docs/concepts/consult) answers one question and forgets it. Supervisor Control keeps the thread, so "do the other one instead" has something to point at.
 
-A turn runs in three phases. **Routing** decides what you meant. **Acting** does it. **Answering** writes the reply. Routing only runs when the supervisor is allowed to act, and out of the box it is not - so a message costs one model call and changes nothing.
+A turn runs in three phases. **Routing** decides what you meant. **Acting** does it. **Answering** writes the reply. Routing only runs when the supervisor is allowed to act, and out of the box it is not, so a message costs one model call and changes nothing.
 
-The control in the panel header is a **permission**, not a stop. It reads **Answers only** or **Answers and acts**, and it decides whether the supervisor may make a task, add TODOs or start a run. Stop is a different control: the red square that replaces Send while a turn is running.
-
-<svg viewBox="0 0 560 112" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A turn goes from you to routing, then acting, then answering, and back to you. When there is nothing to act on, routing skips acting and goes straight to answering.">
+<svg viewBox="0 0 560 112" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A turn goes from you to routing, then acting, then answering, and back to you. With nothing to act on, routing skips acting and goes straight to answering.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
     <rect x="48" y="20" width="130" height="40" rx="8"/>
     <rect x="213" y="20" width="130" height="40" rx="8"/>
@@ -80,9 +82,9 @@ Routing picks `answer`, so nothing is acted on. The reply comes from your real r
 
 > We need rate limiting on the public API before launch.
 
-With **Answers and acts** on, routing reads this as new work and picks `task.create`. Acting makes the task and replies with its title. If the work belongs on a task you already have, routing picks `checklist.add` instead and the reply counts what it added - and if that task has a run in flight, it says so plainly, because a checklist run works from the list it started with and new items wait for the next one.
+With acting allowed, routing reads this as new work and picks `task.create`. Acting makes the task and replies with its title. If the work belongs on a task you already have, routing picks `checklist.add` instead and the reply counts what it added - and if that task has a run in flight, it says so plainly, because a checklist run works from the list it started with and new items wait for the next one.
 
-With **Answers only** on, the same sentence gets an answer that tells you where it would go, and nothing is created.
+With **Answers only** on the switch, the same sentence gets an answer that tells you where it would go, and nothing is created.
 
 **A question about Vibestrate itself.**
 
@@ -150,51 +152,11 @@ Stop is the red square beside Send, and it appears only while a turn is running.
 
 Closing the socket is what stops a turn, so reloading the page or restarting the server does the same thing. Nothing that already happened is taken back by any of them.
 
-Stop is per-turn. It is not the permission switch, and it changes no setting. To take acting away from the supervisor, use the header control, or the CLI:
-
-```bash
-vibe supervisor stop --reason "reviewing the diff"
-vibe supervisor status
-vibe supervisor resume
-```
+Stop is per-turn. It is not the permission switch, and it changes no setting. To take acting away from the supervisor, set the header switch to **Answers only**.
 
 ## Who answers, and how hard
 
 Two pickers sit on the composer, next to the attach button.
-
-<svg viewBox="0 0 560 212" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A sketch of the Supervisor panel. Along the top: the title, the permission control reading Answers only, and New conversation. Below it a message with its reply and Show me how actions. At the bottom the composer, carrying the attach button, the profile and effort pickers, and the Send button that becomes Stop while a turn is running.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="1" width="558" height="210" rx="10"/>
-    <path d="M1 41 H559"/>
-    <rect x="286" y="10" width="126" height="22" rx="6"/>
-    <rect x="424" y="10" width="124" height="22" rx="6"/>
-    <rect x="16" y="58" width="330" height="42" rx="8"/>
-    <rect x="16" y="110" width="62" height="20" rx="5"/>
-    <rect x="88" y="110" width="104" height="20" rx="5"/>
-    <rect x="16" y="142" width="528" height="54" rx="8"/>
-    <rect x="30" y="170" width="56" height="20" rx="5"/>
-    <rect x="94" y="170" width="76" height="20" rx="5"/>
-    <rect x="178" y="170" width="68" height="20" rx="5"/>
-    <rect x="442" y="170" width="88" height="20" rx="5"/>
-  </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
-    <text x="16" y="26">Supervisor</text>
-  </g>
-  <g fill="currentColor" font-size="11" text-anchor="middle">
-    <text x="349" y="25">Answers only</text>
-    <text x="486" y="25">New conversation</text>
-    <text x="47" y="124">reply</text>
-    <text x="140" y="124">Show me how</text>
-    <text x="58" y="184">attach</text>
-    <text x="132" y="184">profile</text>
-    <text x="212" y="184">effort</text>
-    <text x="486" y="184">Send / Stop</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
-    <text x="30" y="83">a message</text>
-    <text x="30" y="163">Ask anything, or say what you want built</text>
-  </g>
-</svg>
 
 **Profile** chooses who replies to this turn. A profile is a provider plus a model, so changing it changes the effort ladder beside it: the levels always belong to whoever is about to answer.
 
@@ -224,7 +186,7 @@ Image thumbnails are drawn from the browser's own file handle and never leave th
 
 ## Show me how
 
-When you ask a procedure question - one containing "how do I", "where can I", "show me how", "walk me through", "what is a" - a **Show me how** button appears under the answer. The answer says what to do in words; this stands you in front of it. The trigger is how you phrased the question, so "why did this run block" gets prose and no button.
+Ask a procedure question - one containing "how do I", "where can I", "show me how", "walk me through", "what is a" - and a **Show me how** button appears under the answer. The answer says what to do in words; this stands you in front of it. The trigger is how you phrased the question, so "why did this run block" gets prose and no button.
 
 A question the catalog already covers gets an authored walkthrough - every target a source literal, checked by the compiler and covered by a test, with no model call to wait for. Everything else gets one built for that question, and every step is checked against the real route table and the real list of controls before anything opens. A step that does not survive is dropped, and a walkthrough left with no steps is refused with the reason on screen.
 
@@ -232,29 +194,35 @@ Both run at the same privilege, and a step is a **destination**. It lands you on
 
 ## Letting it act
 
-Out of the box the supervisor **writes nothing**. It answers, suggests and drafts, and that is all.
+Out of the box the supervisor **writes nothing**. It answers, suggests and drafts, and that is all. Two gates stand in front of acting, and both have to say yes.
 
-```bash
-vibe config set supervisorControl.autonomy act
-```
+**The switch in the panel header** is the fast one. It writes a pause flag that survives a restart, and it **fails closed**: if the flag cannot be read - corrupt, half-written, wrong permissions - the supervisor is treated as paused. A switch that quietly degrades to "go" is not a switch. Talking still works while it is paused, and the router is not called at all, so a paused supervisor is not spending to reach decisions it cannot use.
 
-turns that up, and so does the header control. In `act` mode, "add a hero section to the landing page" is enough: the supervisor decides where that belongs and does it.
+**The `supervisorControl.autonomy` setting** is the standing one, and it ships as `advise`. The switch does not change it. So a fresh project shows **Answers and acts** in the header and still refuses to act, telling you the supervisor is in advise mode. Turn autonomy up once, and after that the header switch is the control you use day to day. In `act` mode, "add a hero section to the landing page" is enough: the supervisor decides where that belongs and does it.
 
 There are exactly two settings, `advise` and `act`. An earlier design had a middle "queue" tier, and it was dropped for being dishonest - queueing a task starts the scheduler, so it runs the work exactly like `act` does, only through another process. A tier that reads as cautious while behaving like the top one is worse than no tier.
 
 <div class="docs-callout warn">
 
-**`act` will not turn on without a budget ceiling.** A run started from chat spends money and its agent runs commands on your machine, and every ceiling ships off. So `supervisorControl.autonomy: act` with no budget limit set is refused at config load, not warned about. Set one first:
-
-```bash
-vibe budget set --max-turns-run 40
-```
+**`act` will not turn on without a budget ceiling.** A run started from chat spends money and its agent runs commands on your machine, and every ceiling ships off. So `supervisorControl.autonomy: act` with no budget limit set is refused at config load, not warned about. Set one of the five [budget limits](/docs/concepts/safety) first; the refusal names all five.
 
 </div>
 
-The header control writes a pause flag, which is separate from the autonomy setting and survives a restart. It **fails closed**: if the flag cannot be read - corrupt, half-written, wrong permissions - the supervisor is treated as paused. A switch that quietly degrades to "go" is not a switch. Talking still works while it is paused, and the router is not called at all, so a paused supervisor is not spending to reach decisions it cannot use.
+Every action shows in the thread on the message that caused it, including the ones it refused. A refusal you cannot see is how you end up believing work was queued that never was. Supervisor effects are audited in one place, `.vibestrate/supervisor/`.
 
-Every action shows in the thread on the message that caused it, including the ones it refused. A refusal you cannot see is how you end up believing work was queued that never was. Supervisor effects are audited in one place, `.vibestrate/runs/supervisor/`.
+## Advanced: CLI and automation
+
+The panel covers the day-to-day. The commands are for scripts, for a machine with no browser open, and for the autonomy setting, which lives in config rather than on screen.
+
+```bash
+vibe supervisor status                              # running, or stopped and why
+vibe supervisor stop --reason "reviewing the diff"  # same flag as the header switch
+vibe supervisor resume
+vibe budget set --max-turns-run 40                  # the ceiling act requires
+vibe config set supervisorControl.autonomy act
+```
+
+`vibe supervisor stop` and the header switch write the same pause flag, and `status` reports it in the switch's own words: "Stopped - answers only." [The CLI overview](/docs/cli/overview) has the shape of the tool; [the command reference](/docs/reference/cli) has every flag.
 
 ## What it cannot do
 

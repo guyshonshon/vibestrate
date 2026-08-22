@@ -193,58 +193,6 @@
       ]
     },
     {
-      "id": "cli",
-      "label": "Using the CLI",
-      "items": [
-        {
-          "slug": "cli/overview",
-          "label": "CLI overview"
-        },
-        {
-          "slug": "cli/shell",
-          "label": "Interactive shell"
-        },
-        {
-          "slug": "cli/dashboard",
-          "label": "Mission Control"
-        },
-        {
-          "slug": "cli/supervised-tasks",
-          "label": "vibe tasks"
-        },
-        {
-          "slug": "cli/supervisor",
-          "label": "vibe supervisor"
-        }
-      ]
-    },
-    {
-      "id": "workflows",
-      "label": "Workflows",
-      "items": [
-        {
-          "slug": "workflows/create-and-run",
-          "label": "Create and run a task"
-        },
-        {
-          "slug": "workflows/inspect-progress",
-          "label": "Inspect a run in flight"
-        },
-        {
-          "slug": "workflows/pause-resume",
-          "label": "Pause, resume, abort"
-        },
-        {
-          "slug": "workflows/debug-failed",
-          "label": "Debug a failed run"
-        },
-        {
-          "slug": "workflows/git-tree-merge",
-          "label": "Merge from the git tree"
-        }
-      ]
-    },
-    {
       "id": "lifecycle",
       "label": "Run lifecycle",
       "items": [
@@ -303,6 +251,52 @@
           "label": "Agent roles",
           "generated": true,
           "source": "agents.json"
+        }
+      ]
+    },
+    {
+      "id": "advanced-cli",
+      "label": "Advanced: CLI and automation",
+      "items": [
+        {
+          "slug": "cli/overview",
+          "label": "CLI overview"
+        },
+        {
+          "slug": "cli/shell",
+          "label": "Interactive shell"
+        },
+        {
+          "slug": "cli/dashboard",
+          "label": "Mission Control"
+        },
+        {
+          "slug": "cli/supervised-tasks",
+          "label": "vibe tasks"
+        },
+        {
+          "slug": "cli/supervisor",
+          "label": "vibe supervisor"
+        },
+        {
+          "slug": "workflows/create-and-run",
+          "label": "Create and run a task"
+        },
+        {
+          "slug": "workflows/inspect-progress",
+          "label": "Inspect a run in flight"
+        },
+        {
+          "slug": "workflows/pause-resume",
+          "label": "Pause, resume, abort"
+        },
+        {
+          "slug": "workflows/debug-failed",
+          "label": "Debug a failed run"
+        },
+        {
+          "slug": "workflows/git-tree-merge",
+          "label": "Merge from the git tree"
         }
       ]
     },

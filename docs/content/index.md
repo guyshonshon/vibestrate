@@ -4,43 +4,29 @@ description: Vibestrate is where your AI coding agents work together - one share
 slug: index
 ---
 
-You already have the models. What you do not have is a way to put several of them on one task without doing the logistics by hand: pasting the same context into each tool, keeping a spare checkout so a risky change cannot hurt you, carrying one model's output into the next one's prompt, and noticing when they quietly drift apart.
+You have the models. Vibestrate takes over the logistics of putting several of them on one task: pasting the same context into each tool, keeping a spare checkout so a risky change can't reach your files, carrying one model's output into the next one's prompt, and catching where they drift apart.
 
-Vibestrate is the frame they work inside. One plan, your rules, the gates you chose, one record of what happened. It drives the coding CLIs already installed on your machine, and the final call stays yours - see [why a human stays in the loop](/docs/getting-started/why-a-human).
+Vibestrate is the frame they work inside. One plan, your rules, the gates you chose, one record of what happened. It drives the coding CLIs installed on your machine, and the final call stays yours - see [why a human stays in the loop](/docs/getting-started/why-a-human).
 
-<svg viewBox="0 0 560 96" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A task goes in, the run plans, builds, reviews and verifies it inside a worktree on its own branch, and the decision comes back to you.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="26" width="88" height="30" rx="8"/>
-    <rect x="104" y="14" width="364" height="54" rx="10" stroke-dasharray="4 4"/>
-    <rect x="116" y="26" width="76" height="30" rx="6"/>
-    <rect x="204" y="26" width="76" height="30" rx="6"/>
-    <rect x="292" y="26" width="76" height="30" rx="6"/>
-    <rect x="380" y="26" width="76" height="30" rx="6"/>
-    <rect x="484" y="26" width="75" height="30" rx="8"/>
-    <path d="M89 41h9"/>
-    <path d="M468 41h9"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.28">
-    <path d="M98 37l6 4-6 4z"/>
-    <path d="M477 37l6 4-6 4z"/>
-  </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="45" y="45">your task</text>
-    <text x="154" y="45">plan</text>
-    <text x="242" y="45">build</text>
-    <text x="330" y="45">review</text>
-    <text x="418" y="45">verify</text>
-    <text x="521" y="45">your call</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
-    <text x="286" y="84">a worktree on its own branch</text>
-  </g>
-</svg>
+Mission Control is where you spend your time. `vibe ui` opens it on localhost. You start runs from the composer, watch the supervisor work, and see anything waiting on your approval.
 
-<video controls preload="none" poster="/media/run-poster.jpg" width="100%" playsinline aria-label="A Vibestrate run reaching merge-ready, then the diff it produced">
-<source src="/media/run-1080.mp4" type="video/mp4" />
-A recorded run: eight steps across five seats, a model that hits a rate limit and falls back to a backup, and the diff it produced.
-</video>
+![Mission Control. A sidebar of sections runs down the left. The header reads Mission control, with an approvals tile showing Clear under the caption Nothing blocked and an Edit layout button. A New run composer and a Run summary panel sit below, and the Supervisor chat fills the right column, its mode switch set between Answers only and Answers and acts.](/media/docs/mission-control.png)
+
+## A crew, not one model
+
+The Default flow seats six workers - planner, architect, implementer, reviewer, fixer and verifier - across eight steps, and you choose the provider and model behind each seat. Put the reviewer on a different model from the implementer and the diff gets read by something that did not write it. They share one plan and one project context, so nobody starts over. The reviewer reads the diff cold and a separate verifier takes the last look, because a model reviewing its own work can only lower its own confidence.
+
+![A finished run on the Default flow. All eight steps are ticked, from Plan to Verify, each with its token count and spend. The Run assurance panel reads verified across its four lanes: policy, validation, review and verification. The Run dashboard header offers View diff, Workspace, Copy cd, Re-run with changes, Flow & why and Live metrics.](/media/docs/run-merge-ready.png)
+
+Run assurance is the verdict across four lanes, and verified means the change is finished and waiting on you. Flow & why records which flow ran and where that choice came from. View diff, Workspace and Copy cd take you to the branch it left behind.
+
+![A blocked run on the Express flow. The Run assurance panel shows review as changes requested and verification as failed. The reviewer's finding says the new code writes userId to stdout on every rejected save. The available actions are View review, Re-run with fixes, Pause and Abort.](/media/docs/run-blocked.png)
+
+This run took the Express flow, and the reviewer came back with changes requested: the new code writes `userId` to stdout on every rejected save. Verification failed behind it, so the run stopped at blocked. You read the finding under View review, then fix it yourself or hit Re-run with fixes. One model wrote the change, a second one caught it, and you make the call.
+
+![A finished run on the Default flow, eight steps from Plan to Verify. The supervisor log records two enforced fallbacks reading fell back to claude-balanced, transient, and a judgment reading review checks 2 project policies, no-console-logging and validate-inputs. Run assurance reads verified across policy, validation, review and verification.](/media/docs/run-cross-model.png)
+
+Two things in that log are worth reading. The reviewer checked this project's own policies by name, `no-console-logging` and `validate-inputs`, because rules you write are handed to the reviewer rather than left as documentation. And the provider behind two seats failed part-way, so the run fell back to a backup profile and carried on: `fell back to claude-balanced, transient`. A wobbling provider slows a run down instead of losing it.
 
 A run works in a separate git worktree on its own branch, so it never edits your working tree. It never pushes and never merges. Every prompt, output, and decision is written under `.vibestrate/runs/`, one folder per run. The run then stops at one of four outcomes and hands the decision back to you:
 
@@ -57,57 +43,55 @@ A run works in a separate git worktree on its own branch, so it never edits your
 
 </div>
 
-## The crew is the point
+## The flow is chosen per task
 
-Vibestrate's real edge is running several AIs, of different models, on one task. The default flow has six seats - planner, architect, implementer, reviewer, fixer and verifier - and you decide which model sits in each, or let Vibestrate pick a crew for you.
+There is no "the default one unless you choose another". `defaultFlow` is unset in a fresh project, so with no `--flow` Vibestrate decides per task: a short, low-risk task can be sized down to `express`, a risk-tagged one can be upgraded by your supervisor persona, and a brief that reads like "build me a whole system" runs the read-only [Spec-up](/docs/concepts/spec-up) chain first. Every run records the flow it resolved and the reason, which is what Flow & why shows on the panel above. More in [Flow](/docs/concepts/flow).
 
-Every seat gets the same plan and the same project context, so nobody starts over. The reviewer reads the diff cold, and a separate verifier seat takes the last look. Disagreement between them is the point: a model reviewing its own work can only lower its own confidence.
+## Set the crew, the rules and the recipes
 
-## Run one in a sentence
+Crew maps each role to the seats it fills and the profile it runs on. Policies hold your project's rules, each set to Advise, which the reviewer checks, or Block, which caps the run at merge time. A fresh project starts with none of its own, and the four hard guards below them already on. Flows are the run recipes: 14 ship built in, and Draft a flow turns a sentence into a project-owned one you can edit.
 
-```bash
-vibe run "Add audit logging to the settings flow"
-```
+![The Crew page. Each role is listed as a row naming the Seats it can fill and the Profile it runs on.](/media/docs/crew.png)
 
-Vibestrate makes the worktree, plans the change, writes it, runs your validation commands, reviews it, verifies the result, and hands it back for your call. That is the whole loop. Everything else in these docs is detail on top of it.
+![The Policies page on a fresh project. Guards on reads 4 of 4, and the counters for advise, block, pending and engine rules all sit at zero. Your policies says No policies yet next to a New policy button. Hard guards lists four switches that are on: forbid main-branch writes, forbid secrets access, forbid auto-push and forbid auto-merge.](/media/docs/policies.png)
 
-It detects eleven providers by name. Five of them it can configure on its own - claude, codex, gemini, aider and ollama - and the rest it walks you through. See [the provider reference](/docs/reference/providers) for what each one needs:
+![The Flows page. One card per flow, each with a bar of its steps colour-coded by step kind and an Open button, one marked project-owned. New flow, Import and Draft a flow sit in the header.](/media/docs/flows.png)
+
+Vibestrate detects eleven coding CLIs by name and configures five on its own - claude, codex, gemini, aider and ollama. See [the provider reference](/docs/reference/providers) for what the other six need:
 
 <div class="docs-chips"><span>Claude Code</span><span>Codex CLI</span><span>Gemini CLI</span><span>OpenCode</span><span>Aider</span><span>Ollama</span><span>Qwen Code</span><span>Crush</span><span>Goose</span><span>Cursor CLI</span><span>Amp</span></div>
 
-## Where to start
+Your coding tools make their own calls with the credentials they already hold, on your machine. Nothing leaves it unless you ask: browsing the Flow Hub, importing a Flow by URL, fetching a skill, passing `--context-url`, exporting metrics to your own collector, or configuring an `http-api` provider that calls a model API directly.
+
+## Every run stays on the record
+
+All runs lists every run in the project with its review and verification outcome and how long it took. Replay walks a finished one step by step from what was saved on disk, and the Scheduler strip decides what starts next.
+
+![The All runs page. Four runs sit in a table with Status, Review, Verify and Duration columns, one of them merge-ready. A Filter by task or id box sits above, with Open the board, Replay and Prune snapshots controls, and a Scheduler strip carrying Start the queue.](/media/docs/runs-list.png)
+
+## Where to go next
 
 <div class="docs-cards">
 
-**[Get the big picture first](/docs/getting-started/big-picture)**
-The one short read that makes everything click - Task, Flow, and Crew, told as a simple story.
+**[Quick start](/docs/getting-started/quickstart)**
+Install it, point it at a coding CLI you already have, and take one task from a sentence to a branch you can keep.
 
-**[Get started in 5 minutes](/docs/getting-started/installation)**
-Install it, point it at a model, run your first task.
-
-**[Understand the concepts](/docs/concepts/task)**
-Tasks, the crew of models, providers, Flows, skills, and the worktrees runs work in.
-
-**[Look up the details](/docs/reference/cli)**
-Every command, every setting, every built-in Flow.
-
-**[Make it your own](/docs/extending/add-skill)**
-Add skills, add models, or write your own Flow.
+**[Full walkthrough](/docs/getting-started/walkthrough)**
+The tour: the dashboard, flows, crews, policies, spec-up and the merge path.
 
 </div>
 
-## What makes it different
+## Advanced: CLI and automation
 
-<div class="docs-cards">
+Every screen above has a command behind it, and an unattended run needs one.
 
-**A supervisor, not a chatbot.** It runs the work, judges it, and reports back with real feedback. The terminal and dashboard are how you watch and steer.
+```bash
+vibe init                                          # scaffold .vibestrate/
+vibe run "Add audit logging to the settings flow"  # plan, build, review, verify
+vibe status                                        # the runs in this project
+vibe ui                                            # open Mission Control
+```
 
-**An advisor you can ask.** [Consult](/docs/concepts/consult) knows your project, and Vibestrate itself, and answers without touching your code.
+`vibe run` takes `--flow`, `--crew`, `--profile`, `--skills`, `--read-only` and `--unattended`. `vibe steer <runId> <note>` queues a note onto a live run, applied at the next step boundary. `vibe consult "<question>"` answers from your project's real contents without touching them.
 
-**Many models, one task.** Different AIs each bring their own view, and Vibestrate makes them check each other instead of rubber-stamping.
-
-**Yours, on your machine.** No cloud account, no server in the middle. Your coding tools make their own calls with the credentials they already hold. Nothing leaves your machine unless you ask it to: browsing the Flow Hub, importing a Flow by URL, fetching a skill, passing `--context-url`, exporting metrics to your own collector, or configuring an `http-api` provider that calls a model API directly.
-
-**Fully on the record.** Every run is saved under `.vibestrate/runs/`. Read it back, replay it, or audit it.
-
-</div>
+Start at [the CLI overview](/docs/cli/overview), then [the command reference](/docs/reference/cli). [The interactive shell](/docs/cli/shell) is the terminal-only path, and [create and run a task](/docs/workflows/create-and-run) covers wiring runs into your own scripts.

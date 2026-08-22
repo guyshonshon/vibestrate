@@ -4,13 +4,17 @@ description: Every run does its work in a separate copy of your project, so your
 slug: concepts/worktree
 ---
 
-Every time Vibestrate works on a task, it does that work in a separate copy of your project. Your real files, the ones you edit yourself, are never touched.
+Open a run in the dashboard and the **Workspace** panel names the folder that run worked in: a separate copy of your project, on its own branch, with a **Copy cd** button that puts a `cd` command for it on your clipboard.
 
-That separate copy is a git **worktree**. Git can keep a second working folder of the same project, on its own branch, sitting right next to your main one. Picture it like a contractor building your new kitchen in a workshop down the street: same blueprints, but the mess stays out of your house until you choose to bring the finished work home.
+![The Run dashboard for a finished run. A Workspace panel shows the run's git worktree path with its branch name and a Copy cd button. Around it sit a Run assurance verdict, a Flow & why summary, Live metrics with per-step tokens and spend, and View diff and Re-run with changes buttons, with all eight steps of the default flow marked done.](/media/docs/run-merge-ready.png)
+
+Everything the run wrote lives under that path. Your real files, the ones you edit yourself, are never touched.
+
+That separate copy is a git **worktree**. Git can keep a second working folder of the same project, on its own branch, sitting right next to your main one. Picture it like a contractor building your new kitchen in a workshop down the street: same blueprints, and the mess stays out of your house until you choose to bring the finished work home.
 
 Inside the copy, Vibestrate writes the agents' file edits and one commit per stage. It refuses to write anywhere outside that folder, to secret-like files such as `.env` or `*.pem`, or any patch that adds something shaped like a leaked token.
 
-There is one honest exception, and it is worth knowing. `node_modules`, `.venv` and `venv` are symlinked in from your project so your tests can actually run in the copy. An agent with write permission can write back through those links into your project's installed dependencies. It never reaches your tracked source, and `git.linkEnvironment: off` turns the links off.
+One honest exception is worth knowing. `node_modules`, `.venv` and `venv` are symlinked in from your project so your tests can run in the copy. An agent with write permission can write back through those links into your project's installed dependencies. It never reaches your tracked source, and `git.linkEnvironment: off` turns the links off.
 
 The copy is created when the run starts, lives under `../.vibestrate-worktrees/` by default, and is named after the run id. Its branch is the `git.branchPrefix` setting followed by that same run id, with no task slug appended.
 
@@ -40,6 +44,8 @@ The copy is created when the run starts, lives under `../.vibestrate-worktrees/`
 
 Because the run works in its own folder on its own branch, you can keep coding in your real project at the same time. The two never collide, and git doesn't even notice the overlap.
 
+A terminal you open against a run from the dashboard starts inside the copy too, and it refuses to open a session at your project root.
+
 It also means nothing is lost when a run goes wrong. If a run ends `blocked`, `failed`, or `aborted`, its copy stays on disk so you can open it, read the half-finished work, and pull out anything useful.
 
 ## Where the copies live
@@ -53,6 +59,8 @@ git:
   linkEnvironment: auto                   # default
 ```
 
+The dashboard's project page shows the resolved directory, so you can check where copies land.
+
 Run ids look like `bold-lovelace` and `quiet-turing`, so two runs at once give you two folders under `../.vibestrate-worktrees/`, one named for each.
 
 Run records stay under your project root, in the `.vibestrate/runs/` folder named after the run id. They are never written inside the copy.
@@ -65,14 +73,26 @@ A fresh copy starts with only the files git tracks. That leaves out installed fo
 
 Two safety checks keep this honest. `node_modules` is linked only when the copy's lockfile is byte-identical to your project's, so a branch with different dependencies is never tested against the wrong set. And a folder is linked only if git is ignoring it, so the link can never end up committed.
 
-If you'd rather skip linking, set `linkEnvironment: off` for bare copies. When a tool is missing because nothing was linked, those commands are recorded with the status `environment`, which is separate from `failed`: nothing was checked, but nothing failed, and a run is never blocked over it. The reviewer is told plainly that those commands could not run.
+Set `linkEnvironment: off` for bare copies if you'd rather skip linking. A command whose toolchain is then missing gets the status `environment`, which is separate from `failed`: nothing was checked, nothing failed, and a run is never blocked over it. The reviewer is told plainly that those commands could not run.
 
 ## After the run
 
 - **`merge_ready`** - the branch is ready for you to merge. The copy stays on disk until you delete it.
 - **`blocked` / `failed` / `aborted`** - the copy is kept so you can inspect it or pull fragments out.
 
-To clean one up:
+Either way, **View diff** on the run page reads every line the run wrote, file by file.
+
+## Advanced: CLI and automation
+
+The same path and branch are reachable from the terminal, for scripts and for work over SSH. See the [CLI overview](/docs/cli/overview).
+
+```bash
+vibe path <runId>          # worktree path + branch
+vibe path <runId> --cd     # only the absolute path
+cd "$(vibe path <runId> --cd)"
+```
+
+To clean a copy up when you're done with it:
 
 ```bash
 cd your-project

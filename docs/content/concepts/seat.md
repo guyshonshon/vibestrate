@@ -6,36 +6,19 @@ slug: concepts/seat
 
 A **Seat** is an empty, labelled chair in a Flow that says "this step needs someone to fill it." It is a contract, not a person: it names the *kind* of worker a step needs, and nothing about who.
 
-Picture a Flow as a table with chairs around it. One chair is labelled "implementer", another "reviewer". The Flow sets out the chairs and what each one is for. It never says who sits down. Your [Crew](/docs/concepts/crew) does that, choosing a worker for each Seat when the task actually runs.
+The Crew page is where the chairs meet the people who sit in them.
 
-That gap is the whole point. Because a Flow only names chairs and never names your AI models, you can take a Flow someone else wrote and run it with your own workers. The chairs are shared. Who fills them is yours.
+![The Crew page. Each role is listed as a row naming the Seats it can fill and the Profile it runs on, under a Crew header.](/media/docs/crew.png)
 
-## How a Flow asks for a Seat
+Every row is one of your Roles. The Seats column is the set of chairs that Role will take, and the Profile column is the model it brings when it takes one. The page also counts the seats your Flows can ask for and flags any that no Role covers, so an unfillable run shows up before you start it.
 
-A Flow declares the Seats it needs, then points each step at one:
+A Flow sets out the chairs and never says who sits down; your [Crew](/docs/concepts/crew) does that, at the moment a task runs. That gap is the whole point: a Flow names chairs and never names your AI models, so you can take a Flow someone else wrote and run it with your own workers.
 
-```yaml
-seats:
-  implementer:
-    label: Implementer
-    description: Makes code changes.
+## Steps that need a Seat
 
-steps:
-  - id: implement
-    label: Implement
-    kind: agent-turn
-    seat: implementer
-    inputs: [task-brief, plan, architecture]
-    outputs: [execution, diff]
-```
+Open a Flow from the Flows page and select a step: the inspector carries a **Seat** field listing the chairs that Flow declared, labelled required or optional for the step's kind. The four kinds where an AI takes a turn need one: `agent-turn`, `review-turn`, `response-turn` and `summary-turn`. A `validation` step that runs your tests, or an `approval-gate` that waits for you, needs no Seat, since nobody is sitting down to think.
 
-Your Crew fills the `implementer` seat with a worker (a [Role](/docs/concepts/role)) you've set up. You can name that Role anything - Backend Implementer, Executor, Coder - as long as it lists `implementer` in its own `seats`.
-
-A Seat carries a `label` and an optional `description`, and nothing else - no model, no vendor. The worker who takes the Seat brings the model through its [profile](/docs/concepts/profile), so the same Flow can run on different AI depending on who fills the chair.
-
-## Which steps need a Seat
-
-Not every step does. A `validation` step that runs your tests, or an `approval-gate` that waits for you, needs no Seat - nobody is sitting down to think. The four kinds where an AI takes a turn do: `agent-turn`, `review-turn`, `response-turn` and `summary-turn`.
+A Seat carries a `label` and an optional `description`, and nothing else - no model, no vendor. The worker brings the model through its [profile](/docs/concepts/profile), so one Flow can run on different AI depending on who fills the chair.
 
 ## Going deeper
 
@@ -79,11 +62,40 @@ When a task runs, Vibestrate follows the chain from the step's Seat through your
   </g>
 </svg>
 
-The step asks for a chair. The Role that lists that chair sits down, runs on the Profile it names, and the Provider behind that Profile does the work.
-
-Each step records who actually sat down:
+The step asks for a chair, the Role that lists it sits down, and the Provider behind that Role's Profile does the work. Each step records who sat down:
 
 <div class="docs-chips"><span>seat</span><span>resolvedRoleId</span><span>resolvedRoleLabel</span><span>profileId</span><span>providerId</span></div>
+
+## Advanced: CLI and automation
+
+Both sides of the chain print in a terminal, the path for scripts and for reading someone else's Flow. See the [CLI overview](/docs/cli/overview).
+
+```bash
+# a Flow's seats, its ordered steps, and whether your Crew covers them
+vibe flows show default
+
+# your Crew's roles, their profiles, and the seats they fill
+vibe crew show
+```
+
+In the YAML, a Flow declares its Seats, then points each step at one:
+
+```yaml
+seats:
+  implementer:
+    label: Implementer
+    description: Implements the plan and architecture.
+
+steps:
+  - id: implement
+    label: Implement
+    kind: agent-turn
+    seat: implementer
+    inputs: [task-brief, plan, architecture]
+    outputs: [execution, diff]
+```
+
+The [Role](/docs/concepts/role) that fills this seat can be named anything - Backend Implementer, Executor, Coder - as long as it lists `implementer` in its own `seats`.
 
 The Seat shape lives in `src/flows/schemas/flow-schema.ts` as `flowSeatSchema`.
 
