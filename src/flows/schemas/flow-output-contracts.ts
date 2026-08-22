@@ -216,6 +216,25 @@ export type FlowArchitectureDecision = z.infer<
   typeof flowArchitectureDecisionSchema
 >;
 
+/**
+ * The path contract an architect hands the seats downstream of it. Architects
+ * already wrote this as prose ("May create/edit: ..."), and nothing read it -
+ * so an implementer could, and did, create files its own architect had ruled
+ * out. Declared here it becomes a deterministic merge-cap (scope-gate.ts).
+ *
+ * Both lists empty = nothing declared = the gate stays silent. Fail-open on
+ * absence is deliberate: a flow with no architect has nothing to violate.
+ */
+export const flowScopeContractSchema = z
+  .object({
+    /** Globs the implementer may create or edit. Empty = no allowlist. */
+    mayEdit: z.array(z.string().min(1).max(200)).max(40).default([]),
+    /** Globs it must not touch even if `mayEdit` would allow them. */
+    mayNotEdit: z.array(z.string().min(1).max(200)).max(40).default([]),
+  })
+  .strict();
+export type FlowScopeContract = z.infer<typeof flowScopeContractSchema>;
+
 export const flowArchitectureHandoffOutputSchema = z
   .object({
     contract: z.literal(FLOW_ARCHITECTURE_HANDOFF_CONTRACT),
@@ -223,6 +242,9 @@ export const flowArchitectureHandoffOutputSchema = z
     approach: z.string().min(1).max(3000),
     decisions: z.array(flowArchitectureDecisionSchema).max(30).default([]),
     componentsTouched: z.array(z.string().min(1).max(400)).max(60).default([]),
+    /** Machine-checked path scope for the seats downstream. Optional so an
+     *  architect that declares nothing keeps working exactly as before. */
+    scope: flowScopeContractSchema.optional(),
     interfaces: z.array(z.string().min(1).max(600)).max(30).default([]),
     risks: z.array(z.string().min(1).max(1000)).max(20).default([]),
     openQuestions: z.array(z.string().min(1).max(1000)).max(20).default([]),
@@ -361,6 +383,15 @@ export const flowHandoffContracts = {
       ],
       componentsTouched: ["src/..."],
       interfaces: ["fn signature or API shape"],
+      // The path contract for the seats downstream. Globs, not prose: this is
+      // checked against the run's actual diff and caps merge-readiness, so list
+      // every path the change legitimately needs - including new files. Omit
+      // the field entirely to declare no scope; an empty allowlist is silence,
+      // not a ban.
+      scope: {
+        mayEdit: ["src/**/*.ts", "tests/**/*.ts", "README.md"],
+        mayNotEdit: ["**/*.env", "**/secrets/**"],
+      },
       risks: ["..."],
       openQuestions: ["..."],
     },

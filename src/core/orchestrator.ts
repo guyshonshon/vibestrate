@@ -317,6 +317,8 @@ import {
   type PendingItemReview,
 } from "./run-engine/checklist-band.js";
 import { finalizeFlowVerdict } from "./run-engine/flow-verdict.js";
+import { flowArchitectureHandoffOutputSchema } from "../flows/schemas/flow-output-contracts.js";
+import { renderScopeBlock, type DeclaredScope } from "../supervisor/scope-gate.js";
 
 // Re-exported so existing importers (server routes, CLI, workflow runner) keep
 // resolving these from here; the definitions live under run-engine/.
@@ -409,6 +411,9 @@ export class Orchestrator {
   private policyAdviseBlock: string | null = null;
   /** The same policies, worded for implementer/fixer turns (comply, not audit). */
   private policyComplyBlock: string | null = null;
+  /** The architect's declared path scope, rendered for code-writing turns.
+   *  Populated mid-run, once the architecture step has produced its handoff. */
+  private scopeBlock: string | null = null;
   /** Pre-rendered ponytail minimalism block (ponytail-posture.ts), computed once
    *  at run start from `config.ponytail` and appended to code-WRITING turns only
    *  (implementer/fixer). null = the knob is off (write turns unchanged). */
@@ -1517,6 +1522,15 @@ export class Orchestrator {
       // they reach the prompt through composeGuidedNotes. Done HERE, at the
       // state write that flips the step to running, because runTurn is
       // concurrency-safe by contract and must not write shared state.
+      // The architecture step produces the scope mid-run, so refresh it at each
+      // boundary rather than once at startup like the policy blocks.
+      if (this.scopeBlock === null) {
+        const declared = await this.readDeclaredScope({
+          snapshot,
+          artifactStore: input.artifactStore,
+        });
+        this.scopeBlock = renderScopeBlock(declared);
+      }
       {
         const drained = drainGuidanceFor(state.pendingGuidance, step.id);
         if (drained.text) {
@@ -1584,6 +1598,7 @@ export class Orchestrator {
         isReviewer: isReviewerStep(step),
         policyAdviseBlock: this.policyAdviseBlock,
         policyComplyBlock: this.policyComplyBlock,
+        scopeBlock: this.scopeBlock,
         specUpPostureBlock: this.specUpPostureBlock,
         ponytailBlock: this.ponytailBlock,
         isCodeWriting: isCodeWritingStep(step),
@@ -3241,6 +3256,7 @@ export class Orchestrator {
                 isReviewer: isReviewerStep(step),
                 policyAdviseBlock: this.policyAdviseBlock,
                 policyComplyBlock: this.policyComplyBlock,
+                scopeBlock: this.scopeBlock,
                 specUpPostureBlock: this.specUpPostureBlock,
                 ponytailBlock: this.ponytailBlock,
                 isCodeWriting: isCodeWritingStep(step),
@@ -3591,6 +3607,10 @@ export class Orchestrator {
           reviewSkipEvidence,
           itemOutcomes,
           needsTestingAdvisory,
+          declaredScope: await this.readDeclaredScope({
+            snapshot: input.snapshot,
+            artifactStore: input.artifactStore,
+          }),
         },
       );
       state = verdict.state;
@@ -3798,6 +3818,41 @@ export class Orchestrator {
   /** Live snapshot of the orchestrator fields the approval gate
    *  (run-engine/approval-gate.ts) reads. Built fresh per call so `notify`
    *  (wired in run()) is current at gate time. */
+
+  /**
+   * The path scope the architecture step declared, or null when it declared
+   * none. Read from the architecture handoff artifact rather than threaded
+   * state, so it works on both the graph and linear paths without widening the
+   * verdict's inputs.
+   *
+   * Every failure returns null (fail-open). A run whose architect declared no
+   * scope, or whose handoff is missing or malformed, has nothing to violate -
+   * capping those would break every flow that has no architect at all.
+   */
+  private async readDeclaredScope(input: {
+    snapshot: ResolvedFlowSnapshot;
+    artifactStore: ArtifactStore;
+  }): Promise<DeclaredScope | null> {
+    const step = input.snapshot.steps.find((s) =>
+      (s.outputs ?? []).includes("architecture-handoff"),
+    );
+    if (!step) return null;
+    try {
+      const raw = await input.artifactStore.read(
+        path.posix.join("flows", step.id, "architecture-handoff.json"),
+      );
+      if (!raw) return null;
+      const parsed = flowArchitectureHandoffOutputSchema.safeParse(JSON.parse(raw));
+      if (!parsed.success) return null;
+      const scope = parsed.data.scope;
+      if (!scope) return null;
+      if (scope.mayEdit.length === 0 && scope.mayNotEdit.length === 0) return null;
+      return { mayEdit: scope.mayEdit, mayNotEdit: scope.mayNotEdit };
+    } catch {
+      return null;
+    }
+  }
+
   private approvalGateDeps(): ApprovalGateDeps {
     return {
       projectRoot: this.projectRoot,

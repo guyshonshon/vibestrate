@@ -23,6 +23,8 @@ import {
 import { computeMergeReady, type ReviewSkipEvidence } from "../run/merge-readiness.js";
 import { checklistItemGapsCap } from "../../safety/run-assurance.js";
 import { evaluateBlockPolicies } from "../../supervisor/policy-block.js";
+import { evaluateScope, type DeclaredScope } from "../../supervisor/scope-gate.js";
+import { getDiffSnapshot } from "../diff-service.js";
 import { awaitApprovalRequest, type ApprovalGateDeps } from "./approval-gate.js";
 import { getCurrentBranch } from "../../git/git.js";
 import { getWorktreeDiffText } from "../diff-service.js";
@@ -107,6 +109,59 @@ async function evaluatePolicyBlockGate(input: {
 }
 
 /**
+ * Evaluate whether the run stayed inside the path scope its architect declared.
+ *
+ * Deterministic, like the block-policy gate and for the same reason: a model
+ * verdict in the merge path can brick a legitimate merge, a glob caps exactly
+ * what it matches. Fail-open on absence - a flow whose architect declared no
+ * scope (or that has no architect at all) has nothing to violate, so the gate
+ * returns clean and says nothing.
+ *
+ * A diff it cannot read does NOT block here. The block-policy gate already
+ * blocks conservatively on an unreadable diff, so the run is stopped either
+ * way; failing this one closed as well would turn a git hiccup into a second,
+ * more confusing cap.
+ */
+async function evaluateScopeGate(input: {
+  scope: DeclaredScope | null;
+  worktreePath: string;
+  eventLog: EventLog;
+}): Promise<boolean> {
+  if (!input.scope) return true;
+  try {
+    const snapshot = await getDiffSnapshot({ worktreePath: input.worktreePath });
+    const files = snapshot.files.map((f) => f.path);
+    const gate = evaluateScope(input.scope, files);
+    if (!gate.declared) return true;
+    for (const v of gate.violations) {
+      await input.eventLog.append({
+        type: "supervisor.scope_block",
+        message:
+          v.reason === "explicitly-forbidden"
+            ? `Merge capped: ${v.file} is outside the architect's scope (matched mayNotEdit ${v.glob}).`
+            : `Merge capped: ${v.file} was changed but is not on the architect's may-edit list.`,
+        data: { file: v.file, reason: v.reason, glob: v.glob },
+      });
+    }
+    for (const bad of gate.inert) {
+      await input.eventLog.append({
+        type: "supervisor.scope_block",
+        message: `Scope glob "${bad.glob}" is not enforcing: ${bad.reason}`,
+        data: { file: null, reason: "inert", glob: bad.glob },
+      });
+    }
+    return gate.clean;
+  } catch (err) {
+    await input.eventLog.append({
+      type: "supervisor.scope_block",
+      message: `Scope gate could not read the run diff; not capping on scope: ${err instanceof Error ? err.message : "unknown error"}`,
+      data: { file: null, reason: "diff-read-error", glob: null },
+    });
+    return true;
+  }
+}
+
+/**
  * Fold the run's decision lanes into a terminal state, take it through the
  * Action Broker, and persist the transition, the completion event and the
  * notification.
@@ -121,6 +176,9 @@ export async function finalizeFlowVerdict(
     snapshot: ResolvedFlowSnapshot;
     state: RunState;
     worktreePath: string | null;
+    /** Path scope the architecture step declared, if any. Null = nothing
+     *  declared, so the scope gate stays silent. */
+    declaredScope?: DeclaredScope | null;
     stateStore: RunStateStore;
     eventLog: EventLog;
     approvalService: ApprovalService;
@@ -177,6 +235,14 @@ export async function finalizeFlowVerdict(
           eventLog: input.eventLog,
         })
       : true;
+  const scopeClean =
+    !deps.readOnly && input.worktreePath
+      ? await evaluateScopeGate({
+          scope: input.declaredScope ?? null,
+          worktreePath: input.worktreePath,
+          eventLog: input.eventLog,
+        })
+      : true;
 
   // Skip evidence satisfies review ONLY when no review turn ran; it never
   // substitutes for validation or verification (merge-readiness.ts).
@@ -193,6 +259,7 @@ export async function finalizeFlowVerdict(
     verificationDecision: input.verificationDecision,
     checklistItemsClean: !itemGaps.caps,
     policiesClean,
+    scopeClean,
   });
   const reviewSatisfiedByEvidence =
     !input.reviewTurnRan &&

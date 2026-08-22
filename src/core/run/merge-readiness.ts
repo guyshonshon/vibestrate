@@ -42,6 +42,9 @@ export type MergeReadinessInput = {
    *  correctness verdict). Undefined is treated as true so existing callers are
    *  unaffected. */
   policiesClean?: boolean;
+  /** False when the run's diff touched files outside the scope its
+   *  architect declared (scope-gate.ts). Undefined when nothing was declared. */
+  scopeClean?: boolean;
 };
 
 /** Review is satisfied by an APPROVED decision, or - express only - by skip
@@ -70,6 +73,9 @@ export function computeMergeReady(i: MergeReadinessInput): boolean {
     i.validationPassed &&
     (!i.verified || i.verificationDecision === "PASSED") &&
     (i.checklistItemsClean ?? true) &&
-    (i.policiesClean ?? true)
+    (i.policiesClean ?? true) &&
+    // The architect's declared path scope. Absent scope => undefined => true,
+    // so a flow with no architect is unaffected.
+    (i.scopeClean ?? true)
   );
 }

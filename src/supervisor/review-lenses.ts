@@ -140,6 +140,10 @@ export function composeReviewerStepNotes(input: {
    *  review -> fix -> re-review round trip to remove, so they reach the turn that can
    *  still avoid the violation. Same selection as the reviewer block. */
   policyComplyBlock?: string | null;
+  /** The architect's declared path scope (scope-gate.ts), rendered for a
+   *  code-WRITING seat. Capping only at the merge gate means the run is already
+   *  paid for before anyone learns the boundary was crossed. */
+  scopeBlock?: string | null;
   /** Persona spec-up posture block; set only on a spec-up run (else null). */
   specUpPostureBlock?: string | null;
   /** Ponytail minimalism block (ponytail-posture.ts); appended on code-writing
@@ -155,6 +159,7 @@ export function composeReviewerStepNotes(input: {
   if (input.lensEmphasis && input.isReviewer) notes += `\n\n${input.lensEmphasis}`;
   if (input.policyAdviseBlock && input.isReviewer) notes += `\n\n${input.policyAdviseBlock}`;
   if (input.policyComplyBlock && input.isCodeWriting) notes += `\n\n${input.policyComplyBlock}`;
+  if (input.scopeBlock && input.isCodeWriting) notes += `\n\n${input.scopeBlock}`;
   if (input.specUpPostureBlock) notes += `\n\n${input.specUpPostureBlock}`;
   if (input.ponytailBlock && input.isCodeWriting) notes += `\n\n${input.ponytailBlock}`;
   return notes;

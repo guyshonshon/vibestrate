@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **The architect's scope is now a contract, not a suggestion.** An architecture
+  step already wrote down exactly which paths the implementer could touch, and
+  nothing read it - so the implementer could, and did, create files its own
+  architect had ruled out. Measured on this project's benchmark: three of three
+  orchestrated runs produced a `test/api.test.js` that was not on their
+  architect's allowlist, under an architect that had written "no test framework
+  was specified in the brief or stack list". The architecture handoff now
+  carries a `scope` of path globs; the writing seats are told what it is before
+  they write, and the run's real diff is checked against it at the merge gate -
+  a deterministic cap, never a model verdict, exactly like a `block` policy.
+  Declaring nothing keeps the old behaviour: absence is silence, not a ban.
+  After the change, a rerun produced zero violations against its own declared
+  scope.
+
 - **Your policies now reach the agent writing the code, not just the one
   reviewing it.** An `advise` policy was injected into reviewer turns only, so a
   rule you had written down was invisible to the implementer and the fixer - the

@@ -102,6 +102,9 @@ export type VibestrateEventType =
   | "supervisor.spec_up_posture"
   | "supervisor.policy_advise"
   | "supervisor.policy_block"
+  // The run changed a file outside the path scope its architect declared
+  // (scope-gate.ts). Deterministic merge-cap, never a model verdict.
+  | "supervisor.scope_block"
   | "supervisor.ponytail"
   | "flow.snapshot.written"
   | "flow.participant.capabilities"
