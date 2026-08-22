@@ -349,6 +349,61 @@ export type FlowExecutionHandoffOutput = z.infer<
   typeof flowExecutionHandoffOutputSchema
 >;
 
+// ── Flow shaping contract ───────────────────────────────────────────────────
+//
+// The task decomposition a shaping turn emits so a flow can be DERIVED from the
+// work instead of picked from a fixed recipe. The model describes the work -
+// units, what depends on what, what each unit is risky about - and deterministic
+// code (flow-derive.ts) compiles that into the graph.
+//
+// The split is the whole point. A model that writes its own `needs` and its own
+// review steps is a model choosing its own gates, which is the same objection
+// that makes the `block` policy tier owner-only. Here the model supplies
+// semantics and the compiler supplies structure, so a bad decomposition can
+// produce a wrong-but-valid graph and never an ungated one.
+export const FLOW_SHAPE_CONTRACT = "vibestrate.flow.shape.v1";
+
+/** What a unit of work is risky about. CLOSED set: each tag maps to a review
+ *  lens deterministically, so "what do we review" is never a model's free
+ *  choice. An unmapped word would silently review nothing. */
+export const flowRiskTagSchema = z.enum([
+  "auth",
+  "untrusted-input",
+  "secrets",
+  "data-integrity",
+  "concurrency",
+  "money",
+  "migration",
+  "public-api",
+  "ui",
+  "performance",
+]);
+export type FlowRiskTag = z.infer<typeof flowRiskTagSchema>;
+
+export const flowShapeUnitSchema = z
+  .object({
+    id: flowTokenSchema,
+    title: z.string().min(1).max(200),
+    /** Ids of units that must be complete before this one starts. */
+    dependsOn: z.array(flowTokenSchema).max(20).default([]),
+    /** Why this unit is risky. Empty = routine. */
+    risk: z.array(flowRiskTagSchema).max(10).default([]),
+  })
+  .strict();
+export type FlowShapeUnit = z.infer<typeof flowShapeUnitSchema>;
+
+export const flowShapeOutputSchema = z
+  .object({
+    contract: z.literal(FLOW_SHAPE_CONTRACT),
+    units: z.array(flowShapeUnitSchema).min(1).max(20),
+    /** True when the work can only be meaningfully checked once every unit
+     *  lands (an end-to-end suite), which gates validation behind all of them. */
+    validateOnlyWhenComplete: z.boolean().default(true),
+    rationale: z.string().min(1).max(2000),
+  })
+  .strict();
+export type FlowShapeOutput = z.infer<typeof flowShapeOutputSchema>;
+
 // Registry of builder-side handoff contracts, keyed by the output token a step
 // declares. One source of truth for both the prompt-side render (the JSON
 // example a step is asked to emit) and the orchestrator-side parse. `example`

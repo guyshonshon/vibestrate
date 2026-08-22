@@ -764,6 +764,62 @@
           "subcommands": []
         },
         {
+          "name": "derive",
+          "path": [
+            "vibe",
+            "flows",
+            "derive"
+          ],
+          "description": "Build a Flow around a specific task: a shaping turn decomposes the work, deterministic code compiles the graph. Draft only - never writes; adopt it with `flows import`.",
+          "usage": "[options] <task>",
+          "arguments": [
+            {
+              "name": "task",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--id <flowId>",
+              "description": "id for the derived flow (default: derived)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--max-units <n>",
+              "description": "refuse a decomposition with more units than this - each unit is a model turn, so unit count is the cost multiplier",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--crew <id>",
+              "description": "check seat coverage against this crew (default: project default)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--yaml",
+              "description": "print only the flow YAML, for piping into a file",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
           "name": "export",
           "path": [
             "vibe",
@@ -6170,126 +6226,37 @@
       "subcommands": []
     },
     {
-      "name": "guide",
+      "name": "steer",
       "path": [
         "vibe",
-        "guide"
+        "steer"
       ],
-      "description": "Manage VIBESTRATE.md (the agent's operating guide for this project) and its proposals.",
-      "usage": "[options] [command]",
-      "arguments": [],
-      "options": [],
-      "subcommands": [
+      "description": "Queue a note onto a running run; it is applied at the next step boundary.",
+      "usage": "[options] <runId> <note...>",
+      "arguments": [
         {
-          "name": "show",
-          "path": [
-            "vibe",
-            "guide",
-            "show"
-          ],
-          "description": "Print the project's VIBESTRATE.md (or note that there is none).",
-          "usage": "[options]",
-          "arguments": [],
-          "options": [],
-          "subcommands": []
+          "name": "runId",
+          "description": "id of the run to steer",
+          "required": true,
+          "variadic": false
         },
         {
-          "name": "init",
-          "path": [
-            "vibe",
-            "guide",
-            "init"
-          ],
-          "description": "Scaffold a starter VIBESTRATE.md at the project root (refuses if one exists).",
-          "usage": "[options]",
-          "arguments": [],
-          "options": [],
-          "subcommands": []
-        },
-        {
-          "name": "proposals",
-          "path": [
-            "vibe",
-            "guide",
-            "proposals"
-          ],
-          "description": "List open VIBESTRATE.md proposals (e.g. from consult).",
-          "usage": "[options] [command]",
-          "arguments": [],
-          "options": [
-            {
-              "flags": "--all",
-              "description": "include applied/rejected proposals",
-              "required": false,
-              "optional": false,
-              "negated": false
-            }
-          ],
-          "subcommands": [
-            {
-              "name": "show",
-              "path": [
-                "vibe",
-                "guide",
-                "proposals",
-                "show"
-              ],
-              "description": "Show a proposal's full suggested text.",
-              "usage": "[options] <id>",
-              "arguments": [
-                {
-                  "name": "id",
-                  "description": "",
-                  "required": true,
-                  "variadic": false
-                }
-              ],
-              "options": [],
-              "subcommands": []
-            }
-          ]
-        },
-        {
-          "name": "apply",
-          "path": [
-            "vibe",
-            "guide",
-            "apply"
-          ],
-          "description": "Apply a proposal - append its text to VIBESTRATE.md (guarded write).",
-          "usage": "[options] <id>",
-          "arguments": [
-            {
-              "name": "id",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [],
-          "subcommands": []
-        },
-        {
-          "name": "reject",
-          "path": [
-            "vibe",
-            "guide",
-            "reject"
-          ],
-          "description": "Reject a proposal (keeps it on record, marked rejected).",
-          "usage": "[options] <id>",
-          "arguments": [
-            {
-              "name": "id",
-              "description": "",
-              "required": true,
-              "variadic": false
-            }
-          ],
-          "options": [],
-          "subcommands": []
+          "name": "note",
+          "description": "what the agents should do differently",
+          "required": true,
+          "variadic": true
         }
-      ]
+      ],
+      "options": [
+        {
+          "flags": "--step <stepId>",
+          "description": "hold the note until this specific step runs (default: whichever step runs next)",
+          "required": true,
+          "optional": false,
+          "negated": false
+        }
+      ],
+      "subcommands": []
     },
     {
       "name": "learn",
@@ -6478,6 +6445,128 @@
       ],
       "options": [],
       "subcommands": []
+    },
+    {
+      "name": "guide",
+      "path": [
+        "vibe",
+        "guide"
+      ],
+      "description": "Manage VIBESTRATE.md (the agent's operating guide for this project) and its proposals.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "show",
+          "path": [
+            "vibe",
+            "guide",
+            "show"
+          ],
+          "description": "Print the project's VIBESTRATE.md (or note that there is none).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "init",
+          "path": [
+            "vibe",
+            "guide",
+            "init"
+          ],
+          "description": "Scaffold a starter VIBESTRATE.md at the project root (refuses if one exists).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "proposals",
+          "path": [
+            "vibe",
+            "guide",
+            "proposals"
+          ],
+          "description": "List open VIBESTRATE.md proposals (e.g. from consult).",
+          "usage": "[options] [command]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--all",
+              "description": "include applied/rejected proposals",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": [
+            {
+              "name": "show",
+              "path": [
+                "vibe",
+                "guide",
+                "proposals",
+                "show"
+              ],
+              "description": "Show a proposal's full suggested text.",
+              "usage": "[options] <id>",
+              "arguments": [
+                {
+                  "name": "id",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            }
+          ]
+        },
+        {
+          "name": "apply",
+          "path": [
+            "vibe",
+            "guide",
+            "apply"
+          ],
+          "description": "Apply a proposal - append its text to VIBESTRATE.md (guarded write).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "id",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "reject",
+          "path": [
+            "vibe",
+            "guide",
+            "reject"
+          ],
+          "description": "Reject a proposal (keeps it on record, marked rejected).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "id",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        }
+      ]
     },
     {
       "name": "resume",

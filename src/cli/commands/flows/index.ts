@@ -4,6 +4,7 @@ import { runFlowsList } from "./list.js";
 import { runFlowsShow } from "./show.js";
 import { runFlowsSuggest } from "./suggest.js";
 import { runFlowsDraft } from "./draft.js";
+import { runFlowsDerive } from "./derive.js";
 import { runFlowsExport } from "./export.js";
 import { runFlowsImport } from "./import.js";
 import { detectProject } from "../../../project/project-detector.js";
@@ -116,6 +117,40 @@ export function buildFlowsCommand(): Command {
           json: opts.json,
         });
         process.exit(code);
+      },
+    );
+
+  // Shape the flow to the TASK. Unlike `draft`, the model never authors the
+  // graph: it returns a decomposition (units, dependencies, closed-vocabulary
+  // risk tags) and deterministic code compiles the steps, edges and lenses.
+  cmd
+    .command("derive <task>")
+    .description(
+      "Build a Flow around a specific task: a shaping turn decomposes the work, deterministic code compiles the graph. Draft only - never writes; adopt it with `flows import`.",
+    )
+    .option("--id <flowId>", "id for the derived flow (default: derived)")
+    .option(
+      "--max-units <n>",
+      "refuse a decomposition with more units than this - each unit is a model turn, so unit count is the cost multiplier",
+      (v: string) => Number.parseInt(v, 10),
+    )
+    .option("--crew <id>", "check seat coverage against this crew (default: project default)")
+    .option("--yaml", "print only the flow YAML, for piping into a file")
+    .option("--json", "emit JSON")
+    .action(
+      async (
+        task: string,
+        opts: { id?: string; crew?: string; maxUnits?: number; yaml?: boolean; json?: boolean },
+      ) => {
+        process.exit(
+          await runFlowsDerive(task, {
+            id: opts.id,
+            crew: opts.crew,
+            maxUnits: opts.maxUnits,
+            yaml: opts.yaml,
+            json: opts.json,
+          }),
+        );
       },
     );
 

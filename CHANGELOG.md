@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **`vibe flows derive` builds a flow around the task instead of picking one off
+  the shelf.** A shaping turn decomposes the work - units, what depends on what,
+  and what each unit is risky about from a closed tag set - and deterministic
+  code compiles the graph. "c depends on b" becomes a real edge; "test only once
+  a, b and c are made" gates validation behind every unit; and each risk tag
+  aims a review lens, so *what* gets reviewed is derived from the work rather
+  than fixed by the recipe. The model never authors a step, an edge or a lens,
+  which is the same reason a `block` policy is owner-only: it can influence what
+  it is checked for, only through a closed vocabulary, and can never remove a
+  gate. Nothing is written - the graph, the reason for every lens, and seat
+  coverage against your crew are printed for review, and adopting it is
+  `flows import`. Decomposition costs a model turn per unit, so the output warns
+  past four units and `--max-units` refuses a split you did not ask for.
+
 - **The architect's scope is now a contract, not a suggestion.** An architecture
   step already wrote down exactly which paths the implementer could touch, and
   nothing read it - so the implementer could, and did, create files its own
