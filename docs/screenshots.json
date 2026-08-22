@@ -1,0 +1,198 @@
+{
+  "$comment": "Every docs screenshot claims the dashboard shows certain words. This records the claim so tests/docs-screenshots.test.ts breaks when it stops being true. Prose drift is caught by the handbook corpus gate and check:cli; a screenshot of a renamed button stays wrong until a reader trips over it, and a confident wrong picture is trusted more than confident wrong prose. `sources` is load-bearing: a label must appear in the components that shot actually depicts, not anywhere under src/ui. A repo-wide substring sweep gated nothing - \"Block\" matched 86 files and \"Advise\" resolved against ConsultPage, so the policies shot passed while its caption contradicted the picture. Re-capture with demo/rec/docs-shots.mjs in the vibestrate-marketing repo, then update the labels here. The PNGs live in that repo because the docs site serves them; only the claim lives here, next to the source it is asserted against.",
+  "capturedOn": "2026-08-22",
+  "capturedFrom": "a throwaway project with three real runs: merge_ready, blocked, failed",
+  "assetDir": "vibestrate-marketing/public/media/docs",
+  "shots": {
+    "mission-control": {
+      "asset": "mission-control.png",
+      "sources": [
+        "app/routes/MissionControlPage",
+        "components/layout/Sidebar",
+        "components/layout/PanelBoard",
+        "components/mission/",
+        "components/supervisor/",
+        "components/consult/"
+      ],
+      "labels": [
+        "Answers and acts",
+        "Answers only",
+        "Edit layout",
+        "Mission control",
+        "New run",
+        "Nothing blocked",
+        "Run summary",
+        "Supervisor"
+      ]
+    },
+    "run-merge-ready": {
+      "asset": "run-merge-ready.png",
+      "sources": [
+        "app/routes/RunDetailPage",
+        "app/routes/run-detail/",
+        "components/layout/PanelBoard",
+        "components/runs/"
+      ],
+      "labels": [
+        "Copy cd",
+        "Flow & why",
+        "Live metrics",
+        "Re-run with changes",
+        "Run assurance",
+        "Run dashboard",
+        "View diff",
+        "Workspace"
+      ]
+    },
+    "run-blocked": {
+      "asset": "run-blocked.png",
+      "sources": [
+        "app/routes/RunDetailPage",
+        "app/routes/run-detail/",
+        "components/layout/PanelBoard",
+        "components/runs/"
+      ],
+      "labels": [
+        "Abort",
+        "Pause",
+        "Re-run with fixes",
+        "Run assurance",
+        "View review",
+        "changes requested"
+      ]
+    },
+    "runs-list": {
+      "asset": "runs-list.png",
+      "sources": [
+        "app/routes/RunsPage",
+        "components/runs/",
+        "components/queue/",
+        "components/scheduler/"
+      ],
+      "labels": [
+        "All runs",
+        "Filter by task or id",
+        "Open the board",
+        "Prune snapshots",
+        "Replay",
+        "Scheduler",
+        "Start the queue",
+        "merge-ready"
+      ]
+    },
+    "flows": {
+      "asset": "flows.png",
+      "sources": [
+        "app/routes/FlowsPage",
+        "components/flows/",
+        "components/flow-builder/"
+      ],
+      "labels": [
+        "Draft a flow",
+        "Flows",
+        "Import",
+        "New flow",
+        "Open",
+        "project-owned"
+      ]
+    },
+    "crew": {
+      "asset": "crew.png",
+      "sources": [
+        "app/routes/CrewPage",
+        "components/crew/"
+      ],
+      "labels": [
+        "Crew",
+        "Profile",
+        "Roles",
+        "Seats"
+      ]
+    },
+    "policies": {
+      "asset": "policies.png",
+      "sources": [
+        "app/routes/PoliciesPage",
+        "components/policies/"
+      ],
+      "labels": [
+        "Check a patch",
+        "Deterministic engine",
+        "Execution",
+        "Forbid auto-merge",
+        "Forbid auto-push",
+        "Forbid main-branch writes",
+        "Forbid secrets access",
+        "Guards on",
+        "Hard guards",
+        "Harden read-only seats",
+        "Interactive terminal",
+        "New policy",
+        "No policies yet",
+        "Policies",
+        "Strict apply-only mode",
+        "Supervisor posture",
+        "Your policies"
+      ]
+    },
+    "profiles": {
+      "asset": "profiles.png",
+      "sources": [
+        "app/routes/ProfilesPage",
+        "components/profiles/"
+      ],
+      "labels": [
+        "Broken profile",
+        "Create profile",
+        "Duplicate",
+        "Profiles"
+      ]
+    },
+    "codebase": {
+      "asset": "codebase.png",
+      "sources": [
+        "app/routes/CodebasePage",
+        "components/codebase/"
+      ],
+      "labels": [
+        "Add note",
+        "Ask the supervisor",
+        "Choose a run",
+        "Codebase"
+      ]
+    },
+    "metrics": {
+      "asset": "metrics.png",
+      "sources": [
+        "app/routes/MetricsPage",
+        "components/metrics/"
+      ],
+      "labels": [
+        "Activity",
+        "Headline numbers",
+        "Latency by phase",
+        "Leaderboard",
+        "Metrics"
+      ]
+    },
+    "run-cross-model": {
+      "asset": "run-cross-model.png",
+      "sources": [
+        "app/routes/RunDetailPage",
+        "app/routes/run-detail/",
+        "components/layout/PanelBoard",
+        "components/runs/"
+      ],
+      "labels": [
+        "Copy cd",
+        "Flow & why",
+        "Re-run with changes",
+        "Run assurance",
+        "Supervisor",
+        "View diff",
+        "Workspace",
+        "merge ready"
+      ]
+    }
+  }
+}
