@@ -11,6 +11,14 @@
           "label": "Overview"
         },
         {
+          "slug": "getting-started/quickstart",
+          "label": "Quick start"
+        },
+        {
+          "slug": "getting-started/walkthrough",
+          "label": "Full walkthrough"
+        },
+        {
           "slug": "getting-started/installation",
           "label": "Installation"
         },
