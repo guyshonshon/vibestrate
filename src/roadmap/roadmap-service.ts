@@ -70,6 +70,8 @@ export type AddTaskInput = {
   title: string;
   description?: string;
   acceptanceCriteria?: string;
+  /** Project-relative path to the approved spec this card came from. */
+  specRef?: string | null;
   acceptanceCommands?: string[];
   est?: string;
   priority?: Priority;
@@ -236,6 +238,7 @@ export class RoadmapService {
       title: input.title.trim(),
       description: input.description?.trim() ?? "",
       acceptanceCriteria: input.acceptanceCriteria?.trim() ?? "",
+      specRef: input.specRef ?? null,
       acceptanceCommands: (input.acceptanceCommands ?? [])
         .map((c) => c.trim())
         .filter((c) => c.length > 0),

@@ -433,6 +433,10 @@ export async function runRunCommand(
 
   // Resolve roadmap task linkage if --task was provided.
   let roadmapTaskId: string | null = options.taskId ?? null;
+  // The card's source spec, attached below alongside any --context-file.
+  let cardSpecSource:
+    | import("../../core/context/context-source-schema.js").ContextSource
+    | null = null;
   if (roadmapTaskId) {
     try {
       const { RoadmapService } = await import(
@@ -445,6 +449,23 @@ export async function runRunCommand(
           `${symbol.fail()} Roadmap task "${roadmapTaskId}" not found.`,
         );
         return 1;
+      }
+      // Attach the approved spec this card was synthesised FROM, the same way
+      // `spec-up build` does. Without it the run got the card's short
+      // description - a summary of a document the models were never shown -
+      // while the build path handed them the spec itself. Skipped when the card
+      // has no spec (hand-written) or the caller already attached that file.
+      if (t.specRef) {
+        const already = (options.contextSources ?? []).some(
+          (c) => c.kind === "file" && c.ref === t.specRef,
+        );
+        if (!already) {
+          cardSpecSource = {
+            kind: "file",
+            ref: t.specRef,
+            label: "Spec-up: approved spec",
+          };
+        }
       }
     } catch (err) {
       console.error(
@@ -734,7 +755,10 @@ export async function runRunCommand(
     sagaMode: options.sagaMode ?? false,
     sagaBudget,
     sagaSupervisor,
-    contextSources: options.contextSources ?? [],
+    contextSources: [
+      ...(options.contextSources ?? []),
+      ...(cardSpecSource ? [cardSpecSource] : []),
+    ],
     abortSignal: cliAbort.signal,
     onProgress: (msg) => {
       console.log(`${symbol.bullet()} ${msg}`);

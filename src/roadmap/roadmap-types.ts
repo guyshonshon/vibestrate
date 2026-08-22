@@ -284,6 +284,16 @@ export const taskSchema = z.object({
   // acceptanceCriteria only.
   acceptanceCommands: z.array(z.string().min(1).max(2000)).max(20).default([]),
   est: z.string().default(""),
+  // Project-relative path to the approved spec this card was synthesised FROM.
+  //
+  // `spec-up build` attaches the approved spec to the run as a context source,
+  // so the models build to the spec. The roadmap path did not: synthesis read
+  // the spec, wrote a short per-card description, and the spec itself was never
+  // linked - so running a card handed the models a summary of a document they
+  // were never shown. This carries the reference so a card's run can attach the
+  // same source the build path does. Null for a hand-written card, which has no
+  // spec to attach.
+  specRef: z.string().nullable().default(null),
   status: taskStatusSchema.default("backlog"),
   priority: prioritySchema.default("medium"),
   dependencies: z.array(safeIdSchema).default([]),

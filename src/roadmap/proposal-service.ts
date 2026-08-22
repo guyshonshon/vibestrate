@@ -27,6 +27,9 @@
 // place of the original failure.
 
 import path from "node:path";
+import { ArtifactStore } from "../core/stores/artifact-store.js";
+import { assertSafeRunId } from "../server/security.js";
+import { APPROVED_SPEC_PATH } from "../spec-up/spec-up-chain.js";
 import fs from "node:fs/promises";
 import { ensureDir, pathExists, readText, writeText } from "../utils/fs.js";
 import { roadmapProposalsDir } from "../utils/paths.js";
@@ -48,6 +51,35 @@ import {
 import type { Task } from "./roadmap-types.js";
 
 const PROPOSAL_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
+
+
+/**
+ * The approved spec a spec-up proposal was synthesised from, as a
+ * project-relative path, or null.
+ *
+ * Derived from the proposal id (`spec-up-<runId>`) rather than passed in by
+ * each caller: every accept surface then carries the spec without having to
+ * remember to, which is the difference between a rule and a mechanism. A
+ * hand-written proposal has no source run and gets null, honestly.
+ */
+async function resolveProposalSpecRef(
+  projectRoot: string,
+  proposalId: string,
+): Promise<string | null> {
+  const match = /^spec-up-(.+)$/.exec(proposalId);
+  if (!match) return null;
+  const runId = match[1]!;
+  try {
+    assertSafeRunId(runId);
+    const store = new ArtifactStore(projectRoot, runId);
+    if (!(await store.exists(APPROVED_SPEC_PATH))) return null;
+    return path.relative(projectRoot, path.join(store.rootDir, APPROVED_SPEC_PATH));
+  } catch {
+    // A malformed or missing run is not an error here - the cards simply carry
+    // no spec, exactly as they did before.
+    return null;
+  }
+}
 
 export class ProposalServiceError extends Error {
   constructor(message: string) {
@@ -238,6 +270,7 @@ export class ProposalService {
       description: t.description,
       acceptanceCriteria: t.acceptanceCriteria,
       acceptanceCommands: [],
+      specRef: null,
       est: t.est,
       status: "backlog",
       priority: t.priority,
@@ -359,6 +392,10 @@ export class ProposalService {
       const existingByTitle = new Map<string, string>();
       const existing = await this.roadmap.listTasks();
       for (const t of existing) existingByTitle.set(t.title, t.id);
+      // The spec these cards were synthesised FROM. `spec-up build` attaches it
+      // to the run; the roadmap path dropped it, so a card's run got a summary
+      // of a document it was never shown.
+      const specRef = await resolveProposalSpecRef(this.projectRoot, input.proposalId);
 
       // Create tasks WITHOUT dependencies first, then patch dependencies in a
       // second pass so we can resolve titles → ids predictably.
@@ -367,6 +404,7 @@ export class ProposalService {
           title: draft.title,
           description: draft.description,
           acceptanceCriteria: draft.acceptanceCriteria,
+          specRef,
           est: draft.est,
           priority: draft.priority,
           riskLevel: draft.riskLevel,

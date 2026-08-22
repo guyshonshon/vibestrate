@@ -16,6 +16,7 @@ function task(
     description: "",
     acceptanceCriteria: "",
     acceptanceCommands: [],
+    specRef: null,
     est: "",
     status: "backlog",
     priority: "medium",
