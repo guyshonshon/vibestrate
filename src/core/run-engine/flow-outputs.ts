@@ -132,6 +132,10 @@ export async function buildFlowContextPacket(input: {
     outputs: input.outputs,
     contextMode: input.contextMode,
     forceFullTokens: input.forceFullTokens,
+    // The agent runs in the WORKTREE, so a run-relative artifact reference does
+    // not resolve. Handing it the absolute root makes "exact content is
+    // available in the artifact above" true instead of a dead path.
+    artifactRoot: input.artifactStore.rootDir,
     generatedAt: nowIso(),
   });
   const absPath = await input.artifactStore.writeJson(

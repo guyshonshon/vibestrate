@@ -1,3 +1,4 @@
+import path from "node:path";
 /**
  * Builds the prior-artifact blocks a Flow step's prompt carries, together with
  * the context packet that records what was actually sent. Each input token the
@@ -93,6 +94,15 @@ export type BuildFlowContextPacketInput = {
    * blind. Empty/absent => unchanged behavior.
    */
   forceFullTokens?: ReadonlySet<string>;
+  /**
+   * Absolute directory the run's artifacts live in (ArtifactStore.rootDir).
+   * A summarized artifact tells the agent "exact content is available in the
+   * artifact above" and prints its path - but the path is run-relative while
+   * the agent's cwd is the WORKTREE, so it resolved to nothing and the agent
+   * was left working from the summary it was told not to trust. Supplying the
+   * root makes the reference openable. Absent => the old relative reference.
+   */
+  artifactRoot?: string;
 };
 
 export type BuildFlowContextPacketResult = {
@@ -155,6 +165,7 @@ export function buildFlowContextPacket(
       const fullBody = output.content.trim();
       const summaryBytes = bytes(
         renderPromptContent({
+          artifactRoot: input.artifactRoot,
           output,
           disposition: "embedded-summary",
           body: decision.body,
@@ -162,6 +173,7 @@ export function buildFlowContextPacket(
       );
       const fullBytes = bytes(
         renderPromptContent({
+          artifactRoot: input.artifactRoot,
           output,
           disposition: "embedded-full",
           body: fullBody,
@@ -177,6 +189,7 @@ export function buildFlowContextPacket(
       }
     }
     const promptContent = renderPromptContent({
+      artifactRoot: input.artifactRoot,
       output,
       disposition: decision.disposition,
       body: decision.body,
@@ -332,8 +345,16 @@ function renderPromptContent(input: {
   output: FlowContextOutput;
   disposition: Exclude<FlowContextDisposition, "omitted-unavailable">;
   body: string;
+  artifactRoot?: string;
 }): string {
-  const reference = `Artifact path: ${input.output.artifactPath}`;
+  // Absolute when we know the root: the agent runs in the worktree, so a
+  // run-relative path does not resolve and the "exact content is available"
+  // promise is false.
+  const reference = `Artifact path: ${
+    input.artifactRoot
+      ? path.join(input.artifactRoot, input.output.artifactPath)
+      : input.output.artifactPath
+  }`;
   if (input.disposition === "embedded-full") {
     return `${reference}\n\n${input.body.trim()}\n`;
   }
