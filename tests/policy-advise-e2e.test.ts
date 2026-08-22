@@ -12,11 +12,18 @@ import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
 import { flowDefinitionSchema, isGraphFlow } from "../src/flows/schemas/flow-schema.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
-// Project policy advise tier injected into the reviewer turn END-TO-END. The pure
-// renderer is unit-tested in policy-advise.test.ts; this proves the orchestrator
-// wires the block into a reviewer's prompt - under ANY active supervisor (the rule
-// is project-scoped, not persona-owned), on BOTH the linear walk (runFlowSequence,
-// what a plain `vibe run`/default flow takes) and the graph frontier.
+// Project policy advise tier injected END-TO-END, into BOTH audiences. The pure
+// renderers are unit-tested in policy-advise.test.ts; this proves the orchestrator
+// wires them into a reviewer's prompt AND a code-writing seat's prompt - under ANY
+// active supervisor (the rule is project-scoped, not persona-owned), on BOTH the
+// linear walk (runFlowSequence, what a plain `vibe run`/default flow takes) and the
+// graph frontier.
+//
+// The writer half was added after a benchmark measured the cost of leaving it out:
+// injecting into reviewers only meant the identical violation was written on every
+// attempt and removed by a review -> fix -> re-review round trip every time, instead
+// of not being written. The two blocks share one selection, so a rule can never bind
+// a writer without also being checkable by a reviewer.
 
 const noProvider: ProviderDetectionRunner = async () => ({ exitCode: 127, stdout: "", stderr: "" });
 
@@ -36,7 +43,17 @@ function policyFlow(graph: boolean) {
     description: "build then review",
     seats: { builder: { label: "Builder" }, reviewer: { label: "Reviewer" } },
     steps: [
-      { id: "build", label: "Build", kind: "agent-turn", seat: "builder" },
+      // A real code-WRITING seat: isCodeWritingStep keys on stage `executing` PLUS a
+      // `diff` output, so the stub has to declare both or it is not a writing turn
+      // and the compliance block correctly does not reach it.
+      {
+        id: "build",
+        label: "Build",
+        kind: "agent-turn",
+        seat: "builder",
+        stage: "executing",
+        outputs: ["execution-handoff", "diff"],
+      },
       {
         id: "review",
         label: "Review",
@@ -134,17 +151,29 @@ describe("project policy advise - reviewer-turn injection end-to-end", () => {
     };
   }
 
-  it("injects the policy into the reviewer prompt on the LINEAR walk (default-flow shape)", async () => {
+  it("reaches BOTH the reviewer and the writer on the LINEAR walk (default-flow shape)", async () => {
     expect(isGraphFlow(LINEAR_FLOW)).toBe(false);
     const { review, build } = await runWith(LINEAR_FLOW);
     expect(review).toContain(POLICY_FIX);
-    expect(build).not.toContain(POLICY_FIX);
+    // The writer gets the rule too - a violation it is never told about costs a
+    // full review -> fix -> re-review round trip to remove.
+    expect(build).toContain(POLICY_FIX);
   }, 60_000);
 
-  it("injects the policy into the reviewer prompt on the GRAPH frontier", async () => {
+  it("reaches BOTH the reviewer and the writer on the GRAPH frontier", async () => {
     expect(isGraphFlow(GRAPH_FLOW)).toBe(true);
     const { review, build } = await runWith(GRAPH_FLOW);
     expect(review).toContain(POLICY_FIX);
-    expect(build).not.toContain(POLICY_FIX);
+    expect(build).toContain(POLICY_FIX);
+  }, 60_000);
+
+  it("words the rule per audience: the writer is told to comply, not to audit", async () => {
+    const { review, build } = await runWith(LINEAR_FLOW);
+    expect(review).toContain("verify the change against each");
+    expect(build).toContain("these bind the code you write");
+    // The writer must NOT be handed the reviewer's hunt-for-violations framing -
+    // that turns every policy into a refactor and fights the ponytail posture.
+    expect(build).not.toContain("flag every violation");
+    expect(build).toContain("do not go looking for pre-existing violations");
   }, 60_000);
 });

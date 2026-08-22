@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- **Your policies now reach the agent writing the code, not just the one
+  reviewing it.** An `advise` policy was injected into reviewer turns only, so a
+  rule you had written down was invisible to the implementer and the fixer - the
+  seats that could have honoured it. The rule was violated, caught, and removed
+  by a review, fix and re-review round trip, every time, paying three model turns
+  to delete something that would never have been written. A benchmark run put
+  that round trip at 23% of the run's spend and 19% of its wall clock. Advise
+  rules now bind the writing seats too, worded to constrain rather than
+  commission: comply with these in this change, and do not go hunting for
+  pre-existing violations elsewhere. One selection feeds both sides, so a rule
+  can never bind a writer without also being checkable by a reviewer, and an
+  unconfirmed rule still reaches neither.
+
 ## 0.2.1
 
 - **The dashboard bundle now carries its licences.** Vibestrate ships the

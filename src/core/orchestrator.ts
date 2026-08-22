@@ -204,7 +204,10 @@ import {
   isReviewerStep,
   composeReviewerStepNotes,
 } from "../supervisor/review-lenses.js";
-import { renderPolicyAdviseBlock } from "../supervisor/policy-advise.js";
+import {
+  renderPolicyAdviseBlock,
+  renderPolicyComplyBlock,
+} from "../supervisor/policy-advise.js";
 import {
   isCodeWritingStep,
   renderPonytailBlock,
@@ -403,6 +406,8 @@ export class Orchestrator {
    *  reviewer turns so a model verifies the change against them. null = no
    *  confirmed/in-scope policies (review turns byte-identical to before). */
   private policyAdviseBlock: string | null = null;
+  /** The same policies, worded for implementer/fixer turns (comply, not audit). */
+  private policyComplyBlock: string | null = null;
   /** Pre-rendered ponytail minimalism block (ponytail-posture.ts), computed once
    *  at run start from `config.ponytail` and appended to code-WRITING turns only
    *  (implementer/fixer). null = the knob is off (write turns unchanged). */
@@ -955,10 +960,17 @@ export class Orchestrator {
         { activeLenses: lensEmphasis?.known ?? [] },
       );
       this.policyAdviseBlock = adviseSelection?.block ?? null;
+      // The SAME selection, worded to bind the code-writing seats. A rule the writer
+      // never sees costs a full review -> fix -> re-review round trip to remove
+      // something it would not have written had it been told.
+      this.policyComplyBlock =
+        renderPolicyComplyBlock(this.config.projectPolicies ?? [], {
+          activeLenses: lensEmphasis?.known ?? [],
+        })?.block ?? null;
       if (adviseSelection) {
         await eventLog.append({
           type: "supervisor.policy_advise",
-          message: `Supervisor "${personaForRun.config.label}" checks ${adviseSelection.injected.length} project policy(ies) in review.`,
+          message: `Supervisor "${personaForRun.config.label}" binds ${adviseSelection.injected.length} project policy(ies) on the writing seats and checks them in review.`,
           data: {
             personaId: personaForRun.id,
             policies: adviseSelection.injected.map((p) => p.id),
@@ -1552,6 +1564,7 @@ export class Orchestrator {
         lensEmphasis: this.reviewLensEmphasis,
         isReviewer: isReviewerStep(step),
         policyAdviseBlock: this.policyAdviseBlock,
+        policyComplyBlock: this.policyComplyBlock,
         specUpPostureBlock: this.specUpPostureBlock,
         ponytailBlock: this.ponytailBlock,
         isCodeWriting: isCodeWritingStep(step),
@@ -3208,6 +3221,7 @@ export class Orchestrator {
                 lensEmphasis: this.reviewLensEmphasis,
                 isReviewer: isReviewerStep(step),
                 policyAdviseBlock: this.policyAdviseBlock,
+                policyComplyBlock: this.policyComplyBlock,
                 specUpPostureBlock: this.specUpPostureBlock,
                 ponytailBlock: this.ponytailBlock,
                 isCodeWriting: isCodeWritingStep(step),

@@ -133,8 +133,13 @@ export function composeReviewerStepNotes(input: {
   stepInstructions?: string | null;
   lensEmphasis: string | null;
   isReviewer: boolean;
-  /** Project-policy advise block (policy-advise.ts); appended on reviewer turns only. */
+  /** Project-policy block worded for a REVIEWER (verify + flag); reviewer turns only. */
   policyAdviseBlock?: string | null;
+  /** The same policies worded for a code-WRITING seat (comply while making this
+   *  change); implementer/fixer turns only. Rules the writer never sees cost a full
+   *  review -> fix -> re-review round trip to remove, so they reach the turn that can
+   *  still avoid the violation. Same selection as the reviewer block. */
+  policyComplyBlock?: string | null;
   /** Persona spec-up posture block; set only on a spec-up run (else null). */
   specUpPostureBlock?: string | null;
   /** Ponytail minimalism block (ponytail-posture.ts); appended on code-writing
@@ -149,6 +154,7 @@ export function composeReviewerStepNotes(input: {
     : input.baseNotes;
   if (input.lensEmphasis && input.isReviewer) notes += `\n\n${input.lensEmphasis}`;
   if (input.policyAdviseBlock && input.isReviewer) notes += `\n\n${input.policyAdviseBlock}`;
+  if (input.policyComplyBlock && input.isCodeWriting) notes += `\n\n${input.policyComplyBlock}`;
   if (input.specUpPostureBlock) notes += `\n\n${input.specUpPostureBlock}`;
   if (input.ponytailBlock && input.isCodeWriting) notes += `\n\n${input.ponytailBlock}`;
   return notes;

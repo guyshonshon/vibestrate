@@ -1,7 +1,18 @@
 // Project policy - advise tier. Owner-taught, project-scoped rules ("use a hyphen,
-// not an em-dash"; "no eyebrow labels") rendered into a reviewer turn so a MODEL
-// verifies the artifact against them - the enforcement tier for rules that are real
-// but not mechanizable.
+// not an em-dash"; "no eyebrow labels") rendered into agent turns so a MODEL honours
+// them - the enforcement tier for rules that are real but not mechanizable.
+//
+// TWO AUDIENCES, TWO WORDINGS, one selection. A reviewer is told to VERIFY the diff
+// against each rule and flag violations; a code-WRITING seat (implementer/fixer) is
+// told to COMPLY with each while making the change. Injecting into reviewers only -
+// the original behaviour - meant every violation cost a full review -> fix -> re-review
+// round trip to remove something the writer would not have written had it been told.
+// Measured on a benchmark build: the identical XSS was written on every attempt and
+// caught every time, never prevented.
+//
+// The writer wording deliberately CONSTRAINS rather than commissions work: it says
+// comply while making this change, never "audit the codebase against these", so the
+// block does not fight the ponytail minimalism posture that shares the same turn.
 //
 // Project-scoped (was persona-scoped): a project-wide rule reaches the review under
 // ANY active supervisor. An UNSCOPED rule (scope.lenses == []) injects on every run;
@@ -56,6 +67,25 @@ export function selectAdvisePolicies(
   return { injected, droppedForCap: matched.length - injected.length };
 }
 
+/** Pure. One rule per line, with the owner's stated correction when there is one. */
+function renderPolicyLines(injected: readonly ProjectPolicy[]): string[] {
+  return injected.map((p) => {
+    const statement = p.statement.trim().replace(/\.+$/, "");
+    return p.correction
+      ? `- ${statement}. Fix: ${p.correction.trim()}`
+      : `- ${statement}.`;
+  });
+}
+
+const REVIEWER_HEADER =
+  "Project policies - verify the change against each; flag every violation with its exact location and the stated correction (advisory; rides the normal review -> fix loop, never softens a code-enforced gate):";
+
+// Comply, do not commission. The writer is told these bind the code it is about to
+// write - NOT that it should go find existing violations, which would turn every
+// policy into a refactor and fight the ponytail posture on the same turn.
+const WRITER_HEADER =
+  "Project policies - these bind the code you write. Comply with each one in this change; do not go looking for pre-existing violations elsewhere, and do not widen the task to satisfy them. A reviewer checks the diff against this same list:";
+
 /**
  * Pure. Render the selected advise rules into a bounded, labelled reviewer block.
  * Returns null when nothing is selected, so the caller injects nothing and the turn
@@ -67,15 +97,22 @@ export function renderPolicyAdviseBlock(
 ): PolicyAdviseSelection | null {
   const { injected, droppedForCap } = selectAdvisePolicies(policies, ctx);
   if (injected.length === 0) return null;
-  const lines = injected.map((p) => {
-    const statement = p.statement.trim().replace(/\.+$/, "");
-    return p.correction
-      ? `- ${statement}. Fix: ${p.correction.trim()}`
-      : `- ${statement}.`;
-  });
-  const block = [
-    "Project policies - verify the change against each; flag every violation with its exact location and the stated correction (advisory; rides the normal review -> fix loop, never softens a code-enforced gate):",
-    ...lines,
-  ].join("\n");
+  const block = [REVIEWER_HEADER, ...renderPolicyLines(injected)].join("\n");
+  return { block, injected, droppedForCap };
+}
+
+/**
+ * Pure. The same selection, worded for a code-WRITING seat (implementer/fixer) so
+ * the rules reach the turn that can still avoid the violation. Same trust gate, same
+ * scope filter, same cap - only the header differs, so a rule can never reach a
+ * writer without also being checkable by a reviewer.
+ */
+export function renderPolicyComplyBlock(
+  policies: readonly ProjectPolicy[],
+  ctx: { activeLenses: readonly string[] },
+): PolicyAdviseSelection | null {
+  const { injected, droppedForCap } = selectAdvisePolicies(policies, ctx);
+  if (injected.length === 0) return null;
+  const block = [WRITER_HEADER, ...renderPolicyLines(injected)].join("\n");
   return { block, injected, droppedForCap };
 }

@@ -3,6 +3,7 @@ import {
   POLICY_ADVISE_INJECTION_CAP,
   selectAdvisePolicies,
   renderPolicyAdviseBlock,
+  renderPolicyComplyBlock,
 } from "../src/supervisor/policy-advise.js";
 import {
   projectPolicySchema,
@@ -144,5 +145,44 @@ describe("policy-advise - project config schema", () => {
   it("schema -> renderer seam: an unconfirmed config policy stays inert (confirmedAt defaults null)", () => {
     const got = projectPolicySchema.parse({ id: "x", statement: "a rule nobody confirmed" });
     expect(renderPolicyAdviseBlock([got], { activeLenses: [] })).toBeNull();
+  });
+});
+
+describe("renderPolicyComplyBlock - the writer-facing wording", () => {
+  const policy = {
+    id: "no-untrusted-html",
+    statement: "Never render untrusted data as HTML",
+    correction: "use textContent or escape it",
+    scope: { lenses: [] },
+    source: "owner" as const,
+    confirmedAt: "2026-08-22T00:00:00.000Z",
+    tier: "advise" as const,
+    matcher: null,
+  };
+
+  it("selects exactly what the reviewer block selects, so a rule cannot bind a writer unchecked", () => {
+    const advise = renderPolicyAdviseBlock([policy], { activeLenses: [] });
+    const comply = renderPolicyComplyBlock([policy], { activeLenses: [] });
+    expect(comply!.injected.map((p) => p.id)).toEqual(advise!.injected.map((p) => p.id));
+    expect(comply!.droppedForCap).toBe(advise!.droppedForCap);
+  });
+
+  it("tells the writer to comply, never to hunt for pre-existing violations", () => {
+    const { block } = renderPolicyComplyBlock([policy], { activeLenses: [] })!;
+    expect(block).toContain("these bind the code you write");
+    expect(block).toContain("do not go looking for pre-existing violations");
+    expect(block).toContain("Never render untrusted data as HTML. Fix: use textContent or escape it");
+    // The reviewer's audit framing must not leak onto a writing turn - it reads as
+    // a licence to refactor and fights the ponytail minimalism posture.
+    expect(block).not.toContain("flag every violation");
+  });
+
+  it("honours the same trust gate: an unconfirmed rule never reaches a writer", () => {
+    const pending = { ...policy, confirmedAt: null, source: "supervisor-proposed" as const };
+    expect(renderPolicyComplyBlock([pending], { activeLenses: [] })).toBeNull();
+  });
+
+  it("returns null when nothing is selected, so the turn stays byte-identical", () => {
+    expect(renderPolicyComplyBlock([], { activeLenses: [] })).toBeNull();
   });
 });

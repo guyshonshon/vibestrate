@@ -13,7 +13,7 @@ Each policy has a **tier** that decides how it is enforced:
 
 <div class="docs-cards">
 
-**advise** - the default. The supervisor puts the rule in front of the reviewer and a model checks the change against it. A violation is flagged and rides the normal review and fix loop. Right for anything a human judges: a model generalizes to paraphrases a brittle pattern would miss. An advise rule never blocks a merge on its own.
+**advise** - the default. The rule goes to both sides of the change: the seat writing the code is told to comply with it, and the reviewer is told to check the diff against it. A violation that gets written anyway is flagged and rides the normal review and fix loop. Right for anything a human judges: a model generalizes to paraphrases a brittle pattern would miss. An advise rule never blocks a merge on its own.
 
 **block** - a regex matched against the lines the run **added**, not a model verdict. On a match the run lands `blocked` with the reason shown, even if the reviewer approved. A rule against em-dashes catches one the run writes and says nothing about one already in the file. It scans from the run's fork point, so mid-run commits are caught, and skips secret files. If the diff cannot be read the run is blocked, not waved through.
 
@@ -108,13 +108,33 @@ Once confirmed it is live on the next review. The tier is fixed for that path: a
 rule the supervisor proposes is always `advise` with no matcher, whatever the
 answer suggested.
 
-## What reaches a review
+## Who sees an advise rule
 
-An advise rule with no lens scope goes into every run's reviewer turn. A
-lens-scoped rule is opt-in targeting: it goes in only when the run's active review
-lenses include one of the ones it names. At most **12** rules reach a single
-reviewer turn; anything past that is counted in the run's `supervisor.policy_advise`
-event as dropped, so a long list thins out silently unless you read the event.
+Both the writer and the reviewer, from one selection.
+
+A code-writing seat - the implementer and the fixer, the turns that actually emit
+a diff - is told the rules bind the code it is about to write, and to comply with
+them *in this change*. It is explicitly told not to go hunting for pre-existing
+violations elsewhere, so a policy does not quietly turn into a refactor.
+
+A reviewer is told to verify the diff against the same rules and flag every
+violation with its location and your stated correction.
+
+The wording differs, the selection does not. A rule can never bind a writer
+without also being checkable by a reviewer, and the trust gate is the same on both
+sides: an unconfirmed rule is inert and its text reaches neither.
+
+This matters for what a run costs. A rule the writer is never shown is a rule that
+gets violated and then removed by a review, fix and re-review round trip - paying
+three model turns to delete something that would not have been written. On a
+measured benchmark run that round trip was 23% of the run's spend and 19% of its
+wall clock.
+
+A rule with no lens scope goes into every run. A lens-scoped rule is opt-in
+targeting: it applies only when the run's active review lenses include one it
+names. At most **12** rules reach a single turn; anything past that is counted in
+the run's `supervisor.policy_advise` event as dropped, so a long list thins out
+silently unless you read the event.
 
 ## Soft rules vs the hard security gates
 
