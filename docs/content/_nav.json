@@ -67,18 +67,6 @@
           "label": "Why a human stays in the loop"
         },
         {
-          "slug": "concepts/task",
-          "label": "Task"
-        },
-        {
-          "slug": "concepts/flow",
-          "label": "Flow"
-        },
-        {
-          "slug": "concepts/crew",
-          "label": "Crew"
-        },
-        {
           "slug": "concepts/supervisor",
           "label": "Supervisor"
         },
@@ -113,13 +101,51 @@
       ]
     },
     {
+      "id": "core",
+      "label": "Core concepts, in order",
+      "items": [
+        {
+          "slug": "concepts/task",
+          "label": "Task - what you want done"
+        },
+        {
+          "slug": "concepts/flow",
+          "label": "Flow - the recipe"
+        },
+        {
+          "slug": "concepts/seat",
+          "label": "Seat - a slot in a step"
+        },
+        {
+          "slug": "concepts/crew",
+          "label": "Crew - who fills the seats"
+        },
+        {
+          "slug": "concepts/role",
+          "label": "Role - one member of a crew"
+        },
+        {
+          "slug": "concepts/profile",
+          "label": "Profile - the model a role runs on"
+        },
+        {
+          "slug": "concepts/provider",
+          "label": "Provider - the CLI behind a profile"
+        },
+        {
+          "slug": "concepts/run",
+          "label": "Run - all of it, working"
+        },
+        {
+          "slug": "concepts/worktree",
+          "label": "Worktree - where a run's edits live"
+        }
+      ]
+    },
+    {
       "id": "concept-flow",
       "label": "Inside a Flow",
       "items": [
-        {
-          "slug": "concepts/seat",
-          "label": "Seat"
-        },
         {
           "slug": "concepts/workflow",
           "label": "Workflow"
@@ -135,18 +161,6 @@
       "label": "Inside a Crew",
       "items": [
         {
-          "slug": "concepts/role",
-          "label": "Role"
-        },
-        {
-          "slug": "concepts/profile",
-          "label": "Profile"
-        },
-        {
-          "slug": "concepts/provider",
-          "label": "Provider"
-        },
-        {
           "slug": "concepts/ponytail",
           "label": "Ponytail minimalism"
         }
@@ -156,10 +170,6 @@
       "id": "concept-runtime",
       "label": "Runtime & safety",
       "items": [
-        {
-          "slug": "concepts/worktree",
-          "label": "Worktree"
-        },
         {
           "slug": "concepts/sandbox",
           "label": "Container isolation"
