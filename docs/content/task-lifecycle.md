@@ -4,18 +4,46 @@ description: How a task moves through statuses, with the fix loop and the approv
 slug: task-lifecycle
 ---
 
-Every task moves through a fixed sequence of statuses, and Vibestrate won't let it skip a step or jump backward. Think of it like a package working through delivery: it goes through sorted, in transit, and out for delivery in order, and each scan tells you exactly where it is right now.
+## In simple words
 
-It comes to rest in one of four places, and which one is the whole answer to "what do I do next":
+Every task moves through a fixed sequence of statuses, and Vibestrate will not let it skip a step or jump backward.
 
-<div class="docs-outcomes">
-<div class="docs-outcome ok"><b>merge_ready</b><span>The diff passed. Read it, then merge it or drop it.</span></div>
-<div class="docs-outcome warn"><b>blocked</b><span>Review or verification says stop. Read the findings.</span></div>
-<div class="docs-outcome stop"><b>failed</b><span>An error broke a stage mid-run.</span></div>
-<div class="docs-outcome stop"><b>aborted</b><span>You ran vibe abort. The worktree is kept.</span></div>
+Think of a package working through delivery: sorted, in transit, out for delivery, in that order, and each scan tells you exactly where it is right now.
+
+<div class="docs-callout tip">
+
+**Tip.** If a status looks stuck, the sequence is the first thing to check. A task waiting at an approval gate and a task whose step crashed look similar from a distance and need completely different responses.
+
 </div>
 
-## The happy path
+## Why a fixed sequence
+
+<div class="docs-cards">
+
+**You can tell where it is**
+One status, read from a saved value, never inferred.
+
+**No impossible history**
+A task cannot reach a status along a path that does not exist.
+
+**Stuck looks different from working**
+Waiting on you and crashed are distinct states, not one ambiguous "not done".
+
+**Replayable afterwards**
+The sequence is the record, so a finished task can be re-read rather than remembered.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** The moves are enforced, not merely recorded. A task cannot land in a status nobody defined, and it cannot reach one along a path the state machine does not allow, so the history you read is the history that happened.
+
+</div>
+
+
+## Going deeper
+
+### The happy path
 
 When nothing goes wrong, a task walks through every status once and finishes ready to merge.
 
@@ -30,7 +58,7 @@ created → planning → planned
 
 A successful run touches every non-terminal status once, lands in `merge_ready`, and leaves a diff on the worktree branch.
 
-## When the reviewer asks for changes
+### When the reviewer asks for changes
 
 The review step can send work back. When it does, the task drops into `fixing`, runs validation again, and returns to `reviewing` instead of moving on.
 
@@ -70,7 +98,7 @@ The review step can send work back. When it does, the task drops into `fixing`, 
 
 </div>
 
-## When a stage needs your approval
+### When a stage needs your approval
 
 A stage can be set to hold for you once its work is done, before the run moves past it. The task steps sideways into `waiting_for_approval` and then steps back into the status it paused in - it never skips ahead.
 
@@ -80,13 +108,13 @@ A stage can be set to hold for you once its work is done, before the run moves p
 
 </div>
 
-## When you pause it yourself
+### When you pause it yourself
 
 You can stop a running task and start it again later, and it picks up from where it left off. Pausing has the same sideways shape: the task holds at `paused`, then returns to the status it was in.
 
 `vibe pause <runId>` sets a flag the orchestrator picks up at the next stage boundary. `pausedAtStatus` records where to resume, and `vibe resume <runId>` clears the flag.
 
-## Where a task can come to rest
+### Where a task can come to rest
 
 The four terminal statuses in more detail - what each means and what it gives you:
 
@@ -95,7 +123,7 @@ The four terminal statuses in more detail - what each means and what it gives yo
 - **`failed`** - Unrecoverable error during a stage. Read `events.ndjson` and the provider stream log.
 - **`aborted`** - User explicitly aborted. Worktree is preserved.
 
-## What a run leaves on disk
+### What a run leaves on disk
 
 Each flow step writes its prompt and the provider's reply under the run folder, named after the step rather than the status. For the default flow the step ids are:
 
@@ -116,7 +144,7 @@ Each flow step writes its prompt and the provider's reply under the run folder, 
 
 `validation-results.json` holds the commands that ran and their exit codes. The code changes themselves are commits in the run's worktree, not files here. `events.ndjson` is the record to trust: one JSON line per event, append-only.
 
-## Going deeper
+### Going deeper
 
 - [Run state](/docs/concepts/state) - what each status means in detail.
 - [Workflow](/docs/concepts/workflow) - the stage definitions.

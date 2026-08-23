@@ -4,16 +4,60 @@ description: Install Vibestrate and check your environment in two commands.
 slug: getting-started/installation
 ---
 
-You'll need **Node.js 24 or newer** and a git repository. Install the package globally, run `vibe init` inside your project, then `vibe doctor` to check your machine has what a run needs. It runs on macOS, Linux and Windows, no WSL required. On Windows the in-app terminal tab is off - see [Native Windows support](/docs/getting-started/windows).
+## In simple words
 
-## Requirements
+You need **Node.js 24 or newer** and a git repository.
+
+```bash
+npm install -g vibestrate     # or: curl -fsSL get.vibestrate.com | sh
+cd your-project
+vibe init                     # scaffolds .vibestrate/, touches nothing else
+vibe doctor --fix             # finds and wires up the CLIs you already have
+```
+
+It runs on macOS, Linux and Windows, no WSL required.
+
+<div class="docs-callout tip">
+
+**Tip.** `vibe init` only writes inside `.vibestrate/`. It does not touch your source, your package manifest or your git config, so running it in an existing project is safe to try.
+
+</div>
+
+## What init writes
+
+<div class="docs-cards">
+
+**`project.yml`**
+Providers, profiles, crews, flows and validation commands.
+
+**`roles/`**
+Six workers, each with its own instructions file.
+
+**`rules.md`**
+Guidance stacked into every agent turn.
+
+**`CODEBASE.md`**
+An auto-derived map of your project, so agents start oriented.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** On Windows the in-app terminal tab is off, because it needs a POSIX shell. Everything else - installing, providers, runs, diffs, merging - works natively in PowerShell or cmd. See [native Windows support](/docs/getting-started/windows).
+
+</div>
+
+
+## Going deeper
+
+### Requirements
 
 - **Node.js 24 or newer.** Check yours with `node --version`.
 - **git 2.5 or newer.** Vibestrate makes a second checkout of your repo for each run and tears it down after. Older git can't do that.
 - **npm or pnpm**, to install the package.
 - **At least one coding-agent CLI** on your PATH: Claude Code, Codex, Gemini, Aider, Ollama, OpenCode, or another supported provider. You can add one later, and `vibe doctor` tells you what's missing.
 
-## Install
+### Install
 
 ```bash
 npm install -g vibestrate
@@ -38,7 +82,7 @@ npm install -g vibestrate@<version>
 vibe --version
 ```
 
-## Set up your project
+### Set up your project
 
 From the root of any git repository:
 
@@ -49,7 +93,7 @@ vibe doctor
 
 `vibe init` creates a `.vibestrate/` directory and touches nothing else in your repo. `vibe doctor` then checks what a run needs: git state, project config, the providers it can find, your validation commands, and permissions. Anything red comes with its fix.
 
-## Inside `.vibestrate/`
+### Inside `.vibestrate/`
 
 ```text
 .vibestrate/
@@ -92,6 +136,6 @@ Add `runs/` to your `.gitignore` yourself, since `vibe init` doesn't touch that 
 .vibestrate/runs/
 ```
 
-## Next
+### Next
 
 [Run your first task →](/docs/getting-started/first-run)

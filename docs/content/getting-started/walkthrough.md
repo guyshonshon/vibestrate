@@ -4,11 +4,49 @@ description: This page covers the dashboard, flows, crews, policies, spec-up and
 slug: getting-started/walkthrough
 ---
 
-Vibestrate drives the AI coding CLIs already installed on your machine - Claude Code, Codex, Gemini, Aider, Ollama and others - as one pipeline over a single task. A **run** is one pass over that task: it opens a **worktree**, a second checkout of your repository in a separate folder, works there on a branch of its own, and hands the result back to you. Each run gets a docker-style id like `bold-lovelace`, used verbatim as the branch suffix and the worktree folder name.
+## In simple words
 
-This page is the tour of the whole product: the dashboard, the flows and crews behind every run, the rules you write yourself, the spec-up intake a greenfield brief triggers, and the merge path that carries a change to main. It assumes you have Vibestrate installed, one coding CLI connected, and `vibe init` run inside a git repository (the setup command: it writes the `.vibestrate/` folder this page keeps referring to). The [quick start](/docs/getting-started/quickstart) does that setup and takes one task through to a merged change, so start there if `vibe --version` prints nothing.
+This page is the tour of the whole product: the dashboard, the flows and crews behind every run, the rules you write yourself, the spec-up intake a greenfield brief triggers, and the merge path that carries a change to `main`.
 
-Finish this page and you can pick a flow per task, split a run across two providers so the model judging the diff isn't the model that wrote it, write rules the reviewer enforces, and take a finished run to main yourself.
+Vibestrate drives the AI coding CLIs already on your machine as one pipeline over a single task. A **run** is one pass over that task: it opens a second checkout of your repository in a separate folder, works there on a branch of its own, and hands the result back to you.
+
+![The header of a finished run reading merge ready, with the task, the flow it followed and its eight steps, the elapsed time and the diff.](/media/docs/scoped/run-header.png)
+
+<div class="docs-callout tip">
+
+**Tip.** You do not have to read this in one sitting, and you do not have to read it at all to get started - the [quick start](/docs/getting-started/quickstart) takes one task to a merged change in a few minutes. Come here when you want to know what the rest of the product does.
+
+</div>
+
+<div class="docs-callout tip">
+
+**Prefer to be shown?** The dashboard has guided walkthroughs built in. Ask the supervisor how to do something and the answer arrives with a **Show me how** button that moves you to the right screen and rings the control it is talking about. See [walkthroughs](/docs/concepts/walkthroughs).
+
+</div>
+
+## What you will be able to do afterwards
+
+<div class="docs-cards">
+
+**Pick a flow per task**
+Know when the default is wrong and what to use instead.
+
+**Split a run across providers**
+So the model judging the diff is not the model that wrote it.
+
+**Write rules the reviewer enforces**
+Your conventions, checked on every run.
+
+**Take a change to main yourself**
+Read the diff, ask the advisor, merge deliberately.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Every run gets a docker-style id like `bold-lovelace`, and that same id is used verbatim as the branch suffix and the worktree folder name. One string identifies the run, its branch and its folder, which is what makes "where did that run work?" a question with an obvious answer.
+
+</div>
 
 ## What a run actually does
 
@@ -390,7 +428,9 @@ vibe integrate finish integration/logging --confirm merge-to-main
 
 `advise` mutates nothing and prints a recommendation with the evidence under it: the branch's ahead/behind counts, the checks that ran, and whether the merge applies cleanly onto main. `apply` refuses to target main. `finish` refuses a partial integration, a dirty tree, a conflict, a branch that moved since you read it, or a HEAD parked anywhere but main, and it merges without pushing. More: [Keep a change](/docs/getting-started/merging).
 
-## When you are stuck
+## Going deeper
+
+### When you are stuck
 
 The stuck-point boxes on this page and on the [quick start](/docs/getting-started/quickstart) sit next to the step that produces them. These four turn up anywhere:
 
@@ -409,7 +449,7 @@ vibe consult "why did bold-lovelace end blocked?"
 
 Beyond the sources listed above, consult reads Vibestrate's own documentation, and every answer carries a confidence level next to whatever it could not verify. The CLI form adds `--file <path>`, the opt-in that hands it one source file to read. Through the dashboard orb it answers in screens rather than commands. A review rule it proposes lands in `project.yml` as a *pending* advise policy, and `vibe policies confirm <id>` turns it on.
 
-## Keep going
+### Keep going
 
 - [Quick start](/docs/getting-started/quickstart) - install, connect a model, and take one task to a merged change.
 - [The big picture](/docs/getting-started/big-picture) - the same vocabulary, with the reasoning behind each piece.

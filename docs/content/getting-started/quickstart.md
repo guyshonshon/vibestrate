@@ -4,59 +4,53 @@ description: Install Vibestrate, point it at a coding CLI you already have, and 
 slug: getting-started/quickstart
 ---
 
-Vibestrate drives the AI coding CLIs already installed on your machine - Claude Code, Codex, Gemini, Aider, Ollama and others - as one pipeline over a single task. You type one sentence. It opens a throwaway copy of your repository, walks a plan-build-review-verify sequence there, and runs your own tests as the referee. You get a branch in that copy, waiting on your decision. Vibestrate never pushes and never merges.
+## In simple words
 
-If you already pay for two or three coding CLIs and use them one at a time, Vibestrate is the layer that runs them together. It removes the logistics of putting several models on one task: pasting the same context into each tool, keeping spare checkouts straight, and carrying one model's plan into the next model's prompt.
+Vibestrate drives the AI coding CLIs already on your machine - Claude Code, Codex, Gemini, Aider, Ollama and others - as one pipeline over a single task.
 
-The path from an empty machine to a change on your trunk runs through eight stations. You drive the last two by hand.
+You type one sentence. It opens a throwaway copy of your repository, walks a plan, build, review and verify sequence there, and runs your own tests as the referee. You get a branch in that copy, waiting on your decision.
 
-<svg viewBox="0 0 560 112" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Eight stations left to right: install, init, provider, run, worktree, outcome, integrate, main. Stations four to six sit inside one run, on branch vibestrate slash run id.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="5" y="32" width="62" height="30" rx="7"/>
-    <rect x="73" y="32" width="62" height="30" rx="7"/>
-    <rect x="141" y="32" width="62" height="30" rx="7"/>
-    <rect x="215" y="32" width="62" height="30" rx="7"/>
-    <rect x="283" y="32" width="62" height="30" rx="7"/>
-    <rect x="351" y="32" width="62" height="30" rx="7"/>
-    <rect x="425" y="32" width="62" height="30" rx="7"/>
-    <rect x="493" y="32" width="62" height="30" rx="7"/>
-    <rect x="209" y="22" width="210" height="62" rx="10" stroke-dasharray="4 4"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M68 47h1"/><path d="M136 47h1"/><path d="M204 47h1"/><path d="M278 47h1"/>
-    <path d="M346 47h1"/><path d="M420 47h1"/><path d="M488 47h1"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5">
-    <path d="M69 43l4 4-4 4z"/><path d="M137 43l4 4-4 4z"/><path d="M205 43l4 4-4 4z"/>
-    <path d="M279 43l4 4-4 4z"/><path d="M347 43l4 4-4 4z"/><path d="M421 43l4 4-4 4z"/>
-    <path d="M489 43l4 4-4 4z"/>
-  </g>
-  <g fill="currentColor" font-size="10.5" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="36" y="51">install</text>
-    <text x="104" y="51">init</text>
-    <text x="172" y="51">provider</text>
-    <text x="246" y="51">run</text>
-    <text x="314" y="51">worktree</text>
-    <text x="382" y="51">outcome</text>
-    <text x="456" y="51">integrate</text>
-    <text x="524" y="51">main</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="9" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="36" y="76">one npm</text>
-    <text x="104" y="76">.vibestrate</text>
-    <text x="172" y="76">test a CLI</text>
-    <text x="246" y="76">a sentence</text>
-    <text x="314" y="76">a copy</text>
-    <text x="382" y="76">merge_ready</text>
-    <text x="456" y="76">advise</text>
-    <text x="524" y="76">your call</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="10" text-anchor="middle">
-    <text x="314" y="98">on branch vibestrate/&lt;runId&gt;</text>
-  </g>
-</svg>
+```bash
+npm install -g vibestrate
+cd your-project
+vibe init && vibe doctor --fix
+vibe run "Add a /healthz endpoint" --ui
+```
 
-## The parts
+<div class="docs-callout tip">
+
+**Tip.** `vibe doctor --fix` is the step worth not skipping. It finds the CLIs you already have, wires up the ones it can, and prints the exact login command for anything not authenticated - which you run yourself.
+
+</div>
+
+## What just happened
+
+<div class="docs-cards">
+
+**A copy of your repo**
+A git worktree beside your project. Your files never moved.
+
+**A plan, then code**
+One model planned it, another wrote it.
+
+**Your tests, as referee**
+Not the model's confidence in itself.
+
+**A branch, waiting**
+Nothing pushed, nothing merged. Yours to read and take.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** If you already pay for two or three coding CLIs and use them one at a time, this is the layer that runs them together. It is not another subscription - it spawns the ones you have.
+
+</div>
+
+
+## Going deeper
+
+### The parts
 
 Three words carry this page.
 
@@ -66,7 +60,7 @@ Three words carry this page.
 
 Flows, seats, roles, crews and profiles decide who fills each step of a run. You can finish this page without them: [the big picture](/docs/getting-started/big-picture) defines all five, and [Flow](/docs/concepts/flow), [Crew](/docs/concepts/crew), [Seat](/docs/concepts/seat) and [Worktree](/docs/concepts/worktree) go deeper.
 
-## Install and verify
+### Install and verify
 
 Vibestrate needs **Node 24 or newer**, a git repository with at least one commit, and at least one AI coding CLI installed and signed in. It ships none of them, so set one up at the vendor first:
 
@@ -202,7 +196,7 @@ Vibestrate Doctor v0.2.1
 
 More: [Installation](/docs/getting-started/installation).
 
-## Connect a model, then test it
+### Connect a model, then test it
 
 ```bash
 vibe provider detect
@@ -291,7 +285,7 @@ Anything else exits 2. The usual cause is wrong flags - the CLI ran and came bac
 
 More: [Set up a provider](/docs/getting-started/providers).
 
-## Tell it how to run your tests
+### Tell it how to run your tests
 
 Your own commands are the ground truth in a run. They live in `.vibestrate/project.yml` as a list of shell strings and run one at a time inside the run's worktree.
 
@@ -337,7 +331,7 @@ vibe config set commands.validate "[\"pnpm typecheck\",\"pnpm test\"]"
 
 </div>
 
-## One fix before your first run
+### One fix before your first run
 
 A `type: cli` provider gets the args in your `project.yml` and nothing else, so that CLI's own default decides whether it edits files.
 
@@ -368,7 +362,7 @@ For ollama, and for any CLI whose write flag you would rather not hand over, let
 vibe config set policies.strictApplyOnly true
 ```
 
-## Your first run
+### Your first run
 
 <div class="docs-callout">
 
@@ -474,7 +468,7 @@ Workspace bold-lovelace
   cd /home/you/.vibestrate-worktrees/bold-lovelace
 ```
 
-## Run outcomes, and how to keep one
+### Run outcomes, and how to keep one
 
 <div class="docs-outcomes">
 <div class="docs-outcome ok"><b>merge_ready</b><span>Finished and waiting on your call.</span></div>
@@ -564,11 +558,11 @@ Local only - nothing was pushed.
 
 `apply` refuses to target your trunk. `finish` refuses a partial integration, a branch that moved since you reviewed it, a dirty project tree, or a HEAD parked somewhere other than your trunk. More: [Keep a change](/docs/getting-started/merging).
 
-## Everything else
+### Everything else
 
 The [full walkthrough](/docs/getting-started/walkthrough) picks up where this page stops: the dashboard and Mission Control, the fourteen flows that ship and the Flow Hub, crews and cross-model review, the policies you write yourself, spec-up for a greenfield brief, and a longer troubleshooting table.
 
-## Keep going
+### Keep going
 
 - [The big picture](/docs/getting-started/big-picture) - the same vocabulary, with the reasoning behind each piece.
 - [Your first run](/docs/getting-started/first-run) - the run loop step by step.
