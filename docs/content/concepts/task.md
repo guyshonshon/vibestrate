@@ -1,30 +1,66 @@
 ---
 title: Task
-description: The plain-language brief you hand Vibestrate. You type it into the New run composer on Mission Control, and every run ends at one of four outcomes.
+description: The plain-language brief you hand Vibestrate. A sentence is enough to start.
 slug: concepts/task
 ---
 
-A Task is what you want done, written in plain language, the way you would brief a capable colleague. You say what you want. Vibestrate works out the steps.
+## In simple words
 
-You write one on Mission Control. `vibe ui` opens the dashboard on localhost, and the New run composer is the first thing on it.
+A **Task** is what you want done, written the way you would brief a capable colleague. You say what you want. Vibestrate works out the steps.
 
-![Mission Control. A sidebar of sections runs down the left. The header reads Mission control, with an approvals tile showing Clear under the caption Nothing blocked and an Edit layout button. A New run composer and a Run summary panel sit below, and the Supervisor chat fills the right column, its mode switch set between Answers only and Answers and acts.](/media/docs/mission-control.png)
+You do not list files. You do not set an order. A sentence is enough to launch.
 
-The box at the top of New run is the Task, and a sentence is enough to launch. Everything under it is optional: the flow, the crew, the supervisor persona, and toggles for a read-only or unattended run. The Run summary beside it reads back what's about to start, so you see the shape of the run before you commit, and the Supervisor panel answers questions about the project while you write, in either of its two tones, Answers only or Answers and acts.
+![The New run composer. A box reads: describe the change to run, e.g. add retry with backoff to the uploader. Below it are Attach, Concise, Read-only, Unattended and Force flow select toggles, then a Flow picker. To the right, a Run summary panel headed What happens when you start shows Flow set to Auto and a Crew row.](/media/docs/scoped/new-run.png)
 
-You don't list files or set an order. The [Flow](/docs/concepts/flow) decides the steps and your [Crew](/docs/concepts/crew) does the work. The Task is the brief.
+The box is the task. Everything under it is optional: which recipe to follow, which team runs it, and toggles for a read-only or unattended run. The **Run summary** beside it reads back what is about to start, so you see the shape of the run before you commit.
 
-A Task becomes a *run*, and a run ends at one of four outcomes: `merge_ready`, `blocked`, `failed`, or `aborted`. It never pushes and never merges. The diff is yours to land.
+<div class="docs-callout tip">
 
-## The path a Task takes
+**Tip.** Leave Flow and Crew on Auto to begin with. Vibestrate reads the task and picks a sensible pair, and every run tells you afterwards what it chose and why. Naming them yourself is worth doing once you disagree with a choice, not before.
+
+</div>
+
+## What happens next
+
+A task becomes a **[[run]]**: one supervised attempt, working in its own copy of your repository. That run follows a **[[flow]]**, which is the recipe of steps, staffed by a **[[crew]]**, which is the set of workers.
+
+Those three pages are the next ones to read, in that order. For now the only thing you need is what a run does *not* do: it never pushes and never merges. It ends with a diff that is yours to land.
+
+<div class="docs-callout">
+
+**Did you know?** A task that reads like "build me a whole system" does not go straight to code. Vibestrate routes it through a read-only spec-up chain first, which asks you questions and produces a written spec, and only then runs the flow seeded with that spec. Vague briefs get clarified rather than guessed at.
+
+</div>
+
+## Writing a good one
+
+<div class="docs-cards">
+
+**Say what, not how**
+"Add retry with backoff to the uploader" beats a list of files to edit. The plan step is what turns intent into steps.
+
+**Name the constraint that matters**
+"...without changing the public API" or "...it must stay under the existing timeout". Constraints are what review checks against.
+
+**Say how you will know it worked**
+"...with a test that fails on the old behaviour". That gives the verify step something concrete.
+
+**One change per task**
+Two unrelated changes in one brief make a diff nobody wants to review, and a verdict that cannot be partial.
+
+</div>
+
+## Going deeper
+
+### The path a Task takes
 
 A run is one supervised process you can watch and audit. In order, the orchestrator:
 
 <div class="docs-flow">
 <div><b>Reads your project</b><span>Language, package manager, and the validation commands it will trust later.</span></div>
-<div><b>Picks Flow and Crew</b><span>The Flow you named, or the one Vibestrate resolves, with its seats matched to your Crew's roles.</span></div>
+<div><b>Picks flow and crew</b><span>The flow you named, or the one Vibestrate resolves, with its seats matched to your crew's roles.</span></div>
 <div><b>Opens a clean workspace</b><span>A fresh git worktree, so nothing touches your real project until you say so.</span></div>
-<div><b>Drives the steps</b><span>On the default Flow: plan, architecture, implement, validate, review, verify, with fix and re-validate looping in when review asks for changes.</span></div>
+<div><b>Drives the steps</b><span>On the default flow: plan, architecture, implement, validate, review, verify, with fix and re-validate looping in when review asks for changes.</span></div>
 <div><b>Stops at a verdict</b><span>The run ends in its worktree with a diff. Landing it is a separate, deliberate step.</span></div>
 </div>
 
@@ -39,7 +75,7 @@ A run is one supervised process you can watch and audit. In order, the orchestra
 
 Every prompt, output, metric, and decision is written under `.vibestrate/runs/`, in a directory named for the run (ids are `adjective-noun`, like `bold-lovelace`), so a finished run reads back as a record, not a black box. See [Run state](/docs/concepts/state) for the status list and [Workflow](/docs/concepts/workflow) for the step-by-step path.
 
-## The Task is the yardstick
+### The Task is the yardstick
 
 The description goes into every agent's prompt, at every stage. The planner plans from it. The executor builds from it. The reviewer checks the result against it. One sentence is what the run measures itself against.
 
@@ -51,7 +87,7 @@ The description goes into every agent's prompt, at every stage. The planner plan
 
 A Task says what to build, and it doesn't pick your model or set how hard it thinks. That belongs to your [Crew](/docs/concepts/crew) and its [Profiles](/docs/concepts/profile).
 
-## A good Task vs a weak one
+### A good Task vs a weak one
 
 Same goal, two briefs.
 
@@ -80,7 +116,7 @@ A weak Task:
 Improve logging
 ```
 
-## Checklists: break a Task into items
+### Checklists: break a Task into items
 
 A Task can hold an ordered checklist of items, the concrete breakdown of the work. Items live inside the card, so the context stays in one place instead of scattering across small cards.
 
@@ -96,7 +132,7 @@ The parent task owns the shared scaffolding - the [context](/docs/concepts/task#
 
 Opening a step is distinct from **detaching** it. Detach (the old "promote") spins a step off into its own independent card with `derivedFrom` pointing back - a separate, deliberate action for when a piece of work has outgrown the checklist.
 
-## Pick up: run the whole checklist
+### Pick up: run the whole checklist
 
 Once a Task has a checklist, **Run checklist** on the card works every item in one worktree, labelled with the count of items still pending. Under the hood this runs the built-in `pickup` [flow](/docs/concepts/flow):
 
@@ -149,20 +185,20 @@ Each selected lens becomes one read-only reviewer per item (up to the parallel f
 
 Each item keeps its own arbitration ledger, so findings from item 3 never bleed into item 7.
 
-## "Needs testing": when a human should look
+### "Needs testing": when a human should look
 
 A reviewer or verifier can end a run with a non-blocking advisory: the change is fine to ship, but a human should eyeball something a model cannot perceive, like layout, animation, or UX feel. The run still reaches a normal verdict; it is not stuck like an [approval gate](/docs/glossary#approval-gate). The card is flagged Needs testing with a one-line reason. Resolve it with a verdict: "Looks good" marks the Task Done, "Needs work" reopens it. The flag shows as a banner on the task and a badge on the board.
 
-A checklist step is a piece of what to build, a unit of work inside the Task. A Flow step (plan, implement, review) is filled by a [seat](/docs/concepts/seat) and structures the run. Same word, different layer: a checklist step is *what* to build, a Flow step is *how* a run is structured.
+A checklist step is a piece of what to build, a unit of work inside the Task. A flow step (plan, implement, review) is filled by a [seat](/docs/concepts/seat) and structures the run. Same word, different layer: a checklist step is *what* to build, a flow step is *how* a run is structured.
 
-## Practical tips
+### Practical tips
 
 - **One outcome per Task.** Two unrelated changes make the review noisy and the diff hard to ship.
 - **Name the surface.** A file path, a module, a feature flag. Give the planner an anchor.
 - **State the constraint.** If "don't touch X" matters, say so in the Task, not after the diff lands.
 - **Put stable context in skills.** Conventions, security rules, and domain language belong in [skills](/docs/concepts/skill), not in every prompt.
 
-## Advanced: CLI and automation
+### Advanced: CLI and automation
 
 Every action above has a command behind it, for scripts, CI, and terminal habits. See the [CLI overview](/docs/cli/overview) for the full surface.
 
@@ -227,9 +263,11 @@ vibe run "<task title>" \
   --checklist continuous
 ```
 
-## Related
+### Related
 
 - [Flow](/docs/concepts/flow) - the recipe a Task runs through.
-- [Workflow](/docs/concepts/workflow) - the default Flow's eight steps, in order.
+- [Workflow](/docs/concepts/workflow) - the default flow's eight steps, in order.
 - [Run state](/docs/concepts/state) - the statuses a Task accumulates.
 - [Worktree](/docs/concepts/worktree) - where a Task's edits live before you merge.
+
+Next: [[flow]] is the recipe your task will follow.

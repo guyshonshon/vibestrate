@@ -1,65 +1,80 @@
 ---
 title: Role
-description: One worker in your Crew - the instructions it follows, the model it runs on, and the kinds of step it can handle.
+description: One worker in your crew - what it does, what it may touch, and which model it runs on.
 slug: concepts/role
 ---
 
-A **Role** is one worker in your Crew, and it says how that worker behaves and which kinds of step it can take on.
+## In simple words
 
-Think of a Role like a job description on a team. The description says what this person does and which tasks they are allowed to pick up. It doesn't name the actual person. A Role works the same way: it points at a **[[profile]]** (which decides the model), and lists the **[[seat]]s** (the kinds of step) it can fill in a [[flow]].
+A **Role** is one worker on your [[crew]]. Think job description, not person: it says what this worker does, which kinds of step it may pick up, and how strong a model it runs on.
 
-**Permissions are the field that decides whether a Role can change your code.**
+Here is one, as the crew page shows it:
+
+![A role card for Planner. A Seats it takes row lists ten chips with planner highlighted. A Profile runtime row reads claude balanced, ok medium, with New profile and Read only controls. Below that, empty Skills and a collapsed Instructions section.](/media/docs/scoped/role-card.png)
+
+Four things, and that is the whole of a role: the [[seat]]s it will take, the [[profile]] it runs on, whether it may write, and its instructions.
+
+<div class="docs-callout tip">
+
+**Tip.** `Read only` in the corner is the setting that decides whether this worker can change your code. Planner, architect, reviewer and verifier ship read-only. Only the executor and fixer can write, and only inside the run's [[worktree]].
+
+</div>
+
+## What each of the six does
+
+`vibe init` writes six. Each fills the seat its id names, plus any others listed.
+
+<div class="docs-cards">
+
+**`planner`**
+Reads the task and produces a structured plan.
+
+**`architect`**
+Expands the plan with module boundaries and interfaces.
+
+**`executor`**
+Also fills `implementer` and `builder`. Edits files in the worktree.
+
+**`fixer`**
+Addresses review findings without rebuilding from scratch.
+
+**`reviewer`**
+Also fills `challenger`. Critiques the diff; returns APPROVED, CHANGES_REQUESTED or BLOCKED.
+
+**`verifier`**
+Also fills `arbiter`. The final gate before `merge_ready`.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Splitting work into named roles is what makes a run inspectable. The planner only plans and the reviewer only reviews, so when something goes wrong you can see which worker did it. It is also what lets you mix models: a strong one for planning, a cheap one for the mechanical edits, a different vendor for review so it does not share the writer's blind spots.
+
+</div>
+
+## Permissions
 
 <div class="docs-cards">
 
 **`read_only`**
-Reads and reasons, but never writes a file. The planner, architect, reviewer and verifier ship this way.
+Reads and reasons, never writes a file.
 
 **`code_write`**
-May edit files inside the run's [[worktree]]. The executor and fixer ship this way.
+May edit files inside the run's worktree.
 
 </div>
 
-That setting gates Vibestrate's own action broker. For the agent to actually write, the underlying CLI has to allow it too: on a `claude-code` [[provider]], a `code_write` seat's turn gets `--permission-mode acceptEdits` so the headless CLI can apply edits. Read-only seats get no write grant.
+That setting gates Vibestrate's own Action Broker. For the agent to actually write, the underlying CLI has to allow it too: on a `claude-code` [[provider]], a `code_write` seat's turn gets `--permission-mode acceptEdits`. Read-only seats get no write grant at all.
 
-## What a Role carries
+## Going deeper
 
-A Role is one row inside a [[crew]], under that crew's own `roles` map. There is no top-level `roles` map. Each Role carries:
+### Role, profile, provider
 
-```yaml
-crews:
-  default:
-    roles:
-      reviewer:
-        label: Reviewer
-        seats: [reviewer, challenger]
-        profile: claude-balanced
-        prompt: .vibestrate/roles/reviewer.json
-        permissions: read_only
-        skills: []
-```
+Easy to mix up, so plainly:
 
-A role file is **JSON, not Markdown**, and its `id` has to match its filename:
-
-```json
-{
-  "schemaVersion": 1,
-  "id": "reviewer",
-  "prompt": "You review diffs..."
-}
-```
-
-The `prompt` string is the instruction text, handed to the model verbatim. Everything else about the Role - which Profile it runs on, which Seats it fills, its permissions and skills - stays in `project.yml`, so several Crews can point at the same role file and differ only in the Profile they run it on.
-
-## Role vs Profile vs Provider
-
-These three are easy to mix up:
-
-- A **Role** is the behavior - the Reviewer.
-- A **[[profile]]** is how strong or expensive it runs - `claude-balanced`.
-- A **[[provider]]** is the tool behind the Profile - `claude`.
-
-They sit next to each other in one chain, which starts back at the Flow:
+- A **role** is the behaviour. The Reviewer.
+- A **[[profile]]** is how strong or expensive it runs. `claude-balanced`.
+- A **[[provider]]** is the tool behind that profile. `claude`.
 
 <svg viewBox="0 0 560 52" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A Flow step names a Seat, your Crew's Role fills that Seat, the Role names a Profile, and the Profile names a Provider. The Role is the middle link.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -99,41 +114,40 @@ They sit next to each other in one chain, which starts back at the Flow:
   </g>
 </svg>
 
-One Profile can back many Roles, and one Provider can back many Profiles.
+One profile can back many roles, and one provider can back many profiles.
 
-## Why split work into Roles
+### Where a role lives
 
-Naming Roles is what makes the loop inspectable: the planner only plans, the reviewer only reviews. Because each Role names a Profile, you can also mix models - a strong reasoning Profile for the planner, a cheap fast one for the executor, a different vendor for the reviewer so it doesn't share the executor's blind spots.
+A role is a row inside a crew, under that crew's own `roles` map. There is no top-level `roles` map.
 
-## The six built-in roles (default crew)
+```yaml
+crews:
+  default:
+    roles:
+      reviewer:
+        label: Reviewer
+        seats: [reviewer, challenger]
+        profile: claude-balanced
+        prompt: .vibestrate/roles/reviewer.json
+        permissions: read_only
+        skills: []
+```
 
-Each one fills the seat its id names, plus any others listed here.
+The role file is **JSON, not Markdown**, and its `id` has to match its filename:
 
-<div class="docs-cards">
+```json
+{
+  "schemaVersion": 1,
+  "id": "reviewer",
+  "prompt": "You review diffs..."
+}
+```
 
-**`planner`**
-Reads the task and produces a structured plan.
+The `prompt` string is handed to the model verbatim. Everything else stays in `project.yml`, so several crews can point at the same role file and differ only in the profile they run it on.
 
-**`architect`**
-Expands the plan with module boundaries and interfaces.
+### How its prompt is assembled
 
-**`executor`**
-Also fills the `implementer` and `builder` seats. Edits files in the worktree.
-
-**`fixer`**
-Addresses review findings without rebuilding from scratch.
-
-**`reviewer`**
-Also fills the `challenger` seat. Critiques the diff; returns APPROVED / CHANGES_REQUESTED / BLOCKED.
-
-**`verifier`**
-Also fills the `arbiter` seat. Final gate before `merge_ready`.
-
-</div>
-
-## How a Role's prompt is assembled
-
-Vibestrate stacks these into one prompt before the Role runs:
+Vibestrate stacks these into one prompt before the role runs:
 
 <div class="docs-flow">
 <div><b>Role template</b><span>The Role's prompt template, e.g. .vibestrate/roles/planner.json.</span></div>
@@ -143,39 +157,31 @@ Vibestrate stacks these into one prompt before the Role runs:
 <div><b>Prior artifacts</b><span>The named artifacts from previous Steps: plan, architecture, diff, validation.</span></div>
 </div>
 
-## Going deeper
+### Writes are gated
 
-The run records the resolved Role per Step (`resolvedRoleId`, `resolvedRoleLabel`) in `flow.json`.
-
-Three requests write a Role, and every one of them is gated:
+Three requests write a role, and every one of them crosses the Action Broker as a `file.write`:
 
 <div class="docs-cards">
 
 **`PATCH /api/crews/:crewId/roles/:roleId`**
-The Role's wiring in `project.yml` - its profile, seats, permissions, label and skills. Audited as `role-fields`, together with the field names it touched.
+The wiring in `project.yml` - profile, seats, permissions, label, skills. Audited as `role-fields`.
 
 **`PUT /api/crews/:crewId/roles/:roleId/context`**
-The role file's instruction text. Audited as `role-prompt`.
+The instruction text. Audited as `role-prompt`.
 
 **`POST /api/skills/:skillId/assign`**
-The Role's skills list in `project.yml`, from the Skills page. Audited as `role-skills`, naming the skill and the direction. `/unassign` works the same way.
+The skills list, from the Skills page. Audited as `role-skills`.
 
 </div>
 
-The context endpoint works in the instruction *text*: `GET` hands back what is inside the prompt, and `PUT` takes plain `content` and rebuilds the JSON envelope around it, so an edit can't produce a role file that only fails later, on the run that loads it. The file's id comes from the filename the config points at, not from the crew's key for the Role - several crews can share one role file.
+Gating all three is what makes a denying policy hold across one Save in the crew editor, which issues them as separate requests. With only the prompt gated, a policy refused the instructions while a `read_only` to `code_write` flip landed. Skill assignment belongs in the set for the same reason: a skill is instruction text replayed into every turn and can carry MCP servers, so assigning one hands a role new instructions and new tools. That is the same class of authority as a prompt edit, not a lesser one.
 
-Each request crosses the Action Broker as a `file.write` and answers a denying policy with `403` and the policy's message, leaving its file untouched. Gating all three is what makes a denying policy hold across one Save in the Crew editor, which issues them as separate requests: with only the prompt gated, a policy refused the instructions while a `read_only` -> `code_write` flip landed. Skill assignment belongs in the set for the same reason - it writes one of the fields the `PATCH` gates, from a different page. A skill is instruction text replayed into every turn the Role takes and can carry MCP servers, so an assignment hands a Role new instructions and new tools: the same class of authority as a prompt edit, not a lesser one.
+**A role lives in two files, and one `pathGlob` rule covers both.** Every write presents the same pair of paths - `subject.path`, where the bytes land, and `subject.files`, the pair the grant spans - and a `pathGlob` is tested against all of them. A rule scoped to `**/.vibestrate/roles/**` and one scoped to `**/project.yml` each refuse all three.
 
-**A Role lives in two files, and one `pathGlob` rule covers both.** Every write to a Role presents the same pair of paths - `subject.path`, the file the bytes land in, and `subject.files`, the pair the grant spans - and a `pathGlob` is tested against all of them. So a rule scoped to `**/.vibestrate/roles/**` and a rule scoped to `**/project.yml` each refuse all three. Splitting them would mean a rule that stops the instructions while a `read_only` -> `code_write` flip lands, with the refusal claiming the write was stopped.
+Two things follow. Such a rule is **wider than it reads**: one written to freeze a role's instructions also refuses a label rename, and `require_approval` is not accepted on `file.write`, so there is no softer landing than a refusal. And the pair is resolved from the *validated* config, so a `prompt:` written as a YAML alias or reached through a merge key names the same file a plain string does.
 
-Two things follow. Such a rule is **wider than it reads** - one written to freeze a Role's instructions also refuses a label rename, and `require_approval` is not accepted on `file.write`, so there is no softer landing than a refusal. And the pair is resolved from the *validated* config, so a `prompt:` written as a YAML alias or reached through a merge key names the same file a plain string does.
+**The CLI is deliberately outside this.** `vibe init`, `vibe config`, `vibe crew` and `vibe skills assign` write the same config through the same code with no gate. A gate there could refuse a first-time init before a project has any policy to consult, and those callers are you at your own keyboard rather than a page in a browser.
 
-**CLI and terminal shell are deliberately outside this.** `vibe init`, the `vibe config` and `vibe crew` commands and `vibe skills assign` write the same config through the same code with no gate - a gate there could refuse a first-time init before a project has any policy to consult, and those callers are you at your own keyboard rather than a page in a browser.
+The run records the resolved role per step (`resolvedRoleId`, `resolvedRoleLabel`) in `flow.json`.
 
-Related:
-
-- [[crew]] - the roster a Role belongs to.
-- [[seat]] - what a Role fills in a Flow.
-- [[profile]] - how strong or expensive a Role runs.
-- [[provider]] - the CLI behind the Profile.
-- [[skill]] - what a Role reads as domain context.
+Next: [[profile]] is how strong or expensive a role runs.

@@ -1,34 +1,54 @@
 ---
 title: Profile
-description: A reusable preset that says how strong and expensive a Role runs - a Provider plus its model and effort.
+description: A saved preset that says how strong and expensive a role runs - a provider, its model, and the effort level.
 slug: concepts/profile
 ---
 
-A **Profile** decides how strong and expensive a Role runs. It is a saved preset that bundles a **Provider** (where the work happens), the **model**, and the **effort** level, so a Role can point at it instead of naming a model itself.
+## In simple words
 
-You keep them on the Profiles page. `vibe ui` opens the dashboard on localhost, and Profiles sits in the sidebar.
+A **Profile** decides how strong and expensive a [[role]] runs. It is a saved preset bundling three things: where the work happens, which model, and how hard that model thinks.
 
-![The Profiles page in the dashboard, open from Profiles in the sidebar. The header counts one profile across one provider, with New profile at the top right. Under a claude heading, the claude-balanced card is marked used by 6 roles and shows provider, model and effort as tiles above fields for Provider, Label, Model, Max tokens and Timeout (ms), an Effort scale from Faster to Smarter with medium selected, and Duplicate, Delete and Saved along the bottom.](/media/docs/profiles.png)
+Think of the drive modes on a car. Eco and Sport do not change who is driving, they change how hard the engine works. A profile is that setting for an AI worker, saved under a name so you can reuse it.
 
-Each card is one Profile, filed under the provider it runs on. The tiles say what it resolves to today, the fields under them are where you change it, and the count beside the name is the Crew roles pointing at it. Edit one and every one of those roles runs on the new setting, from the next run.
+Profiles live on their own page in the sidebar:
 
-<div class="docs-callout">
+![The claude-balanced profile card, filed under a claude heading. It is marked used by 6 roles. Three tiles read claude provider, default model, medium effort. Below them are Provider, Label, Model, Max tokens and Timeout fields, and an Effort scale from Faster to Smarter offering low, medium, high, xhigh and max, with medium selected.](/media/docs/scoped/profile-card.png)
 
-**A Role points at a Profile, not a model.** A Role names a Profile by its id, and the Profile holds the actual provider, model, and effort. So you swap the model for every Role on a Profile by editing one place, and a Role never hard-codes a model itself.
+The tiles say what it resolves to today, the fields under them are where you change it, and **used by 6 roles** is the count of workers pointing at it. Edit this one card and all six run on the new setting from the next run.
+
+<div class="docs-callout tip">
+
+**Tip.** A role points at a profile, never at a model. That indirection is the point: swap the model for six workers by editing one card, and no role ever hard-codes a model of its own.
 
 </div>
 
-Think of it like the drive modes on a car. "Eco" and "Sport" don't change who is driving, they change how hard the engine works. A Profile is that setting for an AI worker, saved with a name so you can reuse it.
+## When you would make another
 
-A Profile sets five things: the `provider`, the `model` id, the effort level (`power`), an optional per-turn output cap (`maxTokens`) and a per-turn `timeoutMs`. **New profile** in the header adds one; **Duplicate** on a card copies it under a new id, the short way to keep a strong Profile and a cheap one.
+<div class="docs-cards">
 
-Effort levels are the provider's own, so the scale offers only the ones that provider has: five for `claude`, five different ones for `codex`, and none for the Gemini CLI, whose cards say the provider exposes no effort control.
+**A cheap one and a strong one**
+**Duplicate** on a card copies it under a new id. Keep `claude-balanced` and a `claude-cheap`, and point the mechanical roles at the cheap one.
 
-## Pointing a Role at one
+**Cross-vendor review**
+Make a profile on a second provider and point only the reviewer at it. Now the diff is read by something that did not write it.
 
-You point a Role at a Profile on the Crew page: every Role card has a Profile dropdown over the presets you've saved, plus a shortcut to create one on the spot. Two Roles can share a Profile, and one Role can run on a stronger Profile for a single Step through a step override. See [[crew]].
+**A slower, deeper planner**
+Same provider, effort set to `max`, pointed only at the planner.
 
-That makes a Profile the fourth link in the chain a run follows from a Flow step to a real model:
+**A local one**
+A profile on an Ollama provider, for work that must not leave the machine.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** The effort scale is the provider's own, not one Vibestrate invented. `claude` offers low, medium, high, xhigh and max; `codex` offers a different five; the Gemini CLI exposes none at all and its cards say so. A provider whose reasoning is a numeric budget rather than a level gets no effort knob, instead of a fake one.
+
+</div>
+
+## Going deeper
+
+### Where a profile sits in the chain
 
 <svg viewBox="0 0 560 52" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A Flow step names a Seat, your Crew's Role fills that Seat, the Role names a Profile, and the Profile names a Provider. The Profile is the fourth link, and the one that carries the model and the effort.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -68,54 +88,42 @@ That makes a Profile the fourth link in the chain a run follows from a Flow step
   </g>
 </svg>
 
-## Reaching the real provider
+A profile is the fourth link, and the one carrying the model and the effort. Two roles can share one, and a single role can run on a stronger profile for one step through a step override.
 
-A Profile's knobs take effect on both CLI and HTTP providers: a CLI provider gets a real flag, an HTTP-API provider the equivalent request-body field. A Profile changes what gets spawned or sent, not just what gets written down.
+### The knobs reach the real provider
 
-Each knob shows up only where it is wired to a real flag or field, so the editors offer the levels and models a Provider supports and hide the rest:
+A profile's settings take effect on both CLI and HTTP providers: a CLI provider gets a real flag, an HTTP-API provider the equivalent request-body field. A profile changes what gets spawned or sent, not just what gets written down.
+
+Each knob appears only where it is wired to something real:
 
 <div class="docs-chips"><span>claude: low/medium/high/xhigh/max</span><span>codex: minimal/low/medium/high/xhigh</span><span>OpenAI HTTP: minimal/low/medium/high</span></div>
 
-A provider whose reasoning is a numeric budget instead of a level (the Gemini CLI's thinking budget, Anthropic's `budget_tokens`) gets no effort knob at all. Vibestrate never forces one global scale onto every provider, and an effort a provider won't honor stays reachable by hand-editing `project.yml`.
+<div class="docs-outcomes"><div class="docs-outcome ok"><b>effort honored</b><span>a level the provider supports, applied as a real flag or request field</span></div><div class="docs-outcome warn"><b>effort_ignored</b><span>a level outside the provider's real ones: the run warns rather than dropping it quietly</span></div></div>
 
-<div class="docs-outcomes"><div class="docs-outcome ok"><b>effort honored</b><span>level the provider supports, applied as a real flag or request field</span></div><div class="docs-outcome warn"><b>effort_ignored</b><span>level outside the provider's real ones, or a provider with no effort knob: run warns instead of dropping it quietly</span></div></div>
+### The model has to be one the provider actually has
 
-## The model has to be one the Provider actually has
+A profile naming a model its provider does not offer is a run that fails the moment it spawns, so Vibestrate checks the pair on write and keeps checking it, because a model can stop existing without anyone touching the config.
 
-A Profile naming a model its Provider does not offer is a run that fails the
-moment it spawns, so Vibestrate checks the pair on write and keeps checking it,
-because a model can stop existing without anyone touching the config.
+How strict depends on where the list came from:
 
-The strictness depends on where the model list came from:
+- **From the provider itself.** Vibestrate probes each provider's own bundled catalog at the start of every run (an offline read, no network) and caches it. The Model field becomes a picker, and saving a model outside it is **refused**, with the available ids named.
+- **From the built-in list.** A curated fallback for a provider that cannot be probed. That list goes stale the day a provider ships a model, so a value outside it is **allowed** and reported as unverified rather than wrong. Refusing here would block every new model on release day.
 
-- **From the Provider itself** - Vibestrate probes each Provider's own bundled
-  catalog at the start of every run (an offline read, no network) and caches it.
-  A hand-written `providers-catalog.yml` counts too. When the list is this, the
-  Model field is a picker, and saving a model outside it is **refused** with the
-  available ids.
-- **From the built-in list** - our curated fallback for a Provider that cannot
-  be probed. That list goes stale the day a Provider ships a model, so a value
-  outside it is **allowed** and reported as unverified rather than wrong.
-  Refusing here would block every new model on release day.
+<div class="docs-outcomes"><div class="docs-outcome ok"><b>model exists</b><span>in a list the provider itself produced</span></div><div class="docs-outcome bad"><b>unknown model</b><span>absent from the provider's own list: the write is refused, and an existing one is flagged</span></div><div class="docs-outcome warn"><b>unverified</b><span>only a curated list to check against: allowed, reported as unproven</span></div></div>
 
-<div class="docs-outcomes"><div class="docs-outcome ok"><b>model exists</b><span>in a list the Provider itself produced</span></div><div class="docs-outcome bad"><b>unknown model</b><span>absent from the Provider's own list: the write is refused, and an existing one is flagged on the Profiles page and the dashboard</span></div><div class="docs-outcome warn"><b>unverified</b><span>only a curated list to check against: allowed, and reported as unproven</span></div></div>
+A profile that goes stale this way is surfaced, not carried in silence. Its card turns amber and states the fault, the page header counts it and offers to put your cursor in that Model field, and Mission Control raises a banner naming the profile, because the run that would fail has not started yet.
 
-A Profile that goes stale this way is surfaced, not carried in silence. Its card
-turns amber and states the fault, the page header counts it and offers to put
-your cursor in that Model field, and Mission control raises a banner naming the
-profile, because the run that would fail has not started yet.
+### There is no per-profile spend dial
 
-## There is no per-profile spend dial
+A profile does not set a budget. An earlier version had a `budget` field that nothing read at runtime, so it was removed, and a leftover `budget:` key in an old `project.yml` is ignored on load.
 
-A Profile does not set a budget. An earlier version had a `budget` (low/medium/high) field on each Profile, but nothing read it at runtime, so it was removed and a leftover `budget:` key in an old `project.yml` is ignored on load.
+Spend is controlled where it bites: the per-turn output cap in **Max tokens**, and a project-level daily cap (`config.budget`, the `vibe budget` command) that stops or downgrades runs. The page shows a dial only where it ties to a real effect.
 
-Spend is controlled where it bites: the per-turn output cap in Max tokens, and a project-level daily cap (`config.budget`, the `vibe budget` command) that stops or downgrades runs. The page shows a dial only where it ties to a real effect.
+### Fencing off a role's tools
 
-## Fencing off a role's tools
+A profile can name provider tools a role may **not** use, with `disallowedTools`. The main use is `["Task"]` on the write seats of a strict flow: it stops a seat's agent spinning up nested sub-agents that would schedule work outside the flow's plan, so what actually ran stays legible.
 
-A Profile can also name provider tools a Role may **not** use, with `disallowedTools`. The main use is `["Task"]` on the write seats of a strict Flow: it stops a seat's agent from spinning up its own nested sub-agents that would schedule work **outside** the Flow's plan, so what actually ran stays legible to the supervisor and the run tree.
-
-Neither the page nor `vibe profile set` writes this one, so add it to `.vibestrate/project.yml` yourself:
+Neither the page nor `vibe profile set` writes this one, so add it by hand:
 
 ```yaml
 profiles:
@@ -128,11 +136,11 @@ profiles:
 
 <div class="docs-callout warn">
 
-**This is about legibility, not a write guard.** `disallowedTools` keeps the Flow the single scheduler; it is not what stops a read-only seat from writing (that's the seat's permission mode). It is also best-effort - it blocks the default sub-agent path, not every possible fan-out. Off by default: with no list, nothing is disallowed.
+**This is about legibility, not a write guard.** `disallowedTools` keeps the flow the single scheduler; it is not what stops a read-only seat from writing (that is the seat's permission mode). It is also best-effort - it blocks the default sub-agent path, not every possible fan-out. Off by default: with no list, nothing is disallowed.
 
 </div>
 
-## Advanced: CLI and automation
+### From the CLI
 
 Every action on the Profiles page has a terminal path, for scripts and headless machines. See [the CLI overview](/docs/cli/overview).
 
@@ -158,7 +166,7 @@ The schema fields:
 
 | field | type | meaning |
 | --- | --- | --- |
-| `provider` | string (required) | raw Provider id; must exist in `providers` |
+| `provider` | string (required) | raw provider id; must exist in `providers` |
 | `label` | string? | dashboard label (defaults to the profile id) |
 | `model` | string \| null | provider model id (e.g. `sonnet`, `opus`) |
 | `power` | string \| null | provider-specific effort level (applied via the provider's flag) |
@@ -196,10 +204,12 @@ DELETE /api/profiles/:id
 GET    /api/providers/catalog
 ```
 
-Each profile in that list carries `usedBy`, `providerConfigured`, and a `modelStatus` / `modelIssue` verdict. The catalog feeds the model and effort options, and its `sources` map says whether each Provider's list came from the Provider (`detected`, `overlay`) or from the built-in fallback.
+Each profile in that list carries `usedBy`, `providerConfigured`, and a `modelStatus` / `modelIssue` verdict. The catalog feeds the model and effort options, and its `sources` map says whether each provider's list came from the provider (`detected`, `overlay`) or from the built-in fallback.
 
 ## Going deeper
 
 - [[provider]] - where the work runs and which flags it supports.
 - [[crew]], [[role]], [[seat]] - who fills a Flow's steps and what they cost.
 - [[flow]] - the steps a task moves through.
+
+Next: [[provider]] is the tool a profile actually runs on.

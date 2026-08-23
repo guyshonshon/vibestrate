@@ -1,14 +1,30 @@
 ---
 title: Provider
-description: What actually runs a model - a coding-agent CLI on your machine, or an HTTP endpoint. Vibestrate supplies the prompt.
+description: What actually runs a model - a coding-agent CLI on your machine, or an HTTP endpoint.
 slug: concepts/provider
 ---
 
-A provider is what actually runs a model. Vibestrate writes the prompt; the provider runs the model and hands back the response, and the file changes too when it can edit files. Everything model-specific - login, billing, context limits - stays on the provider's side of that line.
+## In simple words
 
-Most providers are coding-agent CLIs already installed on your machine, but not all of them are.
+A **Provider** is what actually runs a model. Vibestrate writes the prompt; the provider runs the model and hands back the answer, plus the file changes when it can edit files.
 
-There are four kinds, declared under `providers:` in `project.yml`:
+Most providers are coding-agent CLIs you have already installed and already logged into. Vibestrate does not hold your API keys and never logs you in: it spawns the tool you use anyway.
+
+The Providers view lists what it found on your machine:
+
+![Two provider cards. Claude Code, claude v2.1.227, marked recommended and configured, showing 1 profile uses and used by claude-write, with Edit, Set default and Test buttons. Codex CLI, codex v0.144.3, also recommended and configured, showing 3 profiles use and used by cheap-reviewer, claude-balanced and codex-fast.](/media/docs/scoped/provider-pair.png)
+
+Detected, versioned, and counted by how many [[profile]]s point at them. **Test** runs a safe connectivity check.
+
+<div class="docs-callout tip">
+
+**Tip.** When a provider is not authenticated, Vibestrate shows you the login command to run in your own terminal. It never logs you in for you, and it never sees the credential. That is why "your keys never touch Vibestrate" is a property of the design rather than a promise.
+
+</div>
+
+## The four kinds
+
+Declared under `providers:` in `project.yml`:
 
 <div class="docs-cards">
 
@@ -16,29 +32,39 @@ There are four kinds, declared under `providers:` in `project.yml`:
 Claude Code, the integration Vibestrate understands most deeply.
 
 **`cli`**
-Any other coding-agent CLI - a command, its args, and how the prompt is fed in.
+Any other coding-agent CLI: a command, its args, and how the prompt is fed in.
 
 **`http-api`**
 A cloud model API on your own key, https only.
 
 **`localhost-proxy`**
-A model server on this machine, loopback only, so no egress.
+A model server on this machine, loopback only, so nothing leaves it.
 
 </div>
 
-Eleven CLIs ship with Vibestrate. Five are configured for you the moment they are detected:
+Eleven CLIs ship with Vibestrate. Five are configured the moment they are detected:
 
 <div class="docs-chips"><span>claude</span><span>codex</span><span>gemini</span><span>aider</span><span>ollama</span></div>
 
-The other six are detected but need `vibe provider setup` once, because their flags are not stable enough across versions for Vibestrate to guess:
+The other six are detected but need `vibe provider setup` once, because their flags are not stable enough across versions to guess:
 
 <div class="docs-chips"><span>opencode</span><span>qwen</span><span>crush</span><span>goose</span><span>cursor</span><span>amp</span></div>
 
-> **Use `claude-code`, not `cli`, for Claude.** A write-capable seat (`permissions: code_write`) on that provider gets `--permission-mode acceptEdits`, so the headless `claude -p` can actually apply its edits in the worktree. The seat's permission only governs Vibestrate's own broker; the underlying CLI has its *own* permission gate, and a generic `cli` provider can't be granted through it. Read-only seats get no write grant. Set `settings.permissionMode` to override the default.
+<div class="docs-callout">
 
-> **Provider vs [[profile]] vs [[role]]:** a Provider is the tool; a Profile names a Provider plus how strong to run it; a Role runs on a Profile. Roles never name a Provider directly.
+**Did you know?** Swapping one provider for another changes nothing about how a flow, a crew or a run behaves. The provider is the line between Vibestrate and "the model": Vibestrate builds the prompt, captures the output, routes the result. That line is what makes a flow portable across vendors.
 
-## Why it matters
+</div>
+
+<div class="docs-callout warn">
+
+**Use `claude-code`, not `cli`, for Claude.** A write-capable seat (`permissions: code_write`) on that provider gets `--permission-mode acceptEdits`, so the headless `claude -p` can actually apply its edits in the worktree. The seat's permission only governs Vibestrate's own broker; the underlying CLI has its *own* permission gate, and a generic `cli` provider cannot be granted through it. Set `settings.permissionMode` to override the default.
+
+</div>
+
+## Going deeper
+
+### Why it matters
 
 A provider is the line between Vibestrate and "the model." Vibestrate stays provider-agnostic: it builds the prompt, captures the output, and routes the result. Swapping one provider for another changes nothing about how a Flow, a Crew or a run behaves.
 
@@ -74,7 +100,7 @@ Of the four kinds, only one reaches the network:
   </g>
 </svg>
 
-## Built-in providers
+### Built-in providers
 
 Every built-in provider lands in one of three states on your machine. The first two are detected installs; the third is just absent:
 
@@ -113,7 +139,7 @@ The rest are detected but need a one-time setup - Vibestrate won't guess flags t
 
 The canonical, generated list lives in the [providers reference](/docs/reference/providers).
 
-## "Preset-ready" vs "needs setup"
+### "Preset-ready" vs "needs setup"
 
 Coding-agent CLIs disagree on flags - `--prompt` here, `-p` there, `exec` for some, stdin for others. When a vendor's flag set is stable enough that Vibestrate can drive it without surprises, that provider is marked **preset-ready**. Otherwise Vibestrate detects it but won't guess the flags; `vibe provider setup` walks you through the choices.
 
@@ -133,7 +159,7 @@ For anything the form doesn't surface, the editor has an **Advanced - raw YAML**
 
 So fixing or setting up a provider is always fully doable in the dashboard; you never have to drop to `vibe provider setup`. Authentication is the one exception by design: when a provider isn't logged in, the UI shows the login command for you to run in your own terminal - Vibestrate never logs you in.
 
-## Non-CLI providers (HTTP)
+### Non-CLI providers (HTTP)
 
 Beyond local CLIs, two HTTP-backed provider types let you run a model over the network:
 
@@ -166,7 +192,7 @@ Rules the schema enforces:
 
 Both report **real token usage** from the API response (not estimates). They run one request per turn - no session reuse.
 
-## Providers back Profiles, Profiles back Roles
+### Providers back Profiles, Profiles back Roles
 
 A Provider is a raw tool. A [[profile]] wraps it with model/power, and a [[role]] in your [[crew]] runs on a Profile. It is the last link in the chain a run follows from a Flow step to a real model:
 
@@ -258,7 +284,7 @@ vibe run "..." --step-profile implement=claude-high
 
 (Provider commands - `vibe provider list/setup/test` - manage the raw tools only. Profiles and Crews are edited in `project.yml`, the dashboard, or the API.)
 
-## Capability catalog + your overlay
+### Capability catalog + your overlay
 
 Vibestrate ships a built-in **capability catalog**: per provider, the real models and effort levels and *how* each is applied (a CLI flag, a `-c key=value`, or an HTTP request-body field). The Profile editors only offer knobs that are in this catalog, so you never set an effort the runtime ignores.
 
@@ -322,7 +348,7 @@ Parsing help text is heuristic, so it writes findings for you to confirm (the ca
 
 Probing cloud `/models` endpoints is intentionally not included - that would mean egress with your key.
 
-## Common mistakes
+### Common mistakes
 
 <div class="docs-cards">
 
@@ -337,7 +363,9 @@ Don't - and for `http-api` providers the schema refuses it. CLI providers authen
 
 </div>
 
-## Going deeper
+### Going deeper
 
 - [Provider reference](/docs/reference/providers) - generated from `KNOWN_PROVIDERS`.
 - [Extending: add a provider](/docs/extending/add-provider) - wire up your own CLI.
+
+Next: [[run]] is all of this working together on one task.
