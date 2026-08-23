@@ -17,8 +17,11 @@ describe("a card remembers the spec it came from", () => {
   });
 
   it("round-trips a project-relative spec path", () => {
-    const t = card({ specRef: ".vibestrate/runs/r1/artifacts/spec-up-approved-spec.md" });
-    expect(t.specRef).toBe(".vibestrate/runs/r1/artifacts/spec-up-approved-spec.md");
+    // The shape production actually writes: beside the proposal, not inside the
+    // source run. See roadmapProposalSpecFile - and spec-up-roadmap-handoff-e2e
+    // for the end-to-end proof that a real accept produces one of these.
+    const ref = ".vibestrate/roadmap/proposals/specs/spec-up-keen-magpie.md";
+    expect(card({ specRef: ref }).specRef).toBe(ref);
   });
 
   it("survives a parse of a card written before the field existed", () => {

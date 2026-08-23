@@ -31,6 +31,11 @@ import { ProposalService } from "../roadmap/proposal-service.js";
 import { VibestrateError } from "../utils/errors.js";
 import { loadCodebaseMap, renderCodebaseMapForPrompt } from "../project/codebase-map.js";
 import { CODEBASE_MAP_CONTEXT_SOURCE_LABEL } from "../core/context/context-source-schema.js";
+import {
+  roadmapProposalSpecFile,
+  roadmapProposalSpecsDir,
+} from "../utils/paths.js";
+import { ensureDir, writeText } from "../utils/fs.js";
 
 export class SpecUpChainError extends VibestrateError {
   constructor(message: string, cause?: unknown) {
@@ -71,6 +76,35 @@ export const APPROVED_SPEC_PATH = "spec-up-approved-spec.md";
  *  seeds the chosen build flow. Step id -> output.md (see builtin-flows specUpFlow).
  *  Exported as the editable-section set for the guarded artifact-edit service. */
 export const SPEC_UP_SPEC_STEPS = ["scope", "spec", "architecture", "risks"] as const;
+
+/**
+ * Assemble the approved spec from a run's spec-producing step outputs
+ * (scope / spec / architecture / risks). Returns null when NONE of them produced
+ * content; every caller turns that into a fail-fast, because a handoff carrying
+ * an empty spec silently re-derives from the bare task - the exact failure this
+ * chain exists to prevent.
+ *
+ * Shared by BOTH terminal handoffs - `approveSpecUpAndBuild` (build now) and
+ * `createRoadmapProposal` (build later, from a board card) - so the two cannot
+ * drift into handing the models different specs for the same approved work. The
+ * roadmap run holds these same four artifacts because `approveSpecUpAndStartRoadmap`
+ * resumes the spec-up run at stage "executing" and seedResumedSteps copies every
+ * upstream step's output.md forward (an upstream resume is strict, so a missing
+ * one would already have thrown at seed time).
+ */
+async function assembleApprovedSpec(
+  store: ArtifactStore,
+): Promise<string | null> {
+  const sections: string[] = [];
+  for (const step of SPEC_UP_SPEC_STEPS) {
+    const p = `flows/${step}/output.md`;
+    if (!(await store.exists(p))) continue;
+    const body = (await store.read(p)).trim();
+    if (body) sections.push(`# ${step[0]!.toUpperCase()}${step.slice(1)}\n\n${body}`);
+  }
+  if (sections.length === 0) return null;
+  return `# Spec-up: the approved spec\n\nBuild strictly to this spec - it is the user's approved scope, derived during spec-up. Treat it as ground truth.\n\n${sections.join("\n\n")}\n`;
+}
 
 /** Read the carried build-target flow id from a run's sidecar, or null. */
 async function readTargetFlowId(
@@ -646,19 +680,12 @@ export async function approveSpecUpAndBuild(input: {
   // Assemble the approved spec from the spec-up run's spec-producing steps. Fail
   // fast if NONE produced content - launching a build with empty context would
   // silently re-derive from the bare task (the keystone failure this guards against).
-  const sections: string[] = [];
-  for (const step of SPEC_UP_SPEC_STEPS) {
-    const p = `flows/${step}/output.md`;
-    if (!(await src.exists(p))) continue;
-    const body = (await src.read(p)).trim();
-    if (body) sections.push(`# ${step[0]!.toUpperCase()}${step.slice(1)}\n\n${body}`);
-  }
-  if (sections.length === 0) {
+  const specDoc = await assembleApprovedSpec(src);
+  if (specDoc === null) {
     throw new SpecUpChainError(
       `Spec-up run "${input.specUpRunId}" has no spec to build from (no scope/spec/architecture/risks output).`,
     );
   }
-  const specDoc = `# Spec-up: the approved spec\n\nBuild strictly to this spec - it is the user's approved scope, derived during spec-up. Treat it as ground truth.\n\n${sections.join("\n\n")}\n`;
   const absSpec = await src.write(APPROVED_SPEC_PATH, specDoc);
   const ref = path.relative(input.projectRoot, absSpec);
 
@@ -703,10 +730,31 @@ export async function createRoadmapProposal(input: {
       `Run "${input.runId}" has no roadmap synthesis to turn into a proposal.`,
     );
   }
+  // The spec the cards are synthesised FROM. Assembled and persisted HERE
+  // because this is the last point that still has the roadmap run in hand;
+  // `accept` runs later, from a proposal id, and can only find what this wrote.
+  // Fail fast when there is none: any run reaching this function is a
+  // spec-up-roadmap run (it has the synthesis output), and such a run was seeded
+  // from an approved spec by construction - so an empty spec means something
+  // upstream is broken, not that these cards should quietly become the
+  // context-less kind.
+  const specDoc = await assembleApprovedSpec(store);
+  if (specDoc === null) {
+    throw new SpecUpChainError(
+      `Roadmap run "${input.runId}" has no spec to carry onto its cards (no scope/spec/architecture/risks output).`,
+    );
+  }
   const body = await store.read(SYNTHESIZE_OUTPUT_PATH);
   const proposalId = `spec-up-${input.runId}`;
   const svc = new ProposalService(input.projectRoot);
   await svc.writeProposalText(proposalId, body);
+  // After the proposal, so a spec with no proposal is unreachable while a failed
+  // spec write surfaces as this call throwing rather than as silent context loss.
+  await ensureDir(roadmapProposalSpecsDir(input.projectRoot));
+  await writeText(
+    roadmapProposalSpecFile(input.projectRoot, proposalId),
+    specDoc,
+  );
   return { proposalId };
 }
 

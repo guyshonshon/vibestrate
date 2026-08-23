@@ -19,7 +19,10 @@ import { SPEC_UP_TARGET_FLOW } from "../../supervisor/flow-sizing.js";
 import { resolvePersona } from "../../supervisor/personas.js";
 import { permissionModeSchema } from "../../project/config-schema.js";
 import type { ResolvedFlowSnapshot } from "../../flows/schemas/flow-schema.js";
-import { contextSourceSchema } from "../context/context-source-schema.js";
+import {
+  contextSourceSchema,
+  SPEC_UP_APPROVED_SPEC_LABEL,
+} from "../context/context-source-schema.js";
 import {
   acquireTaskLock,
   releaseTaskLock,
@@ -255,6 +258,24 @@ export async function runFromSpec(
     if (!spec.readOnly) readOnly = task.readOnly;
     if (contextSources === null && task.contextSources.length > 0) {
       contextSources = task.contextSources;
+    }
+    // Attach the approved spec this card was synthesised FROM, exactly as
+    // `vibe run --task` does. ADDITIVE, not inherited-when-absent: an explicit
+    // attachment on the launch request is an extra document, never a decision
+    // to build blind, so the spec still rides along. Skipped when the caller
+    // already passed that same file. Without this the dashboard - the surface
+    // most cards are actually launched from - was the one launcher that dropped
+    // it, so the same card built differently depending on where you clicked.
+    if (task.specRef) {
+      const already = (contextSources ?? []).some(
+        (c) => c.kind === "file" && c.ref === task.specRef,
+      );
+      if (!already) {
+        contextSources = [
+          ...(contextSources ?? []),
+          { kind: "file", ref: task.specRef, label: SPEC_UP_APPROVED_SPEC_LABEL },
+        ];
+      }
     }
   }
 

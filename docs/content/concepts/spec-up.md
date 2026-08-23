@@ -140,8 +140,11 @@ vibe spec-up roadmap <runId>     # -> a proposal
 `edit` opens the section in `$EDITOR` (or reads `--file`). It refuses content that
 looks like a secret, and it closes once you approve.
 
-`approve` and `build` are the two ways out of the draft: `approve` turns the spec
-into board cards, `build` runs the flow you picked seeded with the approved spec.
+`approve` and `build` are the two ways out of the draft, and both carry the
+approved spec forward. `build` runs the flow you picked seeded with the spec.
+`approve` synthesizes the spec into board cards and records it on every one of
+them, so a run launched from a card later is seeded with the same document
+rather than with the card's title alone.
 
 ## Honest limits
 

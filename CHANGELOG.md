@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+- **The card-carries-its-spec fix had no producer behind it, so every card
+  still ran blind.** A card records the approved spec it came from in
+  `specRef`, and both launchers attach it. Nothing ever wrote the file that
+  reference pointed at: it was derived from the source run's
+  `spec-up-approved-spec.md`, which only `vibe spec-up build` writes and the
+  roadmap path never calls. The lookup failed, fell through its `if (exists)`
+  to null, and every accepted card silently carried no spec, exactly as before
+  the field existed. `vibe roadmap accept` now resolves a real file, because
+  the roadmap run's scope, spec, architecture and risks are assembled and
+  written beside the proposal when the proposal is created.
+  The spec is stored with the proposal rather than in the run for two reasons:
+  a card can sit in the backlog long after run artifacts are pruned, and inside
+  a run store that filename already means "this spec is frozen", so putting one
+  there would have blocked editing the run's sections as a side effect.
+  Both handoffs now share one assembler, so `build` and `approve` cannot drift
+  into handing the models different specs for the same approved work, and each
+  fails fast on a run with no spec instead of continuing with empty context.
+- **The dashboard dropped the spec that `vibe run --task` attached.** Only the
+  CLI read a card's `specRef`, so the surface most cards are launched from was
+  the one that ignored it and the same card built differently depending on
+  where you clicked.
+- **`vibe run --task <id>` ignored a card's own context sources.** The dashboard
+  inherited them and the CLI did not. The CLI now does, on the same precedence:
+  an explicit `--context-file` or `--context-url` wins, otherwise the card's
+  sources apply. The spec rides along either way.
 - **`vibe init --yes` writes the provider it actually found.** The
   non-interactive path hardcoded `claude` in both branches of its config
   renderer, so a machine whose only installed CLI was codex was told "Codex CLI

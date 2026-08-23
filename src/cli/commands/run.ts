@@ -49,6 +49,10 @@ import {
 import { isVibestrateError } from "../../utils/errors.js";
 import { makeUniqueRunId } from "../../utils/run-id.js";
 import {
+  SPEC_UP_APPROVED_SPEC_LABEL,
+  type ContextSource,
+} from "../../core/context/context-source-schema.js";
+import {
   acquireTaskLock,
   releaseTaskLock,
   TaskLockedError,
@@ -179,7 +183,7 @@ export type RunCommandOptions = {
    *  When set with a linked task, the task's `sagaBudget` is passed through. */
   sagaMode?: boolean;
   /** Context sources injected into every agent prompt. */
-  contextSources?: import("../../core/context/context-source-schema.js").ContextSource[];
+  contextSources?: ContextSource[];
 };
 
 export async function runRunCommand(
@@ -434,9 +438,7 @@ export async function runRunCommand(
   // Resolve roadmap task linkage if --task was provided.
   let roadmapTaskId: string | null = options.taskId ?? null;
   // The card's source spec, attached below alongside any --context-file.
-  let cardSpecSource:
-    | import("../../core/context/context-source-schema.js").ContextSource
-    | null = null;
+  let cardSpecSource: ContextSource | null = null;
   if (roadmapTaskId) {
     try {
       const { RoadmapService } = await import(
@@ -463,7 +465,7 @@ export async function runRunCommand(
           cardSpecSource = {
             kind: "file",
             ref: t.specRef,
-            label: "Spec-up: approved spec",
+            label: SPEC_UP_APPROVED_SPEC_LABEL,
           };
         }
       }
@@ -504,9 +506,16 @@ export async function runRunCommand(
   }
 
   // If --task <id> was passed and the user did NOT override provider /
-  // read-only on the CLI, inherit those from the roadmap task.
+  // read-only / context on the CLI, inherit those from the roadmap task.
   let profileOverride: string | null = options.profileOverride ?? null;
   let readOnly: boolean = options.readOnly ?? false;
+  // A card's own context sources, on the same precedence the dashboard launcher
+  // uses (run-launcher.ts): explicit --context-file/--context-url win, otherwise
+  // the card's sources apply. Separate from `cardSpecSource` above, which is
+  // ADDITIVE - the spec always rides along. Without this the CLI silently drops
+  // whatever a human attached to the card, so the same card produced a different
+  // prompt depending on which surface launched it.
+  let cardContextSources: ContextSource[] = [];
   // Saga conductor: the per-saga budget envelope is owned by the task, with
   // config.supervised as the project-level default/override layer applied wherever the
   // task left a value null. We only pass it through when this launch is a saga
@@ -526,6 +535,9 @@ export async function runRunCommand(
       if (t) {
         if (profileOverride === null) profileOverride = t.profileOverride;
         if (!options.readOnly) readOnly = t.readOnly;
+        if ((options.contextSources ?? []).length === 0) {
+          cardContextSources = t.contextSources;
+        }
         if (options.sagaMode) {
           // Per-task value wins; fall back to the config.supervised default on each
           // axis the task left null. So a saga is bounded even if its own
@@ -757,6 +769,7 @@ export async function runRunCommand(
     sagaSupervisor,
     contextSources: [
       ...(options.contextSources ?? []),
+      ...cardContextSources,
       ...(cardSpecSource ? [cardSpecSource] : []),
     ],
     abortSignal: cliAbort.signal,

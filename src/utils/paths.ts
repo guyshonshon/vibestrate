@@ -209,6 +209,35 @@ export function roadmapProposalsDir(projectRoot: string): string {
   return path.join(roadmapDir(projectRoot), "proposals");
 }
 
+/**
+ * Where a proposal's approved spec-up spec lives - the scope/spec/architecture/
+ * risks its roadmap run was synthesised FROM, kept so the cards it creates can
+ * point at it (`Task.specRef`).
+ *
+ * Not inside the roadmap run's artifacts, for two independent reasons. A card
+ * can sit in the backlog long after run artifacts are pruned, and a run dir is
+ * not a durable home for something a card depends on. And in a run store the
+ * name `spec-up-approved-spec.md` already MEANS something else: it is the flag
+ * `spec-up-artifact-edit` reads to refuse edits ("already approved and built"),
+ * so writing one into the roadmap run would silently freeze that run's sections
+ * as a side effect of storing a file.
+ *
+ * A SUBDIRECTORY rather than a `<id>-spec.md` sibling: both proposal listings
+ * (`ProposalService.listProposals` and `RoadmapStore.listProposalIds`) glob
+ * `*.md` in the proposals dir and strip the extension, so a sibling would
+ * surface as a phantom proposal in each.
+ */
+export function roadmapProposalSpecsDir(projectRoot: string): string {
+  return path.join(roadmapProposalsDir(projectRoot), "specs");
+}
+
+export function roadmapProposalSpecFile(
+  projectRoot: string,
+  proposalId: string,
+): string {
+  return path.join(roadmapProposalSpecsDir(projectRoot), `${proposalId}.md`);
+}
+
 export function roadmapTaskReportFile(projectRoot: string, taskId: string): string {
   return path.join(roadmapTasksDir(projectRoot), `${taskId}-report.md`);
 }

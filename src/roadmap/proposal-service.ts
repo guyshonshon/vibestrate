@@ -27,12 +27,12 @@
 // place of the original failure.
 
 import path from "node:path";
-import { ArtifactStore } from "../core/stores/artifact-store.js";
-import { assertSafeRunId } from "../server/security.js";
-import { APPROVED_SPEC_PATH } from "../spec-up/spec-up-chain.js";
 import fs from "node:fs/promises";
 import { ensureDir, pathExists, readText, writeText } from "../utils/fs.js";
-import { roadmapProposalsDir } from "../utils/paths.js";
+import {
+  roadmapProposalsDir,
+  roadmapProposalSpecFile,
+} from "../utils/paths.js";
 import { nowIso } from "../utils/time.js";
 import { RoadmapStore } from "./roadmap-store.js";
 import { RoadmapService } from "./roadmap-service.js";
@@ -57,28 +57,31 @@ const PROPOSAL_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
  * The approved spec a spec-up proposal was synthesised from, as a
  * project-relative path, or null.
  *
- * Derived from the proposal id (`spec-up-<runId>`) rather than passed in by
- * each caller: every accept surface then carries the spec without having to
- * remember to, which is the difference between a rule and a mechanism. A
- * hand-written proposal has no source run and gets null, honestly.
+ * Derived from the proposal id rather than passed in by each caller: every
+ * accept surface then carries the spec without having to remember to, which is
+ * the difference between a rule and a mechanism. A hand-written proposal has no
+ * source run and gets null, honestly.
+ *
+ * It resolves against the spec `createRoadmapProposal` writes beside the
+ * proposal, NOT against `spec-up-approved-spec.md` in the source run. That file
+ * is written only by `approveSpecUpAndBuild`, which the roadmap path never
+ * calls, so looking for it there matched nothing and every card silently got
+ * null - the mechanism was in place with no producer behind it. It also could
+ * not simply be written into the roadmap run: in a run store that name is the
+ * flag `spec-up-artifact-edit` reads to refuse edits, so storing it there would
+ * freeze the run's sections as a side effect.
  */
 async function resolveProposalSpecRef(
   projectRoot: string,
   proposalId: string,
 ): Promise<string | null> {
-  const match = /^spec-up-(.+)$/.exec(proposalId);
-  if (!match) return null;
-  const runId = match[1]!;
-  try {
-    assertSafeRunId(runId);
-    const store = new ArtifactStore(projectRoot, runId);
-    if (!(await store.exists(APPROVED_SPEC_PATH))) return null;
-    return path.relative(projectRoot, path.join(store.rootDir, APPROVED_SPEC_PATH));
-  } catch {
-    // A malformed or missing run is not an error here - the cards simply carry
-    // no spec, exactly as they did before.
-    return null;
-  }
+  // Builds a path from the id, so the id must already be validated. Callers go
+  // through `accept`, which runs assertProposalId first (no traversal, no
+  // separators); assert again rather than trust that from a future caller.
+  assertProposalId(proposalId);
+  const abs = roadmapProposalSpecFile(projectRoot, proposalId);
+  if (!(await pathExists(abs))) return null;
+  return path.relative(projectRoot, abs);
 }
 
 export class ProposalServiceError extends Error {

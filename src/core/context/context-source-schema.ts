@@ -22,6 +22,14 @@ export type ContextSourceKind = z.infer<typeof contextSourceKindSchema>;
 // projection twice.
 export const CODEBASE_MAP_CONTEXT_SOURCE_LABEL = "Codebase map (auto-derived)";
 
+// Shared label for the approved spec-up spec. All three attach points use it -
+// `approveSpecUpAndBuild` onto the build run, and both launchers onto a run
+// started from a card that carries a `specRef` - so the document is
+// indistinguishable to the agent receiving it however the run was started.
+// Lives in this leaf module because the attach points sit in three packages
+// that do not otherwise share one.
+export const SPEC_UP_APPROVED_SPEC_LABEL = "Spec-up: approved spec";
+
 export const contextSourceSchema = z
   .object({
     kind: contextSourceKindSchema,
