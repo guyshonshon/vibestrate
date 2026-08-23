@@ -285,6 +285,15 @@ export function buildVibestrateProgram(): Command {
       "--select",
       "let the orchestrator pick the Flow even when a default flow is set.",
     )
+    // Commander does not derive this from `--select`; declared alone it would
+    // also flip the default to true, so it must come AFTER `--select` to leave
+    // the default undefined (the three-state precedence: forced > default >
+    // select). Suppresses BOTH orchestrator selection and the adaptive spec-up
+    // detour, matching what the dashboard sends as `select: false`.
+    .option(
+      "--no-select",
+      "skip Flow selection and the adaptive spec-up detour; run the flow directly.",
+    )
     .option(
       "--step-profile <stepId=profileId>",
       "override the Profile for a Flow step (same Role, different runtime). Repeat for multiple steps.",

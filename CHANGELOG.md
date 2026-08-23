@@ -27,6 +27,20 @@
   inherited them and the CLI did not. The CLI now does, on the same precedence:
   an explicit `--context-file` or `--context-url` wins, otherwise the card's
   sources apply. The spec rides along either way.
+- **`vibe run --no-select` did not exist.** A plan-worthy brief is routed into
+  the read-only spec-up chain first, and naming a flow with `--flow` does not
+  skip that: the flow you name becomes what spec-up builds afterwards, which is
+  the intended design. The documented per-run way out is `--no-select`, which
+  the dashboard sends - but the CLI never registered the flag and never passed
+  the value, so the only way to stop the detour from a terminal was
+  `adaptiveSpecUp: off` in `project.yml`, turning a per-run choice into a
+  permanent one. The flag now exists and works. The walkthrough also still said
+  a run started from a card carries its title without the spec; it carries the
+  spec.
+- **`vibe tasks show` now lists what a run from the card will be given** - the
+  approved spec-up spec and any files or urls attached to it. The dashboard
+  showed this and the terminal did not, so a card silently carrying a spec was
+  visible only in `--json`.
 - **`vibe init --yes` writes the provider it actually found.** The
   non-interactive path hardcoded `claude` in both branches of its config
   renderer, so a machine whose only installed CLI was codex was told "Codex CLI

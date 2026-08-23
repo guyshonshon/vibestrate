@@ -718,7 +718,7 @@ vibe spec-up build <spec-up run id>
 
 `data-store` there is a placeholder: the model writes its own kebab-case id per question, and `vibe spec-up questions` prints the real ones. Pass those back verbatim. `vibe spec-up simplify <intake run id> data-store` restates a question you cannot parse.
 
-`build` is the route that carries the approved spec into the build. The other route takes three commands: `vibe spec-up approve <specUpRunId>` launches a roadmap run, `vibe spec-up roadmap <runId>` turns the finished run into a proposal, and `vibe roadmap accept <proposalId>` puts the cards on your board, the task list in the dashboard sidebar. A run started from a card carries the card's title without the spec behind it. Set `adaptiveSpecUp: off` in `project.yml` to opt out of the detour. More: [Spec-up](/docs/concepts/spec-up).
+`build` is the route that carries the approved spec into the build. The other route takes three commands: `vibe spec-up approve <specUpRunId>` launches a roadmap run, `vibe spec-up roadmap <runId>` turns the finished run into a proposal, and `vibe roadmap accept <proposalId>` puts the cards on your board, the task list in the dashboard sidebar. A run started from a card carries the approved spec too, attached the same way `build` attaches it. Pass `--no-select` to skip the detour for one run, or set `adaptiveSpecUp: off` in `project.yml` to opt out entirely. More: [Spec-up](/docs/concepts/spec-up).
 
 ## The merge path
 

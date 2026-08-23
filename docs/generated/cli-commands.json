@@ -6723,6 +6723,13 @@
           "negated": false
         },
         {
+          "flags": "--no-select",
+          "description": "skip Flow selection and the adaptive spec-up detour; run the flow directly.",
+          "required": false,
+          "optional": false,
+          "negated": true
+        },
+        {
           "flags": "--step-profile <stepId=profileId>",
           "description": "override the Profile for a Flow step (same Role, different runtime). Repeat for multiple steps.",
           "defaultValue": "[]",

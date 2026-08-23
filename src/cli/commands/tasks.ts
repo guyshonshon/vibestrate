@@ -161,6 +161,25 @@ async function cmdShow(id: string, opts: { json?: boolean }): Promise<number> {
     console.log("");
     console.log(task.description);
   }
+  // What a run launched from this card is seeded with. The dashboard shows this
+  // in ContextSourcesSection; without it here the terminal gave no way to see
+  // that a card carries a spec at all - and `specRef` is set by `vibe roadmap
+  // accept`, not by the user, so it is the half most likely to be a surprise.
+  const contextSources = task.contextSources ?? [];
+  if (task.specRef || contextSources.length > 0) {
+    console.log("");
+    console.log("Context:");
+    if (task.specRef) {
+      console.log(
+        indent(`- ${task.specRef} ${color.dim("(spec-up: approved spec)")}`),
+      );
+    }
+    for (const c of contextSources) {
+      console.log(
+        indent(`- ${c.ref}${c.label ? ` ${color.dim(`(${c.label})`)}` : ""}`),
+      );
+    }
+  }
   if (task.runIds.length > 0) {
     console.log("");
     console.log("Runs:");

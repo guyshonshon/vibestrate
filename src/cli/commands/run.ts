@@ -303,6 +303,12 @@ export async function runRunCommand(
         config: loaded.config,
         forcedFlowId: activeFlowId,
         forceSelect: options.select === true,
+        // The per-run brake on the adaptive spec-up detour, and the same value
+        // the dashboard launcher passes. Omitting it left `--no-select` inert:
+        // a plan-worthy brief detoured into spec-up regardless, and the only
+        // way to stop it from the CLI was the project-wide `adaptiveSpecUp:
+        // "off"` - a per-run choice that could only be made permanently.
+        noSelect: options.select === false,
         personaOverride: options.supervisorId ?? null,
         loaded,
       });

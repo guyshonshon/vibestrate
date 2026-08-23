@@ -110,6 +110,8 @@ supervisor and agents at work.
 The trigger biases to execute - a targeted change ("add X to `foo.ts`") just runs.
 
 - Force spec-up on a brief the heuristic skips: `vibe run --flow spec-up-intake "<brief>"`.
+- Skip the detour for one run: `vibe run --no-select "<brief>"`. `--flow` does
+  not skip it - the flow you name becomes what spec-up builds afterwards.
 - Disable auto spec-up entirely: set `adaptiveSpecUp: off` in `project.yml`.
 
 Every step of the chain has a command, so you can drive the whole thing from a

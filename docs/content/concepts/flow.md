@@ -66,7 +66,7 @@ With none of the above, sizing reads the task text and may route it to `express`
 
 </div>
 
-Spec-up sits outside all four: it runs before whichever Flow was chosen, and that Flow then runs seeded with the resulting spec. Set `adaptiveSpecUp: off` to stop that.
+Spec-up sits outside all four: it runs before whichever Flow was chosen, and that Flow then runs seeded with the resulting spec. Naming a Flow with `--flow` does not skip it, since that Flow is what spec-up builds afterwards. Pass `--no-select` to skip it for one run, or set `adaptiveSpecUp: off` to stop it entirely.
 
 ## The model comes from your Crew
 
