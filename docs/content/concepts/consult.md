@@ -1,18 +1,53 @@
 ---
 title: Consult
-description: Ask one question about your project and get an answer grounded in what is really there, and in Vibestrate's own documentation.
+description: Ask one question about your project and get an answer grounded in what is really there.
 slug: concepts/consult
 ---
 
-**Consult** answers one question about your project. It reads your files, your config and your recent runs. It also reads Vibestrate's own documentation, compiled into the package, so an answer about the product quotes a real command or config key instead of a remembered one.
+## In simple words
 
-You reach it from the orb at the bottom right of the dashboard. The orb rests on every screen, so a question is one click from whatever raised it.
+**Consult** answers one question about your project. It reads your files, your config and your recent runs. It also reads Vibestrate's own documentation, compiled into the package, so an answer about the product quotes a real command or config key rather than a remembered one.
 
-![Mission Control. A sidebar of sections runs down the left. The header reads Mission control, with an approvals tile showing Clear under the caption Nothing blocked and an Edit layout button. A New run composer and a Run summary panel sit below, and the Supervisor chat fills the right column, its mode switch set between Answers only and Answers and acts.](/media/docs/mission-control.png)
+You reach it from the orb that rests at the bottom right of every screen:
 
-Clicking the orb offers two conversations, and the difference is what each one may do. **Ask about this project** is consult: a read-only answer about your code, config and runs. **Work in Vibestrate** covers authored walkthroughs and the [Supervisor](/docs/concepts/supervisor-control) conversation, which can make a task, add TODOs or start a run. That is the mode switch on the Supervisor panel above, set between **Answers only** and **Answers and acts**. Consult stays on the answering half of that line by construction.
+![A small round violet orb, the Consult control, sitting at the bottom right corner of the dashboard.](/media/docs/scoped/consult-orb.png)
 
-## The answer fits the surface you asked from
+One click from whatever raised the question, on whatever screen raised it.
+
+<div class="docs-callout tip">
+
+**Tip.** Consult is one question and one answer. The [supervisor chat](/docs/concepts/supervisor-control) is a conversation that remembers the thread. Reach for the orb when you want a fast grounded answer about what is in front of you, and the chat when you are working something out over several turns.
+
+</div>
+
+## What it is good at
+
+<div class="docs-cards">
+
+**"What is this config key?"**
+Answered from the real schema, not from memory of a similar tool.
+
+**"What changed in that run?"**
+It has the run record: decisions, diff, validation output.
+
+**"Which flow should I use here?"**
+It knows which flows this project actually has installed.
+
+**"What did this cost?"**
+The ledger is local and it can read it.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Some screens hand Consult what you are looking at, so a question asked from a run page arrives already knowing which run you mean. That is why the orb rests on every screen rather than living on one page of its own.
+
+</div>
+
+
+## Going deeper
+
+### The answer fits the surface you asked from
 
 Consult also runs from a terminal, and it answers for where you asked: screens to open in the browser, commands to run in the shell. That is a difference in source material, not a tone setting. A dashboard question that names none of Vibestrate's commands gets the command reference pages dropped before the model sees them, and the fenced command examples stripped out of the concept pages that survive. Name a real subcommand, or say "command line", and those pages come back on any surface: a question about `vibe run --flow` deserves an answer about `vibe run --flow`.
 
@@ -47,13 +82,13 @@ Consult is read-only. No run starts, no file in your repository changes, nothing
 
 Every answer states a **confidence** and lists **caveats**, the things it could not verify. The orchestrator is a model too, and an answer with neither would be model confidence dressed as fact.
 
-## Some screens hand it what you are looking at
+### Some screens hand it what you are looking at
 
 The **New run** composer publishes the brief you have typed, the flow and crew you picked, the run options, and any planner questions still on screen. The [Spec-up](/docs/concepts/spec-up) questions screen publishes the round and your answers so far. Everywhere else the orb is grounded in the project alone.
 
 The orb receives a typed projection of state the dashboard already holds, never a screenshot or a scrape of the page, secret-redacted on the server before it reaches a provider.
 
-## Its source material
+### Its source material
 
 Two halves, kept apart.
 
@@ -69,11 +104,11 @@ The product half stays quiet unless your question uses Vibestrate's own vocabula
 
 Two things this is not. It is not a sandbox: the provider runs as a CLI in your project directory, so a tool-capable model can go and read files itself. And the documentation is part of the build, so a file in your project cannot shadow it, extend it, or put words in it.
 
-## Money questions
+### Money questions
 
 Ask about money and consult rolls up the last seven days of spend per provider, from the metrics your runs recorded. It says when a figure is an **estimate**: a cost a provider CLI reported is quoted as fact, a turn priced here from token counts times a published list price is not, and one estimated turn makes the whole total an estimate. If nothing was recorded in the window, the answer says that rather than producing a number.
 
-## Two questions
+### Two questions
 
 <div class="docs-cards">
 
@@ -85,7 +120,7 @@ Ask about money and consult rolls up the last seven days of spend per provider, 
 
 The same line holds on the product half. Ask about a flag that does not exist and the answer is instructed to say the documentation does not cover it and to lower its confidence, rather than filling the gap from memory. That one is an instruction to the model, not a gate in code, which is the reason the answer also shows you its caveats.
 
-## The two proposals it can leave
+### The two proposals it can leave
 
 Both wait for you, and there is nothing else.
 
@@ -101,7 +136,7 @@ A **policy proposal** is the one thing consult writes on its own. It is a real e
 
 Everything else is off the table. Consult starts no run, changes no setting that governs a run, and merges nothing. It runs on the same **assist** path as the rest of Vibestrate: the provider spawn crosses the Action Broker, there is no worktree, and no run lifecycle. Its record is audited under `.vibestrate/runs/consult/`.
 
-## Advanced: CLI and automation
+### Advanced: CLI and automation
 
 The same engine answers from a terminal, the path for scripts, CI and anyone living in a shell. The [CLI overview](/docs/cli/overview) has the rest of the surface.
 
@@ -141,7 +176,7 @@ vibe policies reject <policyId>
 
 Over HTTP, `POST /api/consult` asks, and `GET /api/vibestrate` plus its init and proposals routes read and apply the manual side. The surface is fixed to the dashboard on that route and never read off the request body, so a client cannot ask its way back into terminal instructions.
 
-## Related
+### Related
 
 - [VIBESTRATE.md](/docs/concepts/vibestrate-md) - the manual consult reads, and proposes updates to.
 - [Policies](/docs/concepts/policies) - the tiers, and what confirming a proposal turns on.

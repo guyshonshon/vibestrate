@@ -1,18 +1,49 @@
 ---
 title: Annotations
-description: Pin short notes to your files so the agents read them during a run, without ever touching your code.
+description: A short note pinned to a file, which agents read before they start work.
 slug: concepts/annotation
 ---
 
-An annotation is a short note you pin to a file in your codebase, telling the agents something they should know before they start work.
+## In simple words
 
-It works like a sticky note stuck to a page. The page stays exactly as it was, but anyone reading it sees your note first. Use one to say things like "don't refactor this", "this function is the bug", or "match the pattern in `x.ts`" without editing the file yourself.
+An **annotation** is a short note you pin to a file, telling agents something they should know before they touch it.
 
-You pin annotations from Mission Control's **Codebase** page. They never touch your source. They live in their own file, `.vibestrate/annotations.json`, off to the side. Annotations are entirely optional, and Vibestrate works exactly the same with none.
+It works like a sticky note on a page. The page is unchanged, but anyone reading it sees your note first. Use one to say "do not refactor this", "this function is the bug", or "match the pattern in `x.ts`" without editing the file yourself.
 
-Because a shared note goes straight into agent prompts, it obeys the same no-secrets rule as everything else. You can't annotate a secret-like file such as `.env` or `*.key`, a note body is refused if it contains something shaped like a vendor token, paths are project-relative with no traversal, and a note stops at 4000 characters.
+<div class="docs-callout tip">
 
-## What a note pins to
+**Tip.** An annotation is the right tool when the thing you want to say is about *one file*. If it is true across the whole codebase, write a [[skill]] instead - a note pinned to forty files is forty things to keep in sync.
+
+</div>
+
+## When you would pin one
+
+<div class="docs-cards">
+
+**"This is the bug"**
+Point the run at the function rather than letting it search.
+
+**"Do not touch this"**
+Load-bearing code that looks refactorable and is not.
+
+**"Copy the pattern here"**
+Name the file you want imitated.
+
+**"This is generated"**
+Stop an agent hand-editing something a script rewrites.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Annotations marked visible to agents are added to every agent's prompt during a run - your guidance, acknowledged by the whole crew, not just the one worker that happens to open that file.
+
+</div>
+
+
+## Going deeper
+
+### What a note pins to
 
 Every note targets a file, and you can point it at a precise spot:
 
@@ -20,7 +51,7 @@ Every note targets a file, and you can point it at a precise spot:
 - **A line** - set a start line, or click the `+` that appears when you hover a line in the file viewer.
 - **A range** - set a start and end line.
 
-## When agents see them
+### When agents see them
 
 Each note has a **Visible to agents** toggle, on by default. It decides which of two places the note ends up:
 
@@ -51,13 +82,13 @@ When it's on, the note is shared. The moment a run starts, all open shared notes
 
 You can flip the toggle off any time, or **resolve** a note to drop it from future prompts without deleting it. Resolved notes are kept, greyed out, and you can reopen them.
 
-## Add one
+### Add one
 
 1. Open **Codebase** in Mission Control and select a file. Use the **Project** source, since annotations are pinned to the project codebase, not a run worktree.
 2. In the right panel, set the anchor (blank for the whole file, or a line or range), type the note, and choose whether it's visible to agents.
 3. **Add note.** It shows up in the list, and if it's shared, in the next agent prompt.
 
-## What an agent actually reads
+### What an agent actually reads
 
 A shared, open note reaches the prompt as one line under `# Human Annotations`, carrying its anchor and your text:
 

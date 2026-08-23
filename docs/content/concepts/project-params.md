@@ -1,16 +1,57 @@
 ---
 title: Project parameters
-description: Fill your project's answers once, and every run reuses them.
+description: Answers a flow needs, given once and reused, so you are not asked the same things every run.
 slug: concepts/project-params
 ---
 
-Some Flows need a few answers before they can do their job, like a project name, a brand color, or which framework to use. **Project parameters** let you give those answers once. Every later run reuses them, so Vibestrate stops asking you the same things over and over.
+## In simple words
 
-The [Flow](/docs/concepts/flow) says what it needs (typed values like `projectName` or `framework`), you fill them in a single time, and the values are saved in `.vibestrate/project-params.json` and reused from then on. Nothing adds that file to your `.gitignore` for you, but a `secret: true` param stores only the name of an environment variable, never the secret itself.
+Some [[flow]]s need a few answers before they can work: a project name, a brand colour, which framework you use. **Project parameters** let you give those answers once.
 
-A value can arrive from several places, and the first one that has it wins: an explicit `--param` flag, then the matching `VIBESTRATE_PARAM_*` environment variable, then your stored project value, then the Flow's own default.
+```json
+// .vibestrate/project-params.json
+{
+  "projectName": "acme-api",
+  "framework": "fastify"
+}
+```
 
-## Fill once, then run
+The flow declares what it needs, you fill it in a single time, and every later run reuses the values.
+
+<div class="docs-callout tip">
+
+**Tip.** A `secret: true` parameter stores only the *name* of an environment variable, never the value. Nothing adds `project-params.json` to your `.gitignore` for you, so that distinction is what keeps a committed file safe to commit.
+
+</div>
+
+## When a flow uses them
+
+<div class="docs-cards">
+
+**Scaffolding**
+A flow generating a starter project needs the name and the stack.
+
+**House style**
+A brand colour or a design token set that never changes between runs.
+
+**Environment names**
+Which staging branch, which deploy target.
+
+**Anything you would otherwise retype**
+If a flow asks twice, it belongs here.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Parameters are per-flow by default, so two flows asking for `framework` do not have to mean the same thing by it. That scoping is what stops one flow's answer quietly becoming another flow's assumption.
+
+</div>
+
+
+## Going deeper
+
+### Fill once, then run
 
 ```bash
 # Fill once - the --flow form type-checks values
@@ -29,7 +70,7 @@ Each declared param has a type, and the form type-checks every value against it:
 
 <div class="docs-chips"><span>string</span><span>number</span><span>boolean</span><span>enum</span><span>path</span></div>
 
-## How a value is chosen
+### How a value is chosen
 
 At run start each declared param resolves top to bottom, stopping at the first source that has a value:
 
@@ -62,11 +103,11 @@ At run start each declared param resolves top to bottom, stopping at the first s
 - **`VIBESTRATE_PARAM_<NAME>`** is the clean CI seed: export the value, skip the interactive step, and the run never hangs unattended. The name part is the param name upper-snake-cased, so `colorTokens` becomes `VIBESTRATE_PARAM_COLOR_TOKENS`.
 - A **required** param still unset after all of that prompts on a TTY, or **fails fast** in CI with a message naming exactly what to set.
 
-## Scope: per-flow by default
+### Scope: per-flow by default
 
 Param names aren't unique across Flows, so by default a stored value is keyed per Flow (`<flowId>.<param>`). Two Flows that both call something `name` never cross-contaminate. Mark a param `shared: true` to store it under a project-global key - the bare name - that any other Flow declaring it shared reuses. That's the "fill it once, every Flow sees it" case.
 
-## Secrets
+### Secrets
 
 A `secret: true` param **never** stores the raw secret. You give it an environment variable **name**, and the store keeps an `env:NAME` reference. Say a Flow of yours declares one:
 
@@ -87,7 +128,7 @@ vibe params set --flow my-deploy \
 
 A run that needs it **fails fast** if that env var isn't set, rather than starting with a non-functional secret. None of the built-in Flows declare a secret param, so this only comes up in a Flow you write. Bare-key writes without `--flow` are non-secret-only, and a best-effort scan still refuses an obvious pasted vendor key.
 
-## Generate a default (optional)
+### Generate a default (optional)
 
 A param can declare a `generate` hint:
 
@@ -103,7 +144,7 @@ params:
 
 Then the Settings panel shows a **Generate** button (and `vibe params generate --flow <id> palette` on the CLI). It calls a provider once, read-only, with your other known param values interpolated in, and returns a suggestion you review, edit, or accept. It is strictly user-initiated and never auto-applied, so a model can't silently make a brand color your project's truth.
 
-## Methodology (a recognized project-global param)
+### Methodology (a recognized project-global param)
 
 One project-global key is special: `methodology`. Set it to a known value and the **planner** gets that methodology's concrete planning guidance, so plans follow it:
 
@@ -118,11 +159,11 @@ vibe params set methodology=tdd
 
 By default it reaches the planner and nobody else, as one bounded block, once per run. `methodologyRoles` in `project.yml` widens that to other roles. An unrecognized value is ignored with a `methodology.unknown` run event, so it never breaks a run. The advisor never sets it for you. Methodology is yours to choose.
 
-## Editing and removing
+### Editing and removing
 
 Editing a value in the Settings panel or via `vibe params set` **supersedes** the old one, and the store records where it came from - you, or a generator. Remove a value explicitly with `vibe params unset <key>`. Vibestrate never purges your stored params on its own.
 
-## Going deeper
+### Going deeper
 
 - [Flow](/docs/concepts/flow) - declares the typed `params:` the project params fill.
 - [Profile](/docs/concepts/profile) - a different thing: how *strong* a Role runs (provider + model + effort), not project data. Set with `vibe profile`.

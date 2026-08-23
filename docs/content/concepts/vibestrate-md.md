@@ -1,46 +1,98 @@
 ---
 title: VIBESTRATE.md
-description: A committed manual at your project root that Consult reads when you ask about your project, so you never re-explain it.
+description: A committed manual at your project root, so you never re-explain your project.
 slug: concepts/vibestrate-md
 ---
 
-`VIBESTRATE.md` is a committed file at your project root that says what this project is and how you like it run: its domains, its commands, the conventions you keep having to repeat. It is durable, project-aware guidance, and it is advisory rather than a hard rule - it can never override a code-enforced [policy](/docs/concepts/safety).
+## In simple words
 
-Today one surface reads it: [Consult](/docs/concepts/consult), the advisor you ask questions. Ask "should this use a heavier review?" and the answer is grounded in your manual instead of guesswork. Runs themselves do not read it, so a rule you need every agent to follow belongs in `.vibestrate/rules.md`, which is loaded on every turn.
+`VIBESTRATE.md` is a committed file at your project root saying what this project is and how you like it run: its domains, its commands, the conventions you keep having to repeat.
 
-`vibe guide init` scaffolds a starter file, `vibe guide show` prints the current one, and `vibe guide proposals` lists additions Consult has suggested for you to apply or reject.
+```markdown
+# VIBESTRATE.md
 
-## What goes in it
+## Project Model
+A billing service. Money flows through `src/ledger/` and nothing else writes to it.
+
+## Development Commands
+pnpm install · pnpm typecheck · pnpm test · pnpm build
+
+## Risk Rules
+Propose sandbox mode when a task touches provider execution or credential paths.
+```
+
+It is durable, project-aware guidance, and it is **advisory**: it shapes how work is planned, and it can never override a code-enforced [policy](/docs/concepts/safety).
+
+<div class="docs-callout warn">
+
+**Only one surface reads it today: [[consult]].** Ask "should this use a heavier review?" and the answer is grounded in your manual rather than guesswork. **Runs themselves do not read it.** A rule you need every agent to follow on every turn belongs in `.vibestrate/rules.md` instead.
+
+</div>
+
+<div class="docs-callout tip">
+
+**Tip.** Keep it short and prune it. This file is read as context, so every stale paragraph is noise competing with the parts that still matter. A page that is mostly out of date is worse than no page.
+
+</div>
+
+## What it is good for
+
+<div class="docs-cards">
+
+**Explaining the project once**
+The domains, the boundaries, what this codebase is actually for.
+
+**Your commands, in order**
+Install, test, typecheck, lint, build.
+
+**When to be careful**
+Which kinds of change deserve a heavier review.
+
+**Lessons learned**
+The constraints someone new would trip over.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** It is committed, so it travels with the repo. A teammate who clones the project gets the same answers you do, which is the difference between project knowledge and something living in one person's head.
+
+</div>
+
+
+## Going deeper
+
+### What goes in it
 
 Keep it concise and prune it. Suggested sections, written in plain prose:
 
 ```md
 # VIBESTRATE.md
 
-## Project Model
+### Project Model
 What this project is, its domains, architecture
 boundaries, critical flows.
 
-## Development Commands
+### Development Commands
 Install, test, typecheck, lint, build, run
 locally - in order.
 
-## Orchestration Preferences
+### Orchestration Preferences
 Preferred flows and crews; when to use heavier
 review; when to stay lean.
 
-## Risk Rules
+### Risk Rules
 When to propose sandbox mode, approval gates,
 isolated execution, extra validation. (e.g.
 "propose sandbox mode when a task touches
 provider execution or secret/credential paths.")
 
-## Codebase Conventions
-## Known Constraints
-## Lessons Learned
+### Codebase Conventions
+### Known Constraints
+### Lessons Learned
 ```
 
-## How it ranks against other guidance
+### How it ranks against other guidance
 
 It is distinct from `.vibestrate/rules.md`, and the precedence is explicit:
 
@@ -52,11 +104,11 @@ It is distinct from `.vibestrate/rules.md`, and the precedence is explicit:
 
 The rightmost column is the one people get wrong. A rule that must reach the agents doing the work goes in `rules.md`. `VIBESTRATE.md` is what you want the advisor to know when you ask it something.
 
-## Ask it questions
+### Ask it questions
 
 You don't only write to VIBESTRATE.md. You can also ask about your project and get an answer grounded in it. That advisor is [Consult](/docs/concepts/consult); it answers from the manual and can propose an addition to it, but applying one is your call - via `vibe guide apply <id>` or the dashboard.
 
-## The codebase map: machine-owned, not authored
+### The codebase map: machine-owned, not authored
 
 Next to VIBESTRATE.md sits a different kind of memory: `.vibestrate/CODEBASE.md` and `.vibestrate/codebase-map.json`, regenerated on demand by `vibe learn` (and best-effort by `vibe init`). Where VIBESTRATE.md is *your* intent - project model, conventions, lessons - the codebase map is a deterministic scan: stack, scripts, top-level layout, languages, entry points, best-effort HTTP routes, and tooling markers. Nobody writes it by hand; regenerating it (`vibe learn`) always produces the same map from the same repo state, so there is nothing to keep in sync.
 

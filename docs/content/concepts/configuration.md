@@ -1,44 +1,61 @@
 ---
 title: Configuration & settings
-description: Where Vibestrate keeps its settings, and how to view and edit each one in the UI or the CLI.
+description: Everything you can tune lives in one committed folder at your project root.
 slug: concepts/configuration
 ---
 
-Almost everything you can tune about Vibestrate lives in one place: the `.vibestrate/` folder at the root of your project, created by `vibe init`.
+## In simple words
 
-The heart of it is a single file, `.vibestrate/project.yml` - your providers, profiles, crews, flows, policies, and validation commands all live there. It is plain YAML sitting inside your repo, yours to commit - commit it and your whole team runs the same setup. The rest of the folder is files you write yourself:
+Almost everything you can tune lives in one place: the `.vibestrate/` folder at your project root, created by `vibe init`.
 
-<svg viewBox="0 0 560 120" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Inside the .vibestrate folder: project.yml holds the settings, and beside it sit the files you edit directly - rules.md, rules, roles, skills, flows, policies and runs.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="1" width="558" height="116" rx="10"/>
-    <rect x="16" y="34" width="190" height="72" rx="8"/>
-    <rect x="230" y="34" width="314" height="72" rx="8"/>
-  </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
-    <text x="16" y="22">.vibestrate/</text>
-  </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="111" y="64">project.yml</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
-    <text x="111" y="84">settings live here</text>
-  </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="387" y="58">rules.md  rules/  roles/  skills/</text>
-    <text x="387" y="78">flows/  policies/  runs/</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
-    <text x="387" y="98">files you edit directly</text>
-  </g>
-</svg>
+The heart of it is a single file:
 
-You rarely need to open it by hand, though. Every setting has a place to view and edit it in both the dashboard and the CLI. That's a deliberate rule, not a coincidence (see [UI and CLI parity](#ui-and-cli-parity) below).
+```
+.vibestrate/
+  project.yml      providers, profiles, crews, flows, policies, validation commands
+  rules.md         guidance loaded into every turn
+  roles/           one file per worker's instructions
+  skills/          house rules any role can read
+  flows/           your own and installed flows
+  policies/        deterministic rules
+```
 
-`vibe config keys` lists every settable key with its type, allowed values and default. `vibe config get` reads one, and `vibe config set` writes one.
+It is plain YAML sitting inside your repo. Commit it and your whole team runs the same setup.
 
-Configuration never holds secrets. An API key for an HTTP provider is given as an environment reference (`apiKey: env:ANTHROPIC_API_KEY`), resolved at run time and never written back to YAML, logged, or shown in the UI. A literal key in config is refused outright.
+<div class="docs-callout tip">
 
-## What lives in `project.yml`
+**Tip.** You rarely need to hand-edit `project.yml`. The dashboard writes the same file through a gated writer, so a project policy that denies file writes stops the editor too. Hand-editing is for the handful of fields no page exposes.
+
+</div>
+
+## What lives where
+
+<div class="docs-cards">
+
+**`project.yml`**
+The wiring: providers, profiles, crews, flows, policies, validation commands.
+
+**`rules.md`**
+Guidance stacked into every agent turn.
+
+**`roles/`**
+One file per worker, holding its instructions.
+
+**`skills/` and `flows/`**
+Reusable house rules, and the recipes runs follow.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Because the whole folder is committed, "it works on my machine" stops being a category of problem. A teammate who clones the repo gets your crews, your flows, your policies and your validation commands, and their runs behave the way yours do.
+
+</div>
+
+
+## Going deeper
+
+### What lives in `project.yml`
 
 The file is split into top-level sections. Each owns one slice of how a run behaves. The table below is the full top-level map, with the concept page that explains each one where one exists:
 
@@ -77,7 +94,7 @@ The file is split into top-level sections. Each owns one slice of how a run beha
 
 The full, field-by-field schema is generated from the source, so it never drifts. You'll find it in the [`project.yml` reference](/docs/reference/config).
 
-## Things that live next to it (not in `project.yml`)
+### Things that live next to it (not in `project.yml`)
 
 The rest of `.vibestrate/` holds files you edit directly:
 
@@ -92,7 +109,7 @@ The rest of `.vibestrate/` holds files you edit directly:
 - `policies/` - the policy files the safety engine compiles.
 - `runs/` - per-run artifacts, state, and metrics. Nothing adds this to your `.gitignore` for you, so add `.vibestrate/runs/` yourself unless you want run history in the repo.
 
-## Viewing and editing your configuration
+### Viewing and editing your configuration
 
 `vibe config view` prints a readable, grouped summary. Each section shows its live values and a pointer to where you'd change it:
 
@@ -112,17 +129,17 @@ Arrays and objects go in as JSON, so setting the validation commands looks like 
 
 The dashboard has the same thing as a **Config** page (under More): every section laid out, each one deep-linking to the editor that owns it. The interactive shell has a **Config** page too. All three are fed by one builder, so they never disagree.
 
-## UI and CLI parity
+### UI and CLI parity
 
 A standing rule in Vibestrate: **anything you can configure, you can configure in both the dashboard and the CLI.** Providers, profiles, crews, flows, policies - each has a real editor on both surfaces.
 
 So when something needs fixing, the answer is never "go hand-edit `project.yml`". That's the fallback, not the fix. If you find a setting that can only be changed by editing YAML, that's a gap worth reporting.
 
-## Secrets stay out
+### Secrets stay out
 
 Beyond the `env:` rule for provider keys, Vibestrate never reads your `.env` contents into a prompt, an artifact, or a report. See [Safety](/docs/concepts/safety) for the guarantees around what a run is allowed to touch.
 
-## Going deeper
+### Going deeper
 
 - [`project.yml` reference](/docs/reference/config) - the generated, full schema.
 - [Provider](/docs/concepts/provider), [Profile](/docs/concepts/profile), [Crew](/docs/concepts/crew) - the main things you'll configure.

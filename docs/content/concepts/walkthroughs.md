@@ -1,16 +1,41 @@
 ---
 title: Walkthroughs
-description: 'A walkthrough turns an answer into a guided tour. It moves you to the right screen and rings the control it is talking about.'
+description: A walkthrough turns an answer into a guided tour - it moves you to the right screen and rings the control.
 slug: concepts/walkthroughs
 ---
 
-An answer tells you what to do. A **walkthrough** stands you in front of it. Ask "how do I make a crew?", and the answer arrives with a **Show me how** button. Press it and the dashboard moves to the Crew screen, draws a ring around the control the step is about, says what it is for, and waits for you to press Next.
+## In simple words
 
-A walkthrough can only navigate. It opens a screen and points at something on it. It never clicks a button, types in a field, saves, edits your config, or starts a run. That is the same ceiling every button under an answer has, and there is deliberately no third kind of action, because a third kind is how a chat button turns into an unreviewed effect. The pressing stays yours.
+An answer tells you what to do. A **walkthrough** stands you in front of it.
 
-Two kinds exist. Both open the same overlay, with the same privilege.
+Ask "how do I make a crew?" and the answer arrives with a **Show me how** button:
 
-## Written down, or built for your question
+![A supervisor answer explaining that a crew is the set of roles a run can hand work to, with a Show me how button underneath it.](/media/docs/scoped/show-me-how.png)
+
+Press it and the dashboard moves to the Crew screen, draws a ring around the control the step is about, says what it is for, and waits for you to press Next.
+
+<div class="docs-callout warn">
+
+**A walkthrough can only navigate.** It opens a screen and points at something on it. It never clicks a button, types in a field, saves, edits your config, or starts a run. That is the same ceiling every button under an answer has, and there is deliberately no third kind of action, because a third kind is how a chat button turns into an unreviewed effect. The pressing stays yours.
+
+</div>
+
+<div class="docs-callout tip">
+
+**Tip.** If you are not sure where a setting lives, ask rather than hunt. "Where do I set the default crew?" gets you a walkthrough that puts your cursor on the control instead of a paragraph describing where it is.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Two kinds of walkthrough exist and both open the same overlay with the same privilege. Neither can do more than the other, so there is no "trusted" variant that quietly gets to act on your behalf.
+
+</div>
+
+
+## Going deeper
+
+### Written down, or built for your question
 
 <div class="docs-cards">
 
@@ -22,7 +47,7 @@ Two kinds exist. Both open the same overlay, with the same privilege.
 
 The five authored ones are **Tour the dashboard**, **Make a crew**, **Make a flow**, **Run something for the first time**, and **Set a policy**. A question that matches one of those gets it, with no model call to wait for.
 
-## How a generated walkthrough is checked
+### How a generated walkthrough is checked
 
 Nothing a model wrote opens on trust. Each step names a page and, optionally, one control to ring. Both are checked against the app's real route table and its real list of ringable controls. A failing step goes, and the rest still run.
 
@@ -64,7 +89,7 @@ What gets a step dropped:
 
 Eight steps is the ceiling, enforced in code; the model is asked for at least two, which is a request rather than a guarantee. If no step survives, nothing opens and the panel says why: *"Every step named a screen or a control this app does not have."* If the model replied in prose instead of a sequence, it says that instead. An honest refusal beats a card pointing at nothing.
 
-## A worked example
+### A worked example
 
 Type this into the Supervisor panel:
 
@@ -85,7 +110,7 @@ That matches the authored **Make a crew** walkthrough, so pressing **Show me how
 
 The walkthrough moves you between those screens. Naming the crew and pressing Save are still things you do.
 
-## Where the button is
+### Where the button is
 
 <div class="docs-cards">
 
@@ -99,6 +124,6 @@ The walkthrough moves you between those screens. Naming the crew and pressing Sa
 
 </div>
 
-## When a step has nothing to point at
+### When a step has nothing to point at
 
 Screens change. If a step's control is not on screen within a few seconds, the card says *"Nothing on this screen matches this step yet."* and lets you carry on to the next step. It does not spin, and it does not disappear.

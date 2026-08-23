@@ -1,19 +1,61 @@
 ---
 title: Derived flows
-description: Build a flow around the task instead of picking one off the shelf - and why the model never authors the graph.
+description: Builds a flow from the work itself, rather than forcing every task through one fixed recipe.
 slug: concepts/derived-flows
 ---
 
-A Flow is a generic layer, so a fixed recipe is always slightly wrong: too heavy
-for a one-line change, too light for a migration that touches money. Deriving a
-Flow builds one from the work itself.
+## In simple words
 
-Give it a task like *"Add team billing: (a) a teams table, (b) an owner-only
-members endpoint, (c) a monthly invoice endpoint. c depends on b, b on a.
-End-to-end billing tests only run once all three are in."* and it compiles the
-graph those sentences describe.
+A [[flow]] is a generic recipe, so a fixed one is always slightly wrong: too heavy for a one-line change, too light for a migration touching money.
 
-## The model describes the work. It does not design the workflow.
+**Deriving** builds a flow from the work itself. Give it a task with real parts to it and you get a flow shaped to those parts, rather than the same eight steps regardless.
+
+```
+Task: "Add team billing: a teams table, an owner-only invite endpoint, a seat counter"
+
+derived flow
+  plan            -> planner
+  migrate         -> implementer   (schema change, isolated)
+  endpoint        -> implementer
+  review:money    -> reviewer      (added because the task touches billing)
+  validate        -> your commands
+  verify          -> verifier
+```
+
+<div class="docs-callout tip">
+
+**Tip.** Deriving **writes nothing**. It prints a flow for you to read, and adopting it is a separate step you take. Treat it as a proposal from something that read your task, not as a decision already made.
+
+</div>
+
+## When to reach for it
+
+<div class="docs-cards">
+
+**The task has distinct parts**
+A schema change, an endpoint and a UI are three different risk profiles wearing one title.
+
+**The default feels wrong**
+Too many steps for a rename, too few for a migration.
+
+**You want a flow you will reuse**
+Derive once, read it, adopt it, and it becomes a normal project flow.
+
+**A part needs a different lens**
+Money-touching work can carry a review the rest of the task does not need.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** A derived flow can include a lens that stands itself down. If the work turns out not to touch the thing that lens was added for, the step reports that it found nothing to check rather than manufacturing a finding to justify its own presence.
+
+</div>
+
+
+## Going deeper
+
+### The model describes the work. It does not design the workflow.
 
 A shaping turn returns a **decomposition**, not a flow: the units of work, what
 each one depends on, and what each one is risky about. Deterministic code turns
@@ -26,7 +68,7 @@ closed vocabulary, and can never remove a gate, reorder one, or write a step
 that renders its own verdict. A poor decomposition produces a flow that is
 wrong-but-gated, never one that is ungated.
 
-## What it answers that a static flow cannot
+### What it answers that a static flow cannot
 
 **"c depends on b."** Each unit becomes its own implement step, wired to the
 units it named. Unit steps are also chained in dependency order even when two
@@ -53,7 +95,7 @@ decision, so no arbiter is added and no arbiter seat is declared. A task that
 declares no risk at all still gets one correctness review: "nothing risky" is a
 claim about the work, not a licence to ship it unread.
 
-## A lens that stands itself down
+### A lens that stands itself down
 
 A risk tag says a unit *might* touch a subject. Whether the finished code
 actually does is a different question, and it is answerable from the diff.
@@ -87,7 +129,7 @@ config file is the wrong place to disarm a review. The control surface is
 There is no inverse, because a lever that turns reviews off is not a control -
 it is a hole.
 
-## Decomposition is not free
+### Decomposition is not free
 
 Each unit is a separate model turn on the same worktree, and they run one after
 another. Splitting one cohesive change into eight units multiplies the
@@ -102,7 +144,7 @@ The derive output prints the unit count and a cost note past four units, and
 `--max-units <n>` refuses a decomposition over a limit you set rather than
 silently merging units behind your back.
 
-## It writes nothing
+### It writes nothing
 
 Deriving prints the units, the compiled graph, the reason for every lens, and
 seat coverage against your crew, then stops. Adopting it is a separate, explicit

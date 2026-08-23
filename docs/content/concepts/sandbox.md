@@ -1,22 +1,65 @@
 ---
-title: Container isolation - run in a disposable Docker container
-description: Run each agent turn inside a throwaway Docker container so the blast radius is the container, not your machine - what it mounts, what it can't touch, and where it stops short.
+title: Container isolation
+description: Move a run off your machine entirely, so the blast radius is a disposable container.
 slug: concepts/sandbox
 ---
 
-By default a run executes on your machine, bounded by a git worktree and the [post-turn diff gate](/docs/concepts/safety). For an unattended run, or a task you don't fully trust, you can move the agent off your host entirely: set `execution.backend: docker` and each provider turn runs inside a **disposable Docker container**. The blast radius becomes the container, and it's the same wall whichever provider runs - which a provider's own sandbox can't do, since that only confines its own process.
+## In simple words
 
-It is opt-in. `execution.backend: local-worktree` stays the default; switch with `vibe config set execution.backend docker` or the dashboard config editor.
+By default a run works on your machine, bounded by its own git [[worktree]] and the post-turn diff gate. For an unattended run, or a task you do not fully trust, you can move the agent **off your host entirely**:
 
-Two things surprise people. The image must already carry the provider CLI, because `docker exec` runs that CLI inside the container and the default image `node:22-bookworm-slim` has none. And with the default `egress.mode: open` the container reaches the whole internet, so a credential readable inside it can be sent anywhere - run `vibe config set execution.container.egress.mode allowlist` before pointing this at anything you don't trust.
+```bash
+vibe config set execution.backend docker
+```
 
-## You are not starting a VM per run
+Each provider turn then runs inside a disposable Docker container. The blast radius becomes the container.
+
+<div class="docs-callout warn">
+
+**It is off by default**, and the run records the confinement that was actually enforced, never what was merely configured. A run that could not start the container tells you so rather than quietly falling back to your host.
+
+</div>
+
+<div class="docs-callout tip">
+
+**Tip.** You are not starting a virtual machine per run. It is a container per provider turn, which is why turning this on costs startup time rather than changing how a run behaves. Nothing about your flows, crews or policies changes.
+
+</div>
+
+## When it is worth turning on
+
+<div class="docs-cards">
+
+**Unattended runs**
+Nobody is watching, so the wall should not be your attention.
+
+**Code you did not write**
+A task derived from an issue someone else filed.
+
+**One wall for every provider**
+A provider's own sandbox confines only its own process. The container confines whatever runs.
+
+**Egress you want to name**
+The container can be placed on a network whose only route out is an allowlisting proxy.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** The network confinement is enforced by the *missing route*, not by a proxy environment variable. Setting `HTTPS_PROXY` is a request that hostile code can ignore; having no gateway is not. That distinction is why the docs claim an allowlist narrows exfiltration to hosts you chose, rather than claiming a sandbox for arbitrary untrusted code.
+
+</div>
+
+
+## Going deeper
+
+### You are not starting a VM per run
 
 A common worry: "does it boot a virtual machine every time?" No. Docker Desktop (the Linux VM the daemon runs in) starts **once** and stays up - that's the one-time cost. Per run, Vibestrate creates a **container**, which is a namespaced process, not a VM. Starting one on a warm image is a fraction of a second.
 
 It is a **fresh** container per run, on purpose. Disposability is the whole point: each run gets a pristine box with no leftover files, installed packages, or a previous run's stray process bleeding into the next; concurrent runs never cross-contaminate; and each run mounts its **own** worktree. Reusing one shared container would defeat all three. The cost that *does* add up is re-installing your project's dependencies inside the container, which is why pointing it at a pre-built image is the recommended setup.
 
-## What crosses the wall - and what doesn't
+### What crosses the wall - and what doesn't
 
 The container can touch exactly two things from your host, and nothing else:
 
@@ -60,7 +103,7 @@ Nothing else is mounted: no Docker socket, no project root, no home directory, n
 
 The container's environment is built from a fixed **provider-auth allowlist** (`ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`, `OPENAI_API_KEY`, and a few siblings) plus Vibestrate's own variables. Your shell's `AWS_*`, `GITHUB_TOKEN`, and everything else **never become container environment variables** - the host environment is not forwarded across the wall.
 
-## Hardened by default
+### Hardened by default
 
 On top of the dropped capabilities and no-privilege-escalation, the run container shrinks its own writable surface and process budget so a rogue or buggy agent has less to work with:
 
@@ -76,7 +119,7 @@ A `--pids-limit` on the container, so a fork bomb inside a turn hits a wall inst
 
 Both are configurable, and both are on top of the existing `--cap-drop=ALL --security-opt=no-new-privileges` (never `--privileged`).
 
-## Fail-closed: it refuses rather than pretend
+### Fail-closed: it refuses rather than pretend
 
 If `execution.backend` is `docker` but the Docker daemon isn't running, the run **refuses** with a message telling you to start (or install) Docker. It does **not** quietly fall back to running on your host while reporting a sandbox - a sandbox you didn't get is worse than an honest stop.
 
@@ -97,11 +140,11 @@ execution:
     pidsLimit: 512
 ```
 
-## The image must carry the provider CLI
+### The image must carry the provider CLI
 
 `docker exec` runs the provider CLI **inside** the container, so the image has to have it installed - your host's `codex`/`claude` binary is the wrong architecture for a Linux container. Point `execution.container.image` at an image that bundles the provider CLI (and your project's toolchain). If the CLI isn't there, the turn fails clearly with "command not found" rather than hanging. For claude there is no on-disk credential to mount, so authenticate it in-container by providing `ANTHROPIC_API_KEY` (it rides the allowlist).
 
-## Confining the network (egress allowlist)
+### Confining the network (egress allowlist)
 
 By default the container has normal networking and can reach the whole internet - it has to reach the model API. That means a credential readable inside the container can be sent anywhere by code the agent runs.
 
@@ -157,7 +200,7 @@ docker network prune -f \
   --filter label=vibestrate.managed=true
 ```
 
-## Where it stops short (read this before trusting it)
+### Where it stops short (read this before trusting it)
 
 This gives you **filesystem, process, and (opt-in) network isolation**, not a hardened jail for hostile code. Be honest with yourself about the gaps:
 
@@ -176,6 +219,6 @@ docker rm -f \
   $(docker ps -aqf label=vibestrate.managed=true)
 ```
 
-## How it fits the rest of the safety model
+### How it fits the rest of the safety model
 
 The container is the **hard wall**; it sits alongside, not instead of, the layers in [Safety](/docs/concepts/safety): the post-turn diff gate still checks every write, strict-apply-only still routes patches through the broker, and the run assurance verdict still summarizes what actually happened - now including whether the run really executed in a container. The provider-native OS sandbox (`execution.isolation`) is the cheaper, codex-only option for filesystem confinement on the host; the container backend is the model-agnostic one when you want the same wall around any provider.

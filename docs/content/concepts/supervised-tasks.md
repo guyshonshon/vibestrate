@@ -1,30 +1,41 @@
 ---
-title: Supervised tasks (run modes)
-description: A task has steps and a run mode - plain (one pass) or supervised (the Conductor sequences each step with its own review). One card for a whole feature.
+title: Supervised tasks
+description: A task with ordered steps, sequenced one at a time by the Conductor instead of run in one pass.
 slug: concepts/supervised-tasks
 ---
 
-There is no separate "saga" kind of task. A [Task](/docs/concepts/task) has an
-ordered set of **steps**, and a **run mode** that decides how those steps run:
+## In simple words
 
-- **plain** - the default flow runs the task in one holistic pass.
-- **supervised** - the **Conductor** sequences the steps one at a time, each with
-  its own review (and the supervisor, invariants, Enhance, budget, and clean-halt
-  described below). A single-step task is just the degenerate case.
+There is no separate "saga" kind of task. A [[task]] has an ordered set of **steps** and a **run mode** deciding how they run:
 
-Each step carries:
+<div class="docs-cards">
 
-- a **text** label - what the step is called on the card,
-- an **objective** - the scoped brief an executor will receive,
-- an **acceptance check** - a plain-language done-when description,
-- optional **file hints** - paths or globs that are primary context for that step.
+**plain**
+The default. The flow runs the whole task in one holistic pass.
 
-`vibe tasks sequence` runs one. It works in a single worktree and commits one
-step at a time to one feature branch. A step that cannot pass its review halts
-the task cleanly instead of pressing on, and re-running skips the steps that
-already finished. Nothing is ever auto-merged.
+**supervised**
+The **Conductor** sequences the steps one at a time, each with its own review.
 
-## Plain vs supervised
+</div>
+
+Supervised is for work that is genuinely several changes wearing one title: a migration with four stages, a feature with a backend half and a frontend half.
+
+<div class="docs-callout tip">
+
+**Tip.** Reach for supervised when a single diff would be too big to review honestly. The point is not more automation, it is smaller units of work that a human can actually check one at a time.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Between steps the supervisor returns one of three verdicts: proceed, and the next step starts; re-plan, and the remaining steps are rewritten against what the last one actually did; or stop. That middle one is why a supervised task can survive a step turning out differently than planned, instead of marching the rest of the sequence into a stale assumption.
+
+</div>
+
+
+## Going deeper
+
+### Plain vs supervised
 
 A plain task with a checklist is a lightweight to-do list, run in one pass.
 
@@ -38,7 +49,7 @@ with its own executor turn, its own review, and its own verdict.
 Flipping a task to supervised turns on the whole bundle: per-step review, the
 supervisor, Enhance, the per-task budget, the run lock, and clean-halt.
 
-## Authoring a supervised task
+### Authoring a supervised task
 
 Create the task as supervised, then add each step with its objective, acceptance
 check, and file hints.
@@ -63,7 +74,7 @@ vibe tasks resume <id>     # clear the pause
 task. Full command reference and a worked example:
 [vibe tasks](/docs/cli/supervised-tasks).
 
-## How a sequence goes
+### How a sequence goes
 
 The steps run in order, through a per-item-review flow, in one worktree:
 
@@ -87,7 +98,7 @@ step is left pending, and the run ends blocked with a reason.
 Fix the cause and re-sequence - finished steps are skipped, so it picks up from
 the clean tip.
 
-## The supervisor and the invariants ledger
+### The supervisor and the invariants ledger
 
 Between steps, after each one commits cleanly, a cheap **supervisor** turn judges
 whether the supervised task is still on track. It returns one of three verdicts:
@@ -142,7 +153,7 @@ The supervisor is on by default. Configure it under `supervised.supervisor` in
 `project.yml`: point `profile` at a cheap model, or set `enabled: false` to turn
 it off.
 
-## Re-grounding the plan (Enhance)
+### Re-grounding the plan (Enhance)
 
 A supervised task's steps are authored *before* the code exists. The deeper a long
 supervised task runs, the more its early plan was a guess about a codebase that
@@ -173,7 +184,7 @@ folded back into the supervised task's steps.
 The Enhance turn runs read-only on the same cheap profile as the supervisor, and
 is spend-accounted the same way.
 
-## Driving a supervised task from the dashboard
+### Driving a supervised task from the dashboard
 
 Mission Control's task detail view shows a live **Conductor** panel for a
 supervised task. The panel carries:
@@ -190,7 +201,7 @@ The controls reach full parity with the CLI: **Sequence** to launch, or
 A dashboard launch goes through the same audited path as the CLI, so it inherits
 the supervised flow, budget, supervisor, run lock, and clean-halt semantics.
 
-## What it does not do yet
+### What it does not do yet
 
 Enhance runs only when the supervisor calls for it, between steps. There is no way
 to trigger a re-ground pass on demand between sequences, and no dry-run diff of a
@@ -199,7 +210,7 @@ proposed revision before it applies.
 Adding a step is a change the autonomous pass escalates rather than making, so it
 stays a manual edit to the checklist.
 
-## Related
+### Related
 
 - [vibe tasks](/docs/cli/supervised-tasks) - the CLI reference for all supervised-task commands.
 - [Task](/docs/concepts/task) - the base task concept, including plain checklists.

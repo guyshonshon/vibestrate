@@ -1,52 +1,53 @@
 ---
 title: Supervisor Control
-description: The Supervisor chat panel on Mission Control. It remembers the conversation, answers from your real project, and - once the switch reads Answers and acts - turns what you say into a task or a run.
+description: The Supervisor chat on Mission Control. It answers from your real project, remembers the thread, and can act once you let it.
 slug: concepts/supervisor-control
 ---
 
-**Supervisor Control** is the chat panel titled **Supervisor**. It fills the right column of Mission Control, and it sits on the page of any run that is still going. Type what you want. It answers from your real project, and it remembers what was said earlier in the thread.
+## In simple words
 
-![Mission Control in the dashboard. A sidebar of sections runs down the left. The header reads Mission control, beside an approvals tile showing Clear under the caption Nothing blocked and an Edit layout button. A New run composer and a Run summary panel sit in the middle column, and the Supervisor chat fills the right column, its header switch offering Answers only and Answers and acts.](/media/docs/mission-control.png)
+**Supervisor Control** is the chat panel titled **Supervisor**. Type what you want. It answers from your real project - your files, your config, your recent runs - and it remembers what was said earlier in the thread.
 
-The switch in that panel header is the part to find first. It reads **Answers only** or **Answers and acts**, and it is a **permission**, not a stop: it decides whether the supervisor may make a task, add TODOs or start a run. Stop is a different control, the red square that replaces Send while a turn is running.
+One control matters more than the rest, and it is the first thing to find:
 
-[Consult](/docs/concepts/consult) answers one question and forgets it. Supervisor Control keeps the thread, so "do the other one instead" has something to point at.
+![A two-position switch reading Answers only and Answers and acts, with Answers and acts selected.](/media/docs/scoped/sup-switch.png)
 
-A turn runs in three phases. **Routing** decides what you meant. **Acting** does it. **Answering** writes the reply. Routing only runs when the supervisor is allowed to act, and out of the box it is not, so a message costs one model call and changes nothing.
+That switch is a **permission**, not a stop. It decides whether the supervisor may make a task, add TODOs, or start a run. Stop is a different control: the red square that replaces Send while a turn is running.
 
-<svg viewBox="0 0 560 112" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A turn goes from you to routing, then acting, then answering, and back to you. With nothing to act on, routing skips acting and goes straight to answering.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="48" y="20" width="130" height="40" rx="8"/>
-    <rect x="213" y="20" width="130" height="40" rx="8"/>
-    <rect x="378" y="20" width="130" height="40" rx="8"/>
-    <path d="M26 40 H41"/>
-    <path d="M178 40 H206"/>
-    <path d="M343 40 H371"/>
-    <path d="M508 40 H525"/>
-    <path d="M113 60 V92 H443 V67"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.28">
-    <path d="M48 40 l-7 -4 v8 z"/>
-    <path d="M213 40 l-7 -4 v8 z"/>
-    <path d="M378 40 l-7 -4 v8 z"/>
-    <path d="M532 40 l-7 -4 v8 z"/>
-    <path d="M443 60 l-4 7 h8 z"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
-    <text x="2" y="45">you</text>
-  </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="113" y="45">routing</text>
-    <text x="278" y="45">acting</text>
-    <text x="443" y="45">answering</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
-    <text x="558" y="45" text-anchor="end">you</text>
-    <text x="278" y="107" text-anchor="middle">nothing to act on</text>
-  </g>
-</svg>
+<div class="docs-callout tip">
 
-## One turn
+**Tip.** Leave it on **Answers only** while you are learning what it does. On that setting it can read anything and change nothing, so a misunderstood question costs you a paragraph rather than a run.
+
+</div>
+
+## What you would ask it
+
+<div class="docs-cards">
+
+**"What does this project do?"**
+It reads your real files rather than guessing from the name.
+
+**"Why did that run get blocked?"**
+It has your recent runs, including the decisions and the findings.
+
+**"How do I make a crew?"**
+Product questions are answered from Vibestrate's own documentation, compiled into the package, so it quotes real commands.
+
+**"Add retry to the uploader"**
+On **Answers and acts**, that becomes a task or a run - which you still see before it goes.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** The panel is the same on Mission Control and on any run still in flight. Asking about a run from that run's own page means it already knows which run you mean, so you can skip explaining the context you are looking at.
+
+</div>
+
+
+## Going deeper
+
+### One turn
 
 **Routing** reads two things: your message, and a list of your open task ids. Nothing else goes in. Not `VIBESTRATE.md`, not the codebase map, not annotations, not file contents, not run output, and not one earlier turn of this conversation. It picks exactly one intent.
 
@@ -68,7 +69,7 @@ run.start      build it now, on an existing task.
 
 **Answering** writes the reply, with the full project context and no ability to route anything. One exception is worth knowing: when an action succeeded, the answerer is skipped entirely and the line you get back is fixed text written by code, like `Made a task: "Rate-limit the public API".` That turn costs one model call, not two.
 
-## Three asks, and what comes back
+### Three asks, and what comes back
 
 The composer says "Ask anything, or say what you want built" on Mission Control, and "Ask about this run, or say what you want done" inside a run. Both are literal. Here is the range.
 
@@ -92,7 +93,7 @@ With **Answers only** on the switch, the same sentence gets an answer that tells
 
 The answer comes from these pages and the real `vibe crew` commands, not a model's memory of some other tool. Under it you get a **Show me how** button, which stands you in front of the screen instead of describing it.
 
-## What streams back
+### What streams back
 
 A turn is streamed, so the panel fills in while it works. There are seven kinds of event.
 
@@ -122,7 +123,7 @@ A turn is streamed, so the panel fills in while it works. There are seven kinds 
 
 Thinking and tool lines are pass-through only. They are forwarded where the provider's adapter exposes them, and nowhere else. A provider that exposes no reasoning produces none of these lines, and no substitute narration is invented, because a fabricated "thinking..." trace is worse than honest silence. They are also not saved. Reopen a thread tomorrow and the answers are all there, with no trail behind them.
 
-## Conversations
+### Conversations
 
 There are two kinds of thread, and they never mix.
 
@@ -140,7 +141,7 @@ A run has exactly one thread, so there is nothing to start there and no **New co
 
 The answerer sees the **last 6 turns** of the thread. They arrive inside a delimited block, introduced as a record of what was said and not instructions to follow. The router never sees a prior turn at all, because its output can act, and its own earlier words are model-written text that would then be steering the next decision.
 
-## Stop
+### Stop
 
 Stop is the red square beside Send, and it appears only while a turn is running. It aborts the request. That reaches the provider CLI's abort signal, which kills the whole process group - the CLI and any sub-agents it spawned, with a hard kill three seconds later if they have not gone.
 
@@ -154,7 +155,7 @@ Closing the socket is what stops a turn, so reloading the page or restarting the
 
 Stop is per-turn. It is not the permission switch, and it changes no setting. To take acting away from the supervisor, set the header switch to **Answers only**.
 
-## Who answers, and how hard
+### Who answers, and how hard
 
 Two pickers sit on the composer, next to the attach button.
 
@@ -164,7 +165,7 @@ Two pickers sit on the composer, next to the attach button.
 
 Neither is a setting. Both ride on the request and are never written to config, so the project's supervisor is unchanged by either. An effort the chosen provider does not have is refused with that provider's real ladder in the message, rather than passed along to the CLI as an unknown flag.
 
-## Replying to a message
+### Replying to a message
 
 Every message has a reply control. It carries that message into your next turn as a quote, so a follow-up can point at something specific instead of describing it again.
 
@@ -172,7 +173,7 @@ A supervisor message is model-written, and quoting it back puts model output int
 
 Long messages are trimmed to a thousand characters, because the turn body is capped server-side and a quote should never eat your send.
 
-## Attaching files
+### Attaching files
 
 The paperclip picks files, and a strip of removable chips appears inside the composer, above the text field.
 
@@ -184,7 +185,7 @@ The paperclip picks files, and a strip of removable chips appears inside the com
 
 Image thumbnails are drawn from the browser's own file handle and never leave the tab. Attachments and a quoted reply both belong to the turn that carries them, so they leave the composer when you send and do not linger into the next message.
 
-## Show me how
+### Show me how
 
 Ask a procedure question - one containing "how do I", "where can I", "show me how", "walk me through", "what is a" - and a **Show me how** button appears under the answer. The answer says what to do in words; this stands you in front of it. The trigger is how you phrased the question, so "why did this run block" gets prose and no button.
 
@@ -192,7 +193,7 @@ A question the catalog already covers gets an authored walkthrough - every targe
 
 Both run at the same privilege, and a step is a **destination**. It lands you on the screen, rings the control and says what it is for. Pressing, filling, saving and starting stay yours. See [Walkthroughs](/docs/concepts/walkthroughs) for the full surface.
 
-## Letting it act
+### Letting it act
 
 Out of the box the supervisor **writes nothing**. It answers, suggests and drafts, and that is all. Two gates stand in front of acting, and both have to say yes.
 
@@ -210,7 +211,7 @@ There are exactly two settings, `advise` and `act`. An earlier design had a midd
 
 Every action shows in the thread on the message that caused it, including the ones it refused. A refusal you cannot see is how you end up believing work was queued that never was. Supervisor effects are audited in one place, `.vibestrate/supervisor/`.
 
-## Advanced: CLI and automation
+### Advanced: CLI and automation
 
 The panel covers the day-to-day. The commands are for scripts, for a machine with no browser open, and for the autonomy setting, which lives in config rather than on screen.
 
@@ -224,7 +225,7 @@ vibe config set supervisorControl.autonomy act
 
 `vibe supervisor stop` and the header switch write the same pause flag, and `status` reports it in the switch's own words: "Stopped - answers only." [The CLI overview](/docs/cli/overview) has the shape of the tool; [the command reference](/docs/reference/cli) has every flag.
 
-## What it cannot do
+### What it cannot do
 
 This is the useful part of the page. The gaps are named rather than smoothed over.
 
