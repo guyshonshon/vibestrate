@@ -4,9 +4,53 @@ description: A markdown note that carries your project's rules into an agent's p
 slug: getting-started/skills
 ---
 
-A **skill** is a markdown note that Vibestrate pastes into an agent's prompt before it starts work. Write it into `.vibestrate/skills/`, attach it to a role with `vibe skills assign`, and every run that seats that role reads it. You teach an agent something about your project once - how login works, which conventions your team keeps to - instead of retyping it into every task. It's the briefing you'd hand a new contractor on their first day.
+## In simple words
 
-## Write one
+A **[[skill]]** is a markdown note Vibestrate pastes into an agent's prompt before it starts work.
+
+```markdown
+# How login works here
+
+Sessions are signed cookies, not JWTs. `src/auth/session.ts` is the only
+module that mints one. Never add a second path.
+```
+
+Write it into `.vibestrate/skills/`, attach it to a [[role]], and every run seating that role reads it. You teach an agent something about your project once instead of retyping it into every task.
+
+<div class="docs-callout tip">
+
+**Tip.** The test for whether something belongs in a skill: would you say it to a new contractor on their first day, and would you be annoyed to repeat it on their second? That is a skill. A one-off instruction belongs in the task.
+
+</div>
+
+## What to write one about
+
+<div class="docs-cards">
+
+**How a subsystem really works**
+The thing that is not obvious from reading it.
+
+**Conventions you keep restating**
+Naming, error handling, which logger.
+
+**Rules with a reason**
+"Never do X here, because Y." The reason is what makes it generalise.
+
+**Domain vocabulary**
+What a word means in your business.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** A skill can carry MCP servers, so attaching one can hand a role new tools as well as new instructions. That is why assigning a skill is gated exactly like editing a role's prompt: same class of authority, not a lesser one.
+
+</div>
+
+
+## Going deeper
+
+### Write one
 
 One skill is one markdown file, and it can sit on disk in two shapes:
 
@@ -59,7 +103,7 @@ When touching auth:
   `src/server/routes/auth/`.
 ```
 
-## Hand it to an agent
+### Hand it to an agent
 
 See what Vibestrate found, then attach one to a role:
 
@@ -91,7 +135,7 @@ vibe run "Add 2FA enrollment" \
   --skills auth-conventions,security-review
 ```
 
-## When a skill is worth it
+### When a skill is worth it
 
 <div class="docs-cards">
 
@@ -103,6 +147,6 @@ It belongs in `.vibestrate/rules.md`, the house rules every agent reads on every
 
 </div>
 
-## Going deeper
+### Going deeper
 
 - [Skill discovery and schema reference](/docs/extending/add-skill) - the full folder layout and the optional metadata.

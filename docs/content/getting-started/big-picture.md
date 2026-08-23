@@ -4,63 +4,29 @@ description: How Vibestrate runs a coding job, and what Task, Flow, Seat, Crew, 
 slug: getting-started/big-picture
 ---
 
+## In simple words
+
 Vibestrate runs the AI coding tools you already have. You write the job down once, and a team of AI workers carries it out under rules you set.
 
-Running several models on one job by hand is where the time goes. You paste the same context into a tool that's never seen your project, carry the plan from one chat to the next, and watch each one for drift. Vibestrate is the frame that work happens inside, so every worker starts from the same plan and the same [project instructions](/docs/concepts/configuration), which you write once.
+Running several models on one job by hand is where the time goes: you paste the same context into a tool that has never seen your project, carry the plan from one chat to the next, and watch each one for drift. Vibestrate is the frame that work happens inside, so every worker starts from the same plan and the same project instructions, which you write once.
 
-Vibestrate copies your project into a separate folder, so no worker touches your real files. That copy is called a [worktree](/docs/concepts/worktree). The job runs there, your own checks run against it, and it ends at one of four outcomes: `merge_ready`, `blocked`, `failed`, or `aborted`. Vibestrate never pushes and never merges. The diff is yours to land. See [the safety guarantees](/docs/concepts/safety).
+![The header of a finished run. A green panel reads Run, merge ready. Beside it the task, the flow it followed with its eight steps listed in order, and a row reading default provider, 5m 27s elapsed, and a diff of plus 24 minus 1 across 2 files.](/media/docs/scoped/run-header.png)
 
-Six words cover the rest of the product:
+That is the whole idea in one picture: one task, one recipe, one team, one verdict.
 
-<div class="docs-glossary">
+<div class="docs-callout tip">
 
-**Task.** The job you want done, in plain language. One sentence is a complete Task.
-
-**Flow.** The routine a Task runs through. The built-in `default` flow plans, architects, implements, validates, reviews and verifies, and loops back to fix when the review asks for changes.
-
-**Seat.** A labelled spot in a Flow, like `reviewer` or `implementer`. A Flow names seats, never models. If two of your roles fill one seat, or none do, the run stops and names the seat instead of guessing; `--seat-role reviewer=senior-reviewer` pins your choice.
-
-**Crew.** Your team of AI workers. Each worker is a **Role**: a name, a brief, the seats it can fill, and the Profile it runs at.
-
-**Profile.** The strength a worker runs at. It picks the provider, the model and the effort level.
-
-**Provider.** The thing behind the model: a coding CLI on your machine, a model API you hold the key for, or a model server on `localhost`.
+**Tip.** Read this page once for the vocabulary, then go and start a run. The words below make far more sense after you have watched one happen than before.
 
 </div>
 
-<svg viewBox="0 0 560 84" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A Task runs through a Flow, which reserves Seats, which your Crew's Roles fill, each Role running at a Profile, which names the Provider behind the model.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="3" y="24" width="84" height="34" rx="8"/>
-    <rect x="97" y="24" width="84" height="34" rx="8"/>
-    <rect x="191" y="24" width="84" height="34" rx="8"/>
-    <rect x="285" y="24" width="84" height="34" rx="8"/>
-    <rect x="379" y="24" width="84" height="34" rx="8"/>
-    <rect x="473" y="24" width="84" height="34" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M89 37l4 4-4 4"/>
-    <path d="M183 37l4 4-4 4"/>
-    <path d="M277 37l4 4-4 4"/>
-    <path d="M371 37l4 4-4 4"/>
-    <path d="M465 37l4 4-4 4"/>
-  </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="45" y="46">Task</text>
-    <text x="139" y="46">Flow</text>
-    <text x="233" y="46">Seat</text>
-    <text x="327" y="46">Role</text>
-    <text x="421" y="46">Profile</text>
-    <text x="515" y="46">Provider</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
-    <text x="45" y="74">job</text>
-    <text x="139" y="74">steps</text>
-    <text x="233" y="74">which worker</text>
-    <text x="327" y="74">your Crew</text>
-    <text x="421" y="74">model, effort</text>
-    <text x="515" y="74">tool or API</text>
-  </g>
-</svg>
+<div class="docs-callout">
+
+**Did you know?** Nothing here is a model wrapper. Vibestrate spawns the CLIs you already installed and already logged into, so your keys stay where they are and your bills come from the vendors directly. There is no Vibestrate account to make.
+
+</div>
+
+## The words you will meet
 
 ## Task - the job you want done
 

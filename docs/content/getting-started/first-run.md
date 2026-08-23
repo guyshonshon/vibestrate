@@ -4,15 +4,42 @@ description: How one run works, from the sentence you type to the branch it leav
 slug: getting-started/first-run
 ---
 
-You hand Vibestrate one task and it takes that task start to finish. It works in a second checkout of your repository, in a folder beside your project, so the files you have open never move under you. That copy is a git worktree. The run stops with the change on its own branch, and Vibestrate never merges and never pushes, so the last call is yours.
+## In simple words
 
-Every run ends in one of four states, and the state tells you what to do next:
+You hand Vibestrate one task and it takes that task start to finish. It works in a second checkout of your repository, in a folder beside your project, so the files you have open never move under you.
 
-<div class="docs-outcomes">
-<div class="docs-outcome ok"><b>merge_ready</b><span>The change is done. Read the diff, then keep it or drop it.</span></div>
-<div class="docs-outcome warn"><b>blocked</b><span>The reviewer or verifier flagged something you need to decide.</span></div>
-<div class="docs-outcome stop"><b>failed</b><span>Something broke partway through.</span></div>
-<div class="docs-outcome stop"><b>aborted</b><span>You stopped the run yourself with vibe abort.</span></div>
+The run stops with the change on its own branch. Vibestrate never merges and never pushes, so the last call is yours.
+
+![The header of a finished run reading merge ready, with the task, the flow it followed, its eight steps, the elapsed time and the diff.](/media/docs/scoped/run-header.png)
+
+<div class="docs-callout tip">
+
+**Tip.** Pick something small for the first one. You are learning what the run looks like, not testing how much it can do, and a small task gets you to a verdict in a couple of minutes.
+
+</div>
+
+## Where a run can end
+
+<div class="docs-cards">
+
+**merge_ready**
+Every check passed. The change is waiting for you.
+
+**blocked**
+Something refused: a review, a policy, a failed check.
+
+**failed**
+A step crashed. Its own output says why.
+
+**aborted**
+You stopped it.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** A run you dislike costs you nothing to discard. It never touched your branch, so there is no revert - you just ignore the folder. That is what makes it safe to try something you are unsure about.
+
 </div>
 
 ## Pick a small, well-scoped task
@@ -96,7 +123,9 @@ The default flow wires that into eight steps. The review loop runs at most three
 
 Those step names are also the folder names under the run's artifacts, so the `review` box above is the same `review` in `artifacts/flows/review/output.md`.
 
-## In the terminal
+## Going deeper
+
+### In the terminal
 
 Each step prints a line as it starts, so you can see where it's got to. The last thing you get is the summary.
 
@@ -111,7 +140,7 @@ Final status: merge_ready
 
 `zen-bohr` is the run id. Vibestrate hands every run a docker-style `adjective-noun` handle and uses it verbatim as the worktree folder name and the branch suffix - no task slug is appended.
 
-## Look at what it changed
+### Look at what it changed
 
 To read every change before you accept anything:
 
@@ -122,7 +151,7 @@ git diff main
 
 Or open the **Source** page in the dashboard and pick its **Changes** tab, which lays out the same changes inline, file by file.
 
-## Use it, or don't
+### Use it, or don't
 
 **Vibestrate never merges anything for you** (see [the safety guarantees](/docs/concepts/safety)). The finished change waits on its own branch for you to take or leave.
 
@@ -133,7 +162,7 @@ The branch is yours to:
 - Take the parts you want.
 - Throw the whole thing away if it isn't right.
 
-## Runs that stop short
+### Runs that stop short
 
 A run keeps its full record on disk no matter which state it ended in.
 
@@ -143,6 +172,6 @@ A run keeps its full record on disk no matter which state it ended in.
 
 See [Debug a failed run](/docs/workflows/debug-failed) for the step-by-step playbook.
 
-## Next
+### Next
 
 [Set up a provider →](/docs/getting-started/providers) - Vibestrate picks a sensible default, but five minutes on how the models are wired up pays off.

@@ -4,44 +4,49 @@ description: How Vibestrate checks an AI's work, and why the last call on a chan
 slug: getting-started/why-a-human
 ---
 
-AI can write code you couldn't write yourself: a security fix, or a piece of WebGL you've never touched. The same AI also makes things up, and it tends to agree with whatever you said. Trusting it blind is how bad code ships.
+## In simple words
 
-<div class="docs-callout">
+AI can write code you could not write yourself. The same AI also makes things up, and it tends to agree with whatever you just said. Trusting it blind is how bad code ships.
 
-**The honest problem.** An AI model is a confident guesser. It'll invent a function that doesn't exist, miss an edge case, or hide a bug instead of fixing it, then tell you it's done, because agreeing is what a chat assistant is built to do. That's a property of the model, and no amount of prompting drills it out.
+So a run is built to disagree with itself. A different model reads the diff than wrote it, your tests decide whether it works, and nothing merges without you.
 
-</div>
+![The Run assurance panel reading verified, with four tiles underneath: Policy passed, Validation passed 2 of 2, Review approved, Verification passed.](/media/docs/scoped/run-assurance.png)
 
-Vibestrate is built to catch that. It plans, writes the code, then reviews and verifies in separate steps, each one starting from fresh context. It runs your real tests and validation commands against the result, so "it looks done" isn't enough. And it never gets ahead of you: the work happens in a throwaway copy of your project, and the run stops at `merge_ready` instead of pushing or merging on your behalf - see [the safety guarantees](/docs/concepts/safety). You read the diff, or let the [merge advisor](/docs/getting-started/merging) flag the risks, and you make the call.
+Four independent checks, each reported separately. A verdict that collapsed them into one thumbs-up would tell you less.
 
-<svg viewBox="0 0 560 104" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The run decides everything up to merge ready - planning, writing, validating, reviewing and verifying. Taking the change or dropping it is decided by you.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="28" width="330" height="56" rx="8"/>
-    <rect x="393" y="28" width="166" height="56" rx="8"/>
-    <path d="M362 22v68" stroke-dasharray="4 4"/>
-  </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="362" y="16">merge_ready</text>
-    <text x="166" y="52">the run decides</text>
-    <text x="476" y="52">you decide</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
-    <text x="166" y="72">plan, write, validate, review, verify</text>
-    <text x="476" y="72">keep the change, or drop it</text>
-  </g>
-</svg>
+<div class="docs-callout tip">
 
-One part of that isn't switched on for you.
-
-<div class="docs-callout">
-
-**A fresh install reviews its own work.** `vibe init` writes six roles that all point at one Profile on one provider, so the reviewer starts out as the same model as the builder. Re-reading a change with fresh context still catches real mistakes, but a model checking itself can only lower your confidence, never raise it. Every run records which of the two it got: `single-profile` or `cross-model`.
+**Tip.** The single highest-value change you can make is pointing the reviewer at a second vendor. A model reviewing its own transcript mostly agrees with itself; one that reads the diff cold does not.
 
 </div>
 
-Two steps make the review independent: add a Profile on a second provider (`vibe profile add codex-review --provider codex`), then point the Reviewer role at it.
+## What actually catches a bad change
 
-## Turn on a second model
+<div class="docs-cards">
+
+**A reviewer that did not write it**
+Fresh process, no inherited session. It reads the diff the way a colleague would.
+
+**Your own test suite**
+Not the model's confidence. Validation is the tie-breaker when opinions differ.
+
+**Policies you wrote**
+The rules that matter in your codebase, checked on every run.
+
+**You, at the end**
+Nothing pushes and nothing merges without a human. That one is not configurable.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** When only one model ran, the run labels its own review `single-profile` rather than quietly presenting it as independent. The product tells you when its check was a self-check.
+
+</div>
+
+## Going deeper
+
+### Turn on a second model
 
 The second provider has to exist before a Profile can name it. [Set up a provider](/docs/getting-started/providers) walks through the wizard. The short version:
 
@@ -84,13 +89,13 @@ Run assurance bold-lovelace - verified
 
 `cross-model` shows up when at least two distinct models ran during that run. It's a record of what happened, and there's no setting that lets you claim it.
 
-## The payoff
+### The payoff
 
 You don't need to know the security rule or the WebGL API yourself. The AI brings that. Vibestrate gives you a way to trust the result without auditing every line. A second model that didn't write the code reviews it against the same plan and the same project instructions, your own tests run against the result, and the evidence comes back with it.
 
 Independence pays off most where a mistake is expensive, so if you change one thing about a fresh install, make it the reviewer.
 
-## Ask instead of reading
+### Ask instead of reading
 
 To understand a run without reading it cold, ask [Consult](/docs/concepts/consult). It answers from your project's evidence and never writes to your code. A good question is specific and names the run:
 
@@ -117,7 +122,7 @@ Caveats (not verified):
 
 Read the caveats first. Consult tells you what it couldn't ground in evidence instead of filling the gap with a guess.
 
-## Keep going
+### Keep going
 
 - [The supervisor](/docs/concepts/supervisor) - how Vibestrate sets the scrutiny level for a run.
 - [Set up a provider](/docs/getting-started/providers) - adding the second provider this page assumes.

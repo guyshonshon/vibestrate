@@ -4,15 +4,50 @@ description: A four-step tour of providers, crew, flows and your first run that 
 slug: getting-started/welcome
 ---
 
-`vibe welcome` sets you up in four steps: providers, crew, flows, then your first run. Quit halfway and it picks up where you stopped. You can skip any step, and `--reset` starts the tour over. It asks you questions, so it needs a real terminal. In a script or in CI it prints the commands to run by hand and exits without touching anything.
+## In simple words
+
+`vibe welcome` walks you through setup in four steps: a [[provider]], a [[crew]], your [[flow]]s, then your first [[run]].
 
 ```bash
 vibe welcome
 ```
 
-It's the guided version of the setup you'd otherwise do by hand, built on the same pieces: `vibe provider setup`, the crew presets, and the commands the rest of these pages cover.
+Quit halfway and it picks up where you stopped. Skip any step. `--reset` starts over.
 
-## The four steps
+<div class="docs-callout tip">
+
+**Tip.** It asks questions, so it needs a real terminal. In a script or in CI it prints the commands to run by hand and exits without touching anything, rather than hanging on a prompt nobody will answer.
+
+</div>
+
+## What each step settles
+
+<div class="docs-cards">
+
+**Providers**
+Which coding-agent CLIs you already have, and which are logged in.
+
+**Crew**
+The six workers, and which model each one runs on.
+
+**Flows**
+Which recipes this project can run, and which is the default.
+
+**First run**
+A real task, start to finish, so the vocabulary lands.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** The tour is resumable because it writes as it goes rather than at the end. Quitting after step two leaves you with a working provider and crew, not a half-written config that has to be started again.
+
+</div>
+
+
+## Going deeper
+
+### The four steps
 
 - **Providers** - the coding CLI that runs the model doing the work, such as Claude Code or Ollama. This step runs `vibe provider setup` for you.
 - **Crew** - your team of AI workers. Install a ready-made one (Fast, Thorough, Cheap, or Local), or skip and build your own later.
@@ -21,7 +56,7 @@ It's the guided version of the setup you'd otherwise do by hand, built on the sa
 
 Each step opens with a short explanation, then asks whether to continue, skip, or quit. Skip anything you already know.
 
-## It remembers where you left off
+### It remembers where you left off
 
 Quit partway through and `vibe welcome` picks up at the first step you haven't finished.
 
@@ -55,7 +90,7 @@ Your progress lives in `.vibestrate/welcome-state.json`, a small file that recor
 vibe welcome --reset
 ```
 
-## If you're not initialized yet
+### If you're not initialized yet
 
 The tour offers to run `vibe init` for you when the project isn't set up yet. Say no and the tour stops there, leaving you two commands to run yourself:
 
@@ -64,7 +99,7 @@ vibe init
 vibe welcome
 ```
 
-## From here
+### From here
 
 The last step hands you a real task to try:
 

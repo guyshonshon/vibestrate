@@ -4,7 +4,42 @@ description: Git in one minute, and how to move a finished change from the run's
 slug: getting-started/merging
 ---
 
-A run never edits your project folder. It works in its own copy - a git worktree under `../.vibestrate-worktrees/`, on a branch named `vibestrate/` plus the run id - and it stops at `merge_ready` with the change waiting on that branch. Folding it into `main` is the one step Vibestrate always leaves to you. If Git is new to you, read the next section. Otherwise skip ahead to taking the change.
+## In simple words
+
+A run never edits your project folder. It works in its own copy - a git [[worktree]] beside your project, on its own branch - and stops at `merge_ready` with the change waiting there.
+
+Folding it into `main` is the one step Vibestrate always leaves to you.
+
+![The Workspace panel of a run, naming the branch and the run's isolated git worktree path, with a Copy cd button.](/media/docs/scoped/run-workspace.png)
+
+**Copy cd** puts the path on your clipboard, so you can go and read the work before you take it.
+
+<div class="docs-callout tip">
+
+**Tip.** Read the diff before merging, every time. The verdict tells you which checks ran and passed; it does not tell you the change is the one you wanted. Those are different questions and only you can answer the second.
+
+</div>
+
+## Your three options
+
+<div class="docs-cards">
+
+**Take it**
+Merge the run's branch into yours. The advisor can tell you what that would do first.
+
+**Take part of it**
+It is a normal git branch. Cherry-pick what you want.
+
+**Leave it**
+Ignore the folder. Nothing entered your branch, so there is nothing to undo.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** `vibe integrate advise` is read-only. It reads the run's branch and tells you which of the three routes it recommends, changing nothing. The merge itself needs a separate command, and finishing into `main` needs a typed confirmation token.
+
+</div>
 
 ## Git in one minute
 
@@ -72,7 +107,9 @@ It leads with risk flags - did your checks run at all, does the change touch pro
 
 It merges nothing and touches no branch. The Source page's **Merge** tab shows you the same thing.
 
-## Take the change
+## Going deeper
+
+### Take the change
 
 The branch is yours. Two ways to keep it:
 
@@ -88,7 +125,7 @@ git merge --ff-only vibestrate/<runId>
 
 To throw the change away, leave the branch alone. Nothing ever reached `main`.
 
-## Merging is always your call
+### Merging is always your call
 
 Merging is the moment you commit to the change. It joins your shared history, and you can ship from there. You can revert a bad merge, but only after the wrong code was already trusted and built on. No model can vouch for its own work well enough to make that call for you. See [the safety guarantees](/docs/concepts/safety) for the rule.
 
@@ -96,7 +133,7 @@ Merging is the moment you commit to the change. It joins your shared history, an
 
 A model only enters when you ask for the deeper read with `vibe integrate analyze`. That sends the run's redacted diff to a provider to look for risks a text check can't see, like concurrency or missing tests. It's advisory prose only: it never merges, never pushes, and can't change the advisor's recommendation or risk flags.
 
-## Keep going
+### Keep going
 
 - [Your first run](/docs/getting-started/first-run) - where the change came from.
 - [Task lifecycle](/docs/task-lifecycle) - the statuses a run moves through.

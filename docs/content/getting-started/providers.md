@@ -4,23 +4,47 @@ description: Tell Vibestrate which AI coding tools you have, then check that eac
 slug: getting-started/providers
 ---
 
-Vibestrate doesn't ship a model of its own. It hands the work to something you already have, and that something is called a **provider**. You'll need at least one before a Task can run, and it comes in three kinds.
+## In simple words
 
-<div class="docs-cards">
+Vibestrate does not ship a model of its own. It hands the work to something you already have, and that something is a **[[provider]]**.
 
-**A coding CLI you've already installed.** Vibestrate knows these by name: Claude Code, Codex CLI, Gemini CLI, OpenCode, Aider, Ollama, Qwen Code, Crush, Goose, Cursor CLI and Amp. Each keeps its own login or API-key variable, so you sign in the way you always did.
+You need at least one before a [[task]] can run.
 
-**A model API you hold the key for** (`http-api`). Anthropic or OpenAI wire format, over `https` only. You point at the key with an environment reference like `env:ANTHROPIC_API_KEY`, so the secret never lands in a file.
+![Two provider cards. Claude Code, claude v2.1.227, marked recommended and configured, showing 1 profile uses. Codex CLI, codex v0.144.3, also configured, showing 3 profiles use. Each card offers Edit, Set default and Test.](/media/docs/scoped/provider-pair.png)
 
-**A model server on your own machine** (`localhost-proxy`). Ollama, LM Studio, vLLM. Loopback addresses only, so nothing leaves your computer and you don't need a key.
+Detected, versioned, and testable from the page.
+
+<div class="docs-callout tip">
+
+**Tip.** Run `vibe doctor` first. It finds what is installed, says which ones need a one-time setup, and prints the exact login command for anything not authenticated - which you run yourself, in your own terminal.
 
 </div>
 
-A Role never names a provider. It points at a [Profile](/docs/concepts/profile), and the Profile names the provider. That extra hop is how two roles in one Crew can end up on two different providers.
+## The three kinds
 
-Setting one up takes two steps: tell Vibestrate it's there, then confirm it answers.
+<div class="docs-cards">
 
-## See what you have
+**A CLI you already have**
+Claude Code, Codex, Gemini, Aider and seven more. Already logged in, already yours.
+
+**A model API on your key**
+An https endpoint, for a model with no CLI.
+
+**Something on this machine**
+Ollama or similar, over loopback, so nothing leaves the box.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Vibestrate never logs you in. When a provider is not authenticated it shows you the command to run yourself. That is why your credentials never pass through it: the design gives it no opportunity to hold one.
+
+</div>
+
+
+## Going deeper
+
+### See what you have
 
 ```bash
 vibe provider detect
@@ -46,7 +70,7 @@ Two entries from a real list:
   aider is not on PATH.
 ```
 
-## Set it up and test it
+### Set it up and test it
 
 ```bash
 vibe provider setup
@@ -63,7 +87,7 @@ vibe provider test ollama
 
 If it complains about flags or a login, fix that before you start a real task.
 
-## Choose which one does the work
+### Choose which one does the work
 
 Point every Profile at a single provider, and every role moves with them:
 
@@ -139,7 +163,7 @@ That split is the payoff of two providers. Your builder and reviewer are differe
 
 Different [Profiles](/docs/concepts/profile) also let you match a step to the horsepower it needs. A Profile pins the provider, model and effort, so an easy role runs on a cheap model while the hard one gets your best.
 
-## Models over the internet or on your own machine
+### Models over the internet or on your own machine
 
 Not every provider is a tool you installed. Vibestrate can talk to a model over HTTP instead:
 
@@ -173,7 +197,7 @@ Vibestrate checks both types when the config loads. It rejects an `http-api` pro
 
 If you'd rather stay out of the terminal, Mission Control's Crew page has a **Providers** tab for all of this - install hints, setup, testing, and picking a default.
 
-## Going deeper
+### Going deeper
 
 - [Providers reference](/docs/reference/providers) - the current list, notes on each one, and the install hint.
 - The dashboard's Providers tab can also add a provider from scratch (cloud API, local server, custom CLI) and run a connectivity probe that checks a cloud key without spending anything.
