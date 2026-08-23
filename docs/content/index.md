@@ -24,9 +24,11 @@ Run assurance is the verdict across four lanes, and verified means the change is
 
 This run took the Express flow, and the reviewer came back with changes requested: the new code writes `userId` to stdout on every rejected save. Verification failed behind it, so the run stopped at blocked. You read the finding under View review, then fix it yourself or hit Re-run with fixes. One model wrote the change, a second one caught it, and you make the call.
 
-![A finished run on the Default flow, eight steps from Plan to Verify. The supervisor log records two enforced fallbacks reading fell back to claude-balanced, transient, and a judgment reading review checks 2 project policies, no-console-logging and validate-inputs. Run assurance reads verified across policy, validation, review and verification.](/media/docs/run-cross-model.png)
+![A finished run on the Default flow, eight steps from Plan to Verify. The supervisor log carries four judgments: verify passed, review approved, review checks 2 project policies named no-console-logging and validate-inputs, and review aimed through 3 lenses. Run assurance reads verified across policy, validation, review and verification. The Live metrics panel names codex against the verifier, while the Plan and Architecture rows below run on claude-balanced.](/media/docs/run-cross-model.png)
 
-Two things in that log are worth reading. The reviewer checked this project's own policies by name, `no-console-logging` and `validate-inputs`, because rules you write are handed to the reviewer rather than left as documentation. And the provider behind two seats failed part-way, so the run fell back to a backup profile and carried on: `fell back to claude-balanced, transient`. A wobbling provider slows a run down instead of losing it.
+Claude planned, architected and wrote this change; Codex reviewed and verified it. Live metrics names the provider behind each seat, so `codex` sits against the verifier while the earlier steps ran on Claude. A reviewer that did not write the code has no prior answer to defend.
+
+The reviewer also checked this project's own policies by name, `no-console-logging` and `validate-inputs`. Rules you write are handed to the reviewer rather than left sitting in a file nobody reads.
 
 A run works in a separate git worktree on its own branch, so it never edits your working tree. It never pushes and never merges. Every prompt, output, and decision is written under `.vibestrate/runs/`, one folder per run. The run then stops at one of four outcomes and hands the decision back to you:
 
@@ -49,11 +51,11 @@ There is no "the default one unless you choose another". `defaultFlow` is unset 
 
 ## Set the crew, the rules and the recipes
 
-Crew maps each role to the seats it fills and the profile it runs on. Policies hold your project's rules, each set to Advise, which the reviewer checks, or Block, which caps the run at merge time. A fresh project starts with none of its own, and the four hard guards below them already on. Flows are the run recipes: 14 ship built in, and Draft a flow turns a sentence into a project-owned one you can edit.
+Crew maps each role to the seats it fills and the profile it runs on. Policies hold your project's rules, each set to Advise, which the reviewer checks, or Block, which caps the run at merge time. The four hard guards sit below them, already on. Flows are the run recipes: 14 ship built in, and Draft a flow turns a sentence into a project-owned one you can edit.
 
 ![The Crew page. Each role is listed as a row naming the Seats it can fill and the Profile it runs on.](/media/docs/crew.png)
 
-![The Policies page on a fresh project. Guards on reads 4 of 4, and the counters for advise, block, pending and engine rules all sit at zero. Your policies says No policies yet next to a New policy button. Hard guards lists four switches that are on: forbid main-branch writes, forbid secrets access, forbid auto-push and forbid auto-merge.](/media/docs/policies.png)
+![The Policies page. Guards on reads 4 of 4 and the counters read 2 advise, 0 block, 0 pending, 0 engine rules. Your policies lists two rules tagged advise: one forbidding console.log in source files, one requiring unknown keys to be rejected at the boundary. Hard guards lists four switches that are on: forbid main-branch writes, forbid secrets access, forbid auto-push and forbid auto-merge.](/media/docs/policies.png)
 
 ![The Flows page. One card per flow, each with a bar of its steps colour-coded by step kind and an Open button, one marked project-owned. New flow, Import and Draft a flow sit in the header.](/media/docs/flows.png)
 

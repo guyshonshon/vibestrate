@@ -11,12 +11,13 @@ holds no matter which supervisor reviews the work. The active supervisor is the
 
 They live on the **Policies** page in the sidebar.
 
-![The Policies page. The header reads Policies over a New policy button, a 4/4 Guards on tile, and counters for advise, block, pending and engine rules that all read zero. The left column holds Your policies, empty with the line No policies yet, over a Deterministic engine card reading No rules in .vibestrate/policies/*.yml. The right column lists the Hard guards toggles - Forbid main-branch writes, Forbid secrets access, Forbid auto-push, Forbid auto-merge - each switched on.](/media/docs/policies.png)
+![The Policies page. The header reads Policies over a New policy button, a 4/4 Guards on tile, and counters reading 2 advise, 0 block, 0 pending and 0 engine rules. The left column holds Your policies with two rules tagged advise, over a Deterministic engine card reading No rules in .vibestrate/policies/*.yml. The right column lists the Hard guards toggles - Forbid main-branch writes, Forbid secrets access, Forbid auto-push, Forbid auto-merge - each switched on.](/media/docs/policies.png)
 
 The header counts what the project carries: advise, block, pending, and engine
-rules. This one has none of its own yet, so every counter sits at zero and **Your
-policies** is empty. The four **Hard guards** on the right ship on for every
-project; the left column is the part you author.
+rules. This project holds two, both at the advise tier, so the reviewer is told
+about them on every run. The four **Hard guards** on the right ship on for every
+project; the left column is the part you author, and a fresh project starts with
+it empty.
 
 Each policy has a **tier** that decides how it is enforced:
 

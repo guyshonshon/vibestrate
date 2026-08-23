@@ -132,7 +132,8 @@
         "Policies",
         "Strict apply-only mode",
         "Supervisor posture",
-        "Your policies"
+        "Your policies",
+        "advise"
       ]
     },
     "profiles": {
