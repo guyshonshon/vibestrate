@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, FileCode, Plus, X } from "lucide-react";
+import { ExternalLink, FileCode, Plus, ScrollText, X } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { Task } from "../../lib/types.js";
 import { Button } from "../design/Button.js";
@@ -14,12 +14,18 @@ export function ContextSourcesSection({
   onChanged: () => Promise<void> | void;
 }) {
   const sources = task.contextSources ?? [];
+  // The approved spec-up spec this card was synthesised from. Grounding the card
+  // carries on its own: `vibe roadmap accept` sets it and both launchers attach
+  // it to every run, so it belongs in this row even though nobody added it here.
+  // Shown WITHOUT a remove control on purpose - it is derived from the proposal,
+  // so a delete would be recomputed straight back on the next accept.
+  const specRef = task.specRef ?? null;
   const [kind, setKind] = useState<"file" | "url">("file");
   const [ref, setRef] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const hasSources = sources.length > 0;
+  const hasSources = sources.length > 0 || specRef !== null;
 
   async function save(next: { kind: "file" | "url"; ref: string }[]) {
     setBusy(true);
@@ -49,38 +55,55 @@ export function ContextSourcesSection({
     <div>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <span className="text-meta font-medium text-violet-soft">Grounding</span>
-        {hasSources ? (
-          sources.map((s, i) => (
-            <span
-              key={`${s.kind}-${s.ref}-${i}`}
-              className="group inline-flex items-center gap-1.5 rounded-[8px] bg-coal-500/70 py-1 pl-2 pr-1.5 text-meta"
-            >
-              {s.kind === "url" ? (
-                <ExternalLink className="h-3 w-3 shrink-0 text-amber-soft" strokeWidth={1.9} />
-              ) : (
-                <FileCode className="h-3 w-3 shrink-0 text-violet-soft" strokeWidth={1.9} />
-              )}
-              <span className="max-w-[220px] truncate font-mono text-chalk-200">{s.ref}</span>
-              <button
-                type="button"
-                onClick={() =>
-                  save(
-                    sources
-                      .filter((_, j) => j !== i)
-                      .map((x) => ({ kind: x.kind, ref: x.ref })),
-                  )
-                }
-                disabled={busy}
-                title="Remove reference"
-                className="shrink-0 text-chalk-400 transition hover:text-rose-300 disabled:opacity-50"
-              >
-                <X className="h-3 w-3" strokeWidth={2} />
-              </button>
+        {specRef ? (
+          <span
+            title={`Spec-up: approved spec - ${specRef}`}
+            className="inline-flex items-center gap-1.5 rounded-[8px] bg-coal-500/70 py-1 pl-2 pr-2 text-meta"
+          >
+            {/* violet-soft, like the file icon: the spec IS a file, and the only
+                other defined -soft token is amber (url). The ScrollText glyph is
+                what separates it, matching how this row already signals type by
+                icon alone. */}
+            <ScrollText className="h-3 w-3 shrink-0 text-violet-soft" strokeWidth={1.9} />
+            {/* The basename, not the ref: these chips truncate from the END, so
+                the full path would clip to the directory and hide the one part
+                that identifies which spec this is. */}
+            <span className="max-w-[220px] truncate font-mono text-chalk-200">
+              {specRef.split("/").pop()}
             </span>
-          ))
-        ) : (
+          </span>
+        ) : null}
+        {sources.map((s, i) => (
+          <span
+            key={`${s.kind}-${s.ref}-${i}`}
+            className="group inline-flex items-center gap-1.5 rounded-[8px] bg-coal-500/70 py-1 pl-2 pr-1.5 text-meta"
+          >
+            {s.kind === "url" ? (
+              <ExternalLink className="h-3 w-3 shrink-0 text-amber-soft" strokeWidth={1.9} />
+            ) : (
+              <FileCode className="h-3 w-3 shrink-0 text-violet-soft" strokeWidth={1.9} />
+            )}
+            <span className="max-w-[220px] truncate font-mono text-chalk-200">{s.ref}</span>
+            <button
+              type="button"
+              onClick={() =>
+                save(
+                  sources
+                    .filter((_, j) => j !== i)
+                    .map((x) => ({ kind: x.kind, ref: x.ref })),
+                )
+              }
+              disabled={busy}
+              title="Remove reference"
+              className="shrink-0 text-chalk-400 transition hover:text-rose-300 disabled:opacity-50"
+            >
+              <X className="h-3 w-3" strokeWidth={2} />
+            </button>
+          </span>
+        ))}
+        {!hasSources ? (
           <span className="text-meta text-chalk-400">none</span>
-        )}
+        ) : null}
         {!adding ? (
           <button
             type="button"

@@ -41,6 +41,17 @@
   approved spec-up spec and any files or urls attached to it. The dashboard
   showed this and the terminal did not, so a card silently carrying a spec was
   visible only in `--json`.
+- **The dashboard now shows the spec on the card too.** The Grounding row
+  listed the files and urls someone attached by hand but not the approved spec,
+  so the surface that SETS a card's spec was the one that never displayed it.
+  It sits in the same row as the other references, with its own icon and no
+  remove control, because it is derived from the proposal rather than owned by
+  the card.
+- **A colour token that does not exist now fails the build.** A Tailwind class
+  naming an undefined `-soft` token renders as no colour at all, silently, past
+  a green typecheck and a successful build - the design-drift guard caught one
+  token by name, `chalk-500`, and nothing else. It now checks every `-soft`
+  class in the dashboard against what `index.css` actually defines.
 - **`vibe init --yes` writes the provider it actually found.** The
   non-interactive path hardcoded `claude` in both branches of its config
   renderer, so a machine whose only installed CLI was codex was told "Codex CLI

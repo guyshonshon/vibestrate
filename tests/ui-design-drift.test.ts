@@ -91,7 +91,46 @@ const DECKLESS_PAGES: Record<string, string> = {
     "not a page - shared loading shapes the routes import, so it mirrors each page's Deck rather than owning one",
 };
 
+/** Every `--color-<name>-soft` custom property index.css actually defines. */
+async function definedSoftTokens(): Promise<Set<string>> {
+  const css = await readFile(path.join(UI_ROOT, "index.css"), "utf8");
+  return new Set(
+    [...css.matchAll(/--color-([a-z][a-z0-9-]*-soft)\s*:/g)].map((m) => m[1]!),
+  );
+}
+
 describe("UI design drift", () => {
+  // Same failure as the `chalk-500` entry above, generalised: a Tailwind colour
+  // class naming a custom token that index.css never defines renders as NO
+  // colour, silently, in a build that succeeds and a typecheck that passes.
+  // `-soft` is a custom suffix (violet-soft, amber-soft), never part of
+  // Tailwind's own palette, so every use of one has to resolve to a real
+  // variable - and unlike the numeric palette there is no built-in fallback to
+  // mask it. Caught in review once already: a `text-emerald-soft` icon, when
+  // only violet-soft and amber-soft exist.
+  it("only uses -soft colour tokens that index.css defines", async () => {
+    const defined = await definedSoftTokens();
+    expect(defined.size).toBeGreaterThan(0); // guard against a silently empty parse
+
+    const offences: string[] = [];
+    for (const file of await tsxFiles(UI_ROOT)) {
+      const text = await readFile(file, "utf8");
+      text.split("\n").forEach((line, i) => {
+        for (const m of line.matchAll(
+          /\b(?:text|bg|border|ring|fill|stroke|from|via|to|decoration|outline|shadow|accent|caret|divide)-([a-z][a-z0-9-]*-soft)\b/g,
+        )) {
+          const token = m[1]!;
+          if (defined.has(token)) continue;
+          offences.push(
+            `${path.relative(process.cwd(), file)}:${i + 1} uses "${token}", which index.css does not define ` +
+              `(defined: ${[...defined].sort().join(", ")}).\n    ${line.trim().slice(0, 120)}`,
+          );
+        }
+      });
+    }
+    expect(offences.join("\n")).toBe("");
+  });
+
   it("keeps the contract's hard-no list out of src/ui", async () => {
     const files = await tsxFiles(UI_ROOT);
     expect(files.length).toBeGreaterThan(100); // guard against a silently empty walk

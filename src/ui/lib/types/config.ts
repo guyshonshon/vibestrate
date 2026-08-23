@@ -134,6 +134,11 @@ export type Task = {
   // pass on the card's run). Prose criteria are LLM-judged; these are machine-run.
   acceptanceCommands?: string[];
   est?: string;
+  // Project-relative path to the approved spec-up spec this card was
+  // synthesised from, set by `vibe roadmap accept`. Both launchers attach it to
+  // every run started from this card, so it is grounding the card carries
+  // whether or not anyone added a source by hand. Null for a hand-written card.
+  specRef?: string | null;
   status: TaskStatus;
   priority: Priority;
   dependencies: string[];
