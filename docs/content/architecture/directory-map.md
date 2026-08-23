@@ -4,30 +4,56 @@ description: A tour of the source tree, showing what lives where and where to st
 slug: architecture/directory-map
 ---
 
-This is a tour of `src/`, the source tree. The list isn't exhaustive, since small helpers are omitted, but every top-level directory and stable extension point appears here.
+## In simple words
 
-If you are looking for one thing, four questions cover most of the tree:
+A tour of `src/`, the source tree. Not exhaustive - small helpers are omitted - but every top-level directory and stable extension point appears here.
 
-<svg viewBox="0 0 560 68" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The run engine is core, who runs a seat is agents, the guardrails are safety and policies, and the dashboard is server plus ui.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="6" width="123" height="56" rx="8"/>
-    <rect x="129" y="6" width="129" height="56" rx="8"/>
-    <rect x="263" y="6" width="168" height="56" rx="8"/>
-    <rect x="436" y="6" width="123" height="56" rx="8"/>
-  </g>
-  <g fill="currentColor" text-anchor="middle">
-    <text x="62" y="28" font-size="11" fill-opacity="0.5">the run engine</text>
-    <text x="62" y="48" font-size="12" font-family="ui-monospace,monospace">core/</text>
-    <text x="194" y="28" font-size="11" fill-opacity="0.5">who runs a seat</text>
-    <text x="194" y="48" font-size="12" font-family="ui-monospace,monospace">agents/</text>
-    <text x="347" y="28" font-size="11" fill-opacity="0.5">the guardrails</text>
-    <text x="347" y="48" font-size="12" font-family="ui-monospace,monospace">safety/ policies/</text>
-    <text x="497" y="28" font-size="11" fill-opacity="0.5">the dashboard</text>
-    <text x="497" y="48" font-size="12" font-family="ui-monospace,monospace">server/ ui/</text>
-  </g>
-</svg>
+```
+src/
+  core/        the run engine and its state
+  agents/      who runs a seat
+  providers/   adapters over the CLIs
+  flows/       recipes and their schema
+  safety/      the Action Broker
+  policies/    your rules
+  ui/          Mission Control
+  cli/         the vibe command
+```
 
-## The shape of `src/`
+<div class="docs-callout tip">
+
+**Tip.** If you are looking for where a behaviour lives, the fastest route is usually the concept page for it rather than this map - most concepts name the file that owns them at the end of their Going deeper section.
+
+</div>
+
+## The four you will touch most
+
+<div class="docs-cards">
+
+**`core/`**
+The run engine: state, steps, the brief carried between turns.
+
+**`providers/`**
+Thin adapters over the CLIs. Adding a provider starts here.
+
+**`flows/`**
+Flow definitions and the schema that validates them.
+
+**`safety/` and `policies/`**
+The gate every effect crosses, and the rules it consults.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** The state machine deliberately sits at the root of `core/` rather than in a subdirectory. It is the thing everything else agrees with, and burying it one level down made it read as an implementation detail of whichever folder it landed in.
+
+</div>
+
+
+## Going deeper
+
+### The shape of `src/`
 
 ```text
 cli/            the vibe command-line program
@@ -56,7 +82,7 @@ workspace/      multi-project navigator
 utils/          fs, json, paths, time, run ids
 ```
 
-## The frontends
+### The frontends
 
 - `src/cli/` - the commander program, the command-line entry point. `index.ts` builds the command tree (exported as `buildVibestrateProgram` so the docs generator can introspect it without parsing argv); each command's implementation lives under `src/cli/commands/`, grouped by area.
 - `src/server/` - the local Fastify HTTP/SSE API behind `vibe ui`, one route module per domain, plus the static serving of the built dashboard.
@@ -65,7 +91,7 @@ utils/          fs, json, paths, time, run ids
 
 Read first: `src/cli/index.ts`, `src/server/server.ts`.
 
-## `src/core/`
+### `src/core/`
 
 The run engine and the surrounding plumbing. At the root live the hub modules
 everything shares:
@@ -105,13 +131,13 @@ The domain clusters:
 
 Read first: `src/core/state-machine.ts`, `src/core/orchestrator.ts`.
 
-## `src/supervisor/`
+### `src/supervisor/`
 
 The supervisor decision layer that shapes a run before the engine executes it: personas and archetypes, review lenses, flow sizing, workflow selection, posture, and protected paths.
 
 Read first: `src/supervisor/select-workflow.ts`.
 
-## `src/flows/`
+### `src/flows/`
 
 The Flow system.
 
@@ -124,7 +150,7 @@ The Flow system.
 
 Read first: `src/flows/catalog/builtin-flows.ts`.
 
-## `src/agents/`
+### `src/agents/`
 
 Who runs a seat: the crew -> role -> profile -> skills configuration chain.
 
@@ -136,7 +162,7 @@ Who runs a seat: the crew -> role -> profile -> skills configuration chain.
 
 Read first: `src/agents/crew-registry.ts`.
 
-## `src/providers/`
+### `src/providers/`
 
 Local provider integration. A provider is the agent backend, such as a generic CLI or Claude Code, that Vibestrate invokes.
 
@@ -150,7 +176,7 @@ Local provider integration. A provider is the agent backend, such as a generic C
 
 Read first: `src/providers/provider-detection.ts`.
 
-## `src/project/`
+### `src/project/`
 
 Project config.
 
@@ -160,7 +186,7 @@ Project config.
 
 Read first: `src/project/config-schema.ts`.
 
-## `src/safety/` and `src/policies/`
+### `src/safety/` and `src/policies/`
 
 The guardrail cluster.
 
@@ -169,11 +195,11 @@ The guardrail cluster.
 
 Read first: `src/safety/action-broker.ts`.
 
-## `src/git/`
+### `src/git/`
 
 Git plumbing: worktrees, merge/conflict services, init, commit credit - plus the gated merge-preview (`integration-service.ts`, `merge-advisor.ts`) that dry-runs real merges into an integration branch, never main.
 
-## The remaining domains
+### The remaining domains
 
 - `src/roadmap/` - the roadmap/task domain: stores, planner, proposals, dependency graph.
 - `src/reviews/` - review suggestions and suggestion bundles (applying reviewer findings as patches).
@@ -186,7 +212,7 @@ Git plumbing: worktrees, merge/conflict services, init, commit credit - plus the
 - `src/workspace/` - the multi-project navigator.
 - `src/utils/` - shared low-level helpers (fs, json, paths, time, run ids, file mutex, OS detection).
 
-## Top-level dirs
+### Top-level dirs
 
 These directories sit at the repository root, alongside `src/`.
 

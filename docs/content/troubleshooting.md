@@ -4,15 +4,43 @@ description: Concrete fixes for the issues people actually hit.
 slug: troubleshooting
 ---
 
-Find the symptom that matches yours below, then run the fix. Read the failure message first - most now name themselves: a failed supervisor turn gives its reason, a cut-short one says it was stopped, and an effort level your provider does not have is refused with that provider's real ladder in the message.
+## In simple words
 
-<div class="docs-callout">
+Find the symptom that matches yours below, then run the fix.
 
-**Start with `vibe doctor`.** It checks your install, your providers and your config in one pass, and most fixes below begin from what it reports.
+<div class="docs-callout tip">
+
+**Tip.** Read the failure message first. Most name themselves now: a failed supervisor turn gives its reason, a cut-short one says it was stopped, and an effort level your provider does not have is refused with that provider's real ladder printed in the message.
 
 </div>
 
-## Install and setup
+## Start here
+
+<div class="docs-cards">
+
+**`vibe doctor`**
+Checks your machine has what a run needs, and says what is missing.
+
+**The run's own status**
+`failed` is a crash, `blocked` is a decision. Different fixes.
+
+**The step's output**
+A failing step prints why. That is usually the whole answer.
+
+**`vibe replay <run-id>`**
+Reopens a finished run with every decision and artifact in place.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** A run that ends badly keeps its worktree on purpose - nothing is cleaned up on failure. The half-finished work, the logs and the diff are all still on disk when you come back to look.
+
+</div>
+
+## Going deeper
+
+### Install and setup
 
 ### `vibe: command not found` right after installing
 
@@ -65,7 +93,7 @@ vibe provider test <id>
 
 To check it worked, run `vibe provider detect`. At least one provider should show confidence `ready`, or a working `detected-needs-setup` after you run `provider setup`.
 
-## Providers
+### Providers
 
 ### Provider test fails with "command not found"
 
@@ -83,7 +111,7 @@ vibe provider setup
 
 If the flags are right but the output format changed, file an issue with the provider's version (`<cli> --version`) and a sample of the captured output, which you'll find under `.vibestrate/runs/<runId>/artifacts/flows/<step-id>/output.md`.
 
-## Runs that won't start or stall
+### Runs that won't start or stall
 
 ### Runs finish, but nothing was actually checked
 
@@ -137,7 +165,7 @@ vibe config set git.requireCleanMain false
 
 To check it worked, look for the worktree under `../.vibestrate-worktrees/`.
 
-## The Supervisor panel
+### The Supervisor panel
 
 ### The answer is a reason instead of an answer
 
@@ -161,7 +189,7 @@ Pick a level the message names, or run `vibe provider catalog` to see what each 
 
 Everywhere else an unknown level is passed through and quietly ignored rather than refused. In a run, a Profile whose `power` the provider will not honor does not stop the turn: Vibestrate records a `provider.effort_ignored` event once per provider and level - "Effort ... won't take effect on codex ... - the provider ignores it" - and carries on. `vibe consult --effort` behaves the same way, without the event. If an effort setting seems to make no difference, that is why.
 
-## Notifications and dashboard
+### Notifications and dashboard
 
 ### Notifications never arrive
 
@@ -182,7 +210,7 @@ vibe notifications test <gatewayId>
 
 `vibe ui` opens, but a tab shows no data even though you have runs. Either the browser cached an older asset bundle, or the runs are in a different project root than the one `vibe ui` was started from. Hard-reload the page (Cmd-Shift-R / Ctrl-Shift-R), then confirm `vibe ui` is running from the project root you expect, since the dashboard reads `.vibestrate/runs/` from `cwd`.
 
-## Worktrees left behind
+### Worktrees left behind
 
 ### Worktree didn't get cleaned up after an abort
 
@@ -196,7 +224,7 @@ git branch -D vibestrate/<runId>
 
 To check it worked, confirm the directory is gone.
 
-## Next
+### Next
 
 - [Flow](/docs/concepts/flow) - the steps a run works through, where these statuses come from.
 - [Crew](/docs/concepts/crew) - the workers and models behind your providers.

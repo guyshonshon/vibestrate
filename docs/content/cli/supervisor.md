@@ -4,15 +4,52 @@ description: The supervisor's kill switch from a terminal - stop it acting, resu
 slug: cli/supervisor
 ---
 
-`vibe supervisor stop` is the kill switch. It stops the supervisor **acting**: it will still answer you, but it cannot create a task, add checklist items, or start a run. It writes a flag to disk instead of editing your config, so it takes effect at once, survives a restart, and works from a terminal - which matters, because the moment you most want a stop button is not reliably a moment you have a browser tab open.
+## In simple words
 
-It stops the **next** action, not one already taken. A run the supervisor started before you typed this keeps going; `vibe abort` is what stops that.
+`vibe supervisor stop` is the kill switch.
 
-The flag **fails closed**. If Vibestrate cannot read that file - corrupt, half-written, wrong permissions - the supervisor is treated as stopped. A stop that quietly degrades to "go" is not a stop. A missing file is the one exception, and it honestly means running: nothing has ever been stopped here.
+```bash
+vibe supervisor stop      # it may still answer; it may not act
+vibe supervisor status    # may it act right now?
+vibe supervisor resume
+```
 
-The rest of the commands manage [personas](/docs/concepts/supervisor) - which judgment posture the supervisor brings to a run.
+It stops the supervisor **acting**: it will still answer you, but it cannot create a task, add checklist items, or start a run.
 
-## Every subcommand
+<div class="docs-callout tip">
+
+**Tip.** It writes a flag to disk rather than editing your config, so it takes effect at once, survives a restart, and works from a terminal. The moment you most want a stop button is not reliably a moment you have a browser tab open.
+
+</div>
+
+## Stop, versus the permission switch
+
+<div class="docs-cards">
+
+**`vibe supervisor stop`**
+A flag on disk. Immediate, survives restarts, reachable from a terminal.
+
+**The Answers only switch**
+A per-conversation permission in the dashboard.
+
+**The red square**
+Interrupts the turn running right now.
+
+**None of them are the same control**
+Which is why all three exist.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** One word covers two things here. `vibe supervisor list`, `archetypes`, `adopt`, `default` and `remove` manage the *persona* - how strict reviews are. `stop`, `resume` and `status` belong to the *conversation*. Same command, two subjects.
+
+</div>
+
+
+## Going deeper
+
+### Every subcommand
 
 ```text
 vibe supervisor <subcommand>   (bare: same as list)
@@ -36,7 +73,7 @@ Two flags, and the subcommands that take them:
 
 `list` and `archetypes` read the catalog and work anywhere; everything else needs a Vibestrate project in the current directory.
 
-## Stop and resume
+### Stop and resume
 
 ```bash
 vibe supervisor stop --reason "reviewing the diff"
@@ -54,7 +91,7 @@ vibe supervisor resume
 
 The CLI prints each of those whole. They are wrapped here to fit the page.
 
-## Whether it may act right now
+### Whether it may act right now
 
 ```bash
 vibe supervisor status
@@ -110,7 +147,7 @@ The `--json` form prints the flag as it is stored:
 
 The file is `.vibestrate/supervisor/paused.json`, and it is not a secret. If it ever gets into a state you cannot clear, delete it - a missing file reads as running.
 
-## Personas
+### Personas
 
 `list` shows what this project resolves to, built-ins first, with the default marked. Two ship in code, and anything under `personas` in your `project.yml` is listed after them as `[project]`:
 

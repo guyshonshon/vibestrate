@@ -4,7 +4,50 @@ description: Plain-language definitions for the words you'll meet across these d
 slug: glossary
 ---
 
-Short, plain definitions for the words Vibestrate's docs use.
+## In simple words
+
+Short, plain definitions for the words these docs use.
+
+<div class="docs-callout tip">
+
+**Tip.** Meeting these for the first time? Read [the big picture](/docs/getting-started/big-picture) instead. It introduces the same words in the order they depend on each other, which is far easier than an alphabetical list.
+
+</div>
+
+The words in one sentence, so the shape is visible before the list:
+
+```
+A Task runs through a Flow, whose steps name Seats,
+which your Crew's Roles fill, each on a Profile, which names a Provider.
+```
+
+## The five that matter most
+
+<div class="docs-cards">
+
+**Task**
+What you want done, in plain language.
+
+**Flow**
+The recipe: ordered steps, each naming a kind of worker.
+
+**Crew**
+Who fills those slots, and which model each one runs on.
+
+**Run**
+One attempt at a task, in its own copy of your repo.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** A seat, a role and a profile are three different things that people routinely collapse into "the model". Keeping them apart is exactly what lets a flow written by a stranger run on your models, at your budget, unedited.
+
+</div>
+
+## Going deeper
+
+### Every term
 
 <div class="docs-glossary">
 

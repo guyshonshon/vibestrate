@@ -4,25 +4,50 @@ description: Author and run supervised tasks - a task with ordered steps you def
 slug: cli/supervised-tasks
 ---
 
-`vibe tasks` manages this project's tasks. A **supervised** task is one you break into
-ordered steps first, with `vibe tasks add --supervised` and `vibe tasks checklist add`.
-Each step carries a scoped objective, a plain-language done-when check, and optional file
-hints.
+## In simple words
 
-`vibe tasks run` then works through those steps in order, in a single git worktree,
-committing after each one. It stops on its own when a step fails review, when the budget
-is reached, or when a between-steps supervisor judges the work has gone off-goal.
+`vibe tasks` manages this project's tasks. A **supervised** task is one you break into ordered steps first, so each step is reviewed on its own instead of arriving as one large diff.
 
-Each step is micro-planned, implemented and reviewed, with a bounded fix loop, then
-committed - and between steps the supervisor decides to proceed, enhance or escalate.
+```bash
+vibe tasks add --supervised "Add team billing"
+vibe tasks checklist add <task-id> "Create the teams table"
+vibe tasks run <task-id>
+```
 
-Only a failing step's own work is discarded; every step that already committed stays on
-the branch. Nothing is ever auto-merged, so a finished supervised task lands as one branch
-for you to read.
+<div class="docs-callout tip">
 
-See [supervised tasks](/docs/concepts/supervised-tasks) for the concept.
+**Tip.** Reach for this when a single diff would be too big to review honestly. The point is not more automation - it is smaller units of work a human can actually check one at a time.
 
-## The shape of a run
+</div>
+
+## When it beats a plain run
+
+<div class="docs-cards">
+
+**Several changes, one title**
+A migration with four stages, a feature with two halves.
+
+**Review has to be per-part**
+A schema change and a UI tweak deserve different attention.
+
+**The plan may need to change**
+Between steps the supervisor can re-plan against what actually happened.
+
+**You want to stop midway**
+Each step is a natural place to walk away.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Between steps the supervisor returns proceed, re-plan or stop. That middle verdict is what lets a supervised task survive a step turning out differently than planned, rather than marching the rest of the sequence into a stale assumption.
+
+</div>
+
+
+## Going deeper
+
+### The shape of a run
 
 One plan up front, then a small loop per step, then one review over the whole branch.
 
@@ -66,7 +91,7 @@ Then the next step, and one holistic review over the whole branch at the end.
 This is the built-in `saga` flow, which is what `vibe flows list` calls "Saga". You do
 not pass `--flow` for a supervised task; the Conductor selects it.
 
-## Author the steps
+### Author the steps
 
 A supervised task starts empty. Create it, then add steps one at a time.
 
@@ -160,7 +185,7 @@ vibe tasks checklist move <taskId> <itemId> \
 
 `move` shifts one step at a time.
 
-## Run it
+### Run it
 
 ```bash
 vibe tasks run task-settings-v2-7c1e
@@ -194,7 +219,7 @@ vibe tasks sequence task-settings-v2-7c1e --json
 failure, so only a run that threw exits non-zero. In a script, branch on
 `supervisedState`, never on the exit code alone.
 
-## When it stops, and what happens to your code
+### When it stops, and what happens to your code
 
 <div class="docs-outcomes">
 <div class="docs-outcome stop"><b>a step failed review after its fix loop</b><span>That step's work is discarded and the step goes back to pending. Earlier commits stay.</span></div>
@@ -210,7 +235,7 @@ one step's worth, so the branch always ends at a step boundary you can read.
 line still finishes and still costs what it costs. For an unattended supervised task, set
 the project daily spend cap as the mid-step backstop.
 
-## Watch it
+### Watch it
 
 ```bash
 vibe tasks status task-settings-v2-7c1e
@@ -249,7 +274,7 @@ Both act on the live run holding the task's run lock, so there is nothing to pau
 no run is sequencing. A `halted` task has no live run either: `resume` tells you so and
 points at `vibe tasks sequence` to re-attempt from the clean tip.
 
-## Budget and the supervisor
+### Budget and the supervisor
 
 Both are project config, and `vibe config keys supervised` prints the live schema:
 
@@ -280,7 +305,7 @@ now stands: it may refine, reorder, or remove them. It may **not** add a step or
 step you wrote. Either of those halts the run for you instead, with the committed work
 kept.
 
-## The rest of the checklist commands
+### The rest of the checklist commands
 
 Every one of these is prefixed with `vibe tasks checklist`:
 
@@ -315,7 +340,7 @@ id and runs a read-only assist that proposes a checklist for it, with `--apply` 
 the proposed items. It has nothing to do with the supervisor's `enhance` verdict during a
 run.
 
-## Dashboard parity
+### Dashboard parity
 
 Supervised tasks appear as container cards on the **Board** page. The task detail view is
 where you author step objectives, acceptance checks and file hints - the same three
@@ -335,13 +360,13 @@ spawns the same command the CLI runs, so the dashboard never shells out over HTT
 The practical difference is timing: the CLI starts the run in your terminal and blocks,
 while the dashboard hands it to the scheduler and returns straight away.
 
-## What is coming next
+### What is coming next
 
 The Conductor is complete, including the autonomous enhance re-ground pass. Still to come
 is a *manual* enhance trigger - running the re-ground on demand between runs, with a
 dry-run diff to review first.
 
-## Related
+### Related
 
 - [supervised tasks](/docs/concepts/supervised-tasks) - what a supervised task is and how it differs from a plain task.
 - [Task](/docs/concepts/task) - the base task concept.

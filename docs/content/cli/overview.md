@@ -4,19 +4,52 @@ description: The shape of the vibe command, how its subcommands group, and the c
 slug: cli/overview
 ---
 
-The `vibe` command is how you work with Vibestrate from a terminal. Anything you can do
-in the dashboard you can do here, and the other way round.
+## In simple words
 
-Add `--json` to any command that offers it for machine-readable output, and `--yes` to a
-command that would otherwise stop and ask.
+`vibe` is how you work with Vibestrate from a terminal. Anything you can do in the dashboard you can do here, and the other way round.
 
-A failure comes back as a structured error: a title, an optional detail, and often a hint
-pointing at the next thing to try.
+```bash
+vibe init                       # scaffold .vibestrate/
+vibe doctor --fix               # find and wire up your CLIs
+vibe run "Add a /healthz route" # do the work
+vibe status                     # where is it
+vibe ui                         # open Mission Control
+```
 
-Run `vibe --help` for the live list of commands, which is always exactly what your
-install has.
+<div class="docs-callout tip">
 
-## The core loop
+**Tip.** Parity is deliberate, not incidental. If a guide ever tells you to leave the dashboard and run a command to finish something, that is a gap in the product rather than the intended route.
+
+</div>
+
+## The shape of every command
+
+<div class="docs-cards">
+
+**A noun, then a verb**
+`vibe flows list`, `vibe provider test`, `vibe tasks add`.
+
+**Read-only ones say so**
+`advise`, `show`, `list`, `status` change nothing.
+
+**Writes are gated**
+The same Action Broker the dashboard crosses.
+
+**Automatable**
+Exit codes and machine-readable output, for CI.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** The CLI is deliberately outside the policy gate that governs the dashboard's config writes. A gate there could refuse a first-time `vibe init` before a project has any policy to consult, and the caller is you at your own keyboard rather than a page in a browser.
+
+</div>
+
+
+## Going deeper
+
+### The core loop
 
 The day-to-day cycle, from setting up a project to inspecting a finished run:
 
@@ -30,7 +63,7 @@ vibe path <runId>       # the run's git worktree
 vibe rename <runId> a friendlier name
 ```
 
-## Command shape
+### Command shape
 
 ```text
 vibe (no args)       → the interactive shell
@@ -58,7 +91,7 @@ This page covers the ones you'll reach for most. The [CLI commands reference](/d
 On a project that has not been initialized yet, a bare `vibe` prints a short greeting and
 exits rather than opening an empty shell. Run `vibe init` first.
 
-## Worktrees, and rewinding a run
+### Worktrees, and rewinding a run
 
 Every run does its work in its own isolated git worktree, a separate checkout of your repo so runs never step on each other.
 
@@ -90,7 +123,7 @@ vibe run "<same task>" --resume-from <runId> \
 
 Add `--preview` to print the files a rewind would overwrite or remove, then exit without starting anything.
 
-## Working with providers
+### Working with providers
 
 A provider is the agent tool Vibestrate calls to do the work, like Claude Code, Codex, Gemini, or Ollama:
 
@@ -109,7 +142,7 @@ Everything here is also doable from the dashboard's Crew page, on its **Provider
 
 Neither surface is more capable than the other.
 
-## Working with config
+### Working with config
 
 These commands view and change your project's settings:
 
@@ -159,7 +192,7 @@ supervised.supervisor.roleId
 An unknown key is refused up front with a "did you mean" suggestion, so a typo cannot
 quietly write an invalid config.
 
-## Learning your codebase
+### Learning your codebase
 
 `vibe learn` scans your project - stack, scripts, layout, languages, best-effort HTTP routes, tooling markers - and writes a machine-owned, regenerable map in two files:
 
@@ -177,7 +210,7 @@ The scan is entirely deterministic - no model call, so it can run on demand with
 
 See [Codebase map](/docs/concepts/vibestrate-md) for what grounds on it, and why it stays separate from `VIBESTRATE.md`.
 
-## Working with skills
+### Working with skills
 
 A skill is reusable guidance you attach to an agent:
 
@@ -193,7 +226,7 @@ vibe skills fetch <url> --assess
 
 `skills fetch --assess` is a read-only look at a skill before you adopt it. Without `--assess` it writes the skill into the project; `--overwrite` replaces one of the same name.
 
-## Working with Flows
+### Working with Flows
 
 Commands for a [Flow](/docs/concepts/flow), the list of steps a task works through:
 
@@ -313,7 +346,7 @@ The request also never follows a redirect. An immutable publish endpoint has no 
 - The dashboard has no equivalent of `--allow-token-to-custom-host`. The custom-host
   escape is CLI-only.
 
-## Durable param memory (`vibe params`)
+### Durable param memory (`vibe params`)
 
 Fill a Flow's typed `params:` once and every run reuses them. They're stored in `.vibestrate/project-params.json`.
 
@@ -371,7 +404,7 @@ Move with **←** / **→** (or **h** / **l**), and press **Enter** to choose.
 
 Anything you do pass (`--flow`, `--crew`) is respected and skips that prompt. Passing `-i` together with `--flow <id>` instead opens that flow's detailed setup: brief, context policy, per-step Profiles, and optional steps. This requires an interactive terminal.
 
-## Working with approvals
+### Working with approvals
 
 When a run pauses for your sign-off, these commands review and decide it:
 
@@ -394,7 +427,7 @@ vibe approvals request-changes <runId> \
 
 It needs `--guidance`, and it is refused on a policy gate, which has no agent turn to re-run - approve or reject those. Your guidance is never written to the event log; the orchestrator redacts it before use.
 
-## Working with the dashboard
+### Working with the dashboard
 
 The dashboard ("Mission Control") is the web UI for watching and steering runs:
 
@@ -407,6 +440,6 @@ vibe run "<task>" --ui   # a run + the dashboard
 
 `vibe ui` binds `127.0.0.1` by default. Passing `--host` with anything else exposes the API on your network and requires `VIBESTRATE_API_TOKEN` to be set.
 
-## Reference
+### Reference
 
 For every command, every option, and every default, see the [CLI commands reference](/docs/reference/cli), generated from the commander program tree.

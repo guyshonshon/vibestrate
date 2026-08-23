@@ -4,21 +4,48 @@ description: The terminal panel vibe opens with no arguments, with a live status
 slug: cli/shell
 ---
 
-Running `vibe` with no arguments opens the interactive shell: a terminal panel that keeps the project's context in front of you and gives you a prompt to drive Vibestrate without leaving the keyboard.
+## In simple words
 
-Press **i** to focus the prompt and run any `vibe` command, **:** for the command palette, **?** for context-sensitive help, and **q** to quit. Navigation, at the end of this page, lists the rest of the keys.
+Running `vibe` with no arguments opens the interactive shell: a terminal panel keeping the project's context in front of you, with a prompt to drive Vibestrate without leaving the keyboard.
 
 ```bash
 vibe
 ```
 
-The shell is built on Ink and runs full-screen in the terminal's alternate screen buffer, the same way `vim` or `htop` do. The canvas is fixed: it never grows or scrolls as you type, and your previous terminal contents come back when you quit.
+<div class="docs-callout tip">
 
-It needs an interactive terminal. In a pipe or CI it prints a notice and exits.
+**Tip.** The shell is for a working session, not a one-off. If you only want to start a single run, `vibe run "..."` is fewer keystrokes and exits when it is done.
 
-The panel fills the terminal and is split into three bordered regions: a header, the context line and prompt, and a body with the active page beside a COMMANDS panel.
+</div>
 
-## Layout
+## What it keeps in front of you
+
+<div class="docs-cards">
+
+**The project and its status**
+Which project, which crew, what is running.
+
+**A live view of the current run**
+Steps ticking over without you asking.
+
+**A prompt**
+Every `vibe` command, without the `vibe` prefix.
+
+**Your history**
+The session remembers what you ran.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** The shell needs a POSIX shell underneath it, which is why native Windows turns it off and says so rather than failing when you open the tab. Everything else on Windows works the same.
+
+</div>
+
+
+## Going deeper
+
+### Layout
 
 <svg viewBox="0 0 560 240" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The shell fills the terminal in three stacked regions - a header with the project and status line, the context line and command prompt under it, and a body holding the active page beside a COMMANDS panel.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -60,7 +87,7 @@ Roadmap   e edit · n new · d delete · Q queue
 
 Runs also carries the scheduler queue strip at its top - what's queued, what's running, folded in from the old standalone Queue page. The strip is read-only here. Drive it from the `:` command palette or `vibe queue`.
 
-## The status bar
+### The status bar
 
 A context strip sits at the top at all times, so you always know where you are and what the next run will do.
 
@@ -72,7 +99,7 @@ A context strip sits at the top at all times, so you always know where you are a
 - **crew** and **flow.** The session's selected Crew and Flow. These seed the next run you launch from the prompt. Press **c** to pick a Crew and **f** to pick a Flow, then move with **↑ / ↓** and press **Enter**. Until you pick one, nothing is seeded: the run falls back to the project's `defaultCrew` and `defaultFlow`. `defaultFlow` is unset by default, so the orchestrator chooses a Flow per task.
 - **task.** The task text of the most-recently-active run, when one is running.
 
-## The prompt
+### The prompt
 
 The prompt sits just under the header, always visible. Press **`i`** (or `!`) to focus it, type a `vibe …` command, and press **Enter** to run it. The output streams in place. **Esc** returns to navigation. **↑ / ↓** walk command history.
 
@@ -127,7 +154,7 @@ Command output streams into a scrollable pane on the right, not the prompt, so l
 
 That pane is narrow and truncates. So when output runs past 16 lines or 64 columns - wide YAML or tables like `config show` - the shell opens the full-width view for you, which wraps and scrolls instead. Press **`O`** to toggle it yourself, or **Esc** to collapse back.
 
-## Docs browser
+### Docs browser
 
 Press **`d`** (or `:` → "Browse docs") to open the docs in-terminal: a topic list on the left, the selected page rendered with terminal Markdown (headings, code blocks, lists, inline code, links) on the right.
 
@@ -141,7 +168,7 @@ Esc                close
 
 The pages are the same ones published at the docs site, bundled with the CLI.
 
-## Navigation
+### Navigation
 
 These are single-key, and work when the prompt is not focused.
 

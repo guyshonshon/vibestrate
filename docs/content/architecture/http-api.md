@@ -4,20 +4,56 @@ description: The local dashboard API, a versioned /api/v1 contract with optional
 slug: architecture/http-api
 ---
 
-`vibe ui` starts a Fastify server (default `http://127.0.0.1:4317`) that backs
-the dashboard. The same endpoints are a stable, scriptable contract: every
-dashboard action is an HTTP call, so anything the UI does, an external caller
-can do too.
+## In simple words
 
-Pin `/api/v1` in scripts - it is rewritten to `/api` before routing, so both
-prefixes reach the same handlers.
+`vibe ui` starts a local server (default `http://127.0.0.1:4317`) that backs the dashboard. The same endpoints are a stable, scriptable contract.
 
-The server binds loopback and auth is off by default. Set
-`VIBESTRATE_API_TOKEN` and every `/api` request must then carry
-`Authorization: Bearer` with that token. Binding a non-loopback host without a
-token is refused at startup.
+```bash
+curl http://127.0.0.1:4317/api/v1/runs
+```
 
-## Endpoints at a glance
+Anything the dashboard does, a script can do.
+
+<div class="docs-callout warn">
+
+**It binds to loopback.** The server is reachable from this machine, not from your network, and write endpoints cross the same Action Broker the rest of the product does. A policy denying file writes stops an HTTP caller exactly as it stops the UI.
+
+</div>
+
+<div class="docs-callout tip">
+
+**Tip.** Versioned paths (`/api/v1/...`) are rewritten to their unversioned form internally, so both work. Prefer the versioned form in scripts you intend to keep.
+
+</div>
+
+## What the API is for
+
+<div class="docs-cards">
+
+**Driving a run from code**
+Start one, poll it, read the verdict, all without a browser.
+
+**CI**
+Kick a run from a pipeline and act on the result.
+
+**Your own surface**
+The dashboard is a client of this API, not a privileged path around it.
+
+**Reading the record**
+Runs, decisions, artifacts and the ledger.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** The dashboard has no privileged back channel. It is a client of this API like anything else, which is why "can I automate that?" almost always has the answer yes - the button you are looking at is calling an endpoint you can call.
+
+</div>
+
+
+## Going deeper
+
+### Endpoints at a glance
 
 Three areas: flows, integration, and the supervisor. Each one is described in
 full further down.
@@ -40,7 +76,7 @@ GET  /api/supervisor/threads
 POST /api/supervisor/threads/:threadId/turn
 ```
 
-## Base URL and versioning
+### Base URL and versioning
 
 - **Unversioned:** `/api/...` - what the bundled dashboard calls.
 - **Versioned:** `/api/v1/...` - the canonical contract for external callers.
@@ -72,7 +108,7 @@ forms.
 Pin `/api/v1` in scripts. A future breaking payload change ships under a new
 prefix, while `/api/v1` keeps working for a deprecation window.
 
-## Binding and origin
+### Binding and origin
 
 The server binds loopback (`127.0.0.1`) by default. It refuses cross-origin
 requests from anything but `localhost`, `127.0.0.1` or the configured host, and
@@ -89,7 +125,7 @@ Non-browser clients such as `curl` and your own scripts omit that header and
 are unaffected. A destructive endpoint like snapshot prune still requires an
 explicit body, and never acts on an empty one.
 
-## Authentication
+### Authentication
 
 Auth is **off by default** on a loopback bind (single-user, local-first). It
 turns on when a token is present:
@@ -115,7 +151,7 @@ AUTH="Authorization: Bearer $VIBESTRATE_API_TOKEN"
 curl -H "$AUTH" http://<host>:4317/api/v1/flows
 ```
 
-## Flow portability endpoints
+### Flow portability endpoints
 
 These endpoints move flows in and out of a project. A **Seat** is a named slot in a flow that says what kind of worker a step needs, not which model fills it.
 
@@ -164,7 +200,7 @@ CLI equivalents: `vibe flows export <id> [--out file]` and
 `vibe flows import <file-or-url> [--overwrite]`. In the dashboard: the **Flows**
 page has **Export**, **Import** (paste YAML or URL), and **New flow** controls.
 
-## Drafting a Flow or a Crew
+### Drafting a Flow or a Crew
 
 Two endpoints turn an English description into an editable draft. Neither one
 writes anything, and neither is a shortcut past the write endpoints above.
@@ -197,7 +233,7 @@ CLI equivalents: `vibe flows draft "<description>" [--crew <id>] [--yaml|--json]
 and `vibe crew draft "<description>" [--yaml|--json]`. In the dashboard: the
 **Flows** page and the **Crew** page each have a draft panel.
 
-## Supervisor turns (SSE over POST)
+### Supervisor turns (SSE over POST)
 
 The supervisor's conversation endpoints are inert storage - list threads, open
 one, append a message - except the turn, which is the only one that reaches a
@@ -253,7 +289,7 @@ started run outlives the request and is recorded as having happened. A
 heartbeat comment goes out every 15 seconds so idle proxies don't close the
 stream.
 
-## Integration: merge advice + guided merge-to-main
+### Integration: merge advice + guided merge-to-main
 
 These four endpoints back the dashboard's Merge page: a cheap read to list merge-ready runs, an optional deeper analysis, deterministic advice, and the guarded merge itself.
 

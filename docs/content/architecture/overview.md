@@ -4,13 +4,51 @@ description: How Vibestrate's pieces fit together, from the orchestrator down to
 slug: architecture/overview
 ---
 
-Vibestrate is a single Node process that orchestrates other local processes. There is no daemon, no service mesh, no cloud component.
+## In simple words
 
-The `vibe` CLI hands work to the orchestrator in `src/core/orchestrator.ts`, which drives a run stage by stage, moves the run state machine, and writes every artifact under `.vibestrate/runs/`. Three siblings sit below it: agents in `src/agents`, validation in `src/core/validation/`, and Mission Control - a Fastify server in `src/server` plus a React dashboard in `src/ui`.
+Vibestrate is a single Node process that orchestrates other local processes. There is no daemon, no service mesh, and no cloud component.
 
-Agents reach a model through the providers in `src/providers` (11 built in, including claude, codex, gemini and ollama). A provider runs a CLI binary already installed on your machine. Vibestrate holds no model API tokens - the provider CLIs hold their own. Path guards and permission profiles are enforced by Vibestrate, not the OS.
+```
+you -> vibe (one Node process)
+         |-- spawns your coding-agent CLIs as child processes
+         |-- manages a git worktree per run
+         `-- serves Mission Control on demand
+```
 
-## The components
+<div class="docs-callout tip">
+
+**Tip.** "Single process, no daemon" is worth taking literally. Nothing runs when you are not running it, so there is no background service to stop, no port held open, and nothing to uninstall beyond the package.
+
+</div>
+
+## The four things it owns
+
+<div class="docs-cards">
+
+**Spawning providers**
+Your CLIs, as child processes, reading their stdout.
+
+**A worktree per run**
+Created at start, named for the run, left on disk afterwards.
+
+**The record**
+Decisions, tokens, spend and artifacts, written locally as it happens.
+
+**The gate**
+Every side-effecting action crosses the Action Broker.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Vibestrate is never in the middle of a model call. Prompts and responses travel directly between the vendor CLI and the vendor's servers; Vibestrate builds the prompt, hands it over, and reads what comes back. That is why it holds no API keys.
+
+</div>
+
+
+## Going deeper
+
+### The components
 
 ```text
 vibe CLI  (src/cli)
@@ -31,7 +69,7 @@ Orchestrator  (src/core/orchestrator.ts)
    +--> Mission Control  (src/server + src/ui)
 ```
 
-## What the orchestrator owns
+### What the orchestrator owns
 
 The orchestrator keeps a run moving and remembers where it is. It owns:
 
@@ -42,7 +80,7 @@ The orchestrator keeps a run moving and remembers where it is. It owns:
 - Approval handling - pause for `waiting_for_approval`, resume on decide.
 - Pause/resume - the pause flag, durable across restarts.
 
-## An agent invocation
+### An agent invocation
 
 An agent invocation is one stage handing a task to a model and turning the result into a usable artifact.
 
@@ -57,13 +95,13 @@ For each stage that runs a model:
 7. Persist the artifact.
 8. Return control to the orchestrator.
 
-## What Mission Control sees
+### What Mission Control sees
 
 Mission Control is the dashboard, and it watches far more than it touches.
 
 The Fastify server in `src/server/` exposes read-only routes over the persisted state - the runs directory, `project.yml`, the provider registry, the skills index. Write-side routes are narrow and audited: approval decisions, pause/resume requests, suggestion bundle applies. The browser never executes arbitrary commands.
 
-## Deliberately missing
+### Deliberately missing
 
 Some things are missing on purpose. Each absence is a choice about where Vibestrate stops.
 
@@ -72,7 +110,7 @@ Some things are missing on purpose. Each absence is a choice about where Vibestr
 - **No model API.** Vibestrate doesn't hold tokens. The local provider CLIs do that themselves.
 - **No OS sandboxing.** Path guards and permission profiles refuse risky operations, but they're enforced by Vibestrate itself, not by the OS.
 
-## Related
+### Related
 
 - [Repository map](/docs/architecture/directory-map) - where each module lives.
 - [Run state](/docs/concepts/state) - what the orchestrator drives transitions through.

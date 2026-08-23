@@ -4,9 +4,56 @@ description: The local dashboard for inspecting runs, approving gates, reading d
 slug: cli/dashboard
 ---
 
-Mission Control is Vibestrate's web UI. A Fastify process serves it on demand from your own machine, and there is no backend of ours behind it. It reaches the network only on the paths you ask it to: the Flow Hub (searching, pulling or publishing a flow talks to vibestrate.com), fetching a skill from a URL, and importing a flow from a URL. It never pushes, never merges without a confirmation you send with the request, and never runs a shell command you type.
+## In simple words
 
-## Start it
+Mission Control is Vibestrate's web UI. A local process serves it on demand from your own machine.
+
+```bash
+vibe ui            # opens http://localhost:4317
+```
+
+There is no backend of ours behind it.
+
+<div class="docs-callout warn">
+
+**What it reaches the network for, and nothing else:** the Flow Hub when you search, pull or publish a flow; fetching a skill from a URL; importing a flow from a URL. It never pushes, never merges without a confirmation you send with the request, and never runs a shell command you type.
+
+</div>
+
+<div class="docs-callout tip">
+
+**Tip.** It is served on demand, so it is not a daemon you leave running. Close it and nothing stops - runs continue, and reopening it shows you where they got to.
+
+</div>
+
+## The pages you will use most
+
+<div class="docs-cards">
+
+**Mission control**
+Start a run, see what is waiting on you, ask the supervisor.
+
+**Runs**
+Everything this project has done, and the detail of any one of them.
+
+**Crew and Flows**
+Who does the work, and the recipes they follow.
+
+**Policies**
+The rules enforced on every run.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** The dashboard writes config through the same gated writer the CLI uses, so a project policy denying file writes stops the editor too. The UI is not a privileged path around your own rules.
+
+</div>
+
+
+## Going deeper
+
+### Start it
 
 Open the dashboard with:
 
@@ -26,7 +73,7 @@ You can also start a run with the dashboard already attached:
 vibe run "Add audit logging" --ui
 ```
 
-## The pages
+### The pages
 
 Mission Control's left sidebar is the app shell, and the page you open fills the rest of the window:
 
@@ -48,7 +95,7 @@ Under **More**: **Supervisors** - the read-only catalog of supervisor personas (
 
 Approvals and Suggestions no longer have their own pages - they're inspector tabs on each run's detail view (see "Watching a run" below). Notifications live in the bell icon in the sidebar's utility row, not a page.
 
-## Jumping between runs
+### Jumping between runs
 
 To open the **run switcher**, a search box over your recent runs, press **Cmd/Ctrl-K** (or `g r`) anywhere.
 
@@ -56,7 +103,7 @@ Filter by task, runId, or status and hit Enter to jump straight to a run. You do
 
 Every run is also directly linkable at `#/runs/<runId>`.
 
-## Watching a run
+### Watching a run
 
 Open a run to supervise it live. You get these panels.
 
@@ -68,7 +115,7 @@ Open a run to supervise it live. You get these panels.
 - **Inspect tabs** - Events, Artifacts (with the diff viewer), Validation.
 - **Outcome banner** - when a run ends `blocked`, `failed`, or `aborted`, a banner explains *what* stopped it (the spend cap, a rejected approval, a review `BLOCKED` verdict, verification, or the raw error) and offers the right next action: re-run with changes, see the review, or view events.
 
-## What the dashboard does *not* do
+### What the dashboard does *not* do
 
 A few things stay out of the dashboard on purpose.
 
@@ -77,7 +124,7 @@ A few things stay out of the dashboard on purpose.
 - It never merges on its own. The Source page can apply a merge, but only for the exact merge you asked for: the request must carry a literal `merge-to-main` confirmation and is refused without it. Undo is the same shape, with its own `undo-merge` confirmation.
 - It does not access your `.env` or any secret-shape file. The path guard refuses those paths no matter where the request comes from.
 
-## Stopping it
+### Stopping it
 
 Press `Ctrl-C` in the terminal where `vibe ui` is running.
 
