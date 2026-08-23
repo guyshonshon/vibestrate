@@ -4,13 +4,51 @@ description: Tell Vibestrate how to run a local coding CLI it doesn't already kn
 slug: extending/add-provider
 ---
 
-A **provider** is how Vibestrate reaches a model - almost always a command-line tool already installed on your machine. The built-in detector knows eleven: Claude Code, Codex CLI, Gemini CLI, OpenCode, Aider, Ollama, Qwen Code, Crush, Goose, Cursor CLI, and Amp. Every provider declares a type, and there are four of them:
+## In simple words
 
-<div class="docs-chips"><span>cli</span><span>claude-code</span><span>localhost-proxy</span><span>http-api</span></div>
+A [[provider]] is how Vibestrate reaches a model - almost always a command-line tool already on your machine. The detector knows eleven, so most of the time you add nothing.
 
-If you want to use a CLI it doesn't know about, or you want to change the flags it passes to one it does know, you declare your own under `providers:` in `project.yml`. Any local CLI works: if a command takes a prompt and returns a change, Vibestrate can drive it. There is no plugin to write and no SDK to learn - you point at the binary and say how the prompt gets in.
+```bash
+vibe provider setup            # wire up a detected CLI
+vibe provider test <id>        # safe connectivity check
+```
 
-## Declare a custom CLI provider
+You only declare one by hand when you have a tool the detector does not know.
+
+<div class="docs-callout tip">
+
+**Tip.** Run `vibe doctor` before writing any config. If your tool is one of the eleven built-ins it is already detected, and half of them are configured the moment they are found.
+
+</div>
+
+## The four types
+
+<div class="docs-cards">
+
+**`claude-code`**
+Claude Code specifically, with the deepest integration.
+
+**`cli`**
+Any other coding-agent CLI: a command, its args, how the prompt is fed in.
+
+**`http-api`**
+A model API on your own key, https only.
+
+**`localhost-proxy`**
+A model server on this machine, loopback only.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Six of the eleven built-ins are detected but need `vibe provider setup` once, because their flags are not stable enough across versions for Vibestrate to guess. Guessing wrong would produce a run that fails at spawn, so it asks instead.
+
+</div>
+
+
+## Going deeper
+
+### Declare a custom CLI provider
 
 Add a `providers:` block to `project.yml` and describe how your tool runs. Here `my-model` is the id you're giving this provider, and `my-coding-cli` is the actual command Vibestrate will run:
 
@@ -51,7 +89,7 @@ That one field is worth a plain explanation. `input` is how the prompt reaches t
 
 There is no `workingDir` to set either - Vibestrate always runs the CLI in the run worktree, the isolated copy of your repo it works in.
 
-## Assign the provider to a role
+### Assign the provider to a role
 
 A provider on its own doesn't do anything until a [Profile](/docs/concepts/profile) names it and a [Role](/docs/concepts/role) runs on that Profile. There is no top-level `agents:` key - roles live under `crews.<crewId>.roles`:
 
@@ -82,7 +120,7 @@ Or skip the config and use it for a single run by pointing at a Profile that nam
 vibe run "..." --profile my-model-default
 ```
 
-## Verify it works
+### Verify it works
 
 Check that Vibestrate sees the provider, then send it a test prompt:
 
@@ -97,7 +135,7 @@ If the test fails, it's almost always one of these:
 - The CLI exits non-zero when there's nothing to do. Some won't even talk without a model selected.
 - `input` is wrong. Try the other one (`stdin` vs `arg`).
 
-## Wrap Claude Code with custom flags
+### Wrap Claude Code with custom flags
 
 If what you want is Claude Code itself, but run with a custom invocation, use the `claude-code` type instead of `cli`:
 
@@ -111,7 +149,7 @@ providers:
 
 The `claude-code` type unlocks deeper integration: it can report a session id, track token usage, and resume a session.
 
-## Point at a server instead of a binary
+### Point at a server instead of a binary
 
 The other two types take an HTTP endpoint rather than a command.
 `localhost-proxy` is for a server on your own machine, like Ollama or any
@@ -140,7 +178,7 @@ resolves to localhost; an `http-api` needs https, and must not be loopback. A
 key written out in full is rejected outright, so it can't reach your git history.
 [Provider (concept)](/docs/concepts/provider) has the full set of rules.
 
-## What a provider can and can't do
+### What a provider can and can't do
 
 A provider's job is deliberately narrow.
 
@@ -166,13 +204,13 @@ A provider does not apply its own output as a diff. That's the executor's job, m
 
 </div>
 
-## Common mistakes
+### Common mistakes
 
 - **Pointing two providers at the same CLI with different flags but the same id.** Give them two distinct ids, like `claude` and `claude-fast`, so it stays clear which is which.
 - **Expecting a per-provider working directory.** There isn't one to set. The orchestrator always runs the CLI in the run's worktree.
 - **Putting API keys in `args`.** Don't. Use whatever auth flow the CLI itself supports.
 
-## Going deeper
+### Going deeper
 
 - [Provider (concept)](/docs/concepts/provider) - what a provider is and where it fits.
 - [Provider reference](/docs/reference/providers) - every field and type, in full.

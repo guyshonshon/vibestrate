@@ -4,32 +4,50 @@ description: Explore your branches as a graph, predict a merge before you apply 
 slug: workflows/git-tree-merge
 ---
 
-When you want to fold one branch into another - a finished run's branch into
-`main`, or two pieces of work together - the **Git tree** turns it into something
-you can see and reverse. It is the interactive, any-node-to-any-node evolution of
-the [merge advisor](/docs/getting-started/merging): the same safety model, but
-you drive it from a graph instead of a list.
+## In simple words
 
-Open it from the **Source** page's **Tree** tab. Nothing on this page touches a real
-branch until you click Apply.
+When you want to fold one branch into another - a finished run's branch into `main`, or two pieces of work together - the **Git tree** turns it into something you can see before you do it.
 
-Every prediction runs in a throwaway worktree, so it can tell you one of three
-things - clean, already up to date, or the exact files that would conflict -
-without touching either branch. Apply then merges for real with `--no-ff`, on
-the target branch only. It never moves your HEAD and never pushes, and **Undo
-last merge** puts the branch back on the sha it recorded before merging.
+```bash
+vibe integrate advise <run-id>   # read-only: what would merging this do?
+vibe integrate apply <run-id> --into integration/logging
+vibe integrate finish --into main   # needs a typed confirmation token
+```
 
-On a conflict you can ask the supervisor to propose a resolution. It stays a
-proposal: you review ours / theirs / proposed and edit before anything is
-written, and applying it is your click. A file whose path looks secret-like, a
-`.env` or a key file, is refused outright and never reaches a provider, and
-conflict text is redacted of secret-shaped tokens before it is sent.
+<div class="docs-callout tip">
 
-Merging from the dashboard needs `VIBESTRATE_API_TOKEN` set on the `vibe ui`
-process. A local API with no token is reachable by any process on your machine,
-so the write actions stay behind a bearer token.
+**Tip.** Look before you merge. The tree shows you the shape of what you are about to combine, which is a far better basis for a decision than a branch name and hope.
 
-## See the shape of your history
+</div>
+
+## What it is good for
+
+<div class="docs-cards">
+
+**Seeing the shape**
+Which branches exist, where they forked, what is ahead of what.
+
+**Reading a commit**
+Before deciding whether you want it.
+
+**Predicting a merge**
+What would happen, before it happens.
+
+**Undoing one**
+There is a real revert path, not just advice to be careful.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** The merge advisor is read-only. It reads the run's branch and recommends one of three routes - finish now, stage on an integration branch, or leave it - and changes nothing. Merging is a separate command, and finishing into `main` needs a typed confirmation token.
+
+</div>
+
+
+## Going deeper
+
+### See the shape of your history
 
 The left panel is the commit graph: a lane rail next to rich commit rows - each
 row carries the subject, the diff size (`+added -removed`), the author, and the
@@ -41,7 +59,7 @@ Click a commit and the graph tells its story: the commit's history stays lit,
 everything unrelated dims, and if the commit reached `main` through a merge,
 the merge commit is marked **merged here**.
 
-## See every branch
+### See every branch
 
 Switch the left panel to **Branches** for a flat list of every local branch -
 the view that works even when history is linear and the graph collapses to one
@@ -51,7 +69,7 @@ already merged or still open, and its latest commit. A one-line ledger up top
 counts open vs merged. Click a branch to focus its tip in the graph and stage
 it as the merge planner's source.
 
-## Inspect a commit
+### Inspect a commit
 
 The middle panel answers the first question about any commit - is it on main? -
 as a toned status (on main / merged / unmerged), then the diff totals, the
@@ -59,7 +77,7 @@ files it changed with per-file `+`/`-`, the full message body, and its parents
 and branch tips as jump links. Branch tips also say whether that branch is
 already **merged** or still **open**.
 
-## Predict before you apply
+### Predict before you apply
 
 In the planner (right panel), pick a **source** and a **target** branch. The
 pickers annotate every branch as `main`, `merged`, or `open`, and if the pair
@@ -82,7 +100,7 @@ applying.
 The prediction is read-only and the scratch worktree is always torn down. When
 every branch is already merged, the planner says so instead of offering a no-op.
 
-## Ask the supervisor
+### Ask the supervisor
 
 The planner has an **Ask the supervisor** button that consults your local
 provider for advice - which open branch is worth merging next, and whether the
@@ -91,7 +109,7 @@ merges for you. **Guided merge** takes it one step further: it runs the
 prediction and, on a conflict, has the supervisor propose a resolution
 automatically - but applying the result is always a separate, explicit click.
 
-## Let the supervisor resolve conflicts
+### Let the supervisor resolve conflicts
 
 On a conflict, click **Ask supervisor to propose**. Your local provider (the same
 assist path the rest of Vibestrate uses) proposes a merged version of each
@@ -110,7 +128,7 @@ This step is secret-safe by construction:
 
 The supervisor never commits. Apply is still your click.
 
-## Apply, and undo if you change your mind
+### Apply, and undo if you change your mind
 
 **Apply** performs the real merge on the target branch with `--no-ff` (so it is
 always a merge commit), after recording the target's pre-merge sha. It is gated
@@ -123,7 +141,7 @@ the merge, once the merge has reached an upstream (best-effort push detection), 
 the recorded point has drifted, or if uncommitted work would be discarded - so it
 can only reverse a merge that is still safe to reverse.
 
-## What it does not do
+### What it does not do
 
 Merges only - no rebase, squash, cherry-pick, amend, or force. No auto-merge, no
 auto-apply, no push. The interactive canvas is UI-only by design (there is no CLI

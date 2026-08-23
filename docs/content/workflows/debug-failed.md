@@ -4,50 +4,61 @@ description: How to figure out why a run ended in failed or blocked, and what to
 slug: workflows/debug-failed
 ---
 
-When a task doesn't finish cleanly, this guide helps you find out why and decide what to do about it.
+## In simple words
 
-A run can stop short for two different reasons. They feel similar, but they call for different responses: `failed` is a crash, `blocked` is a decision. One needs a fix; the other needs a call from you.
+When a task does not finish cleanly, this guide helps you find out why.
 
-<svg viewBox="0 0 560 170" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A run that stops short went one of two ways. Failed is a crash, and the failing step's own output.md holds the error. Blocked is a decision left to you, and the reviewer's output.md holds the findings.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="190" y="1" width="180" height="34" rx="8"/>
-    <rect x="1" y="62" width="270" height="42" rx="8"/>
-    <rect x="289" y="62" width="270" height="42" rx="8"/>
-    <rect x="1" y="122" width="270" height="44" rx="8"/>
-    <rect x="289" y="122" width="270" height="44" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M280 35 v13"/>
-    <path d="M136 48 h288"/>
-    <path d="M136 48 v10"/><path d="M424 48 v10"/>
-    <path d="M132 57 l4 5 l4 -5"/><path d="M420 57 l4 5 l4 -5"/>
-    <path d="M136 104 v14"/><path d="M424 104 v14"/>
-    <path d="M132 117 l4 5 l4 -5"/><path d="M420 117 l4 5 l4 -5"/>
-  </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
-    <text x="280" y="23">the run stopped short</text>
-  </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="136" y="82">failed</text>
-    <text x="424" y="82">blocked</text>
-  </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="136" y="142">output.md</text>
-    <text x="424" y="142">review/output.md</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
-    <text x="136" y="97">a crash - something to fix</text>
-    <text x="424" y="97">a decision - your call</text>
-    <text x="136" y="159">in the failing step's folder</text>
-    <text x="424" y="159">the reviewer's findings</text>
-  </g>
-</svg>
+Start by reading the status, because `failed` and `blocked` mean different things and need different responses:
 
-Either way the evidence is already on disk, under `.vibestrate/runs/` in your project. `events.ndjson` says what happened and in what order, and each step's own folder under `artifacts/flows/` holds the prompt it was given and the answer it gave back. Nothing is deleted when a run stops.
+<div class="docs-outcomes">
+<div class="docs-outcome bad">
 
-You rarely have to start from zero after a fix. A rewind reuses a finished run's earlier work and picks up from the stage you name, so a bad implementation does not cost you the planning again.
+**failed**
+A step crashed. Read that step's own output - it says what broke.
 
-## Start with `replay`
+</div>
+<div class="docs-outcome warn">
+
+**blocked**
+Something refused: a review, a policy, or a failed check. Read the decision.
+
+</div>
+</div>
+
+<div class="docs-callout tip">
+
+**Tip.** `vibe replay <run-id>` is the fastest first move for either. It reopens the finished run with every decision, output and artifact in place, so you are reading what happened rather than reconstructing it.
+
+</div>
+
+## Where to look
+
+<div class="docs-cards">
+
+**The failing step's output**
+For `failed`. Usually a stack trace or a command that exited non-zero.
+
+**The review finding**
+For `blocked` on review. It says what it objected to and why.
+
+**The validation output**
+For a failed check. Your own commands, your own error.
+
+**The worktree**
+Still on disk. Open it and read the half-finished work.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** A run that ends badly keeps its worktree on purpose. Nothing is cleaned up on failure, so the evidence is still there when you come back to it tomorrow.
+
+</div>
+
+
+## Going deeper
+
+### Start with `replay`
 
 Open the read-only inspector for the run:
 
@@ -57,7 +68,7 @@ vibe replay <runId>
 
 Read-only means you can look but not change anything. The status line tells you which stage threw the error, and the artifact list shows you what the run already recorded before it stopped.
 
-## If status is `failed`
+### If status is `failed`
 
 A `failed` status means a stage raised an error it couldn't recover from. Three things to look at, in order:
 
@@ -85,7 +96,7 @@ Common causes:
 
 </div>
 
-## If status is `blocked`
+### If status is `blocked`
 
 `blocked` is not a crash. It's the system telling you a decision is needed. Start by reading:
 
@@ -108,7 +119,7 @@ Then act on what you find. The right answer is rarely "rerun and hope." Usually 
 
 </div>
 
-## Re-run after fixing
+### Re-run after fixing
 
 Each `vibe run` is a fresh run with a fresh `runId`. Past runs stay on disk at `.vibestrate/runs/`, so you can compare what the planner produced this time against last time:
 
@@ -118,7 +129,7 @@ diff <oldRunId>/artifacts/flows/plan/output.md \
      <newRunId>/artifacts/flows/plan/output.md
 ```
 
-## Rewind instead of restarting
+### Rewind instead of restarting
 
 Sometimes the plan and architecture were fine and only the implementation needs another pass. For example, the run was read-only and you now want the executor to actually write code. In that case you don't have to re-pay for planning and architecture. **Rewind** forks a fresh run that reuses the earlier artifacts and resumes from a stage you pick:
 
@@ -176,11 +187,11 @@ It prints the plan and asks before deleting (skip the prompt with `-y`). Only re
 
 The dashboard's **Runs** page has a **Prune snapshots** button for the same orphan cleanup, and `POST /api/runs/snapshots/prune` (with `dryRun`) is the API. For hands-off trimming, set `git.snapshotRetentionRuns` to keep the last N runs automatically.
 
-## When to file a bug
+### When to file a bug
 
 If the same task fails in the same place across multiple providers, and the failure isn't traceable to your config or your task description, that's worth a bug report. Include the `runId`, the `events.ndjson` excerpt around the failure, and the failing step's `output.md`.
 
-## Related
+### Related
 
 - [Run state](/docs/concepts/state) - definitions of `failed` and `blocked`.
 - [Troubleshooting](/docs/troubleshooting) - common, reproducible issues with fixes.

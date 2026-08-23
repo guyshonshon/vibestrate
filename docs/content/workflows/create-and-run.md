@@ -4,13 +4,47 @@ description: Go from a thing you need done to a finished change you can merge.
 slug: workflows/create-and-run
 ---
 
-This guide takes you from "I have a thing to do" all the way to a change you can merge, step by step.
+## In simple words
 
-One command starts the run. Vibestrate plans, writes, validates, reviews and verifies the change on its own, in a copy of your project, then stops and hands you the diff. It never pushes and never merges - the last call is yours.
+This guide takes you from "I have a thing to do" to a change you can merge.
 
-A run finishes in one of four terminal states: `merge_ready`, `blocked`, `failed` or `aborted`.
+```bash
+vibe run "Add retry with backoff to the uploader" --ui
+```
 
-## 1. Frame the task
+That is the short version. The rest of this page is what each part of it means and what to do when the answer is not obvious.
+
+<div class="docs-callout tip">
+
+**Tip.** `--ui` opens Mission Control alongside the run. Watching your first few runs is worth the screen space; once the shape is familiar you will mostly start them and come back.
+
+</div>
+
+## The three decisions
+
+<div class="docs-cards">
+
+**How to frame it**
+Say what you want and the constraint that matters. Not which files to edit.
+
+**Whether to pick a flow**
+Auto is a good default. Name one when you disagree with what it chose.
+
+**Whether to watch**
+A run is fine unattended. Nothing merges without you either way.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** The run tells you afterwards which flow it chose and why, including the words in your task that triggered any upgrade. If a task got a heavier flow than you expected, that reasoning is recorded rather than left for you to guess at.
+
+</div>
+
+
+## Going deeper
+
+### 1. Frame the task
 
 Write the task description the way you'd brief a careful colleague. Name the file, name the convention, name the constraint. The more exact you are, the better the result.
 
@@ -18,7 +52,7 @@ Write the task description the way you'd brief a careful colleague. Name the fil
 
 > **Weak.** Improve settings logging.
 
-## 2. Start the run
+### 2. Start the run
 
 Kick off the task with one command:
 
@@ -41,7 +75,7 @@ vibe run "..." --profile <id>
 
 Profile ids are yours, not ours. Run `vibe profile list` to see the ones your project actually has.
 
-## 3. Watch, or walk away
+### 3. Watch, or walk away
 
 The default flow is eight steps, and Vibestrate works through them on its own:
 
@@ -69,7 +103,7 @@ When the run finishes, it lands in one of four states:
 <div class="docs-outcome stop"><b>aborted</b><span>You stopped the run yourself with vibe abort.</span></div>
 </div>
 
-## 4. Inspect the result
+### 4. Inspect the result
 
 See every run in the project, then dig into one:
 
@@ -80,7 +114,7 @@ vibe replay <runId>    # read-only, one run
 
 Or open the dashboard's **Source** page, on its **Changes** tab, to read the diff inline.
 
-## 5. Merge it yourself
+### 5. Merge it yourself
 
 Vibestrate does not push or merge (see [the safety guarantees](/docs/concepts/safety)). The run leaves the diff on its branch in the worktree, and the final call is yours.
 
@@ -162,7 +196,7 @@ vibe abort <runId>
 # remove it when you're done
 ```
 
-## Related
+### Related
 
 - [Inspect a run in flight](/docs/workflows/inspect-progress).
 - [Pause, resume, abort](/docs/workflows/pause-resume).

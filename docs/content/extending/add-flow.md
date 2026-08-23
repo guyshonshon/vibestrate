@@ -4,15 +4,56 @@ description: Write your own run recipe with seats, steps, and an optional pause 
 slug: extending/add-flow
 ---
 
-A custom [Flow](/docs/concepts/flow) is written in YAML, in a `flow.yml` inside a directory named for the flow id, under `.vibestrate/flows/`.
+## In simple words
 
-Vibestrate finds it on its own and checks it against the schema when it loads, so a broken Flow fails loudly at the start instead of quietly partway through a run.
+A custom [[flow]] is a YAML file: `flow.yml` inside a directory named for the flow id, under `.vibestrate/flows/`.
 
-A Flow declares `seats` (the kind of worker each step needs) and `steps`. Every step has a `kind`, one of six:
+```yaml
+id: quick-review
+label: Quick review
+seats:
+  reviewer:
+    label: Reviewer
+steps:
+  - id: review
+    label: Review
+    kind: review-turn
+    seat: reviewer
+```
 
-<div class="docs-chips"><span>agent-turn</span><span>review-turn</span><span>response-turn</span><span>validation</span><span>approval-gate</span><span>summary-turn</span></div>
+That is a whole (very small) flow. It names a seat, and a step that uses it.
 
-## Steps
+<div class="docs-callout tip">
+
+**Tip.** You rarely need to start from a blank file. **Draft a flow** describes what you want in plain English and proposes one, and **Customize** on a built-in copies it into your project so you edit a working flow rather than compose one.
+
+</div>
+
+## Before you write one
+
+<div class="docs-cards">
+
+**Try a skill first**
+If the goal is "always do X", a [[skill]] achieves it with far less machinery.
+
+**Try a clearer task**
+Many flow ideas are really a task description that was too vague.
+
+**Then write a flow**
+When the *shape* of the work is genuinely different: extra review passes, a mandatory gate, steps in a different order.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** A flow step has no model, provider or profile field, and that is deliberate. A flow names seats only, so the one you write here runs on a teammate's models, at their budget, unedited.
+
+</div>
+
+
+## Going deeper
+
+### Steps
 
 Four moves take a Flow from an empty folder to a finished run.
 
@@ -76,7 +117,7 @@ Four moves take a Flow from an empty folder to a finished run.
      --flow spike-and-decide
    ```
 
-## Step kinds
+### Step kinds
 
 Each step has a `kind` that says what happens in it. The example above uses four of them, and the last one halts the run until you decide:
 
@@ -117,7 +158,7 @@ Here is what every kind is for.
 | `approval-gate` | Halt the run; human decides whether to continue. |
 | `summary-turn` | An arbiter writes a final summary. |
 
-## Seats, not your models
+### Seats, not your models
 
 A Seat is the slot a step needs filled, named by the kind of worker it wants - a planner, a builder, a challenger, a prototyper. The Flow only names Seats. It never names your local Roles or Providers, and that is what keeps it shareable. (A Role is one of your configured workers; a Provider is the AI vendor behind it.)
 
@@ -135,7 +176,7 @@ vibe run "..." --flow spike-and-decide \
 
 That runs the `prototype` step on the Profile you name, without changing how the Role behaves. To choose *which* Role fills a Seat for a run, use `--seat-role prototyper=<roleId>`.
 
-## Optional steps
+### Optional steps
 
 Set `optional: true` on a step to let people skip it on a given run:
 
@@ -144,7 +185,7 @@ vibe run "..." --flow spike-and-decide \
   --flow-skip plan
 ```
 
-## Clean-room steps
+### Clean-room steps
 
 Set `cleanRoom: true` on a step and that seat stops receiving the run narrative from the steps before it. The run narrative is the run brief, the "story so far", plus the project ledger.
 
@@ -187,13 +228,13 @@ Clean-room hides only the run narrative, never the spec. In testing, hiding the 
   cleanRoom: true
 ```
 
-## Common mistakes
+### Common mistakes
 
 - **One Role filling both builder and challenger.** It'll agree with itself. Use two Seats filled by two different Roles.
 - **Skipping validation.** Without a `validation` step, your Flow has no ground truth.
 - **Over-stuffing one Flow.** Twelve steps is too many. If a Flow grew long, split it.
 
-## Share a Flow (import and export)
+### Share a Flow (import and export)
 
 Flows travel well because they name Seats, not your local Roles or Providers. One project's Flow drops into another and resolves against that project's Crew.
 
@@ -212,7 +253,7 @@ Imports are checked against the schema, and refused if they carry the shape of a
 
 The dashboard Flows page has the same controls (Export, Import, New flow). The HTTP endpoints behind them (`/api/v1/flows/:id/export`, `POST /api/v1/flows/import`, `POST /api/v1/flows`) are documented under [HTTP API](/docs/architecture/http-api).
 
-## Going deeper
+### Going deeper
 
 - [Flow (concept)](/docs/concepts/flow) - what a Flow is and when to write one.
 - [Built-in Flows reference](/docs/reference/flows) - every shipped Flow, step by step.

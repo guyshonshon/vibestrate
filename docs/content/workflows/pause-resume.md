@@ -4,38 +4,48 @@ description: How to safely stop a run, bring it back later, or end it for good.
 slug: workflows/pause-resume
 ---
 
-Sometimes you want to stop a run, look at where it got to, and pick it back up later. Pausing does exactly that, and it sticks: the flag is written to your project, not held in memory, so it survives anything restarting.
+## In simple words
 
-There are three things you can do to a running run: pause it, resume it, or abort it. Only `vibe abort` is final, and even that keeps the run's worktree on disk for you to read. `vibe pause` and `vibe resume` just set a flag - the process doing the work is what reads it, so neither one starts or stops anything by itself. If that process is gone, clearing the flag will not bring it back.
+Sometimes you want to stop a run, look at where it got to, and pick it up later.
 
-A run that stops itself at a policy gate is a different thing, and `vibe resume` will not move it. Its status is `waiting_for_approval`, and the command that decides it is `vibe approvals`.
+```bash
+vibe pause <run-id>     # stops at the next safe point
+vibe resume <run-id>    # picks up where it stopped
+```
 
-<svg viewBox="0 0 560 122" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A run you paused yourself sits at the status paused, and vibe resume clears the flag. A run stopped by a policy gate sits at waiting_for_approval, and only vibe approvals moves it.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="4" width="250" height="44" rx="8"/>
-    <rect x="349" y="4" width="210" height="44" rx="8"/>
-    <rect x="1" y="72" width="250" height="44" rx="8"/>
-    <rect x="349" y="72" width="210" height="44" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M251 26 h94"/><path d="M340 22 l5 4 l-5 4"/>
-    <path d="M251 94 h94"/><path d="M340 90 l5 4 l-5 4"/>
-  </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="126" y="24">paused</text>
-    <text x="454" y="24">vibe resume</text>
-    <text x="126" y="92">waiting_for_approval</text>
-    <text x="454" y="92">vibe approvals</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
-    <text x="126" y="40">you asked for it</text>
-    <text x="454" y="40">clears the flag</text>
-    <text x="126" y="108">a policy gate stopped it</text>
-    <text x="454" y="108">approve, reject, or send guidance</text>
-  </g>
-</svg>
+Pausing sticks. The flag is written to your project, not held in memory, so it survives anything restarting.
 
-## Pause
+<div class="docs-callout tip">
+
+**Tip.** Pause is not abort. A paused run keeps its worktree, its branch and everything it had done, and resuming continues rather than starting over. Abort is the one that ends it.
+
+</div>
+
+## The three ways a run stops
+
+<div class="docs-cards">
+
+**You paused it**
+Status `paused`. Resume clears the flag and it continues.
+
+**It is waiting on you**
+Status `waiting_for_approval`. An approval gate wants a human.
+
+**Something refused**
+Status `blocked`. A policy, review or check said no.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Because the pause flag is a file rather than process state, a pause you requested survives closing your laptop, restarting the dashboard, or the machine rebooting. A run cannot quietly resume because something restarted.
+
+</div>
+
+
+## Going deeper
+
+### Pause
 
 To pause a run, give Vibestrate the run's ID:
 
@@ -45,7 +55,7 @@ vibe pause <runId>
 
 Vibestrate works in stages and checks for the flag between them. When it spots one, it moves the run to the `paused` state and writes down which stage it was about to start. Nothing gets cut off halfway.
 
-## Resume
+### Resume
 
 To pick the run back up:
 
@@ -55,11 +65,11 @@ vibe resume <runId>
 
 This clears the flag and the run continues from the stage in `pausedAtStatus`. When the process is gone, start a fresh run and reuse the work with [`--resume-from`](/docs/workflows/debug-failed) instead.
 
-## Cancel a pause request before it fires
+### Cancel a pause request before it fires
 
 Say you ran `vibe pause` and then changed your mind before the run reached the next gap between stages. Running `vibe resume` cancels the pending pause. The run keeps going and never enters the `paused` state at all.
 
-## Abort
+### Abort
 
 To end a run for good:
 
@@ -75,7 +85,7 @@ git worktree remove ../.vibestrate-worktrees/<runId>
 git branch -D vibestrate/<runId>
 ```
 
-## Policy-gated pauses are different
+### Policy-gated pauses are different
 
 Some pauses are scheduled by a policy rather than asked for by you. If `policies.requireApprovalAtStages` names a stage, the run pauses on its own at the boundary into that stage, with the status `waiting_for_approval`. This kind of pause is waiting for your decision, so `vibe resume` is not the right tool. Use `vibe approvals` instead:
 
@@ -93,7 +103,7 @@ Each of these stopping points has its own status, so you always know why a run i
 
 <div class="docs-chips"><span>paused</span><span>waiting_for_approval</span><span>blocked</span><span>aborted</span></div>
 
-## When to abort vs let it block
+### When to abort vs let it block
 
 Not every stuck run should be aborted. Abort means you end it; block means it stopped itself. Here is how to tell them apart.
 
@@ -101,7 +111,7 @@ Not every stuck run should be aborted. Abort means you end it; block means it st
 - The reviewer is doing something useful but is stuck on a call you'd rather make yourself. **Abort**, fix the cause (clarify the task, add a skill, adjust the rules), then run again.
 - The run stopped itself (status `blocked`) because the reviewer or verifier raised a real concern. Don't abort. Read the findings, decide what to do, and restart with the lesson encoded in the task or a skill.
 
-## Next
+### Next
 
 - [Flow](/docs/concepts/flow) - the steps a run works through, and where the pauses fall.
 - [Run state](/docs/concepts/state) - every status a run can hold, and which ones are final.

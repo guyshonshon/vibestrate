@@ -4,40 +4,39 @@ description: Where to watch a run as it happens, and where every detail is saved
 slug: workflows/inspect-progress
 ---
 
-When Vibestrate is doing work for you, you can watch it as it goes. There are three places to look: the terminal for a quick glance while it runs, the dashboard for the full live picture, and the files on disk for the complete record you can read back at any time.
+## In simple words
 
-Everything a run does is written under `.vibestrate/runs/` as it happens, and `events.ndjson` is the file to trust. One JSON line per event, only ever appended to, so it is the honest record of what happened even when you were not watching.
+While Vibestrate is working you can watch it. Three places to look, depending on what you want.
 
-<svg viewBox="0 0 560 116" width="100%" style="max-width:560px;height:auto" role="img" aria-label="One run can be watched from three places: the terminal with vibe logs for a quick glance, the dashboard started with vibe run --ui for the full live picture, and the files under .vibestrate/runs for the complete record.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="30" width="180" height="56" rx="8"/>
-    <rect x="190" y="30" width="180" height="56" rx="8"/>
-    <rect x="379" y="30" width="180" height="56" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M91 22 h378"/>
-    <path d="M91 22 v4"/><path d="M280 22 v4"/><path d="M469 22 v4"/>
-    <path d="M87 21 l4 5 l4 -5"/><path d="M276 21 l4 5 l4 -5"/><path d="M465 21 l4 5 l4 -5"/>
-  </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
-    <text x="91" y="52">the terminal</text>
-    <text x="280" y="52">the dashboard</text>
-    <text x="469" y="52">files on disk</text>
-  </g>
-  <g fill="currentColor" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="91" y="70">vibe logs --follow</text>
-    <text x="280" y="70">vibe run --ui</text>
-    <text x="469" y="70">.vibestrate/runs/</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
-    <text x="280" y="14">one run</text>
-    <text x="91" y="104">a quick glance while it runs</text>
-    <text x="280" y="104">the full live picture</text>
-    <text x="469" y="104">the complete record</text>
-  </g>
-</svg>
+<div class="docs-cards">
 
-## The terminal
+**The terminal**
+`vibe logs` for a quick glance at what step it is on.
+
+**The dashboard**
+The full live picture: steps ticking over, tokens, spend, the diff so far.
+
+**The files on disk**
+The complete record, readable at any time, including long after the run.
+
+</div>
+
+<div class="docs-callout tip">
+
+**Tip.** You do not have to watch. The run does the same thing either way, and the record is written as it happens rather than at the end - so walking away costs you nothing you cannot read back later.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** Because the record is on disk as the run goes, a run that crashes still leaves everything it had decided up to that point. There is no buffer that gets lost when the process dies.
+
+</div>
+
+
+## Going deeper
+
+### The terminal
 
 A plain `vibe run` narrates itself: one line per flow step as it starts, any warnings as they come up, and a final block at the end with the run's status, the review and verification decisions, and the paths to its artifacts, worktree and branch.
 
@@ -49,7 +48,7 @@ vibe logs <runId> --follow
 
 Streams are recorded per step in the run's own `streams/` folder, so `vibe logs` works on a finished run too. Without `--follow` it prints the newest stream and exits, and `--stream` picks a specific one by name.
 
-## The dashboard
+### The dashboard
 
 `vibe run "..." --ui` opens Mission Control, a web dashboard, next to the run. Mission Control also has its own **New run** composer: submit a brief there and it launches in the background, then offers you an **Open** button through to the run screen.
 
@@ -70,7 +69,7 @@ Around the timeline you also get:
 
 Opening **Source** for the run gives you the live diff against `main` as it works, so you can see exactly what is changing.
 
-## The files on disk
+### The files on disk
 
 Everything is recorded at `.vibestrate/runs/<runId>/`, and the run folder looks like this:
 
@@ -118,7 +117,7 @@ verifying → merge_ready
 
 Swap the type for `review.decision`, `verification.decision` or `action.denied` to answer a different question off the same file.
 
-## Read past runs
+### Read past runs
 
 To look back at a run that already finished:
 
@@ -128,7 +127,7 @@ vibe replay <runId>
 
 Replay is a read-only inspector for any saved run. It is handy for runs that finished long ago, runs from another machine that synced over, or any run you did not watch live.
 
-## Related
+### Related
 
 - [Run state](/docs/concepts/state) - what the status field means.
 - [Debug a failed run](/docs/workflows/debug-failed).

@@ -4,35 +4,69 @@ description: Write a markdown file, save it under .vibestrate/skills/, and attac
 slug: extending/add-skill
 ---
 
-A skill is a markdown file you write to teach your agents your project's conventions. Save it under `.vibestrate/skills/` and discovery picks it up on its own - there is no scaffold to run and no metadata form. Vibestrate reads `.claude/skills/` too, so skills you already keep for Claude Code work as they are. A skill has two possible shapes: a flat `.md` file, which is this page's default, and a directory holding `SKILL.md` for a skill that also needs an MCP server - see [Pointing a skill at an MCP server](#optional-pointing-a-skill-at-an-mcp-server) below.
+## In simple words
 
-## 1. Create the file
+A [[skill]] is a markdown file teaching your agents your project's conventions. There is no scaffold to run and no metadata form - write the file, and discovery picks it up.
+
+```bash
+mkdir -p .vibestrate/skills
+$EDITOR .vibestrate/skills/api-conventions.md
+```
+
+<div class="docs-callout tip">
+
+**Tip.** Vibestrate reads `.claude/skills/` too, so skills you already keep for Claude Code work as they are. You do not have to move or duplicate them.
+
+</div>
+
+## The two shapes
+
+<div class="docs-cards">
+
+**A flat `.md` file**
+The common case. Instructions only. This page's default.
+
+**A directory with `SKILL.md`**
+For a skill that also needs an MCP server alongside its instructions.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** A skill in a directory can bring an MCP server with it, which means attaching that skill hands a role new tools as well as new instructions. That is why skill assignment is gated exactly like a prompt edit.
+
+</div>
+
+
+## Going deeper
+
+### 1. Create the file
 
 Make a file in `.vibestrate/skills/` named for the skill, like `auth-conventions.md`. The filename minus the `.md` is the name you refer to it by everywhere else, so keep it short and kebab-case (lowercase words joined by hyphens), like auth-conventions, payment-rules or oncall-runbook. A `name:` in the file's frontmatter overrides the filename if you set one.
 
-## 2. Write the body
+### 2. Write the body
 
 The body is plain markdown, and there's no structure you're required to follow. That said, most useful skills look like this:
 
 ```markdown
 # Title - what this is about
 
-## When to use this
+### When to use this
 
 One or two sentences naming the surface.
 
-## Rules
+### Rules
 
 - Bullet list of conventions.
 - Be specific. "We use X" beats "we prefer X".
 
-## Examples
+### Examples
 
 Short examples of the right way.
 Mark anti-patterns explicitly.
 ```
 
-## 3. Check that it was discovered
+### 3. Check that it was discovered
 
 Run these two commands to confirm Vibestrate found your file. The first lists every skill it knows about; the second prints one back to you so you can read it.
 
@@ -41,7 +75,7 @@ vibe skills list
 vibe skills show <name>
 ```
 
-## 4. Attach it
+### 4. Attach it
 
 A skill does nothing until you attach it to something. You can attach it to a role in `project.yml`, so that role always gets it. Roles live under `crews.<crewId>.roles`, not a top-level `agents:` key:
 
@@ -61,11 +95,11 @@ Or attach it to a single run, just for that one task:
 vibe run "Add 2FA" --skills auth-conventions
 ```
 
-## Skills you already have in .claude/skills/
+### Skills you already have in .claude/skills/
 
 If your project already uses Claude Code's skill discovery, Vibestrate reads `.claude/skills/` too. You don't need to copy those files anywhere or keep two versions in sync.
 
-## What makes a skill good
+### What makes a skill good
 
 Write it like docs for a colleague, not a prompt: state what you'd tell a new engineer on day one - where the rule applies, what to do, what not to do - and skip the persuasion. A good skill is precise about where it applies and what to do. A few habits that pay off:
 
@@ -74,7 +108,7 @@ Write it like docs for a colleague, not a prompt: state what you'd tell a new en
 - **Mention the anti-pattern.** Spell out what not to do, like "Don't write session middleware inline."
 - **Keep it bounded.** A 200-line skill that loads on every agent is expensive. If one grows huge, split it into smaller skills.
 
-## Optional: pointing a skill at an MCP server
+### Optional: pointing a skill at an MCP server
 
 A skill can also declare an MCP server (an outside tool an agent connects to) that its agents should reach. The flat `.md` file this page starts with can't carry one - it has no directory of its own to hold a config file next to. For an MCP server, use the **directory form** instead: a folder named for the skill id, holding `SKILL.md` (or `skill.md`) plus a sibling `.mcp.json`.
 
@@ -132,7 +166,7 @@ access, for inspecting queries.
 
 This is optional, and most skills don't need it. A flat `.md` skill's `mcpServers` are always empty - there's no directory to hold the `.mcp.json` next to it.
 
-## Going deeper
+### Going deeper
 
 - [Skill (concept)](/docs/concepts/skill) - what a skill is and how agents use it.
 - [Attach skills (getting started)](/docs/getting-started/skills) - the quick path to your first one.
