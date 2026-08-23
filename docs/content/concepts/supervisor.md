@@ -1,22 +1,60 @@
 ---
 title: Supervisor
-description: The judgment Vibestrate brings to a run - how hard it looks, what the reviewers aim at, and a labelled record of every call it made.
+description: The judgment Vibestrate brings to a run - how hard it looks, and a labelled record of every call.
 slug: concepts/supervisor
 ---
 
-A **supervisor** is the judgment Vibestrate brings to a run: how hard to look at the work, and how strict to be before calling it done. It does no work itself. It sets the level of scrutiny, then writes down every call it makes.
+## In simple words
 
-You meet it at the top of a run. The Supervisor panel names the supervisor that ran, tags the review `cross-model` or `single-profile`, counts the decisions it made, and carries one line on the flow it chose. **Flow & why** opens the reasoning behind that line: the flow it resolved, where the choice came from, and the words that triggered an upgrade.
+A **supervisor** decides how hard to look at the work before calling it done. It does none of the work itself. It sets the level of scrutiny, then writes down every call it makes.
 
-![A finished run on the Default flow. The Supervisor panel sits at the top of the page, above the eight steps ticked from Plan to Verify with their token counts and spend. Run assurance reads verified across policy, validation, review and verification, and the Run dashboard header offers View diff, Workspace, Copy cd, Re-run with changes, Flow & why and Live metrics.](/media/docs/run-merge-ready.png)
+Think of a building inspector. They do not pour the concrete or hang the drywall. They decide how closely to look, send the risky parts back for a second opinion, and record every call so the sign-off means something.
 
-Think of a building inspector. They do not pour the concrete or hang the drywall. They decide how hard to look, send the risky parts back for a second opinion, and record every call so you can trust the sign-off. Run assurance carries the sign-off; the panel above it carries the reasoning.
+You meet it at the top of a [[run]]:
 
-One word covers two things here. **This page is the setting.** `.vibestrate/project.yml` calls it a `persona`, you pick one per run, and it shapes how the work is reviewed. The **Supervisor** chat on Mission Control is something else: a *conversation* with your project, covered by [Supervisor Control](/docs/concepts/supervisor-control). They share a name and a command: under `vibe supervisor`, list, archetypes, adopt, default and remove manage the setting on this page, while stop, resume and status belong to the conversation.
+![The Supervisor panel of a run. It names staff-engineer, tags the review single-profile, and shows 3 decisions. Three judgment rows read verify PASSED, review APPROVED, and review aimed through 3 lenses - correctness, tests and security-risk.](/media/docs/scoped/supervisor.png)
 
-A supervisor is advisory, and the product says so out loud. Its choices only ever add scrutiny, never remove it.
+Named, tagged, counted, and every judgment written down with a timestamp.
 
-## The calls it makes
+<div class="docs-callout tip">
+
+**Tip.** `single-profile` on that panel is the supervisor telling on itself. It means one model both wrote and judged, which is a self-check. Point the reviewer role at a second [[provider]] and the tag becomes `cross-model`. The label can lower your confidence in a result; it never inflates it.
+
+</div>
+
+## When you would change it
+
+<div class="docs-cards">
+
+**The work touches auth or payments**
+The `security` supervisor aims reviewers at authorization, secrets and injection instead of general correctness.
+
+**You want a second opinion by default**
+A supervisor can upgrade a risky task to a multi-reviewer flow automatically, on words it recognises.
+
+**A project has its own risk words**
+Risk signals are a list. Add the terms that mean "be careful" in your codebase.
+
+**You want the reasoning, not just the verdict**
+**Flow & why** opens the choice: which flow it resolved, where the choice came from, and the words that triggered any upgrade.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** A supervisor is advisory, and only ever adds scrutiny. It can upgrade a run to a heavier flow, never downgrade one; it can suggest a stricter execution posture, never relax it. That asymmetry is deliberate: a setting that could quietly reduce checking would make every verdict weaker.
+
+</div>
+
+<div class="docs-callout warn">
+
+**One word, two things.** *This page is the setting* - `project.yml` calls it a `persona`, you pick one per run, and it shapes how work is reviewed. The **Supervisor** chat on Mission Control is a *conversation* with your project, covered by [supervisor control](/docs/concepts/supervisor-control). They share a name and a command: under `vibe supervisor`, `list`, `archetypes`, `adopt`, `default` and `remove` manage the setting here, while `stop`, `resume` and `status` belong to the conversation.
+
+</div>
+
+## Going deeper
+
+### The calls it makes
 
 <div class="docs-cards">
 
@@ -72,7 +110,7 @@ Naming a lens is the only way a supervisor changes what a reviewer is asked to l
 
 </div>
 
-## Judgment, or a gate
+### Judgment, or a gate
 
 The decision count in the Supervisor panel opens the feed: every call the supervisor made, newest first. Each entry carries one of three labels, and the difference between them is the point.
 
@@ -88,7 +126,7 @@ The decision count in the Supervisor panel opens the feed: every call the superv
 
 A model's verdict shown as if it were a hard guarantee is the failure this labelling exists to prevent. Anything waiting on your approval sits in the same panel.
 
-## Picking one
+### Picking one
 
 Two supervisors ship built in and need no setup: `staff-engineer`, the default, and `security`. Six more are presets. A preset has to be copied into your config before you can pick it.
 
@@ -96,7 +134,7 @@ Two supervisors ship built in and need no setup: `staff-engineer`, the default, 
 
 **Supervisors** in the sidebar lists what you can pick. Set the project default there, adopt a preset, remove a project supervisor, or author a new one with its own risk signals, preferred flows and posture. The composer's **Supervisor** picker overrides the default for one run.
 
-## Picking who reviews
+### Picking who reviews
 
 Point `reviewerProfile` at a [Profile](/docs/concepts/profile) and every review seat runs it. A cheap model for routine reviews, or a different vendor when you want an independent second read - which is also one way `single-profile` becomes `cross-model`. This one is a config field; the Supervisors page leaves it unset.
 
@@ -120,11 +158,11 @@ and `reviewLenses` if you want them.
 
 Anything you choose by hand wins. A per-step profile override, or a run-wide `--profile`, beats `reviewerProfile`.
 
-## Project rules are not the supervisor's
+### Project rules are not the supervisor's
 
 A rule like "use a hyphen, not an em-dash" belongs to the project, so it holds whichever supervisor reviews the work. The active supervisor is the enforcer, not the owner: it carries the `advise` rules into the reviewer's turn, and the project's `block` rules cap the merge regardless of which supervisor is active. [Policies](/docs/concepts/policies) has the tiers and how rules get captured. Older configs scoped these to a supervisor under a `preferences` key; `vibe policies migrate` lifts them across once.
 
-## Advanced: CLI and automation
+### Advanced: CLI and automation
 
 Every screen above has a command behind it, and a scripted run needs one.
 
@@ -138,7 +176,7 @@ vibe run "harden the login" --supervisor security
 
 [The CLI overview](/docs/cli/overview) has the shape of the tool; [the command reference](/docs/reference/cli) has every flag.
 
-## Going deeper
+### Going deeper
 
 - [Flow](/docs/concepts/flow) - what an upgrade changes.
 - [Profile](/docs/concepts/profile) - what `reviewerProfile` points at.

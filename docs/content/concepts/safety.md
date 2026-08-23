@@ -1,18 +1,64 @@
 ---
 title: Safety - Action Broker & policies
-description: The dashboard shows you every gate a run passed. Underneath, the Action Broker decides each real effect against your rules and writes down what it decided.
+description: Every real effect a run has crosses one checkpoint, which decides it against your rules and writes down what it decided.
 slug: concepts/safety
 ---
 
-Open any run and the safety model is the first thing on the page. The **Run assurance** panel carries a single verdict and four lanes under it - policy, validation, review, verification - so you can see which gate held and which one stopped the work.
+## In simple words
 
-![A blocked run on the Express flow. The Run assurance panel reads blocked, with review showing changes requested and verification showing failed. Below it the reviewer's finding says the new code writes userId to stdout on every rejected save. The panel's controls are View review and Re-run with fixes, and Pause and Abort sit in the run header.](/media/docs/run-blocked.png)
+A [[run]] can spawn processes, run commands and edit files. Every one of those real effects crosses **one checkpoint** first, called the Action Broker. It decides the effect against your rules, then records what it decided and what happened.
 
-This run got stopped by its own gates. Review came back **changes requested**, verification failed after it, and the verdict is blocked, so nothing reached your branch. **View review** opens the finding in full, and **Re-run with fixes** sends the work back with that finding attached instead of starting over. **Pause** and **Abort** are your two levers while a run is still moving.
+When gates stop a run, the run says so plainly:
 
-The panel is a summary. Each of those lanes is fed by decisions made one at a time, while the run was going, by the **Action Broker**.
+![The header of a blocked run on the Express flow, reading Run blocked, with its steps listed and the elapsed time and diff beside them.](/media/docs/scoped/blocked.png)
 
-## The Action Broker
+And the assurance panel says *which* gate held:
+
+![The Run assurance panel of a blocked run, showing review as changes requested and verification as failed, with the reviewer's finding that the new code writes userId to stdout on every rejected save, and View review and Re-run with fixes controls.](/media/docs/scoped/run-blocked.png)
+
+Review came back **changes requested**, verification failed after it, and nothing reached your branch. **Re-run with fixes** sends the work back with that finding attached instead of starting over.
+
+<div class="docs-callout warn">
+
+**The broker is default-allow with a policy veto, not default-deny.** An effect no policy matches proceeds. Policies can refuse or hold, never grant. It is where you impose limits and where they are recorded, not a whitelist you have to satisfy to get work done.
+
+</div>
+
+## What actually bounds a run with no policies configured
+
+That is a fair question, and the honest answer is: not the broker. Three things underneath it:
+
+<div class="docs-cards">
+
+**A dedicated worktree per run**
+Agents edit a separate copy of your project. See [[worktree]].
+
+**A post-turn diff gate**
+It refuses secret-bearing or forbidden-path changes and rolls the turn back.
+
+**Nothing merges without you**
+No push, no merge, ever, without a human. Two of the four hard guards say so.
+
+**Secret shapes are refused**
+A patch adding something shaped like a leaked token is rejected, not committed.
+
+</div>
+
+<div class="docs-callout tip">
+
+**Tip.** "Require approval" is only accepted where something can genuinely pause: run completion and the post-turn diff gate. On other effects it would be a hard block wearing a hold's label, so it is refused at load time instead of quietly becoming something else.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** A policy file that fails to load stops the run from being created at all, naming the file and the reason. Running with protections you believe are on is worse than not starting, so a malformed policy is a refusal rather than a warning you might miss.
+
+</div>
+
+## Going deeper
+
+### The Action Broker
 
 Nothing a run does to your machine happens without passing one checkpoint. The broker decides each request against your rules, then writes down what it decided and what happened.
 
@@ -56,7 +102,7 @@ Two supervisor effects are ungated as well. In `act` mode, a chat message that c
 
 </div>
 
-## The boundary
+### The boundary
 
 <svg viewBox="0 0 560 130" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A run's own effects pass through the Action Broker, which records its decision in actions.ndjson. Editing your own settings writes straight to project.yml with no broker call.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -120,7 +166,7 @@ Not every byte written under `.vibestrate/` crosses it. A policy reaches a write
 
 The config surfaces are ungated on purpose: a gate there could refuse a first-time setup, before the project has any policy to consult.
 
-## Two kinds of policy
+### Two kinds of policy
 
 The **Policies** page is where you see and shape the broker's evaluators. Its hero counts your advise, block and pending rules alongside the loaded engine rules, and three sections sit under it: **Your policies** for the rules you author in the UI, **Deterministic engine** for what the policy files currently contribute, and **Check a patch** for testing a diff against them before a run meets it.
 
@@ -249,7 +295,7 @@ It's claude's counterpart to the OS sandbox. Codex read-only seats get real OS c
 
 It is off by default because plan mode can add an "awaiting approval" framing to an action-shaped prompt. Turn it on for the stronger, explicit no-write guarantee.
 
-## Permission modes
+### Permission modes
 
 A run takes a **permission mode** that decides how much rope it gets - enforced by Vibestrate the same way for **every** provider, not a per-model flag. The new-run composer carries it as a **Permission** control with the four modes and an **Unattended** switch beside them, and `policies.defaultPermissionMode` sets the baseline for runs you don't pick one for.
 
@@ -267,7 +313,7 @@ The mode is the **soft policy**; the container backend is the **hard wall**. The
 
 No permission mode pushes your branch or merges it anywhere - not even `auto`. A run always stops at `merge_ready` and hands you the diff; taking it further is a decision you make, never one Vibestrate makes for you.
 
-## Run assurance
+### Run assurance
 
 The panel at the top of this page is derived, at the moment a run reaches a terminal state, from the evidence above - the broker log plus the run's review and verification decisions - and written to `assurance.json` alongside the action log. Five verdicts:
 
@@ -321,7 +367,7 @@ If a run used a **best-effort step** (a `continueOnError` reviewer, say) and tha
 
 The verdict reflects this: a tolerated failure adds a `steps_failed_tolerated` cap and holds the verdict at `partially_verified` rather than `verified`. The count shows as `coverage.toleratedStepFailures`.
 
-## Defense in depth
+### Defense in depth
 
 Only the first of these is always on. The other three are opt-in, and each is honored independently of the others:
 
@@ -343,7 +389,7 @@ Only the first of these is always on. The other three are opt-in, and each is ho
 
 - **Run assurance** - the terminal verdict above summarizes what happened, from the evidence log.
 
-## Budget ceilings (don't lose control)
+### Budget ceilings (don't lose control)
 
 Beyond the daily **dollar** cap (`budget.spendCapDailyUsd`), Vibestrate has **count/time ceilings** that bind *without* measured cost - the reliable backstop for leaving a run unattended, since token cost is often unmeasured for local CLI providers:
 
@@ -384,7 +430,7 @@ For **attended** runs you can ask to be consulted at a limit instead of just sto
 
 Defaults are `stop`/`fail`, which is unattended-safe. The composer's **Unattended** switch forces no-pause regardless of config, so an overnight run can never sit waiting for a human. On the API that is the `unattended` field on `POST /api/runs`.
 
-## Riding out provider hiccups (resilience)
+### Riding out provider hiccups (resilience)
 
 For unattended runs, a momentary provider problem shouldn't kill the work. A recoverable failure - a rate limit (429/quota) or a transient blip (5xx, "server temporarily unavailable", overloaded, timeout) - is **auto-retried with backoff** before the turn's outcome is final. Rate limits honor a `Retry-After` hint; transient errors back off exponentially.
 
@@ -414,7 +460,7 @@ Recorded as `provider.usage_limit`.
 
 A provider failure that does end the run ends **loudly with its cause**. The classified failure and a redacted excerpt of the provider's actual error ("usage-limit: This model is being rate limited...") travel into the step's error, the event log (`provider.retries_exhausted`), the Supervisor feed, and the Run assurance verdict - not a bare "provider exited 1".
 
-## Advanced: CLI and automation
+### Advanced: CLI and automation
 
 Every surface above has a command behind it, which is what you reach for in a script, a hook or CI. The full reference is in the [CLI overview](/docs/cli/overview).
 

@@ -4,15 +4,15 @@ description: The status a run is in, what each one means, and the rules that kee
 slug: concepts/state
 ---
 
-Run state is the Status column on the dashboard's **All runs** page. Every run this project has recorded gets a row there, and that column carries the one value the run is at right now.
+## In simple words
 
-![The All runs page in the dashboard. Four runs sit in a table with Task, Status, Review, Verify and Duration columns, one row reading merge-ready. Above it are a Filter by task or id box, a Prune snapshots control and a Scheduler strip offering Start the queue and Open the board.](/media/docs/runs-list.png)
+A [[run]] is always in exactly one **state**. Think of a package you have shipped: it is in one definite place, "out for delivery" or "delivered", never two at once and never somewhere the tracking invented.
 
-A run holds one status at a time. Think of a package you've shipped: it's in one definite place, "out for delivery" or "delivered", never two at once and never somewhere the tracking made up.
+The Status column on **All runs** is that value:
 
-The column reads a saved value. It lives in a `state.json` file under `.vibestrate/runs/`, in the folder named after the run id. The `status` comes from a fixed set of sixteen values, and Vibestrate validates it before writing it down. The counts above the table roll those sixteen into total, active, merge-ready and failed.
+![The All runs table. Rows carry Task, Status, Review, Verify and Duration columns, with one row reading merge-ready. A filter box sits above, beside Replay and Prune snapshots controls.](/media/docs/scoped/runs-table.png)
 
-A run starts at `created` and ends in one of four terminal statuses:
+A run starts at `created` and ends in one of four terminal states:
 
 <svg viewBox="0 0 560 150" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A run starts at created, works through planning, architecting, executing, validating, reviewing, fixing and verifying, then ends in one of four terminal statuses: merge_ready, blocked, failed or aborted.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -45,19 +45,49 @@ A run starts at `created` and ends in one of four terminal statuses:
   </g>
 </svg>
 
-Along the way it can sit at `waiting_for_approval` (a gate is holding it) or `paused` (you asked it to stop).
+<div class="docs-callout tip">
 
-## The moves are enforced
+**Tip.** The four terminal states mean different things and it is worth not blurring them. `blocked` is a *decision* - something refused. `failed` is a *crash* - a step broke. `aborted` is *you*. Only `merge_ready` is a change you can take.
+
+</div>
+
+## Why the states are worth knowing
+
+<div class="docs-cards">
+
+**Knowing where to look**
+`failed` means read the failing step's own output. `blocked` means read the review or the policy that refused.
+
+**Knowing what is recoverable**
+A blocked run is usually one fix away. A failed one may be an environment problem rather than a code one.
+
+**Filtering the list**
+The counts above the table roll sixteen statuses into total, active, merge-ready and failed.
+
+**Trusting the record**
+The status is read from a saved value, not inferred. It cannot drift from what actually happened.
+
+</div>
+
+<div class="docs-callout">
+
+**Did you know?** There are sixteen statuses, and Vibestrate validates the value against that fixed set before writing it. A run cannot land in a state nobody defined, and it cannot skip from one to another along a path the state machine does not allow. The moves are enforced, not just recorded.
+
+</div>
+
+## Going deeper
+
+### The moves are enforced
 
 The status is trustworthy because Vibestrate controls how a run gets from one status to the next. Every allowed move is written into an explicit list, the `ALLOWED_TRANSITIONS` allowlist. If something tries a move that isn't on the list, Vibestrate raises a `StateTransitionError` and stops, instead of letting the bad move happen quietly.
 
 The four terminal statuses in the diagram above have no way back out. Once a run reaches one of them, it stays there.
 
-## Why it matters
+### Why it matters
 
 The state machine is what makes runs replayable, pausable, and auditable. A run that reads `verifying` is verifying: the verifier is running, the previous artifacts are committed, and there's no in-between fuzz. A row that reads `merge-ready` has a real diff behind it and validation that passed.
 
-## The statuses
+### The statuses
 
 The canonical, generated list lives in the [run-state reference](/docs/reference/state-machine).
 
@@ -80,7 +110,7 @@ The canonical, generated list lives in the [run-state reference](/docs/reference
 | `failed` | Unrecoverable error during a stage. |
 | `aborted` | User aborted explicitly. Worktree is preserved. |
 
-## Two kinds of pause
+### Two kinds of pause
 
 A stopped run is stopped for one of two reasons, and the Status column names which.
 
@@ -89,11 +119,11 @@ A stopped run is stopped for one of two reasons, and the Status column names whi
 
 Both kinds survive a restart. The pause flag is saved to disk, so killing and restarting Vibestrate does not lose the pause.
 
-## Terminal statuses are sticky
+### Terminal statuses are sticky
 
 To start over from a terminal status, run the task again as a new run. The previous run's artifacts stay where they are.
 
-## Advanced: CLI and automation
+### Advanced: CLI and automation
 
 The same state and the same decisions are reachable from the terminal, for scripts and for work over SSH. See the [CLI overview](/docs/cli/overview) for the full surface.
 
@@ -119,7 +149,7 @@ vibe approvals request-changes \
   <runId> <approvalId> --guidance "..."
 ```
 
-## Going deeper
+### Going deeper
 
 - [Workflow](/docs/concepts/workflow) - the stages that drive transitions.
 - [Task lifecycle](/docs/task-lifecycle) - the same statuses, drawn as a transition diagram.

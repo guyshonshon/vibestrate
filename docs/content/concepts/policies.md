@@ -1,25 +1,30 @@
 ---
 title: Policies
-description: The project's one rule surface - tiered rules the active supervisor enforces, from soft advice to a hard merge block.
+description: The project's one rule surface - tiered rules enforced on every run, from soft advice to a hard merge block.
 slug: concepts/policies
 ---
 
-A **policy** is a rule the project enforces on every run. Policies belong to the
-*project*, not to one supervisor - so a rule like "use a hyphen, not an em-dash"
-holds no matter which supervisor reviews the work. The active supervisor is the
-*enforcer*: it carries them into the review, but it does not own them.
+## In simple words
 
-They live on the **Policies** page in the sidebar.
+A **policy** is a rule your project enforces on every [[run]]. Something like "use a hyphen, not an em-dash", or "never add `console.log` to source files".
 
-![The Policies page. The header reads Policies over a New policy button, a 4/4 Guards on tile, and counters reading 2 advise, 0 block, 0 pending and 0 engine rules. The left column holds Your policies with two rules tagged advise, over a Deterministic engine card reading No rules in .vibestrate/policies/*.yml. The right column lists the Hard guards toggles - Forbid main-branch writes, Forbid secrets access, Forbid auto-push, Forbid auto-merge - each switched on.](/media/docs/policies.png)
+Policies belong to the *project*, not to one [[supervisor]]. The supervisor is the enforcer that carries them into review; it does not own them, so a rule holds whichever supervisor is on duty.
 
-The header counts what the project carries: advise, block, pending, and engine
-rules. This project holds two, both at the advise tier, so the reviewer is told
-about them on every run. The four **Hard guards** on the right ship on for every
-project; the left column is the part you author, and a fresh project starts with
-it empty.
+Two columns, and only one of them is yours:
 
-Each policy has a **tier** that decides how it is enforced:
+![The Your policies column and the Deterministic engine card. Two rules are tagged advise: one forbidding console.log in source files, one requiring unknown keys to be rejected at the boundary. Below, a card reads no rules in .vibestrate/policies/*.yml.](/media/docs/scoped/policies-your.png)
+
+That is the part you author, and a fresh project starts with it empty. Beside it sit four guards that ship on for everyone:
+
+![The Hard guards column. Four switches, all on: forbid main-branch writes, forbid secrets access, forbid auto-push, forbid auto-merge. Forbid secrets access is annotated: covers .env and key files.](/media/docs/scoped/policies-hard.png)
+
+<div class="docs-callout tip">
+
+**Tip.** Start at the `advise` tier, which is the default. It tells the writer to comply and the reviewer to check, and a violation rides the normal review-and-fix loop. Reach for `block` only when you want a merge stopped outright, because a blocked run needs you to come back to it.
+
+</div>
+
+## The tiers
 
 <div class="docs-cards">
 
@@ -39,7 +44,15 @@ until you confirm it.
 
 </div>
 
-## Writing one
+<div class="docs-callout">
+
+**Did you know?** An `advise` rule is enforced by a model, and that is on purpose. A regex for "no em-dashes" is exact but brittle; a model generalises to the paraphrases a pattern would miss. The `block` tier is the regex one, and it is matched against the lines a run **added**, not against your whole file, so it catches what the run wrote and stays quiet about what was already there.
+
+</div>
+
+## Going deeper
+
+### Writing one
 
 **New policy** opens the one authoring form. You type the rule in plain English
 and pick its tier beside it. An advise rule takes an optional suggested fix, the
@@ -54,7 +67,7 @@ filled-in draft, and **Suggest from recent runs** reads recent diffs for
 candidates you can adopt into it. A model can propose a tier and a matcher, and
 committing a block stays your press of Add policy.
 
-## A rule the supervisor proposed
+### A rule the supervisor proposed
 
 A rule the supervisor proposes waits for you:
 
@@ -89,7 +102,7 @@ and Confirm puts it in force on the next review. The tier is fixed for that path
 a proposed rule is always `advise` with no matcher, whatever the answer
 suggested.
 
-## Both sides of the change see an advise rule
+### Both sides of the change see an advise rule
 
 The writer and the reviewer, from one selection.
 
@@ -115,7 +128,7 @@ names. At most **12** rules reach a single turn; anything past that is counted i
 the run's `supervisor.policy_advise` event as dropped, so a long list thins out
 silently unless you read the event.
 
-## Soft rules vs the hard security gates
+### Soft rules vs the hard security gates
 
 Policies are the *soft* surface - owner conventions. They sit alongside, and are
 visibly distinct from, the **hard security gates** that are always on: the
@@ -126,7 +139,7 @@ policy can only *add* a check, never relax one. The Guards tile in the header
 tells you how many of the four hard guards are live. See
 [Safety](/docs/concepts/safety).
 
-## Advanced: CLI and automation
+### Advanced: CLI and automation
 
 Every action on the page has a `vibe policies` subcommand behind it, for scripting
 a rule into a setup or a repo template. See the
@@ -165,12 +178,12 @@ avoid-em-dashes  advise  pending confirm
 $ vibe policies confirm avoid-em-dashes
 ```
 
-## It stays optional
+### It stays optional
 
 A plain `vibe run "<prompt>"` needs zero policies. Policies are an additive,
 opt-in layer - a project with none runs exactly as before.
 
-## Migrating from persona preferences
+### Migrating from persona preferences
 
 Earlier versions scoped these rules to a supervisor (`personas.<id>.preferences`).
 They are now project-level. If you have an older config, run `vibe policies migrate`
