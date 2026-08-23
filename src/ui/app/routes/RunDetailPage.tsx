@@ -511,6 +511,12 @@ export function RunDetailPage({
         />
       ) : null}
 
+      {/* The supervisor's decisions and the run's verdict answer the same
+       * question - is this change good - so they sit side by side rather than
+       * stacked. Each was taking the full content width for content that needs
+       * about half of it, which pushed the run's actual work below the fold.
+       * Single column below xl, where two would squeeze the assurance tiles. */}
+      <div className="grid items-start gap-3 xl:grid-cols-2">
       {/* 2 - THE SUPERVISOR frames everything below: who judges, what it
        * decided about this task, its live decision feed, and any approval
        * it is waiting on. */}
@@ -563,6 +569,11 @@ export function RunDetailPage({
         ) : null}
       </SupervisorPanel>
 
+        {/* The verdict column. Assurance is about half the height of the
+         * supervisor's decision feed beside it, so the run's location and its
+         * startup state fill that space instead of each claiming a full-width
+         * row of their own further down the page. */}
+        <div className="flex flex-col gap-3">
       {/* Terminal verdict: ONE block. Assurance is the evidence-backed
        * verdict; the outcome banner only fills the gap before assurance is
        * written (the two stacked banners used to say the same thing twice). */}
@@ -616,17 +627,18 @@ export function RunDetailPage({
           onOpenTab={(t) => openInspector(t)}
         />
       )}
+        {/* Staged "starting up" checklist: self-hides once the run is past
+            startup (or stays to show the failed stage). */}
+        <StartupPanel runId={runId} status={run.status} />
 
-      {/* Staged "starting up" checklist: self-hides once the run is past
-          startup (or stays to show the failed stage). */}
-      <StartupPanel runId={runId} status={run.status} />
-
-      {run.worktreePath ? (
-        <WorkspacePanel
-          worktreePath={run.worktreePath}
-          branchName={run.branchName}
-        />
-      ) : null}
+        {run.worktreePath ? (
+          <WorkspacePanel
+            worktreePath={run.worktreePath}
+            branchName={run.branchName}
+          />
+        ) : null}
+        </div>
+      </div>
 
       {reviewOpen ? (
         <ReviewFindingsPanel
