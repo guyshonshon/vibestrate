@@ -210,10 +210,20 @@ function navTo(route: Route) {
 }
 
 /** Map a record-container key to its dedicated editor + a label. */
+/**
+ * Where a record row sends you, since the row itself is a read-only summary.
+ *
+ * Keyed on the FULL key, not on `groupOf(fullKey)`. Four of these five are
+ * top-level record leaves whose key carries no dot, so `groupOf` returned the
+ * root group for every one of them and the switch fell through to null: the
+ * link-out button never rendered on providers, profiles, crews or personas,
+ * which is the only affordance those rows have. `permissions.profiles` was the
+ * lone case that worked, because it is the only one nested under a group.
+ */
 function recordDestination(
   fullKey: string,
 ): { route: Route; label: string } | null {
-  switch (groupOf(fullKey)) {
+  switch (fullKey) {
     case "providers":
       return { route: { kind: "providers" }, label: "Providers" };
     case "crews":
@@ -222,8 +232,12 @@ function recordDestination(
       return { route: { kind: "profiles" }, label: "Profiles" };
     case "personas":
       return { route: { kind: "supervisors" }, label: "Supervisors" };
-    case "permissions":
+    case "permissions.profiles":
       return { route: { kind: "settings" }, label: "Settings" };
+    // commands.validationProfiles and scheduler.sourceQuotas are record
+    // containers too, and deliberately have no destination: the first is only
+    // renameable from the Settings maintenance panel and the second has no
+    // editor anywhere, so a button would promise a screen that cannot help.
     default:
       return null;
   }

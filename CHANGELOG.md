@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Four more places where the product stated something false.** The Config
+  page's record rows are read-only summaries whose only affordance is a button
+  through to the screen that owns them, and four of the five never rendered:
+  the lookup keyed on the setting's group, and a top-level record has no group,
+  so providers, profiles, crews and personas all fell through to nothing. The
+  interactive shell advertised `vibe skills assign` with its two arguments the
+  wrong way round. A missing-flow-parameter error told you to persist it with
+  `vibe profile set --flow`, which edits a profile and has no such flag. And
+  `vibe crew presets add --help` named two of the four presets that ship.
+
 - **The documentation is written for the app now, not the terminal.** All 60
   pages led with a command and mentioned the screen in passing. Vibestrate is
   UI first, the interactive shell second and the CLI last, and the guides now

@@ -647,7 +647,7 @@ export class Orchestrator {
         `Missing required flow parameter(s): ${resolvedParams.missing.join(
           ", ",
         )}. Provide each with --param <name>=<value>, persist them once with ` +
-          `\`vibe profile set --flow ${flow.flowId} <name>=<value>\`, or export ` +
+          `\`vibe params set <name>=<value> --flow ${flow.flowId}\`, or export ` +
           `VIBESTRATE_PARAM_<NAME> (the CI path - never hangs unattended).`,
       );
     }

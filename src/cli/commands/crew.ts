@@ -365,7 +365,7 @@ export function buildCrewCommand(): Command {
     .action(async (opts: { json?: boolean }) => process.exit(await cmdPresets(opts)));
   presets
     .command("add <id>")
-    .description("Install a preset crew (fast / thorough) into project.yml.")
+    .description("Install a preset crew (fast / thorough / cheap / local) into project.yml.")
     .action(async (id: string) => process.exit(await cmdPresetAdd(id)));
   return cmd;
 }

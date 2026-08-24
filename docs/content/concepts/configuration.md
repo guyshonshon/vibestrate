@@ -61,7 +61,7 @@ Each row carries the dotted key, the description the schema itself supplies, and
 
 Two kinds of row do not edit in place:
 
-- **Records** - `providers`, `profiles`, `crews`, `personas`, `permissions.profiles`, `commands.validationProfiles` and `scheduler.sourceQuotas`. Id-keyed maps with no single value to set, so the row shows a read-only summary instead of a control. Only `permissions.profiles` links out, with **Open Settings**; the other six leave you with the summary.
+- **Records** - `providers`, `profiles`, `crews`, `personas`, `permissions.profiles`, `commands.validationProfiles` and `scheduler.sourceQuotas`. Id-keyed maps with no single value to set, so the row shows a read-only summary and sends you to the screen that owns it: **Open Providers**, **Open Profiles**, **Open Crew**, **Open Supervisors**, **Open Settings**. The last two have no button, because `commands.validationProfiles` is only renameable from the Settings maintenance panel and `scheduler.sourceQuotas` has no editor at all.
 - **Shell commands** - `commands.validate`, `editor.command`, `editor.args`. A later run spawns whatever these point at, so the server never accepts a shell command string over HTTP. The row stays read-only and names the `vibe config set` that writes it.
 
 ### In the terminal shell

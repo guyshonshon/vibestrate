@@ -163,7 +163,7 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     commonCli: [
       "vibe skills list",
       "vibe skills show <id>",
-      "vibe skills assign <id> <agent>",
+      "vibe skills assign <agent> <skill>",
     ],
   },
   config: {
