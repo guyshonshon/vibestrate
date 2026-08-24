@@ -35,7 +35,7 @@ Press it and the dashboard moves to the Crew screen, draws a ring around the con
 
 ## Going deeper
 
-### Written down, or built for your question
+### Written, or built on the spot
 
 <div class="docs-cards">
 
@@ -124,6 +124,6 @@ The walkthrough moves you between those screens. Naming the crew and pressing Sa
 
 </div>
 
-### When a step has nothing to point at
+### When a step points at nothing
 
 Screens change. If a step's control is not on screen within a few seconds, the card says *"Nothing on this screen matches this step yet."* and lets you carry on to the next step. It does not spin, and it does not disappear.

@@ -163,7 +163,7 @@ That split is the payoff of two providers. Your builder and reviewer are differe
 
 Different [Profiles](/docs/concepts/profile) also let you match a step to the horsepower it needs. A Profile pins the provider, model and effort, so an easy role runs on a cheap model while the hard one gets your best.
 
-### Models over the internet or on your own machine
+### Cloud models, or local ones
 
 Not every provider is a tool you installed. Vibestrate can talk to a model over HTTP instead:
 

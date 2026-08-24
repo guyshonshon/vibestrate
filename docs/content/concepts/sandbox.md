@@ -53,13 +53,13 @@ The container can be placed on a network whose only route out is an allowlisting
 
 ## Going deeper
 
-### You are not starting a VM per run
+### Not a VM per run
 
 A common worry: "does it boot a virtual machine every time?" No. Docker Desktop (the Linux VM the daemon runs in) starts **once** and stays up - that's the one-time cost. Per run, Vibestrate creates a **container**, which is a namespaced process, not a VM. Starting one on a warm image is a fraction of a second.
 
 It is a **fresh** container per run, on purpose. Disposability is the whole point: each run gets a pristine box with no leftover files, installed packages, or a previous run's stray process bleeding into the next; concurrent runs never cross-contaminate; and each run mounts its **own** worktree. Reusing one shared container would defeat all three. The cost that *does* add up is re-installing your project's dependencies inside the container, which is why pointing it at a pre-built image is the recommended setup.
 
-### What crosses the wall - and what doesn't
+### What crosses the wall
 
 The container can touch exactly two things from your host, and nothing else:
 
@@ -140,7 +140,7 @@ execution:
     pidsLimit: 512
 ```
 
-### The image must carry the provider CLI
+### The image needs the provider CLI
 
 `docker exec` runs the provider CLI **inside** the container, so the image has to have it installed - your host's `codex`/`claude` binary is the wrong architecture for a Linux container. Point `execution.container.image` at an image that bundles the provider CLI (and your project's toolchain). If the CLI isn't there, the turn fails clearly with "command not found" rather than hanging. For claude there is no on-disk credential to mount, so authenticate it in-container by providing `ANTHROPIC_API_KEY` (it rides the allowlist).
 
@@ -200,7 +200,7 @@ docker network prune -f \
   --filter label=vibestrate.managed=true
 ```
 
-### Where it stops short (read this before trusting it)
+### Where it stops short
 
 This gives you **filesystem, process, and (opt-in) network isolation**, not a hardened jail for hostile code. Be honest with yourself about the gaps:
 
@@ -219,6 +219,6 @@ docker rm -f \
   $(docker ps -aqf label=vibestrate.managed=true)
 ```
 
-### How it fits the rest of the safety model
+### How it fits the safety model
 
 The container is the **hard wall**; it sits alongside, not instead of, the layers in [Safety](/docs/concepts/safety): the post-turn diff gate still checks every write, strict-apply-only still routes patches through the broker, and the run assurance verdict still summarizes what actually happened - now including whether the run really executed in a container. The provider-native OS sandbox (`execution.isolation`) is the cheaper, codex-only option for filesystem confinement on the host; the container backend is the model-agnostic one when you want the same wall around any provider.

@@ -55,7 +55,7 @@ Money-touching work can carry a review the rest of the task does not need.
 
 ## Going deeper
 
-### The model describes the work. It does not design the workflow.
+### The model describes, it does not design
 
 A shaping turn returns a **decomposition**, not a flow: the units of work, what
 each one depends on, and what each one is risky about. Deterministic code turns
@@ -68,7 +68,7 @@ closed vocabulary, and can never remove a gate, reorder one, or write a step
 that renders its own verdict. A poor decomposition produces a flow that is
 wrong-but-gated, never one that is ungated.
 
-### What it answers that a static flow cannot
+### What a fixed flow cannot answer
 
 **"c depends on b."** Each unit becomes its own implement step, wired to the
 units it named. Unit steps are also chained in dependency order even when two

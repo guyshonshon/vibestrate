@@ -87,7 +87,7 @@ Runs are replayable. The decisions, tokens and outputs were all recorded.
 
 ## Going deeper
 
-### The three verdicts a step can carry
+### The three verdicts
 
 Review answers `APPROVED`, `CHANGES_REQUESTED` or `BLOCKED`. Verification answers `PASSED`, `FAILED` or `NEEDS_HUMAN`. A `CHANGES_REQUESTED` does not end the run; it sends the work to the fix step and back round for re-validation, which is why the default flow lists Fix and Re-validate after Review.
 

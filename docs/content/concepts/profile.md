@@ -48,7 +48,7 @@ A profile on an Ollama provider, for work that must not leave the machine.
 
 ## Going deeper
 
-### Where a profile sits in the chain
+### Where a profile sits
 
 <svg viewBox="0 0 560 52" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A Flow step names a Seat, your Crew's Role fills that Seat, the Role names a Profile, and the Profile names a Provider. The Profile is the fourth link, and the one that carries the model and the effort.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -100,7 +100,7 @@ Each knob appears only where it is wired to something real:
 
 <div class="docs-outcomes"><div class="docs-outcome ok"><b>effort honored</b><span>a level the provider supports, applied as a real flag or request field</span></div><div class="docs-outcome warn"><b>effort_ignored</b><span>a level outside the provider's real ones: the run warns rather than dropping it quietly</span></div></div>
 
-### The model has to be one the provider actually has
+### The model must exist at the provider
 
 A profile naming a model its provider does not offer is a run that fails the moment it spawns, so Vibestrate checks the pair on write and keeps checking it, because a model can stop existing without anyone touching the config.
 

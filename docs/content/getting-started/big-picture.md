@@ -110,7 +110,7 @@ A **Provider** is the thing that runs the model. Vibestrate ships no model of it
 
 [Set up a provider](/docs/getting-started/providers) covers all three.
 
-## You don't have to set any of this up
+## None of this needs setting up
 
 The defaults work. Straight out of `vibe init` you get a Crew with all six roles, one Profile, and the built-in Flows, so you can run your first Task without configuring a seat.
 

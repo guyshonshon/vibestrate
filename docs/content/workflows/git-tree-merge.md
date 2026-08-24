@@ -128,7 +128,7 @@ This step is secret-safe by construction:
 
 The supervisor never commits. Apply is still your click.
 
-### Apply, and undo if you change your mind
+### Apply, and undo
 
 **Apply** performs the real merge on the target branch with `--no-ff` (so it is
 always a merge commit), after recording the target's pre-merge sha. It is gated

@@ -294,7 +294,7 @@ Anything else exits 2. The usual cause is wrong flags - the CLI ran and came bac
 
 More: [Set up a provider](/docs/getting-started/providers).
 
-## 3. Tell it how to run your tests
+## 3. Point it at your tests
 
 Your own commands are the ground truth in a run. They live in `.vibestrate/project.yml` as a list of shell strings and run one at a time inside the run's worktree.
 

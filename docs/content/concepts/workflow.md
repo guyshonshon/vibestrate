@@ -119,7 +119,7 @@ vibe run "..." --resume-from bold-lovelace \
   --resume-stage reviewing
 ```
 
-### How the crew stays on the same page
+### How the crew shares one thread
 
 Each step hands its work to the next, and Vibestrate keeps that through-line tidy two ways.
 

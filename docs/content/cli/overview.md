@@ -246,7 +246,7 @@ vibe run -i "<task>"
 
 `flows suggest` is advisory only - it prints a suggestion and changes nothing. `vibe run -i` picks the Flow and Crew interactively before it starts.
 
-### Drafting a Flow or a Crew from a description
+### Drafting a Flow or Crew
 
 Describe what you want in English and the supervisor drafts it. Both drafters are draft-only: they write nothing, and what you get back is a document to read, edit, and adopt yourself.
 

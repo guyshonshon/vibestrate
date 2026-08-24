@@ -108,7 +108,7 @@ Write it like docs for a colleague, not a prompt: state what you'd tell a new en
 - **Mention the anti-pattern.** Spell out what not to do, like "Don't write session middleware inline."
 - **Keep it bounded.** A 200-line skill that loads on every agent is expensive. If one grows huge, split it into smaller skills.
 
-### Optional: pointing a skill at an MCP server
+### Optional: an MCP server
 
 A skill can also declare an MCP server (an outside tool an agent connects to) that its agents should reach. The flat `.md` file this page starts with can't carry one - it has no directory of its own to hold a config file next to. For an MCP server, use the **directory form** instead: a folder named for the skill id, holding `SKILL.md` (or `skill.md`) plus a sibling `.mcp.json`.
 

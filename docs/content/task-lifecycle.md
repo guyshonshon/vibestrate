@@ -114,7 +114,7 @@ You can stop a running task and start it again later, and it picks up from where
 
 `vibe pause <runId>` sets a flag the orchestrator picks up at the next stage boundary. `pausedAtStatus` records where to resume, and `vibe resume <runId>` clears the flag.
 
-### Where a task can come to rest
+### Where a task comes to rest
 
 The four terminal statuses in more detail - what each means and what it gives you:
 

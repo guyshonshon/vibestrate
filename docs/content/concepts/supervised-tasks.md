@@ -184,7 +184,7 @@ folded back into the supervised task's steps.
 The Enhance turn runs read-only on the same cheap profile as the supervisor, and
 is spend-accounted the same way.
 
-### Driving a supervised task from the dashboard
+### From the dashboard
 
 Mission Control's task detail view shows a live **Conductor** panel for a
 supervised task. The panel carries:

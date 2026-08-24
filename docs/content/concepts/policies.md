@@ -102,7 +102,7 @@ and Confirm puts it in force on the next review. The tier is fixed for that path
 a proposed rule is always `advise` with no matcher, whatever the answer
 suggested.
 
-### Both sides of the change see an advise rule
+### Both sides see an advise rule
 
 The writer and the reviewer, from one selection.
 
@@ -128,7 +128,7 @@ names. At most **12** rules reach a single turn; anything past that is counted i
 the run's `supervisor.policy_advise` event as dropped, so a long list thins out
 silently unless you read the event.
 
-### Soft rules vs the hard security gates
+### Soft rules vs hard gates
 
 Policies are the *soft* surface - owner conventions. They sit alongside, and are
 visibly distinct from, the **hard security gates** that are always on: the

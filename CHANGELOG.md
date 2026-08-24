@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Every documentation section is a chapter you open.** Pages were long
+  because the material is long, and all of it was on screen at once. Each `##`
+  section is now collapsible, and a section carrying three or more `###`
+  sub-sections folds those away too, so opening "Going deeper" gives a menu
+  rather than a wall. The first chapter stays open, there is an Expand all
+  control, and links from the "On this page" rail open the chapter they point
+  into. Collapsed, the 4,300-word safety page goes from sixteen screens to
+  under half of one.
+- **39 headings lost a third of their words**, because a chapter title is now
+  what the page shows at rest. Symptom headings in Troubleshooting were left
+  long on purpose - people search those.
+
 - **A rebuilt dashboard no longer dead-ends the tab you had open.** Pages load
   as hashed chunks out of `dist/ui`, and a rebuild replaces every filename, so
   a tab that was open across one still asked for names the server no longer

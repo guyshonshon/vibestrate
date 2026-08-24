@@ -149,7 +149,7 @@ providers:
 
 The `claude-code` type unlocks deeper integration: it can report a session id, track token usage, and resume a session.
 
-### Point at a server instead of a binary
+### A server instead of a binary
 
 The other two types take an HTTP endpoint rather than a command.
 `localhost-proxy` is for a server on your own machine, like Ollama or any

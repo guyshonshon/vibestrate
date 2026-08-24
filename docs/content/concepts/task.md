@@ -87,7 +87,7 @@ The description goes into every agent's prompt, at every stage. The planner plan
 
 A Task says what to build, and it doesn't pick your model or set how hard it thinks. That belongs to your [Crew](/docs/concepts/crew) and its [Profiles](/docs/concepts/profile).
 
-### A good Task vs a weak one
+### Good briefs vs weak ones
 
 Same goal, two briefs.
 

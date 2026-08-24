@@ -18,7 +18,7 @@ vibe
 
 </div>
 
-## What it keeps in front of you
+## What it shows
 
 <div class="docs-cards">
 

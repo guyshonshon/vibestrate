@@ -65,7 +65,7 @@ vibe resume <runId>
 
 This clears the flag and the run continues from the stage in `pausedAtStatus`. When the process is gone, start a fresh run and reuse the work with [`--resume-from`](/docs/workflows/debug-failed) instead.
 
-### Cancel a pause request before it fires
+### Cancel a pause before it fires
 
 Say you ran `vibe pause` and then changed your mind before the run reached the next gap between stages. Running `vibe resume` cancels the pending pause. The run keeps going and never enters the `paused` state at all.
 
@@ -103,7 +103,7 @@ Each of these stopping points has its own status, so you always know why a run i
 
 <div class="docs-chips"><span>paused</span><span>waiting_for_approval</span><span>blocked</span><span>aborted</span></div>
 
-### When to abort vs let it block
+### Abort, or let it block
 
 Not every stuck run should be aborted. Abort means you end it; block means it stopped itself. Here is how to tell them apart.
 

@@ -219,7 +219,7 @@ vibe tasks sequence task-settings-v2-7c1e --json
 failure, so only a run that threw exits non-zero. In a script, branch on
 `supervisedState`, never on the exit code alone.
 
-### When it stops, and what happens to your code
+### When it stops
 
 <div class="docs-outcomes">
 <div class="docs-outcome stop"><b>a step failed review after its fix loop</b><span>That step's work is discarded and the step goes back to pending. Earlier commits stay.</span></div>

@@ -82,7 +82,7 @@ A run works in a separate git worktree on its own branch, so it never edits your
 
 There is no "the default one unless you choose another". `defaultFlow` is unset in a fresh project, so with no `--flow` Vibestrate decides per task: a short, low-risk task can be sized down to `express`, a risk-tagged one can be upgraded by your supervisor persona, and a brief that reads like "build me a whole system" runs the read-only [Spec-up](/docs/concepts/spec-up) chain first. Every run records the flow it resolved and the reason, which is what Flow & why shows on the panel above. More in [Flow](/docs/concepts/flow).
 
-### Set the crew, the rules and the recipes
+### Crew, rules and recipes
 
 Crew maps each role to the seats it fills and the profile it runs on. Policies hold your project's rules, each set to Advise, which the reviewer checks, or Block, which caps the run at merge time. The four hard guards sit below them, already on. Flows are the run recipes: 14 ship built in, and Draft a flow turns a sentence into a project-owned one you can edit.
 

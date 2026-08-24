@@ -47,7 +47,7 @@ The ledger is local and it can read it.
 
 ## Going deeper
 
-### The answer fits the surface you asked from
+### The answer fits where you asked
 
 Consult also runs from a terminal, and it answers for where you asked: screens to open in the browser, commands to run in the shell. That is a difference in source material, not a tone setting. A dashboard question that names none of Vibestrate's commands gets the command reference pages dropped before the model sees them, and the fenced command examples stripped out of the concept pages that survive. Name a real subcommand, or say "command line", and those pages come back on any surface: a question about `vibe run --flow` deserves an answer about `vibe run --flow`.
 
@@ -82,7 +82,7 @@ Consult is read-only. No run starts, no file in your repository changes, nothing
 
 Every answer states a **confidence** and lists **caveats**, the things it could not verify. The orchestrator is a model too, and an answer with neither would be model confidence dressed as fact.
 
-### Some screens hand it what you are looking at
+### Screens pass their context
 
 The **New run** composer publishes the brief you have typed, the flow and crew you picked, the run options, and any planner questions still on screen. The [Spec-up](/docs/concepts/spec-up) questions screen publishes the round and your answers so far. Everywhere else the orb is grounded in the project alone.
 

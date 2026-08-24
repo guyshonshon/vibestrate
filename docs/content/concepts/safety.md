@@ -24,7 +24,7 @@ Review came back **changes requested**, verification failed after it, and nothin
 
 </div>
 
-## What actually bounds a run with no policies configured
+## What bounds a run with no policies
 
 That is a fair question, and the honest answer is: not the broker. Three things underneath it:
 
@@ -244,7 +244,7 @@ A `require_approval` on `command.run` had nothing to pause, so the command was r
 
 One honest edge: `file.patch` holds at the diff gate, but the suggestion/bundle **apply** surfaces have no seam, so a hold there refuses the apply. The action log then records the `require_approval` decision *plus* evidence saying it was refused rather than held, so the trail never implies you were asked.
 
-### A policy set that didn't fully load stops the run
+### A failed policy load stops the run
 
 A policy file that fails to parse contributes **no rules**, and a rule id defined twice keeps only the first. So the stricter rule you just added can vanish while the Policies page still looks healthy.
 

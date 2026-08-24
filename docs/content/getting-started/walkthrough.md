@@ -24,7 +24,7 @@ Vibestrate drives the AI coding CLIs already on your machine as one pipeline ove
 
 </div>
 
-## What you will be able to do afterwards
+## What you will be able to do
 
 <div class="docs-cards">
 
@@ -66,7 +66,7 @@ vibe run "Add structured logging to the settings save handler"
 
 The [quick start](/docs/getting-started/quickstart) walks that first run from install to merge. This page covers the flags and the screens around it.
 
-### The eight steps, and who takes each
+### The eight steps
 
 The `default` flow that `vibe init` writes plans, designs, implements, reviews and verifies, and the reviewer can send the work back to the fixer twice before the flow gives up. Those five verbs cover eight steps. Two of them write files, two run your own commands, and the other four read:
 
@@ -340,7 +340,7 @@ vibe policies doctor
 
 </div>
 
-### Spec-up, for a brief that reads greenfield
+### Spec-up, for a greenfield brief
 
 Spec-up fires without you asking for it. Hand an ordinary `vibe run` a brief that reads greenfield and Vibestrate swaps the run for a read-only intake that writes no code:
 

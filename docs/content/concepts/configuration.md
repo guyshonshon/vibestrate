@@ -94,7 +94,7 @@ The file is split into top-level sections. Each owns one slice of how a run beha
 
 The full, field-by-field schema is generated from the source, so it never drifts. You'll find it in the [`project.yml` reference](/docs/reference/config).
 
-### Things that live next to it (not in `project.yml`)
+### What sits outside `project.yml`
 
 The rest of `.vibestrate/` holds files you edit directly:
 

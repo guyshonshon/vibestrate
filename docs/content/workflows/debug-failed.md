@@ -153,7 +153,7 @@ The forked run gets its own `runId` and a fresh worktree off your main branch. T
 
 This works with `--flow` too: any flow that declares the matching step `stage` can be resumed. In the dashboard, the run's **Re-run with changes** dialog has a **Start from** selector with the same choices.
 
-### Rewinding to review, fix, or verify (restores the run's code)
+### Rewinding to review, fix or verify
 
 `reviewing`, `fixing`, and `verifying` are also resumable, but these stages need the executor's code already in place. So Vibestrate first **restores the source run's per-phase worktree snapshot** into the fresh worktree.
 
