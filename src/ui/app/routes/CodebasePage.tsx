@@ -28,7 +28,8 @@
 // unstable callback from the parent would re-fire it every render and stomp the
 // URL back to `#/codebase`, trapping the user on the page.
 
-import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
+import { lazyRoute } from "../lazy-route.js";
 import { Bot, Check, FolderTree, Map as MapIcon, MessageSquarePlus, RotateCcw, Search, Sparkles, Trash2 } from "lucide-react";
 import { ApiError, api, type CodebaseAnnotation } from "../../lib/api.js";
 import type {
@@ -74,7 +75,7 @@ type Source = "project" | "worktree";
 // keeps `highlightLines` a synchronous call at its own call site, which is what
 // render wants, and takes the grammars off every dashboard load instead of only
 // the one screen that reads code.
-const FileViewer = lazy(() =>
+const FileViewer = lazyRoute("FileViewer", () =>
   import("../../components/codebase/FileViewer.js").then((m) => ({
     default: m.FileViewer,
   })),

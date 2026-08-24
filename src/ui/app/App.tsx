@@ -19,11 +19,12 @@
 //     event and the page would not react.
 
 import { ServerOfflineScreen, useServerAlive } from "./ServerOfflineScreen.js";
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { AppShell } from "../components/layout/AppShell.js";
 import { RunControlPage } from "../components/control/RunControlPage.js";
 import { CliHintOverlay } from "../components/layout/CliHintOverlay.js";
 import { ErrorBoundary } from "../components/layout/ErrorBoundary.js";
+import { lazyRoute } from "./lazy-route.js";
 import { GlobalErrorOverlay } from "../components/layout/GlobalErrorOverlay.js";
 import { MissionControlPage } from "./routes/MissionControlPage.js";
 import { ConsultDock } from "../components/consult/ConsultDock.js";
@@ -45,13 +46,15 @@ export type { ReplayFocus, Route };
 // (with its ProfileMaintenancePanel + GatewaySettings forms) into an async
 // chunk shaves form-heavy code off the eager bundle. Inline lazy decl
 // keeps the wrapper-per-page boilerplate down.
-const SettingsPage = lazy(() =>
+const SettingsPage = lazyRoute("SettingsPage", () =>
   import("./routes/SettingsPage.js").then((m) => ({ default: m.SettingsPage })),
 );
 
 
 /**
- * Routes load on demand.
+ * Routes load on demand, through `lazyRoute` rather than `React.lazy` so a
+ * chunk that vanished in a rebuild reloads the tab instead of dead-ending
+ * (see ./lazy-route.ts).
  *
  * Mission Control stays eager because it is the landing page - the boot gate in
  * index.html uncovers it, and making the first screen wait on a second request
@@ -64,77 +67,77 @@ const SettingsPage = lazy(() =>
  * control links open, so it is reached from a live run rather than navigated to
  * cold. Everything under routes/ except Mission Control is split.
  */
-const RunsPage = lazy(() =>
+const RunsPage = lazyRoute("RunsPage", () =>
   import("./routes/RunsPage.js").then((m) => ({ default: m.RunsPage })),
 );
-const RunComposePage = lazy(() =>
+const RunComposePage = lazyRoute("RunComposePage", () =>
   import("./routes/RunComposePage.js").then((m) => ({ default: m.RunComposePage })),
 );
-const RunDetailPage = lazy(() =>
+const RunDetailPage = lazyRoute("RunDetailPage", () =>
   import("./routes/RunDetailPage.js").then((m) => ({ default: m.RunDetailPage })),
 );
-const BoardPage = lazy(() =>
+const BoardPage = lazyRoute("BoardPage", () =>
   import("./routes/BoardPage.js").then((m) => ({ default: m.BoardPage })),
 );
-const TaskDetailPage = lazy(() =>
+const TaskDetailPage = lazyRoute("TaskDetailPage", () =>
   import("./routes/TaskDetailPage.js").then((m) => ({ default: m.TaskDetailPage })),
 );
-const WorkspacePage = lazy(() =>
+const WorkspacePage = lazyRoute("WorkspacePage", () =>
   import("./routes/WorkspacePage.js").then((m) => ({ default: m.WorkspacePage })),
 );
-const ProjectPage = lazy(() =>
+const ProjectPage = lazyRoute("ProjectPage", () =>
   import("./routes/ProjectPage.js").then((m) => ({ default: m.ProjectPage })),
 );
-const CodebasePage = lazy(() =>
+const CodebasePage = lazyRoute("CodebasePage", () =>
   import("./routes/CodebasePage.js").then((m) => ({ default: m.CodebasePage })),
 );
-const SourcePage = lazy(() =>
+const SourcePage = lazyRoute("SourcePage", () =>
   import("./routes/SourcePage.js").then((m) => ({ default: m.SourcePage })),
 );
-const FlowBuilderPage = lazy(() =>
+const FlowBuilderPage = lazyRoute("FlowBuilderPage", () =>
   import("./routes/FlowBuilderPage.js").then((m) => ({ default: m.FlowBuilderPage })),
 );
-const FlowEditorPage = lazy(() =>
+const FlowEditorPage = lazyRoute("FlowEditorPage", () =>
   import("./routes/FlowEditorPage.js").then((m) => ({ default: m.FlowEditorPage })),
 );
-const FlowsPage = lazy(() =>
+const FlowsPage = lazyRoute("FlowsPage", () =>
   import("./routes/FlowsPage.js").then((m) => ({ default: m.FlowsPage })),
 );
-const MetricsPage = lazy(() =>
+const MetricsPage = lazyRoute("MetricsPage", () =>
   import("./routes/MetricsPage.js").then((m) => ({ default: m.MetricsPage })),
 );
-const CrewPage = lazy(() =>
+const CrewPage = lazyRoute("CrewPage", () =>
   import("./routes/CrewPage.js").then((m) => ({ default: m.CrewPage })),
 );
-const CrewEditorPage = lazy(() =>
+const CrewEditorPage = lazyRoute("CrewEditorPage", () =>
   import("./routes/CrewEditorPage.js").then((m) => ({ default: m.CrewEditorPage })),
 );
-const ProfilesPage = lazy(() =>
+const ProfilesPage = lazyRoute("ProfilesPage", () =>
   import("./routes/ProfilesPage.js").then((m) => ({ default: m.ProfilesPage })),
 );
-const ConsultPage = lazy(() =>
+const ConsultPage = lazyRoute("ConsultPage", () =>
   import("./routes/ConsultPage.js").then((m) => ({ default: m.ConsultPage })),
 );
-const SupervisorsPage = lazy(() =>
+const SupervisorsPage = lazyRoute("SupervisorsPage", () =>
   import("./routes/SupervisorsPage.js").then((m) => ({ default: m.SupervisorsPage })),
 );
-const SupervisorNewPage = lazy(() =>
+const SupervisorNewPage = lazyRoute("SupervisorNewPage", () =>
   import("./routes/SupervisorNewPage.js").then((m) => ({ default: m.SupervisorNewPage })),
 );
-const DashboardPage = lazy(() =>
+const DashboardPage = lazyRoute("DashboardPage", () =>
   import("./routes/DashboardPage.js").then((m) => ({ default: m.DashboardPage })),
 );
-const PoliciesPage = lazy(() =>
+const PoliciesPage = lazyRoute("PoliciesPage", () =>
   import("./routes/PoliciesPage.js").then((m) => ({ default: m.PoliciesPage })),
 );
-const ConfigPage = lazy(() =>
+const ConfigPage = lazyRoute("ConfigPage", () =>
   import("./routes/ConfigPage.js").then((m) => ({ default: m.ConfigPage })),
 );
 
-const ProposalsPage = lazy(() =>
+const ProposalsPage = lazyRoute("ProposalsPage", () =>
   import("./routes/ProposalsPage.js").then((m) => ({ default: m.ProposalsPage })),
 );
-const ProposalDetailPage = lazy(() =>
+const ProposalDetailPage = lazyRoute("ProposalDetailPage", () =>
   import("./routes/ProposalsPage.js").then((m) => ({ default: m.ProposalDetailPage })),
 );
 

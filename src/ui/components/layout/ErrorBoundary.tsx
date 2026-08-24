@@ -15,6 +15,7 @@
 // the API client module for classification this boundary doesn't need.
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { ErrorState } from "../design/ErrorState.js";
+import { isChunkLoadFailure } from "../../app/lazy-route.js";
 
 type Props = { children: ReactNode; resetKey?: string };
 type State = { error: Error | null; info: ErrorInfo | null };
@@ -44,12 +45,23 @@ export class ErrorBoundary extends Component<Props, State> {
     const { error, info } = this.state;
     if (!error) return this.props.children;
     const hasDebugInfo = !!(error.stack || info?.componentStack);
+    // A chunk that reaches here already survived lazyRoute's one reload, so the
+    // file is genuinely absent from dist/ui rather than merely renamed. Saying
+    // "failed to render" and printing a module URL sends the reader hunting for
+    // a bug in the page; the build is what is missing.
+    const staleChunk = isChunkLoadFailure(error);
     return (
       <div className="m-6">
         <ErrorState
           compact
-          title="This view failed to render."
-          detail={error.message}
+          title={
+            staleChunk ? "This page's code is missing from the server." : "This view failed to render."
+          }
+          detail={
+            staleChunk
+              ? `The dashboard reloaded once and the file is still not there, so the built UI it serves is incomplete - most likely a build is still running. ${error.message}`
+              : error.message
+          }
           actions={[
             { label: "Try again", onClick: this.reset },
             { label: "Reload", variant: "secondary", onClick: () => window.location.reload() },

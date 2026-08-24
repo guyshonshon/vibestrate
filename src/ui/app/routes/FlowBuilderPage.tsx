@@ -23,7 +23,8 @@
 // The reset effect keys on `selected?.id`, so anything that replaces a flow's
 // definition without changing its id (the raw-YAML save does exactly that) has
 // to resync the drafts by hand or the form view shows stale fields.
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazyRoute } from "../lazy-route.js";
 import { ArrowLeft, Code, Copy, Eye, Flag, Plus, Save } from "lucide-react";
 import {
   api,
@@ -68,7 +69,7 @@ import {
 
 // CodeMirror is heavy (~140kB gzip); lazy-load it so it only ships when the
 // Flow Builder's YAML mode is actually opened, not on every dashboard load.
-const YamlEditor = lazy(() =>
+const YamlEditor = lazyRoute("YamlEditor", () =>
   import("../../components/workflow/YamlEditor.js").then((m) => ({
     default: m.YamlEditor,
   })),
