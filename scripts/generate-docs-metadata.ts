@@ -64,11 +64,25 @@ function sortKeys<T>(value: T): T {
   return value;
 }
 
+/** True once a generated file's bytes actually differ from what was on disk.
+ *  meta.json's revision stamp keys off this - see generateMeta. */
+let outputChanged = false;
+
 function writeJson(filename: string, payload: unknown, opts: { sort?: boolean } = {}): void {
   const path = resolve(outDir, filename);
   const finalPayload = opts.sort ? sortKeys(payload) : payload;
   const json = JSON.stringify(finalPayload, null, 2) + "\n";
-  writeFileSync(path, json, "utf8");
+  let previous: string | null = null;
+  try {
+    previous = readFileSync(path, "utf8");
+  } catch {
+    previous = null;
+  }
+  if (previous !== json) {
+    // meta.json describes the others; it must not vote on whether they moved.
+    if (filename !== "meta.json") outputChanged = true;
+    writeFileSync(path, json, "utf8");
+  }
   console.log(`  ${relative(repoRoot, path)}  (${json.length.toLocaleString()} bytes)`);
 }
 
@@ -416,14 +430,31 @@ function generateMeta() {
   // null and every regeneration from a feature branch committed a revision-less
   // meta.json. The catch covers a git-less source tarball, which is the only
   // case where null is the honest answer.
+  // The stamp names the source revision the REST of this directory was
+  // generated from, so it only moves when that output moves. Re-stamping HEAD
+  // on every run made `pnpm docs:generate` produce a diff even when nothing
+  // had changed, which trains a reviewer to wave through the one directory
+  // whose whole job is to make drift visible.
   let gitRev: string | null = null;
-  try {
-    gitRev = execFileSync("git", ["rev-parse", "HEAD"], {
-      cwd: repoRoot,
-      encoding: "utf8",
-    }).trim();
-  } catch {
-    gitRev = null;
+  if (!outputChanged) {
+    try {
+      const previous = JSON.parse(readFileSync(resolve(outDir, "meta.json"), "utf8")) as {
+        sourceRev?: unknown;
+      };
+      if (typeof previous.sourceRev === "string") gitRev = previous.sourceRev;
+    } catch {
+      // No readable stamp to carry forward; fall through and take HEAD.
+    }
+  }
+  if (gitRev === null) {
+    try {
+      gitRev = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: repoRoot,
+        encoding: "utf8",
+      }).trim();
+    } catch {
+      gitRev = null;
+    }
   }
 
   const pkgPath = resolve(repoRoot, "package.json");
