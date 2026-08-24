@@ -1,31 +1,31 @@
 ---
 title: Set up a provider
-description: Tell Vibestrate which AI coding tools you have, then check that each one answers.
+description: Point Vibestrate at the AI coding tools you already have, from the Crew page's Providers tab.
 slug: getting-started/providers
 ---
 
 ## In simple words
 
-Vibestrate does not ship a model of its own. It hands the work to something you already have, and that something is a **[[provider]]**.
+Vibestrate ships no model of its own. It hands the work to a **[[provider]]** you already have, and you need at least one before a [[task]] can run.
 
-You need at least one before a [[task]] can run.
+Open **Crew** in the sidebar, then the **Providers** tab. Every provider is a card - detected or not, configured or not - with **Set up**, **Set default** and **Test** on it.
+
+<div class="docs-callout tip">
+
+**Tip.** **More > Setup** gets you here in context: its third step, **Connect a model**, reports what is installed and what is missing, with a **Providers** button to this tab.
+
+</div>
 
 ![Two provider cards. Claude Code, claude v2.1.227, marked recommended and configured, showing 1 profile uses. Codex CLI, codex v0.144.3, also configured, showing 3 profiles use. Each card offers Edit, Set default and Test.](/media/docs/scoped/provider-pair.png)
 
 Detected, versioned, and testable from the page.
-
-<div class="docs-callout tip">
-
-**Tip.** Run `vibe doctor` first. It finds what is installed, says which ones need a one-time setup, and prints the exact login command for anything not authenticated - which you run yourself, in your own terminal.
-
-</div>
 
 ## The three kinds
 
 <div class="docs-cards">
 
 **A CLI you already have**
-Claude Code, Codex, Gemini, Aider and seven more. Already logged in, already yours.
+Claude Code, Codex, Gemini, Aider and seven more, already logged in.
 
 **A model API on your key**
 An https endpoint, for a model with no CLI.
@@ -37,71 +37,26 @@ Ollama or similar, over loopback, so nothing leaves the box.
 
 <div class="docs-callout">
 
-**Did you know?** Vibestrate never logs you in. When a provider is not authenticated it shows you the command to run yourself. That is why your credentials never pass through it: the design gives it no opportunity to hold one.
+**Did you know?** Vibestrate never logs you in. When a provider is not authenticated it shows you the command to run in your own terminal. The design gives it no opportunity to hold a credential.
 
 </div>
 
 
 ## Going deeper
 
-### See what you have
+### The Providers tab
 
-```bash
-vibe provider detect
-```
+Two tiles count what is **detected** and what is **configured**. The cards below are grouped:
 
-That runs each known tool's `--version` and reports one of three states. It writes nothing.
+- **Popular** - the five Vibestrate configures on its own: claude, codex, gemini, aider, ollama. It holds a verified invocation for each, so init and `doctor --fix` can write one of these blocks without asking for a command. Init writes one provider block, not five.
+- **Optional** - detected, never auto-bound: opencode, qwen, crush, goose, cursor, amp. **Set up** wires one into this project.
+- **Cloud APIs & local model servers** - **Add cloud API**, **Add local server** and **Custom CLI**, for anything that isn't a preset.
 
-<div class="docs-outcomes">
-<div class="docs-outcome ok"><b>ready</b><span>Installed, and Vibestrate already knows the flags to use. Five land here: claude, codex, gemini, aider, ollama.</span></div>
-<div class="docs-outcome warn"><b>detected, needs setup</b><span>Installed, but Vibestrate has no preset flags for it. Run vibe provider setup to choose them.</span></div>
-<div class="docs-outcome stop"><b>not found</b><span>The command isn't on your PATH. The output tells you how to install it.</span></div>
-</div>
+**Install** shows on a popular provider you don't have yet. **Set up** opens the editor for command, args and input, and reads **Edit** once the provider is configured. **Set default** points every default agent at it. **Test** sends a tiny no-op prompt and reads the reply; when the answer is "not logged in" the card prints the login command.
 
-Two entries from a real list:
+### Give the reviewer a different model
 
-```text
-✓ Claude Code - ready
-  Command: claude (v2.1.4)
-  Default args: -p with prompt on stdin.
-
-○ Aider - not found
-  Command tried: aider
-  aider is not on PATH.
-```
-
-### Set it up and test it
-
-```bash
-vibe provider setup
-```
-
-The wizard walks you through each tool it found, fills in the settings it already knows, asks about any extras you want (which model, a system prompt), and offers to test the call. It saves your answers under `providers.<id>` in `project.yml`, the file that holds your project's settings.
-
-To confirm a provider answers, send it a prompt and read the reply:
-
-```bash
-vibe provider test claude
-vibe provider test ollama
-```
-
-If it complains about flags or a login, fix that before you start a real task.
-
-### Choose which one does the work
-
-Point every Profile at a single provider, and every role moves with them:
-
-```bash
-vibe provider set claude
-```
-
-There is no `--provider` flag on `vibe run`. You choose providers through [Profiles](/docs/concepts/profile), never by naming a provider directly. `--profile` swaps the Profile for every seated step in that one run:
-
-```bash
-vibe run "..." --profile codex-default
-```
-
-You can also give each role its own provider, so different steps run on different tools. Roles live under `crews.<crewId>.roles`, each one pointing at a Profile, and each Profile naming a provider:
+A [[role]] never names a provider. It names a [Profile](/docs/concepts/profile), and the Profile names the provider:
 
 <svg viewBox="0 0 560 112" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Two roles in one crew point at two profiles, and each profile names its own provider: the executor role runs on codex, the reviewer role on claude.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -137,35 +92,13 @@ You can also give each role its own provider, so different steps run on differen
   </g>
 </svg>
 
-```yaml
-profiles:
-  claude-default: { provider: claude }
-  codex-default:  { provider: codex }
+On the **Crews** tab, each role card has a **Profile (runtime)** dropdown. Point the Reviewer at a Profile on a second provider and Vibestrate records the run as `cross-model` rather than `single-profile`; [why you stay in the loop](/docs/getting-started/why-a-human) covers what that buys you.
 
-crews:
-  default:
-    roles:
-      executor:
-        seats: [implementer, executor, builder]
-        profile: codex-default
-        prompt: .vibestrate/roles/executor.json
-        permissions: code_write
-      reviewer:
-        seats: [reviewer, challenger]
-        profile: claude-default
-        prompt: .vibestrate/roles/reviewer.json
-        permissions: read_only
-```
-
-Keep the seat lists the way `vibe init` wrote them. The default flow asks for `implementer`, not `executor`, so a role that drops `implementer` from its seats leaves that seat empty and the run stops before it starts.
-
-That split is the payoff of two providers. Your builder and reviewer are different models, and Vibestrate records the run as `cross-model` rather than `single-profile`. [Why a human stays in the loop](/docs/getting-started/why-a-human) covers what that changes.
-
-Different [Profiles](/docs/concepts/profile) also let you match a step to the horsepower it needs. A Profile pins the provider, model and effort, so an easy role runs on a cheap model while the hard one gets your best.
+A Profile also pins the model and the effort level, so an easy role runs on something cheap while the hard one gets your best.
 
 ### Cloud models, or local ones
 
-Not every provider is a tool you installed. Vibestrate can talk to a model over HTTP instead:
+**Add cloud API** and **Add local server** ask for these fields and validate before saving. The same shapes in `project.yml`:
 
 ```yaml
 providers:
@@ -185,22 +118,57 @@ providers:
     maxTokens: 4096
 ```
 
-Vibestrate checks both types when the config loads. It rejects an `http-api` provider whose `baseUrl` isn't `https`, one that points at a loopback address (use `localhost-proxy` for that), and one whose `apiKey` is anything other than `env:NAME`. For `localhost-proxy` it rejects any host other than `localhost`, `127.0.0.1` or `[::1]`.
+Both types are checked when the config loads. An `http-api` provider is rejected if `baseUrl` isn't `https`, if it points at a loopback address (use `localhost-proxy` for that), or if `apiKey` is anything other than `env:NAME`. A `localhost-proxy` is rejected for any host other than `localhost`, `127.0.0.1` or `[::1]`.
+
+**Test** on a cloud card costs nothing: an `http-api` provider is never called, the probe only reports whether the key's env var is set. A `localhost-proxy` does get a real prompt, because a server on your own machine is free.
 
 <div class="docs-callout">
 
-**Your keys stay where they are.** With an installed tool, Vibestrate leans on the login that tool already holds. With an `http-api` provider, the key sits in your shell environment and `project.yml` keeps only the `env:NAME` reference. Either way, Vibestrate never copies the secret into its own files.
+**Your keys stay where they are.** An installed tool keeps the login it already holds. An `http-api` provider's key sits in your shell environment, and `project.yml` keeps only the `env:NAME` reference.
 
 </div>
 
-`vibe provider setup` has **Cloud API** and **Local model server** options that ask for these fields and check them before saving, so a bad value comes back as an error.
+### From the terminal
 
-If you'd rather stay out of the terminal, Mission Control's Crew page has a **Providers** tab for all of this - install hints, setup, testing, and picking a default.
+For a script, or a second machine set up the same way:
+
+```bash
+vibe provider detect        # what's installed, and how confident
+vibe provider setup         # the same wizard, with Cloud API and
+                            # Local model server among its options
+vibe provider set claude    # make it the default for every agent
+vibe provider test claude   # safe smoke test; prints the login command
+```
+
+`vibe provider detect` runs each known tool's `--version` and writes nothing. Three entries, one per state:
+
+```text
+✓ Claude Code - ready
+  Command: claude (v2.1.4)
+  Default args: -p with prompt on stdin.
+
+! OpenCode - detected, needs setup
+  Command: opencode (v0.4.2)
+
+○ Aider - not found
+  Command tried: aider
+  aider is not on PATH.
+```
+
+`ready` is a popular provider, wired up without you. `detected, needs setup` is on PATH but stays opt-in until you press **Set up**, which opens the editor filled from its preset. `not found` covers a command that is not on PATH and one that failed its `--version`; the note under it says which.
+
+There is no `--provider` flag on `vibe run`. Providers are chosen through Profiles, so `--profile` swaps one for a single run:
+
+```bash
+vibe run "..." --profile codex-default
+```
+
+Keep the seat lists the way `vibe init` wrote them: the default flow asks for `implementer`, not `executor`, so a role that drops `implementer` leaves that seat empty and the run stops before it starts.
 
 ### Going deeper
 
 - [Providers reference](/docs/reference/providers) - the current list, notes on each one, and the install hint.
-- The dashboard's Providers tab can also add a provider from scratch (cloud API, local server, custom CLI) and run a connectivity probe that checks a cloud key without spending anything.
+- [Profile](/docs/concepts/profile) - the provider, model and effort a role runs at.
 
 ### Next
 

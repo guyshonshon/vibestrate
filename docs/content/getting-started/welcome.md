@@ -1,22 +1,22 @@
 ---
 title: The guided walkthrough
-description: A four-step tour of providers, crew, flows and your first run that you can skip or quit and pick up later.
+description: A four-step terminal tour of providers, crew, flows and your first run that you can skip or quit and pick up later.
 slug: getting-started/welcome
 ---
 
 ## In simple words
 
-`vibe welcome` walks you through setup in four steps: a [[provider]], a [[crew]], your [[flow]]s, then your first [[run]].
+The dashboard's **More > Setup** page is the primary guided path: numbered steps, live check results, a **Fix what's safe** button. `vibe welcome` is the terminal-native version.
 
 ```bash
 vibe welcome
 ```
 
-Quit halfway and it picks up where you stopped. Skip any step. `--reset` starts over.
+It walks four steps: a [[provider]], a [[crew]], your [[flow]]s, then your first [[run]]. Quit halfway and it picks up where you stopped. Skip any step. `--reset` starts over.
 
 <div class="docs-callout tip">
 
-**Tip.** It asks questions, so it needs a real terminal. In a script or in CI it prints the commands to run by hand and exits without touching anything, rather than hanging on a prompt nobody will answer.
+**Tip.** It asks questions, so it needs a real terminal. In a script or in CI it prints the commands to run by hand and exits without touching anything.
 
 </div>
 
@@ -40,7 +40,7 @@ A real task, start to finish, so the vocabulary lands.
 
 <div class="docs-callout">
 
-**Did you know?** The tour is resumable because it writes as it goes rather than at the end. Quitting after step two leaves you with a working provider and crew, not a half-written config that has to be started again.
+**Did you know?** The tour is resumable because it writes as it goes rather than at the end. Quit after step two and you have a working provider and crew, not a half-written config.
 
 </div>
 
@@ -49,16 +49,14 @@ A real task, start to finish, so the vocabulary lands.
 
 ### The four steps
 
-- **Providers** - the coding CLI that runs the model doing the work, such as Claude Code or Ollama. This step runs `vibe provider setup` for you.
-- **Crew** - your team of AI workers. Install a ready-made one (Fast, Thorough, Cheap, or Local), or skip and build your own later.
-- **Flows** - a flow is the ordered list of steps a run works through. You'll see how to list the flows you already have, and how to install more from the flows hub, a shared collection you can browse.
+- **Providers** - the coding CLI that runs the model, such as Claude Code or Ollama. This step runs `vibe provider setup`.
+- **Crew** - your team of AI workers. Install a ready-made one (Fast, Thorough, Cheap, or Local), or build your own later on the **Crew** page.
+- **Flows** - the ordered list of steps a run works through. You see the flows you have, and how to install more from the flows hub.
 - **Your first run** - a small task to try next.
 
-Each step opens with a short explanation, then asks whether to continue, skip, or quit. Skip anything you already know.
+Each step opens with a short explanation, then asks whether to continue, skip or quit.
 
 ### It remembers where you left off
-
-Quit partway through and `vibe welcome` picks up at the first step you haven't finished.
 
 <svg viewBox="0 0 560 70" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The tour has four steps - providers, crew, flows, and your first run. Quit after the first two and it picks up at flows.">
   <g fill="currentColor" fill-opacity="0.07">
@@ -84,36 +82,33 @@ Quit partway through and `vibe welcome` picks up at the first step you haven't f
   </g>
 </svg>
 
-Your progress lives in `.vibestrate/welcome-state.json`, a small file that records which steps you've been through and nothing else. Delete it, or run `--reset`, and your providers, crew, and flows stay as they are. Those settings live in `project.yml`.
+A step counts as done only when it succeeds, so a failed step is the one you land on next time. Progress lives in `.vibestrate/welcome-state.json`, which records which steps you've been through and nothing else. Delete it, or run `--reset`, and your providers, crew and flows stay as they are: those settings live in `project.yml`.
 
 ```bash
 vibe welcome --reset
 ```
 
-### If you're not initialized yet
+### If the project isn't set up yet
 
-The tour offers to run `vibe init` for you when the project isn't set up yet. Say no and the tour stops there, leaving you two commands to run yourself:
+The tour offers to run `vibe init` for you. Say no and it stops there, leaving you two commands:
 
 ```bash
 vibe init
 vibe welcome
 ```
 
-### From here
+The dashboard does the same with the Setup page's **Initialise this project** button.
 
-The last step hands you a real task to try:
-
-```bash
-vibe run "Add structured logging to the \
-settings save handler"
-```
-
-After that, you have three ways to work with Vibestrate day to day:
+### Three ways to work
 
 <div class="docs-flow">
 
-<div><b>CLI</b><span><code>vibe run "your task"</code> - the direct route.</span></div>
-<div><b>TUI shell</b><span><code>vibe</code> - an interactive terminal shell for the same commands.</span></div>
-<div><b>Dashboard</b><span><code>vibe ui</code> - a local web view of runs, crew, and flows.</span></div>
+<div><b>Dashboard</b><span><code>vibe ui</code> - runs, crew, flows, source and setup on 127.0.0.1:4317. The primary surface.</span></div>
+<div><b>Interactive shell</b><span><code>vibe</code> - the same surfaces, terminal-native.</span></div>
+<div><b>Commands</b><span><code>vibe run "your task"</code> - the automation path, for scripts and CI.</span></div>
 
 </div>
+
+### Next
+
+[Keep the change →](/docs/getting-started/merging) - what to do with the branch your first run leaves behind.

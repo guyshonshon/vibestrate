@@ -6,17 +6,15 @@ slug: workflows/create-and-run
 
 ## In simple words
 
-This guide takes you from "I have a thing to do" to a change you can merge.
+This guide takes you from "I have a thing to do" to a change you can merge. [Mission Control](/docs/cli/dashboard) is the primary surface; the commands below are the automation path, and each section names the screen that does the same thing.
 
 ```bash
 vibe run "Add retry with backoff to the uploader" --ui
 ```
 
-That is the short version. The rest of this page is what each part of it means and what to do when the answer is not obvious.
-
 <div class="docs-callout tip">
 
-**Tip.** `--ui` opens Mission Control alongside the run. Watching your first few runs is worth the screen space; once the shape is familiar you will mostly start them and come back.
+**Tip.** `--ui` opens Mission Control alongside the run. Watching your first few is worth the screen space; once the shape is familiar you will mostly start them and come back.
 
 </div>
 
@@ -37,16 +35,15 @@ A run is fine unattended. Nothing merges without you either way.
 
 <div class="docs-callout">
 
-**Did you know?** The run tells you afterwards which flow it chose and why, including the words in your task that triggered any upgrade. If a task got a heavier flow than you expected, that reasoning is recorded rather than left for you to guess at.
+**Did you know?** The run tells you afterwards which flow it chose and why, including the words in your task that triggered any upgrade. A task that got a heavier flow than you expected has that reasoning recorded, not left for you to guess at.
 
 </div>
-
 
 ## Going deeper
 
 ### 1. Frame the task
 
-Write the task description the way you'd brief a careful colleague. Name the file, name the convention, name the constraint. The more exact you are, the better the result.
+Write the task description the way you would brief a careful colleague. Name the file, the convention, the constraint.
 
 > **Good.** Add audit logging to the settings save handler at `src/server/routes/settings.ts`. Use the existing `auditLogger` from `src/lib/audit.ts`. Log the user id and the *keys* changed - never the values.
 
@@ -54,13 +51,11 @@ Write the task description the way you'd brief a careful colleague. Name the fil
 
 ### 2. Start the run
 
-Kick off the task with one command:
-
 ```bash
 vibe run "Add audit logging to the settings..."
 ```
 
-Three flags cover most of what you'll want to change about a run - the dashboard, a heavier [Flow](/docs/concepts/flow), or a different model:
+Three flags cover most of what you will want to change - the dashboard, a heavier [Flow](/docs/concepts/flow), or a different model:
 
 ```bash
 # dashboard alongside the terminal
@@ -73,7 +68,9 @@ vibe run "..." --flow quality-arbitration
 vibe run "..." --profile <id>
 ```
 
-Profile ids are yours, not ours. Run `vibe profile list` to see the ones your project actually has.
+`vibe profile list` shows the profile ids your project has.
+
+*In the dashboard:* the **New run** button at the bottom of the sidebar opens the composer, in five sections. **Task** is the brief, **Flow** defaults to **Auto**, **Inputs** collects any params the selected flow declares, **Crew** picks the roster, and **Configuration** holds **Permission**, **Unattended**, a **Tuning** pair of **Concise** and **Auto-pick flow**, and the **Supervisor** persona. **Start run** launches it, as a detached process that outlives the browser tab; `vibe run` does the work in the terminal you started, so that terminal has to stay alive.
 
 ### 3. Watch, or walk away
 
@@ -92,8 +89,6 @@ The default flow is eight steps, and Vibestrate works through them on its own:
 
 Review, fix and re-validate repeat until the review passes or the bound is hit - one review plus up to two fix rounds, by default. Those names are the step ids too, so the review's own write-up is at `artifacts/flows/review/output.md` in the run's folder.
 
-You can watch each step in the terminal or the dashboard. `vibe run` does the work in the process you started, so that terminal has to stay alive for the run to keep going. A run launched from the dashboard is a detached process instead, and outlives the browser tab.
-
 When the run finishes, it lands in one of four states:
 
 <div class="docs-outcomes">
@@ -103,30 +98,30 @@ When the run finishes, it lands in one of four states:
 <div class="docs-outcome stop"><b>aborted</b><span>You stopped the run yourself with vibe abort.</span></div>
 </div>
 
-### 4. Inspect the result
+*In the dashboard:* the run detail page follows the same eight steps on its **Live timeline**, beside **Live metrics** and **Changed files**. See [Inspect a run in flight](/docs/workflows/inspect-progress).
 
-See every run in the project, then dig into one:
+### 4. Inspect the result
 
 ```bash
 vibe status            # every run, oldest first
 vibe replay <runId>    # read-only, one run
 ```
 
-Or open the dashboard's **Source** page, on its **Changes** tab, to read the diff inline.
+*In the dashboard:* the **Runs** page is the same list, and the **Source** page's **Changes** tab reads the diff inline, file by file.
 
 ### 5. Merge it yourself
 
 Vibestrate does not push or merge (see [the safety guarantees](/docs/concepts/safety)). The run leaves the diff on its branch in the worktree, and the final call is yours.
 
-Before you decide, you can ask the merge advisor:
+Before you decide, ask the merge advisor:
 
 ```bash
 vibe integrate advise <runId>
 ```
 
-It is read-only and deterministic: same run, same advice, and no model in the loop. For each run it prints a one-line headline, then the risk flags (does the change touch protected files? did any check actually run?), the branch's position against `main`, which checks passed, and finally its recommendation - `finish-now`, `stage-on-integration-branch` or `resolve-first` - with the reason. Nothing is merged, no branch is touched. Add `--json` to emit the full advice for scripts. The same window lives on the dashboard's Source page, on its **Merge** tab.
+It is read-only and deterministic: same run, same advice, no model in the loop. Per run it prints a headline, the risk flags (does the change touch protected files? did any check actually run?), the branch's position against `main`, which checks passed, and a recommendation - `finish-now`, `stage-on-integration-branch` or `resolve-first` - with the reason. Nothing is merged, no branch is touched. `--json` emits the full advice for scripts.
 
-When the advisor suggests staging is configurable. It is suggestion-only and never blocks. Three thresholds decide it, and these are their defaults in `project.yml`:
+When it suggests staging is configurable, suggestion-only and never blocking. Three thresholds decide it; these are the defaults in `project.yml`:
 
 ```yaml
 merge:
@@ -137,11 +132,13 @@ merge:
       behindMain: 50
 ```
 
-Change one with `vibe config set` and its full dotted key. `vibe config keys` prints every key in full.
+Change one with `vibe config set` and its full dotted key; `vibe config keys` prints every key in full.
 
-For a deeper look, run `vibe integrate analyze <runId>` (or click the **Analyze deeper** button on the Source page's Merge tab). This optional read-only pass has a local provider read the run's diff against main and report semantic risk that a textual merge check can't see: concurrency, error handling, missing tests. It is advisory prose, never a merge verdict, and it never changes the deterministic recommendation. Before the provider sees it, the diff is byte-capped and redacted (secret-like files suppressed, secret-shaped tokens removed), and the result is cached under the run.
+`vibe integrate analyze <runId>` has a local provider read the run's diff against main and report semantic risk a textual merge check cannot see: concurrency, error handling, missing tests. It is advisory prose, never a merge verdict, and it never changes the deterministic recommendation. Before the provider sees it the diff is byte-capped and redacted, and the result is cached under the run.
 
-Then you decide. The branch is yours to take in one of three directions:
+*In the dashboard:* the **Source** page's **Merge** tab is the same window, with **Analyze the diff** for the optional deeper pass, then **Integrate this run** and **Complete merge to main**.
+
+The branch is yours to take in one of three directions:
 
 <svg viewBox="0 0 560 146" width="100%" style="max-width:560px;height:auto" role="img" aria-label="When a run finishes, its branch is yours to take in one of three directions: open a pull request to share or review it, merge it locally with git merge, or abandon it with vibe abort.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -173,27 +170,18 @@ Then you decide. The branch is yours to take in one of three directions:
   </g>
 </svg>
 
-To get a human review or just share the branch:
-
 ```bash
 cd ../.vibestrate-worktrees/<runId>
 gh pr create      # review by a human
 git push          # just share the branch
-```
 
-To merge it locally instead:
-
-```bash
+# or merge it locally
 git checkout main
 git merge --ff-only vibestrate/<runId>
-```
 
-Or to abandon it:
-
-```bash
+# or abandon it; the worktree is preserved for
+# inspection, remove it when you're done
 vibe abort <runId>
-# the worktree is preserved for inspection;
-# remove it when you're done
 ```
 
 ### Related

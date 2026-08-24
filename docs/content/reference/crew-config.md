@@ -6,7 +6,7 @@ slug: reference/crew-config
 
 ## In simple words
 
-There is no `crew.yml`. A [[crew]] lives inside `.vibestrate/project.yml`, under `crews:`, next to the `profiles:` it points at. This page is exactly what `vibe init` writes, with a comment on every field.
+There is no `crew.yml`. A [[crew]] lives inside `.vibestrate/project.yml`, under `crews:`, next to the `profiles:` it points at. This page is what `vibe init` writes, with a comment on every field. The provider id is whichever one init detected on your machine, so a project set up on `codex` reads `codex` and `codex-balanced` everywhere this page reads `claude` and `claude-balanced`.
 
 Three blocks, in the order they depend on each other:
 
@@ -25,7 +25,7 @@ Your roster of roles. Each role runs on a profile and lists the seats it can fil
 
 <div class="docs-callout tip">
 
-**Tip.** Do not hand-edit this to swap a model. `vibe profile add` and the Crew page write the same block with the schema enforced, and a typo in `profile:` is a run that fails on its first turn.
+**Tip.** Do not hand-edit this to swap a model. The **Crew** page's editor writes the same block with the schema enforced - each role card carries its own profile, permissions, seats and skills - and a typo in `profile:` is a run that fails on its first turn.
 
 </div>
 
@@ -128,13 +128,17 @@ defaultCrew: default
 
 Add a profile for the second provider, then move the two judging roles onto it. Cross-model review by construction, not by remembering to open another chat.
 
+In the dashboard: **Crew** > **Providers** sets the second CLI up, then open the crew and change `profile` on the reviewer and verifier role cards. Each card writes as you change it, one field at a time. **Edit roles** on the same page opens the crew editor instead, which holds a batch of edits behind its **Save N changes** button.
+
+From a terminal the profile half has a command and the role half does not:
+
 ```bash
 vibe provider setup                       # configure the second CLI first
 vibe profile add codex-balanced --provider codex --power medium
-vibe crew set-profile reviewer codex-balanced
-vibe crew set-profile verifier codex-balanced
-vibe crew show                            # confirm both moved
+vibe crew show                            # which profile each role runs on
 ```
+
+Pointing a role at the new profile is a `project.yml` edit - `crews.default.roles.reviewer.profile`, and the same for `verifier`. There is no `vibe crew` subcommand for it.
 
 ### Role files
 
@@ -144,30 +148,32 @@ vibe crew show                            # confirm both moved
 {
   "schemaVersion": 1,
   "id": "planner",
-  "label": "Planner",
   "prompt": "You turn a task brief into an ordered plan..."
 }
 ```
 
-A pointer at a `.md` file is a stale config from an older version; the loader says so and names the migration. Doctor catches it before a run does - [Setup](/docs/cli/dashboard) in the dashboard, or `vibe doctor`.
+Those three keys are the whole file. The schema is strict, so a fourth one - a `label`, a note to yourself - is a parse error rather than a field that is quietly ignored. The role card in the crew editor edits that `prompt` text in place, so the file is rarely opened by hand.
+
+A pointer at a `.md` file is a stale config from an older version; the loader says so and names the migration. Doctor catches it before a run does - **More** > **Setup** in the sidebar, or `vibe doctor`.
 
 ### Permissions
 
-`permissions:` names a key in the project's `permissions.profiles` block, not a free-form string. `read_only` seats run the provider with its own no-write mode where it has one, so the constraint is enforced by the CLI rather than requested in a prompt. More in [Safety](/docs/concepts/safety).
+`permissions:` names a key in the project's `permissions.profiles` block, not a free-form string. Vibestrate enforces the profile on its own side either way. Pushing the constraint down into the provider's own no-write mode is opt-in: `policies.hardenReadOnlySeats` is off by default, and switching it on runs a read-only claude seat with `--permission-mode plan`, so the CLI refuses the write rather than the agent being asked not to try. More in [Safety](/docs/concepts/safety).
 
 ### Presets
 
-Four ready-made crews ship. They write the same block:
+Four ready-made crews ship - fast, thorough, cheap and local - tuned by provider effort. They write the same block:
 
 ```bash
-vibe crew presets              # fast, thorough, cheap, local
+vibe crew presets list         # the four, and whether each is installed
 vibe crew presets add thorough
-vibe crew default thorough
+vibe crew use thorough         # make it the crew a run picks by default
 ```
 
 ### From the CLI
 
 ```bash
+vibe crew list                 # configured crews, the default marked
 vibe crew show                 # roles, their profiles, and the seats they fill
 vibe profile list              # every profile and the provider behind it
 vibe flows show default        # whether this crew covers a flow's seats

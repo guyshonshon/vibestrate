@@ -15,11 +15,11 @@ Sessions are signed cookies, not JWTs. `src/auth/session.ts` is the only
 module that mints one. Never add a second path.
 ```
 
-Write it into `.vibestrate/skills/`, attach it to a [[role]], and every run seating that role reads it. You teach an agent something about your project once instead of retyping it into every task.
+Write it into `.vibestrate/skills/`, then attach it on the **Crew** page: every role card has a skills row with **Attach a skill**. Every run seating that role reads it, so you teach an agent something once instead of retyping it into every task.
 
 <div class="docs-callout tip">
 
-**Tip.** The test for whether something belongs in a skill: would you say it to a new contractor on their first day, and would you be annoyed to repeat it on their second? That is a skill. A one-off instruction belongs in the task.
+**Tip.** The test for whether something belongs in a skill: would you say it to a new contractor on their first day, and be annoyed to repeat it on their second? A one-off instruction belongs in the task instead.
 
 </div>
 
@@ -43,7 +43,7 @@ What a word means in your business.
 
 <div class="docs-callout">
 
-**Did you know?** A skill can carry MCP servers, so attaching one can hand a role new tools as well as new instructions. That is why assigning a skill is gated exactly like editing a role's prompt: same class of authority, not a lesser one.
+**Did you know?** A skill can carry MCP servers, so attaching one can hand a role new tools as well as new instructions. That is why assigning a skill is gated exactly like editing a role's prompt: the same class of authority.
 
 </div>
 
@@ -87,7 +87,7 @@ One skill is one markdown file, and it can sit on disk in two shapes:
   </g>
 </svg>
 
-Both of those give you a skill named `auth-conventions`. The name comes from the file stem or the folder name, unless a `name:` line in the frontmatter says otherwise. Vibestrate looks in two places: `.vibestrate/skills/`, which travels with your repo so anyone who clones it gets the skill, and `.claude/skills/`, which it reads too if you already keep skills for Claude Code. Only the folder shape can sit next to an `.mcp.json`, the file that points an agent at an outside tool. Attach a skill like that and the agent gets those tools too.
+Both shapes give you a skill named `auth-conventions`: the name comes from the file stem or the folder name, unless a `name:` line in the frontmatter says otherwise, and `.claude/skills/` is read too. An `.mcp.json` points an agent at an outside tool, so attaching a folder skill that carries one hands the agent those tools as well.
 
 Inside, write plain prose. An agent reads it the way you would:
 
@@ -105,16 +105,23 @@ When touching auth:
 
 ### Hand it to an agent
 
-See what Vibestrate found, then attach one to a role:
+**More > Project** has a **Skills** section listing everything Vibestrate found, each with where it came from. With none yet, the same panel takes a URL and **Fetch skill** pulls one in.
+
+Attaching happens on **Crew**. Each role card carries its skills as removable chips; the empty state offers **Attach a skill**, and after that the `+ skill…` picker adds the next. Opening a role for full editing gives the same **Skills** control alongside its seats, profile and permissions.
+
+In the interactive shell, `vibe` then `8` opens Skills as a grid: arrow up and down for the skill, left and right for the agent, `space` to toggle that pairing.
+
+### From the terminal
 
 ```bash
 vibe skills list
 vibe skills show auth-conventions
 vibe skills assign planner auth-conventions
 vibe skills unassign planner auth-conventions
+vibe skills fetch <url>
 ```
 
-`assign` writes the id into that role's `skills` list in `.vibestrate/project.yml`, at `crews.<crewId>.roles.<roleId>.skills`. You can edit that list by hand instead. It sits alongside the role's other keys, and all of those have to stay:
+`assign` writes the id into that role's `skills` list in `.vibestrate/project.yml`, at `crews.<crewId>.roles.<roleId>.skills`. Editing that list by hand works too, as long as the role's other keys stay:
 
 ```yaml
 crews:
@@ -128,7 +135,7 @@ crews:
         skills: [auth-conventions, error-handling]
 ```
 
-Or attach a skill for one run only. Vibestrate merges whatever you pass here with what each agent already has, never replacing it:
+Or attach one for a single run. Vibestrate merges what you pass with what each agent already has, never replacing it:
 
 ```bash
 vibe run "Add 2FA enrollment" \
@@ -150,3 +157,7 @@ It belongs in `.vibestrate/rules.md`, the house rules every agent reads on every
 ### Going deeper
 
 - [Skill discovery and schema reference](/docs/extending/add-skill) - the full folder layout and the optional metadata.
+
+### Next
+
+[Task →](/docs/concepts/task) - the first of the core concepts, now that the walkthrough is done.

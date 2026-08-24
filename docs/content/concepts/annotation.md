@@ -8,11 +8,13 @@ slug: concepts/annotation
 
 An **annotation** is a short note you pin to a file, telling agents something they should know before they touch it.
 
-It works like a sticky note on a page. The page is unchanged, but anyone reading it sees your note first. Use one to say "do not refactor this", "this function is the bug", or "match the pattern in `x.ts`" without editing the file yourself.
+It works like a sticky note on a page: the page is unchanged, but anyone reading it sees your note first, and you never edit the file yourself.
+
+You pin it on the **Codebase** page. `vibe ui` opens the dashboard on `127.0.0.1:4317`, **Codebase** is a row in the sidebar, and its right-hand **Inspector** panel holds the notes for whichever file is open. There is no command for this one: the dashboard is the only surface.
 
 <div class="docs-callout tip">
 
-**Tip.** An annotation is the right tool when the thing you want to say is about *one file*. If it is true across the whole codebase, write a [[skill]] instead - a note pinned to forty files is forty things to keep in sync.
+**Tip.** An annotation is the right tool when what you want to say is about *one file*. If it is true across the codebase, write a [[skill]] instead - a note pinned to forty files is forty things to keep in sync.
 
 </div>
 
@@ -36,24 +38,25 @@ Stop an agent hand-editing something a script rewrites.
 
 <div class="docs-callout">
 
-**Did you know?** Annotations marked visible to agents are added to every agent's prompt during a run - your guidance, acknowledged by the whole crew, not just the one worker that happens to open that file.
+**Did you know?** A note marked visible to agents is added to every agent's prompt during a run - your guidance, acknowledged by the whole crew, not only the one worker that happens to open that file.
 
 </div>
 
 
 ## Going deeper
 
-### What a note pins to
+### Pin one
 
-Every note targets a file, and you can point it at a precise spot:
+1. Open **Codebase** on the **Project** source tab. Notes pin to the project codebase, so the panel stands down under **Worktree**.
+2. Select a file. The **Annotations** block appears under the Inspector's file stats.
+3. Set the anchor: blank for the whole file, a line number for one line, a line plus an end line for a range. Hovering a line in the viewer shows a `+` that fills it in.
+4. Type the note, decide whether **Visible to agents** stays ticked, and press **Add note**.
 
-- **Whole file** - leave the line blank.
-- **A line** - set a start line, or click the `+` that appears when you hover a line in the file viewer.
-- **A range** - set a start and end line.
+Secret-like files refuse annotation and say so in place of the form.
 
 ### When agents see them
 
-Each note has a **Visible to agents** toggle, on by default. It decides which of two places the note ends up:
+**Visible to agents** is on by default, and it decides which of two places the note ends up:
 
 <svg viewBox="0 0 560 126" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A note you pin is either shared and open, in which case it joins every agent's prompt, or private or resolved, in which case it stays in the dashboard only.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -78,28 +81,24 @@ Each note has a **Visible to agents** toggle, on by default. It decides which of
   </g>
 </svg>
 
-When it's on, the note is shared. The moment a run starts, all open shared notes are added to every agent's prompt under a `# Human Annotations` section, so the whole crew treats them as instructions for the task. When it's off, the note stays in the dashboard for you only.
+A shared note joins every agent's prompt the moment a run starts. A private one stays in the dashboard for you.
 
-You can flip the toggle off any time, or **resolve** a note to drop it from future prompts without deleting it. Resolved notes are kept, greyed out, and you can reopen them.
-
-### Add one
-
-1. Open **Codebase** in Mission Control and select a file. Use the **Project** source, since annotations are pinned to the project codebase, not a run worktree.
-2. In the right panel, set the anchor (blank for the whole file, or a line or range), type the note, and choose whether it's visible to agents.
-3. **Add note.** It shows up in the list, and if it's shared, in the next agent prompt.
+Each note carries its anchor, a chip reading `roles` or `private` that flips the sharing, and controls to resolve or delete it. **Resolving** drops a note from future prompts without deleting it: it stays in the list, greyed out and struck through, ready to reopen.
 
 ### What an agent actually reads
 
-A shared, open note reaches the prompt as one line under `# Human Annotations`, carrying its anchor and your text:
+One line under `# Human Annotations`, carrying its anchor and your text:
 
 ```text
 # Human Annotations
 
-The user pinned these notes to the codebase.
-Treat them as authoritative guidance for this task:
+The user pinned these notes to the codebase. Treat them as authoritative guidance for this task:
 
-- **src/auth/session.ts:40-58** - don't refactor
-  this; the ordering here is load-bearing.
+- **src/auth/session.ts:40-58** - don't refactor this; the ordering here is load-bearing.
 ```
 
-A whole-file note shows as `src/auth/session.ts`, a single line as `src/auth/session.ts:40`.
+Whatever line breaks you typed are collapsed on the way in, so a note reaches an agent as exactly one line however you wrote it. A whole-file note shows as `src/auth/session.ts`, a single line as `src/auth/session.ts:40`.
+
+### Where they live
+
+`.vibestrate/annotations.json`, never inside the source files: your file's bytes do not change, and a note survives it being rewritten. The file sits with the rest of your committed [configuration](/docs/concepts/configuration).

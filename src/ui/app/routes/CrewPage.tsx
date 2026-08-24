@@ -342,7 +342,7 @@ export function CrewPage({
                         uncoveredCount > 0
                           ? "A run needing one of these seats has nobody to give it to."
                           : ambiguousCount > 0
-                            ? `${ambiguousCount} seat${ambiguousCount === 1 ? " has" : "s have"} several takers - the first match wins.`
+                            ? `${ambiguousCount} seat${ambiguousCount === 1 ? " has" : "s have"} several takers - a run refuses until you pick one.`
                             : "Every seat a flow can ask for has a role behind it.",
                       tone,
                     }}

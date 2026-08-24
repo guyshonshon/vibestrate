@@ -8,17 +8,17 @@ slug: getting-started/merging
 
 A run never edits your project folder. It works in its own copy - a git [[worktree]] beside your project, on its own branch - and stops at `merge_ready` with the change waiting there.
 
-Folding it into `main` is the one step Vibestrate always leaves to you.
-
-![The Workspace panel of a run, naming the branch and the run's isolated git worktree path, with a Copy cd button.](/media/docs/scoped/run-workspace.png)
-
-**Copy cd** puts the path on your clipboard, so you can go and read the work before you take it.
+Folding it into `main` is the one step Vibestrate always leaves to you, and the sidebar's **Source** page is where you do it: **Changes**, **Tree**, **Merge**.
 
 <div class="docs-callout tip">
 
-**Tip.** Read the diff before merging, every time. The verdict tells you which checks ran and passed; it does not tell you the change is the one you wanted. Those are different questions and only you can answer the second.
+**Tip.** Read the diff before merging, every time. The verdict tells you which checks ran and passed, not that the change is the one you wanted. Only you can answer the second question.
 
 </div>
+
+![The Workspace panel of a run, naming the branch and the run's isolated git worktree path, with a Copy cd button.](/media/docs/scoped/run-workspace.png)
+
+**Copy cd** on the run page puts the worktree path on your clipboard, to read the work in your editor.
 
 ## Your three options
 
@@ -37,46 +37,38 @@ Ignore the folder. Nothing entered your branch, so there is nothing to undo.
 
 <div class="docs-callout">
 
-**Did you know?** `vibe integrate advise` is read-only. It reads the run's branch and tells you which of the three routes it recommends, changing nothing. The merge itself needs a separate command, and finishing into `main` needs a typed confirmation token.
+**Did you know?** The merge advice is read-only: it reads the run's branch and recommends one of three routes, changing nothing. The merge is a separate click; finishing into `main` asks you to confirm first, and from the terminal needs the `merge-to-main` token typed out.
 
 </div>
 
 ## Git in one minute
 
-Three ideas cover it.
-
 <div class="docs-cards">
 
-**A branch** is a parallel line of work. Your real code sits on a branch, usually `main`. A new change can grow on its own branch without disturbing `main`, until you decide to combine them.
+**A branch** is a parallel line of work. Your real code sits on one, usually `main`; a new change grows on its own branch until you combine them.
 
-**A worktree** is a second folder checked out to a branch. Every run gets one, so the agent edits files there instead of in your project folder.
+**A worktree** is a second folder checked out to a branch. Every run gets one, so the agent edits files there, not in your project folder.
 
-**A merge** folds one branch into another. Merging the run's branch into `main` is how a finished change becomes part of your project.
+**A merge** folds one branch into another: the run's branch into `main` is how a finished change becomes part of your project.
 
 </div>
 
 Run ids are short docker-style handles like `bold-lovelace`, so that run's branch is `vibestrate/bold-lovelace`.
 
-## Look at what changed
+## Going deeper
 
-Open the run's copy and read every line it touched:
+### Read the change
+
+**Source > Changes** lays out your working tree and every run's worktree; **What each run changed** opens each diff file by file. Or read it where it sits:
 
 ```bash
 cd ../.vibestrate-worktrees/<runId>
 git diff main
 ```
 
-Or open the **Source** page in [Mission Control](/docs/cli/dashboard) and pick its **Changes** tab, which shows you the same diff file by file.
+### Ask for advice, then integrate
 
-## Ask the merge advisor
-
-You don't have to judge the risk on your own:
-
-```bash
-vibe integrate advise <runId>
-```
-
-It leads with risk flags - did your checks run at all, does the change touch protected files - then a dry-run conflict report, then one of three recommendations:
+**Source > Merge** lists every merge-ready run: how far **ahead** and **behind** `main`, how many files it touched, its assurance lanes. **Get merge advice** opens one, with risk flags first (did your checks run at all, does the change touch protected paths), then a dry-run conflict report, then one of three recommendations:
 
 <svg viewBox="0 0 560 132" width="100%" style="max-width:560px;height:auto" role="img" aria-label="vibe integrate advise ends on one of three recommendations: finish now, stage on an integration branch, or resolve conflicts first.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -105,13 +97,25 @@ It leads with risk flags - did your checks run at all, does the change touch pro
   </g>
 </svg>
 
-It merges nothing and touches no branch. The Source page's **Merge** tab shows you the same thing.
+Below it, **Integrate this run** merges into the branch you name - `integration/main` to start with, never straight into `main`. A conflict stops it and leaves a mergeable worktree rather than half a merge. Once that branch is clean, **Complete merge to main** appears, asks you to confirm, and merges locally. It never pushes.
 
-## Going deeper
+**Analyze the diff**, under **Analyze deeper**, is the optional model pass: a local provider reads the run's redacted diff and writes advisory prose on risks a text check can't see, like concurrency or missing tests. It never merges, never pushes, and cannot change the recommendation above it.
 
-### Take the change
+### Plan any merge, run or not
 
-The branch is yours. Two ways to keep it:
+**Source > Tree** draws your repo's commit graph. Pick a source and a target in the **Merge planner** and press **Predict** for the result before it happens. A clean prediction offers **Apply merge**; **Guided merge** has the supervisor propose a resolution for a conflict, with the apply still your explicit click. **Undo merge on "&lt;target&gt;"** reverses the last merge on that branch, while it is unpushed and nothing is built on top.
+
+### From the terminal
+
+```bash
+vibe integrate advise <runId>    # the same read-only advice; --json for a machine
+vibe integrate preview           # dry-run conflict report across merge-ready runs
+vibe integrate analyze <runId>   # the optional model read of the diff
+vibe integrate apply --into integration/<name>
+vibe integrate finish <branch>   # merge to main, typed confirmation, local only
+```
+
+Or use git directly. It is a normal branch:
 
 ```bash
 # Open a pull request (best on a shared project)
@@ -127,14 +131,16 @@ To throw the change away, leave the branch alone. Nothing ever reached `main`.
 
 ### Merging is always your call
 
-Merging is the moment you commit to the change. It joins your shared history, and you can ship from there. You can revert a bad merge, but only after the wrong code was already trusted and built on. No model can vouch for its own work well enough to make that call for you. See [the safety guarantees](/docs/concepts/safety) for the rule.
+Merging is the moment you commit: the change joins your shared history and ships from there. A bad merge is revertible, but only after the wrong code was trusted and built on, and no model can vouch for its own work well enough to make that call for you. See [the safety guarantees](/docs/concepts/safety).
 
-`vibe integrate advise` is **deterministic**: it reports git facts and computes the recommendation from them, so the same inputs always give the same advice, and no [supervisor](/docs/concepts/supervisor) persona colors it.
-
-A model only enters when you ask for the deeper read with `vibe integrate analyze`. That sends the run's redacted diff to a provider to look for risks a text check can't see, like concurrency or missing tests. It's advisory prose only: it never merges, never pushes, and can't change the advisor's recommendation or risk flags.
+The advice is **deterministic**: git facts and check lanes in, recommendation out, so the same inputs always give the same answer and no [supervisor](/docs/concepts/supervisor) persona colours it. A model enters only when you ask for the deeper read.
 
 ### Keep going
 
 - [Your first run](/docs/getting-started/first-run) - where the change came from.
 - [Task lifecycle](/docs/task-lifecycle) - the statuses a run moves through.
 - [Worktree](/docs/concepts/worktree) - the safe copy each run works in.
+
+### Next
+
+[Why you stay in the loop →](/docs/getting-started/why-a-human) - what actually catches a bad change, and why the last call is a human's.

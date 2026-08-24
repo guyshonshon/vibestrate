@@ -1,14 +1,12 @@
 ---
 title: Quick start
-description: Install Vibestrate, point it at a coding CLI you already have, and take one task from a sentence to a branch you can keep.
+description: Open the Vibestrate dashboard, point it at a coding CLI you already have, and take one task from a sentence to a branch you can keep.
 slug: getting-started/quickstart
 ---
 
 ## In simple words
 
-Vibestrate drives the AI coding CLIs already on your machine - Claude Code, Codex, Gemini, Aider, Ollama and others - as one pipeline over a single task.
-
-You type one sentence. It opens a throwaway copy of your repository, walks a plan, build, review and verify sequence there, and runs your own tests as the referee. You get a branch in that copy, waiting on your decision.
+Vibestrate drives the AI coding CLIs already on your machine - Claude Code, Codex, Gemini, Aider, Ollama and others - as one pipeline over a single task: plan, build, review, verify, in a throwaway copy of your repository.
 
 ```bash
 npm install -g vibestrate
@@ -16,15 +14,15 @@ cd your-project
 vibe ui
 ```
 
-That opens the dashboard, and the rest happens there. **Setup** walks the same checks `vibe doctor` runs - a repository, the config, a model, your test commands - repairs what is safe to repair, and ends on the button that starts your first run. Nothing below this line is a second way of working; it is the same steps with their commands named.
+The dashboard opens on `127.0.0.1:4317`, where every step on this page happens. With no `.vibestrate/` yet you land on a setup screen with one button, **Initialize project**; **More > Setup** in the sidebar carries the rest.
 
 <div class="docs-callout tip">
 
-**Tip.** Every step on this page has a command and a screen, and they write the same files. Use whichever you have open. The one thing worth not skipping either way is the health check: it finds the CLIs you already have, wires up the ones it can, and prints the exact login command for anything not authenticated - which you run yourself.
+**Tip.** A CLI you are not signed into gets its login command printed for you to run yourself. Vibestrate never signs you in.
 
 </div>
 
-Prefer to stay in the terminal? The same path, in four lines:
+Every step below also names its command. Unattended, all of it is four lines:
 
 ```bash
 npm install -g vibestrate
@@ -53,23 +51,17 @@ Nothing pushed, nothing merged. Yours to read and take.
 
 <div class="docs-callout">
 
-**Did you know?** If you already pay for two or three coding CLIs and use them one at a time, this is the layer that runs them together. It is not another subscription - it spawns the ones you have.
+**Did you know?** If you pay for two or three coding CLIs and use them one at a time, this is the layer that runs them together. Not another subscription - it spawns the ones you have.
 
 </div>
 
-## The three words on this page
+Three words carry this page. A **task** is the sentence you type. A **run** is one pass over it, with its own id, branch and worktree - a second checkout made with stock `git worktree` - and its prompts, outputs and decisions land under `.vibestrate/runs/`. A **provider** is the CLI (or API) that runs the model. Flows, seats, roles, crews and profiles decide who fills each step; [the big picture](/docs/getting-started/big-picture) defines all five, and you can finish this page without them.
 
-- **Task** - the sentence you type.
-- **Run** - one pass over that task, with its own id, its own branch, and its own worktree: a second checkout of your repository in a separate folder, made with stock `git worktree`. The run edits that copy, so the files you have open never move under you, and prompts, outputs and decisions land under `.vibestrate/runs/`.
-- **Provider** - the CLI (or API) that runs the model.
-
-Flows, seats, roles, crews and profiles decide who fills each step of a run. You can finish this page without them: [the big picture](/docs/getting-started/big-picture) defines all five, and [Flow](/docs/concepts/flow), [Crew](/docs/concepts/crew), [Seat](/docs/concepts/seat) and [Worktree](/docs/concepts/worktree) go deeper.
-
-## 1. Install and initialise
+## 1. Install and open the dashboard
 
 ### What you need first
 
-Vibestrate needs **Node 24 or newer**, a git repository with at least one commit, and at least one AI coding CLI installed and signed in. It ships none of them, so set one up at the vendor first:
+Vibestrate needs **Node 24 or newer**, a git repository with at least one commit, and one AI coding CLI installed and signed in. It ships none of them, so set one up at the vendor first:
 
 | CLI | Install | Sign in |
 |---|---|---|
@@ -86,198 +78,89 @@ npm install -g vibestrate
 vibe --version
 ```
 
-```text
-0.2.1
-```
-
-A plain `npm install vibestrate` adds it as a dependency of the folder you are standing in, which leaves `vibe` off your PATH.
+A plain `npm install vibestrate` adds it as a dependency of the current folder and leaves `vibe` off your PATH.
 
 <div class="docs-callout warn">
 
-**The install finished, and `npm warn EBADENGINE` scrolled past on the way.** npm treats the Node floor as a warning and installs anyway, and `vibe --version` may still print a number on Node 22. The only signal is this block, several screens up in the install output:
-
-```text
-npm warn EBADENGINE Unsupported engine {
-npm warn EBADENGINE   package: 'vibestrate@0.2.1',
-npm warn EBADENGINE   required: { node: '>=24' },
-npm warn EBADENGINE   current: { node: 'v22.22.2', npm: '10.9.7' }
-npm warn EBADENGINE }
-```
-
-Check the version yourself, move up to 24, and install again:
+**`npm warn EBADENGINE` scrolled past and the install finished anyway.** npm treats the Node floor as a warning, so `vibe --version` may print a number on Node 22. Move up and install again; the [install script](/docs/getting-started/installation) checks the floor first and stops instead.
 
 ```bash
-node --version
 nvm install 24 && nvm use 24    # or your own version manager
 npm install -g vibestrate
 ```
-
-The [install script](/docs/getting-started/installation) checks the floor before it touches npm and stops with `Node >= 24 is required (found v22.22.2).` instead of warning.
 
 </div>
 
 <div class="docs-callout warn">
 
-**`vibe --version` prints `command not found`, and you did pass `-g`.** npm's global bin directory isn't on your PATH. Print the prefix, append its `bin` folder to your shell profile, then open a new shell and check again:
+**`command not found`, and you did pass `-g`.** npm's global bin directory isn't on your PATH. Append it to your shell profile, then open a new shell:
 
 ```bash
-npm config get prefix
 echo "export PATH=\"$(npm config get prefix)/bin:\$PATH\"" >> ~/.zshrc    # or ~/.bashrc
 which vibe
 ```
 
 </div>
 
-### Initialise your project
-
-Run this from the root of a git repo. `--yes` takes the detected defaults instead of asking. Drop it to answer the questions yourself, and add `--git-init` if the folder is not a repo yet.
+### Open it on your project
 
 ```bash
-vibe init --yes
+vibe ui
 ```
 
+Run it from the repository root: it reads the project from the directory it started in, and exits telling you to `git init` if the folder is not a repo.
+
+**Initialize project** writes the config, a role file per crew member, and the rules file every agent reads, then names the CLIs it detected and offers **Enter Vibestrate** - or **Finish setting up** when it found none, which drops you on Setup.
+
+`vibe init --yes` does the same from a terminal, taking the detected defaults:
+
 ```text
+$ vibe init --yes
 ✓ Vibestrate initialized.
 
-Project:
-  Name: acme-api
-  Type: Node.js
-  Package manager: pnpm
-
-Provider:
-  ✓ Claude Code detected: claude (v2.1.227)
-  Default agents will use: claude -p
-
-Validation:
-  • pnpm typecheck
-  • pnpm test
-  Detected from your package.json scripts. Adjust later with `vibe config set commands.validate "[...]"`.
-
-Files:
-  ✓ .vibestrate/project.yml
-  ✓ .vibestrate/rules.md
-  ✓ .vibestrate/skills/README.md
-  ✓ .vibestrate/policies/README.md
-  ✓ .vibestrate/roles/planner.json
-  ✓ .vibestrate/roles/architect.json
-  ✓ .vibestrate/roles/executor.json
-  ✓ .vibestrate/roles/fixer.json
-  ✓ .vibestrate/roles/reviewer.json
-  ✓ .vibestrate/roles/verifier.json
+Project:     acme-api · Node.js · pnpm
+Provider:    ✓ Claude Code detected: claude (v2.1.227)
+Validation:  pnpm typecheck · pnpm test
+Files:       .vibestrate/project.yml, rules.md, skills/, policies/, roles/ (6 roles)
 
 ✓ Learned the codebase -> .vibestrate/CODEBASE.md
-
-Next:
-  → vibe doctor
-  → vibe run "your task"
 ```
 
-In a repo that already exists, `vibe init` writes `.vibestrate/` and changes nothing else, your `.gitignore` included - add `.vibestrate/runs/` to it yourself. `--git-init` is the exception: it also writes a starter `.gitignore` when you have none, and makes the initial commit unless something secret-looking would be swept in. Check `git log` afterwards, because a repo with no commit yet gives a run no branch to fork from.
+Either route writes `.vibestrate/` and nothing else, your `.gitignore` included - add `.vibestrate/runs/` to it yourself. `vibe init --git-init` creates the repository too, as does the dashboard's **Initialize git + set up project**; each commits only when nothing secret-looking would be swept in. Check `git log` afterwards: a repository with no commit gives a run no branch to fork from.
 
-This page writes `main` for your trunk branch. If yours goes by another name, set it now and substitute that name everywhere below:
+This page writes `main` for your trunk. If yours has another name, set `git.mainBranch` on **More > Config** under Git.
 
-```bash
-vibe config set git.mainBranch master
-```
+### The Setup page
 
-### Check the setup
+Four tiles read Status, Failures, Warnings and Checks run. Under them sit the six numbered steps, each carrying the doctor findings that answer for it with a tick, warning or failure: **a repository to work in**, **initialise the project**, **connect a model** (Providers button), **point it at your tests** (Edit config button), **everything else doctor checks**, and **start your first run**, whose New run button unlocks once the project is initialised and nothing fails.
 
-```bash
-vibe doctor
-```
-
-Doctor is read-only. It prints a line per check with the detail or the fix indented under it, and exits 1 on a hard failure, 0 on a warning.
-
-```text
-Vibestrate Doctor v0.2.1
-
-✓ git is available
-✓ Inside a git repository
-  /home/you/acme-api
-✓ .vibestrate/project.yml is present
-✓ Project config is valid
-✓ Project detected: acme-api (Node.js, pnpm)
-✓ Provider "claude" is available (claude)
-✓ All roles resolve to valid providers
-✓ All agents have prompt files
-✓ 2 validation command(s) configured
-✓ Auto-push is disabled
-...
-```
+**Fix what's safe** appears in the header whenever something is repairable, and lists what it changed under Last repair. In the terminal that report is `vibe doctor`, read-only, exiting 1 on a hard failure; `vibe doctor --fix` is what the button calls.
 
 More: [Installation](/docs/getting-started/installation).
 
 ## 2. Connect a model
 
-### Detect what you already have
+### See what you already have
 
-```bash
-vibe provider detect
-```
+**Crew > Providers** counts what is **detected** and what is **configured**. **Popular** holds the five Vibestrate configures itself - claude, codex, gemini, aider, ollama - and **Optional** the six it detects but never wires up until you ask. Cards carry **Install** when the CLI is missing, then **Set up** or **Edit**, **Set default** and **Test**.
 
-That runs `--version` against eleven known CLIs. Vibestrate ships a preset for all eleven and applies it on its own for five - claude, codex, gemini, aider and ollama - which is what "ready" means. The other six - opencode, qwen, crush, goose, cursor and amp - are detected and stay opt-in until you add them through `vibe provider setup` -> Custom CLI command.
-
-```text
-Detected local coding CLIs:
-
-✓ Claude Code - ready
-  Command: claude (v2.1.227)
-
-! OpenCode - detected, needs setup
-  Command: opencode (v0.4.2)
-
-○ Gemini CLI - not found
-  Command tried: gemini
-```
+`vibe provider detect` runs `--version` against the same eleven and prints `ready`, `detected, needs setup` or `not found` per CLI.
 
 ### Point Vibestrate at your CLI
 
-"Ready" describes detection, not your config: `vibe init --yes` writes a `claude` block whatever it detected, so on anything other than Claude Code run `vibe provider setup` once to point it at the binary you have. It asks one question, needs a real terminal, and writes on the spot:
+"Ready" describes detection, not your config: init writes exactly one provider block, for the first ready CLI it detected, falling back to `claude` when it detected none. For any other, press **Set up** on its card. The editor takes the command, its args, and whether the prompt arrives on stdin or as the last argument; it previews the exact YAML and saves with **Save** or **Save & test**. **Edit as YAML** opens the whole block for what the form does not model - `env`, claude-code `settings`, `extraArgs`, custom headers.
 
-```text
-Provider setup
+**Add cloud API**, **Add local server** and **Custom CLI** build one from scratch: an `http-api` provider on Anthropic or OpenAI with your own key, a `localhost-proxy` for Ollama, LM Studio or vLLM, or any other binary.
 
-? Which local coding CLI should Vibestrate use for its agents?
-  Claude Code (detected: claude v2.1.227)
-❯ Codex CLI - starter preset (detected: codex v0.13.2)
-  Cloud API (http-api) - Anthropic / OpenAI with your own key
-  Local model server (localhost-proxy) - Ollama / LM Studio / vLLM
-  Custom CLI command
-
-✓ Codex CLI is now configured for all default agents with the starter preset.
-  → Verify the invocation: vibe provider test codex
-
-→ Next: vibe doctor
-```
-
-That writes a `codex` block into `.vibestrate/project.yml` - `codex exec`, prompt on stdin - and points every default agent at it.
-
-Only Claude Code, Codex and Ollama get their own line in that list, and each appears only when detection found it. Everything else, gemini and aider included, goes through **Custom CLI command**: give the id, the command, its args, and whether the prompt arrives on stdin or as the last argument.
+`vibe provider setup` is the terminal wizard and needs a real terminal. Claude Code, Codex and Ollama get their own line when detected; everything else, gemini and aider included, goes through **Custom CLI command**.
 
 ### Prove you are signed in
 
-Detection proves a binary answers `--version`. Whether you are signed in is a separate check:
-
-```bash
-vibe provider test claude --yes
-```
-
-`test` only runs against a provider already in your `project.yml`, and straight out of `vibe init` that is `claude` alone. `vibe provider list` prints the ids you can name here. `--yes` skips the "about to invoke" confirmation. The test sends a tiny no-op prompt and passes only on exit 0 plus the literal token `VIBESTRATE_PROVIDER_OK` in stdout.
-
-```text
-About to invoke: claude -p (input via stdin)
-Vibestrate will send a tiny no-op prompt and look for the magic token in stdout. This may consume a small amount of usage from your CLI provider.
-✓ claude responded with the magic token (VIBESTRATE_PROVIDER_OK). Took 497ms.
-```
+Detection proves a binary answers `--version`; whether you are signed in is a separate check, and **Test** on the card is it: a no-op prompt that passes only on exit 0 plus the literal token `VIBESTRATE_PROVIDER_OK` in stdout. In the terminal, `vibe provider test claude --yes`, where `--yes` skips the "about to invoke" confirmation.
 
 <div class="docs-callout warn">
 
-**`✗ Provider "codex" is not configured. Available: claude.`** You named the CLI you have, and `vibe init` wrote a `claude` block whatever it detected. Add yours with the wizard above, then test that id:
-
-```bash
-vibe provider setup
-vibe provider test codex --yes
-```
+**`✗ Provider "codex" is not configured. Available: claude.`** You named a CLI that has no block in `project.yml`, and that list is what init wrote. Set codex up first, then test that id. `vibe provider list` prints the ids you can name.
 
 </div>
 
@@ -289,95 +172,47 @@ A logged-out CLI exits 3 and names its own login command:
 ! codex looks like it isn't logged in.
   Run this outside Vibestrate, then re-test:
     codex login
-...
 ```
 
-Anything else exits 2. The usual cause is wrong flags - the CLI ran and came back without the token. A 0 on the `Exit code:` line below is normal, because that line carries the *provider's* own exit code, not Vibestrate's.
-
-```text
-✗ Provider test failed.
-  Exit code: 0
-  Duration: 318ms
-  The CLI ran but did not echo "VIBESTRATE_PROVIDER_OK". Your provider may need a
-  different prompt-flag setup. Run `vibe provider setup` to adjust args/input mode.
-```
+Anything else exits 2, usually because the flags are wrong: the CLI ran and came back without the token. A 0 on the `Exit code:` line there is normal, because that line carries the *provider's* own exit code, not Vibestrate's.
 
 More: [Set up a provider](/docs/getting-started/providers).
 
 ## 3. Point it at your tests
 
-Your own commands are the ground truth in a run. They live in `.vibestrate/project.yml` as a list of shell strings and run one at a time inside the run's worktree.
+Your own commands are the ground truth in a run. They live in `project.yml` as a list of shell strings and run one at a time inside the run's worktree.
 
-```yaml
-commands:
-  validate:
-    - pnpm typecheck
-    - pnpm test
-```
-
-`vibe init` fills this in when a lockfile names your package manager and `package.json` carries lint, typecheck or test scripts. Let doctor propose the commands:
-
-```bash
-vibe doctor --fix
-```
-
-It prints what it changed, then reruns the whole read-only report underneath:
-
-```text
-Vibestrate Doctor - Fixes Applied
-
-✓ Added validation commands: `pnpm typecheck`, `pnpm test`
-
-Vibestrate Doctor v0.2.1
-
-✓ git is available
-...
-```
-
-<div class="docs-callout warn">
-
-**`! No safe fixes were applicable.`, with test scripts sitting in `package.json`.** Doctor only proposes commands when a lockfile names your package manager. Without one, write the list yourself, substituting your own commands:
+**Setup** step 4 says whether any are configured. **Fix what's safe** fills them in from your package scripts when the list is empty and a lockfile names your package manager, never overwriting a list you already have. **Edit config** opens **More > Config**, where they sit under **Validation commands**, read-only in the browser because the server never executes a shell command string handed to it over HTTP. Authoring goes through the CLI:
 
 ```bash
 vibe config set commands.validate "[\"pnpm typecheck\",\"pnpm test\"]"
 ```
 
-</div>
-
 <div class="docs-callout">
 
-**A failing test does not restart the run.** Your commands produce evidence: the results go to the reviewer, and only the reviewer can call for a fix. A run carrying a failed command never reaches the finished state, so it stops and hands you the failure. A diff made only of docs and assets skips validation, which `commands.scopeValidationByChange` controls and which is on by default.
+**A failing test does not restart the run.** Your commands produce evidence: the results go to the reviewer, and only the reviewer can call for a fix. A run carrying a failed command never reaches the finished state, so it stops and hands you the failure. A diff of only docs and assets skips validation, controlled by `commands.scopeValidationByChange`, on by default.
 
 </div>
 
 ## 4. Let the CLI write files
 
-A `type: cli` provider gets the args in your `project.yml` and nothing else, so that CLI's own default decides whether it edits files.
+A `type: cli` provider gets the args in your `project.yml` and nothing else, so that CLI's own default decides whether it edits files. Init records claude as `type: cli`, so a first run on it plans a change, explains it, and writes nothing. Edit a provider's block on **Crew > Providers** (Config shows it read-only and links there); `execution.isolation` and `policies.strictApplyOnly` are editable on **More > Config** under Execution and Safety policies.
 
-**Claude Code only.** `vibe init` records it as `type: cli`, so `claude -p` runs without the flag that lets it write and your first run plans a change, explains it, and writes nothing. Switch the type and a write-capable seat gets `--permission-mode acceptEdits`:
+| Provider | What gives it write access |
+|---|---|
+| claude | `providers.claude.type: claude-code`. Write-capable seats then get `--permission-mode acceptEdits`. |
+| codex | `execution.isolation: sandboxed`. Appends `--sandbox workspace-write`, and `--sandbox read-only` to the rest. |
+| aider | Already writes - its preset passes `--yes`. |
+| gemini | No shipped flag, because the matrix moves between releases. Read `gemini --help` and set it in the args field. A passing **Test** says the CLI still accepts the invocation, not that a write landed. |
+| ollama | No file-editing surface at all - its preset is a plain chat turn. |
+
+The codex sandbox is a real one: it edits inside the worktree and gets `Operation not permitted` outside it, under Apple Seatbelt on macOS and Landlock on Linux. You never type it into `args`; the posture appends it.
+
+For ollama, and any CLI whose write flag you would rather not hand over, let Vibestrate do the writing: write roles run read-only and propose a unified diff it applies through its safety gateway.
 
 ```bash
-vibe config set providers.claude.type claude-code
-```
-
-**Codex, gemini, aider and ollama** have no equivalent type. Aider's preset already passes `--yes`. Codex has a real one, `--sandbox workspace-write`: it edits inside the worktree and gets `Operation not permitted` outside it, under Apple Seatbelt on macOS and Landlock on Linux. You never type it into `args`. Turn the posture on and Vibestrate appends it to every write-capable seat, and `--sandbox read-only` to the rest:
-
-```bash
+vibe config set providers.claude.type claude-code   # or Crew > Providers > Edit as YAML
 vibe config set execution.isolation sandboxed
-```
-
-Vibestrate ships no write flag for gemini: its preset is a bare `gemini` with no args, because the gemini flag matrix moves between releases. Gemini gets no line of its own in the wizard either, so create the provider first through `vibe provider setup` -> **Custom CLI command**, answering `gemini` for both the id and the command. Then read `gemini --help` on the version you installed and set the flag it names:
-
-```bash
-vibe config set providers.gemini.args "[\"--your-write-flag\"]"
-vibe provider test gemini --yes
-```
-
-That test tells you the CLI still accepts the invocation, not that a write landed. Ollama has no write flag at all: its preset runs `ollama run qwen3.5`, a plain chat turn with no file-editing surface.
-
-For ollama, and for any CLI whose write flag you would rather not hand over, let Vibestrate do the writing instead. Write roles then run read-only and propose a unified diff that Vibestrate applies through its safety gateway.
-
-```bash
 vibe config set policies.strictApplyOnly true
 ```
 
@@ -385,115 +220,62 @@ vibe config set policies.strictApplyOnly true
 
 <div class="docs-callout">
 
-**Start with the kind of task you would hand a careful colleague.** One behavior in one file, with existing tests that say whether it worked. A run costs five model turns at the low end and nine at the high end, billed on whichever CLIs your crew points at, and it takes minutes rather than seconds.
+**Start with the kind of task you would hand a careful colleague.** One behavior in one file, with existing tests that say whether it worked. A run costs five model turns at the low end and nine at the high end, billed on whichever CLIs your crew points at, and takes minutes rather than seconds.
 
 </div>
 
-The `default` flow plans, designs, implements, reviews and verifies, and the reviewer can send the work back to the fixer twice before the flow gives up. Those five verbs cover eight steps, and the [full walkthrough](/docs/getting-started/walkthrough) lays them out one row at a time.
-
 ### Write a brief worth running
 
-Your sentence reaches the planner verbatim, next to your rules file and the codebase map `vibe init` generated. Those two describe the repo. Your brief is the only part that says what you want out of it:
+Your sentence reaches the planner verbatim, next to your rules file and the codebase map when the project has one. **Initialize project** does not write that map: `vibe learn` produces `.vibestrate/CODEBASE.md`, and `vibe init` runs it at the end. Those two describe the repo; your brief says what you want from it:
 
 <div class="docs-cards">
 
 **"improve the settings page"**
-Too vague. Nothing here names a behavior to change or a way to tell it worked, so the planner picks both for you.
+Too vague. Nothing names a behavior to change or a way to tell it worked, so the planner picks both for you.
 
 **"Fix the flaky checkout test"**
-Half a brief. It names the target and leaves "fix" open. Paste the failure you saw and it stops being a guess.
+Half a brief. Paste the failure you saw and "fix" stops being a guess.
 
 **"Add structured logging to the settings save handler, using the existing logger"**
 Scoped. It names the surface, the change, and the thing to reuse.
 
 </div>
 
-<div class="docs-callout">
-
-**Watch the first one.** Add `--ui` and the dashboard opens on port 4317 beside the running steps. That flag also holds the process open once the run ends, so the result is still on screen when you go looking for it.
-
-</div>
-
 ### Start it
+
+**New run** sits at the foot of the sidebar on every screen. It takes your brief under **Task**, then **Flow**, **Crew** and **Configuration**. Leave Flow on **Auto** and Vibestrate decides per task. Configuration carries the permission mode - read-only, ask, accept-edits or auto - plus **Unattended**, **Concise** and **Auto-pick flow**. **Start run** launches it, **Plan first** sends the brief through spec-up instead, and a strip at the foot of the page header mirrors the exact command, with a copy button.
 
 ```bash
 vibe run "Add structured logging to the settings save handler"
 ```
 
-The terminal prints a `•` line as each step starts, and the summary below closes the run.
-
-```text
-Supervisor: staff-engineer
-Flow: Default (default)  ·  selected · high confidence
-  One handler with tests already covering it - plan, build, review and verify all earn their place.
-  crew: default
-...
-Final status: merge_ready
-  Review decision: APPROVED
-  Verification: PASSED
-  Artifacts: .vibestrate/runs/bold-lovelace/artifacts
-  Worktree: /home/you/.vibestrate-worktrees/bold-lovelace
-  Branch: vibestrate/bold-lovelace
-```
+The terminal prints a `•` line as each step starts, and closes with the run's `Final status:`, `Branch:` and `Worktree:`.
 
 <div class="docs-callout warn">
 
-**The run stops at the start with `Failed to create worktree ...: fatal: invalid reference: main`.** Vibestrate forks the run's branch from `git.mainBranch`, which stays `main` until you set it. Name your trunk, then run again:
-
-```bash
-vibe config set git.mainBranch master
-```
-
-</div>
-
-### Read the summary
-
-Three of those lines came from defaults. `Supervisor: staff-engineer` is the scrutiny setting: how hard the reviewers look before they call the work done. It is not the Supervisor panel in the dashboard, which is a conversation with your project. `Default` is the flow's name and `default` its id, and `crew: default` is the roster of roles that filled its seats. More: [Supervisor](/docs/concepts/supervisor).
-
-`Final status: merge_ready` is the ending you want. The run finished, the change survived every check, and it is waiting on you. The next section covers the other three endings.
-
-`bold-lovelace` is the run id, a docker-style handle used verbatim as the branch suffix and the worktree folder name. Yours will be a different pair of words, so read it off the summary and substitute it everywhere this page says `bold-lovelace`. `vibe status` lists this project's runs and their ids if you close the terminal.
-
-`vibe run` exits 3 when the run ends blocked, failed or aborted, and 0 otherwise, so a script can branch on the exit code. Exit 1 means the run never started, and exit 2 means the orchestrator threw. A run that stops at an approval gate never reaches an exit code at all: the process waits there until you answer, and only `--unattended` bounds that wait, expiring it to `blocked` and exit 3. `--ui` opts out of the whole contract: the process stays alive for the dashboard and exits 0 when you stop it, so script on a run without `--ui`.
-
-<div class="docs-callout warn">
-
-**The steps stopped scrolling after `• Pausing for human approval (project policy requires approval at reviewing)...`.** The run is parked at a gate and holds the terminal until you answer. The hint under that line carries `<runId>` as a placeholder, so substitute your own, and read the request before you decide - `approve` wants the id that `list` prints:
-
-```bash
-vibe approvals list bold-lovelace
-vibe approvals show bold-lovelace <approvalId>
-vibe approvals approve bold-lovelace <approvalId> --note "looks right"
-```
+**The run stops at the start with `Failed to create worktree ...: fatal: invalid reference: main`.** Vibestrate forks the run's branch from `git.mainBranch`, which stays `main` until you set it. Name your trunk on Config, or with `vibe config set git.mainBranch master`, then run again.
 
 </div>
 
 <div class="docs-callout warn">
 
-**`! Could not start supervisor: Error: listen EADDRINUSE: address already in use 127.0.0.1:4317`.** Something already holds the dashboard port - often a `vibe ui` you left running, whose pid and port sit in `.vibestrate/ui.lock`. The run carries on without the dashboard and says so: `→ Continuing without UI. The run will still execute normally.` A bare `vibe ui` exits 1 on the same collision. Move either one to a free port:
-
-```bash
-vibe run "your task" --ui --ui-port 4318
-vibe ui --port 4318
-```
+**`listen EADDRINUSE: address already in use 127.0.0.1:4317`.** Something already holds the dashboard port - often a `vibe ui` you left running, whose pid sits in `.vibestrate/ui.lock`. Move either one to a free port with `--ui-port 4318` or `--port 4318`.
 
 </div>
+
+### Read the result
+
+The run's page carries the outcome: the status card reads **merge ready** when nothing stopped it, **Run assurance** splits that into Policy, Validation, Review and Verification lanes, and **Flow & why** records which flow ran and where the choice came from - your supervisor persona picked it, not a fixed default. More: [Supervisor](/docs/concepts/supervisor).
+
+Every run gets a docker-style id like `bold-lovelace`, used verbatim as the branch suffix and the worktree folder name. Yours is a different pair of words; substitute it below. `vibe status` lists this project's runs and their ids.
+
+A run parked at an approval gate holds until you answer. Mission Control's **Waiting on you** section carries it with Details, Approve and Reject, as does the run page's Approvals tab; in the terminal, `vibe approvals list <runId>` then `vibe approvals approve <runId> <approvalId>`.
+
+For scripting, `vibe run` exits 3 on blocked, failed or aborted and 0 otherwise; 1 means it never started, 2 that the orchestrator threw. A gated run never reaches an exit code at all - only `--unattended` bounds that wait - and `--ui` opts out of the contract entirely.
 
 ### Find the worktree
 
-The worktree is a sibling of your repo, under `../.vibestrate-worktrees/`, so your project directory holds the metadata and none of the edited code:
-
-```bash
-vibe path bold-lovelace
-```
-
-```text
-Workspace bold-lovelace
-  worktree: /home/you/.vibestrate-worktrees/bold-lovelace
-  branch:   vibestrate/bold-lovelace
-
-  cd /home/you/.vibestrate-worktrees/bold-lovelace
-```
+The worktree is a sibling of your repo, under `../.vibestrate-worktrees/`, so your project directory holds the metadata and none of the edited code. The run page's **Workspace** panel holds the path and a **Copy cd** button; **View diff** opens the changed-files list, where picking a file toggles between its diff and the whole file as it now stands. `vibe path bold-lovelace` prints the same path.
 
 ## 6. Keep the change
 
@@ -501,28 +283,18 @@ Workspace bold-lovelace
 <div class="docs-outcome ok"><b>merge_ready</b><span>Finished and waiting on your call.</span></div>
 <div class="docs-outcome warn"><b>blocked</b><span>Review, verification, validation or a policy stopped it short.</span></div>
 <div class="docs-outcome stop"><b>failed</b><span>Something broke mid-run.</span></div>
-<div class="docs-outcome stop"><b>aborted</b><span>You stopped it with vibe abort.</span></div>
+<div class="docs-outcome stop"><b>aborted</b><span>You stopped it yourself.</span></div>
 </div>
 
 ### What each outcome means
 
-Three checks and a policy can produce that `blocked`, and the merge advice further down calls the checks by these names. **Validation** is your own shell commands. **Review** is the reviewer's verdict on the diff. **Verification** is an independent pass over the finished change. A **policy** is a rule you wrote yourself, and the [full walkthrough](/docs/getting-started/walkthrough) covers writing them.
+Three checks and a policy produce that `blocked`: **validation** is your own shell commands, **review** the reviewer's verdict on the diff, **verification** an independent pass over the finished change, and a **policy** a rule you wrote yourself.
 
-The three endings that aren't `merge_ready` each have a way out:
-
-- **blocked** - `vibe assurance bold-lovelace` names the check that stopped it. Fix that, then `vibe run "<same task>" --resume-from bold-lovelace --resume-stage fixing` forks a run reusing the earlier steps.
-- **failed** - `vibe logs bold-lovelace` prints the provider output around the crash.
-- **aborted** - the worktree survives, so `vibe path bold-lovelace` still reads the partial work.
-
-More: [Debug a failed run](/docs/workflows/debug-failed).
+Run assurance names the lane that stopped a blocked run, with **View review** and **Re-run with fixes** beside it. A failed run's Events tab carries the provider output around the crash, and an aborted run keeps its worktree. In the terminal those are `vibe assurance`, `vibe logs` and `vibe path`, each taking the run id; reusing the earlier steps is `vibe run "<same task>" --resume-from bold-lovelace --resume-stage fixing`. More: [Debug a failed run](/docs/workflows/debug-failed).
 
 ### Commit inside the worktree
 
-A run on the linear flows - `default`, `express`, `panel-review`, `security-review`, `plan-only`, `scaffold`, `quality-arbitration` - leaves its edits **uncommitted** in the worktree on purpose: the commit message is yours to write, and an uncommitted tree is easy to throw away. That means `vibestrate/<runId>` still points at your trunk tip.
-
-Read the diff before anything else. `cd "$(vibe path bold-lovelace --cd)"` drops you into the worktree, and `git diff main` there prints every line a model wrote - substitute your trunk name if it isn't `main`. The dashboard shows the same change under **View diff**, with the reviewer's findings beside it. Every step below assumes you read it.
-
-Then commit, or every merge step below reports a clean merge of nothing:
+A run on the linear flows - `default`, `express`, `panel-review`, `security-review`, `plan-only`, `scaffold`, `quality-arbitration` - leaves its edits **uncommitted** on purpose: the commit message is yours to write, and an uncommitted tree is easy to throw away. So `vibestrate/<runId>` still points at your trunk tip. Read the diff under **View diff**, with the reviewer's findings beside it, then commit - or every merge step below reports a clean merge of nothing:
 
 ```bash
 cd "$(vibe path bold-lovelace --cd)"
@@ -531,75 +303,43 @@ git commit -m "Add structured logging to the settings save handler"
 cd -    # back to your project
 ```
 
-That `cd -` matters. Vibestrate works out which project you mean from the git root of wherever you are standing, and inside a worktree that git root is the worktree. Run every step below from your project.
+That `cd -` matters. Vibestrate works out which project you mean from the git root of wherever you are standing, and inside a worktree that git root is the worktree.
 
 ### The merge path
 
-Three branches carry a change home. The run's branch forks from your trunk the moment the run starts, a staging branch you name takes the merge, and your trunk takes the last hop behind a token you type out.
+Three branches carry a change home: the run's branch, forked from your trunk when the run starts, a staging branch you name, and your trunk.
 
-`vibe merge` and `vibe diff` do not exist. `vibe integrate` is the whole merge path, in four steps, with a confirmation token guarding the one that reaches your trunk:
+**Source > Merge** lists every merge-ready run. **Get merge advice** opens the read-only verdict and its evidence: ahead/behind counts, the checks that ran, whether it applies cleanly. The `integration/branch` field plus **Integrate this run** stages it, leaving your trunk untouched; **Complete merge to main** then appears and confirms before a local git merge. Nothing is ever pushed. **Analyze the diff** is an optional model read, advisory, never moving the recommendation.
+
+`vibe merge` and `vibe diff` do not exist. `vibe integrate` is the same path in four commands, with a token guarding the one that reaches your trunk:
 
 ```bash
-# 1. Read-only: what would merging this branch do?
-vibe integrate advise bold-lovelace
-
-# 2. Merge the run's branch into a staging branch. You pick that name;
-#    integration/logging is only an example.
-vibe integrate apply bold-lovelace --into integration/logging
-
-# 3. finish will not move your HEAD for you, so stand on your trunk yourself.
-#    Substitute your trunk name on this line if it isn't main.
-git checkout main
-
-# 4. Merge the staging branch into your trunk.
+vibe integrate advise bold-lovelace                            # read-only
+vibe integrate apply bold-lovelace --into integration/logging  # you pick that name
+git checkout main                                              # finish won't move HEAD for you
 vibe integrate finish integration/logging --confirm merge-to-main
 ```
 
-The `--confirm` token is the literal string `merge-to-main` on every project, whatever your trunk is called. It names the command you are consenting to, not your branch, so do not substitute it. Get it wrong and `finish` refuses with `--confirm must be exactly "merge-to-main".` after the staging merge has already happened.
-
-`advise` prints its verdict and the evidence behind it. `real check passed: yes` means at least one of validation, review and verification produced a pass, rather than all three coming back not applicable.
-
-```text
-Merge advice (1 run)
-Read-only: nothing was merged, no branch was touched.
-
-Add structured logging to the settings save handler (bold-lovelace)
-  Safe to merge: checks passed and the change applies cleanly onto main.
-  branch vibestrate/bold-lovelace: 1 ahead / 0 behind; 7 file(s)
-  checks: validation passed · review approved · verification passed · real check passed: yes
-  finish-now - small, clean change - the existing apply + finish path lands it
-  shape: fast-forward
-  advisor persona: staff-engineer
-```
+That token is the literal `merge-to-main` on every project, whatever your trunk is called: it names the command you are consenting to, not your branch. `apply` refuses to target your trunk, and `finish` refuses a partial integration, a branch that moved since you reviewed it, a dirty tree, or a HEAD parked anywhere else.
 
 <div class="docs-callout warn">
 
-**A run that changed seven files reports `0 ahead / 0 behind; 0 file(s)`, and `integrate apply` says it merged.** You skipped the commit above, so `vibestrate/<runId>` still points at your trunk tip and there is nothing on it to merge. Commit inside the worktree, then ask `advise` again:
-
-```bash
-vibe integrate advise bold-lovelace
-```
+**A run that changed seven files reports `0 ahead / 0 behind; 0 file(s)`, and the merge reports success.** You skipped the commit above, so there is nothing on the run's branch to merge. Commit inside the worktree, then ask for the advice again.
 
 </div>
 
-`finish` touches your trunk and prints one line:
-
-```text
-✓ Merged integration/logging into main @ 0a1b2c3d4e.
-Local only - nothing was pushed.
-```
-
-`apply` refuses to target your trunk. `finish` refuses a partial integration, a branch that moved since you reviewed it, a dirty project tree, or a HEAD parked somewhere other than your trunk. More: [Keep a change](/docs/getting-started/merging).
+More: [Keep a change](/docs/getting-started/merging).
 
 ## Going deeper
 
 ### Everything else
 
-The [full walkthrough](/docs/getting-started/walkthrough) picks up where this page stops: the dashboard and Mission Control, the fourteen flows that ship and the Flow Hub, crews and cross-model review, the policies you write yourself, spec-up for a greenfield brief, and a longer troubleshooting table.
+The [full walkthrough](/docs/getting-started/walkthrough) picks up where this page stops: Mission Control and the rest of the dashboard, the fourteen flows that ship and the Flow Hub, crews and cross-model review, the policies you write yourself, spec-up for a greenfield brief, and a longer troubleshooting table.
 
 ### Keep going
 
 - [The big picture](/docs/getting-started/big-picture) - the same vocabulary, with the reasoning behind each piece.
 - [Your first run](/docs/getting-started/first-run) - the run loop step by step.
+- [The interactive shell](/docs/cli/shell) - the same surfaces without leaving the terminal.
 - [Safety](/docs/concepts/safety) - the Action Broker, gates, and what a run can and cannot touch.
 - [Troubleshooting](/docs/troubleshooting) - every stuck point and its fix, in one list.

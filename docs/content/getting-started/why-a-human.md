@@ -10,15 +10,15 @@ AI can write code you could not write yourself. The same AI also makes things up
 
 So a run is built to disagree with itself. A different model reads the diff than wrote it, your tests decide whether it works, and nothing merges without you.
 
-![The Run assurance panel reading verified, with four tiles underneath: Policy passed, Validation passed 2 of 2, Review approved, Verification passed.](/media/docs/scoped/run-assurance.png)
-
-Four independent checks, each reported separately. A verdict that collapsed them into one thumbs-up would tell you less.
-
 <div class="docs-callout tip">
 
 **Tip.** The single highest-value change you can make is pointing the reviewer at a second vendor. A model reviewing its own transcript mostly agrees with itself; one that reads the diff cold does not.
 
 </div>
+
+![The Run assurance panel reading verified, with five tiles underneath: Policy passed, Validation passed 2 of 2, Review approved, Verification passed, and the supervisor that judged it, staff-engineer.](/media/docs/scoped/run-assurance.png)
+
+**Run assurance**, at the top of every run page. Four independent checks, each reported separately rather than collapsed into one thumbs-up.
 
 ## What actually catches a bad change
 
@@ -48,36 +48,20 @@ Nothing pushes and nothing merges without a human. That one is not configurable.
 
 ### Turn on a second model
 
-The second provider has to exist before a Profile can name it. [Set up a provider](/docs/getting-started/providers) walks through the wizard. The short version:
+Two steps, both on the **Crew** page.
+
+1. **Providers** tab: **Set up** a second CLI, then **Test** it.
+2. **Crews** tab: on the Reviewer's card, change **Profile (runtime)** to a Profile on that provider. Nothing else moves.
+
+The builder and the reviewer are now different models, and the next run's **Run assurance** panel says so. From the terminal, the same two steps and the same report:
 
 ```bash
-# add codex alongside claude
 vibe provider setup
 vibe profile add codex-review --provider codex
+vibe assurance bold-lovelace
 ```
-
-In `.vibestrate/project.yml`, the Reviewer's `profile` is the only line that changes:
-
-```yaml
-crews:
-  default:
-    roles:
-      reviewer:
-        label: Reviewer
-        seats: [reviewer, challenger]
-        # was claude-balanced
-        profile: codex-review
-        prompt: .vibestrate/roles/reviewer.json
-        permissions: read_only
-        skills: []
-```
-
-Mission Control's Crew page does the same thing without the file: open the Reviewer role and pick the Profile from the dropdown.
-
-Now the builder and the reviewer are different models, and the assurance report shows it. You get a one-line summary - *Policy passed; review, validation, verification passed* - and the lanes behind it:
 
 ```text
-$ vibe assurance bold-lovelace
 Run assurance bold-lovelace - verified
 
   policy:       passed
@@ -87,25 +71,34 @@ Run assurance bold-lovelace - verified
   supervisor:   staff-engineer (cross-model)
 ```
 
-`cross-model` shows up when at least two distinct models ran during that run. It's a record of what happened, and there's no setting that lets you claim it.
+`cross-model` appears when at least two distinct models ran. It is a record of what happened, not a setting you can claim.
+
+The role's `profile` line is the only one that changes in `.vibestrate/project.yml`:
+
+```yaml
+crews:
+  default:
+    roles:
+      reviewer:
+        seats: [reviewer, challenger]
+        # was claude-balanced
+        profile: codex-review
+        permissions: read_only
+```
 
 ### The payoff
 
-You don't need to know the security rule or the WebGL API yourself. The AI brings that. Vibestrate gives you a way to trust the result without auditing every line. A second model that didn't write the code reviews it against the same plan and the same project instructions, your own tests run against the result, and the evidence comes back with it.
+You don't need to know the security rule or the WebGL API yourself; the AI brings that. What Vibestrate adds is a way to trust the result without auditing every line: a second model that didn't write the code reviews it against the same plan and project instructions, your own tests run against the result, and the evidence comes back with it.
 
-Independence pays off most where a mistake is expensive, so if you change one thing about a fresh install, make it the reviewer.
+Independence pays off most where a mistake is expensive.
 
 ### Ask instead of reading
 
-To understand a run without reading it cold, ask [Consult](/docs/concepts/consult). It answers from your project's evidence and never writes to your code. A good question is specific and names the run:
+The consult orb sits in the bottom-right corner of every dashboard page except the Consult page itself, which is the same surface at full size. It answers from your project's evidence and never writes to your code. A good question is specific and names the run:
 
-```bash
-vibe consult --run bold-lovelace \
-  "What did the reviewer object to, and did the \
-fix step address it?"
-```
+> What did the reviewer object to, and did the fix step address it?
 
-You get back a short answer, a confidence level, and the part it couldn't check:
+You get back a short answer, a confidence level, and the part it couldn't check. In the terminal that reads:
 
 ```text
 Consult  · confidence: medium
@@ -120,10 +113,18 @@ Caveats (not verified):
     is unproven at runtime.
 ```
 
-Read the caveats first. Consult tells you what it couldn't ground in evidence instead of filling the gap with a guess.
+Read the caveats first: Consult says what it couldn't ground in evidence instead of filling the gap with a guess. The same question from a script:
+
+```bash
+vibe consult --run bold-lovelace \
+  "What did the reviewer object to?"
+```
 
 ### Keep going
 
 - [The supervisor](/docs/concepts/supervisor) - how Vibestrate sets the scrutiny level for a run.
-- [Set up a provider](/docs/getting-started/providers) - adding the second provider this page assumes.
-- [Keep a change](/docs/getting-started/merging) - what Git is, and how to take a finished run.
+- [Consult](/docs/concepts/consult) - what it can see, and what it refuses to do.
+
+### Next
+
+[Teach it your conventions →](/docs/getting-started/skills) - the rules you keep repeating, written down once and attached to a role.

@@ -888,7 +888,7 @@ export async function runDoctor(input: {
       title: `Your Project Instructions are not reaching the agents intact (${loaded.ruleset.sources.length} file(s))`,
       detail: rulesetProblems.join(" "),
       fixHint:
-        "Trim the rule files, or move durable project context into VIBESTRATE.md - it is read once by the orchestrator instead of on every turn.",
+        "Trim the rule files. Durable project background can move into VIBESTRATE.md, which Consult reads and a run does not, so it stops competing for the per-turn budget.",
       fixable: false,
     });
   } else if (loaded.ruleset.sources.length > 1) {

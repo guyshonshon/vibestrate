@@ -6,65 +6,45 @@ slug: concepts/task
 
 ## In simple words
 
-A **Task** is what you want done, written the way you would brief a capable colleague. You say what you want. Vibestrate works out the steps.
+A **Task** is what you want done, written the way you would brief a capable colleague. You say what you want; Vibestrate works out the steps. No file lists, no ordering.
 
-You do not list files. You do not set an order. A sentence is enough to launch.
+Tasks live on the **Board**: `vibe ui` opens the dashboard on `127.0.0.1:4317`, and **Board** is in the sidebar. Four tiles read Active, Awaiting, Blocked and Done; five columns hold the cards - Planned, In progress, Needs testing, Completed, Archived. The **Ledger** tab beside it says where the project stands: shipped, open and decided.
 
-![The New run composer. A box reads: describe the change to run, e.g. add retry with backoff to the uploader. Below it are Attach, Concise, Read-only, Unattended and Force flow select toggles, then a Flow picker. To the right, a Run summary panel headed What happens when you start shows Flow set to Auto and a Crew row.](/media/docs/scoped/new-run.png)
+**New task** asks for a title, an optional roadmap initiative to file it under, and **Plain run** or **Supervised (steps)**. The card holds the rest: **Brief**, **Acceptance criteria**, a checklist, **Runs**, **Comments**, **Details** and **Run settings**. **Start task** turns it into work.
 
-The box is the task. Everything under it is optional: which recipe to follow, which team runs it, and toggles for a read-only or unattended run. The **Run summary** beside it reads back what is about to start, so you see the shape of the run before you commit.
+For a one-off brief with no card to keep, **New run** at the foot of the sidebar takes the sentence alone, with Flow, Inputs, Crew and Configuration beside it. Mission control carries a second composer for the same job, a panel with a Run summary rail:
 
 <div class="docs-callout tip">
 
-**Tip.** Leave Flow and Crew on Auto to begin with. Vibestrate reads the task and picks a sensible pair, and every run tells you afterwards what it chose and why. Naming them yourself is worth doing once you disagree with a choice, not before.
+**Tip.** Leave the Flow picker on **Auto** to begin with: the orchestrator reads the task and picks, and every run records what it chose. The Crew picker marks your project default the same way. Naming them yourself is worth doing once you disagree with a choice.
 
 </div>
 
-## What happens next
+![The New run composer. A box reads: describe the change to run, e.g. add retry with backoff to the uploader. Below it are Attach, Concise, Read-only, Unattended and Force flow select toggles, then a Flow picker. To the right, a Run summary panel headed What happens when you start shows Flow set to Auto and a Crew row.](/media/docs/scoped/new-run.png)
 
-A task becomes a **[[run]]**: one supervised attempt, working in its own copy of your repository. That run follows a **[[flow]]**, which is the recipe of steps, staffed by a **[[crew]]**, which is the set of workers.
-
-Those three pages are the next ones to read, in that order. For now the only thing you need is what a run does *not* do: it never pushes and never merges. It ends with a diff that is yours to land.
+The box is the task; everything around it is optional. The two composers differ in wording, not in what they start: the panel offers **Attach** and **Force flow select**, while the **New run** page calls the same choice **Auto-pick flow** and takes attachments as inputs.
 
 <div class="docs-callout">
 
-**Did you know?** A task that reads like "build me a whole system" does not go straight to code. Vibestrate routes it through a read-only spec-up chain first, which asks you questions and produces a written spec, and only then runs the flow seeded with that spec. Vague briefs get clarified rather than guessed at.
-
-</div>
-
-## Writing a good one
-
-<div class="docs-cards">
-
-**Say what, not how**
-"Add retry with backoff to the uploader" beats a list of files to edit. The plan step is what turns intent into steps.
-
-**Name the constraint that matters**
-"...without changing the public API" or "...it must stay under the existing timeout". Constraints are what review checks against.
-
-**Say how you will know it worked**
-"...with a test that fails on the old behaviour". That gives the verify step something concrete.
-
-**One change per task**
-Two unrelated changes in one brief make a diff nobody wants to review, and a verdict that cannot be partial.
+**Did you know?** A task that reads like "build me a whole system" does not go straight to code. It is routed through a read-only spec-up chain first, which asks you questions and produces a written spec, and only then runs the flow seeded with it. Vague briefs get clarified rather than guessed at.
 
 </div>
 
 ## Going deeper
 
-### The path a Task takes
+### What a task becomes
 
-A run is one supervised process you can watch and audit. In order, the orchestrator:
+A task becomes a **[[run]]**: one supervised attempt in its own copy of your repository, following a **[[flow]]** (the recipe of steps) staffed by a **[[crew]]** (the workers). A run never pushes and never merges; it ends with a diff that is yours to land.
 
 <div class="docs-flow">
 <div><b>Reads your project</b><span>Language, package manager, and the validation commands it will trust later.</span></div>
-<div><b>Picks flow and crew</b><span>The flow you named, or the one Vibestrate resolves, with its seats matched to your crew's roles.</span></div>
+<div><b>Picks flow and crew</b><span>Whichever you named, or the pair Vibestrate resolves, with seats matched to your crew's roles.</span></div>
 <div><b>Opens a clean workspace</b><span>A fresh git worktree, so nothing touches your real project until you say so.</span></div>
-<div><b>Drives the steps</b><span>On the default flow: plan, architecture, implement, validate, review, verify, with fix and re-validate looping in when review asks for changes.</span></div>
-<div><b>Stops at a verdict</b><span>The run ends in its worktree with a diff. Landing it is a separate, deliberate step.</span></div>
+<div><b>Drives the steps</b><span>On the default flow: plan, architecture, implement, validate, review, verify, with fix and re-validate looping in.</span></div>
+<div><b>Stops at a verdict</b><span>The run ends in its worktree with a diff; landing it is a separate, deliberate step.</span></div>
 </div>
 
-### The four outcomes
+Four verdicts are possible:
 
 <div class="docs-outcomes">
 <div class="docs-outcome ok"><b>merge_ready</b><span>The change is ready for you to keep.</span></div>
@@ -73,35 +53,29 @@ A run is one supervised process you can watch and audit. In order, the orchestra
 <div class="docs-outcome stop"><b>aborted</b><span>You stopped it.</span></div>
 </div>
 
-Every prompt, output, metric, and decision is written under `.vibestrate/runs/`, in a directory named for the run (ids are `adjective-noun`, like `bold-lovelace`), so a finished run reads back as a record, not a black box. See [Run state](/docs/concepts/state) for the status list and [Workflow](/docs/concepts/workflow) for the step-by-step path.
+Every prompt, output, metric and decision is written under `.vibestrate/runs/`, in a directory named for the run (ids are `adjective-noun`, like `bold-lovelace`). [Run state](/docs/concepts/state) has the status list; [Steps](/docs/concepts/workflow) has the step-by-step path.
 
-### The Task is the yardstick
+### Writing a good one
 
-The description goes into every agent's prompt, at every stage. The planner plans from it. The executor builds from it. The reviewer checks the result against it. One sentence is what the run measures itself against.
-
-<div class="docs-callout">
-
-**Plausible in, plausible-but-wrong out.** A vague Task produces a vague plan, and the reviewer then approves that plan, because it's checking against the same vague brief. Tighten the Task and the whole chain sharpens.
-
-</div>
-
-A Task says what to build, and it doesn't pick your model or set how hard it thinks. That belongs to your [Crew](/docs/concepts/crew) and its [Profiles](/docs/concepts/profile).
-
-### Good briefs vs weak ones
-
-Same goal, two briefs.
+The description goes into every agent's prompt at every stage: the planner plans from it, the implementer builds from it, the reviewer checks the result against it.
 
 <div class="docs-cards">
 
-**A good Task**
-Names the file, names the library, states the constraint up front. The planner gets a concrete anchor, and the reviewer gets a real bar to check against.
+**Say what, not how**
+"Add retry with backoff to the uploader" beats a list of files to edit; the plan step turns intent into steps.
 
-**A weak Task**
-The planner guesses. The reviewer critiques its own guess. You get a diff that is plausible and probably wrong.
+**Name the constraint that matters**
+"...without changing the public API" or "...it must stay under the existing timeout". Constraints are what review checks against.
+
+**Say how you will know it worked**
+"...with a test that fails on the old behaviour" gives the verify step something concrete.
+
+**One change per task**
+Two unrelated changes in one brief make a diff nobody wants to review, and a verdict that cannot be partial.
 
 </div>
 
-A good Task:
+A brief with anchors in it:
 
 ```text
 Add structured logging to the settings save handler in
@@ -110,31 +84,41 @@ src/lib/logger.ts. Include the user id and the changed keys,
 but never the values.
 ```
 
-A weak Task:
+The same goal without any:
 
 ```text
 Improve logging
 ```
 
+<div class="docs-callout">
+
+**Plausible in, plausible-but-wrong out.** A vague Task produces a vague plan, and the reviewer approves it, because it checks against the same vague brief. Tighten the Task and the whole chain sharpens.
+
+</div>
+
+A Task says what to build. It does not pick your model or set how hard it thinks - that belongs to your [Crew](/docs/concepts/crew) and its [Profiles](/docs/concepts/profile). Conventions, security rules and domain language belong in [skills](/docs/concepts/skill), not in every brief.
+
 ### Checklists: break a Task into items
 
-A Task can hold an ordered checklist of items, the concrete breakdown of the work. Items live inside the card, so the context stays in one place instead of scattering across small cards.
+A Task can hold an ordered checklist, the concrete breakdown of the work. Items live inside the card, so context stays in one place instead of scattering across small cards.
 
-The checklist sits on the task detail page in [Mission Control](/docs/cli/dashboard): add an item, check it off, edit it, drag to reorder, remove it. Each item carries a status: `pending`, `in_progress`, `done`, or `blocked`.
+The checklist sits on the task detail page. Each row can be checked off, edited, dragged to reorder or removed, and carries a status: `pending`, `in_progress`, `done` or `blocked`. An empty one offers **Plan the steps**, where the supervisor asks a couple of clarifying questions and proposes an ordered set, and **Add manually**.
 
-To draft a checklist instead of writing one by hand, run the Enhance [assist](/docs/glossary#assist) from the card. It's one-shot and read-only: it proposes an ordered breakdown and you decide whether to add it. The model never writes to the board on its own.
+**Enhance**, in the section header, is a one-shot read-only [assist](/docs/glossary#assist): it proposes a breakdown, shows it as **Proposed (n) - not added yet**, and waits for **Add all** or **Dismiss**. The model never writes to the board on its own.
 
 ### Open a step
 
-A checklist entry is a step - a unit of work in its own right, not just a line of text. Open one from the checklist to get its detail drawer: the step's own authoring (title, and for supervised tasks its objective, acceptance check, and file hints), its status, the run and one-line outcome that executed it, and a comment thread scoped to that step.
+A checklist entry is a unit of work, not a line of text. Its detail drawer holds the step's authoring (title, and for supervised tasks its objective, acceptance check and file hints), its status, the run and one-line outcome that executed it, and a comment thread scoped to that step.
 
-The parent task owns the shared scaffolding - the [context](/docs/concepts/task#context) every run is grounded in, the [Crew](/docs/concepts/crew) that does the work, the git branch, and any blocking tasks. The step drawer shows those as **inherited from the parent**, read-only, because a checklist runs in one worktree on one branch: every step shares one container. To change them, edit the parent. A plain task's step has no per-step run of its own (a plain task runs holistically); its run and outcome appear once you run the task supervised.
+On a plain task the run and outcome stay empty: a plain task runs holistically, with no per-step run of its own. Per-step outcomes appear once you run the task supervised.
 
-Opening a step is distinct from **detaching** it. Detach (the old "promote") spins a step off into its own independent card with `derivedFrom` pointing back - a separate, deliberate action for when a piece of work has outgrown the checklist.
+Grounding context, the [Crew](/docs/concepts/crew), the git branch and any blocking tasks belong to the parent - the drawer shows them **inherited from the parent**, read-only, because a checklist runs in one worktree on one branch. Edit the parent to change them.
 
-### Pick up: run the whole checklist
+**Detach into its own card** spins a step that has outgrown the checklist off as an independent card, with `derivedFrom` pointing back.
 
-Once a Task has a checklist, **Run checklist** on the card works every item in one worktree, labelled with the count of items still pending. Under the hood this runs the built-in `pickup` [flow](/docs/concepts/flow):
+### Run the whole checklist
+
+Once a Task has a checklist, **Run checklist** at the foot of the section works every item in one worktree, labelled with the count still pending, and a **step-by-step** box beside it pauses between items. Under the hood this is the built-in `pickup` [flow](/docs/concepts/flow):
 
 <svg viewBox="0 0 560 96" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A pickup run plans once for the whole checklist, then runs a micro-plan and implement band once per item with its own commit, then reviews once at the end.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -167,92 +151,64 @@ Once a Task has a checklist, **Run checklist** on the card works every item in o
   </g>
 </svg>
 
-Each item commits on its own, stamped with the item id so it can be reverted alone. A compact summary of each finished item carries forward, so later items have context without re-reading every diff. Status and commit sha are written back as the run goes. Execution is linear and stops on the first failing item.
+Each item commits on its own, stamped with the item id so it can be reverted alone, and a compact summary carries forward so later items have context without re-reading every diff. Status and commit sha are written back as the run goes; execution is linear and stops on the first failing item.
 
 ### Per-item review: the `pickup-review` flow
 
-For higher-stakes checklists, pick `pickup-review` in place of the default `pickup`. It adds a review panel and an arbiter inside the per-item band: after the implementer writes each item, the panel reviews that item's diff in isolation, and a bounded per-item fix loop runs before the item commits.
+For higher-stakes checklists, `pickup-review` replaces the default `pickup`, adding a review panel and an arbiter inside the per-item band: the panel reviews each item's diff in isolation after the implementer writes it, and a bounded fix loop runs before that item commits. The dashboard's **Run checklist** always launches `pickup`, so `pickup-review` is a CLI option today: `vibe tasks pickup <taskId> --flow pickup-review`.
 
-**Configurable lenses.** The panel runs two lenses by default: `correctness` (logic, type-safety, edge cases) and `security-risk` (injection, auth gaps, data exposure), both aimed at the active persona if one is set. You can change which lenses review each item: set `checklistReview.lenses` on the flow, or `checklistReviewLenses` on a crew (precedence: crew > flow > default). The lens vocabulary is closed:
+**Configurable lenses.** The panel runs `correctness` (logic, type-safety, edge cases) and `security-risk` (injection, auth gaps, data exposure) by default, both aimed at the active persona if one is set. `checklistReview.lenses` on the flow, or `checklistReviewLenses` on a crew, changes them (precedence: crew, then flow, then default). The vocabulary is closed:
 
 <div class="docs-chips"><span>correctness</span><span>tests</span><span>security-risk</span><span>authz</span><span>secrets</span><span>injection</span><span>ux-ia</span><span>accessibility</span><span>visual-consistency</span><span>performance</span></div>
 
-Each selected lens becomes one read-only reviewer per item (up to the parallel fan-out limit of 4 lenses per panel), and the arbiter weighs them all.
+Each lens becomes one read-only reviewer per item, up to the fan-out limit of four per panel, and the arbiter weighs them all: two reviewer turns and one arbiter turn per item on top of the implement band, thirty extra turns on a ten-item checklist. Reach for it when correctness per item matters more than speed.
 
-**Cost.** Each item runs the panel independently: two reviewer turns and one arbiter turn per item, on top of the normal implement band. For a 10-item checklist that is 30 extra turns. Use `pickup-review` when correctness per item matters more than speed.
-
-**Cap-and-continue.** If an item's fix loop ends with findings still open, the run continues (it never hard-aborts a checklist mid-stream), but that item is flagged as not merge-ready. The gap is surfaced item by item in the dashboard verdict panel, and in `vibe assurance` and `vibe audit`. A run that ends with any open-findings item cannot reach `merge_ready` until the gap is resolved. Nothing passes without a flag.
-
-Each item keeps its own arbitration ledger, so findings from item 3 never bleed into item 7.
+**Cap-and-continue.** An item whose fix loop ends with findings still open is flagged not merge-ready, and the run continues rather than hard-aborting mid-stream. The dashboard verdict panel, `vibe assurance` and `vibe audit` surface the gap item by item, and a run holding one cannot reach `merge_ready` until it is resolved. Each item keeps its own arbitration ledger, so findings from item 3 never bleed into item 7.
 
 ### "Needs testing": when a human should look
 
-A reviewer or verifier can end a run with a non-blocking advisory: the change is fine to ship, but a human should eyeball something a model cannot perceive, like layout, animation, or UX feel. The run still reaches a normal verdict; it is not stuck like an [approval gate](/docs/glossary#approval-gate). The card is flagged Needs testing with a one-line reason. Resolve it with a verdict: "Looks good" marks the Task Done, "Needs work" reopens it. The flag shows as a banner on the task and a badge on the board.
+A reviewer or verifier can end a run with a non-blocking advisory: the change is fine to ship, but a human should eyeball what a model cannot perceive - layout, animation, UX feel. The run still reaches a normal verdict; it is not stuck like an [approval gate](/docs/glossary#approval-gate).
 
-A checklist step is a piece of what to build, a unit of work inside the Task. A flow step (plan, implement, review) is filled by a [seat](/docs/concepts/seat) and structures the run. Same word, different layer: a checklist step is *what* to build, a flow step is *how* a run is structured.
+The card moves to the board's **Needs testing** column, and the task page carries a banner reading "Needs testing - a human should check this" with the one-line reason and two verdicts: **Looks good → Done**, or **Needs work → Reopen**.
 
-### Practical tips
+A checklist step is a piece of *what* to build; a flow step (plan, implement, review) is filled by a [seat](/docs/concepts/seat) and structures *how* the run goes. Same word, different layer.
 
-- **One outcome per Task.** Two unrelated changes make the review noisy and the diff hard to ship.
-- **Name the surface.** A file path, a module, a feature flag. Give the planner an anchor.
-- **State the constraint.** If "don't touch X" matters, say so in the Task, not after the diff lands.
-- **Put stable context in skills.** Conventions, security rules, and domain language belong in [skills](/docs/concepts/skill), not in every prompt.
+### In the terminal shell
 
-### Advanced: CLI and automation
+`vibe` on its own opens the interactive shell, the terminal-native version of the same surfaces. Press `9` for **Roadmap**, the board: `n` adds a task, `e` and `d` edit and delete, `Enter` or `r` runs the selected one, `Q` enqueues it for the scheduler, and `c` toggles a card between backlog and ready.
 
-Every action above has a command behind it, for scripts, CI, and terminal habits. See the [CLI overview](/docs/cli/overview) for the full surface.
+### Automation: the CLI
 
-Start a run from a brief:
+Every action above has a command behind it. The [CLI overview](/docs/cli/overview) has the full surface.
 
 ```bash
+# start a run from a brief
 vibe run "Add structured logging to the \
 settings save handler"
-```
 
-Work a checklist:
-
-```bash
+# author a checklist
 vibe tasks checklist add <taskId> \
   "/health returns json"
 vibe tasks checklist list <taskId>
-
-# mark one done
 vibe tasks checklist check <taskId> <itemId>
-
-# or give it another status
 vibe tasks checklist status <taskId> <itemId> \
   in_progress
-
-# reorder, 1-based
 vibe tasks checklist move <taskId> <itemId> 1
-```
 
-Draft the breakdown with an assist:
-
-```bash
-# read-only: prints a proposed checklist
+# draft one instead: read-only, then append
 vibe tasks enhance <taskId>
-
-# append the proposed items
 vibe tasks enhance <taskId> --apply
 ```
 
-Run the whole checklist:
+Running the whole checklist back-to-back, pausing between items, then with the per-item review panel:
 
 ```bash
-# continuous: items back-to-back
 vibe tasks pickup <taskId>
-
-# pause between items for review
 vibe tasks pickup <taskId> --step
-
-# per-item review panel + arbiter
 vibe tasks pickup <taskId> --flow pickup-review
 ```
 
-`--flow` accepts only checklist-aware flows, the ones that declare a per-item
-segment (default `pickup`). Anything else is rejected with the list of eligible
-flows.
+`--flow` accepts only checklist-aware flows, the ones that declare a per-item segment (default `pickup`). Anything else is rejected with the list of eligible flows.
 
 The long form, to set other run options at the same time:
 
@@ -263,11 +219,6 @@ vibe run "<task title>" \
   --checklist continuous
 ```
 
-### Related
-
-- [Flow](/docs/concepts/flow) - the recipe a Task runs through.
-- [Workflow](/docs/concepts/workflow) - the default flow's eight steps, in order.
-- [Run state](/docs/concepts/state) - the statuses a Task accumulates.
-- [Worktree](/docs/concepts/worktree) - where a Task's edits live before you merge.
+[Worktree](/docs/concepts/worktree) covers where a Task's edits live before you merge.
 
 Next: [[flow]] is the recipe your task will follow.

@@ -6,22 +6,22 @@ slug: reference/flow-yml
 
 ## In simple words
 
-A [[flow]] is a recipe: an ordered list of steps, each naming the *kind* of worker it needs rather than a model. This page is the built-in `default` flow written out as the file you would author, with a comment on every field.
+A [[flow]] is a recipe: an ordered list of steps, each naming the *kind* of worker it needs rather than a model. This page is the built-in `default` flow as the file you would author, with a comment on every field.
 
-Project flows live in `.vibestrate/flows/<id>.yml`. Drop a file there and `vibe flows list` picks it up; a project flow whose id matches a built-in one replaces it.
+A project flow is a **directory** under `.vibestrate/flows/` holding a `flow.yml` (or `flow.yaml`) - `.vibestrate/flows/spike-and-decide/flow.yml`. A loose `.yml` sitting directly in `.vibestrate/flows/` is skipped, not read, and a project flow whose `id` matches a built-in shadows it, which is what forking does.
 
 <div class="docs-callout tip">
 
-**Tip.** Do not start from a blank file. `vibe flows show default --yaml` prints a real flow you can redirect into `.vibestrate/flows/`, and the Flow Builder in the dashboard edits the same YAML with the schema enforced as you type.
+**Tip.** The Flow Builder in the dashboard edits this YAML with the schema enforced as you type - **Edit as YAML** in the flow's menu opens the raw file, **Form view** goes back. To start from a real file, `vibe flows export default` prints the flow below to stdout.
 
 </div>
 
 ## The whole thing, commented
 
 ```yaml
-# The flow's own id. Must match the filename (`default.yml`) and be unique
-# across built-ins and project flows - a project flow shadows a built-in of the
-# same id, which is how you fork one.
+# The flow's own id. Unique across built-ins and project flows - a project flow
+# shadows a built-in of the same id, which is how you fork one. Name the
+# directory after it; two project flows claiming one id is a load error.
 id: default
 
 # Bump when you change the shape in a way older runs should not be replayed
@@ -31,7 +31,7 @@ version: 1
 # What a person sees in `vibe flows list` and on the Flows page.
 label: Default
 description: >-
-  The standard plan -> architect -> implement -> validate -> review workflow.
+  The standard plan → architect → implement → validate → review workflow.
   Review loops back to fix and re-validate until it passes or the bound is hit,
   then a verify gate decides merge-readiness.
 
@@ -141,11 +141,12 @@ loop:
   maxIterations: 3          # hard bound; 1-8
 
 # ── Selection hints ──────────────────────────────────────────────────────
-# Read only when Vibestrate is choosing a flow for you (no --flow, and
-# `defaultFlow` unset). Never a promise about behaviour - just how this flow
-# describes itself to the picker.
-complexity: high            # low | medium | high
-capabilities:
+# How this flow describes itself. Never a promise about behaviour.
+complexity: high            # low | medium | high. Read on EVERY run, not only
+                            # an auto-picked one: the run warns when the flow
+                            # looks heavier than the task, whatever chose it.
+capabilities:               # read only when Vibestrate is choosing a flow for
+                            # you (no --flow, and `defaultFlow` unset)
   taskKinds: [feature, bugfix, refactor, chore, docs]
   strengths: [general, implementation]
   costClass: medium
@@ -158,7 +159,7 @@ capabilities:
 
 <div class="docs-callout">
 
-**Did you know?** `seats`, `inputs` and `outputs` are validated against each other before a run starts. A step consuming `plan` when nothing produces it is a load error, not a mid-run surprise - which is why a broken flow never costs you a model call.
+**Did you know?** Seats are checked against the steps that use them before a run starts, so a step naming a seat the flow never declared is a load error rather than a mid-run surprise. `inputs` and `outputs` get no such cross-check: a step consuming `plan` when nothing produces it still loads, and at runtime that token arrives marked unavailable and the turn runs without it - so this one costs you the model call.
 
 </div>
 
@@ -166,7 +167,7 @@ capabilities:
 
 ### Step kinds
 
-Only four kinds seat an AI. The rest are machinery, and need no `seat`.
+Four kinds seat an AI. The other two are machinery and need no `seat`.
 
 <div class="docs-cards">
 
@@ -194,31 +195,38 @@ Stops and waits for you. No model.
 
 | Field | What it does |
 |---|---|
-| `instructions` | A short, step-specific line injected into that step's prompt. Two steps can share one seat and take different lenses - correctness on one, security on the other - without inventing a role. |
+| `instructions` | A step-specific line injected into that step's prompt, so two steps can share one seat and take different lenses - correctness on one, security on the other - without inventing a role. |
 | `optional` | The step may be skipped without failing the run. |
-| `cleanRoom` | This seat does not receive the run's narrative - the brief and the story so far - so a judge reasons without anchoring to how the producer framed it. Keeps ground truth: the spec, your annotations, and declared `inputs`. |
-| `skills` | Skill ids attached to this step's prompt only, merged with the role's own. Knowledge bound to a phase rather than a new top-level primitive. |
-| `approval` | Turns the step into a gate: `{ reason, requestedAction, userMessage }`. |
+| `cleanRoom` | This seat does not receive the run's narrative, so a judge reasons without anchoring to how the producer framed it. Ground truth stays: the spec, your annotations, declared `inputs`. |
+| `skills` | Skill ids attached to this step's prompt only, merged with the role's own. |
+| `approval` | Turns the step into a gate: `{ reason, requestedAction, userMessage, riskLevel }`. `riskLevel` defaults to `medium`. |
 | `repeat` | Run this step `times` (2-8) in parallel, for a panel. |
 | `skipWhen` | Skip a *checking* step on positive evidence of absence in the real diff - `inert_diff` when the change is prose only. Never on a step that produces work: skipping that on diff evidence is circular. |
 
 ### Graph flows
 
-A flow whose steps declare `needs` opts into graph mode, where `needs` is the real dependency edge and the array order only has to be a valid topological sort. Steps sharing a `needs` set may run concurrently, and a step listing them all is the join.
+A flow whose steps declare `needs` opts into graph mode: `needs` is the real dependency edge, and the array order only has to be a valid topological sort. Steps sharing a `needs` set may run concurrently, and a step listing them all is the join. Only read-only seated turns qualify - the resolver refuses a parallel group holding a validation step, an approval gate, or a role whose permission profile can write, since one worktree takes one writer. A wave is capped at four steps.
 
-Two fields only apply there: `continueOnError`, so one dead sibling does not take the fan-out down, and `retries` (0-5), for a flaky turn. Control signals - abort, approval, spend cap, denied - are never retried and always propagate.
+Two fields apply only there: `continueOnError` keeps one dead sibling from taking the fan-out down, and `retries` (0-5) covers a flaky turn. Control signals - abort, approval, spend cap, denied - are never retried and always propagate.
 
 ### Parameters
 
-`params` declares answers a flow needs, asked once and reused. Each has a `description`, `required`, an optional `default`, an optional closed `values` list, `secret` to keep it out of artifacts, and `shared` to reuse the project-level answer. More in [Project parameters](/docs/concepts/project-params).
+`params` declares answers a flow needs, asked once and reused. `type` is the only field a param must carry; the rest are optional: a `description`, `required` (false unless you say otherwise), a `default`, a closed `values` list for `type: enum`, `secret` to keep the value out of artifacts, `shared` to reuse the project-level answer, and `generate` to offer a drafted suggestion you review before use. More in [Project parameters](/docs/concepts/project-params).
+
+### Where you edit this
+
+The **Flows** page lists every flow it found, and **Open** on a card lands in the Flow Builder - see [Flow](/docs/concepts/flow) for the editor in full. `vibe shell` carries the same catalog, where `f` forks the selected built-in and `h` opens the hub.
 
 ### From the CLI
 
 ```bash
 vibe flows list                  # built-in and project flows
 vibe flows show default          # seats, steps, and whether your crew covers them
-vibe flows validate <file>       # check a flow file before you rely on it
+vibe flows export default        # the canonical YAML, to stdout
+vibe flows import <file-or-url>  # validated on the way in; refused if malformed
 ```
+
+There is no separate validate command: a flow is checked when written and when read, and one that fails the schema is reported as unloadable in `vibe flows list` and on the Flows page, with the rest of the catalog still loading.
 
 The schema lives in `src/flows/schemas/flow-schema.ts`, and [Built-in Flows](/docs/reference/flows) lists every flow that ships.
 

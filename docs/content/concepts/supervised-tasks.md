@@ -18,61 +18,62 @@ The **Conductor** sequences the steps one at a time, each with its own review.
 
 </div>
 
-Supervised is for work that is genuinely several changes wearing one title: a migration with four stages, a feature with a backend half and a frontend half.
+You pick the mode when you make the card: on the dashboard's **Board** page, **New task** carries a dropdown with **Plain run** and **Supervised (steps)**.
+
+Supervised is for work that is several changes wearing one title: a migration with four stages, a feature with a backend half and a frontend half.
 
 <div class="docs-callout tip">
 
-**Tip.** Reach for supervised when a single diff would be too big to review honestly. The point is not more automation, it is smaller units of work that a human can actually check one at a time.
+**Tip.** Reach for supervised when a single diff would be too big to review honestly. The point is not more automation, it is smaller units a human can actually check one at a time.
 
 </div>
 
 <div class="docs-callout">
 
-**Did you know?** Between steps the supervisor returns one of three verdicts: proceed, and the next step starts; re-plan, and the remaining steps are rewritten against what the last one actually did; or stop. That middle one is why a supervised task can survive a step turning out differently than planned, instead of marching the rest of the sequence into a stale assumption.
+**Did you know?** Between steps the supervisor asks one question: is this still on track? Proceed, and the next step starts. Escalate, and the task halts cleanly with the committed work kept. Rewriting the steps that have not run yet is a different pass with its own turn, which is how a supervised task survives a step turning out differently than planned instead of marching the rest into a stale assumption.
 
 </div>
 
 
 ## Going deeper
 
+### On the Board and the task card
+
+`vibe ui` opens the dashboard on `127.0.0.1:4317`. **Board** is in the sidebar.
+
+A supervised card is drawn differently: a `supervised` chip, a done-over-total
+step count, and a pip per step, so the shape of the sequence reads from the
+column. The task page then carries two things a plain task does not.
+
+The **Checklist** section is where the steps are authored, drag to reorder. **Add
+a step manually** opens a form that, on a supervised task, asks for three fields
+a plain checklist item has no use for: **Objective**, **Acceptance check** and
+**File hints**. **Enhance** on the section header drafts a checklist for you,
+read-only, with **Add all** or **Dismiss** - it shares a name with the
+Conductor's ENHANCE verdict below but is a different thing: this one proposes
+steps for a card, that one revises a pending plan mid-sequence.
+
+The **Conductor** panel is the live view: the lifecycle word, tiles for **steps
+done**, **invariants** and the **live run**, the step list with each outcome
+summary, the supervisor's decisions, the invariants ledger, and a halt banner
+with its reason. Controls are **Sequence** when nothing is running,
+**Re-sequence** once it has halted, **Pause** / **Resume** while a run is live.
+
+A dashboard launch takes the same audited queue and scheduler path the CLI uses,
+inheriting the supervised flow, budget, supervisor, run lock and clean-halt
+semantics.
+
 ### Plain vs supervised
 
-A plain task with a checklist is a lightweight to-do list, run in one pass.
+A plain task with a checklist is a lightweight to-do list run in one pass. A
+supervised one treats the objective and acceptance check as structured fields:
+the Conductor briefs each step's run from them and verifies the step before the
+next starts, with file hints narrowing its context. Use it when the steps are
+distinct enough to run independently, each with its own executor turn, review
+and verdict.
 
-A **supervised** task uses the objective and the acceptance check as structured
-fields: the Conductor briefs each step's run from them, and verifies the step
-before the next one starts. The file hints narrow each step's context.
-
-Use supervised when the steps are distinct enough to run independently - each
-with its own executor turn, its own review, and its own verdict.
-
-Flipping a task to supervised turns on the whole bundle: per-step review, the
-supervisor, Enhance, the per-task budget, the run lock, and clean-halt.
-
-### Authoring a supervised task
-
-Create the task as supervised, then add each step with its objective, acceptance
-check, and file hints.
-
-The same authoring is available in Mission Control. A supervised task renders as
-a container card on the Board, and the task detail view lets you add, edit, and
-reorder steps.
-
-```bash
-vibe tasks add "Add audit logging" --supervised
-vibe tasks checklist add <id> "Write the writer" \
-  --objective "..." --acceptance "..." \
-  --files "src/audit/*.ts"
-
-vibe tasks sequence <id>   # run the steps in order
-vibe tasks status <id>     # steps, invariants, halt
-vibe tasks pause <id>      # between steps
-vibe tasks resume <id>     # clear the pause
-```
-
-`vibe tasks run <id>` works too - it delegates to `sequence` for a supervised
-task. Full command reference and a worked example:
-[vibe tasks](/docs/cli/supervised-tasks).
+Choosing supervised turns on the whole bundle: per-step review, the supervisor,
+Enhance, the per-task budget, the run lock, and clean-halt.
 
 ### How a sequence goes
 
@@ -87,23 +88,23 @@ The steps run in order, through a per-item-review flow, in one worktree:
 - it is bounded by the supervised task's own budget (`maxSteps`, `maxSpendUsd`),
   checked between steps, and protected by a per-task run lock.
 
-A new supervised task inherits a default step ceiling (`maxSteps: 20`), so a
-runaway always halts. Set project-wide defaults under `supervised` in
-`project.yml`; the per-task budget overrides them where set.
+A new supervised task inherits a step ceiling (`maxSteps: 20`), so a runaway
+always halts. Project-wide defaults live under `supervised` in `project.yml`,
+editable on the **Config** page under **Supervised runs**; the per-task budget
+overrides them where set. The spend checkpoint is off by default.
 
-If a step cannot pass its review after self-heal, the supervised task **halts
-cleanly**: the failed step's work is discarded (the branch stays reviewable), the
-step is left pending, and the run ends blocked with a reason.
-
-Fix the cause and re-sequence - finished steps are skipped, so it picks up from
-the clean tip.
+A step that cannot pass its review after self-heal **halts the task cleanly**:
+the failed step's work is discarded (the branch stays reviewable), the step is
+left pending, and the run ends blocked with a reason. Fix the cause and press
+**Re-sequence** - finished steps are skipped, so it picks up from the clean tip.
 
 ### The supervisor and the invariants ledger
 
-Between steps, after each one commits cleanly, a cheap **supervisor** turn judges
-whether the supervised task is still on track. It returns one of three verdicts:
+Between steps, after each commits cleanly, a cheap **supervisor** turn judges
+whether the task is still on track. Its prompt asks for one of two verdicts; the
+Conductor understands a third and answers it by handing off:
 
-<svg viewBox="0 0 560 132" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Between steps the supervisor returns one of three verdicts: proceed, and the next step starts; enhance, and the pending plan is re-grounded first; or escalate, which halts the task and keeps the committed work.">
+<svg viewBox="0 0 560 132" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The verdicts the Conductor acts on: proceed, and the next step starts; enhance, which hands off to the separate re-ground pass; or escalate, which halts the task and keeps the committed work.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
     <rect x="1" y="46" width="122" height="40" rx="8"/>
     <rect x="196" y="4" width="362" height="36" rx="8"/>
@@ -124,91 +125,88 @@ whether the supervised task is still on track. It returns one of three verdicts:
   </g>
   <g fill="currentColor" fill-opacity="0.5" font-size="11">
     <text x="300" y="27">carry on to the next step</text>
-    <text x="300" y="71">re-ground the pending plan first</text>
+    <text x="300" y="71">hand off to the re-ground pass</text>
     <text x="300" y="115">halt, and keep the committed work</text>
   </g>
 </svg>
 
-ENHANCE re-grounds the pending plan before the next step, which the section below covers. ESCALATE is for work that has drifted off the feature goal, or an earlier step that is irrecoverably wrong.
+ESCALATE is for work that has drifted off the feature goal, or an earlier step
+that is irrecoverably wrong. Unlike a failed-step halt it keeps the committed
+work: the completed steps are sound, the *direction* went wrong.
 
-An ESCALATE halt keeps the committed work, unlike a failed-step halt, which
-resets. The completed steps are sound; it is the *direction* that went wrong.
+The supervisor never edits the plan. It returns a word, and ENHANCE is where it
+stops and the re-ground pass below starts - a second turn with its own prompt,
+authority rules and spend line.
 
-The supervisor is advisory on top of the per-step review, which already gates
-correctness, so a failed or unparseable supervisor turn never halts a healthy
-supervised task.
+It is advisory on top of the per-step review, which already gates correctness, so
+a failed or unparseable supervisor turn never halts a healthy task. It runs on a
+cheap profile with no write grant, judging from the prompt rather than from
+editing - that withholds writing, it does not harden the CLI to read-only, and
+the working directory is inside the worktree, so a tool-capable model can still
+read from there. Its cost counts toward the task budget and the daily spend cap.
 
-The supervisor turn runs read-only on a cheap profile. Its cost counts toward the
-supervised task budget and the daily spend cap like any other turn.
+It also maintains the **invariants ledger**: a small, append-only list of
+cross-cutting decisions ("all API responses use snake_case") re-injected into
+*every* later step's packet. That is the fix for convention drift - the compact
+outcome ledger folds details away over many steps, but an invariant set in step 2
+still holds in step 9. Redacted and bounded like every packet section, and shown
+in full on the Conductor panel.
 
-The supervisor also maintains the **invariants ledger**: a small, append-only list
-of cross-cutting decisions ("all API responses use snake_case") that is
-re-injected into *every* later step's packet.
-
-This is the fix for convention drift. The compact outcome ledger folds details
-away over many steps, but an invariant set in step 2 still holds in step 9. The
-ledger is redacted and bounded like every packet section.
-
-The supervisor is on by default. Configure it under `supervised.supervisor` in
-`project.yml`: point `profile` at a cheap model, or set `enabled: false` to turn
-it off.
+On by default. Configure it under `supervised.supervisor`: point `profile` at a
+cheap model, or set `enabled: false` to turn it off.
 
 ### Re-grounding the plan (Enhance)
 
-A supervised task's steps are authored *before* the code exists. The deeper a long
-supervised task runs, the more its early plan was a guess about a codebase that
-has since changed under it.
+A supervised task's steps are authored *before* the code exists, so the deeper a
+long one runs, the more its early plan was a guess about a codebase that has
+changed under it.
 
 When the supervisor judges the pending plan has diverged from reality, it returns
 **ENHANCE** and the Conductor runs a **plan-only** re-ground pass before the next
-step. That pass re-reads the current code and revises the *pending* steps:
-sharpening a step's objective, dropping one that is no longer needed, or
-resequencing them.
+step: re-read the current code, then sharpen a pending step's objective, drop one
+no longer needed, or resequence them. It never writes code, and never touches
+steps already done - those are immutable history.
 
-It never writes code, and it never touches steps already done - those are
-immutable history.
-
-Enhance is deliberately bounded in what it may do on its own. The autonomous pass
-may **refine**, **reorder**, or **remove** pending steps.
-
-It may **not add a new step**, and it may **not remove a step you authored**.
-Either is a structural change to the plan's scope, so the supervised task
-**escalates** it to you - a clean halt that keeps the committed work - rather than
-deciding it itself. Adding steps stays an owner decision.
+The autonomous pass may **refine**, **reorder** or **remove** pending steps. It
+may **not add a new step**, and **not remove a step you authored**: either is a
+structural change to the plan's scope, so the task **escalates** it to you - a
+clean halt that keeps the committed work - rather than deciding it itself.
 
 The revised plan is held in a supervised-run overlay and applied atomically, so it
-survives a halt-and-re-sequence: the Conductor continues the revised plan without
-disturbing how a supervised task resumes. On clean completion the revisions are
-folded back into the supervised task's steps.
+survives a halt-and-re-sequence, and on clean completion folds back into the
+task's steps. The Enhance turn runs on the same cheap profile as the supervisor
+and under the same terms - no write grant, working directory inside the worktree
+- and is spend-accounted the same way.
 
-The Enhance turn runs read-only on the same cheap profile as the supervisor, and
-is spend-accounted the same way.
+### From a terminal
 
-### From the dashboard
+The automation path. Every Conductor control has a command behind it:
 
-Mission Control's task detail view shows a live **Conductor** panel for a
-supervised task. The panel carries:
+```bash
+vibe tasks add "Add audit logging" --supervised
+vibe tasks checklist add <id> "Write the writer" \
+  --objective "..." --acceptance "..." \
+  --files "src/audit/*.ts"
 
-- its lifecycle, and step progress with per-step outcomes,
-- the supervisor's decisions and the Enhance re-ground events,
-- the invariants ledger,
-- an escalation banner when it halts.
+vibe tasks sequence <id>   # Sequence
+vibe tasks status <id>     # steps, invariants, halt
+vibe tasks pause <id>      # between steps
+vibe tasks resume <id>     # clear a pause, or re-sequence a halted task
+```
 
-The controls reach full parity with the CLI: **Sequence** to launch, or
-**Re-sequence** to resume a halted supervised task from the clean tip, and
-**Pause** / **Resume** while a run is live.
+`vibe tasks run <id>` works too, delegating to `sequence` for a supervised task.
+Full reference and a worked example: [vibe tasks](/docs/cli/supervised-tasks).
 
-A dashboard launch goes through the same audited path as the CLI, so it inherits
-the supervised flow, budget, supervisor, run lock, and clean-halt semantics.
+`vibe shell`'s **Roadmap** page lists and runs tasks but has no Conductor view;
+step-level state is the dashboard or `vibe tasks status`.
 
 ### What it does not do yet
 
-Enhance runs only when the supervisor calls for it, between steps. There is no way
-to trigger a re-ground pass on demand between sequences, and no dry-run diff of a
-proposed revision before it applies.
-
-Adding a step is a change the autonomous pass escalates rather than making, so it
-stays a manual edit to the checklist.
+Enhance runs only when the supervisor calls for it, between steps, and the
+supervisor's own prompt asks for PROCEED or ESCALATE without naming ENHANCE - so
+the pass is reached only when a model offers the word unprompted. There is no way
+to trigger a re-ground on demand, and no dry-run diff of a revision before it
+applies. Adding a step stays a manual edit to the checklist.
 
 ### Related
 

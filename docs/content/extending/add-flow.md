@@ -6,26 +6,19 @@ slug: extending/add-flow
 
 ## In simple words
 
-A custom [[flow]] is a YAML file: `flow.yml` inside a directory named for the flow id, under `.vibestrate/flows/`.
+A custom [[flow]] is a YAML file: `flow.yml` inside a directory named for the flow id, under `.vibestrate/flows/`. You rarely author one from scratch.
 
-```yaml
-id: quick-review
-label: Quick review
-seats:
-  reviewer:
-    label: Reviewer
-steps:
-  - id: review
-    label: Review
-    kind: review-turn
-    seat: reviewer
-```
+The **Flows** page in the dashboard (`vibe ui`, `127.0.0.1:4317`) is where flows are made. Three ways in, in rising order of effort:
 
-That is a whole (very small) flow. It names a seat, and a step that uses it.
+- **Draft a flow** - describe what you want in a sentence and the supervisor proposes steps and seats. Nothing is written until you accept it.
+- **Customize**, in a built-in card's menu - copies that flow into your project so you edit a working one instead of composing from nothing.
+- **New flow** - the editor on a blank draft, saved by **Create flow**.
+
+**Open** on any card goes to the Flow Builder: the step list, a step inspector, **Dry run** to resolve the flow into the run it would create without starting one, and **Edit as YAML** for the file.
 
 <div class="docs-callout tip">
 
-**Tip.** You rarely need to start from a blank file. **Draft a flow** describes what you want in plain English and proposes one, and **Customize** on a built-in copies it into your project so you edit a working flow rather than compose one.
+**Tip.** A built-in is read-only in the builder until **Fork to project** copies it into `.vibestrate/flows/`, so the shipped flows stay as a floor you can fall back to.
 
 </div>
 
@@ -53,73 +46,58 @@ When the *shape* of the work is genuinely different: extra review passes, a mand
 
 ## Going deeper
 
-### Steps
+### The file behind the builder
 
-Four moves take a Flow from an empty folder to a finished run.
+Everything the builder writes is one file. **Edit as YAML** shows the real bytes, **Form view** goes back. This is `.vibestrate/flows/spike-and-decide/flow.yml`:
 
-1. Create the directory: `.vibestrate/flows/spike-and-decide/`.
-2. Add `flow.yml`:
+```yaml
+id: spike-and-decide
+version: 1
+label: Spike and decide
+description: Prototype, then stop and decide.
 
-   ```yaml
-   id: spike-and-decide
-   version: 1
-   label: Spike and decide
-   description: Prototype, then stop and decide.
+seats:
+  planner:
+    label: Planner
+    description: Plans the spike.
+  prototyper:
+    label: Prototyper
+    description: Builds the spike.
 
-   seats:
-     planner:
-       label: Planner
-       description: Plans the spike.
-     prototyper:
-       label: Prototyper
-       description: Builds the spike.
+steps:
+  - id: plan
+    label: Plan the spike
+    kind: agent-turn
+    seat: planner
+    inputs: [task-brief]
+    outputs: [plan]
 
-   steps:
-     - id: plan
-       label: Plan the spike
-       kind: agent-turn
-       seat: planner
-       inputs: [task-brief]
-       outputs: [plan]
+  - id: prototype
+    label: Build the prototype
+    kind: agent-turn
+    seat: prototyper
+    inputs: [plan]
+    outputs: [diff]
 
-     - id: prototype
-       label: Build the prototype
-       kind: agent-turn
-       seat: prototyper
-       inputs: [plan]
-       outputs: [diff]
+  - id: validate
+    label: Validate
+    kind: validation
+    inputs: [diff]
+    outputs: [validation]
 
-     - id: validate
-       label: Validate
-       kind: validation
-       inputs: [diff]
-       outputs: [validation]
+  - id: human-check
+    label: Stop and decide
+    kind: approval-gate
+    approval:
+      reason: Keep the spike, or rewrite?
+      requestedAction: continue
+```
 
-     - id: human-check
-       label: Stop and decide
-       kind: approval-gate
-       approval:
-         reason: Keep the spike, or rewrite?
-         requestedAction: continue
-   ```
-
-3. Check that Vibestrate sees it:
-
-   ```bash
-   vibe flows list
-   vibe flows show spike-and-decide
-   ```
-
-4. Run a task with it:
-
-   ```bash
-   vibe run "Prototype the search ranking" \
-     --flow spike-and-decide
-   ```
+A loose `.yml` dropped into `.vibestrate/flows/` is skipped, not read: the directory is what makes it a flow. Field by field, [Flow YAML, annotated](/docs/reference/flow-yml) walks the real default flow.
 
 ### Step kinds
 
-Each step has a `kind` that says what happens in it. The example above uses four of them, and the last one halts the run until you decide:
+Each step has a `kind`. The example uses four, and the last halts the run until you decide:
 
 <svg viewBox="0 0 560 58" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The example Flow runs four steps in order: plan and prototype are agent turns, validate runs the project's checks, and human-check is an approval gate that halts the run.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -147,8 +125,6 @@ Each step has a `kind` that says what happens in it. The example above uses four
   </g>
 </svg>
 
-Here is what every kind is for.
-
 | Kind | When to use |
 |---|---|
 | `agent-turn` | One agent does a primary action (plan, implement). |
@@ -160,13 +136,11 @@ Here is what every kind is for.
 
 ### Seats, not your models
 
-A Seat is the slot a step needs filled, named by the kind of worker it wants - a planner, a builder, a challenger, a prototyper. The Flow only names Seats. It never names your local Roles or Providers, and that is what keeps it shareable. (A Role is one of your configured workers; a Provider is the AI vendor behind it.)
+A Seat is the slot a step needs filled, named by the kind of worker it wants - a planner, a builder, a challenger. A flow never names your local Roles or Providers.
 
-When a run starts, Vibestrate matches each Seat to a Role in your Crew, the set of workers on the job. Each Role lists the Seats it can take under its own `seats:` key in `project.yml`.
+When a run starts, Vibestrate matches each Seat to a Role in your Crew via that Role's `seats:` list. The crew editor's **Seats** panel shows the same matching from the other side: every seat any installed flow declares, and who takes it.
 
-If a step needs the same Role behavior but more horsepower, you can override its Profile for that one step. A Profile is the runtime settings a Role runs on, like which model and how hard it thinks.
-
-List the Profile ids first, then name one for a single step:
+Overriding a seat for one run lives on the command:
 
 ```bash
 vibe profile list
@@ -174,20 +148,15 @@ vibe run "..." --flow spike-and-decide \
   --step-profile prototype=<profileId>
 ```
 
-That runs the `prototype` step on the Profile you name, without changing how the Role behaves. To choose *which* Role fills a Seat for a run, use `--seat-role prototyper=<roleId>`.
+That runs the `prototype` step on the Profile you name without changing how the Role behaves. `--seat-role prototyper=<roleId>` chooses *which* Role fills the seat.
 
-### Optional steps
+### Optional and clean-room steps
 
-Set `optional: true` on a step to let people skip it on a given run:
+Both are toggles on a step card in the flow editor - **Optional** and **Clean room**, beside **Skip on a read-only run** - and both are one line in the file.
 
-```bash
-vibe run "..." --flow spike-and-decide \
-  --flow-skip plan
-```
+`optional: true` lets people skip the step on a given run - `vibe run "..." --flow spike-and-decide --flow-skip plan`.
 
-### Clean-room steps
-
-Set `cleanRoom: true` on a step and that seat stops receiving the run narrative from the steps before it. The run narrative is the run brief, the "story so far", plus the project ledger.
+`cleanRoom: true` stops that seat receiving the run narrative from the steps before it. The narrative is the run brief, the story so far, and the project ledger.
 
 <svg viewBox="0 0 560 148" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A clean-room step still receives your attached specs and pinned annotations, and the inputs the step declares. Only the run narrative is hidden from it.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -213,9 +182,9 @@ Set `cleanRoom: true` on a step and that seat stops receiving the run narrative 
   </g>
 </svg>
 
-With the narrative hidden, a reviewer or verifier judges the work without leaning on how the earlier steps framed things. The step still gets the ground truth: your attached context sources (the specs), your pinned annotations, and the inputs the step declares.
+With the narrative hidden, a reviewer judges the work without leaning on how the earlier steps framed it, while still getting ground truth from your context sources, your pinned annotations and the inputs it declares.
 
-Clean-room hides only the run narrative, never the spec. In testing, hiding the spec from a reviewer made it miss requirement violations it couldn't see, while hiding just the run brief cost nothing. It is off by default, so existing steps don't change.
+Clean-room hides only the narrative, never the spec. In testing, hiding the spec from a reviewer made it miss requirement violations it could not see, while hiding only the run brief cost nothing. Off by default.
 
 ```yaml
 - id: review
@@ -230,16 +199,20 @@ Clean-room hides only the run narrative, never the spec. In testing, hiding the 
 
 ### Common mistakes
 
-- **One Role filling both builder and challenger.** It'll agree with itself. Use two Seats filled by two different Roles.
-- **Skipping validation.** Without a `validation` step, your Flow has no ground truth.
-- **Over-stuffing one Flow.** Twelve steps is too many. If a Flow grew long, split it.
+- **One Role filling both builder and challenger.** It will agree with itself. Use two Seats filled by two different Roles. The crew editor flags this as **seats taken twice**.
+- **Skipping validation.** Without a `validation` step, your flow has no ground truth.
+- **Over-stuffing one flow.** Twelve steps is too many; split one that grew long.
 
-### Share a Flow (import and export)
+### Share a flow
 
-Flows travel well because they name Seats, not your local Roles or Providers. One project's Flow drops into another and resolves against that project's Crew.
+One project's flow drops into another and resolves against that project's Crew.
+
+In the dashboard: **Export** in a card's menu writes the canonical YAML; **Import** at the top of the page takes **Paste YAML** or **From URL**, with an overwrite checkbox for an id you already have. **Pull a flow**, behind **Browse hub**, browses the community catalog.
+
+The scripting path:
 
 ```bash
-# export a Flow to a file you can commit
+# export a flow to a file you can commit
 vibe flows export spike-and-decide \
   --out spike-and-decide.flow.yml
 
@@ -249,12 +222,12 @@ vibe flows import \
   https://example.com/spike-and-decide.flow.yml
 ```
 
-Imports are checked against the schema, and refused if they carry the shape of a secret token or any disallowed control characters. Fetches from a URL are bounded in size and time. If a Flow with the same id already exists in the project, it is replaced only when you pass `--overwrite`.
+Imports are checked against the schema and refused if they carry the shape of a secret token or any disallowed control character. URL fetches are bounded in size and time. An existing project flow of the same id is replaced only with `--overwrite`.
 
-The dashboard Flows page has the same controls (Export, Import, New flow). The HTTP endpoints behind them (`/api/v1/flows/:id/export`, `POST /api/v1/flows/import`, `POST /api/v1/flows`) are documented under [HTTP API](/docs/architecture/http-api).
+`vibe shell` carries the same catalog: `f` forks the selected built-in, `h` opens the hub, `↵` makes the selected flow the project default.
 
-### Going deeper
+### Related
 
-- [Flow (concept)](/docs/concepts/flow) - what a Flow is and when to write one.
-- [Built-in Flows reference](/docs/reference/flows) - every shipped Flow, step by step.
+- [Flow (concept)](/docs/concepts/flow) - what a flow is and when to write one.
+- [Built-in Flows reference](/docs/reference/flows) - every shipped flow, step by step.
 - [HTTP API](/docs/architecture/http-api) - the endpoints behind the dashboard's Flows controls.

@@ -21,17 +21,17 @@ pnpm install · pnpm typecheck · pnpm test · pnpm build
 Propose sandbox mode when a task touches provider execution or credential paths.
 ```
 
-It is durable, project-aware guidance, and it is **advisory**: it shapes how work is planned, and it can never override a code-enforced [policy](/docs/concepts/safety).
+You read it back through **[[consult]]** - the orb in the corner of every dashboard page. Ask "should this use a heavier review?" and the answer is grounded in your manual rather than guesswork.
 
 <div class="docs-callout warn">
 
-**Only one surface reads it today: [[consult]].** Ask "should this use a heavier review?" and the answer is grounded in your manual rather than guesswork. **Runs themselves do not read it.** A rule you need every agent to follow on every turn belongs in `.vibestrate/rules.md` instead.
+**Consult is the only surface that reads it. Runs do not.** A rule every agent must follow on every turn belongs in `.vibestrate/rules.md` instead. Either way the manual is advisory: it shapes how work is planned, and can never override a code-enforced [policy](/docs/concepts/safety).
 
 </div>
 
 <div class="docs-callout tip">
 
-**Tip.** Keep it short and prune it. This file is read as context, so every stale paragraph is noise competing with the parts that still matter. A page that is mostly out of date is worse than no page.
+**Tip.** Prune it. The file is read as context, so every stale paragraph competes with the parts that still matter, and a page mostly out of date is worse than no page.
 
 </div>
 
@@ -55,37 +55,36 @@ The constraints someone new would trip over.
 
 <div class="docs-callout">
 
-**Did you know?** It is committed, so it travels with the repo. A teammate who clones the project gets the same answers you do, which is the difference between project knowledge and something living in one person's head.
+**Did you know?** It is committed, so it travels with the repo. A teammate who clones the project gets the same answers you do, which is the difference between project knowledge and something in one person's head.
 
 </div>
 
 
 ## Going deeper
 
+### Ask it something
+
+`vibe ui`, then the orb, or the Consult page directly. Its **This project** side answers from your manual, your config and your recent runs; **Work in Vibestrate** answers about the product itself.
+
+An answer can carry a proposed addition to the manual, and nothing is written until you press **Apply to VIBESTRATE.md**. Rejecting one keeps it on record rather than deleting it.
+
+`vibe shell` has the same Consult tab, with `a` to apply a proposal, `x` to reject and `r` to refresh. On the CLI:
+
+```bash
+vibe consult "should this use a heavier review?"
+vibe guide show                # print the manual
+vibe guide init                # scaffold a starter one
+vibe guide proposals           # open proposals
+vibe guide apply <id>          # append a proposal's text
+```
+
 ### What goes in it
 
-Keep it concise and prune it. Suggested sections, written in plain prose:
+Headings that earn their place, written in plain prose. Project Model, Development Commands and Risk Rules, as in the sample at the top, plus any of:
 
 ```md
-# VIBESTRATE.md
-
-### Project Model
-What this project is, its domains, architecture
-boundaries, critical flows.
-
-### Development Commands
-Install, test, typecheck, lint, build, run
-locally - in order.
-
 ### Orchestration Preferences
-Preferred flows and crews; when to use heavier
-review; when to stay lean.
-
-### Risk Rules
-When to propose sandbox mode, approval gates,
-isolated execution, extra validation. (e.g.
-"propose sandbox mode when a task touches
-provider execution or secret/credential paths.")
+Preferred flows and crews; when to go heavier.
 
 ### Codebase Conventions
 ### Known Constraints
@@ -94,23 +93,15 @@ provider execution or secret/credential paths.")
 
 ### How it ranks against other guidance
 
-It is distinct from `.vibestrate/rules.md`, and the precedence is explicit:
-
 | Layer | What it is | Enforced? | Read when |
 | --- | --- | --- | --- |
 | **Policy** (`.vibestrate/policies/`) | Hard, code-enforced gates | Yes - code | Every run |
 | **`.vibestrate/rules.md`** | Prompt guidance for roles | No - advisory | Every agent turn |
 | **`VIBESTRATE.md`** | Your durable project model | No - advisory | You ask Consult |
 
-The rightmost column is the one people get wrong. A rule that must reach the agents doing the work goes in `rules.md`. `VIBESTRATE.md` is what you want the advisor to know when you ask it something.
-
-### Ask it questions
-
-You don't only write to VIBESTRATE.md. You can also ask about your project and get an answer grounded in it. That advisor is [Consult](/docs/concepts/consult); it answers from the manual and can propose an addition to it, but applying one is your call - via `vibe guide apply <id>` or the dashboard.
-
 ### The codebase map: machine-owned, not authored
 
-Next to VIBESTRATE.md sits a different kind of memory: `.vibestrate/CODEBASE.md` and `.vibestrate/codebase-map.json`, regenerated on demand by `vibe learn` (and best-effort by `vibe init`). Where VIBESTRATE.md is *your* intent - project model, conventions, lessons - the codebase map is a deterministic scan: stack, scripts, top-level layout, languages, entry points, best-effort HTTP routes, and tooling markers. Nobody writes it by hand; regenerating it (`vibe learn`) always produces the same map from the same repo state, so there is nothing to keep in sync.
+Next to the manual sits a different kind of memory: `.vibestrate/CODEBASE.md` and `.vibestrate/codebase-map.json`. Where VIBESTRATE.md is *your* intent, the map is a deterministic scan - stack, scripts, layout, languages, entry points, best-effort HTTP routes, tooling markers. Nobody writes it by hand, and the same repo state always produces the same map, so there is nothing to keep in sync.
 
 <svg viewBox="0 0 560 136" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Two memories with different authors and different readers: you write VIBESTRATE.md and Consult reads it, while vibe learn regenerates the codebase map, which Consult and the planner both read.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -144,25 +135,22 @@ Next to VIBESTRATE.md sits a different kind of memory: `.vibestrate/CODEBASE.md`
   </g>
 </svg>
 
-The map grounds the planner - injected once per run alongside the project's ledger digest - and Consult, so both reason from the real shape of your project instead of asking you to describe it. Judges (review, verify) stay clean-room and never see it, the same isolation VIBESTRATE.md gets. It refreshes automatically whenever a run reaches a terminal outcome, and marks itself stale in `vibe learn show` when your `HEAD` has moved since it was generated.
+It has a screen of its own: **Codebase**, then the **Map** chip above the file tree. Project type, package manager, tracked-file and route counts, then **Commands**, **Layout**, **Entry points** and **HTTP routes (best effort)**. **Generate map** on a project without one, **Refresh map** after that, and a stale marker once your `HEAD` has moved past the version on disk.
 
-```bash
-vibe learn        # regenerate the map
-vibe learn show   # print CODEBASE.md
-```
+It also refreshes itself whenever a run reaches a terminal outcome. `vibe learn` regenerates it from a terminal; `vibe learn show` prints `CODEBASE.md` with the same staleness note.
 
 ### Who gets the map
 
-The planner, by default, and only the planner. That is deliberate rather than a limitation: every other role is standing *in* the worktree, holding a plan that already names the files, running an agent CLI that opens them natively. Handing those roles a generated summary costs tokens on every turn and gives them a second, staler account of a repo they can already read.
+The planner, by default, and only the planner. That is deliberate: every other role stands *in* the worktree, holding a plan that already names the files, running an agent CLI that opens them natively. A generated summary costs those roles tokens every turn and gives them a second, staler account of a repo they can already read. The planner has to name real files *before* it has read anything, which is why it is the exception.
 
-The planner is the exception because it has to name real files *before* it has read anything.
-
-Widen the audience when the crew cannot explore for itself - a small local model, a sandbox with no file tools - or when the flow has no planner seat at all. `express` and `quality-arbitration` are both in that category, so neither sees a map today whatever else is configured:
+Widen the audience when the crew cannot explore for itself - a small local model, a sandbox with no file tools - or when the flow has no planner seat at all. `express`, `scaffold` and `quality-arbitration` are all in that category, so none of them sees a map whatever else is configured:
 
 ```yaml
 codebaseMapRoles: [planner, implementer]
 ```
 
-Names are crew role ids. Each listed role is oriented once per run, so a role taking several turns does not pay for it again.
+Names are crew role ids, and each listed role is oriented once per run, so a role taking several turns does not pay again.
 
-Related: [[consult]], [[safety]], [[configuration]].
+### Related
+
+[[consult]], [[safety]], [[configuration]].

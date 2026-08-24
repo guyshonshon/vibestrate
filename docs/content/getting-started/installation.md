@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Install Vibestrate and check your environment in two commands.
+description: Install Vibestrate, open the dashboard, and let the Setup page take you from an empty folder to a first run.
 slug: getting-started/installation
 ---
 
@@ -11,19 +11,20 @@ You need **Node.js 24 or newer** and a git repository.
 ```bash
 npm install -g vibestrate     # or: curl -fsSL get.vibestrate.com | sh
 cd your-project
-vibe init                     # scaffolds .vibestrate/, touches nothing else
-vibe doctor --fix             # finds and wires up the CLIs you already have
+vibe ui
 ```
 
-It runs on macOS, Linux and Windows, no WSL required.
+`vibe ui` serves the dashboard on `http://127.0.0.1:4317`, opens your browser and starts the scheduler. The rest happens in **More > Setup**: the `vibe doctor` checks as numbered steps, with **Initialise this project** and **Fix what's safe** on the page.
+
+Works on macOS, Linux and Windows, no WSL required.
 
 <div class="docs-callout tip">
 
-**Tip.** `vibe init` only writes inside `.vibestrate/`. It does not touch your source, your package manifest or your git config, so running it in an existing project is safe to try.
+**Tip.** Setting up writes inside `.vibestrate/` and nowhere else. Your source, package manifest and git config are untouched, so trying this in an existing project costs nothing.
 
 </div>
 
-## What init writes
+## What setup writes
 
 <div class="docs-cards">
 
@@ -36,14 +37,16 @@ Six workers, each with its own instructions file.
 **`rules.md`**
 Guidance stacked into every agent turn.
 
-**`CODEBASE.md`**
-An auto-derived map of your project, so agents start oriented.
+**`policies/`**
+Your own rule files, read on every run. Empty until you write one.
 
 </div>
 
+A codebase map is not part of this. `.vibestrate/CODEBASE.md`, the auto-derived map that starts an agent oriented, comes from `vibe learn`, which `vibe init` runs at the end of the CLI path and the dashboard's initialise skips. Run `vibe learn` once if you want it.
+
 <div class="docs-callout">
 
-**Did you know?** On Windows the in-app terminal tab is off, because it needs a POSIX shell. Everything else - installing, providers, runs, diffs, merging - works natively in PowerShell or cmd. See [native Windows support](/docs/getting-started/windows).
+**Did you know?** The one thing Windows does not get is the run page's in-app Terminal tab: it needs a POSIX shell. See [native Windows support](/docs/getting-started/windows).
 
 </div>
 
@@ -53,9 +56,9 @@ An auto-derived map of your project, so agents start oriented.
 ### Requirements
 
 - **Node.js 24 or newer.** Check yours with `node --version`.
-- **git 2.5 or newer.** Vibestrate makes a second checkout of your repo for each run and tears it down after. Older git can't do that.
+- **git 2.5 or newer.** Each run gets a second checkout of your repo, torn down after; older git can't do that.
 - **npm or pnpm**, to install the package.
-- **At least one coding-agent CLI** on your PATH: Claude Code, Codex, Gemini, Aider, Ollama, OpenCode, or another supported provider. You can add one later, and `vibe doctor` tells you what's missing.
+- **At least one coding-agent CLI** on your PATH: Claude Code, Codex, Gemini, Aider, Ollama, OpenCode or another supported provider. The Setup page names what's missing.
 
 ### Install
 
@@ -65,16 +68,16 @@ npm install -g vibestrate
 pnpm add -g vibestrate
 ```
 
-The `-g` matters. Leave it out and `npm install vibestrate` adds Vibestrate as a dependency of whatever project you're standing in, without ever putting `vibe` on your PATH.
+The `-g` matters. Without it, `npm install vibestrate` installs into the project you're standing in and never puts `vibe` on your PATH.
 
-On macOS or Linux you can use an install script instead. It does the same global install, and it's plain text you can read first:
+On macOS or Linux the install script does the same, in plain text you can read first:
 
 ```bash
 url=https://raw.githubusercontent.com/guyshonshon
 curl -fsSL $url/vibestrate/main/install.sh | sh
 ```
 
-To pin a version, or to check which one you've got:
+To pin or check a version:
 
 ```bash
 npm view vibestrate versions     # what is published
@@ -82,55 +85,49 @@ npm install -g vibestrate@<version>
 vibe --version
 ```
 
-### Set up your project
+### Set up in the dashboard
 
-From the root of any git repository:
+`vibe ui` runs from inside a git repository - a run forks a branch. If the folder isn't a repo yet, `git init` and one commit is enough.
+
+**More > Setup** counts **Status**, **Failures**, **Warnings** and **Checks run** across the top, then walks six numbered steps: a repository, **Initialise the project**, **Connect a model** (with a **Providers** button), **Point it at your tests** (with **Edit config**), everything else doctor checks, and **Start your first run**, which unlocks once the project is initialised and nothing is failing.
+
+**Fix what's safe** appears when something can be repaired without a decision from you: missing directories, a missing skills README, an absent built-in role file. It fills in a provider or validation commands only where that part of the config is empty, never over what you wrote, and lists what it declined under **Skipped**.
+
+### The same thing from a terminal
 
 ```bash
-vibe init
-vibe doctor
+vibe init            # scaffold .vibestrate/ (--git-init to create the repo too)
+vibe doctor          # the read-only report the Setup page renders
+vibe doctor --fix    # the same repair pass as Fix what's safe
+vibe doctor --json   # machine-readable, for CI
 ```
 
-`vibe init` creates a `.vibestrate/` directory and touches nothing else in your repo. `vibe doctor` then checks what a run needs: git state, project config, the providers it can find, your validation commands, and permissions. Anything red comes with its fix.
+`vibe` on its own opens the interactive shell, whose Doctor page has `r` to re-run the checks and `f` to apply the safe fixes.
 
 ### Inside `.vibestrate/`
 
-```text
-.vibestrate/
-  project.yml  providers, profiles, crews
-               (roles), commands, policies
-  rules.md     project instructions agents
-               read on every turn
-  rules/       optional extra instruction
-               files, composed onto rules.md
-  roles/       one JSON role file per role,
-               holding its instructions
-  skills/      markdown attachments that add
-               domain context
-  flows/       your project's run Flows
-               (empty until you add one)
-  runs/        run state, artifacts, metrics,
-               events
-```
+Alongside the four entries above, `rules/` takes extra instruction files composed onto `rules.md`, `skills/` takes markdown attachments that add domain context, `flows/` holds this project's Flows, and `runs/` holds run state, artifacts, metrics and events.
 
-<svg viewBox="0 0 560 104" width="100%" style="max-width:560px;height:auto" role="img" aria-label="vibe init writes project.yml, rules.md, rules/, roles/, skills/ and flows/ inside .vibestrate/ - commit those - plus runs/, which is local run history you add to .gitignore.">
+`policies/` is the one to watch: a rule file that fails to parse, or two claiming the same id, stops run creation outright rather than being skipped. `vibe policies doctor` names the file and the reason.
+
+<svg viewBox="0 0 560 104" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The committed half of .vibestrate/ holds project.yml, rules.md, rules/, roles/, skills/, flows/ and policies/, beside runs/, which is local run history you add to .gitignore.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
     <rect x="1" y="18" width="558" height="72" rx="10"/>
-    <rect x="14" y="44" width="330" height="40" rx="8"/>
-    <rect x="356" y="44" width="190" height="40" rx="8"/>
+    <rect x="14" y="44" width="344" height="40" rx="8"/>
+    <rect x="370" y="44" width="176" height="40" rx="8"/>
   </g>
   <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
     <text x="14" y="36">.vibestrate/</text>
-    <text x="179" y="61" text-anchor="middle">commit these</text>
-    <text x="451" y="61" text-anchor="middle">runs/</text>
+    <text x="186" y="61" text-anchor="middle">commit these</text>
+    <text x="458" y="61" text-anchor="middle">runs/</text>
   </g>
   <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
-    <text x="179" y="77">project.yml, rules.md, rules/, roles/, skills/, flows/</text>
-    <text x="451" y="77">local history - gitignore it</text>
+    <text x="186" y="77" font-size="10">project.yml, rules.md, rules/, roles/, skills/, flows/, policies/</text>
+    <text x="458" y="77">local history - gitignore it</text>
   </g>
 </svg>
 
-Add `runs/` to your `.gitignore` yourself, since `vibe init` doesn't touch that file:
+Add `runs/` to your `.gitignore` yourself; nothing here touches that file:
 
 ```text
 .vibestrate/runs/

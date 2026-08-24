@@ -10,8 +10,9 @@ Left alone, a coding agent over-builds: a helper class where a function would do
 
 **Ponytail** is the posture that pushes back. It injects a "lazy senior dev" ruleset into the agents that write code, so their default is the smallest change that actually works.
 
+It is on by default, and it is one switch: the `ponytail` row under **General** on the dashboard's **Config** page, or from a terminal:
+
 ```bash
-# on by default; this turns it off
 vibe config set ponytail false
 ```
 
@@ -69,20 +70,21 @@ Prefer a platform or framework feature over a dependency.
 **Already installed?**
 Solve it with a dependency the project has before adding one it doesn't.
 
-**One line before fifty?**
-The smallest version that works, not the most general one.
+**Can this be one line?**
+If it can, make it one line.
+
+**Only then, write it**
+The minimum code that works, not the most general version of it.
 
 </div>
 
-The result is smaller, less speculative diffs: fewer new files, fewer dependencies, less dead flexibility built "just in case."
-
 ### What it will not trade away
 
-The ladder runs *after* the agent understands the problem, not instead of it. The rules it is told never to be lazy about: read the task and trace the real flow first, validate at trust boundaries, handle the errors that would lose data, fix a bug at its root rather than at the caller that reported it, and leave one runnable check behind. Ponytail trims the *speculative* work, not the correctness work.
+The ladder runs *after* the agent understands the problem, not instead of it. What it is told never to be lazy about: read the task and the code it touches and trace the real flow end to end before picking a rung, validate at trust boundaries, handle the errors that would lose data, fix a bug at its root rather than at the caller that reported it, and leave one runnable check behind. Ponytail trims the *speculative* work, not the correctness work.
 
 ### Why only the writers
 
-The split mirrors how [reviewLenses](/docs/concepts/supervisor) aim the reviewers and the Spec-up posture aims the planners: each role gets the guidance for *its* job. A reviewer judging whether a change is right must not also be told to make it smaller - that is the writer's job, and the reviewer stays an independent check.
+The split mirrors how [reviewLenses](/docs/concepts/supervisor) aim the reviewers and the Spec-up posture aims the planners: each role gets the guidance for *its* job. A reviewer judging whether a change is right must not also be told to make it smaller - that is the writer's job.
 
 In code the rule is narrow: a model turn at the **executing** stage whose output includes a diff. That is the implementer and the fixer, and nothing else.
 
@@ -111,7 +113,7 @@ In code the rule is narrow: a model turn at the **executing** stage whose output
 
 The posture is committed project config, never fetched at run time - the same trust class as the rest of your run settings, and every diff still passes the [post-turn gate](/docs/concepts/safety) before it can merge. It is vendored verbatim from the open-source [ponytail skill](https://github.com/DietrichGebert/ponytail) (MIT), so it behaves the same across every provider with no plugin dependency.
 
-### Going deeper
+### Related
 
 - [[seat]], [[role]] - who fills a Flow's steps; ponytail aims the code-writing ones.
 - [[workflow]] - the stages a run moves through, and which seat owns each.

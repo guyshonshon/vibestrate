@@ -84,7 +84,9 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "The live state of one run.",
         commands: [
-          { cmd: `vibe status ${route.runId}`, note: "current phase + summary" },
+          // `status` takes no run id - it lists this project's runs. Naming
+          // one here printed a hint the CLI rejects.
+          { cmd: "vibe status", note: "this project's runs, this one among them" },
           { cmd: `vibe replay ${route.runId}`, note: "scroll the timeline event-by-event" },
           { cmd: `vibe pause ${route.runId}`, note: "request a pause at the next safe boundary" },
           { cmd: `vibe resume ${route.runId}`, note: "resume from the paused boundary" },
@@ -102,7 +104,7 @@ export function hintForRoute(route: Route): CliHint {
         commands: [
           { cmd: "vibe tasks list", note: "table of tasks with status + linked runs" },
           { cmd: 'vibe tasks add "title"', note: "create a new task" },
-          { cmd: "vibe roadmap show", note: "raw roadmap document" },
+          { cmd: "vibe roadmap show <id>", note: "one roadmap item" },
         ],
         tips: [
           "Append `--read-only` on `vibe tasks add` to mark the task as investigation-only.",
@@ -116,7 +118,7 @@ export function hintForRoute(route: Route): CliHint {
         commands: [
           { cmd: `vibe tasks show ${route.taskId}`, note: "full task record" },
           { cmd: `vibe tasks report ${route.taskId}`, note: "rendered implementation report" },
-          { cmd: `vibe tasks comment ${route.taskId}`, note: "thread of comments" },
+          { cmd: `vibe tasks comment ${route.taskId} "<note>"`, note: "add to the thread" },
           { cmd: `vibe tasks queue ${route.taskId}`, note: "enqueue this task for the runner" },
           { cmd: `vibe run --task ${route.taskId} "describe the slice"`, note: "run linked to this task" },
         ],
@@ -137,24 +139,27 @@ export function hintForRoute(route: Route): CliHint {
           "Each project is its own isolated dashboard + scheduler; opening one starts its own `vibe ui` and lands you in a fresh tab. `close` stops it (add --force to override a busy project).",
         ],
       };
+    // This page renders ROADMAP proposals - drafts waiting to become roadmap
+    // items - not run approvals. It offered `vibe approvals` and
+    // `vibe suggestions`, which act on a different thing entirely.
     case "proposals":
       return {
-        title: "Proposals",
-        blurb:
-          "Agent-generated change proposals waiting for human approval.",
+        title: "Roadmap proposals",
+        blurb: "Drafts waiting on a review before they become roadmap items.",
         commands: [
-          { cmd: "vibe approvals list", note: "all pending approvals" },
-          { cmd: "vibe suggestions list", note: "all suggestions waiting for review" },
+          { cmd: "vibe roadmap proposals", note: "the same list" },
+          { cmd: 'vibe roadmap plan "<goal>"', note: "draft a roadmap for a broad goal" },
+          { cmd: "vibe roadmap list", note: "the items already accepted" },
         ],
       };
     case "proposal":
       return {
         title: "Proposal detail",
-        blurb: "Inspect or accept a single proposal from the CLI.",
+        blurb: "Inspect a single roadmap proposal, or accept it into the roadmap.",
         commands: [
-          { cmd: `vibe approvals show ${route.proposalId}`, note: "inspect the diff + metadata" },
-          { cmd: `vibe approvals approve ${route.proposalId}`, note: "accept the proposed change" },
-          { cmd: `vibe approvals reject ${route.proposalId}`, note: "reject with a reason" },
+          { cmd: `vibe roadmap proposal show ${route.proposalId}`, note: "the draft as written" },
+          { cmd: `vibe roadmap proposal parse ${route.proposalId}`, note: "the items it would create" },
+          { cmd: `vibe roadmap accept ${route.proposalId}`, note: "turn it into roadmap items" },
         ],
       };
     case "settings":
@@ -174,7 +179,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Policies",
         blurb:
-          "Your own rules, plus the security gates that cannot be turned off.",
+          "Your own rules, plus the four hard guards - on by default, and editable.",
         commands: [
           { cmd: "vibe policies list", note: "project policies + the hard security gates" },
           { cmd: 'vibe policies add <id> "<rule>" --fix "<fix>"', note: "an advise rule the reviewer checks" },
@@ -203,7 +208,7 @@ export function hintForRoute(route: Route): CliHint {
         blurb: "High-level project state. CLI equivalents below.",
         commands: [
           { cmd: "vibe status", note: "recent runs at a glance" },
-          { cmd: "vibe roadmap show", note: "current roadmap document" },
+          { cmd: "vibe roadmap show <id>", note: "one roadmap item" },
           { cmd: "vibe doctor", note: "environment + config check" },
         ],
       };
@@ -264,10 +269,10 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "The worktree and diff for each run.",
         commands: [
-          { cmd: "vibe bundles list", note: "validation bundles per run" },
-          { cmd: "vibe bundles apply <bundleId>", note: "apply a bundle to the project root" },
-          { cmd: "vibe bundles revert <bundleId>", note: "revert a previously applied bundle" },
-          { cmd: "vibe validation profile show", note: "the commands a profile runs" },
+          { cmd: "vibe bundles list <runId>", note: "validation bundles for one run" },
+          { cmd: "vibe bundles apply <runId> <bundleId>", note: "apply a bundle to the project root" },
+          { cmd: "vibe bundles revert <runId> <bundleId>", note: "revert a previously applied bundle" },
+          { cmd: "vibe validation profile show <name>", note: "the commands a profile runs" },
         ],
       };
     case "git":
@@ -276,10 +281,10 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "The worktree and diff for each run.",
         commands: [
-          { cmd: "vibe bundles list", note: "validation bundles per run" },
-          { cmd: "vibe bundles apply <bundleId>", note: "apply a bundle to the project root" },
-          { cmd: "vibe bundles revert <bundleId>", note: "revert a previously applied bundle" },
-          { cmd: "vibe validation profile show", note: "the commands a profile runs" },
+          { cmd: "vibe bundles list <runId>", note: "validation bundles for one run" },
+          { cmd: "vibe bundles apply <runId> <bundleId>", note: "apply a bundle to the project root" },
+          { cmd: "vibe bundles revert <runId> <bundleId>", note: "revert a previously applied bundle" },
+          { cmd: "vibe validation profile show <name>", note: "the commands a profile runs" },
         ],
       };
     case "git-tree":

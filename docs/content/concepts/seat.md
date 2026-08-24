@@ -6,39 +6,19 @@ slug: concepts/seat
 
 ## In simple words
 
-A [[flow]] step does not say "use Claude". It says "this step needs a reviewer". That labelled, empty chair is a **Seat**.
+A [[flow]] step does not say "use Claude". It says "this step needs a reviewer". That labelled, empty chair is a **Seat**: a contract, not a person, naming the *kind* of worker a step needs and nothing about who fills it. Your [[crew]] does the filling, at the moment a task runs.
 
-A seat is a contract, not a person. It names the *kind* of worker a step needs and nothing about who fills it. Your [[crew]] does the filling, at the moment a task runs.
-
-Open a crew and each worker lists the seats it will take:
-
-![The Seats it takes row on a role card. Ten chips read arbiter, architect, builder, challenger, executor, fixer, implementer, planner, reviewer and verifier. The planner chip is highlighted, marking the seat this role takes.](/media/docs/scoped/seat-chips.png)
-
-Every chip is a chair this role *could* take. The highlighted one is the chair it does take.
+**Crew** in the sidebar is where you see the chairs; `vibe ui` opens the dashboard on `127.0.0.1:4317`. A crew's header counts roles, seats and anything uncovered. The ring below reads *n/m seats filled*: each arc is one seat, tinted by the role that takes it, and hovering names both. Leftovers group as **Unassigned**, which no role covers, and **Several takers**, where more than one role claims a seat. Neither is runnable: the resolver refuses rather than picking for you, and `--seat-role <seat>=<role>` names the one you want. Under the ring, **Roles** lists each worker as a card.
 
 <div class="docs-callout tip">
 
-**Tip.** One worker can take several seats. That is why six workers can staff a flow with eight steps, and why you rarely need to add a role just because a flow got longer.
+**Tip.** One worker can take several seats. That is why six workers can staff a flow with eight steps, and why you rarely need to add a role because a flow got longer.
 
 </div>
 
-## Why it works this way
+![The Seats it takes row on a role card. Ten chips read arbiter, architect, builder, challenger, executor, fixer, implementer, planner, reviewer and verifier. The planner chip is highlighted, marking the seat this role takes.](/media/docs/scoped/seat-chips.png)
 
-<div class="docs-cards">
-
-**Flows stay portable**
-A flow names chairs, never models. Download someone's flow and it runs on your models, at your budget, unedited.
-
-**You swap models without touching process**
-Point the role that takes `reviewer` at a different provider. Every flow you run gets that reviewer.
-
-**Gaps surface before the run**
-The crew page counts the seats your flows ask for and flags any no role covers, so an unfillable run shows up before it starts.
-
-**One diff, two lenses**
-Two steps can share the `reviewer` seat with different instructions: one reads for correctness, one for security.
-
-</div>
+Every chip on a role card is a chair that role *could* take; clicking one adds or drops it.
 
 <div class="docs-callout">
 
@@ -48,9 +28,24 @@ Two steps can share the `reviewer` seat with different instructions: one reads f
 
 ## Going deeper
 
+### Why it works this way
+
+<div class="docs-cards">
+
+**Flows stay portable**
+Download someone's flow and it runs on your models, at your budget, unedited.
+
+**You swap models without touching process**
+Point the role that takes `reviewer` at a different provider. Every flow you run gets that reviewer.
+
+**One diff, two lenses**
+Two steps can share the `reviewer` seat with different instructions: one reads for correctness, one for security.
+
+</div>
+
 ### The chain a step follows
 
-When a task runs, Vibestrate follows the seat through your crew to an actual model:
+When a task runs, Vibestrate follows the seat through your crew to a model:
 
 <svg viewBox="0 0 560 52" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A Flow step names a Seat, your Crew's Role fills that Seat, the Role names a Profile, and the Profile names a Provider. The Seat is the second link, and the last one a Flow decides.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -90,13 +85,13 @@ When a task runs, Vibestrate follows the seat through your crew to an actual mod
   </g>
 </svg>
 
-The step asks for a chair, the role that lists it sits down, and the provider behind that role's profile does the work. Each step records who sat down:
+Each step records who sat down:
 
 <div class="docs-chips"><span>seat</span><span>resolvedRoleId</span><span>resolvedRoleLabel</span><span>profileId</span><span>providerId</span></div>
 
 ### What a seat carries
 
-A `label` and an optional `description`. Nothing else. No model, no vendor. The worker brings the model through its [[profile]].
+A `label` and an optional `description`. Nothing else. The worker brings the model through its [[profile]].
 
 In the YAML, a flow declares its seats, then points each step at one:
 
@@ -115,9 +110,13 @@ steps:
     outputs: [execution, diff]
 ```
 
-The [[role]] that fills this seat can be named anything - Backend Implementer, Executor, Coder - as long as it lists `implementer` in its own `seats`.
+The [[role]] that fills this seat can be named anything (Backend Implementer, Executor, Coder) as long as it lists `implementer` in its own `seats`. Every field around it is annotated in [Flow YAML](/docs/reference/flow-yml); the shape itself is `flowSeatSchema` in `src/flows/schemas/flow-schema.ts`.
 
-### From the CLI
+### In the terminal shell
+
+`vibe` on its own opens the interactive shell. Press `3` for **Crew**: the roster lists each configured role, and the detail pane carries its `seats` line alongside its provider, permissions and skills. It reads rather than writes, so seat changes go through the dashboard or `project.yml`.
+
+### Automation: the CLI
 
 ```bash
 # a flow's seats, its ordered steps, and whether your crew covers them
@@ -126,7 +125,5 @@ vibe flows show default
 # your crew's roles, their profiles, and the seats they fill
 vibe crew show
 ```
-
-The seat shape lives in `src/flows/schemas/flow-schema.ts` as `flowSeatSchema`.
 
 Next: [[crew]] is who fills these chairs.

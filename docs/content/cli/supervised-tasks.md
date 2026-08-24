@@ -6,7 +6,7 @@ slug: cli/supervised-tasks
 
 ## In simple words
 
-`vibe tasks` manages this project's tasks. A **supervised** task is one you break into ordered steps first, so each step is reviewed on its own instead of arriving as one large diff.
+A **supervised** task is one you break into ordered steps first, so each is reviewed on its own instead of arriving as one large diff. The **Board** page authors and sequences them; `vibe tasks` is the automation path.
 
 ```bash
 vibe tasks add --supervised "Add team billing"
@@ -16,7 +16,7 @@ vibe tasks run <task-id>
 
 <div class="docs-callout tip">
 
-**Tip.** Reach for this when a single diff would be too big to review honestly. The point is not more automation - it is smaller units of work a human can actually check one at a time.
+**Tip.** Reach for this when a single diff would be too big to review honestly. The point is not more automation, it is smaller units of work a human can check one at a time.
 
 </div>
 
@@ -40,10 +40,9 @@ Each step is a natural place to walk away.
 
 <div class="docs-callout">
 
-**Did you know?** Between steps the supervisor returns proceed, re-plan or stop. That middle verdict is what lets a supervised task survive a step turning out differently than planned, rather than marching the rest of the sequence into a stale assumption.
+**Did you know?** Between steps the supervisor returns proceed, enhance or escalate. That middle verdict lets a supervised task survive a step turning out differently than planned, rather than marching the rest of the sequence into a stale assumption.
 
 </div>
-
 
 ## Going deeper
 
@@ -86,20 +85,15 @@ One plan up front, then a small loop per step, then one review over the whole br
   </g>
 </svg>
 
-Then the next step, and one holistic review over the whole branch at the end.
-
-This is the built-in `saga` flow, which is what `vibe flows list` calls "Saga". You do
-not pass `--flow` for a supervised task; the Conductor selects it.
+This is the built-in `saga` flow, which `vibe flows list` calls "Saga". You do not pass `--flow` for a supervised task; the Conductor selects it.
 
 ### Author the steps
 
-A supervised task starts empty. Create it, then add steps one at a time.
+A supervised task starts empty: create it, then add steps one at a time.
 
 ```bash
 vibe tasks add --supervised "Settings v2"
 ```
-
-The output gives you the id every later command needs:
 
 ```text
 ✓ Task added.
@@ -107,11 +101,9 @@ The output gives you the id every later command needs:
   title: Settings v2
 ```
 
-Ids are `task-` plus a slug of the title plus four random characters, so they are stable
-and readable but not guessable. Commands take the whole id, not a prefix.
+Ids are `task-` plus a slug of the title plus four random characters: stable and readable, but not guessable. Commands take the whole id, not a prefix.
 
-Then add each step. The text can be unquoted; everything after the task id is joined
-into the step's display text.
+Then add each step; everything after the task id joins into its display text.
 
 ```bash
 vibe tasks checklist add task-settings-v2-7c1e \
@@ -123,12 +115,7 @@ errors in src/models/" \
   --files "src/models/settings.ts"
 ```
 
-```text
-✓ Added checklist item ci-update-the-model-9b2d.
-  Update the model
-```
-
-`vibe tasks checklist add` takes exactly three options:
+Those three options are all it takes:
 
 ```text
 --objective <text>    the executor's scoped brief
@@ -139,11 +126,11 @@ errors in src/models/" \
                       at the step
 ```
 
+*In the dashboard:* the **Board** page carries supervised tasks as container cards, and the task detail view is where those three fields are authored - the only place they can be revised after the fact. Steps reorder by dragging.
+
 ### What a good step looks like
 
-The objective is the whole brief a fresh model gets for that step, so name the file, the
-type, and the constraint. The acceptance check is what makes a step verifiable rather
-than an opinion.
+The objective is the whole brief a fresh model gets for that step, so name the file, the type and the constraint. The acceptance check makes a step verifiable rather than an opinion.
 
 ```text
 weak
@@ -158,23 +145,11 @@ strong
                 errors in src/models/"
 ```
 
-A step gets a fresh model context, grounded by a curated packet:
-
-- the feature goal,
-- the invariants ledger,
-- compact outcomes of the prior steps,
-- the accumulated diff so far,
-- the current bytes of that step's file hints, re-read from the worktree.
-
-Every section is secret-redacted before it reaches a provider.
+Each step gets a fresh model context, grounded by a curated packet: the feature goal, the invariants ledger, compact outcomes of the prior steps, the accumulated diff, and the current bytes of that step's file hints, re-read from the worktree. Every section is secret-redacted before reaching a provider.
 
 ### Editing and reordering
 
-`vibe tasks checklist edit` changes only a step's display text. The objective,
-acceptance check and file hints it already has are left untouched.
-
-The CLI has no flag for revising those three fields. Edit them in the step detail view
-in Mission Control, or remove the step and add it again.
+`vibe tasks checklist edit` changes only a step's display text; the objective, acceptance check and file hints are left untouched. The CLI has no flag for revising those three: edit them in the task detail view, or remove the step and add it again.
 
 ```bash
 vibe tasks checklist edit <taskId> <itemId> \
@@ -191,12 +166,9 @@ vibe tasks checklist move <taskId> <itemId> \
 vibe tasks run task-settings-v2-7c1e
 ```
 
-`vibe tasks run` runs any task: a supervised one sequences its steps, a plain one runs the
-default flow once. `vibe tasks sequence` is the supervised path on its own, and it is the
-entry the scheduler and the dashboard use. Only `sequence` accepts `--json`.
+`vibe tasks run` runs any task: a supervised one sequences its steps, a plain one runs the default flow once. `vibe tasks sequence` is the supervised path on its own, the entry the scheduler and the dashboard use. Only `sequence` accepts `--json`.
 
-Re-running resumes. Steps already marked done are filtered out before the run starts, so
-a halted task picks up from the clean tip rather than redoing finished work.
+Re-running resumes: steps already marked done are filtered out before the run starts, so a halted task picks up from the clean tip rather than redoing finished work.
 
 ```bash
 vibe tasks sequence task-settings-v2-7c1e --json
@@ -215,9 +187,9 @@ vibe tasks sequence task-settings-v2-7c1e --json
 }
 ```
 
-**A halt exits 0.** Stopping with a recorded reason is a real outcome, not a tool
-failure, so only a run that threw exits non-zero. In a script, branch on
-`supervisedState`, never on the exit code alone.
+**A halt exits 0.** Stopping with a recorded reason is a real outcome, not a tool failure, so only a run that threw exits non-zero. In a script, branch on `supervisedState`, not the exit code alone.
+
+*In the dashboard:* the task detail's **Conductor** panel drives the same thing. Its primary button reads **Sequence**, or **Re-sequence** when the task is halted, and becomes **Pause** / **Resume** while a run is live. **Sequence** queues the task rather than starting it inline: the scheduler picks it up and spawns the same command the CLI runs, so the dashboard never shells out over HTTP. The difference is timing - the CLI blocks your terminal, the dashboard returns straight away.
 
 ### When it stops
 
@@ -228,12 +200,9 @@ failure, so only a run that threw exits non-zero. In a script, branch on
 <div class="docs-outcome warn"><b>enhance wants to add a step, or drop one you wrote</b><span>Everything committed so far is kept.</span></div>
 </div>
 
-The failed-review case is the only one that throws work away, and it throws away exactly
-one step's worth, so the branch always ends at a step boundary you can read.
+The failed-review case is the only one that throws work away, and only one step's worth, so the branch always ends at a step boundary you can read.
 
-`maxSpendUsd` is checked **between** steps, not mid-step, so the step that crosses the
-line still finishes and still costs what it costs. For an unattended supervised task, set
-the project daily spend cap as the mid-step backstop.
+`maxSpendUsd` is checked **between** steps, not mid-step, so the step that crosses the line still finishes and still costs what it costs. For an unattended task, the project daily spend cap is the mid-step backstop.
 
 ### Watch it
 
@@ -256,12 +225,9 @@ vibe tasks status task-settings-v2-7c1e
     src/models/settings.ts
 ```
 
-The lifecycle is `idle`, `sequencing`, `paused`, `halted`, or `done`. `--json` emits the
-whole object, which is the same shape the dashboard's Conductor view reads.
+The lifecycle is `idle`, `sequencing`, `paused`, `halted` or `done`. `--json` emits the whole object, the same shape the Conductor panel reads.
 
-Invariants are cross-cutting decisions the supervisor recorded. They are re-injected into
-every later step's packet, which is what stops conventions from drifting as the outcome
-summaries fold.
+Invariants are cross-cutting decisions the supervisor recorded, re-injected into every later step's packet, which stops conventions drifting as the outcome summaries fold.
 
 ### Pause and resume
 
@@ -270,9 +236,7 @@ vibe tasks pause  <taskId>   # at the next boundary
 vibe tasks resume <taskId>   # clear the pause
 ```
 
-Both act on the live run holding the task's run lock, so there is nothing to pause when
-no run is sequencing. A `halted` task has no live run either: `resume` tells you so and
-points at `vibe tasks sequence` to re-attempt from the clean tip.
+Both act on the live run holding the task's run lock, so there is nothing to pause when no run is sequencing. A `halted` task has no live run either: `resume` says so and points at `vibe tasks sequence` to re-attempt from the clean tip.
 
 ### Budget and the supervisor
 
@@ -293,17 +257,11 @@ supervised.supervisor.roleId
 
 (Wrapped here to fit; the CLI prints each key and its type on one line.)
 
-So out of the box a supervised task is capped at 20 steps with no spend ceiling, and the
-between-steps supervisor is on, running on the crew's `reviewer` role.
+Out of the box a supervised task is capped at 20 steps with no spend ceiling, and the between-steps supervisor is on, running on the crew's `reviewer` role.
 
-The supervisor is deliberately cheap and deliberately advisory. A turn that fails or
-comes back unparseable folds to `proceed`, because the per-item review is what fails
-closed on correctness. The one thing the supervisor can do on its own is halt.
+The supervisor is deliberately cheap and advisory. A turn that fails or comes back unparseable folds to `proceed`, because the per-item review is what fails closed on correctness. The one thing the supervisor can do on its own is halt.
 
-Its `enhance` verdict re-grounds the steps that have not run yet against the code as it
-now stands: it may refine, reorder, or remove them. It may **not** add a step or drop a
-step you wrote. Either of those halts the run for you instead, with the committed work
-kept.
+Its `enhance` verdict re-grounds the steps that have not run yet against the code as it now stands, refining, reordering or removing them. It may **not** add a step or drop one you wrote: either halts the run for you instead, with the committed work kept.
 
 ### The rest of the checklist commands
 
@@ -326,45 +284,13 @@ promote  <taskId> <itemId>
              split it into its own task
 ```
 
-`vibe tasks list` and `vibe tasks show` cover the tasks themselves and both accept
-`--json`. `show` takes a task id and prints each step in order with its status,
-objective, acceptance check and file hints.
+`vibe tasks list` and `vibe tasks show` cover the tasks themselves and both accept `--json`; `show` prints each step in order with its status, objective, acceptance check and file hints. `run`, `pause`, `resume` and every `checklist` command except `checklist list` print human-readable output only.
 
-Not every command takes `--json`. `run`, `pause`, `resume`, and every `checklist`
-command except `checklist list` print human-readable output only.
-
-### A note on `vibe tasks enhance`
-
-`vibe tasks enhance` is a different feature that happens to share a word. It takes a task
-id and runs a read-only assist that proposes a checklist for it, with `--apply` to append
-the proposed items. It has nothing to do with the supervisor's `enhance` verdict during a
-run.
-
-### Dashboard parity
-
-Supervised tasks appear as container cards on the **Board** page. The task detail view is
-where you author step objectives, acceptance checks and file hints - the same three
-fields `vibe tasks checklist add` writes, and the only place any of them can be revised
-after the fact.
-
-You can reorder steps there too, by dragging them.
-
-The detail view also carries the live **Conductor** panel, which mirrors `vibe tasks
-status`: step progress, the invariants ledger, and the controls. The primary button reads
-**Sequence**, or **Re-sequence** when the task is halted, and becomes **Pause** /
-**Resume** while a run is live.
-
-**Sequence** queues the task rather than starting it inline. The scheduler picks it up and
-spawns the same command the CLI runs, so the dashboard never shells out over HTTP.
-
-The practical difference is timing: the CLI starts the run in your terminal and blocks,
-while the dashboard hands it to the scheduler and returns straight away.
+`vibe tasks enhance` is a different feature sharing a word: a read-only assist that proposes a checklist for a task, with `--apply` to append the proposed items. It has nothing to do with the supervisor's `enhance` verdict during a run.
 
 ### What is coming next
 
-The Conductor is complete, including the autonomous enhance re-ground pass. Still to come
-is a *manual* enhance trigger - running the re-ground on demand between runs, with a
-dry-run diff to review first.
+The Conductor is complete, including the autonomous enhance re-ground pass. Still to come is a *manual* enhance trigger: the re-ground on demand between runs, with a dry-run diff to review first.
 
 ### Related
 

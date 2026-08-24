@@ -6,7 +6,7 @@ slug: cli/supervisor
 
 ## In simple words
 
-`vibe supervisor stop` is the kill switch.
+`vibe supervisor stop` is the kill switch. Supervisor Control in the dashboard has the same switch; this is the automation path, and the one that works with no browser tab open.
 
 ```bash
 vibe supervisor stop      # it may still answer; it may not act
@@ -18,25 +18,22 @@ It stops the supervisor **acting**: it will still answer you, but it cannot crea
 
 <div class="docs-callout tip">
 
-**Tip.** It writes a flag to disk rather than editing your config, so it takes effect at once, survives a restart, and works from a terminal. The moment you most want a stop button is not reliably a moment you have a browser tab open.
+**Tip.** It writes a flag to disk rather than editing your config, so it takes effect at once and survives a restart.
 
 </div>
 
-## Stop, versus the permission switch
+## Three different stops
 
 <div class="docs-cards">
 
-**`vibe supervisor stop`**
-A flag on disk. Immediate, survives restarts, reachable from a terminal.
+**The pause flag**
+`vibe supervisor stop`, and the **Answers only** switch in Supervisor Control. One flag, two surfaces.
 
-**The Answers only switch**
-A per-conversation permission in the dashboard.
+**The autonomy setting**
+`supervisorControl.autonomy` in your config. Independent of the flag.
 
 **The red square**
-Interrupts the turn running right now.
-
-**None of them are the same control**
-Which is why all three exist.
+On the composer. Interrupts the turn running right now, and nothing else.
 
 </div>
 
@@ -45,7 +42,6 @@ Which is why all three exist.
 **Did you know?** One word covers two things here. `vibe supervisor list`, `archetypes`, `adopt`, `default` and `remove` manage the *persona* - how strict reviews are. `stop`, `resume` and `status` belong to the *conversation*. Same command, two subjects.
 
 </div>
-
 
 ## Going deeper
 
@@ -80,7 +76,7 @@ vibe supervisor stop --reason "reviewing the diff"
 vibe supervisor resume
 ```
 
-`--reason` is optional and free text. It is what the supervisor says back when you ask a stopped one to do something, and `status` prints it. Resuming clears it.
+`--reason` is optional free text: what the supervisor says back when you ask a stopped one to do something, and what `status` prints. Resuming clears it.
 
 ```text
 ! Supervisor stopped. It will answer, but it
@@ -89,7 +85,9 @@ vibe supervisor resume
   your autonomy setting.
 ```
 
-The CLI prints each of those whole. They are wrapped here to fit the page.
+The CLI prints each of those whole; they are wrapped here to fit.
+
+*In the dashboard:* the **Answers only** / **Answers and acts** switch in Supervisor Control's header sets the same flag, and carries the same sentence.
 
 ### Whether it may act right now
 
@@ -114,7 +112,7 @@ The `--json` form prints the flag as it is stored:
 }
 ```
 
-"Within your autonomy setting" is doing real work in that sentence. Two independent controls have to agree before the supervisor acts: this flag, and `supervisorControl.autonomy` in your config. `status` reports the flag. A cleared flag with autonomy left on `advise` still means it answers and nothing more. See [Supervisor Control](/docs/concepts/supervisor-control).
+"Within your autonomy setting" is doing real work there. Two independent controls have to agree before the supervisor acts: this flag, and `supervisorControl.autonomy` in your config. `status` reports the flag alone, so a cleared flag with autonomy left on `advise` still means it answers and nothing more. See [Supervisor Control](/docs/concepts/supervisor-control).
 
 <svg viewBox="0 0 560 112" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The supervisor acts only when both controls agree: the pause flag says running, and autonomy in your config is set to act. Then it may create a task, add TODOs, or start a run.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -141,7 +139,7 @@ The `--json` form prints the flag as it is stored:
 
 <div class="docs-callout warn">
 
-**The neighbouring commands are about a run, not the supervisor.** `vibe pause`, `vibe resume` and `vibe abort` are top-level and each takes a run id. Stopping the supervisor takes none, because it is about every future action rather than one run.
+**The neighbouring commands are about a run, not the supervisor.** `vibe pause`, `vibe resume` and `vibe abort` are top-level and each takes a run id. Stopping the supervisor takes none: it is about every future action, not one run.
 
 </div>
 
@@ -167,9 +165,9 @@ Supervisor personas
         risky tasks
 ```
 
-Each description prints in full on one line; they are shortened and wrapped above to fit this page.
+Each description prints in full on one line; they are shortened and wrapped above to fit.
 
-`archetypes` lists the curated catalog you can adopt, each marked when it is already in your config. Adopting one copies its definition into `project.yml` under `personas`, then you point the default at it:
+`archetypes` lists the curated catalog, each marked when it is already in your config. Adopting one copies its definition into `project.yml` under `personas`; then point the default at it:
 
 ```bash
 vibe supervisor archetypes
@@ -187,12 +185,14 @@ data-migration-guardian   ship-fast-pragmatist
 
 Only the id travels: the definition is Vibestrate's own, so an id it does not know is refused rather than invented.
 
-`remove` deletes a persona from your config. It refuses three things, each with the reason: a built-in (it lives in code, so there is nothing to remove), the persona that is the current default (re-point the default first), and an id that is not in your config.
+`remove` deletes a persona from your config. It refuses three, each with the reason: a built-in (it lives in code, nothing to remove), the current default (re-point it first), and an id that is not in your config.
 
-Every write goes through the same service the dashboard uses, and the whole config is re-validated before it lands. A change that would leave your config invalid is refused, not written.
+Every write goes through the same service the dashboard uses, and the whole config is re-validated before it lands: a change that would leave it invalid is refused, not written.
 
 Outside a project, the write commands say so rather than guessing at a root:
 
 ```text
 No Vibestrate project here. Run `vibe init` first.
 ```
+
+*In the dashboard:* the **Supervisors** page under **More** is the same catalog - what each persona aims the reviewers at, the flow it favours for risky work, the safety posture it suggests, and the project default. `vibe run "task" --supervisor <id>` pins one for a single run.

@@ -6,49 +6,31 @@ slug: concepts/supervisor
 
 ## In simple words
 
-A **supervisor** decides how hard to look at the work before calling it done. It does none of the work itself. It sets the level of scrutiny, then writes down every call it makes.
+A **supervisor** decides how hard to look at the work before calling it done. It sets the level of scrutiny, then writes down every call it makes. A building inspector, not the crew.
 
-Think of a building inspector. They do not pour the concrete or hang the drywall. They decide how closely to look, send the risky parts back for a second opinion, and record every call so the sign-off means something.
-
-You meet it at the top of a [[run]]:
-
-![The Supervisor panel of a run. It names staff-engineer, tags the review single-profile, and shows 3 decisions. Three judgment rows read verify PASSED, review APPROVED, and review aimed through 3 lenses - correctness, tests and security-risk.](/media/docs/scoped/supervisor.png)
-
-Named, tagged, counted, and every judgment written down with a timestamp.
+`vibe ui` opens the dashboard on `127.0.0.1:4317`. **Supervisors**, under **More** in the sidebar, is the catalog: every supervisor available, which one is the default, and **Set default** on each card. The **New run** page carries a **Supervisor** picker that overrides the default for one run.
 
 <div class="docs-callout tip">
 
-**Tip.** `single-profile` on that panel is the supervisor telling on itself. It means one model both wrote and judged, which is a self-check. Point the reviewer role at a second [[provider]] and the tag becomes `cross-model`. The label can lower your confidence in a result; it never inflates it.
+**Tip.** `single-profile` on the run's Supervisor panel is the supervisor telling on itself: one model both wrote and judged, so the review is a self-check. Point the reviewer role at a second [[provider]] and the tag becomes `cross-model`. The label can lower your confidence in a result; it never inflates it.
 
 </div>
 
-## When you would change it
+You meet the result at the top of a [[run]]:
 
-<div class="docs-cards">
+![The Supervisor panel of a run. It names staff-engineer, tags the review single-profile, and shows 3 decisions. Three judgment rows read verify PASSED, review APPROVED, and review aimed through 3 lenses - correctness, tests and security-risk.](/media/docs/scoped/supervisor.png)
 
-**The work touches auth or payments**
-The `security` supervisor aims reviewers at authorization, secrets and injection instead of general correctness.
-
-**You want a second opinion by default**
-A supervisor can upgrade a risky task to a multi-reviewer flow automatically, on words it recognises.
-
-**A project has its own risk words**
-Risk signals are a list. Add the terms that mean "be careful" in your codebase.
-
-**You want the reasoning, not just the verdict**
-**Flow & why** opens the choice: which flow it resolved, where the choice came from, and the words that triggered any upgrade.
-
-</div>
+The decision count opens the feed. Where the flow was chosen rather than pinned, a **why** link expands **Flow & why**: the flow it resolved, where the choice came from, its confidence, and the words that triggered any upgrade.
 
 <div class="docs-callout">
 
-**Did you know?** A supervisor is advisory, and only ever adds scrutiny. It can upgrade a run to a heavier flow, never downgrade one; it can suggest a stricter execution posture, never relax it. That asymmetry is deliberate: a setting that could quietly reduce checking would make every verdict weaker.
+**Did you know?** A supervisor is advisory, and only ever adds scrutiny. It can upgrade a run to a heavier flow, never downgrade one; it can suggest a stricter execution posture, never relax it. A setting that could quietly reduce checking would make every verdict weaker.
 
 </div>
 
 <div class="docs-callout warn">
 
-**One word, two things.** *This page is the setting* - `project.yml` calls it a `persona`, you pick one per run, and it shapes how work is reviewed. The **Supervisor** chat on Mission Control is a *conversation* with your project, covered by [supervisor control](/docs/concepts/supervisor-control). They share a name and a command: under `vibe supervisor`, `list`, `archetypes`, `adopt`, `default` and `remove` manage the setting here, while `stop`, `resume` and `status` belong to the conversation.
+**One word, two things.** *This page is the setting*, which `project.yml` calls a `persona`. The **Supervisor** chat on Mission Control is a *conversation*, covered by [supervisor control](/docs/concepts/supervisor-control). Under `vibe supervisor`, `list`, `archetypes`, `adopt`, `default` and `remove` manage the setting; `stop`, `resume` and `status` belong to the conversation.
 
 </div>
 
@@ -58,15 +40,13 @@ Risk signals are a list. Add the terms that mean "be careful" in your codebase.
 
 <div class="docs-cards">
 
-**More care for risky work.** Each supervisor carries a list of risk signals. The default `staff-engineer` watches for logins, payments, credentials, database migrations, permissions and concurrency. On a match the run is upgraded to a heavier [Flow](/docs/concepts/flow) - a multi-reviewer panel - and the words that triggered it are recorded. An upgrade only ever adds care.
+**More care for risky work.** Each supervisor carries a list of risk signals. The default `staff-engineer` watches for logins, payments, credentials, database migrations, permissions and concurrency. On a match the run is upgraded to a heavier [Flow](/docs/concepts/flow), a multi-reviewer panel, and the words that triggered it are recorded.
 
-**The reviewers' aim.** A supervisor's **lenses** aim the reviewers. `staff-engineer` points them at correctness, tests and security risk. The built-in `security` points them at authorization, secrets and injection. The same diff gets a different review, and which lenses ran is recorded.
+**The reviewers' aim.** A supervisor's **lenses** aim the reviewers. `staff-engineer` points them at correctness, tests and security risk; the built-in `security` at authorization, secrets and injection. Which lenses ran is recorded.
 
-**An honest label on the sign-off.** If two or more distinct models ran, the review is marked `cross-model`. Otherwise it is `single-profile` - a self-check, which can lower your confidence in the result but never raise it.
+**A heavier posture, suggested.** For a risk-tagged task a supervisor can ask for a heavier way of executing. `security` asks for `sandbox-suggested`, which by default is a suggestion you see rather than a gate.
 
-**A heavier posture, suggested.** For a risk-tagged task a supervisor can ask for a heavier way of executing. `security` asks for `sandbox-suggested`. By default that is a suggestion you see, never a gate and never a downgrade.
-
-**A lens on planning.** When a run goes through [Spec-up](/docs/concepts/spec-up), a supervisor can aim the agents that scope, spec and architect the work - `security` brings authorization, secrets and attack surface into that planning. The default stays neutral, so plain spec-up runs are unchanged.
+**A lens on planning.** A supervisor can also aim the agents that scope, spec and architect the work in [Spec-up](/docs/concepts/spec-up). The default stays neutral.
 
 </div>
 
@@ -102,17 +82,15 @@ The lens vocabulary is closed. These ten, and nothing else:
 
 <div class="docs-chips"><span>correctness</span><span>tests</span><span>security-risk</span><span>authz</span><span>secrets</span><span>injection</span><span>ux-ia</span><span>accessibility</span><span>visual-consistency</span><span>performance</span></div>
 
-Naming a lens is the only way a supervisor changes what a reviewer is asked to look at, so a project cannot slip free-form instructions into a review through its supervisor.
+Naming a lens is the only way a supervisor changes what a reviewer looks at, so a project cannot slip free-form instructions into a review. A lens outside the vocabulary contributes nothing.
 
-<div class="docs-callout">
+A suggested posture becomes a rule only if you say so. `posture.autoApplySandbox` makes a `sandbox-suggested` run sandboxed; `posture.autoApplyApproval` makes each change wait for your approval. Both default off, and the **Supervisor posture** group on the Policies page carries both as switches.
 
-**Turning a suggestion into a rule.** `posture.autoApplySandbox` makes a `sandbox-suggested` run sandboxed. `posture.autoApplyApproval` makes each change wait for your approval. Both default off, and the Policies page carries both as switches. An explicit `--permission-mode` wins over either, the approval gate is suppressed for unattended runs, and a provider with no host sandbox degrades per-seat instead of pretending. The default supervisor stays posture-neutral.
+The two switches are not guarded alike. The approval gate steps aside twice: an explicit `--permission-mode` wins over it, and it is suppressed for unattended runs, where a prompt would only stall. The sandbox has neither escape - `autoApplySandbox` raises isolation on a `sandbox-suggested` run regardless of `--permission-mode`, because it only ever raises safety and there is nothing to stall. What it does not do is pretend: only a provider CLI that enforces a real OS sandbox gets one, and a seat on a provider without one degrades and is reported as unsandboxed rather than counted as protected. The default supervisor stays posture-neutral, so a plain `vibe run` meets none of this.
 
-</div>
+### Judgment, enforced, or structural
 
-### Judgment, or a gate
-
-The decision count in the Supervisor panel opens the feed: every call the supervisor made, newest first. Each entry carries one of three labels, and the difference between them is the point.
+Every entry in the decision feed carries one of three labels.
 
 <div class="docs-cards">
 
@@ -124,19 +102,15 @@ The decision count in the Supervisor panel opens the feed: every call the superv
 
 </div>
 
-A model's verdict shown as if it were a hard guarantee is the failure this labelling exists to prevent. Anything waiting on your approval sits in the same panel.
+### Picking one, and picking who reviews
 
-### Picking one
-
-Two supervisors ship built in and need no setup: `staff-engineer`, the default, and `security`. Six more are presets. A preset has to be copied into your config before you can pick it.
+Two supervisors ship built in and need no setup: `staff-engineer`, the default, and `security`. Six more are **archetypes**, which have to be copied into your config first.
 
 <div class="docs-chips"><span>security-hawk</span><span>performance-skeptic</span><span>correctness-purist</span><span>frontend-reviewer</span><span>data-migration-guardian</span><span>ship-fast-pragmatist</span></div>
 
-**Supervisors** in the sidebar lists what you can pick. Set the project default there, adopt a preset, remove a project supervisor, or author a new one with its own risk signals, preferred flows and posture. The composer's **Supervisor** picker overrides the default for one run.
+**Add supervisor**, on the Supervisors page, opens two tabs. **From an archetype** lists the six with an **Adopt** button each. **Write your own** takes an id, label, description, risk signals, preferred flows and a suggested posture, validated against the persona schema before it lands in `project.yml`. Nothing is enforced until you set it as the default or pick it on a run.
 
-### Picking who reviews
-
-Point `reviewerProfile` at a [Profile](/docs/concepts/profile) and every review seat runs it. A cheap model for routine reviews, or a different vendor when you want an independent second read - which is also one way `single-profile` becomes `cross-model`. This one is a config field; the Supervisors page leaves it unset.
+Point `reviewerProfile` at a [Profile](/docs/concepts/profile) and every review seat runs it: a cheap model for routine reviews, or a different vendor for an independent second read. It is a config field only; the Supervisors page shows it on a card but never sets it.
 
 ```yaml
 personas:
@@ -149,26 +123,19 @@ profiles:
     model: haiku
 ```
 
-Give it a new id, as above. A `personas:` entry **replaces** a built-in of the
-same name, so writing `staff-engineer:` here to change one field drops that
-persona's risk signals, preferred flow and lenses back to empty. The config
-still validates and the upgrade on risky work stops, with no error. A new
-persona starts empty for the same reason: fill in `riskSignals`, `prefersFlows`
-and `reviewLenses` if you want them.
-
-Anything you choose by hand wins. A per-step profile override, or a run-wide `--profile`, beats `reviewerProfile`.
+Give it a new id, as above. A `personas:` entry **replaces** a built-in of the same name, so writing `staff-engineer:` here to change one field empties that persona's risk signals, preferred flow and lenses, with no error. A new persona starts empty for the same reason. A per-step profile override, or a run-wide `--profile`, beats `reviewerProfile`.
 
 ### Project rules are not the supervisor's
 
-A rule like "use a hyphen, not an em-dash" belongs to the project, so it holds whichever supervisor reviews the work. The active supervisor is the enforcer, not the owner: it carries the `advise` rules into the reviewer's turn, and the project's `block` rules cap the merge regardless of which supervisor is active. [Policies](/docs/concepts/policies) has the tiers and how rules get captured. Older configs scoped these to a supervisor under a `preferences` key; `vibe policies migrate` lifts them across once.
+A rule like "use a hyphen, not an em-dash" belongs to the project. The active supervisor is the enforcer, not the owner: it carries `advise` rules into the reviewer's turn, and the project's `block` rules cap the merge whichever supervisor is on duty. [Policies](/docs/concepts/policies) has the tiers. Older configs scoped these under a persona's `preferences` key; `vibe policies migrate` lifts them across once.
 
-### Advanced: CLI and automation
+### Automation
 
-Every screen above has a command behind it, and a scripted run needs one.
+The interactive shell (`vibe`, or `vibe shell`) has no supervisor screen, and its **Config** page does not carry one either - that view has fourteen sections and personas are not among them. Picking and authoring happen in the dashboard or on the CLI, and these are what a script or a repo template reaches for.
 
 ```bash
 vibe supervisor list          # what you can pick
-vibe supervisor archetypes    # the six presets
+vibe supervisor archetypes    # the six adoptable ones
 vibe supervisor adopt security-hawk    # copy it in
 vibe supervisor default security-hawk  # then use it
 vibe run "harden the login" --supervisor security
@@ -176,9 +143,6 @@ vibe run "harden the login" --supervisor security
 
 [The CLI overview](/docs/cli/overview) has the shape of the tool; [the command reference](/docs/reference/cli) has every flag.
 
-### Going deeper
+Also worth reading: [Flow](/docs/concepts/flow) is what an upgrade changes.
 
-- [Flow](/docs/concepts/flow) - what an upgrade changes.
-- [Profile](/docs/concepts/profile) - what `reviewerProfile` points at.
-- [Supervisor Control](/docs/concepts/supervisor-control) - the conversation that shares the name.
-- [Policies](/docs/concepts/policies) - the rules the supervisor carries into a review.
+Next: [[policies]] is the rule surface a supervisor enforces on every run.

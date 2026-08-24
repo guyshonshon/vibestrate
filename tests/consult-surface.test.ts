@@ -32,7 +32,6 @@ const noProvider: ProviderDetectionRunner = async () => ({ exitCode: 127, stdout
 
 /** A `vibe <subcommand>` invocation - the shape the owner objected to seeing in
  *  a browser. Written once so every assertion below means the same thing. */
-const VIBE_COMMAND = /\bvibe\s+[a-z][a-z-]*/g;
 
 const OK_ANSWER = JSON.stringify({
   answer: "x",
@@ -74,10 +73,27 @@ describe("the surface changes what reaches the model", () => {
     return sink.prompt;
   };
 
-  it("a dashboard how-do-I question reaches the model with no `vibe` command in it", async () => {
+  // What the surface actually governs is what the answer TELLS THE READER TO
+  // DO: the command reference entries and the command EXAMPLE blocks. A command
+  // named mid-sentence is information about the product, and stripping it would
+  // turn "`vibe ui` opens the dashboard" into " opens the dashboard".
+  // stripCommandExamples says exactly that, and warns that a test asserting the
+  // string never appears is asserting something this code does not do "on
+  // whichever question happened to be picked". That came true: the UI-first
+  // docs rewrite put `vibe ui` in the opening sentence of most pages, and this
+  // test failed on a corpus change rather than on a behaviour change.
+  it("gives the dashboard no command example to copy", async () => {
     const prompt = await promptFor("dashboard", "How can I make a new flow?");
-    const found = prompt.match(VIBE_COMMAND) ?? [];
-    expect(found, `the dashboard prompt recommended: ${found.join(", ")}`).toEqual([]);
+    const fenced = [...prompt.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map((m) => m[1] ?? "");
+    const commandBlocks = fenced.filter((body) =>
+      body.split("\n").some((l) => /^\s*(\$\s*)?vibe\s+[a-z]/.test(l)),
+    );
+    expect(commandBlocks, "a runnable command block reached the dashboard prompt").toEqual([]);
+  });
+
+  it("tells the dashboard reader not to reach for a command", async () => {
+    const prompt = await promptFor("dashboard", "How can I make a new flow?");
+    expect(prompt).toContain("Do NOT recommend a terminal command");
   });
 
   it("the same dashboard question is given the flow editor screen to point at", async () => {
@@ -274,8 +290,15 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
 
     const seen = await fs.readFile(promptPath, "utf8");
     expect(seen).toContain("[screen: flow-editor]");
-    const found = seen.match(VIBE_COMMAND) ?? [];
-    expect(found, `the dashboard route recommended: ${found.join(", ")}`).toEqual([]);
+    // Same distinction as the unit test above: no copyable command BLOCK, and
+    // the instruction that governs the answer. Mid-sentence mentions survive by
+    // design, and every UI-first page now opens with one.
+    const fenced = [...seen.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map((m) => m[1] ?? "");
+    const commandBlocks = fenced.filter((body) =>
+      body.split("\n").some((l) => /^\s*(\$\s*)?vibe\s+[a-z]/.test(l)),
+    );
+    expect(commandBlocks, "a runnable command block reached the dashboard route").toEqual([]);
+    expect(seen).toContain("Do NOT recommend a terminal command");
   }, 60_000);
 
   it("refuses a client that tries to declare its own surface", async () => {

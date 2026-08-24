@@ -116,10 +116,16 @@ export async function registerSetupRoutes(
 
   // The repair pass behind `vibe doctor --fix`, so the dashboard is not a
   // read-only window onto a problem it has to send you to a terminal to solve.
-  // Write-side and deliberately narrow: applyDoctorFixes only ever creates
-  // missing `.vibestrate/` subdirectories and restores bundled defaults, all
-  // under the server's own project root - it never edits your source, and it
-  // takes no input from the request, so there is nothing here to aim elsewhere.
+  //
+  // Write-side. It takes no input from the request, so there is nothing here to
+  // aim, and everything it touches is under the server's own project root. What
+  // it writes is wider than "missing directories" though, and worth stating
+  // rather than glossing: besides creating absent `.vibestrate/` subdirectories
+  // and restoring bundled role files, it makes two `project.yml` writes -
+  // adopting a detected provider and filling in validation commands - each only
+  // when that part of the config is EMPTY. An existing provider set is never
+  // replaced and existing validate commands are never overwritten. It does not
+  // touch your source tree. See the header of setup/doctor-service.ts.
   // Returns a freshly-run report so the caller renders the state after the
   // repair rather than the state it remembered from before it.
   app.post("/api/setup/doctor/fix", async () => {

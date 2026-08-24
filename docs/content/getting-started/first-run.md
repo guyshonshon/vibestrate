@@ -1,22 +1,22 @@
 ---
 title: Your first run
-description: How one run works, from the sentence you type to the branch it leaves behind.
+description: How one run works, from the sentence you type into New run to the branch it leaves behind.
 slug: getting-started/first-run
 ---
 
 ## In simple words
 
-You hand Vibestrate one task and it takes that task start to finish. It works in a second checkout of your repository, in a folder beside your project, so the files you have open never move under you.
+**New run**, at the bottom of the sidebar, starts a run. One field takes the task, everything else has a default, and **Start run** begins.
 
-The run stops with the change on its own branch. Vibestrate never merges and never pushes, so the last call is yours.
-
-![The header of a finished run reading merge ready, with the task, the flow it followed, its eight steps, the elapsed time and the diff.](/media/docs/scoped/run-header.png)
+Vibestrate works in a second checkout of your repository, beside your project, so the files you have open never move under you. The run stops with the change on its own branch; nothing merges and nothing pushes, so the last call is yours.
 
 <div class="docs-callout tip">
 
-**Tip.** Pick something small for the first one. You are learning what the run looks like, not testing how much it can do, and a small task gets you to a verdict in a couple of minutes.
+**Tip.** Pick something small for the first one. You are learning what a run looks like, not testing how much it can do, and a small task reaches a verdict in minutes.
 
 </div>
+
+![The header of a finished run reading merge ready, with the task, the flow it followed, its eight steps, the elapsed time and the diff.](/media/docs/scoped/run-header.png)
 
 ## Where a run can end
 
@@ -38,47 +38,33 @@ You stopped it.
 
 <div class="docs-callout">
 
-**Did you know?** A run you dislike costs you nothing to discard. It never touched your branch, so there is no revert - you just ignore the folder. That is what makes it safe to try something you are unsure about.
+**Did you know?** A run you dislike costs nothing to discard. It never touched your branch, so there is no revert - you ignore the folder. That is what makes it safe to try something you are unsure of.
 
 </div>
 
 ## Pick a small, well-scoped task
 
-Vibestrate works best on the kind of task you'd hand a careful colleague: clear scope, a piece of code you can point at, and a way to tell when it's done.
+Vibestrate works best on what you'd hand a careful colleague: clear scope, code you can point at, a way to tell when it's done.
 
 <div class="docs-cards">
 
-**Too big** - "Refactor the whole login system." No boundary, no finish line, and the reviewer has nothing to judge the result against.
+**Too big** - "Refactor the whole login system." No boundary, no finish line, nothing for the reviewer to judge against.
 
 **About right** - "Add structured logging to the settings save handler." One handler, one behaviour, and your own tests say whether it worked.
 
 </div>
 
-## Start the run
-
-```bash
-vibe run "Add structured logging to the \
-settings save handler"
-```
-
-Add `--ui` to watch it work as it goes. The dashboard starts alongside the run, on port 4317 by default.
-
-```bash
-vibe run "Add structured logging to the \
-settings save handler" --ui
-```
-
 ## The steps a run takes
 
 <div class="docs-flow">
 <div><b>Look</b><span>Reads your project to learn its language, its tools, and how you run your tests.</span></div>
-<div><b>Copy</b><span>Makes a second checkout of your repo beside your project, under ../.vibestrate-worktrees/, in a folder named after the run.</span></div>
+<div><b>Copy</b><span>Makes a second checkout of your repo beside your project, under ../.vibestrate-worktrees/, in a folder named for the run.</span></div>
 <div><b>Build</b><span>Plans the change, designs the approach, writes it, then runs your validation commands.</span></div>
-<div><b>Check</b><span>A reviewer checks the diff against the plan and the validation results. If it asks for changes, a fixer makes them and validation runs again.</span></div>
-<div><b>Verify</b><span>A separate verifier takes a last pass and decides whether the result is ready to merge.</span></div>
+<div><b>Check</b><span>A reviewer checks the diff against the plan and the validation results; if it asks for changes, a fixer makes them and validation runs again.</span></div>
+<div><b>Verify</b><span>A separate verifier takes a last pass and decides whether it is ready to merge.</span></div>
 </div>
 
-The default flow wires that into eight steps. The review loop runs at most three passes: one review plus up to two fix cycles.
+The default flow wires that into eight steps, with the review loop capped at three passes: one review plus up to two fix cycles.
 
 <svg viewBox="0 0 560 100" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The default flow runs plan, architecture, implement, validation, review and verify in order; when review asks for changes it loops through fix and revalidation and back to review.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -121,13 +107,36 @@ The default flow wires that into eight steps. The review loop runs at most three
   </g>
 </svg>
 
-Those step names are also the folder names under the run's artifacts, so the `review` box above is the same `review` in `artifacts/flows/review/output.md`.
+Those step names are the folder names under the run's artifacts, so the `review` box above is the same `review` in `artifacts/flows/review/output.md`.
 
 ## Going deeper
 
-### In the terminal
+### Start it
 
-Each step prints a line as it starts, so you can see where it's got to. The last thing you get is the summary.
+**Task** is the only section on the compose page you must fill. With a roadmap, **Or pick up from your roadmap** offers cards to start from instead.
+
+Below it, four sections to leave alone the first time: **Flow**, **Inputs** (values the flow declares), **Crew**, and **Configuration**, where **Unattended** stops the run pausing for a human, **Concise** asks agents to keep output short, and **Auto-pick flow** lets the orchestrator choose when nothing is pinned.
+
+**Start run** goes now. **Plan first** runs spec-up instead: a few scoping questions, then the build. A pill above them shows the exact `vibe run …` the page will run, and copies it.
+
+### Watch it
+
+The sidebar lists every live run above the nav, green while it works and amber when it wants you. Click one for its page.
+
+**Run assurance** sits at the top: **Policy**, **Validation**, **Review** and **Verification**, each reported separately. Under it the inspector carries **Tree** (supervisor and agents as a node tree), **Steps**, **Events**, **Artifacts** (the changed files and each step's output), **Validation**, **Terminal** and **Replay**. The **Workspace** panel names the branch and the worktree path, with **Copy cd**.
+
+### From the terminal
+
+`vibe` opens the interactive shell; press `5` for Runs. Arrow keys select a run, `tab` cycles the inspector sections, `/` filters the events tail, and `p`, `r` and `a` pause, resume and abort.
+
+The direct route, for a script:
+
+```bash
+vibe run "Add structured logging to the \
+settings save handler"
+```
+
+Add `--ui` and the dashboard starts alongside the run. Each step prints a line as it starts; the summary lands at the end:
 
 ```text
 Final status: merge_ready
@@ -138,39 +147,28 @@ Final status: merge_ready
   Branch: vibestrate/zen-bohr
 ```
 
-`zen-bohr` is the run id. Vibestrate hands every run a docker-style `adjective-noun` handle and uses it verbatim as the worktree folder name and the branch suffix - no task slug is appended.
+`zen-bohr` is the run id: every run gets a docker-style `adjective-noun` handle, used verbatim as the worktree folder name and the branch suffix. `vibe status <runId>` and `vibe replay <runId>` read it back later.
 
-### Look at what it changed
+### Use it, or don't
 
-To read every change before you accept anything:
+**Vibestrate never merges anything for you** (see [the safety guarantees](/docs/concepts/safety)). The finished change waits on its own branch, yours to open a pull request from, pull into your branch, take pieces of, or throw away.
+
+**Source > Changes** lays out every line it touched, file by file. Or read it where it sits:
 
 ```bash
 cd ../.vibestrate-worktrees/zen-bohr
 git diff main
 ```
 
-Or open the **Source** page in the dashboard and pick its **Changes** tab, which lays out the same changes inline, file by file.
-
-### Use it, or don't
-
-**Vibestrate never merges anything for you** (see [the safety guarantees](/docs/concepts/safety)). The finished change waits on its own branch for you to take or leave.
-
-The branch is yours to:
-
-- Open a pull request (`gh pr create`, or whatever tool you use).
-- Pull it into your own branch if it's yours alone.
-- Take the parts you want.
-- Throw the whole thing away if it isn't right.
-
 ### Runs that stop short
 
-A run keeps its full record on disk no matter which state it ended in.
+A run keeps its full record on disk whichever state it ended in, and the run page's **Events** and **Artifacts** tabs read it in the browser.
 
-- **`blocked`** - the reviewer or verifier flagged something you need to decide. Read `artifacts/flows/review/output.md` in the run's folder, or `artifacts/flows/verify/output.md` if verification is what blocked it. `events.ndjson` carries the matching `review.decision` or `verification.decision` event with the verdict itself.
-- **`failed`** - something broke partway through. Look in `events.ndjson` for the last event before the failure, and at the step's own output under `artifacts/flows/`, in the folder named for that step.
-- **`aborted`** - you stopped it. `vibe abort` marks the run aborted and leaves the worktree in place, so any half-finished work is still there to read.
+- **`blocked`** - a reviewer or verifier flagged something you need to decide. `artifacts/flows/review/output.md` holds the objection (or `verify/output.md`), and `events.ndjson` carries the matching `review.decision` or `verification.decision` event.
+- **`failed`** - something broke partway. Look at the last event in `events.ndjson` before the failure, and at that step's folder under `artifacts/flows/`.
+- **`aborted`** - you stopped it. The worktree stays in place, so half-finished work is still there to read.
 
-See [Debug a failed run](/docs/workflows/debug-failed) for the step-by-step playbook.
+[Debug a failed run](/docs/workflows/debug-failed) is the step-by-step playbook.
 
 ### Next
 

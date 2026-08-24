@@ -44,6 +44,280 @@
         "Workspace"
       ]
     },
+    "scoped/blocked": {
+      "asset": "scoped/blocked.png",
+      "sources": [
+        "components/runs/v3/RunStatusSection",
+        "components/design/HeroCard",
+        "components/design/PhaseRail"
+      ],
+      "labels": [
+        "Flow",
+        "blocked",
+        "diff · ",
+        "elapsed",
+        "provider"
+      ]
+    },
+    "scoped/consult-orb": {
+      "$comment": "The only crop with no readable text: two round controls, one icon each. The labels are their accessible names, which is the whole of what the picture claims.",
+      "asset": "scoped/consult-orb.png",
+      "sources": [
+        "components/consult/ConsultDock",
+        "components/consult/ConsultOrb",
+        "components/layout/CliHintOverlay"
+      ],
+      "labels": [
+        "Ask about this project, or work in Vibestrate",
+        "Consult",
+        "Open consult",
+        "Run this on the CLI / TUI"
+      ]
+    },
+    "scoped/crew-card": {
+      "asset": "scoped/crew-card.png",
+      "sources": [
+        "components/crew/CrewHub"
+      ],
+      "labels": [
+        "Configure",
+        "Crew",
+        "Edit roles",
+        "roles",
+        "runs by default",
+        "seats filled"
+      ]
+    },
+    "scoped/flow-card": {
+      "asset": "scoped/flow-card.png",
+      "sources": [
+        "app/routes/FlowsPage",
+        "components/design/FlowCard",
+        "components/design/FlowBars"
+      ],
+      "labels": [
+        "Runs by default",
+        "seats",
+        "steps",
+        "version"
+      ]
+    },
+    "scoped/new-run": {
+      "$comment": "Mission Control's composer, not the New run route: RunComposePage labels the same toggle \"Auto-pick flow\" and has no Attach.",
+      "asset": "scoped/new-run.png",
+      "sources": [
+        "components/mission/MissionComposer",
+        "components/design/Attachments"
+      ],
+      "labels": [
+        "Attach",
+        "Concise",
+        "Describe the change to run",
+        "Flow × Crew",
+        "Force flow select",
+        "New run",
+        "Run summary",
+        "What happens when you start"
+      ]
+    },
+    "scoped/policies-hard": {
+      "asset": "scoped/policies-hard.png",
+      "sources": [
+        "components/policies/AdvancedSafetySection"
+      ],
+      "labels": [
+        "Covers .env and key files.",
+        "Execution",
+        "Forbid auto-merge",
+        "Forbid auto-push",
+        "Forbid main-branch writes",
+        "Forbid secrets access",
+        "Hard guards",
+        "Strict apply-only mode"
+      ]
+    },
+    "scoped/policies-your": {
+      "asset": "scoped/policies-your.png",
+      "sources": [
+        "components/policies/PoliciesPanel",
+        "components/policies/ProjectPoliciesSection",
+        "components/policies/EngineToolsPanel"
+      ],
+      "labels": [
+        "Deterministic engine",
+        "No rules in",
+        "Your policies",
+        "advise"
+      ]
+    },
+    "scoped/profile-card": {
+      "asset": "scoped/profile-card.png",
+      "sources": [
+        "app/routes/ProfilesPage",
+        "components/design/EffortScale"
+      ],
+      "labels": [
+        "Duplicate",
+        "Effort",
+        "Faster",
+        "Max tokens",
+        "Smarter",
+        "Timeout (ms)",
+        "provider default",
+        "used by"
+      ]
+    },
+    "scoped/provider-pair": {
+      "asset": "scoped/provider-pair.png",
+      "sources": [
+        "components/providers/ProvidersView"
+      ],
+      "labels": [
+        "Set default",
+        "Test",
+        "Used by",
+        "configured",
+        "profile uses",
+        "profiles use",
+        "recommended"
+      ]
+    },
+    "scoped/role-card": {
+      "asset": "scoped/role-card.png",
+      "sources": [
+        "components/crew/RoleCard",
+        "components/crew/helpers"
+      ],
+      "labels": [
+        "Instructions",
+        "New profile",
+        "Profile (runtime)",
+        "Read only",
+        "Seats it takes",
+        "Skills",
+        "no skills available to attach"
+      ]
+    },
+    "scoped/run-assurance": {
+      "asset": "scoped/run-assurance.png",
+      "sources": [
+        "app/routes/run-detail/AssuranceBadge",
+        "app/routes/run-detail/LaneCell",
+        "app/routes/run-detail/shared"
+      ],
+      "labels": [
+        "Policy",
+        "Review",
+        "Run assurance",
+        "Supervisor",
+        "Validation",
+        "Verification",
+        "verified"
+      ]
+    },
+    "scoped/run-blocked": {
+      "asset": "scoped/run-blocked.png",
+      "sources": [
+        "app/routes/run-detail/AssuranceBadge",
+        "app/routes/run-detail/shared",
+        "components/runs/SupervisorPanel"
+      ],
+      "labels": [
+        "Re-run with fixes",
+        "Run assurance",
+        "View review",
+        "blocked"
+      ]
+    },
+    "scoped/run-header": {
+      "asset": "scoped/run-header.png",
+      "sources": [
+        "components/runs/v3/RunStatusSection",
+        "components/design/HeroCard",
+        "components/design/PhaseRail"
+      ],
+      "labels": [
+        "Flow",
+        "diff · ",
+        "elapsed",
+        "provider"
+      ]
+    },
+    "scoped/run-workspace": {
+      "asset": "scoped/run-workspace.png",
+      "sources": [
+        "app/routes/run-detail/WorkspacePanel"
+      ],
+      "labels": [
+        "Copy cd",
+        "The run's isolated git worktree",
+        "Workspace",
+        "for the same from the CLI",
+        "vibe path"
+      ]
+    },
+    "scoped/runs-table": {
+      "asset": "scoped/runs-table.png",
+      "sources": [
+        "app/routes/RunsPage",
+        "components/runs/SchedulerQueuePanel",
+        "components/runs/RunStatusBadge"
+      ],
+      "labels": [
+        "Integrate selected",
+        "Nothing running or queued",
+        "Open the board",
+        "Preview merges",
+        "Replay",
+        "Start the queue",
+        "Updated",
+        "merge ready"
+      ]
+    },
+    "scoped/seat-chips": {
+      "asset": "scoped/seat-chips.png",
+      "sources": [
+        "components/crew/RoleCard"
+      ],
+      "labels": [
+        "Profile (runtime)",
+        "Seats it takes"
+      ]
+    },
+    "scoped/show-me-how": {
+      "asset": "scoped/show-me-how.png",
+      "sources": [
+        "components/supervisor/SupervisorControl",
+        "components/consult/ShowMeHow"
+      ],
+      "labels": [
+        "Copy this message",
+        "Reply to this message",
+        "Show me how"
+      ]
+    },
+    "scoped/sup-switch": {
+      "asset": "scoped/sup-switch.png",
+      "sources": [
+        "components/supervisor/SupervisorControl"
+      ],
+      "labels": [
+        "Answers and acts",
+        "Answers only"
+      ]
+    },
+    "scoped/supervisor": {
+      "asset": "scoped/supervisor.png",
+      "sources": [
+        "components/runs/SupervisorPanel"
+      ],
+      "labels": [
+        "Supervisor",
+        "decision",
+        "single-profile",
+        "staff-engineer"
+      ]
+    },
     "run-blocked": {
       "asset": "run-blocked.png",
       "sources": [

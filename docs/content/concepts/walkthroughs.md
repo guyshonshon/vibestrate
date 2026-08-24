@@ -16,7 +16,7 @@ Press it and the dashboard moves to the Crew screen, draws a ring around the con
 
 <div class="docs-callout warn">
 
-**A walkthrough can only navigate.** It opens a screen and points at something on it. It never clicks a button, types in a field, saves, edits your config, or starts a run. That is the same ceiling every button under an answer has, and there is deliberately no third kind of action, because a third kind is how a chat button turns into an unreviewed effect. The pressing stays yours.
+**A walkthrough can only navigate.** It never clicks a button, types in a field, saves, edits your config, or starts a run. That is the same ceiling every button under an answer has, and there is deliberately no third kind of action, because a third kind is how a chat button turns into an unreviewed effect. The pressing stays yours.
 
 </div>
 
@@ -35,21 +35,39 @@ Press it and the dashboard moves to the Crew screen, draws a ring around the con
 
 ## Going deeper
 
+### Where the button is
+
+This is a dashboard feature; `vibe ui` opens it on `127.0.0.1:4317`. `vibe shell`
+has none and no command starts one, because a walkthrough's whole job is moving a
+browser to a screen.
+
+<div class="docs-cards">
+
+**Under a consult answer.** Every answer carries **Show me how**, and it always builds a fresh walkthrough. It is built from the **answer**, not from what you typed: the question is not carried into the request, so what gets walked is the sequence the answer describes. Type a question the catalog covers and a second button, **Walk me through: Make a crew**, appears beside the composer - that is the authored one.
+
+**In the Supervisor panel.** Only when the question asked to be shown - "how do I", "show me how", "walk me through", "where do I", "what is a". Here **Show me how** dispatches the authored walkthrough when the question matches one. A question about state ("why did the last run block") gets prose, not a tutorial.
+
+**Consult, "Work in Vibestrate".** The five authored walkthroughs, listed on the orb's second card and under the **Work in Vibestrate** side of the Consult page's segmented control. Open one to read its steps, then press **Walk me through it**, or **Take me there** on a single step to start at that one.
+
+**Press `?` anywhere.** The shortcuts overlay carries **Take the tour** for the dashboard tour, and a button row for the other four.
+
+</div>
+
 ### Written, or built on the spot
 
 <div class="docs-cards">
 
 **Authored** - five walkthroughs for the five things most people do first. Every screen and every control they name is a literal the compiler checks and a test greps for, so they cannot drift into pointing at something the app no longer has.
 
-**Generated** - everything else. A model writes the steps for the question you actually asked, every step is checked against the real screens before anything opens, and a step that fails is **dropped**.
+**Generated** - everything else. A model writes the steps for the question you actually asked.
 
 </div>
 
-The five authored ones are **Tour the dashboard**, **Make a crew**, **Make a flow**, **Run something for the first time**, and **Set a policy**. A question that matches one of those gets it, with no model call to wait for.
+The five are **Tour the dashboard**, **Make a crew**, **Make a flow**, **Run something for the first time**, and **Set a policy**. A question matching one of those gets it, with no model call to wait for.
 
 ### How a generated walkthrough is checked
 
-Nothing a model wrote opens on trust. Each step names a page and, optionally, one control to ring. Both are checked against the app's real route table and its real list of ringable controls. A failing step goes, and the rest still run.
+Nothing a model wrote opens on trust. Each step names a page and, optionally, one control to ring, both checked against the app's real route table and its real list of ringable controls. A failing step goes, and the rest still run.
 
 <svg viewBox="0 0 560 104" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A step a model wrote is checked against the app's real screens and controls. It either runs, or it is dropped.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -87,7 +105,24 @@ What gets a step dropped:
 
 </div>
 
-Eight steps is the ceiling, enforced in code; the model is asked for at least two, which is a request rather than a guarantee. If no step survives, nothing opens and the panel says why: *"Every step named a screen or a control this app does not have."* If the model replied in prose instead of a sequence, it says that instead. An honest refusal beats a card pointing at nothing.
+Eight steps is the ceiling, enforced in code; the model is asked for at least two, which is a request rather than a guarantee.
+
+When nothing opens, the panel says which of three things went wrong, because they are three different failures and one message for all of them would hide two:
+
+<div class="docs-cards">
+
+**"The answer came back as prose, so there is no sequence to walk."**
+No walkthrough object was in the reply at all.
+
+**"The walkthrough came back empty."**
+An object arrived carrying no steps.
+
+**"Every step named a screen or a control this app does not have."**
+Steps arrived and the checks dropped all of them.
+
+</div>
+
+An honest refusal beats a card pointing at nothing.
 
 ### A worked example
 
@@ -108,21 +143,7 @@ That matches the authored **Make a crew** walkthrough, so pressing **Show me how
 <div><b>Save the crew</b><span>Rings Save. A saved crew is selectable on the new-run form.</span></div>
 </div>
 
-The walkthrough moves you between those screens. Naming the crew and pressing Save are still things you do.
-
-### Where the button is
-
-<div class="docs-cards">
-
-**Under a consult answer.** Every answer carries **Show me how**, and it always builds a fresh walkthrough for that question. Type a question the catalog covers and a second button, **Walk me through: Make a crew**, appears beside the composer - that is the authored one.
-
-**In the Supervisor panel.** Only when the question asked to be shown - "how do I", "show me how", "walk me through", "where do I", "what is a". Here **Show me how** does dispatch the authored walkthrough when the question matches one. A question about state ("why did the last run block") gets prose, not a tutorial.
-
-**Consult, "Work in Vibestrate".** The five authored walkthroughs, listed. Open one to read its steps, then press **Walk me through it**, or **Take me there** on a single step to start at that one.
-
-**Press `?` anywhere.** The help overlay carries the dashboard tour and the other four.
-
-</div>
+Naming the crew and pressing Save are still things you do.
 
 ### When a step points at nothing
 

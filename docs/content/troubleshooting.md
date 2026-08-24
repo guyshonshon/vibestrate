@@ -6,11 +6,11 @@ slug: troubleshooting
 
 ## In simple words
 
-Find the symptom that matches yours below, then run the fix.
+Find the symptom, then run the fix. **More** > **Setup** runs the same checks `vibe doctor` does, with one **Fix what's safe** button for whatever in the report can be repaired.
 
 <div class="docs-callout tip">
 
-**Tip.** Read the failure message first. Most name themselves now: a failed supervisor turn gives its reason, a cut-short one says it was stopped, and an effort level your provider does not have is refused with that provider's real ladder printed in the message.
+**Tip.** Read the failure message first. Most name themselves: a failed supervisor turn gives its reason, a cut-short one says it was stopped, and an effort level your provider does not have is refused with that provider's real ladder in the message.
 
 </div>
 
@@ -18,23 +18,23 @@ Find the symptom that matches yours below, then run the fix.
 
 <div class="docs-cards">
 
-**`vibe doctor`**
-Checks your machine has what a run needs, and says what is missing.
+**The Setup page**
+**More** > **Setup**. Five numbered steps, each pass or fail, above one page-level **Fix what's safe**.
 
 **The run's own status**
 `failed` is a crash, `blocked` is a decision. Different fixes.
 
 **The step's output**
-A failing step prints why. That is usually the whole answer.
+A failing step prints why, which is usually the whole answer.
 
-**`vibe replay <run-id>`**
-Reopens a finished run with every decision and artifact in place.
+**Replay**
+The **Replay** tab on a run, or `vibe replay <run-id>`: every decision and artifact, still in place.
 
 </div>
 
 <div class="docs-callout">
 
-**Did you know?** A run that ends badly keeps its worktree on purpose - nothing is cleaned up on failure. The half-finished work, the logs and the diff are all still on disk when you come back to look.
+**Did you know?** A run that ends badly keeps its worktree on purpose - nothing is cleaned up on failure. The half-finished work, the logs and the diff are on disk when you come back.
 
 </div>
 
@@ -44,7 +44,7 @@ Reopens a finished run with every decision and artifact in place.
 
 ### `vibe: command not found` right after installing
 
-You ran `npm install -g vibestrate` and it worked, but `vibe --version` says "command not found." This almost always means your shell's PATH doesn't include npm's global bin directory. Find where npm puts global binaries, then add that directory to your PATH:
+Your shell's PATH does not include npm's global bin directory. Find where npm puts global binaries and add that directory to your PATH:
 
 ```bash
 npm config get prefix
@@ -52,11 +52,15 @@ npm config get prefix
 # in ~/.zshrc or ~/.bashrc
 ```
 
-To check it took, run `which vibe`. You should get a real path back.
+`which vibe` should then return a real path. No dashboard view of this one - `vibe ui` is the same binary, so nothing starts until PATH is fixed.
 
 ### `vibe init` says "not a git repository"
 
-Init refuses to run with a "not a git repository" error: Vibestrate needs git for worktree isolation, and the current directory hasn't been initialized as a git repo yet. Initialize git, make a first commit, then init:
+Vibestrate needs git for worktree isolation, and this directory is not a repo yet.
+
+**In the dashboard.** The Setup page's step 1, **A repository to work in**, is red, and a **Start here** block above the steps offers **Initialise this project** plus, when the folder is not a repository, **Create a git repository first**.
+
+**In a terminal:**
 
 ```bash
 git init
@@ -64,11 +68,15 @@ git add -A && git commit -m "Initial commit"
 vibe init
 ```
 
-To check it worked, run `git rev-parse --is-inside-work-tree`. It should return `true`.
+`git rev-parse --is-inside-work-tree` should return `true`.
 
 ### `vibe doctor` says "no providers ready"
 
-Doctor lists every provider as `missing` or `detected-needs-setup`: no coding-agent CLI is installed on your PATH, or none has a verified preset. Install at least one:
+No coding-agent CLI is on your PATH, or none has a verified preset.
+
+**Where you see it.** Setup page, step 3, **Connect a model**. Its **Providers** button jumps to **Crew** > **Providers**, where every card reads undetected or unconfigured.
+
+Install at least one:
 
 ```bash
 npm install -g @anthropic-ai/claude-code
@@ -78,12 +86,9 @@ python -m pip install aider-install && aider-install
 curl -fsSL https://ollama.com/install.sh | sh
 ```
 
-Run the CLI once afterwards to sign in - `codex login` for Codex, the bare
-command for the others. Aider and Ollama are different: Aider reads
-`OPENAI_API_KEY` or `ANTHROPIC_API_KEY` from your environment, and Ollama needs
-no login but does need a model pulled first.
+Run the CLI once afterwards to sign in - `codex login` for Codex, the bare command for the others. Aider instead reads `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` from your environment, and Ollama needs no login but does need a model pulled first.
 
-Then have Vibestrate find it and set it up:
+Then wire it in: **Set up** on the card, then **Test**. Scripted:
 
 ```bash
 vibe provider detect
@@ -91,31 +96,33 @@ vibe provider setup
 vibe provider test <id>
 ```
 
-To check it worked, run `vibe provider detect`. At least one provider should show confidence `ready`, or a working `detected-needs-setup` after you run `provider setup`.
+At least one provider should end at confidence `ready`, or pass its test after setup.
 
 ### Providers
 
 ### Provider test fails with "command not found"
 
-`vibe provider test claude` comes back with "claude: command not found." The provider's CLI isn't on the PATH of the shell Vibestrate was started from. Add the CLI to your PATH. If you installed it through your shell, restart your terminal so the new PATH loads.
+The provider's CLI is not on the PATH of the shell Vibestrate was started from. **Test** on that card in **Crew** > **Providers** returns the same message.
 
-To check it worked, run `which claude` (or whichever CLI you're using). It should return a real path.
+Add the CLI to your PATH, restart your terminal, then restart `vibe ui` - the server inherits the PATH it was launched with. `which claude` should return a real path.
 
 ### The test passes, but real runs fail with "unexpected output"
 
-`vibe provider test` reports success, yet actual runs end with "could not parse provider output." Usually the provider's prompt-flag preset is producing output Vibestrate can't read, because the provider changed its output format between releases. Walk through the setup wizard again to confirm the flags:
+The preset is producing output Vibestrate cannot read, usually because the provider changed its output format between releases.
 
-```bash
-vibe provider setup
-```
+**In the dashboard.** **Crew** > **Providers** > **Edit** reopens that card's command, args and input in one editor, with **Test** beside them. The captured output sits under `.vibestrate/runs/<runId>/artifacts/flows/<step-id>/output.md`.
 
-If the flags are right but the output format changed, file an issue with the provider's version (`<cli> --version`) and a sample of the captured output, which you'll find under `.vibestrate/runs/<runId>/artifacts/flows/<step-id>/output.md`.
+`vibe provider setup` walks the same flags from a terminal. If they are right and the format changed anyway, file an issue with the provider's version (`<cli> --version`) and a sample of the output.
 
 ### Runs that won't start or stall
 
 ### Runs finish, but nothing was actually checked
 
-The run's validation section reads "No validation commands configured," and `vibe doctor` warns about it. That means `commands.validate` in `project.yml` is empty. The run does not fail - Vibestrate works without validation commands - but the review is much weaker, because nothing factual sits between the executor and the reviewer. Fill it in:
+`commands.validate` in `project.yml` is empty. The run does not fail - Vibestrate works without validation commands - but the review is much weaker, with nothing factual between the executor and the reviewer.
+
+**In the dashboard.** Setup page, step 4, **Point it at your tests**. **Fix what's safe** fills in the commands it detected; **Edit config** opens the same value on the Config page to pick them yourself.
+
+The same two from a terminal:
 
 ```bash
 # adds the commands it detected for your project
@@ -126,44 +133,42 @@ vibe config set commands.validate \
   '["pnpm typecheck", "pnpm test"]'
 ```
 
-To check it worked, run `vibe config get commands.validate`. It should show your array.
+`vibe config get commands.validate` should then show your array.
 
 ### Run stuck in `waiting_for_approval`
 
-Status sits at `waiting_for_approval` and nothing is happening. A policy gate at this stage requires a human to approve it on purpose (set by `policies.requireApprovalAtStages`). List the pending approvals and decide on one:
+A policy gate at this stage requires a human on purpose (`policies.requireApprovalAtStages`).
+
+**Where you see it.** The run's card in the sidebar turns amber rather than green - the "needs you" state. Opening the run gives you the approval, its reason and the decision controls.
+
+From a terminal:
 
 ```bash
 vibe approvals list <runId>
 vibe approvals approve <runId> <approvalId>
-# or: reject / request-changes --guidance "..."
+# or: reject, or request-changes --guidance "..."
 ```
 
-To check it worked, watch the status move back into the stage it was about to enter.
+The status then moves into the stage it was about to enter.
 
 ### Run stuck in `paused`
 
-Status reads `paused`, and `vibe resume` doesn't seem to do anything. Either the orchestrator isn't running anymore (the process that owns the run ended), or the resume just hasn't reached the next polling tick yet. If Vibestrate's process is still alive, run `vibe resume <runId>` and give it a few seconds for the next stage-boundary check.
+Either the orchestrator is no longer running - the process that owns the run ended - or the resume has not reached the next polling tick. An amber card with nothing moving behind it is the usual tell.
 
-If the process ended, start it again with `vibe run` or `vibe ui`, and the durable state gets picked up automatically.
-
-To check it worked, run `vibe status`. The run should be transitioning out of `paused`.
+If the process is alive, use the resume control on the run's page or `vibe resume <runId>`, and allow a few seconds for the next stage-boundary check. If it ended, `vibe run` or `vibe ui` picks the durable state up automatically.
 
 ### Worktree creation fails: "main branch has uncommitted changes"
 
-The run aborts at the start with a `requireCleanMain` violation: your `project.yml` has `git.requireCleanMain: true` and `main` has uncommitted edits. Commit or stash your changes, then re-run:
+Your `project.yml` has `git.requireCleanMain: true` and `main` has uncommitted edits. The **Source** page shows the same dirty tree.
+
+Commit or stash, then re-run:
 
 ```bash
 git stash push -m "before vibe run"
 vibe run "..."
 ```
 
-Or, if you don't want that policy at all, turn it off:
-
-```bash
-vibe config set git.requireCleanMain false
-```
-
-To check it worked, look for the worktree under `../.vibestrate-worktrees/`.
+Or turn the policy off, on the Config page or with `vibe config set git.requireCleanMain false`. The worktree then appears under `../.vibestrate-worktrees/`.
 
 ### The Supervisor panel
 
@@ -171,13 +176,13 @@ To check it worked, look for the worktree under `../.vibestrate-worktrees/`.
 
 Two different messages, two different situations.
 
-**"I could not answer that:" plus a reason.** The turn reached the provider and failed - no provider installed, a policy refusing the effect, the daily spend cap, or a reply Vibestrate could not parse. The reason is the underlying error with your home directory path stripped out, stored in the thread, so it survives a reload. Fix what the reason names; `vibe doctor` covers the provider and config half of that list.
+**"I could not answer that:" plus a reason.** The turn reached the provider and failed - no provider installed, a policy refusing the effect, the daily spend cap, or a reply Vibestrate could not parse. The reason is the underlying error with your home directory path stripped out, stored in the thread so it survives a reload. Fix what it names; the Setup page and `vibe doctor` cover the provider and config half of that list.
 
-**"Stopped before I got to an answer."** Nothing broke - the turn was cut short before it produced anything. You get this when you press Stop, and also when the connection to the panel closes, so reloading the page or restarting `vibe ui` mid-answer both do it. Whatever had already been written is kept. Ask again.
+**"Stopped before I got to an answer."** Nothing broke - the turn was cut short before it produced anything. You get this when you press Stop, and when the connection to the panel closes, so reloading the page or restarting `vibe ui` mid-answer both do it. Whatever had already been written is kept.
 
 ### An effort level your provider does not have
 
-Asking the panel for one is refused before the turn starts, and the message lists that provider's real ladder:
+Asking the panel for one is refused before the turn starts, with that provider's real ladder in the message:
 
 | Provider | Effort levels it accepts |
 |---|---|
@@ -185,44 +190,50 @@ Asking the panel for one is refused before the turn starts, and the message list
 | `codex` | minimal, low, medium, high, xhigh |
 | `gemini` | none - its reasoning is a numeric thinking budget rather than a flag |
 
-Pick a level the message names, or run `vibe provider catalog` to see what each provider offers.
+Pick a level the message names, or run `vibe provider catalog`. The **Profiles** page keeps its **Effort** field for every provider and says "This provider exposes no effort control." when there is no ladder to offer.
 
-Everywhere else an unknown level is passed through and quietly ignored rather than refused. In a run, a Profile whose `power` the provider will not honor does not stop the turn: Vibestrate records a `provider.effort_ignored` event once per provider and level - "Effort ... won't take effect on codex ... - the provider ignores it" - and carries on. `vibe consult --effort` behaves the same way, without the event. If an effort setting seems to make no difference, that is why.
+Everywhere else an unknown level is passed through and ignored rather than refused. In a run, a Profile whose `power` the provider will not honor does not stop the turn: Vibestrate records a `provider.effort_ignored` event once per provider and level and carries on. It reads:
+
+```text
+Effort "xhigh" won't take effect on gemini
+(gemini exposes no effort control) - the provider ignores it.
+```
+
+(Wrapped here to fit; the event carries it on one line, and names the valid levels instead when the provider has a ladder.) `vibe consult --effort` behaves the same way, without the event. If an effort setting seems to make no difference, that is why.
 
 ### Notifications and dashboard
 
 ### Notifications never arrive
 
-A task finished but you saw nothing. Notifications are delivered to local gateways only (in-app and CLI, no external Slack/webhook gateways) - usually a gateway is disabled, the notification severity is below the gateway's threshold, or notifications are off in settings. Look at your gateways and the feed:
+Notifications go to local gateways only: the in-app feed, the CLI, the browser's own system notifications. There are no Slack or webhook gateways. Usually a channel is switched off, the severity is below the gateway's threshold, or notifications are off entirely.
+
+**In the dashboard.** The gear at the bottom of the sidebar opens **Settings**, whose notifications panel carries **Notifications enabled**, **In-app**, **CLI** and **Browser (system)** toggles plus one per event. The bell beside it is the feed.
+
+From a terminal:
 
 ```bash
 vibe gateways list
 vibe notifications list
-```
-
-Confirm the gateway is enabled, then send a test through it:
-
-```bash
 vibe notifications test <gatewayId>
 ```
 
 ### A dashboard tab is blank
 
-`vibe ui` opens, but a tab shows no data even though you have runs. Either the browser cached an older asset bundle, or the runs are in a different project root than the one `vibe ui` was started from. Hard-reload the page (Cmd-Shift-R / Ctrl-Shift-R), then confirm `vibe ui` is running from the project root you expect, since the dashboard reads `.vibestrate/runs/` from `cwd`.
+Either the browser cached an older asset bundle, or the runs live in a different project root than the one `vibe ui` was started from.
+
+Hard-reload (Cmd-Shift-R / Ctrl-Shift-R), then confirm which project is being served - the switcher at the top of the sidebar names it, and the dashboard reads `.vibestrate/runs/` from its working directory.
 
 ### Worktrees left behind
 
 ### Worktree didn't get cleaned up after an abort
 
-`vibe abort <runId>` succeeded, but `../.vibestrate-worktrees/<runId>` is still on disk. This is by design: worktrees are preserved across `aborted`, `blocked`, and `failed` so you can inspect or copy out partial work. When you're done with it, remove the worktree and its branch yourself:
+By design: worktrees are preserved across `aborted`, `blocked` and `failed` so you can inspect or copy out partial work, and the **Source** page still lists the branch. Remove it when you are done:
 
 ```bash
 cd your-project
 git worktree remove ../.vibestrate-worktrees/<runId>
 git branch -D vibestrate/<runId>
 ```
-
-To check it worked, confirm the directory is gone.
 
 ### Next
 

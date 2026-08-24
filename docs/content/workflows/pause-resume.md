@@ -6,11 +6,12 @@ slug: workflows/pause-resume
 
 ## In simple words
 
-Sometimes you want to stop a run, look at where it got to, and pick it up later.
+Sometimes you want to stop a run, see where it got to, and pick it up later. The run screen in [Mission Control](/docs/cli/dashboard) has all three controls; the commands below are the automation path.
 
 ```bash
-vibe pause <run-id>     # stops at the next safe point
-vibe resume <run-id>    # picks up where it stopped
+vibe pause <runId>     # stops at the next safe point
+vibe resume <runId>    # picks up where it stopped
+vibe abort <runId>     # ends it
 ```
 
 Pausing sticks. The flag is written to your project, not held in memory, so it survives anything restarting.
@@ -38,26 +39,21 @@ Status `blocked`. A policy, review or check said no.
 
 <div class="docs-callout">
 
-**Did you know?** Because the pause flag is a file rather than process state, a pause you requested survives closing your laptop, restarting the dashboard, or the machine rebooting. A run cannot quietly resume because something restarted.
+**Did you know?** Because the pause flag is a file rather than process state, a pause survives closing your laptop, restarting the dashboard or a reboot. A run cannot quietly resume because something restarted.
 
 </div>
-
 
 ## Going deeper
 
 ### Pause
 
-To pause a run, give Vibestrate the run's ID:
-
 ```bash
 vibe pause <runId>
 ```
 
-Vibestrate works in stages and checks for the flag between them. When it spots one, it moves the run to the `paused` state and writes down which stage it was about to start. Nothing gets cut off halfway.
+Vibestrate works in stages and checks for the flag between them. On spotting one it moves the run to `paused` and records which stage it was about to start. Nothing is cut off halfway.
 
 ### Resume
-
-To pick the run back up:
 
 ```bash
 vibe resume <runId>
@@ -65,19 +61,15 @@ vibe resume <runId>
 
 This clears the flag and the run continues from the stage in `pausedAtStatus`. When the process is gone, start a fresh run and reuse the work with [`--resume-from`](/docs/workflows/debug-failed) instead.
 
-### Cancel a pause before it fires
-
-Say you ran `vibe pause` and then changed your mind before the run reached the next gap between stages. Running `vibe resume` cancels the pending pause. The run keeps going and never enters the `paused` state at all.
+Change your mind before the run reaches the next gap between stages and `vibe resume` cancels the pending pause: the run keeps going and never enters `paused`.
 
 ### Abort
-
-To end a run for good:
 
 ```bash
 vibe abort <runId>
 ```
 
-This marks the run as `aborted`. The worktree, which is the isolated copy of your project where the run did its work, stays on disk. You can still `cd` into it to read the partial work it left behind. When you want to clean up the worktree:
+This marks the run `aborted`. The worktree - the isolated copy of your project where the run worked - stays on disk, so you can `cd` into it and read the partial work. To clean it up:
 
 ```bash
 cd your-project
@@ -85,9 +77,11 @@ git worktree remove ../.vibestrate-worktrees/<runId>
 git branch -D vibestrate/<runId>
 ```
 
+*In the dashboard:* the run screen carries pause, resume and abort directly, and the shell's **Runs** page has them on `p`, `r` and `a`.
+
 ### Policy-gated pauses are different
 
-Some pauses are scheduled by a policy rather than asked for by you. If `policies.requireApprovalAtStages` names a stage, the run pauses on its own at the boundary into that stage, with the status `waiting_for_approval`. This kind of pause is waiting for your decision, so `vibe resume` is not the right tool. Use `vibe approvals` instead:
+Some pauses are scheduled by a policy rather than asked for. If `policies.requireApprovalAtStages` names a stage, the run pauses on its own at the boundary into it, with the status `waiting_for_approval`. That pause waits for a decision, so `vibe resume` is not the tool - use `vibe approvals`:
 
 ```bash
 vibe approvals list <runId>
@@ -97,19 +91,21 @@ vibe approvals request-changes \
   <runId> <approvalId> --guidance "what to change"
 ```
 
-When an agent asks for your approval (it emitted a `HUMAN_APPROVAL` request, not a policy gate), you have a third option: **request changes**. Instead of a dead-end reject, you return free-form guidance and the run carries on into that stage's next turn with your guidance attached, then pauses again for your call - bounded by `policies.approvalMaxChangeRounds` (default 3). A policy gate has no agent turn to send guidance to, so requesting changes there fails closed and blocks the run, same as a reject.
+When an agent asks for your approval - a `HUMAN_APPROVAL` request, not a policy gate - you have a third option: **request changes**. Instead of a dead-end reject, you return free-form guidance; the run carries on into that stage's next turn with it attached, then pauses again for your call, bounded by `policies.approvalMaxChangeRounds` (default 3). A policy gate has no agent turn to send guidance to, so requesting changes there fails closed and blocks the run, the same as a reject.
 
-Each of these stopping points has its own status, so you always know why a run is sitting still:
+*In the dashboard:* every blocked run appears on **Mission control** under **Waiting on you** with **Approve**, **Reject** and **Details**, and the same decision sits in a banner at the top of the run.
+
+Each stopping point has its own status, so you know why a run is sitting still:
 
 <div class="docs-chips"><span>paused</span><span>waiting_for_approval</span><span>blocked</span><span>aborted</span></div>
 
 ### Abort, or let it block
 
-Not every stuck run should be aborted. Abort means you end it; block means it stopped itself. Here is how to tell them apart.
+Not every stuck run should be aborted. Abort means you end it; block means it stopped itself.
 
-- The run is doing something you don't want it doing. **Abort.**
-- The reviewer is doing something useful but is stuck on a call you'd rather make yourself. **Abort**, fix the cause (clarify the task, add a skill, adjust the rules), then run again.
-- The run stopped itself (status `blocked`) because the reviewer or verifier raised a real concern. Don't abort. Read the findings, decide what to do, and restart with the lesson encoded in the task or a skill.
+- The run is doing something you do not want it doing. **Abort.**
+- The reviewer is useful but stuck on a call you would rather make yourself. **Abort**, fix the cause (clarify the task, add a skill, adjust the rules), then run again.
+- The run stopped itself (status `blocked`) because the reviewer or verifier raised a real concern. Do not abort: read the findings, decide, and restart with the lesson encoded in the task or a skill.
 
 ### Next
 

@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   parseSupervisorDecision,
-  effectiveSupervisorDecision,
   parseNewInvariants,
   appendInvariants,
   buildSupervisorPrompt,
@@ -29,13 +28,16 @@ describe("supervisor decision parse", () => {
     const r = parseSupervisorDecision("the weather is nice");
     expect(r.decision).toBeNull();
     expect(r.reason).toBeTruthy();
-    expect(effectiveSupervisorDecision("the weather is nice")).toBe("PROCEED");
   });
 
-  it("folds ENHANCE to PROCEED for control flow (Phase 3 reserves ENHANCE)", () => {
-    expect(effectiveSupervisorDecision("DECISION: ENHANCE")).toBe("PROCEED");
-    expect(effectiveSupervisorDecision("DECISION: ESCALATE")).toBe("ESCALATE");
-    expect(effectiveSupervisorDecision("DECISION: PROCEED")).toBe("PROCEED");
+  // Was: "folds ENHANCE to PROCEED". It does not any more - saga-turns.ts keeps
+  // the three-way verdict and the orchestrator branches on ENHANCE. The folding
+  // helper this asserted had no production importer left, so the test was the
+  // only thing keeping it alive and the only thing still claiming it mattered.
+  it("parses all three verdicts, ENHANCE included", () => {
+    expect(parseSupervisorDecision("DECISION: ENHANCE").decision).toBe("ENHANCE");
+    expect(parseSupervisorDecision("DECISION: ESCALATE").decision).toBe("ESCALATE");
+    expect(parseSupervisorDecision("DECISION: PROCEED").decision).toBe("PROCEED");
   });
 });
 

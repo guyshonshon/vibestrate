@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+- **The documentation is written for the app now, not the terminal.** All 60
+  pages led with a command and mentioned the screen in passing. Vibestrate is
+  UI first, the interactive shell second and the CLI last, and the guides now
+  read that way: the screen and the control that does the thing, then `vibe`,
+  then the command as the automation path. No commands were removed, and the
+  CLI reference pages are still about the CLI.
+- **Ninety-odd factual corrections came out of it.** Every page was reviewed
+  against the source that renders it, adversarially, by a reader who had not
+  written it. Some of what that found: the Crew page said an ambiguous seat
+  resolves to "the first match" when the resolver refuses the run outright; the
+  Policies surface was described as gates that cannot be turned off, when all
+  four are editable switches that declare an invariant rather than enforce it;
+  the dashboard's own help cards offered six commands that fail if you copy
+  them; three screenshot captions described controls their pictures do not
+  contain. Those are fixed in the product as well as in the docs.
+- **Two new gates, because both of those classes were invisible.** Every
+  `vibe …` in the docs and in the dashboard's help cards is now checked against
+  the real command tree - subcommands, flags and required arguments, not just
+  the first word, which is how `vibe crew set-profile` passed the old check
+  twice. And all 19 scoped screenshots are registered with the labels they show
+  and the components that render them, so a renamed button fails a test instead
+  of quietly making a picture lie.
+- **The pages are about 5% shorter.** Four independent compression passes each
+  reported the same thing: the prose is dense rather than padded. A corpus-wide
+  search for filler returns single digits, and roughly a quarter of what is on
+  these pages is code, diagrams and screenshot descriptions that carry facts.
+  The duplication that did exist - captions re-narrating their own alt text,
+  an analogy after a plain definition - is gone.
+
 - **Setting a project up no longer means a terminal.** `vibe ui` already ran
   `vibe init` from the browser, but `vibe doctor` had no dashboard surface at
   all - the report was computed by an API route nothing rendered, and the repair

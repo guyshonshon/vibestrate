@@ -1,14 +1,14 @@
 ---
 title: Skill
-description: A markdown file of house rules that every agent reads, so you write your conventions once.
+description: A markdown file of house rules, attached to the roles that need it, so you write your conventions once.
 slug: concepts/skill
 ---
 
 ## In simple words
 
-A **skill** is a markdown file you write once, and any agent can read it. Use it for the things that should always be true about your codebase: your conventions, your security rules, the "we do not do X here".
+A **skill** is a markdown file you write once and attach to an agent. Use it for the things that should always be true about your codebase: your conventions, your security rules, the "we do not do X here".
 
-Think of the note you would hand a careful new colleague on their first day. You do not repeat the house rules every time you give them a task. You write them down once, point at them, and trust they are remembered.
+It is the note you would hand a careful new colleague on their first day.
 
 ```markdown
 # API conventions
@@ -19,11 +19,11 @@ Think of the note you would hand a careful new colleague on their first day. You
 - No `console.log` in source. Use the logger in `src/logger.js`.
 ```
 
-That is a whole skill. It lives under `.vibestrate/skills/`, and any [[role]] you attach it to reads it on every turn.
+That is a whole skill. It lives under `.vibestrate/skills/`, and you attach it on the **Crew** page: `vibe ui` opens the dashboard on `127.0.0.1:4317`, and every role card there has a **Skills** field.
 
 <div class="docs-callout tip">
 
-**Tip.** A skill is the cheapest fix for "the model keeps doing the thing I told it not to". Before writing a custom [[flow]] or a [[policy]], try writing the rule down as a skill and attaching it. Far less machinery, and it applies to every task.
+**Tip.** A skill is the cheapest fix for "the model keeps doing the thing I told it not to". Try it before a custom [[flow]] or a [policy](/docs/concepts/policies): far less machinery, and it applies to every task.
 
 </div>
 
@@ -47,40 +47,29 @@ Which layers may talk to which, and what never crosses.
 
 <div class="docs-callout">
 
-**Did you know?** A skill can carry MCP servers, which means attaching one hands a role new *tools* as well as new instructions. That is why skill assignment is gated the same way a prompt edit is: it is the same class of authority, not a lesser one.
+**Did you know?** A skill written as a directory can carry MCP servers, which means attaching one hands a role new *tools* as well as new instructions. A flat `.md` skill never does. That is why skill assignment is gated the same way a prompt edit is: it is the same class of authority, not a lesser one.
 
 </div>
 
 
 ## Going deeper
 
-### Why it helps
+### Attach one to a role
 
-Most "the agent did the wrong thing" problems trace back to context the agent didn't have. Skills fix that without retraining a model and without padding every task description with the same boilerplate.
+**Crew** in the sidebar opens the roster, and clicking a crew opens its detail page. Each role card there carries a **Skills** field with a **+ skill…** picker listing everything discovered in this project, and each attached skill sits as a chip with an `x` to detach it. A card writes each change as you make it. The `+` beside **Crew** starts a new crew in the crew editor, which **Edit roles** on the detail page also opens; that editor is the one that holds every role behind a single save.
 
-### What a skill looks like
+`vibe shell` puts the same thing on its Skills page (`8`) as a grid: `↑↓` picks the skill, `←→` picks the agent, `↵` or space toggles the pair.
 
-There's no required format. It's markdown. Write it like documentation for a careful colleague.
+The commands are the automation path:
 
-```markdown
-# .vibestrate/skills/payments/SKILL.md
-
-This codebase handles real money.
-When touching `src/payments/`:
-
-- Always idempotent. Every external POST
-  must include an idempotency key.
-- Currency is stored as integer cents.
-  Never floats.
-- Refunds must go through
-  `RefundService.process()` - never inline.
+```bash
+vibe skills list
+vibe skills show <name>
+vibe skills assign <agent> <skill>
+vibe skills unassign <agent> <skill>
 ```
 
-That's the whole skill. No frontmatter required.
-
-### Attaching a skill to an agent
-
-Name the skills each role should get in `project.yml`. Roles live under `crews.<crewId>.roles`, not a top-level `agents:` key:
+`assign` and `unassign` write one field, a role's `skills` list under `crews.<crewId>.roles` in `project.yml`; `list` and `show` only read. There is no top-level `agents:` key:
 
 ```yaml
 crews:
@@ -88,20 +77,29 @@ crews:
     roles:
       planner:
         skills: [payments, error-handling]
-      executor:
-        skills: [payments]
 ```
 
-Or attach them just for one run, merged into every agent for that run:
+### Attach one to a step, or to a single run
+
+Knowledge belonging to a phase rather than a worker goes on the step. The Flow Builder's step inspector has a **Skills (this step)** picker, added to that step's prompt on top of the run's own skills and carried by the flow when you share it.
+
+For one task and no longer, the CLI takes them inline. This flag has no dashboard equivalent today:
 
 ```bash
-vibe run "Refund a stuck transaction" \
-  --skills payments,oncall-runbook
+vibe run "Refund a stuck transaction" --skills payments,oncall-runbook
 ```
 
-### Skills vs project rules
+### Where they come from, and what is gated
 
-`.vibestrate/rules.md` is loaded for *every* agent on *every* run. Skills are loaded only for the agents and runs that ask for them - a smaller circle inside the same one:
+**More > Project** lists every skill discovered under `.vibestrate/skills/` and `.claude/skills/`, with its source beside each name. When that list is empty the page offers a **Fetch skill** box for an http(s) URL, as does the step inspector; `vibe skills fetch <url>` is the same install.
+
+Installing is guarded rather than gated: private hosts refused, the body capped at 256 KB, secret-shaped content redacted, no overwrite unless you ask. Nothing reads a fetched skill until it is assigned.
+
+Assignment is the gated half. From the dashboard it crosses the Action Broker as a `file.write` naming both `project.yml` and the role's own instruction file, so a policy denying file writes refuses it in that policy's own words. Allowed or refused, the decision is recorded in `.vibestrate/runs/roles/actions.ndjson`, the audit bucket for authoring that happens outside any run. `vibe skills assign` and the shell write the same field without that gate, and leave no such record. See [[safety]].
+
+### Skills and project rules
+
+`.vibestrate/rules.md` loads for *every* agent on *every* run. A skill loads only for the agents and runs that ask for it - a smaller circle inside the same one:
 
 <svg viewBox="0 0 560 130" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Project rules are loaded for every agent on every run; a skill is loaded only for the roles that name it, so a skill's audience sits inside the rules' audience.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -122,17 +120,13 @@ vibe run "Refund a stuck transaction" \
   </g>
 </svg>
 
-Use rules for the universal "this is how we work." Use skills for "this is what you need to know if you're touching X."
-
 ### Common mistakes
 
-- **Putting everything in one skill.** A single 5000-word file is hard for any agent to weigh. Split by surface - auth, payments, errors, observability - and attach only the ones relevant to each agent.
-- **Writing skills like prompts.** Don't say "you are an expert at...". Say what the convention is. Agents read skills like docs.
-- **Using skills for ephemeral info.** "Fix the bug in PR #123" belongs in the task description, not in a skill.
+- **Everything in one skill.** A 5000-word file is hard for any agent to weigh. Split by surface - auth, payments, errors - and attach only what each agent needs.
+- **Writing skills like prompts.** Do not say "you are an expert at...". State the convention. Agents read skills like docs.
+- **Ephemeral info.** "Fix the bug in PR #123" belongs in the task description.
 
-### Going deeper
+### Related
 
-- A folder-shaped skill can declare MCP servers (Model Context Protocol) in a `.mcp.json` beside its `SKILL.md`, for the times the context an agent needs is live rather than written down. Attaching the skill attaches the servers. A flat `.md` skill has no folder of its own, so it can never carry them.
-- Assigning or unassigning a skill from the dashboard crosses the Action Broker as a `file.write` against `project.yml`, so a policy that denies file writes refuses it with the policy's own message and the decision lands in `.vibestrate/runs/roles/actions.ndjson`. The request names the Role's instruction file alongside the config, because a skill is instructions replayed into that Role's turns and can hand it new tools - so a path-scoped rule aimed at either file refuses the assignment. That gate is on the HTTP surface: `vibe skills assign` and the terminal shell write the same field with no gate. **Installing** a skill from a URL is not gated either - `vibe skills fetch` and the dashboard's fetch both write a new file into `.vibestrate/skills/` behind their own guards (private hosts refused, 256 KB cap, secret-shaped content redacted, no overwrite unless you ask), and nothing reads it until it is assigned to a Role, which is gated. See [[safety]].
-- [Attach skills (getting started)](/docs/getting-started/skills).
-- [Extending: add a skill](/docs/extending/add-skill).
+- [Extending: add a skill](/docs/extending/add-skill) - the file layout, the frontmatter, and the directory form that carries an MCP server.
+- [Attach skills (getting started)](/docs/getting-started/skills) - the quick path to your first one.

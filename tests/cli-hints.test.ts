@@ -33,9 +33,13 @@ describe("hintForRoute", () => {
   it("interpolates the current runId into run-detail hints", () => {
     const h = hintForRoute({ kind: "run", runId: "run-xyz" });
     const joined = h.commands.map((c) => c.cmd).join("\n");
-    expect(joined).toContain("vibe status run-xyz");
     expect(joined).toContain("vibe replay run-xyz");
     expect(joined).toContain("vibe pause run-xyz");
+    // `vibe status` takes no argument - it lists this project's runs. This hint
+    // read `vibe status ${runId}` and the CLI rejected it, so the assertion
+    // that put it there is now the assertion that keeps it out.
+    expect(joined).toContain("vibe status");
+    expect(joined).not.toContain("vibe status run-xyz");
   });
 
   it("interpolates the current taskId into task-detail hints", () => {

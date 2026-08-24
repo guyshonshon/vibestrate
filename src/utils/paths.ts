@@ -61,9 +61,13 @@ export function projectParamsPath(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), "project-params.json");
 }
 
-/** `VIBESTRATE.md` at the project root - the orchestrator's durable operating
- *  manual (project model, dev commands, orchestration preferences, risk rules).
- *  Distinct from `.vibestrate/rules.md` (per-turn prompt guidance). */
+/** `VIBESTRATE.md` at the project root - a durable operating manual (project
+ *  model, dev commands, orchestration preferences, risk rules) written for a
+ *  person and for Consult, which is its only reader: `loadProjectManual` is
+ *  called by the consult route, the consult context builder and `vibe guide`,
+ *  and by nothing in the run path. Do not describe it as the orchestrator's -
+ *  no orchestrator code loads it. Distinct from `.vibestrate/rules.md`, which
+ *  every agent does read on every turn. */
 export function vibestrateManualPath(projectRoot: string): string {
   return path.join(projectRoot, MANUAL_FILENAME);
 }

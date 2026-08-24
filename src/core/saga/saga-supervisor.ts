@@ -5,8 +5,11 @@
 // also maintains the non-folding INVARIANTS ledger: an append-only list of
 // cross-cutting decisions (e.g. "all API responses use snake_case") re-injected
 // into every step's packet - the anti-drift guarantee a folding outcome summary
-// cannot give. `ENHANCE` (re-ground the pending plan) is reserved for the
-// dedicated enhance pass; here it folds to PROCEED and is logged.
+// cannot give. `ENHANCE` (re-ground the pending plan) reaches the orchestrator
+// intact: run-engine/saga-turns.ts keeps the three-way verdict and branches on
+// it, so the enhance pass is driven from here. Worth knowing: the prompt below
+// asks for `PROCEED | ESCALATE` and never names ENHANCE, so that third branch
+// fires only when a model volunteers a word it was not offered.
 //
 // This module is PURE: the prompt builder, the decision/invariants parsers, and
 // the ledger accumulation are all testable without a provider. The orchestrator
@@ -63,17 +66,6 @@ export function parseSupervisorDecision(text: string): SupervisorParse {
     decision: null,
     reason: "Supervisor did not provide a parseable DECISION; proceeding.",
   };
-}
-
-/**
- * The decision that drives control flow: ENHANCE folds to PROCEED (the dedicated
- * enhance pass reserves the real re-ground), and an unparseable turn folds to PROCEED.
- * Only an explicit ESCALATE halts the saga.
- */
-export function effectiveSupervisorDecision(text: string): "PROCEED" | "ESCALATE" {
-  return parseSupervisorDecision(text).decision === "ESCALATE"
-    ? "ESCALATE"
-    : "PROCEED";
 }
 
 /** Extract `INVARIANT:` lines, redacted + trimmed, dropping empties. */

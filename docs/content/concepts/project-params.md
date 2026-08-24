@@ -8,15 +8,30 @@ slug: concepts/project-params
 
 Some [[flow]]s need a few answers before they can work: a project name, a brand colour, which framework you use. **Project parameters** let you give those answers once.
 
+The dashboard's **Settings** page carries a **Project parameters** panel. Pick the flow, fill its fields, press **Save**, and every later run reuses the values. Underneath, that is a small JSON file:
+
 ```json
 // .vibestrate/project-params.json
 {
-  "projectName": "acme-api",
-  "framework": "fastify"
+  "schemaVersion": 1,
+  "values": {
+    "scaffold.projectName": {
+      "value": "acme-api",
+      "setBy": "user",
+      "at": "2026-08-12T09:14:02.118Z",
+      "secret": false
+    },
+    "scaffold.framework": {
+      "value": "astro",
+      "setBy": "user",
+      "at": "2026-08-12T09:14:02.118Z",
+      "secret": false
+    }
+  }
 }
 ```
 
-The flow declares what it needs, you fill it in a single time, and every later run reuses the values.
+Each entry records who set it and when.
 
 <div class="docs-callout tip">
 
@@ -29,7 +44,7 @@ The flow declares what it needs, you fill it in a single time, and every later r
 <div class="docs-cards">
 
 **Scaffolding**
-A flow generating a starter project needs the name and the stack.
+A starter-project flow needs the name and the stack.
 
 **House style**
 A brand colour or a design token set that never changes between runs.
@@ -51,24 +66,30 @@ If a flow asks twice, it belongs here.
 
 ## Going deeper
 
-### Fill once, then run
+### The Settings panel
 
-```bash
-# Fill once - the --flow form type-checks values
-vibe params set --flow scaffold \
-  projectName=Acme framework=astro
+`vibe ui` opens the dashboard on `127.0.0.1:4317`; the panel is on **Settings**,
+at `#/settings`.
 
-# Every later run just uses them
-vibe run --flow scaffold
-
-vibe params list
-```
-
-In the dashboard, the **Project parameters** panel on the Settings page does the same, and the Composer's parameter form prefills from the stored values.
-
-Each declared param has a type, and the form type-checks every value against it:
+A **Flow** selector lists only the flows that declare `params:` at all. Under it,
+one row per parameter: the name, its type as a tag, a `shared` tag when it is
+project-global, an amber `secret` marker when the flow declared it secret -
+stored value or not - and the flow's description. An `enum` renders as a picker,
+everything else as a text field, and `stored:` under each row shows the current
+value and who set it - you, a generator, or a default.
 
 <div class="docs-chips"><span>string</span><span>number</span><span>boolean</span><span>enum</span><span>path</span></div>
+
+**Save** writes the edits, and editing here **supersedes** a stored value rather
+than only filling a blank. **All stored values** below it lists every key across
+every flow with a bin icon to remove one. Nothing is removed on your behalf.
+
+The composer carries the same fields, under **Inputs** on the **New run** page
+and under **Flow parameters** on Mission Control's composer. They are a different
+thing: an edit there overrides for that one run and is never stored. The fields
+do not start blank - each one opens on the stored answer, falling back to the
+flow's own default. A `secret` field is the exception and always starts empty,
+because a stored secret is an env reference rather than a value to show.
 
 ### How a value is chosen
 
@@ -91,7 +112,7 @@ At run start each declared param resolves top to bottom, stopping at the first s
     <text x="17" y="222">prompt, or fail fast in CI</text>
   </g>
   <g fill="currentColor" fill-opacity="0.5" font-size="11">
-    <text x="326" y="22">one-off override, or body.params</text>
+    <text x="326" y="22">one-off override, or the composer</text>
     <text x="326" y="72">the clean CI seed</text>
     <text x="326" y="122">what you filled in once</text>
     <text x="326" y="172">what the Flow itself declares</text>
@@ -99,13 +120,20 @@ At run start each declared param resolves top to bottom, stopping at the first s
   </g>
 </svg>
 
-- **Explicit** flags win, so a one-off override is easy. An empty `--param x=` means "not provided", so the stored value or default still fills it.
-- **`VIBESTRATE_PARAM_<NAME>`** is the clean CI seed: export the value, skip the interactive step, and the run never hangs unattended. The name part is the param name upper-snake-cased, so `colorTokens` becomes `VIBESTRATE_PARAM_COLOR_TOKENS`.
-- A **required** param still unset after all of that prompts on a TTY, or **fails fast** in CI with a message naming exactly what to set.
+- **Explicit** values win, from `--param` or the composer's input fields. An
+  empty `--param x=` means "not provided", so the stored value or default still
+  fills it.
+- **`VIBESTRATE_PARAM_<NAME>`** is the clean CI seed: export it, skip the
+  interactive step, and the run never hangs unattended. The name is the param
+  upper-snake-cased, so `colorTokens` becomes `VIBESTRATE_PARAM_COLOR_TOKENS`.
+  Two params that would collide on one env var are refused when the flow
+  resolves, rather than leaving one silently un-seedable.
+- A **required** param still unset after all of that prompts on a TTY, or **fails
+  fast** in CI with a message naming exactly what to set.
 
 ### Scope: per-flow by default
 
-Param names aren't unique across Flows, so by default a stored value is keyed per Flow (`<flowId>.<param>`). Two Flows that both call something `name` never cross-contaminate. Mark a param `shared: true` to store it under a project-global key - the bare name - that any other Flow declaring it shared reuses. That's the "fill it once, every Flow sees it" case.
+A stored value is keyed per Flow (`<flowId>.<param>`), so two Flows that both call something `name` never cross-contaminate. Mark a param `shared: true` to store it under a project-global key - the bare name - that any other Flow declaring it shared reuses.
 
 ### Secrets
 
@@ -118,15 +146,14 @@ params:
     secret: true
 ```
 
-You then set it by naming the variable, not by pasting the key:
+Its Settings field then asks for the variable name, not the key, and its placeholder says so. On the CLI:
 
 ```bash
 # The store keeps env:OPENAI_API_KEY, not the key
-vibe params set --flow my-deploy \
-  apiKey=OPENAI_API_KEY
+vibe params set --flow my-deploy apiKey=OPENAI_API_KEY
 ```
 
-A run that needs it **fails fast** if that env var isn't set, rather than starting with a non-functional secret. None of the built-in Flows declare a secret param, so this only comes up in a Flow you write. Bare-key writes without `--flow` are non-secret-only, and a best-effort scan still refuses an obvious pasted vendor key.
+A run that needs it **fails fast** if that env var isn't set, rather than starting with a non-functional secret. No built-in Flow declares a secret param, so this only comes up in a Flow you write. Bare-key writes without `--flow` are non-secret-only, and a best-effort scan still refuses an obvious pasted vendor key.
 
 ### Generate a default (optional)
 
@@ -142,11 +169,15 @@ params:
         for a {{params.niche}} brand
 ```
 
-Then the Settings panel shows a **Generate** button (and `vibe params generate --flow <id> palette` on the CLI). It calls a provider once, read-only, with your other known param values interpolated in, and returns a suggestion you review, edit, or accept. It is strictly user-initiated and never auto-applied, so a model can't silently make a brand color your project's truth.
+Its row in the Settings panel then grows a **Generate** button, and `vibe params
+generate --flow <id> palette` does the same. It calls a provider once, read-only,
+with your other known param values interpolated in, and returns a suggestion you
+review, edit, or accept. Strictly user-initiated and never auto-applied, so a
+model can't silently make a brand colour your project's truth.
 
 ### Methodology (a recognized project-global param)
 
-One project-global key is special: `methodology`. Set it to a known value and the **planner** gets that methodology's concrete planning guidance, so plans follow it:
+One project-global key is special. Set `methodology` to a known value and the **planner** gets that methodology's concrete planning guidance:
 
 ```bash
 # Recognized values: tdd, bdd, incremental
@@ -157,13 +188,28 @@ vibe params set methodology=tdd
 - `bdd` - plan as Given-When-Then behaviors, then derive the implementation.
 - `incremental` - smallest safe vertical slices, green at every step.
 
-By default it reaches the planner and nobody else, as one bounded block, once per run. `methodologyRoles` in `project.yml` widens that to other roles. An unrecognized value is ignored with a `methodology.unknown` run event, so it never breaks a run. The advisor never sets it for you. Methodology is yours to choose.
+It reaches the planner and nobody else by default, as one bounded block, once per run; `methodologyRoles` in `project.yml` widens that. An unrecognized value is ignored with a `methodology.unknown` run event, so it never breaks a run. The advisor never sets it for you.
 
-### Editing and removing
+### From a terminal
 
-Editing a value in the Settings panel or via `vibe params set` **supersedes** the old one, and the store records where it came from - you, or a generator. Remove a value explicitly with `vibe params unset <key>`. Vibestrate never purges your stored params on its own.
+The automation path, and the only surface for a key no flow declares: the
+Settings panel is organised by flow, writes a `shared: true` param under its bare
+project-global name like the CLI does, and cannot reach a key that exists in no
+flow's `params:` block.
 
-### Going deeper
+```bash
+# The --flow form type-checks values against the schema
+vibe params set --flow scaffold projectName=Acme framework=astro
+
+vibe params list           # every stored value, secrets as env refs
+vibe params get <key>
+vibe params unset <key>    # explicit, never automatic
+```
+
+`vibe shell` has no parameters screen. Its Config page is a read-only view of
+`project.yml`, which is a different file.
+
+### Related
 
 - [Flow](/docs/concepts/flow) - declares the typed `params:` the project params fill.
 - [Profile](/docs/concepts/profile) - a different thing: how *strong* a Role runs (provider + model + effort), not project data. Set with `vibe profile`.
