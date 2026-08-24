@@ -219,6 +219,14 @@
       "label": "Reference",
       "items": [
         {
+          "slug": "reference/flow-yml",
+          "label": "Flow YAML, annotated"
+        },
+        {
+          "slug": "reference/crew-config",
+          "label": "Crew config, annotated"
+        },
+        {
           "slug": "reference/cli",
           "label": "CLI commands",
           "generated": true,

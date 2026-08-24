@@ -13,15 +13,25 @@ You type one sentence. It opens a throwaway copy of your repository, walks a pla
 ```bash
 npm install -g vibestrate
 cd your-project
-vibe init && vibe doctor --fix
-vibe run "Add a /healthz endpoint" --ui
+vibe ui
 ```
+
+That opens the dashboard, and the rest happens there. **Setup** walks the same checks `vibe doctor` runs - a repository, the config, a model, your test commands - repairs what is safe to repair, and ends on the button that starts your first run. Nothing below this line is a second way of working; it is the same steps with their commands named.
 
 <div class="docs-callout tip">
 
-**Tip.** `vibe doctor --fix` is the step worth not skipping. It finds the CLIs you already have, wires up the ones it can, and prints the exact login command for anything not authenticated - which you run yourself.
+**Tip.** Every step on this page has a command and a screen, and they write the same files. Use whichever you have open. The one thing worth not skipping either way is the health check: it finds the CLIs you already have, wires up the ones it can, and prints the exact login command for anything not authenticated - which you run yourself.
 
 </div>
+
+Prefer to stay in the terminal? The same path, in four lines:
+
+```bash
+npm install -g vibestrate
+cd your-project
+vibe init && vibe doctor --fix
+vibe run "Add a /healthz endpoint" --ui
+```
 
 ## What just happened
 

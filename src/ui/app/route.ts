@@ -40,6 +40,7 @@ export type Route =
   | { kind: "settings" }
   | { kind: "policies" }
   | { kind: "project" }
+  | { kind: "setup" }
   | {
       kind: "source";
       tab: "changes" | "tree" | "merge";
@@ -184,6 +185,7 @@ export function parseHashRoute(hash: string): Route {
   if (parts[0] === "supervisors" && parts[1] === "new") return { kind: "supervisors-new" };
   if (parts[0] === "policies") return { kind: "policies" };
   if (parts[0] === "project") return { kind: "project" };
+  if (parts[0] === "setup") return { kind: "setup" };
   if (parts[0] === "codebase") {
     const filePath = query.get("path");
     const lineStr = query.get("line");
@@ -296,6 +298,8 @@ export function serializeRoute(route: Route): string {
       return "#/policies";
     case "project":
       return "#/project";
+    case "setup":
+      return "#/setup";
     case "codebase": {
       const q = new URLSearchParams();
       if (route.filePath) q.set("path", route.filePath);

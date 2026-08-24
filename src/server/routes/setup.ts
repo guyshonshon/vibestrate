@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { detectFullProject } from "../../project/project-detector.js";
 import { detectAllProviders } from "../../providers/provider-detection.js";
 import { listConfiguredProviders } from "../../setup/provider-setup-service.js";
-import { runDoctor } from "../../setup/doctor-service.js";
+import { runDoctor, applyDoctorFixes } from "../../setup/doctor-service.js";
 import { applySetup } from "../../setup/setup-service.js";
 import { configExists, loadConfig } from "../../project/config-loader.js";
 import { HttpError } from "../security.js";
@@ -107,6 +107,25 @@ export async function registerSetupRoutes(
       })),
     ]);
     return { project, providers, configured, doctor };
+  });
+
+  // The health report on its own. `/api/setup/summary` also carries it, but that
+  // route additionally shells out to every known coding CLI for detection, which
+  // is far too heavy for a panel that re-checks after each repair.
+  app.get("/api/setup/doctor", async () => runDoctor({ cwd: projectRoot }));
+
+  // The repair pass behind `vibe doctor --fix`, so the dashboard is not a
+  // read-only window onto a problem it has to send you to a terminal to solve.
+  // Write-side and deliberately narrow: applyDoctorFixes only ever creates
+  // missing `.vibestrate/` subdirectories and restores bundled defaults, all
+  // under the server's own project root - it never edits your source, and it
+  // takes no input from the request, so there is nothing here to aim elsewhere.
+  // Returns a freshly-run report so the caller renders the state after the
+  // repair rather than the state it remembered from before it.
+  app.post("/api/setup/doctor/fix", async () => {
+    const outcome = await applyDoctorFixes({ projectRoot });
+    const report = await runDoctor({ cwd: projectRoot });
+    return { ...outcome, report };
   });
 
   // Has this project been initialized (does `.vibestrate/` config exist)? The

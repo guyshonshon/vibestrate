@@ -91,7 +91,9 @@ The sidebar lists:
 - **Profiles** - the provider + model + effort presets your roles run on.
 - **Codebase** - the read-only project/git file tree, search, and history.
 
-Under **More**: **Supervisors** - the read-only catalog of supervisor personas (the orchestrator's judgment posture): what each one aims the reviewers at, the flow it favors for risky work, the safety posture it suggests, and which is the project default. Mirrors `vibe supervisor list`. Also **Policies**, **Proposals**, **Project**, **Config**, **Branding canvas**, and **All projects** (the multi-project workspace switcher).
+Under **More**: **Setup** - the guided path from an empty folder to a first run. It runs the same checks `vibe doctor` prints, grouped into numbered steps (a repository, the config, a model, your test commands, everything else), repairs what `vibe doctor --fix` would repair behind a **Fix what's safe** button, and ends on the button that starts your first run. Also **Supervisors** - the read-only catalog of supervisor personas (the orchestrator's judgment posture): what each one aims the reviewers at, the flow it favors for risky work, the safety posture it suggests, and which is the project default. Mirrors `vibe supervisor list`. Then **Policies**, **Proposals**, **Project**, **Config**, **Branding canvas**, and **All projects** (the multi-project workspace switcher).
+
+Running `vibe ui` in a folder with no `.vibestrate/` opens an onboarding screen rather than a half-broken dashboard: it scaffolds the project (and creates the git repository first, if you ask it to), then hands off to Setup when no provider was detected.
 
 Approvals and Suggestions no longer have their own pages - they're inspector tabs on each run's detail view (see "Watching a run" below). Notifications live in the bell icon in the sidebar's utility row, not a page.
 

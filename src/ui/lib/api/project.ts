@@ -11,6 +11,24 @@ import type {
   ManualLedgerEntryInput,
 } from "./types.js";
 
+/** Mirrors DoctorReport in src/setup/doctor-service.ts. Declared rather than
+ *  imported: the browser bundle must not pull in the server's doctor module. */
+export type DoctorFindingDto = {
+  id: string;
+  severity: "ok" | "warn" | "fail";
+  title: string;
+  detail?: string;
+  fixHint?: string;
+  fixable: boolean;
+};
+
+export type DoctorReportDto = {
+  projectRoot: string;
+  inGitRepo: boolean;
+  findings: DoctorFindingDto[];
+  recommendedNextSteps: string[];
+};
+
 export const projectApi = {
   async getProjectMetadata(): Promise<ProjectMetadata> {
     const r = await jsonGet<{ metadata: ProjectMetadata }>(
@@ -49,6 +67,18 @@ export const projectApi = {
     providerComplete: boolean;
   }> {
     return jsonPost("/api/setup/init", input ?? {});
+  },
+  async getDoctorReport(): Promise<DoctorReportDto> {
+    return jsonGet("/api/setup/doctor");
+  },
+  /** Run the same narrow repair pass as `vibe doctor --fix`, and get back the
+   *  report as it stands afterwards rather than the one we already had. */
+  async applyDoctorFixes(): Promise<{
+    applied: string[];
+    skipped: string[];
+    report: DoctorReportDto;
+  }> {
+    return jsonPost("/api/setup/doctor/fix", {});
   },
   async getProjectTree(input?: {
     depth?: number;

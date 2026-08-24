@@ -183,6 +183,20 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: "vibe policies migrate", note: "lift legacy persona preferences" },
         ],
       };
+    case "setup":
+      return {
+        title: "Setup",
+        blurb:
+          "Everything a run needs, checked in one place. The same report `vibe doctor` prints.",
+        commands: [
+          { cmd: "vibe init", note: "scaffold .vibestrate/ (--git-init when the folder is not a repo yet)" },
+          { cmd: "vibe doctor", note: "the read-only report this page renders" },
+          { cmd: "vibe doctor --fix", note: "the same narrow repair pass as Fix what's safe" },
+          { cmd: "vibe provider detect", note: "which coding CLIs are on this machine" },
+          { cmd: "vibe provider setup", note: "point Vibestrate at one of them" },
+          { cmd: 'vibe config set commands.validate "[\"pnpm test\"]"', note: "the commands a run uses as ground truth" },
+        ],
+      };
     case "project":
       return {
         title: "Project overview",

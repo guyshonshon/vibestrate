@@ -134,6 +134,9 @@ const ConfigPage = lazyRoute("ConfigPage", () =>
   import("./routes/ConfigPage.js").then((m) => ({ default: m.ConfigPage })),
 );
 
+const SetupPage = lazyRoute("SetupPage", () =>
+  import("./routes/SetupPage.js").then((m) => ({ default: m.SetupPage })),
+);
 const ProposalsPage = lazyRoute("ProposalsPage", () =>
   import("./routes/ProposalsPage.js").then((m) => ({ default: m.ProposalsPage })),
 );
@@ -371,6 +374,8 @@ export function App() {
                 ? "settings"
                 : route.kind === "policies"
                 ? "policies"
+                : route.kind === "setup"
+                ? "setup"
                 : route.kind === "project"
                   ? "project"
                   : route.kind === "codebase"
@@ -419,6 +424,7 @@ export function App() {
       onShowSettings={() => navigate({ kind: "settings" })}
       onShowPolicies={() => navigate({ kind: "policies" })}
       onShowProject={() => navigate({ kind: "project" })}
+      onShowSetup={() => navigate({ kind: "setup" })}
       onShowConfig={() => navigate({ kind: "config" })}
       onShowConsult={() => navigate({ kind: "consult", taskId: null })}
       onShowCodebase={() =>
@@ -508,6 +514,8 @@ export function App() {
         </Suspense>
       ) : route.kind === "policies" ? (
         <PoliciesPage />
+      ) : route.kind === "setup" ? (
+        <SetupPage />
       ) : route.kind === "project" ? (
         <ProjectPage
           onSelectRun={(runId) => navigate({ kind: "run", runId })}

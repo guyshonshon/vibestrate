@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- **Setting a project up no longer means a terminal.** `vibe ui` already ran
+  `vibe init` from the browser, but `vibe doctor` had no dashboard surface at
+  all - the report was computed by an API route nothing rendered, and the repair
+  pass behind `--fix` had no route at all. So the docs had to send people to a
+  terminal for the one step that tells them what is wrong. There is now a
+  **Setup** page: the same checks doctor prints, grouped into numbered steps -
+  a repository, the config, a model, your test commands, everything else - with
+  a **Fix what's safe** button that runs the same narrow repair, and the button
+  that starts your first run at the end. Every step reads its state out of
+  doctor's own findings, so a check added to the service appears here without
+  being re-implemented. Running `vibe ui` on a project with no provider
+  detected now lands you there instead of on an empty dashboard.
+- **Two annotated reference pages**, in the spirit of a commented `values.yaml`:
+  the Default flow written out as the YAML you would author, and the crew,
+  profiles and role files `vibe init` writes - every field explained where it
+  appears rather than in a table somewhere else.
+
 - **Every documentation section is a chapter you open.** Pages were long
   because the material is long, and all of it was on screen at once. Each `##`
   section is now collapsible, and a section carrying three or more `###`

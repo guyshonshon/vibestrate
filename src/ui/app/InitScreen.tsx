@@ -213,7 +213,18 @@ function DoneCard({
       ) : null}
 
       <div className="mt-8">
-        <Cta onClick={onEntered}>Enter Vibestrate</Cta>
+        {/* With no usable provider there is real work left, and the Setup page
+            is where the rest of it happens - landing on Mission Control would
+            show an empty dashboard and no hint of what to do next. With one
+            already detected, that detour is pointless. */}
+        <Cta
+          onClick={() => {
+            if (ready.length === 0) window.location.hash = "#/setup";
+            onEntered();
+          }}
+        >
+          {ready.length === 0 ? "Finish setting up" : "Enter Vibestrate"}
+        </Cta>
       </div>
     </>
   );

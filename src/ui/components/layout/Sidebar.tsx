@@ -19,6 +19,7 @@ import {
   Settings2,
   ShieldCheck,
   SlidersHorizontal,
+  Stethoscope,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { NotificationRecord, RunState, RunStatus } from "../../lib/types.js";
@@ -53,6 +54,7 @@ type Props = {
   onShowWorkspace: () => void;
   onShowProposals: () => void;
   onShowProject: () => void;
+  onShowSetup: () => void;
   onShowConfig: () => void;
   onShowCodebase: () => void;
   onShowSource: () => void;
@@ -86,6 +88,7 @@ export function Sidebar({
   onShowWorkspace,
   onShowProposals,
   onShowProject,
+  onShowSetup,
   onShowConfig,
   onShowCodebase,
   onShowSource,
@@ -379,6 +382,7 @@ export function Sidebar({
           <div className="mb-1 ml-[22px] flex flex-col gap-0.5 border-l-[1.5px] border-[color:var(--line-strong)] pl-2.5">
             <MoreItem icon={<ShieldCheck className="h-4 w-4" strokeWidth={1.9} />} label="Supervisors" active={currentNav === "supervisors"} onClick={onShowSupervisors} />
             <MoreItem icon={<FileText className="h-4 w-4" strokeWidth={1.9} />} label="Proposals" active={currentNav === "proposals"} onClick={onShowProposals} />
+            <MoreItem icon={<Stethoscope className="h-4 w-4" strokeWidth={1.9} />} label="Setup" active={currentNav === "setup"} onClick={onShowSetup} />
             <MoreItem icon={<Folder className="h-4 w-4" strokeWidth={1.9} />} label="Project" active={currentNav === "project"} onClick={onShowProject} />
             <MoreItem icon={<Settings2 className="h-4 w-4" strokeWidth={1.9} />} label="Config" active={currentNav === "config"} onClick={onShowConfig} />
             <MoreItem icon={<FolderTree className="h-4 w-4" strokeWidth={1.9} />} label="All projects" active={currentNav === "workspace"} onClick={onShowWorkspace} />
