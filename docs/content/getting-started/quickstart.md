@@ -22,14 +22,7 @@ The dashboard opens on `127.0.0.1:4317`, where every step on this page happens. 
 
 </div>
 
-Every step below also names its command. Unattended, all of it is four lines:
-
-```bash
-npm install -g vibestrate
-cd your-project
-vibe init && vibe doctor --fix
-vibe run "Add a /healthz endpoint" --ui
-```
+Every step below names its command too. Nothing on this page needs a terminal after the install, and [the whole thing unattended](#unattended) is four lines.
 
 ## What just happened
 
@@ -104,41 +97,53 @@ which vibe
 
 ### Open it on your project
 
-```bash
-vibe ui
-```
+Run `vibe ui` from the repository root. It reads the project from the directory it started in, and exits telling you to `git init` if the folder is not a repo.
 
-Run it from the repository root: it reads the project from the directory it started in, and exits telling you to `git init` if the folder is not a repo.
+With no `.vibestrate/` yet the browser shows one screen and one button. **Initialize project** writes the config, a role file per crew member, and the rules file every agent reads, then names the CLIs it detected and offers **Enter Vibestrate** - or **Finish setting up** when it found none, which drops you on Setup. When the folder is not a repository yet, **Initialize git + set up project** does both; it commits only when nothing secret-looking would be swept in, so check `git log` afterwards, because a repository with no commit gives a run no branch to fork from.
 
-**Initialize project** writes the config, a role file per crew member, and the rules file every agent reads, then names the CLIs it detected and offers **Enter Vibestrate** - or **Finish setting up** when it found none, which drops you on Setup.
-
-`vibe init --yes` does the same from a terminal, taking the detected defaults:
-
-```text
-$ vibe init --yes
-✓ Vibestrate initialized.
-
-Project:     acme-api · Node.js · pnpm
-Provider:    ✓ Claude Code detected: claude (v2.1.227)
-Validation:  pnpm typecheck · pnpm test
-Files:       .vibestrate/project.yml, rules.md, skills/, policies/, roles/ (6 roles)
-
-✓ Learned the codebase -> .vibestrate/CODEBASE.md
-```
-
-Either route writes `.vibestrate/` and nothing else, your `.gitignore` included - add `.vibestrate/runs/` to it yourself. `vibe init --git-init` creates the repository too, as does the dashboard's **Initialize git + set up project**; each commits only when nothing secret-looking would be swept in. Check `git log` afterwards: a repository with no commit gives a run no branch to fork from.
+That writes `.vibestrate/` and nothing else, your `.gitignore` included - add `.vibestrate/runs/` to it yourself.
 
 This page writes `main` for your trunk. If yours has another name, set `git.mainBranch` on **More > Config** under Git.
 
-### The Setup page
+`vibe init --yes` is the same thing from a terminal, taking the detected defaults, and `--git-init` is the second button. It also writes `.vibestrate/CODEBASE.md`, a map of your project that the dashboard's button does not produce; `vibe learn` writes it on its own.
 
-Four tiles read Status, Failures, Warnings and Checks run. Under them sit the six numbered steps, each carrying the doctor findings that answer for it with a tick, warning or failure: **a repository to work in**, **initialise the project**, **connect a model** (Providers button), **point it at your tests** (Edit config button), **everything else doctor checks**, and **start your first run**, whose New run button unlocks once the project is initialised and nothing fails.
+## 2. Let Setup walk you through it
 
-**Fix what's safe** appears in the header whenever something is repairable, and lists what it changed under Last repair. In the terminal that report is `vibe doctor`, read-only, exiting 1 on a hard failure; `vibe doctor --fix` is what the button calls.
+**More > Setup** in the sidebar is the rest of this page in one screen, and it is the fastest way to read where you stand.
+
+Four tiles read Status, Failures, Warnings and Checks run. Under them sit six numbered steps, each carrying the checks that answer for it with a tick, a warning or a failure:
+
+<div class="docs-cards">
+
+**1. A repository to work in**
+Git is installed and you are inside a repository.
+
+**2. Initialise the project**
+`.vibestrate/` exists, the config parses, the project was detected.
+
+**3. Connect a model**
+Every configured CLI is on PATH, and every role resolves to one. A **Providers** button opens the screen that fixes it.
+
+**4. Point it at your tests**
+Whether any validation commands are set. An **Edit config** button opens Config.
+
+**5. Everything else**
+Prompt files, skills, the hard guards, anything else that would bite mid-run.
+
+**6. Start your first run**
+A **New run** button, unlocked once the project is initialised and nothing is failing.
+
+</div>
+
+**Fix what's safe** appears in the header whenever something is repairable, and lists what it changed under Last repair. It creates missing `.vibestrate/` folders, restores a bundled role file, adopts a detected provider when none is configured, and fills in validation commands when the list is empty. It never overwrites what you already set.
+
+The same report in a terminal is `vibe doctor`, read-only, exiting 1 on a hard failure. `vibe doctor --fix` is what the button calls.
+
+The two steps that usually need you are 3 and 4, and they are the next two sections.
 
 More: [Installation](/docs/getting-started/installation).
 
-## 2. Connect a model
+## 3. Connect a model
 
 ### See what you already have
 
@@ -178,11 +183,11 @@ Anything else exits 2, usually because the flags are wrong: the CLI ran and came
 
 More: [Set up a provider](/docs/getting-started/providers).
 
-## 3. Point it at your tests
+## 4. Point it at your tests
 
-Your own commands are the ground truth in a run. They live in `project.yml` as a list of shell strings and run one at a time inside the run's worktree.
+**Setup** step 4 tells you whether any are configured, and **Fix what's safe** fills them in from your package scripts when the list is empty and a lockfile names your package manager. It never overwrites a list you already have. **Edit config** beside that step opens **More > Config**, where they sit under **Validation commands**.
 
-**Setup** step 4 says whether any are configured. **Fix what's safe** fills them in from your package scripts when the list is empty and a lockfile names your package manager, never overwriting a list you already have. **Edit config** opens **More > Config**, where they sit under **Validation commands**, read-only in the browser because the server never executes a shell command string handed to it over HTTP. Authoring goes through the CLI:
+Those commands are the ground truth in a run: a list of shell strings in `project.yml`, run one at a time inside the run's worktree. They are the one setting the browser shows read-only, because the server never executes a shell command string handed to it over HTTP, so authoring goes through the CLI:
 
 ```bash
 vibe config set commands.validate "[\"pnpm typecheck\",\"pnpm test\"]"
@@ -194,9 +199,11 @@ vibe config set commands.validate "[\"pnpm typecheck\",\"pnpm test\"]"
 
 </div>
 
-## 4. Let the CLI write files
+## 5. Let it write files
 
-A `type: cli` provider gets the args in your `project.yml` and nothing else, so that CLI's own default decides whether it edits files. Init records claude as `type: cli`, so a first run on it plans a change, explains it, and writes nothing. Edit a provider's block on **Crew > Providers** (Config shows it read-only and links there); `execution.isolation` and `policies.strictApplyOnly` are editable on **More > Config** under Execution and Safety policies.
+**Crew > Providers** is where this one is settled: open a card, **Edit**, and either the form or **Edit as YAML**. The two project-wide switches beside it, `execution.isolation` and `policies.strictApplyOnly`, are on **More > Config** under Execution and Safety policies.
+
+What you are changing: a `type: cli` provider gets the args in your `project.yml` and nothing else, so that CLI's own default decides whether it edits files. Init records claude as `type: cli`, so a first run on it plans a change, explains it, and writes nothing.
 
 | Provider | What gives it write access |
 |---|---|
@@ -216,7 +223,7 @@ vibe config set execution.isolation sandboxed
 vibe config set policies.strictApplyOnly true
 ```
 
-## 5. Your first run
+## 6. Your first run
 
 <div class="docs-callout">
 
@@ -277,7 +284,7 @@ For scripting, `vibe run` exits 3 on blocked, failed or aborted and 0 otherwise;
 
 The worktree is a sibling of your repo, under `../.vibestrate-worktrees/`, so your project directory holds the metadata and none of the edited code. The run page's **Workspace** panel holds the path and a **Copy cd** button; **View diff** opens the changed-files list, where picking a file toggles between its diff and the whole file as it now stands. `vibe path bold-lovelace` prints the same path.
 
-## 6. Keep the change
+## 7. Keep the change
 
 <div class="docs-outcomes">
 <div class="docs-outcome ok"><b>merge_ready</b><span>Finished and waiting on your call.</span></div>
@@ -331,6 +338,19 @@ That token is the literal `merge-to-main` on every project, whatever your trunk 
 More: [Keep a change](/docs/getting-started/merging).
 
 ## Going deeper
+
+### Unattended
+
+Nothing above needs a person watching it. The same path in four lines, for CI or for a machine you have already set up:
+
+```bash
+npm install -g vibestrate
+cd your-project
+vibe init && vibe doctor --fix
+vibe run "Add a /healthz endpoint" --ui
+```
+
+`vibe run` exits 3 on blocked, failed or aborted and 0 otherwise, so a script can branch on it. Drop `--ui` when scripting: it keeps the process alive for the dashboard and exits 0 whatever happened.
 
 ### Everything else
 
