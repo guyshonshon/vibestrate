@@ -10,7 +10,7 @@ slug: concepts/consult
 
 You reach it from the orb that rests at the bottom right of every screen:
 
-![A small round violet orb, the Consult control, sitting at the bottom right corner of the dashboard.](/media/docs/scoped/consult-orb.png)
+![The bottom right corner of the dashboard. Two round controls stack there: a terminal button showing a prompt caret, and below it the Consult orb, a glowing violet square inside a circle.](/media/docs/scoped/consult-orb.png)
 
 One click from whatever raised the question, on whatever screen raised it.
 
