@@ -52,7 +52,11 @@ Read the diff, ask the advisor, merge deliberately.
 
 A **flow** is the recipe a run follows: an ordered list of steps. A step names the *kind* of worker it needs and never names a model. That kind is a **seat**, and the **roles** in your **crew** fill the seats. Each role runs on a **profile**: a provider, a model, and how hard that model should think.
 
+### What `vibe init` writes
+
 Run once at the root of your repository, `vibe init` writes `.vibestrate/` with your config file `project.yml`, a role file per crew member, and a rules file every agent reads.
+
+### Starting a run
 
 `vibe run` starts a run. It takes your task as its argument and closes with a summary whose `Branch:` and `Worktree:` lines carry the run's id, the handle every command on this page asks for. `vibe status` lists those ids later.
 
@@ -61,6 +65,8 @@ vibe run "Add structured logging to the settings save handler"
 ```
 
 The [quick start](/docs/getting-started/quickstart) walks that first run from install to merge. This page covers the flags and the screens around it.
+
+### The eight steps, and who takes each
 
 The `default` flow that `vibe init` writes plans, designs, implements, reviews and verifies, and the reviewer can send the work back to the fixer twice before the flow gives up. Those five verbs cover eight steps. Two of them write files, two run your own commands, and the other four read:
 
@@ -142,6 +148,8 @@ The `default` flow that `vibe init` writes plans, designs, implements, reviews a
   </g>
 </svg>
 
+### Which seats can write files
+
 `vibe init` hands `code_write` to the roles filling implementer and fixer, and `read_only` to the other four. A read-only role runs with file writes and shell access turned off. Validate and Re-validate name no seat, so no model runs them: your own commands do, inside the run's worktree. Those commands are `commands.validate` in `project.yml`, a list of shell strings that runs one at a time. `vibe init` fills the list in from your package scripts, and `vibe config set commands.validate` rewrites it. A pass or a fail there is evidence for the reviewer to weigh, and only the reviewer can call for a fix.
 
 ## The dashboard
@@ -164,6 +172,8 @@ cd /path/to/your-project && vibe ui
 
 ![Mission Control: a left sidebar listing Mission control, Dashboard, Runs, Flows, Crew, Policies, Source, Board, Metrics, Profiles, Codebase and More, then a utility row of Jump to, a notification bell and Settings, then a New run button, beside a scrolling pane holding the Supervisor panel, the New run panel and a Waiting on you section, with the Consult orb floating in the bottom-right corner.](/media/docs/mission-control.png)
 
+### Mission Control
+
 Mission Control is the screen it opens on. Panels drag and resize once you turn on edit mode, and each browser remembers its own arrangement.
 
 The **Supervisor** panel at the top is the judgment layer over your runs. A supervisor is a persona, `staff-engineer` out of the box, and it picks the flow when you do not name one, pushes a risky task toward heavier review, and records the reasoning on the run page under **Flow & why**. Its judgment adds review and never removes it, and an explicit `--flow` overrules it.
@@ -171,6 +181,8 @@ The **Supervisor** panel at the top is the judgment layer over your runs. A supe
 **Consult** is the ask-anything surface: it answers questions about your project from your own config, policies, runs and code. Its orb floats in the bottom-right corner of every screen but the full Consult page, and opens two cards. "Ask about this project" never edits your code. The most it leaves behind is a pending review rule or a proposed edit to `VIBESTRATE.md`, the operating manual the orchestrator reads when it picks a workflow, and a separate file from the `rules.md` every agent reads on every turn. Neither proposal takes effect until you confirm it.
 
 "Work in Vibestrate" can create a task, add a checklist item or start a run. It ships refusing all three, because `supervisorControl.autonomy` starts at `advise`. Turning that up needs a budget ceiling first, since config validation rejects an unbounded `act`: run `vibe budget set --max-turns-run 40`, then `vibe config set supervisorControl.autonomy act`. The panel's "Answers only" / "Answers and acts" switch overrides all of it: a kill switch that pauses the supervisor mid-conversation. More: [Mission Control](/docs/cli/dashboard).
+
+### Inside one run
 
 Open a run from there and its page carries every fact the terminal summary printed, with the diff behind it:
 
@@ -183,6 +195,8 @@ The status card carries the run's outcome. **merge ready** means the run finishe
 **View diff** in the header opens the Artifacts tab on the changed-files list, and picking a file toggles between its diff and the whole file as it now stands in the worktree. **Workspace** holds the worktree path and a `cd` you can copy. Terminal opens a shell inside that worktree, and `policies.allowInteractiveTerminal` starts off.
 
 ## Crews, flows and the Flow Hub
+
+### The flows that ship
 
 Fourteen flows ship. Three of them belong to the spec-up chain covered further down and stay out of the pickers, so eleven show up:
 
@@ -199,6 +213,8 @@ vibe flows list
 vibe flows show default --crew default
 vibe run "Harden the token refresh path" --flow security-review
 ```
+
+### Whether your crew covers a flow
 
 `flows show --crew` prints coverage per seat: filled, gap or ambiguous. Each seat needs exactly one candidate, or a `--seat-role` pin, and an unfilled or ambiguous seat stops the run before it spawns any model. Straight out of `vibe init`, every seat resolves, so this comes up only once you add roles: `Crew "default" has more than one role filling the "reviewer" seat` means two of yours qualify, and `vibe run "<task>" --seat-role reviewer=senior-reviewer` picks one.
 
@@ -272,6 +288,8 @@ Coverage is a name match. The flow asks for a seat, your crew answers with the r
   </g>
 </svg>
 
+### Splitting a run across two models
+
 One role answers for several seats. `vibe init` gives its executor role the `implementer`, `executor` and `builder` seats, and its reviewer role `reviewer` plus `challenger`, so six roles cover all nine seat names the built-in flows ask for.
 
 <div class="docs-callout warn">
@@ -291,6 +309,8 @@ vibe crew show default
 
 `crew show` prints each role beside the profile it now runs on - check that `reviewer` and `verifier` moved.
 
+### The Crew page
+
 The Crew page carries the same roster. The ring is one arc per seat, and the rows beside it name the role holding each arc and whether that role reads or writes. Its count runs to ten, because the page adds the seat names your own roles declare on top of the nine the flows ask for:
 
 ![The Crew page for the Default crew: a header reading Ready, runs by default, with 6 roles, 10 seats and all seats filled; a ring showing 10 of 10 seats filled with a row per role - Planner reading 1, Architect reading 1, Backend Implementer writing 3, Fixer writing 1, Reviewer reading 2, Verifier reading 2; then role cards for Backend Implementer and Reviewer with the seats each takes and the profile it runs on.](/media/docs/crew.png)
@@ -298,6 +318,8 @@ The Crew page carries the same roster. The ring is one arc per seat, and the row
 `vibe crew presets add <id>` installs a ready-made crew - `fast`, `thorough`, `cheap` or `local` - and `vibe crew presets list` shows which of them are already in your `project.yml`. The Flow Hub is the community catalog of flows other people published: `vibe flows hub list` searches it on vibestrate.com and `vibe flows hub install <handle>@<name>:<version>` writes one into `.vibestrate/flows/`. Read the YAML before you run it, because a downloaded flow runs commands on your machine.
 
 ## Your rules, and planning before building
+
+### Rules the reviewer enforces
 
 Rules you write yourself are **policies**, and they live in `project.yml`. (`.vibestrate/rules.md`, which `vibe init` also wrote, is a separate thing: free-text project context every agent reads.) A policy comes in two strengths:
 
@@ -317,6 +339,8 @@ vibe policies doctor
 ```
 
 </div>
+
+### Spec-up, for a brief that reads greenfield
 
 Spec-up fires without you asking for it. Hand an ordinary `vibe run` a brief that reads greenfield and Vibestrate swaps the run for a read-only intake that writes no code:
 
@@ -399,6 +423,8 @@ vibe spec-up build <spec-up run id>
   </g>
 </svg>
 
+### Commit inside the worktree
+
 A run on the linear flows - `default`, `express`, `panel-review`, `security-review`, `plan-only`, `scaffold`, `quality-arbitration` - leaves its edits uncommitted in the worktree, so the commit message stays yours to write. Read the diff, then write that commit, or every step below merges a clean nothing. The other four - `pickup`, `pickup-analysis`, `pickup-review` and `saga` - walk a board card's checklist and commit each item as it lands, so a run you started with `vibe tasks pickup` or `vibe tasks sequence` reaches you committed.
 
 ```bash
@@ -425,6 +451,8 @@ git checkout main
 # 4. Merge the staging branch into main. The token is required, verbatim.
 vibe integrate finish integration/logging --confirm merge-to-main
 ```
+
+### Read the advice before you merge
 
 `advise` mutates nothing and prints a recommendation with the evidence under it: the branch's ahead/behind counts, the checks that ran, and whether the merge applies cleanly onto main. `apply` refuses to target main. `finish` refuses a partial integration, a dirty tree, a conflict, a branch that moved since you read it, or a HEAD parked anywhere but main, and it merges without pushing. More: [Keep a change](/docs/getting-started/merging).
 

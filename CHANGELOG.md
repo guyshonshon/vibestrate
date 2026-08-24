@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+- **A rebuilt dashboard no longer dead-ends the tab you had open.** Pages load
+  as hashed chunks out of `dist/ui`, and a rebuild replaces every filename, so
+  a tab that was open across one still asked for names the server no longer
+  had: opening a run died on `Failed to fetch dynamically imported module`.
+  Nothing in the page could repair that, because the stale name is baked into
+  code that has already loaded. A route whose chunk fails to arrive now reloads
+  the tab once and lands on the page you asked for. Once, and only for a
+  missing file: a chunk still absent after the reload reaches the error panel
+  instead of refreshing forever, and it now says the build is incomplete rather
+  than blaming the view.
+- **Screenshots in the docs open full screen.** The crops are 2x captures, so a
+  2900px-wide run header rendered into a text column was a picture of text
+  nobody could read. Click any of them for the full-size view, with a step up
+  to native pixels for the widest ones, Esc to close.
+- **The documentation navigation has a second level.** A topic's sub-topics sit
+  under it - Flow over Steps and Seat, Crew over Role, Profile and Provider,
+  Run over Run state, Worktree and the task lifecycle - so the sidebar shows
+  what belongs to what instead of one long flat run of names. Breadcrumbs carry
+  the parent too.
+- **Getting started is a numbered path.** Install, connect a model, learn the
+  words, run one task, keep the change, and so on in that order - the pages
+  used to hand off backwards, sending you to your first run before you had a
+  model wired up.
+- **Quick start and the full walkthrough are navigable.** Every real step in
+  them was an H3 buried under a single "Going deeper" heading, which is what a
+  reader's table of contents showed: three entries for a 570-line page. The
+  steps are now headings in their own right, with subheadings under the long
+  ones.
+
 - **The card-carries-its-spec fix had no producer behind it, so every card
   still ran blind.** A card records the approved spec it came from in
   `specRef`, and both launchers attach it. Nothing ever wrote the file that

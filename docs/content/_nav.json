@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "$comment": "This file is the only source of truth for how the docs are grouped, ordered and labelled in navigation. Page frontmatter carries no section - it would be a second, silently drifting copy, and the in-shell reader (src/shell/ink/docs-source.ts) never looks at it. Adding a page means adding it here; tests/docs-nav-consistency.test.ts fails if a page and this file disagree.",
+  "schemaVersion": 2,
+  "$comment": "This file is the only source of truth for how the docs are grouped, ordered and labelled in navigation. Page frontmatter carries no section - it would be a second, silently drifting copy, and the in-shell reader (src/shell/ink/docs-source.ts) never looks at it. An item may carry its own `items`, one level deep, for topics that only make sense once their parent is understood; read depth-first, the order still teaches each word before the words that use it. Adding a page means adding it here; tests/docs-nav-consistency.test.ts fails if a page and this file disagree.",
   "sections": [
     {
       "id": "start",
@@ -17,86 +17,52 @@
         {
           "slug": "getting-started/walkthrough",
           "label": "Full walkthrough"
-        },
-        {
-          "slug": "getting-started/installation",
-          "label": "Installation"
-        },
-        {
-          "slug": "getting-started/windows",
-          "label": "Native Windows support"
         }
       ]
     },
     {
       "id": "getting-started",
-      "label": "Getting started",
+      "label": "Getting started, in order",
       "items": [
         {
-          "slug": "getting-started/welcome",
-          "label": "The guided walkthrough"
-        },
-        {
-          "slug": "getting-started/first-run",
-          "label": "Your first run"
-        },
-        {
-          "slug": "getting-started/merging",
-          "label": "Keep a change (Git & merging)"
+          "slug": "getting-started/installation",
+          "label": "1. Install it",
+          "items": [
+            {
+              "slug": "getting-started/windows",
+              "label": "Native Windows support"
+            }
+          ]
         },
         {
           "slug": "getting-started/providers",
-          "label": "Set up a provider"
+          "label": "2. Connect a model"
         },
         {
-          "slug": "getting-started/skills",
-          "label": "Attach skills"
-        }
-      ]
-    },
-    {
-      "id": "at-a-glance",
-      "label": "At a glance",
-      "items": [
-        {
           "slug": "getting-started/big-picture",
-          "label": "The big picture"
+          "label": "3. The words you will meet"
+        },
+        {
+          "slug": "getting-started/first-run",
+          "label": "4. Your first run",
+          "items": [
+            {
+              "slug": "getting-started/welcome",
+              "label": "Let the app guide you"
+            }
+          ]
+        },
+        {
+          "slug": "getting-started/merging",
+          "label": "5. Keep the change"
         },
         {
           "slug": "getting-started/why-a-human",
-          "label": "Why a human stays in the loop"
+          "label": "6. Why you stay in the loop"
         },
         {
-          "slug": "concepts/supervisor",
-          "label": "Supervisor"
-        },
-        {
-          "slug": "concepts/policies",
-          "label": "Policies"
-        },
-        {
-          "slug": "concepts/supervisor-control",
-          "label": "Supervisor Control"
-        },
-        {
-          "slug": "concepts/consult",
-          "label": "Consult"
-        },
-        {
-          "slug": "concepts/walkthroughs",
-          "label": "Walkthroughs"
-        },
-        {
-          "slug": "concepts/spec-up",
-          "label": "Spec-up (plan before you build)"
-        },
-        {
-          "slug": "concepts/supervised-tasks",
-          "label": "Supervised tasks"
-        },
-        {
-          "slug": "concepts/derived-flows",
-          "label": "Derived flows"
+          "slug": "getting-started/skills",
+          "label": "7. Teach it your conventions"
         }
       ]
     },
@@ -110,56 +76,114 @@
         },
         {
           "slug": "concepts/flow",
-          "label": "Flow - the recipe"
-        },
-        {
-          "slug": "concepts/seat",
-          "label": "Seat - a slot in a step"
+          "label": "Flow - the recipe it follows",
+          "items": [
+            {
+              "slug": "concepts/workflow",
+              "label": "Steps"
+            },
+            {
+              "slug": "concepts/seat",
+              "label": "Seat"
+            }
+          ]
         },
         {
           "slug": "concepts/crew",
-          "label": "Crew - who fills the seats"
-        },
-        {
-          "slug": "concepts/role",
-          "label": "Role - one member of a crew"
-        },
-        {
-          "slug": "concepts/profile",
-          "label": "Profile - the model a role runs on"
-        },
-        {
-          "slug": "concepts/provider",
-          "label": "Provider - the CLI behind a profile"
+          "label": "Crew - who fills the seats",
+          "items": [
+            {
+              "slug": "concepts/role",
+              "label": "Role"
+            },
+            {
+              "slug": "concepts/profile",
+              "label": "Profile"
+            },
+            {
+              "slug": "concepts/provider",
+              "label": "Provider"
+            }
+          ]
         },
         {
           "slug": "concepts/run",
-          "label": "Run - all of it, working"
-        },
-        {
-          "slug": "concepts/worktree",
-          "label": "Worktree - where a run's edits live"
+          "label": "Run - all of it, working",
+          "items": [
+            {
+              "slug": "concepts/state",
+              "label": "Run state"
+            },
+            {
+              "slug": "concepts/worktree",
+              "label": "Worktree"
+            },
+            {
+              "slug": "task-lifecycle",
+              "label": "Task lifecycle"
+            }
+          ]
         }
       ]
     },
     {
-      "id": "concept-flow",
-      "label": "Inside a Flow",
+      "id": "control",
+      "label": "Rules and safety",
       "items": [
         {
-          "slug": "concepts/workflow",
-          "label": "Workflow"
+          "slug": "concepts/supervisor",
+          "label": "Supervisor",
+          "items": [
+            {
+              "slug": "concepts/policies",
+              "label": "Policies"
+            },
+            {
+              "slug": "concepts/supervisor-control",
+              "label": "Supervisor Control"
+            }
+          ]
+        },
+        {
+          "slug": "concepts/safety",
+          "label": "The Action Broker"
+        },
+        {
+          "slug": "concepts/sandbox",
+          "label": "Container isolation"
+        }
+      ]
+    },
+    {
+      "id": "beyond",
+      "label": "Beyond one run",
+      "items": [
+        {
+          "slug": "concepts/spec-up",
+          "label": "Spec-up"
+        },
+        {
+          "slug": "concepts/supervised-tasks",
+          "label": "Supervised tasks"
+        },
+        {
+          "slug": "concepts/derived-flows",
+          "label": "Derived flows"
         },
         {
           "slug": "concepts/project-params",
           "label": "Project parameters"
-        }
-      ]
-    },
-    {
-      "id": "concept-crew",
-      "label": "Inside a Crew",
-      "items": [
+        },
+        {
+          "slug": "concepts/consult",
+          "label": "Consult",
+          "items": [
+            {
+              "slug": "concepts/walkthroughs",
+              "label": "Walkthroughs"
+            }
+          ]
+        },
         {
           "slug": "concepts/ponytail",
           "label": "Ponytail minimalism"
@@ -167,52 +191,26 @@
       ]
     },
     {
-      "id": "concept-runtime",
-      "label": "Runtime & safety",
-      "items": [
-        {
-          "slug": "concepts/sandbox",
-          "label": "Container isolation"
-        },
-        {
-          "slug": "concepts/safety",
-          "label": "Safety - Action Broker & policies"
-        },
-        {
-          "slug": "concepts/skill",
-          "label": "Skill"
-        },
-        {
-          "slug": "concepts/annotation",
-          "label": "Annotations"
-        }
-      ]
-    },
-    {
-      "id": "concept-config",
-      "label": "Configuration",
+      "id": "teach",
+      "label": "Teach it your project",
       "items": [
         {
           "slug": "concepts/configuration",
-          "label": "Configuration & settings"
-        },
-        {
-          "slug": "concepts/vibestrate-md",
-          "label": "VIBESTRATE.md"
-        }
-      ]
-    },
-    {
-      "id": "lifecycle",
-      "label": "Run lifecycle",
-      "items": [
-        {
-          "slug": "concepts/state",
-          "label": "Run state"
-        },
-        {
-          "slug": "task-lifecycle",
-          "label": "Task lifecycle"
+          "label": "Configuration & settings",
+          "items": [
+            {
+              "slug": "concepts/vibestrate-md",
+              "label": "VIBESTRATE.md"
+            },
+            {
+              "slug": "concepts/skill",
+              "label": "Skills"
+            },
+            {
+              "slug": "concepts/annotation",
+              "label": "Annotations"
+            }
+          ]
         }
       ]
     },
@@ -270,43 +268,47 @@
       "items": [
         {
           "slug": "cli/overview",
-          "label": "CLI overview"
-        },
-        {
-          "slug": "cli/shell",
-          "label": "Interactive shell"
-        },
-        {
-          "slug": "cli/dashboard",
-          "label": "Mission Control"
-        },
-        {
-          "slug": "cli/supervised-tasks",
-          "label": "vibe tasks"
-        },
-        {
-          "slug": "cli/supervisor",
-          "label": "vibe supervisor"
+          "label": "CLI overview",
+          "items": [
+            {
+              "slug": "cli/shell",
+              "label": "Interactive shell"
+            },
+            {
+              "slug": "cli/dashboard",
+              "label": "Mission Control"
+            },
+            {
+              "slug": "cli/supervised-tasks",
+              "label": "vibe tasks"
+            },
+            {
+              "slug": "cli/supervisor",
+              "label": "vibe supervisor"
+            }
+          ]
         },
         {
           "slug": "workflows/create-and-run",
-          "label": "Create and run a task"
-        },
-        {
-          "slug": "workflows/inspect-progress",
-          "label": "Inspect a run in flight"
-        },
-        {
-          "slug": "workflows/pause-resume",
-          "label": "Pause, resume, abort"
-        },
-        {
-          "slug": "workflows/debug-failed",
-          "label": "Debug a failed run"
-        },
-        {
-          "slug": "workflows/git-tree-merge",
-          "label": "Merge from the git tree"
+          "label": "Create and run a task",
+          "items": [
+            {
+              "slug": "workflows/inspect-progress",
+              "label": "Inspect a run in flight"
+            },
+            {
+              "slug": "workflows/pause-resume",
+              "label": "Pause, resume, abort"
+            },
+            {
+              "slug": "workflows/debug-failed",
+              "label": "Debug a failed run"
+            },
+            {
+              "slug": "workflows/git-tree-merge",
+              "label": "Merge from the git tree"
+            }
+          ]
         }
       ]
     },
@@ -316,15 +318,17 @@
       "items": [
         {
           "slug": "architecture/overview",
-          "label": "High-level architecture"
-        },
-        {
-          "slug": "architecture/http-api",
-          "label": "HTTP API"
-        },
-        {
-          "slug": "architecture/directory-map",
-          "label": "Repository map"
+          "label": "High-level architecture",
+          "items": [
+            {
+              "slug": "architecture/http-api",
+              "label": "HTTP API"
+            },
+            {
+              "slug": "architecture/directory-map",
+              "label": "Repository map"
+            }
+          ]
         }
       ]
     },

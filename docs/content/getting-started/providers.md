@@ -201,3 +201,7 @@ If you'd rather stay out of the terminal, Mission Control's Crew page has a **Pr
 
 - [Providers reference](/docs/reference/providers) - the current list, notes on each one, and the install hint.
 - The dashboard's Providers tab can also add a provider from scratch (cloud API, local server, custom CLI) and run a connectivity probe that checks a cloud key without spending anything.
+
+### Next
+
+[The words you will meet →](/docs/getting-started/big-picture) - task, flow, seat, crew, profile and provider, defined once before you run anything.

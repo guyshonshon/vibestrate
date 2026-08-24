@@ -153,3 +153,5 @@ vibe approvals request-changes \
 
 - [Workflow](/docs/concepts/workflow) - the stages that drive transitions.
 - [Task lifecycle](/docs/task-lifecycle) - the same statuses, drawn as a transition diagram.
+
+Next: [[worktree]] covers the copy of your repo a run works in.

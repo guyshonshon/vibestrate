@@ -1,5 +1,5 @@
 ---
-title: Workflow
+title: Steps - the workflow of a run
 description: The eight steps of the default flow, in order, and what each one is for.
 slug: concepts/workflow
 ---
@@ -151,3 +151,5 @@ A model turn only counts as success if its provider exits cleanly **and** return
 - [Flow](/docs/concepts/flow) - alternate recipes, and how a Flow gets chosen.
 - [Workflow reference](/docs/reference/workflow) - the canonical, generated stage list.
 - [Task lifecycle](/docs/task-lifecycle) - the same path with the full status diagram.
+
+Next: [[seat]] is the slot a flow step asks for.

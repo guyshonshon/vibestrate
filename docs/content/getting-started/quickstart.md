@@ -47,12 +47,7 @@ Nothing pushed, nothing merged. Yours to read and take.
 
 </div>
 
-
-## Going deeper
-
-### The parts
-
-Three words carry this page.
+## The three words on this page
 
 - **Task** - the sentence you type.
 - **Run** - one pass over that task, with its own id, its own branch, and its own worktree: a second checkout of your repository in a separate folder, made with stock `git worktree`. The run edits that copy, so the files you have open never move under you, and prompts, outputs and decisions land under `.vibestrate/runs/`.
@@ -60,7 +55,9 @@ Three words carry this page.
 
 Flows, seats, roles, crews and profiles decide who fills each step of a run. You can finish this page without them: [the big picture](/docs/getting-started/big-picture) defines all five, and [Flow](/docs/concepts/flow), [Crew](/docs/concepts/crew), [Seat](/docs/concepts/seat) and [Worktree](/docs/concepts/worktree) go deeper.
 
-### Install and verify
+## 1. Install and initialise
+
+### What you need first
 
 Vibestrate needs **Node 24 or newer**, a git repository with at least one commit, and at least one AI coding CLI installed and signed in. It ships none of them, so set one up at the vendor first:
 
@@ -71,6 +68,8 @@ Vibestrate needs **Node 24 or newer**, a git repository with at least one commit
 | Gemini | `npm install -g @google/gemini-cli` | run `gemini` once |
 | Aider | `python -m pip install aider-install && aider-install` | set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` |
 | Ollama | [ollama.com/download](https://ollama.com/download) | none, it runs on your machine |
+
+### Install the CLI
 
 ```bash
 npm install -g vibestrate
@@ -118,6 +117,8 @@ which vibe
 ```
 
 </div>
+
+### Initialise your project
 
 Run this from the root of a git repo. `--yes` takes the detected defaults instead of asking. Drop it to answer the questions yourself, and add `--git-init` if the folder is not a repo yet.
 
@@ -169,7 +170,7 @@ This page writes `main` for your trunk branch. If yours goes by another name, se
 vibe config set git.mainBranch master
 ```
 
-Then check the setup:
+### Check the setup
 
 ```bash
 vibe doctor
@@ -196,7 +197,9 @@ Vibestrate Doctor v0.2.1
 
 More: [Installation](/docs/getting-started/installation).
 
-### Connect a model, then test it
+## 2. Connect a model
+
+### Detect what you already have
 
 ```bash
 vibe provider detect
@@ -216,6 +219,8 @@ Detected local coding CLIs:
 ○ Gemini CLI - not found
   Command tried: gemini
 ```
+
+### Point Vibestrate at your CLI
 
 "Ready" describes detection, not your config: `vibe init --yes` writes a `claude` block whatever it detected, so on anything other than Claude Code run `vibe provider setup` once to point it at the binary you have. It asks one question, needs a real terminal, and writes on the spot:
 
@@ -238,6 +243,8 @@ Provider setup
 That writes a `codex` block into `.vibestrate/project.yml` - `codex exec`, prompt on stdin - and points every default agent at it.
 
 Only Claude Code, Codex and Ollama get their own line in that list, and each appears only when detection found it. Everything else, gemini and aider included, goes through **Custom CLI command**: give the id, the command, its args, and whether the prompt arrives on stdin or as the last argument.
+
+### Prove you are signed in
 
 Detection proves a binary answers `--version`. Whether you are signed in is a separate check:
 
@@ -264,6 +271,8 @@ vibe provider test codex --yes
 
 </div>
 
+### When the test fails
+
 A logged-out CLI exits 3 and names its own login command:
 
 ```text
@@ -285,7 +294,7 @@ Anything else exits 2. The usual cause is wrong flags - the CLI ran and came bac
 
 More: [Set up a provider](/docs/getting-started/providers).
 
-### Tell it how to run your tests
+## 3. Tell it how to run your tests
 
 Your own commands are the ground truth in a run. They live in `.vibestrate/project.yml` as a list of shell strings and run one at a time inside the run's worktree.
 
@@ -331,7 +340,7 @@ vibe config set commands.validate "[\"pnpm typecheck\",\"pnpm test\"]"
 
 </div>
 
-### One fix before your first run
+## 4. Let the CLI write files
 
 A `type: cli` provider gets the args in your `project.yml` and nothing else, so that CLI's own default decides whether it edits files.
 
@@ -362,7 +371,7 @@ For ollama, and for any CLI whose write flag you would rather not hand over, let
 vibe config set policies.strictApplyOnly true
 ```
 
-### Your first run
+## 5. Your first run
 
 <div class="docs-callout">
 
@@ -371,6 +380,8 @@ vibe config set policies.strictApplyOnly true
 </div>
 
 The `default` flow plans, designs, implements, reviews and verifies, and the reviewer can send the work back to the fixer twice before the flow gives up. Those five verbs cover eight steps, and the [full walkthrough](/docs/getting-started/walkthrough) lays them out one row at a time.
+
+### Write a brief worth running
 
 Your sentence reaches the planner verbatim, next to your rules file and the codebase map `vibe init` generated. Those two describe the repo. Your brief is the only part that says what you want out of it:
 
@@ -392,6 +403,8 @@ Scoped. It names the surface, the change, and the thing to reuse.
 **Watch the first one.** Add `--ui` and the dashboard opens on port 4317 beside the running steps. That flag also holds the process open once the run ends, so the result is still on screen when you go looking for it.
 
 </div>
+
+### Start it
 
 ```bash
 vibe run "Add structured logging to the settings save handler"
@@ -422,6 +435,8 @@ vibe config set git.mainBranch master
 ```
 
 </div>
+
+### Read the summary
 
 Three of those lines came from defaults. `Supervisor: staff-engineer` is the scrutiny setting: how hard the reviewers look before they call the work done. It is not the Supervisor panel in the dashboard, which is a conversation with your project. `Default` is the flow's name and `default` its id, and `crew: default` is the roster of roles that filled its seats. More: [Supervisor](/docs/concepts/supervisor).
 
@@ -454,6 +469,8 @@ vibe ui --port 4318
 
 </div>
 
+### Find the worktree
+
 The worktree is a sibling of your repo, under `../.vibestrate-worktrees/`, so your project directory holds the metadata and none of the edited code:
 
 ```bash
@@ -468,7 +485,7 @@ Workspace bold-lovelace
   cd /home/you/.vibestrate-worktrees/bold-lovelace
 ```
 
-### Run outcomes, and how to keep one
+## 6. Keep the change
 
 <div class="docs-outcomes">
 <div class="docs-outcome ok"><b>merge_ready</b><span>Finished and waiting on your call.</span></div>
@@ -476,6 +493,8 @@ Workspace bold-lovelace
 <div class="docs-outcome stop"><b>failed</b><span>Something broke mid-run.</span></div>
 <div class="docs-outcome stop"><b>aborted</b><span>You stopped it with vibe abort.</span></div>
 </div>
+
+### What each outcome means
 
 Three checks and a policy can produce that `blocked`, and the merge advice further down calls the checks by these names. **Validation** is your own shell commands. **Review** is the reviewer's verdict on the diff. **Verification** is an independent pass over the finished change. A **policy** is a rule you wrote yourself, and the [full walkthrough](/docs/getting-started/walkthrough) covers writing them.
 
@@ -486,6 +505,8 @@ The three endings that aren't `merge_ready` each have a way out:
 - **aborted** - the worktree survives, so `vibe path bold-lovelace` still reads the partial work.
 
 More: [Debug a failed run](/docs/workflows/debug-failed).
+
+### Commit inside the worktree
 
 A run on the linear flows - `default`, `express`, `panel-review`, `security-review`, `plan-only`, `scaffold`, `quality-arbitration` - leaves its edits **uncommitted** in the worktree on purpose: the commit message is yours to write, and an uncommitted tree is easy to throw away. That means `vibestrate/<runId>` still points at your trunk tip.
 
@@ -501,6 +522,8 @@ cd -    # back to your project
 ```
 
 That `cd -` matters. Vibestrate works out which project you mean from the git root of wherever you are standing, and inside a worktree that git root is the worktree. Run every step below from your project.
+
+### The merge path
 
 Three branches carry a change home. The run's branch forks from your trunk the moment the run starts, a staging branch you name takes the merge, and your trunk takes the last hop behind a token you type out.
 
@@ -557,6 +580,8 @@ Local only - nothing was pushed.
 ```
 
 `apply` refuses to target your trunk. `finish` refuses a partial integration, a branch that moved since you reviewed it, a dirty project tree, or a HEAD parked somewhere other than your trunk. More: [Keep a change](/docs/getting-started/merging).
+
+## Going deeper
 
 ### Everything else
 

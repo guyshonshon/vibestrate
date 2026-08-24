@@ -174,4 +174,4 @@ See [Debug a failed run](/docs/workflows/debug-failed) for the step-by-step play
 
 ### Next
 
-[Set up a provider →](/docs/getting-started/providers) - Vibestrate picks a sensible default, but five minutes on how the models are wired up pays off.
+[Keep the change →](/docs/getting-started/merging) - the run left a branch in a copy of your repo. This is how you take it.

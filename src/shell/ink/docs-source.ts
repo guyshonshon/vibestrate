@@ -36,12 +36,8 @@ async function contentDir(): Promise<string> {
   throw new Error("docs/content not found near the CLI bundle");
 }
 
-type Nav = {
-  sections?: Array<{
-    label: string;
-    items?: Array<{ slug: string; label: string; generated?: boolean }>;
-  }>;
-};
+type NavItem = { slug: string; label: string; generated?: boolean; items?: NavItem[] };
+type Nav = { sections?: Array<{ label: string; items?: NavItem[] }> };
 
 /** The ordered, labelled topic list from `_nav.json`. Throws if docs aren't
  *  bundled (the caller shows a "visit the website" fallback). */
@@ -49,16 +45,19 @@ export async function listDocs(): Promise<DocTopic[]> {
   const raw = await readFile(path.join(await contentDir(), "_nav.json"), "utf8");
   const nav = JSON.parse(raw) as Nav;
   const topics: DocTopic[] = [];
-  for (const sec of nav.sections ?? []) {
-    for (const it of sec.items ?? []) {
+  // Nested items are flattened depth-first, so the shell lists topics in the
+  // same reading order the website's sidebar shows them in.
+  const collect = (items: NavItem[], section: string): void => {
+    for (const it of items) {
       // A `generated` entry is rendered by the website from docs/generated/*.json
       // and has no markdown file, here or in the published package. Listing one
       // offered a topic that could only fail: readDoc would ENOENT and the shell
       // printed the raw absolute path at the reader.
-      if (it.generated) continue;
-      topics.push({ slug: it.slug, label: it.label, section: sec.label });
+      if (!it.generated) topics.push({ slug: it.slug, label: it.label, section });
+      collect(it.items ?? [], section);
     }
-  }
+  };
+  for (const sec of nav.sections ?? []) collect(sec.items ?? [], sec.label);
   return topics;
 }
 

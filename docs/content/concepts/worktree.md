@@ -134,3 +134,5 @@ One thing to avoid: don't run `git checkout main` inside a copy. Each copy is ti
 
 - [Run state](/docs/concepts/state) - the final statuses that tell you whether to keep a copy.
 - [Task lifecycle](/docs/task-lifecycle) - when a copy is created and torn down.
+
+Next: [the task lifecycle](/docs/task-lifecycle) puts every status on one diagram.

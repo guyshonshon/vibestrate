@@ -103,4 +103,4 @@ Every run gets its own git [[worktree]], a real checkout on its own branch shari
 
 Tokens, spend and duration per step, every decision the supervisor made, the diff, and the validator output. It is written locally as the run happens, which is what makes a finished run something you can re-read rather than something you have to remember.
 
-Next: [[worktree]] covers the copy of your repo a run works in.
+Next: [[state]] is where a run has got to, and what is allowed to move it.

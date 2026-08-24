@@ -408,14 +408,19 @@ function navLabels(nav: unknown): Map<string, string> {
   const out = new Map<string, string>();
   const sections = (nav as { sections?: unknown } | null)?.sections;
   if (!Array.isArray(sections)) return out;
+  // Items nest one level, and a child belongs to its section just as its parent
+  // does - the grouping a question is answered from is the section, not the
+  // parent topic.
+  const collect = (items: unknown, label: string): void => {
+    if (!Array.isArray(items)) return;
+    for (const item of items as Array<NavItem & { items?: unknown }>) {
+      if (typeof item?.slug === "string") out.set(item.slug, label);
+      collect(item?.items, label);
+    }
+  };
   for (const raw of sections) {
     const section = raw as NavSection;
-    const items = Array.isArray(section.items) ? section.items : [];
-    for (const item of items as NavItem[]) {
-      if (typeof item?.slug === "string") {
-        out.set(item.slug, typeof section.label === "string" ? section.label : "");
-      }
-    }
+    collect(section.items, typeof section.label === "string" ? section.label : "");
   }
   return out;
 }

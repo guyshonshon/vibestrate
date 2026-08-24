@@ -15,8 +15,19 @@ import { fileURLToPath } from "node:url";
  */
 const contentDir = resolve(dirname(fileURLToPath(import.meta.url)), "../docs/content");
 
-type NavItem = { slug: string; label: string; generated?: boolean; source?: string };
+type NavItem = {
+  slug: string;
+  label: string;
+  generated?: boolean;
+  source?: string;
+  items?: NavItem[];
+};
 type Nav = { sections: Array<{ id: string; label: string; items: NavItem[] }> };
+
+/** Every entry, parents and their children alike, in sidebar reading order. */
+function flatten(items: NavItem[]): NavItem[] {
+  return items.flatMap((i) => [i, ...flatten(i.items ?? [])]);
+}
 
 const nav = JSON.parse(readFileSync(join(contentDir, "_nav.json"), "utf8")) as Nav;
 
@@ -54,7 +65,7 @@ function frontmatter(slug: string): Record<string, string> {
 }
 
 const slugs = pageSlugs();
-const navItems = nav.sections.flatMap((s) => s.items);
+const navItems = nav.sections.flatMap((s) => flatten(s.items));
 
 describe("docs nav is the single source of truth", () => {
   it("lists every page exactly once", () => {
@@ -83,6 +94,32 @@ describe("docs nav is the single source of truth", () => {
     const labels = nav.sections.map((s) => s.label);
     expect(new Set(ids).size).toBe(ids.length);
     expect(new Set(labels).size).toBe(labels.length);
+  });
+
+  it("nests at most one level, which is all the sidebar renders", () => {
+    const tooDeep = nav.sections.flatMap((s) =>
+      s.items.flatMap((i) => (i.items ?? []).filter((c) => c.items?.length).map((c) => c.slug)),
+    );
+    expect(tooDeep, "nav entries nested more than one level below a section").toEqual([]);
+  });
+
+  it("makes every `Next:` footer point at the page that actually comes next", () => {
+    // These footers rotted silently the last time the nav order moved: Flow
+    // still handed off to Seat after Steps had been inserted between them.
+    const order = navItems.filter((i) => !i.generated).map((i) => i.slug);
+    const wrong: string[] = [];
+    for (const [index, slug] of order.entries()) {
+      const line = /^Next: (.+)$/m.exec(readFileSync(join(contentDir, `${slug}.md`), "utf8"));
+      if (!line) continue;
+      const text = line[1] ?? "";
+      const wiki = /\[\[([a-z0-9-]+)\]\]/.exec(text);
+      const href = /\]\(\/docs\/([a-z0-9/-]+)\)/.exec(text);
+      const target = wiki ? `concepts/${wiki[1]}` : href?.[1];
+      if (target !== order[index + 1]) {
+        wrong.push(`${slug} -> ${target ?? "(no link)"} (next is ${order[index + 1]})`);
+      }
+    }
+    expect(wrong, "`Next:` footers that skip or contradict the nav order").toEqual([]);
   });
 
   it("keeps grouping out of page frontmatter", () => {

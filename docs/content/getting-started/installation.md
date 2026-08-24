@@ -138,4 +138,4 @@ Add `runs/` to your `.gitignore` yourself, since `vibe init` doesn't touch that 
 
 ### Next
 
-[Run your first task →](/docs/getting-started/first-run)
+[Connect a model →](/docs/getting-started/providers) - Vibestrate spawns the coding CLIs you already have, so point it at one before you run anything.

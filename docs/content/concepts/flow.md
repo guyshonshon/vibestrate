@@ -168,4 +168,4 @@ vibe run "Tighten the auth checks" \
 
 It needs `--flow`, because step ids belong to a named flow. An id that is not in that flow is refused before the run starts: `Profile override references unknown Flow step "reveiw".`
 
-Next: [[seat]] is the slot a flow step asks for.
+Next: [[workflow]] walks the eight steps of the default flow, one at a time.

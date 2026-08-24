@@ -119,4 +119,4 @@ One thing is worth changing early. `vibe init` points all six roles at the same 
 ## Going deeper
 
 - [Task](/docs/concepts/task), [Flow](/docs/concepts/flow), [Seat](/docs/concepts/seat), [Crew](/docs/concepts/crew) - a full page for each word.
-- [Install Vibestrate](/docs/getting-started/installation), then [run your first Task](/docs/getting-started/first-run).
+- [Run your first task](/docs/getting-started/first-run) - the same words, watched happening.
