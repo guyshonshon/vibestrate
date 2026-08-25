@@ -28,9 +28,7 @@ That switch is a **permission**, not a stop. It decides whether the supervisor m
 
 </div>
 
-## Going deeper
-
-### One turn
+## One turn
 
 Every turn runs in three legs, and the middle one is code rather than a model.
 
@@ -62,7 +60,7 @@ The turn streams: which leg is running, the provider's reasoning where its adapt
 
 </div>
 
-### What comes back
+## What comes back
 
 The composer says "Ask anything, or say what you want built" on Mission Control, and "Ask about this run, or say what you want done" inside a run. Both are literal.
 
@@ -70,7 +68,7 @@ A question about the project ("why did the last run on the checkout task stop be
 
 A question about Vibestrate itself is answered from these pages and the real commands. Ask it as a procedure - "how do I", "where can I", "show me how", "walk me through", "what is a" - and a **Show me how** button appears under the answer. A question the catalog already covers gets an authored walkthrough, every target a source literal checked by the compiler; everything else gets one built for that question, every step checked against the real route table and the real list of controls before anything opens. A step that does not survive is dropped, and a walkthrough left with no steps is refused with the reason on screen. A step is a **destination**: it lands you on the screen, rings the control and says what it is for. See [Walkthroughs](/docs/concepts/walkthroughs).
 
-### Conversations
+## Conversations
 
 There are two kinds of thread, and they never mix.
 
@@ -86,7 +84,7 @@ Scoping is enforced on the server, in both directions. A run has exactly one thr
 
 The answerer sees the **last 6 messages** - three exchanges, counting yours and its own - inside a delimited block introduced as a record of what was said, not instructions to follow. The router never sees a prior turn at all: its output can act, and its own earlier words are model-written text that would then steer the next decision.
 
-### The composer
+## The composer
 
 The paperclip picks files. **Attachments are names, not uploads** - nothing is copied anywhere. The names ride in your message as a line reading "Attached for reference: ...", and the agent opens them from the repository it is already working in. That keeps a screenshot or a spec out of the run's artifacts and out of replay, and a file the agent cannot reach from the project is a name it cannot open. Image thumbnails come from the browser's own file handle and never leave the tab.
 
@@ -94,7 +92,7 @@ Two pickers appear beside it when there is something to pick. **Profile** choose
 
 Every message has a reply control, carrying it into your next turn as a quote. A supervisor message is model-written, so quoting one back puts model output into the prompt of a turn that can act. It arrives as **quoted material, never as instructions**: every quoted line is prefixed with `> `, so no line inside can equal the closing fence and end the quote early, and the block is announced in the same shape the router uses for your own message. Long messages are trimmed to a thousand characters.
 
-### Stop
+## Stop
 
 Stop aborts the request, which reaches the provider CLI's abort signal and kills the whole process group, with a hard kill three seconds later.
 
@@ -106,7 +104,7 @@ Stop aborts the request, which reaches the provider CLI's abort signal and kills
 
 Closing the socket is what stops a turn, so reloading the page or restarting the server does the same thing. Stop is per-turn and changes no setting.
 
-### Letting it act
+## Letting it act
 
 Out of the box the supervisor **writes nothing**. Two gates stand in front of acting, and both have to say yes.
 
@@ -122,7 +120,7 @@ Out of the box the supervisor **writes nothing**. Two gates stand in front of ac
 
 Every action shows in the thread on the message that caused it, including the ones it refused. Supervisor effects are audited in one place, `.vibestrate/supervisor/`.
 
-### What it cannot do
+## What it cannot do
 
 **It cannot edit your code.** The four intents are the whole write surface, and none of them opens a source file. A task and its TODO items are written into `.vibestrate/`, Vibestrate's own gitignored state. Code only changes when a run changes it, in a worktree, behind the diff you review.
 
@@ -138,7 +136,7 @@ Every action shows in the thread on the message that caused it, including the on
 
 **Starting a run is not reversible.** It spends money, takes the task lock, creates a branch, and its agent runs commands on your machine. Aborting one is cooperative: a run mid-turn finishes that turn first. So the turn also **proves** the run started rather than assuming it - a run is launched detached with its output ignored, so the turn watches for its state file for 15 seconds and says the run did not start if it never appears.
 
-### Automation
+## Automation
 
 The interactive shell (`vibe`, or `vibe shell`) has no supervisor chat screen, and nothing in it stands in for one: its **Consult** page is the keyboard-driven review of `VIBESTRATE.md` proposals, where you apply or reject them, which is neither a conversation nor read-only. The commands below are for scripts, for a machine with no browser, and for the autonomy setting, which lives in config rather than on screen.
 

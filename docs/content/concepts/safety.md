@@ -58,9 +58,7 @@ No push, no merge, ever, without a human. Two of the four hard guards declare it
 
 </div>
 
-## Going deeper
-
-### The Action Broker
+## The Action Broker
 
 Eight kinds of effect cross it, and this is the whole list:
 
@@ -117,7 +115,7 @@ Decisions are honoured fail-closed: anything short of an explicit `allow` refuse
 
 There is **no `network.request` or `mcp.tool` kind**. A provider CLI's own HTTP calls and tool invocations happen inside an opaque subprocess Vibestrate cannot intercept, so a policy kind for them would advertise a checkpoint that does not exist. Network confinement is enforced a layer down, at the container boundary: see [egress allowlist](/docs/concepts/sandbox).
 
-### What does not cross the boundary
+## What does not cross the boundary
 
 Not every byte written under `.vibestrate/` crosses it. A policy reaches a write only when some code path raises that write as an action.
 
@@ -127,7 +125,7 @@ Not every byte written under `.vibestrate/` crosses it. A policy reaches a write
 
 **Not gated** - two things the supervisor does. With `supervisorControl.autonomy: act`, a chat message that creates a task or appends checklist items writes to the roadmap with no broker call; there is no action kind for either, and they are bounded by shape instead, a title or a list of strings, both length-capped, onto a task already on offer. A consult answer that proposes a project policy writes a pending entry into `project.yml`, inert until you confirm it. Starting a run from that same chat message *is* gated, as `run.start`.
 
-### Writing a policy file
+## Writing a policy file
 
 The **Policies** page header counts your advise, block and pending rules beside the loaded engine rules. **Your policies** and the read-only **Deterministic engine** sit on the left; **Hard guards**, **Execution** and **Supervisor posture** switches and a **Check a patch** box sit on the right.
 
@@ -175,7 +173,7 @@ Two things about `pathGlob`. **Anchor it at the root**: the path it matches is a
 
 A policy file that fails to parse contributes **no rules**, and a duplicate rule id keeps only the first, so a stricter rule can vanish while the page still looks healthy. Nothing downstream catches that: the broker only ever sees the rules that *did* load. So a run **refuses to start** while `.vibestrate/policies/` holds a malformed file or a duplicate id, and the broker's loader denies effects on the same condition, covering the surfaces that reach a model without creating a run. Fixing it is never blocked by it: the Policies page, the `/api/policies` routes and the policy CLI all read the files directly.
 
-### Permission modes
+## Permission modes
 
 A run takes a **permission mode** that decides how much rope it gets, enforced by Vibestrate the same way for **every** provider rather than as a per-model flag. **New run** carries it as a **Permission** control with the four modes and an **Unattended** switch beside them; `policies.defaultPermissionMode` sets the baseline.
 
@@ -189,7 +187,7 @@ Avoid combining `ask` with `strictApplyOnly`. Ask holds at the post-turn diff ga
 
 No permission mode pushes or merges your branch, not even `auto`: a run always stops at `merge_ready` and hands you the diff.
 
-### Run assurance
+## Run assurance
 
 The panel at the top of this page is derived, when a run reaches a terminal state, from the broker log plus the run's review and verification decisions, and written to `assurance.json` beside the action log. Five verdicts:
 
@@ -207,7 +205,7 @@ A `blocked` or `unsafe` verdict also carries **`blockers`**, the root causes der
 
 The **Tree** tab, first under **Inspect** on the run page, gives the flow's steps and, per step, what each turn did: succeeded, retried after a rate limit, fell back to another model, paused, or failed-but-tolerated. Run-level budget, spend and pause events are there too, all derived from recorded evidence rather than narrated. For providers that stream structured output the step also shows what happened *inside* the turn; for the rest, the inside is marked "opaque".
 
-### Defense in depth
+## Defense in depth
 
 Four layers, and only the first is always on. The other three are opt-in, each honoured independently.
 
@@ -223,7 +221,7 @@ Run assurance is not a layer; it is the record of which layers actually ran.
 
 The **Execution** group on the Policies page carries strict apply-only, the interactive terminal, and **Harden read-only seats** (`policies.hardenReadOnlySeats`, off), which runs read-only **claude** seats under `--permission-mode plan` so the CLI itself refuses writes. It is claude's counterpart to the OS sandbox, off because plan mode can add an "awaiting approval" framing to an action-shaped prompt.
 
-### Budget ceilings and provider hiccups
+## Budget ceilings and provider hiccups
 
 Token cost is often unmeasured for local CLI providers, so beyond the daily **dollar** cap (`budget.spendCapDailyUsd`) there are **count and time ceilings** that bind without it: `budget.maxTurnsPerRun` and `budget.maxWallClockMinPerRun` per run, `budget.maxTurnsPerDay` and `budget.maxWallClockMinPerDay` across today. They are checked before every agent turn; once one is hit the run **stops (blocked)**, logs a `budget.limit` event and notifies you. All five ship off. **Spend cap and ceilings** on the **Metrics** page holds all of them, next to the spend they bind.
 
@@ -237,7 +235,7 @@ A recoverable provider failure - a rate limit, or a transient blip like a 5xx, a
 
 A **subscription usage limit** is a per-model quota that resets hours out, handled separately from a per-minute rate limit. `resilience.usageLimit.action` is `wait` (sleep for the parsed window, capped at `maxWaitMin`), `fallback`, or `stop` (the default, after trying the auto-derived fallback first). A provider failure that does end the run ends loudly with its cause: the classified failure and a redacted excerpt of the provider's real error travel into the step's error, the event log, the Supervisor feed and the assurance verdict, never a bare "provider exited 1".
 
-### Automation
+## Automation
 
 The interactive shell (`vibe`, or `vibe shell`) carries the **Approvals** page for gates waiting on you and a read-only **Config** view of the policy block. Everything else here is CLI, for a script, a hook or CI. Full reference: [CLI overview](/docs/cli/overview).
 

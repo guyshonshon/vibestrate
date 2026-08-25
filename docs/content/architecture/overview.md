@@ -48,9 +48,7 @@ Every side-effecting action crosses the Action Broker.
 </div>
 
 
-## Going deeper
-
-### The components
+## The components
 
 ```text
 vibe CLI  (src/cli)        Mission Control  (src/server + src/ui)
@@ -72,7 +70,7 @@ vibe CLI  (src/cli)        Mission Control  (src/server + src/ui)
 
 Both front doors land on the same orchestrator. `vibe shell` is a third, drawing the same surfaces in the terminal.
 
-### What the orchestrator owns
+## What the orchestrator owns
 
 The orchestrator keeps a run moving and remembers where it is:
 
@@ -83,7 +81,7 @@ The orchestrator keeps a run moving and remembers where it is:
 - Approval handling - pause at `waiting_for_approval`, resume on decide.
 - Pause/resume - the pause flag, durable across restarts.
 
-### An agent invocation
+## An agent invocation
 
 One stage handing a task to a model and turning the result into a usable artifact:
 
@@ -95,13 +93,13 @@ One stage handing a task to a model and turning the result into a usable artifac
 6. Validate it against its Zod schema or per-role contract.
 7. Persist it, and return control to the orchestrator.
 
-### What Mission Control sees
+## What Mission Control sees
 
 The dashboard watches far more than it touches. The Fastify server in `src/server/` exposes read-only routes over persisted state - the runs directory, `project.yml`, the provider registry, the skills index. Write-side routes are narrow and audited: approval decisions, pause/resume, suggestion applies, flow and crew authoring. Each crosses the Action Broker, so a policy denying file writes stops the browser exactly as it stops the terminal.
 
 There is no privileged back channel - the dashboard is a client of the [HTTP API](/docs/architecture/http-api) like anything else, and the browser never executes arbitrary commands.
 
-### Deliberately missing
+## Deliberately missing
 
 Each absence is a choice about where Vibestrate stops.
 
@@ -110,7 +108,7 @@ Each absence is a choice about where Vibestrate stops.
 - **No model API.** Vibestrate holds no tokens. The local provider CLIs do that themselves.
 - **No OS sandboxing.** Path guards and permission profiles refuse risky operations, but they are enforced by Vibestrate, not by the OS. [Container isolation](/docs/concepts/sandbox) is the opt-in that moves each provider turn into a disposable Docker container, with an egress allowlist narrowing what it can reach. That is a smaller blast radius, not a wall built for code that is actively hostile.
 
-### Related
+## Related
 
 - [Repository map](/docs/architecture/directory-map) - where each module lives.
 - [Run state](/docs/concepts/state) - what the orchestrator drives transitions through.

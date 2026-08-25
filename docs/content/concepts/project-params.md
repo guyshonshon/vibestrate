@@ -64,9 +64,7 @@ If a flow asks twice, it belongs here.
 </div>
 
 
-## Going deeper
-
-### The Settings panel
+## The Settings panel
 
 `vibe ui` opens the dashboard on `127.0.0.1:4317`; the panel is on **Settings**,
 at `#/settings`.
@@ -91,7 +89,7 @@ do not start blank - each one opens on the stored answer, falling back to the
 flow's own default. A `secret` field is the exception and always starts empty,
 because a stored secret is an env reference rather than a value to show.
 
-### How a value is chosen
+## How a value is chosen
 
 At run start each declared param resolves top to bottom, stopping at the first source that has a value:
 
@@ -131,11 +129,11 @@ At run start each declared param resolves top to bottom, stopping at the first s
 - A **required** param still unset after all of that prompts on a TTY, or **fails
   fast** in CI with a message naming exactly what to set.
 
-### Scope: per-flow by default
+## Scope: per-flow by default
 
 A stored value is keyed per Flow (`<flowId>.<param>`), so two Flows that both call something `name` never cross-contaminate. Mark a param `shared: true` to store it under a project-global key - the bare name - that any other Flow declaring it shared reuses.
 
-### Secrets
+## Secrets
 
 A `secret: true` param **never** stores the raw secret. You give it an environment variable **name**, and the store keeps an `env:NAME` reference. Say a Flow of yours declares one:
 
@@ -155,7 +153,7 @@ vibe params set --flow my-deploy apiKey=OPENAI_API_KEY
 
 A run that needs it **fails fast** if that env var isn't set, rather than starting with a non-functional secret. No built-in Flow declares a secret param, so this only comes up in a Flow you write. Bare-key writes without `--flow` are non-secret-only, and a best-effort scan still refuses an obvious pasted vendor key.
 
-### Generate a default (optional)
+## Generate a default (optional)
 
 A param can declare a `generate` hint:
 
@@ -175,7 +173,7 @@ with your other known param values interpolated in, and returns a suggestion you
 review, edit, or accept. Strictly user-initiated and never auto-applied, so a
 model can't silently make a brand colour your project's truth.
 
-### Methodology (a recognized project-global param)
+## Methodology (a recognized project-global param)
 
 One project-global key is special. Set `methodology` to a known value and the **planner** gets that methodology's concrete planning guidance:
 
@@ -190,7 +188,7 @@ vibe params set methodology=tdd
 
 It reaches the planner and nobody else by default, as one bounded block, once per run; `methodologyRoles` in `project.yml` widens that. An unrecognized value is ignored with a `methodology.unknown` run event, so it never breaks a run. The advisor never sets it for you.
 
-### From a terminal
+## From a terminal
 
 The automation path, and the only surface for a key no flow declares: the
 Settings panel is organised by flow, writes a `shared: true` param under its bare
@@ -209,7 +207,7 @@ vibe params unset <key>    # explicit, never automatic
 `vibe shell` has no parameters screen. Its Config page is a read-only view of
 `project.yml`, which is a different file.
 
-### Related
+## Related
 
 - [Flow](/docs/concepts/flow) - declares the typed `params:` the project params fill.
 - [Profile](/docs/concepts/profile) - a different thing: how *strong* a Role runs (provider + model + effort), not project data. Set with `vibe profile`.

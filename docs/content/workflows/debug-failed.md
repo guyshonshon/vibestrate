@@ -55,9 +55,7 @@ Still on disk. Open it and read the half-finished work.
 
 </div>
 
-## Going deeper
-
-### Start with replay
+## Start with replay
 
 ```bash
 vibe replay <runId>
@@ -65,7 +63,7 @@ vibe replay <runId>
 
 Read-only: you can look but not change anything. The status line says which stage threw, and the artifact list shows what the run recorded before it stopped. The run screen's **Outcome banner** answers the same question in a sentence, with the next action beside it.
 
-### If status is `failed`
+## If status is `failed`
 
 A `failed` status means a stage raised an error it could not recover from. Three things to look at:
 
@@ -91,7 +89,7 @@ Common causes:
 
 </div>
 
-### If status is `blocked`
+## If status is `blocked`
 
 `blocked` is not a crash: it means a decision is needed. Start by reading:
 
@@ -114,7 +112,7 @@ Then act on what you find. The right answer is rarely "rerun and hope":
 
 </div>
 
-### Re-run after fixing
+## Re-run after fixing
 
 Each `vibe run` is a fresh run with a fresh `runId`, and past runs stay at `.vibestrate/runs/`, so you can compare what the planner produced this time against last:
 
@@ -124,7 +122,7 @@ diff <oldRunId>/artifacts/flows/plan/output.md \
      <newRunId>/artifacts/flows/plan/output.md
 ```
 
-### Rewind instead of restarting
+## Rewind instead of restarting
 
 Sometimes only the implementation needs another pass - the run was read-only, say, and you now want the executor to write code. **Rewind** forks a fresh run that reuses the earlier artifacts and resumes from a stage you pick, so you do not re-pay for planning:
 
@@ -148,7 +146,7 @@ This works with `--flow` too: any flow declaring the matching step `stage` can b
 
 *In the dashboard:* the run screen's **Re-run with changes** dialog has a **Start from** selector with the same six choices, worded by what each reuses - "Implementation - reuse plan + architecture", "Review - restore this run's code", and so on.
 
-### Rewinding to review, fix or verify
+## Rewinding to review, fix or verify
 
 `reviewing`, `fixing` and `verifying` need the executor's code already in place, so Vibestrate first **restores the source run's per-phase worktree snapshot** into the fresh worktree.
 
@@ -165,7 +163,7 @@ vibe run "<same task>" --resume-from <oldRunId> \
 
 The restore is bounded: it only ever runs against a real, isolated run worktree, never your own checkout. A failed or refused restore marks the run **unsafe** in its assurance verdict instead of letting it pass as verified.
 
-### Pruning snapshots
+## Pruning snapshots
 
 Each rewind-able run anchors its code as a git ref under `refs/vibestrate/snapshots/`, which slowly grows your `.git`, and Vibestrate never deletes these on its own. To reclaim them:
 
@@ -180,11 +178,11 @@ Orphans are the runs whose directory is gone. It prints the plan and asks before
 
 *In the dashboard:* the **Runs** page's **Prune snapshots** button does the same orphan cleanup, over `POST /api/runs/snapshots/prune`, which previews with `dryRun` first. For hands-off trimming, set `git.snapshotRetentionRuns` to keep the last N runs.
 
-### When to file a bug
+## When to file a bug
 
 If the same task fails in the same place across multiple providers, and the failure is not traceable to your config or task description, that is worth a bug report. Include the `runId`, the `events.ndjson` excerpt around the failure, and the failing step's `output.md`.
 
-### Related
+## Related
 
 - [Run state](/docs/concepts/state) - definitions of `failed` and `blocked`.
 - [Troubleshooting](/docs/troubleshooting) - common, reproducible issues with fixes.

@@ -39,9 +39,7 @@ A run is fine unattended. Nothing merges without you either way.
 
 </div>
 
-## Going deeper
-
-### 1. Frame the task
+## 1. Frame the task
 
 Write the task description the way you would brief a careful colleague. Name the file, the convention, the constraint.
 
@@ -49,7 +47,7 @@ Write the task description the way you would brief a careful colleague. Name the
 
 > **Weak.** Improve settings logging.
 
-### 2. Start the run
+## 2. Start the run
 
 ```bash
 vibe run "Add audit logging to the settings..."
@@ -72,7 +70,7 @@ vibe run "..." --profile <id>
 
 *In the dashboard:* the **New run** button at the bottom of the sidebar opens the composer, in five sections. **Task** is the brief, **Flow** defaults to **Auto**, **Inputs** collects any params the selected flow declares, **Crew** picks the roster, and **Configuration** holds **Permission**, **Unattended**, a **Tuning** pair of **Concise** and **Auto-pick flow**, and the **Supervisor** persona. **Start run** launches it, as a detached process that outlives the browser tab; `vibe run` does the work in the terminal you started, so that terminal has to stay alive.
 
-### 3. Watch, or walk away
+## 3. Watch, or walk away
 
 The default flow is eight steps, and Vibestrate works through them on its own:
 
@@ -100,7 +98,7 @@ When the run finishes, it lands in one of four states:
 
 *In the dashboard:* the run detail page follows the same eight steps on its **Live timeline**, beside **Live metrics** and **Changed files**. See [Inspect a run in flight](/docs/workflows/inspect-progress).
 
-### 4. Inspect the result
+## 4. Inspect the result
 
 ```bash
 vibe status            # every run, oldest first
@@ -109,7 +107,7 @@ vibe replay <runId>    # read-only, one run
 
 *In the dashboard:* the **Runs** page is the same list, and the **Source** page's **Changes** tab reads the diff inline, file by file.
 
-### 5. Merge it yourself
+## 5. Merge it yourself
 
 Vibestrate does not push or merge (see [the safety guarantees](/docs/concepts/safety)). The run leaves the diff on its branch in the worktree, and the final call is yours.
 
@@ -184,7 +182,7 @@ git merge --ff-only vibestrate/<runId>
 vibe abort <runId>
 ```
 
-### Related
+## Related
 
 - [Inspect a run in flight](/docs/workflows/inspect-progress).
 - [Pause, resume, abort](/docs/workflows/pause-resume).

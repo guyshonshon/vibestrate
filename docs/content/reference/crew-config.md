@@ -122,9 +122,7 @@ defaultCrew: default
 
 </div>
 
-## Going deeper
-
-### Splitting the crew across two models
+## Splitting the crew across two models
 
 Add a profile for the second provider, then move the two judging roles onto it. Cross-model review by construction, not by remembering to open another chat.
 
@@ -140,7 +138,7 @@ vibe crew show                            # which profile each role runs on
 
 Pointing a role at the new profile is a `project.yml` edit - `crews.default.roles.reviewer.profile`, and the same for `verifier`. There is no `vibe crew` subcommand for it.
 
-### Role files
+## Role files
 
 `prompt:` points at a JSON role file, not prose. `vibe init` writes one per role under `.vibestrate/roles/`:
 
@@ -156,11 +154,11 @@ Those three keys are the whole file. The schema is strict, so a fourth one - a `
 
 A pointer at a `.md` file is a stale config from an older version; the loader says so and names the migration. Doctor catches it before a run does - **More** > **Setup** in the sidebar, or `vibe doctor`.
 
-### Permissions
+## Permissions
 
 `permissions:` names a key in the project's `permissions.profiles` block, not a free-form string. Vibestrate enforces the profile on its own side either way. Pushing the constraint down into the provider's own no-write mode is opt-in: `policies.hardenReadOnlySeats` is off by default, and switching it on runs a read-only claude seat with `--permission-mode plan`, so the CLI refuses the write rather than the agent being asked not to try. More in [Safety](/docs/concepts/safety).
 
-### Presets
+## Presets
 
 Four ready-made crews ship - fast, thorough, cheap and local - tuned by provider effort. They write the same block:
 
@@ -170,7 +168,7 @@ vibe crew presets add thorough
 vibe crew use thorough         # make it the crew a run picks by default
 ```
 
-### From the CLI
+## From the CLI
 
 ```bash
 vibe crew list                 # configured crews, the default marked

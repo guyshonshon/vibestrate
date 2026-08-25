@@ -44,9 +44,7 @@ When the *shape* of the work is genuinely different: extra review passes, a mand
 </div>
 
 
-## Going deeper
-
-### The file behind the builder
+## The file behind the builder
 
 Everything the builder writes is one file. **Edit as YAML** shows the real bytes, **Form view** goes back. This is `.vibestrate/flows/spike-and-decide/flow.yml`:
 
@@ -95,7 +93,7 @@ steps:
 
 A loose `.yml` dropped into `.vibestrate/flows/` is skipped, not read: the directory is what makes it a flow. Field by field, [Flow YAML, annotated](/docs/reference/flow-yml) walks the real default flow.
 
-### Step kinds
+## Step kinds
 
 Each step has a `kind`. The example uses four, and the last halts the run until you decide:
 
@@ -134,7 +132,7 @@ Each step has a `kind`. The example uses four, and the last halts the run until 
 | `approval-gate` | Halt the run; human decides whether to continue. |
 | `summary-turn` | An arbiter writes a final summary. |
 
-### Seats, not your models
+## Seats, not your models
 
 A Seat is the slot a step needs filled, named by the kind of worker it wants - a planner, a builder, a challenger. A flow never names your local Roles or Providers.
 
@@ -150,7 +148,7 @@ vibe run "..." --flow spike-and-decide \
 
 That runs the `prototype` step on the Profile you name without changing how the Role behaves. `--seat-role prototyper=<roleId>` chooses *which* Role fills the seat.
 
-### Optional and clean-room steps
+## Optional and clean-room steps
 
 Both are toggles on a step card in the flow editor - **Optional** and **Clean room**, beside **Skip on a read-only run** - and both are one line in the file.
 
@@ -197,13 +195,13 @@ Clean-room hides only the narrative, never the spec. In testing, hiding the spec
   cleanRoom: true
 ```
 
-### Common mistakes
+## Common mistakes
 
 - **One Role filling both builder and challenger.** It will agree with itself. Use two Seats filled by two different Roles. The crew editor flags this as **seats taken twice**.
 - **Skipping validation.** Without a `validation` step, your flow has no ground truth.
 - **Over-stuffing one flow.** Twelve steps is too many; split one that grew long.
 
-### Share a flow
+## Share a flow
 
 One project's flow drops into another and resolves against that project's Crew.
 
@@ -226,7 +224,7 @@ Imports are checked against the schema and refused if they carry the shape of a 
 
 `vibe shell` carries the same catalog: `f` forks the selected built-in, `h` opens the hub, `↵` makes the selected flow the project default.
 
-### Related
+## Related
 
 - [Flow (concept)](/docs/concepts/flow) - what a flow is and when to write one.
 - [Built-in Flows reference](/docs/reference/flows) - every shipped flow, step by step.

@@ -26,9 +26,7 @@ A role is its [[seat]]s, its [[profile]], its permission, its instructions and i
 
 </div>
 
-## Going deeper
-
-### The six that ship
+## The six that ship
 
 `vibe init` writes six roles. Each fills the seat its id names, plus any others listed.
 
@@ -54,7 +52,7 @@ Also fills `arbiter`. The final gate before `merge_ready`.
 
 </div>
 
-### Permissions
+## Permissions
 
 <div class="docs-cards">
 
@@ -68,7 +66,7 @@ May edit files inside the run's worktree.
 
 That setting gates Vibestrate's own Action Broker. For the agent to actually write, the underlying CLI has to allow it too: on a `claude-code` [[provider]], a `code_write` seat's turn gets `--permission-mode acceptEdits`. Read-only seats get no write grant at all.
 
-### Role, profile, provider
+## Role, profile, provider
 
 - A **role** is the behaviour. The Reviewer.
 - A **[[profile]]** is how strong or expensive it runs. `claude-balanced`.
@@ -114,7 +112,7 @@ That setting gates Vibestrate's own Action Broker. For the agent to actually wri
 
 One profile can back many roles, and one provider can back many profiles. **New profile** on a role card mints one and assigns it in a single step, so a `claude-cheap` gets created exactly where a role needs it.
 
-### How its prompt is assembled
+## How its prompt is assembled
 
 Vibestrate stacks these into one prompt before the role runs:
 
@@ -128,7 +126,7 @@ Vibestrate stacks these into one prompt before the role runs:
 
 The run records the resolved role per step (`resolvedRoleId`, `resolvedRoleLabel`) in `flow.json`.
 
-### Writes are gated
+## Writes are gated
 
 Three dashboard requests write a role, and every one crosses the Action Broker as a `file.write`: `PATCH /api/crews/:crewId/roles/:roleId` for the wiring in `project.yml` (audited `role-fields`), `PUT .../context` for the instruction text (`role-prompt`), and `POST /api/skills/:skillId/assign` for the skills list (`role-skills`).
 
@@ -138,7 +136,7 @@ Gating all three is what makes a denying policy hold across one Save in the crew
 
 **The CLI is deliberately outside this.** `vibe init`, `vibe config`, `vibe crew` and `vibe skills assign` write the same config through the same code with no gate. A gate there could refuse a first-time init before a project has any policy to consult, and those callers are you at your own keyboard rather than a page in a browser.
 
-### From the terminal
+## From the terminal
 
 `vibe shell` lists the roles on its `[3] Crew` page, and its `[8] Skills` page attaches a skill to one with the arrow keys. On the command line:
 

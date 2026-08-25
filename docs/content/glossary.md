@@ -45,9 +45,7 @@ One pass over the task, on its own branch.
 
 </div>
 
-## Going deeper
-
-### Every term
+## Every term
 
 <div class="docs-glossary">
 

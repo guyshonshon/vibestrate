@@ -35,9 +35,7 @@ Supervised is for work that is several changes wearing one title: a migration wi
 </div>
 
 
-## Going deeper
-
-### On the Board and the task card
+## On the Board and the task card
 
 `vibe ui` opens the dashboard on `127.0.0.1:4317`. **Board** is in the sidebar.
 
@@ -63,7 +61,7 @@ A dashboard launch takes the same audited queue and scheduler path the CLI uses,
 inheriting the supervised flow, budget, supervisor, run lock and clean-halt
 semantics.
 
-### Plain vs supervised
+## Plain vs supervised
 
 A plain task with a checklist is a lightweight to-do list run in one pass. A
 supervised one treats the objective and acceptance check as structured fields:
@@ -75,7 +73,7 @@ and verdict.
 Choosing supervised turns on the whole bundle: per-step review, the supervisor,
 Enhance, the per-task budget, the run lock, and clean-halt.
 
-### How a sequence goes
+## How a sequence goes
 
 The steps run in order, through a per-item-review flow, in one worktree:
 
@@ -98,7 +96,7 @@ the failed step's work is discarded (the branch stays reviewable), the step is
 left pending, and the run ends blocked with a reason. Fix the cause and press
 **Re-sequence** - finished steps are skipped, so it picks up from the clean tip.
 
-### The supervisor and the invariants ledger
+## The supervisor and the invariants ledger
 
 Between steps, after each commits cleanly, a cheap **supervisor** turn judges
 whether the task is still on track. Its prompt asks for one of two verdicts; the
@@ -155,7 +153,7 @@ in full on the Conductor panel.
 On by default. Configure it under `supervised.supervisor`: point `profile` at a
 cheap model, or set `enabled: false` to turn it off.
 
-### Re-grounding the plan (Enhance)
+## Re-grounding the plan (Enhance)
 
 A supervised task's steps are authored *before* the code exists, so the deeper a
 long one runs, the more its early plan was a guess about a codebase that has
@@ -178,7 +176,7 @@ task's steps. The Enhance turn runs on the same cheap profile as the supervisor
 and under the same terms - no write grant, working directory inside the worktree
 - and is spend-accounted the same way.
 
-### From a terminal
+## From a terminal
 
 The automation path. Every Conductor control has a command behind it:
 
@@ -200,7 +198,7 @@ Full reference and a worked example: [vibe tasks](/docs/cli/supervised-tasks).
 `vibe shell`'s **Roadmap** page lists and runs tasks but has no Conductor view;
 step-level state is the dashboard or `vibe tasks status`.
 
-### What it does not do yet
+## What it does not do yet
 
 Enhance runs only when the supervisor calls for it, between steps, and the
 supervisor's own prompt asks for PROCEED or ESCALATE without naming ENHANCE - so
@@ -208,7 +206,7 @@ the pass is reached only when a model offers the word unprompted. There is no wa
 to trigger a re-ground on demand, and no dry-run diff of a revision before it
 applies. Adding a step stays a manual edit to the checklist.
 
-### Related
+## Related
 
 - [vibe tasks](/docs/cli/supervised-tasks) - the CLI reference for all supervised-task commands.
 - [Task](/docs/concepts/task) - the base task concept, including plain checklists.

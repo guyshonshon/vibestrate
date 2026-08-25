@@ -51,16 +51,14 @@ A codebase map is not part of this. `.vibestrate/CODEBASE.md`, the auto-derived 
 </div>
 
 
-## Going deeper
-
-### Requirements
+## Requirements
 
 - **Node.js 24 or newer.** Check yours with `node --version`.
 - **git 2.5 or newer.** Each run gets a second checkout of your repo, torn down after; older git can't do that.
 - **npm or pnpm**, to install the package.
 - **At least one coding-agent CLI** on your PATH: Claude Code, Codex, Gemini, Aider, Ollama, OpenCode or another supported provider. The Setup page names what's missing.
 
-### Install
+## Install
 
 ```bash
 npm install -g vibestrate
@@ -85,7 +83,7 @@ npm install -g vibestrate@<version>
 vibe --version
 ```
 
-### Set up in the dashboard
+## Set up in the dashboard
 
 `vibe ui` runs from inside a git repository - a run forks a branch. If the folder isn't a repo yet, `git init` and one commit is enough.
 
@@ -93,7 +91,7 @@ vibe --version
 
 **Fix what's safe** appears when something can be repaired without a decision from you: missing directories, a missing skills README, an absent built-in role file. It fills in a provider or validation commands only where that part of the config is empty, never over what you wrote, and lists what it declined under **Skipped**.
 
-### The same thing from a terminal
+## The same thing from a terminal
 
 ```bash
 vibe init            # scaffold .vibestrate/ (--git-init to create the repo too)
@@ -104,7 +102,7 @@ vibe doctor --json   # machine-readable, for CI
 
 `vibe` on its own opens the interactive shell, whose Doctor page has `r` to re-run the checks and `f` to apply the safe fixes.
 
-### Inside `.vibestrate/`
+## Inside `.vibestrate/`
 
 Alongside the four entries above, `rules/` takes extra instruction files composed onto `rules.md`, `skills/` takes markdown attachments that add domain context, `flows/` holds this project's Flows, and `runs/` holds run state, artifacts, metrics and events.
 
@@ -133,6 +131,6 @@ Add `runs/` to your `.gitignore` yourself; nothing here touches that file:
 .vibestrate/runs/
 ```
 
-### Next
+## Next
 
 [Connect a model →](/docs/getting-started/providers) - Vibestrate spawns the coding CLIs you already have, so point it at one before you run anything.

@@ -32,9 +32,7 @@ Eight steps. Six always run; **fix** and **re-validate** are loop-only, firing w
 
 </div>
 
-## Going deeper
-
-### What each step does
+## What each step does
 
 | Step | Run status | Seat | Output |
 |---|---|---|---|
@@ -49,7 +47,7 @@ Eight steps. Six always run; **fix** and **re-validate** are loop-only, firing w
 
 Eight steps, seven statuses: `validating` happens twice. The [state machine](/docs/concepts/state) is the rail underneath, so a run cannot jump from `planning` to `merge_ready`. The fields each step is written from are annotated in [Flow YAML](/docs/reference/flow-yml).
 
-### Why the steps split this way
+## Why the steps split this way
 
 <div class="docs-cards">
 
@@ -67,25 +65,25 @@ Starting over would discard everything that was already right.
 
 </div>
 
-### What the architect adds
+## What the architect adds
 
 The architect reads the plan and decides the approach against the existing codebase. It runs read-only in the crew `vibe init` writes.
 
 It can also stop the run. If the architect emits `HUMAN_APPROVAL: REQUIRED`, the run moves to `waiting_for_approval` before any code is written, and waits for your decision.
 
-### Validation is the ground truth
+## Validation is the ground truth
 
 **validate** runs your project's `commands.validate` array (typecheck, tests, build, lint) and routes the result. It has no seat because it settles the disagreement rather than joining it.
 
 `vibe init` fills `commands.validate` from the scripts it finds, so on a typical Node project it is already set. If it found none, the workflow is a model-judgement loop with no facts underneath it. One `pnpm typecheck` entry catches a large class of regressions.
 
-### The review loop
+## The review loop
 
 `review` is the decision step. Anything other than `CHANGES_REQUESTED` exits the loop immediately and goes to `verify`. `CHANGES_REQUESTED` runs `fix` and `re-validate`, then reviews again.
 
 `workflow.maxReviewLoops` is an optional global ceiling: set it and no flow's loop budget goes above that number. Unset by default, so each flow keeps its own budget. A per-crew `maxReviewLoops` takes precedence over both.
 
-### One runner, many recipes
+## One runner, many recipes
 
 A [Flow](/docs/concepts/flow) is a different recipe with different seats, step order, optional approval gates, or looping steps. The built-in `quality-arbitration` flow, for example, adds a builder, a challenger who reviews the plan and then the diff, and an arbiter who writes the decision summary. All on the same runner:
 
@@ -95,7 +93,7 @@ vibe run "..." --flow default   # the eight steps
 vibe run "..." --flow quality-arbitration
 ```
 
-### Fast tracks
+## Fast tracks
 
 For small, low-risk work the built-in **`express`** flow runs one implementer turn behind two conditional gates: a pure-prose, unprotected diff skips both review and verification and goes straight to merge-ready, while anything touching code or a protected path gets a real review turn *and* a real verify turn.
 
@@ -113,13 +111,13 @@ vibe run "..." --resume-from bold-lovelace \
   --resume-stage reviewing
 ```
 
-### How the crew shares one thread
+## How the crew shares one thread
 
 A compact **run brief** is the story so far: the chosen flow and why, each step's outcome and decision, validation status, changed files, and open risks. There is no model call; it is assembled from facts the orchestrator already has, and the oldest entries fold to one line when it gets long. It goes into **every** role's prompt, and is written to `flows/run-brief.md`.
 
 **Handoff contracts** are the more precise version: a step passes its output as named JSON instead of free-form prose, so the next role, the run brief and the dashboard read named fields instead of scraping text. They are **opt-in by output token**, so a step only emits one when it declares the matching token, and a mismatch never fails the run (it keeps the raw text and records a parse event). The review side has `findings`, `finding-responses`, `finding-resolutions` and `decision-summary`; the builder side has `plan-handoff`, `architecture-handoff` and `execution-handoff`. The built-in `panel-review` flow is the first to use the builder-side contracts; the default flow stays free-form.
 
-### Context on long runs
+## Context on long runs
 
 Each turn's context is rebuilt from the artifacts (the run brief plus the named prior outputs), so there is no ever-growing chat to carry along.
 
@@ -127,17 +125,17 @@ Where a provider supports session reuse (for example `claude --resume`), Vibestr
 
 Reuse is keyed on the **[Seat](/docs/concepts/seat)**, never on which model a step runs. A writer and a reviewer can run the same model at the same effort and still be different seats, so the reviewer starts a **fresh** process and never inherits the writer's session. A reviewer that resumed it would rubber-stamp its own reasoning.
 
-### When a step fails
+## When a step fails
 
 A model turn only counts as success if its provider exits cleanly **and** returns usable output. A non-zero exit or an empty response is a real failure, named rather than passed downstream as an empty result. In a graph flow, a step with `retries: N` is re-tried first, and a `continueOnError` step records the failure and continues with reduced coverage, which the [run assurance](/docs/concepts/safety) verdict then reflects. Control signals (a user abort, an approval rejection, the spend cap) always stop the run and are never retried.
 
-### Common mistakes
+## Common mistakes
 
 - **Skipping validation.** The loop then has no ground truth underneath it.
 - **Setting `maxReviewLoops` too high.** Three to five passes is usually enough. Past that, the run is probably stuck and should `block` to call you over.
 - **Adding steps by editing the workflow array.** A custom Flow is the supported extension point.
 
-### Related
+## Related
 
 - [Flow YAML, annotated](/docs/reference/flow-yml) - every field a step can carry.
 - [Workflow reference](/docs/reference/workflow) - the canonical, generated stage list.

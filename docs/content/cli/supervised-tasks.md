@@ -44,9 +44,7 @@ Each step is a natural place to walk away.
 
 </div>
 
-## Going deeper
-
-### The shape of a run
+## The shape of a run
 
 One plan up front, then a small loop per step, then one review over the whole branch.
 
@@ -87,7 +85,7 @@ One plan up front, then a small loop per step, then one review over the whole br
 
 This is the built-in `saga` flow, which `vibe flows list` calls "Saga". You do not pass `--flow` for a supervised task; the Conductor selects it.
 
-### Author the steps
+## Author the steps
 
 A supervised task starts empty: create it, then add steps one at a time.
 
@@ -128,7 +126,7 @@ Those three options are all it takes:
 
 *In the dashboard:* the **Board** page carries supervised tasks as container cards, and the task detail view is where those three fields are authored - the only place they can be revised after the fact. Steps reorder by dragging.
 
-### What a good step looks like
+## What a good step looks like
 
 The objective is the whole brief a fresh model gets for that step, so name the file, the type and the constraint. The acceptance check makes a step verifiable rather than an opinion.
 
@@ -147,7 +145,7 @@ strong
 
 Each step gets a fresh model context, grounded by a curated packet: the feature goal, the invariants ledger, compact outcomes of the prior steps, the accumulated diff, and the current bytes of that step's file hints, re-read from the worktree. Every section is secret-redacted before reaching a provider.
 
-### Editing and reordering
+## Editing and reordering
 
 `vibe tasks checklist edit` changes only a step's display text; the objective, acceptance check and file hints are left untouched. The CLI has no flag for revising those three: edit them in the task detail view, or remove the step and add it again.
 
@@ -160,7 +158,7 @@ vibe tasks checklist move <taskId> <itemId> \
 
 `move` shifts one step at a time.
 
-### Run it
+## Run it
 
 ```bash
 vibe tasks run task-settings-v2-7c1e
@@ -191,7 +189,7 @@ vibe tasks sequence task-settings-v2-7c1e --json
 
 *In the dashboard:* the task detail's **Conductor** panel drives the same thing. Its primary button reads **Sequence**, or **Re-sequence** when the task is halted, and becomes **Pause** / **Resume** while a run is live. **Sequence** queues the task rather than starting it inline: the scheduler picks it up and spawns the same command the CLI runs, so the dashboard never shells out over HTTP. The difference is timing - the CLI blocks your terminal, the dashboard returns straight away.
 
-### When it stops
+## When it stops
 
 <div class="docs-outcomes">
 <div class="docs-outcome stop"><b>a step failed review after its fix loop</b><span>That step's work is discarded and the step goes back to pending. Earlier commits stay.</span></div>
@@ -204,7 +202,7 @@ The failed-review case is the only one that throws work away, and only one step'
 
 `maxSpendUsd` is checked **between** steps, not mid-step, so the step that crosses the line still finishes and still costs what it costs. For an unattended task, the project daily spend cap is the mid-step backstop.
 
-### Watch it
+## Watch it
 
 ```bash
 vibe tasks status task-settings-v2-7c1e
@@ -229,7 +227,7 @@ The lifecycle is `idle`, `sequencing`, `paused`, `halted` or `done`. `--json` em
 
 Invariants are cross-cutting decisions the supervisor recorded, re-injected into every later step's packet, which stops conventions drifting as the outcome summaries fold.
 
-### Pause and resume
+## Pause and resume
 
 ```bash
 vibe tasks pause  <taskId>   # at the next boundary
@@ -238,7 +236,7 @@ vibe tasks resume <taskId>   # clear the pause
 
 Both act on the live run holding the task's run lock, so there is nothing to pause when no run is sequencing. A `halted` task has no live run either: `resume` says so and points at `vibe tasks sequence` to re-attempt from the clean tip.
 
-### Budget and the supervisor
+## Budget and the supervisor
 
 Both are project config, and `vibe config keys supervised` prints the live schema:
 
@@ -263,7 +261,7 @@ The supervisor is deliberately cheap and advisory. A turn that fails or comes ba
 
 Its `enhance` verdict re-grounds the steps that have not run yet against the code as it now stands, refining, reordering or removing them. It may **not** add a step or drop one you wrote: either halts the run for you instead, with the committed work kept.
 
-### The rest of the checklist commands
+## The rest of the checklist commands
 
 Every one of these is prefixed with `vibe tasks checklist`:
 
@@ -288,11 +286,11 @@ promote  <taskId> <itemId>
 
 `vibe tasks enhance` is a different feature sharing a word: a read-only assist that proposes a checklist for a task, with `--apply` to append the proposed items. It has nothing to do with the supervisor's `enhance` verdict during a run.
 
-### What is coming next
+## What is coming next
 
 The Conductor is complete, including the autonomous enhance re-ground pass. Still to come is a *manual* enhance trigger: the re-ground on demand between runs, with a dry-run diff to review first.
 
-### Related
+## Related
 
 - [supervised tasks](/docs/concepts/supervised-tasks) - what a supervised task is and how it differs from a plain task.
 - [Task](/docs/concepts/task) - the base task concept.

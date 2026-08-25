@@ -33,9 +33,7 @@ Press it and the dashboard moves to the Crew screen, draws a ring around the con
 </div>
 
 
-## Going deeper
-
-### Where the button is
+## Where the button is
 
 This is a dashboard feature; `vibe ui` opens it on `127.0.0.1:4317`. `vibe shell`
 has none and no command starts one, because a walkthrough's whole job is moving a
@@ -53,7 +51,7 @@ browser to a screen.
 
 </div>
 
-### Written, or built on the spot
+## Written, or built on the spot
 
 <div class="docs-cards">
 
@@ -65,7 +63,7 @@ browser to a screen.
 
 The five are **Tour the dashboard**, **Make a crew**, **Make a flow**, **Run something for the first time**, and **Set a policy**. A question matching one of those gets it, with no model call to wait for.
 
-### How a generated walkthrough is checked
+## How a generated walkthrough is checked
 
 Nothing a model wrote opens on trust. Each step names a page and, optionally, one control to ring, both checked against the app's real route table and its real list of ringable controls. A failing step goes, and the rest still run.
 
@@ -124,7 +122,7 @@ Steps arrived and the checks dropped all of them.
 
 An honest refusal beats a card pointing at nothing.
 
-### A worked example
+## A worked example
 
 Type this into the Supervisor panel:
 
@@ -145,6 +143,6 @@ That matches the authored **Make a crew** walkthrough, so pressing **Show me how
 
 Naming the crew and pressing Save are still things you do.
 
-### When a step points at nothing
+## When a step points at nothing
 
 Screens change. If a step's control is not on screen within a few seconds, the card says *"Nothing on this screen matches this step yet."* and lets you carry on to the next step. It does not spin, and it does not disappear.

@@ -409,9 +409,7 @@ That `cd -` matters. Vibestrate reads the git root of wherever you stand to work
 
 The other four - `pickup`, `pickup-analysis`, `pickup-review` and `saga` - walk a board card's checklist and commit each item as it lands, so a run started with `vibe tasks pickup` or `vibe tasks sequence` reaches you already committed.
 
-## Going deeper
-
-### When you are stuck
+## When you are stuck
 
 The stuck-point boxes on this page and the [quick start](/docs/getting-started/quickstart) sit beside the step that produces them. These four turn up anywhere:
 
@@ -424,7 +422,7 @@ The stuck-point boxes on this page and the [quick start](/docs/getting-started/q
 
 Ask about any of it through the Consult orb, or `vibe consult "why did bold-lovelace end blocked?"`. Consult also reads Vibestrate's own documentation, and every answer carries a confidence level next to whatever it could not verify. A review rule it proposes lands as a *pending* advise policy, waiting on **Confirm** on the Policies page or `vibe policies confirm <id>`.
 
-### Keep going
+## Keep going
 
 - [Quick start](/docs/getting-started/quickstart) - install, connect a model, and take one task to a merged change.
 - [The big picture](/docs/getting-started/big-picture) - the same vocabulary, with the reasoning behind each piece.

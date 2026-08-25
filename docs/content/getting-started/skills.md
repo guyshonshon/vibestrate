@@ -48,9 +48,7 @@ What a word means in your business.
 </div>
 
 
-## Going deeper
-
-### Write one
+## Write one
 
 One skill is one markdown file, and it can sit on disk in two shapes:
 
@@ -103,7 +101,7 @@ When touching auth:
   `src/server/routes/auth/`.
 ```
 
-### Hand it to an agent
+## Hand it to an agent
 
 **More > Project** has a **Skills** section listing everything Vibestrate found, each with where it came from. With none yet, the same panel takes a URL and **Fetch skill** pulls one in.
 
@@ -111,7 +109,7 @@ Attaching happens on **Crew**. Each role card carries its skills as removable ch
 
 In the interactive shell, `vibe` then `8` opens Skills as a grid: arrow up and down for the skill, left and right for the agent, `space` to toggle that pairing.
 
-### From the terminal
+## From the terminal
 
 ```bash
 vibe skills list
@@ -142,7 +140,7 @@ vibe run "Add 2FA enrollment" \
   --skills auth-conventions,security-review
 ```
 
-### When a skill is worth it
+## When a skill is worth it
 
 <div class="docs-cards">
 
@@ -154,10 +152,10 @@ It belongs in `.vibestrate/rules.md`, the house rules every agent reads on every
 
 </div>
 
-### Going deeper
+## Related
 
 - [Skill discovery and schema reference](/docs/extending/add-skill) - the full folder layout and the optional metadata.
 
-### Next
+## Next
 
 [Task →](/docs/concepts/task) - the first of the core concepts, now that the walkthrough is done.

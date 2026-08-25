@@ -43,9 +43,7 @@ The ledger is local and it can read it.
 </div>
 
 
-## Going deeper
-
-### The orb, and the page behind it
+## The orb, and the page behind it
 
 Pressing the orb opens two cards, and which one you pick decides what the surface
 may do. **Ask about this project** is the read-only consult. **Work in
@@ -68,7 +66,7 @@ computed** for anything read off disk, then what could not be verified, then a
 **Show me how** button. **Recommended** actions follow in a card of their own,
 and a proposed `VIBESTRATE.md` update in another below that.
 
-### The answer fits where you asked
+## The answer fits where you asked
 
 Consult answers for where you asked: screens to open in the browser, commands to
 run in the shell. That is a difference in source material, not tone. A dashboard
@@ -122,7 +120,7 @@ a confidence below high - and titles it with what that means (**Could not
 verify**, **Partly inferred**, **Mostly inferred**) rather than printing the
 word. A high-confidence answer with nothing unverified shows no block at all.
 
-### Screens pass their context
+## Screens pass their context
 
 The **New run** composer publishes the brief you have typed, the flow and crew
 you picked, the run options, and any planner questions still on screen. The
@@ -133,7 +131,7 @@ What it receives is a typed projection of state the dashboard already holds,
 never a screenshot or a scrape of the page, secret-redacted on the server before
 it reaches a provider.
 
-### Its source material
+## Its source material
 
 Two halves, kept apart.
 
@@ -149,13 +147,13 @@ The product half stays quiet unless your question uses Vibestrate's own vocabula
 
 Two things this is not. Not a sandbox: the provider runs as a CLI in your project directory, so a tool-capable model can read files itself. And the documentation is part of the build, so a file in your project cannot shadow it or put words in it.
 
-### Money questions
+## Money questions
 
 Ask about money and consult rolls up the last seven days of spend per provider, from the metrics your runs recorded. It says when a figure is an **estimate**: a cost a provider CLI reported is quoted as fact, a turn priced here from token counts times a published list price is not, and one estimated turn makes the whole total an estimate. If nothing was recorded in the window, the answer says so rather than producing a number.
 
 The same line holds on the product half: ask about a flag that does not exist and the answer is instructed to say the documentation does not cover it and lower its confidence, rather than filling the gap from memory. That is an instruction to the model, not a gate in code - which is why the answer also shows its caveats.
 
-### The two proposals it can leave
+## The two proposals it can leave
 
 Both wait for you, and there is nothing else.
 
@@ -171,14 +169,14 @@ A **policy proposal** is the one thing consult writes on its own: say a durable 
 
 Consult starts no run and changes no setting that governs one. It runs on the **assist** path: the provider spawn crosses the Action Broker, there is no worktree and no run lifecycle, and the record is audited under `.vibestrate/runs/consult/`.
 
-### In the shell
+## In the shell
 
 `vibe shell`'s **Consult** page is the proposal side: the open `VIBESTRATE.md`
 proposals, with `a` to apply, `x` to reject and `r` to refresh. Asking happens at
 the shell prompt - type `consult "..."` - and because that is a terminal, the
 answer comes back in commands.
 
-### From a terminal
+## From a terminal
 
 The automation path. The [CLI overview](/docs/cli/overview) has the rest of the
 surface.
@@ -210,7 +208,7 @@ vibe policies reject <policyId>
 
 Over HTTP, `POST /api/consult` asks, and `GET /api/vibestrate` plus its init and proposals routes read and apply the manual side. The surface is fixed to the dashboard on that route and never read off the request body, so a client cannot ask its way back into terminal instructions.
 
-### Related
+## Related
 
 - [VIBESTRATE.md](/docs/concepts/vibestrate-md) - the manual consult reads, and proposes updates to.
 - [Policies](/docs/concepts/policies) - the tiers, and what confirming a proposal turns on.

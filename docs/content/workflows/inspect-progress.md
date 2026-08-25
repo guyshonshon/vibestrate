@@ -36,9 +36,7 @@ The complete record, readable at any time, including long after the run.
 
 </div>
 
-## Going deeper
-
-### The dashboard
+## The dashboard
 
 `vibe ui` opens Mission Control; `vibe run "..." --ui` opens it alongside a run you are starting. **New run** in the dashboard launches in the background and drops you on the run screen.
 
@@ -61,11 +59,11 @@ Around the timeline:
 
 The **Source** page's **Changes** tab reads the same diff against `main`, for the project and for any run's worktree.
 
-### The interactive shell
+## The interactive shell
 
 `vibe` opens the [interactive shell](/docs/cli/shell); page `5` is **Runs**. The scheduler queue sits at its top, active runs show the current agent, MCP servers and skills, and finished runs say why they ended. `tab` switches the inspector section, `/` filters the events tail, and `p` / `r` / `a` pause, resume or abort the selected run.
 
-### The terminal
+## The terminal
 
 A plain `vibe run` narrates itself: one line per flow step as it starts, warnings as they come up, and a final block with the run's status, the review and verification decisions, and the paths to its artifacts, worktree and branch.
 
@@ -77,7 +75,7 @@ vibe logs <runId> --follow
 
 Streams are recorded per step in the run's own `streams/` folder, so `vibe logs` works on a finished run too. Without `--follow` it prints the newest stream and exits, and `--stream` picks a specific one by name.
 
-### The files on disk
+## The files on disk
 
 Everything is recorded at `.vibestrate/runs/<runId>/`:
 
@@ -125,7 +123,7 @@ verifying → merge_ready
 
 Swap the type for `review.decision`, `verification.decision` or `action.denied` to answer a different question off the same file.
 
-### Read past runs
+## Read past runs
 
 ```bash
 vibe replay <runId>
@@ -133,7 +131,7 @@ vibe replay <runId>
 
 Replay is a read-only inspector for any saved run - one that finished long ago, one synced from another machine, one you did not watch live. The run screen's **Replay** tab is the same.
 
-### Related
+## Related
 
 - [Run state](/docs/concepts/state) - what the status field means.
 - [Debug a failed run](/docs/workflows/debug-failed).

@@ -43,9 +43,7 @@ On the composer. Interrupts the turn running right now, and nothing else.
 
 </div>
 
-## Going deeper
-
-### Every subcommand
+## Every subcommand
 
 ```text
 vibe supervisor <subcommand>   (bare: same as list)
@@ -69,7 +67,7 @@ Two flags, and the subcommands that take them:
 
 `list` and `archetypes` read the catalog and work anywhere; everything else needs a Vibestrate project in the current directory.
 
-### Stop and resume
+## Stop and resume
 
 ```bash
 vibe supervisor stop --reason "reviewing the diff"
@@ -89,7 +87,7 @@ The CLI prints each of those whole; they are wrapped here to fit.
 
 *In the dashboard:* the **Answers only** / **Answers and acts** switch in Supervisor Control's header sets the same flag, and carries the same sentence.
 
-### Whether it may act right now
+## Whether it may act right now
 
 ```bash
 vibe supervisor status
@@ -145,7 +143,7 @@ The `--json` form prints the flag as it is stored:
 
 The file is `.vibestrate/supervisor/paused.json`, and it is not a secret. If it ever gets into a state you cannot clear, delete it - a missing file reads as running.
 
-### Personas
+## Personas
 
 `list` shows what this project resolves to, built-ins first, with the default marked. Two ship in code, and anything under `personas` in your `project.yml` is listed after them as `[project]`:
 

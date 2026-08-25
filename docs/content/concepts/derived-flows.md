@@ -61,9 +61,7 @@ Money-touching work can carry a review the rest of the task does not need.
 </div>
 
 
-## Going deeper
-
-### Deriving one, and adopting it
+## Deriving one, and adopting it
 
 Two commands and one button. `vibe flows derive "<task>"` prints the units, the
 compiled graph, the reason for every lens, and seat coverage against your crew,
@@ -87,7 +85,7 @@ Read the coverage check before adopting. A seat reported as `ambiguous` means tw
 roles in your crew can fill it, and the run will need `--seat-role` to
 disambiguate. Cheaper to learn here than eight minutes into a run.
 
-### The model describes, it does not design
+## The model describes, it does not design
 
 A shaping turn returns a **decomposition**, not a flow: the units of work, what
 each one depends on, and what each one is risky about. Deterministic code turns
@@ -100,7 +98,7 @@ can never remove a gate, reorder one, or write a step that renders its own
 verdict. A poor decomposition produces a flow that is wrong-but-gated, never one
 that is ungated.
 
-### What a fixed flow cannot answer
+## What a fixed flow cannot answer
 
 **"c depends on b."** Each unit becomes its own implement step, wired to the
 units it named. Unit steps are also chained in dependency order even when two
@@ -127,7 +125,7 @@ decision, so no arbiter is added and no arbiter seat is declared. A task that
 declares no risk at all still gets one correctness review: "nothing risky" is a
 claim about the work, not a licence to ship it unread.
 
-### A lens that stands itself down
+## A lens that stands itself down
 
 A risk tag says a unit *might* touch a subject. Whether the finished code
 actually does is a different question, and it is answerable from the diff.
@@ -166,7 +164,7 @@ turns a derived review off - the resolver refuses the step by name. The switch
 does have somewhere to bite: the built-in **Quality Arbitration** flow declares
 its plan-review step optional, and `--flow-skip plan-review` drops that one.
 
-### Decomposition is not free
+## Decomposition is not free
 
 Each unit is a separate model turn on the same worktree, and they run one after
 another, so the implementation spend scales with the number of units. Splitting

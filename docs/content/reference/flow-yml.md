@@ -163,9 +163,7 @@ capabilities:               # read only when Vibestrate is choosing a flow for
 
 </div>
 
-## Going deeper
-
-### Step kinds
+## Step kinds
 
 Four kinds seat an AI. The other two are machinery and need no `seat`.
 
@@ -191,7 +189,7 @@ Stops and waits for you. No model.
 
 </div>
 
-### Optional fields worth knowing
+## Optional fields worth knowing
 
 | Field | What it does |
 |---|---|
@@ -203,21 +201,21 @@ Stops and waits for you. No model.
 | `repeat` | Run this step `times` (2-8) in parallel, for a panel. |
 | `skipWhen` | Skip a *checking* step on positive evidence of absence in the real diff - `inert_diff` when the change is prose only. Never on a step that produces work: skipping that on diff evidence is circular. |
 
-### Graph flows
+## Graph flows
 
 A flow whose steps declare `needs` opts into graph mode: `needs` is the real dependency edge, and the array order only has to be a valid topological sort. Steps sharing a `needs` set may run concurrently, and a step listing them all is the join. Only read-only seated turns qualify - the resolver refuses a parallel group holding a validation step, an approval gate, or a role whose permission profile can write, since one worktree takes one writer. A wave is capped at four steps.
 
 Two fields apply only there: `continueOnError` keeps one dead sibling from taking the fan-out down, and `retries` (0-5) covers a flaky turn. Control signals - abort, approval, spend cap, denied - are never retried and always propagate.
 
-### Parameters
+## Parameters
 
 `params` declares answers a flow needs, asked once and reused. `type` is the only field a param must carry; the rest are optional: a `description`, `required` (false unless you say otherwise), a `default`, a closed `values` list for `type: enum`, `secret` to keep the value out of artifacts, `shared` to reuse the project-level answer, and `generate` to offer a drafted suggestion you review before use. More in [Project parameters](/docs/concepts/project-params).
 
-### Where you edit this
+## Where you edit this
 
 The **Flows** page lists every flow it found, and **Open** on a card lands in the Flow Builder - see [Flow](/docs/concepts/flow) for the editor in full. `vibe shell` carries the same catalog, where `f` forks the selected built-in and `h` opens the hub.
 
-### From the CLI
+## From the CLI
 
 ```bash
 vibe flows list                  # built-in and project flows

@@ -30,9 +30,7 @@ Every [[seat]] the flow asks for is covered, and this crew runs unless a run nam
 
 </div>
 
-## Going deeper
-
-### Why you would cast a second crew
+## Why you would cast a second crew
 
 <div class="docs-cards">
 
@@ -49,7 +47,7 @@ A `local` crew points every role at a provider on your own machine, so no code l
 
 A task uses exactly one crew, picked in the New run composer or left to the default.
 
-### Ready-made crews
+## Ready-made crews
 
 **Presets** sits below your crews, one card each with **Add to crews**. A preset reuses your default crew's workers, so a flow's seats stay covered: it changes *how* the team runs, not *who* is on it.
 
@@ -73,7 +71,7 @@ Installing one saves a crew and the profile it runs on. Nothing runs until you p
 
 A preset refuses rather than quietly copying your default crew. `fast` and `thorough` need a provider with effort control, `cheap` needs one with a designated cheap model, and `local` needs a local provider separate from your default. A card that cannot fit says which case it hit and offers the route forward.
 
-### Inside one crew
+## Inside one crew
 
 **Configure** opens that crew's own page: a header counting its roles and filled seats, a seat panel pairing every seat against the role that takes it, and a **Roles** card per worker, editable in place - seats, profile, permissions, skills and instructions.
 
@@ -96,7 +94,7 @@ The run refuses the same way and asks you to pick one, with `--seat-role <seat>=
 
 A half-staffed run that discovers the gap three steps in has already spent tokens and written code.
 
-### Adding and removing roles
+## Adding and removing roles
 
 **Edit roles** opens the crew editor; **New crew** opens it on a blank one. One screen holds every role's parameters beside its instructions, next to a **Seats** panel that assigns a role per seat and lists which flows the crew as edited can still run.
 
@@ -107,7 +105,7 @@ Two kinds of change live there, kept apart on purpose:
 
 Structural edits change what every future run does, so they go through a diff you read.
 
-### From the terminal
+## From the terminal
 
 `vibe shell` shows the same roster on its `[3] Crew` page, to be checked rather than edited. The command line is the automation path:
 

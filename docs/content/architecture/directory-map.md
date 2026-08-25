@@ -51,9 +51,7 @@ The gate every effect crosses, and the rules it consults.
 </div>
 
 
-## Going deeper
-
-### The shape of `src/`
+## The shape of `src/`
 
 ```text
 cli/            the vibe command-line program
@@ -82,7 +80,7 @@ workspace/      multi-project navigator
 utils/          fs, json, paths, time, run ids
 ```
 
-### The frontends
+## The frontends
 
 - `src/cli/` - the commander program. `index.ts` builds the command tree (exported as `buildVibestrateProgram` so the docs generator can introspect it without parsing argv); implementations live under `src/cli/commands/`, grouped by area.
 - `src/server/` - the Fastify HTTP/SSE API behind `vibe ui`, one route module per domain in `routes/`, plus `security.ts` and static serving of the built dashboard.
@@ -91,7 +89,7 @@ utils/          fs, json, paths, time, run ids
 
 Read first: `src/cli/index.ts`, `src/server/server.ts`.
 
-### `src/core/`
+## `src/core/`
 
 The run engine. At the root live the hubs everything shares:
 
@@ -119,7 +117,7 @@ The domain clusters:
 
 Read first: `src/core/state-machine.ts`, `src/core/orchestrator.ts`.
 
-### `src/flows/`
+## `src/flows/`
 
 - `schemas/flow-schema.ts` - the Zod schema for `FlowDefinition`.
 - `catalog/builtin-flows.ts` - the built-in catalog; `catalog/flows/` holds the definitions themselves.
@@ -130,7 +128,7 @@ Read first: `src/core/state-machine.ts`, `src/core/orchestrator.ts`.
 
 Read first: `src/flows/catalog/flows/core.ts`.
 
-### `src/agents/`
+## `src/agents/`
 
 The crew -> role -> profile -> skills chain.
 
@@ -142,7 +140,7 @@ The crew -> role -> profile -> skills chain.
 
 Read first: `src/agents/crew-registry.ts`.
 
-### `src/providers/`
+## `src/providers/`
 
 - `provider-schema.ts` - the discriminated union of the four provider kinds.
 - `provider-detection.ts` - the static `KNOWN_PROVIDERS` registry and the runtime detector.
@@ -155,7 +153,7 @@ Read first: `src/agents/crew-registry.ts`.
 
 Read first: `src/providers/provider-detection.ts`.
 
-### The remaining domains
+## The remaining domains
 
 - `src/supervisor/` - the decision layer shaping a run before the engine executes it: personas and archetypes, review lenses, flow sizing, workflow selection, posture, protected paths. Read first: `select-workflow.ts`.
 - `src/project/` - `config-schema.ts` (the root `projectConfigSchema`), `config-loader.ts`, `project-detector.ts`, and `init-template.ts`, which is exactly what `vibe init` writes.
@@ -173,7 +171,7 @@ Read first: `src/providers/provider-detection.ts`.
 - `src/workspace/` - the multi-project navigator behind **All projects**.
 - `src/utils/` - fs, json, paths, time, run ids, file mutex, OS detection.
 
-### Top-level dirs
+## Top-level dirs
 
 - `docs/` - this docs system: `content/` is handwritten, `generated/` is derived from source by `scripts/generate-docs-metadata.ts`, and `content/_nav.json` is the only source of truth for navigation.
 - `scripts/` - utility scripts, including the docs generator.

@@ -46,9 +46,7 @@ Exit codes and machine-readable output, for CI.
 
 </div>
 
-## Going deeper
-
-### The core loop
+## The core loop
 
 ```bash
 vibe init               # once per project
@@ -62,7 +60,7 @@ vibe rename <runId> a friendlier name
 
 *In the dashboard:* **Setup** under **More** is `vibe init` plus `vibe doctor` as a checklist, **New run** is `vibe run`, the **Runs** page is `vibe status`.
 
-### Command shape
+## The full command list
 
 ```text
 vibe (no args)       → the interactive shell
@@ -87,7 +85,7 @@ areas      provider  config    skills
 
 In a project that has not been initialized, a bare `vibe` prints a short greeting and exits rather than opening an empty shell.
 
-### Worktrees, and rewinding a run
+## Worktrees, and rewinding a run
 
 Every run works in its own git worktree. `vibe path <runId>` prints its path and branch plus a copyable `cd` line; `--cd` prints the path alone.
 
@@ -117,7 +115,7 @@ vibe run "<same task>" --resume-from <runId> \
 
 *In the dashboard:* the run detail's **Workspace** panel is `vibe path`, and its **Re-run with changes** dialog carries the same stage list under **Start from**.
 
-### Providers
+## Providers
 
 A provider is the local agent CLI Vibestrate drives - Claude Code, Codex, Gemini, Ollama:
 
@@ -134,7 +132,7 @@ vibe provider remove <id> # remove one
 
 *In the dashboard:* the **Crew** page's **Providers** tab does all of it - detect, set up, edit `command`/`args`/`input`, test, set default, remove.
 
-### Config
+## Config
 
 ```bash
 vibe config view           # grouped, readable view
@@ -167,7 +165,7 @@ supervised.supervisor.enabled
 
 *In the dashboard:* the **Config** page under **More** is the same grouped view, editable in place.
 
-### The codebase map
+## The codebase map
 
 `vibe learn` scans the project - stack, scripts, layout, languages, best-effort HTTP routes, tooling markers - into a machine-owned, regenerable map: `.vibestrate/CODEBASE.md` for humans and prompts, `.vibestrate/codebase-map.json` for the server and the UI.
 
@@ -180,7 +178,7 @@ vibe learn show   # print the current CODEBASE.md
 
 *In the dashboard:* the **Codebase** page renders that map on its **Map** mode, beside **Files**, **Content** and **Ask**.
 
-### Skills
+## Skills
 
 A skill is reusable guidance you attach to an agent:
 
@@ -196,7 +194,7 @@ vibe skills fetch <url> --assess
 
 *In the dashboard:* a role's **Skills** field in the **Crew** editor is where a skill is attached. The shell has a whole **Skills** page, on `8`.
 
-### Flows
+## Flows
 
 Commands for a [Flow](/docs/concepts/flow), the list of steps a task works through:
 
@@ -215,7 +213,7 @@ vibe run -i "<task>"
 
 *In the dashboard:* the **Flows** page lists the same set, and the `+` on its sidebar row opens the flow editor, which checks steps, seats and the loop against the flow schema as you type.
 
-### Drafting a Flow or Crew
+## Drafting a Flow or Crew
 
 Describe what you want in English and the supervisor drafts it. Both drafters write nothing: you get a document to read, edit and adopt yourself.
 
@@ -234,7 +232,7 @@ vibe crew draft "<description>" --json
 
 Both drafts also list what no schema can catch: profile or permission ids this project does not define, a seat two roles both claim (which a run refuses to start on), and a role file on disk that saving would replace. Both end with **Could not verify** then **Checked**, the agent's self-report of what it confirmed with its own tools, since Vibestrate opens no connection of its own to check a draft. Both lists print even when empty, so silence is a claim rather than an omission.
 
-### Publishing a Flow to the Hub
+## Publishing a Flow to the Hub
 
 `vibe flows hub publish` pushes a project Flow to the public Flows Hub. Published versions are immutable: byte-identical content at the same version reports as already published, changed content at an existing version is refused - bump the version.
 
@@ -251,7 +249,7 @@ vibe flows hub publish <flowId> \
 
 *In the dashboard:* the **Flows** page's Hub section publishes to the same endpoint with the same secret refusal. `VIBESTRATE_HUB_TOKEN` has to be in the `vibe ui` process's environment, because the dashboard cannot ask you for it, and the custom-host escape is CLI-only.
 
-### Project parameters
+## Project parameters
 
 Fill a Flow's typed `params:` once and every run reuses them, stored in `.vibestrate/project-params.json`. This is separate from `vibe profile`, which holds the runtime presets. See [Project parameters](/docs/concepts/project-params).
 
@@ -298,13 +296,13 @@ That last step is why CI never hangs: seed a param with `vibe params set` or the
 
 *In the dashboard:* the **New run** form's **Inputs** section collects the same params, and marks the ones stored project-globally.
 
-### Interactive run setup
+## Interactive run setup
 
 `vibe run -i "<task>"` fills in whatever you did not pass: a horizontal selector for the Flow (when no `--flow`), then the Crew (when no `--crew` and the project has more than one), then it starts. Move with **←** / **→** (or **h** / **l**) and press **Enter**; anything you pass skips its prompt.
 
 `-i` together with `--flow <id>` instead opens that flow's detailed setup: brief, context policy, per-step Profiles, and optional steps. Both need an interactive terminal.
 
-### Approvals
+## Approvals
 
 When a run pauses for your sign-off:
 
@@ -325,7 +323,7 @@ vibe approvals request-changes <runId> \
 
 *In the dashboard:* every blocked run appears on **Mission control** under **Waiting on you** with **Approve**, **Reject** and **Details**, and the same decision sits in a banner at the top of the run.
 
-### The dashboard, from the terminal
+## The dashboard, from the terminal
 
 ```bash
 vibe ui                  # 127.0.0.1:4317
@@ -336,6 +334,6 @@ vibe run "<task>" --ui   # a run + the dashboard
 
 `--host` with anything other than `127.0.0.1` exposes the API on your network and requires `VIBESTRATE_API_TOKEN`. See [Mission Control](/docs/cli/dashboard).
 
-### Reference
+## Reference
 
 For every command, every option and every default, see the [CLI commands reference](/docs/reference/cli), generated from the commander program tree.

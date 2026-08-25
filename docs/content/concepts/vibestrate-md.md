@@ -60,9 +60,7 @@ The constraints someone new would trip over.
 </div>
 
 
-## Going deeper
-
-### Ask it something
+## Ask it something
 
 `vibe ui`, then the orb, or the Consult page directly. Its **This project** side answers from your manual, your config and your recent runs; **Work in Vibestrate** answers about the product itself.
 
@@ -78,20 +76,20 @@ vibe guide proposals           # open proposals
 vibe guide apply <id>          # append a proposal's text
 ```
 
-### What goes in it
+## What goes in it
 
 Headings that earn their place, written in plain prose. Project Model, Development Commands and Risk Rules, as in the sample at the top, plus any of:
 
 ```md
-### Orchestration Preferences
+## Orchestration Preferences
 Preferred flows and crews; when to go heavier.
 
-### Codebase Conventions
-### Known Constraints
-### Lessons Learned
+## Codebase Conventions
+## Known Constraints
+## Lessons Learned
 ```
 
-### How it ranks against other guidance
+## How it ranks against other guidance
 
 | Layer | What it is | Enforced? | Read when |
 | --- | --- | --- | --- |
@@ -99,7 +97,7 @@ Preferred flows and crews; when to go heavier.
 | **`.vibestrate/rules.md`** | Prompt guidance for roles | No - advisory | Every agent turn |
 | **`VIBESTRATE.md`** | Your durable project model | No - advisory | You ask Consult |
 
-### The codebase map: machine-owned, not authored
+## The codebase map: machine-owned, not authored
 
 Next to the manual sits a different kind of memory: `.vibestrate/CODEBASE.md` and `.vibestrate/codebase-map.json`. Where VIBESTRATE.md is *your* intent, the map is a deterministic scan - stack, scripts, layout, languages, entry points, best-effort HTTP routes, tooling markers. Nobody writes it by hand, and the same repo state always produces the same map, so there is nothing to keep in sync.
 
@@ -139,7 +137,7 @@ It has a screen of its own: **Codebase**, then the **Map** chip above the file t
 
 It also refreshes itself whenever a run reaches a terminal outcome. `vibe learn` regenerates it from a terminal; `vibe learn show` prints `CODEBASE.md` with the same staleness note.
 
-### Who gets the map
+## Who gets the map
 
 The planner, by default, and only the planner. That is deliberate: every other role stands *in* the worktree, holding a plan that already names the files, running an agent CLI that opens them natively. A generated summary costs those roles tokens every turn and gives them a second, staler account of a repo they can already read. The planner has to name real files *before* it has read anything, which is why it is the exception.
 
@@ -151,6 +149,6 @@ codebaseMapRoles: [planner, implementer]
 
 Names are crew role ids, and each listed role is oriented once per run, so a role taking several turns does not pay again.
 
-### Related
+## Related
 
 [[consult]], [[safety]], [[configuration]].

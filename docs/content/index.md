@@ -43,9 +43,7 @@ Every decision, token and dollar, written down locally.
 </div>
 
 
-## Going deeper
-
-### A crew, not one model
+## A crew, not one model
 
 The Default flow seats six workers - planner, architect, implementer, reviewer, fixer and verifier - across eight steps, and you choose the provider and model behind each seat. Put the reviewer on a different model from the implementer, with a separate verifier taking the last look. A model reviewing its own work can only lower its own confidence.
 
@@ -76,11 +74,11 @@ A run works in a separate git worktree on its own branch. It never pushes and ne
 
 </div>
 
-### The flow is chosen per task
+## The flow is chosen per task
 
 `defaultFlow` is unset in a fresh project, so with nothing pinned Vibestrate decides per task: a short, low-risk task can be sized down to `express`, a risk-tagged one can be upgraded by your supervisor persona, and a brief that reads like "build me a whole system" runs the read-only [Spec-up](/docs/concepts/spec-up) chain first. More in [Flow](/docs/concepts/flow).
 
-### Crew, rules and recipes
+## Crew, rules and recipes
 
 Crew maps each role to the seats it fills and the profile it runs on; its Providers tab detects, sets up and tests the local CLIs. Policies hold your project's rules, each set to advise, which the reviewer checks, or block, which caps the run at merge time; the four hard guards sit below them, already on. Flows are the run recipes: 14 ship built in, New flow opens the builder, and Draft a flow turns a sentence into a project-owned one you can edit.
 
@@ -96,13 +94,13 @@ Vibestrate detects eleven coding CLIs and configures five on its own - claude, c
 
 Nothing leaves your machine unless you ask: browsing the Flow Hub, importing a Flow by URL, fetching a skill, passing `--context-url`, exporting metrics to your own collector, or configuring an `http-api` provider that calls a model API directly.
 
-### Every run stays on the record
+## Every run stays on the record
 
 All runs lists every run in the project with its review and verification outcome and duration. Replay walks a finished one step by step from what was saved on disk, and the Scheduler strip decides what starts next.
 
 ![The All runs page. Four runs sit in a table with Status, Review, Verify and Duration columns, one of them merge-ready. A Filter by task or id box sits above, with Open the board, Replay and Prune snapshots controls, and a Scheduler strip carrying Start the queue.](/media/docs/runs-list.png)
 
-### Where to go next
+## Where to go next
 
 <div class="docs-cards">
 
@@ -114,7 +112,7 @@ The tour: the dashboard, flows, crews, policies, spec-up and the merge path.
 
 </div>
 
-### The terminal, when you want it
+## The terminal, when you want it
 
 `vibe` on its own opens the interactive shell, the terminal-native version of the same surfaces: Dashboard, Flow, Crew and seven more as numbered tabs, with a `:` palette for the rest. See [the interactive shell](/docs/cli/shell).
 

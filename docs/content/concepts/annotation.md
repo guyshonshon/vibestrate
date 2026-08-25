@@ -43,9 +43,7 @@ Stop an agent hand-editing something a script rewrites.
 </div>
 
 
-## Going deeper
-
-### Pin one
+## Pin one
 
 1. Open **Codebase** on the **Project** source tab. Notes pin to the project codebase, so the panel stands down under **Worktree**.
 2. Select a file. The **Annotations** block appears under the Inspector's file stats.
@@ -54,7 +52,7 @@ Stop an agent hand-editing something a script rewrites.
 
 Secret-like files refuse annotation and say so in place of the form.
 
-### When agents see them
+## When agents see them
 
 **Visible to agents** is on by default, and it decides which of two places the note ends up:
 
@@ -85,7 +83,7 @@ A shared note joins every agent's prompt the moment a run starts. A private one 
 
 Each note carries its anchor, a chip reading `roles` or `private` that flips the sharing, and controls to resolve or delete it. **Resolving** drops a note from future prompts without deleting it: it stays in the list, greyed out and struck through, ready to reopen.
 
-### What an agent actually reads
+## What an agent actually reads
 
 One line under `# Human Annotations`, carrying its anchor and your text:
 
@@ -99,6 +97,6 @@ The user pinned these notes to the codebase. Treat them as authoritative guidanc
 
 Whatever line breaks you typed are collapsed on the way in, so a note reaches an agent as exactly one line however you wrote it. A whole-file note shows as `src/auth/session.ts`, a single line as `src/auth/session.ts:40`.
 
-### Where they live
+## Where they live
 
 `.vibestrate/annotations.json`, never inside the source files: your file's bytes do not change, and a note survives it being rewritten. The file sits with the rest of your committed [configuration](/docs/concepts/configuration).

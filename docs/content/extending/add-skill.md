@@ -40,35 +40,33 @@ For a skill that also needs an MCP server alongside its instructions.
 </div>
 
 
-## Going deeper
-
-### 1. Create the file
+## 1. Create the file
 
 A file in `.vibestrate/skills/` named for the skill, like `auth-conventions.md`. The filename minus the `.md` is the name you refer to it by everywhere else, so keep it short and kebab-case; a `name:` in the frontmatter overrides it.
 
-### 2. Write the body
+## 2. Write the body
 
 Plain markdown, no required structure. Most useful skills look like this:
 
 ```markdown
 # Title - what this is about
 
-### When to use this
+## When to use this
 
 One or two sentences naming the surface.
 
-### Rules
+## Rules
 
 - Bullet list of conventions.
 - Be specific. "We use X" beats "we prefer X".
 
-### Examples
+## Examples
 
 Short examples of the right way.
 Mark anti-patterns explicitly.
 ```
 
-### 3. Check that it was discovered
+## 3. Check that it was discovered
 
 **More** > **Project** has a **Skills** section listing everything Vibestrate found, with the file path behind each name. When the list is empty it offers a **Fetch skill** box that pulls one from an http(s) URL.
 
@@ -79,7 +77,7 @@ vibe skills list
 vibe skills show <name>
 ```
 
-### 4. Attach it
+## 4. Attach it
 
 A skill does nothing until it is attached to something.
 
@@ -110,7 +108,7 @@ crews:
 vibe run "Add 2FA" --skills auth-conventions
 ```
 
-### What makes a skill good
+## What makes a skill good
 
 Write it like docs for a colleague, not a prompt: what you would tell a new engineer on day one, minus the persuasion.
 
@@ -119,7 +117,7 @@ Write it like docs for a colleague, not a prompt: what you would tell a new engi
 - **Mention the anti-pattern.** "Don't write session middleware inline."
 - **Keep it bounded.** A 200-line skill loading on every agent is expensive; split one that grows.
 
-### Optional: an MCP server
+## Optional: an MCP server
 
 A skill can declare an MCP server (an outside tool an agent connects to). A flat `.md` file has nowhere to keep the config, so use the **directory form**: a folder named for the skill id, holding `SKILL.md` (or `skill.md`) plus a sibling `.mcp.json`.
 
@@ -177,7 +175,7 @@ access, for inspecting queries.
 
 Most skills need none of this. A flat `.md` skill's `mcpServers` is always empty.
 
-### Related
+## Related
 
 - [Skill (concept)](/docs/concepts/skill) - what a skill is and how agents use it.
 - [Attach skills (getting started)](/docs/getting-started/skills) - the quick path to your first one.

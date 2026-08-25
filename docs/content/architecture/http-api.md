@@ -49,9 +49,7 @@ Runs, decisions, artifacts and the ledger.
 </div>
 
 
-## Going deeper
-
-### Endpoints at a glance
+## Endpoints at a glance
 
 Well over 250 routes are registered. Four areas are described in full below; the rest follow the same shape, one route module per domain under `src/server/routes/`.
 
@@ -79,7 +77,7 @@ GET  /api/supervisor/threads
 POST /api/supervisor/threads/:threadId/turn
 ```
 
-### Base URL and versioning
+## Base URL and versioning
 
 `/api/...` is what the bundled dashboard calls; `/api/v1/...` is the canonical contract for external callers.
 
@@ -103,13 +101,13 @@ POST /api/supervisor/threads/:threadId/turn
 
 A breaking payload change ships under a new prefix, while `/api/v1` keeps working for a deprecation window.
 
-### Binding, origin and CSRF
+## Binding, origin and CSRF
 
 The server binds loopback (`127.0.0.1`) by default, and refuses cross-origin requests from anything but `localhost`, `127.0.0.1` or the configured host; a malformed `Origin` is refused too. `--host` on `vibe ui` exposes it elsewhere, but a non-loopback bind **requires a token** or the server refuses to start.
 
 State-changing methods additionally reject any request a browser marks `Sec-Fetch-Site: cross-site` or `cross-origin`, so a page in your browser cannot drive your local API. Non-browser clients such as `curl` omit that header and are unaffected. A destructive endpoint like snapshot prune still requires an explicit body, and never acts on an empty one.
 
-### Authentication
+## Authentication
 
 Auth is **off by default** on a loopback bind (single-user, local-first). Setting `VIBESTRATE_API_TOKEN` turns it on: every `/api/*` request must then send `Authorization: Bearer <token>`, compared in constant time, and a missing or invalid token returns `401` with `WWW-Authenticate: Bearer`. Static UI assets and `/favicon.*` stay open.
 
@@ -125,7 +123,7 @@ AUTH="Authorization: Bearer $VIBESTRATE_API_TOKEN"
 curl -H "$AUTH" http://<host>:4317/api/v1/flows
 ```
 
-### Setup and doctor
+## Setup and doctor
 
 These four back the dashboard's **Setup** page and are the machine-readable form of `vibe doctor` and `vibe init`.
 
@@ -140,7 +138,7 @@ These four back the dashboard's **Setup** page and are the machine-readable form
 
 The fix pass is deliberately narrow: it creates missing `.vibestrate/` subdirectories, restores bundled role files that are absent, and makes two writes to `project.yml` - adopting a detected provider and pointing every profile at it, and filling in the validation commands it detected. Each fires only when that part of the config is empty, so an existing provider set is never replaced and existing validate commands never overwritten. It never edits your source, works under the server's own project root, and takes no input from the request, so there is nothing in it to aim elsewhere.
 
-### Flow portability endpoints
+## Flow portability endpoints
 
 Flows are portable because they name **Seats** - what kind of worker a step needs, not which model fills it - rather than your local Roles or Providers. One exported from another project imports cleanly and resolves against whatever Crew you have.
 
@@ -163,7 +161,7 @@ All three write the flow's own `flow.yml` under `.vibestrate/flows/`, through on
 
 CLI equivalents: `vibe flows export <id> [--out file]` and `vibe flows import <file-or-url> [--overwrite]`. In the dashboard, the **Flows** page carries **Import** and **New flow**, and **Export** sits in each card's menu.
 
-### Drafting a Flow or a Crew
+## Drafting a Flow or a Crew
 
 Two endpoints turn an English description into an editable draft.
 
@@ -182,7 +180,7 @@ What holds for both:
 
 CLI equivalents: `vibe flows draft "<description>" [--crew <id>]` and `vibe crew draft "<description>"`. In the dashboard, each has its own panel: **Draft a flow** on the **Flows** page, **Draft a crew** on the **Crew** page.
 
-### Supervisor turns (SSE over POST)
+## Supervisor turns (SSE over POST)
 
 The supervisor's conversation endpoints are inert storage - list threads, open one, append a message - except the turn, which is the only one that reaches a model.
 
@@ -215,7 +213,7 @@ Seven event kinds stream, each under its own SSE name and also carrying `kind`:
 
 **Stopping is aborting the fetch.** There is no stop endpoint. Closing the socket aborts the turn's signal, which sends `SIGTERM` to the process group of whichever provider CLI is in flight and records a stopped message in the thread. What that cannot retract is an action that already ran - a created task or a started run outlives the request and is recorded as having happened. A heartbeat comment goes out every 15 seconds so idle proxies do not close the stream.
 
-### Integration: merge advice and guided merge-to-main
+## Integration: merge advice and guided merge-to-main
 
 These back the dashboard's **Source** page **Merge** tab.
 

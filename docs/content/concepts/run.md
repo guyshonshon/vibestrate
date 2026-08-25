@@ -71,35 +71,33 @@ When a lane goes badly the panel grows the button that answers it: **View review
 
 </div>
 
-## Going deeper
-
-### Watching one live
+## Watching one live
 
 Below the verdict the run page is a board you can rearrange: **Live timeline**, **Live metrics**, **Changed files**, and **Live execution** for the provider's raw output. While the run is still going, Supervisor Control sits under them so you can steer it mid-flight.
 
 At the bottom sits **Inspect**: Tree, Steps, Events, Artifacts, Validation, Terminal, Replay. Artifacts holds the diff, file by file; Terminal opens a shell already inside the run's copy of the repo.
 
-### The same run in the terminal
+## The same run in the terminal
 
 `vibe` on its own (or `vibe shell`) opens the interactive shell. Its **Runs** tab is a list on the left and an inspector on the right with Overview, Events, Validation and Audit tabs. Pause, resume and abort live in the `:` palette.
 
-### The three verdicts
+## The three verdicts
 
 Review answers `APPROVED`, `CHANGES_REQUESTED` or `BLOCKED`. Verification answers `PASSED`, `FAILED` or `NEEDS_HUMAN`. A `CHANGES_REQUESTED` does not end the run; it sends the work to the fix step and back round for re-validation, which is why the default flow lists Fix and Re-validate after Review.
 
 `NEEDS_HUMAN` is the honest answer when the evidence supports neither a pass nor a fail. It stops rather than guessing.
 
-### Isolation
+## Isolation
 
 Every run gets its own git [[worktree]]: a real checkout on its own branch, sharing your repository's object database. Nothing is pushed or merged without you. The **Workspace** panel names the path.
 
 ![The Workspace panel of a run, naming the branch and showing the run's isolated git worktree path, with a Copy cd button.](/media/docs/scoped/run-workspace.png)
 
-### What is recorded
+## What is recorded
 
 Tokens, spend and duration per step, every supervisor decision, the diff, and the validator output. All of it is written locally as the run happens, which makes a finished run something you re-read rather than remember.
 
-### Automation
+## Automation
 
 Drivable from a script or over SSH; see the [CLI overview](/docs/cli/overview).
 

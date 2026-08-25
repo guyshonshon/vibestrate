@@ -45,9 +45,7 @@ A real task, start to finish, so the vocabulary lands.
 </div>
 
 
-## Going deeper
-
-### The four steps
+## The four steps
 
 - **Providers** - the coding CLI that runs the model, such as Claude Code or Ollama. This step runs `vibe provider setup`.
 - **Crew** - your team of AI workers. Install a ready-made one (Fast, Thorough, Cheap, or Local), or build your own later on the **Crew** page.
@@ -56,7 +54,7 @@ A real task, start to finish, so the vocabulary lands.
 
 Each step opens with a short explanation, then asks whether to continue, skip or quit.
 
-### It remembers where you left off
+## It remembers where you left off
 
 <svg viewBox="0 0 560 70" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The tour has four steps - providers, crew, flows, and your first run. Quit after the first two and it picks up at flows.">
   <g fill="currentColor" fill-opacity="0.07">
@@ -88,7 +86,7 @@ A step counts as done only when it succeeds, so a failed step is the one you lan
 vibe welcome --reset
 ```
 
-### If the project isn't set up yet
+## If the project isn't set up yet
 
 The tour offers to run `vibe init` for you. Say no and it stops there, leaving you two commands:
 
@@ -99,7 +97,7 @@ vibe welcome
 
 The dashboard does the same with the Setup page's **Initialise this project** button.
 
-### Three ways to work
+## Three ways to work
 
 <div class="docs-flow">
 
@@ -109,6 +107,6 @@ The dashboard does the same with the Setup page's **Initialise this project** bu
 
 </div>
 
-### Next
+## Next
 
 [Keep the change →](/docs/getting-started/merging) - what to do with the branch your first run leaves behind.

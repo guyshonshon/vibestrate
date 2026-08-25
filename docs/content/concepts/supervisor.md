@@ -34,9 +34,7 @@ The decision count opens the feed. Where the flow was chosen rather than pinned,
 
 </div>
 
-## Going deeper
-
-### The calls it makes
+## The calls it makes
 
 <div class="docs-cards">
 
@@ -88,7 +86,7 @@ A suggested posture becomes a rule only if you say so. `posture.autoApplySandbox
 
 The two switches are not guarded alike. The approval gate steps aside twice: an explicit `--permission-mode` wins over it, and it is suppressed for unattended runs, where a prompt would only stall. The sandbox has neither escape - `autoApplySandbox` raises isolation on a `sandbox-suggested` run regardless of `--permission-mode`, because it only ever raises safety and there is nothing to stall. What it does not do is pretend: only a provider CLI that enforces a real OS sandbox gets one, and a seat on a provider without one degrades and is reported as unsandboxed rather than counted as protected. The default supervisor stays posture-neutral, so a plain `vibe run` meets none of this.
 
-### Judgment, enforced, or structural
+## Judgment, enforced, or structural
 
 Every entry in the decision feed carries one of three labels.
 
@@ -102,7 +100,7 @@ Every entry in the decision feed carries one of three labels.
 
 </div>
 
-### Picking one, and picking who reviews
+## Picking one, and picking who reviews
 
 Two supervisors ship built in and need no setup: `staff-engineer`, the default, and `security`. Six more are **archetypes**, which have to be copied into your config first.
 
@@ -125,11 +123,11 @@ profiles:
 
 Give it a new id, as above. A `personas:` entry **replaces** a built-in of the same name, so writing `staff-engineer:` here to change one field empties that persona's risk signals, preferred flow and lenses, with no error. A new persona starts empty for the same reason. A per-step profile override, or a run-wide `--profile`, beats `reviewerProfile`.
 
-### Project rules are not the supervisor's
+## Project rules are not the supervisor's
 
 A rule like "use a hyphen, not an em-dash" belongs to the project. The active supervisor is the enforcer, not the owner: it carries `advise` rules into the reviewer's turn, and the project's `block` rules cap the merge whichever supervisor is on duty. [Policies](/docs/concepts/policies) has the tiers. Older configs scoped these under a persona's `preferences` key; `vibe policies migrate` lifts them across once.
 
-### Automation
+## Automation
 
 The interactive shell (`vibe`, or `vibe shell`) has no supervisor screen, and its **Config** page does not carry one either - that view has fourteen sections and personas are not among them. Picking and authoring happen in the dashboard or on the CLI, and these are what a script or a repo template reaches for.
 

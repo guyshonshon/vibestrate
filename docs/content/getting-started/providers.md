@@ -42,9 +42,7 @@ Ollama or similar, over loopback, so nothing leaves the box.
 </div>
 
 
-## Going deeper
-
-### The Providers tab
+## The Providers tab
 
 Two tiles count what is **detected** and what is **configured**. The cards below are grouped:
 
@@ -54,7 +52,7 @@ Two tiles count what is **detected** and what is **configured**. The cards below
 
 **Install** shows on a popular provider you don't have yet. **Set up** opens the editor for command, args and input, and reads **Edit** once the provider is configured. **Set default** points every default agent at it. **Test** sends a tiny no-op prompt and reads the reply; when the answer is "not logged in" the card prints the login command.
 
-### Give the reviewer a different model
+## Give the reviewer a different model
 
 A [[role]] never names a provider. It names a [Profile](/docs/concepts/profile), and the Profile names the provider:
 
@@ -96,7 +94,7 @@ On the **Crews** tab, each role card has a **Profile (runtime)** dropdown. Point
 
 A Profile also pins the model and the effort level, so an easy role runs on something cheap while the hard one gets your best.
 
-### Cloud models, or local ones
+## Cloud models, or local ones
 
 **Add cloud API** and **Add local server** ask for these fields and validate before saving. The same shapes in `project.yml`:
 
@@ -128,7 +126,7 @@ Both types are checked when the config loads. An `http-api` provider is rejected
 
 </div>
 
-### From the terminal
+## From the terminal
 
 For a script, or a second machine set up the same way:
 
@@ -165,11 +163,11 @@ vibe run "..." --profile codex-default
 
 Keep the seat lists the way `vibe init` wrote them: the default flow asks for `implementer`, not `executor`, so a role that drops `implementer` leaves that seat empty and the run stops before it starts.
 
-### Going deeper
+## Related
 
 - [Providers reference](/docs/reference/providers) - the current list, notes on each one, and the install hint.
 - [Profile](/docs/concepts/profile) - the provider, model and effort a role runs at.
 
-### Next
+## Next
 
 [The words you will meet →](/docs/getting-started/big-picture) - task, flow, seat, crew, profile and provider, defined once before you run anything.

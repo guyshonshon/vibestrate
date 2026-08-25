@@ -38,11 +38,9 @@ The **Replay** tab on a run, or `vibe replay <run-id>`: every decision and artif
 
 </div>
 
-## Going deeper
+## Install and setup
 
-### Install and setup
-
-### `vibe: command not found` right after installing
+## `vibe: command not found` right after installing
 
 Your shell's PATH does not include npm's global bin directory. Find where npm puts global binaries and add that directory to your PATH:
 
@@ -54,7 +52,7 @@ npm config get prefix
 
 `which vibe` should then return a real path. No dashboard view of this one - `vibe ui` is the same binary, so nothing starts until PATH is fixed.
 
-### `vibe init` says "not a git repository"
+## `vibe init` says "not a git repository"
 
 Vibestrate needs git for worktree isolation, and this directory is not a repo yet.
 
@@ -70,7 +68,7 @@ vibe init
 
 `git rev-parse --is-inside-work-tree` should return `true`.
 
-### `vibe doctor` says "no providers ready"
+## `vibe doctor` says "no providers ready"
 
 No coding-agent CLI is on your PATH, or none has a verified preset.
 
@@ -98,15 +96,15 @@ vibe provider test <id>
 
 At least one provider should end at confidence `ready`, or pass its test after setup.
 
-### Providers
+## Providers
 
-### Provider test fails with "command not found"
+## Provider test fails with "command not found"
 
 The provider's CLI is not on the PATH of the shell Vibestrate was started from. **Test** on that card in **Crew** > **Providers** returns the same message.
 
 Add the CLI to your PATH, restart your terminal, then restart `vibe ui` - the server inherits the PATH it was launched with. `which claude` should return a real path.
 
-### The test passes, but real runs fail with "unexpected output"
+## The test passes, but real runs fail with "unexpected output"
 
 The preset is producing output Vibestrate cannot read, usually because the provider changed its output format between releases.
 
@@ -114,9 +112,9 @@ The preset is producing output Vibestrate cannot read, usually because the provi
 
 `vibe provider setup` walks the same flags from a terminal. If they are right and the format changed anyway, file an issue with the provider's version (`<cli> --version`) and a sample of the output.
 
-### Runs that won't start or stall
+## Runs that won't start or stall
 
-### Runs finish, but nothing was actually checked
+## Runs finish, but nothing was actually checked
 
 `commands.validate` in `project.yml` is empty. The run does not fail - Vibestrate works without validation commands - but the review is much weaker, with nothing factual between the executor and the reviewer.
 
@@ -135,7 +133,7 @@ vibe config set commands.validate \
 
 `vibe config get commands.validate` should then show your array.
 
-### Run stuck in `waiting_for_approval`
+## Run stuck in `waiting_for_approval`
 
 A policy gate at this stage requires a human on purpose (`policies.requireApprovalAtStages`).
 
@@ -151,13 +149,13 @@ vibe approvals approve <runId> <approvalId>
 
 The status then moves into the stage it was about to enter.
 
-### Run stuck in `paused`
+## Run stuck in `paused`
 
 Either the orchestrator is no longer running - the process that owns the run ended - or the resume has not reached the next polling tick. An amber card with nothing moving behind it is the usual tell.
 
 If the process is alive, use the resume control on the run's page or `vibe resume <runId>`, and allow a few seconds for the next stage-boundary check. If it ended, `vibe run` or `vibe ui` picks the durable state up automatically.
 
-### Worktree creation fails: "main branch has uncommitted changes"
+## Worktree creation fails: "main branch has uncommitted changes"
 
 Your `project.yml` has `git.requireCleanMain: true` and `main` has uncommitted edits. The **Source** page shows the same dirty tree.
 
@@ -170,9 +168,9 @@ vibe run "..."
 
 Or turn the policy off, on the Config page or with `vibe config set git.requireCleanMain false`. The worktree then appears under `../.vibestrate-worktrees/`.
 
-### The Supervisor panel
+## The Supervisor panel
 
-### The answer is a reason instead of an answer
+## The answer is a reason instead of an answer
 
 Two different messages, two different situations.
 
@@ -180,7 +178,7 @@ Two different messages, two different situations.
 
 **"Stopped before I got to an answer."** Nothing broke - the turn was cut short before it produced anything. You get this when you press Stop, and when the connection to the panel closes, so reloading the page or restarting `vibe ui` mid-answer both do it. Whatever had already been written is kept.
 
-### An effort level your provider does not have
+## An effort level your provider does not have
 
 Asking the panel for one is refused before the turn starts, with that provider's real ladder in the message:
 
@@ -201,9 +199,9 @@ Effort "xhigh" won't take effect on gemini
 
 (Wrapped here to fit; the event carries it on one line, and names the valid levels instead when the provider has a ladder.) `vibe consult --effort` behaves the same way, without the event. If an effort setting seems to make no difference, that is why.
 
-### Notifications and dashboard
+## Notifications and dashboard
 
-### Notifications never arrive
+## Notifications never arrive
 
 Notifications go to local gateways only: the in-app feed, the CLI, the browser's own system notifications. There are no Slack or webhook gateways. Usually a channel is switched off, the severity is below the gateway's threshold, or notifications are off entirely.
 
@@ -217,15 +215,15 @@ vibe notifications list
 vibe notifications test <gatewayId>
 ```
 
-### A dashboard tab is blank
+## A dashboard tab is blank
 
 Either the browser cached an older asset bundle, or the runs live in a different project root than the one `vibe ui` was started from.
 
 Hard-reload (Cmd-Shift-R / Ctrl-Shift-R), then confirm which project is being served - the switcher at the top of the sidebar names it, and the dashboard reads `.vibestrate/runs/` from its working directory.
 
-### Worktrees left behind
+## Worktrees left behind
 
-### Worktree didn't get cleaned up after an abort
+## Worktree didn't get cleaned up after an abort
 
 By design: worktrees are preserved across `aborted`, `blocked` and `failed` so you can inspect or copy out partial work, and the **Source** page still lists the branch. Remove it when you are done:
 
@@ -235,7 +233,7 @@ git worktree remove ../.vibestrate-worktrees/<runId>
 git branch -D vibestrate/<runId>
 ```
 
-### Next
+## Next
 
 - [Flow](/docs/concepts/flow) - the steps a run works through, where these statuses come from.
 - [Crew](/docs/concepts/crew) - the workers and models behind your providers.

@@ -26,9 +26,7 @@ That is the whole idea in one picture: one task, one recipe, one team, one verdi
 
 </div>
 
-## Going deeper
-
-### Task - the job you want done
+## Task - the job you want done
 
 A **Task** is what you ask for, written the way you'd brief a capable colleague. **New run** at the bottom of the sidebar opens one field for it; **Start run** begins:
 
@@ -36,7 +34,7 @@ A **Task** is what you ask for, written the way you'd brief a capable colleague.
 
 Say what you want and leave the how to the workers; naming a file or a rule to respect beats a vague brief. It is the only thing you must provide - everything else has a default.
 
-### Flow - the routine the Task runs through
+## Flow - the routine the Task runs through
 
 A **Flow** is the ordered steps a Task moves through. The **Flows** page lists this project's, built-in and your own. The built-in `default` flow has eight steps; [Workflow](/docs/concepts/workflow) walks through each and the status it produces.
 
@@ -44,7 +42,7 @@ A run doesn't always take that Flow: with no flow pinned and no project default,
 
 A Flow never names an AI model. Where a step needs a worker it names the kind, like an implementer, and leaves a labelled empty chair: a Seat. Steps that only run your tests need no chair at all.
 
-### Seat - a labelled chair in the routine
+## Seat - a labelled chair in the routine
 
 A **Seat** is a spot in the Flow that needs filling, named for the work: an `implementer` seat, a `reviewer` seat. The Flow reserves them and says nothing about who sits in them.
 
@@ -70,7 +68,7 @@ one with a role override.
 
 The override is `--seat-role reviewer=senior-reviewer` on `vibe run`, repeated per seat.
 
-### Crew - your team of AI workers
+## Crew - your team of AI workers
 
 A **Crew** is the team that fills those seats. Each member is a **Role**: a name, a short brief ("you are the Reviewer; you critique the change"), the seats it may sit in, the permissions it runs with, and the Profile it runs at. The **Crew** page holds all five, one card per role.
 
@@ -82,13 +80,13 @@ A Role can fill more than one seat. The Reviewer sits in the `reviewer` and `cha
 
 Keep more than one Crew and pick which a Task uses, from the compose page's **Crew** section or with `--crew`.
 
-### Profile - how strong each worker runs
+## Profile - how strong each worker runs
 
 A **Profile** is how much power you give a worker: which provider, which model, how hard it thinks, and a cap on output tokens. The same Role is cheap or premium depending on the Profile it points at. The **Profiles** page lists them, and each role card on **Crew** picks one from its **Profile (runtime)** dropdown.
 
 This is where you control cost: your best model on the implementer seat, since it writes the real code, something small and fast on a read-only one. Changing a Profile leaves the Flow and the Crew alone.
 
-### Provider - the tool or API behind the model
+## Provider - the tool or API behind the model
 
 A **Provider** is the thing that runs the model. **Crew > Providers** manages all three kinds:
 
@@ -104,7 +102,7 @@ A **Provider** is the thing that runs the model. **Crew > Providers** manages al
 
 [Set up a provider](/docs/getting-started/providers) covers all three.
 
-### None of this needs setting up
+## None of this needs setting up
 
 The defaults work: out of the Setup page you get a Crew with all six roles, one Profile and the built-in Flows, so your first Task needs no seat configured.
 
@@ -112,6 +110,6 @@ One thing is worth changing early: Setup points all six roles at the same Profil
 
 Each word has a page of its own: [Task](/docs/concepts/task), [Flow](/docs/concepts/flow), [Seat](/docs/concepts/seat), [Crew](/docs/concepts/crew).
 
-### Next
+## Next
 
 [Your first run →](/docs/getting-started/first-run) - the same words, watched happening.

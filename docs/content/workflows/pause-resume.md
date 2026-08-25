@@ -43,9 +43,7 @@ Status `blocked`. A policy, review or check said no.
 
 </div>
 
-## Going deeper
-
-### Pause
+## Pause
 
 ```bash
 vibe pause <runId>
@@ -53,7 +51,7 @@ vibe pause <runId>
 
 Vibestrate works in stages and checks for the flag between them. On spotting one it moves the run to `paused` and records which stage it was about to start. Nothing is cut off halfway.
 
-### Resume
+## Resume
 
 ```bash
 vibe resume <runId>
@@ -63,7 +61,7 @@ This clears the flag and the run continues from the stage in `pausedAtStatus`. W
 
 Change your mind before the run reaches the next gap between stages and `vibe resume` cancels the pending pause: the run keeps going and never enters `paused`.
 
-### Abort
+## Abort
 
 ```bash
 vibe abort <runId>
@@ -79,7 +77,7 @@ git branch -D vibestrate/<runId>
 
 *In the dashboard:* the run screen carries pause, resume and abort directly, and the shell's **Runs** page has them on `p`, `r` and `a`.
 
-### Policy-gated pauses are different
+## Policy-gated pauses are different
 
 Some pauses are scheduled by a policy rather than asked for. If `policies.requireApprovalAtStages` names a stage, the run pauses on its own at the boundary into it, with the status `waiting_for_approval`. That pause waits for a decision, so `vibe resume` is not the tool - use `vibe approvals`:
 
@@ -99,7 +97,7 @@ Each stopping point has its own status, so you know why a run is sitting still:
 
 <div class="docs-chips"><span>paused</span><span>waiting_for_approval</span><span>blocked</span><span>aborted</span></div>
 
-### Abort, or let it block
+## When to abort, and when not to
 
 Not every stuck run should be aborted. Abort means you end it; block means it stopped itself.
 
@@ -107,7 +105,7 @@ Not every stuck run should be aborted. Abort means you end it; block means it st
 - The reviewer is useful but stuck on a call you would rather make yourself. **Abort**, fix the cause (clarify the task, add a skill, adjust the rules), then run again.
 - The run stopped itself (status `blocked`) because the reviewer or verifier raised a real concern. Do not abort: read the findings, decide, and restart with the lesson encoded in the task or a skill.
 
-### Next
+## Next
 
 - [Flow](/docs/concepts/flow) - the steps a run works through, and where the pauses fall.
 - [Run state](/docs/concepts/state) - every status a run can hold, and which ones are final.

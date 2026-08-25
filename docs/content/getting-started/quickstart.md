@@ -337,9 +337,7 @@ That token is the literal `merge-to-main` on every project, whatever your trunk 
 
 More: [Keep a change](/docs/getting-started/merging).
 
-## Going deeper
-
-### Unattended
+## Unattended
 
 Nothing above needs a person watching it. The same path in four lines, for CI or for a machine you have already set up:
 
@@ -352,11 +350,11 @@ vibe run "Add a /healthz endpoint" --ui
 
 `vibe run` exits 3 on blocked, failed or aborted and 0 otherwise, so a script can branch on it. Drop `--ui` when scripting: it keeps the process alive for the dashboard and exits 0 whatever happened.
 
-### Everything else
+## Everything else
 
 The [full walkthrough](/docs/getting-started/walkthrough) picks up where this page stops: Mission Control and the rest of the dashboard, the fourteen flows that ship and the Flow Hub, crews and cross-model review, the policies you write yourself, spec-up for a greenfield brief, and a longer troubleshooting table.
 
-### Keep going
+## Keep going
 
 - [The big picture](/docs/getting-started/big-picture) - the same vocabulary, with the reasoning behind each piece.
 - [Your first run](/docs/getting-started/first-run) - the run loop step by step.

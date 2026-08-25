@@ -28,9 +28,7 @@ The bar is the flow itself, coloured by what each step does, and the legend unde
 
 </div>
 
-## Going deeper
-
-### Which flow a run uses
+## Which flow a run uses
 
 `defaultFlow` starts unset, so a run with no flow named gets one decided per task. Every run prints the flow it resolved and where that choice came from.
 
@@ -52,7 +50,7 @@ With none of the above, sizing reads the task text and may route it to `express`
 
 Spec-up sits outside all four. It runs *before* whichever flow was chosen, and that flow then runs seeded with the resulting spec. `--flow` does not skip it, since that flow is what spec-up builds towards. `--no-select` skips it for one run; `adaptiveSpecUp: off` stops it entirely.
 
-### Where the model actually comes from
+## Where the model actually comes from
 
 **A flow step has no model, provider, or profile field.** Everything past the seat is yours:
 
@@ -96,7 +94,7 @@ Spec-up sits outside all four. It runs *before* whichever flow was chosen, and t
 
 The flow writes the first box and names the second; the last three belong to your crew. Pin the `reviewer` role to a profile there and every flow you run gets that reviewer; `--step-profile` changes one step for one run.
 
-### When you would write one
+## When you would write one
 
 Most of the time you should not: a clearer task description or a [[skill]] nudges the default flow for less effort. Write your own when:
 
@@ -116,7 +114,7 @@ A flow is a YAML file. It travels to a teammate, or to the hub, and still runs o
 
 </div>
 
-### Making one in the dashboard
+## Making one in the dashboard
 
 The Flows page has four ways in. **Draft a flow** takes a plain-English description and has the supervisor propose one, with its reasoning, steps and seats laid out; drafting writes nothing, and **Save this flow** is the step that does. **New flow** starts blank. **Customize**, on a built-in's card menu, copies that flow into your project. **Import** takes **Paste YAML** or a URL, validated against the schema, refused if it carries secrets, with URL fetches size- and time-bounded.
 
@@ -126,11 +124,11 @@ The editor re-runs the real flow schema over the whole draft as you type, pinnin
 
 **Pull a flow**, at the foot of the same page, browses community flows from vibestrate.com and installs one through that same guarded writer. A hub flow is executable configuration, so the install says so, and the "curated" badge is a curation claim rather than an integrity guarantee. **Publish a flow to the hub** sends a project flow out as a public, immutable version.
 
-### In the terminal shell
+## In the terminal shell
 
 `vibe` on its own opens the interactive shell. Press `2` for **Flow**: arrow keys select, `Enter` sets the selected flow as project default, `f` forks a built-in into the project, and `h` opens the hub, where `/` searches and `Enter` installs. The detail pane shows the flow's steps and whether your crew covers its seats.
 
-### Automation: the CLI
+## Automation: the CLI
 
 ```bash
 # what this project has, and what a flow contains

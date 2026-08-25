@@ -53,9 +53,7 @@ The Source page's Changes, Tree and Merge tabs, or your own terminal.
 </div>
 
 
-## Going deeper
-
-### Providers on Windows
+## Providers on Windows
 
 Claude Code, Codex and Gemini run natively on Windows once you've installed their CLIs with npm, and Vibestrate calls them the same way it does on macOS and Linux.
 
@@ -67,13 +65,13 @@ Past those three it varies tool by tool, and some are still POSIX-only. The Setu
 
 </div>
 
-### Docker isolation on Windows
+## Docker isolation on Windows
 
 The Docker execution backend is an opt-in sandbox on every platform; you never need it. Native execution is the supported path everywhere, Windows included.
 
 The Docker backend isn't wired up for Windows yet. It mounts the run's worktree at its real host path, so the diff gate and the path guard resolve against the same paths the host uses, and a Windows host path isn't valid inside a Linux container. Making it work needs a host-to-container path-mapping pass, so run natively until then. See [Container isolation](/docs/concepts/sandbox) for how the Docker backend works.
 
-### Next
+## Next
 
 - [Installation](/docs/getting-started/installation) - requirements, and the same setup path on every platform.
 - [Connect a model](/docs/getting-started/providers) - point Vibestrate at the CLIs you have.

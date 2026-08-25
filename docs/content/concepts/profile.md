@@ -28,9 +28,7 @@ The tiles say what it resolves to today and the fields under them are where you 
 
 </div>
 
-## Going deeper
-
-### When you would make another
+## When you would make another
 
 **New profile** in the page header opens the create form; **Duplicate** on a card copies an existing one under a new id, and **Delete** warns you first if a role still points at it.
 
@@ -52,7 +50,7 @@ A profile on an Ollama provider, for work that must not leave the machine.
 
 A role card on the **Crew** page can also mint one: **New profile** there creates the profile and assigns it to that role in a single step.
 
-### Where a profile sits
+## Where a profile sits
 
 <svg viewBox="0 0 560 52" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A Flow step names a Seat, your Crew's Role fills that Seat, the Role names a Profile, and the Profile names a Provider. The Profile is the fourth link, and the one that carries the model and the effort.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -94,7 +92,7 @@ A role card on the **Crew** page can also mint one: **New profile** there create
 
 Two roles can share one profile, and a single role can run on a stronger profile for one step through a step override.
 
-### The knobs reach the real provider
+## The knobs reach the real provider
 
 A profile's settings take effect on both CLI and HTTP providers: a CLI provider gets a real flag, an HTTP-API provider the equivalent request-body field. It changes what gets spawned or sent, not only what gets written down.
 
@@ -106,7 +104,7 @@ Each knob appears only where it is wired to something real:
 
 The same rule is why there is no per-profile spend dial. An earlier version had a `budget` field that nothing read at runtime, so it was removed, and a leftover `budget:` key in an old `project.yml` is ignored on load. Spend is controlled where it bites: the per-turn output cap in **Max tokens**, and a project-level daily cap (`vibe budget`) that stops or downgrades runs.
 
-### The model must exist at the provider
+## The model must exist at the provider
 
 A profile naming a model its provider does not offer is a run that fails the moment it spawns, so Vibestrate checks the pair on write and keeps checking it, because a model can stop existing without anyone touching the config.
 
@@ -119,7 +117,7 @@ How strict depends on where the list came from:
 
 Such a profile is surfaced, not carried in silence. Its card turns amber and states the fault; the page header counts it and offers **Pick a model for** that profile, which puts your cursor in the Model field. The Dashboard raises an amber banner naming it too, because the run that would fail has not started yet.
 
-### Fencing off a role's tools
+## Fencing off a role's tools
 
 A profile can name provider tools a role may **not** use, with `disallowedTools`. The main use is `["Task"]` on the write seats of a strict flow: it stops a seat's agent spinning up nested sub-agents that would schedule work outside the flow's plan, so what actually ran stays legible.
 
@@ -140,7 +138,7 @@ profiles:
 
 </div>
 
-### From the terminal
+## From the terminal
 
 `vibe shell` manages the same presets on its `[4] Profiles` page: `e`/`E` cycle effort, `m`/`M` the model, `n` new, `d` duplicate, `x` delete, and `r` re-probes the provider catalog.
 

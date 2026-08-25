@@ -28,9 +28,7 @@ Counted by how many [[profile]]s point at them.
 
 </div>
 
-## Going deeper
-
-### The four kinds
+## The four kinds
 
 Declared under `providers:` in `project.yml`:
 
@@ -86,7 +84,7 @@ This is what keeps the tool *local-first*, where local-first means **sovereignty
 
 </div>
 
-### Popular, optional, missing
+## Popular, optional, missing
 
 Eleven CLIs ship with Vibestrate. The five under **Popular** are configured the moment they are detected, because their flags are stable enough to drive without surprises:
 
@@ -106,7 +104,7 @@ A CLI Vibestrate ships no preset for goes in through **Custom CLI**, in the thir
 
 One mistake worth naming: setting up the same provider twice. If Claude Code is your `claude` id, do not add a `claude-pro` and a `claude-haiku` unless the flags actually differ. One provider, several [[profile]]s.
 
-### Your own environment comes along
+## Your own environment comes along
 
 By default your own Claude Code environment applies inside a run: your global `CLAUDE.md`, hooks and memory load exactly as they would in your terminal. That is deliberate - the model you tuned is the model that works your runs.
 
@@ -116,7 +114,7 @@ For hermetic turns instead - only the prompt Vibestrate compiled, plus the skill
 
 A `claude-code` provider also streams by default (`--output-format stream-json --verbose --include-partial-messages`) so the live transcript shows the model working token by token. Set `settings.outputFormat` to take manual control.
 
-### Cloud APIs and local model servers
+## Cloud APIs and local model servers
 
 **Add cloud API** and **Add local server** on the Providers tab create the two HTTP-backed kinds. Both blocks are the same shape - a `type`, an `api` family, a `baseUrl` and a `model` - and only the cloud one takes a key:
 
@@ -147,7 +145,7 @@ Rules the schema enforces:
 
 Both report **real token usage** from the API response, not estimates. They run one request per turn with no session reuse: only `claude-code` reports a session id back, and every other provider is a fresh start per call.
 
-### The capability catalog and your overlay
+## The capability catalog and your overlay
 
 Vibestrate ships a built-in **capability catalog**: per provider, the real models and effort levels and *how* each is applied (a CLI flag, a `-c key=value`, or an HTTP request-body field). The profile editors only offer knobs that are in this catalog, so you never set an effort the runtime ignores.
 
@@ -180,7 +178,7 @@ http:
 
 Omit a field to keep the built-in value; set it to `null` to clear it.
 
-### From the terminal
+## From the terminal
 
 `vibe shell` has no providers page of its own, but its `[4] Profiles` page flags when an overlay is active and names each provider's source, and `r` there runs the same catalog probe as the button.
 
@@ -204,7 +202,7 @@ Provider commands manage the raw tools only. A [[profile]] wraps a provider with
 
 CLI providers authenticate through their own login flow, so a literal API key never belongs in `project.yml`.
 
-### Going further
+## Going further
 
 - [Provider reference](/docs/reference/providers) - generated from the detector's own table.
 - [Extending: add a provider](/docs/extending/add-provider) - wire up your own CLI.

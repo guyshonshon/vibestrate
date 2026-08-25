@@ -51,9 +51,7 @@ It is plain YAML inside your repo.
 </div>
 
 
-## Going deeper
-
-### The Config page
+## The Config page
 
 The header names the file being edited and counts what is in it. Below it, two columns of groups: **Project**, **Git**, **Workflow**, **Execution**, **Budget**, **Supervised runs**, **Resilience**, **Session**, **Validation commands**, **Permissions**, **Safety policies**, **Posture**, **Scheduler**, **Editor**, **Commits** and **Merge**. A group is a key's own top-level namespace, so `supervisorControl` has one too, under its raw dotted name rather than a friendly label. Everything with no dot in its name - `providers`, `profiles`, `crews`, `personas`, `defaultCrew`, `defaultFlow`, `defaultPersona`, `flowSizing`, `adaptiveSpecUp` and the rest - lands in **General**.
 
@@ -64,11 +62,11 @@ Two kinds of row do not edit in place:
 - **Records** - `providers`, `profiles`, `crews`, `personas`, `permissions.profiles`, `commands.validationProfiles` and `scheduler.sourceQuotas`. Id-keyed maps with no single value to set, so the row shows a read-only summary and sends you to the screen that owns it: **Open Providers**, **Open Profiles**, **Open Crew**, **Open Supervisors**, **Open Settings**. The last two have no button, because `commands.validationProfiles` is only renameable from the Settings maintenance panel and `scheduler.sourceQuotas` has no editor at all.
 - **Shell commands** - `commands.validate`, `editor.command`, `editor.args`. A later run spawns whatever these point at, so the server never accepts a shell command string over HTTP. The row stays read-only and names the `vibe config set` that writes it.
 
-### In the terminal shell
+## In the terminal shell
 
 `vibe shell` carries a Config page too, opened from the `:` palette as **Go to Config** rather than a number key. It renders the grouped, readable projection `vibe config view` prints, section by section, with arrow keys or `j`/`k` to move. It reads rather than edits.
 
-### The commands
+## The commands
 
 The CLI is the automation path: a setup script, a CI job, or the moment you already know the key you want.
 
@@ -87,7 +85,7 @@ Arrays and objects go in as JSON, so the validation commands look like `vibe con
 
 The three shell-command keys above are read-only in the browser on purpose. A handful of others are out of the Config page's reach for less deliberate reasons: `scheduler.sourceQuotas` has no editor anywhere in the dashboard, `commands.validationProfiles` offers a rename control and nothing else, and the record rows link out only for `permissions.profiles`. For those, `vibe config set` is the path.
 
-### What lives in `project.yml`
+## What lives in `project.yml`
 
 The file is split into top-level sections. The Config page groups them for you; this is which concept explains each one.
 
@@ -109,7 +107,7 @@ The file is split into top-level sections. The Config page groups them for you; 
 
 `project`, `methodologyRoles`, `budget`, `resilience`, `session`, `scheduler`, `editor` and `commits` have no concept page. They are described field by field, from the source, in the [`project.yml` reference](/docs/reference/config).
 
-### What sits outside `project.yml`
+## What sits outside `project.yml`
 
 The rest of `.vibestrate/` holds files you edit directly: `roles/` (one JSON role file each), `skills/` ([skills](/docs/concepts/skill) that load as extra context), `flows/` (your own [flow](/docs/concepts/flow) definitions), and `policies/` (what the safety engine compiles).
 
@@ -117,11 +115,11 @@ The rest of `.vibestrate/` holds files you edit directly: `roles/` (one JSON rol
 
 `runs/` holds per-run artifacts, state and metrics. Nothing adds it to your `.gitignore` for you, so add `.vibestrate/runs/` yourself unless you want run history in the repo.
 
-### Secrets stay out
+## Secrets stay out
 
 Beyond the `env:` rule for provider keys, Vibestrate never reads your `.env` contents into a prompt, an artifact, or a report. See [Safety](/docs/concepts/safety) for the guarantees around what a run may touch.
 
-### Related
+## Related
 
 - [`project.yml` reference](/docs/reference/config) - the generated, field-by-field schema.
 - [Crew configuration, annotated](/docs/reference/crew-config) - the `providers` / `profiles` / `crews` block, commented line by line.

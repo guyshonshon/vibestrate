@@ -40,9 +40,7 @@ The sequence is the record, so a finished task can be re-read rather than rememb
 
 </div>
 
-## Going deeper
-
-### The happy path
+## The happy path
 
 When nothing goes wrong, a task walks through every status once and finishes ready to merge.
 
@@ -55,7 +53,7 @@ created → planning → planned
 
 It leaves a diff on the worktree branch.
 
-### When the reviewer asks for changes
+## When the reviewer asks for changes
 
 The review step can send work back. When it does, the task drops into `fixing`, runs validation again, and returns to `reviewing` instead of moving on. The run's status hero grows a **review loop** figure reading the pass you are on against the budget.
 
@@ -95,7 +93,7 @@ The review step can send work back. When it does, the task drops into `fixing`, 
 
 </div>
 
-### When a stage needs your approval
+## When a stage needs your approval
 
 A stage can be set to hold for you once its work is done. The task steps sideways into `waiting_for_approval` and then back into the status it paused in, so it never skips ahead.
 
@@ -107,11 +105,11 @@ The run page shows an approval banner with **Approve**, **Reject** and, for an a
 
 </div>
 
-### When you pause it yourself
+## When you pause it yourself
 
 **Pause** on the run page sets a flag the orchestrator picks up at the next stage boundary, so pausing has the same sideways shape: the task holds at `paused`, then returns to the status it was in. `pausedAtStatus` records where, and **Resume** clears the flag. The shell's `:` palette carries both; a script uses `vibe pause <runId>` and `vibe resume <runId>`.
 
-### Where a task comes to rest
+## Where a task comes to rest
 
 The four terminal statuses in more detail:
 
@@ -120,7 +118,7 @@ The four terminal statuses in more detail:
 - **`failed`** - Unrecoverable error during a stage. The run page names the error it stopped on; the **Events** tab under Inspect has the timeline around it.
 - **`aborted`** - User explicitly aborted. Worktree is preserved.
 
-### What a run leaves on disk
+## What a run leaves on disk
 
 Each flow step writes its prompt and the provider's reply under the run folder, named after the step rather than the status. The **Artifacts** tab under Inspect reads all of this without leaving the dashboard. For the default flow the step ids are:
 
@@ -141,7 +139,7 @@ Each flow step writes its prompt and the provider's reply under the run folder, 
 
 `validation-results.json` holds the commands that ran and their exit codes. The code changes themselves are commits in the run's worktree, not files here. `events.ndjson` is the record to trust: one JSON line per event, append-only.
 
-### Going deeper
+## Related
 
 - [Run state](/docs/concepts/state) - what each status means in detail.
 - [Workflow](/docs/concepts/workflow) - the stage definitions.

@@ -71,13 +71,11 @@ Vibestrate refuses to write outside that folder, to secret-like files such as `.
 
 </div>
 
-## Going deeper
-
-### Seeing every copy at once
+## Seeing every copy at once
 
 **Source** in the sidebar opens on its **Changes** tab: your project's branch, its changes since the last commit, recent commits, and below them **What each run changed**, one card per live worktree with its branch and diff. Clicking a card opens that worktree in Codebase. The **Project** page under More carries a **Worktree dir** field, so you can check where the folders land.
 
-### Where the copies live
+## Where the copies live
 
 Three settings in `project.yml` control this. Keep `worktreeDir` outside your project, never inside it, or the copies will shadow your real files:
 
@@ -90,7 +88,7 @@ git:
 
 Run ids look like `bold-lovelace` and `quiet-turing`, so two runs at once give you two folders under `../.vibestrate-worktrees/`, one named for each. Run records stay under your project root, in `.vibestrate/runs/<runId>/`, never inside the copy.
 
-### Bringing your tools along
+## Bringing your tools along
 
 A fresh copy starts with only the files git tracks, which leaves out installed folders like `node_modules` or a Python `.venv`, so your tests would fail with "command not found" before they checked anything. With `linkEnvironment: auto` (the default), Vibestrate links those gitignored folders into each copy:
 
@@ -100,12 +98,12 @@ Two checks keep this honest. `node_modules` is linked only when the copy's lockf
 
 Set `linkEnvironment: off` for bare copies. A command whose toolchain is then missing gets the status `environment`, which is separate from `failed`: nothing was checked, nothing failed, and a run is never blocked over it. The reviewer is told plainly that those commands could not run.
 
-### After the run
+## After the run
 
 - **`merge_ready`** - the branch is ready for you to merge. The copy stays on disk until you delete it.
 - **`blocked` / `failed` / `aborted`** - the copy is kept so you can inspect it or pull fragments out.
 
-### Automation
+## Automation
 
 The path and branch are reachable from a script or over SSH; see the [CLI overview](/docs/cli/overview).
 
@@ -125,7 +123,7 @@ git branch -D vibestrate/<runId>
 
 Don't run `git checkout main` inside a copy. Each copy is tied to its own branch, and switching branches there undoes the separation.
 
-### Going deeper
+## Related
 
 - [Run state](/docs/concepts/state) - the final statuses that tell you whether to keep a copy.
 

@@ -41,9 +41,7 @@ Cheaper to answer questions than to rebuild.
 </div>
 
 
-## Going deeper
-
-### On the run page
+## On the run page
 
 Spec-up has no screen of its own. It is a run outcome, so everything happens on
 the run you started - `vibe ui` opens the dashboard on `127.0.0.1:4317`.
@@ -72,7 +70,7 @@ each with **Edit** and **Save**. Approving freezes them.
 
 The **Tree** tab shows the supervisor and agents at work while a link runs.
 
-### What you get
+## What you get
 
 1. **Gap questions, in rounds** - up to four. The round counter and the cap are
    enforced by Vibestrate, not the model, so the questioning always terminates.
@@ -86,7 +84,7 @@ The **Tree** tab shows the supervisor and agents at work while a link runs.
 6. **A roadmap** - the spec as dependency-ordered board cards, each with
    acceptance criteria and a rough estimate.
 
-### The chain
+## The chain
 
 Spec-up is short read-only runs you step between, not one long process that
 holds open:
@@ -137,7 +135,7 @@ roadmap items and board cards. Each card is stamped with the approved spec at
 that moment, so a run launched from a card later is seeded with the same
 document rather than with the card's title alone.
 
-### From a terminal
+## From a terminal
 
 Every link has a command, so the chain scripts end to end:
 
@@ -168,7 +166,7 @@ carry the approved spec forward.
 There is no spec-up screen in `vibe shell`. Its Runs and Roadmap pages see the
 runs and the cards, not the questions.
 
-### Honest limits
+## Honest limits
 
 Spec-up drafts. It is a scope-decision tool, not a novice autopilot: its job is
 to make you an informed decision-maker about *scope and direction*, the part you

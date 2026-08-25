@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- **A docs page is its sections now, not one box called "Going deeper".** Every
+  page filed its real content under a single catch-all heading, so it rendered
+  as a short intro plus one closed chapter holding everything else - and the
+  site folded that chapter's own sub-headings a second time, putting the
+  content two clicks down and reading as a chapter inside a chapter. The
+  sections were promoted to the page's own level on all 60 pages, so the
+  collapsed page is now a list of what is actually on it: on Configuration,
+  "The Config page", "In the terminal shell", "The commands" and five more,
+  in that order, instead of "Going deeper". With no second level left, the site
+  stopped folding one. A test keeps the shape: no catch-all section, and no
+  section may hold more than a third of its page.
+
 ## 0.3.0
 
 - **Four more places where the product stated something false.** The Config

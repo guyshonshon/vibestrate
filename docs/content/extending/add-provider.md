@@ -43,9 +43,7 @@ A model server on this machine, loopback only.
 </div>
 
 
-## Going deeper
-
-### The Providers tab
+## The Providers tab
 
 Three sections: **Popular** (the first-class set, detected and ready to bind), **Optional** (detected, never auto-bound), and **Cloud APIs & local model servers** (anything driven over HTTP rather than a process).
 
@@ -55,7 +53,7 @@ When a test says a provider is not authenticated, the card prints the login comm
 
 `vibe shell` has no providers screen; its Profiles page cycles models and effort for providers already configured.
 
-### Declare a custom CLI provider
+## Declare a custom CLI provider
 
 The **Custom CLI** button writes this block for you. By hand, add `providers:` to `project.yml`. Here `my-model` is the id you give this provider, `my-coding-cli` the command Vibestrate runs:
 
@@ -96,7 +94,7 @@ providers:
 
 There is no `workingDir` to set. Vibestrate always runs the CLI in the run worktree, the isolated copy of your repo it works in.
 
-### Assign the provider to a role
+## Assign the provider to a role
 
 A provider does nothing until a [Profile](/docs/concepts/profile) names it and a [Role](/docs/concepts/role) runs on that Profile. There is no top-level `agents:` key - roles live under `crews.<crewId>.roles`:
 
@@ -120,7 +118,7 @@ In the dashboard the **Crews** tab does the second half: open a crew and set `pr
 vibe run "..." --profile my-model-default
 ```
 
-### Verify it works
+## Verify it works
 
 **Test** on the card sends a safe prompt and reports back. From a terminal that is `vibe provider list`, then `vibe provider test my-model`.
 
@@ -130,7 +128,7 @@ A failing test is almost always one of these:
 - The CLI exits non-zero when there is nothing to do. Some will not talk without a model selected.
 - `input` is wrong. Try the other one.
 
-### Wrap Claude Code with custom flags
+## Wrap Claude Code with custom flags
 
 For Claude Code under a custom invocation, use the `claude-code` type instead of `cli`:
 
@@ -144,7 +142,7 @@ providers:
 
 That type unlocks deeper integration: a reported session id, tracked token usage, and session resume.
 
-### A server instead of a binary
+## A server instead of a binary
 
 The other two types take an HTTP endpoint rather than a command. `localhost-proxy` is for a server on your own machine, like Ollama or any OpenAI-compatible local runtime; `http-api` calls a remote endpoint, the one type that leaves your machine. **Add local server** and **Add cloud API** write these.
 
@@ -167,7 +165,7 @@ providers:
 
 The schema draws the line. A `localhost-proxy` needs a `baseUrl` resolving to localhost; an `http-api` needs https and must not be loopback. A key written out in full is rejected outright, so it cannot reach your git history.
 
-### What a provider can and can't do
+## What a provider can and can't do
 
 A provider's job is deliberately narrow.
 
@@ -193,12 +191,12 @@ That is the executor's job, mediated by the path guard.
 
 </div>
 
-### Common mistakes
+## Common mistakes
 
 - **Two providers on the same CLI sharing an id.** Give them distinct ids, like `claude` and `claude-fast`.
 - **Putting API keys in `args`.** Use whatever auth flow the CLI itself supports.
 
-### Related
+## Related
 
 - [Provider (concept)](/docs/concepts/provider) - what a provider is and where it fits.
 - [Provider reference](/docs/reference/providers) - every field and type, in full.

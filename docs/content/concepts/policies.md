@@ -50,15 +50,13 @@ A block is **owner-only**. The supervisor can *propose* an advise rule from a co
 
 </div>
 
-## Going deeper
-
-### Writing one
+## Writing one
 
 **New policy** opens the one authoring form: a plain-English rule field, a **Draft** button beside it, and an `advise` / `block` picker. An advise rule takes an optional suggested fix, the correction the reviewer names when it flags the diff; a block rule takes a matcher regex and its flags. **Add policy** writes it, live on the next review with no confirm step, since you authored it. Each row underneath shows its tier and either its matcher or its stated fix.
 
 **Test** opens **Test this matcher**, with **Test snippet** against pasted text and **Test against recent runs**; nothing is written and matched lines are redacted. A block row in the list carries the same test on its own flask button. Two shortcuts fill the same form: **Draft** turns your English sentence into a filled-in draft, and **Suggest from recent runs** reads recent diffs for candidates that **Adopt** prefills. A model may propose a tier and a matcher; committing a block stays your press of Add policy.
 
-### A rule the supervisor proposed
+## A rule the supervisor proposed
 
 <svg viewBox="0 0 560 132" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A rule you add yourself goes live on the next review with no confirm step. A rule the supervisor proposes lands pending and only goes live once you confirm it.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -86,7 +84,7 @@ A block is **owner-only**. The supervisor can *propose* an advise rule from a co
 
 A rule the supervisor proposes sits at the top of your list tagged `proposed`, with **Confirm** and **Reject** on its row. The tier is fixed for that path: a proposed rule is always `advise` with no matcher, whatever the answer suggested.
 
-### Both sides see an advise rule
+## Both sides see an advise rule
 
 A code-writing seat is told the rules bind the code it is about to write, and to comply *in this change*, explicitly not to hunt for pre-existing violations elsewhere - so a policy does not quietly turn into a refactor. A reviewer is told to verify the diff against the same rules and flag every violation with its location and your stated correction.
 
@@ -94,7 +92,7 @@ The wording differs, the selection does not: a rule can never bind a writer with
 
 A rule with no lens scope goes into every run; a lens-scoped one applies only when the run's active review lenses include one it names. At most **12** rules reach a single turn, and anything past that is counted as dropped in the run's `supervisor.policy_advise` event, so a long list thins out silently unless you read the event.
 
-### Soft rules and hard gates
+## Soft rules and hard gates
 
 Policies are the *soft* surface, owner conventions. Two harder things sit beside them on the same page.
 
@@ -104,7 +102,7 @@ Turning one off does not unlock the behaviour it names. Nothing pushes for you e
 
 A soft policy can only *add* a check, never relax one. [Safety](/docs/concepts/safety) has the checkpoint all of this feeds.
 
-### Automation
+## Automation
 
 The interactive shell (`vibe`, or `vibe shell`) has no policies screen; its **Config** page shows the resolved policy block read-only. Every action on the page has a `vibe policies` subcommand behind it, for scripting a rule into a setup or a repo template.
 

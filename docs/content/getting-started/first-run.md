@@ -109,9 +109,7 @@ The default flow wires that into eight steps, with the review loop capped at thr
 
 Those step names are the folder names under the run's artifacts, so the `review` box above is the same `review` in `artifacts/flows/review/output.md`.
 
-## Going deeper
-
-### Start it
+## Start it
 
 **Task** is the only section on the compose page you must fill. With a roadmap, **Or pick up from your roadmap** offers cards to start from instead.
 
@@ -119,13 +117,13 @@ Below it, four sections to leave alone the first time: **Flow**, **Inputs** (val
 
 **Start run** goes now. **Plan first** runs spec-up instead: a few scoping questions, then the build. A pill above them shows the exact `vibe run …` the page will run, and copies it.
 
-### Watch it
+## Watch it
 
 The sidebar lists every live run above the nav, green while it works and amber when it wants you. Click one for its page.
 
 **Run assurance** sits at the top: **Policy**, **Validation**, **Review** and **Verification**, each reported separately. Under it the inspector carries **Tree** (supervisor and agents as a node tree), **Steps**, **Events**, **Artifacts** (the changed files and each step's output), **Validation**, **Terminal** and **Replay**. The **Workspace** panel names the branch and the worktree path, with **Copy cd**.
 
-### From the terminal
+## From the terminal
 
 `vibe` opens the interactive shell; press `5` for Runs. Arrow keys select a run, `tab` cycles the inspector sections, `/` filters the events tail, and `p`, `r` and `a` pause, resume and abort.
 
@@ -149,7 +147,7 @@ Final status: merge_ready
 
 `zen-bohr` is the run id: every run gets a docker-style `adjective-noun` handle, used verbatim as the worktree folder name and the branch suffix. `vibe status <runId>` and `vibe replay <runId>` read it back later.
 
-### Use it, or don't
+## Use it, or don't
 
 **Vibestrate never merges anything for you** (see [the safety guarantees](/docs/concepts/safety)). The finished change waits on its own branch, yours to open a pull request from, pull into your branch, take pieces of, or throw away.
 
@@ -160,7 +158,7 @@ cd ../.vibestrate-worktrees/zen-bohr
 git diff main
 ```
 
-### Runs that stop short
+## Runs that stop short
 
 A run keeps its full record on disk whichever state it ended in, and the run page's **Events** and **Artifacts** tabs read it in the browser.
 
@@ -170,6 +168,6 @@ A run keeps its full record on disk whichever state it ended in, and the run pag
 
 [Debug a failed run](/docs/workflows/debug-failed) is the step-by-step playbook.
 
-### Next
+## Next
 
 [Keep the change →](/docs/getting-started/merging) - the run left a branch in a copy of your repo. This is how you take it.

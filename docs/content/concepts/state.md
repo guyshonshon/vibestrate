@@ -72,17 +72,15 @@ The counts above the table roll sixteen statuses into total, active, merge-ready
 
 </div>
 
-## Going deeper
-
-### Moving a run from the dashboard
+## Moving a run from the dashboard
 
 Open a run and the status hero carries the controls that state allows: **Pause** and **Abort** while it runs, with **Pause** flipping to **Resume** once it has taken. A run holding at a gate shows an approval banner with **Approve**, **Reject** and, for an agent-raised gate, **Request changes** plus a box for the guidance the stage re-runs with. Mission control collects the same gates in **Waiting on you**, where **Approve** and **Reject** are one click and **Details** opens the run.
 
-### The same moves in the terminal
+## The same moves in the terminal
 
 `vibe` (or `vibe shell`) opens the interactive shell. Its `:` palette carries Pause selected run, Resume selected run and Abort selected run; the **Approvals** tab decides gates with `a` to approve, `r` to reject and `c` to request changes.
 
-### The moves are enforced
+## The moves are enforced
 
 Every allowed move is written into an explicit list, the `ALLOWED_TRANSITIONS` allowlist. A move that isn't on it raises a `StateTransitionError` and stops, instead of happening quietly.
 
@@ -90,7 +88,7 @@ The four terminal statuses have no way back out. To start over, run the task aga
 
 That is what makes runs replayable, pausable and auditable. A run that reads `verifying` is verifying: the verifier is running, the previous artifacts are committed, and there is no in-between fuzz.
 
-### The statuses
+## The statuses
 
 The canonical, generated list lives in the [run-state reference](/docs/reference/state-machine).
 
@@ -113,7 +111,7 @@ The canonical, generated list lives in the [run-state reference](/docs/reference
 | `failed` | Unrecoverable error during a stage. |
 | `aborted` | User aborted explicitly. Worktree is preserved. |
 
-### Two kinds of pause
+## Two kinds of pause
 
 A stopped run is stopped for one of two reasons, and the Status column names which.
 
@@ -122,7 +120,7 @@ A stopped run is stopped for one of two reasons, and the Status column names whi
 
 Both kinds survive a restart: the pause flag is on disk, so killing and restarting Vibestrate does not lose it.
 
-### Automation
+## Automation
 
 Reachable from a script or over SSH; see the [CLI overview](/docs/cli/overview).
 
@@ -146,7 +144,7 @@ vibe approvals request-changes \
   <runId> <approvalId> --guidance "..."
 ```
 
-### Going deeper
+## Related
 
 - [Workflow](/docs/concepts/workflow) - the stages that drive transitions.
 - [Task lifecycle](/docs/task-lifecycle) - the same statuses, drawn as a transition diagram.

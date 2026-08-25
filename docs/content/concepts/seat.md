@@ -26,9 +26,7 @@ Every chip on a role card is a chair that role *could* take; clicking one adds o
 
 </div>
 
-## Going deeper
-
-### Why it works this way
+## Why it works this way
 
 <div class="docs-cards">
 
@@ -43,7 +41,7 @@ Two steps can share the `reviewer` seat with different instructions: one reads f
 
 </div>
 
-### The chain a step follows
+## The chain a step follows
 
 When a task runs, Vibestrate follows the seat through your crew to a model:
 
@@ -89,7 +87,7 @@ Each step records who sat down:
 
 <div class="docs-chips"><span>seat</span><span>resolvedRoleId</span><span>resolvedRoleLabel</span><span>profileId</span><span>providerId</span></div>
 
-### What a seat carries
+## What a seat carries
 
 A `label` and an optional `description`. Nothing else. The worker brings the model through its [[profile]].
 
@@ -112,11 +110,11 @@ steps:
 
 The [[role]] that fills this seat can be named anything (Backend Implementer, Executor, Coder) as long as it lists `implementer` in its own `seats`. Every field around it is annotated in [Flow YAML](/docs/reference/flow-yml); the shape itself is `flowSeatSchema` in `src/flows/schemas/flow-schema.ts`.
 
-### In the terminal shell
+## In the terminal shell
 
 `vibe` on its own opens the interactive shell. Press `3` for **Crew**: the roster lists each configured role, and the detail pane carries its `seats` line alongside its provider, permissions and skills. It reads rather than writes, so seat changes go through the dashboard or `project.yml`.
 
-### Automation: the CLI
+## Automation: the CLI
 
 ```bash
 # a flow's seats, its ordered steps, and whether your crew covers them

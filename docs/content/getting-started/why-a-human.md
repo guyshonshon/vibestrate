@@ -44,9 +44,7 @@ Nothing pushes and nothing merges without a human. That one is not configurable.
 
 </div>
 
-## Going deeper
-
-### Turn on a second model
+## Turn on a second model
 
 Two steps, both on the **Crew** page.
 
@@ -86,13 +84,13 @@ crews:
         permissions: read_only
 ```
 
-### The payoff
+## The payoff
 
 You don't need to know the security rule or the WebGL API yourself; the AI brings that. What Vibestrate adds is a way to trust the result without auditing every line: a second model that didn't write the code reviews it against the same plan and project instructions, your own tests run against the result, and the evidence comes back with it.
 
 Independence pays off most where a mistake is expensive.
 
-### Ask instead of reading
+## Ask instead of reading
 
 The consult orb sits in the bottom-right corner of every dashboard page except the Consult page itself, which is the same surface at full size. It answers from your project's evidence and never writes to your code. A good question is specific and names the run:
 
@@ -120,11 +118,11 @@ vibe consult --run bold-lovelace \
   "What did the reviewer object to?"
 ```
 
-### Keep going
+## Keep going
 
 - [The supervisor](/docs/concepts/supervisor) - how Vibestrate sets the scrutiny level for a run.
 - [Consult](/docs/concepts/consult) - what it can see, and what it refuses to do.
 
-### Next
+## Next
 
 [Teach it your conventions →](/docs/getting-started/skills) - the rules you keep repeating, written down once and attached to a role.

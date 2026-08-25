@@ -46,15 +46,13 @@ The container can sit on a network whose only route out is an allowlisting proxy
 
 </div>
 
-## Going deeper
-
-### Not a VM per run
+## Not a VM per run
 
 Docker Desktop (the Linux VM the daemon runs in) starts **once** and stays up: that is the one-time cost. Per run comes a **container**, a namespaced process rather than a VM, which starts on a warm image in a fraction of a second.
 
 **Fresh** per run, on purpose: no leftover files, no installed packages, no stray process from a previous run, no cross-contamination between concurrent runs, and each run mounts its **own** worktree. What does add up is re-installing your dependencies inside the container, which is why a pre-built image is the recommended setup.
 
-### What crosses the wall
+## What crosses the wall
 
 The container can touch exactly two things from your host, and nothing else:
 
@@ -86,7 +84,7 @@ The **run's worktree** is mounted read-write at its real host path, so your diff
 
 Nothing else is mounted, the project root included. A write **inside** the worktree appears on your host; a write **outside** it stays in the container. Host secrets do not leak in either, because the container's environment is built from a fixed **provider-auth allowlist** (`ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`, `OPENAI_API_KEY` and a few siblings) plus Vibestrate's own variables. Your shell's `AWS_*`, `GITHUB_TOKEN` and everything else never become container environment variables.
 
-### Hardened, and it refuses rather than pretend
+## Hardened, and it refuses rather than pretend
 
 The container runs `--cap-drop=ALL --security-opt=no-new-privileges`, never `--privileged`, and shrinks its own writable surface and process budget:
 
@@ -119,7 +117,7 @@ execution:
 
 `docker exec` runs the provider CLI **inside** the container, so the image must carry it - your host's `codex` or `claude` binary is the wrong architecture for Linux. The default image is a Node toolchain with no provider CLI, so point `execution.container.image` at one bundling the CLI and your project's toolchain; a missing CLI fails the turn with "command not found" rather than hanging. claude has no on-disk credential to mount, so authenticate it in-container with `ANTHROPIC_API_KEY`, which rides the allowlist.
 
-### Confining the network
+## Confining the network
 
 By default the container has normal networking, because it has to reach the model API. Turn that off with an **egress allowlist**:
 
@@ -159,7 +157,7 @@ A host you did not list is logged as an exact refusal (`egress DENY connect <hos
 
 </div>
 
-### Where it stops short
+## Where it stops short
 
 This is **filesystem, process, and opt-in network isolation**, not a hardened jail for hostile code.
 
@@ -181,6 +179,6 @@ docker rm -f \
   $(docker ps -aqf label=vibestrate.managed=true)
 ```
 
-### How it fits the safety model
+## How it fits the safety model
 
 The container is the **hard wall**, sitting alongside rather than instead of the layers in [Safety](/docs/concepts/safety). The post-turn diff gate still checks every write, strict apply-only still routes patches through the broker, and Run assurance still summarises what happened - now including whether the run really executed in a container. The provider-native OS sandbox (`execution.isolation`) is the cheaper, codex-only option for filesystem confinement on the host; the container backend is the model-agnostic one.

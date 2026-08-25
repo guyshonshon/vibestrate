@@ -55,9 +55,7 @@ Ignore the folder. Nothing entered your branch, so there is nothing to undo.
 
 Run ids are short docker-style handles like `bold-lovelace`, so that run's branch is `vibestrate/bold-lovelace`.
 
-## Going deeper
-
-### Read the change
+## Read the change
 
 **Source > Changes** lays out your working tree and every run's worktree; **What each run changed** opens each diff file by file. Or read it where it sits:
 
@@ -66,7 +64,7 @@ cd ../.vibestrate-worktrees/<runId>
 git diff main
 ```
 
-### Ask for advice, then integrate
+## Ask for advice, then integrate
 
 **Source > Merge** lists every merge-ready run: how far **ahead** and **behind** `main`, how many files it touched, its assurance lanes. **Get merge advice** opens one, with risk flags first (did your checks run at all, does the change touch protected paths), then a dry-run conflict report, then one of three recommendations:
 
@@ -101,11 +99,11 @@ Below it, **Integrate this run** merges into the branch you name - `integration/
 
 **Analyze the diff**, under **Analyze deeper**, is the optional model pass: a local provider reads the run's redacted diff and writes advisory prose on risks a text check can't see, like concurrency or missing tests. It never merges, never pushes, and cannot change the recommendation above it.
 
-### Plan any merge, run or not
+## Plan any merge, run or not
 
 **Source > Tree** draws your repo's commit graph. Pick a source and a target in the **Merge planner** and press **Predict** for the result before it happens. A clean prediction offers **Apply merge**; **Guided merge** has the supervisor propose a resolution for a conflict, with the apply still your explicit click. **Undo merge on "&lt;target&gt;"** reverses the last merge on that branch, while it is unpushed and nothing is built on top.
 
-### From the terminal
+## From the terminal
 
 ```bash
 vibe integrate advise <runId>    # the same read-only advice; --json for a machine
@@ -129,18 +127,18 @@ git merge --ff-only vibestrate/<runId>
 
 To throw the change away, leave the branch alone. Nothing ever reached `main`.
 
-### Merging is always your call
+## Merging is always your call
 
 Merging is the moment you commit: the change joins your shared history and ships from there. A bad merge is revertible, but only after the wrong code was trusted and built on, and no model can vouch for its own work well enough to make that call for you. See [the safety guarantees](/docs/concepts/safety).
 
 The advice is **deterministic**: git facts and check lanes in, recommendation out, so the same inputs always give the same answer and no [supervisor](/docs/concepts/supervisor) persona colours it. A model enters only when you ask for the deeper read.
 
-### Keep going
+## Keep going
 
 - [Your first run](/docs/getting-started/first-run) - where the change came from.
 - [Task lifecycle](/docs/task-lifecycle) - the statuses a run moves through.
 - [Worktree](/docs/concepts/worktree) - the safe copy each run works in.
 
-### Next
+## Next
 
 [Why you stay in the loop →](/docs/getting-started/why-a-human) - what actually catches a bad change, and why the last call is a human's.

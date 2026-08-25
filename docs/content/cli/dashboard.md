@@ -47,9 +47,7 @@ One project directory, read by both. Neither is a copy of the other.
 
 </div>
 
-## Going deeper
-
-### Start it
+## Start it
 
 ```bash
 vibe ui               # 127.0.0.1:4317, opens your browser
@@ -69,7 +67,7 @@ vibe run "Add audit logging" --ui
 
 On the first visit a guided tour points out the six surfaces the rest of the app hangs off: **Runs**, **Flows**, **Board**, **Policies**, the **Consult** orb, **New run**. Skip it, or take it again from the help overlay (press `?`).
 
-### The sidebar
+## The sidebar
 
 The left sidebar is the app shell; the page you open fills the window. A live run gets a card pinned above the nav, green while it works and amber when it is waiting on you.
 
@@ -98,7 +96,7 @@ Under **More**, in order: **Supervisors**, **Proposals**, **Setup**, **Project**
 
 Under the nav sit **Jump to…** (`Cmd/Ctrl-K`), the notification bell, **Settings**, the **New run** button, and the build number of the server answering the page.
 
-### Setup
+## Setup
 
 **Setup** is the guided path from an empty folder to a first run, rendering the same report `vibe doctor` prints - not a second opinion. Every step reads doctor's own findings, so a check added there appears here without being re-implemented.
 
@@ -114,11 +112,11 @@ Then a sixth, **Start your first run**, whose button stays disabled while any fa
 
 **Fix what's safe** runs the same narrow repair pass as `vibe doctor --fix`, and appears only when something is repairable. **Re-check** re-runs the report.
 
-### Jumping between runs
+## Jumping between runs
 
 **Cmd/Ctrl-K** (or `g r`) opens the run switcher anywhere: a search box over recent runs, filterable by task, runId or status. Every run is directly linkable at `#/runs/<runId>`.
 
-### Watching a run
+## Watching a run
 
 Open a run to supervise it live.
 
@@ -132,13 +130,13 @@ Open a run to supervise it live.
 - **Inspector tabs** - **Tree**, **Steps**, **Events**, **Artifacts**, **Validation**, **Terminal**, **Replay**. `?tab=` deep-links into one and accepts six ids: `artifact`, `diff`, `validation`, `events`, `terminal` and `replay`. `diff` lands on Artifacts, which absorbed the standalone diff view. Any other id falls back to Steps, `tree` and `artifacts` included.
 - **Outcome banner** - a run ending `blocked`, `failed` or `aborted` gets a line saying what stopped it and the next action.
 
-### What the dashboard does not do
+## What the dashboard does not do
 
 - It does not execute arbitrary shell commands you type. The integrated terminal is off unless you turn it on for the project, its working directory comes from the run's recorded worktree rather than the request, and a run with no worktree, or one pointing at your project root, is refused. Native Windows has no integrated terminal - it needs a POSIX shell, so use WSL.
 - It never pushes. There is no push path in the dashboard.
 - It never merges on its own. Source applies only the exact merge you asked for: the request must carry a literal `merge-to-main` confirmation and is refused without it. Undo is the same shape, with its own `undo-merge` confirmation.
 - It does not read your `.env` or any secret-shaped file. The path guard refuses those paths whatever the request.
 
-### Stopping it
+## Stopping it
 
 Press `Ctrl-C` in the terminal running `vibe ui`. The server exits cleanly; runs continue, or pause at the next stage boundary, depending on what they are doing.

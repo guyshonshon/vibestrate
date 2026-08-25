@@ -45,9 +45,7 @@ The session remembers what you ran.
 
 </div>
 
-## Going deeper
-
-### Layout
+## Layout
 
 <svg viewBox="0 0 560 240" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The shell fills the terminal in three stacked regions - a header with the project and status line, the context line and command prompt under it, and a body holding the active page beside a COMMANDS panel.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
@@ -78,7 +76,7 @@ The session remembers what you ran.
 
 3. **Body.** The active page on the left, the **COMMANDS** panel on the right, plus the global keys. Command output takes that pane instead. The body clips to the fixed canvas rather than scrolling the terminal.
 
-### The pages
+## The pages
 
 Ten pages carry a number key, in this order:
 
@@ -107,7 +105,7 @@ Runs      p pause · r resume · a abort · R re-run
 Roadmap   e edit · n new · d delete · Q queue
 ```
 
-### Navigation
+## Navigation
 
 Single-key, and active when the prompt is not focused.
 
@@ -125,7 +123,7 @@ q         quit
 
 The command palette fuzzy-searches every action.
 
-### The status bar
+## The status bar
 
 A context strip sits at the top at all times: where you are, and what the next run will do.
 
@@ -137,7 +135,7 @@ A context strip sits at the top at all times: where you are, and what the next r
 - **crew** and **flow.** The session's selections, seeding the next run you launch from the prompt. Until you pick, the run falls back to the project's `defaultCrew` and `defaultFlow`; `defaultFlow` is unset by default, so the orchestrator chooses per task.
 - **task.** The task text of the most-recently-active run.
 
-### The prompt
+## The prompt
 
 Press **`i`** (or `!`) to focus it, type a `vibe …` command, press **Enter**. Output streams in place. **Esc** returns to navigation, **↑ / ↓** walk command history.
 
@@ -145,7 +143,7 @@ The line moves like a terminal: **Option+←/→** by word, **Ctrl+→** / **End
 
 A `run …` command from the prompt is seeded with your session selections - `--crew`, `--flow`, `--read-only` - to match the status bar. Anything you type explicitly wins.
 
-### Autocomplete
+## Autocomplete
 
 A ghost list opens under the prompt with what fits the token at the cursor, read from the real CLI tree plus your project's live ids, so it cannot drift. It sits in a fixed-height slot and never resizes the panel.
 
@@ -180,7 +178,7 @@ For `config set` and `config get` the list enumerates every settable key from th
 
 Output streams into a scrollable pane on the right, not the prompt, so a long `--help` or `status` dump stays readable. The pane follows the tail; while the prompt is focused, **Tab** / **Shift+Tab** scroll it. It is narrow and truncates, so output past 16 lines or 64 columns opens the full-width view automatically. **`O`** toggles it yourself, **Esc** collapses back.
 
-### Docs browser
+## Docs browser
 
 Press **`d`** (or `:` → "Browse docs") for the docs in-terminal: a topic list on the left, the selected page in terminal Markdown on the right. These are the same pages published on the docs site, bundled with the CLI.
 
