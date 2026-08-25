@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 - **Four more places where the product stated something false.** The Config
   page's record rows are read-only summaries whose only affordance is a button
@@ -197,7 +197,13 @@
   `flows import`. Decomposition costs a model turn per unit, so the output warns
   past four units and `--max-units` refuses a split you did not ask for.
 
-- **The architect's scope is now a contract, not a suggestion.** An architecture
+- **`vibe steer <runId> <note>` queues a note onto a live run**, applied at the
+  next step boundary, so a run that is heading somewhere you did not intend can
+  be corrected without aborting it. `--step` targets a specific one.
+
+- **The architect's scope is now a contract, and it can block a merge.** This is
+  the release's largest behaviour change: a run that reached merge-ready on
+  0.2.1 can be capped on 0.3.0. An architecture
   step already wrote down exactly which paths the implementer could touch, and
   nothing read it - so the implementer could, and did, create files its own
   architect had ruled out. Measured on this project's benchmark: three of three
@@ -207,7 +213,9 @@
   carries a `scope` of path globs; the writing seats are told what it is before
   they write, and the run's real diff is checked against it at the merge gate -
   a deterministic cap, never a model verdict, exactly like a `block` policy.
-  Declaring nothing keeps the old behaviour: absence is silence, not a ban.
+  Declaring nothing keeps the old behaviour: absence is silence, not a ban - but
+  the architecture prompt now asks for a scope, so in practice most flows with an
+  architecture step will start declaring one and gain a cap they did not have.
   After the change, a rerun produced zero violations against its own declared
   scope.
 

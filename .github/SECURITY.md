@@ -65,8 +65,10 @@ reason than it used to be: there is no Telegram code left to misread.
   (regex `^env:([A-Z][A-Z0-9_]*)$`).
 
 To verify: `grep -a 'api\.telegram\.org' dist/index.js` on the published tarball
-returns nothing (the string is escaped inside the regex), `grep -aci telegram`
-returns 3, and none of the three is a request. You can also diff a clean local
+returns nothing (the string is escaped inside the regex), and
+`grep -aoi telegram dist/index.js | wc -l` returns 3, none of the three a request.
+(`grep -aci` prints 2 there, because `-c` counts matching lines and two of the
+three share one minified line.) You can also diff a clean local
 build (`pnpm build`) against the published tarball (`npm pack vibestrate`).
 
 ## Response

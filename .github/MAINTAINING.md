@@ -64,7 +64,12 @@ summary.
 Publish straight from your machine:
 
 ```bash
-npm publish --provenance --access public --otp=<your-2fa-code>
+# --tag latest is load-bearing, not decoration. npm's implicit-latest guard
+# compares against the HIGHEST version in the packument, not against the
+# `latest` dist-tag, and 1.0.1 through 1.1.7 are still published above the 0.x
+# line. Without the flag, publishing 0.3.0 refuses or lands off-latest and
+# every `npm i vibestrate` keeps serving the old build.
+npm publish --provenance --access public --tag latest --otp=<your-2fa-code>
 ```
 
 `prepublishOnly` builds and strips sourcemaps first, so the tarball stays lean

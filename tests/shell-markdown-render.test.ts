@@ -23,6 +23,35 @@ describe("parseInline", () => {
   });
 });
 
+describe("images in the packaged docs", () => {
+  // docs/content ships in the tarball and this renderer is what the in-shell
+  // browser uses. The docs gained 39 image references whose PNGs live in the
+  // website's repo, and without an image case the `!` fell through to the
+  // buffer and the LINK case matched: a 60-word alt text rendered as an
+  // underlined hyperlink to a file no terminal can open. Every gate was green.
+  it("renders an image as its alt text, not as a link", () => {
+    const spans = parseInline("![The Default crew card, with 6 roles.](/media/docs/scoped/crew-card.png)");
+    expect(spans).toHaveLength(1);
+    expect(spans[0]!.text).toBe("[screenshot] The Default crew card, with 6 roles.");
+    expect(spans[0]!.underline).toBeUndefined();
+    expect(spans.some((s) => s.text.includes("/media/"))).toBe(false);
+    expect(spans.some((s) => s.text.includes("!"))).toBe(false);
+  });
+
+  it("still renders a real link as a link", () => {
+    const spans = parseInline("see [the flow page](/docs/concepts/flow) for more");
+    const link = spans.find((s) => s.underline);
+    expect(link?.text).toBe("the flow page");
+  });
+
+  it("renders an image with no alt as an empty line, not a stray bracket", () => {
+    // parseInline guarantees at least one span so a line always renders, so
+    // the assertion is about what is NOT there.
+    const spans = parseInline("![](/media/docs/x.png)");
+    expect(spans.map((s) => s.text).join("")).toBe("");
+  });
+});
+
 describe("renderMarkdown", () => {
   it("surfaces the frontmatter title as a bold heading", () => {
     const lines = renderMarkdown('---\ntitle: Hello\nslug: x\n---\n\nbody');

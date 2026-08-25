@@ -19,7 +19,7 @@ export type MdLine = MdSpan[];
 const CODE_COLOR = "#7ee787"; // soft green for code
 const LINK_COLOR = ACCENT;
 
-/** Inline parse: `code`, **bold**, *italic* / _italic_, [text](url). */
+/** Inline parse: `code`, ![alt](img), **bold**, *italic* / _italic_, [text](url). */
 export function parseInline(text: string): MdSpan[] {
   const spans: MdSpan[] = [];
   let buf = "";
@@ -42,7 +42,24 @@ export function parseInline(text: string): MdSpan[] {
         continue;
       }
     }
-    let m = /^\[([^\]]+)\]\(([^)]+)\)/.exec(rest);
+    // Images, BEFORE links: `![alt](src)` shares the link shape, so without
+    // this the `!` fell into the buffer and the alt text rendered as a
+    // 60-word underlined hyperlink to a PNG no terminal can open. The docs
+    // gained 39 of these and nothing caught it, because the assets live in the
+    // website's repo and this renderer is the only other consumer.
+    //
+    // The alt text is the right thing to show: these are written as full
+    // descriptions of the screen for readers who cannot see it, so in a
+    // terminal it is the content, not a fallback.
+    let m = /^!\[([^\]]*)\]\(([^)]+)\)/.exec(rest);
+    if (m) {
+      flush();
+      const alt = m[1]!.trim();
+      if (alt) spans.push({ text: `[screenshot] ${alt}`, color: ACCENT_DIM, italic: true });
+      i += m[0].length;
+      continue;
+    }
+    m = /^\[([^\]]+)\]\(([^)]+)\)/.exec(rest);
     if (m) {
       flush();
       spans.push({ text: m[1]!, color: LINK_COLOR, underline: true });
