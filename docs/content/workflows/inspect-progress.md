@@ -125,11 +125,11 @@ Swap the type for `review.decision`, `verification.decision` or `action.denied` 
 
 ## Read past runs
 
-```bash
-vibe replay <runId>
-```
+Open any run from the **Runs** page and the **Inspect** section's **Replay** tab walks it start to finish. It works on a run that finished long ago, one synced from another machine, one you never watched live.
 
-Replay is a read-only inspector for any saved run - one that finished long ago, one synced from another machine, one you did not watch live. The run screen's **Replay** tab is the same.
+Replay is read-only wherever you open it: it reads what the run recorded and changes nothing.
+
+*From a terminal:* `vibe replay <runId>`.
 
 ## Related
 

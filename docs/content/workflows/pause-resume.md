@@ -45,29 +45,29 @@ Status `blocked`. A policy, review or check said no.
 
 ## Pause
 
-```bash
-vibe pause <runId>
-```
+Open the run from the sidebar and press **Pause**, in the actions row of the status card at the top.
 
 Vibestrate works in stages and checks for the flag between them. On spotting one it moves the run to `paused` and records which stage it was about to start. Nothing is cut off halfway.
 
+*From a terminal:* `vibe pause <runId>`, or `p` on the shell's **Runs** page.
+
 ## Resume
 
-```bash
-vibe resume <runId>
-```
+While a run is paused that same button reads **Resume**. Pressing it clears the flag and the run continues from the stage it recorded.
 
-This clears the flag and the run continues from the stage in `pausedAtStatus`. When the process is gone, start a fresh run and reuse the work with [`--resume-from`](/docs/workflows/debug-failed) instead.
+Change your mind before the run reaches the next gap between stages and resuming cancels the pending pause: the run keeps going and never enters `paused`.
 
-Change your mind before the run reaches the next gap between stages and `vibe resume` cancels the pending pause: the run keeps going and never enters `paused`.
+When the process is gone there is nothing to resume, so start a fresh run and reuse the work with [`--resume-from`](/docs/workflows/debug-failed) instead.
+
+*From a terminal:* `vibe resume <runId>`, or `r` in the shell.
 
 ## Abort
 
-```bash
-vibe abort <runId>
-```
+**Abort** sits beside Pause, in red. It asks before it acts - *this will stop the active agent* - and marks the run `aborted`.
 
-This marks the run `aborted`. The worktree - the isolated copy of your project where the run worked - stays on disk, so you can `cd` into it and read the partial work. To clean it up:
+Both buttons disappear once a run reaches a terminal status: there is nothing left to hold or stop.
+
+Aborting does not delete anything. The worktree - the isolated copy of your project where the run worked - stays on disk, so you can `cd` into it and read the partial work. To clean it up when you are done:
 
 ```bash
 cd your-project
@@ -75,11 +75,17 @@ git worktree remove ../.vibestrate-worktrees/<runId>
 git branch -D vibestrate/<runId>
 ```
 
-*In the dashboard:* the run screen carries pause, resume and abort directly, and the shell's **Runs** page has them on `p`, `r` and `a`.
+*From a terminal:* `vibe abort <runId>`, or `a` in the shell, which confirms the same way.
 
 ## Policy-gated pauses are different
 
-Some pauses are scheduled by a policy rather than asked for. If `policies.requireApprovalAtStages` names a stage, the run pauses on its own at the boundary into it, with the status `waiting_for_approval`. That pause waits for a decision, so `vibe resume` is not the tool - use `vibe approvals`:
+Some pauses are scheduled by a policy rather than asked for. If `policies.requireApprovalAtStages` names a stage, the run pauses on its own at the boundary into it, with the status `waiting_for_approval`. That pause waits for a decision, so resuming is not the tool - it needs an answer.
+
+Every run in that state collects on **Mission control** under **Waiting on you**: one card per request, with who asked and why, and three buttons - **Details**, which opens the run on its approvals tab, **Approve** and **Reject**. The same decision sits in a banner at the top of the run itself.
+
+When an agent asks for your approval - a `HUMAN_APPROVAL` request, not a policy gate - that banner offers a third button: **Request changes**. Instead of a dead-end reject, you return free-form guidance; the run carries on into that stage's next turn with it attached, then pauses again for your call, bounded by `policies.approvalMaxChangeRounds` (default 3). A policy gate has no agent turn to send guidance to, so requesting changes there fails closed and blocks the run, the same as a reject.
+
+*From a terminal:*
 
 ```bash
 vibe approvals list <runId>
@@ -88,10 +94,6 @@ vibe approvals reject <runId> <approvalId>
 vibe approvals request-changes \
   <runId> <approvalId> --guidance "what to change"
 ```
-
-When an agent asks for your approval - a `HUMAN_APPROVAL` request, not a policy gate - you have a third option: **request changes**. Instead of a dead-end reject, you return free-form guidance; the run carries on into that stage's next turn with it attached, then pauses again for your call, bounded by `policies.approvalMaxChangeRounds` (default 3). A policy gate has no agent turn to send guidance to, so requesting changes there fails closed and blocks the run, the same as a reject.
-
-*In the dashboard:* every blocked run appears on **Mission control** under **Waiting on you** with **Approve**, **Reject** and **Details**, and the same decision sits in a banner at the top of the run.
 
 Each stopping point has its own status, so you know why a run is sitting still:
 

@@ -49,11 +49,23 @@ Write the task description the way you would brief a careful colleague. Name the
 
 ## 2. Start the run
 
+**New run**, at the bottom of the sidebar, opens the composer. Five sections, and the defaults are the answer to four of them:
+
+- **Task** - the brief you just wrote.
+- **Flow** - **Auto** unless you disagree with what it picks.
+- **Inputs** - any params the chosen flow declares.
+- **Crew** - which roster takes it.
+- **Configuration** - **Permission**, **Unattended**, a **Tuning** pair of **Concise** and **Auto-pick flow**, and the **Supervisor** persona.
+
+**Start run** launches it as a detached process, so it outlives the browser tab and you can close the window.
+
+*From a terminal:*
+
 ```bash
 vibe run "Add audit logging to the settings..."
 ```
 
-Three flags cover most of what you will want to change - the dashboard, a heavier [Flow](/docs/concepts/flow), or a different model:
+Three flags cover most of what you would otherwise change in **Configuration** - open the dashboard alongside, take a heavier [Flow](/docs/concepts/flow), or use a different model:
 
 ```bash
 # dashboard alongside the terminal
@@ -66,11 +78,11 @@ vibe run "..." --flow quality-arbitration
 vibe run "..." --profile <id>
 ```
 
-`vibe profile list` shows the profile ids your project has.
-
-*In the dashboard:* the **New run** button at the bottom of the sidebar opens the composer, in five sections. **Task** is the brief, **Flow** defaults to **Auto**, **Inputs** collects any params the selected flow declares, **Crew** picks the roster, and **Configuration** holds **Permission**, **Unattended**, a **Tuning** pair of **Concise** and **Auto-pick flow**, and the **Supervisor** persona. **Start run** launches it, as a detached process that outlives the browser tab; `vibe run` does the work in the terminal you started, so that terminal has to stay alive.
+`vibe profile list` shows the profile ids your project has. Unlike **Start run**, `vibe run` does the work in the terminal you started it from, so that terminal has to stay alive.
 
 ## 3. Watch, or walk away
+
+Open the run from the sidebar and the **Live timeline** tracks the steps as they happen, beside **Live metrics** and **Changed files**. Watching is optional - the run does not need you - but it is the fastest way to learn the shape. See [Inspect a run in flight](/docs/workflows/inspect-progress).
 
 The default flow is eight steps, and Vibestrate works through them on its own:
 
@@ -93,33 +105,45 @@ When the run finishes, it lands in one of four states:
 <div class="docs-outcome ok"><b>merge_ready</b><span>The diff is ready to ship.</span></div>
 <div class="docs-outcome warn"><b>blocked</b><span>The reviewer or verifier flagged something a human should decide.</span></div>
 <div class="docs-outcome stop"><b>failed</b><span>An unrecoverable error during a stage.</span></div>
-<div class="docs-outcome stop"><b>aborted</b><span>You stopped the run yourself with vibe abort.</span></div>
+<div class="docs-outcome stop"><b>aborted</b><span>You stopped the run yourself.</span></div>
 </div>
 
-*In the dashboard:* the run detail page follows the same eight steps on its **Live timeline**, beside **Live metrics** and **Changed files**. See [Inspect a run in flight](/docs/workflows/inspect-progress).
-
 ## 4. Inspect the result
+
+The **Runs** page lists every run. Open one and the status card says where it got to; the **Inspect** section below it has seven tabs - **Tree**, **Steps**, **Events**, **Artifacts**, **Validation**, **Terminal** and **Replay** - and the diff and the files it touched are under **Artifacts**.
+
+To read the change on its own, the **Source** page's **Changes** tab shows the diff inline, file by file.
+
+*From a terminal:*
 
 ```bash
 vibe status            # every run, oldest first
 vibe replay <runId>    # read-only, one run
 ```
 
-*In the dashboard:* the **Runs** page is the same list, and the **Source** page's **Changes** tab reads the diff inline, file by file.
-
 ## 5. Merge it yourself
 
 Vibestrate does not push or merge (see [the safety guarantees](/docs/concepts/safety)). The run leaves the diff on its branch in the worktree, and the final call is yours.
 
-Before you decide, ask the merge advisor:
+The **Source** page's **Merge** tab is where you make it. Pick the run and it fetches the merge advice: a headline, a recommendation chip - **finish-now**, **stage-on-integration-branch** or **resolve-first** - any warning flags, and tiles for how far **ahead** and **behind** `main` the branch is and how many files it touches.
+
+Three buttons act on it:
+
+- **Analyze the diff** - the optional deeper pass, described below. Reads only.
+- **Integrate this run** - brings the branch onto an integration branch.
+- **Complete merge to main** - the last step, and it asks first.
+
+The advice is read-only and deterministic: same run, same answer, no model in the loop. Nothing is merged and no branch is touched until you press one of the last two.
+
+*From a terminal,* the same advice:
 
 ```bash
 vibe integrate advise <runId>
 ```
 
-It is read-only and deterministic: same run, same advice, no model in the loop. Per run it prints a headline, the risk flags (does the change touch protected files? did any check actually run?), the branch's position against `main`, which checks passed, and a recommendation - `finish-now`, `stage-on-integration-branch` or `resolve-first` - with the reason. Nothing is merged, no branch is touched. `--json` emits the full advice for scripts.
+It prints the headline, the risk flags (does the change touch protected files? did any check actually run?), the branch's position against `main`, which checks passed, and the recommendation with its reason. `--json` emits the full advice for scripts.
 
-When it suggests staging is configurable, suggestion-only and never blocking. Three thresholds decide it; these are the defaults in `project.yml`:
+When it suggests staging is configurable, suggestion-only and never blocking. Three thresholds decide it; these are the defaults in `project.yml`, editable on **More > Config** or with `vibe config set`:
 
 ```yaml
 merge:
@@ -130,11 +154,7 @@ merge:
       behindMain: 50
 ```
 
-Change one with `vibe config set` and its full dotted key; `vibe config keys` prints every key in full.
-
-`vibe integrate analyze <runId>` has a local provider read the run's diff against main and report semantic risk a textual merge check cannot see: concurrency, error handling, missing tests. It is advisory prose, never a merge verdict, and it never changes the deterministic recommendation. Before the provider sees it the diff is byte-capped and redacted, and the result is cached under the run.
-
-*In the dashboard:* the **Source** page's **Merge** tab is the same window, with **Analyze the diff** for the optional deeper pass, then **Integrate this run** and **Complete merge to main**.
+**Analyze the diff**, or `vibe integrate analyze <runId>`, has a local provider read the run's diff against main and report semantic risk a textual merge check cannot see: concurrency, error handling, missing tests. It is advisory prose, never a merge verdict, and it never changes the deterministic recommendation. Before the provider sees it the diff is byte-capped and redacted, and the result is cached under the run.
 
 The branch is yours to take in one of three directions:
 

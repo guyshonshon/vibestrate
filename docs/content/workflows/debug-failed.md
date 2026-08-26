@@ -57,11 +57,17 @@ Still on disk. Open it and read the half-finished work.
 
 ## Start with replay
 
+Open the run. When it ended badly the **Outcome** banner is the first thing on the screen: a red card that names what happened, says why in a sentence, and puts the next move on a button - **Re-run with changes**, **See review**, **View events** or **View diff**, whichever fits the ending.
+
+That is usually enough. When you want the whole record, the **Inspect** section's **Replay** tab walks the run start to finish, and **Artifacts** lists everything it wrote before it stopped.
+
+*From a terminal:*
+
 ```bash
 vibe replay <runId>
 ```
 
-Read-only: you can look but not change anything. The status line says which stage threw, and the artifact list shows what the run recorded before it stopped. The run screen's **Outcome banner** answers the same question in a sentence, with the next action beside it.
+Read-only either way: you can look but not change anything. The status line says which stage threw, and the artifact list shows what the run recorded before it stopped.
 
 ## If status is `failed`
 
@@ -114,7 +120,11 @@ Then act on what you find. The right answer is rarely "rerun and hope":
 
 ## Re-run after fixing
 
-Each `vibe run` is a fresh run with a fresh `runId`, and past runs stay at `.vibestrate/runs/`, so you can compare what the planner produced this time against last:
+**Re-run with changes**, on the Outcome banner, opens a dialog with this run's brief already in it, so you edit the task rather than retype it. A **Start from** picker decides how much to keep, worded by what each choice reuses: "Beginning - re-plan from scratch", "Architecture - reuse the plan", "Implementation - reuse plan + architecture", then Review, Fix and Verify, which each restore this run's code. Stages the run never reached stay visible but cannot be picked.
+
+Every run is a fresh run with a fresh `runId`, and past runs stay at `.vibestrate/runs/`. Nothing is overwritten, so the failed one is still there to read - open either from the **Runs** page and compare their **Artifacts** side by side.
+
+*From a terminal,* the same comparison on disk:
 
 ```bash
 cd .vibestrate/runs
@@ -144,7 +154,6 @@ The flow runner finds the first step at the stage you named, **seeds the outputs
 
 This works with `--flow` too: any flow declaring the matching step `stage` can be resumed.
 
-*In the dashboard:* the run screen's **Re-run with changes** dialog has a **Start from** selector with the same six choices, worded by what each reuses - "Implementation - reuse plan + architecture", "Review - restore this run's code", and so on.
 
 ## Rewinding to review, fix or verify
 
@@ -165,7 +174,13 @@ The restore is bounded: it only ever runs against a real, isolated run worktree,
 
 ## Pruning snapshots
 
-Each rewind-able run anchors its code as a git ref under `refs/vibestrate/snapshots/`, which slowly grows your `.git`, and Vibestrate never deletes these on its own. To reclaim them:
+Each rewind-able run anchors its code as a git ref under `refs/vibestrate/snapshots/`, which slowly grows your `.git`, and Vibestrate never deletes these on its own.
+
+The **Runs** page has a **Prune snapshots** button for the common case: it clears the orphans - runs whose directory is gone - and previews before it deletes. For hands-off trimming, set `git.snapshotRetentionRuns` on **More > Config** to keep the last N runs.
+
+Only refs are ever removed. Artifacts and branches are untouched.
+
+*From a terminal,* where the narrower targets live:
 
 ```bash
 vibe runs prune                # orphans
@@ -174,9 +189,7 @@ vibe runs prune --run <id>     # just this run
 vibe runs prune --orphans --dry-run   # preview
 ```
 
-Orphans are the runs whose directory is gone. It prints the plan and asks before deleting (`-y` skips the prompt). Only refs are removed - artifacts and branches are untouched.
-
-*In the dashboard:* the **Runs** page's **Prune snapshots** button does the same orphan cleanup, over `POST /api/runs/snapshots/prune`, which previews with `dryRun` first. For hands-off trimming, set `git.snapshotRetentionRuns` to keep the last N runs.
+It prints the plan and asks before deleting; `-y` skips the prompt.
 
 ## When to file a bug
 
