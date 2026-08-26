@@ -123,6 +123,21 @@ verifying → merge_ready
 
 Swap the type for `review.decision`, `verification.decision` or `action.denied` to answer a different question off the same file.
 
+## Correct it without stopping it
+
+Watching a run go the wrong way does not leave you a choice between abort and hope. `vibe steer` queues a note onto a live run:
+
+```bash
+vibe steer <runId> "use the existing retry helper, do not write a new one"
+vibe steer <runId> --step review "check error handling specifically"
+```
+
+The note lands at the **next step boundary**, not the instant you send it. That is deliberate: a code-writing seat holds an open worktree, and cutting into it between two writes would leave half-written files behind. The cost is at most one step of latency. `--step` holds the note until a named step runs instead of giving it to whichever runs next.
+
+Steering only appends to the run's state - no provider call, no shell command, no write into the worktree - so it is safe to send at any moment, including while a step is mid-flight.
+
+This one is terminal-only today. The dashboard's nearest control is **Request changes** on an approval, and it is a different move: that re-runs the stage you are standing at, where a steer feeds the step that has not started yet.
+
 ## Read past runs
 
 Open any run from the **Runs** page and the **Inspect** section's **Replay** tab walks it start to finish. It works on a run that finished long ago, one synced from another machine, one you never watched live.

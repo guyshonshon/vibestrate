@@ -34,7 +34,7 @@ Not the model's confidence. Validation is the tie-breaker when opinions differ.
 The rules that matter in your codebase, checked on every run.
 
 **You, at the end**
-Nothing pushes and nothing merges without a human. That one is not configurable.
+Nothing pushes and nothing merges without a human. Not a switch you could find and turn off: no code path in Vibestrate runs `git push`, and a merge to main is refused unless the request carries your confirmation.
 
 </div>
 

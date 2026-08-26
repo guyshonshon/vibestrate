@@ -59,7 +59,7 @@ Each row carries the dotted key, the description the schema itself supplies, and
 
 Two kinds of row do not edit in place:
 
-- **Records** - `providers`, `profiles`, `crews`, `personas`, `permissions.profiles`, `commands.validationProfiles` and `scheduler.sourceQuotas`. Id-keyed maps with no single value to set, so the row shows a read-only summary and sends you to the screen that owns it: **Open Providers**, **Open Profiles**, **Open Crew**, **Open Supervisors**, **Open Settings**. The last two have no button, because `commands.validationProfiles` is only renameable from the Settings maintenance panel and `scheduler.sourceQuotas` has no editor at all.
+- **Records** - `providers`, `profiles`, `crews`, `personas`, `permissions.profiles`, `commands.validationProfiles` and `scheduler.sourceQuotas`. Id-keyed maps with no single value to set, so the row shows a read-only summary. Five of the seven carry a button through to the screen that owns them - **Open Providers**, **Open Profiles**, **Open Crew**, **Open Supervisors** and **Open Settings**. `commands.validationProfiles` and `scheduler.sourceQuotas` do not: the first is only renameable from the Settings maintenance panel and the second has no editor anywhere, so a button would promise a screen that cannot help.
 - **Shell commands** - `commands.validate`, `editor.command`, `editor.args`. A later run spawns whatever these point at, so the server never accepts a shell command string over HTTP. The row stays read-only and names the `vibe config set` that writes it.
 
 ## In the terminal shell
@@ -83,7 +83,7 @@ vibe config set workflow.requireHumanMerge true
 
 Arrays and objects go in as JSON, so the validation commands look like `vibe config set commands.validate '["pnpm test"]'`.
 
-The three shell-command keys above are read-only in the browser on purpose. A handful of others are out of the Config page's reach for less deliberate reasons: `scheduler.sourceQuotas` has no editor anywhere in the dashboard, `commands.validationProfiles` offers a rename control and nothing else, and the record rows link out only for `permissions.profiles`. For those, `vibe config set` is the path.
+The three shell-command keys above are read-only in the browser on purpose. Two others are out of its reach for less deliberate reasons: `scheduler.sourceQuotas` has no editor anywhere in the dashboard, and `commands.validationProfiles` offers a rename control and nothing else. For those, `vibe config set` is the path.
 
 ## What lives in `project.yml`
 

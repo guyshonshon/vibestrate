@@ -95,10 +95,13 @@ vibe --version
 
 ```bash
 vibe init            # scaffold .vibestrate/ (--git-init to create the repo too)
+vibe setup           # the wizard, as questions in the terminal
 vibe doctor          # the read-only report the Setup page renders
 vibe doctor --fix    # the same repair pass as Fix what's safe
 vibe doctor --json   # machine-readable, for CI
 ```
+
+`vibe setup` is the closest thing to the Setup page without a browser: it asks rather than reports. It offers whichever of Claude Code, Codex or Ollama it finds as the project default, offers the validation commands it detected, and can take a custom provider's command and args. It needs a git repository, and answers nothing on your behalf.
 
 `vibe` on its own opens the interactive shell, whose Doctor page has `r` to re-run the checks and `f` to apply the safe fixes.
 
