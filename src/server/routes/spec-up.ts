@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { taskTextSchema } from "../../core/run/task-text.js";
 import { HttpError, assertSafeRunId } from "../security.js";
 import {
   readSpecUpQuestions,
@@ -78,7 +79,7 @@ export type SpecUpRoutesDeps = { projectRoot: string };
 
 const startBody = z
   .object({
-    task: z.string().min(1).max(2000),
+    task: taskTextSchema,
     persona: z.string().min(1).max(40).optional(),
     /** Adaptive spec-up: the flow to BUILD once the spec is approved. */
     flowId: z.string().min(1).max(80).optional(),

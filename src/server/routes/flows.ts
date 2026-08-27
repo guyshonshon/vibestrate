@@ -27,6 +27,7 @@
 //     refuses the upload on a hit.
 
 import { z } from "zod";
+import { taskTextSchema } from "../../core/run/task-text.js";
 import type { FastifyInstance } from "fastify";
 import { loadConfig } from "../../project/config-loader.js";
 import {
@@ -73,7 +74,7 @@ const idOverridesSchema = z
 
 const resolveFlowBody = z
   .object({
-    task: z.string().min(1).max(2000),
+    task: taskTextSchema,
     brief: z.string().max(4000).nullable().optional(),
     contextPolicy: flowContextPolicySchema.optional(),
     /** Crew to resolve against (default: project.defaultCrew). */
@@ -101,7 +102,7 @@ const setDefaultFlowBody = z
 
 const suggestFlowsBody = z
   .object({
-    task: z.string().min(1).max(2000),
+    task: taskTextSchema,
     files: z.array(z.string().min(1).max(500)).max(256).optional(),
     riskLevel: z.enum(["low", "medium", "high"]).nullable().optional(),
   })

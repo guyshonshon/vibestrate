@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { taskTextSchema } from "./task-text.js";
 import { detectProject } from "../../project/project-detector.js";
 import { configExists, loadConfig } from "../../project/config-loader.js";
 import {
@@ -44,7 +45,7 @@ import {
 export const runSpecSchema = z.object({
   /** Absolute project root the run executes in. */
   projectRoot: z.string().min(1),
-  task: z.string().min(1).max(2000),
+  task: taskTextSchema,
   /** Pre-assigned run id (the dashboard computes it before spawning so the UI
    *  can navigate immediately). Short docker-style `adjective-noun` ids now;
    *  the pattern also still accepts the legacy `YYYYMMDD-HHMMSS-slug` form so

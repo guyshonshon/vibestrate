@@ -33,6 +33,7 @@
 // resolve to steps, and only the definition schema checks that they do.
 
 import { z } from "zod";
+import { taskTextSchema } from "../../core/run/task-text.js";
 import { approvalRiskSchema } from "../../core/run/approval-types.js";
 import { skillReferenceSchema } from "../../agents/skill-schema.js";
 import { reviewLensSchema } from "../../supervisor/review-lenses.js";
@@ -959,7 +960,7 @@ export const resolvedFlowSnapshotSchema = z
     label: z.string().min(1).max(160),
     description: z.string().min(1).max(600),
     source: flowSourceSchema,
-    task: z.string().min(1).max(2000),
+    task: taskTextSchema,
     brief: z.string().nullable().default(null),
     contextPolicy: flowContextPolicySchema,
     resolvedAt: z.string(),

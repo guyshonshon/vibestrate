@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- A run's task now fits a full GitHub issue. The task field was capped at
+  2,000 characters at six separate entry points; pasting an ordinary issue got
+  refused before any agent ran. The bound is now 65,536 - GitHub's own
+  issue-body limit - enforced by one shared schema so the boundaries cannot
+  drift apart again.
 - **Two first-run killers from the head-to-head benchmark, fixed.** `vibe init`
   hardcoded `mainBranch: main`, so on a `master` repository every run died at
   worktree creation with `fatal: invalid reference: main` - the first run a new

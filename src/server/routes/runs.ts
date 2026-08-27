@@ -30,6 +30,7 @@
 
 import path from "node:path";
 import { z } from "zod";
+import { taskTextSchema } from "../../core/run/task-text.js";
 import type { FastifyInstance } from "fastify";
 import { readDirSafe, pathExists, readText } from "../../utils/fs.js";
 import {
@@ -105,7 +106,7 @@ const pruneBody = z
 // at the body level, but constrained so only audited fields flow
 // through (no arbitrary argv).
 const spawnRunBody = z.object({
-  task: z.string().min(1).max(2000),
+  task: taskTextSchema,
   taskId: z
     .string()
     .min(1)
