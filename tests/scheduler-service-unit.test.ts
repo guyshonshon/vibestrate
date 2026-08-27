@@ -1,0 +1,101 @@
+import { describe, it, expect } from "vitest";
+import { buildServiceUnit, defaultPlatform } from "../src/scheduler/service-unit.js";
+
+/**
+ * The one piece of always-on that was missing: surviving a reboot.
+ *
+ * The scheduler already self-heals - queueing work spawns it, spawns and exits
+ * are recorded, liveness is derived rather than assumed. But it is a child of
+ * whoever started it, so a restart ends it. This is the unit that brings it
+ * back, and the tests are mostly about NOT doing too much: no install, no
+ * infinite respawn, and an off-switch given every time the on-switch is.
+ */
+const base = {
+  projectRoot: "/Users/x/code/my-project",
+  binPath: "/usr/local/bin/vibe",
+  home: "/Users/x",
+};
+
+describe("picking a platform", () => {
+  it("maps the two it covers", () => {
+    expect(defaultPlatform("darwin")).toBe("launchd");
+    expect(defaultPlatform("linux")).toBe("systemd");
+  });
+
+  it("returns null rather than guessing on Windows", () => {
+    // A Scheduled Task needs an XML schema and an elevated registration.
+    // Shipping one untested would be worse than saying it is not covered.
+    expect(defaultPlatform("win32")).toBeNull();
+  });
+});
+
+describe("the launchd unit", () => {
+  const unit = buildServiceUnit({ ...base, platform: "launchd" });
+
+  it("runs `queue run` in the project, at load", () => {
+    expect(unit.contents).toContain("<string>queue</string>");
+    expect(unit.contents).toContain("<string>run</string>");
+    expect(unit.contents).toContain(`<key>WorkingDirectory</key><string>${base.projectRoot}</string>`);
+    // RunAtLoad is what makes it come back after a reboot.
+    expect(unit.contents).toContain("<key>RunAtLoad</key><true/>");
+  });
+
+  it("does NOT set KeepAlive", () => {
+    // The scheduler self-heals when work is queued. A hard KeepAlive would
+    // respawn it in a tight loop against a project whose config stopped
+    // parsing, turning one broken config into a busy machine.
+    // The KEY, not the word: the plist carries a comment explaining why it is
+    // absent, which is worth shipping to whoever opens the file later.
+    expect(unit.contents).not.toContain("<key>KeepAlive</key>");
+    expect(unit.contents).toContain("KeepAlive is deliberately NOT set");
+  });
+
+  it("is labelled per project, so two projects do not collide", () => {
+    const other = buildServiceUnit({
+      ...base,
+      platform: "launchd",
+      projectRoot: "/Users/x/code/other-project",
+    });
+    expect(unit.suggestedPath).not.toBe(other.suggestedPath);
+    expect(unit.contents).toContain("my-project");
+    expect(other.contents).toContain("other-project");
+  });
+
+  it("gives the off-switch alongside the on-switch", () => {
+    expect(unit.loadCommand).toContain("launchctl load");
+    expect(unit.unloadCommand).toContain("launchctl unload");
+  });
+});
+
+describe("the systemd unit", () => {
+  const unit = buildServiceUnit({ ...base, platform: "systemd" });
+
+  it("restarts on failure, not always", () => {
+    // `Restart=always` would hide a project whose config stopped parsing behind
+    // an endless respawn.
+    expect(unit.contents).toContain("Restart=on-failure");
+    expect(unit.contents).not.toContain("Restart=always");
+  });
+
+  it("is a USER unit, needing no root", () => {
+    expect(unit.suggestedPath).toContain(".config/systemd/user");
+    expect(unit.loadCommand).toContain("--user");
+    expect(unit.unloadCommand).toContain("--user");
+  });
+
+  it("waits long enough between restarts to not spin", () => {
+    expect(unit.contents).toMatch(/RestartSec=\d+/);
+  });
+});
+
+describe("what it does not do", () => {
+  it("only ever describes a path - it never writes to one", async () => {
+    // Installing changes how the machine boots. Same line the Homebrew tap
+    // draws: prepare it, hand it over.
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/scheduler/service-unit.ts", "utf8");
+    for (const f of ["writeFile", "mkdir", "execa", "spawn("]) {
+      expect(src, `service-unit.ts calls ${f} - it must only build a string`).not.toContain(f);
+    }
+  });
+});

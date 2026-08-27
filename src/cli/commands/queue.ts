@@ -256,6 +256,51 @@ async function cmdRemove(taskId: string): Promise<number> {
   return 0;
 }
 
+/**
+ * `vibe queue service` - the one piece of always-on that was missing.
+ *
+ * The scheduler already auto-spawns when work is queued and records every spawn
+ * and exit, but it is a child of whoever started it: a reboot ends it. This
+ * prints the unit that brings it back.
+ *
+ * It PRINTS. Writing into ~/Library/LaunchAgents or ~/.config/systemd changes
+ * how the machine boots, which is the user's call, not a build step - the same
+ * line the Homebrew tap draws.
+ */
+async function cmdService(out: string | null): Promise<number> {
+  const os = await import("node:os");
+  const { detectProject } = await import("../../project/project-detector.js");
+  const { buildServiceUnit, defaultPlatform } = await import("../../scheduler/service-unit.js");
+  const platform = defaultPlatform();
+  if (!platform) {
+    console.error(
+      `${symbol.fail()} No service unit for ${process.platform}. macOS (launchd) and Linux (systemd) are covered; ` +
+        `on Windows, run \`vibe queue run\` from a Scheduled Task.`,
+    );
+    return 1;
+  }
+  const { projectRoot } = await detectProject(process.cwd());
+  const unit = buildServiceUnit({
+    platform,
+    projectRoot,
+    binPath: process.argv[1] ?? "vibe",
+    home: os.homedir(),
+  });
+  if (out) {
+    const { writeText } = await import("../../utils/fs.js");
+    await writeText(out, unit.contents);
+    console.log(`${symbol.ok()} ${platform} unit -> ${color.bold(out)}`);
+  } else {
+    process.stdout.write(unit.contents);
+  }
+  console.log("");
+  console.log(color.dim("Vibestrate does not install this - it changes how your machine boots."));
+  console.log(`  save to: ${color.bold(unit.suggestedPath)}`);
+  console.log(`  enable:  ${color.bold(unit.loadCommand)}`);
+  console.log(`  undo:    ${color.bold(unit.unloadCommand)}`);
+  return 0;
+}
+
 export function buildQueueCommand(): Command {
   const cmd = new Command("queue").description(
     "Manage the local task scheduler queue.",
@@ -316,6 +361,16 @@ export function buildQueueCommand(): Command {
     .action(async () => {
       const code = await cmdResume();
       process.exit(code);
+    });
+
+  cmd
+    .command("service")
+    .description(
+      "Print a launchd/systemd unit that brings the scheduler back after a reboot. Prints it - installing is yours to do.",
+    )
+    .option("--out <file>", "write the unit to a file instead of stdout")
+    .action(async (opts: { out?: string }) => {
+      process.exit(await cmdService(opts.out ?? null));
     });
 
   cmd

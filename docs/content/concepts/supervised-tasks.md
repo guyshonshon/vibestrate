@@ -61,6 +61,29 @@ A dashboard launch takes the same audited queue and scheduler path the CLI uses,
 inheriting the supervised flow, budget, supervisor, run lock and clean-halt
 semantics.
 
+## Leaving it running
+
+Queueing work already starts it: `vibe queue add <taskId>` spawns a scheduler if none is listening, records the spawn and its exit, and derives whether it is alive rather than assuming. So a machine you leave on keeps working through the queue with nobody watching.
+
+What it does not survive is a **reboot** - the scheduler is a child of whoever started it. `vibe queue service` prints a launchd (macOS) or systemd (Linux) unit that brings it back:
+
+```bash
+vibe queue service --out ~/Library/LaunchAgents/com.vibestrate.scheduler.myproject.plist
+launchctl load -w ~/Library/LaunchAgents/com.vibestrate.scheduler.myproject.plist
+```
+
+The unit is per project, and the command prints the line that undoes it beside the line that enables it.
+
+<div class="docs-callout warn">
+
+**Vibestrate does not install it.** Writing into `~/Library/LaunchAgents` or `~/.config/systemd` changes how your machine boots, and that is your decision rather than a step in a setup script. The unit is printed; you save and load it.
+
+It also deliberately does not respawn forever - launchd `KeepAlive` is unset and systemd uses `Restart=on-failure`. The scheduler already restarts itself when work is queued, and an unconditional respawn would turn one unparseable config into a machine busy-looping all night.
+
+</div>
+
+An unattended run with no budget ceiling and no confinement is warned about before it starts, because that combination has nothing to stop it automatically. See [Safety](/docs/concepts/safety).
+
 ## Plain vs supervised
 
 A plain task with a checklist is a lightweight to-do list run in one pass. A

@@ -3824,6 +3824,27 @@
           "subcommands": []
         },
         {
+          "name": "service",
+          "path": [
+            "vibe",
+            "queue",
+            "service"
+          ],
+          "description": "Print a launchd/systemd unit that brings the scheduler back after a reboot. Prints it - installing is yours to do.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--out <file>",
+              "description": "write the unit to a file instead of stdout",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
           "name": "status",
           "path": [
             "vibe",

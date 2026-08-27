@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **`vibe queue service`** prints a launchd or systemd unit that brings the
+  scheduler back after a reboot - the one piece of always-on that was missing.
+  Queueing work already spawns a scheduler, records its spawn and exit, and
+  derives whether it is alive; what it never survived was the machine
+  restarting. The unit is per project, is printed rather than installed
+  (writing into `~/Library/LaunchAgents` changes how your machine boots, which
+  is your call), and comes with the line that undoes it. It also does not
+  respawn unconditionally: the scheduler self-heals when work is queued, and an
+  endless respawn would turn one unparseable config into a machine busy-looping
+  all night.
+
 - **Every run now checks whether its review is talking about real files.** A
   finding citing `src/uploader.ts` when there is no such file has not read the
   change - it has produced something that reads like a finding. Each cited path
