@@ -96,3 +96,15 @@ describe("permission profiles", () => {
     );
   });
 });
+
+describe("an unavailable assist says what to do, not what a developer would type", () => {
+  it("names the setup screen rather than a profile id", async () => {
+    // This message reaches someone who asked for a PLAIN-LANGUAGE explanation.
+    // "Pass an explicit profileId" was the opposite of useful there.
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/core/assist/assist-runner.ts", "utf8");
+    expect(src).toContain("More > Setup");
+    expect(src).toContain("vibe setup");
+    expect(src).not.toContain("Pass an explicit profileId");
+  });
+});

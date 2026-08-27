@@ -151,8 +151,13 @@ export function resolveAssistTarget(
     const fallback = Object.values(crew.roles)[0];
     const role = planner?.role ?? fallback;
     if (!role) {
+      // Reaches a person who asked for HELP - the plain-language explainer is
+      // the clearest case, where "pass an explicit profileId" is the opposite
+      // of useful. Name the screen first, then the command, like everything
+      // else the product says.
       throw new AssistError(
-        "No role available to resolve an assist profile from. Pass an explicit profileId.",
+        "No model is set up to answer this yet. Open More > Setup in the dashboard " +
+          "to connect one (or run `vibe setup`), then try again.",
       );
     }
     profileId = role.profile;

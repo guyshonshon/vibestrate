@@ -108,7 +108,28 @@ function contextBlock(brief: string, priorAnswers: string): string {
   return parts.length ? `\n\n${parts.join("\n\n")}` : "";
 }
 
-/** Simplify: plain-language restatement + what it affects (+ optional analogy). */
+/**
+ * Simplify: plain-language restatement + what it affects (+ optional analogy).
+ *
+ * THE SHAPE OF "SIMPLER", AND WHY IT IS THIS ONE.
+ *
+ * The open question about explaining things to non-developers was always "when
+ * does the simplification mislead". The answer is structural rather than a
+ * matter of careful wording: an analogy is ADDITIVE. `text` and `affects` stay
+ * precise and are produced either way; `analogy` is a separate field that sits
+ * BESIDE them. Nobody is ever shown a metaphor instead of the accurate
+ * statement, so a lossy analogy costs a reader nothing they had - which is the
+ * only version of this that is safe to build.
+ *
+ * That is also why it stays per-question and opt-in rather than a global
+ * "simple mode". A mode implies a whole surface has been restated, and the
+ * moment one screen silently is not, the reader cannot tell which they are
+ * looking at.
+ *
+ * When it is UNAVAILABLE: it needs a model, so a project with none configured
+ * gets an AssistError naming the setup screen rather than a profile id - see
+ * assist-runner.ts. Unavailable is a state with an answer, not a dead end.
+ */
 export async function specUpSimplify(
   input: Common & { questionId: string; forNonDeveloper?: boolean },
 ): Promise<SpecUpSimplifyResult> {
