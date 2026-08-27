@@ -209,6 +209,29 @@ export type FlowFit = {
   status: FlowFitStatus;
 };
 
+/**
+ * How a flow-fit status reads on screen.
+ *
+ * Here rather than in the page so it can be tested, and so the three states
+ * cannot drift back into two: `blocked` and `contested` both throw in
+ * flow-resolver, but only `blocked` is unconditional - a contested seat still
+ * starts when the run passes an explicit role override. They were painted the
+ * same amber, which hid the one that can never start.
+ */
+export function describeFlowFit(status: FlowFitStatus): {
+  tone: "emerald" | "amber" | "rose";
+  label: string;
+} {
+  switch (status) {
+    case "ready":
+      return { tone: "emerald", label: "Runs" };
+    case "contested":
+      return { tone: "amber", label: "Needs a pick" };
+    case "blocked":
+      return { tone: "rose", label: "Cannot start" };
+  }
+}
+
 /** Which flows this crew can run, and why not when it cannot.
  *
  *  Both failure modes are resolution-time throws in flow-resolver, not

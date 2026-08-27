@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **A flow your crew cannot start now looks different from one that just needs
+  a pick.** The crew editor painted both amber. They are not the same problem:
+  a seat two roles take still runs when the run names which one, while a seat no
+  role takes can never start at all. Both throw when the flow resolves, and the
+  editor is the only place you would catch either before launching. Three states
+  now, with the red one reserved for the failure that is unconditional.
+
 - **Run history stays out of your repository.** `.vibestrate/runs/` holds
   per-run artifacts and state, grows without bound, and a run's `state.json`
   carries the raw text of anything steered onto it - and nothing kept it out of

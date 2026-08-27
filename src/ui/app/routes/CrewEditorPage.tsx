@@ -63,6 +63,7 @@ import {
   blankRole,
   computeFlowFit,
   crewToEditorState,
+  describeFlowFit,
   newRoleKey,
   permissionVocabulary,
   planCrewSave,
@@ -789,11 +790,23 @@ export function CrewEditorPage({
                           key={fit.flowId}
                           className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-t border-[color:var(--line-soft)] py-1.5 first:border-t-0"
                         >
-                          <ToneDot tone={fit.status === "ready" ? "emerald" : "amber"} />
+                          {/* Three tones, not two - see describeFlowFit. */}
+                          <ToneDot tone={describeFlowFit(fit.status).tone} />
                           <span className="text-[12.5px] font-semibold text-chalk-100">
                             {fit.flowLabel}
                           </span>
                           <span className="mono text-meta text-chalk-300">{fit.flowId}</span>
+                          <span
+                            className={
+                              fit.status === "ready"
+                                ? "text-meta text-chalk-300"
+                                : fit.status === "contested"
+                                  ? "text-meta text-amber-soft"
+                                  : "text-meta text-rose-300"
+                            }
+                          >
+                            {describeFlowFit(fit.status).label}
+                          </span>
                           {fit.missing.length > 0 ? (
                             <span className="ml-auto text-meta text-amber-soft">
                               waiting on {fit.missing.join(", ")}

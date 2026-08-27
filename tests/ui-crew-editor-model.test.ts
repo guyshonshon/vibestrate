@@ -10,6 +10,7 @@ import { parse as parseYaml } from "yaml";
 import type { CrewView, DiscoveredFlow } from "../src/ui/lib/types.js";
 import {
   computeFlowFit,
+  describeFlowFit,
   crewToEditorState,
   planCrewSave,
   rebaseRole,
@@ -418,5 +419,37 @@ describe("validateEditorState", () => {
     expect(seatDupes[0]!.message).toContain("implementer");
     expect(seatDupes[0]!.message).toContain("executor");
     expect(seatDupes[0]!.message).toContain("reviewer");
+  });
+});
+
+describe("describeFlowFit - three states, not two", () => {
+  it("gives each status its own tone and words", () => {
+    const seen = (["ready", "contested", "blocked"] as const).map(describeFlowFit);
+    expect(new Set(seen.map((s) => s.tone)).size, "two statuses share a tone").toBe(3);
+    expect(new Set(seen.map((s) => s.label)).size, "two statuses share a label").toBe(3);
+  });
+
+  it("reserves rose for the failure that can never start", () => {
+    // A contested seat still runs when the run passes an explicit role
+    // override; a missing seat cannot. Painting both amber hid that.
+    expect(describeFlowFit("blocked")).toEqual({ tone: "rose", label: "Cannot start" });
+    expect(describeFlowFit("contested").tone).toBe("amber");
+    expect(describeFlowFit("ready").tone).toBe("emerald");
+  });
+
+  it("describes exactly the statuses computeFlowFit can produce", () => {
+    const roles = [
+      { key: "k1", id: "planner", label: "P", seats: ["planner"], profile: null, permissions: "read_only", skills: [] },
+      { key: "k2", id: "p2", label: "P2", seats: ["planner"], profile: null, permissions: "read_only", skills: [] },
+      { key: "k3", id: "impl", label: "I", seats: ["implementer"], profile: null, permissions: "code_write", skills: [] },
+    ] as never;
+    const flows = [
+      { id: "ok", label: "Ok", source: "builtin", definition: { steps: [{ seat: "implementer" }] } },
+      { id: "two", label: "Two", source: "builtin", definition: { steps: [{ seat: "planner" }] } },
+      { id: "none", label: "None", source: "builtin", definition: { steps: [{ seat: "nobody" }] } },
+    ] as never;
+    const statuses = computeFlowFit(roles, flows).map((f) => f.status);
+    expect(new Set(statuses)).toEqual(new Set(["ready", "contested", "blocked"]));
+    for (const s of statuses) expect(describeFlowFit(s).label).toBeTruthy();
   });
 });

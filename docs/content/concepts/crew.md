@@ -96,7 +96,15 @@ A half-staffed run that discovers the gap three steps in has already spent token
 
 ## Adding and removing roles
 
-**Edit roles** opens the crew editor; **New crew** opens it on a blank one. One screen holds every role's parameters beside its instructions, next to a **Seats** panel that assigns a role per seat and lists which flows the crew as edited can still run.
+**Edit roles** opens the crew editor; **New crew** opens it on a blank one. One screen holds every role's parameters beside its instructions, next to a **Seats** panel that assigns a role per seat.
+
+**Which flows this covers** in that panel is the check worth reading before you save, because casting is where a crew fails and it fails at launch rather than during the run. Each flow reads one of three things:
+
+- **Runs** - every seat the flow asks for has exactly one role.
+- **Needs a pick** - two roles take the same seat. The run starts only if it names which one.
+- **Cannot start** - a seat no role takes. Nothing will start this flow until you fill it.
+
+Both failures stop the run rather than warning: [resolving a flow](/docs/concepts/seat) fills every step's seat before anything is skipped, so an optional step's empty seat is just as fatal as a required one's.
 
 Two kinds of change live there, kept apart on purpose:
 
