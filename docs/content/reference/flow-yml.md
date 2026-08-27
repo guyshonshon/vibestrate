@@ -175,6 +175,12 @@ Produces work. The implementer and the planner are both this.
 **`review-turn`**
 The only kind that can emit `review-decision`, so the only kind a `loop` can hang off.
 
+<div class="docs-callout warn">
+
+**Declare `review-decision` in its `outputs`, or the verdict is ignored.** A run reads the reviewer's `DECISION:` line only off a step that declares `review-decision` (or `finding-resolutions`). Name the output something else - `review` is the obvious guess - and the line is never read: the verdict keeps its fail-closed `BLOCKED` default, so the run ends blocked no matter what the reviewer decided, with an `APPROVED` artifact sitting in the run folder saying otherwise. Nothing warns you. A panel is the one exception: its branches emit findings under different lenses and a `summary-turn` arbiter settles it.
+
+</div>
+
 **`response-turn`**
 Answers findings. Given what the reviewer said, not asked to start over.
 

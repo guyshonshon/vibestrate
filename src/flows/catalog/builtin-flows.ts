@@ -68,6 +68,7 @@ import {
   pickupReviewFlow,
   sagaFlow,
 } from "./flows/checklist.js";
+import { researchFlow } from "./flows/research.js";
 import {
   specUpIntakeFlow,
   specUpFlow,
@@ -78,6 +79,7 @@ export * from "./flows/core.js";
 export * from "./flows/review.js";
 export * from "./flows/checklist.js";
 export * from "./flows/spec-up.js";
+export * from "./flows/research.js";
 
 export const builtinFlows: readonly FlowDefinition[] = [
   defaultFlow,
@@ -91,6 +93,7 @@ export const builtinFlows: readonly FlowDefinition[] = [
   securityReviewFlow,
   expressFlow,
   scaffoldFlow,
+  researchFlow,
   specUpIntakeFlow,
   specUpFlow,
   specUpRoadmapFlow,

@@ -1674,6 +1674,88 @@
       "loop": null
     },
     {
+      "id": "research",
+      "version": 1,
+      "label": "Research (no code)",
+      "description": "Answer a question in writing, with sources, checked by a second seat for whether the claims are actually supported. Produces a document, not a diff - nothing is written to your repository.",
+      "seats": [
+        {
+          "id": "planner",
+          "label": "Researcher",
+          "description": "Answers the question and names what the answer rests on."
+        },
+        {
+          "id": "reviewer",
+          "label": "Fact-checker",
+          "description": "Reads the answer cold and challenges any claim its sources do not carry."
+        }
+      ],
+      "steps": [
+        {
+          "id": "research",
+          "label": "Research",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "execution"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "check",
+          "label": "Fact-check",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "execution"
+          ],
+          "outputs": [
+            "findings",
+            "review-decision"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "verify",
+          "label": "Verify",
+          "kind": "summary-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "execution",
+            "review"
+          ],
+          "outputs": [
+            "verification"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "verifying",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": null
+    },
+    {
       "id": "spec-up-intake",
       "version": 1,
       "label": "Spec-up: Intake",

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **A flow that produces no code.** `vibe run "..." --flow research` answers a
+  question in writing, with what each claim rests on named, checked by a second
+  seat for whether the sources actually carry it - and writes nothing to your
+  repository. It is the worked example for runs that are not diffs: marketing
+  copy, an image brief and a literature review are the same shape with different
+  parameters. Takes `audience` and `depth` as flow params.
+
+- **Documented a trap that costs an afternoon.** A `review-turn` whose `outputs`
+  do not include `review-decision` has its `DECISION:` line silently ignored -
+  the run ends `blocked` however the review went, with an `APPROVED` artifact in
+  the run folder saying otherwise. `review` is the obvious name to reach for and
+  it is the wrong one. Now called out in the flow reference.
+
 - **Your backlog moves in and out as CSV.** `vibe tasks import their-export.csv`
   and `vibe tasks export` - the format Jira, Trello, Monday, Asana and Linear all
   read and write. Columns match by name rather than position, Jira's `Key` and
