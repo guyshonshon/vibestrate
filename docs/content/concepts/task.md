@@ -191,6 +191,28 @@ Importing is **additive**: it creates cards and never updates or deletes one, so
 
 </div>
 
+## What a task carries
+
+A card outlives the runs it starts, so it holds the intent and the history while
+each run holds one attempt.
+
+| Field | What it is |
+|---|---|
+| `id`, `title`, `description` | Its handle, and what you want done. |
+| `runMode` | `plain` for one holistic pass, `supervised` for the Conductor. |
+| `status` | Where the card sits on the board. |
+| `checklist` | The ordered breakdown, each item with its own status. |
+| `acceptanceCriteria`, `acceptanceCommands` | What "done" means, in prose and as commands. |
+| `specRef` | The spec this card was written against, when spec-up produced one. |
+| `dependencies` | Cards that must land first. |
+| `runIds`, `currentRunId` | Every run this card has started, and the live one. |
+| `contextSources` | Files, PDFs and URLs handed to every agent on every run. |
+| `profileOverride`, `readOnly` | Per-card overrides of how its runs are cast. |
+| `needsTesting`, `needsTestingReason` | The non-blocking flag a reviewer raises when a person should look. |
+| `archived` | A flag you set, independent of run status. |
+
+The shape is `taskSchema` in `src/roadmap/roadmap-types.ts`.
+
 ## In the terminal shell
 
 `vibe` on its own opens the interactive shell, the terminal-native version of the same surfaces. Press `9` for **Roadmap**, the board: `n` adds a task, `e` and `d` edit and delete, `Enter` or `r` runs the selected one, `Q` enqueues it for the scheduler, and `c` toggles a card between backlog and ready.

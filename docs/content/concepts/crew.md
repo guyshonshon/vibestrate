@@ -94,6 +94,20 @@ The run refuses the same way and asks you to pick one, with `--seat-role <seat>=
 
 A half-staffed run that discovers the gap three steps in has already spent tokens and written code.
 
+## What a crew carries
+
+| Field | What it is |
+|---|---|
+| `roles` | The roster, keyed by role id. Everything else on a crew is an override. |
+| `label` | What the dashboard shows. |
+| `maxReviewLoops` | Per-crew override of the global review and fix cycle count. |
+| `checklistReviewLenses` | Per-crew override of the lenses a per-item review runs under. |
+
+A crew is mostly its roster: the two overrides exist so a fast crew can do fewer
+loops and a security crew can aim every per-item review at auth and secrets,
+without either of them editing a flow. The shape is `crewConfigSchema` in
+`src/agents/crew-schema.ts`.
+
 ## Adding and removing roles
 
 **Edit roles** opens the crew editor; **New crew** opens it on a blank one. One screen holds every role's parameters beside its instructions, next to a **Seats** panel that assigns a role per seat.

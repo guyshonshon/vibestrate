@@ -112,6 +112,23 @@ That setting gates Vibestrate's own Action Broker. For the agent to actually wri
 
 One profile can back many roles, and one provider can back many profiles. **New profile** on a role card mints one and assigns it in a single step, so a `claude-cheap` gets created exactly where a role needs it.
 
+## What a role carries
+
+| Field | What it is |
+|---|---|
+| `seats` | The seats it can fill. A flow step matches a role through this list. |
+| `profile` | The profile it runs on, and the only route to a model. |
+| `prompt` | Path to its JSON role file, which holds the instruction text. |
+| `permissions` | The permission profile id: `read_only`, `code_write`, and the rest. |
+| `skills` | Skill packs loaded into its prompt. |
+| `mcpServers` | MCP servers it declares directly, merged with what its skills contribute. |
+| `label` | What the dashboard shows. Defaults to the role id. |
+
+The crew-scoped wiring lives in `project.yml` while the instruction text lives in
+the role file, so the same role file can be pointed at by two crews that differ
+only in the profile they run it on. The shape is `crewRoleConfigSchema` in
+`src/agents/role-schema.ts`.
+
 ## How its prompt is assembled
 
 Vibestrate stacks these into one prompt before the role runs:

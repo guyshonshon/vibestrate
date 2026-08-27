@@ -135,6 +135,27 @@ A model turn only counts as success if its provider exits cleanly **and** return
 - **Setting `maxReviewLoops` too high.** Three to five passes is usually enough. Past that, the run is probably stuck and should `block` to call you over.
 - **Adding steps by editing the workflow array.** A custom Flow is the supported extension point.
 
+## What a step carries
+
+| Field | What it is |
+|---|---|
+| `id`, `label` | Its handle, and its display name. |
+| `kind` | How it runs: `agent-turn`, `review-turn`, `response-turn`, `validation`, `summary-turn`, `approval-gate`. |
+| `seat` | The seat it needs filled. Only the turn kinds take one. |
+| `stage` | The coarse run phase, and the boundary `--resume-from` can restart at. |
+| `inputs`, `outputs` | Named artifacts it reads and writes. This is the handoff between steps. |
+| `needs` | Steps that must finish first. Using it makes the flow a graph rather than a line. |
+| `retries` | Extra attempts for a flaky turn, 0 to 5. |
+| `optional`, `skipWhenReadOnly`, `skipWhen` | The three ways a step is passed over. |
+| `continueOnError` | The run advances past its failure instead of ending. |
+| `approval` | Turns it into a gate that waits for you. |
+| `repeat` | Runs it once per item in a named collection. |
+| `instructions` | Extra prompt text, this step only. |
+| `skills` | Skill packs for this turn only, merged with the role's own. |
+| `cleanRoom` | Drops the run's narrative for this seat, keeping its declared `inputs`, so a judge does not anchor on how the producer framed things. |
+
+The shape is `flowStepSchema` in `src/flows/schemas/flow-schema.ts`.
+
 ## Related
 
 - [Flow YAML, annotated](/docs/reference/flow-yml) - every field a step can carry.

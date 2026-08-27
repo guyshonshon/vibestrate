@@ -70,6 +70,28 @@ vibe CLI  (src/cli)        Mission Control  (src/server + src/ui)
 
 Both front doors land on the same orchestrator. `vibe shell` is a third, drawing the same surfaces in the terminal.
 
+## The type map
+
+Eight types, in the order they depend on each other. Each concept page opens its
+own type up field by field; this is the whole set on one screen.
+
+| Type | What it holds | What it points at |
+|---|---|---|
+| [Task](/docs/concepts/task) | The intent, its checklist, its history | the runs it started |
+| [Run](/docs/concepts/run) | One attempt: status, branch, worktree, verdict | a Crew, a Task, and a snapshot of a Flow |
+| [Flow](/docs/concepts/flow) | The ordered recipe, its seats and its loop | its own Steps and Seats, nothing else |
+| [Step](/docs/concepts/workflow) | One phase: kind, stage, inputs, outputs | a Seat, when its kind takes one |
+| [Seat](/docs/concepts/seat) | A label and a description. That is all | nothing. It is a slot |
+| [Crew](/docs/concepts/crew) | Your roster, plus two overrides | its Roles |
+| [Role](/docs/concepts/role) | Prompt, permissions, skills, the seats it fills | a Profile |
+| [Profile](/docs/concepts/profile) | Model, effort, token cap, timeout | a Provider |
+| [Provider](/docs/concepts/provider) | Command, args, env, settings | the binary or endpoint on your machine |
+
+The seam is between Seat and Role. Everything above it is what a flow ships, and
+it can travel: no field in Flow, Step or Seat can name a model, a provider or a
+price. Everything below it is yours, which is why importing a flow never imports
+a bill.
+
 ## What the orchestrator owns
 
 The orchestrator keeps a run moving and remembers where it is:

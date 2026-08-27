@@ -97,6 +97,30 @@ Every run gets its own git [[worktree]]: a real checkout on its own branch, shar
 
 Tokens, spend and duration per step, every supervisor decision, the diff, and the validator output. All of it is written locally as the run happens, which makes a finished run something you re-read rather than remember.
 
+## What a run carries
+
+`state.json` holds around forty fields. These are the ones that decide what the
+run does next.
+
+| Field | What it is |
+|---|---|
+| `runId` | Its identity, and the name of its directory and branch. |
+| `status` | Where it is, from the fixed set of sixteen. |
+| `branchName`, `worktreePath` | The branch it commits to and the worktree it works in. |
+| `flow` | The resolved flow, snapshotted at start. Editing the flow mid-run changes nothing. |
+| `crewId`, `taskId` | The crew it was cast from, and the task card it belongs to. |
+| `reviewLoopCount`, `maxReviewLoops` | How many review and fix cycles it has spent, and its ceiling. |
+| `finalDecision`, `verification` | The reviewer's verdict and the verifier's. |
+| `permissionMode`, `readOnly` | How much rope this run gets. |
+| `pauseRequested`, `pausedAtStatus`, `abortRequested` | The two ways it stops, and where to resume. |
+| `pendingApprovalId` | The gate it is holding at, when it is holding. |
+| `ownerPid` | The process that owns it, so a dead owner is detectable. |
+
+Four of these are why a run is resumable at all: `status`, `reviewLoopCount`, the
+flow snapshot and the worktree path are enough to pick a run back up after the
+process that started it is gone. The shape is `runStateSchema` in
+`src/core/state-machine.ts`.
+
 ## Automation
 
 Drivable from a script or over SSH; see the [CLI overview](/docs/cli/overview).

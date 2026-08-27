@@ -104,6 +104,31 @@ Each knob appears only where it is wired to something real:
 
 The same rule is why there is no per-profile spend dial. An earlier version had a `budget` field that nothing read at runtime, so it was removed, and a leftover `budget:` key in an old `project.yml` is ignored on load. Spend is controlled where it bites: the per-turn output cap in **Max tokens**, and a project-level daily cap (`vibe budget`) that stops or downgrades runs.
 
+## What a profile carries
+
+Eight fields, five of which default to `null`, meaning whatever the provider
+does by default. That is why a fresh project runs with almost nothing set.
+
+| Field | What it is |
+|---|---|
+| `provider` | The provider entry this profile runs on. The one required field. |
+| `label` | What the dashboard shows. Defaults to the profile id. |
+| `model` | The provider's own model id. `null` = its default. |
+| `power` | The effort level, provider-specific on purpose. `null` = the provider exposes none. |
+| `maxTokens` | Cap on output tokens for a turn, where the provider supports one. |
+| `timeoutMs` | Wall-clock cap for a turn. Unset means no cap. |
+| `disallowedTools` | Provider tool names this profile may not use. |
+| `providerOptions` | Raw provider-specific options, for what the fields above do not reach. |
+
+`timeoutMs` being unset is why an unattended run needs the inactivity watchdog:
+with no cap and no watchdog, a provider CLI that wedges holds the run open
+forever. See [Safety](/docs/concepts/safety).
+
+Write capability is deliberately absent. It is resolved per turn from the run's
+permission mode, never stored here, so the same role is write-capable in one run
+and read-only in the next without editing anything. The shape is
+`profileConfigSchema` in `src/agents/profile-schema.ts`.
+
 ## The model must exist at the provider
 
 A profile naming a model its provider does not offer is a run that fails the moment it spawns, so Vibestrate checks the pair on write and keeps checking it, because a model can stop existing without anyone touching the config.

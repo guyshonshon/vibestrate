@@ -24,6 +24,31 @@ The dashboard opens on `127.0.0.1:4317`, where every step on this page happens. 
 
 Every step below names its command too. Nothing on this page needs a terminal after the install, and [the whole thing unattended](#unattended) is four lines.
 
+## The shape of the whole thing
+
+Six words, and one sentence that connects them:
+
+```
+A Task runs through a Flow, whose steps name Seats,
+which your Crew's Roles fill, each on a Profile, which names a Provider.
+```
+
+| Word | In one line |
+|---|---|
+| **Task** | What you want done. |
+| **Flow** | The ordered steps it goes through. |
+| **Seat** | The kind of worker a step needs, such as `reviewer`. |
+| **Crew** | Your local roster of workers. |
+| **Role** | Who fills a seat in this project. |
+| **Profile** | How strong and how expensive that worker runs. |
+| **Provider** | What actually reaches a model: a CLI, an API, a local server. |
+
+The split earns its keep once: a flow names seats and stops there, so a flow a
+stranger wrote runs on your models, at your budget, unedited. Nothing below is
+needed to finish this page. [The big picture](/docs/getting-started/big-picture)
+takes the same six words slower, and [the type map](/docs/architecture/overview)
+lays every field out.
+
 ## What just happened
 
 <div class="docs-cards">

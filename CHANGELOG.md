@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **The docs now say what each type is made of.** Every core concept page
+  carried a good explanation of what a Flow or a Profile is *for* and nothing at
+  all about what it *holds*, so the only way to learn that a profile has a
+  `timeoutMs` was to open the Zod schema. Flow, Steps, Profile, Role, Crew, Run
+  and Task each gained a "What a X carries" table naming its real fields with
+  what they mean; `architecture/overview` gained a type map putting all nine on
+  one screen; and the quick start opens with the six words and the one sentence
+  that connects them, so the shape is clear before the install. The tables are
+  curated rather than exhaustive - `reference/config` stays the generated,
+  complete list - and a new gate parses every table back against the schema it
+  describes, so prose can no longer name a field that was renamed or removed.
+  It found one on the way in: a flow seat has no `id` field, the id is the key
+  it is filed under.
+
 - **An unattended run can no longer be held open by a hung provider.**
   `--unattended` promises the run always terminates on its own, but nothing
   bounded a provider turn: `profile.timeoutMs` is unset unless you set it, so a

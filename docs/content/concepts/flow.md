@@ -94,6 +94,30 @@ Spec-up sits outside all four. It runs *before* whichever flow was chosen, and t
 
 The flow writes the first box and names the second; the last three belong to your crew. Pin the `reviewer` role to a profile there and every flow you run gets that reviewer; `--step-profile` changes one step for one run.
 
+## What a flow carries
+
+The whole type, field by field. Read it once and the portability claim stops
+being a slogan: there is no field here that could hold a model, a provider or a
+price.
+
+| Field | What it is |
+|---|---|
+| `id` | The token a run selects it by, unique in the catalog. |
+| `version` | Bumped when the shape changes, so an imported flow declares its vintage. |
+| `label`, `description` | What the card shows. |
+| `seats` | The slots this flow needs filled, keyed by seat id. Your crew answers them. |
+| `steps` | The ordered work. One [step](/docs/concepts/workflow) each. |
+| `loop` | One bounded cycle: `from`, `to`, `decisionStep`, `maxIterations`. |
+| `params` | Typed inputs the flow asks for once and reuses. |
+| `checklistSegment` | The part that repeats per checklist item on a pick-up run. |
+| `checklistReview` | The per-item review band, and the lenses it reviews under. |
+| `complexity`, `capabilities` | What the flow selector reads when it picks for you. |
+| `hidden` | Keeps a flow out of the pickers. The spec-up chain uses it. |
+
+Only `seats` and `steps` are references, and both point inward at the flow's own
+types. Annotated YAML is in [Flow YAML](/docs/reference/flow-yml); the shape is
+`flowDefinitionSchema` in `src/flows/schemas/flow-schema.ts`.
+
 ## When you would write one
 
 Most of the time you should not: a clearer task description or a [[skill]] nudges the default flow for less effort. Write your own when:
