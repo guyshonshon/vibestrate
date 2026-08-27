@@ -160,3 +160,37 @@ describe("command grants: the reason 'the tests never ran' kept appearing", () =
     expect(grants.some((g) => g.includes("rm"))).toBe(false);
   });
 });
+
+describe("an unattended chain cannot wedge itself", () => {
+  it("every scheduler-spawned run carries --unattended", async () => {
+    // The approval gate's own comment says an unanswered approval "would wedge
+    // a scheduler worker forever" - and the argv omitted the flag, so a
+    // scheduled run took the indefinite branch and never released its slot.
+    // Mutation check: drop "--unattended" from schedulerRunArgs and this fails.
+    const { schedulerRunArgs } = await import("../src/scheduler/scheduler-service.js");
+    const plain = schedulerRunArgs({ id: "t1", title: "do a thing", runMode: "plain" });
+    expect(plain).toContain("--unattended");
+    const supervised = schedulerRunArgs({ id: "t2", title: "big thing", runMode: "supervised" });
+    expect(supervised).toContain("--unattended");
+    // ...and the flag must be one the target subcommand actually accepts,
+    // or commander rejects the spawn outright.
+    const tasksSrc = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("../src/cli/commands/tasks.ts", import.meta.url), "utf8"),
+    );
+    const seqBlock = tasksSrc.slice(tasksSrc.indexOf('.command("sequence <id>")'));
+    expect(seqBlock.slice(0, 700)).toContain('"--unattended"');
+  });
+
+  it("validation commands are bounded", async () => {
+    // No timeout and no tree-kill meant a blocking command - `docker compose
+    // up` on a healthcheck - hung the run forever, breaking the unattended
+    // promise that a run always terminates on its own.
+    const { commandsConfigSchema } = await import("../src/project/config-schema.js");
+    const parsed = commandsConfigSchema.parse({});
+    expect(parsed.validateTimeoutMs).toBeGreaterThan(0);
+    const runner = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("../src/core/validation/validation-runner.ts", import.meta.url), "utf8"),
+    );
+    expect(runner).toContain("runShellCommand({ command, cwd, timeoutMs })");
+  });
+});

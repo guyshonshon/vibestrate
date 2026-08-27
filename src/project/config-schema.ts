@@ -88,6 +88,20 @@ const validationProfileEntrySchema = z.object({
 export const commandsConfigSchema = z.object({
   validate: z.array(z.string()).default([]).describe("Validation commands run on a run's diff (e.g. typecheck, test)."),
   /**
+   * Per-command ceiling for `validate`, in milliseconds. There was none, and
+   * `runShellCommand` has no tree-kill path either, so a command that blocks -
+   * `docker compose up` waiting on a healthcheck is the obvious one - hung the
+   * run forever with no timer and no abort. An unattended run promises to
+   * terminate on its own; without a bound here it could not keep that promise.
+   * Generous by default because real suites and image builds are slow.
+   */
+  validateTimeoutMs: z
+    .number()
+    .int()
+    .positive()
+    .default(900_000)
+    .describe("Per-command timeout for validation commands (ms). Default 15 minutes."),
+  /**
    * Proportional validation scoping.
    * When true (default), a run whose entire diff is provably-inert (only
    * docs/text/asset files - see validation-scope.ts) skips the configured

@@ -948,6 +948,7 @@
       "required": false,
       "default": {
         "validate": [],
+        "validateTimeoutMs": 900000,
         "scopeValidationByChange": true,
         "validationProfiles": {}
       },
@@ -966,6 +967,15 @@
             "required": true
           },
           "description": "Validation commands run on a run's diff (e.g. typecheck, test)."
+        },
+        {
+          "key": "validateTimeoutMs",
+          "fullKey": "commands.validateTimeoutMs",
+          "type": "number",
+          "required": false,
+          "default": 900000,
+          "itemType": null,
+          "description": "Per-command timeout for validation commands (ms). Default 15 minutes."
         },
         {
           "key": "scopeValidationByChange",

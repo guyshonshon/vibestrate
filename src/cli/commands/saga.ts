@@ -77,7 +77,7 @@ async function liveRunId(
 
 export async function cmdSequence(
   taskId: string,
-  opts: { json?: boolean },
+  opts: { json?: boolean; unattended?: boolean },
 ): Promise<number> {
   // Pre-flight: load + validate the saga BEFORE flipping any lifecycle state, so
   // a bad id leaves the task untouched.
@@ -125,6 +125,9 @@ export async function cmdSequence(
     flowId: "saga",
     checklistMode: "continuous",
     sagaMode: true,
+    // A scheduler-spawned sequence has nobody to answer an approval, so it must
+    // carry the same unattended contract a scheduled `run` does.
+    unattended: opts.unattended ?? false,
   });
 
   // Attribute the outcome by the run's exit code (runRunCommand contract):

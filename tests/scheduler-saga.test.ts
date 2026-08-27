@@ -22,10 +22,10 @@ describe("scheduler saga launch", () => {
   it("sequences a supervised task via `vibe tasks sequence`, runs a plain task via `vibe run`", () => {
     expect(
       schedulerRunArgs({ id: "task-x", title: "Build it", runMode: "supervised" }),
-    ).toEqual(["tasks", "sequence", "task-x"]);
+    ).toEqual(["tasks", "sequence", "task-x", "--unattended"]);
     expect(
       schedulerRunArgs({ id: "task-y", title: "Fix it", runMode: "plain" }),
-    ).toEqual(["run", "Fix it", "--task", "task-y"]);
+    ).toEqual(["run", "Fix it", "--task", "task-y", "--unattended"]);
   });
 
   it("does NOT mark a task failed when its launch was rejected by a live run lock", async () => {

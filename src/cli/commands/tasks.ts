@@ -1024,6 +1024,10 @@ export function buildTasksCommand(): Command {
       "Sequence a supervised task's steps in order (the Conductor). The stable entry the scheduler spawns; `run` delegates here for supervised tasks.",
     )
     .option("--json", "emit JSON")
+    .option(
+      "--unattended",
+      "never pause for a human - the contract every scheduler-spawned run needs",
+    )
     .action(async (id: string, opts) => {
       process.exit(await cmdSequence(id, opts));
     });

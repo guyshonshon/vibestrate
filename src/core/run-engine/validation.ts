@@ -166,6 +166,7 @@ export async function runValidation(
     prefix: input.prefix,
     broker: deps.broker ?? undefined,
     runId: ctx.artifactStore.runIdValue,
+    timeoutMs: deps.config.commands?.validateTimeoutMs,
   });
   for (const c of results.commands) {
     await ctx.eventLog.append({
@@ -216,6 +217,7 @@ export async function mergeAcceptanceValidation(
     prefix: prefix ? `${prefix}-acceptance` : "acceptance",
     broker: deps.broker ?? undefined,
     runId: ctx.artifactStore.runIdValue,
+    timeoutMs: deps.config.commands?.validateTimeoutMs,
   });
   for (const c of acc.commands) {
     await ctx.eventLog.append({

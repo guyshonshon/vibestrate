@@ -88,8 +88,11 @@ export async function runValidationCommands(input: {
   broker?: ActionBroker;
   runId?: string;
   roleId?: string;
+  /** Per-command ceiling (commands.validateTimeoutMs). Omitted = the default. */
+  timeoutMs?: number;
 }): Promise<ValidationResults> {
   const { commands, cwd, store, broker, runId } = input;
+  const timeoutMs = input.timeoutMs ?? 900_000;
   const prefix = input.prefix ?? "validation";
 
   if (commands.length === 0) {
@@ -144,7 +147,9 @@ export async function runValidationCommands(input: {
       allowDecision = { effect: "allow", ruleIds: gate.decision.ruleIds };
     }
 
-    const result = await runShellCommand({ command, cwd });
+    // Bounded: see commands.validateTimeoutMs. Without a ceiling a blocking
+    // command wedges the run with no timer and no tree-kill.
+    const result = await runShellCommand({ command, cwd, timeoutMs });
 
     const stdoutAbs = store.resolveArtifactPath(stdoutRel);
     const stderrAbs = store.resolveArtifactPath(stderrRel);

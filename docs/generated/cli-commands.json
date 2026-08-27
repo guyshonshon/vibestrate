@@ -3040,6 +3040,13 @@
               "required": false,
               "optional": false,
               "negated": false
+            },
+            {
+              "flags": "--unattended",
+              "description": "never pause for a human - the contract every scheduler-spawned run needs",
+              "required": false,
+              "optional": false,
+              "negated": false
             }
           ],
           "subcommands": []

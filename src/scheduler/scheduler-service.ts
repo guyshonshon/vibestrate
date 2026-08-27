@@ -122,9 +122,15 @@ function terminateChildProcess(child: ChildProcess): void {
 export function schedulerRunArgs(
   task: Pick<Task, "id" | "title" | "runMode">,
 ): string[] {
+  // `--unattended` is not optional here, it is what makes a scheduler worker
+  // safe. Nobody is watching a scheduled run, so an approval request that waits
+  // for a human never gets one: the approval gate's own comment says an
+  // unanswered approval "would wedge a scheduler worker forever", and without
+  // this flag that is exactly what happened - the gate took the indefinite
+  // branch and the single in-flight slot never came back.
   return task.runMode === "supervised"
-    ? ["tasks", "sequence", task.id]
-    : ["run", task.title, "--task", task.id];
+    ? ["tasks", "sequence", task.id, "--unattended"]
+    : ["run", task.title, "--task", task.id, "--unattended"];
 }
 
 function defaultRunTask(

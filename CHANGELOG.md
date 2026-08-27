@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Scheduled runs are unattended, which is what makes a scheduler worker
+  safe.** The argv the scheduler spawned omitted `--unattended`, so a
+  scheduled run took the approval gate's indefinite branch - the gate's own
+  comment warns that an unanswered approval "would wedge a scheduler worker
+  forever", and with a single in-flight slot that is exactly what happened.
+  `vibe tasks sequence` now accepts and forwards the flag too, so the
+  supervised path carries the same contract.
+- **Validation commands are bounded.** They ran with no timeout and no
+  tree-kill, so a command that blocks - `docker compose up` waiting on a
+  healthcheck is the obvious one - hung the run forever. An unattended run
+  promises to terminate on its own and could not keep that promise. New
+  `commands.validateTimeoutMs`, default 15 minutes.
 - **Seats that are allowed to run commands can now actually run them.** A
   permission profile could say `allowShell: true` and the agent still could
   not execute anything: `--permission-mode acceptEdits` auto-approves file
