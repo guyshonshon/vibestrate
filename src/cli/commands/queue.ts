@@ -16,6 +16,7 @@
 //     a stale value in the env winds the loop down on the first tick.
 
 import { Command } from "commander";
+import { ensureSchedulerRunning } from "../../scheduler/ensure-running.js";
 import { detectProject } from "../../project/project-detector.js";
 import { loadConfig } from "../../project/config-loader.js";
 import { RunQueue } from "../../scheduler/run-queue.js";
@@ -89,7 +90,26 @@ async function cmdAdd(
     source: opts.source ?? "user",
   });
   await roadmap.updateTaskStatus(taskId, "queued");
+  // Queueing STARTS the work. config-schema.ts documents this as the reason
+  // Supervisor autonomy has two values and not three ("queueing a task calls
+  // ensureSchedulerRunning, so 'queue' starts the work exactly like 'act'
+  // does") - but only the UI and TUI ever called it, so from the CLI the
+  // promise was false and a queued card sat in a file nothing drained.
+  const started = await ensureSchedulerRunning({
+    projectRoot: root,
+    source: "cli-queue-add",
+    parentPid: process.pid,
+  }).catch(() => null);
   console.log(`${symbol.ok()} Queued ${color.bold(taskId)} (source ${opts.source ?? "user"}).`);
+  if (started && started.action === "spawned") {
+    console.log(`${symbol.arrow()} Started the scheduler to pick it up.`);
+  } else if (started && started.action === "already-live") {
+    console.log(`${symbol.arrow()} The scheduler is already running.`);
+  } else {
+    console.log(
+      `${symbol.warn()} Could not start the scheduler; run ${color.bold("vibe queue run")} to drain the queue.`,
+    );
+  }
   return 0;
 }
 

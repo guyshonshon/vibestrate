@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **Queueing a task from the CLI now starts the work.** The config schema
+  documents this as an invariant - it is the stated reason Supervisor autonomy
+  has two settings and not three - but only the dashboard and the TUI ever
+  called `ensureSchedulerRunning`, so `vibe queue add` wrote a card into a
+  queue nothing drained.
+- **A run now records WHY it ended, as a code.** `error` is free text, so
+  everything downstream guessed from it - the dashboard identified a budget
+  stop with `errLower.includes("spend cap")`, for a cause that already emits a
+  typed event. `terminalCause` is derived from the run's own evidence (events
+  and validation results, never a model's account of itself) and is what a
+  supervisor branches on to decide whether a failure is safe to act on. Only a
+  deterministic environment fault is auto-remediable; exhaustion and unknown
+  are explicitly not.
 - **Scheduled runs are unattended, which is what makes a scheduler worker
   safe.** The argv the scheduler spawned omitted `--unattended`, so a
   scheduled run took the approval gate's indefinite branch - the gate's own

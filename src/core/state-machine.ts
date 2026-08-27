@@ -31,6 +31,7 @@
 // directory outlives the schema that made it.
 
 import { z } from "zod";
+import { terminalCauseSchema } from "./run/terminal-cause.js";
 import { StateTransitionError } from "../utils/errors.js";
 import { contextSourceSchema } from "./context/context-source-schema.js";
 import { runStatePath } from "../utils/paths.js";
@@ -168,6 +169,12 @@ export const runStateSchema = z.object({
     .default(null),
   verification: verificationDecisionSchema.nullable().default(null),
   error: z.string().nullable().default(null),
+  /**
+   * Why the run ended, as a code rather than prose. `error` stays for humans;
+   * this is what callers branch on. Defaults to null so runs already on disk
+   * round-trip unchanged, and null reads as "no deterministic signal".
+   */
+  terminalCause: terminalCauseSchema.nullable().default(null),
   pendingApprovalId: z.string().nullable().default(null),
   approvalRequestedFromStatus: runStatusSchema.nullable().default(null),
   // Optional roadmap task this run is associated with. Set by `vibe run --task`
@@ -541,6 +548,7 @@ export function createInitialState(input: {
     reviewSkipped: null,
     verification: null,
     error: null,
+    terminalCause: null,
     pendingApprovalId: null,
     approvalRequestedFromStatus: null,
     taskId: null,
