@@ -7,12 +7,12 @@ const writeProfile: PermissionProfile = {
   allowShell: true,
   cwd: "worktree",
   forbiddenPaths: [".env"],
-  forbiddenOperations: ["push"],
+  forbiddenOperations: ["push"], allowedCommands: null
 };
 const readProfile: PermissionProfile = {
   allowWrite: false,
   allowShell: false,
-  cwd: "worktree",
+  cwd: "worktree", allowedCommands: null
 };
 
 describe("prompt builder", () => {

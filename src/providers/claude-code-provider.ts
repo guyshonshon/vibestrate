@@ -78,6 +78,17 @@ export async function runClaudeCodeProvider(
   if (input.effort) {
     args.push("--effort", input.effort);
   }
+  // The execution grant. `--permission-mode acceptEdits` auto-approves FILE
+  // EDITS but NOT Bash: in headless `claude -p` a command outside the allow
+  // rules waits for an approval nobody can give, so the call HANGS and the
+  // turn dies with no output. Measured, not assumed - a reviewer seat made 39
+  // Bash attempts and got 21 "This command requires approval" results while
+  // its profile said allowShell. Without an explicit grant, capability also
+  // silently inherits the operator's own ~/.claude/settings.json, so the same
+  // seat behaves differently on two machines.
+  if ((writeCapable || shellCapable) && input.allowedCommands?.length) {
+    args.push("--allowedTools", input.allowedCommands.join(","));
+  }
   const disallowedTools = effectiveDisallowedTools(
     shellCapable,
     input.disallowedTools,

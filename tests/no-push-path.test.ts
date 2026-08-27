@@ -16,7 +16,13 @@ import { join } from "node:path";
  * `vibe integrate pr` was built as a preparer for exactly this reason: opening
  * a pull request requires a push, and the guarantee is worth more than the
  * convenience. It writes the body and prints the command; a human runs it.
- */
+  *
+ * SCOPE, stated exactly: this walks `src/`, so it pins that VIBESTRATE never
+ * spawns a push. It says nothing about an AGENT: a shell-capable seat holds a
+ * real shell and could run `git push` itself. That is bounded by the command
+ * grant a seat is given (safety/command-grants.ts, which never grants `git
+ * push` by default) and by isolation, not by this test.
+*/
 const SRC = "src";
 
 function sources(dir: string): string[] {

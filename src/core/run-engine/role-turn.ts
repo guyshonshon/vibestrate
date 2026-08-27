@@ -48,7 +48,8 @@ import {
   restoreWorktree,
   snapshotWorktree,
 } from "../../safety/diff-gate.js";
-import { resolveProfile } from "../../safety/permission-profiles.js";
+import { builtinPermissionProfiles, resolveProfile } from "../../safety/permission-profiles.js";
+import { resolveCommandGrants } from "../../safety/command-grants.js";
 import {
   VibestrateError,
   describeError,
@@ -236,12 +237,18 @@ export async function runRoleTurn(
       !deps.readOnly &&
       resolveProfile(deps.config.permissions.profiles, agent.permissions)
         .allowWrite;
-    const effectivePermissions =
-      deps.readOnly || applyOnly ? "read_only" : agent.permissions;
-    const profile = resolveProfile(
-      deps.config.permissions.profiles,
-      effectivePermissions,
-    );
+    // The clamp resolves to the BUILTIN read_only object, never to the name.
+    // `resolveProfile` prefers a project-defined profile over the builtin, and
+    // `vibe init` scaffolds a `read_only` into every project's config - so a
+    // project one boolean from `allowShell: true` on its own `read_only` would
+    // have handed shell to an investigation run and to every strict-apply-only
+    // turn, the two paths whose whole purpose is "this turn cannot affect
+    // anything". The clamp is a guarantee, so it does not go through config.
+    const clamped = deps.readOnly || applyOnly;
+    const profile = clamped
+      ? builtinPermissionProfiles.read_only!
+      : resolveProfile(deps.config.permissions.profiles, agent.permissions);
+    const effectivePermissions = clamped ? "read_only" : agent.permissions;
     // Effective provider id: the resolved snapshot already mapped this step's
     // Seat → Role → Profile → Provider, so input.providerId is authoritative.
     // Fall back to the role's Profile's provider if (defensively) absent.
@@ -495,12 +502,20 @@ export async function runRoleTurn(
     }
 
     // ── Post-turn diff gate: pre-turn snapshot ──────────────────────
-    // For write-capable turns, snapshot the worktree so the diff this turn
-    // produces can be evaluated (and rolled back) after the provider returns.
-    // Best-effort: a snapshot failure disables the gate for this turn, never
-    // blocks the run.
+    // For any turn that CAN MUTATE the worktree, snapshot it so the diff this
+    // turn produces can be evaluated (and rolled back) after the provider
+    // returns.
+    //
+    // `allowWrite || allowShell`, not `allowWrite` alone: a shell-capable seat
+    // writes through `echo >`, `sed -i` or `python -c` just as effectively as
+    // one holding the edit tools, and keying the gate on `allowWrite` left the
+    // `review_exec` reviewer as the one executing seat with no pre-turn
+    // snapshot, no secret-content scan, no `file.patch` broker record and no
+    // rollback baseline. Cutting the edit tools from that seat's invocation is
+    // ergonomics; THIS is the boundary.
+    const canMutateWorktree = profile.allowWrite || profile.allowShell;
     let preTurnTree: string | null = null;
-    if (profile.allowWrite && ctx.worktreePath) {
+    if (canMutateWorktree && ctx.worktreePath) {
       preTurnTree = await snapshotWorktree(ctx.worktreePath).catch(() => null);
       if (preTurnTree === null) {
         // Fail-CLOSED: a write-capable turn with no pre-turn baseline
@@ -509,7 +524,7 @@ export async function runRoleTurn(
         // gate (the second fail-open seam the broker fix alone wouldn't close).
         await ctx.eventLog.append({
           type: "action.denied",
-          message: `Refused a write turn (${roleId}): the worktree could not be snapshotted, so its writes can't be gated or rolled back. Failing closed.`,
+          message: `Refused a worktree-mutating turn (${roleId}): the worktree could not be snapshotted, so its changes can't be gated or rolled back. Failing closed.`,
           data: { kind: "snapshot.unavailable", roleId, stageId: input.stageId },
         });
         throw new __ActionDeniedSignal(
@@ -665,6 +680,13 @@ export async function runRoleTurn(
           // clamps (deps.readOnly / strictApplyOnly) already collapsed the
           // profile above, so a clamped turn never reaches here shell-capable.
           allowShell: profile.allowShell,
+          // Without this a command outside the HOST's own allow rules hangs
+          // waiting for an approval headless mode cannot deliver - which is
+          // why "the tests were never executed" kept appearing in refusals.
+          allowedCommands: resolveCommandGrants({
+            profileAllowedCommands: profile.allowedCommands,
+            validateCommands: deps.config.commands?.validate,
+          }),
           // Opt-in read-only hardening (policies.hardenReadOnlySeats): the
           // provider applies it only on a non-write-capable turn (claude-code ->
           // `--permission-mode plan`). A no-op when off or on a write turn.

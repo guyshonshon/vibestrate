@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- **Seats that are allowed to run commands can now actually run them.** A
+  permission profile could say `allowShell: true` and the agent still could
+  not execute anything: `--permission-mode acceptEdits` auto-approves file
+  edits but not Bash, so in a headless run every command outside the host's
+  own allow rules waited for an approval nobody could give, and the call hung.
+  One reviewer seat made 39 attempts and collected 21 "this command requires
+  approval" results while its profile said it had shell. That is the cause of
+  every "the tests were never executed" refusal we have measured. Seats now
+  carry an explicit, auditable command grant, derived by default from the
+  project's own `commands.validate` plus read-only inspection, and widenable
+  per profile with `allowedCommands`.
+- **A turn that can mutate the worktree is diff-gated whether it holds the
+  edit tools or a shell.** The pre-turn snapshot used to key on `allowWrite`,
+  which left a shell-capable reviewer as the one executing seat with no
+  snapshot, no secret scan, no broker record and no rollback. It now keys on
+  `allowWrite || allowShell`.
+- **The read-only clamp resolves the built-in profile, never project config.**
+  `vibe init` scaffolds a `read_only` profile, and project config wins over
+  the builtin - so a project one boolean from `allowShell: true` could have
+  handed a shell to investigation and strict-apply-only runs, the two paths
+  whose whole purpose is to affect nothing.
 - **The default flow is now three seats: planner, implementer, reviewer.**
   Review findings go straight back to the implementer, which re-enters with
   them in context - no dedicated fixer seat, no verify turn; merge-ready is an

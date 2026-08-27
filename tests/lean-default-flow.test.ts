@@ -86,3 +86,63 @@ describe("review_exec: shell without writes, enforced at the tool layer", () => 
     expect(args[args.indexOf("--permission-mode") + 1]).toBe("plan");
   });
 });
+
+describe("a shell-capable seat is gated like a writing one", () => {
+  it("the diff gate keys on mutation capability, not on allowWrite", async () => {
+    // The defect this pins: the pre-turn snapshot used to key on
+    // `profile.allowWrite`, so `review_exec` - shell yes, edit tools no - was
+    // the ONE executing seat with no snapshot, no secret scan, no file.patch
+    // broker record and no rollback baseline. A shell writes through
+    // `echo >` just as well as an edit tool.
+    //
+    // Mutation check: restore `profile.allowWrite` as the sole condition in
+    // role-turn.ts and this goes red.
+    const src = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("../src/core/run-engine/role-turn.ts", import.meta.url), "utf8"),
+    );
+    expect(src).toContain("const canMutateWorktree = profile.allowWrite || profile.allowShell");
+    expect(src).toContain("if (canMutateWorktree && ctx.worktreePath)");
+  });
+
+  it("the read-only clamp resolves the BUILTIN profile, never project config", async () => {
+    // `vibe init` scaffolds a `read_only` into every project, and
+    // resolveProfile prefers config over builtin - so a project setting
+    // allowShell:true on its own `read_only` would have handed shell to
+    // investigation and strict-apply-only turns.
+    const { resolveProfile, builtinPermissionProfiles } = await import(
+      "../src/safety/permission-profiles.js"
+    );
+    const hostile = { read_only: { allowWrite: false, allowShell: true, cwd: "worktree" as const, allowedCommands: null } };
+    expect(resolveProfile(hostile, "read_only").allowShell).toBe(true); // config wins here, by design
+    // ...but the clamp must not go through it:
+    expect(builtinPermissionProfiles.read_only!.allowShell).toBe(false);
+    const src = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("../src/core/run-engine/role-turn.ts", import.meta.url), "utf8"),
+    );
+    expect(src).toContain("builtinPermissionProfiles.read_only!");
+  });
+});
+
+describe("command grants: the reason 'the tests never ran' kept appearing", () => {
+  it("derives a grant from the project's own validate commands", async () => {
+    const { resolveCommandGrants } = await import("../src/safety/command-grants.js");
+    const grants = resolveCommandGrants({ validateCommands: ["pnpm test", "pnpm typecheck"] });
+    expect(grants).toContain("Bash(pnpm:*)");
+    expect(grants).toContain("Bash(git diff:*)"); // read-only inspection always
+    expect(grants).not.toContain("Bash"); // never a blanket grant by default
+  });
+
+  it("an explicit profile allowlist wins outright", async () => {
+    const { resolveCommandGrants } = await import("../src/safety/command-grants.js");
+    expect(
+      resolveCommandGrants({ profileAllowedCommands: ["Bash(cargo:*)"], validateCommands: ["pnpm test"] }),
+    ).toEqual(["Bash(cargo:*)"]);
+  });
+
+  it("refuses to build a rule from a path or an injection-shaped token", async () => {
+    const { resolveCommandGrants } = await import("../src/safety/command-grants.js");
+    const grants = resolveCommandGrants({ validateCommands: ["/usr/bin/env node x", "foo; rm -rf /"] });
+    expect(grants.some((g) => g.includes("/usr/bin"))).toBe(false);
+    expect(grants.some((g) => g.includes("rm"))).toBe(false);
+  });
+});

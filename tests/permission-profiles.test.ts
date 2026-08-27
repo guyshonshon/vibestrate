@@ -62,7 +62,7 @@ describe("permission profiles", () => {
 
   it("config-defined profile overrides builtin", () => {
     const p = resolveProfile(
-      { read_only: { allowWrite: false, allowShell: true, cwd: "worktree" } },
+      { read_only: { allowWrite: false, allowShell: true, cwd: "worktree", allowedCommands: null } },
       "read_only",
     );
     expect(p.allowShell).toBe(true);
@@ -72,7 +72,7 @@ describe("permission profiles", () => {
     expect(() =>
       assertExecutableContext({
         roleId: "executor",
-        profile: { allowWrite: true, allowShell: true, cwd: "project-root" },
+        profile: { allowWrite: true, allowShell: true, cwd: "project-root", allowedCommands: null },
         projectRoot: "/tmp/p",
         worktreePath: "/tmp/wt",
       }),
@@ -83,7 +83,7 @@ describe("permission profiles", () => {
     expect(() =>
       assertExecutableContext({
         roleId: "executor",
-        profile: { allowWrite: true, allowShell: true, cwd: "worktree" },
+        profile: { allowWrite: true, allowShell: true, cwd: "worktree", allowedCommands: null },
         projectRoot: "/tmp/p",
         worktreePath: null,
       }),

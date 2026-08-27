@@ -67,7 +67,7 @@ May edit files inside the run's worktree.
 
 </div>
 
-That setting gates Vibestrate's own Action Broker. For the agent to actually write, the underlying CLI has to allow it too: on a `claude-code` [[provider]], a `code_write` seat's turn gets `--permission-mode acceptEdits`. A `review_exec` turn gets the same mode so its commands run headless, with `Edit`, `Write` and `NotebookEdit` cut from the invocation - the no-write half is enforced at the tool layer, not asked for in the prompt. Read-only seats get no write grant at all.
+That setting decides what the seat's turn may do. For the agent to actually write, the underlying CLI has to allow it too: on a `claude-code` [[provider]], a `code_write` seat's turn gets `--permission-mode acceptEdits`. A `review_exec` turn gets the same mode plus an explicit command grant, so its checks actually run headless instead of hanging on an approval nobody can answer. `Edit`, `Write` and `NotebookEdit` are cut from its invocation, which removes the obvious way to change files but is not a wall - a shell can still write. What holds the line is that a shell-capable turn is diff-gated exactly like a writing one: its changes are snapshotted, scanned for secrets, put through the broker and can be rolled back. Read-only seats get no write grant at all.
 
 ## Role, profile, provider
 

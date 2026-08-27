@@ -115,6 +115,14 @@ export type ProviderRunInput = {
    */
   allowShell?: boolean;
   /**
+   * Command grants for this turn, as claude-code tool rules (e.g.
+   * `Bash(pnpm test:*)`). Emitted as `--allowedTools` for a write- or
+   * shell-capable turn. Empty/omitted = no grant, and a command outside the
+   * host's own allow rules will hang waiting for an approval that headless
+   * mode cannot deliver.
+   */
+  allowedCommands?: readonly string[];
+  /**
    * Harden a READ-ONLY turn at the CLI's own permission layer (opt-in,
    * `policies.hardenReadOnlySeats`). When true AND this turn is not write-capable
    * (`allowWrite` falsy), a provider that has a read-only/plan permission mode

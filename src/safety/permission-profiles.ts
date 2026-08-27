@@ -5,6 +5,7 @@ export const builtinPermissionProfiles: PermissionProfilesMap = {
     allowWrite: false,
     allowShell: false,
     cwd: "worktree",
+    allowedCommands: null,
   },
   code_write: {
     allowWrite: true,
@@ -29,27 +30,38 @@ export const builtinPermissionProfiles: PermissionProfilesMap = {
     // nobody later builds a guarantee on top of it.
     forbiddenPaths: [".env", ".env.*"],
     forbiddenOperations: ["push", "merge", "delete-worktree"],
+    allowedCommands: null,
   },
   review_only: {
     allowWrite: false,
     allowShell: false,
     cwd: "worktree",
+    allowedCommands: null,
   },
-  // A reviewer that can RUN the work it judges: shell yes, writes no. For the
-  // claude-code provider this is enforced at the tool layer (the edit tools are
-  // disallowed on the CLI invocation), not by prompt discipline. Honest limit:
-  // a shell can still write files through redirection - the worktree is
-  // disposable and the diff is the audit trail; the hard lines (no push, no
-  // merge) are held structurally elsewhere, see the code_write comment above.
+  // A reviewer that can RUN the work it judges: shell yes, edit tools no.
+  //
+  // HONEST LIMIT, stated precisely because an earlier version of this comment
+  // overclaimed: this is NOT "shell without writes". Dropping Edit/Write from
+  // the invocation removes the ergonomic path and keeps intent legible in the
+  // transcript, but `echo > f` or `sed -i` writes just fine - it is friction,
+  // not a boundary. What actually holds the line is that a shell-capable turn
+  // is diff-gated exactly like a write-capable one (role-turn.ts snapshots on
+  // `allowWrite || allowShell`), so its changes are captured, secret-scanned,
+  // brokered and rollback-able. Containment of what a command can reach on the
+  // host is `execution.isolation`, not this field.
   review_exec: {
     allowWrite: false,
     allowShell: true,
     cwd: "worktree",
+    // null = derive from the project's own commands.validate plus read-only
+    // inspection (see command-grants.ts). A project can widen it per profile.
+    allowedCommands: null,
   },
   verify_only: {
     allowWrite: false,
     allowShell: false,
     cwd: "worktree",
+    allowedCommands: null,
   },
 };
 
