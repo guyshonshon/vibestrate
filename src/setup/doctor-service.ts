@@ -191,6 +191,62 @@ export async function runDoctor(input: {
     fixable: false,
   });
 
+  // `.vibestrate/runs/` should not be in the repo. It grows without bound, and
+  // `state.json` holds the raw text of any note steered onto a run - redaction
+  // happens on the way into a prompt, not at rest, because the secret matcher
+  // fires on ordinary English and mangling a stored note is unrecoverable.
+  //
+  // Asked of git rather than by reading `.gitignore`: `check-ignore` honours
+  // nested files, the global one and `core.excludesFile`, and `ls-files`
+  // reports what is ALREADY tracked, which is the harm rather than the risk.
+  // Deliberately not `fixable` - every other doctor fix stays inside
+  // `.vibestrate/`, and a project's `.gitignore` is the author's.
+  {
+    const runsDir = projectRunsDir(projectRoot);
+    const tracked = await execa("git", ["ls-files", "--", runsDir], {
+      cwd: gitRoot,
+      reject: false,
+    });
+    const trackedFiles = (tracked.stdout ?? "").split("\n").filter((l) => l.trim());
+    const ignored = await execa("git", ["check-ignore", "-q", "--", runsDir], {
+      cwd: gitRoot,
+      reject: false,
+    });
+    if (trackedFiles.length > 0) {
+      findings.push({
+        id: "runs-gitignored",
+        severity: "warn",
+        title: `${trackedFiles.length} run file(s) are committed to this repository`,
+        detail:
+          "`.vibestrate/runs/` holds per-run artifacts, state and metrics. It grows without " +
+          "bound, and a run's `state.json` carries the raw text of anything steered onto it.",
+        fixHint:
+          "Add `.vibestrate/runs/` to .gitignore, then `git rm -r --cached .vibestrate/runs` " +
+          "to stop tracking what is already committed (the files stay on disk).",
+        fixable: false,
+      });
+    } else if (ignored.exitCode !== 0) {
+      findings.push({
+        id: "runs-gitignored",
+        severity: "warn",
+        title: "`.vibestrate/runs/` is not ignored by git",
+        detail:
+          "Nothing is committed yet, but the next `git add .` would commit run history - " +
+          "including the raw text of any note steered onto a run.",
+        fixHint: "Add `.vibestrate/runs/` to your .gitignore.",
+        fixable: false,
+      });
+    } else {
+      findings.push({
+        id: "runs-gitignored",
+        severity: "ok",
+        title: "Run history stays out of the repository",
+        detail: "`.vibestrate/runs/` is ignored; the rest of `.vibestrate/` is committed on purpose.",
+        fixable: false,
+      });
+    }
+  }
+
   const hasConfig = await configExists(projectRoot);
   if (!hasConfig) {
     findings.push({

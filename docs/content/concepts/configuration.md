@@ -113,7 +113,7 @@ The rest of `.vibestrate/` holds files you edit directly: `roles/` (one JSON rol
 
 `rules.md` is your **project instructions**: advisory guidance read on every agent turn. The enforced rules are [policies](/docs/concepts/safety). Once one page is not enough, add markdown files under `rules/` and they compose onto it, sorted by filename and each labelled with its source. Name them for the order you want: `10-style.md`, then `20-testing.md`. Instructions enter every agent turn of every run, so the composed ruleset is size-bounded, and `vibe doctor` reports anything truncated or refused rather than letting your rules quietly stop arriving.
 
-`runs/` holds per-run artifacts, state and metrics. Nothing adds it to your `.gitignore` for you, so add `.vibestrate/runs/` yourself unless you want run history in the repo.
+`runs/` holds per-run artifacts, state and metrics, and is the one part of the folder that should stay out of the repository: it grows without bound, and a run's `state.json` carries the raw text of anything you steered onto it. When Vibestrate creates the repository it writes `.vibestrate/runs/` into the starter `.gitignore`. In a project that already had one, add the line yourself - `vibe doctor` and **More > Setup** say so if you have not, and say it louder once run files are actually committed.
 
 ## Secrets stay out
 

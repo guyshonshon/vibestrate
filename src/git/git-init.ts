@@ -18,6 +18,12 @@ import { execa } from "execa";
 import { isSecretLikePath } from "../core/diff-service.js";
 import { pathExists } from "../utils/fs.js";
 
+// `.vibestrate/` itself is COMMITTED on purpose - crews, flows, policies, roles
+// and rules are the point of the folder, and a teammate who clones the repo
+// should get them. Only `runs/` is ignored: it is per-run artifacts, state and
+// metrics, it grows without bound, and `state.json` holds the raw text of any
+// note steered onto a run. The docs told the reader to add this line by hand;
+// scaffolding it is the same answer without the step.
 const STARTER_GITIGNORE = `node_modules/
 dist/
 build/
@@ -27,6 +33,7 @@ coverage/
 .DS_Store
 .env
 .env.*
+.vibestrate/runs/
 `;
 
 export type GitInitResult = {

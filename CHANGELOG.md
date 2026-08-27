@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Run history stays out of your repository.** `.vibestrate/runs/` holds
+  per-run artifacts and state, grows without bound, and a run's `state.json`
+  carries the raw text of anything steered onto it - and nothing kept it out of
+  a commit. The docs told you to add the line by hand, which is a step the
+  product can take. A repository Vibestrate creates now ignores it from the
+  start, and `vibe doctor` (with **More > Setup**) warns when it is not ignored,
+  louder once run files are already committed. The rest of `.vibestrate/` is
+  still committed on purpose - crews, flows, policies and rules are the point of
+  the folder. The warning is deliberately not something **Fix what's safe**
+  applies: every other doctor fix stays inside `.vibestrate/`, and your
+  `.gitignore` is yours.
+
 - **Steering a live run works, and the dashboard can do it.** `vibe steer`
   queued a note onto a running run and reported it queued - and on every flow
   that ships, nothing ever read it. The drain had a single call site inside the
