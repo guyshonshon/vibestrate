@@ -198,6 +198,17 @@ export const runsApi = {
     );
     return r.run;
   },
+  /** Queue a note onto a live run; it lands at the next step boundary. */
+  async steerRun(
+    runId: string,
+    note: string,
+    stepId: string | null,
+  ): Promise<{ run: RunState; queued: number; live: boolean }> {
+    return await jsonPost<{ run: RunState; queued: number; live: boolean }>(
+      `/api/runs/${runId}/steer`,
+      { note, stepId },
+    );
+  },
   async pauseRun(runId: string): Promise<RunState> {
     const r = await jsonPost<{ run: RunState }>(
       `/api/runs/${runId}/pause`,

@@ -45,6 +45,9 @@ export type VibestrateEventType =
   | "approval.changes_requested"
   | "approval.expired"
   | "run.pause_requested"
+  // A human queued a note onto a live run. Carries the step it is aimed at and
+  // the resulting depth, never the note text - see applyQueuedGuidance.
+  | "run.guidance.queued"
   | "run.abort_requested"
   | "run.paused"
   | "run.resume_requested"

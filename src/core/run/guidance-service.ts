@@ -12,6 +12,14 @@
 // of latency and cannot corrupt the tree.
 import { type RunState, type RunStateStore } from "../state-machine.js";
 import { nowIso } from "../../utils/time.js";
+import { redactSecretsInText } from "../diff-service.js";
+import { ownerIsAlive } from "./abort-service.js";
+
+/** How many notes may wait at once. See the cap check in `queueGuidance`. */
+export const MAX_PENDING = 20;
+
+/** Bound on the joined block one step receives, in characters. */
+const MAX_JOINED = 8000;
 
 export class GuidanceError extends Error {
   constructor(
@@ -67,8 +75,19 @@ export async function queueGuidance(
         `Run is in terminal state "${fresh.status}"; guidance would never be read.`,
       );
     }
+    const existing = fresh.pendingGuidance ?? [];
+    // Every queued note is joined into one step's prompt, and nothing else
+    // bounds the total. Without a depth cap a Send button with a retry path
+    // grows state.json and the prompt without limit - reachable by accident,
+    // not only by an attacker.
+    if (existing.length >= MAX_PENDING) {
+      throw new GuidanceError(
+        409,
+        `${MAX_PENDING} notes are already waiting on this run; let it drain them first.`,
+      );
+    }
     const pendingGuidance = [
-      ...(fresh.pendingGuidance ?? []),
+      ...existing,
       { note: text, at: nowIso(), stepId: opts?.stepId ?? null },
     ];
     const next: RunState = { ...fresh, pendingGuidance, updatedAt: nowIso() };
@@ -77,7 +96,9 @@ export async function queueGuidance(
       result: {
         state: next,
         queued: pendingGuidance.length,
-        live: fresh.ownerPid != null,
+        // Probed, not read off `ownerPid`: that field is never cleared, so a
+        // crashed run would report live and the caller's warning never fire.
+        live: ownerIsAlive(fresh),
       },
     };
   });
@@ -100,4 +121,38 @@ export function drainGuidanceFor(
     text: mine.length === 0 ? null : mine.map((g) => g.note).join("\n\n"),
     remaining,
   };
+}
+
+/**
+ * Take the notes waiting for `stepId` and remove them, atomically.
+ *
+ * The removal is a `mutate` rather than a field on the caller's in-memory
+ * state for the same reason the append is: the orchestrator persists state
+ * whole-object from a snapshot that predates anything queued during a turn, so
+ * a drain written that way would race every note sent while a step was
+ * running. `RunStateStore.write` now defers this field to disk outright, which
+ * leaves this function and `queueGuidance` as the only writers.
+ *
+ * Redaction happens HERE, at consumption, exactly where the approval gate
+ * redacts a change-request (see approval-gate.ts). Not at queue time: the
+ * assignment matcher fires on ordinary English - "the pass: throughRate metric
+ * is mislabelled" reads as a secret assignment - and redacting at rest would
+ * destroy the note with no second copy to recover it. At rest the raw note is
+ * kept, the same as `approval-service.ts` keeps raw guidance.
+ */
+export async function drainGuidance(
+  store: RunStateStore,
+  stepId: string,
+): Promise<string | null> {
+  return await store.mutate<string | null>((fresh) => {
+    const { text, remaining } = drainGuidanceFor(fresh.pendingGuidance, stepId);
+    // `next: null` means no write at all, so a step with nothing waiting for it
+    // costs one read rather than a write on every step boundary.
+    if (text === null) return { next: null, result: null };
+    const bounded = text.length > MAX_JOINED ? `${text.slice(0, MAX_JOINED)}\n\n[...truncated]` : text;
+    return {
+      next: { ...fresh, pendingGuidance: remaining, updatedAt: nowIso() },
+      result: redactSecretsInText(bounded).redacted,
+    };
+  });
 }

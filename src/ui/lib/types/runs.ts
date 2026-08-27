@@ -138,6 +138,9 @@ export type RunState = {
   taskId?: string | null;
   pauseRequested?: boolean;
   pausedAtStatus?: RunStatus | null;
+  /** Human notes queued onto a live run, waiting for a step boundary. The raw
+   *  note is kept here; redaction happens on the way into the prompt. */
+  pendingGuidance?: { note: string; at: string; stepId: string | null }[];
   /** Crew the run resolved against (null = project.defaultCrew). */
   crewId?: string | null;
   /** Run-wide Profile override applied to every seated step. */

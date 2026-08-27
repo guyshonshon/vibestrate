@@ -204,7 +204,7 @@ import {
   isReviewerStep,
   composeReviewerStepNotes,
 } from "../supervisor/review-lenses.js";
-import { drainGuidanceFor } from "./run/guidance-service.js";
+import { drainGuidance } from "./run/guidance-service.js";
 import { evaluateStepSkip } from "./run/step-gate.js";
 import {
   renderPolicyAdviseBlock,
@@ -329,6 +329,36 @@ export type {
   OrchestratorInput,
   OrchestratorOutput,
 } from "./run-engine/types.js";
+
+/**
+ * Drain the human notes waiting for a step into the guidance map the prompt is
+ * composed from, and record that it happened.
+ *
+ * Shared by both walks on purpose. The drain used to live inline in the graph
+ * frontier, which is the path no built-in flow takes, so `vibe steer` queued
+ * notes nothing ever read on `default` and every other shipped flow. One helper
+ * means a walk cannot be added without one.
+ *
+ * The event carries no note text - only which step was steered. The steering
+ * text's durable record is the redacted prompt artifact, not the event log.
+ */
+async function applyQueuedGuidance(input: {
+  store: RunStateStore;
+  eventLog: EventLog;
+  flowId: string;
+  stepId: string;
+  stepGuidance: Map<string, string>;
+}): Promise<void> {
+  const text = await drainGuidance(input.store, input.stepId);
+  if (text === null) return;
+  const prior = input.stepGuidance.get(input.stepId);
+  input.stepGuidance.set(input.stepId, prior ? `${prior}\n\n${text}` : text);
+  await input.eventLog.append({
+    type: "flow.step.guided",
+    message: `Human guidance applied to ${input.stepId}.`,
+    data: { flowId: input.flowId, stepId: input.stepId },
+  });
+}
 
 export class Orchestrator {
   private readonly projectRoot: string;
@@ -1537,19 +1567,13 @@ export class Orchestrator {
         });
         this.scopeBlock = renderScopeBlock(declared);
       }
-      {
-        const drained = drainGuidanceFor(state.pendingGuidance, step.id);
-        if (drained.text) {
-          const prior = stepGuidance.get(step.id);
-          stepGuidance.set(step.id, prior ? `${prior}\n\n${drained.text}` : drained.text);
-          state = { ...state, pendingGuidance: drained.remaining };
-          await input.eventLog.append({
-            type: "flow.step.guided",
-            message: `Human guidance applied to ${step.id}.`,
-            data: { flowId: snapshot.flowId, stepId: step.id },
-          });
-        }
-      }
+      await applyQueuedGuidance({
+        store: input.stateStore,
+        eventLog: input.eventLog,
+        flowId: snapshot.flowId,
+        stepId: step.id,
+        stepGuidance,
+      });
       state = patchFlowStep(
         state,
         step.id,
@@ -3120,6 +3144,16 @@ export class Orchestrator {
             state,
             step,
             stateStore: input.stateStore,
+          });
+          // The linear walk needs its own drain: `runGraphFrontier` had the only
+          // one, and no built-in flow declares `needs`, so every shipped flow -
+          // `default` included - queued human notes that nothing ever read.
+          await applyQueuedGuidance({
+            store: input.stateStore,
+            eventLog: input.eventLog,
+            flowId: input.snapshot.flowId,
+            stepId: step.id,
+            stepGuidance,
           });
 
           const preparedTurn = step.seat && step.resolvedRoleId

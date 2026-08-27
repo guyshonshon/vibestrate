@@ -1,7 +1,8 @@
 import { useMemo } from "react";
-import { Bot, ListChecks, MessageSquare, Terminal, Users } from "lucide-react";
+import { Bot, ListChecks, MessageSquare, Terminal, Users, SendHorizonal } from "lucide-react";
 import type { EngagementEntry, RunState, RuntimeMetrics } from "../../lib/types.js";
 import { LiveOutputPanel } from "./LiveOutputPanel.js";
+import { SteerBox } from "./SteerBox.js";
 
 // The active-run control centre.
 //
@@ -265,6 +266,18 @@ export function RunControlCenter({
               </div>
             </Level>
           </div>
+        </Level>
+
+        {/* Level 1 - the run's INPUT, a sibling of the transcript below it for
+            the same reason: both belong to the whole run rather than to the
+            step being worked. You read the output, then say what to change. */}
+        <Level
+          depth={0}
+          icon={<SendHorizonal className="h-4 w-4" strokeWidth={2} />}
+          title="Steer"
+          meta="applied at the next step boundary"
+        >
+          <SteerBox runId={runId} run={run} />
         </Level>
 
         {/* Level 1 - the live transcript, a sibling of the step rather than nested

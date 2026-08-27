@@ -91,6 +91,10 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: `vibe pause ${route.runId}`, note: "request a pause at the next safe boundary" },
           { cmd: `vibe resume ${route.runId}`, note: "resume from the paused boundary" },
           { cmd: `vibe abort ${route.runId}`, note: "stop the run immediately" },
+          {
+            cmd: `vibe steer ${route.runId} "<note>"`,
+            note: "queue a note; it lands at the next step boundary",
+          },
         ],
         tips: [
           "The inspector tab in the URL (`?tab=replay`, `?tab=diff`, …) deep-links into a panel.",

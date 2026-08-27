@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- **Steering a live run works, and the dashboard can do it.** `vibe steer`
+  queued a note onto a running run and reported it queued - and on every flow
+  that ships, nothing ever read it. The drain had a single call site inside the
+  graph frontier, and no built-in flow declares `needs`, so `default` and the
+  other thirteen all took the linear walk. A second defect stacked on top: the
+  orchestrator persists state whole-object from a snapshot taken before the
+  turn, so a note queued while you watched a step go wrong was written to disk
+  and then wiped by the post-turn write. Both are fixed, both with a test that
+  fails against the old code. `pendingGuidance` now has one funnel - appended by
+  whoever queues it, removed only by an atomic drain - so a whole-object write
+  can neither clobber it nor bring a drained note back.
+
+- **A Steer box on the run screen**, in the control centre directly above the
+  transcript: the run's input beside its output. Pick which step reads the note
+  from the run's own steps, and the box says when nothing is running to read it
+  rather than implying it landed. Notes are redacted on the way into the prompt,
+  never at rest, because the secret matcher fires on ordinary English and
+  redacting a stored note would destroy it with no copy to recover.
+
+## Unreleased
+
 - **A docs page is its sections now, not one box called "Going deeper".** Every
   page filed its real content under a single catch-all heading, so it rendered
   as a short intro plus one closed chapter holding everything else - and the

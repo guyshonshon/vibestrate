@@ -24,7 +24,14 @@ export type AbortRequestResult = {
 
 /** Is the recorded owner still running? A run whose orchestrator died has
  *  nobody left to honour the flag, so the requester has to finish the job. */
-function ownerIsAlive(state: RunState): boolean {
+/**
+ * Whether the process that owns this run is still there.
+ *
+ * `ownerPid` is written once at start and never cleared, so its mere presence
+ * reports a crashed run as live. Anything that reports liveness to a human
+ * must probe, not read the field.
+ */
+export function ownerIsAlive(state: RunState): boolean {
   if (state.ownerPid === null) return false;
   if (state.ownerPid === process.pid) return true;
   try {

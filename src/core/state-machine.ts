@@ -633,7 +633,7 @@ export class RunStateStore {
     let onDisk: OnDiskState = { kind: "absent" };
     const persistFresh = async (): Promise<void> => {
       onDisk = await this.readOnDisk();
-      await this.persist(this.keepAbortRequested(validated, onDisk));
+      await this.persist(this.keepExternalSignals(validated, onDisk));
     };
     try {
       await withFileMutex(this.lockPath, async () => {
@@ -666,17 +666,29 @@ export class RunStateStore {
    * seen by nobody and then overwritten by the commit's own state write - after
    * the user was told the run would stop.
    *
+   * `pendingGuidance` is the same class of signal, and is preserved for the
+   * same reason - see the note on the field below.
+   *
    * Takes the on-disk copy rather than reading it, so `write` can spend ONE read
    * on both this and the status diff. That read must happen inside the lock: a
    * copy taken before acquiring can be overtaken by a concurrent `requestAbort`
    * raising the flag, and this would then put the stale false back - the exact
    * dropped abort described above.
    */
-  private keepAbortRequested(next: RunState, onDisk: OnDiskState): RunState {
-    if (next.abortRequested) return next;
+  private keepExternalSignals(next: RunState, onDisk: OnDiskState): RunState {
     if (onDisk.kind !== "read") return next;
-    if (onDisk.state.abortRequested !== true) return next;
-    return { ...next, abortRequested: true };
+    let out = next;
+    if (!out.abortRequested && onDisk.state.abortRequested === true) {
+      out = { ...out, abortRequested: true };
+    }
+    // `pendingGuidance` belongs to whoever queued it, not to the caller's
+    // in-memory snapshot. A whole-object write built before a note arrived
+    // would drop it; one built before a DRAIN would resurrect it. Deferring to
+    // disk in both directions makes `write` unable to do either, which leaves
+    // `mutate` - the append in queueGuidance and the removal in drainGuidance -
+    // as the only thing that ever changes this field.
+    out = { ...out, pendingGuidance: onDisk.state.pendingGuidance ?? [] };
+    return out;
   }
 
   /**

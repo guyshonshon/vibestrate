@@ -77,6 +77,8 @@ import {
   executeSnapshotPrune,
 } from "../../core/run/phase-snapshots.js";
 import { makeUniqueRunId } from "../../utils/run-id.js";
+import { queueGuidance, GuidanceError } from "../../core/run/guidance-service.js";
+import { RunNotFoundError } from "../../core/state-machine.js";
 import { startDetachedRun } from "../../core/detached-run.js";
 import {
   appendControl,
@@ -717,6 +719,61 @@ export async function registerRunsRoutes(
         if (err instanceof PauseError) {
           throw new HttpError(err.statusCode, err.message);
         }
+        throw err;
+      }
+    },
+  );
+
+  // ─── POST /api/runs/:runId/steer ─────────────────────────────────
+  // Queue a human note onto a live run. Write-side and narrow: it appends to
+  // state.pendingGuidance and nothing else - no provider call, no shell, no
+  // worktree write. The orchestrator drains it at the next STEP boundary
+  // (applyQueuedGuidance), redacting on the way into the prompt.
+  //
+  // This is the first HTTP route whose body becomes an agent's instruction, so
+  // it stays a HUMAN surface: if a supervisor intent for steering is ever
+  // added, it needs the same verbatim/echo-provenance check `run.start` has in
+  // src/supervisor/action-executor.ts. Do not wire this to a model-supplied
+  // string without it.
+  app.post<{ Params: { runId: string }; Body: unknown }>(
+    "/api/runs/:runId/steer",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const body = (req.body ?? {}) as { note?: unknown; stepId?: unknown };
+      if (typeof body.note !== "string") {
+        throw new HttpError(400, "Body must include a string `note`.");
+      }
+      if (body.stepId != null && typeof body.stepId !== "string") {
+        throw new HttpError(400, "`stepId` must be a string or null.");
+      }
+      const store = new RunStateStore(projectRoot, req.params.runId);
+      // A step id that names nothing waits forever while the sender is told it
+      // is queued, so check it against the run's own flow rather than trusting
+      // the caller.
+      if (typeof body.stepId === "string") {
+        const state = await store.read().catch(() => null);
+        if (!state) throw new HttpError(404, `Run ${req.params.runId} not found.`);
+        const steps = state.flow?.steps ?? [];
+        if (!steps.some((s) => s.id === body.stepId)) {
+          throw new HttpError(400, `Run has no step "${body.stepId}".`);
+        }
+      }
+      try {
+        const queued = await queueGuidance(store, body.note, {
+          stepId: (body.stepId as string | null | undefined) ?? null,
+        });
+        // The note itself is never logged; only that steering happened.
+        await new EventLog(projectRoot, req.params.runId).append({
+          type: "run.guidance.queued",
+          message: `Human guidance queued for ${body.stepId ?? "the next step"}.`,
+          data: { stepId: (body.stepId as string | null) ?? null, queued: queued.queued },
+        });
+        return { run: queued.state, queued: queued.queued, live: queued.live };
+      } catch (err) {
+        if (err instanceof GuidanceError) throw new HttpError(err.status, err.message);
+        // `mutate` re-checks existence inside the lock; an unmapped throw here
+        // would 500 and land in the failure inbox.
+        if (err instanceof RunNotFoundError) throw new HttpError(404, err.message);
         throw err;
       }
     },

@@ -125,18 +125,22 @@ Swap the type for `review.decision`, `verification.decision` or `action.denied` 
 
 ## Correct it without stopping it
 
-Watching a run go the wrong way does not leave you a choice between abort and hope. `vibe steer` queues a note onto a live run:
+Watching a run go the wrong way does not leave you a choice between abort and hope.
+
+Open the run and the control centre carries a **Steer** box, directly above the transcript you have been reading. Write what should change, choose which step reads it - **Whichever step runs next**, or a named step still to come - and press **Queue note**. The box says how many notes are waiting, and tells you plainly when no process is running the run, because a note queued on a crashed run would never be read.
+
+The note lands at the **next step boundary**, not the instant you send it. That is deliberate: a code-writing seat holds an open worktree, and cutting into it between two writes would leave half-written files behind. The cost is at most one step of latency.
+
+Steering only appends to the run's state - no provider call, no shell command, no write into the worktree - so it is safe to send at any moment, including while a step is mid-flight. Twenty notes may wait at once; past that the run has to read some before you add more.
+
+*From a terminal:*
 
 ```bash
 vibe steer <runId> "use the existing retry helper, do not write a new one"
 vibe steer <runId> --step review "check error handling specifically"
 ```
 
-The note lands at the **next step boundary**, not the instant you send it. That is deliberate: a code-writing seat holds an open worktree, and cutting into it between two writes would leave half-written files behind. The cost is at most one step of latency. `--step` holds the note until a named step runs instead of giving it to whichever runs next.
-
-Steering only appends to the run's state - no provider call, no shell command, no write into the worktree - so it is safe to send at any moment, including while a step is mid-flight.
-
-This one is terminal-only today. The dashboard's nearest control is **Request changes** on an approval, and it is a different move: that re-runs the stage you are standing at, where a steer feeds the step that has not started yet.
+**Request changes** on an approval is a different move, not this one: it re-runs the stage you are standing at, where a steer feeds a step that has not started yet.
 
 ## Read past runs
 
