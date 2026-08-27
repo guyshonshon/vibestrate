@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Two first-run killers from the head-to-head benchmark, fixed.** `vibe init`
+  hardcoded `mainBranch: main`, so on a `master` repository every run died at
+  worktree creation with `fatal: invalid reference: main` - the first run a new
+  user ever starts, failing on a config file they did not write. Init now reads
+  the repo's actual HEAD. And a flat `.vibestrate/flows/<id>.yml` - the shape
+  everyone writes first - was silently ignored; it is now reported with the move
+  that fixes it, through the same channel a malformed flow uses.
+
 - **`vibe queue service`** prints a launchd or systemd unit that brings the
   scheduler back after a reboot - the one piece of always-on that was missing.
   Queueing work already spawns a scheduler, records its spawn and exit, and

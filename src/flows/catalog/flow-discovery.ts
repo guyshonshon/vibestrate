@@ -130,7 +130,21 @@ async function discoverProjectFlows(
     } catch {
       continue;
     }
-    if (!stat.isDirectory()) continue;
+    if (!stat.isDirectory()) {
+      // A flat `.vibestrate/flows/<id>.yml` is the shape everyone writes first,
+      // and it used to be skipped without a word - the flow simply never
+      // appeared, with nothing anywhere saying why. Report it through the same
+      // `invalid` channel a malformed file uses, with the move that fixes it.
+      if (/\.ya?ml$/.test(entry)) {
+        invalid.push({
+          path: dirPath,
+          message:
+            `Flows live one per directory: move this to ` +
+            `${entry.replace(/\.ya?ml$/, "")}/flow.yml (or run \`vibe flows import ${entry}\`).`,
+        });
+      }
+      continue;
+    }
 
     const filePath = await projectDefinitionPath(dirPath);
     if (!filePath || !isPathInside(rootDir, filePath)) continue;

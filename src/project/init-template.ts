@@ -152,6 +152,8 @@ type ProjectYamlInput = {
   providerSection: string;
   validationCommands: readonly string[];
   defaultProviderRef: string;
+  /** The repo's actual default branch, detected from HEAD. */
+  mainBranch: string;
 };
 
 /**
@@ -251,6 +253,29 @@ ${args}
   };
 }
 
+/**
+ * The branch runs fork from and merge advice compares against.
+ *
+ * HEAD's short name, because that is what the repo actually uses - `main`,
+ * `master`, `trunk`, whatever the host initialised. Detached HEAD or a
+ * repo-less directory falls back to "main", the same value the template
+ * hardcoded, so the failure mode cannot get worse than it was.
+ */
+async function detectDefaultBranch(projectRoot: string): Promise<string> {
+  try {
+    const { execa } = await import("execa");
+    const r = await execa("git", ["symbolic-ref", "--short", "HEAD"], {
+      cwd: projectRoot,
+      reject: false,
+    });
+    const branch = (r.stdout ?? "").trim();
+    if (r.exitCode === 0 && branch) return branch;
+  } catch {
+    /* fall through */
+  }
+  return "main";
+}
+
 function projectYaml(input: ProjectYamlInput): string {
   const ref = input.defaultProviderRef;
   return `project:
@@ -258,7 +283,7 @@ function projectYaml(input: ProjectYamlInput): string {
   type: generic
 
 git:
-  mainBranch: main
+  mainBranch: "${yamlQuote(input.mainBranch)}"
   branchPrefix: vibestrate/
   worktreeDir: ../.vibestrate-worktrees
   requireCleanMain: false
@@ -449,6 +474,11 @@ export async function runInit(opts: InitOptions): Promise<InitResult> {
   await ensureDir(policiesDir(projectRoot));
 
   const name = opts.plan?.project.name ?? (await defaultProjectName(projectRoot));
+  // The repo's real default branch, not the literal "main". A fresh init on a
+  // `master` repo used to scaffold `mainBranch: main`, and every run then died
+  // at worktree creation with `fatal: invalid reference: main` - the first run
+  // a new user ever starts, failing on a config file they did not write.
+  const mainBranch = await detectDefaultBranch(projectRoot);
   const providerYaml = renderProvidersYaml(opts.plan ?? null);
   const validation = opts.plan?.validationCommands ?? [];
 
@@ -462,6 +492,7 @@ export async function runInit(opts: InitOptions): Promise<InitResult> {
         providerSection: providerYaml.section,
         validationCommands: validation,
         defaultProviderRef: providerYaml.defaultRef,
+        mainBranch,
       }),
     );
     result.created.push(configPath);
