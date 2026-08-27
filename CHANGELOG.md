@@ -11,8 +11,10 @@
   approval" results while its profile said it had shell. That is the cause of
   every "the tests were never executed" refusal we have measured. Seats now
   carry an explicit, auditable command grant, derived by default from the
-  project's own `commands.validate` plus read-only inspection, and widenable
-  per profile with `allowedCommands`.
+  project's own `commands.validate`, the common language runtimes, and
+  read-only inspection, and widenable per profile with `allowedCommands`.
+  Package installers stay out of the default - those reach the network and
+  need naming explicitly.
 - **A turn that can mutate the worktree is diff-gated whether it holds the
   edit tools or a shell.** The pre-turn snapshot used to key on `allowWrite`,
   which left a shell-capable reviewer as the one executing seat with no

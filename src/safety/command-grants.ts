@@ -32,6 +32,27 @@ const INSPECTION = [
   "Bash(find:*)",
 ];
 
+/**
+ * The language runtimes a seat needs to RUN the thing it is judging.
+ *
+ * Included by default because of what the grant is and is not. Scoping buys
+ * blast-radius-by-default and an auditable record - it does not contain
+ * anything, since any interpreter here is already a full shell (`node -e`).
+ * Excluding them bought no safety and cost the whole feature: a project with
+ * no `commands.validate` gave its reviewer inspection-only rules, so it could
+ * read the code and never execute it - which is the exact silent failure this
+ * module exists to end. Package INSTALLERS are deliberately absent; those
+ * reach the network and belong in an explicit `allowedCommands`.
+ */
+const RUNTIMES = [
+  "Bash(node:*)",
+  "Bash(python:*)",
+  "Bash(python3:*)",
+  "Bash(pytest:*)",
+  "Bash(go:*)",
+  "Bash(cargo:*)",
+];
+
 /** The leading binary of a shell command, as a claude tool rule prefix. */
 function ruleForCommand(command: string): string | null {
   const first = command.trim().split(/\s+/)[0];
@@ -54,7 +75,7 @@ export function resolveCommandGrants(input: {
   if (input.profileAllowedCommands && input.profileAllowedCommands.length > 0) {
     return [...input.profileAllowedCommands];
   }
-  const derived = new Set(INSPECTION);
+  const derived = new Set([...INSPECTION, ...RUNTIMES]);
   for (const command of input.validateCommands ?? []) {
     const rule = ruleForCommand(command);
     if (rule) derived.add(rule);

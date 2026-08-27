@@ -132,6 +132,20 @@ describe("command grants: the reason 'the tests never ran' kept appearing", () =
     expect(grants).not.toContain("Bash"); // never a blanket grant by default
   });
 
+  it("a seat can run the code it judges even when the project declares no validate commands", async () => {
+    // The gap the perft re-run exposed: an empty `commands.validate` left the
+    // reviewer with inspection-only rules, so it could read the implementation
+    // and never execute it - the same silent failure, one layer up. Runtimes
+    // are in the default set because scoping buys auditability, not
+    // containment (`node -e` is a full shell either way).
+    const { resolveCommandGrants } = await import("../src/safety/command-grants.js");
+    const grants = resolveCommandGrants({ validateCommands: [] });
+    expect(grants).toContain("Bash(node:*)");
+    expect(grants).toContain("Bash(python3:*)");
+    // Installers reach the network and stay out of the default.
+    expect(grants.some((g) => /npm:|pip:|brew:/.test(g))).toBe(false);
+  });
+
   it("an explicit profile allowlist wins outright", async () => {
     const { resolveCommandGrants } = await import("../src/safety/command-grants.js");
     expect(
