@@ -19,6 +19,15 @@
 // end to end would be worse than saying it is not covered.
 import path from "node:path";
 
+// These paths describe the TARGET system, not the machine running the command:
+// a launchd plist always lives under ~/Library on macOS and a systemd unit
+// under ~/.config on Linux, both POSIX. `path.join` would emit backslashes when
+// this is generated on Windows, producing a unit file that names a path no
+// systemd or launchd will ever resolve. The host's separator is irrelevant
+// here, so it is never used. (Windows CI caught this - the same separator class
+// that had that leg red for four days.)
+const target = path.posix;
+
 export type ServicePlatform = "launchd" | "systemd";
 
 export type ServiceUnit = {
@@ -42,6 +51,18 @@ export function defaultPlatform(platform: NodeJS.Platform = process.platform): S
 const LABEL = "com.vibestrate.scheduler";
 
 /**
+ * Backslashes to forward slashes, UNCONDITIONALLY.
+ *
+ * Not `path.sep`: that is `/` on macOS and Linux, so a host-dependent
+ * conversion converts nothing anywhere except the one platform where the bug
+ * appears - which means it also cannot be tested anywhere else. A separator fix
+ * that depends on the host is the bug wearing a fix's clothes.
+ */
+function toPosix(p: string): string {
+  return p.replace(/\\/g, "/");
+}
+
+/**
  * The unit for one project.
  *
  * Per-project rather than one global service, because the scheduler works
@@ -57,16 +78,22 @@ export function buildServiceUnit(input: {
   /** Home directory, for the suggested save path. */
   home: string;
 }): ServiceUnit {
-  const slug = path
-    .basename(input.projectRoot)
+  // Normalised BEFORE the basename: `path.basename` on macOS does not treat a
+  // backslash as a separator, so a Windows project root produced a label built
+  // from the whole path. The same project would then get a different service
+  // name depending on which machine generated the unit.
+  const slug = target
+    .basename(toPosix(input.projectRoot))
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "") || "project";
   const label = `${LABEL}.${slug}`;
-  const logDir = path.join(input.projectRoot, ".vibestrate", "scheduler");
+  // The project root arrives in the host's own form and is used verbatim;
+  // only the parts WE construct are forced POSIX.
+  const logDir = target.join(toPosix(input.projectRoot), ".vibestrate", "scheduler");
 
   if (input.platform === "launchd") {
-    const plistPath = path.join(input.home, "Library", "LaunchAgents", `${label}.plist`);
+    const plistPath = target.join(toPosix(input.home), "Library", "LaunchAgents", `${label}.plist`);
     return {
       platform: "launchd",
       suggestedPath: plistPath,
@@ -89,15 +116,15 @@ export function buildServiceUnit(input: {
        work is queued, and a hard KeepAlive would respawn it in a tight loop
        against a project whose config no longer parses. -->
   <key>RunAtLoad</key><true/>
-  <key>StandardOutPath</key><string>${path.join(logDir, "service.log")}</string>
-  <key>StandardErrorPath</key><string>${path.join(logDir, "service.log")}</string>
+  <key>StandardOutPath</key><string>${target.join(logDir, "service.log")}</string>
+  <key>StandardErrorPath</key><string>${target.join(logDir, "service.log")}</string>
 </dict>
 </plist>
 `,
     };
   }
 
-  const unitPath = path.join(input.home, ".config", "systemd", "user", `${label}.service`);
+  const unitPath = target.join(toPosix(input.home), ".config", "systemd", "user", `${label}.service`);
   return {
     platform: "systemd",
     suggestedPath: unitPath,

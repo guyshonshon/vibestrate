@@ -99,3 +99,43 @@ describe("what it does not do", () => {
     }
   });
 });
+
+describe("paths describe the target system, not the host", () => {
+  // Windows CI caught this: `path.join` emits backslashes there, so a unit
+  // generated on Windows named a path no launchd or systemd would resolve. That
+  // is a wrong FILE, not just a failing assertion - and it is the third time
+  // this separator class has bitten in one session. These run on every host, so
+  // the next one is caught wherever it is introduced.
+  const winStyle = {
+    projectRoot: "C:\\Users\\x\\code\\my-project",
+    binPath: "C:\\Program Files\\nodejs\\vibe",
+    home: "C:\\Users\\x",
+  };
+
+  it("never puts a backslash in a path it constructs", () => {
+    for (const platform of ["launchd", "systemd"] as const) {
+      const unit = buildServiceUnit({ ...winStyle, platform });
+      expect(unit.suggestedPath, `${platform} suggestedPath`).not.toContain("\\");
+      expect(unit.loadCommand, `${platform} loadCommand`).not.toContain("\\");
+      expect(unit.unloadCommand, `${platform} unloadCommand`).not.toContain("\\");
+    }
+  });
+
+  it("keeps the POSIX shape a launchd/systemd path must have", () => {
+    // Asserted as a whole path rather than a substring: a substring check is
+    // exactly what passed on macOS while the real output was wrong.
+    expect(buildServiceUnit({ ...winStyle, platform: "systemd" }).suggestedPath).toBe(
+      "C:/Users/x/.config/systemd/user/com.vibestrate.scheduler.my-project.service",
+    );
+    expect(buildServiceUnit({ ...winStyle, platform: "launchd" }).suggestedPath).toBe(
+      "C:/Users/x/Library/LaunchAgents/com.vibestrate.scheduler.my-project.plist",
+    );
+  });
+
+  it("writes forward-slash log paths into the plist itself", () => {
+    const unit = buildServiceUnit({ ...winStyle, platform: "launchd" });
+    const logLine = unit.contents.split("\n").find((l) => l.includes("StandardOutPath"))!;
+    expect(logLine).not.toContain("\\");
+    expect(logLine).toContain("/.vibestrate/scheduler/service.log");
+  });
+});
