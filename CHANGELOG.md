@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Why auto-merge is off by default, answered properly.** It is not off by
+  default - it was never built. No code path runs `git push`, a merge to main is
+  refused without your confirmation, and the **Hard guards** that name both
+  *declare* that rather than create it, so turning one off enables nothing. A
+  default can be changed by someone else's config or a future version; a
+  capability that does not exist cannot be turned on by accident.
+
 - **Installing ends in one command, not three.** `install.sh` closed by teaching
   `vibe init`, `vibe doctor --fix` and `vibe run` to someone who had not seen the
   app yet. It is `vibe ui` now: in a folder with no `.vibestrate/` that opens an

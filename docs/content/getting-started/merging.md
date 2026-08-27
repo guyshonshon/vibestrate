@@ -133,6 +133,10 @@ Merging is the moment you commit: the change joins your shared history and ships
 
 The advice is **deterministic**: git facts and check lanes in, recommendation out, so the same inputs always give the same answer and no [supervisor](/docs/concepts/supervisor) persona colours it. A model enters only when you ask for the deeper read.
 
+"Off by default" undersells it, and the difference matters if you came looking for the switch. Auto-merge and auto-push are not settings that ship disabled - there is no code path in Vibestrate that runs `git push`, and a merge to main is refused unless the request carries your confirmation. The **Hard guards** on the [Policies](/docs/concepts/policies) page name both, and those switches *declare* the guarantee rather than create it: turning one off does not enable anything, because there is nothing behind it to enable.
+
+That is deliberate. A default can be changed by a config file someone else wrote, by a flag in a CI job, or by a future version that picks a different one. A capability that was never built cannot be turned on by accident, and the one action you cannot undo by re-running the pipeline is the one that reached your shared history.
+
 ## Keep going
 
 - [Your first run](/docs/getting-started/first-run) - where the change came from.
