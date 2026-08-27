@@ -111,15 +111,16 @@ cd "$(vibe path <runId> --cd)"
 A prior run can be rewound rather than restarted, reusing its artifacts from a later stage:
 
 ```bash
-# reuse the plan + architecture, redo the code
+# reuse the plan, redo the code
 vibe run "<same task>" --resume-from <runId>
 
+# a flow with an architecture step, like deep:
 # reuse the plan, redo from architecture
 vibe run "<same task>" --resume-from <runId> \
-  --resume-stage architecting
+  --flow deep --resume-stage architecting
 ```
 
-`--resume-stage` defaults to `executing` and takes any stage in the run:
+`--resume-stage` defaults to `executing` and takes any stage the flow you run has a step at - `planning`, `executing` and `reviewing` in a default run, all six under `deep`:
 
 ```text
 --resume-stage  planning · architecting · executing

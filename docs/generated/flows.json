@@ -4,9 +4,124 @@
   "flows": [
     {
       "id": "default",
-      "version": 1,
+      "version": 2,
       "label": "Default",
-      "description": "The standard plan → architect → implement → validate → review workflow. Review loops back to fix and re-validate until it passes or the bound is hit, then a verify gate decides merge-readiness.",
+      "description": "Plan → implement → validate → review. Changes requested go straight back to the implementer - who self-reviews its own diff before every hand-off - until the reviewer approves or the loop budget runs out. The reviewer judges the whole execution against the plan and project rules, and can run the tests itself.",
+      "seats": [
+        {
+          "id": "planner",
+          "label": "Planner",
+          "description": "Turns the task into a plan."
+        },
+        {
+          "id": "implementer",
+          "label": "Implementer",
+          "description": "Implements the plan, self-reviews its own diff in scope, and owns the work through review rounds."
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "description": "Judges the whole execution against the plan and project rules; may run the tests."
+        }
+      ],
+      "steps": [
+        {
+          "id": "plan",
+          "label": "Plan",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "plan"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "planning",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "implement",
+          "label": "Implement",
+          "kind": "agent-turn",
+          "seat": "implementer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "findings",
+            "validation"
+          ],
+          "outputs": [
+            "execution",
+            "diff"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "validation",
+          "label": "Validate",
+          "kind": "validation",
+          "seat": null,
+          "inputs": [
+            "diff"
+          ],
+          "outputs": [
+            "validation"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "execution",
+            "validation"
+          ],
+          "outputs": [
+            "findings",
+            "review-decision"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": {
+        "from": "implement",
+        "to": "review",
+        "decisionStep": "review",
+        "maxIterations": 3
+      }
+    },
+    {
+      "id": "deep",
+      "version": 1,
+      "label": "Deep",
+      "description": "The heavyweight pipeline: plan → architect → implement → validate → review, with a dedicated fixer answering review rounds and an independent verify gate deciding merge-readiness.",
       "seats": [
         {
           "id": "planner",

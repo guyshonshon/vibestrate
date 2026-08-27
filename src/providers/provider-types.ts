@@ -105,6 +105,16 @@ export type ProviderRunInput = {
    */
   allowWrite?: boolean;
   /**
+   * Whether this turn's permission profile allows shell execution WITHOUT
+   * write access (`profile.allowShell` with `allowWrite` false - the
+   * `review_exec` profile: a reviewer that runs the tests it judges). The
+   * `claude-code` provider translates this into `--permission-mode acceptEdits`
+   * WITH the edit tools disallowed on the invocation, so commands run but file
+   * edits are cut at the tool layer, not by prompt discipline. Meaningless on a
+   * write-capable turn (allowWrite already grants shell). Omitted = no shell.
+   */
+  allowShell?: boolean;
+  /**
    * Harden a READ-ONLY turn at the CLI's own permission layer (opt-in,
    * `policies.hardenReadOnlySeats`). When true AND this turn is not write-capable
    * (`allowWrite` falsy), a provider that has a read-only/plan permission mode

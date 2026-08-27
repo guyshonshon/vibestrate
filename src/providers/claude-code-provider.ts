@@ -31,13 +31,33 @@ export type ClaudeCodeProviderRunResult = ProviderRunResult & {
   claudeMetrics: ClaudeCodeRunMetrics;
 };
 
+
+/**
+ * The no-write half of a shell-capable (review_exec) turn, enforced at the
+ * tool layer: acceptEdits lets commands run, this cut keeps the file-edit
+ * tools out of the invocation entirely. Shell redirection can still touch the
+ * disposable worktree - the diff is the audit trail - but the agent has no
+ * edit tools to reach for, which is a mechanism, not a prompt request.
+ * Exported for the test that pins the mechanism.
+ */
+export function effectiveDisallowedTools(
+  shellCapable: boolean,
+  fromProfile: readonly string[] | null | undefined,
+): string[] {
+  const base = fromProfile ?? [];
+  if (!shellCapable) return [...base];
+  return [...new Set([...base, "Edit", "Write", "NotebookEdit"])];
+}
+
 export async function runClaudeCodeProvider(
   config: ClaudeCodeProviderConfig,
   input: ProviderRunInput,
 ): Promise<ClaudeCodeProviderRunResult> {
   const writeCapable = input.allowWrite === true;
+  const shellCapable = !writeCapable && input.allowShell === true;
   const args = buildClaudeCodeArgs(config.args ?? [], config.settings, {
     writeCapable,
+    shellCapable,
     hardenReadOnly: input.hardenReadOnly === true,
   });
   // What was ACTUALLY applied, mirroring buildClaudeCodeArgs' auto-hardening
@@ -47,6 +67,7 @@ export async function runClaudeCodeProvider(
   // assurance posture reads, not config.
   const appliedReadOnlyHardening =
     !writeCapable &&
+    !shellCapable &&
     input.hardenReadOnly === true &&
     !config.settings?.permissionMode;
   // Apply the resolved profile's model + effort - both real `claude` flags
@@ -57,14 +78,18 @@ export async function runClaudeCodeProvider(
   if (input.effort) {
     args.push("--effort", input.effort);
   }
-  if (input.disallowedTools && input.disallowedTools.length > 0) {
+  const disallowedTools = effectiveDisallowedTools(
+    shellCapable,
+    input.disallowedTools,
+  );
+  if (disallowedTools.length > 0) {
     // One comma-joined token (Claude Code splits it), mirroring `--allowed-tools`
     // in claude-code-settings.ts. `--disallowedTools` is variadic (`<tools...>`),
     // so on an `input: "arg"` provider it would keep consuming argv past the list
     // - the `--` separator pushed before the prompt (below) is what actually
     // stops the trailing positional being read as more tool names. The default
     // provider streams the prompt over stdin, so no positional exists there.
-    args.push("--disallowedTools", input.disallowedTools.join(","));
+    args.push("--disallowedTools", disallowedTools.join(","));
   }
   if (input.mcpConfigPath) {
     // `--mcp-config <path>` is the documented Claude Code flag for

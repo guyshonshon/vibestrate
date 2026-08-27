@@ -352,7 +352,10 @@ crews:
         seats: [reviewer, challenger]
         profile: ${ref}-balanced
         prompt: .vibestrate/roles/reviewer.json
-        permissions: read_only
+        # review_exec = shell without writes: the reviewer can run the tests it
+        # judges (the claude-code invocation drops the edit tools). Set this to
+        # read_only for a judge that must not execute anything.
+        permissions: review_exec
         skills: []
 
       verifier:

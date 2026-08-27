@@ -59,7 +59,11 @@ export function effectiveClaudeOutputFormat(
 export function buildClaudeCodeArgs(
   baseArgs: readonly string[],
   settings: ClaudeCodeSettings | undefined,
-  opts?: { writeCapable?: boolean; hardenReadOnly?: boolean },
+  opts?: {
+    writeCapable?: boolean;
+    shellCapable?: boolean;
+    hardenReadOnly?: boolean;
+  },
 ): string[] {
   const out = [...baseArgs];
 
@@ -78,6 +82,12 @@ export function buildClaudeCodeArgs(
   // claude's own Bash.
   if (!settings?.permissionMode) {
     if (opts?.writeCapable) {
+      out.push("--permission-mode", "acceptEdits");
+    } else if (opts?.shellCapable) {
+      // Shell-without-write (review_exec): the same acceptEdits mode so the
+      // headless CLI runs commands, but the caller (claude-code-provider) cuts
+      // the edit tools from the invocation - the no-write half of the profile
+      // is enforced at the tool layer, never left to the prompt.
       out.push("--permission-mode", "acceptEdits");
     } else if (opts?.hardenReadOnly) {
       out.push("--permission-mode", "plan");

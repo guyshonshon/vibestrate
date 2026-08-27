@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **The default flow is now three seats: planner, implementer, reviewer.**
+  Review findings go straight back to the implementer, which re-enters with
+  them in context - no dedicated fixer seat, no verify turn; merge-ready is an
+  approved review plus passing validation. The implementer self-reviews its
+  own diff before every hand-off, and the scaffolded reviewer runs under a new
+  `review_exec` permission profile: it can execute the tests it judges (the
+  claude-code invocation drops the edit tools - a tool-layer gate, not a
+  prompt request). Profiling real runs showed the old pipeline spent five of
+  six turns around the one turn that writes code. The six-seat pipeline
+  (architect, fixer, independent verify gate) is unchanged and available as
+  the `deep` flow.
 - A run's task now fits a full GitHub issue. The task field was capped at
   2,000 characters at six separate entry points; pasting an ordinary issue got
   refused before any agent ran. The bound is now 65,536 - GitHub's own

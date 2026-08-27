@@ -97,11 +97,11 @@ The status card carries the outcome. **merge ready** means nothing stopped the r
 
 A **flow** is the recipe a run follows: an ordered list of steps. A step names the *kind* of worker it needs and never names a model. That kind is a **seat**, and the **roles** in your **crew** fill the seats. Each role runs on a **profile**: a provider, a model, and how hard that model should think.
 
-### The eight steps
+### The four steps
 
-The `default` flow plans, designs, implements, reviews and verifies, and the reviewer can send the work back to the fixer twice before the flow gives up:
+The `default` flow plans, implements, validates and reviews, and the reviewer can send the work back to the implementer twice before the flow gives up:
 
-<svg viewBox="0 0 560 272" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The eight steps of the default flow in order: Plan by the planner seat, Architecture by the architect, Implement by the implementer which can write, Validate with no seat running your commands, Review by the reviewer, Fix by the fixer which can write, Re-validate with no seat, and Verify by the verifier. Re-validate loops back to Review.">
+<svg viewBox="0 0 560 168" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The four steps of the default flow in order: Plan by the planner seat, Implement by the implementer which can write, Validate with no seat running your commands, and Review by the reviewer, which runs commands but writes nothing. Review loops back to Implement when it asks for changes.">
   <g fill="currentColor" fill-opacity="0.5" font-size="9.5" font-family="ui-monospace,monospace">
     <text x="48" y="14">step</text>
     <text x="184" y="14">seat</text>
@@ -116,84 +116,62 @@ The `default` flow plans, designs, implements, reviews and verifies, and the rev
     <rect x="40" y="52" width="518" height="24" rx="5"/>
     <rect x="40" y="78" width="518" height="24" rx="5"/>
     <rect x="40" y="104" width="518" height="24" rx="5"/>
-    <rect x="40" y="130" width="518" height="24" rx="5"/>
-    <rect x="40" y="156" width="518" height="24" rx="5"/>
-    <rect x="40" y="182" width="518" height="24" rx="5"/>
-    <rect x="40" y="208" width="518" height="24" rx="5"/>
   </g>
   <g fill="currentColor" font-size="11" font-family="ui-monospace,monospace">
     <text x="48" y="42">Plan</text>
-    <text x="48" y="68">Architecture</text>
-    <text x="48" y="94">Implement</text>
-    <text x="48" y="120">Validate</text>
-    <text x="48" y="146">Review</text>
-    <text x="48" y="172">Fix</text>
-    <text x="48" y="198">Re-validate</text>
-    <text x="48" y="224">Verify</text>
+    <text x="48" y="68">Implement</text>
+    <text x="48" y="94">Validate</text>
+    <text x="48" y="120">Review</text>
     <text x="184" y="42">planner</text>
-    <text x="184" y="68">architect</text>
-    <text x="184" y="94">implementer</text>
-    <text x="184" y="146">reviewer</text>
-    <text x="184" y="172">fixer</text>
-    <text x="184" y="224">verifier</text>
+    <text x="184" y="68">implementer</text>
+    <text x="184" y="120">reviewer</text>
     <text x="312" y="42">Build</text>
     <text x="312" y="68">Build</text>
-    <text x="312" y="94">Build</text>
-    <text x="312" y="120">Check</text>
-    <text x="312" y="146">Review</text>
-    <text x="312" y="172">Revise</text>
-    <text x="312" y="198">Check</text>
-    <text x="312" y="224">Summarize</text>
+    <text x="312" y="94">Check</text>
+    <text x="312" y="120">Review</text>
     <text x="419" y="42">Read only</text>
-    <text x="419" y="68">Read only</text>
-    <text x="419" y="94">Can write</text>
-    <text x="419" y="120">Your commands</text>
-    <text x="419" y="146">Read only</text>
-    <text x="419" y="172">Can write</text>
-    <text x="419" y="198">Your commands</text>
-    <text x="419" y="224">Read only</text>
+    <text x="419" y="68">Can write</text>
+    <text x="419" y="94">Your commands</text>
+    <text x="419" y="120">Runs, no writes</text>
   </g>
   <g fill="currentColor" fill-opacity="0.45" font-size="11" font-family="ui-monospace,monospace">
-    <text x="184" y="120">no seat</text>
-    <text x="184" y="198">no seat</text>
+    <text x="184" y="94">no seat</text>
   </g>
   <g fill="currentColor" fill-opacity="0.6">
-    <rect x="406" y="86" width="7" height="7" rx="1.5"/>
-    <rect x="406" y="164" width="7" height="7" rx="1.5"/>
+    <rect x="406" y="60" width="7" height="7" rx="1.5"/>
   </g>
   <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
     <rect x="406" y="34" width="7" height="7" rx="1.5"/>
-    <rect x="406" y="60" width="7" height="7" rx="1.5"/>
-    <rect x="406" y="138" width="7" height="7" rx="1.5"/>
-    <rect x="406" y="216" width="7" height="7" rx="1.5"/>
-    <rect x="406" y="112" width="7" height="7" rx="1.5" stroke-dasharray="2 2"/>
-    <rect x="406" y="190" width="7" height="7" rx="1.5" stroke-dasharray="2 2"/>
-    <path d="M40 194H18V142h16"/>
+    <rect x="406" y="112" width="7" height="7" rx="1.5"/>
+    <rect x="406" y="86" width="7" height="7" rx="1.5" stroke-dasharray="2 2"/>
+    <path d="M40 116H18V64h16"/>
   </g>
   <g fill="currentColor" fill-opacity="0.5">
-    <path d="M34 138l6 4-6 4z"/>
+    <path d="M34 60l6 4-6 4z"/>
   </g>
   <g fill="currentColor" fill-opacity="0.5" font-size="9.5" text-anchor="middle">
-    <text x="280" y="250">Review opens each pass. Approve and the loop exits before Fix, straight to Verify.</text>
-    <text x="280" y="264">A changes-requested decision runs Fix and Re-validate, then Review reads it again.</text>
+    <text x="280" y="146">Review closes each pass. Approve and the loop exits; there is no separate verify step.</text>
+    <text x="280" y="160">Changes requested re-enters Implement with the findings - three implement passes at most.</text>
   </g>
 </svg>
 
+`deep` is the longer pipeline: plan, architecture, implement, validate, review, fix, re-validate, verify. It seats six and keeps a dedicated fixer answering the review rounds, for work where an architecture pass and an independent verify gate earn their turns.
+
 ### Which seats can write files
 
-A fresh project hands `code_write` to the roles filling implementer and fixer, and `read_only` to the other four - file writes and shell access turned off. Validate and Re-validate name no seat, so no model runs them: your own `commands.validate` do, inside the run's worktree. That list is read-only on the Config page because the server never executes a shell command string handed to it over HTTP; `vibe config set commands.validate` writes it. A pass or a fail there is evidence for the reviewer to weigh, and only the reviewer can call for a fix.
+A fresh project hands `code_write` to the roles filling implementer and fixer, `review_exec` to the reviewer - commands but no file writes, so it can run the tests it is judging - and `read_only` to the other three, file writes and shell access turned off. Validate names no seat, so no model runs it: your own `commands.validate` do, inside the run's worktree. That list is read-only on the Config page because the server never executes a shell command string handed to it over HTTP; `vibe config set commands.validate` writes it. A pass or a fail there is evidence for the reviewer to weigh, and only the reviewer can call for a fix.
 
 ## Crews, flows and the Flow Hub
 
 ### The flows that ship
 
-Fourteen flows ship. Three belong to the spec-up chain below and stay out of the pickers, so eleven show up:
+Sixteen flows ship. Three belong to the spec-up chain below and stay out of the pickers, so thirteen show up:
 
-<div class="docs-chips"><span>default</span><span>plan-only</span><span>quality-arbitration</span><span>panel-review</span><span>security-review</span><span>express</span><span>scaffold</span><span>saga</span><span>pickup</span><span>pickup-analysis</span><span>pickup-review</span></div>
+<div class="docs-chips"><span>default</span><span>deep</span><span>plan-only</span><span>quality-arbitration</span><span>panel-review</span><span>security-review</span><span>express</span><span>research</span><span>scaffold</span><span>saga</span><span>pickup</span><span>pickup-analysis</span><span>pickup-review</span></div>
 
-**Flows** lists the same eleven, each card carrying a bar of one segment per step, coloured by what that step does:
+**Flows** lists the same thirteen, each card carrying a bar of one segment per step, coloured by what that step does:
 
-![The Flows page: a header reading 11 flows with New flow and Import buttons and a legend of Build, Review, Check and Gate, over two flow cards. Default carries 8 steps, 6 seats and version 1; Express carries 4 steps, 3 seats and version 1.](/media/docs/flows.png)
+![The Flows page: a header reading 13 flows with New flow and Import buttons and a legend of Build, Review, Check and Gate, over the flow cards. Default carries 4 steps, 3 seats and version 2; Deep carries 8 steps, 6 seats and version 1.](/media/docs/flows.png)
 
 Four colours group the six kinds a step can carry. **Build** takes the Build and Revise kinds, which produce or change the work; **Review** takes Review and Summarize, which judge it; **Check** runs your commands; and **Gate** is the Approve kind, which parks the run until a person answers. No built-in flow ships a Gate, so that colour turns up only in a flow you write or install.
 
@@ -203,9 +181,9 @@ Four colours group the six kinds a step can carry. **Build** takes the Build and
 
 The Crew page's ring shows coverage, and `vibe flows show <id> --crew <id>` prints it per seat: filled, gap or ambiguous. Each seat needs exactly one candidate, or a `--seat-role` pin, and an unfilled or ambiguous seat stops the run before it spawns any model. Out of the box every seat resolves, so this comes up only once you add roles: `Crew "default" has more than one role filling the "reviewer" seat` means two of yours qualify, and `--seat-role reviewer=senior-reviewer` picks one.
 
-Coverage is a name match, and the order the two are written in changes nothing:
+Coverage is a name match, and the order the two are written in changes nothing. A default run seats three of the six roles a fresh project writes; `deep` seats all six:
 
-<svg viewBox="0 0 560 258" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The default flow's six seats on the left - planner, architect, implementer, reviewer, fixer, verifier - wired by name to the default crew's six roles on the right: Planner, Architect, Backend Implementer, Fixer, Reviewer, Verifier. The reviewer and fixer wires cross, because the match reads names and not order. A seventh row, validate, names no seat and runs your shell commands.">
+<svg viewBox="0 0 560 258" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The default flow's three seats on the left - planner, implementer, reviewer - wired by name to three of the default crew's six roles on the right: Planner, Backend Implementer and Reviewer. The wires skip rows, because the match reads names and not order, and the Architect, Fixer and Verifier roles are left idle by this flow. A fourth row, validate, names no seat and runs your shell commands.">
   <g fill="currentColor" fill-opacity="0.5" font-size="9.5">
     <text x="1" y="18">the default flow names seats</text>
     <text x="280" y="18" text-anchor="middle">matched by seat name</text>
@@ -215,43 +193,33 @@ Coverage is a name match, and the order the two are written in changes nothing:
     <rect x="1" y="30" width="150" height="24" rx="6"/>
     <rect x="1" y="60" width="150" height="24" rx="6"/>
     <rect x="1" y="90" width="150" height="24" rx="6"/>
-    <rect x="1" y="120" width="150" height="24" rx="6"/>
-    <rect x="1" y="150" width="150" height="24" rx="6"/>
-    <rect x="1" y="180" width="150" height="24" rx="6"/>
     <rect x="400" y="30" width="158" height="24" rx="6"/>
-    <rect x="400" y="60" width="158" height="24" rx="6"/>
     <rect x="400" y="90" width="158" height="24" rx="6"/>
-    <rect x="400" y="120" width="158" height="24" rx="6"/>
     <rect x="400" y="150" width="158" height="24" rx="6"/>
-    <rect x="400" y="180" width="158" height="24" rx="6"/>
     <rect x="1" y="214" width="150" height="24" rx="6" stroke-dasharray="4 4"/>
     <rect x="400" y="214" width="158" height="24" rx="6" stroke-dasharray="4 4"/>
   </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.14" stroke-width="1">
+    <rect x="400" y="60" width="158" height="24" rx="6"/>
+    <rect x="400" y="120" width="158" height="24" rx="6"/>
+    <rect x="400" y="180" width="158" height="24" rx="6"/>
+  </g>
   <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
     <path d="M151 42H394"/>
-    <path d="M151 72H394"/>
-    <path d="M151 102H394"/>
-    <path d="M151 132C240 132 305 162 394 162"/>
-    <path d="M151 162C240 162 305 132 394 132"/>
-    <path d="M151 192H394"/>
+    <path d="M151 72C240 72 305 102 394 102"/>
+    <path d="M151 102C240 102 305 162 394 162"/>
     <path d="M151 226H394" stroke-dasharray="4 4"/>
   </g>
   <g fill="currentColor" fill-opacity="0.5">
     <path d="M394 38l6 4-6 4z"/>
-    <path d="M394 68l6 4-6 4z"/>
     <path d="M394 98l6 4-6 4z"/>
-    <path d="M394 128l6 4-6 4z"/>
     <path d="M394 158l6 4-6 4z"/>
-    <path d="M394 188l6 4-6 4z"/>
     <path d="M394 222l6 4-6 4z"/>
   </g>
   <g fill="currentColor" font-size="11" font-family="ui-monospace,monospace">
     <text x="11" y="46">planner</text>
-    <text x="11" y="76">architect</text>
-    <text x="11" y="106">implementer</text>
-    <text x="11" y="136">reviewer</text>
-    <text x="11" y="166">fixer</text>
-    <text x="11" y="196">verifier</text>
+    <text x="11" y="76">implementer</text>
+    <text x="11" y="106">reviewer</text>
     <text x="11" y="230">validate</text>
   </g>
   <g fill="currentColor" fill-opacity="0.45" font-size="9.5" font-family="ui-monospace,monospace" text-anchor="end">
@@ -259,17 +227,19 @@ Coverage is a name match, and the order the two are written in changes nothing:
   </g>
   <g fill="currentColor" font-size="11">
     <text x="409" y="46">Planner</text>
-    <text x="409" y="76">Architect</text>
     <text x="409" y="106">Backend Implementer</text>
-    <text x="409" y="136">Fixer</text>
     <text x="409" y="166">Reviewer</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.3" font-size="11">
+    <text x="409" y="76">Architect</text>
+    <text x="409" y="136">Fixer</text>
     <text x="409" y="196">Verifier</text>
   </g>
   <g fill="currentColor" fill-opacity="0.6" font-size="11">
     <text x="409" y="230">your shell commands</text>
   </g>
   <g fill="currentColor" fill-opacity="0.5" font-size="9.5" text-anchor="middle">
-    <text x="280" y="254">Across the 14 built-in flows, 7 of 73 steps name no seat.</text>
+    <text x="280" y="254">Across the 16 built-in flows, 8 of 80 steps name no seat.</text>
   </g>
 </svg>
 
@@ -283,7 +253,7 @@ One role answers for several seats. The default executor role takes `implementer
 
 </div>
 
-On **Profiles**, add one on a second provider; on **Crew**, open the crew and move the reviewer and verifier roles onto it. Configure that provider first, or the profile is refused with `Provider "codex" is not configured.`
+On **Profiles**, add one on a second provider; on **Crew**, open the crew and move the reviewer role onto it, and the verifier too for the flows that seat one, like `deep` and `express`. Configure that provider first, or the profile is refused with `Provider "codex" is not configured.`
 
 ```bash
 vibe profile add second-opinion --provider codex --model gpt-5.5 --power high
@@ -396,7 +366,7 @@ A change crosses three branches: the run's own, which forks from main when the r
 
 ### Which runs arrive committed
 
-A run on the linear flows - `default`, `express`, `panel-review`, `security-review`, `plan-only`, `scaffold`, `quality-arbitration` - leaves its edits uncommitted in the worktree, so the commit message stays yours to write. Read the diff and write that commit, or the merge lands a clean nothing:
+A run on the linear flows - `default`, `deep`, `express`, `panel-review`, `security-review`, `plan-only`, `scaffold`, `quality-arbitration` - leaves its edits uncommitted in the worktree, so the commit message stays yours to write. Read the diff and write that commit, or the merge lands a clean nothing:
 
 ```bash
 cd "$(vibe path bold-lovelace --cd)"

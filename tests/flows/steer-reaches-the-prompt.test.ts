@@ -100,9 +100,9 @@ describe("a queued note reaches the prompt on a linear flow", () => {
         const runId = runs[0];
         if (!runId) return;
         if (!queued) {
-          // Aimed at the LAST step, so the note is waiting long before the walk
-          // gets there and the assertion is not a race with the scheduler.
-          await queueGuidance(new RunStateStore(dir, runId), NOTE, { stepId: "verify" })
+          // Aimed at the LAST step (review, on the lean default), so the note is
+          // waiting long before the walk gets there - not a scheduler race.
+          await queueGuidance(new RunStateStore(dir, runId), NOTE, { stepId: "review" })
             .then(() => {
               queued = true;
             })
@@ -140,7 +140,7 @@ describe("a queued note reaches the prompt on a linear flow", () => {
       .map((l) => JSON.parse(l) as { type: string; data?: Record<string, unknown> });
     const guided = events.filter((e) => e.type === "flow.step.guided");
     expect(guided.length, "no flow.step.guided event was recorded").toBeGreaterThan(0);
-    expect(guided[0]?.data?.stepId).toBe("verify");
+    expect(guided[0]?.data?.stepId).toBe("review");
     // The note text must never enter the event log.
     expect(eventsRaw).not.toContain(NOTE);
 

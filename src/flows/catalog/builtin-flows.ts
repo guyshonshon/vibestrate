@@ -7,8 +7,12 @@
 //
 // The flows, in short. Most carry their own comment above the export with the
 // shape and the reasoning; read that before editing one.
-//   default ......... plan -> architect -> implement -> validate -> review/fix
-//                     loop -> verify. What a run resolves when it picks nothing.
+//   default ......... plan -> implement -> validate -> review, with review
+//                     findings re-entering `implement` itself. No fixer seat,
+//                     no verify turn. What a run resolves when it picks nothing.
+//   deep ............ the six-seat pipeline that used to be `default`: adds an
+//                     architecture pass, a dedicated fixer answering review
+//                     rounds, and an independent verify gate.
 //   plan-only ....... plan + review, writes no code.
 //   quality-arbitration ... a builder plans and implements, a challenger
 //                     reviews the plan and then the diff, the builder answers
@@ -53,6 +57,7 @@
 import type { FlowDefinition } from "../schemas/flow-schema.js";
 import {
   defaultFlow,
+  deepFlow,
   planOnlyFlow,
   expressFlow,
   scaffoldFlow,
@@ -83,6 +88,7 @@ export * from "./flows/research.js";
 
 export const builtinFlows: readonly FlowDefinition[] = [
   defaultFlow,
+  deepFlow,
   planOnlyFlow,
   qualityArbitrationFlow,
   pickupFlow,

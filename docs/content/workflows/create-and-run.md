@@ -84,26 +84,22 @@ vibe run "..." --profile <id>
 
 Open the run from the sidebar and the **Live timeline** tracks the steps as they happen, beside **Live metrics** and **Changed files**. Watching is optional - the run does not need you - but it is the fastest way to learn the shape. See [Inspect a run in flight](/docs/workflows/inspect-progress).
 
-The default flow is eight steps, and Vibestrate works through them on its own:
+The default flow is four steps, and Vibestrate works through them on its own:
 
 <div class="docs-flow">
 <div><b>plan</b><span>Turns the task into a plan.</span></div>
-<div><b>architecture</b><span>Designs the approach from the plan.</span></div>
 <div><b>implement</b><span>Writes the change in the safe copy.</span></div>
 <div><b>validation</b><span>Runs your own commands against the result.</span></div>
-<div><b>review</b><span>A fresh seat reads the diff cold.</span></div>
-<div><b>fix</b><span>Addresses what the review asked for.</span></div>
-<div><b>revalidation</b><span>Runs your commands again over the fix.</span></div>
-<div><b>verify</b><span>A last seat decides whether it is merge-ready.</span></div>
+<div><b>review</b><span>A fresh seat judges the whole execution, and can run your tests itself.</span></div>
 </div>
 
-Review, fix and re-validate repeat until the review passes or the bound is hit - one review plus up to two fix rounds, by default. Those names are the step ids too, so the review's own write-up is at `artifacts/flows/review/output.md` in the run's folder.
+The implementer's turn ends with a scoped self-review of its own diff. When the review asks for changes, the findings go back to that same implement step rather than to a separate fixer seat, and implement, validate and review run again - three passes at most, the first implementation plus two redos. There is no verify step: merge-ready is an approved review over passing validation. The `deep` flow is the one that keeps an architecture pass, a dedicated fixer and an independent verify gate. Those names are the step ids too, so the review's own write-up is at `artifacts/flows/review/output.md` in the run's folder.
 
 When the run finishes, it lands in one of four states:
 
 <div class="docs-outcomes">
 <div class="docs-outcome ok"><b>merge_ready</b><span>The diff is ready to ship.</span></div>
-<div class="docs-outcome warn"><b>blocked</b><span>The reviewer or verifier flagged something a human should decide.</span></div>
+<div class="docs-outcome warn"><b>blocked</b><span>The reviewer, or the Deep flow's verifier, flagged something a human should decide.</span></div>
 <div class="docs-outcome stop"><b>failed</b><span>An unrecoverable error during a stage.</span></div>
 <div class="docs-outcome stop"><b>aborted</b><span>You stopped the run yourself.</span></div>
 </div>

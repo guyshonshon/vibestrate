@@ -68,11 +68,22 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
 
 async function runFlow(dir: string, task: string, resume?: { sourceRunId: string; fromStage: ResumeStage }) {
   const loaded = await loadConfig(dir);
+  // Rewind targets the architecting/executing stages of the six-seat shape -
+  // that shape is `deep` now, so resolve it explicitly (the lean default has
+  // no architecting stage to rewind to).
+  const deep = await findFlowById(dir, "deep");
+  const snapshot = resolveFlow({
+    flow: deep!.definition,
+    source: deep!.source,
+    config: loaded.config,
+    task,
+  });
   return new Orchestrator({
     projectRoot: dir,
     config: loaded.config,
     rules: loaded.rules,
     task,
+    flow: snapshot,
     isGitRepo: true,
     onProgress: () => {},
     ...(resume ? { resumeFrom: await resolveResumeFrom(dir, resume) } : {}),

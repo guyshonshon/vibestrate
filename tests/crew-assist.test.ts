@@ -1097,9 +1097,10 @@ describe("crew-assist: seat coverage is computed, never claimed", () => {
     const profile = await firstProfileId(project);
     const coverage = await coverageOf(project, defaultRoles(profile));
 
-    // Hand-computed against the built-in `default` flow, which seats planner,
-    // architect, implementer, reviewer, fixer and verifier. This crew has one
-    // role on `planner` and one on `implementer`, and nothing else.
+    // Hand-computed against the built-in flows: the lean `default` seats
+    // planner/implementer/reviewer, and `deep` still asks for architect,
+    // fixer and verifier. This crew has one role on `planner` and one on
+    // `implementer`, and nothing else.
     expect(seatFill(coverage, "planner")).toMatchObject({
       roleIds: ["duo-planner"],
       status: "filled",
@@ -1112,8 +1113,10 @@ describe("crew-assist: seat coverage is computed, never claimed", () => {
       expect(seatFill(coverage, uncovered)).toMatchObject({ roleIds: [], status: "gap" });
     }
     // Each seat names the flows that ask for it, which is what makes "why is
-    // this seat uncovered?" answerable rather than a matter of opinion.
-    expect(seatFill(coverage, "architect").flowIds).toContain("default");
+    // this seat uncovered?" answerable rather than a matter of opinion. The
+    // architect seat is asked for by `deep` now, not the lean default.
+    expect(seatFill(coverage, "architect").flowIds).toContain("deep");
+    expect(seatFill(coverage, "reviewer").flowIds).toContain("default");
     expect(coverage.idleRoleSeats).toEqual([]);
   });
 

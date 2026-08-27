@@ -15,7 +15,7 @@ import { chooseRunFlow } from "../src/supervisor/select-workflow.js";
 import { resolveRunPosture } from "../src/supervisor/posture-apply.js";
 import { deriveRunAssurance } from "../src/safety/run-assurance.js";
 import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
-import { securityReviewFlow, reviewPanelFlow, defaultFlow } from "../src/flows/catalog/builtin-flows.js";
+import { securityReviewFlow, reviewPanelFlow, defaultFlow, deepFlow } from "../src/flows/catalog/builtin-flows.js";
 
 function baseConfigRaw(extra: Record<string, unknown> = {}) {
   return {
@@ -359,13 +359,15 @@ describe("supervisor personas - the review panels are review-only (capped at par
   // that claim up - if someone adds a verify gate to these flows, the cap silently
   // breaks and the changelog becomes a lie. These two assertions are that guard.
 
-  it("security-review and panel-review have no verifying-stage step (the default flow does)", () => {
+  it("security-review and panel-review have no verifying-stage step (deep does)", () => {
     const hasVerifyGate = (f: typeof defaultFlow) => f.steps.some((s) => s.stage === "verifying");
     expect(hasVerifyGate(securityReviewFlow)).toBe(false);
     expect(hasVerifyGate(reviewPanelFlow)).toBe(false);
-    // Anchor: the "verifying" discriminator is real - the default flow DOES verify,
-    // so the two `false`s above mean "no verify gate", not "wrong stage name".
-    expect(hasVerifyGate(defaultFlow)).toBe(true);
+    // Anchor: the "verifying" discriminator is real - `deep` DOES verify, so
+    // the two `false`s above mean "no verify gate", not "wrong stage name".
+    // (The lean default has no verify gate either, by design.)
+    expect(hasVerifyGate(deepFlow)).toBe(true);
+    expect(hasVerifyGate(defaultFlow)).toBe(false);
   });
 
   it("both panels' terminal scrutiny is a review-turn arbiter, not a verify gate", () => {
@@ -490,7 +492,13 @@ describe("reviewerProfile resolution", () => {
   });
 
   it("the FIX step (a writer) and seatless steps are untouched", () => {
-    const snap = resolveDefault(cfgWithCheapReviewer(), {
+    // The fix step lives in `deep` now (the lean default has no fixer seat);
+    // the discriminator under test - writers keep their profile - is the same.
+    const snap = resolveFlow({
+      flow: deepFlow,
+      source: { kind: "builtin", ref: deepFlow.id },
+      config: cfgWithCheapReviewer(),
+      task: "t",
       reviewerProfile: "cheap-reviewer",
     });
     const fix = snap.steps.find((s) => s.id.startsWith("fix"));

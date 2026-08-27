@@ -9,11 +9,120 @@ import {
   flowDefinitionSchema,
 } from "../../schemas/flow-schema.js";
 
-// The built-in **default flow**: the fixed plan → architect → implement →
-// validate → review → (fix → re-validate → review)* → verify workflow, expressed
-// as a real flow definition. This is the single source of truth for the default
-// workflow's shape - a plain `vibe run` resolves it and executes it through the
-// one flow runner. There is no separate code path.
+// The built-in **default flow**: plan → implement → validate → review, with
+// the reviewer sending changes STRAIGHT BACK to the implementer. This is the
+// single source of truth for the default workflow's shape - a plain `vibe run`
+// resolves it and executes it through the one flow runner. There is no
+// separate code path.
+//
+// Three seats on purpose. The earlier six-seat pipeline (architect, dedicated
+// fixer, verify gate - preserved below as `deep`) spent five of its six turns
+// around the one turn that writes code, and profiling real runs showed the
+// wall was almost entirely those extra full-context turns. Here the
+// implementer owns its work through the loop: its role prompt ends with a
+// scoped self-review of its own diff, and review findings re-enter the
+// SAME implement step rather than a separate fixer seat.
+//
+// The loop body is [implement, validation, review] with `decisionStep` at the
+// tail `review`. Each pass implements (with the latest findings in context -
+// the `findings` input is empty on the first pass and carries the review's
+// arbitration ledger on re-entry), validates, then reviews; a decision other
+// than CHANGES_REQUESTED exits the loop. `maxIterations: 3` = the initial
+// implementation plus two redo passes.
+//
+// No verify summary-turn: merge-readiness is an APPROVED review plus passing
+// validation (merge-readiness.ts waives the verification clause when no
+// summary-turn ran). The reviewer seat is the judge of record - the scaffolded
+// crew runs it under the `review_exec` permission profile so it can execute
+// the test suite itself instead of trusting the implementer's word.
+//
+// `skipWhenReadOnly` marks the steps a read-only run skips; `stage` marks each
+// step's phase so `--resume-from <stage>` can seed the upstream steps.
+export const defaultFlow = flowDefinitionSchema.parse({
+  id: "default",
+  version: 2,
+  label: "Default",
+  description:
+    "Plan → implement → validate → review. Changes requested go straight back to the implementer - who self-reviews its own diff before every hand-off - until the reviewer approves or the loop budget runs out. The reviewer judges the whole execution against the plan and project rules, and can run the tests itself.",
+  seats: {
+    planner: {
+      label: "Planner",
+      description: "Turns the task into a plan.",
+    },
+    implementer: {
+      label: "Implementer",
+      description:
+        "Implements the plan, self-reviews its own diff in scope, and owns the work through review rounds.",
+    },
+    reviewer: {
+      label: "Reviewer",
+      description:
+        "Judges the whole execution against the plan and project rules; may run the tests.",
+    },
+  },
+  steps: [
+    {
+      id: "plan",
+      label: "Plan",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief"],
+      outputs: ["plan"],
+    },
+    {
+      id: "implement",
+      label: "Implement",
+      kind: "agent-turn",
+      seat: "implementer",
+      stage: "executing",
+      // `findings` and `validation` are produced LATER in the sequence, so on
+      // the first pass they resolve as omitted-unavailable; on loop re-entry
+      // they carry the review's findings ledger and the last validation run.
+      inputs: ["task-brief", "plan", "findings", "validation"],
+      outputs: ["execution", "diff"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "validation",
+      label: "Validate",
+      kind: "validation",
+      stage: "executing",
+      inputs: ["diff"],
+      outputs: ["validation"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "review",
+      label: "Review",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      inputs: ["task-brief", "plan", "execution", "validation"],
+      outputs: ["findings", "review-decision"],
+    },
+  ],
+  loop: {
+    from: "implement",
+    to: "review",
+    decisionStep: "review",
+    maxIterations: 3,
+  },
+  complexity: "medium",
+  capabilities: {
+    taskKinds: ["feature", "bugfix", "refactor", "chore", "docs"],
+    strengths: ["general", "implementation"],
+    costClass: "medium",
+    latencyClass: "medium",
+    requires: { validation: true },
+  },
+});
+
+// ── Deep ───────────────────────────────────────────────────────────────────
+// The six-seat pipeline that WAS the default: plan → architect → implement →
+// validate → review → (fix → re-validate → review)* → verify. Kept as its own
+// flow for work where a separate architecture pass and an independent verify
+// gate earn their turns; the default is now the three-seat loop above.
 //
 // The review→fix loop is the adaptive-loop construct, not a fixed repeat: the
 // body is [review, fix, revalidation] and `decisionStep` is the head `review`.
@@ -24,16 +133,12 @@ import {
 //
 // `skipWhenReadOnly` marks the steps a read-only run skips; `stage` marks each
 // step's phase so `--resume-from <stage>` can seed the upstream steps.
-export const defaultFlow = flowDefinitionSchema.parse({
-  id: "default",
+export const deepFlow = flowDefinitionSchema.parse({
+  id: "deep",
   version: 1,
-  label: "Default",
+  label: "Deep",
   description:
-    // No claim about being the default here: `defaultFlow` is per-project and
-    // can name any flow, so a static description asserting "runs when no other
-    // flow is picked" is false the moment someone points it elsewhere. The UI
-    // reads the real value and says so next to the flow's name.
-    "The standard plan → architect → implement → validate → review workflow. Review loops back to fix and re-validate until it passes or the bound is hit, then a verify gate decides merge-readiness.",
+    "The heavyweight pipeline: plan → architect → implement → validate → review, with a dedicated fixer answering review rounds and an independent verify gate deciding merge-readiness.",
   seats: {
     planner: {
       label: "Planner",

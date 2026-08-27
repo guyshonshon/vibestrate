@@ -6,6 +6,8 @@ import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
 import { Orchestrator } from "../src/core/orchestrator.js";
+import { findFlowById } from "../src/flows/catalog/flow-discovery.js";
+import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import { ApprovalService } from "../src/core/run/approval-service.js";
 import { runStateSchema } from "../src/core/state-machine.js";
@@ -86,11 +88,21 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
     projectRoot: dir,
     runIt: async (decide) => {
       const loaded = await loadConfig(dir);
-      const orch = new Orchestrator({
+            // These scenarios exercise stages the lean default no longer has
+      // (architecting, fix, verify) - run them on `deep`, the old shape.
+      const deepFlowDiscovered = await findFlowById(dir, "deep");
+      const deepSnapshot = resolveFlow({
+        flow: deepFlowDiscovered!.definition,
+        source: deepFlowDiscovered!.source,
+        config: loaded.config,
+        task: "approval gate test",
+      });
+const orch = new Orchestrator({
         projectRoot: dir,
         config: loaded.config,
         rules: loaded.rules,
         task: "approval gate test",
+        flow: deepSnapshot,
         isGitRepo: true,
         onProgress: () => {},
       });

@@ -16,7 +16,7 @@ Vibestrate works in a second checkout of your repository, beside your project, s
 
 </div>
 
-![The header of a finished run reading merge ready, with the task, the flow it followed, its eight steps, the elapsed time and the diff.](/media/docs/scoped/run-header.png)
+![The header of a finished run reading merge ready, with the task, the flow it followed, its steps, the elapsed time and the diff.](/media/docs/scoped/run-header.png)
 
 ## Where a run can end
 
@@ -59,51 +59,37 @@ Vibestrate works best on what you'd hand a careful colleague: clear scope, code 
 <div class="docs-flow">
 <div><b>Look</b><span>Reads your project to learn its language, its tools, and how you run your tests.</span></div>
 <div><b>Copy</b><span>Makes a second checkout of your repo beside your project, under ../.vibestrate-worktrees/, in a folder named for the run.</span></div>
-<div><b>Build</b><span>Plans the change, designs the approach, writes it, then runs your validation commands.</span></div>
-<div><b>Check</b><span>A reviewer checks the diff against the plan and the validation results; if it asks for changes, a fixer makes them and validation runs again.</span></div>
-<div><b>Verify</b><span>A separate verifier takes a last pass and decides whether it is ready to merge.</span></div>
+<div><b>Build</b><span>Plans the change, writes it, then runs your validation commands. The implementer reviews its own diff before hand-off.</span></div>
+<div><b>Check</b><span>A reviewer checks the diff against the plan and the validation results, and can run your tests itself; if it asks for changes, the work goes back to the implementer and validation runs again.</span></div>
+<div><b>Decide</b><span>Merge-ready is an approved review with your validation passing.</span></div>
 </div>
 
-The default flow wires that into eight steps, with the review loop capped at three passes: one review plus up to two fix cycles.
+The default flow wires that into four steps, with the loop capped at three passes: the first implementation plus up to two redo passes. The `deep` flow keeps the longer eight-step pipeline - an architecture pass, a dedicated fixer seat and an independent verify gate - for work that earns them.
 
-<svg viewBox="0 0 560 100" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The default flow runs plan, architecture, implement, validation, review and verify in order; when review asks for changes it loops through fix and revalidation and back to review.">
+<svg viewBox="0 0 380 84" width="100%" style="max-width:380px;height:auto" role="img" aria-label="The default flow runs plan, implement, validation and review in order; when review asks for changes it loops back to implement.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
     <rect x="3" y="6" width="64" height="30" rx="8"/>
-    <rect x="86" y="6" width="96" height="30" rx="8"/>
-    <rect x="201" y="6" width="80" height="30" rx="8"/>
-    <rect x="300" y="6" width="84" height="30" rx="8"/>
-    <rect x="403" y="6" width="68" height="30" rx="8"/>
-    <rect x="490" y="6" width="68" height="30" rx="8"/>
-    <rect x="201" y="62" width="80" height="30" rx="8"/>
-    <rect x="300" y="62" width="96" height="30" rx="8"/>
+    <rect x="86" y="6" width="88" height="30" rx="8"/>
+    <rect x="193" y="6" width="88" height="30" rx="8"/>
+    <rect x="300" y="6" width="68" height="30" rx="8"/>
   </g>
   <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
     <path d="M71 17l4 4-4 4"/>
-    <path d="M186 17l4 4-4 4"/>
+    <path d="M178 17l4 4-4 4"/>
     <path d="M285 17l4 4-4 4"/>
-    <path d="M388 17l4 4-4 4"/>
-    <path d="M475 17l4 4-4 4"/>
-    <path d="M415 36v12h-174v8"/>
-    <path d="M281 77h14"/>
-    <path d="M396 77h59v-35"/>
+    <path d="M334 36v22H130v-16"/>
   </g>
   <g fill="currentColor" fill-opacity="0.5">
-    <path d="M237 56l4 6 4-6z"/>
-    <path d="M295 73l5 4-5 4z"/>
-    <path d="M451 42l4-6 4 6z"/>
+    <path d="M126 42l4-6 4 6z"/>
   </g>
   <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
     <text x="35" y="25">plan</text>
-    <text x="134" y="25">architecture</text>
-    <text x="241" y="25">implement</text>
-    <text x="342" y="25">validation</text>
-    <text x="437" y="25">review</text>
-    <text x="524" y="25">verify</text>
-    <text x="241" y="81">fix</text>
-    <text x="348" y="81">revalidation</text>
+    <text x="130" y="25">implement</text>
+    <text x="237" y="25">validation</text>
+    <text x="334" y="25">review</text>
   </g>
   <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="end">
-    <text x="189" y="81">if review asks for changes</text>
+    <text x="330" y="74">if review asks for changes</text>
   </g>
 </svg>
 
@@ -139,7 +125,6 @@ Add `--ui` and the dashboard starts alongside the run. Each step prints a line a
 ```text
 Final status: merge_ready
   Review decision: APPROVED
-  Verification: PASSED
   Artifacts: .vibestrate/runs/zen-bohr/artifacts
   Worktree: /home/you/.vibestrate-worktrees/zen-bohr
   Branch: vibestrate/zen-bohr
@@ -162,7 +147,7 @@ git diff main
 
 A run keeps its full record on disk whichever state it ended in, and the run page's **Events** and **Artifacts** tabs read it in the browser.
 
-- **`blocked`** - a reviewer or verifier flagged something you need to decide. `artifacts/flows/review/output.md` holds the objection (or `verify/output.md`), and `events.ndjson` carries the matching `review.decision` or `verification.decision` event.
+- **`blocked`** - the reviewer flagged something you need to decide, or on `deep` the verifier did. `artifacts/flows/review/output.md` holds the objection (or `verify/output.md`), and `events.ndjson` carries the matching `review.decision` or `verification.decision` event.
 - **`failed`** - something broke partway. Look at the last event in `events.ndjson` before the failure, and at that step's folder under `artifacts/flows/`.
 - **`aborted`** - you stopped it. The worktree stays in place, so half-finished work is still there to read.
 

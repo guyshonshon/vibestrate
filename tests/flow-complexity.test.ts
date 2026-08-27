@@ -5,6 +5,7 @@ import {
 } from "../src/flows/runtime/flow-complexity.js";
 import {
   defaultFlow,
+  deepFlow,
   pickupFlow,
   qualityArbitrationFlow,
 } from "../src/flows/catalog/builtin-flows.js";
@@ -41,7 +42,8 @@ describe("inferFlowComplexity", () => {
   });
 
   it("the built-in flows declare sensible weights", () => {
-    expect(inferFlowComplexity(defaultFlow)).toBe("high");
+    expect(inferFlowComplexity(defaultFlow)).toBe("medium");
+    expect(inferFlowComplexity(deepFlow)).toBe("high");
     expect(inferFlowComplexity(pickupFlow)).toBe("medium");
     expect(inferFlowComplexity(qualityArbitrationFlow)).toBe("high");
   });

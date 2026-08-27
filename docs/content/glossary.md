@@ -63,7 +63,7 @@ One pass over the task, on its own branch.
 
 **Context source.** A file, PDF or URL handed to a run or task so its contents reach **every** agent's prompt (`vibe run --context-file/--context-pdf/--context-url`, or a task's context panel). Secret files are refused and secret-looking text hidden - including text pulled out of a PDF; URLs are size-capped and cleaned. PDFs are read with poppler's `pdftotext`, which Vibestrate does not bundle, so a missing one is reported with the install command. A source that fails is skipped with a note rather than breaking the run.
 
-**Artifact.** Any file a run makes: each step's prompt and reply, validation output, review findings, the verification summary. All under that run's folder in `.vibestrate/runs/`.
+**Artifact.** Any file a run makes: each step's prompt and reply, validation output, review findings, and the verification summary when the flow has a verify step. All under that run's folder in `.vibestrate/runs/`.
 
 **CLI.** The `vibe` command-line tool - the automation path. Anything the dashboard does it can do, which makes a run scriptable from CI.
 

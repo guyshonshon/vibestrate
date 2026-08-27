@@ -12,7 +12,7 @@ Open **Crew** in the dashboard sidebar, pick a crew, and the **Roles** section i
 
 <div class="docs-callout tip">
 
-**Tip.** The permissions control on the card is what decides whether this worker can change your code. Planner, architect, reviewer and verifier ship **Read only**. Only the executor and fixer are set to **Can write**, and only inside the run's [[worktree]].
+**Tip.** The permissions control on the card is what decides whether this worker can change your code. Planner, architect and verifier ship **Read only**, and the reviewer ships `review_exec` - it runs commands but never writes. Only the executor and fixer are set to **Can write**, and only inside the run's [[worktree]].
 
 </div>
 
@@ -28,7 +28,7 @@ A role is its [[seat]]s, its [[profile]], its permission, its instructions and i
 
 ## The six that ship
 
-`vibe init` writes six roles. Each fills the seat its id names, plus any others listed.
+`vibe init` writes six roles. Each fills the seat its id names, plus any others listed. A default run seats three of them - planner, executor and reviewer. The `deep` flow is what uses all six.
 
 <div class="docs-cards">
 
@@ -39,16 +39,16 @@ Reads the task and produces a structured plan.
 Expands the plan with module boundaries and interfaces.
 
 **`executor`**
-Also fills `implementer` and `builder`. Edits files in the worktree.
+Also fills `implementer` and `builder`. Edits files in the worktree, and self-reviews its own diff before hand-off.
 
 **`fixer`**
-Addresses review findings without rebuilding from scratch.
+`deep`'s answer to review findings, without rebuilding from scratch. A default run sends findings back to the executor instead.
 
 **`reviewer`**
-Also fills `challenger`. Critiques the diff; returns APPROVED, CHANGES_REQUESTED or BLOCKED.
+Also fills `challenger`. Judges the execution against the plan and the project rules; returns APPROVED, CHANGES_REQUESTED or BLOCKED.
 
 **`verifier`**
-Also fills `arbiter`. The final gate before `merge_ready`.
+Also fills `arbiter`. `deep`'s final gate before `merge_ready`.
 
 </div>
 
@@ -59,12 +59,15 @@ Also fills `arbiter`. The final gate before `merge_ready`.
 **Read only** (`read_only`)
 Reads and reasons, never writes a file.
 
+**`review_exec`**
+Runs commands inside the worktree - the tests, the build - with no edit tools. What the scaffolded reviewer ships with.
+
 **Can write** (`code_write`)
 May edit files inside the run's worktree.
 
 </div>
 
-That setting gates Vibestrate's own Action Broker. For the agent to actually write, the underlying CLI has to allow it too: on a `claude-code` [[provider]], a `code_write` seat's turn gets `--permission-mode acceptEdits`. Read-only seats get no write grant at all.
+That setting gates Vibestrate's own Action Broker. For the agent to actually write, the underlying CLI has to allow it too: on a `claude-code` [[provider]], a `code_write` seat's turn gets `--permission-mode acceptEdits`. A `review_exec` turn gets the same mode so its commands run headless, with `Edit`, `Write` and `NotebookEdit` cut from the invocation - the no-write half is enforced at the tool layer, not asked for in the prompt. Read-only seats get no write grant at all.
 
 ## Role, profile, provider
 

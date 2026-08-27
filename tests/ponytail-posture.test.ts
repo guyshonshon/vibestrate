@@ -5,12 +5,14 @@ import {
   renderPonytailBlock,
 } from "../src/supervisor/ponytail-posture.js";
 import { composeReviewerStepNotes } from "../src/supervisor/review-lenses.js";
-import { defaultFlow } from "../src/flows/catalog/builtin-flows.js";
+import { defaultFlow, deepFlow } from "../src/flows/catalog/builtin-flows.js";
 
-// The default flow's real steps, so the test asserts against the shipped seats.
+// Real shipped steps. `deep` carries every step kind (fix, architecture,
+// verify), so the discriminator is asserted there; the lean default's
+// implement step is asserted separately - it must stay code-writing.
 const stepById = (id: string) => {
-  const s = defaultFlow.steps.find((st) => st.id === id);
-  if (!s) throw new Error(`no step ${id} in defaultFlow`);
+  const s = deepFlow.steps.find((st) => st.id === id);
+  if (!s) throw new Error(`no step ${id} in deepFlow`);
   return s;
 };
 
@@ -18,6 +20,8 @@ describe("ponytail - code-writing seat discriminator", () => {
   it("targets the implementer/fixer (executing model turns that emit a diff)", () => {
     expect(isCodeWritingStep(stepById("implement"))).toBe(true);
     expect(isCodeWritingStep(stepById("fix"))).toBe(true);
+    const leanImplement = defaultFlow.steps.find((st) => st.id === "implement");
+    expect(isCodeWritingStep(leanImplement!)).toBe(true);
   });
 
   it("excludes planners, reviewers, validation, and the verify/summary turn", () => {

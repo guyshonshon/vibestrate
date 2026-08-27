@@ -224,13 +224,23 @@ describe("orchestrator -> claude write-permission wiring (integration)", () => {
     expect(exec).toContain("--permission-mode");
     expect(exec).toContain("acceptEdits");
 
-    // Read-only seats that always run before/at implement: no write grant.
-    for (const role of ["planner", "architect"]) {
-      const args = await readRoleArgs(dir, runId, role);
-      expect(args, `${role} must have spawned`).not.toBeNull();
-      expect(args, `${role} (read_only) must NOT get a write grant`).not.toContain(
-        "--permission-mode",
-      );
+    // The read-only planner: no write grant.
+    const planner = await readRoleArgs(dir, runId, "planner");
+    expect(planner, "planner must have spawned").not.toBeNull();
+    expect(planner, "planner (read_only) must NOT get a write grant").not.toContain(
+      "--permission-mode",
+    );
+
+    // The scaffolded reviewer runs review_exec: shell yes (acceptEdits so
+    // headless commands run), writes no - the edit tools are cut from the
+    // invocation itself, which is the enforcement, not the prompt.
+    const reviewer = await readRoleArgs(dir, runId, "reviewer");
+    expect(reviewer, "reviewer must have spawned").not.toBeNull();
+    expect(reviewer).toContain("acceptEdits");
+    const di = reviewer!.indexOf("--disallowedTools");
+    expect(di, "reviewer must carry --disallowedTools").toBeGreaterThan(-1);
+    for (const tool of ["Edit", "Write", "NotebookEdit"]) {
+      expect(reviewer![di + 1]).toContain(tool);
     }
   }, 60_000);
 

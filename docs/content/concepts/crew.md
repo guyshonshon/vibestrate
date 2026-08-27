@@ -26,7 +26,7 @@ Every [[seat]] the flow asks for is covered, and this crew runs unless a run nam
 
 <div class="docs-callout">
 
-**Did you know?** One role can cover several kinds of step, which is why six workers can staff a flow with more steps than that. The `executor` role in the scaffold takes `implementer`, `executor` and `builder`.
+**Did you know?** One role can cover several kinds of step, which is why six workers can staff the eight-step `deep` flow. The `executor` role in the scaffold takes `implementer`, `executor` and `builder`, and the default flow seats three of the six roles per run.
 
 </div>
 

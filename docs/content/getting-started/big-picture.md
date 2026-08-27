@@ -36,7 +36,7 @@ Say what you want and leave the how to the workers; naming a file or a rule to r
 
 ## Flow - the routine the Task runs through
 
-A **Flow** is the ordered steps a Task moves through. The **Flows** page lists this project's, built-in and your own. The built-in `default` flow has eight steps; [Workflow](/docs/concepts/workflow) walks through each and the status it produces.
+A **Flow** is the ordered steps a Task moves through. The **Flows** page lists this project's, built-in and your own. The built-in `default` flow has four steps; [Workflow](/docs/concepts/workflow) walks through each and the status it produces.
 
 A run doesn't always take that Flow: with no flow pinned and no project default, Vibestrate sizes up the task and can route a short, low-risk one to a leaner Flow. [Flow](/docs/concepts/flow) covers what gets picked, and when.
 
@@ -76,7 +76,7 @@ Setup writes one Crew called `default` with six roles:
 
 <div class="docs-chips"><span>Planner</span><span>Architect</span><span>Backend Implementer</span><span>Fixer</span><span>Reviewer</span><span>Verifier</span></div>
 
-A Role can fill more than one seat. The Reviewer sits in the `reviewer` and `challenger` seats, the Backend Implementer covers `implementer`, `executor` and `builder`. Only the Backend Implementer and the Fixer can write files; the other four run read-only.
+A Role can fill more than one seat. The Reviewer sits in the `reviewer` and `challenger` seats, the Backend Implementer covers `implementer`, `executor` and `builder`. Only the Backend Implementer and the Fixer can write files; the Reviewer can run commands like your test suite but not edit, and the other three run read-only.
 
 Keep more than one Crew and pick which a Task uses, from the compose page's **Crew** section or with `--crew`.
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { projectConfigSchema } from "../../src/project/config-schema.js";
 import {
   builtinFlows,
-  defaultFlow,
+  deepFlow,
   findBuiltinFlow,
 } from "../../src/flows/catalog/builtin-flows.js";
 import { flowDefinitionSchema } from "../../src/flows/schemas/flow-schema.js";
@@ -35,14 +35,14 @@ function flowTestConfig() {
   });
 }
 
-describe("Default flow definition (D2 phase B-2)", () => {
+describe("Deep flow definition (the six-seat pipeline, formerly default)", () => {
   it("is a schema-valid flow whose steps mirror the fixed plan→build→verify workflow", () => {
     // It is constructed via flowDefinitionSchema.parse at import; re-parsing
     // guards against a future edit that quietly relies on a default/transform.
-    expect(() => flowDefinitionSchema.parse(defaultFlow)).not.toThrow();
+    expect(() => flowDefinitionSchema.parse(deepFlow)).not.toThrow();
 
-    expect(defaultFlow.id).toBe("default");
-    expect(defaultFlow.steps.map((s) => [s.id, s.kind, s.seat ?? null])).toEqual([
+    expect(deepFlow.id).toBe("deep");
+    expect(deepFlow.steps.map((s) => [s.id, s.kind, s.seat ?? null])).toEqual([
       ["plan", "agent-turn", "planner"],
       ["architecture", "agent-turn", "architect"],
       ["implement", "agent-turn", "implementer"],
@@ -55,34 +55,35 @@ describe("Default flow definition (D2 phase B-2)", () => {
   });
 
   it("declares the review→fix loop as an adaptive loop gated by the head review", () => {
-    expect(defaultFlow.loop).toEqual({
+    expect(deepFlow.loop).toEqual({
       from: "review",
       to: "revalidation",
       decisionStep: "review",
       maxIterations: 3,
     });
-    const ids = defaultFlow.steps.map((s) => s.id);
+    const ids = deepFlow.steps.map((s) => s.id);
     const fromI = ids.indexOf("review");
     const toI = ids.indexOf("revalidation");
     // The gate sits at the head of the body so the loop can exit to `verify`
     // before running `fix` when the review approves - mirrors run()'s loop.
     expect(fromI).toBeLessThan(toI);
     expect(ids.indexOf("verify")).toBeGreaterThan(toI);
-    const decision = defaultFlow.steps.find((s) => s.id === defaultFlow.loop!.decisionStep);
+    const decision = deepFlow.steps.find((s) => s.id === deepFlow.loop!.decisionStep);
     expect(decision?.kind).toBe("review-turn");
   });
 
-  it("is in the discoverable catalog (B-3b: runnable as --flow default)", () => {
+  it("is in the discoverable catalog (runnable as --flow deep)", () => {
     // B-3a taught the flow runner to iterate the loop, so the default flow is
     // now a real catalog entry - runnable/forkable as `--flow default`.
+    expect(builtinFlows.some((f) => f.id === "deep")).toBe(true);
     expect(builtinFlows.some((f) => f.id === "default")).toBe(true);
-    expect(findBuiltinFlow("default")).not.toBeNull();
+    expect(findBuiltinFlow("deep")).not.toBeNull();
   });
 
   it("resolves against the six default roles, carrying the loop through unchanged", () => {
     const snapshot = resolveFlow({
-      flow: defaultFlow,
-      source: { kind: "builtin", ref: "default" },
+      flow: deepFlow,
+      source: { kind: "builtin", ref: "deep" },
       config: flowTestConfig(),
       task: "Add an audit-log writer.",
       resolvedAt: "2026-05-27T00:00:00.000Z",
@@ -124,7 +125,7 @@ describe("Default flow definition (D2 phase B-2)", () => {
       "revalidation",
       "verify",
     ]);
-    expect(snapshot.loop).toEqual(defaultFlow.loop);
+    expect(snapshot.loop).toEqual(deepFlow.loop);
     for (const ref of [snapshot.loop!.from, snapshot.loop!.to, snapshot.loop!.decisionStep]) {
       expect(resolvedIds).toContain(ref);
     }

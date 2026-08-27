@@ -42,54 +42,50 @@ The sequence is the record, so a finished task can be re-read rather than rememb
 
 ## The happy path
 
-When nothing goes wrong, a task walks through every status once and finishes ready to merge.
+When nothing goes wrong, a task walks its flow's statuses once and finishes ready to merge.
 
 ```text
 created → planning → planned
-  → architecting → architected
   → executing → validating
-  → reviewing → verifying → merge_ready
+  → reviewing → merge_ready
 ```
 
-It leaves a diff on the worktree branch.
+It leaves a diff on the worktree branch. The `deep` flow adds `architecting → architected` before execution and a `verifying` gate before `merge_ready`.
 
 ## When the reviewer asks for changes
 
-The review step can send work back. When it does, the task drops into `fixing`, runs validation again, and returns to `reviewing` instead of moving on. The run's status hero grows a **review loop** figure reading the pass you are on against the budget.
+The review step can send work back. When it does, the default flow re-enters the implement step itself with the findings: the task returns to `executing`, runs validation again, and comes back to `reviewing` instead of moving on. `deep` hands the findings to its dedicated fixer instead, so the task passes through `fixing`. The run's status hero grows a **review loop** figure reading the pass you are on against the budget.
 
-<svg viewBox="0 0 560 142" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The review loop: reviewing moves on to verifying and then merge_ready, but a changes-requested review sends the task to fixing, then back through validating into reviewing again.">
+<svg viewBox="0 0 370 142" width="100%" style="max-width:370px;height:auto" role="img" aria-label="The review loop: an approved review moves on to merge_ready, but a changes-requested review sends the task back to executing, then back through validating into reviewing again.">
   <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
     <rect x="1" y="1" width="140" height="36" rx="8"/>
-    <rect x="210" y="1" width="140" height="36" rx="8"/>
-    <rect x="400" y="1" width="159" height="36" rx="8"/>
+    <rect x="210" y="1" width="159" height="36" rx="8"/>
     <rect x="1" y="101" width="140" height="36" rx="8"/>
     <rect x="210" y="101" width="140" height="36" rx="8"/>
-    <path d="M141 19H210M350 19H400M100 37V70H280V101M210 119H141M71 101V37"/>
+    <path d="M141 19H210M100 37V70H280V101M210 119H141M71 101V37"/>
   </g>
   <g fill="currentColor" fill-opacity="0.28" stroke="none">
     <path d="M204 15 210 19 204 23Z"/>
-    <path d="M394 15 400 19 394 23Z"/>
     <path d="M276 95 280 101 284 95Z"/>
     <path d="M147 115 141 119 147 123Z"/>
     <path d="M67 43 71 37 75 43Z"/>
   </g>
   <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
     <text x="71" y="24">reviewing</text>
-    <text x="280" y="24">verifying</text>
-    <text x="479" y="24">merge_ready</text>
+    <text x="290" y="24">merge_ready</text>
   </g>
   <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
     <text x="190" y="64">changes requested</text>
   </g>
   <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
     <text x="71" y="124">validating</text>
-    <text x="280" y="124">fixing</text>
+    <text x="280" y="124">executing</text>
   </g>
 </svg>
 
 <div class="docs-callout">
 
-**The fix loop has a budget.** The default flow allows 3 passes - the first review plus 2 fix cycles. A run still asking for changes when the budget runs out ends `blocked`. `workflow.maxReviewLoops` can lower any flow's budget; a Crew's own `maxReviewLoops` overrides both.
+**The review loop has a budget.** The default flow allows 3 passes - the first implementation plus 2 redo passes. A run still asking for changes when the budget runs out ends `blocked`. `workflow.maxReviewLoops` can lower any flow's budget; a Crew's own `maxReviewLoops` overrides both.
 
 </div>
 
@@ -113,8 +109,8 @@ The run page shows an approval banner with **Approve**, **Reject** and, for an a
 
 The four terminal statuses in more detail:
 
-- **`merge_ready`** - Verifier passed. The diff is ready to ship.
-- **`blocked`** - Reviewer or verifier said the run should not continue. The assurance panel names the lane that refused and offers **View review** for the findings and **Re-run with fixes**, which forks a run reusing this one's plan and architecture. The shell run view lists the first three finding headlines under the `review` line.
+- **`merge_ready`** - The review approved and validation passed; in `deep`, the verifier passed too. The diff is ready to ship.
+- **`blocked`** - The reviewer said the run should not continue, or `deep`'s verifier refused. The assurance panel names the lane that refused and offers **View review** for the findings and **Re-run with fixes**, which forks a run reusing the upstream steps this one already completed. The shell run view lists the first three finding headlines under the `review` line.
 - **`failed`** - Unrecoverable error during a stage. The run page names the error it stopped on; the **Events** tab under Inspect has the timeline around it.
 - **`aborted`** - User explicitly aborted. Worktree is preserved.
 
@@ -122,7 +118,7 @@ The four terminal statuses in more detail:
 
 Each flow step writes its prompt and the provider's reply under the run folder, named after the step rather than the status. The **Artifacts** tab under Inspect reads all of this without leaving the dashboard. For the default flow the step ids are:
 
-<div class="docs-chips"><span>plan</span><span>architecture</span><span>implement</span><span>validation</span><span>review</span><span>fix</span><span>revalidation</span><span>verify</span></div>
+<div class="docs-chips"><span>plan</span><span>implement</span><span>validation</span><span>review</span></div>
 
 ```text
 .vibestrate/runs/<runId>/
@@ -134,7 +130,7 @@ Each flow step writes its prompt and the provider's reply under the run folder, 
     <step-id>/output.md    what it replied
     <step-id>/validation-results.json
     findings.json          reviewer findings
-    finding-responses.json how the fixer answered
+    finding-responses.json how a fixer seat answered (deep)
 ```
 
 `validation-results.json` holds the commands that ran and their exit codes. The code changes themselves are commits in the run's worktree, not files here. `events.ndjson` is the record to trust: one JSON line per event, append-only.

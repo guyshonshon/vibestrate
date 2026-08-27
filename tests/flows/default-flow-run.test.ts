@@ -20,8 +20,10 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 // Fake provider for every default-flow role. The reviewer asks for changes on
-// its first turn and approves after (counter file), so the review→fix loop runs
-// exactly one fix before approving.
+// its first turn and approves after (counter file), so the loop re-enters the
+// IMPLEMENT step exactly once before approval. Executor prompts are dumped to
+// numbered files so the test can prove the re-entered turn actually received
+// the review findings - the whole point of the loop.
 const PROVIDER = `#!/usr/bin/env node
 const fs = require("node:fs");
 const path = require("node:path");
@@ -29,20 +31,19 @@ const counter = path.join(__dirname, "review-counter.txt");
 let prompt = "";
 process.stdin.on("data", (chunk) => (prompt += chunk));
 process.stdin.on("end", () => {
-  if (prompt.includes("Vibestrate Agent: reviewer")) {
+  if (prompt.includes("Vibestrate Agent: executor")) {
+    let n = 0;
+    try { n = parseInt(fs.readFileSync(path.join(__dirname, "exec-counter.txt"), "utf8"), 10) || 0; } catch {}
+    n += 1;
+    fs.writeFileSync(path.join(__dirname, "exec-counter.txt"), String(n));
+    fs.writeFileSync(path.join(__dirname, "exec-prompt-" + n + ".txt"), prompt);
+    console.log("# Implementation\\n\\nNo source change required.");
+  } else if (prompt.includes("Vibestrate Agent: reviewer")) {
     let n = 0;
     try { n = parseInt(fs.readFileSync(counter, "utf8"), 10) || 0; } catch {}
     n += 1;
     fs.writeFileSync(counter, String(n));
     console.log("# Review\\n\\nDECISION: " + (n === 1 ? "CHANGES_REQUESTED" : "APPROVED"));
-  } else if (prompt.includes("Vibestrate Agent: verifier")) {
-    console.log("# Verification\\n\\nVERIFICATION: PASSED");
-  } else if (prompt.includes("Vibestrate Agent: fixer")) {
-    console.log("# Fix\\n\\nAddressed the finding.");
-  } else if (prompt.includes("Vibestrate Agent: executor")) {
-    console.log("# Implementation\\n\\nNo source change required.");
-  } else if (prompt.includes("Vibestrate Agent: architect")) {
-    console.log("# Architecture\\n\\nApproach described.");
   } else if (prompt.includes("Vibestrate Agent: planner")) {
     console.log("# Plan\\n\\nSteps outlined.");
   } else {
@@ -138,7 +139,7 @@ async function runDefaultFlow(
 }
 
 describe("Default flow run through the unified runner (D2 phase B-3b)", () => {
-  it("discovers `default` and runs the full workflow incl. the review→fix loop", async () => {
+  it("discovers `default` and runs the loop back through implement", async () => {
     const projectRoot = await makeRepo();
 
     // The default flow is now a discoverable catalog entry (B-3b).
@@ -153,7 +154,11 @@ describe("Default flow run through the unified runner (D2 phase B-3b)", () => {
       config: loaded.config,
       task: "Exercise the default flow end to end.",
     });
-    expect(snapshot.loop).toMatchObject({ from: "review", decisionStep: "review" });
+    expect(snapshot.loop).toMatchObject({
+      from: "implement",
+      to: "review",
+      decisionStep: "review",
+    });
 
     const orchestrator = new Orchestrator({
       projectRoot,
@@ -198,14 +203,24 @@ describe("Default flow run through the unified runner (D2 phase B-3b)", () => {
       .filter((l) => l.trim())
       .map((l) => JSON.parse(l) as { type: string; data?: Record<string, unknown> });
 
-    // Two review passes (CHANGES_REQUESTED → fix → APPROVED), one fix, one verify.
+    // Two implement passes (initial → CHANGES_REQUESTED → redo → APPROVED),
+    // two reviews, no fixer, no verify step at all.
     expect(events.filter((e) => e.type === "flow.loop.iteration").length).toBe(2);
-    expect(
-      events.filter((e) => e.type === "flow.step.started" && e.data?.stepId === "fix").length,
-    ).toBe(1);
-    expect(
-      events.filter((e) => e.type === "flow.step.started" && e.data?.stepId === "verify").length,
-    ).toBe(1);
+    const started = (id: string) =>
+      events.filter((e) => e.type === "flow.step.started" && e.data?.stepId === id).length;
+    expect(started("implement")).toBe(2);
+    expect(started("review")).toBe(2);
+    expect(started("fix")).toBe(0);
+    expect(started("verify")).toBe(0);
+
+    // The re-entered implement turn RECEIVED the review's findings. Without
+    // the `findings` input on the implement step this prompt is identical to
+    // round one and this assertion goes red - the loop would be running the
+    // executor blind.
+    const round2 = await fs.readFile(path.join(projectRoot, "exec-prompt-2.txt"), "utf8");
+    expect(round2).toContain("CHANGES_REQUESTED");
+    const round1 = await fs.readFile(path.join(projectRoot, "exec-prompt-1.txt"), "utf8");
+    expect(round1).not.toContain("CHANGES_REQUESTED");
   });
 
   it("read-only run skips write/validation/verify steps and never loops", async () => {
@@ -219,18 +234,15 @@ describe("Default flow run through the unified runner (D2 phase B-3b)", () => {
     const skipped = events
       .filter((e) => e.type === "flow.step.skipped" && e.data?.readOnly === true)
       .map((e) => e.data?.stepId);
-    expect(new Set(skipped)).toEqual(
-      new Set(["implement", "validation", "fix", "revalidation", "verify"]),
-    );
+    expect(new Set(skipped)).toEqual(new Set(["implement", "validation"]));
 
-    // plan, architecture, review actually ran; the loop ran review exactly once.
+    // plan and review actually ran; the loop never re-entered (read-only has
+    // no implement body to redo).
     const started = (id: string) =>
       events.filter((e) => e.type === "flow.step.started" && e.data?.stepId === id).length;
     expect(started("plan")).toBe(1);
-    expect(started("architecture")).toBe(1);
     expect(started("review")).toBe(1);
-    expect(started("fix")).toBe(0);
-    expect(events.filter((e) => e.type === "flow.loop.iteration").length).toBe(1);
+    expect(started("implement")).toBe(0);
     expect(events.find((e) => e.type === "flow.loop.decision")?.data?.continuing).toBe(false);
   });
 

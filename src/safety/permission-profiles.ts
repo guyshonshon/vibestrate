@@ -35,6 +35,17 @@ export const builtinPermissionProfiles: PermissionProfilesMap = {
     allowShell: false,
     cwd: "worktree",
   },
+  // A reviewer that can RUN the work it judges: shell yes, writes no. For the
+  // claude-code provider this is enforced at the tool layer (the edit tools are
+  // disallowed on the CLI invocation), not by prompt discipline. Honest limit:
+  // a shell can still write files through redirection - the worktree is
+  // disposable and the diff is the audit trail; the hard lines (no push, no
+  // merge) are held structurally elsewhere, see the code_write comment above.
+  review_exec: {
+    allowWrite: false,
+    allowShell: true,
+    cwd: "worktree",
+  },
   verify_only: {
     allowWrite: false,
     allowShell: false,

@@ -45,7 +45,7 @@ Every decision, token and dollar, written down locally.
 
 ## A crew, not one model
 
-The Default flow seats six workers - planner, architect, implementer, reviewer, fixer and verifier - across eight steps, and you choose the provider and model behind each seat. Put the reviewer on a different model from the implementer, with a separate verifier taking the last look. A model reviewing its own work can only lower its own confidence.
+The Default flow seats three workers - planner, implementer and reviewer - across four steps, and you choose the provider and model behind each seat. Put the reviewer on a different model from the implementer: when the reviewer asks for changes, the work goes back to the implementer itself, up to three passes. A model reviewing its own work can only lower its own confidence. The `deep` flow keeps the six-seat pipeline - an architect ahead of the implementer, a dedicated fixer answering review rounds, and a separate verifier taking the last look.
 
 ![A finished run on the Default flow. All eight steps are ticked, from Plan to Verify, each with its token count and spend. The Run assurance panel reads verified across its four lanes: policy, validation, review and verification. The Run dashboard header offers View diff, Workspace, Copy cd, Re-run with changes, Flow & why and Live metrics.](/media/docs/run-merge-ready.png)
 
@@ -80,7 +80,7 @@ A run works in a separate git worktree on its own branch. It never pushes and ne
 
 ## Crew, rules and recipes
 
-Crew maps each role to the seats it fills and the profile it runs on; its Providers tab detects, sets up and tests the local CLIs. Policies hold your project's rules, each set to advise, which the reviewer checks, or block, which caps the run at merge time; the four hard guards sit below them, already on. Flows are the run recipes: 14 ship built in, New flow opens the builder, and Draft a flow turns a sentence into a project-owned one you can edit.
+Crew maps each role to the seats it fills and the profile it runs on; its Providers tab detects, sets up and tests the local CLIs. Policies hold your project's rules, each set to advise, which the reviewer checks, or block, which caps the run at merge time; the four hard guards sit below them, already on. Flows are the run recipes: 16 ship built in, New flow opens the builder, and Draft a flow turns a sentence into a project-owned one you can edit.
 
 ![The Crew page. Each role is listed as a row naming the Seats it can fill and the Profile it runs on.](/media/docs/crew.png)
 
@@ -121,7 +121,7 @@ Commands are the automation path: a script, a CI job, an unattended run.
 ```bash
 vibe ui                                            # the dashboard on 127.0.0.1:4317
 vibe init                                          # scaffold .vibestrate/
-vibe run "Add audit logging to the settings flow"  # plan, build, review, verify
+vibe run "Add audit logging to the settings flow"  # plan, build, validate, review
 vibe status                                        # the runs in this project
 ```
 

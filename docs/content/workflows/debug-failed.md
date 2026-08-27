@@ -99,8 +99,8 @@ Common causes:
 
 `blocked` is not a crash: it means a decision is needed. Start by reading:
 
-1. **`artifacts/flows/review/output.md`** - the reviewer's findings and the rationale behind its decision.
-2. **`artifacts/flows/verify/output.md`** - the verifier's summary, if that was what blocked.
+1. **`artifacts/flows/review/output.md`** - the reviewer's findings and the rationale behind its decision. In the default flow those findings go straight back to the implementer for another pass; `deep` routes them to a dedicated fixer.
+2. **`artifacts/flows/verify/output.md`** - the verifier's summary, on a flow that has a verify step. The default flow has none; `deep` does.
 
 Either way, `events.ndjson` carries the matching `review.decision` or `verification.decision` event with the verdict.
 
@@ -137,8 +137,8 @@ diff <oldRunId>/artifacts/flows/plan/output.md \
 Sometimes only the implementation needs another pass - the run was read-only, say, and you now want the executor to write code. **Rewind** forks a fresh run that reuses the earlier artifacts and resumes from a stage you pick, so you do not re-pay for planning:
 
 ```bash
-# executing     reuse plan + architecture
-# architecting  reuse just the plan
+# executing     reuse the plan (plus architecture, on `deep`)
+# architecting  reuse just the plan (`deep`)
 # planning      seed nothing, start over
 vibe run "<same task>" --resume-from <oldRunId> \
   --resume-stage executing
@@ -152,7 +152,7 @@ The first three regenerate the code. The last three need the earlier code back, 
 
 The flow runner finds the first step at the stage you named, **seeds the outputs of every earlier step from the source run** (marking them *skipped (resumed)* in the step ledger), and starts there. The forked run gets its own `runId` and a fresh worktree off your main branch; the original is untouched, its lineage recorded under `resumedFrom` in `state.json`.
 
-This works with `--flow` too: any flow declaring the matching step `stage` can be resumed.
+This works with `--flow` too: any flow declaring the matching step `stage` can be resumed. The default flow declares `planning`, `executing` and `reviewing`; `architecting`, `fixing` and `verifying` belong to `deep`, and resuming at a stage the flow has no step for is refused.
 
 
 ## Rewinding to review, fix or verify

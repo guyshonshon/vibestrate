@@ -26,14 +26,16 @@ id: default
 
 # Bump when you change the shape in a way older runs should not be replayed
 # against. Any positive integer; Vibestrate records it on every run.
-version: 1
+version: 2
 
 # What a person sees in `vibe flows list` and on the Flows page.
 label: Default
 description: >-
-  The standard plan → architect → implement → validate → review workflow.
-  Review loops back to fix and re-validate until it passes or the bound is hit,
-  then a verify gate decides merge-readiness.
+  Plan → implement → validate → review. Changes requested go straight back to
+  the implementer - who self-reviews its own diff before every hand-off - until
+  the reviewer approves or the loop budget runs out. The reviewer judges the
+  whole execution against the plan and project rules, and can run the tests
+  itself.
 
 # ── Seats ────────────────────────────────────────────────────────────────
 # The empty chairs this flow needs filled. A seat is a LABEL, never a model -
@@ -43,21 +45,16 @@ seats:
   planner:
     label: Planner                       # shown in the UI
     description: Turns the task into a plan.   # optional, <=400 chars
-  architect:
-    label: Architect
-    description: Designs the approach from the plan.
   implementer:
     label: Implementer
-    description: Implements the plan and architecture.
+    description: >-
+      Implements the plan, self-reviews its own diff in scope, and owns the
+      work through review rounds.
   reviewer:
     label: Reviewer
-    description: Reviews the diff and decides whether changes are needed.
-  fixer:
-    label: Fixer
-    description: Addresses review findings.
-  verifier:
-    label: Verifier
-    description: Independently verifies the approved result.
+    description: >-
+      Judges the whole execution against the plan and project rules; may run
+      the tests.
 
 # ── Steps ────────────────────────────────────────────────────────────────
 # Executed in order. At least one is required.
@@ -70,20 +67,16 @@ steps:
     inputs: [task-brief]    # what this step is given
     outputs: [plan]         # what it must produce, for later steps to consume
 
-  - id: architecture
-    label: Architecture
-    kind: agent-turn
-    seat: architect
-    stage: architecting
-    inputs: [task-brief, plan]
-    outputs: [architecture]
-
   - id: implement
     label: Implement
     kind: agent-turn
     seat: implementer
     stage: executing
-    inputs: [task-brief, plan, architecture]
+    # `findings` and `validation` come from steps LATER in the list. On the
+    # first pass they arrive marked unavailable; on loop re-entry they carry
+    # the review's findings and the last validation run, which is how the
+    # implementer answers a review without a separate seat.
+    inputs: [task-brief, plan, findings, validation]
     outputs: [execution, diff]
     # Skipped on a read-only run. Mark every step that writes code, or that only
     # means anything once code changed.
@@ -102,47 +95,24 @@ steps:
     kind: review-turn       # the only kind that can produce a review-decision
     seat: reviewer
     stage: reviewing
-    inputs: [task-brief, plan, architecture, execution, validation]
+    inputs: [task-brief, plan, execution, validation]
     outputs: [findings, review-decision]
-
-  - id: fix
-    label: Fix
-    kind: response-turn     # answers findings rather than starting fresh
-    seat: fixer
-    stage: executing
-    inputs: [task-brief, plan, architecture, execution, findings, validation]
-    outputs: [finding-responses, diff]
-    skipWhenReadOnly: true
-
-  - id: revalidation
-    label: Re-validate
-    kind: validation
-    stage: executing
-    inputs: [diff]
-    outputs: [validation]
-    skipWhenReadOnly: true
-
-  - id: verify
-    label: Verify
-    kind: summary-turn      # the last look; produces the verification verdict
-    seat: verifier
-    stage: verifying
-    inputs: [task-brief, plan, architecture, execution, findings, validation]
-    outputs: [verification]
-    skipWhenReadOnly: true
 
 # ── The loop ─────────────────────────────────────────────────────────────
 # Re-run a contiguous body of steps while a review keeps asking for changes.
 # This is why a run can pass on its second attempt without you doing anything.
+# Here the body starts at `implement`, so CHANGES_REQUESTED sends the work back
+# to the implementer that wrote it, findings in hand - there is no fixer seat.
+# `deep` keeps the dedicated fixer and puts the decision at the head instead.
 loop:
-  from: review              # first step of the body
-  to: revalidation          # last step of the body
+  from: implement           # first step of the body
+  to: review                # last step of the body
   decisionStep: review      # whose CHANGES_REQUESTED restarts it
-  maxIterations: 3          # hard bound; 1-8
+  maxIterations: 3          # hard bound; 1-8. The first pass plus two redos.
 
 # ── Selection hints ──────────────────────────────────────────────────────
 # How this flow describes itself. Never a promise about behaviour.
-complexity: high            # low | medium | high. Read on EVERY run, not only
+complexity: medium          # low | medium | high. Read on EVERY run, not only
                             # an auto-picked one: the run warns when the flow
                             # looks heavier than the task, whatever chose it.
 capabilities:               # read only when Vibestrate is choosing a flow for

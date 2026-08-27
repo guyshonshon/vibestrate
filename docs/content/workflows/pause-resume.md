@@ -105,7 +105,7 @@ Not every stuck run should be aborted. Abort means you end it; block means it st
 
 - The run is doing something you do not want it doing. **Abort.**
 - The reviewer is useful but stuck on a call you would rather make yourself. **Abort**, fix the cause (clarify the task, add a skill, adjust the rules), then run again.
-- The run stopped itself (status `blocked`) because the reviewer or verifier raised a real concern. Do not abort: read the findings, decide, and restart with the lesson encoded in the task or a skill.
+- The run stopped itself (status `blocked`) because the reviewer raised a real concern, or on `deep` the verifier did. Do not abort: read the findings, decide, and restart with the lesson encoded in the task or a skill.
 
 ## Next
 

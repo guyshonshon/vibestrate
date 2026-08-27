@@ -18,13 +18,13 @@ What it never says is *which AI model*. A flow describes the process; your [[cre
 
 </div>
 
-![The Default flow card. A bar of eight coloured blocks shows its steps in order. Below, the description reads: the standard plan, architect, implement, validate, review workflow, review loops back to fix and re-validate until it passes or the bound is hit, then a verify gate decides. Three tiles read 8 steps, 6 seats, v1 version.](/media/docs/scoped/flow-card.png)
+![The Default flow card. A bar of four coloured blocks shows its steps in order. Below, the description reads: plan, implement, validate, review, changes requested go straight back to the implementer - who self-reviews its own diff before every hand-off - until the reviewer approves or the loop budget runs out. Three tiles read 4 steps, 3 seats, v2 version.](/media/docs/scoped/flow-card.png)
 
 The bar is the flow itself, coloured by what each step does, and the legend under the page header decodes it: **Build** produces or changes work, **Review** judges it, **Check** runs commands that pass or fail, **Gate** stops for a person. The tiles count steps and seats, add a gates tile when the flow has any, and a version tile when it declares one. The default flow has no approval-gate step, which is why its card carries three.
 
 <div class="docs-callout">
 
-**Did you know?** Vibestrate ships fourteen flows and offers eleven in the pickers; the hidden three are the spec-up chain. `default` is the eight-step workflow above, `express` is a single implementer turn for small, low-risk work, and `plan-only` writes no code at all. You do not have to write a flow to get a different shape of run.
+**Did you know?** Vibestrate ships sixteen flows and offers thirteen in the pickers; the hidden three are the spec-up chain. `default` is the four-step loop above, `deep` is the longer pipeline that adds an architecture pass, a dedicated fixer and a verify gate, `express` is a single implementer turn for small, low-risk work, and `plan-only` writes no code at all. You do not have to write a flow to get a different shape of run.
 
 </div>
 
