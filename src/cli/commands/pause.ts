@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
+import { resolveRunRefOrReport } from "../../core/run/run-ref.js";
 import {
   PauseError,
   requestPause,
@@ -23,8 +24,11 @@ export function buildPauseCommand(): Command {
     .description(
       "Request that an active run pause at the next stage boundary.",
     )
-    .argument("<runId>", "id of the run to pause")
-    .action(async (runId: string) => {
+    .argument("<runId>", "id of the run to pause (a unique prefix is enough)")
+    .action(async (ref: string) => {
+      const { projectRoot } = await detectProject(process.cwd());
+      const runId = await resolveRunRefOrReport(projectRoot, ref);
+      if (runId === null) process.exit(1);
       process.exit(await runMutation(runId, "pause"));
     });
 }
@@ -34,8 +38,11 @@ export function buildResumeCommand(): Command {
     .description(
       "Clear a pending pause request or resume a paused run.",
     )
-    .argument("<runId>", "id of the run to resume")
-    .action(async (runId: string) => {
+    .argument("<runId>", "id of the run to resume (a unique prefix is enough)")
+    .action(async (ref: string) => {
+      const { projectRoot } = await detectProject(process.cwd());
+      const runId = await resolveRunRefOrReport(projectRoot, ref);
+      if (runId === null) process.exit(1);
       process.exit(await runMutation(runId, "resume"));
     });
 }

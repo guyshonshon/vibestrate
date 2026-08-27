@@ -3,6 +3,7 @@ import { detectProject } from "../../project/project-detector.js";
 import { buildRunReplay, RunReplayError } from "../../core/run/run-replay-service.js";
 import { color, header, indent } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
+import { resolveRunRefOrReport } from "../../core/run/run-ref.js";
 
 /**
  * `vibe replay <runId>` - read-only inspector for a persisted run. Calls
@@ -16,9 +17,12 @@ export function buildReplayCommand(): Command {
     .description(
       "Read-only inspector for a persisted run (mirrors the Replay tab in the dashboard).",
     )
-    .argument("<runId>", "id of the run to replay")
+    .argument("<runId>", "id of the run to replay (a unique prefix is enough)")
     .option("--json", "emit the full replay projection as JSON")
-    .action(async (runId: string, opts: { json?: boolean }) => {
+    .action(async (ref: string, opts: { json?: boolean }) => {
+      const { projectRoot: pr } = await detectProject(process.cwd());
+      const runId = await resolveRunRefOrReport(pr, ref);
+      if (runId === null) process.exit(1);
       const exit = await runReplay(runId, opts);
       process.exit(exit);
     });

@@ -3747,7 +3747,7 @@
       "arguments": [
         {
           "name": "runId",
-          "description": "Run id (see `vibe status`)",
+          "description": "Run id (see `vibe status`) (a unique prefix is enough)",
           "required": true,
           "variadic": false
         }
@@ -6016,7 +6016,7 @@
       "arguments": [
         {
           "name": "runId",
-          "description": "the run id (see `vibe status`)",
+          "description": "the run id (see `vibe status`) (a unique prefix is enough)",
           "required": true,
           "variadic": false
         }
@@ -6050,7 +6050,7 @@
       "arguments": [
         {
           "name": "runId",
-          "description": "the run id (see `vibe status`)",
+          "description": "the run id (see `vibe status`) (a unique prefix is enough)",
           "required": true,
           "variadic": false
         },
@@ -6236,7 +6236,7 @@
       "arguments": [
         {
           "name": "runId",
-          "description": "id of the run to steer",
+          "description": "id of the run to steer (a unique prefix is enough)",
           "required": true,
           "variadic": false
         },
@@ -6411,7 +6411,7 @@
       "arguments": [
         {
           "name": "runId",
-          "description": "id of the run to replay",
+          "description": "id of the run to replay (a unique prefix is enough)",
           "required": true,
           "variadic": false
         }
@@ -6438,7 +6438,7 @@
       "arguments": [
         {
           "name": "runId",
-          "description": "id of the run to pause",
+          "description": "id of the run to pause (a unique prefix is enough)",
           "required": true,
           "variadic": false
         }
@@ -6579,7 +6579,7 @@
       "arguments": [
         {
           "name": "runId",
-          "description": "id of the run to resume",
+          "description": "id of the run to resume (a unique prefix is enough)",
           "required": true,
           "variadic": false
         }

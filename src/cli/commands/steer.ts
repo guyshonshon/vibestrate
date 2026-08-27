@@ -4,6 +4,7 @@ import { GuidanceError, queueGuidance } from "../../core/run/guidance-service.js
 import { RunStateStore } from "../../core/state-machine.js";
 import { color } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
+import { resolveRunRefOrReport } from "../../core/run/run-ref.js";
 
 /**
  * `vibe steer <runId> "<note>"` - queue a human note onto a live run.
@@ -23,13 +24,16 @@ export function buildSteerCommand(): Command {
     .description(
       "Queue a note onto a running run; it is applied at the next step boundary.",
     )
-    .argument("<runId>", "id of the run to steer")
+    .argument("<runId>", "id of the run to steer (a unique prefix is enough)")
     .argument("<note...>", "what the agents should do differently")
     .option(
       "--step <stepId>",
       "hold the note until this specific step runs (default: whichever step runs next)",
     )
-    .action(async (runId: string, note: string[], opts: { step?: string }) => {
+    .action(async (ref: string, note: string[], opts: { step?: string }) => {
+      const { projectRoot: pr } = await detectProject(process.cwd());
+      const runId = await resolveRunRefOrReport(pr, ref);
+      if (runId === null) process.exit(1);
       process.exit(await run(runId, note.join(" "), opts.step ?? null));
     });
 }

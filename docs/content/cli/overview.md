@@ -85,6 +85,19 @@ areas      provider  config    skills
 
 In a project that has not been initialized, a bare `vibe` prints a short greeting and exits rather than opening an empty shell.
 
+## You only need enough of a run id
+
+Run ids are timestamped and task-derived - `20260614-125024-add-audit-logging` - which is unambiguous and a nuisance to retype. Anywhere a command takes a `<runId>` by hand, a **unique prefix is enough**, the way a short SHA is enough for git:
+
+```bash
+vibe path 20260614-1250      # resolves, if only one run starts that way
+vibe abort 20260614          # same
+```
+
+A prefix that matches more than one run is an error listing the candidates, never a guess at the newest - the alternative is aborting a run you did not mean. A full id always wins outright, so a run whose id is a prefix of a later one stays reachable.
+
+This works on the commands you type by hand: **abort**, **pause**, **resume**, **replay**, **steer**, **path**, **rename** and **logs**. The `bundles`, `suggestions` and `spec-up` families take an id you copied from another command's output, where there is nothing to shorten.
+
 ## Worktrees, and rewinding a run
 
 Every run works in its own git worktree. `vibe path <runId>` prints its path and branch plus a copyable `cd` line; `--cd` prints the path alone.

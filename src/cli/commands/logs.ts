@@ -19,6 +19,7 @@ import {
   streamFilePath,
 } from "../../core/stores/provider-stream-store.js";
 import { color, header, indent, symbol } from "../ui/format.js";
+import { resolveRunRefOrReport } from "../../core/run/run-ref.js";
 
 async function cmdLogs(
   runId: string,
@@ -136,7 +137,7 @@ export function buildLogsCommand(): Command {
     .description(
       "Show the captured provider stdout/stderr stream for a run (the model's live CLI output).",
     )
-    .argument("<runId>", "Run id (see `vibe status`)")
+    .argument("<runId>", "Run id (see `vibe status`) (a unique prefix is enough)")
     .option(
       "--follow",
       "tail the stream live (like `tail -f`); Ctrl+C to stop",
@@ -145,7 +146,10 @@ export function buildLogsCommand(): Command {
       "--stream <promptName>",
       "specific agent stream to read (default: newest)",
     )
-    .action(async (runId: string, opts) => {
+    .action(async (ref: string, opts) => {
+      const { projectRoot: pr } = await detectProject(process.cwd());
+      const runId = await resolveRunRefOrReport(pr, ref);
+      if (runId === null) process.exit(1);
       const code = await cmdLogs(runId, opts);
       process.exit(code);
     });

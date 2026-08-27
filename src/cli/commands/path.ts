@@ -4,6 +4,7 @@ import { pathExists, readText } from "../../utils/fs.js";
 import { runStatePath } from "../../utils/paths.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import { color, symbol } from "../ui/format.js";
+import { resolveRunRefOrReport } from "../../core/run/run-ref.js";
 
 /**
  * `vibe path <runId>` - print a run's workspace: the worktree path, its branch,
@@ -17,10 +18,13 @@ export function buildPathCommand(): Command {
   const cmd = new Command("path");
   cmd
     .description("Show a run's workspace (worktree path + branch) so you can cd into it.")
-    .argument("<runId>", "the run id (see `vibe status`)")
+    .argument("<runId>", "the run id (see `vibe status`) (a unique prefix is enough)")
     .option("--cd", "print only the absolute worktree path (for `cd \"$(...)\"`)")
     .option("--json", "emit JSON")
-    .action(async (runId: string, opts: { cd?: boolean; json?: boolean }) => {
+    .action(async (ref: string, opts: { cd?: boolean; json?: boolean }) => {
+      const { projectRoot: pr } = await detectProject(process.cwd());
+      const runId = await resolveRunRefOrReport(pr, ref);
+      if (runId === null) process.exit(1);
       const { projectRoot } = await detectProject(process.cwd());
       const statePath = runStatePath(projectRoot, runId);
       if (!(await pathExists(statePath))) {
