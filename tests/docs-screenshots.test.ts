@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { dirname, join, resolve, extname } from "node:path";
+import { dirname, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -49,7 +49,11 @@ function uiSources(dir = uiRoot): string[] {
 }
 
 const sources = uiSources().map((path) => ({
-  rel: path.slice(uiRoot.length + 1),
+  // Normalised to `/`: `join` yields backslashes on Windows, while the
+  // manifest's `sources` prefixes are POSIX. Without this `startsWith` matched
+  // nothing there, every scoped shot saw an empty scope, and the Windows CI leg
+  // failed on all 19 of them while macOS and Linux stayed green.
+  rel: path.slice(uiRoot.length + 1).split(sep).join("/"),
   text: readFileSync(path, "utf8"),
 }));
 
