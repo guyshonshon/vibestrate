@@ -44,7 +44,7 @@ function describe(f: ProbeFinding): string {
 
 export async function runProviderRefresh(
   providerId: string | undefined,
-  opts: { force?: boolean; dryRun?: boolean },
+  opts: { force?: boolean; dryRun?: boolean; probeCloud?: boolean },
 ): Promise<number> {
   const { projectRoot } = await detectProject(process.cwd());
   if (!(await configExists(projectRoot))) {
@@ -58,6 +58,7 @@ export async function runProviderRefresh(
       providerId,
       force: opts.force,
       dryRun: opts.dryRun,
+      probeCloud: opts.probeCloud,
     });
   } catch (err) {
     console.error(`${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`);

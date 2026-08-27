@@ -22,6 +22,7 @@ import {
   modelSuggestions,
   type ArgApply,
 } from "./provider-apply.js";
+import { probeModels, type ProbeApi, type ProbeFetch } from "./probe-models.js";
 import { loadCatalogOverlay, type CatalogOverlay } from "./provider-catalog-overlay.js";
 import {
   detectProviderModels,
@@ -161,6 +162,15 @@ export async function refreshCatalog(
     runner?: HelpRunner;
     /** Spawn seam for the structured `codex debug models` probe (fake in tests). */
     modelProbeRunner?: ProviderDetectionRunner;
+    /**
+     * Ask CLOUD providers what models they have, over the network, with the
+     * user's key. Off by default and never inferred: this is the one thing in
+     * a refresh that leaves the machine, and "no model APIs unless explicitly
+     * requested" is a posture, not a preference.
+     */
+    probeCloud?: boolean;
+    /** Fetch seam for the cloud probe (fake in tests). */
+    probeFetch?: ProbeFetch;
   } = {},
 ): Promise<RefreshResult> {
   const runner = opts.runner ?? defaultRunner;
@@ -180,7 +190,11 @@ export async function refreshCatalog(
   const nextCli: Record<string, NonNullable<CatalogOverlay["cli"]>[string]> = {
     ...(overlay.cli ?? {}),
   };
+  const nextHttp: Record<string, NonNullable<CatalogOverlay["http"]>[string]> = {
+    ...(overlay.http ?? {}),
+  };
   let added = 0;
+  let httpAdded = 0;
 
   const ids = opts.providerId
     ? [opts.providerId]
@@ -192,8 +206,55 @@ export async function refreshCatalog(
       findings.push({ providerId: id, status: "probe-failed", detail: "not configured" });
       continue;
     }
-    if (provider.type !== "cli" && provider.type !== "claude-code") {
-      findings.push({ providerId: id, status: "not-cli", detail: `type ${provider.type}` });
+    if (provider.type === "http-api" || provider.type === "localhost-proxy") {
+      if (!opts.probeCloud) {
+        // Named rather than silent: someone refreshing a project with cloud
+        // providers should learn the flag exists, not conclude they are
+        // unsupported.
+        findings.push({
+          providerId: id,
+          status: "not-cli",
+          detail: `type ${provider.type} - pass --probe-cloud to ask it over the network`,
+        });
+        continue;
+      }
+      const probe = await probeModels({
+        api: provider.api as ProbeApi,
+        chatUrl: provider.baseUrl,
+        apiKeyRef: provider.apiKey,
+        // A localhost proxy usually needs no key; a cloud endpoint always does.
+        requireKey: provider.type === "http-api",
+        fetchImpl: opts.probeFetch,
+      });
+      if (!probe.ok) {
+        findings.push({ providerId: id, status: "probe-failed", detail: probe.reason });
+        continue;
+      }
+      if (probe.models.length === 0) {
+        findings.push({ providerId: id, status: "nothing-found" });
+        continue;
+      }
+      // Keyed by API FAMILY, not provider id: the catalog's http section is
+      // per-family, and two providers on the same family share one list.
+      const family = provider.api as string;
+      const existing = overlay.http?.[family]?.models;
+      if (existing && existing.length > 0 && !opts.force) {
+        findings.push({ providerId: id, status: "skipped-overlay", models: existing });
+        continue;
+      }
+      nextHttp[family] = { ...(nextHttp[family] ?? {}), models: probe.models };
+      httpAdded++;
+      findings.push({ providerId: id, status: "added", models: probe.models });
+      continue;
+    }
+    // Only `cli` and `claude-code` reach here - the cloud kinds are handled
+    // above, and TypeScript proves the union is exhausted. This guard stays as
+    // a FAIL-CLOSED for a fifth provider type: without it, a new kind would
+    // fall into the CLI path and be probed by spawning its `command`, which it
+    // may not have.
+    const kind: "cli" | "claude-code" = provider.type;
+    if (kind !== "cli" && kind !== "claude-code") {
+      findings.push({ providerId: id, status: "not-cli", detail: `type ${String(kind)}` });
       continue;
     }
     const command = provider.type === "cli" ? provider.command : "claude";
@@ -302,8 +363,8 @@ export async function refreshCatalog(
 
   let wrote = false;
   if (!opts.dryRun) {
-    if (added > 0) {
-      const merged: CatalogOverlay = { ...overlay, cli: nextCli };
+    if (added > 0 || httpAdded > 0) {
+      const merged: CatalogOverlay = { ...overlay, cli: nextCli, http: nextHttp };
       const header =
         "# Provider capability overlay - merged over Vibestrate's built-in catalog.\n" +
         "# Auto-updated by `vibe provider refresh`; review before relying on it.\n" +

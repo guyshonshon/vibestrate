@@ -279,6 +279,13 @@
               "required": false,
               "optional": false,
               "negated": false
+            },
+            {
+              "flags": "--probe-cloud",
+              "description": "ALSO ask cloud providers (http-api / localhost-proxy) for their model list over the network, using that provider's configured key. Off by default: this is the only part of a refresh that leaves your machine.",
+              "required": false,
+              "optional": false,
+              "negated": false
             }
           ],
           "subcommands": []

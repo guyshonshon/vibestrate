@@ -86,11 +86,19 @@ export function buildProviderCommand(): Command {
     )
     .option("--force", "replace existing overlay/built-in entries instead of gap-filling")
     .option("--dry-run", "show what would be written without writing")
+    .option(
+      "--probe-cloud",
+      "ALSO ask cloud providers (http-api / localhost-proxy) for their model list over the network, using that provider's configured key. Off by default: this is the only part of a refresh that leaves your machine.",
+    )
     .action(
-      async (providerId: string | undefined, opts: { force?: boolean; dryRun?: boolean }) => {
+      async (
+        providerId: string | undefined,
+        opts: { force?: boolean; dryRun?: boolean; probeCloud?: boolean },
+      ) => {
         const code = await runProviderRefresh(providerId, {
           force: opts.force,
           dryRun: opts.dryRun,
+          probeCloud: opts.probeCloud,
         });
         process.exit(code);
       },

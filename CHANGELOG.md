@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **`vibe provider refresh --probe-cloud`** asks cloud providers what models
+  they actually have, instead of relying on a built-in list that goes stale.
+  It is a flag rather than a default because it is the only part of a refresh
+  that leaves your machine, and it spends your key: Vibestrate does not call
+  model APIs unless you ask. A provider with no key is refused before any
+  request goes out, and a gateway that echoes your key back inside an error has
+  it redacted before you see it. Results land in the catalog overlay under the
+  API family, and existing entries survive unless you pass `--force`.
+
 - **`vibe shell --full-screen`** draws in the terminal's alternate buffer,
   filling the window instead of rendering inline. Off by default on purpose:
   redrawing correctly on resize is a property of your terminal rather than of

@@ -196,7 +196,18 @@ vibe provider catalog           # built-in + overlay, with sources
 vibe provider catalog --json
 vibe provider refresh --dry-run # show what a probe would add, write nothing
 vibe provider refresh --force   # also replace built-in / existing overlay entries
+vibe provider refresh --probe-cloud  # ALSO ask cloud providers, over the network
 ```
+
+`vibe provider refresh` reads your local CLIs and never leaves the machine. `--probe-cloud` is the exception, and the only part of a refresh that does: it asks each `http-api` or `localhost-proxy` provider for its model list at `/v1/models` (or Ollama's `/api/tags`), using that provider's own configured key.
+
+<div class="docs-callout warn">
+
+**Why it is a flag and not the default.** Vibestrate does not call model APIs unless you ask - the catalog is static data, and nothing in a run reaches a vendor to ask questions. Probing is egress *and* it spends your key, so it happens only when you type the flag. It never runs on load, never during a run, and never as a fallback when the built-in list looks thin. A provider with no key configured is refused before any request is made, rather than sending an unauthenticated one; and if a gateway echoes your key back inside an error, the key is redacted out before you see it.
+
+</div>
+
+The result is written into the catalog overlay under the API **family** - `openai`, `anthropic`, `ollama` - because that is how the catalog is keyed, so two providers on the same family share one list. Existing entries are left alone unless you pass `--force`. Model names are only ever suggestions: any model can be typed by hand, so a probe that fails costs you the suggestions and nothing else.
 
 Provider commands manage the raw tools only. A [[profile]] wraps a provider with a model and an effort level, and a [[role]] in your [[crew]] runs on a profile - roles never name a provider directly. [The annotated crew config](/docs/reference/crew-config) shows all three blocks side by side.
 
