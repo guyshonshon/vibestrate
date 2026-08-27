@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
 import { renameRun } from "../../core/state-machine.js";
 import { color, symbol } from "../ui/format.js";
-import { resolveRunRefOrReport } from "../../core/run/run-ref.js";
+import { resolveRunRefOrReport } from "../run-ref.js";
 
 /**
  * `vibe rename <runId> <name...>` - give a run a friendly display name.

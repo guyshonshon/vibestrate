@@ -96,7 +96,9 @@ vibe abort 20260614          # same
 
 A prefix that matches more than one run is an error listing the candidates, never a guess at the newest - the alternative is aborting a run you did not mean. A full id always wins outright, so a run whose id is a prefix of a later one stays reachable.
 
-This works on the commands you type by hand: **abort**, **pause**, **resume**, **replay**, **steer**, **path**, **rename** and **logs**. The `bundles`, `suggestions` and `spec-up` families take an id you copied from another command's output, where there is nothing to shorten.
+A name you set with `vibe rename` works in the same places, and is tried before a prefix - a name was chosen deliberately, a prefix collision is an accident.
+
+This works on the commands you type an id into by hand: **abort**, **pause**, **resume**, **replay**, **steer**, **path**, **rename**, **logs**, **assurance** and **audit**. The `bundles`, `suggestions` and `spec-up` families take an id you copied from another command's output, where there is nothing to shorten.
 
 ## Worktrees, and rewinding a run
 

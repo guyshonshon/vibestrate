@@ -3,7 +3,7 @@ import { detectProject } from "../../project/project-detector.js";
 import { buildRunReplay, RunReplayError } from "../../core/run/run-replay-service.js";
 import { color, header, indent } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
-import { resolveRunRefOrReport } from "../../core/run/run-ref.js";
+import { resolveRunRefOrReport } from "../run-ref.js";
 
 /**
  * `vibe replay <runId>` - read-only inspector for a persisted run. Calls

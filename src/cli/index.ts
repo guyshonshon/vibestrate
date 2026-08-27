@@ -579,7 +579,7 @@ export function buildVibestrateProgram(): Command {
     .description("Mark a run as aborted (does not delete the worktree).")
     .action(async (ref: string) => {
       const { detectProject } = await import("../project/project-detector.js");
-      const { resolveRunRefOrReport } = await import("../core/run/run-ref.js");
+      const { resolveRunRefOrReport } = await import("./run-ref.js");
       const { projectRoot } = await detectProject(process.cwd());
       const runId = await resolveRunRefOrReport(projectRoot, ref);
       if (runId === null) process.exit(1);

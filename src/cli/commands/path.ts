@@ -4,7 +4,7 @@ import { pathExists, readText } from "../../utils/fs.js";
 import { runStatePath } from "../../utils/paths.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import { color, symbol } from "../ui/format.js";
-import { resolveRunRefOrReport } from "../../core/run/run-ref.js";
+import { resolveRunRefOrReport } from "../run-ref.js";
 
 /**
  * `vibe path <runId>` - print a run's workspace: the worktree path, its branch,

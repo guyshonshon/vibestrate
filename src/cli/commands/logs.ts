@@ -19,7 +19,7 @@ import {
   streamFilePath,
 } from "../../core/stores/provider-stream-store.js";
 import { color, header, indent, symbol } from "../ui/format.js";
-import { resolveRunRefOrReport } from "../../core/run/run-ref.js";
+import { resolveRunRefOrReport } from "../run-ref.js";
 
 async function cmdLogs(
   runId: string,

@@ -4,7 +4,7 @@ import { GuidanceError, queueGuidance } from "../../core/run/guidance-service.js
 import { RunStateStore } from "../../core/state-machine.js";
 import { color } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
-import { resolveRunRefOrReport } from "../../core/run/run-ref.js";
+import { resolveRunRefOrReport } from "../run-ref.js";
 
 /**
  * `vibe steer <runId> "<note>"` - queue a human note onto a live run.

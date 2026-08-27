@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
-import { resolveRunRefOrReport } from "../../core/run/run-ref.js";
+import { resolveRunRefOrReport } from "../run-ref.js";
 import {
   PauseError,
   requestPause,

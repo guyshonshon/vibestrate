@@ -5,11 +5,13 @@
 - **A unique prefix of a run id is enough**, the way a short SHA is enough for
   git. Ids are timestamped and task-derived - `20260614-125024-add-audit-logging`
   - which is unambiguous and a nuisance to retype, so `vibe path 20260614-1250`
-  now resolves. A prefix matching more than one run is an error listing the
-  candidates rather than a guess at the newest, because the alternative is
-  aborting a run you did not mean, and a full id always wins outright so an older
-  run stays reachable when a longer id appears. Live on the commands you type by
-  hand: abort, pause, resume, replay, steer, path, rename, logs.
+  now resolves. Three references work, in order: the id, a name you set with
+  `vibe rename`, then a prefix. A reference matching more than one run is an
+  error listing the candidates rather than a guess at the newest, because the
+  alternative is aborting a run you did not mean; a full id always wins outright
+  so an older run stays reachable when a longer id appears; and a name you chose
+  beats a prefix you did not. Live on the commands you type an id into by hand:
+  abort, pause, resume, replay, steer, path, rename, logs, assurance, audit.
 
 - **Ctrl+C during a wizard stops being an error.** `vibe setup` says "Press
   Ctrl+C to cancel anytime", and doing so printed
