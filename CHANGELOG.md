@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Installing ends in one command, not three.** `install.sh` closed by teaching
+  `vibe init`, `vibe doctor --fix` and `vibe run` to someone who had not seen the
+  app yet. It is `vibe ui` now: in a folder with no `.vibestrate/` that opens an
+  onboarding screen with **Initialize project**, and **More > Setup** walks the
+  same checks doctor runs. The terminal path is still named, as the alternative
+  it is. The README's first-run block had the same shape and the same fix.
+
 - **A flow your crew cannot start now looks different from one that just needs
   a pick.** The crew editor painted both amber. They are not the same problem:
   a seat two roles take still runs when the run names which one, while a seat no
