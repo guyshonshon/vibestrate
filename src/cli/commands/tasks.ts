@@ -497,6 +497,83 @@ async function cmdStage(taskId: string, stage: string | null): Promise<number> {
   return 0;
 }
 
+/**
+ * `vibe tasks export [--out file]` - the board as CSV.
+ *
+ * CSV because every tracker reads it, and because doing this through Jira's or
+ * Trello's API would mean storing a credential for a hosted service - a posture
+ * decision this project has not made. A file needs no account and works
+ * offline.
+ */
+async function cmdExport(out: string | null): Promise<number> {
+  const { svc: s } = await svc();
+  const { toCsv } = await import("../../roadmap/board-csv.js");
+  const tasks = await s.listTasks();
+  const csv = toCsv(tasks);
+  if (!out) {
+    process.stdout.write(csv);
+    return 0;
+  }
+  const { writeText } = await import("../../utils/fs.js");
+  await writeText(out, csv);
+  console.log(`${symbol.ok()} ${tasks.length} task(s) -> ${color.bold(out)}`);
+  return 0;
+}
+
+/**
+ * `vibe tasks import <file> [--dry-run]` - bring a backlog in.
+ *
+ * Additive only: it creates cards and never updates or deletes one, so running
+ * it twice makes duplicates rather than silently overwriting work. Two-way sync
+ * is what would fix that, and it needs an identity map and conflict resolution
+ * - a half-built one quietly picking a winner is worse than no sync.
+ */
+async function cmdImport(file: string, opts: { dryRun?: boolean }): Promise<number> {
+  const { svc: s } = await svc();
+  const { parseBoardCsv } = await import("../../roadmap/board-csv.js");
+  const { readText } = await import("../../utils/fs.js");
+  let text: string;
+  try {
+    text = await readText(file);
+  } catch {
+    console.error(`${symbol.fail()} Could not read ${file}.`);
+    return 1;
+  }
+  const { rows, skipped } = parseBoardCsv(text);
+  for (const sk of skipped) {
+    console.error(`${symbol.warn()} line ${sk.line}: ${sk.reason}`);
+  }
+  if (rows.length === 0) {
+    console.error(`${symbol.fail()} Nothing to import from ${file}.`);
+    return 1;
+  }
+  if (opts.dryRun) {
+    console.log(header(`Would import ${rows.length} task(s)`));
+    console.log("");
+    for (const r of rows) {
+      console.log(indent(`${r.title}${r.stage ? color.dim(`  [${r.stage}]`) : ""}`));
+    }
+    console.log("");
+    console.log(color.dim("Dry run: nothing was written."));
+    return 0;
+  }
+  let made = 0;
+  for (const r of rows) {
+    const task = await s.addTask({
+      title: r.title,
+      description: r.description,
+      ...(r.priority ? { priority: r.priority } : {}),
+    });
+    // The tracker's column becomes a STAGE - the human-owned axis - rather than
+    // a status, which is machine-owned and would imply a run happened.
+    if (r.stage) await s.setTaskStage(task.id, r.stage);
+    made += 1;
+  }
+  console.log(`${symbol.ok()} Imported ${made} task(s) from ${color.bold(file)}.`);
+  if (skipped.length > 0) console.log(color.dim(`${skipped.length} row(s) skipped.`));
+  return 0;
+}
+
 async function cmdComment(taskId: string, body: string): Promise<number> {
   if (!body || !body.trim()) {
     console.error(`${symbol.fail()} Comment body is required.`);
@@ -852,6 +929,24 @@ export function buildTasksCommand(): Command {
     .action(async (id: string, body: string) => {
       const code = await cmdComment(id, body);
       process.exit(code);
+    });
+
+  cmd
+    .command("export")
+    .description("Write the board as CSV (Jira / Trello / Monday / Linear all import it).")
+    .option("--out <file>", "write to a file instead of stdout")
+    .action(async (opts: { out?: string }) => {
+      process.exit(await cmdExport(opts.out ?? null));
+    });
+
+  cmd
+    .command("import <file>")
+    .description(
+      "Create tasks from a CSV exported by another tracker. Additive: never updates or deletes an existing card.",
+    )
+    .option("--dry-run", "show what would be created, write nothing")
+    .action(async (file: string, opts: { dryRun?: boolean }) => {
+      process.exit(await cmdImport(file, opts));
     });
 
   cmd

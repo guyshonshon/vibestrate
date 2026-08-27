@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Your backlog moves in and out as CSV.** `vibe tasks import their-export.csv`
+  and `vibe tasks export` - the format Jira, Trello, Monday, Asana and Linear all
+  read and write. Columns match by name rather than position, Jira's `Key` and
+  `Summary` are understood, and a status the pipeline does not have ("In Review")
+  becomes a **stage** rather than being dropped. A row with no title is skipped
+  by line number instead of the file being refused. Importing is additive: it
+  never updates or deletes a card. A file rather than a connector on purpose -
+  every one of those trackers is a hosted service reached with a stored
+  credential, and shipping one would settle that posture question by accident.
+
 - **`vibe integrate pr <runId>` prepares a pull request** - the branch, the
   base, and a body written from what the run recorded: the verdict, which checks
   passed, and whether the review was a different model or the same one checking

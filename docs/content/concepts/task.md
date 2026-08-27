@@ -171,6 +171,26 @@ The card moves to the board's **Needs testing** column, and the task page carrie
 
 A checklist step is a piece of *what* to build; a flow step (plan, implement, review) is filled by a [seat](/docs/concepts/seat) and structures *how* the run goes. Same word, different layer.
 
+## Bringing a backlog in, and taking it out
+
+If your team already runs its roadmap somewhere else, a board here that cannot see it is just a second backlog to maintain. Tasks move either direction as CSV, which Jira, Trello, Monday, Asana and Linear all read and write:
+
+```bash
+vibe tasks import their-export.csv --dry-run   # see what it would create
+vibe tasks import their-export.csv
+vibe tasks export --out board.csv
+```
+
+Columns are matched by **name**, not position, because every tracker emits its own order - and Jira's `Key` and `Summary` are understood as `id` and `title`. A status the run pipeline does not have, like "In Review", becomes a [stage](#) rather than being dropped: that is exactly the human-owned axis for it, and it starts nothing. A row with no title is skipped by line number instead of the file being refused, because a hand-edited export usually has one bad row.
+
+Importing is **additive**: it creates cards and never updates or deletes one, so running it twice makes duplicates rather than quietly overwriting work.
+
+<div class="docs-callout warn">
+
+**Why a file and not a Jira connector.** Every one of those trackers is a hosted service reached with a stored credential, and Vibestrate keeps no cloud account and stores no secrets. Shipping a connector would decide that posture question by accident. A file needs no account, sends nothing anywhere, and works offline - and it is most of the value. Two-way sync is a different thing again: it needs an identity map and conflict resolution, and a half-built one silently picking a winner is worse than no sync at all.
+
+</div>
+
 ## In the terminal shell
 
 `vibe` on its own opens the interactive shell, the terminal-native version of the same surfaces. Press `9` for **Roadmap**, the board: `n` adds a task, `e` and `d` edit and delete, `Enter` or `r` runs the selected one, `Q` enqueues it for the scheduler, and `c` toggles a card between backlog and ready.
