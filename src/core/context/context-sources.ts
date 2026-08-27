@@ -13,6 +13,7 @@ import path from "node:path";
 import { resolveSafePath, buildProjectRoots, PathGuardError } from "../path-guard.js";
 import { isSecretLikePath, redactSecretsInText } from "../diff-service.js";
 import { fetchGuardedText } from "../guarded-fetch.js";
+import { extractPdfText, type PdfRunner } from "./pdf-text.js";
 import type { FetchImpl } from "../../flows/runtime/flow-portability.js";
 import type { ContextSource } from "./context-source-schema.js";
 import type { PriorArtifact } from "./prompt-builder.js";
@@ -150,6 +151,10 @@ export type MaterializeContextInput = {
   /** Skip the SSRF host check for URLs (CLI only - user typed the URL). */
   allowPrivateHosts?: boolean;
   fetchImpl?: FetchImpl;
+  /** Injected in tests, the same way `fetchImpl` is. Production shells out to
+   *  poppler - the seam exists so the guarantee that extracted PDF text is
+   *  REDACTED can be proven without poppler installed, rather than asserted. */
+  pdfRunner?: PdfRunner;
   maxBytes?: number;
 };
 
@@ -173,6 +178,45 @@ export async function materializeContextSources(
 
   for (const source of input.sources) {
     const label = source.label ?? source.ref;
+    if (source.kind === "pdf") {
+      try {
+        // The SAME guard as `file`, and first: `pdftotext` must only ever be
+        // pointed at a path inside an approved root.
+        const resolved = await resolveSafePath(
+          source.ref,
+          buildProjectRoots({ projectRoot: input.projectRoot, worktreePath: input.worktreePath }),
+        );
+        if (resolved.isSecretLike || isSecretLikePath(resolved.relativePath)) {
+          notes.push(`Refused context PDF "${source.ref}" - looks secret-like.`);
+          continue;
+        }
+        const extracted = await extractPdfText(resolved.absolutePath, input.pdfRunner);
+        if (!extracted.ok) {
+          notes.push(`Could not read context PDF "${source.ref}": ${extracted.reason}`);
+          continue;
+        }
+        // Extracted text is text like any other, so it goes through the same
+        // redaction and the same clamp - a PDF is not a way around either.
+        const { redacted, count } = redactSecretsInText(extracted.text);
+        const { text, truncated } = clamp(redacted, maxBytes);
+        artifacts.push({
+          label: materializedContextLabel(label),
+          content:
+            `Source: pdf ${resolved.relativePath}` +
+            (count > 0 ? ` (${count} secret token(s) redacted)` : "") +
+            (truncated || extracted.truncated ? " (truncated)" : "") +
+            `\n\n${text}\n`,
+        });
+      } catch (err) {
+        notes.push(
+          err instanceof PathGuardError
+            ? `Refused context PDF "${source.ref}": ${err.message}`
+            : `Could not read context PDF "${source.ref}": ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+      continue;
+    }
+
     if (source.kind === "file") {
       try {
         const resolved = await resolveSafePath(

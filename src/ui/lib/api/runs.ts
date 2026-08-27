@@ -54,7 +54,7 @@ export const runsApi = {
       skippedOptionalSteps?: string[];
     };
     /** Context sources (files/URLs) injected into every agent prompt. */
-    contextSources?: { kind: "file" | "url"; ref: string; label?: string }[];
+    contextSources?: { kind: "file" | "url" | "pdf"; ref: string; label?: string }[];
     resumeFrom?: {
       sourceRunId: string;
       // Mirrors the core ResumeStage + the route enum; "planning" is in sync.

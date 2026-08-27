@@ -6,11 +6,14 @@ import { z } from "zod";
 //           refused; secret-shaped content redacted).
 //   - url:  an opt-in, SSRF-guarded, bounded fetch; content secret-redacted
 //           before it enters a prompt.
-// (pdf is reserved for a follow-up - it needs a local parser.) Zod-only module
+//   - pdf:  the same path guard as `file`, then text extracted with poppler's
+//           `pdftotext` rather than a bundled parser - see pdf-text.ts for why -
+//           and redacted like the rest.
+// Zod-only module
 // so the Task + RunSpec schemas can import it without pulling in the
 // materializer's fs/network deps.
 
-export const contextSourceKindSchema = z.enum(["file", "url"]);
+export const contextSourceKindSchema = z.enum(["file", "url", "pdf"]);
 export type ContextSourceKind = z.infer<typeof contextSourceKindSchema>;
 
 // Shared label for the auto-staged codebase-map context source (spec-up's

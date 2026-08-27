@@ -174,7 +174,7 @@ export type Task = {
 };
 
 export type ContextSource = {
-  kind: "file" | "url";
+  kind: "file" | "url" | "pdf";
   ref: string;
   label?: string;
 };

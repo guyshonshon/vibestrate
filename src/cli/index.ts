@@ -365,6 +365,12 @@ export function buildVibestrateProgram(): Command {
       collectFlowStep,
       [],
     )
+    .option(
+      "--context-pdf <path>",
+      "attach a project PDF as context (repeatable; needs poppler's pdftotext, path-guarded, secrets redacted).",
+      collectFlowStep,
+      [],
+    )
     .action(
       async (
         taskParts: string[] = [],
@@ -396,12 +402,14 @@ export function buildVibestrateProgram(): Command {
           checklist?: string;
           contextFile?: string[];
           contextUrl?: string[];
+          contextPdf?: string[];
         },
       ) => {
         const task = taskParts.join(" ").trim();
         const contextSources = [
           ...(opts.contextFile ?? []).map((ref) => ({ kind: "file" as const, ref })),
           ...(opts.contextUrl ?? []).map((ref) => ({ kind: "url" as const, ref })),
+          ...(opts.contextPdf ?? []).map((ref) => ({ kind: "pdf" as const, ref })),
         ];
         if (
           opts.permissionMode &&

@@ -20,14 +20,14 @@ export function ContextSourcesSection({
   // Shown WITHOUT a remove control on purpose - it is derived from the proposal,
   // so a delete would be recomputed straight back on the next accept.
   const specRef = task.specRef ?? null;
-  const [kind, setKind] = useState<"file" | "url">("file");
+  const [kind, setKind] = useState<"file" | "url" | "pdf">("file");
   const [ref, setRef] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const hasSources = sources.length > 0 || specRef !== null;
 
-  async function save(next: { kind: "file" | "url"; ref: string }[]) {
+  async function save(next: { kind: "file" | "url" | "pdf"; ref: string }[]) {
     setBusy(true);
     setError(null);
     try {
@@ -118,7 +118,7 @@ export function ContextSourcesSection({
       {adding ? (
         <form onSubmit={add} className="mt-2 flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-[10px] border border-[color:var(--line)] bg-coal-800 p-0.5">
-            {(["file", "url"] as const).map((k) => (
+            {(["file", "url", "pdf"] as const).map((k) => (
               <button
                 key={k}
                 type="button"
@@ -137,7 +137,13 @@ export function ContextSourcesSection({
           <input
             value={ref}
             onChange={(e) => setRef(e.target.value)}
-            placeholder={kind === "file" ? "path/in/project.md" : "https://…"}
+            placeholder={
+              kind === "file"
+                ? "path/in/project.md"
+                : kind === "pdf"
+                  ? "docs/spec.pdf"
+                  : "https://…"
+            }
             autoFocus
             className={cn(INPUT, "min-w-[180px] flex-1")}
           />

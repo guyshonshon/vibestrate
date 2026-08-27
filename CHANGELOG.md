@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **PDFs can be a context source.** `vibe run --context-pdf docs/spec.pdf`, or
+  **pdf** in a task's context panel. The text goes through the same path guard
+  and the same secret redaction a `file` source does - a PDF is not a way around
+  either - and a scanned document with no text layer is refused rather than
+  attached as an empty section. Vibestrate reads them with poppler's
+  `pdftotext` rather than bundling a parser: that would have added about a third
+  to the package for a source most runs never attach, and a binary parser over
+  user files is attack surface a tool like this should not grow. A missing
+  `pdftotext` is reported with the command that installs it.
+
 - **A Homebrew formula, rendered from what npm actually published.**
   `pnpm tsx scripts/update-homebrew-formula.ts` takes the tarball url and a
   sha256 from the registry itself, so the formula cannot describe a build that

@@ -61,7 +61,7 @@ One pass over the task, on its own branch.
 
 **Approval gate.** Where a run stops and waits for a person. Three things raise one: a stage under `policies.requireApprovalAtStages` (once per run, on the first pass), a step of `kind: approval-gate`, or an agent emitting `HUMAN_APPROVAL: REQUIRED`. The run sits at `waiting_for_approval` until you approve, reject, or request changes.
 
-**Context source.** A file or URL handed to a run or task so its contents reach **every** agent's prompt (`vibe run --context-file/--context-url`, or a task's context panel). Secret files are refused and secret-looking text hidden; URLs are size-capped and cleaned. A source that fails is skipped with a note rather than breaking the run.
+**Context source.** A file, PDF or URL handed to a run or task so its contents reach **every** agent's prompt (`vibe run --context-file/--context-pdf/--context-url`, or a task's context panel). Secret files are refused and secret-looking text hidden - including text pulled out of a PDF; URLs are size-capped and cleaned. PDFs are read with poppler's `pdftotext`, which Vibestrate does not bundle, so a missing one is reported with the install command. A source that fails is skipped with a note rather than breaking the run.
 
 **Artifact.** Any file a run makes: each step's prompt and reply, validation output, review findings, the verification summary. All under that run's folder in `.vibestrate/runs/`.
 

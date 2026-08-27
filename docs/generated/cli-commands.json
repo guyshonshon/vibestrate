@@ -6833,6 +6833,14 @@
           "required": true,
           "optional": false,
           "negated": false
+        },
+        {
+          "flags": "--context-pdf <path>",
+          "description": "attach a project PDF as context (repeatable; needs poppler's pdftotext, path-guarded, secrets redacted).",
+          "defaultValue": "[]",
+          "required": true,
+          "optional": false,
+          "negated": false
         }
       ],
       "subcommands": []
