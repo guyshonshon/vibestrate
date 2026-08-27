@@ -48,7 +48,7 @@ export type RichProviderRunResult = ProviderRunResult & {
    *  ("rate-limit: This model is being rate limited...") instead of just
    *  "provider exited 1". Absent on success and on non-resilient paths. */
   failure?: {
-    class: "usage-limit" | "rate-limit" | "transient" | "hard";
+    class: "usage-limit" | "rate-limit" | "transient" | "stall" | "hard";
     excerpt: string;
   };
 };

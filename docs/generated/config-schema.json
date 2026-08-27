@@ -650,6 +650,7 @@
         "enabled": true,
         "onExhausted": "fail",
         "autoFallback": "crew",
+        "stallTimeoutMs": null,
         "rateLimit": {
           "maxRetries": 5,
           "baseDelayMs": 2000,
@@ -710,6 +711,15 @@
           ],
           "itemType": null,
           "description": "Auto-derive a fallback profile on exhaustion: off, crew, or any (default crew)."
+        },
+        {
+          "key": "stallTimeoutMs",
+          "fullKey": "resilience.stallTimeoutMs",
+          "type": "number | null",
+          "required": false,
+          "default": null,
+          "itemType": null,
+          "description": "Fail a provider turn after this many ms with no output; null = auto (20m unattended, off attended), 0 = off."
         },
         {
           "key": "rateLimit",

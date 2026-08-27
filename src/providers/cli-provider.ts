@@ -103,5 +103,9 @@ export async function runCliProvider(
     // Honest record: only what a real provider sandbox actually applied.
     appliedSandbox: sandbox.applied ? input.sandbox ?? null : null,
     executedIn,
+    // A generic CLI is never watched for inactivity (see `stallTimeoutMs` in
+    // provider-types: we cannot tell "working quietly" from "wedged" here), but
+    // an abort or a wall-clock timeout still reports its typed cause.
+    ...(result.termination ? { termination: result.termination } : {}),
   };
 }

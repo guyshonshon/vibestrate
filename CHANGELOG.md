@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **An unattended run can no longer be held open by a hung provider.**
+  `--unattended` promises the run always terminates on its own, but nothing
+  bounded a provider turn: `profile.timeoutMs` is unset unless you set it, so a
+  wedged CLI hung the run forever with no event, no failure and no end. There is
+  now an inactivity watchdog, and the distinction matters - it watches for
+  *silence*, not elapsed time. A model streaming for an hour is working and is
+  never touched; a turn that produces no output at all for 20 minutes has its
+  whole process group killed and fails as the typed class `stall`, which retries
+  under `resilience.transient` and then honors `onExhausted` like any other
+  recoverable failure, ending with one terminal event that names the cause.
+  `resilience.stallTimeoutMs` sets the window (`0` disables it; a number applies
+  to attended runs too). It arms only where silence is evidence of a wedge - a
+  `claude-code` turn under `--output-format stream-json`, its default - because
+  a CLI that buffers until it exits is legitimately quiet, and killing a healthy
+  turn costs more than waiting out a dead one.
+
 - A run's task now fits a full GitHub issue. The task field was capped at
   2,000 characters at six separate entry points; pasting an ordinary issue got
   refused before any agent ran. The bound is now 65,536 - GitHub's own

@@ -18,9 +18,19 @@
 // which rejects the instant the signal fires, so a wait never sits on a user's
 // abort for the length of the backoff.
 //
+// The `stall` class is the one failure this module CREATES rather than
+// classifies. Every provider call it makes carries an inactivity watchdog
+// (resolveStallTimeoutMs; on by default for unattended runs), and the command
+// runner reports back a typed `termination: "stall"` when a provider CLI went
+// silent and had its process group killed. That is read structurally, never by
+// matching the stderr marker - a text match would land on `hard` and skip both
+// the retries and the onExhausted path. A stall then rides the `transient`
+// retry schedule like any other recoverable failure.
+//
 // With `resilience` absent or disabled `runProviderResilient` is a straight
 // pass-through to runProvider, so a project that configures none of this
-// behaves as if the loop were not here.
+// behaves as if the loop were not here - except for the watchdog, which is
+// applied above that short-circuit on purpose (see below).
 
 import { randomUUID } from "node:crypto";
 import {
@@ -33,6 +43,7 @@ import {
   deriveAutoFallbackProfile,
   failureExcerpt,
   parseRetryAfterMs,
+  resolveStallTimeoutMs,
   sessionRequestForRetry,
   type ProviderFailureClass,
 } from "../provider-resilience.js";
@@ -83,7 +94,15 @@ export async function runProviderResilient(
 ): Promise<RichProviderRunResult> {
   const r = deps.config.resilience;
   const providers = deps.config.providers;
-  if (!r || !r.enabled) return runProvider(providers, input.args);
+  // The inactivity watchdog is resolved and attached ABOVE the `enabled`
+  // short-circuit on purpose: `resilience.enabled: false` means "do not retry",
+  // never "let a wedged provider CLI hang an unattended run forever". Attaching
+  // it once here covers every call this module makes - first attempt, each
+  // retry, and the fallback profile's one attempt (which spreads these args).
+  const stallTimeoutMs = resolveStallTimeoutMs(r, deps.unattended);
+  const watchedArgs =
+    stallTimeoutMs > 0 ? { ...input.args, stallTimeoutMs } : input.args;
+  if (!r || !r.enabled) return runProvider(providers, watchedArgs);
 
   let usageWaits = 0; // reset-waits used for a usage-limit, separate budget.
   // A retried `open` session must not re-send an id a prior
@@ -97,9 +116,9 @@ export async function runProviderResilient(
   // the only place a fixed open id is replayed.)
   let openIssued = false;
   for (let attempt = 1; ; attempt += 1) {
-    const session = sessionRequestForRetry(input.args.session, openIssued, randomUUID);
+    const session = sessionRequestForRetry(watchedArgs.session, openIssued, randomUUID);
     const args =
-      session === input.args.session ? input.args : { ...input.args, session };
+      session === watchedArgs.session ? watchedArgs : { ...watchedArgs, session };
     if (args.session?.action === "open") openIssued = true;
     let result: RichProviderRunResult | null = null;
     let lastError: unknown = null;
@@ -115,7 +134,14 @@ export async function runProviderResilient(
       lastError = err;
       failureText = err instanceof Error ? err.message : String(err);
     }
-    const cls = classifyProviderFailure(failureText, r);
+    // Structural before textual: the runner tells us WHY it killed the child,
+    // so a stall is read off a typed code instead of being sniffed out of
+    // stderr. Matching the `[stalled: ...]` marker as text would classify
+    // `hard` and skip retries, fallback and onExhausted entirely.
+    const cls: ProviderFailureClass =
+      result?.termination === "stall"
+        ? "stall"
+        : classifyProviderFailure(failureText, r);
     // Give up WITH the diagnosis: the classified class + a short redacted
     // excerpt ride on the result (or the thrown error), so the step record
     // and Run Assurance can say "rate-limit: This model is being rate
@@ -159,7 +185,7 @@ export async function runProviderResilient(
           : null;
       if (explicitFb || r.autoFallback !== "off") {
         const fb = await tryProviderFallback(deps, {
-          baseArgs: input.args,
+          baseArgs: watchedArgs,
           fallbackProfile: explicitFb,
           cls,
           ctx: input.ctx,
@@ -176,6 +202,11 @@ export async function runProviderResilient(
       return giveUp();
     }
 
+    // `stall` rides the transient schedule: a wedge may well be a one-off (a
+    // hung fetch, a stuck MCP server), and each retry is itself watched, so the
+    // turn stays bounded either way. It keeps its own class so the record says
+    // "the CLI went silent", not "a 5xx". Set `transient.maxRetries: 0` to fail
+    // on the first wedge instead.
     const spec = cls === "rate-limit" ? r.rateLimit : r.transient;
     if (attempt > spec.maxRetries) {
       // Retries exhausted: try an alternate Profile once (explicitly
@@ -183,7 +214,7 @@ export async function runProviderResilient(
       // that may not be limited/down), then give up with the original outcome.
       if (spec.fallbackProfile || r.autoFallback !== "off") {
         const fb = await tryProviderFallback(deps, {
-          baseArgs: input.args,
+          baseArgs: watchedArgs,
           fallbackProfile: spec.fallbackProfile,
           cls,
           ctx: input.ctx,
@@ -211,10 +242,27 @@ export async function runProviderResilient(
       // The terminal moment used to be silent - the single worst gap when a
       // run died overnight. Now it's on the record (and in the supervisor's
       // engagement feed) before the failure surfaces to the step.
+      // ONE structured event at the terminal state, carrying the normalized
+      // class - this is the single terminal record for an unrecovered
+      // recoverable failure, stalls included, so Run Assurance and the
+      // supervisor feed read one shape instead of a per-class zoo of events.
+      const silentFor = `${Math.round(stallTimeoutMs / 60000)}m`;
       await input.ctx.eventLog.append({
         type: "provider.retries_exhausted",
-        message: `Provider ${cls} at ${input.stageId} unrecovered after ${spec.maxRetries} retries; giving up: ${excerpt}`,
-        data: { stepId: input.stageId, class: cls, retries: spec.maxRetries, detail: excerpt },
+        message:
+          cls === "stall"
+            ? `Provider at ${input.stageId} produced no output for ${silentFor} and was killed; still stalling after ${spec.maxRetries} retries.`
+            : `Provider ${cls} at ${input.stageId} unrecovered after ${spec.maxRetries} retries; giving up: ${excerpt}`,
+        data: {
+          stepId: input.stageId,
+          class: cls,
+          retries: spec.maxRetries,
+          detail:
+            cls === "stall"
+              ? `provider produced no output for ${silentFor}; process group killed`
+              : excerpt,
+          ...(cls === "stall" ? { stallTimeoutMs } : {}),
+        },
       });
       return giveUp();
     }

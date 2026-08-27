@@ -40,6 +40,16 @@ export type ProviderRunResult = {
    * a turn didn't run in. Absent ⇒ host (unchanged).
    */
   executedIn?: "host" | "container" | "remote";
+  /**
+   * How the provider's process ENDED, when it did not end on its own - the
+   * typed code from the command runner, carried up so callers branch on a code
+   * instead of parsing the stderr marker. `stall` means the inactivity
+   * watchdog fired (the CLI went silent); `timeout` means the wall-clock cap;
+   * `abort` means it was signalled. Absent = it exited by itself. Only the
+   * subprocess providers set it (the HTTP provider has its own request
+   * timeout).
+   */
+  termination?: "abort" | "timeout" | "stall";
 };
 
 export type ProviderStreamChunk = {
@@ -158,6 +168,21 @@ export type ProviderRunInput = {
    * unbounded. Omitted = no wall-clock cap.
    */
   timeoutMs?: number | null;
+  /**
+   * Inactivity watchdog for this turn, in ms: fail the turn when the provider
+   * writes NOTHING for this long. Distinct from `timeoutMs` on purpose - a
+   * model streaming for an hour is working, silence is a wedge - and it is what
+   * bounds an unattended run whose profile sets no wall-clock cap (see
+   * `resolveStallTimeoutMs`).
+   *
+   * Honored only by a provider that can PROVE it streams while it works: the
+   * `claude-code` provider arms it only when the turn actually runs with
+   * `--output-format stream-json`. A `type: "cli"` provider ignores it, because
+   * a CLI that buffers until exit is legitimately silent and killing it would
+   * destroy a healthy turn; use `timeoutMs` to bound those. Omitted = no
+   * watchdog.
+   */
+  stallTimeoutMs?: number | null;
   /**
    * Container/cloud execution strategy. When set, the turn's spawn
    * is rewritten through it (e.g. `docker exec` into the run's container) instead

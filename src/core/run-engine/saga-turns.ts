@@ -40,6 +40,7 @@ import {
   type EnhanceStep,
 } from "../saga/enhance.js";
 import { runProvider } from "../../providers/provider-runner.js";
+import { resolveStallTimeoutMs } from "../provider-resilience.js";
 import { estimateTokensFromText, resolveCost } from "../metrics/pricing.js";
 import { roleMetricsSchema } from "../metrics/runtime-metrics.js";
 import type { MetricsStore } from "../metrics/metrics-store.js";
@@ -61,6 +62,11 @@ export interface SagaTurnDeps {
   /** Crew the active flow snapshot was resolved against. */
   activeCrewId: string | null;
   sagaSupervisor: { profile: string | null; roleId: string };
+  /** Unattended run. These turns call runProvider DIRECTLY (they are not role
+   *  turns, so they never pass through the resilience loop that attaches the
+   *  inactivity watchdog), and a wedged CLI here hangs the run exactly like one
+   *  in a role turn - so they resolve their own watchdog from the same rule. */
+  unattended: boolean;
   /** Bound to the run's budget governor: a blown daily cap throws
    *  __SpendCapStopSignal here exactly like a real role turn. */
   enforceSpendCap: (ctx: { eventLog: EventLog; runId: string }) => Promise<void>;
@@ -169,6 +175,8 @@ export async function runSagaSupervisorTurn(
       effort: profileCfg?.power ?? null,
       maxTokens: profileCfg?.maxTokens ?? null,
       catalog: catalog ?? undefined,
+      // Bound like every other turn: silence for this long is a wedge, not work.
+      stallTimeoutMs: resolveStallTimeoutMs(deps.config.resilience, deps.unattended),
       // allowWrite omitted -> no write grant: a read-only judgment turn.
     });
     text = result.exitCode === 0 ? result.normalized.responseText : "";
@@ -352,6 +360,8 @@ export async function runSagaEnhanceTurn(
       effort: profileCfg?.power ?? null,
       maxTokens: profileCfg?.maxTokens ?? null,
       catalog: catalog ?? undefined,
+      // Bound like every other turn: silence for this long is a wedge, not work.
+      stallTimeoutMs: resolveStallTimeoutMs(deps.config.resilience, deps.unattended),
       // allowWrite omitted -> a read-only, plan-only turn.
     });
     text = result.exitCode === 0 ? result.normalized.responseText : "";

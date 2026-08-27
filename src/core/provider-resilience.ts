@@ -13,6 +13,7 @@ export type ProviderFailureClass =
   | "usage-limit"
   | "rate-limit"
   | "transient"
+  | "stall"
   | "hard";
 
 // Built-in detection. CLI providers phrase errors differently, so these are a
@@ -88,6 +89,46 @@ export function classifyProviderFailure(
   if (anyMatch(text, rate)) return "rate-limit";
   if (anyMatch(text, transient)) return "transient";
   return "hard";
+}
+
+/**
+ * Default inactivity window for an unattended run: 20 minutes of a streaming
+ * provider writing NOTHING.
+ *
+ * Deliberately generous. The watchdog's cheap failure is waiting longer than
+ * necessary on a run that was already dead; its expensive failure is killing a
+ * turn that was working, which throws away the turn's work AND what was spent
+ * on it. A streaming provider only goes quiet for the length of one opaque tool
+ * call (the agent running a build or a test suite), so the window has to clear
+ * a realistic long one with room to spare. Projects whose agents routinely run
+ * longer single commands should raise `resilience.stallTimeoutMs`; projects
+ * that want a wedge caught sooner should lower it.
+ */
+export const DEFAULT_UNATTENDED_STALL_MS = 20 * 60_000;
+
+/**
+ * The inactivity window this turn actually runs with, in ms (0 = no watchdog).
+ *
+ * `resilience.stallTimeoutMs` is the single knob:
+ * - `null` (default) = AUTO. On for unattended runs at
+ *   {@link DEFAULT_UNATTENDED_STALL_MS}, off for attended ones. That asymmetry
+ *   is the point: `--unattended` promises the run always terminates on its own,
+ *   and with no wall-clock cap configured (`profile.timeoutMs` defaults to
+ *   null) a wedged provider CLI otherwise hangs it forever. An attended run has
+ *   a human watching who can abort, so its behavior is left unchanged.
+ * - `0` = off everywhere, including unattended (explicitly opting back into an
+ *   unbounded turn).
+ * - `N` = N ms everywhere, attended runs included.
+ *
+ * Pure so the precedence is testable without a run.
+ */
+export function resolveStallTimeoutMs(
+  resilience: Pick<ResilienceConfig, "stallTimeoutMs"> | undefined,
+  unattended: boolean,
+): number {
+  const configured = resilience?.stallTimeoutMs ?? null;
+  if (configured !== null) return configured;
+  return unattended ? DEFAULT_UNATTENDED_STALL_MS : 0;
 }
 
 /**
