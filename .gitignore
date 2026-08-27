@@ -81,6 +81,11 @@ docs/archive/
 !/scripts/verify-pack.sh
 !/scripts/update-deps.sh
 !/scripts/demo-simulation.ts
+# Renders the Homebrew formula from a published npm version. Tracked because
+# tests/homebrew-formula.test.ts imports it - an untracked module a test
+# depends on passes locally and fails on a fresh clone, which is how it got
+# here.
+!/scripts/update-homebrew-formula.ts
 .playwright-mcp/
 
 # Branding canvas: a local-only styleguide surface, not part of the product.
