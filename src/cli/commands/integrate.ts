@@ -312,7 +312,7 @@ async function cmdFinish(
     return 2;
   }
   if (!consent && isInteractiveTTY()) {
-    const { input } = await import("@inquirer/prompts");
+    const { input } = await import("../prompts.js");
     const typed = await input({
       message: `Merge "${branch}" into main locally (nothing is pushed)? Type merge-to-main to confirm:`,
     });

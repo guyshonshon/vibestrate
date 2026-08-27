@@ -73,7 +73,7 @@ import type {
   FlowParam,
   ResolvedFlowSnapshot,
 } from "../../flows/schemas/flow-schema.js";
-import { input, password, select, confirm } from "@inquirer/prompts";
+import { input, password, select, confirm } from "../prompts.js";
 import {
   formatFlowRunCommand,
   runFlowRunWizard,

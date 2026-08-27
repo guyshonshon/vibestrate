@@ -14,7 +14,7 @@
  * and exits 0. `--reset` is handled before the init offer, because declining
  * init returns early.
  */
-import { confirm, select } from "@inquirer/prompts";
+import { confirm, select } from "../prompts.js";
 import { detectProject } from "../../project/project-detector.js";
 import { configExists } from "../../project/config-loader.js";
 import { listCrewPresets, installCrewPreset } from "../../setup/config-update-service.js";

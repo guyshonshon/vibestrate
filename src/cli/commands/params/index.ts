@@ -3,7 +3,7 @@ import { detectProject } from "../../../project/project-detector.js";
 import { loadConfig } from "../../../project/config-loader.js";
 import { findFlowById } from "../../../flows/catalog/flow-discovery.js";
 import type { FlowParam } from "../../../flows/schemas/flow-schema.js";
-import { confirm } from "@inquirer/prompts";
+import { confirm } from "../../prompts.js";
 import {
   ParamStore,
   ParamWriteError,

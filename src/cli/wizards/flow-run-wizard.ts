@@ -16,7 +16,7 @@ import {
   checkbox,
   input as askInput,
   select,
-} from "@inquirer/prompts";
+} from "../prompts.js";
 import type { DiscoveredFlow } from "../../flows/catalog/flow-discovery.js";
 import type {
   FlowContextPolicy,

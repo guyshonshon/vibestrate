@@ -1,5 +1,5 @@
 import { readdir } from "node:fs/promises";
-import { confirm } from "@inquirer/prompts";
+import { confirm } from "../prompts.js";
 import { detectProject } from "../../project/project-detector.js";
 import { configExists } from "../../project/config-loader.js";
 import { projectRunsDir } from "../../utils/paths.js";

@@ -1,4 +1,4 @@
-import { confirm, select, input as askInput } from "@inquirer/prompts";
+import { confirm, select, input as askInput } from "../../prompts.js";
 import { detectProject } from "../../../project/project-detector.js";
 import { configExists } from "../../../project/config-loader.js";
 import {

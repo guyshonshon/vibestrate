@@ -76,6 +76,7 @@ import { buildPauseCommand, buildResumeCommand } from "./commands/pause.js";
 import { buildGuideCommand } from "./commands/guide.js";
 import { buildSteerCommand } from "./commands/steer.js";
 import { buildShellCommand } from "./commands/shell.js";
+import { isPromptCancellation, reportCancellation } from "./cancellation.js";
 
 /** Shared coercer for every `<port>` option. Rejects at the flag boundary so a
  *  typo fails naming the flag, instead of flowing on as NaN and surfacing much
@@ -677,6 +678,9 @@ if (isMain) {
         const code = await runInkShell({ projectRoot: detected.projectRoot });
         process.exit(code);
       } catch (err) {
+        if (isPromptCancellation(err)) {
+          process.exit(reportCancellation((t) => process.stderr.write(t)));
+        }
         const { formatError } = await import("../core/error-format.js");
         const f = formatError(err);
         process.stderr.write(`vibe: ${f.title}\n`);
@@ -689,6 +693,10 @@ if (isMain) {
   } else {
     const program = buildVibestrateProgram();
     program.parseAsync(process.argv).catch(async (err: unknown) => {
+      // A cancelled prompt is not a failure - see cancellation.ts.
+      if (isPromptCancellation(err)) {
+        process.exit(reportCancellation((t) => process.stderr.write(t)));
+      }
       const { formatError } = await import("../core/error-format.js");
       const f = formatError(err);
       console.error(`vibe: ${f.title}`);

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Ctrl+C during a wizard stops being an error.** `vibe setup` says "Press
+  Ctrl+C to cancel anytime", and doing so printed
+  `✗ User force closed the prompt with SIGINT` and exited 1 - the product
+  reporting the action it had just suggested as a failure. Cancelling now prints
+  `Cancelled.` and exits **130**, the shell convention for SIGINT, so a script
+  wrapping `vibe` can tell a cancellation from a real failure. Every prompt in
+  the CLI runs through one boundary, so this cannot come back one `catch` at a
+  time.
+
 - **Why auto-merge is off by default, answered properly.** It is not off by
   default - it was never built. No code path runs `git push`, a merge to main is
   refused without your confirmation, and the **Hard guards** that name both

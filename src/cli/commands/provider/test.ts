@@ -18,7 +18,7 @@ import {
 import { configExists } from "../../../project/config-loader.js";
 import { color, indent, symbol } from "../../ui/format.js";
 import { isInteractiveTTY } from "../../ui/format.js";
-import { confirm } from "@inquirer/prompts";
+import { confirm } from "../../prompts.js";
 import { isVibestrateError } from "../../../utils/errors.js";
 
 export async function runProviderTest(

@@ -528,7 +528,7 @@ async function cmdDelete(taskId: string, yes: boolean): Promise<number> {
       return 1;
     }
     if (!yes) {
-      const { confirm } = await import("@inquirer/prompts");
+      const { confirm } = await import("../prompts.js");
       const ok = await confirm({
         message: `Permanently remove task "${t.title}" (${taskId})? This deletes the card and its comments. Runs, transcripts, and the git worktree (if any) are left in place.`,
         default: false,

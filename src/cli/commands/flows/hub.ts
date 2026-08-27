@@ -169,7 +169,7 @@ export async function runHubPublish(
       );
       return 1;
     }
-    const { confirm } = await import("@inquirer/prompts");
+    const { confirm } = await import("../../prompts.js");
     const okToGo = await confirm({ message: "Publish now?", default: false });
     if (!okToGo) {
       console.log("Aborted.");

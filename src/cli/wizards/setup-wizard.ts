@@ -17,7 +17,7 @@ import {
   confirm,
   select,
   input as askInput,
-} from "@inquirer/prompts";
+} from "../prompts.js";
 import {
   applySetup,
   planSetup,

@@ -28,7 +28,7 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
     // --git-init; never via --yes). Default answer: No.
     let consent = opts.gitInit === true;
     if (!consent && isInteractiveTTY() && !opts.yes) {
-      const { confirm } = await import("@inquirer/prompts");
+      const { confirm } = await import("../prompts.js");
       consent = await confirm({
         message: `${cwd} is not a git repository. Initialize one now? (writes a starter .gitignore; commits only if no secret-like files would be swept)`,
         default: false,
