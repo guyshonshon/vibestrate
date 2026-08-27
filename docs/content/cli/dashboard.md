@@ -127,7 +127,7 @@ Open a run to supervise it live.
 - **Changed files** - what the run touched. Click one to open it in the worktree view.
 - **Live execution** - the raw provider output. Agents run headless (`claude -p`, and equivalents), and CLIs in print mode hold their answer until they exit, so this fills in per step, not token-by-token.
 - **Workspace** - the run's worktree path and branch, with a copyable `cd`.
-- **Inspector tabs** - **Tree**, **Steps**, **Events**, **Artifacts**, **Validation**, **Terminal**, **Replay**. `?tab=` deep-links into one and accepts six ids: `artifact`, `diff`, `validation`, `events`, `terminal` and `replay`. `diff` lands on Artifacts, which absorbed the standalone diff view. Any other id falls back to Steps, `tree` and `artifacts` included.
+- **Inspector tabs** - **Tree**, **Steps**, **Events**, **Artifacts**, **Validation**, **Terminal**, **Replay**. `?tab=` deep-links into one. Six ids resolve to a tab - `artifact`, `diff`, `validation`, `events`, `terminal` and `replay` - and `diff` lands on Artifacts, which absorbed the standalone diff view. The URL accepts the wider set of ids the pre-v3 inspector used, but any of those, `tree` and `artifacts` included, lands on Steps rather than erroring.
 - **Outcome banner** - a run ending `blocked`, `failed` or `aborted` gets a line saying what stopped it and the next action.
 
 ## What the dashboard does not do
