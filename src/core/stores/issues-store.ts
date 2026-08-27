@@ -31,8 +31,19 @@ export const issueSchema = z.object({
 });
 export type Issue = z.infer<typeof issueSchema>;
 
+/**
+ * The failure inbox's filename, exported because it is quoted at the reader.
+ *
+ * Three user-facing hints name this file - the CLI's error formatter, the
+ * dashboard's, and the server comment - and each hardcoded it. Renaming the
+ * file here would have left all three telling people to open something that no
+ * longer exists, with nothing to catch it. tests/issues-path-single-source.ts
+ * checks them against this constant.
+ */
+export const ISSUES_FILENAME = "issues.ndjson";
+
 function issuesPath(projectRoot: string): string {
-  return path.join(vibestrateRoot(projectRoot), "issues.ndjson");
+  return path.join(vibestrateRoot(projectRoot), ISSUES_FILENAME);
 }
 
 /** Append one issue. Best-effort - never throws to the caller. */

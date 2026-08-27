@@ -25,8 +25,14 @@ function kickerForStatus(status: number): string {
 }
 
 /** Fallback hint when the server didn't send one. Two sentences so it renders
- *  as two lines (what happened / what to do). Mirrors src/core/error-format.ts;
- *  the UI build can't import src/core (separate tsconfig), so keep in sync. */
+ *  as two lines (what happened / what to do).
+ *
+ *  Deliberately NOT identical to src/core/error-format.ts: this carries hints
+ *  for 401/403 and 400/422 where the CLI formatter returns none, and adds a
+ *  leading sentence for the two-line shape. What must agree is the factual
+ *  claim - which file the failure inbox is - and that is gated by
+ *  tests/issues-path-single-source.test.ts rather than by this comment. The UI
+ *  build cannot import src/core (separate tsconfig), so a test is the seam. */
 function defaultHint(status: number): string | undefined {
   if (status === 404)
     return "The resource no longer exists. It may have been deleted, cancelled, or never existed.";
