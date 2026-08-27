@@ -23,6 +23,43 @@ describe("permission profiles", () => {
     expect(p.forbiddenOperations).toContain("merge");
   });
 
+  it("forbiddenOperations is ADVISORY - only the prompt reads it", async () => {
+    // This used to be the whole coverage: assert the array contains the string
+    // "push". That proves a list has a word in it, not that pushing is
+    // prevented - and the field surfaces as configuration, so it reads as a
+    // gate. Pin the truth so nobody later builds a guarantee on it.
+    const { readFileSync, readdirSync, statSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const walk = (dir: string): string[] => {
+      const out: string[] = [];
+      for (const e of readdirSync(dir)) {
+        const full = join(dir, e);
+        if (statSync(full).isDirectory()) out.push(...walk(full));
+        else if (full.endsWith(".ts")) out.push(full);
+      }
+      return out;
+    };
+    const readers = walk("src")
+      .filter((f) => readFileSync(f, "utf8").includes("forbiddenOperations"))
+      .map((f) => f.replace(/\\/g, "/"))
+      .sort();
+    expect(readers).toEqual([
+      // where it is declared
+      "src/project/init-template.ts",
+      "src/safety/permission-profiles.ts",
+      "src/safety/permission-schema.ts",
+      // ...and the ONE thing that reads it: the agent's prompt.
+      "src/core/context/prompt-builder.ts",
+    ].sort());
+  });
+
+  it("says 'do not', not 'forbidden', because nothing enforces it", async () => {
+    const { readFileSync } = await import("node:fs");
+    const prompt = readFileSync("src/core/context/prompt-builder.ts", "utf8");
+    expect(prompt).toContain("Do not perform these operations:");
+    expect(prompt).not.toContain("`Forbidden operations:`");
+  });
+
   it("config-defined profile overrides builtin", () => {
     const p = resolveProfile(
       { read_only: { allowWrite: false, allowShell: true, cwd: "worktree" } },

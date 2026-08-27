@@ -13,6 +13,7 @@
 
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
+import { resolveRunRef } from "../run-ref.js";
 import {
   listMergeReadyRuns,
   mergePreview,
@@ -220,6 +221,114 @@ async function cmdAdvise(
   }
 }
 
+/**
+ * `vibe integrate pr <runId>` - prepare a pull request, and stop.
+ *
+ * Everything except the two commands that leave the machine. Vibestrate does
+ * not push: opening a PR requires one, a push is strictly more irreversible
+ * than `git.merge` (which the Action Broker already treats as its worst
+ * effect), and a confirmation token would be published in `--help` beside a
+ * shell the agent already has. So this writes the body, sweeps the outgoing
+ * diff at publish grade, and hands over one line to paste.
+ */
+async function cmdPr(runId: string, opts: { json?: boolean }): Promise<number> {
+  const root = await ctx();
+  const { readRunAssurance } = await import("../../safety/run-assurance.js");
+  const { RunStateStore } = await import("../../core/state-machine.js");
+  const { loadConfig } = await import("../../project/config-loader.js");
+  const { preparePr } = await import("../../git/pr-prepare.js");
+  const { execa } = await import("execa");
+
+  const resolved = await resolveRunRef(root, runId);
+  if (!resolved.ok) {
+    console.error(`${symbol.fail()} ${resolved.reason}`);
+    return 1;
+  }
+  const id = resolved.runId;
+  const state = await new RunStateStore(root, id).read().catch(() => null);
+  if (!state) {
+    console.error(`${symbol.fail()} Run "${id}" not found.`);
+    return 1;
+  }
+  if (!state.branchName) {
+    console.error(`${symbol.fail()} Run "${id}" has no branch - nothing to open a PR from.`);
+    return 1;
+  }
+  const { config } = await loadConfig(root);
+  const mainBranch = config.git?.mainBranch ?? "main";
+
+  // The FULL diff against the base: the exact bytes that would leave, not the
+  // incremental per-turn diff the run already checked.
+  const diff = await execa("git", ["diff", `${mainBranch}...${state.branchName}`], {
+    cwd: root,
+    reject: false,
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const files = await execa("git", ["diff", "--name-only", `${mainBranch}...${state.branchName}`], {
+    cwd: root,
+    reject: false,
+  });
+  const filesTouched = (files.stdout ?? "").split("\n").filter((l) => l.trim()).length;
+
+  const assurance = await readRunAssurance(root, id).catch(() => null);
+  const prep = preparePr({
+    runId: id,
+    task: state.task,
+    branch: state.branchName,
+    base: mainBranch,
+    diff: diff.stdout ?? "",
+    assurance: assurance
+      ? {
+          verdict: assurance.verdict,
+          summary: assurance.summary,
+          validation: assurance.validation,
+          review: assurance.review as never,
+        }
+      : null,
+    filesTouched,
+  });
+
+  if (prep.secretFindings.length > 0) {
+    // A refusal, not a warning: printing a push command under this would be
+    // handing someone the rope. Fixing is recoverable; pushing is not.
+    console.error(header("Refusing to prepare a pull request"));
+    console.error("");
+    console.error(indent(`The diff of ${prep.branch} against ${prep.base} contains:`));
+    for (const f of prep.secretFindings) console.error(indent(`  ${symbol.fail()} ${f}`));
+    console.error("");
+    console.error(indent("Remove it from the branch history first - once pushed it is public."));
+    return 1;
+  }
+
+  const bodyPath = await writePrBody(root, id, prep.body);
+  if (opts.json) {
+    console.log(JSON.stringify({ ...prep, bodyPath }, null, 2));
+    return 0;
+  }
+  console.log(header(`Pull request ready for ${id}`));
+  console.log(color.dim("Nothing was pushed. Vibestrate never pushes - this prepares, you send."));
+  console.log("");
+  console.log(indent(`title:  ${prep.title}`));
+  console.log(indent(`branch: ${prep.branch} -> ${prep.base}`));
+  console.log(indent(`body:   ${bodyPath}`));
+  console.log("");
+  console.log(indent("Run it yourself when you are ready:"));
+  console.log("");
+  console.log(indent(color.bold(`  cd ${root}`)));
+  console.log(indent(color.bold(`  ${prep.command}`)));
+  console.log("");
+  return 0;
+}
+
+async function writePrBody(root: string, runId: string, body: string): Promise<string> {
+  const { runDir } = await import("../../utils/paths.js");
+  const { writeText } = await import("../../utils/fs.js");
+  const path = await import("node:path");
+  const file = path.join(runDir(root, runId), "pr-body.md");
+  await writeText(file, body);
+  return file;
+}
+
 async function cmdAnalyze(
   runId: string,
   opts: { json?: boolean },
@@ -270,6 +379,17 @@ export function buildIntegrateCommand(): Command {
     .action(async (runIds: string[], opts: { json?: boolean }) =>
       process.exit(await cmdAdvise(runIds ?? [], opts)),
     );
+
+  cmd
+    .command("pr <runId>")
+    .description(
+      "Prepare a pull request for a run: writes the body from the run's own record and prints the `gh pr create` line. Vibestrate never pushes - you run it.",
+    )
+    .option("--json", "emit JSON")
+    .action(async (runId: string, opts: { json?: boolean }) => {
+      process.exit(await cmdPr(runId, opts));
+    });
+
   cmd
     .command("analyze <runId>")
     .description(

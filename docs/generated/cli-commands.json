@@ -2794,6 +2794,32 @@
           "subcommands": []
         },
         {
+          "name": "stage",
+          "path": [
+            "vibe",
+            "tasks",
+            "stage"
+          ],
+          "description": "File a task under a workflow stage (free label). No arguments clears it. Re-filing runs nothing - it only moves the label.",
+          "usage": "[options] <id> [stage...]",
+          "arguments": [
+            {
+              "name": "id",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "stage",
+              "description": "",
+              "required": false,
+              "variadic": true
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
           "name": "ready",
           "path": [
             "vibe",
@@ -3500,6 +3526,34 @@
             {
               "flags": "--json",
               "description": "emit the advice as JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "pr",
+          "path": [
+            "vibe",
+            "integrate",
+            "pr"
+          ],
+          "description": "Prepare a pull request for a run: writes the body from the run's own record and prints the `gh pr create` line. Vibestrate never pushes - you run it.",
+          "usage": "[options] <runId>",
+          "arguments": [
+            {
+              "name": "runId",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
               "required": false,
               "optional": false,
               "negated": false

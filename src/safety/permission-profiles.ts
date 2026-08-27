@@ -10,6 +10,23 @@ export const builtinPermissionProfiles: PermissionProfilesMap = {
     allowWrite: true,
     allowShell: true,
     cwd: "worktree",
+    // ADVISORY, not enforcement. These two lists are rendered into the agent's
+    // prompt (prompt-builder.ts) and read by nothing else - a seat with
+    // `allowShell` can run whatever it likes, and intercepting that would mean
+    // sandboxing the process, which is what the Docker execution backend is
+    // for. Naming them "forbidden" and stopping there would be worse than
+    // omitting them, because they surface as configuration and read as gates.
+    //
+    // What actually holds these lines is structural and elsewhere:
+    //   push   - no code path in Vibestrate runs `git push`, pinned by
+    //            tests/no-push-path.test.ts
+    //   merge  - a merge to main is refused without an explicit confirmation
+    //            (integration-service.ts), and the broker treats `git.merge` as
+    //            its most irreversible effect
+    //   .env   - secret-like paths are refused on read (isSecretLikePath) and
+    //            secret-shaped patches on write (checkPatchSafety)
+    // tests/permission-profiles.test.ts pins that this field is advisory, so
+    // nobody later builds a guarantee on top of it.
     forbiddenPaths: [".env", ".env.*"],
     forbiddenOperations: ["push", "merge", "delete-worktree"],
   },

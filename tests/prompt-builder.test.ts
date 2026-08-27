@@ -190,9 +190,11 @@ describe("prompt builder", () => {
       projectName: "demo",
     });
     expect(writeOut).toContain("All code changes must happen only in the git worktree");
-    expect(writeOut).toContain("Forbidden paths");
+    // Phrased as an instruction, because that is what it is: these lists reach
+    // the model and nothing else enforces them (see permission-profiles.ts).
+    expect(writeOut).toContain("Do not read or write these paths:");
     expect(writeOut).toContain(".env");
-    expect(writeOut).toContain("Forbidden operations");
+    expect(writeOut).toContain("Do not perform these operations:");
     expect(writeOut).toContain("push");
 
     const readOut = buildRolePrompt({

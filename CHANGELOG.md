@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- **`vibe integrate pr <runId>` prepares a pull request** - the branch, the
+  base, and a body written from what the run recorded: the verdict, which checks
+  passed, and whether the review was a different model or the same one checking
+  itself. It prints the `gh pr create` line and stops. Opening a PR requires a
+  push, and pushing is the one thing Vibestrate does not do, so it does the
+  tedious part and leaves the irreversible one to you. The outgoing diff is
+  swept with the stricter patterns the Flow Hub uses before publishing - a
+  finding refuses the whole thing rather than warning, because a leaked key is
+  recoverable on a local branch and public the moment it is pushed.
+
+- **`forbiddenOperations` no longer pretends to be a gate.** It reaches the
+  agent's prompt and nothing else - a seat with a shell can do as it likes, and
+  intercepting that is what the container backend is for. It now reads "do not
+  perform these operations" rather than "forbidden", and what actually holds
+  those lines is structural and tested: no code path runs `git push`, a merge to
+  main is refused without your confirmation, and secret-like paths are refused
+  on read and write.
+
 - **Tasks have a workflow stage, separate from their run status.** The Board's
   columns were a projection of run status, which conflates two things: execution
   state, which the machine owns and moves on its own, and where a person filed

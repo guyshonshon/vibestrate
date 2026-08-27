@@ -111,12 +111,16 @@ function renderPermissionSection(
   ];
   if (worktreePath) lines.push(`Worktree: ${worktreePath}`);
   if (branchName) lines.push(`Branch: ${branchName}`);
+  // Phrased as an instruction because that is what it is. These lists reach the
+  // model and nothing else; the guarantees that actually hold are structural
+  // and live elsewhere (see permission-profiles.ts). Wording them as though the
+  // system blocks them would mislead the reader of a prompt artifact too.
   if (profile.forbiddenPaths?.length) {
-    lines.push(``, `Forbidden paths:`);
+    lines.push(``, `Do not read or write these paths:`);
     for (const p of profile.forbiddenPaths) lines.push(`- ${p}`);
   }
   if (profile.forbiddenOperations?.length) {
-    lines.push(``, `Forbidden operations:`);
+    lines.push(``, `Do not perform these operations:`);
     for (const op of profile.forbiddenOperations) lines.push(`- ${op}`);
   }
   return lines.join("\n");

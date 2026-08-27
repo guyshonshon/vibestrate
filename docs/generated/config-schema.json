@@ -1462,6 +1462,32 @@
           ]
         }
       ]
+    },
+    {
+      "key": "board",
+      "fullKey": "board",
+      "type": "object",
+      "required": false,
+      "default": {
+        "stages": []
+      },
+      "itemType": null,
+      "children": [
+        {
+          "key": "stages",
+          "fullKey": "board.stages",
+          "type": "array<string>",
+          "required": false,
+          "default": [],
+          "itemType": {
+            "key": "[item]",
+            "fullKey": "[item]",
+            "type": "string",
+            "required": true
+          },
+          "description": "Board workflow stages, in column order. Empty = derive columns from run status."
+        }
+      ]
     }
   ]
 }

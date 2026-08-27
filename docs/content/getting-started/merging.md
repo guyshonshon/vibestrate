@@ -127,6 +127,18 @@ git merge --ff-only vibestrate/<runId>
 
 To throw the change away, leave the branch alone. Nothing ever reached `main`.
 
+## Opening a pull request
+
+`vibe integrate pr <runId>` prepares one. It resolves the branch and its base, writes the PR body from what the run recorded - the verdict, which checks passed, and whether the review was a different model or the same one checking itself - sweeps the whole outgoing diff for secrets, and prints the `gh pr create` line for you to run.
+
+It stops there, and the stopping is the point. Opening a pull request requires pushing, and pushing is the one thing Vibestrate does not do. See [why](#merging-is-always-your-call) below.
+
+<div class="docs-callout tip">
+
+**The secret sweep is stricter here than during the run.** The per-turn patch check is deliberately lenient, because a false positive there blocks work on a local branch where a missed one is harmless. Once a diff is pushed to a repo GitHub scans, that trade reverses - so this sweep uses the same broader patterns the Flow Hub uses before publishing, over the full branch diff. A finding is a refusal, not a warning: you get no command to paste until it is gone.
+
+</div>
+
 ## Merging is always your call
 
 Merging is the moment you commit: the change joins your shared history and ships from there. A bad merge is revertible, but only after the wrong code was trusted and built on, and no model can vouch for its own work well enough to make that call for you. See [the safety guarantees](/docs/concepts/safety).
