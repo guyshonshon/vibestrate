@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **A Homebrew formula, rendered from what npm actually published.**
+  `pnpm tsx scripts/update-homebrew-formula.ts` takes the tarball url and a
+  sha256 from the registry itself, so the formula cannot describe a build that
+  never shipped - and asking for a version npm does not have fails with that
+  reason instead of emitting a formula whose checksum is only found wrong on
+  someone else's machine, after `brew install` has downloaded it. The tap repo
+  itself is not created here; steps are in `.github/MAINTAINING.md`.
+
 - **A unique prefix of a run id is enough**, the way a short SHA is enough for
   git. Ids are timestamped and task-derived - `20260614-125024-add-audit-logging`
   - which is unambiguous and a nuisance to retype, so `vibe path 20260614-1250`

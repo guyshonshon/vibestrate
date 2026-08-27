@@ -120,3 +120,36 @@ The repo is currently **private**, which is why GitHub Actions is billing-
 blocked. Making it public unblocks Actions for free and matches the
 Apache-2.0 / open-source posture - a deliberate choice to make when you're
 ready.
+
+## Homebrew tap
+
+The tap is its own repository, `guyshonshon/homebrew-vibestrate`, because that
+is what `brew tap` expects - a repo named `homebrew-<tap>` whose `Formula/`
+directory holds the formulae. It does not exist yet; nothing here creates it,
+because publishing a public repository is a decision rather than a build step.
+
+To stand it up once:
+
+```bash
+gh repo create guyshonshon/homebrew-vibestrate --public \
+  --description "Homebrew tap for Vibestrate"
+git clone git@github.com:guyshonshon/homebrew-vibestrate.git
+mkdir -p homebrew-vibestrate/Formula
+```
+
+Then, after any release, from this repo:
+
+```bash
+pnpm tsx scripts/update-homebrew-formula.ts --out ../homebrew-vibestrate/Formula/vibestrate.rb
+```
+
+and commit it in the tap. `brew install guyshonshon/vibestrate/vibestrate`
+works from that point on.
+
+The formula is rendered from the PUBLISHED npm tarball - the url and a sha256
+taken from what the registry actually served - so it cannot describe a build
+that never shipped. Running it for a version npm does not have fails with that
+reason rather than emitting a formula whose checksum will only be found wrong on
+someone else's machine, after `brew install` has downloaded it. `npm pack`ing
+locally would produce a different digest whenever anything about the pack
+differs, which is why it is not used.
