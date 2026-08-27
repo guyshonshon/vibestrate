@@ -360,6 +360,48 @@ async function applyQueuedGuidance(input: {
   });
 }
 
+/**
+ * Record whether a review's findings cite files that exist.
+ *
+ * The one hallucination that can be checked exactly, and it needs no retrieval:
+ * the worktree answers it. ADVISORY - a reviewer may legitimately name a file
+ * the change should CREATE - so it is counted and reported, never a gate, and
+ * a failure here can never fail a run.
+ *
+ * Shared by both walks, and that is the point. The graph frontier and the
+ * linear sequence each handle a review result separately, and every built-in
+ * flow takes the LINEAR one - so anything wired into the frontier alone is dead
+ * on everything that ships. That has now cost two features (this and the steer
+ * drain); a helper both call is the only version that stays true.
+ */
+async function recordFindingGrounding(input: {
+  worktreePath: string | null;
+  eventLog: EventLog;
+  stepId: string;
+  output: string;
+}): Promise<void> {
+  if (!input.worktreePath) return;
+  try {
+    const { parseReviewOutput } = await import("../flows/runtime/review-findings.js");
+    const { groundFindings } = await import("../flows/runtime/finding-grounding.js");
+    const parsed = parseReviewOutput(input.output);
+    const grounding = await groundFindings(input.worktreePath, parsed.findings);
+    if (grounding.ungrounded === 0) return;
+    await input.eventLog.append({
+      type: "review.findings.ungrounded",
+      message: `${grounding.ungrounded} of ${grounding.checked} finding(s) at ${input.stepId} cite a file not in the worktree.`,
+      data: {
+        stepId: input.stepId,
+        checked: grounding.checked,
+        ungrounded: grounding.ungrounded,
+        missing: grounding.missing.slice(0, 20),
+      },
+    });
+  } catch {
+    /* measurement only - never fails a run */
+  }
+}
+
 export class Orchestrator {
   private readonly projectRoot: string;
   private readonly config: ProjectConfig;
@@ -1762,6 +1804,12 @@ export class Orchestrator {
           type: "review.decision",
           message: `Flow review decision at ${step.id}: ${reviewDecision}`,
           data: { decision: reviewDecision, stepId: step.id },
+        });
+        await recordFindingGrounding({
+          worktreePath: input.worktreePath,
+          eventLog: input.eventLog,
+          stepId: step.id,
+          output: result.output,
         });
       }
       if (step.kind === "summary-turn") {
@@ -3455,6 +3503,13 @@ export class Orchestrator {
               type: "review.decision",
               message: `Flow review decision at ${step.id}: ${reviewDecision}`,
               data: { decision: reviewDecision, stepId: step.id },
+            });
+            // The LINEAR walk, which every built-in flow takes. See the helper.
+            await recordFindingGrounding({
+              worktreePath: input.worktreePath,
+              eventLog: input.eventLog,
+              stepId: step.id,
+              output: result.output,
             });
           }
           if (step.kind === "summary-turn") {

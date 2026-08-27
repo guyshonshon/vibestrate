@@ -205,6 +205,18 @@ A `blocked` or `unsafe` verdict also carries **`blockers`**, the root causes der
 
 The **Tree** tab, first under **Inspect** on the run page, gives the flow's steps and, per step, what each turn did: succeeded, retried after a rate limit, fell back to another model, paused, or failed-but-tolerated. Run-level budget, spend and pause events are there too, all derived from recorded evidence rather than narrated. For providers that stream structured output the step also shows what happened *inside* the turn; for the rest, the inside is marked "opaque".
 
+## Is the review talking about real files?
+
+A reviewer that cites `src/uploader.ts:42` when there is no such file has not read the change - it has produced something that reads like a finding. That is the one hallucination that can be checked exactly, so every run checks it: each finding's cited path is resolved against the worktree the review actually read, and any that do not resolve are recorded as `review.findings.ungrounded` in the run's events with the paths named.
+
+It is **advisory and never a gate**. A reviewer may legitimately name a file the change *should* create, so an unresolved citation points you at that finding rather than dismissing it. A run is never blocked or failed by this check, and a failure inside the check itself cannot affect the run.
+
+<div class="docs-callout tip">
+
+**Why not a smarter check.** Retrieval scoring would answer "is this finding relevant" fuzzily, where the filesystem answers "does this file exist" exactly. The precise question is the one worth asking, and it needs no index, no embeddings and nothing that leaves your machine.
+
+</div>
+
 ## Defense in depth
 
 Four layers, and only the first is always on. The other three are opt-in, each honoured independently.

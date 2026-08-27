@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Every run now checks whether its review is talking about real files.** A
+  finding citing `src/uploader.ts` when there is no such file has not read the
+  change - it has produced something that reads like a finding. Each cited path
+  is resolved against the worktree the review actually read, and any that do not
+  resolve are recorded in the run's events with the paths named. Advisory, never
+  a gate: a reviewer may legitimately name a file the change *should* create, so
+  it points you at that finding rather than dismissing it. No index, no
+  embeddings, nothing leaves your machine - the filesystem answers the precise
+  question that retrieval would only answer fuzzily.
+
 - **A flow that produces no code.** `vibe run "..." --flow research` answers a
   question in writing, with what each claim rests on named, checked by a second
   seat for whether the sources actually carry it - and writes nothing to your

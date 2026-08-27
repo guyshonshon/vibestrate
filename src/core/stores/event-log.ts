@@ -37,6 +37,9 @@ export type VibestrateEventType =
   | "validation.scoped"
   | "validation.command.completed"
   | "review.decision"
+  // A review cited a file that is not in the worktree - the one hallucination
+  // that can be checked exactly. Advisory: recorded, never a gate.
+  | "review.findings.ungrounded"
   | "verification.decision"
   | "policy.warning"
   | "approval.requested"
