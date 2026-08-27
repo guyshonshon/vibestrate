@@ -45,8 +45,14 @@ else
 fi
 
 cyan ""
-cyan "✓ Vibestrate installed. Next steps:"
+cyan "✓ Vibestrate installed. Next step:"
 cyan "    cd your-project"
-cyan "    vibe init"
-cyan "    vibe doctor --fix"
-cyan "    vibe run \"your task\""
+cyan "    vibe ui"
+cyan ""
+# One command, because the dashboard is the primary surface and it handles the
+# rest: in a folder with no .vibestrate/ it opens an onboarding screen with
+# Initialize project rather than a half-broken dashboard, and More > Setup
+# walks the same checks `vibe doctor` runs. The old three-command sequence
+# taught the CLI path to someone who had not seen the app yet.
+cyan "  The dashboard opens on 127.0.0.1:4317 and walks you through the rest."
+cyan "  Prefer the terminal? \`vibe init\` then \`vibe setup\`."

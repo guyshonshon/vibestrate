@@ -38,13 +38,13 @@ body:
     attributes:
       label: Vibestrate version
       description: Output of `vibe --version`.
-      placeholder: "0.1.0"
+      placeholder: "0.3.0"
     validations:
       required: true
   - type: input
     id: env
     attributes:
       label: OS, Node version, installed provider CLIs
-      placeholder: "macOS 15, node v20.19, claude + ollama"
+      placeholder: "macOS 15, node v24.15, claude + ollama"
     validations:
       required: true

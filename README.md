@@ -109,12 +109,24 @@ Then point it at any git repo:
 
 ```bash
 cd your-project
+vibe ui
+```
+
+That opens Mission Control on `127.0.0.1:4317`, and it is the whole setup. In a
+folder with no `.vibestrate/` yet you land on an onboarding screen with one
+button, **Initialize project**; **More > Setup** then walks the same checks
+`vibe doctor` runs, with **Fix what's safe** for the ones that need no decision
+from you. **New run** starts the first task.
+
+Prefer the terminal? Everything the dashboard does has a command behind it:
+
+```bash
 vibe init                     # scaffold .vibestrate/ - touches nothing else
-vibe doctor --fix             # detect providers + project, wire it up
+vibe setup                    # the same wizard, as questions
 vibe run "Add audit logging to the settings flow"
 ```
 
-Add `--ui` to any run to open the Mission Control dashboard. New here? [Ready in one command](#-ready-in-one-command) explains what `vibe doctor` detects and wires up for you.
+[Ready in one command](#-ready-in-one-command) explains what gets detected and wired up for you.
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 
