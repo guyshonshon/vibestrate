@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **`vibe shell --full-screen`** draws in the terminal's alternate buffer,
+  filling the window instead of rendering inline. Off by default on purpose:
+  redrawing correctly on resize is a property of your terminal rather than of
+  Vibestrate, and VSCode's integrated one misbehaved when this was tried - so it
+  is a flag to try, not a default that could break a shell in an editor people
+  live in. The terminal is handed back whatever happens: the restore is armed on
+  a normal exit, a crash, and Ctrl+C, because exiting still in the alternate
+  buffer hides your scrollback.
+
 - **PDFs can be a context source.** `vibe run --context-pdf docs/spec.pdf`, or
   **pdf** in a task's context panel. The text goes through the same path guard
   and the same secret redaction a `file` source does - a PDF is not a way around

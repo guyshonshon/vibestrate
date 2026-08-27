@@ -76,6 +76,20 @@ The session remembers what you ran.
 
 3. **Body.** The active page on the left, the **COMMANDS** panel on the right, plus the global keys. Command output takes that pane instead. The body clips to the fixed canvas rather than scrolling the terminal.
 
+## Filling the window
+
+The shell draws **inline**: it renders where your cursor is and leaves what was above it alone, so your scrollback survives and the last frame is still readable after you quit. On a large window that means a compact app with unused terminal below it.
+
+`vibe shell --full-screen` draws in the terminal's alternate buffer instead, filling the window the way `less` or `vim` do, and restores your screen on the way out.
+
+<div class="docs-callout warn">
+
+**Off by default, and why.** Full-screen has to redraw correctly when you resize, and that is a property of *your* terminal rather than of Vibestrate - VSCode's integrated terminal misbehaved when this was tried. Turning it on by default would trade a cosmetic complaint for a broken shell in an editor a lot of people work in. Try the flag; if resizing behaves, use it.
+
+</div>
+
+Whatever happens, the terminal is handed back. The restore is armed on a normal exit, on a crash, and on Ctrl+C or a kill signal, because a shell that exits still in the alternate buffer has hidden your scrollback - worse than any layout it was fixing.
+
 ## The pages
 
 Ten pages carry a number key, in this order:

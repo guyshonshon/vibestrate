@@ -17,8 +17,12 @@ export function buildShellCommand(): Command {
       "--once",
       "print one snapshot as JSON and exit (useful for scripts / smoke tests)",
     )
+    .option(
+      "--full-screen",
+      "draw in the terminal's alternate buffer, filling the window instead of rendering inline. Off by default: it must redraw correctly on resize in YOUR terminal, and VSCode's integrated one misbehaved.",
+    )
     .action(
-      async (opts: { refresh?: number; once?: boolean }) => {
+      async (opts: { refresh?: number; once?: boolean; fullScreen?: boolean }) => {
         try {
           const detected = await detectProject(process.cwd());
           if (opts.once) {
@@ -32,6 +36,7 @@ export function buildShellCommand(): Command {
             // The shell honors VIBESTRATE_UI_URL env so `B` can still pop
             // open a separately-running `vibe ui` tab.
             uiUrl: process.env.VIBESTRATE_UI_URL ?? null,
+            fullScreen: opts.fullScreen ?? false,
           });
           process.exit(code);
         } catch (err) {

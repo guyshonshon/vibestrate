@@ -3,6 +3,7 @@ import { render } from "ink";
 import { App } from "./App.js";
 import { buildVibestrateProgram } from "../../cli/index.js";
 import { specFromProgram } from "./completion.js";
+import { enterAltScreen, processAltScreenIo } from "./alt-screen.js";
 
 export type StartInkShellOptions = {
   projectRoot: string;
@@ -10,6 +11,9 @@ export type StartInkShellOptions = {
   /** When set, "B" / `:open` inside the shell open this URL in the
    *  user's default browser. Populated by `vibe shell --ui`. */
   uiUrl?: string | null;
+  /** Draw in the terminal's alternate buffer, filling the window instead of
+   *  rendering inline. Off by default - see alt-screen.ts for why. */
+  fullScreen?: boolean;
 };
 
 export async function runInkShell(
@@ -26,17 +30,25 @@ export async function runInkShell(
   // Walk the real command tree once so the prompt's autocomplete always
   // mirrors the actual CLI (commands, subcommands, flags) - no hand-kept list.
   const completionSpec = specFromProgram(buildVibestrateProgram());
-  const instance = render(
-    <App
-      projectRoot={opts.projectRoot}
-      refreshMs={opts.refreshMs}
-      uiUrl={opts.uiUrl ?? null}
-      completionSpec={completionSpec}
-    />,
-    {
-      exitOnCtrlC: true,
-    },
-  );
-  await instance.waitUntilExit();
-  return 0;
+  // Entered BEFORE the first frame and restored in a `finally`, so a throw
+  // inside the app cannot leave the terminal in the alternate buffer with the
+  // user's scrollback hidden.
+  const alt = opts.fullScreen ? enterAltScreen(processAltScreenIo()) : null;
+  try {
+    const instance = render(
+      <App
+        projectRoot={opts.projectRoot}
+        refreshMs={opts.refreshMs}
+        uiUrl={opts.uiUrl ?? null}
+        completionSpec={completionSpec}
+      />,
+      {
+        exitOnCtrlC: true,
+      },
+    );
+    await instance.waitUntilExit();
+    return 0;
+  } finally {
+    alt?.leave();
+  }
 }

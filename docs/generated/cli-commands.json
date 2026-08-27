@@ -6610,6 +6610,13 @@
           "required": false,
           "optional": false,
           "negated": false
+        },
+        {
+          "flags": "--full-screen",
+          "description": "draw in the terminal's alternate buffer, filling the window instead of rendering inline. Off by default: it must redraw correctly on resize in YOUR terminal, and VSCode's integrated one misbehaved.",
+          "required": false,
+          "optional": false,
+          "negated": false
         }
       ],
       "subcommands": []
