@@ -78,10 +78,66 @@ require "dist/egress-proxy.js"
 # against the tar manifest, which lists files.
 require "dist/default-prompts/planner.json"
 require "dist/ui/index.html"
+# The in-product docs browser (`vibe shell` > Docs) reads docs/content out of
+# the INSTALLED package, resolved by walking ancestors from the bundle. That
+# walk fails OPEN: with the folder missing it keeps climbing and can land on the
+# consuming project's own docs/content, serving those as Vibestrate's. So the
+# folder shipping is load-bearing, not cosmetic.
+require "docs/content/_nav.json"
+require "docs/content/getting-started/quickstart.md"
+
 forbid "sourcemaps (should be trimmed)" '\.map$'
 forbid "a node_modules dir"            '^package/node_modules/'
 forbid "an env file"                   '^package/\.env'
 forbid "test files"                    '(^|/)[^/]*\.test\.[jt]s$'
+
+# Every page the shell's docs index offers has to BE in the tarball. The nav is
+# what the browser lists; a slug whose file did not ship is a topic that errors
+# when someone selects it, and nothing else checks the two against each other.
+echo "-> Checking every navigable doc page shipped..."
+tar -xzf "$TARBALL" -C "$WORK" package/docs/content
+node -e '
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const root = path.join(process.argv[1], "package", "docs", "content");
+  const nav = JSON.parse(fs.readFileSync(path.join(root, "_nav.json"), "utf8"));
+  const slugs = [];
+  const walk = (items) => {
+    for (const i of items ?? []) {
+      // `generated` pages are rendered from docs/generated at build time and
+      // have no markdown of their own.
+      if (i.slug && !i.generated) slugs.push(i.slug);
+      walk(i.items);
+    }
+  };
+  for (const section of nav.sections ?? []) walk(section.items);
+  if (slugs.length < 40) throw new Error(`only ${slugs.length} nav slugs - the nav did not parse`);
+  const missing = slugs.filter((s) => !fs.existsSync(path.join(root, `${s}.md`)));
+  if (missing.length > 0) {
+    throw new Error(`the docs nav lists ${missing.length} page(s) the tarball does not ship: ${missing.join(", ")}`);
+  }
+  console.log(`   ok: all ${slugs.length} navigable doc pages shipped`);
+' "$WORK" || { echo "FAIL: the shipped docs nav points at pages that are not in the tarball"; exit 1; }
+
+# `dist/ui/index.html` being present says nothing about the app booting: the
+# chunks it loads are content-hashed, so a build that emitted none, or a `files`
+# entry that dropped assets/, leaves an index.html referencing nothing. That is
+# exactly the shape of failure a blank dashboard has.
+echo "-> Checking the dashboard's entry references chunks that shipped..."
+tar -xzf "$TARBALL" -C "$WORK" package/dist/ui
+node -e '
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const ui = path.join(process.argv[1], "package", "dist", "ui");
+  const html = fs.readFileSync(path.join(ui, "index.html"), "utf8");
+  const refs = [...html.matchAll(/(?:src|href)="\/?([^"]+\.(?:js|css))"/g)].map((m) => m[1]);
+  if (refs.length === 0) throw new Error("index.html references no js/css at all");
+  const missing = refs.filter((r) => !fs.existsSync(path.join(ui, r)));
+  if (missing.length > 0) {
+    throw new Error(`index.html loads ${missing.length} asset(s) not in the tarball: ${missing.join(", ")}`);
+  }
+  console.log(`   ok: all ${refs.length} dashboard asset(s) referenced by index.html shipped`);
+' "$WORK" || { echo "FAIL: the dashboard entry references assets the tarball does not ship"; exit 1; }
 
 echo "   manifest ok ($(wc -l <<<"$MANIFEST" | tr -d ' ') entries)"
 

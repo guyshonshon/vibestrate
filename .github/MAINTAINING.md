@@ -14,7 +14,16 @@ pnpm release patch    # or minor | major
 `scripts/release.sh` enforces the guardrails (on `main`, clean tree, in sync
 with origin), runs the full gate (typecheck → build → test → audit → packed
 artifact verify), then `npm version` (commits + tags `vX.Y.Z`) and pushes main
-plus the tag. It does **not** publish - publish manually right after (below).
+plus the tag.
+
+The packed-artifact step is `scripts/verify-pack.sh`, and it tests the thing
+users install rather than the source tree: it packs the real tarball, installs
+it into a clean room with its own `node_modules`, and runs the bin. It also
+checks what the repo gate cannot see - that every page the in-shell docs nav
+lists actually shipped (the docs resolver walks ancestors, so a missing folder
+fails open onto the user's own `docs/content`), and that `dist/ui/index.html`
+references chunks that are in the tarball, because a present `index.html` says
+nothing about a dashboard that boots. It does **not** publish - publish manually right after (below).
 Releasing is done from a maintainer's machine; publishing runs in CI (see below).
 
 The version lives in `package.json` only and flows into `vibestrate --version` and
