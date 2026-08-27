@@ -105,6 +105,10 @@ const enhanceBody = z.object({
 const planQuestionsBody = z.object({
   profileId: z.string().min(1).nullable().optional(),
 });
+const stageBody = z
+  .object({ stage: z.string().min(1).max(60).nullable() })
+  .strict();
+
 const needsTestingVerdictBody = z.object({
   verdict: z.enum(["pass", "fail"]),
 });
@@ -436,6 +440,24 @@ export async function registerTasksRoutes(
       } catch (err) {
         throw new HttpError(400, err instanceof Error ? err.message : String(err));
       }
+    },
+  );
+
+  // File a card under a workflow stage. INERT by design: it moves a label and
+  // starts nothing, which is what makes a board drag a safe gesture rather than
+  // an execution. The stage is not checked against `board.stages` - a renamed
+  // stage would otherwise orphan every card under it, and a card holding a
+  // label its board no longer lists is recoverable where a refused one is not.
+  app.post<{ Params: { taskId: string }; Body: unknown }>(
+    "/api/tasks/:taskId/stage",
+    async (req) => {
+      assertSafeId(req.params.taskId);
+      const parsed = stageBody.safeParse(req.body ?? {});
+      if (!parsed.success) throw new HttpError(400, parsed.error.message);
+      const svc = new RoadmapService(deps.projectRoot);
+      const task = await svc.setTaskStage(req.params.taskId, parsed.data.stage);
+      if (!task) throw new HttpError(404, `Task ${req.params.taskId} not found.`);
+      return { task };
     },
   );
 

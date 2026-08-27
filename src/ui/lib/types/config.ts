@@ -166,6 +166,9 @@ export type Task = {
     pendingRevision?: unknown;
   };
   runOptions?: { budget?: { maxSpendUsd: number | null; maxSteps: number | null } };
+  /** Workflow stage - human-owned, orthogonal to `status`. null = unstaged.
+   *  A free label; nothing in the engine branches on its value. */
+  stage?: string | null;
   needsTesting?: boolean;
   needsTestingReason?: string | null;
   derivedFrom?: { taskId: string; itemId: string } | null;

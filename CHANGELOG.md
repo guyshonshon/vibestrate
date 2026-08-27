@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Tasks have a workflow stage, separate from their run status.** The Board's
+  columns were a projection of run status, which conflates two things: execution
+  state, which the machine owns and moves on its own, and where a person filed
+  the card. That is why dragging a card was never a real gesture - every honest
+  move was either a lie or an execution. `stage` is a free label you set
+  (`vibe tasks stage <id> Needs planning`, or the API), it starts nothing, and
+  nothing in the engine branches on its value. Name your stages in
+  `board.stages`; leave it empty and the board keeps the status columns it
+  always had.
+
 - **`vibe provider refresh --probe-cloud`** asks cloud providers what models
   they actually have, instead of relying on a built-in list that goes stale.
   It is a flag rather than a default because it is the only part of a refresh

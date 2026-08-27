@@ -354,6 +354,23 @@ export const taskSchema = z.object({
   // Context sources: files/URLs injected into every agent's prompt
   // for runs launched from this card (inherited when the run doesn't override).
   contextSources: z.array(contextSourceSchema).default([]),
+  // WORKFLOW STAGE - human-owned, and a different axis from `status`.
+  //
+  // `status` is execution state: the machine owns it, and it moves because a run
+  // started, failed or reached merge_ready. `stage` is where a person has filed
+  // the card - "Needs planning", "In design", whatever they name. Conflating
+  // them is what made the board's lanes feel like they diverged from reality:
+  // dragging a card between derived columns either lied or had to start a run.
+  //
+  // Deliberately an UNBOUNDED FREE LABEL with no enforced semantics. "Needs
+  // planning" carries no meaning to the engine; nothing branches on its value.
+  // A closed enum here would be this tool telling people how to run their
+  // process, and the first team whose process differs would be stuck.
+  //
+  // null = unstaged, which is what every existing card is: there is no
+  // migration because there is nothing to migrate a derived column INTO. A
+  // board with no stages configured keeps showing the status projection.
+  stage: z.string().min(1).max(60).nullable().default(null),
 });
 export type Task = z.infer<typeof taskSchema>;
 

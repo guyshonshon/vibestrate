@@ -471,6 +471,32 @@ async function cmdSuggest(opts: { json?: boolean; all?: boolean }): Promise<numb
   return 0;
 }
 
+/**
+ * `vibe tasks stage <id> [stage...]` - file a card, or clear it.
+ *
+ * Variadic so a stage can be typed without quoting: `vibe tasks stage t1 Needs
+ * planning` is what a person actually types. Zero arguments clears.
+ */
+async function cmdStage(taskId: string, stage: string | null): Promise<number> {
+  const { svc: s } = await svc();
+  const task = await s.getTask(taskId);
+  if (!task) {
+    console.error(`${symbol.fail()} Task "${taskId}" not found.`);
+    return 1;
+  }
+  const next = await s.setTaskStage(taskId, stage);
+  if (!next) {
+    console.error(`${symbol.fail()} Task "${taskId}" not found.`);
+    return 1;
+  }
+  console.log(
+    next.stage
+      ? `${symbol.ok()} ${color.bold(taskId)} filed under ${color.bold(next.stage)}.`
+      : `${symbol.ok()} ${color.bold(taskId)} unstaged.`,
+  );
+  return 0;
+}
+
 async function cmdComment(taskId: string, body: string): Promise<number> {
   if (!body || !body.trim()) {
     console.error(`${symbol.fail()} Comment body is required.`);
@@ -825,6 +851,16 @@ export function buildTasksCommand(): Command {
     .description("Add a comment to a task.")
     .action(async (id: string, body: string) => {
       const code = await cmdComment(id, body);
+      process.exit(code);
+    });
+
+  cmd
+    .command("stage <id> [stage...]")
+    .description(
+      "File a task under a workflow stage (free label). No arguments clears it. Re-filing runs nothing - it only moves the label.",
+    )
+    .action(async (id: string, parts: string[]) => {
+      const code = await cmdStage(id, parts.join(" ").trim() || null);
       process.exit(code);
     });
 

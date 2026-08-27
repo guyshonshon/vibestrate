@@ -262,6 +262,8 @@ export class RoadmapService {
       profileOverride: input.profileOverride ?? null,
       readOnly: input.readOnly ?? false,
       checklist: [],
+      // Unstaged: a new card has not been filed anywhere yet.
+      stage: null,
       needsTesting: false,
       needsTestingReason: null,
       derivedFrom: input.derivedFrom ?? null,
@@ -1020,6 +1022,29 @@ export class RoadmapService {
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     }));
+  }
+
+  /**
+   * File a card under a workflow stage, or clear it with null.
+   *
+   * Re-filing is deliberately INERT: it moves a label and nothing else. No run
+   * starts, no status changes, nothing is queued. That is the whole reason the
+   * stage axis exists - a board whose columns were derived from run status
+   * could not offer a safe drag, because every honest move was either a lie or
+   * an execution.
+   *
+   * The stage is not validated against `board.stages`. A renamed or removed
+   * stage would otherwise orphan every card filed under it, and a card holding
+   * a label its board no longer lists is recoverable - one that was refused or
+   * silently cleared is not.
+   */
+  async setTaskStage(taskId: string, stage: string | null): Promise<Task | null> {
+    const next = stage?.trim() ? stage.trim() : null;
+    return await this.store.mutateTask(taskId, (t) =>
+      t.stage === next
+        ? t // unchanged - mutateTask skips the write, so no mtime churn
+        : { ...t, stage: next, updatedAt: nowIso(), lastEventAt: nowIso() },
+    );
   }
 }
 

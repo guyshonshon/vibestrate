@@ -294,6 +294,8 @@ export class ProposalService {
       profileOverride: null,
       readOnly: false,
       checklist: [],
+      // Unstaged: a new card has not been filed anywhere yet.
+      stage: null,
       needsTesting: false,
       needsTestingReason: null,
       derivedFrom: null,

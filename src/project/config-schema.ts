@@ -635,6 +635,28 @@ export const postureConfigSchema = z.object({
 });
 export type PostureConfig = z.infer<typeof postureConfigSchema>;
 
+/**
+ * The task board's workflow stages - the human-owned axis.
+ *
+ * Empty by default, and that is a real state rather than a missing setting: a
+ * board with no stages keeps showing the derived status columns it always did.
+ * Nothing changes until someone names the stages their team actually uses.
+ *
+ * Free labels on purpose. Nothing in the engine branches on a stage's value, so
+ * "Needs planning" means whatever the team means by it - a closed enum here
+ * would be this tool prescribing a process, and the first team whose process
+ * differs would be stuck with columns that lie.
+ */
+export const boardConfigSchema = z
+  .object({
+    stages: z
+      .array(z.string().min(1).max(60))
+      .max(20)
+      .default([])
+      .describe("Board workflow stages, in column order. Empty = derive columns from run status."),
+  })
+  .strict();
+
 export const projectConfigBaseSchema = z.object({
   project: projectMetaSchema,
   // .prefault(): partial literal, relies on linkEnvironment/snapshotRetentionRuns'
@@ -790,6 +812,7 @@ export const projectConfigBaseSchema = z.object({
     coAuthorEmail: "noreply@vibestrate.com",
   }),
   merge: mergeConfigSchema.prefault({}),
+  board: boardConfigSchema.prefault({}),
 });
 
 /**
