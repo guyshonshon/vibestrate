@@ -41,6 +41,17 @@
   supervisor branches on to decide whether a failure is safe to act on. Only a
   deterministic environment fault is auto-remediable; exhaustion and unknown
   are explicitly not.
+- **A stopped Docker daemon is no longer reported as failed validation.** A
+  missing binary counted as an environment fault; a tool that is installed
+  with its daemon down did not, so a run whose `docker compose` never got to
+  look at any code recorded `validation_failed` - the code that means the work
+  is defective. A Supervisor reading it would propose sending correct work back
+  for rework instead of asking for the service to be started, and because
+  `validation_environment` is the only auto-remediable cause, the
+  misclassification also disabled the one safe automatic remedy. The patterns
+  are narrow and name the tool reporting its own daemon unreachable: a bare
+  connection refused stays a real failure, because a suite that cannot reach a
+  service it was supposed to start IS a defect.
 - **Scheduled runs are unattended, which is what makes a scheduler worker
   safe.** The argv the scheduler spawned omitted `--unattended`, so a
   scheduled run took the approval gate's indefinite branch - the gate's own
@@ -345,8 +356,6 @@
   rather than implying it landed. Notes are redacted on the way into the prompt,
   never at rest, because the secret matcher fires on ordinary English and
   redacting a stored note would destroy it with no copy to recover.
-
-## Unreleased
 
 - **A docs page is its sections now, not one box called "Going deeper".** Every
   page filed its real content under a single catch-all heading, so it rendered
