@@ -133,6 +133,20 @@ export type RunState = {
   finalDecision: ReviewDecision | null;
   verification: VerificationDecision | null;
   error: string | null;
+  /** Why the run ended, as a code. Null on runs that predate it. */
+  terminalCause?: string | null;
+  /** The Supervisor's proposal for a run that did not complete. Server-computed
+   *  so the cause->remedy table lives in one place. Null when it completed. */
+  intervention?: {
+    cause: string;
+    kind: string;
+    summary: string;
+    proposal: string;
+    autoExecutable: boolean;
+  } | null;
+  /** Resolved autonomy (config AND the pause flag), so the panel can say what
+   *  will actually happen rather than what the config alone implies. */
+  supervisorAutonomy?: "advise" | "act";
   pendingApprovalId?: string | null;
   approvalRequestedFromStatus?: RunStatus | null;
   taskId?: string | null;

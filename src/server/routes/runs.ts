@@ -29,6 +29,12 @@
 // response.
 
 import path from "node:path";
+import {
+  proposeIntervention,
+  resolveSupervisorAutonomy,
+  wantsIntervention,
+} from "../../supervisor/blocker-intervention.js";
+import { loadConfig } from "../../project/config-loader.js";
 import { z } from "zod";
 import { taskTextSchema } from "../../core/run/task-text.js";
 import type { FastifyInstance } from "fastify";
@@ -203,6 +209,22 @@ const spawnRunBody = z.object({
     .strict()
     .optional(),
 });
+
+
+/**
+ * Autonomy as the run panel must show it: the config setting AND the pause
+ * flag. Reading config alone would claim the Supervisor is acting while the
+ * stop button is down. Any failure reads as "advise", matching the gate's own
+ * fail-closed rule.
+ */
+async function resolveAutonomyForView(projectRoot: string): Promise<"advise" | "act"> {
+  try {
+    const loaded = await loadConfig(projectRoot);
+    return await resolveSupervisorAutonomy(projectRoot, loaded.config.supervisorControl);
+  } catch {
+    return "advise";
+  }
+}
 
 export async function registerRunsRoutes(
   app: FastifyInstance,
@@ -448,10 +470,19 @@ export async function registerRunsRoutes(
       if (!parsed.success) {
         throw new HttpError(500, "Run state.json is invalid.");
       }
+      // The Supervisor's proposal is computed HERE rather than in the client so
+      // the cause->remedy table has one home. A copy in the UI would drift from
+      // the engine's the first time a cause was added.
+      const cause = parsed.data.terminalCause;
       return {
         run: {
           ...parsed.data,
           awaitingInput: await runAwaitsInput(projectRoot, parsed.data),
+          intervention: wantsIntervention(cause) ? proposeIntervention(cause!) : null,
+          // The RESOLVED autonomy, not the raw config value: the on-disk pause
+          // flag overrides it, so a panel reading config alone would tell the
+          // user the Supervisor is acting while it is stopped.
+          supervisorAutonomy: await resolveAutonomyForView(projectRoot),
         },
       };
     },

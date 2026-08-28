@@ -75,6 +75,32 @@ When a lane goes badly the panel grows the button that answers it: **View review
 
 Below the verdict the run page is a board you can rearrange: **Live timeline**, **Live metrics**, **Changed files**, and **Live execution** for the provider's raw output. While the run is still going, Supervisor Control sits under them so you can steer it mid-flight.
 
+## When a run does not finish, the Supervisor says what it would do
+
+A run that ends anywhere other than merge-ready records **why**, as a code
+rather than as prose, read from its own evidence - the events it logged and
+whether validation could run at all. The Supervisor panel at the top of the
+run turns that into a proposal: one line on what stopped it, and what it
+suggests doing about it. The same proposal arrives as a notification.
+
+It speaks up about every unfinished run, including the ones it will not touch.
+A refusal that stayed silent is how a stuck piece of work ends up looking like
+a finished one.
+
+Whether it acts is your **autonomy** setting, and there are only two values:
+
+- **advise** (the default) - it proposes and stops. The panel reads *Wants to
+  step in*, and says the decision is yours.
+- **act** - it carries the remedy out. The panel reads *Handling this*.
+
+Even on `act` it will only act where the fault is deterministically the
+environment's - the toolchain was missing, so nothing about your code was
+actually tested. It will not retry a run that merely ran out of road, and it
+will not act when the evidence is absent: retrying something nobody has
+diagnosed is how an automated loop spends a budget without ever converging.
+Setting autonomy to `act` requires a budget ceiling, and the Supervisor's pause
+switch overrides the setting - a paused Supervisor proposes and never acts.
+
 At the bottom sits **Inspect**: Tree, Steps, Events, Artifacts, Validation, Terminal, Replay. Artifacts holds the diff, file by file; Terminal opens a shell already inside the run's copy of the repo.
 
 ## The same run in the terminal

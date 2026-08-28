@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, ShieldCheck, Wrench } from "lucide-react";
 import { Chip } from "../design/Chip.js";
+import { cn } from "../design/cn.js";
 import { StatTile } from "../design/StatTile.js";
 import { relTime } from "../design/format.js";
 import type {
@@ -81,17 +82,98 @@ function selectionStory(sel: WorkflowSelectionView | null): string | null {
   return flowStory(sel);
 }
 
+
+/** The run-detail shape of a Supervisor proposal (server-computed). */
+export type InterventionView = {
+  cause: string;
+  kind: string;
+  summary: string;
+  proposal: string;
+  autoExecutable: boolean;
+};
+
+/**
+ * What the Supervisor wants to do about a run that did not finish.
+ *
+ * Deliberately states which of two things is true, because the difference is
+ * the whole point: it is either handling this itself, or it is telling you it
+ * will not. A proposal rendered without saying which would read as if the
+ * problem were being dealt with.
+ */
+function InterventionBlock({
+  intervention,
+  autonomy,
+}: {
+  intervention: InterventionView;
+  autonomy: "advise" | "act";
+}) {
+  const willAct = autonomy === "act" && intervention.autoExecutable;
+  return (
+    <div
+      className={cn(
+        "mt-2 rounded-[12px] border px-3 py-2.5",
+        willAct
+          ? "border-[color:var(--line)] bg-coal-500/40"
+          : "border-amber-soft/30 bg-amber-soft/[0.06]",
+      )}
+      data-screen-label="00b Supervisor intervention"
+    >
+      <div className="flex items-start gap-2">
+        <span
+          className={cn(
+            "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px]",
+            willAct ? "bg-coal-500 text-chalk-300" : "bg-amber-soft/12 text-amber-soft",
+          )}
+        >
+          {willAct ? (
+            <Wrench className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
+          ) : (
+            <AlertTriangle className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden />
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[12px] font-semibold text-chalk-100">
+            {willAct ? "Handling this" : "Wants to step in"}
+          </div>
+          <div className="mt-0.5 text-[12px] leading-snug text-chalk-300">
+            {intervention.summary}
+          </div>
+          <div className="mt-1.5 text-[12px] leading-snug text-chalk-300">
+            {intervention.proposal}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <Chip tone="neutral">{intervention.cause}</Chip>
+            {willAct ? (
+              <Chip tone="neutral">acting</Chip>
+            ) : intervention.autoExecutable ? (
+              <Chip tone="amber">set autonomy to act to automate this</Chip>
+            ) : (
+              <Chip tone="amber">needs your decision</Chip>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SupervisorPanel({
   selection,
   assurance,
   engagement,
   arbitration,
+  intervention,
+  autonomy,
   children,
 }: {
   selection: WorkflowSelectionView | null;
   assurance: RunAssurance | null;
   engagement: EngagementEntry[];
   arbitration: ArbitrationView;
+  /** The Supervisor's proposal for a run that did not complete. */
+  intervention?: InterventionView;
+  /** The autonomy in force, so the panel says what WILL happen, not what could. */
+  autonomy?: "advise" | "act";
   /** The pending-approval banner, when the run is waiting on a human. */
   children?: React.ReactNode;
 }) {
@@ -157,6 +239,10 @@ export function SupervisorPanel({
           {engagement.length} decision{engagement.length === 1 ? "" : "s"}
         </button>
       </div>
+
+      {intervention ? (
+        <InterventionBlock intervention={intervention} autonomy={autonomy ?? "advise"} />
+      ) : null}
 
       {story ? (
         <div className="mt-2 flex items-start gap-2 rounded-[12px] bg-coal-500/40 px-3 py-2">

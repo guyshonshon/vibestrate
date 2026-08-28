@@ -525,6 +525,8 @@ export function RunDetailPage({
         assurance={assurance}
         engagement={engagement}
         arbitration={arbitration}
+        intervention={run?.intervention ?? undefined}
+        autonomy={run?.supervisorAutonomy ?? "advise"}
       >
         {panelErrors.supervisor ? (
           <div className="mt-2">
