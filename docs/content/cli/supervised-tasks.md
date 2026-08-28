@@ -48,35 +48,35 @@ Each step is a natural place to walk away.
 
 One plan up front, then a small loop per step, then one review over the whole branch.
 
-<svg viewBox="0 0 560 176" width="100%" style="max-width:560px;height:auto" role="img" aria-label="One plan up front, then a loop for each step - micro-plan, then implement, then review, with a fix loop back to implement - then a commit and the supervisor's decision: proceed, enhance or escalate.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="32" width="86" height="36" rx="8"/>
-    <rect x="106" y="8" width="452" height="100" rx="10"/>
-    <rect x="118" y="32" width="128" height="36" rx="8"/>
-    <rect x="268" y="32" width="128" height="36" rx="8"/>
-    <rect x="418" y="32" width="128" height="36" rx="8"/>
-    <rect x="106" y="126" width="452" height="40" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 176" width="100%" style="max-width:720px;height:auto" role="img" aria-label="One plan up front, then a loop for each step - micro-plan, then implement, then review, with a fix loop back to implement - then a commit and the supervisor's decision: proceed, enhance or escalate.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="32" width="86" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="106" y="8" width="452" height="100" rx="10"/>
+    <rect fill="var(--bg-200)" x="118" y="32" width="128" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="268" y="32" width="128" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="418" y="32" width="128" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="106" y="126" width="452" height="40" rx="8"/>
     <path d="M88 50 H98"/>
     <path d="M248 50 H260"/>
     <path d="M398 50 H410"/>
     <path d="M482 68 V86 H332 V74"/>
     <path d="M332 108 V118"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.28">
+  <g fill="var(--fg-300)">
     <path d="M104 50 L97 46.5 L97 53.5 Z"/>
     <path d="M266 50 L259 46.5 L259 53.5 Z"/>
     <path d="M416 50 L409 46.5 L409 53.5 Z"/>
     <path d="M332 68 L328.5 75 L335.5 75 Z"/>
     <path d="M332 124 L328.5 117 L335.5 117 Z"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="44" y="55">plan once</text>
     <text x="182" y="55">micro-plan</text>
     <text x="332" y="55">implement</text>
     <text x="482" y="55">review</text>
     <text x="332" y="145">commit, then the supervisor decides</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="118" y="26">each step</text>
     <text x="407" y="100" text-anchor="middle">fix</text>
     <text x="332" y="160" text-anchor="middle">proceed · enhance · escalate</text>

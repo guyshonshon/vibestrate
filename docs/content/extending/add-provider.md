@@ -68,24 +68,24 @@ providers:
 
 `input` is how the prompt reaches the CLI, and it takes one of exactly two values:
 
-<svg viewBox="0 0 560 110" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The input field takes one of two values. With stdin, the prompt is written to the command's standard input. With arg, it is passed as a command-line argument. Both routes end at the same command.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="1" width="168" height="44" rx="8"/>
-    <rect x="1" y="65" width="168" height="44" rx="8"/>
-    <rect x="392" y="1" width="167" height="108" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 110" width="100%" style="max-width:720px;height:auto" role="img" aria-label="The input field takes one of two values. With stdin, the prompt is written to the command's standard input. With arg, it is passed as a command-line argument. Both routes end at the same command.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="1" width="168" height="44" rx="8"/>
+    <rect fill="var(--bg-200)" x="1" y="65" width="168" height="44" rx="8"/>
+    <rect fill="var(--bg-200)" x="392" y="1" width="167" height="108" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M171 23 h213"/>
     <path d="M384 19 l4 4 -4 4"/>
     <path d="M171 87 h213"/>
     <path d="M384 83 l4 4 -4 4"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="85" y="28">input: stdin</text>
     <text x="85" y="92">input: arg</text>
     <text x="475" y="52">my-coding-cli</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="280" y="17">written to its standard input</text>
     <text x="280" y="81">passed as a command-line argument</text>
     <text x="475" y="72">the command you named</text>

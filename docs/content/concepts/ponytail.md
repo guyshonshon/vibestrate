@@ -86,22 +86,22 @@ The split mirrors how [reviewLenses](/docs/concepts/supervisor) aim the reviewer
 
 In code the rule is narrow: a model turn at the **executing** stage whose output includes a diff. That is the implementer and the fixer, and nothing else.
 
-<svg viewBox="0 0 560 118" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The implementer and the fixer see the ponytail posture; the planner, reviewer, arbiter and verifier never see it, so the check on a change stays independent of the posture that wrote it.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="24" width="262" height="88" rx="8"/>
-    <rect x="297" y="24" width="262" height="88" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 118" width="100%" style="max-width:720px;height:auto" role="img" aria-label="The implementer and the fixer see the ponytail posture; the planner, reviewer, arbiter and verifier never see it, so the check on a change stays independent of the posture that wrote it.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="24" width="262" height="88" rx="8"/>
+    <rect fill="var(--bg-200)" x="297" y="24" width="262" height="88" rx="8"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="132" y="15">sees the posture</text>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="132" y="58">implementer</text>
     <text x="132" y="86">fixer</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="428" y="15">never sees the posture</text>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="428" y="58">planner   reviewer</text>
     <text x="428" y="86">arbiter   verifier</text>
   </g>

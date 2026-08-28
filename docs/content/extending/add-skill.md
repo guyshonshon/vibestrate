@@ -121,17 +121,17 @@ Write it like docs for a colleague, not a prompt: what you would tell a new engi
 
 A skill can declare an MCP server (an outside tool an agent connects to). A flat `.md` file has nowhere to keep the config, so use the **directory form**: a folder named for the skill id, holding `SKILL.md` (or `skill.md`) plus a sibling `.mcp.json`.
 
-<svg viewBox="0 0 560 112" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A flat markdown file is the whole skill, and has no directory to hold an MCP config next to it. The directory form keeps SKILL.md beside a .mcp.json, which is what declares the servers.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="1" width="270" height="110" rx="8"/>
-    <rect x="289" y="1" width="270" height="110" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 112" width="100%" style="max-width:720px;height:auto" role="img" aria-label="A flat markdown file is the whole skill, and has no directory to hold an MCP config next to it. The directory form keeps SKILL.md beside a .mcp.json, which is what declares the servers.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="1" width="270" height="110" rx="8"/>
+    <rect fill="var(--bg-200)" x="289" y="1" width="270" height="110" rx="8"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)">
     <text x="20" y="54">auth-conventions.md</text>
     <text x="308" y="54">postgres/SKILL.md</text>
     <text x="308" y="78">postgres/.mcp.json</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="20" y="26">a flat file</text>
     <text x="308" y="26">a folder</text>
     <text x="20" y="100">no MCP server, and no room for one</text>

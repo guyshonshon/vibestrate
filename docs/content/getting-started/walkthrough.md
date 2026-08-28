@@ -101,17 +101,17 @@ A **flow** is the recipe a run follows: an ordered list of steps. A step names t
 
 The `default` flow plans, designs, implements, reviews and verifies, and the reviewer can send the work back to the fixer twice before the flow gives up:
 
-<svg viewBox="0 0 560 272" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The eight steps of the default flow in order: Plan by the planner seat, Architecture by the architect, Implement by the implementer which can write, Validate with no seat running your commands, Review by the reviewer, Fix by the fixer which can write, Re-validate with no seat, and Verify by the verifier. Re-validate loops back to Review.">
-  <g fill="currentColor" fill-opacity="0.5" font-size="9.5" font-family="ui-monospace,monospace">
+<svg font-family="var(--font-sans)" viewBox="0 0 560 272" width="100%" style="max-width:720px;height:auto" role="img" aria-label="The eight steps of the default flow in order: Plan by the planner seat, Architecture by the architect, Implement by the implementer which can write, Validate with no seat running your commands, Review by the reviewer, Fix by the fixer which can write, Re-validate with no seat, and Verify by the verifier. Re-validate loops back to Review.">
+  <g fill="var(--violet-soft)" font-size="9.5" font-family="ui-monospace,monospace">
     <text x="48" y="14">step</text>
     <text x="184" y="14">seat</text>
     <text x="312" y="14">kind</text>
     <text x="406" y="14">write access</text>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
     <path d="M40 20H558"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.22" stroke-width="1">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
     <rect x="40" y="26" width="518" height="24" rx="5"/>
     <rect x="40" y="52" width="518" height="24" rx="5"/>
     <rect x="40" y="78" width="518" height="24" rx="5"/>
@@ -121,7 +121,7 @@ The `default` flow plans, designs, implements, reviews and verifies, and the rev
     <rect x="40" y="182" width="518" height="24" rx="5"/>
     <rect x="40" y="208" width="518" height="24" rx="5"/>
   </g>
-  <g fill="currentColor" font-size="11" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="11" font-family="var(--font-mono)">
     <text x="48" y="42">Plan</text>
     <text x="48" y="68">Architecture</text>
     <text x="48" y="94">Implement</text>
@@ -153,15 +153,15 @@ The `default` flow plans, designs, implements, reviews and verifies, and the rev
     <text x="419" y="198">Your commands</text>
     <text x="419" y="224">Read only</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.45" font-size="11" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="11" font-family="ui-monospace,monospace">
     <text x="184" y="120">no seat</text>
     <text x="184" y="198">no seat</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.6">
+  <g fill="var(--fg-100)">
     <rect x="406" y="86" width="7" height="7" rx="1.5"/>
     <rect x="406" y="164" width="7" height="7" rx="1.5"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <rect x="406" y="34" width="7" height="7" rx="1.5"/>
     <rect x="406" y="60" width="7" height="7" rx="1.5"/>
     <rect x="406" y="138" width="7" height="7" rx="1.5"/>
@@ -170,10 +170,10 @@ The `default` flow plans, designs, implements, reviews and verifies, and the rev
     <rect x="406" y="190" width="7" height="7" rx="1.5" stroke-dasharray="2 2"/>
     <path d="M40 194H18V142h16"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.5">
+  <g fill="var(--fg-200)">
     <path d="M34 138l6 4-6 4z"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="9.5" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="9.5" text-anchor="middle">
     <text x="280" y="250">Review opens each pass. Approve and the loop exits before Fix, straight to Verify.</text>
     <text x="280" y="264">A changes-requested decision runs Fix and Re-validate, then Review reads it again.</text>
   </g>
@@ -205,29 +205,29 @@ The Crew page's ring shows coverage, and `vibe flows show <id> --crew <id>` prin
 
 Coverage is a name match, and the order the two are written in changes nothing:
 
-<svg viewBox="0 0 560 258" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The default flow's six seats on the left - planner, architect, implementer, reviewer, fixer, verifier - wired by name to the default crew's six roles on the right: Planner, Architect, Backend Implementer, Fixer, Reviewer, Verifier. The reviewer and fixer wires cross, because the match reads names and not order. A seventh row, validate, names no seat and runs your shell commands.">
-  <g fill="currentColor" fill-opacity="0.5" font-size="9.5">
+<svg font-family="var(--font-sans)" viewBox="0 0 560 258" width="100%" style="max-width:720px;height:auto" role="img" aria-label="The default flow's six seats on the left - planner, architect, implementer, reviewer, fixer, verifier - wired by name to the default crew's six roles on the right: Planner, Architect, Backend Implementer, Fixer, Reviewer, Verifier. The reviewer and fixer wires cross, because the match reads names and not order. A seventh row, validate, names no seat and runs your shell commands.">
+  <g fill="var(--violet-soft)" font-size="9.5">
     <text x="1" y="18">the default flow names seats</text>
     <text x="280" y="18" text-anchor="middle">matched by seat name</text>
     <text x="558" y="18" text-anchor="end">your crew's roles fill them</text>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="30" width="150" height="24" rx="6"/>
-    <rect x="1" y="60" width="150" height="24" rx="6"/>
-    <rect x="1" y="90" width="150" height="24" rx="6"/>
-    <rect x="1" y="120" width="150" height="24" rx="6"/>
-    <rect x="1" y="150" width="150" height="24" rx="6"/>
-    <rect x="1" y="180" width="150" height="24" rx="6"/>
-    <rect x="400" y="30" width="158" height="24" rx="6"/>
-    <rect x="400" y="60" width="158" height="24" rx="6"/>
-    <rect x="400" y="90" width="158" height="24" rx="6"/>
-    <rect x="400" y="120" width="158" height="24" rx="6"/>
-    <rect x="400" y="150" width="158" height="24" rx="6"/>
-    <rect x="400" y="180" width="158" height="24" rx="6"/>
-    <rect x="1" y="214" width="150" height="24" rx="6" stroke-dasharray="4 4"/>
-    <rect x="400" y="214" width="158" height="24" rx="6" stroke-dasharray="4 4"/>
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="30" width="150" height="24" rx="6"/>
+    <rect fill="var(--bg-200)" x="1" y="60" width="150" height="24" rx="6"/>
+    <rect fill="var(--bg-200)" x="1" y="90" width="150" height="24" rx="6"/>
+    <rect fill="var(--bg-200)" x="1" y="120" width="150" height="24" rx="6"/>
+    <rect fill="var(--bg-200)" x="1" y="150" width="150" height="24" rx="6"/>
+    <rect fill="var(--bg-200)" x="1" y="180" width="150" height="24" rx="6"/>
+    <rect fill="var(--bg-200)" x="400" y="30" width="158" height="24" rx="6"/>
+    <rect fill="var(--bg-200)" x="400" y="60" width="158" height="24" rx="6"/>
+    <rect fill="var(--bg-200)" x="400" y="90" width="158" height="24" rx="6"/>
+    <rect fill="var(--bg-200)" x="400" y="120" width="158" height="24" rx="6"/>
+    <rect fill="var(--bg-200)" x="400" y="150" width="158" height="24" rx="6"/>
+    <rect fill="var(--bg-200)" x="400" y="180" width="158" height="24" rx="6"/>
+    <rect fill="var(--bg-200)" x="1" y="214" width="150" height="24" rx="6" stroke-dasharray="4 4"/>
+    <rect fill="var(--bg-200)" x="400" y="214" width="158" height="24" rx="6" stroke-dasharray="4 4"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M151 42H394"/>
     <path d="M151 72H394"/>
     <path d="M151 102H394"/>
@@ -236,7 +236,7 @@ Coverage is a name match, and the order the two are written in changes nothing:
     <path d="M151 192H394"/>
     <path d="M151 226H394" stroke-dasharray="4 4"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.5">
+  <g fill="var(--fg-200)">
     <path d="M394 38l6 4-6 4z"/>
     <path d="M394 68l6 4-6 4z"/>
     <path d="M394 98l6 4-6 4z"/>
@@ -245,7 +245,7 @@ Coverage is a name match, and the order the two are written in changes nothing:
     <path d="M394 188l6 4-6 4z"/>
     <path d="M394 222l6 4-6 4z"/>
   </g>
-  <g fill="currentColor" font-size="11" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="11" font-family="var(--font-mono)">
     <text x="11" y="46">planner</text>
     <text x="11" y="76">architect</text>
     <text x="11" y="106">implementer</text>
@@ -254,10 +254,10 @@ Coverage is a name match, and the order the two are written in changes nothing:
     <text x="11" y="196">verifier</text>
     <text x="11" y="230">validate</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.45" font-size="9.5" font-family="ui-monospace,monospace" text-anchor="end">
+  <g fill="var(--fg-100)" font-size="9.5" font-family="ui-monospace,monospace" text-anchor="end">
     <text x="141" y="230">no seat</text>
   </g>
-  <g fill="currentColor" font-size="11">
+  <g fill="var(--fg-100)" font-weight="600" font-size="11">
     <text x="409" y="46">Planner</text>
     <text x="409" y="76">Architect</text>
     <text x="409" y="106">Backend Implementer</text>
@@ -265,10 +265,10 @@ Coverage is a name match, and the order the two are written in changes nothing:
     <text x="409" y="166">Reviewer</text>
     <text x="409" y="196">Verifier</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.6" font-size="11">
+  <g fill="var(--fg-100)" font-size="11">
     <text x="409" y="230">your shell commands</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="9.5" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="9.5" text-anchor="middle">
     <text x="280" y="254">Across the 14 built-in flows, 7 of 73 steps name no seat.</text>
   </g>
 </svg>
@@ -344,23 +344,23 @@ vibe spec-up build <spec-up run id>
 
 A change crosses three branches: the run's own, which forks from main when the run starts, a staging branch you name, and main.
 
-<svg viewBox="0 0 560 192" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Three branch lanes. The run branch forks from main, integrate apply merges it into a staging branch you name, and integrate finish merges that into main behind a typed confirmation token. Integrate advise reads the run branch and changes nothing.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="250" y="4" width="200" height="18" rx="6" stroke-dasharray="4 4"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 192" width="100%" style="max-width:720px;height:auto" role="img" aria-label="Three branch lanes. The run branch forks from main, integrate apply merges it into a staging branch you name, and integrate finish merges that into main behind a typed confirmation token. Integrate advise reads the run branch and changes nothing.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="250" y="4" width="200" height="18" rx="6" stroke-dasharray="4 4"/>
     <path d="M280 22v12" stroke-dasharray="3 3"/>
     <path d="M64 148C82 148 78 44 96 44"/>
-    <rect x="478" y="113" width="14" height="17" rx="3" stroke-opacity="0.6"/>
+    <rect fill="var(--bg-200)" x="478" y="113" width="14" height="17" rx="3"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M96 44H300"/>
     <path d="M332 96H470"/>
     <path d="M300 44C318 44 314 96 332 96"/>
     <path d="M470 96C488 96 484 148 502 148"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.55" stroke-width="1.5">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="1.5">
     <path d="M1 148H558"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.5">
+  <g fill="var(--fg-200)">
     <path d="M276 34l4 6 4-6z"/>
     <path d="M326 92l6 4-6 4z"/>
     <path d="M496 144l6 4-6 4z"/>
@@ -372,20 +372,20 @@ A change crosses three branches: the run's own, which forks from main when the r
     <circle cx="370" cy="96" r="3"/>
     <circle cx="530" cy="148" r="3"/>
   </g>
-  <g fill="currentColor" font-size="10" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="10" font-family="var(--font-mono)">
     <text x="96" y="34">vibestrate/bold-lovelace</text>
     <text x="332" y="86">integration/logging</text>
     <text x="1" y="166">main</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.6" font-size="9" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="9" font-family="ui-monospace,monospace">
     <text x="258" y="17">vibe integrate advise - read-only</text>
     <text x="296" y="72" text-anchor="end">vibe integrate apply --into</text>
     <text x="466" y="126" text-anchor="end">vibe integrate finish --confirm merge-to-main</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="8.5" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="8.5" font-family="ui-monospace,monospace" text-anchor="middle">
     <text x="485" y="106">token</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="9.5" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="9.5" text-anchor="middle">
     <text x="280" y="184">Nothing reaches main until you type the token out in full.</text>
   </g>
 </svg>

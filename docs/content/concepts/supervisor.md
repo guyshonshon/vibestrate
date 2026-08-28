@@ -48,31 +48,31 @@ The decision count opens the feed. Where the flow was chosen rather than pinned,
 
 </div>
 
-<svg viewBox="0 0 560 150" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A task goes through the supervisor to a flow, upgraded to a heavier one when the work looks risky. The supervisor also sets the lenses reviewers aim at, the posture a run executes under, and a feed that labels every call it made.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="8" width="110" height="40" rx="8"/>
-    <rect x="146" y="8" width="160" height="40" rx="8"/>
-    <rect x="341" y="8" width="110" height="40" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 150" width="100%" style="max-width:720px;height:auto" role="img" aria-label="A task goes through the supervisor to a flow, upgraded to a heavier one when the work looks risky. The supervisor also sets the lenses reviewers aim at, the posture a run executes under, and a feed that labels every call it made.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="8" width="110" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="146" y="8" width="160" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="341" y="8" width="110" height="40" rx="8"/>
     <path d="M111 28 H139"/>
     <path d="M306 28 H334"/>
     <path d="M226 48 V134 M226 86 H250 M226 110 H250 M226 134 H250"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.28">
+  <g fill="var(--fg-300)">
     <path d="M146 28 l-7 -4 v8 z"/>
     <path d="M341 28 l-7 -4 v8 z"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="56" y="33">task</text>
     <text x="226" y="33">supervisor</text>
     <text x="396" y="33">flow</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="396" y="63">upgraded when risky</text>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
-    <text x="258" y="90">lenses<tspan x="330" font-size="11" fill-opacity="0.5">what reviewers aim at</tspan></text>
-    <text x="258" y="114">posture<tspan x="330" font-size="11" fill-opacity="0.5">sandboxed? approve each change?</tspan></text>
-    <text x="258" y="138">feed<tspan x="330" font-size="11" fill-opacity="0.5">every call, labelled</tspan></text>
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)">
+    <text x="258" y="90">lenses<tspan x="330" font-size="11" fill="var(--violet-soft)">what reviewers aim at</tspan></text>
+    <text x="258" y="114">posture<tspan x="330" font-size="11" fill="var(--violet-soft)">sandboxed? approve each change?</tspan></text>
+    <text x="258" y="138">feed<tspan x="330" font-size="11" fill="var(--violet-soft)">every call, labelled</tspan></text>
   </g>
 </svg>
 

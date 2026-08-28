@@ -125,26 +125,26 @@ Between steps, after each commits cleanly, a cheap **supervisor** turn judges
 whether the task is still on track. Its prompt asks for one of two verdicts; the
 Conductor understands a third and answers it by handing off:
 
-<svg viewBox="0 0 560 132" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The verdicts the Conductor acts on: proceed, and the next step starts; enhance, which hands off to the separate re-ground pass; or escalate, which halts the task and keeps the committed work.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="46" width="122" height="40" rx="8"/>
-    <rect x="196" y="4" width="362" height="36" rx="8"/>
-    <rect x="196" y="48" width="362" height="36" rx="8"/>
-    <rect x="196" y="92" width="362" height="36" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 132" width="100%" style="max-width:720px;height:auto" role="img" aria-label="The verdicts the Conductor acts on: proceed, and the next step starts; enhance, which hands off to the separate re-ground pass; or escalate, which halts the task and keeps the committed work.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="46" width="122" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="196" y="4" width="362" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="196" y="48" width="362" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="196" y="92" width="362" height="36" rx="8"/>
     <path d="M124 66 H158 M158 22 V110 M158 22 H188 M158 66 H188 M158 110 H188"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.28">
+  <g fill="var(--fg-300)">
     <path d="M194 22 L187 18.5 L187 25.5 Z"/>
     <path d="M194 66 L187 62.5 L187 69.5 Z"/>
     <path d="M194 110 L187 106.5 L187 113.5 Z"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)">
     <text x="20" y="71">supervisor</text>
     <text x="212" y="27">PROCEED</text>
     <text x="212" y="71">ENHANCE</text>
     <text x="212" y="115">ESCALATE</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="300" y="27">carry on to the next step</text>
     <text x="300" y="71">hand off to the re-ground pass</text>
     <text x="300" y="115">halt, and keep the committed work</text>

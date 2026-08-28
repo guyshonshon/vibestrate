@@ -43,22 +43,22 @@ Vibestrate refuses to write outside that folder, to secret-like files such as `.
 
 </div>
 
-<svg viewBox="0 0 560 128" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The run's copy holds the agents' edits and one commit per stage. Only node_modules and .venv are symlinked through to your project, and an agent can write back along those links. A write anywhere else is refused.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="8" width="250" height="100" rx="8"/>
-    <rect x="17" y="60" width="170" height="32" rx="6"/>
-    <rect x="429" y="8" width="130" height="100" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 128" width="100%" style="max-width:720px;height:auto" role="img" aria-label="The run's copy holds the agents' edits and one commit per stage. Only node_modules and .venv are symlinked through to your project, and an agent can write back along those links. A write anywhere else is refused.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="8" width="250" height="100" rx="8"/>
+    <rect fill="var(--bg-200)" x="17" y="60" width="170" height="32" rx="6"/>
+    <rect fill="var(--bg-200)" x="429" y="8" width="130" height="100" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M187 76 h242"/>
     <path d="M424 71 l5 5 l-5 5"/><path d="M192 71 l-5 5 l5 5"/>
   </g>
-  <g fill="currentColor" font-size="12">
+  <g fill="var(--fg-100)" font-weight="600" font-size="12">
     <text x="17" y="30">the run's copy</text>
     <text x="494" y="34" text-anchor="middle">your project</text>
   </g>
-  <text x="102" y="80" fill="currentColor" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">node_modules, .venv</text>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <text x="102" y="80" fill="var(--fg-100)" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">node_modules, .venv</text>
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="17" y="48">agent edits, one commit per stage</text>
     <text x="340" y="68" text-anchor="middle">symlinked - writes reach back</text>
     <text x="126" y="122" text-anchor="middle">a write anywhere else is refused</text>

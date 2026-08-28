@@ -89,31 +89,31 @@ The **Tree** tab shows the supervisor and agents at work while a link runs.
 Spec-up is short read-only runs you step between, not one long process that
 holds open:
 
-<svg viewBox="0 0 560 118" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The chain of runs: intake, then a gap-check that asks questions, then a round where you answer, looping back to gap-check for up to four rounds, then the spec-up run and, once you approve, the roadmap run.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="4" y="32" width="98" height="40" rx="8"/>
-    <rect x="117" y="32" width="98" height="40" rx="8"/>
-    <rect x="230" y="32" width="98" height="40" rx="8"/>
-    <rect x="343" y="32" width="98" height="40" rx="8"/>
-    <rect x="456" y="32" width="98" height="40" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 118" width="100%" style="max-width:720px;height:auto" role="img" aria-label="The chain of runs: intake, then a gap-check that asks questions, then a round where you answer, looping back to gap-check for up to four rounds, then the spec-up run and, once you approve, the roadmap run.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="4" y="32" width="98" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="117" y="32" width="98" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="230" y="32" width="98" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="343" y="32" width="98" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="456" y="32" width="98" height="40" rx="8"/>
     <path d="M103 52 H112 M216 52 H225 M329 52 H338 M442 52 H451"/>
     <path d="M279 73 V92 H166 V78"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.28">
+  <g fill="var(--fg-300)">
     <path d="M117 52 L110 48.5 L110 55.5 Z"/>
     <path d="M230 52 L223 48.5 L223 55.5 Z"/>
     <path d="M343 52 L336 48.5 L336 55.5 Z"/>
     <path d="M456 52 L449 48.5 L449 55.5 Z"/>
     <path d="M166 72 L162.5 79 L169.5 79 Z"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="53" y="57">intake</text>
     <text x="166" y="57">gap-check</text>
     <text x="279" y="57">answer</text>
     <text x="392" y="57">spec-up</text>
     <text x="505" y="57">roadmap</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="222" y="108">up to four rounds</text>
     <text x="448" y="24">you approve</text>
   </g>

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Every docs diagram is on the design system now.** Thirty-six figures were
+  still drawn the old way - `currentColor` at 0.28 opacity, rendered at 560px -
+  while the newer ones used the site's violet, white and Geist. Mixed styles on
+  neighbouring pages read worse than either alone, so the remaining thirty-six
+  were converted: filled surfaces, white labels, violet secondaries, heavier
+  connectors, and a uniform upscale to 720px. Geometry is untouched, so nothing
+  reflowed. All 55 figures now take their colour from the tokens.
+
 - **The docs diagrams are drawn on the design system now.** They were matching
   the forty-one figures already in the docs - `currentColor` at 0.28 opacity,
   11px labels - which is the weakest convention on the page rather than the

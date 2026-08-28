@@ -58,25 +58,25 @@ A block is **owner-only**. The supervisor can *propose* an advise rule from a co
 
 ## A rule the supervisor proposed
 
-<svg viewBox="0 0 560 132" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A rule you add yourself goes live on the next review with no confirm step. A rule the supervisor proposes lands pending and only goes live once you confirm it.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="1" width="170" height="36" rx="8"/>
-    <rect x="1" y="85" width="170" height="36" rx="8"/>
-    <rect x="213" y="85" width="110" height="36" rx="8"/>
-    <rect x="409" y="85" width="150" height="36" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 132" width="100%" style="max-width:720px;height:auto" role="img" aria-label="A rule you add yourself goes live on the next review with no confirm step. A rule the supervisor proposes lands pending and only goes live once you confirm it.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="1" width="170" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="1" y="85" width="170" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="213" y="85" width="110" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="409" y="85" width="150" height="36" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M171 19 h308 v62"/><path d="M474 76 l5 5 l5 -5"/>
     <path d="M171 103 h36"/><path d="M202 98 l5 5 l-5 5"/>
     <path d="M323 103 h80"/><path d="M398 98 l5 5 l-5 5"/>
   </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
+  <g fill="var(--fg-100)" font-weight="600" font-size="12" text-anchor="middle">
     <text x="86" y="23">you add a rule</text>
     <text x="86" y="107">the supervisor proposes</text>
     <text x="484" y="107">live on next review</text>
   </g>
-  <text x="268" y="107" fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">pending</text>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <text x="268" y="107" fill="var(--fg-100)" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">pending</text>
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="325" y="14">no confirm step</text>
     <text x="363" y="96">you confirm</text>
   </g>

@@ -56,21 +56,21 @@ Secret-like files refuse annotation and say so in place of the form.
 
 **Visible to agents** is on by default, and it decides which of two places the note ends up:
 
-<svg viewBox="0 0 560 126" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A note you pin is either shared and open, in which case it joins every agent's prompt, or private or resolved, in which case it stays in the dashboard only.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="8" width="150" height="38" rx="8"/>
-    <rect x="195" y="8" width="170" height="38" rx="8"/>
-    <rect x="401" y="8" width="158" height="38" rx="8"/>
-    <rect x="195" y="80" width="170" height="38" rx="8"/>
-    <rect x="401" y="80" width="158" height="38" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 126" width="100%" style="max-width:720px;height:auto" role="img" aria-label="A note you pin is either shared and open, in which case it joins every agent's prompt, or private or resolved, in which case it stays in the dashboard only.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="8" width="150" height="38" rx="8"/>
+    <rect fill="var(--bg-200)" x="195" y="8" width="170" height="38" rx="8"/>
+    <rect fill="var(--bg-200)" x="401" y="8" width="158" height="38" rx="8"/>
+    <rect fill="var(--bg-200)" x="195" y="80" width="170" height="38" rx="8"/>
+    <rect fill="var(--bg-200)" x="401" y="80" width="158" height="38" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M151 27 h40"/><path d="M186 22 l5 5 l-5 5"/>
     <path d="M365 27 h32"/><path d="M392 22 l5 5 l-5 5"/>
     <path d="M76 46 V99 H191"/><path d="M186 94 l5 5 l-5 5"/>
     <path d="M365 99 h32"/><path d="M392 94 l5 5 l-5 5"/>
   </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
+  <g fill="var(--fg-100)" font-weight="600" font-size="12" text-anchor="middle">
     <text x="76" y="31">a note you pin</text>
     <text x="280" y="31">shared and open</text>
     <text x="480" y="31">every agent's prompt</text>

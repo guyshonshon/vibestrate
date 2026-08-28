@@ -68,27 +68,27 @@ git diff main
 
 **Source > Merge** lists every merge-ready run: how far **ahead** and **behind** `main`, how many files it touched, its assurance lanes. **Get merge advice** opens one, with risk flags first (did your checks run at all, does the change touch protected paths), then a dry-run conflict report, then one of three recommendations:
 
-<svg viewBox="0 0 560 132" width="100%" style="max-width:560px;height:auto" role="img" aria-label="vibe integrate advise ends on one of three recommendations: finish now, stage on an integration branch, or resolve conflicts first.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="46" width="180" height="40" rx="8"/>
-    <rect x="245" y="8" width="314" height="32" rx="8"/>
-    <rect x="245" y="50" width="314" height="32" rx="8"/>
-    <rect x="245" y="92" width="314" height="32" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 132" width="100%" style="max-width:720px;height:auto" role="img" aria-label="vibe integrate advise ends on one of three recommendations: finish now, stage on an integration branch, or resolve conflicts first.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="46" width="180" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="245" y="8" width="314" height="32" rx="8"/>
+    <rect fill="var(--bg-200)" x="245" y="50" width="314" height="32" rx="8"/>
+    <rect fill="var(--bg-200)" x="245" y="92" width="314" height="32" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M181 66 h32"/>
     <path d="M213 24 V108"/>
     <path d="M213 24 h27"/>
     <path d="M213 66 h27"/>
     <path d="M213 108 h27"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.5">
+  <g fill="var(--fg-200)">
     <polygon points="240,20.5 245,24 240,27.5"/>
     <polygon points="240,62.5 245,66 240,69.5"/>
     <polygon points="240,104.5 245,108 240,111.5"/>
   </g>
-  <text x="91" y="70" fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">integrate advise</text>
-  <g fill="currentColor" font-size="12">
+  <text x="91" y="70" fill="var(--fg-100)" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">integrate advise</text>
+  <g fill="var(--fg-100)" font-weight="600" font-size="12">
     <text x="261" y="28">finish now</text>
     <text x="261" y="70">stage on an integration branch</text>
     <text x="261" y="112">resolve conflicts first</text>

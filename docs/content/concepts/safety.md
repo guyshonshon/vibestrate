@@ -82,29 +82,29 @@ Eight kinds of effect cross it, and this is the whole list:
 
 </div>
 
-<svg viewBox="0 0 560 130" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A run's own effects pass through the Action Broker, which records its decision in actions.ndjson. Editing your own settings writes straight to project.yml with no broker call.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="10" width="150" height="40" rx="8"/>
-    <rect x="205" y="10" width="150" height="40" rx="8"/>
-    <rect x="409" y="10" width="150" height="40" rx="8"/>
-    <rect x="1" y="80" width="150" height="40" rx="8"/>
-    <rect x="409" y="80" width="150" height="40" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 130" width="100%" style="max-width:720px;height:auto" role="img" aria-label="A run's own effects pass through the Action Broker, which records its decision in actions.ndjson. Editing your own settings writes straight to project.yml with no broker call.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="10" width="150" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="205" y="10" width="150" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="409" y="10" width="150" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="1" y="80" width="150" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="409" y="80" width="150" height="40" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M151 30 h50"/><path d="M196 26 l5 4 l-5 4"/>
     <path d="M355 30 h50"/><path d="M400 26 l5 4 l-5 4"/>
     <path d="M151 100 h74"/><path d="M335 100 h70"/><path d="M400 96 l5 4 l-5 4"/>
   </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
+  <g fill="var(--fg-100)" font-weight="600" font-size="12" text-anchor="middle">
     <text x="76" y="34">a run's own effects</text>
     <text x="280" y="34">Action Broker</text>
     <text x="76" y="104">you, configuring</text>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="484" y="34">actions.ndjson</text>
     <text x="484" y="104">project.yml</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="280" y="104">no broker call</text>
   </g>
 </svg>

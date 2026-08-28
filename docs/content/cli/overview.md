@@ -281,26 +281,26 @@ vibe params generate --flow <id> <param>
 
 `params generate` has a provider draft a value; `--accept` keeps that draft without asking. At run start each declared param resolves in a fixed order, and the first source with a value wins:
 
-<svg viewBox="0 0 560 224" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The five places a parameter value can come from, checked in this order: the --param flag on the command line, then the VIBESTRATE_PARAM environment variable, then the stored project params, then the flow's own default, and last of all it asks you or fails fast in CI.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="34" y="4" width="520" height="38" rx="8"/>
-    <rect x="34" y="48" width="520" height="38" rx="8"/>
-    <rect x="34" y="92" width="520" height="38" rx="8"/>
-    <rect x="34" y="136" width="520" height="38" rx="8"/>
-    <rect x="34" y="180" width="520" height="38" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 224" width="100%" style="max-width:720px;height:auto" role="img" aria-label="The five places a parameter value can come from, checked in this order: the --param flag on the command line, then the VIBESTRATE_PARAM environment variable, then the stored project params, then the flow's own default, and last of all it asks you or fails fast in CI.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="34" y="4" width="520" height="38" rx="8"/>
+    <rect fill="var(--bg-200)" x="34" y="48" width="520" height="38" rx="8"/>
+    <rect fill="var(--bg-200)" x="34" y="92" width="520" height="38" rx="8"/>
+    <rect fill="var(--bg-200)" x="34" y="136" width="520" height="38" rx="8"/>
+    <rect fill="var(--bg-200)" x="34" y="180" width="520" height="38" rx="8"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="17" y="28">1</text>
     <text x="17" y="72">2</text>
     <text x="17" y="116">3</text>
     <text x="17" y="160">4</text>
     <text x="17" y="204">5</text>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)">
     <text x="52" y="28">--param   on the command line</text>
     <text x="52" y="72">VIBESTRATE_PARAM_&lt;NAME&gt;   in the environment</text>
   </g>
-  <g fill="currentColor" font-size="12">
+  <g fill="var(--fg-100)" font-weight="600" font-size="12">
     <text x="52" y="116">the stored project params</text>
     <text x="52" y="160">the flow's own default</text>
     <text x="52" y="204">it asks you, or fails fast in CI</text>

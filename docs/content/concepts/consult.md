@@ -76,23 +76,23 @@ concept pages that survive. Name a real subcommand, or say "command line", and
 those pages come back on any surface: a question about `vibe run --flow`
 deserves an answer about `vibe run --flow`.
 
-<svg viewBox="0 0 560 116" width="100%" style="max-width:560px;height:auto" role="img" aria-label="One question forks on where you asked it. Asked in the dashboard, the answer names screens to open. Asked in a terminal, it names commands to run.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="38" width="150" height="40" rx="8"/>
-    <rect x="210" y="8" width="130" height="40" rx="8"/>
-    <rect x="210" y="68" width="130" height="40" rx="8"/>
-    <rect x="380" y="8" width="178" height="40" rx="8"/>
-    <rect x="380" y="68" width="178" height="40" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 116" width="100%" style="max-width:720px;height:auto" role="img" aria-label="One question forks on where you asked it. Asked in the dashboard, the answer names screens to open. Asked in a terminal, it names commands to run.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="38" width="150" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="210" y="8" width="130" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="210" y="68" width="130" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="380" y="8" width="178" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="380" y="68" width="178" height="40" rx="8"/>
     <path d="M151 58 H180 M180 28 V88 M180 28 H203 M180 88 H203"/>
     <path d="M340 28 H373 M340 88 H373"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.28">
+  <g fill="var(--fg-300)">
     <path d="M210 28 l-7 -4 v8 z"/>
     <path d="M210 88 l-7 -4 v8 z"/>
     <path d="M380 28 l-7 -4 v8 z"/>
     <path d="M380 88 l-7 -4 v8 z"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="76" y="63">your question</text>
     <text x="275" y="33">dashboard</text>
     <text x="469" y="33">screens to open</text>
