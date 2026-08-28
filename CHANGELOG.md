@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **The docs overview now explains the docs.** It described the product and
+  stopped, so the shape of the manual - what a page looks like, which of the
+  three kinds you are on, what is generated and therefore cannot drift - was
+  something you inferred. It says so now, and it points at the schematics, which
+  were real but effectively unfindable three levels down the sidebar. Schematics
+  is a top-level Architecture entry now.
+
 - **The docs got the diagrams they were missing, and a page that collects them.**
   Seven subjects that only had prose now have a figure: what a flow holds, what a
   profile holds, what a run holds, the default flow and its one cycle, how a run

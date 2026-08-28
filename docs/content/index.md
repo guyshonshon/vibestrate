@@ -112,6 +112,81 @@ The tour: the dashboard, flows, crews, policies, spec-up and the merge path.
 
 </div>
 
+## How these docs are laid out
+
+Every page follows the same shape, so you can skim one the way you skim any
+other.
+
+| Part | What it is |
+|---|---|
+| **In simple words** | The first section on every page. Plain language, no jargon, enough to decide whether you need the rest. |
+| The middle sections | The actual behaviour, in the order it happens. Each is a chapter you can link straight to. |
+| **On this page** | The rail on the right. Every chapter, one click each. |
+| `Next:` | The last line, naming the page that follows this one. Read them in order and you have read the manual. |
+
+Three kinds of page, and it is worth knowing which you are on:
+
+<div class="docs-cards">
+
+**Concepts**
+One idea each: [Task](/docs/concepts/task), [Flow](/docs/concepts/flow),
+[Crew](/docs/concepts/crew), [Run](/docs/concepts/run). Start here.
+
+**Reference**
+Generated from the source, so it cannot drift:
+[`project.yml`](/docs/reference/config), [CLI](/docs/reference/cli),
+[providers](/docs/reference/providers), [run states](/docs/reference/state-machine).
+
+**Architecture**
+How it works underneath: [the schematics](/docs/architecture/schematics),
+[the overview](/docs/architecture/overview), [the repository map](/docs/architecture/directory-map).
+
+</div>
+
+<div class="docs-callout tip">
+
+**Tip.** Looking for the diagrams? [Schematics](/docs/architecture/schematics)
+collects every figure in the docs on one page, in the order the pieces depend on
+each other. It is the fastest way to see the whole system at once.
+
+</div>
+
+## Finding things
+
+<div class="docs-cards">
+
+**Search**
+Press `/` anywhere. It matches page titles and section headings.
+
+**A field you saw in a config**
+The concept page for that type has a *What a X carries* table naming every
+field, and [`project.yml`](/docs/reference/config) has the generated,
+complete list.
+
+**A command you half remember**
+[CLI commands](/docs/reference/cli) is generated from the program itself, so
+every flag on it is real.
+
+**Ask your own project**
+`vibe consult "why did that run stop?"` answers from your files, config and runs
+plus these docs. Read-only, and it starts nothing.
+
+</div>
+
+## Where these docs come from
+
+The pages are markdown in the product repository under `docs/content/`, and the
+reference pages are generated from the code itself: the CLI page from the
+command tree, the config page from the Zod schema, the provider and flow pages
+from their catalogs. That is deliberate. Anything a person writes by hand can go
+stale; anything generated cannot say a flag exists that does not.
+
+The handwritten pages are kept honest by tests rather than by review. A page may
+not hide its content behind one catch-all chapter, a field table may not name a
+field the schema does not have, and a diagram may not hard-code a colour or
+drift from the copy of itself on another page. Those checks run in CI, so the
+docs fail the build rather than quietly rotting.
+
 ## The terminal, when you want it
 
 `vibe` on its own opens the interactive shell, the terminal-native version of the same surfaces: Dashboard, Flow, Crew and seven more as numbered tabs, with a `:` palette for the rest. See [the interactive shell](/docs/cli/shell).
