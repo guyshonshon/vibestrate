@@ -114,6 +114,55 @@ price.
 | `complexity`, `capabilities` | What the flow selector reads when it picks for you. |
 | `hidden` | Keeps a flow out of the pickers. The spec-up chain uses it. |
 
+<svg viewBox="0 0 560 196" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A flow holds a seats map and an ordered steps array. Each step names one seat, and the seats are what a crew answers. Nothing in a flow, a step or a seat can name a model, a provider or a price.">
+  <g fill="currentColor" fill-opacity="0.04">
+    <rect x="0" y="0" width="560" height="150" rx="10"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="20.5" y="30.5" width="150" height="46" rx="8"/>
+    <rect x="20.5" y="90.5" width="150" height="46" rx="8"/>
+    <rect x="230.5" y="30.5" width="140" height="46" rx="8"/>
+    <rect x="230.5" y="90.5" width="140" height="46" rx="8"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
+    <rect x="420.5" y="60.5" width="130" height="46" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M174 53 L224 53"/>
+    <path d="M174 113 L224 113"/>
+    <path d="M300 90 L300 80"/>
+    <path d="M374 53 L392 53 L392 83 L416 83"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5">
+    <polygon points="218,49.5 224,53 218,56.5"/>
+    <polygon points="218,109.5 224,113 218,116.5"/>
+    <polygon points="296.5,86 300,80 303.5,86"/>
+    <polygon points="410,79.5 416,83 410,86.5"/>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="95" y="52">seats</text>
+    <text x="95" y="112">steps</text>
+    <text x="300" y="52">Seat</text>
+    <text x="300" y="112">Step</text>
+    <text x="485" y="82">Crew</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.62" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="10" y="17" text-anchor="start">flow</text>
+    <text x="95" y="67">label, description</text>
+    <text x="95" y="127">ordered, 1 or more</text>
+    <text x="300" y="67">a slot to fill</text>
+    <text x="300" y="127">kind, stage, io</text>
+    <text x="485" y="97">your roster</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="10.5" font-family="ui-monospace,monospace">
+    <text x="310" y="88" text-anchor="start">seat:</text>
+    <text x="392" y="74" text-anchor="middle">answered by</text>
+    <text x="0" y="176" text-anchor="start">no field here can name a model, a provider or a price</text>
+  </g>
+</svg>
+
+A flow is closed: its two references point at its own types, and its steps hand work to each other through named inputs and outputs.
+
 Only `seats` and `steps` are references, and both point inward at the flow's own
 types. Annotated YAML is in [Flow YAML](/docs/reference/flow-yml); the shape is
 `flowDefinitionSchema` in `src/flows/schemas/flow-schema.ts`.

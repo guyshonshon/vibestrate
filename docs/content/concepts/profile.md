@@ -120,6 +120,69 @@ does by default. That is why a fresh project runs with almost nothing set.
 | `disallowedTools` | Provider tool names this profile may not use. |
 | `providerOptions` | Raw provider-specific options, for what the fields above do not reach. |
 
+<svg viewBox="0 0 560 226" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A crew holds roles; a role names the profile it runs on; a profile names the provider and carries model, power, maxTokens, timeoutMs and disallowedTools; the provider is the command that actually gets spawned.">
+  <g fill="currentColor" fill-opacity="0.04">
+    <rect x="272" y="90" width="288" height="124" rx="10"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="0.5" y="22.5" width="112" height="42" rx="8"/>
+    <rect x="150.5" y="22.5" width="112" height="42" rx="8"/>
+    <rect x="454.5" y="22.5" width="106" height="42" rx="8"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
+    <rect x="300.5" y="22.5" width="116" height="42" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M116 43 L146 43"/>
+    <path d="M266 43 L296 43"/>
+    <path d="M420 43 L450 43"/>
+    <path d="M358 66 L358 84"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5">
+    <polygon points="140,39.5 146,43 140,46.5"/>
+    <polygon points="290,39.5 296,43 290,46.5"/>
+    <polygon points="444,39.5 450,43 444,46.5"/>
+    <polygon points="354.5,78 358,84 361.5,78"/>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="56" y="42">Crew</text>
+    <text x="206" y="42">Role</text>
+    <text x="358" y="42">Profile</text>
+    <text x="507" y="42">Provider</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.62" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="56" y="57">roles</text>
+    <text x="206" y="57">seats, prompt</text>
+    <text x="358" y="57">the join</text>
+    <text x="507" y="57">command</text>
+    <text x="288" y="110" text-anchor="start" fill-opacity="0.92">provider</text>
+    <text x="288" y="128" text-anchor="start" fill-opacity="0.92">model</text>
+    <text x="288" y="146" text-anchor="start" fill-opacity="0.92">power</text>
+    <text x="288" y="164" text-anchor="start" fill-opacity="0.92">maxTokens</text>
+    <text x="288" y="182" text-anchor="start" fill-opacity="0.92">timeoutMs</text>
+    <text x="288" y="200" text-anchor="start" fill-opacity="0.92">disallowedTools</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="10.5" font-family="ui-monospace,monospace">
+    <text x="131" y="16" text-anchor="middle">has</text>
+    <text x="281" y="16" text-anchor="middle">runs on</text>
+    <text x="435" y="16" text-anchor="middle">names</text>
+    <text x="544" y="110" text-anchor="end">-&gt; Provider</text>
+    <text x="544" y="128" text-anchor="end">string | null</text>
+    <text x="544" y="146" text-anchor="end">string | null</text>
+    <text x="544" y="164" text-anchor="end">number | null</text>
+    <text x="544" y="182" text-anchor="end">number | null</text>
+    <text x="544" y="200" text-anchor="end">string[] | null</text>
+    <text x="0" y="110" text-anchor="start">five of the six default to</text>
+    <text x="0" y="126" text-anchor="start">null, meaning whatever the</text>
+    <text x="0" y="142" text-anchor="start">provider does by default.</text>
+    <text x="0" y="166" text-anchor="start">timeoutMs left unset is</text>
+    <text x="0" y="182" text-anchor="start">what an unattended run</text>
+    <text x="0" y="198" text-anchor="start">has to bound some other way.</text>
+  </g>
+</svg>
+
+The profile is the join. It is the only place a model, an effort level, a token cap and a timeout are named together.
+
 `timeoutMs` being unset is why an unattended run needs the inactivity watchdog:
 with no cap and no watchdog, a provider CLI that wedges holds the run open
 forever. See [Safety](/docs/concepts/safety).

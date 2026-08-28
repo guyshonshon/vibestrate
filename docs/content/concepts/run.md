@@ -116,6 +116,55 @@ run does next.
 | `pendingApprovalId` | The gate it is holding at, when it is holding. |
 | `ownerPid` | The process that owns it, so a dead owner is detectable. |
 
+<svg viewBox="0 0 560 178" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A run carries its own identity, branch, worktree and verdict, plus a snapshot of the flow it resolved. Four of those fields are what make a run resumable after the process that started it is gone.">
+  <g fill="currentColor" fill-opacity="0.04">
+    <rect x="0" y="0" width="270" height="160" rx="10"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="330.5" y="96.5" width="210" height="40" rx="8"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
+    <rect x="330.5" y="20.5" width="210" height="40" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M274 62 L300 62 L300 40 L326 40"/>
+    <path d="M274 96 L300 96 L300 116 L326 116"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5">
+    <polygon points="320,36.5 326,40 320,43.5"/>
+    <polygon points="320,112.5 326,116 320,119.5"/>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="435" y="39">resumable</text>
+    <text x="435" y="115">auditable</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.62" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
+    <text x="10" y="17" text-anchor="start">state.json</text>
+    <text x="16" y="40" text-anchor="start" fill-opacity="0.92">runId</text>
+    <text x="16" y="58" text-anchor="start" fill-opacity="0.92">status</text>
+    <text x="16" y="76" text-anchor="start" fill-opacity="0.92">branchName</text>
+    <text x="16" y="94" text-anchor="start" fill-opacity="0.92">worktreePath</text>
+    <text x="16" y="112" text-anchor="start" fill-opacity="0.92">flow</text>
+    <text x="16" y="130" text-anchor="start" fill-opacity="0.92">crewId</text>
+    <text x="16" y="148" text-anchor="start" fill-opacity="0.92">reviewLoopCount</text>
+    <text x="435" y="54">status + loops + flow</text>
+    <text x="435" y="130">events + actions + verdict</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="10.5" font-family="ui-monospace,monospace">
+    <text x="254" y="40" text-anchor="end">its identity</text>
+    <text x="254" y="58" text-anchor="end">one of sixteen</text>
+    <text x="254" y="76" text-anchor="end">its own branch</text>
+    <text x="254" y="94" text-anchor="end">outside the repo</text>
+    <text x="254" y="112" text-anchor="end">the snapshot</text>
+    <text x="254" y="130" text-anchor="end">-&gt; Crew</text>
+    <text x="254" y="148" text-anchor="end">number</text>
+    <text x="330" y="76" text-anchor="start">picked back up after the</text>
+    <text x="330" y="92" text-anchor="start">owning process is gone</text>
+  </g>
+</svg>
+
+What the run record is for: enough state to be picked back up, and enough evidence to be audited afterwards.
+
 Four of these are why a run is resumable at all: `status`, `reviewLoopCount`, the
 flow snapshot and the worktree path are enough to pick a run back up after the
 process that started it is gone. The shape is `runStateSchema` in

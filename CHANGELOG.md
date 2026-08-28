@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **The docs got the diagrams they were missing, and a page that collects them.**
+  Seven subjects that only had prose now have a figure: what a flow holds, what a
+  profile holds, what a run holds, the default flow and its one cycle, how a run
+  is driven, what one turn does, and how a failed turn is resolved. Each sits on
+  the page that explains it, and `architecture/schematics` collects the whole set
+  in dependency order for reading in one pass. They are drawn to the docs' own
+  idiom rather than imported from elsewhere: 560px wide like the forty-one
+  figures already there, every fill and stroke `currentColor`, no literal colour
+  anywhere. Two new gates hold that line - one refuses a figure that hard-codes a
+  colour or overruns the article column, the other refuses a repeated figure that
+  has drifted from its original.
+
 - **The docs now say what each type is made of.** Every core concept page
   carried a good explanation of what a Flow or a Profile is *for* and nothing at
   all about what it *holds*, so the only way to learn that a profile has a

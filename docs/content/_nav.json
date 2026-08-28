@@ -329,6 +329,10 @@
           "label": "High-level architecture",
           "items": [
             {
+              "slug": "architecture/schematics",
+              "label": "Schematics"
+            },
+            {
               "slug": "architecture/http-api",
               "label": "HTTP API"
             },

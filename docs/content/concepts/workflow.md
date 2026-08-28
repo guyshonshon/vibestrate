@@ -47,6 +47,58 @@ Eight steps. Six always run; **fix** and **re-validate** are loop-only, firing w
 
 Eight steps, seven statuses: `validating` happens twice. The [state machine](/docs/concepts/state) is the rail underneath, so a run cannot jump from `planning` to `merge_ready`. The fields each step is written from are annotated in [Flow YAML](/docs/reference/flow-yml).
 
+<svg viewBox="0 0 560 180" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The default flow runs plan, architecture, implement and validate in order, then review. Review approved goes straight to verify; changes requested goes to fix, then re-validate, and back to review at most three times.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="0.5" y="6.5" width="131" height="34" rx="8"/>
+    <rect x="143.5" y="6.5" width="131" height="34" rx="8"/>
+    <rect x="286.5" y="6.5" width="131" height="34" rx="8"/>
+    <rect x="429.5" y="6.5" width="131" height="34" rx="8"/>
+    <rect x="143.5" y="138.5" width="131" height="34" rx="8"/>
+    <rect x="286.5" y="138.5" width="131" height="34" rx="8"/>
+    <rect x="429.5" y="70.5" width="131" height="34" rx="8"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
+    <rect x="0.5" y="70.5" width="131" height="34" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M135 23 L139 23"/>
+    <path d="M278 23 L282 23"/>
+    <path d="M421 23 L425 23"/>
+    <path d="M494 40 L494 54 L66 54 L66 70"/>
+    <path d="M66 104 L66 122 L209 122 L209 138"/>
+    <path d="M274 155 L282 155"/>
+    <path d="M417 155 L446 155 L446 122 L131 122 L131 104"/>
+    <path d="M131 87 L425 87"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5">
+    <polygon points="133,19.5 139,23 133,26.5"/>
+    <polygon points="276,19.5 282,23 276,26.5"/>
+    <polygon points="419,19.5 425,23 419,26.5"/>
+    <polygon points="62.5,64 66,70 69.5,64"/>
+    <polygon points="205.5,132 209,138 212.5,132"/>
+    <polygon points="276,151.5 282,155 276,158.5"/>
+    <polygon points="127.5,110 131,104 134.5,110"/>
+    <polygon points="419,83.5 425,87 419,90.5"/>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="65.5" y="27">Plan</text>
+    <text x="208.5" y="27">Architecture</text>
+    <text x="351.5" y="27">Implement</text>
+    <text x="494.5" y="27">Validate</text>
+    <text x="65.5" y="91">Review</text>
+    <text x="208.5" y="159">Fix</text>
+    <text x="351.5" y="159">Re-validate</text>
+    <text x="494.5" y="91">Verify</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="10.5" font-family="ui-monospace,monospace">
+    <text x="137" y="118" text-anchor="start">changes requested</text>
+    <text x="452" y="151" text-anchor="start">at most 3</text>
+    <text x="278" y="80" text-anchor="middle">review approved</text>
+  </g>
+</svg>
+
+The one cycle in the default flow, and its bound. Review either approves straight through to verify, or sends the work to fix and re-validate and looks again, at most three times.
+
 ## Why the steps split this way
 
 <div class="docs-cards">

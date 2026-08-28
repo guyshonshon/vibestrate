@@ -247,6 +247,73 @@ A recoverable provider failure - a rate limit, or a transient blip like a 5xx, a
 
 A provider that hangs is the other way an unattended run fails to end. Nothing capped a turn's length by default - `profile.timeoutMs` is unset unless you set it - so a wedged CLI could hold a run open forever, which is exactly what `--unattended` promises won't happen. An **inactivity watchdog** now bounds it, and it watches for *silence*, not elapsed time: a model that streams for an hour is working, so a turn that keeps producing output is never interrupted, however long it takes. A turn that produces nothing at all for `resilience.stallTimeoutMs` has its whole process group killed and fails as the class `stall` - which retries under `transient`, then honors `onExhausted` like any other recoverable failure. It defaults to **20 minutes on unattended runs and off on attended ones** (a human is watching those and can stop the run); `0` turns it off everywhere and an explicit number applies to both. The window is generous on purpose: a streaming provider goes quiet for the length of one opaque tool call, so waiting a little longer on a dead run beats killing a live one. It is armed only where silence actually means something - a `claude-code` turn running under `--output-format stream-json`, its default. Set `profile.timeoutMs` to bound a `type: cli` provider, which may legitimately buffer everything until it exits.
 
+<svg viewBox="0 0 560 210" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A failed turn is checked first for a typed stall code, then classified from its stderr text. Stall, rate-limit and transient retry with backoff; usage-limit waits for its reset window; both then try a fallback profile. Hard skips all of it.">
+  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
+    <rect x="0.5" y="30.5" width="150" height="34" rx="8"/>
+    <rect x="0.5" y="130.5" width="150" height="34" rx="8"/>
+    <rect x="200.5" y="8.5" width="120" height="26" rx="8"/>
+    <rect x="200.5" y="42.5" width="120" height="26" rx="8"/>
+    <rect x="200.5" y="76.5" width="120" height="26" rx="8"/>
+    <rect x="200.5" y="110.5" width="120" height="26" rx="8"/>
+    <rect x="200.5" y="152.5" width="120" height="26" rx="8"/>
+    <rect x="400.5" y="30.5" width="160" height="34" rx="8"/>
+    <rect x="400.5" y="76.5" width="160" height="34" rx="8"/>
+    <rect x="400.5" y="130.5" width="160" height="34" rx="8"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
+    <rect x="0.5" y="80.5" width="150" height="34" rx="8"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+    <path d="M75 64 L75 80"/>
+    <path d="M75 114 L75 130"/>
+    <path d="M154 97 L176 97 L176 21 L196 21"/>
+    <path d="M154 147 L180 147 L180 55 L196 55"/>
+    <path d="M180 89 L196 89"/>
+    <path d="M180 123 L196 123"/>
+    <path d="M180 165 L196 165"/>
+    <path d="M324 21 L362 21 L362 47 L396 47"/>
+    <path d="M324 89 L362 89 L362 47"/>
+    <path d="M324 123 L380 123 L380 93 L396 93"/>
+    <path d="M480 64 L480 72"/>
+    <path d="M480 110 L480 126"/>
+    <path d="M324 165 L380 165 L380 147 L396 147"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5">
+    <polygon points="71.5,74 75,80 78.5,74"/>
+    <polygon points="71.5,124 75,130 78.5,124"/>
+    <polygon points="190,17.5 196,21 190,24.5"/>
+    <polygon points="190,51.5 196,55 190,58.5"/>
+    <polygon points="190,85.5 196,89 190,92.5"/>
+    <polygon points="190,119.5 196,123 190,126.5"/>
+    <polygon points="190,161.5 196,165 190,168.5"/>
+    <polygon points="390,43.5 396,47 390,50.5"/>
+    <polygon points="356,43.5 362,47 356,50.5"/>
+    <polygon points="390,89.5 396,93 390,96.5"/>
+    <polygon points="476.5,66 480,72 483.5,66"/>
+    <polygon points="476.5,120 480,126 483.5,120"/>
+    <polygon points="390,143.5 396,147 390,150.5"/>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="75" y="51">turn failed</text>
+    <text x="75" y="101">typed stall code?</text>
+    <text x="75" y="151">match stderr text</text>
+    <text x="260" y="25">stall</text>
+    <text x="260" y="59">rate-limit</text>
+    <text x="260" y="93">transient</text>
+    <text x="260" y="127">usage-limit</text>
+    <text x="260" y="169">hard</text>
+    <text x="480" y="51">retry with backoff</text>
+    <text x="480" y="97">wait for the window</text>
+    <text x="480" y="151">fallback, then fail</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5" font-size="10.5" font-family="ui-monospace,monospace">
+    <text x="0" y="186" text-anchor="start">the stall code is read structurally, not matched as text: as text it would</text>
+    <text x="0" y="202" text-anchor="start">classify hard and skip the retries, the fallback and onExhausted together</text>
+  </g>
+</svg>
+
+How a failed turn is resolved. The class decides which rung it enters at, and only `hard` skips the ladder entirely.
+
 A **subscription usage limit** is a per-model quota that resets hours out, handled separately from a per-minute rate limit. `resilience.usageLimit.action` is `wait` (sleep for the parsed window, capped at `maxWaitMin`), `fallback`, or `stop` (the default, after trying the auto-derived fallback first). A provider failure that does end the run ends loudly with its cause: the classified failure and a redacted excerpt of the provider's real error travel into the step's error, the event log, the Supervisor feed and the assurance verdict, never a bare "provider exited 1".
 
 ## Automation
