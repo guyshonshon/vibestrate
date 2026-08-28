@@ -82,6 +82,8 @@ export function deriveTerminalCause(input: {
   status: string;
   events: { type: string; data?: Record<string, unknown> }[];
   validation?: { summary: { failed: number; environment: number } } | null;
+  /** The reviewer's last word. A run can block for no other reason than this. */
+  reviewDecision?: string | null;
 }): TerminalCause {
   if (input.status === "merge_ready") return "completed";
 
@@ -111,6 +113,15 @@ export function deriveTerminalCause(input: {
   // An unanswered approval on an unattended run is expected, and it means "not
   // certified" rather than "defective" - so it must not read as a failure.
   if (has("approval.expired")) return "approval_expired";
+
+  // The reviewer never certified it. Found by driving a real run: a task whose
+  // reviewer kept asking for changes until the loop budget ran out derived
+  // `unknown`, which is the worst possible answer - "no evidence" is the one
+  // class that must never be acted on, and here there was plenty of evidence.
+  // Covers BLOCKED too: both mean the reviewer declined and named findings.
+  if (input.reviewDecision === "CHANGES_REQUESTED" || input.reviewDecision === "BLOCKED") {
+    return "review_unresolved";
+  }
 
   if (input.status === "failed") return "error";
   return "unknown";

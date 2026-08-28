@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **The Supervisor now speaks up when a run does not finish.** Any run that
+  ends without completing gets a typed cause and a Supervisor intervention: a
+  one-line summary of what stopped it and what it proposes to do, raised as a
+  notification, recorded on the run, and visible in the notification centre.
+  It speaks up about every non-completed run - including the ones it refuses
+  to act on, because a silent refusal is how a stuck delivery ends up looking
+  like a finished one. With `supervisorControl.autonomy: "act"` it carries out
+  the remedy itself, but only where the fault is deterministically an
+  environment fault; exhaustion and unknown are never self-executed, and the
+  on-disk pause flag overrides the setting either way.
 - **Queueing a task from the CLI now starts the work.** The config schema
   documents this as an invariant - it is the stated reason Supervisor autonomy
   has two settings and not three - but only the dashboard and the TUI ever

@@ -1,4 +1,4 @@
-import { appendLine } from "../../utils/fs.js";
+import { appendLine, readText } from "../../utils/fs.js";
 import { runEventsPath } from "../../utils/paths.js";
 import { nowIso } from "../../utils/time.js";
 
@@ -108,6 +108,10 @@ export type VibestrateEventType =
   | "supervisor.spec_up_posture"
   | "supervisor.policy_advise"
   | "supervisor.policy_block"
+  // The Supervisor proposing what to do about a run that did not complete.
+  // Recorded even when it will not act, so a refusal is visible in the log
+  // rather than being an absence a reader has to notice.
+  | "supervisor.intervention"
   // The run changed a file outside the path scope its architect declared
   // (scope-gate.ts). Deterministic merge-cap, never a model verdict.
   | "supervisor.scope_block"
@@ -170,5 +174,42 @@ export class EventLog {
   async append(event: Omit<VibestrateEvent, "timestamp">): Promise<void> {
     const full: VibestrateEvent = { timestamp: nowIso(), ...event };
     await appendLine(this.filePath, JSON.stringify(full));
+  }
+
+  /**
+   * The run's recorded evidence, for code that must classify what happened
+   * from what was actually logged rather than from prose or a model's opinion.
+   *
+   * Tolerant on purpose: a malformed line is skipped, not thrown, and a missing
+   * file reads as no evidence. A caller that cannot read the log has to treat
+   * that as "unknown", which is never a licence to act.
+   */
+  async read(): Promise<{ type: string; data?: Record<string, unknown> }[]> {
+    let raw: string;
+    try {
+      raw = await readText(this.filePath);
+    } catch {
+      return [];
+    }
+    const out: { type: string; data?: Record<string, unknown> }[] = [];
+    for (const line of raw.split("\n")) {
+      const t = line.trim();
+      if (!t) continue;
+      try {
+        const parsed = JSON.parse(t) as { type?: unknown; data?: unknown };
+        if (typeof parsed.type === "string") {
+          out.push({
+            type: parsed.type,
+            data:
+              parsed.data && typeof parsed.data === "object"
+                ? (parsed.data as Record<string, unknown>)
+                : undefined,
+          });
+        }
+      } catch {
+        // A half-written final line is normal on a killed run; skip it.
+      }
+    }
+    return out;
   }
 }

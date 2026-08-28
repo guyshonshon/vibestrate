@@ -197,6 +197,7 @@ import {
   type ResolvedFlowStep,
 } from "../flows/schemas/flow-schema.js";
 import { defaultFlow } from "../flows/catalog/builtin-flows.js";
+import { resolveSupervisorAutonomy } from "../supervisor/blocker-intervention.js";
 import type { WorkflowSelection } from "../supervisor/select-workflow.js";
 import { resolvePersona } from "../supervisor/personas.js";
 import {
@@ -3731,6 +3732,13 @@ export class Orchestrator {
           approvalGateDeps: () => this.approvalGateDeps(),
           roadmap,
           notify: input.notify,
+          // Resolved against BOTH controls: the standing autonomy setting and
+          // the on-disk pause flag, which fails closed. A paused Supervisor
+          // proposes and never acts, whatever the config says.
+          supervisorAutonomy: await resolveSupervisorAutonomy(
+            this.projectRoot,
+            this.config.supervisorControl,
+          ),
         },
         {
           runId: input.runId,

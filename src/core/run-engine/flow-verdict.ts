@@ -21,6 +21,12 @@ import {
   type VerificationDecision,
 } from "../state-machine.js";
 import { computeMergeReady, type ReviewSkipEvidence } from "../run/merge-readiness.js";
+import { deriveTerminalCause, type TerminalCause } from "../run/terminal-cause.js";
+import {
+  interventionNotification,
+  proposeIntervention,
+  wantsIntervention,
+} from "../../supervisor/blocker-intervention.js";
 import { checklistItemGapsCap } from "../../safety/run-assurance.js";
 import { evaluateBlockPolicies } from "../../supervisor/policy-block.js";
 import { evaluateScope, type DeclaredScope } from "../../supervisor/scope-gate.js";
@@ -50,6 +56,9 @@ export type FlowVerdictDeps = {
   approvalGateDeps: () => ApprovalGateDeps;
   roadmap: RoadmapService;
   notify: (draft: NotificationDraft) => void;
+  /** Resolved Supervisor autonomy. "act" lets it carry out a remedy that is
+   *  deterministically safe; anything else means propose and stop. */
+  supervisorAutonomy?: "advise" | "act";
 };
 
 /**
@@ -169,6 +178,34 @@ async function evaluateScopeGate(input: {
  * Returns the advanced state. The caller must adopt it - the finalize block
  * that follows reports on `state.status`.
  */
+
+/**
+ * The run's own evidence, read back from the event log, folded into a typed
+ * cause. Reading the log rather than threading a dozen flags keeps this honest:
+ * the classification is derived from what was actually recorded, so it cannot
+ * drift from the audit trail a human would read.
+ *
+ * Best-effort by design: an unreadable log yields `unknown`, and `unknown` is
+ * never auto-remediable. Failing to classify must never fail the run.
+ */
+async function resolveTerminalCause(
+  input: { eventLog: EventLog; lastValidation: ValidationResults | null },
+  status: string,
+  reviewDecision: string | null,
+): Promise<TerminalCause> {
+  try {
+    const events = await input.eventLog.read();
+    return deriveTerminalCause({
+      status,
+      events,
+      validation: input.lastValidation,
+      reviewDecision,
+    });
+  } catch {
+    return status === "merge_ready" ? "completed" : "unknown";
+  }
+}
+
 export async function finalizeFlowVerdict(
   deps: FlowVerdictDeps,
   input: {
@@ -353,6 +390,13 @@ export async function finalizeFlowVerdict(
   // run to a terminal `blocked` (else blocked->blocked is illegal).
   if (!completionApprovalRejected) {
     state = applyTransition(state, effectiveMergeReady ? "merge_ready" : "blocked");
+    state = { ...state, terminalCause: await resolveTerminalCause(input, state.status, reviewDecision) };
+    await input.stateStore.write(state);
+  } else {
+    // The completion approval already moved this to a terminal blocked, so the
+    // transition above is skipped - but the cause still has to be recorded, or
+    // exactly the runs a supervisor most needs to reason about arrive with none.
+    state = { ...state, terminalCause: await resolveTerminalCause(input, state.status, reviewDecision) };
     await input.stateStore.write(state);
   }
   // Propagate a needs-testing advisory to the linked card (best-effort,
@@ -388,6 +432,35 @@ export async function finalizeFlowVerdict(
       verification: finalVerification,
     }),
   );
+
+  // ── Supervisor: a run that did not complete gets an intervention ──────────
+  // Raised for EVERY non-completed cause, including the ones the Supervisor
+  // refuses to act on - a silent refusal is how a stuck delivery ends up
+  // looking like a finished one. The proposal is a lookup over the typed
+  // cause; nothing here asks a model what it thinks went wrong.
+  if (wantsIntervention(state.terminalCause)) {
+    const intervention = proposeIntervention(state.terminalCause!);
+    const autonomy = deps.supervisorAutonomy ?? "advise";
+    await input.eventLog.append({
+      type: "supervisor.intervention",
+      message: `Supervisor intervention (${intervention.cause}): ${intervention.summary}`,
+      data: {
+        cause: intervention.cause,
+        kind: intervention.kind,
+        autoExecutable: intervention.autoExecutable,
+        autonomy,
+        willAct: autonomy === "act" && intervention.autoExecutable,
+      },
+    });
+    deps.notify(
+      interventionNotification({
+        intervention,
+        runId: input.runId,
+        taskId: deps.taskId,
+        autonomy,
+      }),
+    );
+  }
 
   return { state };
 }

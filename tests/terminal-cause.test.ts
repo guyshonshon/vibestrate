@@ -80,3 +80,37 @@ describe("only a deterministic environment fault may be auto-remediated", () => 
     }
   });
 });
+
+describe("the reviewer's verdict is evidence too", () => {
+  it("an unresolved review is not 'unknown'", () => {
+    // Found by driving a real run: a reviewer that kept requesting changes
+    // until the loop budget ran out derived `unknown`, because the enum had a
+    // `review_unresolved` value with no rule behind it. `unknown` is the one
+    // class that must never be acted on, so mislabelling a well-evidenced stop
+    // as unknown is the most expensive mistake this function can make.
+    expect(
+      deriveTerminalCause({ status: "blocked", events: [], reviewDecision: "CHANGES_REQUESTED" }),
+    ).toBe("review_unresolved");
+    expect(
+      deriveTerminalCause({ status: "blocked", events: [], reviewDecision: "BLOCKED" }),
+    ).toBe("review_unresolved");
+  });
+
+  it("an approved review that still blocked is not blamed on the reviewer", () => {
+    expect(
+      deriveTerminalCause({ status: "blocked", events: [], reviewDecision: "APPROVED" }),
+    ).toBe("unknown");
+  });
+
+  it("a named machine signal still outranks the reviewer's verdict", () => {
+    // The reviewer asking for changes is real, but a spend cap is why it
+    // actually stopped - and the remedy differs.
+    expect(
+      deriveTerminalCause({
+        status: "blocked",
+        events: [{ type: "spend.capped" }],
+        reviewDecision: "CHANGES_REQUESTED",
+      }),
+    ).toBe("spend_cap");
+  });
+});
