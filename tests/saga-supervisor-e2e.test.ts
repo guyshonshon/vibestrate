@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
@@ -127,9 +127,6 @@ async function roleMetrics(dir: string): Promise<Array<{ roleId: string }>> {
 }
 
 describe("saga supervisor turn (real executor)", () => {
-  const prevCwd = process.cwd();
-  afterEach(() => process.chdir(prevCwd));
-
   it("`vibe tasks run` SEQUENCES a supervised task (delegates to the Conductor)", async () => {
     const dir = await makeProject("DECISION: PROCEED");
     const svc = new RoadmapService(dir);
@@ -138,10 +135,9 @@ describe("saga supervisor turn (real executor)", () => {
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
-    process.chdir(dir);
     // cmdRun on a supervised task must route to the sequence path, not the
     // plain single-pass run - both steps execute and the saga completes.
-    const code = await cmdRun(task.id);
+    const code = await cmdRun(task.id, { cwd: dir });
     expect(code).toBe(0);
 
     const after = await svc.getTask(task.id);
@@ -157,8 +153,7 @@ describe("saga supervisor turn (real executor)", () => {
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
-    process.chdir(dir);
-    const code = await cmdSequence(task.id, { json: true });
+    const code = await cmdSequence(task.id, { json: true, cwd: dir });
     // A halt is a reportable outcome, not a tool failure.
     expect(code).toBe(0);
 
@@ -191,8 +186,7 @@ describe("saga supervisor turn (real executor)", () => {
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
-    process.chdir(dir);
-    const code = await cmdSequence(task.id, { json: true });
+    const code = await cmdSequence(task.id, { json: true, cwd: dir });
     expect(code).toBe(0);
 
     const after = await svc.getTask(task.id);

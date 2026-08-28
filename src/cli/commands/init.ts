@@ -11,6 +11,11 @@ import { runLearn } from "./learn.js";
 import { scaffoldedProviderInvocation } from "../../project/init-template.js";
 
 export type InitCommandOptions = {
+  /** Directory to initialize; defaults to `process.cwd()`, which is what the
+   *  CLI passes. An in-process caller pointed at another directory passes it
+   *  rather than calling process.chdir(), which is process-global. See
+   *  tests/no-chdir-in-tests.test.ts. */
+  cwd?: string;
   force?: boolean;
   yes?: boolean;
   interactive?: boolean;
@@ -20,7 +25,7 @@ export type InitCommandOptions = {
 };
 
 export async function runInitCommand(opts: InitCommandOptions): Promise<number> {
-  const cwd = process.cwd();
+  const cwd = opts.cwd ?? process.cwd();
   let detected = await detectProject(cwd);
 
   if (!detected.isGitRepo) {

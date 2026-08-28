@@ -120,6 +120,13 @@ function rewriteFriendly(message: string): string {
 }
 
 export type RunCommandOptions = {
+  /** Directory the project root is resolved from. Defaults to `process.cwd()`,
+   *  which is what the CLI itself passes. Any in-process caller working on a
+   *  project other than the one the process was launched in passes this instead
+   *  of calling process.chdir() - cwd is process-global, so a chdir is also
+   *  seen by every other run in flight and by anything still finishing after
+   *  the caller has moved on. See tests/no-chdir-in-tests.test.ts. */
+  cwd?: string;
   ui?: boolean;
   uiPort?: number;
   taskId?: string | null;
@@ -210,7 +217,7 @@ export async function runRunCommand(
   // Attach a CLI writer for the notifications gateway so attention-needed
   // events (approvals, validation failures, run final status) print inline.
   setCliWriter((line) => console.log(color.dim(line)));
-  const cwd = process.cwd();
+  const cwd = options.cwd ?? process.cwd();
   const detected = await detectProject(cwd);
 
   if (!detected.isGitRepo) {
@@ -906,7 +913,10 @@ export async function runRunCommand(
   console.log(
     indent(
       `Artifacts: ${color.dim(
-        path.relative(process.cwd(), path.dirname(result.finalReportPath)),
+        // Relative to the directory this run was resolved from, which for the
+        // CLI is the process cwd - same output, and correct for an in-process
+        // caller that passed its own.
+        path.relative(cwd, path.dirname(result.finalReportPath)),
       )}`,
     ),
   );

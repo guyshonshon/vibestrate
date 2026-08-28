@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
@@ -138,9 +138,6 @@ async function roleMetrics(dir: string): Promise<Array<{ roleId: string }>> {
 }
 
 describe("saga ENHANCE pass (real executor)", () => {
-  const prevCwd = process.cwd();
-  afterEach(() => process.chdir(prevCwd));
-
   it("refines the pending step, runs it revised, and reconciles on completion", async () => {
     const dir = await makeProject({
       supervisor: "DECISION: ENHANCE",
@@ -152,8 +149,7 @@ describe("saga ENHANCE pass (real executor)", () => {
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
-    process.chdir(dir);
-    const code = await cmdSequence(task.id, { json: true });
+    const code = await cmdSequence(task.id, { json: true, cwd: dir });
     expect(code).toBe(0);
 
     const after = await svc.getTask(task.id);
@@ -201,8 +197,7 @@ describe("saga ENHANCE pass (real executor)", () => {
       pending: [s1!, { ...s2!, text: "create the second file OVERLAID" }],
     });
 
-    process.chdir(dir);
-    const code = await cmdSequence(task.id, { json: true });
+    const code = await cmdSequence(task.id, { json: true, cwd: dir });
     expect(code).toBe(0);
 
     const after = await svc.getTask(task.id);
@@ -237,8 +232,7 @@ describe("saga ENHANCE pass (real executor)", () => {
       provenance: "conductor",
     });
 
-    process.chdir(dir);
-    const code = await cmdSequence(task.id, { json: true });
+    const code = await cmdSequence(task.id, { json: true, cwd: dir });
     expect(code).toBe(0); // a clean halt, NOT a crash
 
     const after = await svc.getTask(task.id);
@@ -265,8 +259,7 @@ describe("saga ENHANCE pass (real executor)", () => {
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
-    process.chdir(dir);
-    const code = await cmdSequence(task.id, { json: true });
+    const code = await cmdSequence(task.id, { json: true, cwd: dir });
     expect(code).toBe(0);
 
     const after = await svc.getTask(task.id);
@@ -289,8 +282,7 @@ describe("saga ENHANCE pass (real executor)", () => {
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
-    process.chdir(dir);
-    const code = await cmdSequence(task.id, { json: true });
+    const code = await cmdSequence(task.id, { json: true, cwd: dir });
     expect(code).toBe(0);
 
     const after = await svc.getTask(task.id);

@@ -50,20 +50,13 @@ async function initProject(projectRoot: string): Promise<void> {
 // cleanly and touch nothing in the project.
 describe("vibe welcome (non-TTY)", () => {
   let projectRoot: string;
-  let prevCwd: string;
 
   beforeEach(async () => {
     projectRoot = await tempProject();
-    prevCwd = process.cwd();
-    process.chdir(projectRoot);
-  });
-
-  afterEach(() => {
-    process.chdir(prevCwd);
   });
 
   it("exits 0 with a plain message and writes nothing in an uninitialized project", async () => {
-    const code = await runWelcomeCommand({});
+    const code = await runWelcomeCommand({ cwd: projectRoot });
     expect(code).toBe(0);
     expect(await pathExists(path.join(projectRoot, ".vibestrate"))).toBe(false);
   });
@@ -71,7 +64,7 @@ describe("vibe welcome (non-TTY)", () => {
   it("exits 0 without touching welcome-state.json in an initialized project", async () => {
     await initProject(projectRoot);
 
-    const code = await runWelcomeCommand({});
+    const code = await runWelcomeCommand({ cwd: projectRoot });
     expect(code).toBe(0);
     expect(await pathExists(welcomeStatePath(projectRoot))).toBe(false);
   });
@@ -79,7 +72,7 @@ describe("vibe welcome (non-TTY)", () => {
   it("--reset does not write on a non-TTY run either", async () => {
     await initProject(projectRoot);
 
-    const code = await runWelcomeCommand({ reset: true });
+    const code = await runWelcomeCommand({ reset: true, cwd: projectRoot });
     expect(code).toBe(0);
     expect(await pathExists(welcomeStatePath(projectRoot))).toBe(false);
   });
@@ -92,14 +85,11 @@ describe("vibe welcome (non-TTY)", () => {
 // message) is exercised for real, not re-implemented inside the test.
 describe("vibe welcome (interactive loop)", () => {
   let projectRoot: string;
-  let prevCwd: string;
   let prevStdinTTY: boolean | undefined;
   let prevStdoutTTY: boolean | undefined;
 
   beforeEach(async () => {
     projectRoot = await tempProject();
-    prevCwd = process.cwd();
-    process.chdir(projectRoot);
     await initProject(projectRoot);
 
     prevStdinTTY = process.stdin.isTTY;
@@ -112,7 +102,6 @@ describe("vibe welcome (interactive loop)", () => {
   });
 
   afterEach(() => {
-    process.chdir(prevCwd);
     Object.defineProperty(process.stdin, "isTTY", { value: prevStdinTTY, configurable: true });
     Object.defineProperty(process.stdout, "isTTY", { value: prevStdoutTTY, configurable: true });
     vi.clearAllMocks();
@@ -125,7 +114,7 @@ describe("vibe welcome (interactive loop)", () => {
   it("a failed providers step is left unrecorded and stays the resume point", async () => {
     vi.mocked(runProviderSetup).mockResolvedValue(1);
 
-    const code = await runWelcomeCommand({});
+    const code = await runWelcomeCommand({ cwd: projectRoot });
     expect(code).toBe(0);
 
     const state = await loadWelcomeState(projectRoot);
@@ -139,7 +128,7 @@ describe("vibe welcome (interactive loop)", () => {
     vi.mocked(runProviderSetup).mockResolvedValue(1);
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runWelcomeCommand({});
+    await runWelcomeCommand({ cwd: projectRoot });
 
     const lines = logSpy.mock.calls.map((call) => String(call[0]));
     expect(lines.some((l) => l.includes("Walkthrough complete."))).toBe(false);
@@ -151,7 +140,7 @@ describe("vibe welcome (interactive loop)", () => {
     vi.mocked(runProviderSetup).mockResolvedValue(0);
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    const code = await runWelcomeCommand({});
+    const code = await runWelcomeCommand({ cwd: projectRoot });
     expect(code).toBe(0);
 
     const state = await loadWelcomeState(projectRoot);
@@ -175,7 +164,7 @@ describe("vibe welcome (interactive loop)", () => {
 
     vi.mocked(runProviderSetup).mockResolvedValue(0);
 
-    const code = await runWelcomeCommand({});
+    const code = await runWelcomeCommand({ cwd: projectRoot });
     expect(code).toBe(0);
 
     // If crew/flows/first-run were replayed, the loop would prompt (select)

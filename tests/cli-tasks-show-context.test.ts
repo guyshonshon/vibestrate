@@ -6,6 +6,7 @@ import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
 import { buildVibestrateProgram } from "../src/cli/index.js";
+import { cmdShow } from "../src/cli/commands/tasks.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 // ── `vibe tasks show` has to show what the card's run will actually be given ──
@@ -33,23 +34,27 @@ async function project(): Promise<string> {
   return dir;
 }
 
-/** Run `vibe tasks show <id>` and return everything it printed. */
-async function tasksShow(dir: string, id: string, args: string[] = []): Promise<string> {
+/** Run `vibe tasks show <id>` against `dir` and return everything it printed.
+ *
+ *  The handler is called directly with an explicit `cwd` rather than through
+ *  `program.parseAsync`, because commander can only hand the handler the
+ *  process-wide cwd - and pointing that at a temp project means
+ *  process.chdir, which every other caller in this process sees too. The
+ *  commander wiring these tests used to reach through is asserted separately
+ *  below. See tests/no-chdir-in-tests.test.ts. */
+async function tasksShow(
+  dir: string,
+  id: string,
+  opts: { json?: boolean } = {},
+): Promise<string> {
   const lines: string[] = [];
   const log = vi.spyOn(console, "log").mockImplementation((...a) => {
     lines.push(a.map(String).join(" "));
   });
-  const exit = vi
-    .spyOn(process, "exit")
-    .mockImplementation(((): never => undefined as never));
-  const cwd = process.cwd();
-  process.chdir(dir);
   try {
-    await buildVibestrateProgram().parseAsync(["node", "vibe", "tasks", "show", id, ...args]);
+    await cmdShow(id, { ...opts, cwd: dir });
   } finally {
-    process.chdir(cwd);
     log.mockRestore();
-    exit.mockRestore();
   }
   return lines.join("\n");
 }
@@ -93,9 +98,19 @@ describe("vibe tasks show surfaces the card's context", () => {
 
   it("leaves --json alone", async () => {
     const t = await svc.addTask({ title: "Add team billing", specRef: "a/b.md" });
-    const parsed = JSON.parse(await tasksShow(dir, t.id, ["--json"])) as {
+    const parsed = JSON.parse(await tasksShow(dir, t.id, { json: true })) as {
       task: { specRef: string | null };
     };
     expect(parsed.task.specRef).toBe("a/b.md");
+  });
+
+  // The tests above call cmdShow directly, so this is what still proves the
+  // printing they assert on is reachable as `vibe tasks show <id> [--json]`.
+  it("is reachable as `vibe tasks show <id> [--json]`", () => {
+    const tasks = buildVibestrateProgram().commands.find((c) => c.name() === "tasks");
+    const show = tasks?.commands.find((c) => c.name() === "show");
+    expect(show, "`tasks show` is not registered").toBeDefined();
+    expect(show!.registeredArguments.map((a) => a.name())).toEqual(["id"]);
+    expect(show!.options.map((o) => o.long)).toContain("--json");
   });
 });

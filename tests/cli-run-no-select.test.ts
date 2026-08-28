@@ -89,24 +89,12 @@ describe("vibe run --no-select", () => {
     });
 
     it("detours into spec-up by default (the behaviour being opted out of)", async () => {
-      const cwd = process.cwd();
-      process.chdir(dir);
-      try {
-        await runRunCommand(PLAN_WORTHY, {});
-      } finally {
-        process.chdir(cwd);
-      }
+      await runRunCommand(PLAN_WORTHY, { cwd: dir });
       expect(await stepDirs(dir)).toContain("intake");
     }, 60_000);
 
     it("runs the flow directly when --no-select is passed", async () => {
-      const cwd = process.cwd();
-      process.chdir(dir);
-      try {
-        await runRunCommand(PLAN_WORTHY, { select: false });
-      } finally {
-        process.chdir(cwd);
-      }
+      await runRunCommand(PLAN_WORTHY, { select: false, cwd: dir });
       const steps = await stepDirs(dir);
       expect(steps, "still detoured into spec-up").not.toContain("intake");
       expect(steps, "did not run a real flow either").toContain("plan");

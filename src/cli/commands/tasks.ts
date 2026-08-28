@@ -34,8 +34,16 @@ import type {
   TaskStatus,
 } from "../../roadmap/roadmap-types.js";
 
-async function svc() {
-  const detected = await detectProject(process.cwd());
+/** Resolve the board's project root. `cwd` defaults to the process cwd, which
+ *  is what the CLI passes implicitly. An in-process caller pointed at another
+ *  project passes it explicitly instead of calling process.chdir() - cwd is
+ *  process-global, so a chdir also moves every other caller in the process and
+ *  anything still finishing after this one returned. Only the handlers that
+ *  have an in-process caller take it today (cmdShow, cmdRun); the rest of the
+ *  `vibe tasks` tree resolves from the process cwd, which is correct for the
+ *  CLI. See tests/no-chdir-in-tests.test.ts. */
+async function svc(cwd?: string) {
+  const detected = await detectProject(cwd ?? process.cwd());
   return { svc: new RoadmapService(detected.projectRoot), root: detected.projectRoot };
 }
 
@@ -141,8 +149,11 @@ async function cmdList(opts: { json?: boolean; status?: string }): Promise<numbe
   return 0;
 }
 
-async function cmdShow(id: string, opts: { json?: boolean }): Promise<number> {
-  const { svc: s, root } = await svc();
+export async function cmdShow(
+  id: string,
+  opts: { json?: boolean; cwd?: string },
+): Promise<number> {
+  const { svc: s, root } = await svc(opts.cwd);
   const task = await s.getTask(id);
   if (!task) {
     console.error(`${symbol.fail()} Task "${id}" not found.`);
@@ -741,10 +752,13 @@ async function cmdReport(taskId: string): Promise<number> {
   }
 }
 
-export async function cmdRun(taskId: string): Promise<number> {
+export async function cmdRun(
+  taskId: string,
+  opts: { cwd?: string } = {},
+): Promise<number> {
   // Foreground: spawn `vibe run --task <id>` against the local CLI bin so the
   // user sees progress live and the orchestrator handles task linkage.
-  const { svc: s, root } = await svc();
+  const { svc: s, root } = await svc(opts.cwd);
   const task = await s.getTask(taskId);
   if (!task) {
     console.error(`${symbol.fail()} Task "${taskId}" not found.`);
@@ -753,7 +767,7 @@ export async function cmdRun(taskId: string): Promise<number> {
   // A supervised task SEQUENCES its steps (the Conductor) rather than running the
   // default flow once. cmdSequence runs foreground in-process, so delegate to it.
   if (task.runMode === "supervised") {
-    return cmdSequence(taskId, {});
+    return cmdSequence(taskId, { cwd: opts.cwd });
   }
   // Spawn process self.
   const { fileURLToPath } = await import("node:url");

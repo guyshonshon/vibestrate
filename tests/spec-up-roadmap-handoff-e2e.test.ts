@@ -239,13 +239,7 @@ describe("spec-up roadmap path: the approved spec reaches runs launched from its
     const taskId = createdTaskIds[0]!;
     const card = await new RoadmapService(dir).getTask(taskId);
 
-    const cwd = process.cwd();
-    process.chdir(dir);
-    try {
-      expect(await runRunCommand(card!.title, { taskId })).toBe(0);
-    } finally {
-      process.chdir(cwd);
-    }
+    expect(await runRunCommand(card!.title, { taskId, cwd: dir })).toBe(0);
 
     const prompt = await readPlannerPrompt(dir);
     expect(prompt).toContain("Context - Spec-up: approved spec");
@@ -264,13 +258,7 @@ describe("spec-up roadmap path: the approved spec reaches runs launched from its
       { kind: "file", ref: "NOTES.md", label: "Owner note" },
     ]);
 
-    const cwd = process.cwd();
-    process.chdir(dir);
-    try {
-      expect(await runRunCommand(card.title, { taskId })).toBe(0);
-    } finally {
-      process.chdir(cwd);
-    }
+    expect(await runRunCommand(card.title, { taskId, cwd: dir })).toBe(0);
 
     const prompt = await readPlannerPrompt(dir);
     expect(prompt).toContain("CARD_ATTACHED_NOTE_51");

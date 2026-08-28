@@ -33,6 +33,11 @@ import {
 
 export type WelcomeCommandOptions = {
   reset?: boolean;
+  /** Directory the project root is resolved from; defaults to `process.cwd()`,
+   *  which is what the CLI passes. An in-process caller pointed at another
+   *  project passes it rather than calling process.chdir(), which is
+   *  process-global. See tests/no-chdir-in-tests.test.ts. */
+  cwd?: string;
 };
 
 type StepAction = "continue" | "skip" | "quit";
@@ -81,7 +86,8 @@ export async function runWelcomeCommand(opts: WelcomeCommandOptions): Promise<nu
   }
 
   try {
-    const detected = await detectProject(process.cwd());
+    const cwd = opts.cwd ?? process.cwd();
+    const detected = await detectProject(cwd);
 
     // Handle --reset against whatever project root we can already see, before
     // the init offer below - otherwise declining init returns early and
@@ -104,13 +110,13 @@ export async function runWelcomeCommand(opts: WelcomeCommandOptions): Promise<nu
         );
         return 0;
       }
-      const initCode = await runInitCommand({});
+      const initCode = await runInitCommand({ cwd });
       if (initCode !== 0) return initCode;
       console.log("");
     }
 
     // Re-detect: init may have created the git repo / project root just now.
-    const projectRoot = (await detectProject(process.cwd())).projectRoot;
+    const projectRoot = (await detectProject(cwd)).projectRoot;
 
     let state = await loadWelcomeState(projectRoot);
     const resumeAt = firstIncompleteStep(state);

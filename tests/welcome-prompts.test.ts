@@ -77,14 +77,11 @@ function joined(lines: string[]): string {
 
 describe("vibe welcome (prompt branches)", () => {
   let projectRoot: string;
-  let prevCwd: string;
   let restoreTTY: () => void;
   let logs: Captured;
 
   beforeEach(async () => {
     projectRoot = await tempProjectDir("vibestrate-welcome-prompts-");
-    prevCwd = process.cwd();
-    process.chdir(projectRoot);
     restoreTTY = forceInteractiveTTY();
 
     logs = { out: [], err: [] };
@@ -101,7 +98,6 @@ describe("vibe welcome (prompt branches)", () => {
   });
 
   afterEach(() => {
-    process.chdir(prevCwd);
     restoreTTY();
     vi.mocked(console.log).mockRestore();
     vi.mocked(console.error).mockRestore();
@@ -113,7 +109,7 @@ describe("vibe welcome (prompt branches)", () => {
       await writeProjectConfig(projectRoot);
       const script = scriptAnswers(select, ["skip", "skip", "skip", "skip"]);
 
-      const code = await runWelcomeCommand({});
+      const code = await runWelcomeCommand({ cwd: projectRoot });
       expect(code).toBe(0);
 
       // One prompt per step, and no step's own work was reached.
@@ -136,11 +132,11 @@ describe("vibe welcome (prompt branches)", () => {
     it("a skipped step is settled, so the next run does not offer it again", async () => {
       await writeProjectConfig(projectRoot);
       scriptAnswers(select, ["skip", "skip", "skip", "skip"]);
-      await runWelcomeCommand({});
+      await runWelcomeCommand({ cwd: projectRoot });
 
       logs.out.length = 0;
       const second = scriptAnswers(select, []);
-      const code = await runWelcomeCommand({});
+      const code = await runWelcomeCommand({ cwd: projectRoot });
 
       expect(code).toBe(0);
       expect(second.asked).toEqual([]);
@@ -153,7 +149,7 @@ describe("vibe welcome (prompt branches)", () => {
       await writeProjectConfig(projectRoot);
       const script = scriptAnswers(select, ["quit"]);
 
-      const code = await runWelcomeCommand({});
+      const code = await runWelcomeCommand({ cwd: projectRoot });
       expect(code).toBe(0);
 
       expect(script.asked).toHaveLength(1);
@@ -172,7 +168,7 @@ describe("vibe welcome (prompt branches)", () => {
       await writeProjectConfig(projectRoot);
       scriptAnswers(select, ["continue", "quit"]);
 
-      expect(await runWelcomeCommand({})).toBe(0);
+      expect(await runWelcomeCommand({ cwd: projectRoot })).toBe(0);
       expect(runProviderSetup).toHaveBeenCalledTimes(1);
 
       const state = await loadWelcomeState(projectRoot);
@@ -184,7 +180,7 @@ describe("vibe welcome (prompt branches)", () => {
       // Providers and not skip past it.
       logs.out.length = 0;
       const resumed = scriptAnswers(select, ["skip", "skip", "skip"]);
-      expect(await runWelcomeCommand({})).toBe(0);
+      expect(await runWelcomeCommand({ cwd: projectRoot })).toBe(0);
       expect(resumed.asked).toHaveLength(3);
       expect(resumed.asked[0]).toContain("Crew");
       expect(runProviderSetup).toHaveBeenCalledTimes(1);
@@ -196,7 +192,7 @@ describe("vibe welcome (prompt branches)", () => {
       const script = scriptAnswers(confirm, [false]);
       const selectScript = scriptAnswers(select, []);
 
-      const code = await runWelcomeCommand({});
+      const code = await runWelcomeCommand({ cwd: projectRoot });
       expect(code).toBe(0);
 
       expect(script.asked).toHaveLength(1);
@@ -212,7 +208,7 @@ describe("vibe welcome (prompt branches)", () => {
       const selectScript = scriptAnswers(select, ["skip", "skip", "skip", "skip"]);
       vi.mocked(runInitCommand).mockResolvedValue(0);
 
-      const code = await runWelcomeCommand({});
+      const code = await runWelcomeCommand({ cwd: projectRoot });
       expect(code).toBe(0);
 
       expect(runInitCommand).toHaveBeenCalledTimes(1);
@@ -224,7 +220,7 @@ describe("vibe welcome (prompt branches)", () => {
       const selectScript = scriptAnswers(select, []);
       vi.mocked(runInitCommand).mockResolvedValue(2);
 
-      const code = await runWelcomeCommand({});
+      const code = await runWelcomeCommand({ cwd: projectRoot });
       expect(code).toBe(2);
 
       expect(selectScript.asked).toEqual([]);
@@ -240,7 +236,7 @@ describe("vibe welcome (prompt branches)", () => {
     it("at the init offer resolves to an exit code instead of rejecting", async () => {
       scriptAnswers(confirm, [ctrlC()]);
 
-      const code = await runWelcomeCommand({});
+      const code = await runWelcomeCommand({ cwd: projectRoot });
       expect(typeof code).toBe("number");
 
       expect(runInitCommand).not.toHaveBeenCalled();
@@ -253,7 +249,7 @@ describe("vibe welcome (prompt branches)", () => {
       await writeProjectConfig(projectRoot);
       scriptAnswers(select, ["continue", ctrlC()]);
 
-      const code = await runWelcomeCommand({});
+      const code = await runWelcomeCommand({ cwd: projectRoot });
       expect(typeof code).toBe("number");
 
       const state = await loadWelcomeState(projectRoot);
@@ -273,7 +269,7 @@ describe("vibe welcome (prompt branches)", () => {
       vi.mocked(runProviderSetup).mockResolvedValue(1);
       scriptAnswers(select, ["continue", "skip", "skip", "skip"]);
 
-      expect(await runWelcomeCommand({})).toBe(0);
+      expect(await runWelcomeCommand({ cwd: projectRoot })).toBe(0);
 
       const state = await loadWelcomeState(projectRoot);
       expect(state.steps.providers).toBeUndefined();
@@ -286,7 +282,7 @@ describe("vibe welcome (prompt branches)", () => {
       logs.out.length = 0;
       vi.mocked(runProviderSetup).mockResolvedValue(0);
       const resumed = scriptAnswers(select, ["continue"]);
-      expect(await runWelcomeCommand({})).toBe(0);
+      expect(await runWelcomeCommand({ cwd: projectRoot })).toBe(0);
       expect(resumed.asked).toHaveLength(1);
       expect(resumed.asked[0]).toContain("Providers");
 
@@ -305,13 +301,10 @@ describe("vibe welcome (prompt branches)", () => {
 // --git-init may authorize it.
 describe("vibe init --yes (consent)", () => {
   let projectRoot: string;
-  let prevCwd: string;
   let restoreTTY: () => void;
 
   beforeEach(async () => {
     projectRoot = await tempProjectDir("vibestrate-init-consent-");
-    prevCwd = process.cwd();
-    process.chdir(projectRoot);
     // A real TTY is the permissive case: if --yes leaked into consent, this is
     // where it would show.
     restoreTTY = forceInteractiveTTY();
@@ -326,7 +319,6 @@ describe("vibe init --yes (consent)", () => {
   });
 
   afterEach(() => {
-    process.chdir(prevCwd);
     restoreTTY();
     vi.mocked(console.log).mockRestore();
     vi.mocked(console.error).mockRestore();
@@ -336,7 +328,7 @@ describe("vibe init --yes (consent)", () => {
   it("--yes does not imply consent to create a git repository", async () => {
     const script = scriptAnswers(confirm, []);
 
-    const code = await realRunInitCommand({ yes: true });
+    const code = await realRunInitCommand({ yes: true, cwd: projectRoot });
     expect(code).toBe(1);
 
     // Neither asked nor assumed: --yes suppresses the prompt, and suppressing
@@ -348,7 +340,7 @@ describe("vibe init --yes (consent)", () => {
   it("--git-init is the explicit consent that does reach the repo creation", async () => {
     scriptAnswers(confirm, []);
 
-    const code = await realRunInitCommand({ gitInit: true });
+    const code = await realRunInitCommand({ gitInit: true, cwd: projectRoot });
 
     // Proves the assertion above is not vacuous: the same wiring does call
     // through when consent is explicit.
@@ -359,7 +351,7 @@ describe("vibe init --yes (consent)", () => {
   it("declining the interactive repo confirm refuses instead of proceeding", async () => {
     const script = scriptAnswers(confirm, [false]);
 
-    const code = await realRunInitCommand({});
+    const code = await realRunInitCommand({ cwd: projectRoot });
     expect(code).toBe(1);
 
     expect(script.asked).toHaveLength(1);

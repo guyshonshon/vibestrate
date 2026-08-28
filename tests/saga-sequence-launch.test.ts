@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
@@ -94,11 +94,6 @@ async function makeProject(opts?: { holisticDecision?: string }): Promise<string
 }
 
 describe("vibe saga sequence (launch)", () => {
-  const prevCwd = process.cwd();
-  afterEach(() => {
-    process.chdir(prevCwd);
-  });
-
   it("runs a 2-step saga to done: both steps committed, run non-blocked, sagaState done", async () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
@@ -107,9 +102,7 @@ describe("vibe saga sequence (launch)", () => {
     await svc.addChecklistItem(task.id, "create the first file");
     await svc.addChecklistItem(task.id, "create the second file");
 
-    // The command resolves the project from process.cwd().
-    process.chdir(dir);
-    const code = await cmdSequence(task.id, { json: true });
+    const code = await cmdSequence(task.id, { json: true, cwd: dir });
 
     // A clean saga ends merge_ready -> exit 0 (not 2 = run failure, not a halt).
     expect(code).toBe(0);
@@ -137,8 +130,7 @@ describe("vibe saga sequence (launch)", () => {
 
     const lock = await acquireTaskLock(dir, task.id, "other-live-run");
     try {
-      process.chdir(dir);
-      const code = await cmdSequence(task.id, { json: true });
+      const code = await cmdSequence(task.id, { json: true, cwd: dir });
       // The run never started; a lock rejection is a non-zero failure, NOT a
       // clean completion.
       expect(code).toBe(1);
@@ -163,8 +155,7 @@ describe("vibe saga sequence (launch)", () => {
     const task = await svc.addTask({ title: "Blocks at the end", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "create the only file");
 
-    process.chdir(dir);
-    const code = await cmdSequence(task.id, { json: true });
+    const code = await cmdSequence(task.id, { json: true, cwd: dir });
 
     const after = await svc.getTask(task.id);
     // The step committed, but the run is blocked - not a clean completion.
@@ -183,10 +174,9 @@ describe("vibe saga sequence (launch)", () => {
     const single = await svc.addTask({ title: "Just one", runMode: "plain" });
     const emptySaga = await svc.addTask({ title: "Empty saga", runMode: "supervised" });
 
-    process.chdir(dir);
-    expect(await cmdSequence(single.id, {})).toBe(1);
-    expect(await cmdSequence(emptySaga.id, {})).toBe(1);
-    expect(await cmdSequence("nope-does-not-exist", {})).toBe(1);
+    expect(await cmdSequence(single.id, { cwd: dir })).toBe(1);
+    expect(await cmdSequence(emptySaga.id, { cwd: dir })).toBe(1);
+    expect(await cmdSequence("nope-does-not-exist", { cwd: dir })).toBe(1);
 
     // A rejected pre-flight never touches the lifecycle.
     const after = await svc.getTask(emptySaga.id);

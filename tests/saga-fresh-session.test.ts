@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
@@ -110,11 +110,6 @@ async function runId(dir: string): Promise<string> {
 }
 
 describe("saga fresh context per step (M2b)", () => {
-  const prevCwd = process.cwd();
-  afterEach(() => {
-    process.chdir(prevCwd);
-  });
-
   it("resets context ONCE per step (not per fix iteration), and packets reach the implementer", async () => {
     const dir = await makeProject();
     const svc = new RoadmapService(dir);
@@ -130,8 +125,7 @@ describe("saga fresh context per step (M2b)", () => {
       acceptanceCheck: "src/second.ts exists and exports second.",
     });
 
-    process.chdir(dir);
-    const code = await cmdSequence(task.id, { json: true });
+    const code = await cmdSequence(task.id, { json: true, cwd: dir });
     expect(code).toBe(0);
 
     const after = await svc.getTask(task.id);
@@ -180,8 +174,7 @@ describe("saga fresh context per step (M2b)", () => {
       acceptanceCheck: "trim compiles.",
     });
 
-    process.chdir(dir);
-    expect(await cmdSequence(task.id, { json: true })).toBe(0);
+    expect(await cmdSequence(task.id, { json: true, cwd: dir })).toBe(0);
 
     const id = await runId(dir);
     const artifactDir = path.join(

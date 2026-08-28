@@ -51,6 +51,16 @@ export default defineConfig({
     // rather than asserting. .github/workflows/flake.yml keeps drawing seeds
     // nightly, because five clean runs is evidence, not proof.
     sequence: { shuffle: { files: true, tests: true } },
+
+    // Note for anyone reading the two settings above together: the working
+    // directory is per-PROCESS, and this pool gives each test FILE its own
+    // child process - so a test that changes it cannot reach another file, but
+    // it does reach every other test in its own file, including work still in
+    // flight from one that already returned. Shuffling tests makes which test
+    // that is unstable between runs. No test may change it; the rule and the
+    // failure it was written for are in tests/no-chdir-in-tests.test.ts, which
+    // fails the build if one comes back.
+
     // Reap leaked detached run-workers before and after the suite so test runs
     // can't accumulate zombie run-entry.js processes (see tests/global-setup.ts).
     globalSetup: ["./tests/global-setup.ts"],

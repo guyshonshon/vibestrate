@@ -49,9 +49,7 @@ function captureLog(): { lines: string[]; restore: () => void } {
 }
 
 describe("vibe saga status | pause | resume", () => {
-  const prevCwd = process.cwd();
   afterEach(() => {
-    process.chdir(prevCwd);
     vi.restoreAllMocks();
   });
 
@@ -63,9 +61,8 @@ describe("vibe saga status | pause | resume", () => {
     await svc.addChecklistItem(task.id, "step one");
     await svc.addChecklistItem(task.id, "step two");
 
-    process.chdir(dir);
     const cap = captureLog();
-    const code = await cmdStatus(task.id, { json: true });
+    const code = await cmdStatus(task.id, { json: true, cwd: dir });
     cap.restore();
     expect(code).toBe(0);
 
@@ -92,9 +89,8 @@ describe("vibe saga status | pause | resume", () => {
     });
     await svc.appendSagaInvariants(task.id, ["all responses use snake_case"]);
 
-    process.chdir(dir);
     const cap = captureLog();
-    await cmdStatus(task.id, { json: true });
+    await cmdStatus(task.id, { json: true, cwd: dir });
     cap.restore();
 
     const json = JSON.parse(cap.lines.find((l) => l.trim().startsWith("{"))!);
@@ -112,8 +108,7 @@ describe("vibe saga status | pause | resume", () => {
     const runId = "20260629-120000-live-run";
     await seedLiveRun(dir, task.id, runId);
 
-    process.chdir(dir);
-    expect(await cmdPause(task.id)).toBe(0);
+    expect(await cmdPause(task.id, { cwd: dir })).toBe(0);
 
     const state = await new RunStateStore(dir, runId).read();
     expect(state.pauseRequested).toBe(true);
@@ -126,8 +121,7 @@ describe("vibe saga status | pause | resume", () => {
     const task = await svc.addTask({ title: "Build it", runMode: "supervised" });
     await svc.addChecklistItem(task.id, "step one");
 
-    process.chdir(dir);
-    expect(await cmdPause(task.id)).toBe(1);
+    expect(await cmdPause(task.id, { cwd: dir })).toBe(1);
   });
 
   it("a STALE lock (dead pid, run stuck non-terminal) is not a live run", async () => {
@@ -163,10 +157,9 @@ describe("vibe saga status | pause | resume", () => {
       }),
     );
 
-    process.chdir(dir);
     // Stale holder -> no live run -> pause/resume fail fast instead of lying.
-    expect(await cmdPause(task.id)).toBe(1);
-    expect(await cmdResume(task.id)).toBe(1);
+    expect(await cmdPause(task.id, { cwd: dir })).toBe(1);
+    expect(await cmdResume(task.id, { cwd: dir })).toBe(1);
   });
 
   it("resume clears the pause flag on the live run", async () => {
@@ -181,8 +174,7 @@ describe("vibe saga status | pause | resume", () => {
     const store = new RunStateStore(dir, runId);
     await store.write({ ...(await store.read()), pauseRequested: true });
 
-    process.chdir(dir);
-    expect(await cmdResume(task.id)).toBe(0);
+    expect(await cmdResume(task.id, { cwd: dir })).toBe(0);
     expect((await store.read()).pauseRequested).toBe(false);
   });
 
@@ -198,8 +190,7 @@ describe("vibe saga status | pause | resume", () => {
       summary: "blocked",
     });
 
-    process.chdir(dir);
-    expect(await cmdResume(task.id)).toBe(0);
+    expect(await cmdResume(task.id, { cwd: dir })).toBe(0);
   });
 
   it("rejects a non-saga task", async () => {
@@ -207,9 +198,8 @@ describe("vibe saga status | pause | resume", () => {
     const svc = new RoadmapService(dir);
     await svc.init();
     const single = await svc.addTask({ title: "One-off", runMode: "plain" });
-    process.chdir(dir);
-    expect(await cmdStatus(single.id, { json: true })).toBe(1);
-    expect(await cmdPause(single.id)).toBe(1);
+    expect(await cmdStatus(single.id, { json: true, cwd: dir })).toBe(1);
+    expect(await cmdPause(single.id, { cwd: dir })).toBe(1);
   });
 });
 

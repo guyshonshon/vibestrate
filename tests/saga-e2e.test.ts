@@ -13,7 +13,7 @@
 // Fake CLI providers only. Harness modelled on saga-halt-clean.test.ts and
 // saga-sequence-launch.test.ts.
 
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
@@ -156,6 +156,10 @@ async function makeProject(opts?: { maxReviewLoops?: number }): Promise<string> 
 // Returns the OrchestratorOutput so tests can inspect worktreePath + branchName.
 // ---------------------------------------------------------------------------
 
+// The Orchestrator is constructed with an explicit `projectRoot`, and nothing
+// under src/core reads process.cwd() - so this drives a temp project without
+// touching the process-wide cwd. Do not reach for process.chdir here; see
+// tests/no-chdir-in-tests.test.ts.
 async function runSaga(
   dir: string,
   taskId: string,
@@ -194,11 +198,6 @@ async function runSaga(
 // ---------------------------------------------------------------------------
 
 describe("saga e2e - git-level proofs", () => {
-  const prevCwd = process.cwd();
-  afterEach(() => {
-    process.chdir(prevCwd);
-  });
-
   // -------------------------------------------------------------------------
   // Test 1: happy path - one commit per step, all on the feature branch.
   // -------------------------------------------------------------------------
@@ -207,7 +206,6 @@ describe("saga e2e - git-level proofs", () => {
     "3-step happy path: one commit per step with Vibestrate-Checklist-Item trailer, all on feature branch",
     async () => {
       const dir = await makeProject();
-      process.chdir(dir);
       const svc = new RoadmapService(dir);
       await svc.init();
       const task = await svc.addTask({ title: "Build three things", runMode: "supervised" });
@@ -302,7 +300,6 @@ describe("saga e2e - git-level proofs", () => {
       // maxReviewLoops=1 so the M1 self-heal fires quickly on a single
       // CHANGES_REQUESTED without needing many fix iterations.
       const dir = await makeProject({ maxReviewLoops: 1 });
-      process.chdir(dir);
       const svc = new RoadmapService(dir);
       await svc.init();
       const task = await svc.addTask({ title: "Build with a bad step", runMode: "supervised" });
@@ -364,7 +361,6 @@ describe("saga e2e - git-level proofs", () => {
     async () => {
       // maxReviewLoops=1 for the initial run so the halt fires quickly.
       const dir = await makeProject({ maxReviewLoops: 1 });
-      process.chdir(dir);
       const svc = new RoadmapService(dir);
       await svc.init();
       const task = await svc.addTask({ title: "Build in two runs", runMode: "supervised" });

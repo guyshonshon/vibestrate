@@ -31,8 +31,15 @@ import {
 } from "../../core/run/pause-service.js";
 import { getTaskRunStatus, NotSupervisedError } from "../../core/saga/saga-status.js";
 
-async function svc() {
-  const detected = await detectProject(process.cwd());
+/** Every saga subcommand resolves its project root from an explicit directory,
+ *  defaulting to the process cwd. `cwd` is what the CLI passes implicitly; an
+ *  in-process caller pointed at another project passes it rather than calling
+ *  process.chdir(), which would move every other caller in the process too.
+ *  See tests/no-chdir-in-tests.test.ts. */
+type SagaCwd = { cwd?: string };
+
+async function svc(cwd?: string) {
+  const detected = await detectProject(cwd ?? process.cwd());
   return new RoadmapService(detected.projectRoot);
 }
 
@@ -40,11 +47,12 @@ async function svc() {
  *  common pre-flight every saga subcommand shares. */
 async function loadSaga(
   taskId: string,
+  cwd?: string,
 ): Promise<
   | { ok: true; projectRoot: string; s: RoadmapService; task: import("../../roadmap/roadmap-types.js").Task }
   | { ok: false; code: number }
 > {
-  const detected = await detectProject(process.cwd());
+  const detected = await detectProject(cwd ?? process.cwd());
   const s = new RoadmapService(detected.projectRoot);
   const task = await s.getTask(taskId).catch(() => null);
   if (!task) {
@@ -77,13 +85,13 @@ async function liveRunId(
 
 export async function cmdSequence(
   taskId: string,
-  opts: { json?: boolean; unattended?: boolean },
+  opts: { json?: boolean; unattended?: boolean } & SagaCwd,
 ): Promise<number> {
   // Pre-flight: load + validate the saga BEFORE flipping any lifecycle state, so
   // a bad id leaves the task untouched.
   let s: RoadmapService;
   try {
-    s = await svc();
+    s = await svc(opts.cwd);
   } catch (err) {
     console.error(`${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`);
     return 1;
@@ -121,6 +129,7 @@ export async function cmdSequence(
   // Orchestrator, which provides clean halt-with-reset + the between-steps
   // budget + the per-task run lock. No raw command spawn, no shell-out.
   const code = await runRunCommand(task.title, {
+    cwd: opts.cwd,
     taskId,
     flowId: "saga",
     checklistMode: "continuous",
@@ -209,9 +218,9 @@ export async function cmdSequence(
 
 export async function cmdStatus(
   taskId: string,
-  opts: { json?: boolean },
+  opts: { json?: boolean } & SagaCwd,
 ): Promise<number> {
-  const detected = await detectProject(process.cwd());
+  const detected = await detectProject(opts.cwd ?? process.cwd());
   let status;
   try {
     // Shared with GET /api/sagas/:taskId/status - one source, no UI<->CLI drift.
@@ -259,8 +268,8 @@ export async function cmdStatus(
   return 0;
 }
 
-export async function cmdPause(taskId: string): Promise<number> {
-  const loaded = await loadSaga(taskId);
+export async function cmdPause(taskId: string, opts: SagaCwd = {}): Promise<number> {
+  const loaded = await loadSaga(taskId, opts.cwd);
   if (!loaded.ok) return loaded.code;
   const { projectRoot } = loaded;
   const runId = await liveRunId(projectRoot, taskId);
@@ -287,8 +296,8 @@ export async function cmdPause(taskId: string): Promise<number> {
   }
 }
 
-export async function cmdResume(taskId: string): Promise<number> {
-  const loaded = await loadSaga(taskId);
+export async function cmdResume(taskId: string, opts: SagaCwd = {}): Promise<number> {
+  const loaded = await loadSaga(taskId, opts.cwd);
   if (!loaded.ok) return loaded.code;
   const { projectRoot, task } = loaded;
   const runId = await liveRunId(projectRoot, taskId);
