@@ -109,9 +109,18 @@
    * Hierarchy has to come from SIZE, WEIGHT and the violet label accent, which
    * is what the design already leans on. Do not "restore contrast" by darkening
    * these back down - that reintroduces the exact thing that was rejected. */
-  --color-chalk-200: #f2f2f4;
-  --color-chalk-300: #eeeef1;
-  --color-chalk-400: #e9e9ed;
+  /* COLLAPSED onto chalk-100 (owner decision, 2026-08-28). These sat within
+   * three percent of each other, which separated nothing and only made text
+   * look tired - and there is no opacity anywhere in the app, so this WAS the
+   * greyness. One text colour; hierarchy comes from weight, size and the mono
+   * label register (.ui-label). The names are kept so ~1,700 call sites do not
+   * have to change and a revert is one edit.
+   *
+   * Non-text uses (a few dots, a toggle knob, low-alpha bands) shift by three
+   * percent, which is imperceptible at their size - checked before collapsing. */
+  --color-chalk-200: #f6f6f7;
+  --color-chalk-300: #f6f6f7;
+  --color-chalk-400: #f6f6f7;
   --color-amber-soft: #fb923c;
 
   /* ── Secondary text size tier ──────────────────────────────────────────
@@ -121,7 +130,11 @@
    * regressing: there was no source to raise. 12px is a floor, not a scale
    * bump - body text at 12px+ is untouched, so nothing above this tier moves
    * and dense surfaces keep their spacing. */
-  --text-meta: 12px;
+  /* 13px, not 12: the label register is mono (.ui-label), and Geist Mono has a
+   * smaller x-height than the body face, so 13px roughly MATCHES the previous
+   * optical size rather than enlarging it. 14px would put labels level with
+   * body text. */
+  --text-meta: 13px;
   /* Desaturated violet-tinted fractal-noise grain (ported from the marketing
    * site) - textures a flat ground so it doesn't read as dead black. */
   --grain-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.8 0 0 0 0 0.74 0 0 0 0 1 0.34 0.34 0.34 0 -0.22'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
@@ -274,9 +287,10 @@
    * Mirrors the dark-theme decision: secondary text is full-strength, not a
    * faded step. "White" inverts on paper - the tokens go to near-black. */
   --color-chalk-100: #1b1b1f;
-  --color-chalk-200: #232329;
-  --color-chalk-300: #2a2a31;
-  --color-chalk-400: #303038;
+  /* Collapsed, mirroring dark. "White" inverts on paper to near-black. */
+  --color-chalk-200: #1b1b1f;
+  --color-chalk-300: #1b1b1f;
+  --color-chalk-400: #1b1b1f;
 
   /* brand accent deepens for contrast on paper */
   --color-violet-soft: #6951f0;
@@ -720,6 +734,8 @@ body {
    muted so panels are actually labeled. Redundant title kickers were removed
    rather than styled. */
 .eyebrow {
+  /* Same register as .ui-label - kept as its own name for the few section
+   * labels that use it. */
   font-family: var(--font-mono);
   font-size: var(--text-meta);
   letter-spacing: 0.01em;
@@ -728,6 +744,20 @@ body {
    * any more, so this label sat at a dimness nothing else shared. */
   color: var(--color-chalk-400);
   white-space: nowrap;
+}
+/* ── The label voice ────────────────────────────────────────────────────────
+ * Labels are mono so they read as a different KIND of type from prose. That is
+ * what lets every glyph share one colour: the register does the separating
+ * that a three-percent lightness step used to fail at.
+ *
+ * Applied through the design primitives (StatTile, LaneCell, Chip, section
+ * eyebrows), never sprayed at call sites - `text-meta` alone stays a size and
+ * is still correct on small PROSE, which must not become mono. */
+.ui-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  letter-spacing: 0.01em;
+  font-feature-settings: "ss02", "zero";
 }
 .num-tabular {
   font-variant-numeric: tabular-nums;

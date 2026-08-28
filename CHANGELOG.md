@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **One text colour, and labels in their own voice.** Secondary text used
+  three near-white tokens within three percent of each other, which separated
+  nothing and only made text look tired - and there is no opacity anywhere in
+  the app, so that was the greyness. `chalk-200/300/400` now resolve to
+  `chalk-100` in both themes: one colour, with hierarchy carried by weight,
+  size and a new mono label register. Labels moved to Geist Mono at 13px so
+  they read as a different kind of type from prose rather than a dimmer shade
+  of it. Done at the token level, so it is one edit and one revert across
+  roughly 1,700 call sites.
+- **The Run assurance card leads with what went wrong.** Four gates used to
+  render as four equal columns inside a 474px panel: 104px per cell, every
+  cell forced to 142px by the one that wrapped, and three of the four holding
+  a single word. Gates that did not clear now get a full-width row each, with
+  room for a real sentence; gates that cleared collapse to one line; the raw
+  status codes are gone (every one already appears above it in words); and
+  how the run was conducted moves behind a disclosure.
 - **The Supervisor now speaks up when a run does not finish.** Any run that
   ends without completing gets a typed cause and a Supervisor intervention: a
   one-line summary of what stopped it and what it proposes to do, raised as a

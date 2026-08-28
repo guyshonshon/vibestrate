@@ -11,10 +11,65 @@ import type {
   SpecUpQuestion,
   WorkflowSelectionView,
 } from "../../../lib/types.js";
-import { AlertTriangle, Bolt, Cpu, FolderTree, Scale, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Bolt, ChevronRight, Cpu, FolderTree, Scale, ShieldCheck } from "lucide-react";
 import { StatTile } from "../../../components/design/StatTile.js";
 import { VERDICT_META } from "./shared.js";
 import { LaneCell, laneTone } from "./LaneCell.js";
+
+
+/**
+ * Split the four gates into what went wrong and what did not.
+ *
+ * The panel used to render all four at equal weight, which spent the same area
+ * on `passed` as on the finding that stopped the run. Only a gate with
+ * something to report earns a row.
+ */
+type LaneInput = { lane: string; status: string; detail?: string | null };
+export type LaneFinding = { lane: string; state: string; why: string | null; severe: boolean };
+
+/** Cleared: the gate ran and was satisfied. */
+function isCleared(status: string): boolean {
+  return /(^|_)(passed|verified|approved|ok)($|_)/.test(status.toLowerCase());
+}
+/** Not asked of this run - honest, and not a finding. */
+function isNotApplicable(status: string): boolean {
+  return /(not_applicable|not_required|not_run|skipped|missing)/.test(status.toLowerCase());
+}
+
+export function splitLanes(lanes: LaneInput[]): {
+  findings: LaneFinding[];
+  cleared: LaneInput[];
+  clearedSentence: string;
+} {
+  const findings: LaneFinding[] = [];
+  const cleared: LaneInput[] = [];
+  for (const l of lanes) {
+    if (isCleared(l.status) || isNotApplicable(l.status)) {
+      cleared.push(l);
+      continue;
+    }
+    findings.push({
+      lane: l.lane,
+      state: l.status.replace(/_/g, " "),
+      why: l.detail ?? null,
+      // Rose for a refusal or a failure, amber for "could not tell" - the
+      // difference between a verdict and a gap in the evidence.
+      severe: /(fail|blocked|changes|unsafe|reject)/.test(l.status.toLowerCase()),
+    });
+  }
+  const parts = cleared.map((c) =>
+    isCleared(c.status)
+      ? `${c.lane} passed`
+      : `${c.lane.toLowerCase()} ${c.status.replace(/_/g, " ")}`,
+  );
+  const sentence =
+    parts.length === 0
+      ? ""
+      : parts.length === 1
+        ? `${parts[0]}.`
+        : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}.`;
+  return { findings, cleared, clearedSentence: sentence };
+}
 
 export function AssuranceBadge({
   assurance,
@@ -34,6 +89,21 @@ export function AssuranceBadge({
     (a.coverage?.toleratedStepFailures ?? 0) > 0 ||
     !!a.supervisor?.persona ||
     (!!a.isolation && a.isolation.posture !== "none");
+  const { findings, cleared, clearedSentence } = splitLanes([
+    { lane: "Policy", status: a.policy.status },
+    {
+      lane: "Validation",
+      status: a.validation.status,
+      detail:
+        a.validation.status === "environment"
+          ? "The toolchain was missing, so the code was never checked."
+          : a.validation.total > 0
+            ? `${a.validation.passed} of ${a.validation.total} checks passed.`
+            : null,
+    },
+    { lane: "Review", status: a.review.status },
+    { lane: "Verification", status: a.verification.status },
+  ]);
   const isoBits = a.isolation
     ? [
         a.isolation.osSandboxedTurns > 0 ? `${a.isolation.osSandboxedTurns} OS-sandboxed` : null,
@@ -52,7 +122,11 @@ export function AssuranceBadge({
             Run assurance
           </div>
           <div className={`text-[15px] font-semibold ${vm.tone}`}>{a.verdict.replace(/_/g, " ")}</div>
-          <div className="mt-0.5 text-[12px] leading-snug text-chalk-300">{a.summary}</div>
+          <div className="mt-0.5 text-[12px] leading-snug text-chalk-300">
+            {findings.length > 0
+              ? `${findings.length} of ${findings.length + cleared.length} gates did not clear.`
+              : a.summary}
+          </div>
         </div>
         {onViewReview || onViewValidation ? (
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
@@ -75,47 +149,88 @@ export function AssuranceBadge({
         ) : null}
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <LaneCell label="Policy" value={a.policy.status.replace(/_/g, " ")} tone={laneTone(a.policy.status)} />
-        <LaneCell
-          label="Validation"
-          value={`${a.validation.status.replace(/_/g, " ")}${a.validation.total > 0 ? ` ${a.validation.passed}/${a.validation.total}` : ""}`}
-          sub={a.validation.status === "environment" ? "toolchain missing - nothing was checked" : undefined}
-          tone={laneTone(a.validation.status)}
-        />
-        <LaneCell label="Review" value={a.review.status.replace(/_/g, " ")} tone={laneTone(a.review.status)} />
-        <LaneCell label="Verification" value={a.verification.status.replace(/_/g, " ")} tone={laneTone(a.verification.status)} />
-      </div>
+      {/* ── Findings first, one row each ──────────────────────────────────
+          The lanes used to be a four-column grid inside a 474px panel: 104px
+          per cell, every cell forced to 142px by the one that wrapped, and
+          three of the four holding a single word. A row spans the panel, so a
+          gate that has something to say can say it in a sentence. Gates that
+          cleared are a confirmation, not a finding, and collapse to one line
+          below. */}
+      {findings.length > 0 ? (
+        <div className="mt-3 flex flex-col gap-2">
+          {findings.map((f) => (
+            <div
+              key={f.lane}
+              className={`flex items-start gap-2.5 rounded-[12px] border px-3 py-2 ${
+                f.severe
+                  ? "border-rose-400/25 bg-rose-500/[0.06]"
+                  : "border-amber-soft/25 bg-amber-soft/[0.06]"
+              }`}
+            >
+              <span
+                className={`mt-0.5 w-[3px] self-stretch rounded-full ${
+                  f.severe ? "bg-rose-300" : "bg-amber-soft"
+                }`}
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span className="text-[12.5px] font-semibold text-chalk-100">{f.lane}</span>
+                  <span className={`ui-label ${f.severe ? "text-rose-300" : "text-amber-soft"}`}>
+                    {f.state}
+                  </span>
+                </div>
+                {f.why ? (
+                  <div className="mt-0.5 text-[12px] leading-snug text-chalk-300">{f.why}</div>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {cleared.length > 0 ? (
+        <div className="mt-2.5 flex items-start gap-2 border-t border-[color:var(--line-soft)] pt-2.5">
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" aria-hidden />
+          <span className="text-[12px] leading-snug text-chalk-300">{clearedSentence}</span>
+        </div>
+      ) : null}
 
       {hasMeta ? (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {(a.coverage?.toleratedStepFailures ?? 0) > 0 ? (
-            <div
-              title={`${a.coverage.toleratedStepFailures} tolerated failure${a.coverage.toleratedStepFailures === 1 ? "" : "s"}`}
-            >
+        <details className="group mt-2">
+          <summary className="ui-label flex cursor-pointer list-none items-center gap-1.5 text-chalk-300 hover:text-chalk-100">
+            <ChevronRight
+              className="h-3 w-3 transition-transform group-open:rotate-90"
+              strokeWidth={2}
+              aria-hidden
+            />
+            How this run was conducted
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {(a.coverage?.toleratedStepFailures ?? 0) > 0 ? (
               <StatTile
                 label="Coverage"
                 value={`${a.coverage.toleratedStepFailures} tolerated failure${a.coverage.toleratedStepFailures === 1 ? "" : "s"}`}
               />
-            </div>
-          ) : null}
-          {a.supervisor?.persona ? (
-            <div title="The supervisor's review independence is honest, not a confidence source - single-profile is a same-model self-check that can only lower confidence.">
-              <StatTile
-                label="Supervisor"
-                value={`${a.supervisor.persona} (${a.supervisor.independence})`}
-              />
-            </div>
-          ) : null}
-          {a.isolation && a.isolation.posture !== "none" ? (
-            <div title="How confined the run's agents actually were, derived from per-turn provider evidence (not config). Informational - it never affects the verdict; the default is the worktree + diff gate.">
-              <StatTile
-                label="Isolation"
-                value={`${a.isolation.posture}${isoBits.length ? ` · ${isoBits.join(" · ")}` : ""}`}
-              />
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+            {a.supervisor?.persona ? (
+              <div title="Review independence is honest, not a confidence source - single-profile is a same-model self-check that can only lower confidence.">
+                <StatTile
+                  label="Supervisor"
+                  value={`${a.supervisor.persona} (${a.supervisor.independence})`}
+                />
+              </div>
+            ) : null}
+            {a.isolation && a.isolation.posture !== "none" ? (
+              <div title="How confined the run's agents actually were, from per-turn provider evidence (not config). Informational - it never affects the verdict.">
+                <StatTile
+                  label="Isolation"
+                  value={`${a.isolation.posture}${isoBits.length ? ` \u00b7 ${isoBits.join(" \u00b7 ")}` : ""}`}
+                />
+              </div>
+            ) : null}
+          </div>
+        </details>
       ) : null}
 
       {a.blockers && a.blockers.length > 0 ? (
@@ -131,20 +246,6 @@ export function AssuranceBadge({
         </div>
       ) : null}
 
-      {(a.caps?.length ?? 0) > 0 || (a.notes?.length ?? 0) > 0 ? (
-        <div className="mt-2 flex flex-col gap-1 text-meta text-chalk-400">
-          {(a.caps?.length ?? 0) > 0 ? (
-            <div>
-              <span className="font-semibold">Caps</span> {a.caps.join(", ")}
-            </div>
-          ) : null}
-          {(a.notes?.length ?? 0) > 0 ? (
-            <div>
-              <span className="font-semibold">Notes</span> {a.notes!.map(humanizeAssuranceNote).join(", ")}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   );
 }
