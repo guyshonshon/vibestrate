@@ -240,7 +240,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
- * LIGHT THEME (full) — design-foundation pass (2026-06-27)
+ * LIGHT THEME (full) - design-foundation pass (2026-06-27)
  * The app is class-toggled: <html> carries `dark` (default) or `light`. Every
  * surface/text utility resolves a `--color-*` token, so the theme flips by
  * re-assigning those tokens here under `:root.light` (specificity 0,2,0 beats

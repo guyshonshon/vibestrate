@@ -316,9 +316,7 @@ function PolicyForm({
               <input
                 value={matcher}
                 onChange={(e) => setMatcher(e.target.value)}
-                // The example matcher IS an em-dash, and this repo bans the
-                // literal character in source - so it is escaped, not typed.
-                placeholder={"Matcher regex, e.g. \u2014 (required for block)"}
+                placeholder={"Matcher regex, e.g. console\\.log (required for block)"}
                 className={cn(INPUT, "font-mono")}
               />
             </div>

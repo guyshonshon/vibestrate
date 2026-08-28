@@ -68,7 +68,24 @@ export function isEnvironmentFailure(exitCode: number, stderr: string): boolean 
       stderr,
     ) ||
     // shebang/env failures: `env: node: No such file or directory`
-    /^env: [^\n]{1,80}: No such file or directory\s*$/m.test(stderr)
+    /^env: [^\n]{1,80}: No such file or directory\s*$/m.test(stderr) ||
+    // A tool that IS installed but whose daemon is not running. This is an
+    // environment fault in exactly the same sense as a missing binary: the
+    // command never got to look at the code, so its failure says nothing about
+    // the work. Found by a benchmark run where Docker was down and the run
+    // reported `validation_failed` - a real defect - which would have sent
+    // correct work back for rework instead of asking for the service.
+    //
+    // Deliberately NARROW. A bare "connection refused" is not enough: a real
+    // test suite failing to reach a service it was supposed to start is a true
+    // defect, and calling that environmental would let a supervisor
+    // auto-retry broken code forever. These patterns name the TOOL saying its
+    // own daemon is unreachable.
+    /Cannot connect to the Docker daemon/i.test(stderr) ||
+    /failed to connect to the docker API/i.test(stderr) ||
+    /Is the docker daemon running\?/i.test(stderr) ||
+    /docker: error during connect/i.test(stderr) ||
+    /Cannot connect to the Podman socket/i.test(stderr)
   );
 }
 
