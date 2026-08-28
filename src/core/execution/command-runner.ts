@@ -20,11 +20,21 @@
 // from detachedSpawnOptions() - the POSIX group kill needs its own process
 // group. runShellCommand does use execa's `timeout` and has no tree-kill path.
 //
-// A run that ended that way says so rather than looking like a clean finish:
-// exitCode -1, plus a trailing `[aborted: ...]` / `[timed out: ...]` marker
+// `stallTimeoutMs` is the third route into that same terminate path: an
+// INACTIVITY watchdog rather than a wall-clock cap. A model that streams for an
+// hour is working; a child that writes nothing at all for N minutes is wedged.
+// The deadline is re-armed on every byte the child writes (stdout or stderr),
+// so only real silence trips it. It is only sound on a child that actually
+// streams while it works, so the decision to arm it belongs to the provider
+// that knows its own output contract - this module just honors the number.
+//
+// A run that ended any of those ways says so rather than looking like a clean
+// finish: exitCode -1, a typed `termination` code on the result, plus a
+// trailing `[aborted: ...]` / `[timed out: ...]` / `[stalled: ...]` marker
 // appended to stderr and pushed to onChunk when a live tailer is attached, so
-// a log that stops mid-stream explains itself. `onChunk` is additive - the
-// full stdout and stderr are still buffered onto the result either way.
+// a log that stops mid-stream explains itself. Callers branch on `termination`,
+// never on the marker text. `onChunk` is additive - the full stdout and stderr
+// are still buffered onto the result either way.
 
 import { execa } from "execa";
 import { nowIso, durationMs } from "../../utils/time.js";
@@ -50,6 +60,9 @@ function childEnv(extra?: Record<string, string>): Record<string, string> {
   return { ...env, ...(extra ?? {}) };
 }
 
+/** How a child ENDED when it did not end on its own. */
+export type ChildTermination = "abort" | "timeout" | "stall";
+
 export type CommandResult = {
   command: string;
   argv: string[];
@@ -60,6 +73,14 @@ export type CommandResult = {
   startedAt: string;
   endedAt: string;
   durationMs: number;
+  /**
+   * How the child ENDED, when it did not end on its own. A typed code so
+   * callers branch on it instead of parsing the stderr marker: `abort` (the
+   * caller's signal), `timeout` (wall-clock `timeoutMs`), `stall` (inactivity
+   * `stallTimeoutMs`). Absent means the child exited by itself, whatever its
+   * exit code. Only `runArgvCommand` sets it.
+   */
+  termination?: ChildTermination;
 };
 
 export async function runShellCommand(input: {
@@ -117,6 +138,15 @@ export async function runArgvCommand(input: {
    *  SIGKILL on grace timeout). The returned CommandResult will have
    *  exitCode=-1 and stderr will include a final "[aborted]" marker. */
   signal?: AbortSignal;
+  /**
+   * Inactivity watchdog in ms: tree-kill the child when it writes NOTHING on
+   * stdout or stderr for this long. Deliberately not a wall-clock cap - a
+   * provider that streams for an hour is working, while silence is a wedge -
+   * so the deadline is re-armed on every byte the child writes. Unsound on a
+   * child that buffers until exit (it would kill a healthy run), which is why
+   * the caller decides whether to arm it. Omitted or <= 0 = no watchdog.
+   */
+  stallTimeoutMs?: number;
 }): Promise<CommandResult> {
   const startedAt = new Date();
   const { detached } = detachedSpawnOptions();
@@ -145,7 +175,13 @@ export async function runArgvCommand(input: {
       : {}),
   });
   let forceKillTimer: NodeJS.Timeout | null = null;
-  let timedOut = false;
+  // Why the child was killed, when it was. First cause wins: a stall that
+  // races the user's abort must not relabel the abort, and vice versa.
+  let termination: ChildTermination | null = null;
+  // Read through a function on purpose: `termination` is only ever assigned
+  // from a callback, so a direct read would be narrowed to `null` by flow
+  // analysis and the cause below would collapse to a single branch.
+  const terminationCause = (): ChildTermination | null => termination;
   const terminateSubprocess = (): void => {
     const pid = subprocess.pid;
     if (!pid) return;
@@ -171,49 +207,65 @@ export async function runArgvCommand(input: {
     }, 3000);
     forceKillTimer.unref?.();
   };
+  /** Record the cause once, then kill the whole process group. */
+  const terminate = (cause: ChildTermination): void => {
+    if (termination === null) termination = cause;
+    terminateSubprocess();
+  };
+  const onAbort = (): void => terminate("abort");
   if (input.signal) {
     if (input.signal.aborted) {
-      terminateSubprocess();
+      onAbort();
     } else {
-      input.signal.addEventListener("abort", terminateSubprocess, {
-        once: true,
-      });
+      input.signal.addEventListener("abort", onAbort, { once: true });
     }
   }
   // Wall-clock timeout: tree-kill the whole process group when it fires.
   let timeoutTimer: NodeJS.Timeout | null = null;
   if (input.timeoutMs && input.timeoutMs > 0) {
-    timeoutTimer = setTimeout(() => {
-      timedOut = true;
-      terminateSubprocess();
-    }, input.timeoutMs);
+    timeoutTimer = setTimeout(() => terminate("timeout"), input.timeoutMs);
     timeoutTimer.unref?.();
   }
-  if (input.onChunk) {
-    subprocess.stdout?.on("data", (b: Buffer | string) => {
-      input.onChunk!({
-        stream: "stdout",
-        chunk: typeof b === "string" ? b : b.toString("utf8"),
-        at: new Date().toISOString(),
-      });
+  // Inactivity watchdog: the deadline is re-armed by every byte the child
+  // writes, so it fires only on genuine silence, not on a long working turn.
+  const stallMs =
+    input.stallTimeoutMs && input.stallTimeoutMs > 0 ? input.stallTimeoutMs : 0;
+  let stallTimer: NodeJS.Timeout | null = null;
+  const armStallWatchdog = (): void => {
+    if (!stallMs) return;
+    if (stallTimer) clearTimeout(stallTimer);
+    stallTimer = setTimeout(() => terminate("stall"), stallMs);
+    stallTimer.unref?.();
+  };
+  // Output listeners serve BOTH the live tailer and the watchdog, so a run with
+  // no onChunk is still watched. Re-arming happens before the chunk is handed
+  // on: a slow consumer must never make a live child look silent.
+  const onData = (stream: "stdout" | "stderr", b: Buffer | string): void => {
+    armStallWatchdog();
+    if (!input.onChunk) return;
+    input.onChunk({
+      stream,
+      chunk: typeof b === "string" ? b : b.toString("utf8"),
+      at: new Date().toISOString(),
     });
-    subprocess.stderr?.on("data", (b: Buffer | string) => {
-      input.onChunk!({
-        stream: "stderr",
-        chunk: typeof b === "string" ? b : b.toString("utf8"),
-        at: new Date().toISOString(),
-      });
-    });
+  };
+  if (input.onChunk || stallMs) {
+    subprocess.stdout?.on("data", (b: Buffer | string) => onData("stdout", b));
+    subprocess.stderr?.on("data", (b: Buffer | string) => onData("stderr", b));
   }
+  // The first silence window starts at spawn: a CLI that never writes a single
+  // byte is the exact wedge this exists to catch.
+  armStallWatchdog();
   let result;
   try {
     result = await subprocess;
   } finally {
     if (input.signal) {
-      input.signal.removeEventListener("abort", terminateSubprocess);
+      input.signal.removeEventListener("abort", onAbort);
     }
     if (forceKillTimer) clearTimeout(forceKillTimer);
     if (timeoutTimer) clearTimeout(timeoutTimer);
+    if (stallTimer) clearTimeout(stallTimer);
   }
   const endedAt = new Date();
   // Surface the abort path so callers don't see "exitCode = 0" for a
@@ -221,14 +273,19 @@ export async function runArgvCommand(input: {
   // aborted the process; map that to a deterministic exitCode + a
   // trailing stderr marker so the live-stream log shows *why* the
   // output ends abruptly.
-  const aborted =
-    timedOut ||
-    (result as { isCanceled?: boolean }).isCanceled === true ||
-    input.signal?.aborted === true;
-  if (aborted) {
-    const note = timedOut
-      ? `\n[timed out: provider CLI exceeded ${input.timeoutMs}ms and its process group was killed by vibestrate]\n`
-      : `\n[aborted: provider CLI was killed by vibestrate]\n`;
+  const cause: ChildTermination | null =
+    terminationCause() ??
+    ((result as { isCanceled?: boolean }).isCanceled === true ||
+    input.signal?.aborted === true
+      ? "abort"
+      : null);
+  if (cause) {
+    const note =
+      cause === "timeout"
+        ? `\n[timed out: provider CLI exceeded ${input.timeoutMs}ms and its process group was killed by vibestrate]\n`
+        : cause === "stall"
+          ? `\n[stalled: provider CLI produced no output for ${stallMs}ms and its process group was killed by vibestrate]\n`
+          : `\n[aborted: provider CLI was killed by vibestrate]\n`;
     if (input.onChunk) {
       input.onChunk({
         stream: "stderr",
@@ -246,6 +303,7 @@ export async function runArgvCommand(input: {
       startedAt: startedAt.toISOString(),
       endedAt: endedAt.toISOString(),
       durationMs: durationMs(startedAt, endedAt),
+      termination: cause,
     };
   }
 

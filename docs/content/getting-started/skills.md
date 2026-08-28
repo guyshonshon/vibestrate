@@ -52,35 +52,35 @@ What a word means in your business.
 
 One skill is one markdown file, and it can sit on disk in two shapes:
 
-<svg viewBox="0 0 560 152" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A skill lives under .vibestrate/skills/, as either a flat markdown file or a folder holding SKILL.md, and only the folder shape can carry a sibling .mcp.json. The .claude/skills/ folder is read as well.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="1" width="558" height="126" rx="10"/>
-    <rect x="16" y="56" width="300" height="28" rx="8"/>
-    <rect x="16" y="92" width="300" height="28" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 152" width="100%" style="max-width:720px;height:auto" role="img" aria-label="A skill lives under .vibestrate/skills/, as either a flat markdown file or a folder holding SKILL.md, and only the folder shape can carry a sibling .mcp.json. The .claude/skills/ folder is read as well.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="1" width="558" height="126" rx="10"/>
+    <rect fill="var(--bg-200)" x="16" y="56" width="300" height="28" rx="8"/>
+    <rect fill="var(--bg-200)" x="16" y="92" width="300" height="28" rx="8"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)">
     <text x="16" y="26">.vibestrate/skills/</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="16" y="44">travels with your repo - prefer this one</text>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)">
     <text x="30" y="75">auth-conventions.md</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="330" y="75">a flat file</text>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)">
     <text x="30" y="111">auth-conventions/SKILL.md</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="330" y="105">a folder, and the only shape</text>
     <text x="330" y="119">that can carry .mcp.json</text>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)">
     <text x="16" y="146">.claude/skills/</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="136" y="146">read too, if you already use Claude Code</text>
   </g>
 </svg>

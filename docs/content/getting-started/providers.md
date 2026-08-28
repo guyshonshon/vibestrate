@@ -56,31 +56,31 @@ Two tiles count what is **detected** and what is **configured**. The cards below
 
 A [[role]] never names a provider. It names a [Profile](/docs/concepts/profile), and the Profile names the provider:
 
-<svg viewBox="0 0 560 112" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Two roles in one crew point at two profiles, and each profile names its own provider: the executor role runs on codex, the reviewer role on claude.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="22" width="150" height="36" rx="8"/>
-    <rect x="195" y="22" width="170" height="36" rx="8"/>
-    <rect x="409" y="22" width="150" height="36" rx="8"/>
-    <rect x="1" y="68" width="150" height="36" rx="8"/>
-    <rect x="195" y="68" width="170" height="36" rx="8"/>
-    <rect x="409" y="68" width="150" height="36" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 112" width="100%" style="max-width:720px;height:auto" role="img" aria-label="Two roles in one crew point at two profiles, and each profile names its own provider: the executor role runs on codex, the reviewer role on claude.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="22" width="150" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="195" y="22" width="170" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="409" y="22" width="150" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="1" y="68" width="150" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="195" y="68" width="170" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="409" y="68" width="150" height="36" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M151 40 H185"/>
     <path d="M365 40 H399"/>
     <path d="M151 86 H185"/>
     <path d="M365 86 H399"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.5">
+  <g fill="var(--fg-200)">
     <polygon points="185,36.5 190,40 185,43.5"/>
     <polygon points="399,36.5 404,40 399,43.5"/>
     <polygon points="185,82.5 190,86 185,89.5"/>
     <polygon points="399,82.5 404,86 399,89.5"/>
   </g>
-  <g fill="currentColor" text-anchor="middle">
-    <text x="76" y="12" font-size="11" fill-opacity="0.5">role</text>
-    <text x="280" y="12" font-size="11" fill-opacity="0.5">profile</text>
-    <text x="484" y="12" font-size="11" fill-opacity="0.5">provider</text>
+  <g fill="var(--fg-100)" text-anchor="middle">
+    <text x="76" y="12" font-size="11" fill="var(--violet-soft)">role</text>
+    <text x="280" y="12" font-size="11" fill="var(--violet-soft)">profile</text>
+    <text x="484" y="12" font-size="11" fill="var(--violet-soft)">provider</text>
     <text x="76" y="45" font-size="12" font-family="ui-monospace,monospace">executor</text>
     <text x="280" y="45" font-size="12" font-family="ui-monospace,monospace">codex-default</text>
     <text x="484" y="45" font-size="12" font-family="ui-monospace,monospace">codex</text>

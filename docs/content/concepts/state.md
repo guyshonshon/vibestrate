@@ -20,16 +20,16 @@ On the dashboard that value is the Status column of **All runs**, behind Runs in
 
 Review and Verify get their own columns because they are separate answers; **Replay** on any row opens that run's timeline read-only. A run starts at `created` and ends in one of four terminal states:
 
-<svg viewBox="0 0 560 150" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A run starts at created, works through planning, architecting, executing, validating, reviewing, fixing and verifying, then ends in one of four terminal statuses: merge_ready, blocked, failed or aborted.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="6" width="110" height="38" rx="8"/>
-    <rect x="147" y="1" width="412" height="48" rx="8"/>
-    <rect x="1" y="106" width="132" height="38" rx="8"/>
-    <rect x="143" y="106" width="132" height="38" rx="8"/>
-    <rect x="285" y="106" width="132" height="38" rx="8"/>
-    <rect x="427" y="106" width="132" height="38" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 150" width="100%" style="max-width:720px;height:auto" role="img" aria-label="A run starts at created, works through planning, architecting, executing, validating, reviewing, fixing and verifying, then ends in one of four terminal statuses: merge_ready, blocked, failed or aborted.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="6" width="110" height="38" rx="8"/>
+    <rect fill="var(--bg-200)" x="147" y="1" width="412" height="48" rx="8"/>
+    <rect fill="var(--bg-200)" x="1" y="106" width="132" height="38" rx="8"/>
+    <rect fill="var(--bg-200)" x="143" y="106" width="132" height="38" rx="8"/>
+    <rect fill="var(--bg-200)" x="285" y="106" width="132" height="38" rx="8"/>
+    <rect fill="var(--bg-200)" x="427" y="106" width="132" height="38" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M111 25 h30"/>
     <path d="M136 21 l5 4 l-5 4"/>
     <path d="M353 49 v22"/>
@@ -37,7 +37,7 @@ Review and Verify get their own columns because they are separate answers; **Rep
     <path d="M67 71 v30"/><path d="M209 71 v30"/><path d="M351 71 v30"/><path d="M493 71 v30"/>
     <path d="M63 96 l4 5 l4 -5"/><path d="M205 96 l4 5 l4 -5"/><path d="M347 96 l4 5 l4 -5"/><path d="M489 96 l4 5 l4 -5"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="56" y="30">created</text>
     <text x="353" y="21">planning, architecting, executing</text>
     <text x="353" y="39">validating, reviewing, fixing, verifying</text>
@@ -46,7 +46,7 @@ Review and Verify get their own columns because they are separate answers; **Rep
     <text x="351" y="130">failed</text>
     <text x="493" y="130">aborted</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="369" y="66">no way back out</text>
   </g>
 </svg>

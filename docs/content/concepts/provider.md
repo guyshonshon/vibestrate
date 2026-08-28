@@ -50,25 +50,25 @@ A model server on this machine, loopback only, so nothing leaves it.
 
 Only one of the four reaches the network:
 
-<svg viewBox="0 0 560 86" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Three provider kinds run on your machine - claude-code, cli and localhost-proxy - and only http-api leaves it.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="0.5" y="16.5" width="380" height="64" rx="10"/>
-    <rect x="12.5" y="42.5" width="111" height="30" rx="7"/>
-    <rect x="134.5" y="42.5" width="111" height="30" rx="7"/>
-    <rect x="256.5" y="42.5" width="111" height="30" rx="7"/>
-    <rect x="448.5" y="42.5" width="111" height="30" rx="7"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 86" width="100%" style="max-width:720px;height:auto" role="img" aria-label="Three provider kinds run on your machine - claude-code, cli and localhost-proxy - and only http-api leaves it.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="0.5" y="16.5" width="380" height="64" rx="10"/>
+    <rect fill="var(--bg-200)" x="12.5" y="42.5" width="111" height="30" rx="7"/>
+    <rect fill="var(--bg-200)" x="134.5" y="42.5" width="111" height="30" rx="7"/>
+    <rect fill="var(--bg-200)" x="256.5" y="42.5" width="111" height="30" rx="7"/>
+    <rect fill="var(--bg-200)" x="448.5" y="42.5" width="111" height="30" rx="7"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M388 58 H437"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.5">
+  <g fill="var(--fg-200)">
     <polygon points="437,54.5 442.5,58 437,61.5"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="13" y="34">runs on this machine</text>
     <text x="448" y="34">leaves it</text>
   </g>
-  <g fill="currentColor" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="11" font-family="var(--font-mono)" text-anchor="middle">
     <text x="68" y="62">claude-code</text>
     <text x="190" y="62">cli</text>
     <text x="312" y="62">localhost-proxy</text>

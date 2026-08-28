@@ -145,6 +145,16 @@ export async function runClaudeCodeProvider(
     : { command: config.command, args, env };
   const executedIn = input.execStrategy?.location ?? "host";
 
+  // Inactivity watchdog, armed ONLY when this turn actually runs with
+  // `--output-format stream-json`. That format is what makes silence
+  // meaningful: the CLI emits events (and, on our streaming default, token
+  // partials) while it works, so no output at all is a wedge. Under `text` /
+  // `json` - or a user-managed `--output-format` we keep our hands off - the
+  // CLI legitimately buffers everything until exit, and a watchdog there would
+  // tree-kill a perfectly healthy turn. Fail-safe: when we cannot prove the
+  // turn streams, we do not watch it.
+  const streams = effectiveClaudeOutputFormat(config) === "stream-json";
+  const stallTimeoutMs = streams ? input.stallTimeoutMs ?? 0 : 0;
   let result;
   try {
     result = await runArgvCommand({
@@ -154,6 +164,7 @@ export async function runClaudeCodeProvider(
       env: spawn.env,
       stdin,
       ...(input.timeoutMs ? { timeoutMs: input.timeoutMs } : {}),
+      ...(stallTimeoutMs > 0 ? { stallTimeoutMs } : {}),
       ...(input.onChunk ? { onChunk: input.onChunk } : {}),
       ...(input.signal ? { signal: input.signal } : {}),
     });
@@ -184,6 +195,7 @@ export async function runClaudeCodeProvider(
     endedAt: result.endedAt,
     appliedReadOnlyHardening,
     executedIn,
+    ...(result.termination ? { termination: result.termination } : {}),
     session: input.session
       ? {
           action: input.session.action === "resume" ? "reused" : "opened",

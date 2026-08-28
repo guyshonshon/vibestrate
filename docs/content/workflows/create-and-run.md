@@ -154,14 +154,14 @@ merge:
 
 The branch is yours to take in one of three directions:
 
-<svg viewBox="0 0 560 146" width="100%" style="max-width:560px;height:auto" role="img" aria-label="When a run finishes, its branch is yours to take in one of three directions: open a pull request to share or review it, merge it locally with git merge, or abandon it with vibe abort.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="52" width="160" height="42" rx="8"/>
-    <rect x="290" y="2" width="269" height="42" rx="8"/>
-    <rect x="290" y="52" width="269" height="42" rx="8"/>
-    <rect x="290" y="102" width="269" height="42" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 146" width="100%" style="max-width:720px;height:auto" role="img" aria-label="When a run finishes, its branch is yours to take in one of three directions: open a pull request to share or review it, merge it locally with git merge, or abandon it with vibe abort.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="52" width="160" height="42" rx="8"/>
+    <rect fill="var(--bg-200)" x="290" y="2" width="269" height="42" rx="8"/>
+    <rect fill="var(--bg-200)" x="290" y="52" width="269" height="42" rx="8"/>
+    <rect fill="var(--bg-200)" x="290" y="102" width="269" height="42" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M161 73 h125"/>
     <path d="M230 23 v100"/>
     <path d="M230 23 h56"/>
@@ -170,13 +170,13 @@ The branch is yours to take in one of three directions:
     <path d="M281 69 l5 4 l-5 4"/>
     <path d="M281 119 l5 4 l-5 4"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="81" y="70">vibestrate/&lt;runId&gt;</text>
     <text x="424" y="20">gh pr create</text>
     <text x="424" y="70">git merge --ff-only</text>
     <text x="424" y="120">vibe abort</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="81" y="87">the run's branch</text>
     <text x="424" y="37">share it, or get it reviewed</text>
     <text x="424" y="87">merge it locally</text>

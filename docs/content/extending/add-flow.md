@@ -97,25 +97,25 @@ A loose `.yml` dropped into `.vibestrate/flows/` is skipped, not read: the direc
 
 Each step has a `kind`. The example uses four, and the last halts the run until you decide:
 
-<svg viewBox="0 0 560 58" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The example Flow runs four steps in order: plan and prototype are agent turns, validate runs the project's checks, and human-check is an approval gate that halts the run.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="6" width="104" height="30" rx="8"/>
-    <rect x="126" y="6" width="128" height="30" rx="8"/>
-    <rect x="275" y="6" width="116" height="30" rx="8"/>
-    <rect x="412" y="6" width="147" height="30" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 58" width="100%" style="max-width:720px;height:auto" role="img" aria-label="The example Flow runs four steps in order: plan and prototype are agent turns, validate runs the project's checks, and human-check is an approval gate that halts the run.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="6" width="104" height="30" rx="8"/>
+    <rect fill="var(--bg-200)" x="126" y="6" width="128" height="30" rx="8"/>
+    <rect fill="var(--bg-200)" x="275" y="6" width="116" height="30" rx="8"/>
+    <rect fill="var(--bg-200)" x="412" y="6" width="147" height="30" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M110 17l4 4-4 4"/>
     <path d="M259 17l4 4-4 4"/>
     <path d="M396 17l4 4-4 4"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="53" y="25">plan</text>
     <text x="190" y="25">prototype</text>
     <text x="333" y="25">validate</text>
     <text x="486" y="25">human-check</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="53" y="52">agent-turn</text>
     <text x="190" y="52">agent-turn</text>
     <text x="333" y="52">validation</text>
@@ -156,23 +156,23 @@ Both are toggles on a step card in the flow editor - **Optional** and **Clean ro
 
 `cleanRoom: true` stops that seat receiving the run narrative from the steps before it. The narrative is the run brief, the story so far, and the project ledger.
 
-<svg viewBox="0 0 560 148" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A clean-room step still receives your attached specs and pinned annotations, and the inputs the step declares. Only the run narrative is hidden from it.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="300" y="1" width="259" height="146" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 148" width="100%" style="max-width:720px;height:auto" role="img" aria-label="A clean-room step still receives your attached specs and pinned annotations, and the inputs the step declares. Only the run narrative is hidden from it.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="300" y="1" width="259" height="146" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M256 58 h88"/><path d="M339 53 l5 5 l-5 5"/>
     <path d="M256 92 h88"/><path d="M339 87 l5 5 l-5 5"/>
     <path d="M256 126 h30"/>
     <path d="M291 119 l14 14"/><path d="M305 119 l-14 14"/>
   </g>
-  <g fill="currentColor" font-size="12">
+  <g fill="var(--fg-100)" font-weight="600" font-size="12">
     <text x="248" y="62" text-anchor="end">your specs and pinned annotations</text>
     <text x="248" y="96" text-anchor="end">the inputs the step declares</text>
     <text x="248" y="130" text-anchor="end">the run narrative</text>
     <text x="314" y="24">a clean-room step</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="248" y="24" text-anchor="end">what a step is sent</text>
     <text x="352" y="62">still arrives</text>
     <text x="352" y="96">still arrives</text>

@@ -81,19 +81,19 @@ POST /api/supervisor/threads/:threadId/turn
 
 `/api/...` is what the bundled dashboard calls; `/api/v1/...` is the canonical contract for external callers.
 
-<svg viewBox="0 0 560 92" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A versioned path such as slash api slash v1 slash flows is rewritten to its unversioned form before routing, so both prefixes reach one handler.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="26" width="160" height="40" rx="8"/>
-    <rect x="244" y="26" width="130" height="40" rx="8"/>
-    <rect x="419" y="26" width="140" height="40" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 92" width="100%" style="max-width:720px;height:auto" role="img" aria-label="A versioned path such as slash api slash v1 slash flows is rewritten to its unversioned form before routing, so both prefixes reach one handler.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="26" width="160" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="244" y="26" width="130" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="419" y="26" width="140" height="40" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M374 46 H409"/>
   </g>
-  <polygon points="409,42.5 414,46 409,49.5" fill="currentColor" fill-opacity="0.5"/>
-  <g fill="currentColor" text-anchor="middle">
+  <polygon points="409,42.5 414,46 409,49.5" fill="var(--fg-200)"/>
+  <g fill="var(--fg-100)" text-anchor="middle">
     <text x="81" y="50" font-size="12" font-family="ui-monospace,monospace">/api/v1/flows</text>
-    <text x="202" y="50" font-size="11" fill-opacity="0.5">rewritten to</text>
+    <text x="202" y="50" font-size="11" fill="var(--violet-soft)">rewritten to</text>
     <text x="309" y="50" font-size="12" font-family="ui-monospace,monospace">/api/flows</text>
     <text x="489" y="50" font-size="12">one handler</text>
   </g>

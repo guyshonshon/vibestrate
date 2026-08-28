@@ -325,6 +325,10 @@
       "label": "Architecture",
       "items": [
         {
+          "slug": "architecture/schematics",
+          "label": "Schematics"
+        },
+        {
           "slug": "architecture/overview",
           "label": "High-level architecture",
           "items": [

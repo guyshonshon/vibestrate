@@ -4033,6 +4033,7 @@ export class Orchestrator {
       taskId: this.taskId!,
       activeCrewId: this.activeCrewId,
       sagaSupervisor: this.sagaSupervisor,
+      unattended: this.unattended,
       enforceSpendCap: (ctx) => this.budgetGovernor.enforceSpendCap(ctx),
       // Resolve-and-cache on the orchestrator: the same catalog cache real
       // turns use, retried on the next turn if resolution failed (null).

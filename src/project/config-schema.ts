@@ -429,6 +429,16 @@ export const resilienceConfigSchema = z
      *  provider.fallback event records it) and never changes the turn's write
      *  permissions (allowWrite is resolved per-turn, not per-profile). */
     autoFallback: z.enum(["off", "crew", "any"]).default("crew").describe("Auto-derive a fallback profile on exhaustion: off, crew, or any (default crew)."),
+    /** Inactivity watchdog for a provider turn, in ms. A model that streams for
+     *  an hour is working; one that writes NOTHING for this long is wedged, and
+     *  a wedged CLI is what hangs an unattended run forever when no profile sets
+     *  `timeoutMs`. Fails the turn as the recoverable class `stall`, so it
+     *  retries under `transient` and then honors `onExhausted` like any other
+     *  recoverable failure. null (default) = auto: on for unattended runs at 20
+     *  minutes, off for attended ones; 0 = off everywhere; N = N ms everywhere.
+     *  Only armed for a provider that provably streams (claude-code under
+     *  `--output-format stream-json`); see resolveStallTimeoutMs. */
+    stallTimeoutMs: z.number().int().min(0).max(86_400_000).nullable().default(null).describe("Fail a provider turn after this many ms with no output; null = auto (20m unattended, off attended), 0 = off."),
     // .prefault(): these literals omit fallbackProfile (relies on its own
     // nested `.nullable().default(null)`), which v4's .default() no longer fills in.
     rateLimit: resilienceClassSchema

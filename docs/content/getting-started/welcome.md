@@ -56,24 +56,24 @@ Each step opens with a short explanation, then asks whether to continue, skip or
 
 ## It remembers where you left off
 
-<svg viewBox="0 0 560 70" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The tour has four steps - providers, crew, flows, and your first run. Quit after the first two and it picks up at flows.">
-  <g fill="currentColor" fill-opacity="0.07">
+<svg font-family="var(--font-sans)" viewBox="0 0 560 70" width="100%" style="max-width:720px;height:auto" role="img" aria-label="The tour has four steps - providers, crew, flows, and your first run. Quit after the first two and it picks up at flows.">
+  <g fill="var(--fg-100)">
     <rect x="2" y="8" width="127" height="34" rx="8"/>
     <rect x="145" y="8" width="127" height="34" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="2" y="8" width="127" height="34" rx="8"/>
-    <rect x="145" y="8" width="127" height="34" rx="8"/>
-    <rect x="288" y="8" width="127" height="34" rx="8"/>
-    <rect x="431" y="8" width="127" height="34" rx="8"/>
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="2" y="8" width="127" height="34" rx="8"/>
+    <rect fill="var(--bg-200)" x="145" y="8" width="127" height="34" rx="8"/>
+    <rect fill="var(--bg-200)" x="288" y="8" width="127" height="34" rx="8"/>
+    <rect fill="var(--bg-200)" x="431" y="8" width="127" height="34" rx="8"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="66" y="30">providers</text>
     <text x="208" y="30">crew</text>
     <text x="352" y="30">flows</text>
     <text x="494" y="30">first run</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="66" y="60">done</text>
     <text x="208" y="60">done</text>
     <text x="352" y="60">picks up here</text>

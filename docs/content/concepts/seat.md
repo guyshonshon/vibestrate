@@ -45,42 +45,26 @@ Two steps can share the `reviewer` seat with different instructions: one reads f
 
 When a task runs, Vibestrate follows the seat through your crew to a model:
 
-<svg viewBox="0 0 560 52" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A Flow step names a Seat, your Crew's Role fills that Seat, the Role names a Profile, and the Profile names a Provider. The Seat is the second link, and the last one a Flow decides.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="0.5" y="0.5" width="88" height="45" rx="8"/>
-    <rect x="222.5" y="0.5" width="88" height="45" rx="8"/>
-    <rect x="333.5" y="0.5" width="116" height="45" rx="8"/>
-    <rect x="472.5" y="0.5" width="87" height="45" rx="8"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
-    <rect x="111.5" y="0.5" width="88" height="45" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M92.5 23 H102.5"/>
-    <path d="M203.5 23 H213.5"/>
-    <path d="M314.5 23 H324.5"/>
-    <path d="M453.5 23 H463.5"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5">
-    <polygon points="102.5,19.5 108,23 102.5,26.5"/>
-    <polygon points="213.5,19.5 219,23 213.5,26.5"/>
-    <polygon points="324.5,19.5 330,23 324.5,26.5"/>
-    <polygon points="463.5,19.5 469,23 463.5,26.5"/>
-  </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
-    <text x="44.5" y="19">Flow step</text>
-    <text x="155.5" y="19">Seat</text>
-    <text x="266.5" y="19">Role</text>
-    <text x="391.5" y="19">Profile</text>
-    <text x="516" y="19">Provider</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="44.5" y="35">review</text>
-    <text x="155.5" y="35">reviewer</text>
-    <text x="266.5" y="35">reviewer</text>
-    <text x="391.5" y="35">claude-balanced</text>
-    <text x="516" y="35">claude</text>
-  </g>
+<svg viewBox="0 0 500 118" width="100%" style="max-width:720px;height:auto" role="img" font-family="var(--font-sans)" aria-label="A Flow step names a Seat, your Crew's Role fills that Seat, the Role names a Profile, and the Profile names a Provider. The Seat is the second link, and the last one a Flow decides.">
+  <rect x="0" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="45" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Flow step</text>
+  <rect x="102" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--violet-soft)" stroke-width="1.75"/>
+  <text x="147" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Seat</text>
+  <path d="M90 43 L98 43" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="90,38.5 98,43 90,47.5" fill="var(--fg-200)"/>
+  <rect x="204" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="249" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Role</text>
+  <path d="M192 43 L200 43" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="192,38.5 200,43 192,47.5" fill="var(--fg-200)"/>
+  <rect x="306" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="351" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Profile</text>
+  <path d="M294 43 L302 43" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="294,38.5 302,43 294,47.5" fill="var(--fg-200)"/>
+  <rect x="408" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="453" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Provider</text>
+  <path d="M396 43 L404 43" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="396,38.5 404,43 396,47.5" fill="var(--fg-200)"/>
+  <text x="0" y="96" font-size="11.5" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="start">review  -&gt;  reviewer  -&gt;  reviewer  -&gt;  claude-balanced  -&gt;  claude-code</text>
 </svg>
 
 Each step records who sat down:

@@ -56,30 +56,30 @@ It leaves a diff on the worktree branch. The `deep` flow adds `architecting → 
 
 The review step can send work back. When it does, the default flow re-enters the implement step itself with the findings: the task returns to `executing`, runs validation again, and comes back to `reviewing` instead of moving on. `deep` hands the findings to its dedicated fixer instead, so the task passes through `fixing`. The run's status hero grows a **review loop** figure reading the pass you are on against the budget.
 
-<svg viewBox="0 0 370 142" width="100%" style="max-width:370px;height:auto" role="img" aria-label="The review loop: an approved review moves on to merge_ready, but a changes-requested review sends the task back to executing, then back through validating into reviewing again.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="1" width="140" height="36" rx="8"/>
-    <rect x="210" y="1" width="159" height="36" rx="8"/>
-    <rect x="1" y="101" width="140" height="36" rx="8"/>
-    <rect x="210" y="101" width="140" height="36" rx="8"/>
-    <path d="M141 19H210M100 37V70H280V101M210 119H141M71 101V37"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 500 142" width="100%" style="max-width:720px;height:auto" role="img" aria-label="The review loop: an approved review moves on to merge_ready, but a changes-requested review sends the task back to executing, then back through validating into reviewing again.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="1" width="200" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="299" y="1" width="200" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="1" y="101" width="200" height="36" rx="8"/>
+    <rect fill="var(--bg-200)" x="299" y="101" width="200" height="36" rx="8"/>
+    <path d="M201 19H299M150 37V70H399V101M299 119H201M101 101V37"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.28" stroke="none">
-    <path d="M204 15 210 19 204 23Z"/>
-    <path d="M276 95 280 101 284 95Z"/>
-    <path d="M147 115 141 119 147 123Z"/>
-    <path d="M67 43 71 37 75 43Z"/>
+  <g fill="var(--fg-300)" stroke="none">
+    <path d="M293 15 299 19 293 23Z"/>
+    <path d="M395 95 399 101 403 95Z"/>
+    <path d="M207 115 201 119 207 123Z"/>
+    <path d="M97 43 101 37 105 43Z"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="71" y="24">reviewing</text>
-    <text x="290" y="24">merge_ready</text>
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
+    <text x="101" y="24">reviewing</text>
+    <text x="399" y="24">merge_ready</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
-    <text x="190" y="64">changes requested</text>
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
+    <text x="250" y="64">changes requested</text>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="71" y="124">validating</text>
-    <text x="280" y="124">executing</text>
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
+    <text x="101" y="124">validating</text>
+    <text x="399" y="124">executing</text>
   </g>
 </svg>
 

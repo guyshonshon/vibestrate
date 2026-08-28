@@ -47,6 +47,46 @@ Eight steps. Six always run; **fix** and **re-validate** are loop-only, firing w
 
 Eight steps, seven statuses: `validating` happens twice. The [state machine](/docs/concepts/state) is the rail underneath, so a run cannot jump from `planning` to `merge_ready`. The fields each step is written from are annotated in [Flow YAML](/docs/reference/flow-yml).
 
+<svg viewBox="0 0 500 246" width="100%" style="max-width:720px;height:auto" role="img" font-family="var(--font-sans)" aria-label="The default flow runs plan, architecture, implement and validate in order, then review. Review approved goes straight to verify; changes requested goes to fix, then re-validate, and back to review at most three times.">
+  <rect x="0" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="58" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Plan</text>
+  <rect x="128" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="186" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Architecture</text>
+  <rect x="256" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="314" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Implement</text>
+  <rect x="384" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="442" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Validate</text>
+  <path d="M116 30 L128 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="120,25.5 128,30 120,34.5" fill="var(--fg-200)"/>
+  <path d="M244 30 L256 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="248,25.5 256,30 248,34.5" fill="var(--fg-200)"/>
+  <path d="M372 30 L384 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="376,25.5 384,30 376,34.5" fill="var(--fg-200)"/>
+  <path d="M442 52 L442 68 L58 68 L58 80" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="53.5,72 58,80 62.5,72" fill="var(--fg-200)"/>
+  <rect x="0" y="84" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--violet-soft)" stroke-width="1.75"/>
+  <text x="58" y="111" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Review</text>
+  <path d="M116 106 L380 106" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="372,101.5 380,106 372,110.5" fill="var(--fg-200)"/>
+  <text x="248" y="98" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="middle">approved</text>
+  <rect x="384" y="84" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="442" y="111" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Verify</text>
+  <path d="M58 128 L58 152 L124 152" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="116,147.5 124,152 116,156.5" fill="var(--fg-200)"/>
+  <text x="134" y="146" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="start">changes requested</text>
+  <rect x="128" y="158" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="186" y="185" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Fix</text>
+  <path d="M244 180 L252 180" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="244,175.5 252,180 244,184.5" fill="var(--fg-200)"/>
+  <rect x="256" y="158" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="314" y="185" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Re-validate</text>
+  <path d="M372 180 L466 180 L466 216 L34 216 L34 132" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="29.5,140 34,132 38.5,140" fill="var(--fg-200)"/>
+  <text x="250" y="232" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="middle">at most 3 passes</text>
+</svg>
+
+The one cycle in the default flow, and its bound. Review either approves straight through to verify, or sends the work to fix and re-validate and looks again, at most three times.
+
 ## Why the steps split this way
 
 <div class="docs-cards">
@@ -134,6 +174,27 @@ A model turn only counts as success if its provider exits cleanly **and** return
 - **Skipping validation.** The loop then has no ground truth underneath it.
 - **Setting `maxReviewLoops` too high.** Three to five passes is usually enough. Past that, the run is probably stuck and should `block` to call you over.
 - **Adding steps by editing the workflow array.** A custom Flow is the supported extension point.
+
+## What a step carries
+
+| Field | What it is |
+|---|---|
+| `id`, `label` | Its handle, and its display name. |
+| `kind` | How it runs: `agent-turn`, `review-turn`, `response-turn`, `validation`, `summary-turn`, `approval-gate`. |
+| `seat` | The seat it needs filled. Only the turn kinds take one. |
+| `stage` | The coarse run phase, and the boundary `--resume-from` can restart at. |
+| `inputs`, `outputs` | Named artifacts it reads and writes. This is the handoff between steps. |
+| `needs` | Steps that must finish first. Using it makes the flow a graph rather than a line. |
+| `retries` | Extra attempts for a flaky turn, 0 to 5. |
+| `optional`, `skipWhenReadOnly`, `skipWhen` | The three ways a step is passed over. |
+| `continueOnError` | The run advances past its failure instead of ending. |
+| `approval` | Turns it into a gate that waits for you. |
+| `repeat` | Runs it once per item in a named collection. |
+| `instructions` | Extra prompt text, this step only. |
+| `skills` | Skill packs for this turn only, merged with the role's own. |
+| `cleanRoom` | Drops the run's narrative for this seat, keeping its declared `inputs`, so a judge does not anchor on how the producer framed things. |
+
+The shape is `flowStepSchema` in `src/flows/schemas/flow-schema.ts`.
 
 ## Related
 

@@ -82,29 +82,29 @@ Eight kinds of effect cross it, and this is the whole list:
 
 </div>
 
-<svg viewBox="0 0 560 130" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A run's own effects pass through the Action Broker, which records its decision in actions.ndjson. Editing your own settings writes straight to project.yml with no broker call.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="10" width="150" height="40" rx="8"/>
-    <rect x="205" y="10" width="150" height="40" rx="8"/>
-    <rect x="409" y="10" width="150" height="40" rx="8"/>
-    <rect x="1" y="80" width="150" height="40" rx="8"/>
-    <rect x="409" y="80" width="150" height="40" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 130" width="100%" style="max-width:720px;height:auto" role="img" aria-label="A run's own effects pass through the Action Broker, which records its decision in actions.ndjson. Editing your own settings writes straight to project.yml with no broker call.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="10" width="150" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="205" y="10" width="150" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="409" y="10" width="150" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="1" y="80" width="150" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="409" y="80" width="150" height="40" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M151 30 h50"/><path d="M196 26 l5 4 l-5 4"/>
     <path d="M355 30 h50"/><path d="M400 26 l5 4 l-5 4"/>
     <path d="M151 100 h74"/><path d="M335 100 h70"/><path d="M400 96 l5 4 l-5 4"/>
   </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
+  <g fill="var(--fg-100)" font-weight="600" font-size="12" text-anchor="middle">
     <text x="76" y="34">a run's own effects</text>
     <text x="280" y="34">Action Broker</text>
     <text x="76" y="104">you, configuring</text>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="484" y="34">actions.ndjson</text>
     <text x="484" y="104">project.yml</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="280" y="104">no broker call</text>
   </g>
 </svg>
@@ -244,6 +244,62 @@ Because they ship off, an unattended run with **no ceiling and no confinement** 
 The dollar cap has a configurable action once hit (`budget.capAction`): `stop` (default), `downgrade-model` onto the cheaper `budget.fallbackProfile`, or `reduce-effort`. The count and time ceilings remain the ultimate stop. For **attended** runs, `budget.onLimit: pause` waits for you to approve continuing and `resilience.onExhausted: pause` waits when a provider's retries and fallback run out; both default to the unattended-safe `stop` and `fail`, and the composer's **Unattended** switch forces no-pause regardless of config.
 
 A recoverable provider failure - a rate limit, or a transient blip like a 5xx, an overload or a timeout - is **auto-retried with backoff**. Hard failures like a bad flag, an auth error or empty output are not. If retries run out, a **fallback** runs the turn once on another Profile, picked by `resilience.autoFallback`: `crew` (the default) reseats onto a profile **already seated in this run's flow** on a different provider, so no provider outside the run's trust set ever sees its context; `any` widens it to every configured profile; `off` disables it. The seat keeps its context and its permissions, and every outcome, "no candidate available" included, is a `provider.fallback` event.
+
+A provider that hangs is the other way an unattended run fails to end. Nothing capped a turn's length by default - `profile.timeoutMs` is unset unless you set it - so a wedged CLI could hold a run open forever, which is exactly what `--unattended` promises won't happen. An **inactivity watchdog** now bounds it, and it watches for *silence*, not elapsed time: a model that streams for an hour is working, so a turn that keeps producing output is never interrupted, however long it takes. A turn that produces nothing at all for `resilience.stallTimeoutMs` has its whole process group killed and fails as the class `stall` - which retries under `transient`, then honors `onExhausted` like any other recoverable failure. It defaults to **20 minutes on unattended runs and off on attended ones** (a human is watching those and can stop the run); `0` turns it off everywhere and an explicit number applies to both. The window is generous on purpose: a streaming provider goes quiet for the length of one opaque tool call, so waiting a little longer on a dead run beats killing a live one. It is armed only where silence actually means something - a `claude-code` turn running under `--output-format stream-json`, its default. Set `profile.timeoutMs` to bound a `type: cli` provider, which may legitimately buffer everything until it exits.
+
+<svg viewBox="0 0 500 272" width="100%" style="max-width:720px;height:auto" role="img" font-family="var(--font-sans)" aria-label="A failed turn is checked first for a typed stall code, then classified from its stderr text. Stall, rate-limit and transient retry with backoff; usage-limit waits for its reset window; both then try a fallback profile. Hard skips all of it.">
+  <rect x="0" y="24" width="140" height="40" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="70" y="49" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">turn failed</text>
+  <path d="M70 64 L70 74" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="65.5,66 70,74 74.5,66" fill="var(--fg-200)"/>
+  <rect x="0" y="78" width="140" height="40" rx="10" fill="var(--bg-200)" stroke="var(--violet-soft)" stroke-width="1.75"/>
+  <text x="70" y="103" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">typed stall?</text>
+  <path d="M70 118 L70 128" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="65.5,120 70,128 74.5,120" fill="var(--fg-200)"/>
+  <rect x="0" y="132" width="140" height="40" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="70" y="157" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">match stderr</text>
+  <rect x="186" y="8" width="122" height="36" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="247" y="31" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">stall</text>
+  <rect x="186" y="54" width="122" height="36" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="247" y="77" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">rate-limit</text>
+  <rect x="186" y="100" width="122" height="36" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="247" y="123" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">transient</text>
+  <rect x="186" y="152" width="122" height="36" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="247" y="175" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">usage-limit</text>
+  <rect x="186" y="210" width="122" height="36" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="247" y="233" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">hard</text>
+  <path d="M140 98 L164 98 L164 26 L180 26" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="172,21.5 180,26 172,30.5" fill="var(--fg-200)"/>
+  <path d="M140 152 L168 152 L168 72 L180 72" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="172,67.5 180,72 172,76.5" fill="var(--fg-200)"/>
+  <path d="M168 118 L180 118" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="172,113.5 180,118 172,122.5" fill="var(--fg-200)"/>
+  <path d="M168 170 L180 170" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="172,165.5 180,170 172,174.5" fill="var(--fg-200)"/>
+  <path d="M168 228 L180 228" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="172,223.5 180,228 172,232.5" fill="var(--fg-200)"/>
+  <rect x="340" y="24" width="160" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="420" y="51" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">retry with backoff</text>
+  <rect x="340" y="88" width="160" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="420" y="115" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">wait for the window</text>
+  <rect x="340" y="168" width="160" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="420" y="195" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">fallback, then fail</text>
+  <path d="M308 26 L322 26 L322 46 L334 46" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="326,41.5 334,46 326,50.5" fill="var(--fg-200)"/>
+  <path d="M308 118 L322 118 L322 46" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="314,41.5 322,46 314,50.5" fill="var(--fg-200)"/>
+  <path d="M308 170 L328 170 L328 110 L334 110" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="326,105.5 334,110 326,114.5" fill="var(--fg-200)"/>
+  <path d="M420 68 L420 80" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="415.5,72 420,80 424.5,72" fill="var(--fg-200)"/>
+  <path d="M420 132 L420 160" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="415.5,152 420,160 424.5,152" fill="var(--fg-200)"/>
+  <path d="M308 228 L328 228 L328 190 L334 190" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="326,185.5 334,190 326,194.5" fill="var(--fg-200)"/>
+  <text x="0" y="264" font-size="11.5" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="start">the stall code is read structurally, never matched as text</text>
+</svg>
+
+How a failed turn is resolved. The class decides which rung it enters at, and only `hard` skips the ladder entirely.
 
 A **subscription usage limit** is a per-model quota that resets hours out, handled separately from a per-minute rate limit. `resilience.usageLimit.action` is `wait` (sleep for the parsed window, capped at `maxWaitMin`), `fallback`, or `stop` (the default, after trying the auto-derived fallback first). A provider failure that does end the run ends loudly with its cause: the classified failure and a redacted excerpt of the provider's real error travel into the step's error, the event log, the Supervisor feed and the assurance verdict, never a bare "provider exited 1".
 

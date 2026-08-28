@@ -66,31 +66,25 @@ Vibestrate works best on what you'd hand a careful colleague: clear scope, code 
 
 The default flow wires that into four steps, with the loop capped at three passes: the first implementation plus up to two redo passes. The `deep` flow keeps the longer eight-step pipeline - an architecture pass, a dedicated fixer seat and an independent verify gate - for work that earns them.
 
-<svg viewBox="0 0 380 84" width="100%" style="max-width:380px;height:auto" role="img" aria-label="The default flow runs plan, implement, validation and review in order; when review asks for changes it loops back to implement.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="3" y="6" width="64" height="30" rx="8"/>
-    <rect x="86" y="6" width="88" height="30" rx="8"/>
-    <rect x="193" y="6" width="88" height="30" rx="8"/>
-    <rect x="300" y="6" width="68" height="30" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M71 17l4 4-4 4"/>
-    <path d="M178 17l4 4-4 4"/>
-    <path d="M285 17l4 4-4 4"/>
-    <path d="M334 36v22H130v-16"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5">
-    <path d="M126 42l4-6 4 6z"/>
-  </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="35" y="25">plan</text>
-    <text x="130" y="25">implement</text>
-    <text x="237" y="25">validation</text>
-    <text x="334" y="25">review</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="end">
-    <text x="330" y="74">if review asks for changes</text>
-  </g>
+<svg viewBox="0 0 500 124" width="100%" style="max-width:720px;height:auto" role="img" font-family="var(--font-sans)" aria-label="The default flow runs plan, implement, validate and review in order. An approved review ends the run; changes requested goes back to implement, at most three passes.">
+  <rect x="0" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="58" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Plan</text>
+  <rect x="128" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="186" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Implement</text>
+  <rect x="256" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="314" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Validate</text>
+  <rect x="384" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--violet-soft)" stroke-width="1.75"/>
+  <text x="442" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Review</text>
+  <path d="M116 30 L128 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="120,25.5 128,30 120,34.5" fill="var(--fg-200)"/>
+  <path d="M244 30 L256 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="248,25.5 256,30 248,34.5" fill="var(--fg-200)"/>
+  <path d="M372 30 L384 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="376,25.5 384,30 376,34.5" fill="var(--fg-200)"/>
+  <path d="M442 52 L442 92 L186 92 L186 60" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="181.5,60 186,52 190.5,60" fill="var(--fg-200)"/>
+  <text x="314" y="86" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="middle">changes requested</text>
+  <text x="314" y="110" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="middle">at most 3 passes</text>
 </svg>
 
 Those step names are the folder names under the run's artifacts, so the `review` box above is the same `review` in `artifacts/flows/review/output.md`.

@@ -93,23 +93,23 @@ because a stored secret is an env reference rather than a value to show.
 
 At run start each declared param resolves top to bottom, stopping at the first source that has a value:
 
-<svg viewBox="0 0 560 234" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Precedence for a project parameter, highest first: an explicit --param flag, then VIBESTRATE_PARAM_NAME in the environment, then the stored project value, then the Flow's default, and only then a prompt or a fast failure in CI.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="1" width="306" height="32" rx="8"/>
-    <rect x="1" y="51" width="306" height="32" rx="8"/>
-    <rect x="1" y="101" width="306" height="32" rx="8"/>
-    <rect x="1" y="151" width="306" height="32" rx="8"/>
-    <rect x="1" y="201" width="306" height="32" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 234" width="100%" style="max-width:720px;height:auto" role="img" aria-label="Precedence for a project parameter, highest first: an explicit --param flag, then VIBESTRATE_PARAM_NAME in the environment, then the stored project value, then the Flow's default, and only then a prompt or a fast failure in CI.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="1" width="306" height="32" rx="8"/>
+    <rect fill="var(--bg-200)" x="1" y="51" width="306" height="32" rx="8"/>
+    <rect fill="var(--bg-200)" x="1" y="101" width="306" height="32" rx="8"/>
+    <rect fill="var(--bg-200)" x="1" y="151" width="306" height="32" rx="8"/>
+    <rect fill="var(--bg-200)" x="1" y="201" width="306" height="32" rx="8"/>
     <path d="M154 33v18M154 83v18M154 133v18M154 183v18"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)">
     <text x="17" y="22">--param</text>
     <text x="17" y="72">VIBESTRATE_PARAM_&lt;NAME&gt;</text>
     <text x="17" y="122">the stored project value</text>
     <text x="17" y="172">the Flow's default</text>
     <text x="17" y="222">prompt, or fail fast in CI</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="326" y="22">one-off override, or the composer</text>
     <text x="326" y="72">the clean CI seed</text>
     <text x="326" y="122">what you filled in once</text>

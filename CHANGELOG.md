@@ -87,6 +87,72 @@
   six turns around the one turn that writes code. The six-seat pipeline
   (architect, fixer, independent verify gate) is unchanged and available as
   the `deep` flow.
+- **Every docs diagram is on the design system now.** Thirty-six figures were
+  still drawn the old way - `currentColor` at 0.28 opacity, rendered at 560px -
+  while the newer ones used the site's violet, white and Geist. Mixed styles on
+  neighbouring pages read worse than either alone, so the remaining thirty-six
+  were converted: filled surfaces, white labels, violet secondaries, heavier
+  connectors, and a uniform upscale to 720px. Geometry is untouched, so nothing
+  reflowed. All 55 figures now take their colour from the tokens.
+
+- **The docs diagrams are drawn on the design system now.** They were matching
+  the forty-one figures already in the docs - `currentColor` at 0.28 opacity,
+  11px labels - which is the weakest convention on the page rather than the
+  design: the site defines `--violet-deep`, `--fg-100` and Geist, and those
+  figures use none of them. Redrawn with the tokens: violet badges carrying real
+  names, white type, filled containers, bold connectors, and about 1.7x the type
+  size. The chain figure on Flow, Seat, Role and Profile came with them, so no
+  page shows a bold drawing beside a faint one.
+
+- **The docs overview now explains the docs.** It described the product and
+  stopped, so the shape of the manual - what a page looks like, which of the
+  three kinds you are on, what is generated and therefore cannot drift - was
+  something you inferred. It says so now, and it points at the schematics, which
+  were real but effectively unfindable three levels down the sidebar. Schematics
+  is a top-level Architecture entry now.
+
+- **The docs got the diagrams they were missing, and a page that collects them.**
+  Seven subjects that only had prose now have a figure: what a flow holds, what a
+  profile holds, what a run holds, the default flow and its one cycle, how a run
+  is driven, what one turn does, and how a failed turn is resolved. Each sits on
+  the page that explains it, and `architecture/schematics` collects the whole set
+  in dependency order for reading in one pass. They are drawn to the docs' own
+  idiom rather than imported from elsewhere: 560px wide like the forty-one
+  figures already there, every fill and stroke `currentColor`, no literal colour
+  anywhere. Two new gates hold that line - one refuses a figure that hard-codes a
+  colour or overruns the article column, the other refuses a repeated figure that
+  has drifted from its original.
+
+- **The docs now say what each type is made of.** Every core concept page
+  carried a good explanation of what a Flow or a Profile is *for* and nothing at
+  all about what it *holds*, so the only way to learn that a profile has a
+  `timeoutMs` was to open the Zod schema. Flow, Steps, Profile, Role, Crew, Run
+  and Task each gained a "What a X carries" table naming its real fields with
+  what they mean; `architecture/overview` gained a type map putting all nine on
+  one screen; and the quick start opens with the six words and the one sentence
+  that connects them, so the shape is clear before the install. The tables are
+  curated rather than exhaustive - `reference/config` stays the generated,
+  complete list - and a new gate parses every table back against the schema it
+  describes, so prose can no longer name a field that was renamed or removed.
+  It found one on the way in: a flow seat has no `id` field, the id is the key
+  it is filed under.
+
+- **An unattended run can no longer be held open by a hung provider.**
+  `--unattended` promises the run always terminates on its own, but nothing
+  bounded a provider turn: `profile.timeoutMs` is unset unless you set it, so a
+  wedged CLI hung the run forever with no event, no failure and no end. There is
+  now an inactivity watchdog, and the distinction matters - it watches for
+  *silence*, not elapsed time. A model streaming for an hour is working and is
+  never touched; a turn that produces no output at all for 20 minutes has its
+  whole process group killed and fails as the typed class `stall`, which retries
+  under `resilience.transient` and then honors `onExhausted` like any other
+  recoverable failure, ending with one terminal event that names the cause.
+  `resilience.stallTimeoutMs` sets the window (`0` disables it; a number applies
+  to attended runs too). It arms only where silence is evidence of a wedge - a
+  `claude-code` turn under `--output-format stream-json`, its default - because
+  a CLI that buffers until it exits is legitimately quiet, and killing a healthy
+  turn costs more than waiting out a dead one.
+
 - A run's task now fits a full GitHub issue. The task field was capped at
   2,000 characters at six separate entry points; pasting an ordinary issue got
   refused before any agent ran. The bound is now 65,536 - GitHub's own

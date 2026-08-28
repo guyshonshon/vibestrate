@@ -112,22 +112,22 @@ The `--json` form prints the flag as it is stored:
 
 "Within your autonomy setting" is doing real work there. Two independent controls have to agree before the supervisor acts: this flag, and `supervisorControl.autonomy` in your config. `status` reports the flag alone, so a cleared flag with autonomy left on `advise` still means it answers and nothing more. See [Supervisor Control](/docs/concepts/supervisor-control).
 
-<svg viewBox="0 0 560 112" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The supervisor acts only when both controls agree: the pause flag says running, and autonomy in your config is set to act. Then it may create a task, add TODOs, or start a run.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="4" width="210" height="44" rx="8"/>
-    <rect x="1" y="60" width="210" height="44" rx="8"/>
-    <rect x="330" y="32" width="210" height="44" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 112" width="100%" style="max-width:720px;height:auto" role="img" aria-label="The supervisor acts only when both controls agree: the pause flag says running, and autonomy in your config is set to act. Then it may create a task, add TODOs, or start a run.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="4" width="210" height="44" rx="8"/>
+    <rect fill="var(--bg-200)" x="1" y="60" width="210" height="44" rx="8"/>
+    <rect fill="var(--bg-200)" x="330" y="32" width="210" height="44" rx="8"/>
     <path d="M211 26 H250 M211 82 H250 M250 26 V82 M250 54 H323"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.28">
+  <g fill="var(--fg-300)">
     <path d="M330 54 l-7 -4 v8 z"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)">
     <text x="16" y="24">pause flag: running</text>
     <text x="16" y="80">autonomy: act</text>
     <text x="435" y="52" text-anchor="middle">it may act</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="16" y="40">what status reports</text>
     <text x="16" y="96">what your config says</text>
     <text x="286" y="48" text-anchor="middle">and</text>

@@ -99,21 +99,21 @@ Assignment is the gated half. From the dashboard it crosses the Action Broker as
 
 `.vibestrate/rules.md` loads for *every* agent on *every* run. A skill loads only for the agents and runs that ask for it - a smaller circle inside the same one:
 
-<svg viewBox="0 0 560 130" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Project rules are loaded for every agent on every run; a skill is loaded only for the roles that name it, so a skill's audience sits inside the rules' audience.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="1" width="558" height="126" rx="10"/>
-    <rect x="16" y="56" width="528" height="56" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 130" width="100%" style="max-width:720px;height:auto" role="img" aria-label="Project rules are loaded for every agent on every run; a skill is loaded only for the roles that name it, so a skill's audience sits inside the rules' audience.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="1" width="558" height="126" rx="10"/>
+    <rect fill="var(--bg-200)" x="16" y="56" width="528" height="56" rx="8"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)">
     <text x="16" y="26">.vibestrate/rules.md</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="16" y="44">every agent, every run</text>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)">
     <text x="32" y="82">.vibestrate/skills/payments</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11">
+  <g fill="var(--violet-soft)" font-size="11">
     <text x="32" y="100">only the roles that name it</text>
   </g>
 </svg>

@@ -101,34 +101,34 @@ Preferred flows and crews; when to go heavier.
 
 Next to the manual sits a different kind of memory: `.vibestrate/CODEBASE.md` and `.vibestrate/codebase-map.json`. Where VIBESTRATE.md is *your* intent, the map is a deterministic scan - stack, scripts, layout, languages, entry points, best-effort HTTP routes, tooling markers. Nobody writes it by hand, and the same repo state always produces the same map, so there is nothing to keep in sync.
 
-<svg viewBox="0 0 560 136" width="100%" style="max-width:560px;height:auto" role="img" aria-label="Two memories with different authors and different readers: you write VIBESTRATE.md and Consult reads it, while vibe learn regenerates the codebase map, which Consult and the planner both read.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="1" width="260" height="48" rx="8"/>
-    <rect x="310" y="1" width="249" height="48" rx="8"/>
-    <rect x="1" y="79" width="260" height="48" rx="8"/>
-    <rect x="310" y="79" width="249" height="48" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 136" width="100%" style="max-width:720px;height:auto" role="img" aria-label="Two memories with different authors and different readers: you write VIBESTRATE.md and Consult reads it, while vibe learn regenerates the codebase map, which Consult and the planner both read.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="1" width="260" height="48" rx="8"/>
+    <rect fill="var(--bg-200)" x="310" y="1" width="249" height="48" rx="8"/>
+    <rect fill="var(--bg-200)" x="1" y="79" width="260" height="48" rx="8"/>
+    <rect fill="var(--bg-200)" x="310" y="79" width="249" height="48" rx="8"/>
     <path d="M261 25H310M261 103H310"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.28" stroke="none">
+  <g fill="var(--fg-300)" stroke="none">
     <path d="M304 21 310 25 304 29Z"/>
     <path d="M304 99 310 103 304 107Z"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="131" y="26">VIBESTRATE.md</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="131" y="42">you write it, and commit it</text>
   </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
+  <g fill="var(--fg-100)" font-weight="600" font-size="12" text-anchor="middle">
     <text x="434" y="30">Consult reads it</text>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="131" y="104">.vibestrate/CODEBASE.md</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="131" y="120">vibe learn regenerates it</text>
   </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
+  <g fill="var(--fg-100)" font-weight="600" font-size="12" text-anchor="middle">
     <text x="434" y="108">Consult and the planner</text>
   </g>
 </svg>

@@ -118,33 +118,33 @@ Grounding context, the [Crew](/docs/concepts/crew), the git branch and any block
 
 Once a Task has a checklist, **Run checklist** at the foot of the section works every item in one worktree, labelled with the count still pending, and a **step-by-step** box beside it pauses between items. Under the hood this is the built-in `pickup` [flow](/docs/concepts/flow):
 
-<svg viewBox="0 0 560 96" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A pickup run plans once for the whole checklist, then runs a micro-plan and implement band once per item with its own commit, then reviews once at the end.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="0.5" y="12.5" width="140" height="46" rx="8"/>
-    <rect x="180.5" y="12.5" width="200" height="46" rx="8"/>
-    <rect x="420.5" y="12.5" width="139" height="46" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 96" width="100%" style="max-width:720px;height:auto" role="img" aria-label="A pickup run plans once for the whole checklist, then runs a micro-plan and implement band once per item with its own commit, then reviews once at the end.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="0.5" y="12.5" width="140" height="46" rx="8"/>
+    <rect fill="var(--bg-200)" x="180.5" y="12.5" width="200" height="46" rx="8"/>
+    <rect fill="var(--bg-200)" x="420.5" y="12.5" width="139" height="46" rx="8"/>
   </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
+  <g fill="none" stroke="var(--fg-200)" stroke-width="2">
     <path d="M147 35 H165"/>
     <path d="M387 35 H405"/>
     <path d="M360 59 C360 82 200 82 200 59"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.5">
+  <g fill="var(--fg-200)">
     <polygon points="165,31.5 170.5,35 165,38.5"/>
     <polygon points="405,31.5 410.5,35 405,38.5"/>
     <polygon points="195.5,67 204.5,67 200,59"/>
   </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
+  <g fill="var(--fg-100)" font-weight="600" font-size="12" text-anchor="middle">
     <text x="70.5" y="31">plan</text>
     <text x="280.5" y="31">micro-plan + implement</text>
     <text x="490" y="31">review</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="70.5" y="46">once, holistic</text>
     <text x="280.5" y="46">per item, own commit</text>
     <text x="490" y="46">once, holistic</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="280" y="92">next item</text>
   </g>
 </svg>
@@ -190,6 +190,28 @@ Importing is **additive**: it creates cards and never updates or deletes one, so
 **Why a file and not a Jira connector.** Every one of those trackers is a hosted service reached with a stored credential, and Vibestrate keeps no cloud account and stores no secrets. Shipping a connector would decide that posture question by accident. A file needs no account, sends nothing anywhere, and works offline - and it is most of the value. Two-way sync is a different thing again: it needs an identity map and conflict resolution, and a half-built one silently picking a winner is worse than no sync at all.
 
 </div>
+
+## What a task carries
+
+A card outlives the runs it starts, so it holds the intent and the history while
+each run holds one attempt.
+
+| Field | What it is |
+|---|---|
+| `id`, `title`, `description` | Its handle, and what you want done. |
+| `runMode` | `plain` for one holistic pass, `supervised` for the Conductor. |
+| `status` | Where the card sits on the board. |
+| `checklist` | The ordered breakdown, each item with its own status. |
+| `acceptanceCriteria`, `acceptanceCommands` | What "done" means, in prose and as commands. |
+| `specRef` | The spec this card was written against, when spec-up produced one. |
+| `dependencies` | Cards that must land first. |
+| `runIds`, `currentRunId` | Every run this card has started, and the live one. |
+| `contextSources` | Files, PDFs and URLs handed to every agent on every run. |
+| `profileOverride`, `readOnly` | Per-card overrides of how its runs are cast. |
+| `needsTesting`, `needsTestingReason` | The non-blocking flag a reviewer raises when a person should look. |
+| `archived` | A flag you set, independent of run status. |
+
+The shape is `taskSchema` in `src/roadmap/roadmap-types.ts`.
 
 ## In the terminal shell
 

@@ -111,18 +111,18 @@ Alongside the four entries above, `rules/` takes extra instruction files compose
 
 `policies/` is the one to watch: a rule file that fails to parse, or two claiming the same id, stops run creation outright rather than being skipped. `vibe policies doctor` names the file and the reason.
 
-<svg viewBox="0 0 560 104" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The committed half of .vibestrate/ holds project.yml, rules.md, rules/, roles/, skills/, flows/ and policies/, beside runs/, which is local run history you add to .gitignore.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="18" width="558" height="72" rx="10"/>
-    <rect x="14" y="44" width="344" height="40" rx="8"/>
-    <rect x="370" y="44" width="176" height="40" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 104" width="100%" style="max-width:720px;height:auto" role="img" aria-label="The committed half of .vibestrate/ holds project.yml, rules.md, rules/, roles/, skills/, flows/ and policies/, beside runs/, which is local run history you add to .gitignore.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="18" width="558" height="72" rx="10"/>
+    <rect fill="var(--bg-200)" x="14" y="44" width="344" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="370" y="44" width="176" height="40" rx="8"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)">
     <text x="14" y="36">.vibestrate/</text>
     <text x="186" y="61" text-anchor="middle">commit these</text>
     <text x="458" y="61" text-anchor="middle">runs/</text>
   </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="middle">
+  <g fill="var(--violet-soft)" font-size="11" text-anchor="middle">
     <text x="186" y="77" font-size="10">project.yml, rules.md, rules/, roles/, skills/, flows/, policies/</text>
     <text x="458" y="77">local history - gitignore it</text>
   </g>

@@ -67,21 +67,21 @@ The five are **Tour the dashboard**, **Make a crew**, **Make a flow**, **Run som
 
 Nothing a model wrote opens on trust. Each step names a page and, optionally, one control to ring, both checked against the app's real route table and its real list of ringable controls. A failing step goes, and the rest still run.
 
-<svg viewBox="0 0 560 104" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A step a model wrote is checked against the app's real screens and controls. It either runs, or it is dropped.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="1" y="32" width="186" height="40" rx="8"/>
-    <rect x="222" y="32" width="110" height="40" rx="8"/>
-    <rect x="396" y="6" width="162" height="40" rx="8"/>
-    <rect x="396" y="58" width="162" height="40" rx="8"/>
+<svg font-family="var(--font-sans)" viewBox="0 0 560 104" width="100%" style="max-width:720px;height:auto" role="img" aria-label="A step a model wrote is checked against the app's real screens and controls. It either runs, or it is dropped.">
+  <g fill="none" stroke="var(--line-strong)" stroke-width="1.25">
+    <rect fill="var(--bg-200)" x="1" y="32" width="186" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="222" y="32" width="110" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="396" y="6" width="162" height="40" rx="8"/>
+    <rect fill="var(--bg-200)" x="396" y="58" width="162" height="40" rx="8"/>
     <path d="M187 52 H215"/>
     <path d="M332 52 H356 M356 26 V78 M356 26 H389 M356 78 H389"/>
   </g>
-  <g fill="currentColor" fill-opacity="0.28">
+  <g fill="var(--fg-300)">
     <path d="M222 52 l-7 -4 v8 z"/>
     <path d="M396 26 l-7 -4 v8 z"/>
     <path d="M396 78 l-7 -4 v8 z"/>
   </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
+  <g fill="var(--fg-100)" font-size="12" font-family="var(--font-mono)" text-anchor="middle">
     <text x="94" y="57">a step the model wrote</text>
     <text x="277" y="57">checked</text>
     <text x="477" y="31">it runs</text>
